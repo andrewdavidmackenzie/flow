@@ -1,0 +1,28 @@
+# Name of this flow
+name: say hello
+
+# All inputs sent into this flow must appear here
+inputs:
+
+outputs:
+    output:
+        name: message
+        type: String
+
+inputOutputs:
+
+outputInputs:
+
+# These are values initiated inside this flow
+values:
+    name: message
+    type: String
+
+functions:
+
+connections:
+    connection:
+        name: message
+        dataType: String
+        from: value/message
+        to: output/message

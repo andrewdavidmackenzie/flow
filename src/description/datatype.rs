@@ -1,0 +1,3 @@
+struct DataType {
+	name: String,
+}

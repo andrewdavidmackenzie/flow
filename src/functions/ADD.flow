@@ -1,0 +1,16 @@
+name: ADD
+
+# List of inputs must match the list of inputs declared wherever this flow is used
+inputs:
+    input:
+        name: param1
+        dataType: Integer
+
+    input:
+        name: param2
+        dataType: Integer
+
+outputs:
+    output:
+        name: sum
+        dataType: Integer

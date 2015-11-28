@@ -1,0 +1,27 @@
+# Name of this flow
+name: hello-world
+
+# Context flow describes:
+ # the entities data flows to/from
+ # the main flow, which is described in a separate file
+ # connections between the sub-flow and the entities
+
+# Declare entities external to the flow
+entities:
+    entity:
+        name: STDIO
+
+# The context level can only contain one sub-flow
+flows:
+    flow:
+        name: say hello
+        source: 1.flow
+
+# This is a list of connections between entities and the sub-flow
+# This MUST match the list of inputs/outputs described in the child-flow
+connections:
+    connection:
+        name: message
+        dataType: String
+        from: flow/say hello/message
+        to: entity/STDIO/stdout

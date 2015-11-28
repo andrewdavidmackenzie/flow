@@ -1,0 +1,28 @@
+# This file is a descriptor of the entity and used to match types and make connections
+# when this entity is used in a flow
+
+name: STDIO
+
+# List of inputs must match the list of inputs declared wherever this flow is used
+inputs:
+    input:
+        name: stdout
+        dataType: String
+
+    input:
+        name: stderr
+        dataType: String
+
+outputs:
+    output:
+        name: stdin
+        dataType: String
+
+inputOutputs:
+    inputOutput:
+        input:
+            name: prompt
+            dataType: String
+        output:
+            name: response
+            dataType: String
