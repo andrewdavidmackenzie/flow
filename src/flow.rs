@@ -1,13 +1,21 @@
+
+
+mod description;
+mod execution;
+
 fn main() {
 	println!("Running flow: ");
 
     /*
 
+    validate model (see check)
+
     load flow definition from file specified in arguments
         - load any referenced to included flows also
 
     construct overall list of functions
-        - check complete and no unattached input flows?
+
+    construct list of connections
 
     construct initial list of all functions able to produce output
         - start from external sources at level 0

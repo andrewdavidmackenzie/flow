@@ -1,20 +1,20 @@
-use datatype;
+use description::datatype::DataType;
 
-struct IO {
+pub struct IO {
 	name: String,
 	dataType: DataType,
 }
 
-type Input = IO;
+pub type Input = IO;
 
-type Output = IO;
+pub type Output = IO;
 
-struct InputOutput {
+pub struct InputOutput {
 	input: Input,
 	output: Output,
 }
 
-struct OutputInput {
+pub struct OutputInput {
 	output: Output,
 	input: Input,
 }

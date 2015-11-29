@@ -3,5 +3,17 @@ name = "flow"
 version = "0.1.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 
+[lib]
+name = "flow"
+path = "src/lib.rs"
+
+[[bin]]
+name = "check"
+path = "src/check.rs"
+
+[[bin]]
+name = "flow"
+path = "src/flow.rs"
+
 [dependencies]
 getopts = "0.2"

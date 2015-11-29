@@ -2,30 +2,20 @@ extern crate getopts;
 use getopts::Options;
 use std::env;
 
-fn check(inp: &str) {
-	println!("Checking correctness of flow '{}'", inp);
+extern crate flow;
+use flow::description::validator::validate as validate;
+// TODO use as
 
-	//	description::validator::validate("filename");
+#[cfg(test)]
+mod tests {
+	use super::print_usage;
+	use getopts::Options;
 
-	/*
-
-	load flow definition from file specified in arguments
-	- load any referenced to included flows also
-
-	construct overall list of functions
-	- check complete and no unattached input flows?
-
-	construct initial list of all functions able to produce output
-	- start from external sources at level 0
-
-	do
-	- identify all functions which receive input from active sources
-	- execute all those functions
-	- functions producing output added to list of active sources
-	while functions pending input
-
-	*/
-
+	#[test]
+	fn can_print_usage() {
+		let opts = Options::new();
+		print_usage("test", opts);
+	}
 }
 
 fn print_usage(program: &str, opts: Options) {
@@ -56,5 +46,5 @@ fn main() {
 			return;
 	};
 
-	check(&input);
+	validate(&input);
 }

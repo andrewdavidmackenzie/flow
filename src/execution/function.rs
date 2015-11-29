@@ -1,4 +1,7 @@
+use description::io::Input;
+use description::io::Output;
+use execution::value::Value;
 
-trait Function {
-	fn run(Vec<Input>) -> Vec<Output>;
+pub trait Function {
+	fn run(Vec<Value>) -> Vec<Value>;
 }

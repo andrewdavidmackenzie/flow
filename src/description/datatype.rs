@@ -1,3 +1,3 @@
-struct DataType {
-	name: String,
+pub struct DataType {
+	name: String
 }
