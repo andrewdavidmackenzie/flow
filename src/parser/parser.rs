@@ -5,7 +5,6 @@ use self::yaml_rust::{YamlLoader, Yaml, scanner};
 use description::context::Context;
 use description::flow::Flow;
 use description::io::IOSet;
-use description::connection::ConnectionSet;
 
 use parser::yaml;
 
@@ -36,8 +35,8 @@ pub fn load(path: &str, context_allowed: bool) -> Result {
                 println!("Validating context: {}", context.name);
             }
             context.validate_fields(); // TODO early return
-            context.loadSubflows(); // TODO early return
-            context.validateConnections(); // TODO early return
+            context.load_sub_flows(); // TODO early return
+            context.validate_connections(); // TODO early return
             for &(_, _, ref subflow) in context.flows.iter() {
                 subflow.borrow_mut().subflow(); // TODO early return
             }
@@ -49,8 +48,8 @@ pub fn load(path: &str, context_allowed: bool) -> Result {
                 println!("Validating flow: {}", flow.name);
             }
             flow.validate_fields(); // TODO early return
-            flow.loadSubflows(); // TODO early return
-            flow.validateConnections(); // TODO early return
+            flow.load_sub_flows(); // TODO early return
+            flow.validate_connections(); // TODO early return
             flow.subflow();
             return Result::FlowLoaded(flow);
         },

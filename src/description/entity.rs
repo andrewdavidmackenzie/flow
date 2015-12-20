@@ -1,6 +1,5 @@
 use description::name::{Name, Validates};
 use description::io::IOSet;
-use description::connection::ConnectionSet;
 use parser::parser;
 
 pub struct Entity {

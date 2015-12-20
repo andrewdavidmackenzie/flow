@@ -7,7 +7,7 @@ use parser::parser;
 
 pub struct Flow {
 	pub name: Name,
-	sourcePath: String,
+	source_path: String,
 	flows: Vec<(String, String, Box<Flow>)>,
 	connection_set: ConnectionSet,
 	ios: IOSet,
@@ -21,7 +21,7 @@ impl Flow {
 	-> Flow {
 		Flow {
 			name: name,
-			sourcePath: path.to_string(),
+			source_path: path.to_string(),
 			flows: flows,
 			ios: ios,
 			values: values,
@@ -47,24 +47,24 @@ impl Flow {
         parser::Result::Valid
 	}
 
-    pub fn loadSubflows(&mut self) -> parser::Result {
+    pub fn load_sub_flows(&mut self) -> parser::Result {
         for &(_, ref path, _) in self.flows.iter() {
             // TODO FIX
-            let loadResult = parser::load(path.as_ref(), false);
-//            let loadResult = parser::Result::Valid;
-            match loadResult {
+            let load_result = parser::load(path.as_ref(), false);
+//            let load_result = parser::Result::Valid;
+            match load_result {
                 parser::Result::FlowLoaded(subflow) => {
                     // TODO set reference to child flow
                     return parser::Result::Valid;
                 },
                 _ => {},
             }
-            return loadResult;
+            return load_result;
         }
         parser::Result::Valid
     }
 
-    pub fn validateConnections(&self) -> parser::Result {
+    pub fn validate_connections(&self) -> parser::Result {
         let mut io_sets: Vec<&IOSet> = vec![];
 
         for &(_, _, ref flow) in self.flows.iter() {
@@ -87,8 +87,8 @@ impl Flow {
     pub fn subflow(&mut self) -> parser::Result {
         for &mut(_, _, ref mut subflow) in self.flows.iter_mut() {
             subflow.validate_fields(); // TODO early return
-            subflow.loadSubflows(); // TODO early return
-            subflow.validateConnections(); // TODO early return
+            subflow.load_sub_flows(); // TODO early return
+            subflow.validate_connections(); // TODO early return
             subflow.subflow();
         }
 

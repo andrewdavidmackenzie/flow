@@ -42,9 +42,9 @@ pub struct Request  {
 	name: String,
 	// change to references to ensure they refer to real Input/Output and not copy them
 	from: OutputInput,
-	requestDataType: DataType,
+	request_data_type: DataType,
 	to: InputOutput,
-	responseDataType: DataType,
+	response_data_type: DataType,
 }
 
 impl Request {
@@ -71,7 +71,7 @@ impl ConnectionSet {
 		}
 	}
 
-	pub fn getSubset(&self, name: &String) -> ConnectionSet {
+	pub fn get_subset(&self, name: &String) -> ConnectionSet {
 		// TODO
 		ConnectionSet::new(vec![], vec![])
 	}

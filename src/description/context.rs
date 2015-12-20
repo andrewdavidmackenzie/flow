@@ -11,7 +11,7 @@ use std::cell::RefCell;
 
 pub struct Context {
 	pub name: Name,
-	sourcePath: String,
+	source_path: String,
 	entities: Vec<Entity>,
 	pub flows: Vec<(Name, String, RefCell<Flow>)>,
 	values: Vec<Value>,
@@ -23,7 +23,7 @@ impl Context {
 		   flows: Vec<(Name, String, RefCell<Flow>)>, connection_set: ConnectionSet ) -> Context {
 		Context {
 			name: name,
-			sourcePath: path.to_string(),
+			source_path: path.to_string(),
 			entities: entities,
 			values: values,
 			flows: flows,
@@ -46,7 +46,7 @@ impl Context {
 			value.validate_fields(); // TODO early return
 		}
 
-        if (self.flows.len() > 1 as usize) {
+        if self.flows.len() > 1 as usize {
             return parser::Result::Error("context: cannot contain more than one sub-flow".to_string());
         }
 
@@ -57,21 +57,21 @@ impl Context {
 		self.connection_set.validate_fields()
 	}
 
-    pub fn loadSubflows(&self) -> parser::Result {
+    pub fn load_sub_flows(&self) -> parser::Result {
         for &(_, ref path, _) in self.flows.iter() {
             // load subflows
-            let loadResult = parser::load(path.as_ref(), false);
-            match loadResult {
+            let load_result = parser::load(path.as_ref(), false);
+            match load_result {
                 parser::Result::FlowLoaded(subflow) => {
                     // TODO set reference to child flow
                 },
-                _ => return loadResult,
+                _ => return load_result,
             }
         }
         parser::Result::Valid
     }
 
-    pub fn validateConnections(&self) -> parser::Result {
+    pub fn validate_connections(&self) -> parser::Result {
         let mut io_sets: Vec<&IOSet> = vec![];
 
         for &(_, _, ref flow) in self.flows.iter() {
