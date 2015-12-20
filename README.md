@@ -1,3 +1,5 @@
+https://travis-ci.org/andrewdavidmackenzie/flow.svg?branch=master
+
 FLOW
 ###
 
