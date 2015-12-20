@@ -21,15 +21,30 @@ impl Validates for Name {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
-	use test::Bencher;
+//	use super::*;
+    use description::name::{Name, Validates};
+    use parser::parser;
+    //	use test::Bencher;
 
-	#[test]
-	fn can_validate() {
-		let name = Name("test");
-		assert!(name.validate("Name"));
-	}
+    #[test]
+    fn does_not_validate_when_empty() {
+        let name = Name::new();
+        match name.validate_fields("Name") {
+            parser::Result::Error(e) => {},
+            _ => {assert!(false)},
+        }
+    }
 
+    #[test]
+    fn validates_when_has_value() {
+        let name : Name = "test".to_string();
+        match name.validate_fields("Name") {
+            parser::Result::Valid => {},
+            _ => {assert!(false)},
+        }
+    }
+
+    /* Wait until stable for benchmark tests
 	#[bench]
 	fn bench_validate(b: &mut Bencher) {
 		b.iter(|| {
@@ -37,4 +52,5 @@ mod tests {
 			name.validate("Name")  // return it to avoid the optimizer removing it
 		});
 	}
+	*/
 }

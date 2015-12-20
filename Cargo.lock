@@ -2,13 +2,13 @@
 name = "flow"
 version = "0.1.0"
 dependencies = [
- "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glob 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "yaml-rust 0.2.2 (git+https://github.com/chyh1990/yaml-rust.git)",
 ]
 
 [[package]]
-name = "getopts"
-version = "0.2.14"
+name = "glob"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]

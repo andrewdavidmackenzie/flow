@@ -1,57 +1,78 @@
-extern crate getopts;
-use getopts::Options;
+extern crate glob;
+use glob::glob;
+
+use std::fs::metadata;
+use std::process;
 use std::env;
 
 extern crate flow;
 use flow::parser::parser;
 
-    #[cfg(test)]
-mod tests {
-    use super::print_usage;
-    use getopts::Options;
+fn print_usage(program: &str) {
+    println!("Usage: {} [FILENAME|DIRNAME]", program);
+}
 
-    #[test]
-    fn can_print_usage() {
-        let opts = Options::new();
-        print_usage("test", opts);
+fn check(path: &str) {
+    println!("Checking file: '{}'", path);
+
+    match parser::load(&path, true) {
+        parser::Result::ContextLoaded(context) => println!("'{}' context parsed and validated correctly", context.name),
+        parser::Result::FlowLoaded(flow) => println!("'{}' flow parsed and validated correctly", flow.name),
+        parser::Result::Error(error) => println!("{}", error),
+        parser::Result::Valid => println!("Unexpected parser failure"),
     }
 }
 
-fn print_usage(program: &str, opts: Options) {
-    let brief = format!("Usage: {} FILE [options]", program);
-    print!("{}", opts.usage(&brief));
+fn find_default_file(dir: &str) -> Option<String> {
+    let file_pattern = format!("{}/*.context", dir);
+    println!("Looking for files matching: {}", file_pattern);
+
+    for path in glob(file_pattern.as_ref()).unwrap().filter_map(Result::ok) {
+        // return first
+        match path.to_str() {
+            None => return None,
+            Some(s) => return Some(s.to_string()),
+        }
+    }
+    return None;
 }
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let program = args[0].clone();
 
-    let mut opts = Options::new();
-    opts.optflag("h", "help", "print this help menu");
-    let matches = match opts.parse(&args[1..]) {
-        Ok(m) => m,
-        Err(f) => panic!(f.to_string()),
-    };
+    match args.len() {
+        // no arguments passed
+        1 => {
+            let dir = env::current_dir().unwrap();
+            find_default_file(dir.to_str().unwrap()).map( | file | {
+                check(&file);
+            });
+        },
 
-    if matches.opt_present("h") {
-        print_usage(&program, opts);
-        return;
+        // one argument passed
+        2 => {
+            if  metadata(&args[1]).unwrap().is_dir() {
+                find_default_file(&args[1]).map( | file | {
+                    check(&file);
+                });
+            } else {
+                check(&args[1]);
+            }
+        },
+
+        _ => {
+            print_usage(&args[0]);
+            process::exit(-1);
+        },
     }
+}
 
-    /* TODO
-    let input = if !matches.free.is_empty()
-    } else {
-    // TODO look for file with context or flow extension in the current directory
-    // if only one, then run on it.
-    print_usage(&program, opts);
-    };
-    */
+#[cfg(test)]
+mod tests {
+    use super::print_usage;
 
-    let input = matches.free[0].clone();
-    match parser::load(&input, true) {
-        parser::Result::ContextLoaded(context) => println!("'{}' parsed and validated correctly", context.name),
-        parser::Result::FlowLoaded(flow) => println!("'{}' parsed and validated correctly", flow.name),
-        parser::Result::Error(error) => println!("{}", error),
-        parser::Result::Valid => println!("Shouldn't happen"),
+    #[test]
+    fn can_print_usage() {
+        print_usage("test");
     }
 }
