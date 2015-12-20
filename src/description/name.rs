@@ -1,6 +1,3 @@
-//#![feature(test)] // enables this unstable feature.
-//extern crate test;
-
 use parser::parser;
 
 pub type Name = String;
@@ -21,10 +18,8 @@ impl Validates for Name {
 
 #[cfg(test)]
 mod tests {
-//	use super::*;
     use description::name::{Name, Validates};
     use parser::parser;
-    //	use test::Bencher;
 
     #[test]
     fn does_not_validate_when_empty() {
@@ -43,14 +38,4 @@ mod tests {
             _ => {assert!(false)},
         }
     }
-
-    /* Wait until stable for benchmark tests
-	#[bench]
-	fn bench_validate(b: &mut Bencher) {
-		b.iter(|| {
-			let name = Name("test");
-			name.validate("Name")  // return it to avoid the optimizer removing it
-		});
-	}
-	*/
 }
