@@ -1,3 +1,1 @@
-pub struct DataType {
-	name: String
-}
+pub type DataType = String;

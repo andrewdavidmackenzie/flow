@@ -22,9 +22,6 @@ connectionSet:
         to: output/message
 
 
-# These are values initiated inside this flow
-values:
-      - name: message
-        type: String
+
 
 functions:

@@ -1,13 +1,13 @@
-use description::io::Output;
-use description::io::Input;
+use description::io::{Output, Input};
 use execution::function::Function;
 use execution::value::Value;
 
 struct Add;
 
-impl Function for Add {
-	fn run(inputs: Vec<Value>) -> Vec<Value> {
-		let r = Value::new("2");
-		return vec![r]; // TODO
+impl Add {
+	fn run(inputs: Vec<Value>) -> Value {
+		Value {
+			value: "2".to_string(),
+		}// TODO
 	}
 }

@@ -1,6 +1,3 @@
-use description::datatype::DataType;
+use description::io::Output;
 
-struct Value {
-	name: String,
-	dataType: DataType,
-}
+pub type Value = Output;

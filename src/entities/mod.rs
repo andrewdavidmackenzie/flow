@@ -1,1 +1,1 @@
-mod STDIO;
+mod stdio;

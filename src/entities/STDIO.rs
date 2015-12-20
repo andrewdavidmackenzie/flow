@@ -1,9 +1,9 @@
 use std::io;
-use description::io::IO;
+use std::io::Write;
+
+use description::io::{IO, InputOutput, OutputInput};
 use execution::value::Value;
-use execution::entity::HasInput;
-use execution::entity::HasOutput;
-use execution::entity::HasInputOutput;
+use execution::entity::{HasInput, HasOutput, HasInputOutput};
 
 struct STDIO;
 
@@ -12,18 +12,27 @@ struct STDIO;
 
 impl HasInput for STDIO {
 	fn receive(&self, input: IO, value: Value) {
-//		println!("");  // TODO
+		match input.name.as_ref() {
+			"stdout" => println!("{}", value.value),
+			// TODO
+//			"stderr" => try!(io::stderr().write(b"hello world\n")),
+			_ => panic!("STDIO does not have an input called '{}'", input.name),
+			}
 	}
 }
 
 impl HasOutput for STDIO {
 	fn provide(&self, output: IO) -> Value {
-		/* TODO
-		let mut buffer = String::new();
-		io::stdin().read_line(&mut buffer);
-		Value::new(&buffer);
-		*/
-		Value::new("result")
+		match output.name.as_ref() {
+			"stdin" => {
+				let mut input = String::new();
+				io::stdin().read_line(&mut input).ok();
+				Value {
+				value: input,
+				} // TODO
+			},
+			_ => panic!("STDIO does not have an ouput called '{}'", output.name),
+		}
 	}
 }
 
@@ -32,8 +41,18 @@ impl HasOutput for STDIO {
 	any other inputs, or generate any other outputs, until it has produced the output expected
  */
 impl HasInputOutput for STDIO {
-	fn receiveAndProvide(&self, input: IO, value: Value, output: IO) -> Value {
-// TODO		STDIO::receive(&self, input, value);
-		STDIO::provide(&self, output)
+	fn receive_and_provide(&self, input_output: InputOutput, input_value: Value) -> Value {
+		match input_output.name.as_ref() {
+			"prompt" => {
+				println!("{}", input_value.value);
+				// TODO output to stdout should be blocked until we read and provide a response
+				let mut input = String::new();
+				io::stdin().read_line(&mut input).ok();
+				Value {
+					value: input,
+				} // TODO
+			},
+			_ => panic!("STDIO does not have an InputOutput called '{}'", input_output.name),
+		}
 	}
 }

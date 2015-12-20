@@ -1,5 +1,4 @@
-use description::io::Input;
-use description::io::Output;
+use description::io::{Input, Output};
 use execution::value::Value;
 
 pub trait Function {
