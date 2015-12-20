@@ -1,4 +1,4 @@
-https://travis-ci.org/andrewdavidmackenzie/flow.svg?branch=master
+[![Build Status](https://travis-ci.org/andrewdavidmackenzie/flow.svg?branch=master)](https://travis-ci.org/andrewdavidmackenzie/flow)
 
 FLOW
 ###
