@@ -23,9 +23,7 @@ use parser::yaml;
 /// parser::load("samples/hello-world-simple/hello.context", true);
 /// ```
 pub fn load(path: &str, context_allowed: bool) -> Result {
-    if cfg!(not(ndebug)) {
-        println!("Attempting to load Yaml from: {}", path);
-    }
+    info!("Attempting to load Yaml from: {}", path);
 
     let parseResult = yaml::load(path, context_allowed);
 

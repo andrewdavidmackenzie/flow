@@ -21,3 +21,13 @@ flow = [input] + [output] + [flow] + [values] + [functions]
 To Consider
 ###
 Error handling
+
+Logging
+###
+Using the 'log' framework in libraries and main binary code to log.
+https://doc.rust-lang.org/log/log/index.html
+
+Using the log4rs log implementation, see https://github.com/sfackler/log4rs, 
+configured in each of the binaries's main() function.
+
+log.toml is the log configuration file used by log4rs.

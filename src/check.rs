@@ -8,6 +8,13 @@ use std::env;
 extern crate flow;
 use flow::parser::parser;
 
+#[macro_use]
+extern crate log;
+extern crate log4rs;
+
+use std::default::Default;
+
+
 fn print_usage(program: &str) {
     println!("Usage: {} [FILENAME|DIRNAME]", program);
 }
@@ -25,7 +32,7 @@ fn check(path: &str) {
 
 fn find_default_file(dir: &str) -> Option<String> {
     let file_pattern = format!("{}/*.context", dir);
-    println!("Looking for files matching: {}", file_pattern);
+    info!("Looking for files matching: {}", file_pattern);
 
     for path in glob(file_pattern.as_ref()).unwrap().filter_map(Result::ok) {
         // return first
@@ -38,6 +45,9 @@ fn find_default_file(dir: &str) -> Option<String> {
 }
 
 fn main() {
+    log4rs::init_file("log.toml", Default::default()).unwrap();
+    info!("Logging started using 'log4rs', see log.toml for configuration details");
+
     let args: Vec<String> = env::args().collect();
 
     match args.len() {

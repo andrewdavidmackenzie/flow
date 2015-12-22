@@ -63,6 +63,8 @@ path = "src/check.rs"
 
 [dependencies]
 glob = "*"
+log = "*"
+log4rs = "*"
 
 [[bin]]
 name = "run"

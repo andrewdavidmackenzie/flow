@@ -1,7 +1,8 @@
 # This file is a descriptor of the entity and used to match types and make connections
 # when this entity is used in a flow
 
-name: STDIO
+name: stdio
+source: stdio.rs
 
 # List of inputs must match the list of inputs declared wherever this flow is used
 ioSet:
