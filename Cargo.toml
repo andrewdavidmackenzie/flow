@@ -44,7 +44,6 @@ lto = false
 debug-assertions = true
 codegen-units = 1
 
-
 [package]
 name = "flow"
 version = "0.1.0"

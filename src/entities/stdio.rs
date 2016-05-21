@@ -7,9 +7,6 @@ use execution::entity::{HasInput, HasOutput, HasInputOutput};
 
 struct STDIO;
 
-// for now just generic methods, but these should probably be repeated for
-// each of the inputs / outputs an entity has, by name
-
 impl HasInput for STDIO {
 	fn receive(&self, input: IO, value: Value) {
 		match input.name.as_ref() {

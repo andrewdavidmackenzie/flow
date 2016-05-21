@@ -32,7 +32,7 @@ fn check(path: &str) {
 
 fn find_default_file(dir: &str) -> Option<String> {
     let file_pattern = format!("{}/*.context", dir);
-    info!("Looking for files matching: {}", file_pattern);
+    println!("Looking for files matching: {}", file_pattern);
 
     for path in glob(file_pattern.as_ref()).unwrap().filter_map(Result::ok) {
         // return first

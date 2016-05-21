@@ -13,7 +13,7 @@ pattern = "%d - %m"
 
 # Set the default logging level to "info" and attach the "stdout" appender to the root
 [root]
-level = "info"
+level = "debug"
 appenders = ["stdout"]
 
 # Raise the maximum log level for events sent to the "app::backend::db" logger to "info"

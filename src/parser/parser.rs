@@ -9,7 +9,7 @@ use description::io::IOSet;
 use parser::yaml;
 
 // TODO Error reporting properly and implement the Error trait
-    pub enum Result  {
+pub enum Result  {
     ContextLoaded(Context),
     FlowLoaded(Flow),
     Error(String),
