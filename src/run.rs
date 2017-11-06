@@ -6,7 +6,7 @@ use flow::execution;
 */
 
 fn main() {
-	println!("Running flow: ");
+	info!("Running flow: ");
 
     /*
 

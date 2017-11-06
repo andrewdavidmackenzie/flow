@@ -16,23 +16,23 @@ use std::default::Default;
 
 
 fn print_usage(program: &str) {
-    println!("Usage: {} [FILENAME|DIRNAME]", program);
+    error!("Usage: {} [FILENAME|DIRNAME]", program);
 }
 
 fn check(path: &str) {
-    println!("Checking file: '{}'", path);
+    info!("Checking file: '{}'", path);
 
     match parser::load(&path, true) {
-        parser::Result::ContextLoaded(context) => println!("'{}' context parsed and validated correctly", context.name),
-        parser::Result::FlowLoaded(flow) => println!("'{}' flow parsed and validated correctly", flow.name),
-        parser::Result::Error(error) => println!("{}", error),
-        parser::Result::Valid => println!("Unexpected parser failure"),
+        parser::Result::ContextLoaded(context) => info!("'{}' context parsed and validated correctly", context.name),
+        parser::Result::FlowLoaded(flow) => info!("'{}' flow parsed and validated correctly", flow.name),
+        parser::Result::Error(error) => error!("{}", error),
+        parser::Result::Valid => error!("Unexpected parser failure"),
     }
 }
 
 fn find_default_file(dir: &str) -> Option<String> {
     let file_pattern = format!("{}/*.context", dir);
-    println!("Looking for files matching: {}", file_pattern);
+    info!("Looking for files matching: {}", file_pattern);
 
     for path in glob(file_pattern.as_ref()).unwrap().filter_map(Result::ok) {
         // return first

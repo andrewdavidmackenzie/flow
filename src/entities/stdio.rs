@@ -1,55 +1,81 @@
 use std::io;
 use std::io::Write;
 
-use description::io::{IO, InputOutput, OutputInput};
+use description::io::{IO, Input, Output, InputOutput, OutputInput, IOSet};
+use description::entity::Entity;
 use execution::value::Value;
 use execution::entity::{HasInput, HasOutput, HasInputOutput};
 
-struct STDIO;
 
-impl HasInput for STDIO {
-	fn receive(&self, input: IO, value: Value) {
-		match input.name.as_ref() {
-			"stdout" => println!("{}", value.value),
-			// TODO
-//			"stderr" => try!(io::stderr().write(b"hello world\n")),
-			_ => panic!("STDIO does not have an input called '{}'", input.name),
-			}
+// TODO the runtime that loads all these should build a table of name -> objects
+// and then find them at run time by name
+
+// TODO this should be able to generate or be validatable again the description in stdio.entity
+
+const PROMPT: InputOutput = InputOutput {
+	name: "prompt",
+	input_data_type: "String",
+	output_data_type: "String"
+};
+
+const STDOUT: Input = Input {
+	name: "stdout",
+	data_type: "String"
+};
+
+const STDERR: Input = Input {
+	name: "stderr",
+	data_type: "String"
+};
+
+const STDIN: Output = Output {
+	name: "stdin",
+	data_type: "String"
+};
+
+const INPUTS: Vec<IO<'a>> = vec![STDOUT, STDERR];
+const OUTPUTS: Vec<IO<'a>> = vec![STDIN];
+const INPUTS_OUTPUTS: Vec<InputOutput<'a>> = vec![PROMPT];
+
+const IOSET: IOSet = IOSet {
+	inputs: INPUTS,
+	outputs: OUTPUTS,
+	input_outputs: INPUTS_OUTPUTS
+};
+
+const STDIO: Entity = Entity {
+	name: "stdio",
+	ios: IOSET
+};
+
+impl HasInput for STDOUT {
+	fn receive(&self, value: Value) {
+		// TODO use value.value
+		try!(io::stdout().write(b"hello world\n"));
 	}
 }
 
-impl HasOutput for STDIO {
-	fn provide(&self, output: IO) -> Value {
-		match output.name.as_ref() {
-			"stdin" => {
-				let mut input = String::new();
-				io::stdin().read_line(&mut input).ok();
-				Value {
-				value: input,
-				} // TODO
-			},
-			_ => panic!("STDIO does not have an ouput called '{}'", output.name),
-		}
+impl HasInput for STDERR {
+	fn receive(&self, value: Value) {
+		// TODO use value.value
+		try!(io::stderr().write(b"hello world\n"));
 	}
 }
 
-/*
-	After receiving the input value on this input, this entity will block and not process
-	any other inputs, or generate any other outputs, until it has produced the output expected
- */
-impl HasInputOutput for STDIO {
-	fn receive_and_provide(&self, input_output: InputOutput, input_value: Value) -> Value {
-		match input_output.name.as_ref() {
-			"prompt" => {
-				println!("{}", input_value.value);
-				// TODO output to stdout should be blocked until we read and provide a response
-				let mut input = String::new();
-				io::stdin().read_line(&mut input).ok();
-				Value {
-					value: input,
-				} // TODO
-			},
-			_ => panic!("STDIO does not have an InputOutput called '{}'", input_output.name),
-		}
+impl HasOutput for STDIN {
+	fn provide(&self) -> Value {
+		let mut input = String::new();
+		io::stdin().read_line(&mut input).ok();
+		Value {
+			value: input,
+		} // TODO
+	}
+}
+
+// This will not *really* block, just not schedule the flow waiting for input until it's input is satisfied.
+impl HasInputOutput for PROMPT {
+	fn receive_and_provide(&self, input_value: Value) -> Value {
+		STDOUT.receive(input_value);
+		STDIN.provide();
 	}
 }

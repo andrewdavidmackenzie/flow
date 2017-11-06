@@ -2,30 +2,30 @@ use description::name::{Name, Validates};
 use description::datatype::DataType;
 use parser::parser;
 
-pub struct IO {
-	pub name: Name, // Input/Output points on Entities, Values and Flows have unique names
-	data_type: DataType,
+pub struct IO<'a> {
+	pub name: Name<'a>, // Input/Output points on Entities, Values and Flows have unique names
+	data_type: DataType<'a>,
 // TODO consider adding references to the source& dest objects that is built when parsed
 }
 
-impl IO {
+impl<'a> IO<'a> {
 	pub fn validate_fields(&self) -> parser::Result {
 		self.name.validate_fields("IO") // TODO early return here
 		// TODO validate datatype
 	}
 }
 
-pub type Input = IO;
+pub type Input<'a> = IO<'a>;
 
-pub type Output = IO;
+pub type Output<'a> = IO<'a>;
 
-pub struct InputOutput {
-	pub name: Name,
-	input_data_type: DataType,
-	output_data_type: DataType,
+pub struct InputOutput<'a> {
+	pub name: Name<'a>,
+	input_data_type: DataType<'a>,
+	output_data_type: DataType<'a>,
 }
 
-impl InputOutput {
+impl<'a> InputOutput<'a> {
 	fn validate_fields(&self) -> parser::Result {
 		// TODO early return on failure
 		self.name.validate_fields("InputOutput")
@@ -33,17 +33,31 @@ impl InputOutput {
 	}
 }
 
-pub type OutputInput = InputOutput;
+pub type OutputInput<'a> = InputOutput<'a>;
 
-pub struct IOSet {
-	inputs: Vec<IO>,
-	outputs: Vec<IO>,
-	input_outputs: Vec<InputOutput>,
-	output_inputs: Vec<OutputInput>,
+pub struct IOSet<'a> {
+	inputs: Vec<IO<'a>>,
+	outputs: Vec<IO<'a>>,
+	input_outputs: Vec<InputOutput<'a>>,
+	output_inputs: Vec<OutputInput<'a>>,
 }
 
-impl IOSet {
-	pub fn new(inputs: Vec<IO>, outputs: Vec<IO>, input_outputs: Vec<InputOutput>, output_inputs: Vec<OutputInput>) -> IOSet {
+/*
+Implement a default set of empty vectors for IOSet, then any instances just need to specify  the ones they create
+ */
+impl<'a> Default for IOSet<'a> {
+	fn default () -> IOSet<'a> {
+		IOSet {
+			inputs : vec![],
+			outputs : vec![],
+			input_outputs : vec![],
+			output_inputs : vec![]
+		}
+	}
+}
+
+impl<'a> IOSet<'a> {
+	pub fn new(inputs: Vec<IO<'a>>, outputs: Vec<IO<'a>>, input_outputs: Vec<InputOutput<'a>>, output_inputs: Vec<OutputInput<'a>>) -> IOSet<'a> {
 		IOSet {
 			inputs: inputs,
 			outputs: outputs,

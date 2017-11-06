@@ -1,13 +1,13 @@
 use parser::parser;
 
-pub type Name = String;
+pub type Name<'a> = &'a str;
 
 // Define a trait to be able to add a function to String
 pub trait Validates {
 	fn validate_fields(&self, type_name: &str) -> parser::Result;
 }
 
-impl Validates for Name {
+impl<'a> Validates for Name<'a> {
 	fn validate_fields(&self, type_name: &str) -> parser::Result {
 		if self.is_empty() {
 			return parser::Result::Error(format!("{} cannot have an empty or whitespace name", type_name));

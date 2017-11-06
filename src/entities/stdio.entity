@@ -24,4 +24,4 @@ ioSet:
         input_output:
             name: prompt
             input_data_type: String
-            outputDataType: String
+            output_data_type: String

@@ -30,7 +30,7 @@ pub fn load(path: &str, context_allowed: bool) -> Result {
     match parseResult {
         Result::ContextLoaded(mut context) => {
             if cfg!(not(ndebug)) {
-                println!("Validating context: {}", context.name);
+                info!("Validating context: {}", context.name);
             }
             context.validate_fields(); // TODO early return
             context.load_sub_flows(); // TODO early return
@@ -43,7 +43,7 @@ pub fn load(path: &str, context_allowed: bool) -> Result {
 
         Result::FlowLoaded(mut flow) => {
             if cfg!(not(ndebug)) {
-                println!("Validating flow: {}", flow.name);
+                info!("Validating flow: {}", flow.name);
             }
             flow.validate_fields(); // TODO early return
             flow.load_sub_flows(); // TODO early return
@@ -54,14 +54,14 @@ pub fn load(path: &str, context_allowed: bool) -> Result {
 
         Result::Error(string) => {
             if cfg!(not(ndebug)) {
-                println!("Error loading Yaml: {}", string);
+                error!("Error loading Yaml: {}", string);
             }
             return Result::Error(string);
         },
 
         Result::Valid => {
             if cfg!(not(ndebug)) {
-                println!("Unexpected 'Valid' while loading Yaml");
+                error!("Unexpected 'Valid' while loading Yaml");
             }
             return Result::Error("Neither a context nor a flow was found".to_string());
         }
