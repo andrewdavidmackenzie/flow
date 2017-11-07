@@ -6,13 +6,16 @@ use std::process;
 use std::env;
 
 extern crate flow;
-use flow::parser::parser;
+//use flow::parser::parser;
+use flow::info;
 
 #[macro_use]
 extern crate log;
 extern crate log4rs;
 
 use std::default::Default;
+
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 fn print_usage(program: &str) {
     error!("Usage: {} [FILENAME|DIRNAME]", program);
@@ -21,12 +24,14 @@ fn print_usage(program: &str) {
 fn check(path: &str) {
     info!("Checking file: '{}'", path);
 
+    /* TODO re enable this when can get lib to compile
     match parser::load(&path, true) {
         parser::Result::ContextLoaded(context) => info!("'{}' context parsed and validated correctly", context.name),
         parser::Result::FlowLoaded(flow) => info!("'{}' flow parsed and validated correctly", flow.name),
         parser::Result::Error(error) => error!("{}", error),
         parser::Result::Valid => error!("Unexpected parser failure"),
     }
+    */
 }
 
 fn find_default_file(dir: &str) -> Option<String> {
@@ -46,6 +51,9 @@ fn find_default_file(dir: &str) -> Option<String> {
 fn main() {
     log4rs::init_file("log.toml", Default::default()).unwrap();
     info!("Logging started using 'log4rs', see log.toml for configuration details");
+
+    println!("Flow 'check' version: {}", VERSION);
+    println!("Flow Library Version {}", info::version());
 
     let args: Vec<String> = env::args().collect();
 

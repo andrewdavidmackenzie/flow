@@ -1,12 +1,23 @@
 extern crate flow;
+use flow::info;
 
 /*
 use flow::description;
 use flow::execution;
 */
 
+#[macro_use]
+extern crate log;
+extern crate log4rs;
+
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 fn main() {
+    log4rs::init_file("log.toml", Default::default()).unwrap();
+    info!("Logging started using 'log4rs', see log.toml for configuration details");
 	info!("Running flow: ");
+    println!("Flow 'run' version: {}", VERSION);
+	println!("Flow Library version: {}", info::version());
 
     /*
 
