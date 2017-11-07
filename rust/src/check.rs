@@ -14,7 +14,6 @@ extern crate log4rs;
 
 use std::default::Default;
 
-
 fn print_usage(program: &str) {
     error!("Usage: {} [FILENAME|DIRNAME]", program);
 }
