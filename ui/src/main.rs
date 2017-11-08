@@ -1,7 +1,10 @@
 //extern crate webplatform;
+extern crate flowlib;
+use flowlib::info;
 
 fn main() {
     println!("Hello from Rust!");
+    println!("Flow Library Version {}", info::version());
 
     /*
     let document = webplatform::init();
