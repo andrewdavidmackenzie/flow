@@ -25,9 +25,11 @@ function createWindow () {
   //log to external console
   //console.log('mainWindow.id =' + mainWindow.id)
 
-  // and load the main.html of the app
-  mainWindow.loadURL(`file://${__dirname}/main.html`)
-  //mainWindow.loadURL('https://multitenant-admin.3scale.net')
+  // and load the initial window of the flow app
+  mainWindow.loadURL(`file://${__dirname}/flow.html`)
+
+  // Open the DevTools so we can see the console output in testing
+  mainWindow.webContents.openDevTools()
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
