@@ -4,13 +4,13 @@ pub type Name<'a> = &'a str;
 
 // Define a trait to be able to add a function to String
 pub trait Validates {
-	fn validate_fields(&self, type_name: &str) -> parser::Result;
+	fn validate_fields(&self) -> parser::Result;
 }
 
 impl<'a> Validates for Name<'a> {
-	fn validate_fields(&self, type_name: &str) -> parser::Result {
+	fn validate_fields(&self) -> parser::Result {
 		if self.is_empty() {
-			return parser::Result::Error(format!("{} cannot have an empty or whitespace name", type_name));
+			return parser::Result::Error(format!("Name cannot have an empty or whitespace name"));
 		}
 		parser::Result::Valid
 	}
@@ -23,8 +23,8 @@ mod tests {
 
     #[test]
     fn does_not_validate_when_empty() {
-        let name = Name::new();
-        match name.validate_fields("Name") {
+        let name= "";
+        match name.validate_fields() {
             parser::Result::Error(e) => {},
             _ => {assert!(false)},
         }
@@ -32,8 +32,8 @@ mod tests {
 
     #[test]
     fn validates_when_has_value() {
-        let name : Name = "test".to_string();
-        match name.validate_fields("Name") {
+        let name : Name = "test";
+        match name.validate_fields() {
             parser::Result::Valid => {},
             _ => {assert!(false)},
         }

@@ -2,11 +2,12 @@ use description::io::IOSet;
 use description::name::{Name, Validates};
 use parser::parser;
 
-pub struct Function {
-	name: Name,
-	pub ios: IOSet,
+pub struct Function<'a> {
+	name: Name<'a>,
+	pub ios: IOSet<'a>,
 }
 
+/*
 impl Function {
 	pub fn load(&self) -> parser::Result {
 		// TODO check entity can be found in system
@@ -19,3 +20,4 @@ impl Function {
 		self.ios.validate_fields()
 	}
 }
+*/

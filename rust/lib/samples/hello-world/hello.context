@@ -19,5 +19,3 @@ connectionSet:
         dataType: String
         from: flow/say hello/message
         to: entity/STDIO/stdout
-
-    requests:

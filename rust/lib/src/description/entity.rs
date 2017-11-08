@@ -2,12 +2,12 @@ use description::name::{Name, Validates};
 use description::io::IOSet;
 use parser::parser;
 
-pub struct Entity {
-	pub name: Name,
-	pub ios: IOSet,
+pub struct Entity<'a> {
+	pub name: Name<'a>,
+	pub ios: IOSet<'a>,
 }
 
-impl Entity {
+/*impl Entity {
 	pub fn load(&self) -> parser::Result {
 		// TODO check entity can be found in system
 		// and load it's ioSet
@@ -20,4 +20,4 @@ impl Entity {
 
 		parser::Result::Valid
 	}
-}
+}*/

@@ -9,15 +9,18 @@ use std::path::Path;
 use parser::parser;
 use std::cell::RefCell;
 
-pub struct Context {
-	pub name: Name,
+pub struct Context<> {
+	/*
+	pub name: Name<'a>,
 	source_path: String,
-	entities: Vec<Entity>,
-	pub flows: Vec<(Name, String, RefCell<Flow>)>,
-	values: Vec<Value>,
-	connection_set: ConnectionSet,
+	entities: Vec<Entity<'a>>,
+	pub flows: Vec<(Name<'a>, String, RefCell<Flow<'a>>)>,
+	values: Vec<Value<'a>>,
+	connection_set: ConnectionSet<'a>,
+*/
 }
 
+/*
 impl Context {
 	pub fn new(name: Name, path: &str, entities: Vec<Entity>, values: Vec<Value>,
 		   flows: Vec<(Name, String, RefCell<Flow>)>, connection_set: ConnectionSet ) -> Context {
@@ -93,3 +96,4 @@ impl Context {
         ConnectionSet::check(&self.connection_set, &io_sets, &self.values)
     }
 }
+*/

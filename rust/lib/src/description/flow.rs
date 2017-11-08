@@ -5,16 +5,17 @@ use description::value::Value;
 use description::function::Function;
 use parser::parser;
 
-pub struct Flow {
-	pub name: Name,
+pub struct Flow<'a> {
+	pub name: Name<'a>,
 	source_path: String,
-	flows: Vec<(String, String, Box<Flow>)>,
-	connection_set: ConnectionSet,
-	ios: IOSet,
-	values: Vec<Value>,
-	functions: Vec<Function>,
+	flows: Vec<(String, String, Box<Flow<'a>>)>,
+	connection_set: ConnectionSet<'a>,
+	ios: IOSet<'a>,
+	values: Vec<Value<'a>>,
+	functions: Vec<Function<'a>>,
 }
 
+/*
 impl Flow {
 	pub fn new(name: String, path: &str, flows: Vec<(String, String, Box<Flow>)>,
 		   connection_set: ConnectionSet, ios: IOSet, values: Vec<Value>, functions: Vec<Function>)
@@ -96,3 +97,4 @@ impl Flow {
         parser::Result::Valid
     }
 }
+*/

@@ -10,7 +10,7 @@ pub struct IO<'a> {
 
 impl<'a> IO<'a> {
 	pub fn validate_fields(&self) -> parser::Result {
-		self.name.validate_fields("IO") // TODO early return here
+		self.name.validate_fields() // TODO early return here
 		// TODO validate datatype
 	}
 }
@@ -28,7 +28,7 @@ pub struct InputOutput<'a> {
 impl<'a> InputOutput<'a> {
 	fn validate_fields(&self) -> parser::Result {
 		// TODO early return on failure
-		self.name.validate_fields("InputOutput")
+		self.name.validate_fields()
 		// TODO validate data types
 	}
 }

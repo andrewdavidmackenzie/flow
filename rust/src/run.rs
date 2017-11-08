@@ -1,5 +1,5 @@
-extern crate flow;
-use flow::info;
+extern crate flowlib;
+use flowlib::info;
 
 /*
 use flow::description;

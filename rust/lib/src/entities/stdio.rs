@@ -33,9 +33,9 @@ const STDIN: Output = Output {
 	data_type: "String"
 };
 
-const INPUTS: Vec<IO<'a>> = vec![STDOUT, STDERR];
-const OUTPUTS: Vec<IO<'a>> = vec![STDIN];
-const INPUTS_OUTPUTS: Vec<InputOutput<'a>> = vec![PROMPT];
+const INPUTS: Vec<IO> = vec![STDOUT, STDERR];
+const OUTPUTS: Vec<IO> = vec![STDIN];
+const INPUTS_OUTPUTS: Vec<InputOutput> = vec![PROMPT];
 
 const IOSET: IOSet = IOSet {
 	inputs: INPUTS,

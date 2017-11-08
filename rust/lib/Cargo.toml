@@ -4,8 +4,11 @@ version = "0.1.1"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 
 [lib]
-name = "flow"
-path = "src/lib.rs"
+name = "flowlib"
+path = "src/flowlib.rs"
 
 [dependencies.yaml-rust]
 git = "https://github.com/chyh1990/yaml-rust.git"
+
+log = "*"
+log4rs = "*"

@@ -5,9 +5,9 @@ use std::fs::metadata;
 use std::process;
 use std::env;
 
-extern crate flow;
-//use flow::parser::parser;
-use flow::info;
+extern crate flowlib;
+use flowlib::info;
+//use flowlib::parser::parser;
 
 #[macro_use]
 extern crate log;

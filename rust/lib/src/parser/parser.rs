@@ -8,47 +8,42 @@ use description::io::IOSet;
 
 use parser::yaml;
 
-// TODO Error reporting properly and implement the Error trait
-pub enum Result  {
-    ContextLoaded(Context),
-    FlowLoaded(Flow),
-    Error(String),
+pub enum Result<'a>  {
+    ContextLoaded(Context<>),
+    FlowLoaded(Flow<'a>),
     Valid,
+    Error(String)
 }
 
 /// # Example
 /// ```
-/// use flow::parser::parser;
+/// use flowlib::parser::parser;
 ///
 /// parser::load("samples/hello-world-simple/hello.context", true);
 /// ```
 pub fn load(path: &str, context_allowed: bool) -> Result {
+    // For now, we only support loading from a yaml file
     info!("Attempting to load Yaml from: {}", path);
-
     let parseResult = yaml::load(path, context_allowed);
 
     match parseResult {
         Result::ContextLoaded(mut context) => {
-            if cfg!(not(ndebug)) {
-                info!("Validating context: {}", context.name);
-            }
-            context.validate_fields(); // TODO early return
-            context.load_sub_flows(); // TODO early return
-            context.validate_connections(); // TODO early return
-            for &(_, _, ref subflow) in context.flows.iter() {
-                subflow.borrow_mut().subflow(); // TODO early return
-            }
+            //            info!("Validating context: {}", context.name);
+            //            context.validate_fields(); // TODO early return
+            //            context.load_sub_flows(); // TODO early return
+            //            context.validate_connections(); // TODO early return
+            //            for &(_, _, ref subflow) in context.flows.iter() {
+            //                subflow.borrow_mut().subflow(); // TODO early return
+            //            }
             return Result::ContextLoaded(context);
         },
 
         Result::FlowLoaded(mut flow) => {
-            if cfg!(not(ndebug)) {
-                info!("Validating flow: {}", flow.name);
-            }
-            flow.validate_fields(); // TODO early return
-            flow.load_sub_flows(); // TODO early return
-            flow.validate_connections(); // TODO early return
-            flow.subflow();
+            info!("Validating flow: {}", flow.name);
+            //            flow.validate_fields(); // TODO early return
+            //            flow.load_sub_flows(); // TODO early return
+            //            flow.validate_connections(); // TODO early return
+            //            flow.subflow();
             return Result::FlowLoaded(flow);
         },
 
@@ -60,10 +55,7 @@ pub fn load(path: &str, context_allowed: bool) -> Result {
         },
 
         Result::Valid => {
-            if cfg!(not(ndebug)) {
-                error!("Unexpected 'Valid' while loading Yaml");
-            }
-            return Result::Error("Neither a context nor a flow was found".to_string());
+            return Result::Error("Ask to load not validate!".to_string());
         }
     }
 }

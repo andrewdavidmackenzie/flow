@@ -23,12 +23,12 @@ use parser::parser;
 const CONTEXT_TAGS: &'static [ &'static str ] = &["context", "entities", "values", "flows", "connection_set"];
 const FLOW_TAGS: &'static [ &'static str ] = &["flow", "ioSet", "flows", "connection_set", "values", "functions"];
 
+/*
 fn parse_context(yaml: &Yaml, path: &str) -> parser::Result {
 	// TODO catch error
 	let name: String = yaml["context"].as_str().unwrap().to_string();
 
-	// TODO check all top level tags are allowed?
-// CONTEXT_TAGS
+	// TODO check all tags present are allowed in a context
 
 	let entities: Vec<Entity> = Vec::new();
 	// 	entities = yaml["entities"]
@@ -39,7 +39,7 @@ fn parse_context(yaml: &Yaml, path: &str) -> parser::Result {
 	// yaml["values"]
 
 	let flows: Vec<(String, String, RefCell<Flow>)> = vec![];
-// 	flow = yaml["flow"]
+	// flow = yaml["flow"]
 
 	let connection_set: ConnectionSet = ConnectionSet::new(vec![], vec![]);
 
@@ -50,17 +50,15 @@ fn parse_context(yaml: &Yaml, path: &str) -> parser::Result {
 }
 
 fn parse_flow(yaml: &Yaml, path: &str) -> parser::Result {
-	// TODO catch error
 	let name: String = match yaml["flow"].as_str() {
 		Some(el) => el.to_string(),
 		None => return parser::Result::Error("Could not find flow name".to_string()),
 	};
 
-	// TODO check all top level tags are allowed?
-// FLOW_TAGS
+	// TODO check all tags present are allowed in a flow
 
-	let flows: Vec<(String, String, Box<Flow>)> = vec![];
 	// yaml["flows"]
+	let flows: Vec<(String, String, Box<Flow>)> = vec![];
 
 	// yaml["connection_set"] "connections"
 	// yaml["connection_set"] "requests"
@@ -72,36 +70,17 @@ fn parse_flow(yaml: &Yaml, path: &str) -> parser::Result {
 	// yaml["ioSet"] "output_inputs"
 	let ios: IOSet = IOSet::new(vec![], vec![], vec![], vec![]);
 
-	let values: Vec<Value> = vec![];
 	// yaml["values"]
+	let values: Vec<Value> = vec![];
 
+	// yaml["functions"]
 	let functions: Vec<Function> = vec![];
-	// yaml["functions]
 
 	let flow = Flow::new(name, path, flows, connection_set, ios, values, functions);
 	parser::Result::FlowLoaded(flow)
 }
 
 fn parse(yaml: &Yaml, path: &str, context_allowed: bool) -> parser::Result {
-/*
-	let s1 = "
-foo:
-    - list1
-    - list2
-bar:
-    - 1
-    - 2.0
-";
-
-	// Index access for map & array
-	assert_eq!(doc["foo"][0].as_str().unwrap(), "list1");
-	assert_eq!(doc["bar"][1].as_f64().unwrap(), 2.0);
-
-	// Chained key/array access is checked and won't panic,
-	// return BadValue if they are not exist.
-	assert!(doc["INVALID_KEY"][100].is_badvalue());
-	*/
-
 	if !yaml["context"].as_str().unwrap().to_string().is_empty() {
 		if !context_allowed {
 			return parser::Result::Error("context: Not allowed at this point".to_string());
@@ -129,13 +108,18 @@ fn read(path: &str) -> Result<Vec<Yaml>, String> {
 	Ok(docs)
 }
 
+*/
+
 /*
  read the yaml file and parse the contents
  */
 pub fn load(path: &str, context_allowed: bool) -> parser::Result {
+	/*
 	match read(path) {
 		// YAML can have multiple files within one doc, we will just parse the first one found
 		Ok(docs) => parse(&docs[0], path, context_allowed),
 		Err(why) => parser::Result::Error(format!("Error reading yaml: {}", why.to_string())),
 	}
+	*/
+	parser::Result::ContextLoaded(Context{}) // TODO re-enable
 }

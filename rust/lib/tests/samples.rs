@@ -1,7 +1,5 @@
-extern crate flow;
-use flow::parser::parser;
-
-// TODO a test that tests all samples???
+extern crate flowlib;
+use flowlib::parser::parser;
 
 #[test]
 fn sample_hello_world_simple() {

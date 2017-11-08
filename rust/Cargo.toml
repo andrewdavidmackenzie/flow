@@ -49,22 +49,18 @@ name = "flow"
 version = "0.1.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 
-[lib]
-name = "flow"
-path = "src/lib.rs"
-
-[dependencies.yaml-rust]
-git = "https://github.com/chyh1990/yaml-rust.git"
-
 [[bin]]
 name = "check"
 path = "src/check.rs"
+
+[[bin]]
+name = "run"
+path = "src/run.rs"
 
 [dependencies]
 glob = "*"
 log = "*"
 log4rs = "*"
+flowlib = { path = "lib" }
 
-[[bin]]
-name = "run"
-path = "src/run.rs"
+[workspace]

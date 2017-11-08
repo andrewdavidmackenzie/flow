@@ -6,16 +6,17 @@ use parser::parser;
 
 /*
 	Unidirectional connection between an Output and an Input
-	Canonly carry a single datatype
+	Can only carry a single datatype
  */
-pub struct Connection {
-	name: Name,
-	data_type: DataType,
+pub struct Connection<'a> {
+	name: Name<'a>,
+	data_type: DataType<'a>,
 // change to references to ensure they refer to real Input/Output and not copy them
-	from: Output,
-	to: Input,
+	from: Output<'a>,
+	to: Input<'a>,
 }
 
+/*
 impl Connection {
 	// TODO change to references later
 	fn new(name: Name, data_type: DataType, from: Output, to: Input) -> Connection {
@@ -34,19 +35,22 @@ impl Connection {
 	}
 }
 
+*/
+
 /*
 	Bidirectional request from one IO to another with a datatype for the
 	request and another datatype for the response.
  */
-pub struct Request  {
-	name: String,
+pub struct Request<'a>  {
+	name: Name<'a>,
 	// change to references to ensure they refer to real Input/Output and not copy them
-	from: OutputInput,
-	request_data_type: DataType,
-	to: InputOutput,
-	response_data_type: DataType,
+	from: OutputInput<'a>,
+	request_data_type: DataType<'a>,
+	to: InputOutput<'a>,
+	response_data_type: DataType<'a>,
 }
 
+/*
 impl Request {
 	fn validate_fields(&self) -> parser::Result {
 		self.name.validate_fields("Result") // TODO early return
@@ -54,15 +58,17 @@ impl Request {
 		// Validate other fields exist and are valid syntax
 	}
 }
+*/
 
-pub struct ConnectionSet {
-	connections: Vec<Connection>,
-	requests: Vec<Request>,
+pub struct ConnectionSet<'a> {
+	connections: Vec<Connection<'a>>,
+	requests: Vec<Request<'a>>,
 }
 
 /*
 From the Connection set, return a subset that are connected to a specific name
  */
+/*
 impl ConnectionSet {
 	pub fn new(connections: Vec<Connection>, requests: Vec<Request>) -> ConnectionSet {
 		ConnectionSet {
@@ -96,3 +102,4 @@ impl ConnectionSet {
 		parser::Result::Valid
 	}
 }
+*/
