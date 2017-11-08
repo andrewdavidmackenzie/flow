@@ -1,27 +1,25 @@
 run: wasm
 	electron-forge start	
 
-wasm: build-wasm copy-wasm
-	@echo "wasm built and copied"
+wasm: src/flowui.wasm src/flowui.js
 
-# Build the rust project, generating wasm and js files in ./target/
-build-wasm:
-	@cargo build --target=wasm32-unknown-emscripten --release
-
-# Copy generated JS and wasm files from target directory to src directory
-copy-wasm: src/flowui.wasm src/flowui.js
-
-src/flowui.wasm:
+src/flowui.wasm: target/wasm32-unknown-emscripten/release/deps
 	@find target/wasm32-unknown-emscripten/release/deps -type f -name "*.wasm" | xargs -I {} cp {} $@
+	@echo "emscripten wasm files updated"
 
-src/flowui.js:
+src/flowui.js: target/wasm32-unknown-emscripten/release/deps
 	@cp src/electron-prefix.js $@
 	@find target/wasm32-unknown-emscripten/release/deps -type f ! -name "*.asm.js" -name "*.js" | xargs -I {} cat {} >> $@
+	@echo "emscripten js files updated"
 
-package:
+target/wasm32-unknown-emscripten/release/deps:
+	@cargo build --target=wasm32-unknown-emscripten --release
+	@echo "wasm built using emscripten"
+
+package: wasm
 	npm install
-	electron-forge make
-	ls out/make
+	@electron-forge make
+	@ls out/make
 
 clean:
 	rm -rf target
