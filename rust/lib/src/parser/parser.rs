@@ -23,7 +23,6 @@ pub enum Result<'a>  {
 /// ```
 pub fn load(path: &str, context_allowed: bool) -> Result {
     // For now, we only support loading from a yaml file
-    info!("Attempting to load Yaml from: {}", path);
     let parseResult = yaml::load(path, context_allowed);
 
     match parseResult {
@@ -39,7 +38,6 @@ pub fn load(path: &str, context_allowed: bool) -> Result {
         },
 
         Result::FlowLoaded(mut flow) => {
-            info!("Validating flow: {}", flow.name);
             //            flow.validate_fields(); // TODO early return
             //            flow.load_sub_flows(); // TODO early return
             //            flow.validate_connections(); // TODO early return
@@ -48,9 +46,6 @@ pub fn load(path: &str, context_allowed: bool) -> Result {
         },
 
         Result::Error(string) => {
-            if cfg!(not(ndebug)) {
-                error!("Error loading Yaml: {}", string);
-            }
             return Result::Error(string);
         },
 

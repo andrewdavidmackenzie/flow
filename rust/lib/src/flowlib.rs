@@ -1,8 +1,5 @@
 
-// TODO figure out if needed here or not
-#![feature(rustc_private)]
-#[macro_use]
-extern crate log;
+
 
 // TODO re-enable these
 mod description;

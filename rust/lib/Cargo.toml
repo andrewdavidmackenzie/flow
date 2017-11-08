@@ -9,6 +9,3 @@ path = "src/flowlib.rs"
 
 [dependencies.yaml-rust]
 git = "https://github.com/chyh1990/yaml-rust.git"
-
-log = "*"
-log4rs = "*"
