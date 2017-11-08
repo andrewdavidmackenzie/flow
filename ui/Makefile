@@ -21,9 +21,11 @@ src/flowui.js:
 package:
 	npm install
 	electron-forge make
+	ls out/make
 
 clean:
 	rm -rf target
+	rm -rf out
 	rm src/flowui.js src/flowui.wasm
 
 init:
