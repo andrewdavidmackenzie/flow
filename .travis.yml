@@ -9,12 +9,23 @@ install:
   - npm install -g electron-forge
   - npm install
 
-language: node_js
+language: rust
+#language: node_js
+#node_js:
+#  - '8'
 
-node_js:
-  - '8'
+rust:
+  - 1.19.0
 
 os:
   - osx
 
-script: electron-forge make
+script: make test
+
+matrix:
+  allow_failures:
+    - rust: nightly
+
+notifications:
+  email:
+    - andrew@mackenzie-serres.net

@@ -2,9 +2,11 @@
 extern crate flowlib;
 use flowlib::info;
 
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 fn main() {
-    println!("Hello from Rust!");
-    println!("Flow Library Version {}", info::version());
+    println!("'flow' version: {}", VERSION);
+    println!("'flowlib' version {}", info::version());
 
     /*
     let document = webplatform::init();

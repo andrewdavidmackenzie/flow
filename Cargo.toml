@@ -50,12 +50,12 @@ version = "0.1.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 
 [[bin]]
-name = "check"
-path = "src/check.rs"
+name = "flow"
+path = "src/cli.rs"
 
 [[bin]]
-name = "run"
-path = "src/run.rs"
+name = "ui"
+path = "src/ui.rs"
 
 [dependencies]
 glob = "*"

@@ -2,7 +2,7 @@
   "name": "flow",
   "version": "0.1.0",
   "description": "A Visual Programming Tool",
-  "main": "src/main.js",
+  "main": "src/electron-main.js",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
@@ -10,8 +10,7 @@
   },
   "repository": "https://github.com/andrewdavidmackenzie/flow",
   "keywords": [
-    "Visual",
-    "Programming"
+    "Visual Programming"
   ],
   "author": "Andrew Mackenzie",
   "license": "MIT",
@@ -39,7 +38,12 @@
           "deb"
         ]
       },
-      "electronPackagerConfig": {},
+      "electronPackagerConfig": {
+        "dir": "./src",
+        "ignore": [
+          ".idea"
+        ]
+      },
       "electronWinstallerConfig": {
         "name": ""
       },

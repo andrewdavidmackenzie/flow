@@ -1,0 +1,7 @@
+node_modules/
+log
+target/
+.idea
+*.iml
+out
+.emc-installed
