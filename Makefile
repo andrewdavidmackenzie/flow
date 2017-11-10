@@ -39,7 +39,7 @@ test:
 clean:
 	rm -rf target
 	rm -rf out
-	rm src/flowui.js src/flowui.wasm
+	rm -f src/flowui.js src/flowui.wasm
 
 emscipten: rustup-target emcc
 
