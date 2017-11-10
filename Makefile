@@ -44,17 +44,17 @@ clean:
 emscipten: rustup-target emcc
 
 rustup-target:
-ifndef RUSTUP
-    $(error "rustup must be installed to add wasm target for build.")
-else
-	@rustup target add wasm32-unknown-emscripten
-endif
+	ifndef RUSTUP
+		$(error "rustup must be installed to add wasm target for build.")
+	else
+		@rustup target add wasm32-unknown-emscripten
+	endif
 
 emcc:
-ifndef EMCC
-	$(MAKE) install-emcc
-    $(error "emcc must be installed to compile wasm. Try 'make install-emcc'")
-endif
+	ifndef EMCC
+		$(MAKE) install-emcc
+		$(error "emcc must be installed to compile wasm. Try 'make install-emcc'")
+	endif
 
 install-emcc:
 	@echo "Install emcc using something like this:"
