@@ -1,7 +1,6 @@
-node_modules/
-log
-target/
+ui-target
 .idea
 *.iml
 out
-.emc-installed
+dependencies.dot
+dependencies.png

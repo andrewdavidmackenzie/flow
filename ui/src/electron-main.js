@@ -26,7 +26,7 @@ function createWindow () {
   //console.log('mainWindow.id =' + mainWindow.id)
 
   // and load the initial window of the flow app
-  mainWindow.loadURL(`file://${__dirname}/flow.html`)
+  mainWindow.loadURL(`file://${__dirname}/electronflow.html`)
 
   // Open the DevTools so we can see the console output in testing
   mainWindow.webContents.openDevTools()

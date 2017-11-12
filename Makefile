@@ -1,66 +1,60 @@
 EMCC := $(shell command -v emcc -v 2> /dev/null)
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 
-all: cli app
+all: test package
 
-app: wasm
-	electron-forge start
+test: test-lib test-cli test-app
+
+test-lib:
+	@echo ""
+	@echo "------- Started  testing lib ----------------"
+	@cargo test --manifest-path lib/Cargo.toml
+	@echo "------- Finished testing lib ----------------"
+
+test-cli:
+	@echo ""
+	@echo "------- Started  testing cli ----------------"
+	@cargo test --manifest-path cli/Cargo.toml
+	@echo "------- Finished testing cli ----------------"
+
+test-app:
+	@echo ""
+	@echo "------- Started  testing app ----------------"
+	@cargo test --manifest-path ui/Cargo.toml
+	@echo "------- Finished testing app ----------------"
+
+package: package-app package-cli
+
+package-cli: cli
+	@echo ""
+	@echo "------- Started  packaging cli ----------------"
+	@echo "------- Finished packaging cli ----------------" # No specific packing steps after build ATM
 
 cli:
-	@cargo build --bin flow
+	@cargo build --manifest-path cli/Cargo.toml --bin flow
 
-wasm: src/flowui.wasm src/flowui.js node_modules
+package-app:
+	@echo ""
+	@echo "------- Started  packaging app ----------------"
+	@cd ui && make package
+	@echo "------- Finished packaging app ----------------"
 
-src/flowui.wasm: target/wasm32-unknown-emscripten/release/deps
-	@find target/wasm32-unknown-emscripten/release/deps -type f -name "*.wasm" | xargs -I {} cp {} $@
-	@echo "emscripten wasm files updated"
+run-cli:
+	@cargo run --manifest-path cli/Cargo.toml
 
-src/flowui.js: target/wasm32-unknown-emscripten/release/deps
-	@cp src/electron-prefix.js $@
-	@find target/wasm32-unknown-emscripten/release/deps -type f ! -name "*.asm.js" -name "*.js" | xargs -I {} cat {} >> $@
-	@echo "emscripten js files updated"
-
-target/wasm32-unknown-emscripten/release/deps: emscipten
-	@cargo build --bin ui --target=wasm32-unknown-emscripten --release
-	@echo "wasm built using emscripten"
-
-node_modules:
-	@npm install
-
-package: wasm
-	@electron-forge make
-	@ls out/make
-
-test:
-	@cargo test
-	@cd lib
-	@cargo test
+run-app:
+	@cd ui && make run-app
 
 clean:
-	rm -rf target
-	rm -rf out
-	rm -f src/flowui.js src/flowui.wasm
+	rm -rf cli/target
+	rm -rf cli/log
+	rm -rf lib/target
+	rm -rf ui/target
+	cd ui && make clean
 
-emscipten: rustup-target emcc
+dependencies.png: dependencies.dot
+	@dot -T png -o $@ $^
+	@open $@
 
-rustup-target:
-	ifndef RUSTUP
-		$(error "rustup must be installed to add wasm target for build.")
-	else
-		@rustup target add wasm32-unknown-emscripten
-	endif
-
-emcc:
-	ifndef EMCC
-		$(MAKE) install-emcc
-		$(error "emcc must be installed to compile wasm. Try 'make install-emcc'")
-	endif
-
-install-emcc:
-	@echo "Install emcc using something like this:"
-	@echo "	curl https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-portable.tar.gz | tar -xv -C ~/"
-	@echo "	cd ~/emsdk-portable"
-	@echo "	./emsdk update"
-	@echo "	./emsdk install sdk-incoming-64bit"
-	@echo "	./emsdk activate sdk-incoming-64bit"
-	@echo "Then check that 'emcc -v' works"
+dependencies.dot: Makefile
+	@$(MAKE) -Bnd | make2graph > $@
