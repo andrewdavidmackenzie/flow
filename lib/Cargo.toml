@@ -12,5 +12,5 @@ doctest = true
 bench = true
 doc = true
 
-[dependencies.yaml-rust]
-git = "https://github.com/chyh1990/yaml-rust.git"
+[dependencies]
+yaml-rust = "0.3.5"
