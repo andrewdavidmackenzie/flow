@@ -1,6 +1,5 @@
 ui-target
 .idea
 *.iml
-out
 dependencies.dot
 dependencies.png
