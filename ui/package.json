@@ -44,6 +44,7 @@
           ".gitignore", "Cargo.lock", "Cargo.toml", "Makefile", "package-lock.json",
           "src/flowui.js", "src/ui.rs", "src/electron-prefix.js", "src/index.html"
         ],
+        "packageManager": "yarn",
         "prune": true
       },
       "electronWinstallerConfig": {
