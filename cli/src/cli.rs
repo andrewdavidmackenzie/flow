@@ -43,7 +43,7 @@ fn main() {
 
     // TODO if no file is specified, then use the CWD
     let path = env::current_dir().unwrap();
-    info!("No path specified, so using Current Working Directory");
+    info!("No path specified, so using Current Working Directory: '{}'", path.display());
 
     // Try and find the default file by passing a directory
     match files::open(path) {
