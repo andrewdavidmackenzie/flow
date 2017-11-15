@@ -1,10 +1,13 @@
 extern crate flowlib;
 use flowlib::parser::parser;
 
+use std::fs::File;
+
 #[test]
 fn sample_hello_world_simple() {
-    let sample_path = "samples/hello-world-simple/hello.context";
-    match parser::load(sample_path, true) {
+    let path = "../samples/hello-world-simple/hello.context";
+    let mut file = File::open(path).unwrap();
+    match parser::load(file) {
         parser::Result::ContextLoaded(_) => {},
         _ => assert!(false),
     }
@@ -12,8 +15,9 @@ fn sample_hello_world_simple() {
 
 #[test]
 fn sample_hello_world() {
-    let sample_path = "samples/hello-world/hello.context";
-    match parser::load(sample_path, true) {
+    let path = "../samples/hello-world/hello.context";
+    let mut file = File::open(path).unwrap();
+    match parser::load(file) {
         parser::Result::ContextLoaded(_) => {},
         _ => assert!(false),
     }

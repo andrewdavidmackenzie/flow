@@ -1,57 +1,68 @@
 extern crate glob;
 
-#[macro_use]
 extern crate clap;
 use clap::{App, Arg};
 
 extern crate flowlib;
 use flowlib::info;
+use flowlib::parser::parser;
+use flowlib::parser::parser::Result;
 
-mod commands;
 mod files;
 
 use std::env;
+use std::path::PathBuf;
 
 #[macro_use]
 extern crate log;
 extern crate log4rs;
 
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-
-fn get_app<'a, 'b>() -> App<'a, 'b> {
-    App::new("Flow CLI")
-        .about("A Command Line tool for 'flow' programs")
-        .author(crate_authors!())
-        .version(crate_version!())
-        .arg(Arg::with_name("verbose")
-            .short("v")
-            .long("verbose")
-            .multiple(true)
-            .help("Set the verbosity level - use multiple times to increase"))
-}
-
 fn main() {
     log4rs::init_file("log.yaml", Default::default()).unwrap();
     info!("Logging started using 'log4rs', see log.yaml for configuration details");
-    info!("'flow' version {}", VERSION);
+    info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     info!("'flowlib' version {}", info::version());
 
-    let app = get_app();
-    commands::register(app); // app =
+    let matches = App::new(env!("CARGO_PKG_NAME"))
+        .version(env!("CARGO_PKG_VERSION"))
+        .arg(Arg::with_name("check")
+            .short("c")
+            .help("Check the flow only, don't execute it"))
+        .arg(Arg::with_name("flow")
+            .help("the name of the 'flow' file")
+            .required(false)
+            .index(1))
+        .get_matches();
 
-    // TODO Check if a file is specified - if not then look for the default one
+    // get the file name from the command line, use CDW if it is not present
+    let path = match matches.value_of("flow") {
+        None => {
+            info!("No path specified, so using Current Working Directory");
+            env::current_dir().unwrap()
+        },
+        Some(p) => PathBuf::from(p),
+    };
 
-    // TODO if no file is specified, then use the CWD
-    let path = env::current_dir().unwrap();
-    info!("No path specified, so using Current Working Directory: '{}'", path.display());
-
-    // Try and find the default file by passing a directory
     match files::open(path) {
-        Ok(file) => commands::validate::validate(file),
-        Err(_) => {
-            println!("No file found");
-        }
-    }
+        Ok(file) => {
+            info!("Attempting to load file: '{:?}'", file);
 
-    // TODO pass the file to the command parsed by clap
+            match parser::load(file) {
+                Result::ContextLoaded(context) => {
+                    info!("'{}' context parsed and validated correctly", context.name);
+                    if !matches.is_present("check") {
+                        // run it
+                    }
+                },
+                Result::FlowLoaded(flow) => {
+                    info!("'{}' flow parsed and validated correctly", flow.name);
+                    println!("Flow loaded successfully, but only Context can be run");
+                },
+                Result::Error(e) => {
+                    println!("{}", e);
+                }
+            }
+        },
+        Err(e) => println!("{}", e)
+    }
 }

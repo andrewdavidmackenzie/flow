@@ -1,18 +1,17 @@
-use description::name::{Name, Validates};
+use description::name::Name;
 use description::connection::ConnectionSet;
 use description::io::IOSet;
 use description::value::Value;
 use description::function::Function;
-use parser::parser;
 
-pub struct Flow<'a> {
-	pub name: Name<'a>,
+pub struct Flow {
+	pub name: Name,
 	source_path: String,
-	flows: Vec<(String, String, Box<Flow<'a>>)>,
-	connection_set: ConnectionSet<'a>,
-	ios: IOSet<'a>,
-	values: Vec<Value<'a>>,
-	functions: Vec<Function<'a>>,
+//	flows: Vec<(String, String, Box<Flow<'a>>)>,
+//	connection_set: ConnectionSet<'a>,
+	ios: IOSet,
+	values: Vec<Value>,
+	functions: Vec<Function>,
 }
 
 /*

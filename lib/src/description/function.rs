@@ -1,10 +1,9 @@
 use description::io::IOSet;
-use description::name::{Name, Validates};
-use parser::parser;
+use description::name::Name;
 
-pub struct Function<'a> {
-	name: Name<'a>,
-	pub ios: IOSet<'a>,
+pub struct Function {
+	name: Name,
+	pub ios: IOSet,
 }
 
 /*

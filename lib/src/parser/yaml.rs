@@ -113,7 +113,13 @@ fn read(path: &str) -> Result<Vec<Yaml>, String> {
 /*
  read the yaml file and parse the contents
  */
-pub fn load(path: &str, context_allowed: bool) -> parser::Result {
+pub fn load(file: File) -> parser::Result {
+    /*
+	let mut s = String::new();
+	file.read_to_string(&mut s).unwrap();
+
+	let docs = yaml::YamlLoader::load_from_str(&s).unwrap();
+    */
 	/*
 	match read(path) {
 		// YAML can have multiple files within one doc, we will just parse the first one found
@@ -121,5 +127,5 @@ pub fn load(path: &str, context_allowed: bool) -> parser::Result {
 		Err(why) => parser::Result::Error(format!("Error reading yaml: {}", why.to_string())),
 	}
 	*/
-	parser::Result::ContextLoaded(Context{}) // TODO re-enable
+	parser::Result::ContextLoaded(Context{name: "MyFLow".to_string()}) // TODO re-enable
 }

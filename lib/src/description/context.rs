@@ -1,4 +1,6 @@
-use description::name::{Name, Validates};
+use parser::parser::Validate;
+
+use description::name::Name;
 use description::entity::Entity;
 use description::connection::ConnectionSet;
 use description::flow::Flow;
@@ -9,15 +11,43 @@ use std::path::Path;
 use parser::parser;
 use std::cell::RefCell;
 
-pub struct Context<> {
-	/*
-	pub name: Name<'a>,
-	source_path: String,
-	entities: Vec<Entity<'a>>,
-	pub flows: Vec<(Name<'a>, String, RefCell<Flow<'a>>)>,
-	values: Vec<Value<'a>>,
-	connection_set: ConnectionSet<'a>,
+pub struct Context {
+	pub name: Name,
+    /*
+    source_path: String,
+    entities: Vec<Entity<'a>>,
+    pub flows: Vec<(Name<'a>, String, RefCell<Flow<'a>>)>,
+    values: Vec<Value<'a>>,
+    connection_set: ConnectionSet<'a>,
 */
+}
+
+/*
+Validate the correctness of all the fields in this context,
+but not consistency with contained flows
+ */
+impl Validate for Context {
+    fn validate(&self) -> Result<(), String> {
+        self.name.validate() // TODO early return
+/*
+        for entity in &self.entities {
+            entity.validate(); // TODO early return
+        }
+
+        for value in &self.values {
+            value.validate(); // TODO early return
+        }
+
+        if self.flows.len() > 1 as usize {
+            return Err("context: cannot contain more than one sub-flow".to_string());
+        }
+
+        for &(ref name, _, _) in self.flows.iter() {
+            name.validate("Flow");
+        }
+
+        self.connection_set.validate()*/
+    }
 }
 
 /*
@@ -32,32 +62,6 @@ impl Context {
 			flows: flows,
 			connection_set: connection_set,
 		}
-	}
-
-	/*
-	Validate the correctness of all the fields in this context,
-	but not consistency with contained flows
-	 */
-	pub fn validate_fields(&self) -> parser::Result {
-		self.name.validate_fields("Context"); // TODO early return
-
-		for entity in &self.entities {
-			entity.validate_fields(); // TODO early return
-		}
-
-		for value in &self.values {
-			value.validate_fields(); // TODO early return
-		}
-
-        if self.flows.len() > 1 as usize {
-            return parser::Result::Error("context: cannot contain more than one sub-flow".to_string());
-        }
-
-		for &(ref name, _, _) in self.flows.iter() {
-			name.validate_fields("Flow");
-		}
-
-		self.connection_set.validate_fields()
 	}
 
     pub fn load_sub_flows(&self) -> parser::Result {

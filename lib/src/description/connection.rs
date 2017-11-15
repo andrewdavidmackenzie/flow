@@ -1,19 +1,17 @@
-use description::name::{Name, Validates};
+use description::name::Name;
 use description::datatype::DataType;
-use description::value::Value;
-use description::io::{Output, Input, InputOutput, OutputInput, IOSet};
-use parser::parser;
+use description::io::{Output, Input, InputOutput, OutputInput};
 
 /*
 	Unidirectional connection between an Output and an Input
 	Can only carry a single datatype
  */
 pub struct Connection<'a> {
-	name: Name<'a>,
+	name: Name,
 	data_type: DataType<'a>,
 // change to references to ensure they refer to real Input/Output and not copy them
-	from: Output<'a>,
-	to: Input<'a>,
+	from: Output,
+	to: Input,
 }
 
 /*
@@ -42,11 +40,11 @@ impl Connection {
 	request and another datatype for the response.
  */
 pub struct Request<'a>  {
-	name: Name<'a>,
+	name: Name,
 	// change to references to ensure they refer to real Input/Output and not copy them
-	from: OutputInput<'a>,
+	from: OutputInput,
 	request_data_type: DataType<'a>,
-	to: InputOutput<'a>,
+	to: InputOutput,
 	response_data_type: DataType<'a>,
 }
 

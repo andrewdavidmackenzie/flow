@@ -1,10 +1,9 @@
-use description::name::{Name, Validates};
+use description::name::Name;
 use description::io::IOSet;
-use parser::parser;
 
-pub struct Entity<'a> {
-	pub name: Name<'a>,
-	pub ios: IOSet<'a>,
+pub struct Entity {
+	pub name: Name,
+	pub ios: IOSet,
 }
 
 /*impl Entity {

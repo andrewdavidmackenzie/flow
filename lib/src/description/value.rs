@@ -1,3 +1,3 @@
 use description::io::Output;
 
-pub type Value<'a> = Output<'a>;
+pub type Value = Output;
