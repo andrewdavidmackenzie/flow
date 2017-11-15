@@ -13,4 +13,4 @@ bench = true
 doc = true
 
 [dependencies]
-yaml-rust = "0.3.5"
+yaml-rust = "~0.3.5"
