@@ -16,6 +16,8 @@ use std::env;
 extern crate log;
 extern crate log4rs;
 
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 fn get_app<'a, 'b>() -> App<'a, 'b> {
     App::new("Flow CLI")
         .about("A Command Line tool for 'flow' programs")
@@ -31,8 +33,8 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
 fn main() {
     log4rs::init_file("log.yaml", Default::default()).unwrap();
     info!("Logging started using 'log4rs', see log.yaml for configuration details");
-
-    println!("'flowlib' version {}", info::version());
+    info!("'flow' version {}", VERSION);
+    info!("'flowlib' version {}", info::version());
 
     let app = get_app();
     commands::register(app); // app =
@@ -41,6 +43,7 @@ fn main() {
 
     // TODO if no file is specified, then use the CWD
     let path = env::current_dir().unwrap();
+    info!("No path specified, so using Current Working Directory");
 
     // Try and find the default file by passing a directory
     match files::open(path) {

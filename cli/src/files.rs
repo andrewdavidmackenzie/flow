@@ -11,7 +11,7 @@ use std::path::PathBuf;
 */
 fn open_default_file(path: PathBuf) -> io::Result<File> {
     let file_pattern = format!("{}/*.context", path.display());
-    info!("Looking for default files matching: '{}' in path '{}'", file_pattern, path.display());
+    info!("Looking for files matching: '{}'", file_pattern);
 
     // Try to glob for the default file using a pattern
     for entry in glob(file_pattern.as_str()).expect("Failed to read glob pattern") {
@@ -35,9 +35,12 @@ fn open_default_file(path: PathBuf) -> io::Result<File> {
         look for default file type in it by extension
 */
 pub fn open(path: PathBuf) -> io::Result<File> {
+    info!("Attempting to open flow file using path = '{}'", path.display());
+
     match metadata(&path) {
         Ok(md) => {
             if md.is_dir() {
+                info!("'{}' is a directory, so attempting to find default flow file in it", path.display());
                 open_default_file(path)
             } else {
                 File::open(path)
