@@ -54,10 +54,10 @@ name = "flow"
 path = "src/cli.rs"
 
 [dependencies]
+clap = "~2.27.1"
 glob = "*"
 log = "*"
 log4rs = "*"
-
 flowlib = { path = "../lib" }
 
 [workspace]
