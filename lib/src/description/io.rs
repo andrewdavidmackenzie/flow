@@ -1,8 +1,7 @@
-use parser::parser::Validate;
+use loader::loader::Validate;
 
 use description::name::Name;
-use description::datatype::DataType;
-use parser::parser;
+//use description::datatype::DataType;
 
 pub struct IO {
 	pub name: Name, // Input/Output points on Entities, Values and Flows have unique names

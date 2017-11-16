@@ -1,4 +1,4 @@
-use parser::parser::Validate;
+use loader::loader::Validate;
 
 pub type Name = String;
 

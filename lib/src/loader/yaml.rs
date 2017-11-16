@@ -2,6 +2,7 @@ extern crate yaml_rust;
 
 use self::yaml_rust::{YamlLoader, Yaml};
 use description::context::Context;
+use description::flow::Flow;
 
 use std::fs::File;
 use std::io::BufReader;
@@ -14,7 +15,7 @@ use description::value::Value;
 use description::function::Function;
 use description::connection::ConnectionSet;*/
 
-use parser::parser::Result;
+use loader::loader::Result;
 
 const CONTEXT_TAGS: &'static [&'static str] = &["context", "entities", "values", "flows", "connection_set"];
 const FLOW_TAGS: &'static [&'static str] = &["flow", "ioSet", "flows", "connection_set", "values", "functions"];
@@ -23,9 +24,6 @@ const FLOW_TAGS: &'static [&'static str] = &["flow", "ioSet", "flows", "connecti
 /*
 
 validate model (see check)
-
-load flow definition from file specified in arguments
-    - load any referenced to included flows also
 
 construct overall list of functions
 
@@ -42,7 +40,7 @@ while functions pending input
 
  */
 
-fn parse_context(yaml: &Yaml) -> Result {
+fn load_context(yaml: &Yaml) -> Result {
     // TODO catch error
     let name: String = yaml["context"].as_str().unwrap().to_string();
 
@@ -66,20 +64,27 @@ fn parse_context(yaml: &Yaml) -> Result {
     // 	connection_set = yaml["connection_set"]
     //	let context = Context::new(name, path, entities, values, flows, connection_set);
 
+    // TODO validate this context as loaded
+
+    // TODO load the flow contained if there is one
+    // Then validate the conections between this context and the contained flow
+
     let context = Context { name: name };
 
-    Result::ContextLoaded(context)
+    Result::Context(context)
 }
 
+fn load_flow(yaml: &Yaml) -> Result {
+    let name: String = yaml["context"].as_str().unwrap().to_string();
 /*
-fn parse_flow(yaml: &Yaml, path: &str) -> Result {
-	let name: String = match yaml["flow"].as_str() {
+    let name: String = match yaml["flow"].as_str() {
 		Some(el) => el.to_string(),
-		None => return parser::Result::Error("Could not find flow name".to_string()),
+		None => Result::Error("Could not find flow name".to_string())
 	};
+*/
 
 	// TODO check all tags present are allowed in a flow
-
+/*
 	// yaml["flows"]
 	let flows: Vec<(String, String, Box<Flow>)> = vec![];
 
@@ -100,26 +105,27 @@ fn parse_flow(yaml: &Yaml, path: &str) -> Result {
 	let functions: Vec<Function> = vec![];
 
 	let flow = Flow::new(name, path, flows, connection_set, ios, values, functions);
-	Result::FlowLoaded(flow)
+	*/
+
+    let flow = Flow { name: name };
+	Result::Flow(flow)
 }
 
 fn parse(yaml: &Yaml, path: &str, context_allowed: bool) -> Result {
 	if !yaml["context"].as_str().unwrap().to_string().is_empty() {
 		if !context_allowed {
-			return parser::Result::Error("context: Not allowed at this point".to_string());
+			return Result::Error("context: Not allowed at this point".to_string());
 		}
 
-		return parse_context(&yaml, path)
+		return load_context(&yaml)
 	}
 
 	if !yaml["flow"].as_str().unwrap().to_string().is_empty() {
-		return parse_flow(&yaml, path)
+		return load_flow(&yaml)
 	}
 
 	Result::Error("No 'context:' or 'flow:' was found".to_string())
 }
-
-*/
 
 /*
  read the yaml file and parse the contents
@@ -133,7 +139,7 @@ pub fn load(file: File) -> Result {
             let doc = &docs[0];
 
             // TODO for now assume is a context - maybe load first element and decide based on that?
-            parse_context(doc)
+            load_context(doc)
         },
         Err(e) => Result::Error(format!("{}", e))
     }

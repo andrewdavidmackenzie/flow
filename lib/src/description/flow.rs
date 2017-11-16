@@ -1,18 +1,26 @@
 use description::name::Name;
+/*
 use description::connection::ConnectionSet;
 use description::io::IOSet;
 use description::value::Value;
 use description::function::Function;
-
+*/
 pub struct Flow {
 	pub name: Name,
+	/*
 	source_path: String,
 //	flows: Vec<(String, String, Box<Flow<'a>>)>,
 //	connection_set: ConnectionSet<'a>,
 	ios: IOSet,
 	values: Vec<Value>,
 	functions: Vec<Function>,
+	*/
 }
+
+//            flow.validate(); // TODO early return
+//            flow.load_sub_flows(); // TODO early return
+//            flow.validate_connections(); // TODO early return
+//            flow.subflow();
 
 /*
 impl Flow {

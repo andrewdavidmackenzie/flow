@@ -5,8 +5,8 @@ use clap::{App, Arg};
 
 extern crate flowlib;
 use flowlib::info;
-use flowlib::parser::parser;
-use flowlib::parser::parser::Result;
+use flowlib::loader::loader;
+use flowlib::loader::loader::Result;
 
 mod files;
 
@@ -47,14 +47,14 @@ fn main() {
         Ok(file) => {
             info!("Attempting to load file: '{:?}'", file);
 
-            match parser::load(file) {
-                Result::ContextLoaded(context) => {
+            match loader::load(file) {
+                Result::Context(context) => {
                     info!("'{}' context parsed and validated correctly", context.name);
                     if !matches.is_present("check") {
                         // TODO run it
                     }
                 },
-                Result::FlowLoaded(flow) => {
+                Result::Flow(flow) => {
                     info!("'{}' flow parsed and validated correctly", flow.name);
                     println!("Flow loaded successfully, but only Context can be run");
                 },
