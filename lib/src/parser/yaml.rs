@@ -1,55 +1,78 @@
 extern crate yaml_rust;
 
-use std::error::Error;
-use std::io::prelude::*;
-use std::io;
-use std::fs::File;
-use std::fs;
-use std::path::Path;
-use std::cell::RefCell;
-
-use self::yaml_rust::{YamlLoader, Yaml, scanner};
-
+use self::yaml_rust::{YamlLoader, Yaml};
 use description::context::Context;
-use description::flow::Flow;
+
+use std::fs::File;
+use std::io::BufReader;
+use std::io::prelude::*;
+
+/* use description::flow::Flow;
 use description::entity::Entity;
 use description::io::IOSet;
 use description::value::Value;
 use description::function::Function;
-use description::connection::ConnectionSet;
+use description::connection::ConnectionSet;*/
 
-use parser::parser;
+use parser::parser::Result;
 
-const CONTEXT_TAGS: &'static [ &'static str ] = &["context", "entities", "values", "flows", "connection_set"];
-const FLOW_TAGS: &'static [ &'static str ] = &["flow", "ioSet", "flows", "connection_set", "values", "functions"];
+const CONTEXT_TAGS: &'static [&'static str] = &["context", "entities", "values", "flows", "connection_set"];
+const FLOW_TAGS: &'static [&'static str] = &["flow", "ioSet", "flows", "connection_set", "values", "functions"];
+
 
 /*
-fn parse_context(yaml: &Yaml, path: &str) -> parser::Result {
-	// TODO catch error
-	let name: String = yaml["context"].as_str().unwrap().to_string();
 
-	// TODO check all tags present are allowed in a context
+validate model (see check)
 
-	let entities: Vec<Entity> = Vec::new();
-	// 	entities = yaml["entities"]
-	// create each entity
-	// load it using .load()
+load flow definition from file specified in arguments
+    - load any referenced to included flows also
 
-	let values: Vec<Value> = vec![];
-	// yaml["values"]
+construct overall list of functions
 
-	let flows: Vec<(String, String, RefCell<Flow>)> = vec![];
-	// flow = yaml["flow"]
+construct list of connections
 
-	let connection_set: ConnectionSet = ConnectionSet::new(vec![], vec![]);
+construct initial list of all functions able to produce output
+    - start from external sources at level 0
 
-	// 	connection_set = yaml["connection_set"]
-	let context = Context::new(name, path, entities, values, flows, connection_set);
+do
+    - identify all functions which receive input from active sources
+    - execute all those functions
+    - functions producing output added to list of active sources
+while functions pending input
 
-	parser::Result::ContextLoaded(context)
+ */
+
+fn parse_context(yaml: &Yaml) -> Result {
+    // TODO catch error
+    let name: String = yaml["context"].as_str().unwrap().to_string();
+
+    /*
+        // TODO check all tags present are allowed in a context
+
+        let entities: Vec<Entity> = Vec::new();
+        // 	entities = yaml["entities"]
+        // create each entity
+        // load it using .load()
+
+        let values: Vec<Value> = vec![];
+        // yaml["values"]
+
+        let flows: Vec<(String, String, RefCell<Flow>)> = vec![];
+        // flow = yaml["flow"]
+
+        let connection_set: ConnectionSet = ConnectionSet::new(vec![], vec![]);
+    */
+
+    // 	connection_set = yaml["connection_set"]
+    //	let context = Context::new(name, path, entities, values, flows, connection_set);
+
+    let context = Context { name: name };
+
+    Result::ContextLoaded(context)
 }
 
-fn parse_flow(yaml: &Yaml, path: &str) -> parser::Result {
+/*
+fn parse_flow(yaml: &Yaml, path: &str) -> Result {
 	let name: String = match yaml["flow"].as_str() {
 		Some(el) => el.to_string(),
 		None => return parser::Result::Error("Could not find flow name".to_string()),
@@ -77,10 +100,10 @@ fn parse_flow(yaml: &Yaml, path: &str) -> parser::Result {
 	let functions: Vec<Function> = vec![];
 
 	let flow = Flow::new(name, path, flows, connection_set, ios, values, functions);
-	parser::Result::FlowLoaded(flow)
+	Result::FlowLoaded(flow)
 }
 
-fn parse(yaml: &Yaml, path: &str, context_allowed: bool) -> parser::Result {
+fn parse(yaml: &Yaml, path: &str, context_allowed: bool) -> Result {
 	if !yaml["context"].as_str().unwrap().to_string().is_empty() {
 		if !context_allowed {
 			return parser::Result::Error("context: Not allowed at this point".to_string());
@@ -93,19 +116,7 @@ fn parse(yaml: &Yaml, path: &str, context_allowed: bool) -> parser::Result {
 		return parse_flow(&yaml, path)
 	}
 
-	parser::Result::Error("No 'context:' or 'flow:' was found".to_string())
-}
-
-fn read(path: &str) -> Result<Vec<Yaml>, String> {
-	// Open the path in read-only mode, returns `io::Result<File>`
-	let mut file = try!(File::open(path).map_err(|e| e.to_string()));
-
-	let mut contents = String::new();
-	try!(file.read_to_string(&mut contents).map_err(|e| e.to_string()));
-
-	let docs = try!(YamlLoader::load_from_str(contents.as_ref()).map_err(|e| e.to_string()));
-
-	Ok(docs)
+	Result::Error("No 'context:' or 'flow:' was found".to_string())
 }
 
 */
@@ -113,19 +124,17 @@ fn read(path: &str) -> Result<Vec<Yaml>, String> {
 /*
  read the yaml file and parse the contents
  */
-pub fn load(file: File) -> parser::Result {
-    /*
-	let mut s = String::new();
-	file.read_to_string(&mut s).unwrap();
+pub fn load(file: File) -> Result {
+    let mut buf_reader = BufReader::new(file);
+    let mut contents = String::new();
+    match buf_reader.read_to_string(&mut contents) {
+        Ok(_) => {
+            let docs = YamlLoader::load_from_str(&contents).unwrap();
+            let doc = &docs[0];
 
-	let docs = yaml::YamlLoader::load_from_str(&s).unwrap();
-    */
-	/*
-	match read(path) {
-		// YAML can have multiple files within one doc, we will just parse the first one found
-		Ok(docs) => parse(&docs[0], path, context_allowed),
-		Err(why) => parser::Result::Error(format!("Error reading yaml: {}", why.to_string())),
-	}
-	*/
-	parser::Result::ContextLoaded(Context{name: "MyFLow".to_string()}) // TODO re-enable
+            // TODO for now assume is a context - maybe load first element and decide based on that?
+            parse_context(doc)
+        },
+        Err(e) => Result::Error(format!("{}", e))
+    }
 }

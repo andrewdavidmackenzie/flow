@@ -1,10 +1,6 @@
-extern crate yaml_rust;
-
-use self::yaml_rust::{YamlLoader, Yaml, scanner};
-
 use description::context::Context;
 use description::flow::Flow;
-use description::io::IOSet;
+//use description::io::IOSet;
 use std::result;
 use std::fs::File;
 use parser::yaml;
@@ -18,28 +14,6 @@ pub enum Result  {
 pub trait Validate {
     fn validate(&self) -> result::Result<(), String>;
 }
-
-/*
-
-validate model (see check)
-
-load flow definition from file specified in arguments
-    - load any referenced to included flows also
-
-construct overall list of functions
-
-construct list of connections
-
-construct initial list of all functions able to produce output
-    - start from external sources at level 0
-
-do
-    - identify all functions which receive input from active sources
-    - execute all those functions
-    - functions producing output added to list of active sources
-while functions pending input
-
- */
 
 /// # Example
 /// ```

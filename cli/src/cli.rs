@@ -51,7 +51,7 @@ fn main() {
                 Result::ContextLoaded(context) => {
                     info!("'{}' context parsed and validated correctly", context.name);
                     if !matches.is_present("check") {
-                        // run it
+                        // TODO run it
                     }
                 },
                 Result::FlowLoaded(flow) => {

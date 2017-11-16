@@ -7,8 +7,6 @@ use description::flow::Flow;
 use description::value::Value;
 use description::io::IOSet;
 
-use std::path::Path;
-use parser::parser;
 use std::cell::RefCell;
 
 pub struct Context {
