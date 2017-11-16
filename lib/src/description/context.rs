@@ -1,6 +1,10 @@
-use loader::loader::Validate;
+use std::fmt;
 
+use loader::loader::Validate;
 use description::name::Name;
+use description::flow::Flow;
+use std::path::PathBuf;
+
 /*
 use description::entity::Entity;
 use description::connection::ConnectionSet;
@@ -10,11 +14,14 @@ use description::io::IOSet;
 */
 
 pub struct Context {
+    pub source: String,
     pub name: Name,
     /*
     source_path: String,
     entities: Vec<Entity<'a>>,
-    pub flows: Vec<(Name<'a>, String, RefCell<Flow<'a>>)>,
+    */
+    pub flow: Option<Box<Flow>>,
+    /*
     values: Vec<Value<'a>>,
     connection_set: ConnectionSet<'a>,
 */
@@ -55,21 +62,29 @@ impl Validate for Context {
     }
 }
 
-/*
 impl Context {
-	pub fn new(name: Name, path: &str, entities: Vec<Entity>, values: Vec<Value>,
-		   flows: Vec<(Name, String, RefCell<Flow>)>, connection_set: ConnectionSet ) -> Context {
-		Context {
-			name: name,
-			source_path: path.to_string(),
-			entities: entities,
-			values: values,
-			flows: flows,
-			connection_set: connection_set,
-		}
-	}
+    pub fn new(source: PathBuf, name: Name, /* entities: Vec<Entity>, values: Vec<Value>, */
+               flow: Option<Box<Flow>> /*, connection_set: ConnectionSet */) -> Context {
+        Context {
+            source: source.to_str().unwrap().to_string(),
+            name: name,
+            flow: flow
+            /*
+            source_path: path.to_string(),
+            entities: entities,
+            values: values,
+            connection_set: connection_set,
+            */
+        }
+    }
+}
 
-*/
+impl fmt::Display for Context {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Source: {}\nName: {}", self.source, self.name)
+    }
+}
+
 impl Context {
     fn validate_connections(&self) -> Result<(), String> {
         /*

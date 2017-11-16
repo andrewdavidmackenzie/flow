@@ -1,8 +1,7 @@
 use description::context::Context;
 use description::flow::Flow;
-//use description::io::IOSet;
 use std::result;
-use std::fs::File;
+use std::path::PathBuf;
 use loader::yaml;
 
 pub enum Result  {
@@ -17,17 +16,16 @@ pub trait Validate {
 
 /// # Example
 /// ```
-/// use std::fs::File;
+/// use std::path::PathBuf;
 /// use flowlib::loader::loader;
 ///
-/// let path = "../samples/hello-world-simple/hello.context";
-/// let mut file = File::open(path).unwrap();
-/// loader::load(file);
+/// let path = PathBuf::from("../samples/hello-world-simple/hello.context");
+/// loader::load(path);
 ///
 /// ```
-pub fn load(file: File) -> Result {
+pub fn load(file_path: PathBuf) -> Result {
     // We only support Yaml for now...
-    match yaml::load(file) {
+    match yaml::load(file_path) {
         Result::Context(context) => {
             match context.validate() {
                 Ok(_) => Result::Context(context),

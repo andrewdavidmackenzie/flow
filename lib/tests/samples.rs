@@ -1,13 +1,13 @@
+use std::path::PathBuf;
+
 extern crate flowlib;
 use flowlib::loader::loader;
-
-use std::fs::File;
+use flowlib::dumper::dump;
 
 #[test]
 fn sample_hello_world_simple() {
-    let path = "../samples/hello-world-simple/hello.context";
-    let file = File::open(path).unwrap();
-    match loader::load(file) {
+    let path = PathBuf::from("../samples/hello-world-simple/hello.context");
+    match loader::load(path) {
         loader::Result::Context(_) => {},
         _ => assert!(false),
     }
@@ -15,10 +15,18 @@ fn sample_hello_world_simple() {
 
 #[test]
 fn sample_hello_world() {
-    let path = "../samples/hello-world/hello.context";
-    let file = File::open(path).unwrap();
-    match loader::load(file) {
+    let path = PathBuf::from("../samples/hello-world/hello.context");
+    match loader::load(path) {
         loader::Result::Context(_) => {},
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn dump_hello_world() {
+    let path = PathBuf::from("../samples/hello-world/hello.context");
+    match loader::load(path) {
+        loader::Result::Context(c) => dump(c),
         _ => assert!(false),
     }
 }

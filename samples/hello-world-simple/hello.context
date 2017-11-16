@@ -1,21 +1,20 @@
+# Trivial Context that contains a value called 'message' of type 'String' that is output to the 'stdout'
+# port on the 'stdio' entity called 'terminal'
 context: hello-world-simple
 
-# Declare entities external to the contained flow
+# Declare entities at context level
 entities:
-      - name: STDIO
+      - name: terminal
+        type: stdio
 
 # These are values initiated inside this flow
 values:
       - name: message
-        type: String
+        dataType: String
 
-# This is a list of connections between entities and the contained flow
-# This MUST match the list of inputs/outputs described in the contained flow
-connectionSet:
-    connections:
+# This is a list of connections between entities, values and the possibly contained flow
+connections:
       - name: message
         dataType: String
-        from: flow/say hello/message
-        to: entity/STDIO/stdout
-
-    requests:
+        from: values/message
+        to: entities/terminal/stdout

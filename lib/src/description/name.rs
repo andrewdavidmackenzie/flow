@@ -10,6 +10,12 @@ impl Validate for Name {
         Ok(())
     }
 }
+/*
+impl From<&str> for Name {
+    fn from(n: &str) -> Name {
+        Name { name: n.to_string() };
+    }
+}*/
 
 #[test]
 fn does_not_validate_when_empty() {

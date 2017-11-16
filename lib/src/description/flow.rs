@@ -1,3 +1,5 @@
+use std::fmt;
+
 use description::name::Name;
 /*
 use description::connection::ConnectionSet;
@@ -15,6 +17,12 @@ pub struct Flow {
 	values: Vec<Value>,
 	functions: Vec<Function>,
 	*/
+}
+
+impl fmt::Display for Flow {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Name: {}", self.name)
+    }
 }
 
 //            flow.validate(); // TODO early return

@@ -1,7 +1,6 @@
 use glob::glob;
 use std::io;
 use std::io::ErrorKind;
-use std::fs::File;
 use std::fs::metadata;
 use std::path::PathBuf;
 
@@ -9,7 +8,7 @@ use std::path::PathBuf;
     Passed a path to a directory, it searches for the first file it can find in the directory
     fitting the pattern "*.context", and if found opens it and returns it in the result
 */
-fn open_default_file(path: PathBuf) -> io::Result<File> {
+fn get_default_file(path: PathBuf) -> io::Result<PathBuf> {
     let file_pattern = format!("{}/*.context", path.display());
     info!("Looking for files matching: '{}'", file_pattern);
 
@@ -18,7 +17,7 @@ fn open_default_file(path: PathBuf) -> io::Result<File> {
         // return first file found that matches the pattern, or error if none match
         // TODO this by just checking size of paths and accessing first entry?
         match entry {
-            Ok(context_file) => return File::open(context_file),
+            Ok(context_file) => return Ok(context_file),
             Err(_) => return Err(io::Error::new(ErrorKind::NotFound,
                                          format!("No default context file found in directory '{}'", path.display())))
         }
@@ -34,16 +33,16 @@ fn open_default_file(path: PathBuf) -> io::Result<File> {
      -  a specific directory, that may or may not exist,
         look for default file type in it by extension
 */
-pub fn open(path: PathBuf) -> io::Result<File> {
+pub fn get(path: PathBuf) -> io::Result<PathBuf> {
     info!("Attempting to open flow file using path = '{}'", path.display());
 
     match metadata(&path) {
         Ok(md) => {
             if md.is_dir() {
-                info!("'{}' is a directory, so attempting to find default flow file in it", path.display());
-                open_default_file(path)
+                info!("'{}' is a directory, so attempting to find context file in it", path.display());
+                get_default_file(path)
             } else {
-                File::open(path)
+                Ok(path)
             }
         },
         Err(e) => {

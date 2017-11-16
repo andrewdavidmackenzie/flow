@@ -1,20 +1,17 @@
 context: hello-world
 
-# Declare entities external to the contained flow
+# Declare entities at context level
 entities:
       - name: STDIO
+        type: stdio
 
-values:
-
-# The context level can only contain one flow
-flows:
+# The context level can contain one flow at most
+flow:
      -  name: say hello
         source: 1.flow
 
-# This is a list of connections between entities and the contained flow
-# This MUST match the list of inputs/outputs described in the contained flow
-connectionSet:
-    connections:
+# This is a list of connections between entities, values and the possibly contained flow
+connections:
       - name: message
         dataType: String
         from: flow/say hello/message
