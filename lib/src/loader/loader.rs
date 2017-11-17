@@ -19,7 +19,7 @@ pub trait Validate {
 /// use std::path::PathBuf;
 /// use flowlib::loader::loader;
 ///
-/// let path = PathBuf::from("../samples/hello-world-simple/hello.context");
+/// let path = PathBuf::from("../samples/hello-world-simple/context.yaml");
 /// loader::load(path);
 ///
 /// ```

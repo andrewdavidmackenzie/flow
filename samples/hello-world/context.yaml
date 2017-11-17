@@ -1,0 +1,17 @@
+context: hello-world
+
+sinks:
+      - name: terminal
+        type: String
+        function: stdout
+
+# The context level can contain one flow at most
+flow:
+     -  name: say hello
+        source: flow1.yaml
+
+connections:
+      - name: message
+        type: String
+        from: flow(say hello)/message
+        to: sink(terminal)

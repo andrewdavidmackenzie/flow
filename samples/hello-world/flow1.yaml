@@ -1,0 +1,19 @@
+flow: say hello
+
+# This defines the outputs of this flow
+outputs:
+    - name: message
+      type: String
+
+# This describes the connections between things in this flow
+connections:
+    - name: message
+      type: String
+      from: source/message
+      to: output/message
+
+# These are source inside this flow
+sources:
+    - name: message
+      source: message.yaml
+      type: String

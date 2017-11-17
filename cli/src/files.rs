@@ -9,7 +9,7 @@ use std::path::PathBuf;
     fitting the pattern "*.context", and if found opens it and returns it in the result
 */
 fn get_default_file(path: PathBuf) -> io::Result<PathBuf> {
-    let file_pattern = format!("{}/*.context", path.display());
+    let file_pattern = format!("{}/context.yaml", path.display());
     info!("Looking for files matching: '{}'", file_pattern);
 
     // Try to glob for the default file using a pattern
@@ -25,6 +25,19 @@ fn get_default_file(path: PathBuf) -> io::Result<PathBuf> {
 
     Err(io::Error::new(ErrorKind::NotFound,
                        format!("No default context file found in directory '{}'", path.display())))
+}
+
+#[test]
+fn get_default_sample() {
+    let path = PathBuf::from("../samples/hello-world");
+    match get_default_file(path) {
+        Ok(path) => {
+            if path.file_name().unwrap() != "context.yaml" {
+                assert!(false);
+            }
+        },
+        _ => assert!(false),
+    }
 }
 
 /*
