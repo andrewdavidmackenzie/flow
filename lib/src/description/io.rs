@@ -2,6 +2,9 @@ use loader::loader::Validate;
 use description::datatype::DataType;
 use description::name::Name;
 
+pub type IORef = String;
+
+#[derive(Deserialize)]
 pub struct IO {
 	pub name: Name, // Input/Output points on Entities, Flows, Sinks, Sources have unique names
 	data_type: DataType,
@@ -14,6 +17,7 @@ impl Validate for IO {
 	}
 }
 
+#[derive(Deserialize)]
 pub struct IOSet {
 	ios: Vec<IO>
 }

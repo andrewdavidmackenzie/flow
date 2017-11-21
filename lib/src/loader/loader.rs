@@ -17,9 +17,6 @@ pub trait Loader {
     fn load(file_path: &PathBuf) -> self::Result;
 }
 
-const CONTEXT_TAGS: &'static [&'static str] = &["context", "entities", "values", "flow", "connection_set"];
-const FLOW_TAGS: &'static [&'static str] = &["flow", "ioSet", "flows", "connection_set", "values", "functions"];
-
 /// # Example
 /// ```
 /// use std::path::PathBuf;

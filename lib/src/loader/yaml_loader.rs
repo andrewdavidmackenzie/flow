@@ -42,7 +42,7 @@ impl Loader for FlowYamlLoader {
     }
 }
 
-fn load_flow(source: &PathBuf, yaml: &Yaml) -> Result {
+fn load_flow(_source: &PathBuf, yaml: &Yaml) -> Result {
     // TODO catch error
     let name: Name = yaml["flow"].as_str().unwrap().to_string();
 
@@ -76,7 +76,7 @@ fn load_flow(source: &PathBuf, yaml: &Yaml) -> Result {
     */
 
     // Then validate the conections between this context and the contained flow
-    let flow = Flow::new(source, name, vec!());
+    let flow = Flow::new(name, vec!(), vec!(), vec!());
 
     Result::Loaded(flow)
 }

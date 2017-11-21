@@ -1,6 +1,7 @@
 use loader::loader::Validate;
 use description::name::Name;
-use std::path::PathBuf;
+use description::entity::EntityRef;
+use description::connection::Connection;
 use std::fmt;
 
 #[derive(Deserialize, Debug)]
@@ -11,34 +12,35 @@ pub struct FlowRef {
 
 impl fmt::Display for FlowRef {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Flow:\n\tname: {}", self.name)
+        write!(f, "Flow:\n\tname: {}\n\tsource: {}", self.name, self.source)
     }
 }
 
 #[derive(Deserialize)]
 pub struct Flow {
-    #[serde(skip_deserializing)]
-    pub source: String,
     pub name: Name,
     pub flow: Vec<FlowRef>,
+    pub entity: Vec<EntityRef>,
+    pub connection: Vec<Connection>
+
     //    pub _flow: Vec<Box<Flow>>,
     /*
-    entities: Vec<Entity<'a>>,
 	functions: Vec<Function>,
     values: Vec<Value>,
 	ios: IOSet,
-    connections: ConnectionSet<'a>,
 */
 }
 
 impl Flow {
-    pub fn new(source: &PathBuf,
-               name: Name, /* entities: Vec<Entity>, values: Vec<Value>, */
-               flows: Vec<FlowRef> /*, connection_set: ConnectionSet */) -> Flow {
+    pub fn new(name: Name,
+               flow: Vec<FlowRef>,
+               entity: Vec<EntityRef>,
+               connection: Vec<Connection>) -> Flow {
         Flow {
-            source: source.to_str().unwrap().to_string(),
             name: name,
-            flow: flows
+            flow: flow,
+            entity: entity,
+            connection: connection
             /*
             entities: entities,
             values: values,
@@ -108,7 +110,8 @@ impl Validate for Flow {
 
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "name: {}\nsource: {}\nsub-flow: {:?}", self.name, self.source, self.flow)
+        write!(f, "name: {}\nflow: {:?}\nentity: {:?}\nconnection: {:?}", self.name, self.flow,
+               self.entity, self.connection)
     }
 }
 
