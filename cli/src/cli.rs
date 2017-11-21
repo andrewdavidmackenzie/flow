@@ -51,20 +51,16 @@ fn main() {
         Ok(file_path) => {
             info!("Attempting to load file: '{:?}'", file_path);
             match loader::load(file_path) {
-                Result::Context(context) => {
-                    info!("'{}' context parsed and validated correctly", context.name);
+                Result::Loaded(flow) => {
+                    info!("'{}' flow parsed and validated correctly", flow.name);
 
                     if matches.is_present("dump") {
-                        dump(context);
+                        dump(flow);
                     }
 
                     if !matches.is_present("check") {
                         // TODO run it
                     }
-                },
-                Result::Flow(flow) => {
-                    info!("'{}' flow parsed and validated correctly", flow.name);
-                    println!("Flow {} loaded successfully, but only Context can be run", flow.name);
                 },
                 Result::Error(e) => {
                     println!("{}", e);

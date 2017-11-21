@@ -1,7 +1,6 @@
 extern crate yaml_rust;
 
 use self::yaml_rust::{YamlLoader, Yaml};
-use description::context::Context;
 use description::flow::Flow;
 use description::name::Name;
 
@@ -36,16 +35,16 @@ impl Loader for FlowYamlLoader {
                 let doc = &docs[0];
 
                 // TODO for now assume is a context - maybe load first element and decide based on that?
-                load_context(file_path, doc)
+                load_flow(file_path, doc)
             },
             Err(e) => Result::Error(format!("{}", e))
         }
     }
 }
 
-fn load_context(source: &PathBuf, yaml: &Yaml) -> Result {
+fn load_flow(source: &PathBuf, yaml: &Yaml) -> Result {
     // TODO catch error
-    let name: Name = yaml["context"].as_str().unwrap().to_string();
+    let name: Name = yaml["flow"].as_str().unwrap().to_string();
 
     /*
         // TODO check all tags present are allowed in a context
@@ -77,44 +76,7 @@ fn load_context(source: &PathBuf, yaml: &Yaml) -> Result {
     */
 
     // Then validate the conections between this context and the contained flow
-    let context = Context::new(source, name, None);
+    let flow = Flow::new(source, name, vec!());
 
-    Result::Context(context)
-}
-
-fn load_flow(yaml: &Yaml) -> Result {
-    let name: String = yaml["context"].as_str().unwrap().to_string();
-    /*
-        let name: String = match yaml["flow"].as_str() {
-            Some(el) => el.to_string(),
-            None => Result::Error("Could not find flow name".to_string())
-        };
-    */
-
-    // TODO check all tags present are allowed in a flow
-    /*
-        // yaml["flows"]
-        let flows: Vec<(String, String, Box<Flow>)> = vec![];
-
-        // yaml["connection_set"] "connections"
-        // yaml["connection_set"] "requests"
-        let connection_set = ConnectionSet::new(vec![], vec![]);
-
-        // yaml["ioSet"] "inputs"
-        // yaml["ioSet"] "outputs"
-        // yaml["ioSet"] "input_outputs"
-        // yaml["ioSet"] "output_inputs"
-        let ios: IOSet = IOSet::new(vec![], vec![], vec![], vec![]);
-
-        // yaml["values"]
-        let values: Vec<Value> = vec![];
-
-        // yaml["functions"]
-        let functions: Vec<Function> = vec![];
-
-        let flow = Flow::new(name, path, flows, connection_set, ios, values, functions);
-        */
-
-    let flow = Flow { name: name };
-    Result::Flow(flow)
+    Result::Loaded(flow)
 }

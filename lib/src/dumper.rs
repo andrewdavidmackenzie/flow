@@ -1,16 +1,9 @@
 
-use description::context::Context;
+use description::flow::Flow;
 
 /*
- dump a valid context to stdout
+ dump a valid flow to stdout
  */
-pub fn dump(context: Context) {
-    println!("Context: \n{}", context);
-
-    match context.flow {
-        Some(flow) => {
-            println!("Flow: \n{}", flow);
-        },
-        None => {}
-    }
+pub fn dump(flow: Flow) {
+    println!("{}", flow);
 }

@@ -1,12 +1,8 @@
+use loader::loader::Validate;
 use description::name::Name;
+use std::path::PathBuf;
 use std::fmt;
 
-/*
-use description::connection::ConnectionSet;
-use description::io::IOSet;
-use description::value::Value;
-use description::function::Function;
-*/
 #[derive(Deserialize, Debug)]
 pub struct FlowRef {
     pub name: Name,
@@ -21,20 +17,98 @@ impl fmt::Display for FlowRef {
 
 #[derive(Deserialize)]
 pub struct Flow {
-	pub name: Name,
-	/*
-	source_path: String,
-//	flows: Vec<(String, String, Box<Flow<'a>>)>,
-//	connection_set: ConnectionSet<'a>,
-	ios: IOSet,
-	values: Vec<Value>,
+    #[serde(skip_deserializing)]
+    pub source: String,
+    pub name: Name,
+    pub flow: Vec<FlowRef>,
+    //    pub _flow: Vec<Box<Flow>>,
+    /*
+    entities: Vec<Entity<'a>>,
 	functions: Vec<Function>,
-	*/
+    values: Vec<Value>,
+	ios: IOSet,
+    connections: ConnectionSet<'a>,
+*/
+}
+
+impl Flow {
+    pub fn new(source: &PathBuf,
+               name: Name, /* entities: Vec<Entity>, values: Vec<Value>, */
+               flows: Vec<FlowRef> /*, connection_set: ConnectionSet */) -> Flow {
+        Flow {
+            source: source.to_str().unwrap().to_string(),
+            name: name,
+            flow: flows
+            /*
+            entities: entities,
+            values: values,
+            connection_set: connection_set,
+            */
+        }
+    }
+}
+
+/*
+Validate the correctness of all the fields in this flow,
+but not consistency with contained flows
+ */
+impl Validate for Flow {
+    fn validate(&self) -> Result<(), String> {
+        self.name.validate() // TODO early return
+        /*
+                for entity in &self.entities {
+                    entity.validate(); // TODO early return
+                }
+
+                for value in &self.values {
+                    value.validate(); // TODO early return
+                }
+
+                //            context.load_sub_flows(); // TODO early return
+                //            context.validate_connections(); // TODO early return
+                //            for &(_, _, ref subflow) in context.flows.iter() {
+                //                subflow.borrow_mut().subflow(); // TODO early return
+                //            }
+
+
+                if self.flows.len() > 1 as usize {
+                    return Err("context: cannot contain more than one sub-flow".to_string());
+                }
+
+                for &(ref name, _, _) in self.flows.iter() {
+                    name.validate("Flow");
+                }
+
+                self.connection_set.validate()*/
+
+
+        /*
+        let mut io_sets: Vec<&IOSet> = vec![];
+
+        for &(_, _, ref flow) in self.flows.iter() {
+            // add subflow's ioset to the set to check connections to
+            // TODO FIX
+            //            io_sets.push(&(flow.borrow_mut().ios));
+        }
+
+        for entity in &self.entities {
+            io_sets.push(&entity.ios);
+        }
+
+        // TODO
+        // for each connection
+        // connected at both ends to something in this Context
+        // 		validateConnection in itself, not to subflow
+
+        // for each check connections with their ioset
+        ConnectionSet::check(&self.connection_set, &io_sets, &self.values)
+        */
+    }
 }
 
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Name: {}", self.name)
+        write!(f, "name: {}\nsource: {}\nsub-flow: {:?}", self.name, self.source, self.flow)
     }
 }
 

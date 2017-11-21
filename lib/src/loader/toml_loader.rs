@@ -27,7 +27,7 @@ impl Loader for FlowTomelLoader {
         match buf_reader.read_to_string(&mut contents) {
             Ok(_) => {
                 match toml::from_str(&contents) {
-                    Ok(c) => Result::Context(c),
+                    Ok(flow) => Result::Loaded(flow),
                     Err(e) => Result::Error(format!("{}", e))
                 }
             },
@@ -37,7 +37,7 @@ impl Loader for FlowTomelLoader {
 }
 
 /*
-fn load_context(source: PathBuf) -> Result {
+fn load_flow(source: PathBuf) -> Result {
     // TODO catch error
     let name: Name = yaml["context"].as_str().unwrap().to_string();
 
@@ -70,38 +70,5 @@ fn load_context(source: PathBuf) -> Result {
     let context = Context::new(source, name, None);
 
     Result::Context(context)
-}
-
-fn load_flow(yaml: &Yaml) -> Result {
-    let name: String = yaml["context"].as_str().unwrap().to_string();
-        let name: String = match yaml["flow"].as_str() {
-            Some(el) => el.to_string(),
-            None => Result::Error("Could not find flow name".to_string())
-        };
-
-    // TODO check all tags present are allowed in a flow
-        // yaml["flows"]
-        let flows: Vec<(String, String, Box<Flow>)> = vec![];
-
-        // yaml["connection_set"] "connections"
-        // yaml["connection_set"] "requests"
-        let connection_set = ConnectionSet::new(vec![], vec![]);
-
-        // yaml["ioSet"] "inputs"
-        // yaml["ioSet"] "outputs"
-        // yaml["ioSet"] "input_outputs"
-        // yaml["ioSet"] "output_inputs"
-        let ios: IOSet = IOSet::new(vec![], vec![], vec![], vec![]);
-
-        // yaml["values"]
-        let values: Vec<Value> = vec![];
-
-        // yaml["functions"]
-        let functions: Vec<Function> = vec![];
-
-        let flow = Flow::new(name, path, flows, connection_set, ios, values, functions);
-
-    let flow = Flow { name: name };
-    Result::Flow(flow)
 }
 */

@@ -1,4 +1,3 @@
-use description::context::Context;
 use description::flow::Flow;
 use std::result;
 use std::path::PathBuf;
@@ -6,8 +5,7 @@ use loader::yaml_loader::FlowYamlLoader;
 use loader::toml_loader::FlowTomelLoader;
 
 pub enum Result  {
-    Context(Context),
-    Flow(Flow),
+    Loaded(Flow),
     Error(String)
 }
 
@@ -45,15 +43,11 @@ pub fn load(file_path: PathBuf) -> Result {
     };
 
     match result {
-        Result::Context(context) => {
-            match context.validate() {
-                Ok(_) => Result::Context(context),
+        Result::Loaded(flow) => {
+            match flow.validate() {
+                Ok(_) => Result::Loaded(flow),
                 Err(e) => Result::Error(e)
             }
-        },
-
-        Result::Flow(flow) => {
-            return Result::Flow(flow);
         },
 
         Result::Error(string) => {

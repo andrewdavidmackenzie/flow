@@ -4,7 +4,7 @@ name = "hello-world-toml"
 name = "terminal"
 source = "terminal.toml"
 
-[flow]
+[[flow]]
 name = "hello"
 source = "flow1.toml"
 
