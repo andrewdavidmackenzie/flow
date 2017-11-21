@@ -1,0 +1,14 @@
+name = "say hello"
+
+[[entity]]
+name = "message"
+source = "message.toml"
+
+[[io]]
+name = "out"
+type = "String"
+
+[[connection]]
+name = "message"
+from = "entity/message/hi"
+to = "io/out"

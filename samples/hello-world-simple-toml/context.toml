@@ -1,0 +1,14 @@
+name = "hello-world-simple-toml"
+
+[[entity]]
+name = "terminal"
+source = "terminal.toml"
+
+[[entity]]
+name = "message"
+source = "message.toml"
+
+[[connection]]
+name = "message"
+from = "entity/message/hi"
+to = "entity/terminal/stdout"

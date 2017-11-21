@@ -1,0 +1,6 @@
+name = "message"
+
+[[io]]
+name = "hi"
+type = "String"
+value = "Hello World!"
