@@ -1,4 +1,4 @@
-flow: say hello
+name: say hello
 
 # This defines the outputs of this flow
 outputs:
@@ -8,12 +8,11 @@ outputs:
 # This describes the connections between things in this flow
 connections:
     - name: message
-      type: String
       from: source/message
       to: output/message
 
 # These are source inside this flow
-sources:
+entities:
     - name: message
       source: message.yaml
       type: String

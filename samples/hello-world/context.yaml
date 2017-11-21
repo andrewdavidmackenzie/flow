@@ -1,6 +1,6 @@
-context: hello-world
+name: hello-world
 
-sinks:
+entities:
       - name: terminal
         type: String
         function: stdout
@@ -13,5 +13,5 @@ flow:
 connections:
       - name: message
         type: String
-        from: flow(say hello)/message
-        to: sink(terminal)
+        from: flow/say hello/message
+        to: entities/terminal/

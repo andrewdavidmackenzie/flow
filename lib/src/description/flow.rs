@@ -1,12 +1,25 @@
+use description::name::Name;
 use std::fmt;
 
-use description::name::Name;
 /*
 use description::connection::ConnectionSet;
 use description::io::IOSet;
 use description::value::Value;
 use description::function::Function;
 */
+#[derive(Deserialize, Debug)]
+pub struct FlowRef {
+    pub name: Name,
+    pub source: String
+}
+
+impl fmt::Display for FlowRef {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Flow:\n\tname: {}", self.name)
+    }
+}
+
+#[derive(Deserialize)]
 pub struct Flow {
 	pub name: Name,
 	/*

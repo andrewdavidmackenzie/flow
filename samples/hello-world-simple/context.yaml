@@ -1,19 +1,16 @@
 # Trivial Context that contains a value called 'message' of type 'String' that is output to the 'stdout'
 # port on the 'stdio' entity called 'terminal'
-context: hello-world-simple
+name: hello-world-simple
 
-sinks:
-      - name: terminal
-        type: String
-        function: stdout
-
-sources:
+entities:
+    - name: terminal
+      type: String
+      function: stdout
     - name: message
       source: message.yaml
       type: String
 
 connections:
-      - name: message
-        type: String
-        from: source/message
-        to: sink/terminal
+    - name: message
+      from: entity/message
+      to: entity/terminal

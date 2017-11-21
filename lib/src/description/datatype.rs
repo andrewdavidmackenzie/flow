@@ -1,1 +1,1 @@
-pub type DataType<'a> = &'a str;
+pub type DataType = String;

@@ -21,7 +21,7 @@ impl From<&str> for Name {
 fn does_not_validate_when_empty() {
     let name = "".to_string();
     match name.validate() {
-        Err(e) => {}
+        Err(_) => {}
         Ok(_) => { assert!(false) }
     }
 }

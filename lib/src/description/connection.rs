@@ -1,66 +1,40 @@
-use description::name::Name;
-use description::datatype::DataType;
-use description::io::{Output, Input, InputOutput, OutputInput};
+use loader::loader::Validate;use description::name::Name;
+use description::io::IO;
 
 /*
 	Unidirectional connection between an Output and an Input
 	Can only carry a single datatype
  */
-pub struct Connection<'a> {
+pub struct Connection {
 	name: Name,
-	data_type: DataType<'a>,
 // change to references to ensure they refer to real Input/Output and not copy them
-	from: Output,
-	to: Input,
+	from: IO,
+	to: IO,
 }
 
-/*
 impl Connection {
 	// TODO change to references later
-	fn new(name: Name, data_type: DataType, from: Output, to: Input) -> Connection {
+	fn new(name: Name, from: IO, to: IO) -> Connection {
 		Connection {
 			name: name,
-			data_type: data_type,
 			from: from,
 			to : to,
 		}
 	}
-
-	fn validate_fields(&self) -> parser::Result {
-		self.name.validate_fields("Connection") // TODO early return
-
-		// Validate other fields exist and are valid syntax
-	}
 }
 
-*/
+impl Validate for Connection {
+    fn validate(&self) -> Result<(), String> {
+        self.name.validate() // TODO early return
 
-/*
-	Bidirectional request from one IO to another with a datatype for the
-	request and another datatype for the response.
- */
-pub struct Request<'a>  {
-	name: Name,
-	// change to references to ensure they refer to real Input/Output and not copy them
-	from: OutputInput,
-	request_data_type: DataType<'a>,
-	to: InputOutput,
-	response_data_type: DataType<'a>,
+        // Validate other fields exist and are valid syntax
+        // TODO validate directions match the end points
+        // TODO Validate the two types are the same or can be inferred
+    }
 }
 
-/*
-impl Request {
-	fn validate_fields(&self) -> parser::Result {
-		self.name.validate_fields("Result") // TODO early return
-
-		// Validate other fields exist and are valid syntax
-	}
-}
-*/
-
-pub struct ConnectionSet<'a> {
-	connections: Vec<Connection<'a>>,
-	requests: Vec<Request<'a>>,
+pub struct ConnectionSet {
+	connections: Vec<Connection>
 }
 
 /*
@@ -83,9 +57,6 @@ impl ConnectionSet {
 	pub fn validate_fields(&self) -> parser::Result  {
 		for connection in &self.connections {
 			connection.validate_fields(); // TODO early return
-		}
-		for request in &self.requests {
-			request.validate_fields(); // TODO early return
 		}
 
 		parser::Result::Valid
