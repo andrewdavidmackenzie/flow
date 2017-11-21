@@ -61,7 +61,7 @@ io   - one or more IOs
 IOs produce or consume data of a specific type, and maybe implemented as values or functions.
 
 name - the name of the IO
-type - the type of data it consumes or produces
+datatype - the type of data it consumes or produces
 value: It can define a static value of one of the specified type so that no function is needed to be implemented
 or
 function: ?? point to an implementation of the function (that doesn't take any input arguments?)

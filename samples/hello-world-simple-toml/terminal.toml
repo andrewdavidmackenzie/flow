@@ -2,5 +2,5 @@ name = "terminal"
 
 [[io]]
 name = "stdout"
-type = "String"
+datatype = "String"
 function = "print"

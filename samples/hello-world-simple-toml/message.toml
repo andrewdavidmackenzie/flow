@@ -2,5 +2,5 @@ name = "message"
 
 [[io]]
 name = "hi"
-type = "String"
+datatype = "String"
 value = "Hello World!"

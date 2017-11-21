@@ -1,5 +1,6 @@
+use loader::loader::Validate;
 use description::name::Name;
-use description::io::IOSet;
+use description::io::IO;
 use std::fmt;
 
 #[derive(Deserialize, Debug)]
@@ -17,20 +18,11 @@ impl fmt::Display for EntityRef {
 #[derive(Deserialize)]
 pub struct Entity {
 	pub name: Name,
-	pub ios: IOSet,
+	pub io: Vec<IO>,
 }
 
-/*impl Entity {
-	pub fn load(&self) -> parser::Result {
-		// TODO check entity can be found in system
-		// and load it's ioSet
-		parser::Result::Valid
+impl Validate for Entity {
+	fn validate(&self) -> Result<(), String> {
+		self.name.validate()
 	}
-
-	pub fn validate_fields(&self) -> parser::Result  {
-		self.name.validate_fields("Entity"); // TODO early return
-		self.ios.validate_fields(); // TODO early return
-
-		parser::Result::Valid
-	}
-}*/
+}

@@ -2,6 +2,7 @@ use loader::loader::Validate;
 use description::name::Name;
 use description::entity::EntityRef;
 use description::connection::Connection;
+use description::io::IO;
 use std::fmt;
 
 #[derive(Deserialize, Debug)]
@@ -21,26 +22,25 @@ pub struct Flow {
     pub name: Name,
     pub flow: Vec<FlowRef>,
     pub entity: Vec<EntityRef>,
-    pub connection: Vec<Connection>
-
-    //    pub _flow: Vec<Box<Flow>>,
-    /*
-	functions: Vec<Function>,
-    values: Vec<Value>,
-	ios: IOSet,
-*/
+    pub connection: Vec<Connection>,
+    pub io: Option<Vec<IO>>,
+    #[serde(skip_deserializing)]
+    pub flows: Vec<Box<Flow>>
 }
 
 impl Flow {
     pub fn new(name: Name,
                flow: Vec<FlowRef>,
                entity: Vec<EntityRef>,
-               connection: Vec<Connection>) -> Flow {
+               connection: Vec<Connection>,
+               io: Option<Vec<IO>>) -> Flow {
         Flow {
             name: name,
             flow: flow,
             entity: entity,
-            connection: connection
+            connection: connection,
+            io: io,
+            flows: vec!()
             /*
             entities: entities,
             values: values,
@@ -57,6 +57,18 @@ but not consistency with contained flows
 impl Validate for Flow {
     fn validate(&self) -> Result<(), String> {
         self.name.validate() // TODO early return
+
+        // TODO early return on failure
+        /*for io in &self.io {
+            io.validate();
+        }
+*/
+
+        //            flow.validate(); // TODO early return
+        //            flow.load_sub_flows(); // TODO early return
+        //            flow.validate_connections(); // TODO early return
+        //            flow.subflow();
+
         /*
                 for entity in &self.entities {
                     entity.validate(); // TODO early return
@@ -110,32 +122,13 @@ impl Validate for Flow {
 
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "name: {}\nflow: {:?}\nentity: {:?}\nconnection: {:?}", self.name, self.flow,
-               self.entity, self.connection)
+        write!(f, "name: {}\nflow: {:?}\nentity: {:?}\nconnection: {:?}\nio: {:?}", self.name, self.flow,
+               self.entity, self.connection, self.io)
     }
 }
 
-//            flow.validate(); // TODO early return
-//            flow.load_sub_flows(); // TODO early return
-//            flow.validate_connections(); // TODO early return
-//            flow.subflow();
 
 /*
-impl Flow {
-	pub fn new(name: String, path: &str, flows: Vec<(String, String, Box<Flow>)>,
-		   connection_set: ConnectionSet, ios: IOSet, values: Vec<Value>, functions: Vec<Function>)
-	-> Flow {
-		Flow {
-			name: name,
-			source_path: path.to_string(),
-			flows: flows,
-			ios: ios,
-			values: values,
-			functions: functions,
-			connection_set: connection_set,
-		}
-	}
-
 	pub fn validate_fields(&self) -> parser::Result {
 		self.name.validate_fields("Flow"); // TODO early return
 

@@ -1,9 +1,7 @@
-use description::io::IOSet;
 use description::name::Name;
 
 pub struct Function {
-	name: Name,
-	pub ios: IOSet,
+	name: Name
 }
 
 /*

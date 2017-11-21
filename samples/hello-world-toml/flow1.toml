@@ -6,7 +6,7 @@ source = "message.toml"
 
 [[io]]
 name = "out"
-type = "String"
+datatype = "String"
 
 [[connection]]
 name = "message"

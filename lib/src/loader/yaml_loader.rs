@@ -76,7 +76,7 @@ fn load_flow(_source: &PathBuf, yaml: &Yaml) -> Result {
     */
 
     // Then validate the conections between this context and the contained flow
-    let flow = Flow::new(name, vec!(), vec!(), vec!());
+    let flow = Flow::new(name, vec!(), vec!(), vec!(), None);
 
     Result::Loaded(flow)
 }

@@ -4,10 +4,10 @@ use description::name::Name;
 
 pub type IORef = String;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct IO {
 	pub name: Name, // Input/Output points on Entities, Flows, Sinks, Sources have unique names
-	data_type: DataType,
+	datatype: DataType,
 }
 
 impl Validate for IO {
@@ -15,39 +15,4 @@ impl Validate for IO {
 		self.name.validate() // TODO early return here try!() ????
 		// TODO validate datatype exists?
 	}
-}
-
-#[derive(Deserialize)]
-pub struct IOSet {
-	ios: Vec<IO>
-}
-
-/*
-Implement a default set of empty vectors for IOSet, then any instances just need to specify  the ones they create
- */
-impl Default for IOSet {
-	fn default () -> IOSet {
-		IOSet {
-			ios : vec![]
-		}
-	}
-}
-
-impl IOSet {
-	pub fn new(ios: Vec<IO>) -> IOSet {
-		IOSet {
-			ios: ios
-		}
-	}
-}
-
-impl Validate for IOSet {
-    fn validate(&self) -> Result<(), String> {
-        // TODO early return on failure
-        for io in &self.ios {
-            io.validate();
-        }
-
-        Ok(())
-    }
 }

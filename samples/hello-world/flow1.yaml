@@ -3,7 +3,7 @@ name: say hello
 # This defines the outputs of this flow
 outputs:
     - name: message
-      type: String
+      datatype: String
 
 # This describes the connections between things in this flow
 connections:
@@ -15,4 +15,4 @@ connections:
 entities:
     - name: message
       source: message.yaml
-      type: String
+      datatype: String
