@@ -11,8 +11,8 @@ use description::value::Value;
 use description::function::Function;
 use description::connection::ConnectionSet;*/
 
-use loader::loader::Result;
 use loader::loader::Loader;
+use description::flow::Flow;
 
 pub struct FlowTomelLoader{}
 
@@ -20,18 +20,19 @@ pub struct FlowTomelLoader{}
  load the toml file
  */
 impl Loader for FlowTomelLoader {
-    fn load(file_path: &PathBuf) -> Result {
+    // TODO define our own errors types?
+    fn load(file_path: &PathBuf) -> Result<Flow, String> {
         let file = File::open(file_path).unwrap(); // TODO handle error
         let mut buf_reader = BufReader::new(file);
         let mut contents = String::new();
         match buf_reader.read_to_string(&mut contents) {
             Ok(_) => {
                 match toml::from_str(&contents) {
-                    Ok(flow) => Result::Loaded(flow),
-                    Err(e) => Result::Error(format!("{}", e))
+                    Ok(flow) => Ok(flow),
+                    Err(e) => Err(format!("{}", e))
                 }
             },
-            Err(e) => Result::Error(format!("{}", e))
+            Err(e) => Err(format!("{}", e))
         }
     }
 }

@@ -20,9 +20,9 @@ impl fmt::Display for FlowRef {
 #[derive(Deserialize)]
 pub struct Flow {
     pub name: Name,
-    pub flow: Vec<FlowRef>,
-    pub entity: Vec<EntityRef>,
-    pub connection: Vec<Connection>,
+    pub flow: Option<Vec<FlowRef>>,
+    pub entity: Option<Vec<EntityRef>>,
+    pub connection: Option<Vec<Connection>>,
     pub io: Option<Vec<IO>>,
     #[serde(skip_deserializing)]
     pub flows: Vec<Box<Flow>>
@@ -30,9 +30,9 @@ pub struct Flow {
 
 impl Flow {
     pub fn new(name: Name,
-               flow: Vec<FlowRef>,
-               entity: Vec<EntityRef>,
-               connection: Vec<Connection>,
+               flow: Option<Vec<FlowRef>>,
+               entity: Option<Vec<EntityRef>>,
+               connection: Option<Vec<Connection>>,
                io: Option<Vec<IO>>) -> Flow {
         Flow {
             name: name,
@@ -122,8 +122,8 @@ impl Validate for Flow {
 
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "name: {}\nflow: {:?}\nentity: {:?}\nconnection: {:?}\nio: {:?}", self.name, self.flow,
-               self.entity, self.connection, self.io)
+        write!(f, "Flow:\n\tname: {}\n\tflow: {:?}\n\tentity: {:?}\n\tconnection: {:?}\n\tio: {:?}",
+               self.name, self.flow, self.entity, self.connection, self.io)
     }
 }
 

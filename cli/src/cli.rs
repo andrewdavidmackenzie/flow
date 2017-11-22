@@ -6,7 +6,6 @@ use clap::{App, Arg};
 extern crate flowlib;
 use flowlib::info;
 use flowlib::loader::loader;
-use flowlib::loader::loader::Result;
 use flowlib::dumper::dump;
 
 mod files;
@@ -51,7 +50,7 @@ fn main() {
         Ok(file_path) => {
             info!("Attempting to load file: '{:?}'", file_path);
             match loader::load(file_path) {
-                Result::Loaded(flow) => {
+                Ok(flow) => {
                     info!("'{}' flow parsed and validated correctly", flow.name);
 
                     if matches.is_present("dump") {
@@ -62,7 +61,7 @@ fn main() {
                         // TODO run it
                     }
                 },
-                Result::Error(e) => {
+                Err(e) => {
                     println!("{}", e);
                 }
             }

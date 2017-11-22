@@ -9,7 +9,7 @@ use flowlib::dumper::dump;
 fn sample_hello_world_simple() {
     let path = PathBuf::from("../samples/hello-world-simple/context.yaml");
     match loader::load(path) {
-        loader::Result::Context(_) => {},
+        Ok(_) => {},
         _ => assert!(false),
     }
 }
@@ -19,7 +19,7 @@ fn sample_hello_world_simple() {
 fn sample_hello_world() {
     let path = PathBuf::from("../samples/hello-world/context.yaml");
     match loader::load(path) {
-        loader::Result::Context(_) => {},
+        Ok(_) => {},
         _ => assert!(false),
     }
 }
@@ -28,7 +28,7 @@ fn sample_hello_world() {
 fn sample_hello_toml() {
     let path = PathBuf::from("../samples/hello-world-toml/context.toml");
     match loader::load(path) {
-        loader::Result::Context(_) => {},
+        Ok(_) => {},
         _ => assert!(false),
     }
 }
@@ -37,7 +37,25 @@ fn sample_hello_toml() {
 fn sample_hello_simple_toml() {
     let path = PathBuf::from("../samples/hello-world-simple-toml/context.toml");
     match loader::load(path) {
-        loader::Result::Context(_) => {},
+        Ok(_) => {},
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn sample_hello_simple_message_toml() {
+    let path = PathBuf::from("../samples/hello-world-simple-toml/message.toml");
+    match loader::load(path) {
+        Ok(_) => {},
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn sample_hello_simple_terminal_toml() {
+    let path = PathBuf::from("../samples/hello-world-simple-toml/terminal.toml");
+    match loader::load(path) {
+        Ok(_) => {},
         _ => assert!(false),
     }
 }
@@ -46,7 +64,34 @@ fn sample_hello_simple_toml() {
 fn dump_hello_world_toml() {
     let path = PathBuf::from("../samples/hello-world-toml/context.toml");
     match loader::load(path) {
-        loader::Result::Context(c) => dump(c),
+        Ok(f) => dump(f),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn dump_hello_world_flow1_toml() {
+    let path = PathBuf::from("../samples/hello-world-toml/flow1.toml");
+    match loader::load(path) {
+        Ok(f) => dump(f),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn dump_hello_world_message_toml() {
+    let path = PathBuf::from("../samples/hello-world-toml/message.toml");
+    match loader::load(path) {
+        Ok(f) => dump(f),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn dump_hello_world_terminal_toml() {
+    let path = PathBuf::from("../samples/hello-world-toml/terminal.toml");
+    match loader::load(path) {
+        Ok(f) => dump(f),
         _ => assert!(false),
     }
 }

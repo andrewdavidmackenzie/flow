@@ -16,16 +16,15 @@ use description::value::Value;
 use description::function::Function;
 use description::connection::ConnectionSet;*/
 
-use loader::loader::Result;
 use loader::loader::Loader;
 
-pub struct FlowYamlLoader{}
+pub struct FlowYamlLoader {}
 
 /*
  laod the yaml file(s)
  */
 impl Loader for FlowYamlLoader {
-    fn load(file_path: &PathBuf) -> Result {
+    fn load(file_path: &PathBuf) -> Result<Flow, String> {
         let file = File::open(file_path).unwrap(); // TODO handle error
         let mut buf_reader = BufReader::new(file);
         let mut contents = String::new();
@@ -36,13 +35,13 @@ impl Loader for FlowYamlLoader {
 
                 // TODO for now assume is a context - maybe load first element and decide based on that?
                 load_flow(file_path, doc)
-            },
-            Err(e) => Result::Error(format!("{}", e))
+            }
+            Err(e) => Err(format!("{}", e))
         }
     }
 }
 
-fn load_flow(_source: &PathBuf, yaml: &Yaml) -> Result {
+fn load_flow(_source: &PathBuf, yaml: &Yaml) -> Result<Flow, String> {
     // TODO catch error
     let name: Name = yaml["flow"].as_str().unwrap().to_string();
 
@@ -76,7 +75,7 @@ fn load_flow(_source: &PathBuf, yaml: &Yaml) -> Result {
     */
 
     // Then validate the conections between this context and the contained flow
-    let flow = Flow::new(name, vec!(), vec!(), vec!(), None);
+    let flow = Flow::new(name, None, None, None, None);
 
-    Result::Loaded(flow)
+    Ok(flow)
 }

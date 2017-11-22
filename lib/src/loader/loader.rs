@@ -4,17 +4,12 @@ use std::path::PathBuf;
 use loader::yaml_loader::FlowYamlLoader;
 use loader::toml_loader::FlowTomelLoader;
 
-pub enum Result  {
-    Loaded(Flow),
-    Error(String)
-}
-
 pub trait Validate {
-    fn validate(&self) -> result::Result<(), String>;
+    fn validate(&self) -> Result<(), String>;
 }
 
 pub trait Loader {
-    fn load(file_path: &PathBuf) -> self::Result;
+    fn load(file_path: &PathBuf) -> Result<Flow, String>;
 }
 
 /// # Example
@@ -23,9 +18,9 @@ pub trait Loader {
 /// use flowlib::loader::loader;
 ///
 /// let path = PathBuf::from("../samples/hello-world-simple-toml/context.toml");
-/// loader::load(path);
+/// loader::load(path).unwrap();
 /// ```
-pub fn load(file_path: PathBuf) -> Result {
+pub fn load(file_path: PathBuf) -> Result<Flow, String> {
     // TODO load a loader object based on extension, then invoke via Trait
 
     let result = match file_path.extension() {
@@ -33,22 +28,20 @@ pub fn load(file_path: PathBuf) -> Result {
             match ext.to_str() {
                 Some("yaml") => FlowYamlLoader::load(&file_path),
                 Some("toml") => FlowTomelLoader::load(&file_path),
-                _    => Result::Error(format!("Unsupported file extension '{:?}'", ext)),
+                _ => Err(format!("Unsupported file extension '{:?}'", ext)),
             }
-        },
-        None => Result::Error("No file extension so cannot determine file format".to_string())
+        }
+        None => Err("No file extension so cannot determine file format".to_string())
     };
 
+    // TODO a try or expect here????
     match result {
-        Result::Loaded(flow) => {
+        Ok(flow) => {
             match flow.validate() {
-                Ok(_) => Result::Loaded(flow),
-                Err(e) => Result::Error(e)
+                Ok(_) => return Ok(flow),
+                Err(e) => Err(e)
             }
         },
-
-        Result::Error(string) => {
-            return Result::Error(string);
-        }
+        Err(e) => Err(e)
     }
 }
