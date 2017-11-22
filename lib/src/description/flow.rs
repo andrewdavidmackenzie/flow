@@ -2,7 +2,10 @@ use loader::loader::Validate;
 use description::name::Name;
 use description::entity::EntityRef;
 use description::connection::Connection;
-use description::io::IO;
+use description::connection::IO;
+use description::connection::IOName;
+use description::function::FunctionRef;
+use description::value::Value;
 use std::fmt;
 
 #[derive(Deserialize, Debug)]
@@ -22,8 +25,10 @@ pub struct Flow {
     pub name: Name,
     pub flow: Option<Vec<FlowRef>>,
     pub entity: Option<Vec<EntityRef>>,
-    pub connection: Option<Vec<Connection>>,
     pub io: Option<Vec<IO>>,
+    pub value: Option<Vec<Value>>,
+    pub function: Option<Vec<FunctionRef>>,
+    pub connection: Option<Vec<Connection>>,
     #[serde(skip_deserializing)]
     pub flows: Vec<Box<Flow>>
 }
@@ -33,13 +38,17 @@ impl Flow {
                flow: Option<Vec<FlowRef>>,
                entity: Option<Vec<EntityRef>>,
                connection: Option<Vec<Connection>>,
-               io: Option<Vec<IO>>) -> Flow {
+               io: Option<Vec<IO>>,
+               function: Option<Vec<FunctionRef>>,
+               value: Option<Vec<Value>>) -> Flow {
         Flow {
             name: name,
             flow: flow,
             entity: entity,
             connection: connection,
             io: io,
+            function: function,
+            value: value,
             flows: vec!()
             /*
             entities: entities,

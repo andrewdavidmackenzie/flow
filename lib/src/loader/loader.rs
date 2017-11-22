@@ -1,5 +1,4 @@
 use description::flow::Flow;
-use std::result;
 use std::path::PathBuf;
 use loader::yaml_loader::FlowYamlLoader;
 use loader::toml_loader::FlowTomelLoader;

@@ -28,7 +28,11 @@ impl Loader for FlowTomelLoader {
         match buf_reader.read_to_string(&mut contents) {
             Ok(_) => {
                 match toml::from_str(&contents) {
-                    Ok(flow) => Ok(flow),
+                    Ok(flow) => {
+                        load_flow_contents(&flow);
+                        // TODO figure out how to return Ok or Err with the flow in it from contents
+                        Ok(flow)
+                    },
                     Err(e) => Err(format!("{}", e))
                 }
             },
@@ -37,39 +41,21 @@ impl Loader for FlowTomelLoader {
     }
 }
 
-/*
-fn load_flow(source: PathBuf) -> Result {
-    // TODO catch error
-    let name: Name = yaml["context"].as_str().unwrap().to_string();
+fn load_flow_contents(flow: &Flow) {
+    // Load subflows from FlorRefs
+    //    pub flow: Option<Vec<FlowRef>>,
+    // pub flows: Vec<Box<Flow>>
 
-        // TODO check all tags present are allowed in a context
+    // load entities from entity refs
+    // pub entity: Option<Vec<EntityRef>>,
+    // let entities: Vec<Entity> = Vec::new();
 
-        let entities: Vec<Entity> = Vec::new();
-        // 	entities = yaml["entities"]
-        // create each entity
-        // load it using .load()
+    // Create the IOs from IO Refs?
+    // pub io: Option<Vec<IO>>,
 
-        let values: Vec<Value> = vec![];
-        // yaml["values"]
+    // Check the connections and connect them up with refs?
+    //pub connection: Option<Vec<Connection>>,
 
-        let flows: Vec<(String, String, RefCell<Flow>)> = vec![];
-        // flow = yaml["flow"]
-
-        let connection_set: ConnectionSet = ConnectionSet::new(vec![], vec![]);
-
-    // 	connection_set = yaml["connection_set"]
-    //	let context = Context::new(name, path, entities, values, flows, connection_set);
-
-    // TODO validate this context as loaded
-
-    // TODO load the flow contained if there is one
-        let sub_flow: &Yaml = &yaml["flow"];
-        let flow_name: String = sub_flow["name"].as_str().unwrap().to_string();
-        let flow = Some(Box::new(Flow{ name : flow_name}));
-
-    // Then validate the conections between this context and the contained flow
-    let context = Context::new(source, name, None);
-
-    Result::Context(context)
+    // Validate all is consistent now it's loaded??
+    // flow.validate()
 }
-*/

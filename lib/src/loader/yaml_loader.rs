@@ -75,7 +75,7 @@ fn load_flow(_source: &PathBuf, yaml: &Yaml) -> Result<Flow, String> {
     */
 
     // Then validate the conections between this context and the contained flow
-    let flow = Flow::new(name, None, None, None, None);
+    let flow = Flow::new(name, None, None, None, None, None, None);
 
     Ok(flow)
 }

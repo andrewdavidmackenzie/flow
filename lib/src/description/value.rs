@@ -1,5 +1,17 @@
-use description::io::IO;
+use description::name::Name;
+use description::datatype::DataType;
 
-pub type Value = IO; // Output only...
+use std::fmt;
 
-// TODO some sort of get funtion? Source Trait?
+#[derive(Deserialize, Debug)]
+pub struct Value {
+    pub name: Name,
+    pub datatype: DataType,
+    pub value: String // TODO for now....
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Value:\n\tname: {}\n\tdatatype: {}\n\tvalue: {}", self.name, self.datatype, self.value)
+    }
+}

@@ -1,6 +1,6 @@
 use loader::loader::Validate;
 use description::name::Name;
-use description::io::IO;
+use description::connection::IOName;
 use std::fmt;
 
 #[derive(Deserialize, Debug)]
@@ -18,7 +18,9 @@ impl fmt::Display for EntityRef {
 #[derive(Deserialize)]
 pub struct Entity {
 	pub name: Name,
-	pub io: Vec<IO>,
+	pub io: Vec<IOName>,
+    function: Option<String>, // TODO for now
+    value: Option<String> // TODO for now
 }
 
 impl Validate for Entity {

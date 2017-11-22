@@ -1,20 +1,24 @@
 use description::name::Name;
+use description::connection::IO;
+use loader::loader::Validate;
 
+#[derive(Deserialize, Debug)]
+pub struct FunctionRef {
+	name: Name,
+	source: String
+}
+
+#[derive(Deserialize, Debug)]
 pub struct Function {
-	name: Name
+    name: Name,
+    input: Option<Vec<IO>>,
+    output: Option<Vec<IO>>,
+    implementation: Option<String> // TODO for now
 }
 
-/*
-impl Function {
-	pub fn load(&self) -> parser::Result {
-		// TODO check entity can be found in system
-		// and load it's ioSet
-		parser::Result::Valid
-	}
-
-	fn validate_fields(&self) -> parser::Result {
-		self.name.validate_fields("Function"); // TODO early return
-		self.ios.validate_fields()
+impl Validate for Function {
+	fn validate(&self) -> Result<(), String> {
+		self.name.validate() // TODO early return
+        // TODO validate all the rest
 	}
 }
-*/

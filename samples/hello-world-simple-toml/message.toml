@@ -1,6 +1,0 @@
-name = "message"
-
-[[io]]
-name = "hi"
-datatype = "String"
-value = "Hello World!"

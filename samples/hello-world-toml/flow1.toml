@@ -1,8 +1,9 @@
 name = "say hello"
 
-[[entity]]
+[[value]]
 name = "message"
-source = "message.toml"
+datatype = "String"
+value = "Hello World!"
 
 [[io]]
 name = "out"
@@ -10,5 +11,5 @@ datatype = "String"
 
 [[connection]]
 name = "message"
-from = "entity/message/hi"
-to = "io/out"
+from = "value/message"
+to = "flow/this/out"

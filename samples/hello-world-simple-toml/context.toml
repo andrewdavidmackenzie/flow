@@ -1,14 +1,15 @@
 name = "hello-world-simple-toml"
 
-[[entity]]
-name = "terminal"
-source = "terminal.toml"
-
-[[entity]]
+[[value]]
 name = "message"
-source = "message.toml"
+datatype = "String"
+value = "Hello World!"
+
+[[function]]
+name = "print"
+source = "terminal.toml"
 
 [[connection]]
 name = "message"
-from = "entity/message/hi"
-to = "entity/terminal/stdout"
+from = "value/message"
+to = "function/print/stdout"

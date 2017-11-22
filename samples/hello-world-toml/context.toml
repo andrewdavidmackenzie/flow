@@ -1,7 +1,7 @@
 name = "hello-world-toml"
 
-[[entity]]
-name = "terminal"
+[[function]]
+name = "print"
 source = "terminal.toml"
 
 [[flow]]
@@ -11,4 +11,4 @@ source = "flow1.toml"
 [[connection]]
 name = "message"
 from = "flow/hello/out"
-to = "entity/terminal/stdout"
+to = "function/terminal/stdout"

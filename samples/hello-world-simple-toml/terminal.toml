@@ -1,11 +1,9 @@
 name = "terminal"
 
-[[io]]
+[[input]]
 name = "stdout"
 datatype = "String"
-function = "print"
 
-[[io]]
-name = "stderr"
-datatype = "String"
-function = "print"
+[[output]]
+
+[implementation]
