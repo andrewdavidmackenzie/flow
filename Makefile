@@ -3,7 +3,7 @@ RUSTUP := $(shell command -v rustup 2> /dev/null)
 
 all: test package
 
-test: test-lib test-cli test-app
+test: test-lib test-flowc test-app
 
 test-lib:
 	@echo ""
@@ -11,11 +11,11 @@ test-lib:
 	@cargo test --manifest-path lib/Cargo.toml
 	@echo "------- Finished testing lib ----------------"
 
-test-cli:
+test-flowc:
 	@echo ""
-	@echo "------- Started  testing cli ----------------"
-	@cargo test --manifest-path cli/Cargo.toml
-	@echo "------- Finished testing cli ----------------"
+	@echo "------- Started  testing flowc ----------------"
+	@cargo test --manifest-path flowc/Cargo.toml
+	@echo "------- Finished testing flowc ----------------"
 
 test-app:
 	@echo ""
@@ -23,15 +23,15 @@ test-app:
 	@cargo test --manifest-path ui/Cargo.toml
 	@echo "------- Finished testing app ----------------"
 
-package: package-app package-cli
+package: package-app package-flowc
 
-package-cli: cli
+package-flowc: flowc
 	@echo ""
-	@echo "------- Started  packaging cli ----------------"
-	@echo "------- Finished packaging cli ----------------" # No specific packing steps after build ATM
+	@echo "------- Started  packaging flowc ----------------"
+	@echo "------- Finished packaging flowc ----------------" # No specific packing steps after build ATM
 
-cli:
-	@cargo build --manifest-path cli/Cargo.toml --bin flow
+flowc:
+	@cargo build --manifest-path flowc/Cargo.toml --bin flow
 
 package-app:
 	@echo ""
@@ -39,15 +39,15 @@ package-app:
 	@cd ui && make package
 	@echo "------- Finished packaging app ----------------"
 
-run-cli:
-	@cargo run --manifest-path cli/Cargo.toml
+run-flowc:
+	@cargo run --manifest-path flowc/Cargo.toml
 
 run-app:
 	@cd ui && make run-app
 
 clean:
-	rm -rf cli/target
-	rm -rf cli/log
+	rm -rf flowc/target
+	rm -rf flowc/log
 	rm -rf lib/target
 	rm -rf ui/target
 	cd ui && make clean
