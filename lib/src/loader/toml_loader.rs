@@ -1,61 +1,65 @@
-use std::fs::File;
-use std::io::BufReader;
-use std::path::PathBuf;
-use std::io::prelude::*;
 use toml;
-
-/* use description::flow::Flow;
-use description::entity::Entity;
-use description::io::IOSet;
-use description::value::Value;
-use description::function::Function;
-use description::connection::ConnectionSet;*/
 
 use loader::loader::Loader;
 use description::flow::Flow;
 
-pub struct FlowTomelLoader{}
+pub struct FlowTomelLoader {}
 
 /*
- load the toml file
+ load the toml file which should contain a flow description
  */
 impl Loader for FlowTomelLoader {
-    // TODO define our own errors types?
-    fn load(file_path: &PathBuf) -> Result<Flow, String> {
-        let file = File::open(file_path).unwrap(); // TODO handle error
-        let mut buf_reader = BufReader::new(file);
-        let mut contents = String::new();
-        match buf_reader.read_to_string(&mut contents) {
-            Ok(_) => {
-                match toml::from_str(&contents) {
-                    Ok(flow) => {
-                        load_flow_contents(&flow);
-                        // TODO figure out how to return Ok or Err with the flow in it from contents
-                        Ok(flow)
-                    },
-                    Err(e) => Err(format!("{}", e))
-                }
-            },
+    // TODO define our own errors types? so we can return errors from lower down directly
+    fn load_flow(&self, contents: &str) -> Result<Flow, String> {
+        match toml::from_str(contents) {
+            Ok(flow) => Ok(flow),
             Err(e) => Err(format!("{}", e))
         }
     }
 }
 
-fn load_flow_contents(flow: &Flow) {
-    // Load subflows from FlorRefs
-    //    pub flow: Option<Vec<FlowRef>>,
-    // pub flows: Vec<Box<Flow>>
+#[test]
+fn hello_world_simple_toml_context_loads() {
+    let flow_description = "\
+        name = 'hello-world-simple-toml'
 
-    // load entities from entity refs
-    // pub entity: Option<Vec<EntityRef>>,
-    // let entities: Vec<Entity> = Vec::new();
+        [[value]]
+        name = 'message'
+        datatype = 'String'
+        value = 'Hello World!'
 
-    // Create the IOs from IO Refs?
-    // pub io: Option<Vec<IO>>,
+        [[function]]
+        name = 'print'
+        source = 'terminal.toml'
 
-    // Check the connections and connect them up with refs?
-    //pub connection: Option<Vec<Connection>>,
+        [[connection]]
+        name = 'message'
+        from = 'value/message'
+        to = 'function/print/stdout'
+    ";
 
-    // Validate all is consistent now it's loaded??
-    // flow.validate()
+    let toml = FlowTomelLoader{};
+    match toml.load_flow(flow_description) {
+        Ok(flow) => {}
+        Err(error) => {
+            eprintln!("{}", error);
+            assert!(false)
+        },
+    }
+}
+
+#[test]
+fn load_fails_if_no_name() {
+    let flow_description = "\
+        [[value]]
+        name = 'message'
+        datatype = 'String'
+        value = Hello World!'
+    ";
+
+    let toml = FlowTomelLoader{};
+    match toml.load_flow(flow_description) {
+        Ok(flow) => assert!(false),
+        _ => {}
+    }
 }

@@ -1,9 +1,7 @@
 use loader::loader::Validate;
 use description::name::Name;
-use description::entity::EntityRef;
 use description::connection::Connection;
 use description::connection::IO;
-use description::connection::IOName;
 use description::function::FunctionRef;
 use description::value::Value;
 use std::fmt;
@@ -24,7 +22,6 @@ impl fmt::Display for FlowRef {
 pub struct Flow {
     pub name: Name,
     pub flow: Option<Vec<FlowRef>>,
-    pub entity: Option<Vec<EntityRef>>,
     pub io: Option<Vec<IO>>,
     pub value: Option<Vec<Value>>,
     pub function: Option<Vec<FunctionRef>>,
@@ -33,175 +30,41 @@ pub struct Flow {
     pub flows: Vec<Box<Flow>>
 }
 
-impl Flow {
-    pub fn new(name: Name,
-               flow: Option<Vec<FlowRef>>,
-               entity: Option<Vec<EntityRef>>,
-               connection: Option<Vec<Connection>>,
-               io: Option<Vec<IO>>,
-               function: Option<Vec<FunctionRef>>,
-               value: Option<Vec<Value>>) -> Flow {
-        Flow {
-            name: name,
-            flow: flow,
-            entity: entity,
-            connection: connection,
-            io: io,
-            function: function,
-            value: value,
-            flows: vec!()
-            /*
-            entities: entities,
-            values: values,
-            connection_set: connection_set,
-            */
-        }
-    }
-}
-
 /*
-Validate the correctness of all the fields in this flow,
-but not consistency with contained flows
+    Validate the correctness of all the fields in this flow, prior to loading sub-elements
  */
 impl Validate for Flow {
     fn validate(&self) -> Result<(), String> {
-        self.name.validate() // TODO early return
+        self.name.validate()?;
 
-        // TODO early return on failure
-        /*for io in &self.io {
-            io.validate();
-        }
-*/
+        // TODO all this!
 
-        //            flow.validate(); // TODO early return
-        //            flow.load_sub_flows(); // TODO early return
-        //            flow.validate_connections(); // TODO early return
-        //            flow.subflow();
+        // Definitions at this level
+        // check the IOs defined in this flow are of a valid format
+        // Check values defined in this flow are of a valid format
 
-        /*
-                for entity in &self.entities {
-                    entity.validate(); // TODO early return
-                }
+        // References used
+        // Check flow references found are of a valid format....
+        // Check function references are of a valid format
 
-                for value in &self.values {
-                    value.validate(); // TODO early return
-                }
+        // Check all connections are of a valid format
 
-                //            context.load_sub_flows(); // TODO early return
-                //            context.validate_connections(); // TODO early return
-                //            for &(_, _, ref subflow) in context.flows.iter() {
-                //                subflow.borrow_mut().subflow(); // TODO early return
-                //            }
+        // Internal consistency
+        // Check connections referring to IOs of this flow match those IOs
+        // check connections referring to values of this flow match those values
 
-
-                if self.flows.len() > 1 as usize {
-                    return Err("context: cannot contain more than one sub-flow".to_string());
-                }
-
-                for &(ref name, _, _) in self.flows.iter() {
-                    name.validate("Flow");
-                }
-
-                self.connection_set.validate()*/
-
-
-        /*
-        let mut io_sets: Vec<&IOSet> = vec![];
-
-        for &(_, _, ref flow) in self.flows.iter() {
-            // add subflow's ioset to the set to check connections to
-            // TODO FIX
-            //            io_sets.push(&(flow.borrow_mut().ios));
-        }
-
-        for entity in &self.entities {
-            io_sets.push(&entity.ios);
-        }
-
-        // TODO
-        // for each connection
-        // connected at both ends to something in this Context
-        // 		validateConnection in itself, not to subflow
-
-        // for each check connections with their ioset
-        ConnectionSet::check(&self.connection_set, &io_sets, &self.values)
-        */
+        Ok(())
     }
 }
+
+// TODO verify()
+// now that all is loaded, check all is OK
+// Check the connections and connect them up with refs?
+//pub connection: Option<Vec<Connection>>,
 
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Flow:\n\tname: {}\n\tflow: {:?}\n\tentity: {:?}\n\tconnection: {:?}\n\tio: {:?}",
-               self.name, self.flow, self.entity, self.connection, self.io)
+        write!(f, "Flow:\n\tname: {}\n\tflow: {:?}\n\tvalue: {:?}\n\tio: {:?}\n\tfunction: {:?}\n\tconnection: {:?}",
+               self.name, self.flow, self.value, self.io, self.function, self.connection)
     }
 }
-
-
-/*
-	pub fn validate_fields(&self) -> parser::Result {
-		self.name.validate_fields("Flow"); // TODO early return
-
-		// validate flows (name only and valid path)
-
-		// Validate all IOs are valid names and types
-
-		// Validate values
-
-		// validate functions
-
-		// validate connections are all valid
-
-        // TODO
-        parser::Result::Valid
-	}
-
-    pub fn load_sub_flows(&mut self) -> parser::Result {
-        for &(_, ref path, _) in self.flows.iter() {
-            // TODO FIX
-            let load_result = parser::load(path.as_ref(), false);
-//            let load_result = parser::Result::Valid;
-            match load_result {
-                parser::Result::FlowLoaded(subflow) => {
-                    // TODO set reference to child flow
-                    return parser::Result::Valid;
-                },
-                _ => {},
-            }
-            return load_result;
-        }
-        parser::Result::Valid
-    }
-
-    pub fn validate_connections(&self) -> parser::Result {
-        let mut io_sets: Vec<&IOSet> = vec![];
-
-        for &(_, _, ref flow) in self.flows.iter() {
-            // add subflow's ioset to the set of IOs to check connections to
-            io_sets.push(&(flow.ios));
-        }
-
-        // Add the IOSets of all functions
-        for function in &self.functions {
-            io_sets.push(&function.ios);
-        }
-
-        // Add the input/outputs of this flow to parent
-        io_sets.push(&self.ios);
-
-        // for each check connections with their ioset
-        ConnectionSet::check(&self.connection_set, &io_sets, &self.values)
-    }
-
-    pub fn subflow(&mut self) -> parser::Result {
-        for &mut(_, _, ref mut subflow) in self.flows.iter_mut() {
-            subflow.validate_fields(); // TODO early return
-            subflow.load_sub_flows(); // TODO early return
-            subflow.validate_connections(); // TODO early return
-            subflow.subflow();
-        }
-
-        // TODO FIX
-        parser::Result::Valid
-    }
-}
-*/

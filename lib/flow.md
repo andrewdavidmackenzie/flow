@@ -14,7 +14,6 @@ connections.
 So, valid entries in a flow definition include:
 - name       - String naming this flow (obligatory)
 - flow       - 0 or more contained flow references
-- entity     - 0 or more entities references
 - io         - 0 or more input/outputs of this flow to any parent
 - connection - 0 or more connections between entities, sub-flows and ios (e.g. to parent)
 - function   - 0 or more functions referenced in this flow.
@@ -31,14 +30,8 @@ A reference to a flow defined elsewhere
 name - a String that is used for display and referencing purposes within the flow it is used in.
 source - the location where the flow is defined.
 
-## Entity Reference
-name - a String that is used for display and referencing purposes within the flow it is used in.
-source - the location where the flow is defined. (library entities?)
-
 ## IO Reference
-This uniquely identifies an IO from a flow/value/function and is used to define connections between them from outside,
-and so consists of a reference to either a flow or entity visible at this level, plus the name of the IO on that
-Flow or Entity.
+This uniquely identifies an IO from a flow/value/function and is used to define connections between them.
 e.g. ObjectType/Flow.name/IO.name
 e.g. ObjectType/Value.name
 e.g. ObjectType/Function.name/IO.name
@@ -49,7 +42,7 @@ For IOs within the existing flow, "this" is used as the Flow.name.
 IO References are only used in specifying connections.
 
 ## IO
-IOs produce or consume data of a specific type, and are where data enters/leaves a flow/entity/function.
+IOs produce or consume data of a specific type, and are where data enters/leaves a flow/value/function.
 
 name - the IO Reference that is used to identify it in connections to/from it
 
