@@ -3,7 +3,7 @@ RUSTUP := $(shell command -v rustup 2> /dev/null)
 
 all: test package
 
-test: test-lib test-flowc test-app
+test: test-lib test-flowc test-electron
 
 test-lib:
 	@echo ""
@@ -17,13 +17,13 @@ test-flowc:
 	@cargo test --manifest-path flowc/Cargo.toml
 	@echo "------- Finished testing flowc ----------------"
 
-test-app:
+test-electron:
 	@echo ""
-	@echo "------- Started  testing app ----------------"
-	@cargo test --manifest-path ui/Cargo.toml
-	@echo "------- Finished testing app ----------------"
+	@echo "------- Started  testing electron ----------------"
+	@cargo test --manifest-path electron/Cargo.toml
+	@echo "------- Finished testing electron ----------------"
 
-package: package-app package-flowc
+package: package-electron package-flowc
 
 package-flowc: flowc
 	@echo ""
@@ -33,24 +33,24 @@ package-flowc: flowc
 flowc:
 	@cargo build --manifest-path flowc/Cargo.toml --bin flow
 
-package-app:
+package-electron:
 	@echo ""
-	@echo "------- Started  packaging app ----------------"
-	@cd ui && make package
-	@echo "------- Finished packaging app ----------------"
+	@echo "------- Started  packaging electron ----------------"
+	@cd electron && make package
+	@echo "------- Finished packaging electron ----------------"
 
 run-flowc:
 	@cargo run --manifest-path flowc/Cargo.toml
 
-run-app:
-	@cd ui && make run-app
+run-electron:
+	@cd electron && make run-electron
 
 clean:
 	rm -rf flowc/target
 	rm -rf flowc/log
 	rm -rf lib/target
-	rm -rf ui/target
-	cd ui && make clean
+	rm -rf electron/target
+	cd electron && make clean
 
 dependencies.png: dependencies.dot
 	@dot -T png -o $@ $^
