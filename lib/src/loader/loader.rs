@@ -1,9 +1,3 @@
-/*
-#![feature(plugin)]
-#![plugin(phf_macros)]
-extern crate phf;
-*/
-
 use std::fs::File;
 use std::fs;
 use std::io::BufReader;
@@ -13,7 +7,6 @@ use description::flow::Flow;
 use description::function::Function;
 use loader::yaml_loader::FlowYamlLoader;
 use loader::toml_loader::FlowTomelLoader;
-use std::env;
 
 pub trait Loader {
     fn load_flow(&self, contents: &str) -> Result<Flow, String>;
@@ -24,37 +17,25 @@ pub trait Validate {
     fn validate(&self) -> Result<(), String>;
 }
 
-// TODO fic this...
-/*
-static LOADERS: phf::Map<&'static str, &Loader> = phf_map! {
-    "toml" => &FlowTomelLoader {},
-    "yaml" => &FlowYamlLoader {}
-};
-*/
-
-const TOML: &Loader = &FlowTomelLoader{} as &Loader;
-const YAML: &Loader = &FlowYamlLoader{} as &Loader;
+const TOML: &Loader = &FlowTomelLoader {} as &Loader;
+const YAML: &Loader = &FlowYamlLoader {} as &Loader;
 
 fn get_loader(file_path: &PathBuf) -> Result<&'static Loader, String> {
-    /*
-        match file_path.extension() {
+    match file_path.extension() {
         Some(ext) => {
-
-match loaders.get(ext) {
-    Some(&loader) => {
-
-                },
-                _ => Err(format!("No loader found for file extension '{:?}'", ext)),
+            match ext.to_str() {
+                Some("toml") => Ok(TOML),
+                Some("yaml") => Ok(YAML),
+                _ => Err("Unknown file extension so cannot determine loader to use".to_string())
             }
-
-                    None => Err("No file extension so cannot determine file format".to_string())
-    */
-
-    Ok(TOML)
+        }
+        None => Err("No file extension so cannot determine loader to use".to_string())
+    }
 }
+
 /*
-    Helper method to read the content of a file found at 'file_path' into a String result.
-    'file_path' could be absolute or relative, so we canonicalize it first...
+Helper method to read the content of a file found at 'file_path' into a String result.
+'file_path' could be absolute or relative, so we canonicalize it first...
 */
 fn get_contents(file_path: &PathBuf) -> Result<String, String> {
     match File::open(file_path) {
@@ -76,21 +57,6 @@ fn get_contents_file_not_found() {
     match get_contents(&PathBuf::from("no-such-file")) {
         Ok(_) => assert!(false),
         Err(_) => {}
-    }
-}
-
-#[test]
-fn get_contents_file_found() {
-    // Wierdness getting an absolute path to the current source file!!!
-    let mut path = env::current_dir().unwrap().parent().unwrap().join(file!());
-    let abspath = fs::canonicalize(path).unwrap();
-
-    match get_contents(&abspath) {
-        Ok(_) => {}
-        Err(e) => {
-            eprintln!("path = {}, {}", abspath.display(), e);
-            assert!(false)
-        }
     }
 }
 
