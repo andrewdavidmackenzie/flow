@@ -1,0 +1,64 @@
+{
+  "name": "flow",
+  "version": "0.1.0",
+  "description": "A Visual Programming Tool",
+  "main": "src/electron-main.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
+  },
+  "repository": "https://github.com/andrewdavidmackenzie/flow",
+  "keywords": [
+    "Visual Programming"
+  ],
+  "author": "Andrew Mackenzie",
+  "license": "MIT",
+  "devDependencies": {
+    "babel-plugin-transform-async-to-generator": "^6.24.1",
+    "babel-preset-env": "^1.6.1",
+    "babel-preset-react": "^6.24.1",
+    "electron-forge": "^4.1.2",
+    "electron-prebuilt-compile": "1.7.9"
+  },
+  "dependencies": {
+    "electron-compile": "^6.4.2",
+    "electron-squirrel-startup": "^1.0.0"
+  },
+  "config": {
+    "forge": {
+      "make_targets": {
+        "win32": [
+          "squirrel"
+        ],
+        "darwin": [
+          "dmg"
+        ],
+        "linux": [
+          "deb"
+        ]
+      },
+      "electronPackagerConfig": {
+        "dir": "./src",
+        "ignore": [
+          ".gitignore", "Cargo.lock", "Cargo.toml", "Makefile", "package-lock.json",
+          "src/flowui.js", "src/ui.rs", "src/electron-prefix.js", "src/index.html"
+        ],
+        "packageManager": "yarn",
+        "prune": true
+      },
+      "electronWinstallerConfig": {
+        "name": ""
+      },
+      "electronInstallerDebian": {},
+      "electronInstallerRedhat": {},
+      "github_repository": {
+        "owner": "",
+        "name": ""
+      },
+      "windowsStoreConfig": {
+        "packageName": ""
+      }
+    }
+  }
+}
