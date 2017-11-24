@@ -1,9 +1,11 @@
-use loader::loader::Validate;
 use description::name::Name;
 use description::connection::Connection;
 use description::connection::IO;
 use description::function::FunctionRef;
+use description::function::Function;
 use description::value::Value;
+use loader::loader::Validate;
+
 use std::fmt;
 use std::path::PathBuf;
 
@@ -30,13 +32,13 @@ pub struct Flow {
     pub function: Option<Vec<FunctionRef>>,
     pub connection: Option<Vec<Connection>>,
     #[serde(skip_deserializing)]
-    pub flows: Vec<Flow>
+    pub flows: Vec<Flow>,
+    #[serde(skip_deserializing)]
+    pub functions: Vec<Function>
 }
 
-/*
-    Validate the correctness of all the fields in this flow, prior to loading sub-elements
- */
 impl Validate for Flow {
+    // check the correctness of all the fields in this flow, prior to loading sub-elements
     fn validate(&self) -> Result<(), String> {
         self.name.validate()?;
 
@@ -60,10 +62,15 @@ impl Validate for Flow {
     }
 }
 
-// TODO verify()
-// now that all is loaded, check all is OK
-// Check the connections and connect them up with refs?
-//pub connection: Option<Vec<Connection>>,
+impl Flow {
+    // now that all is loaded, check all is OK
+    pub fn verify(&self) -> Result<(), String> {
+        // TODO Check the connections and connect them up with refs?
+        // pub connection: Option<Vec<Connection>>,
+
+        Ok(())
+    }
+}
 
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

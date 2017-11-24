@@ -2,16 +2,21 @@ use toml;
 
 use loader::loader::Loader;
 use description::flow::Flow;
+use description::function::Function;
 
 pub struct FlowTomelLoader {}
 
-/*
- load the toml file which should contain a flow description
- */
 impl Loader for FlowTomelLoader {
     fn load_flow(&self, contents: &str) -> Result<Flow, String> {
         match toml::from_str(contents) {
             Ok(flow) => Ok(flow),
+            Err(e) => Err(format!("{}", e))
+        }
+    }
+
+    fn load_function(&self, contents: &str) -> Result<Function, String> {
+        match toml::from_str(contents) {
+            Ok(function) => Ok(function),
             Err(e) => Err(format!("{}", e))
         }
     }

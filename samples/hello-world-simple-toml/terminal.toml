@@ -3,7 +3,3 @@ name = "terminal"
 [[input]]
 name = "stdout"
 datatype = "String"
-
-[[output]]
-
-[implementation]

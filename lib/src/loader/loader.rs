@@ -1,23 +1,57 @@
+/*
+#![feature(plugin)]
+#![plugin(phf_macros)]
+extern crate phf;
+*/
+
 use std::fs::File;
 use std::fs;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::io::prelude::*;
-use std::collections::HashMap;
-use std::io;
-
 use description::flow::Flow;
+use description::function::Function;
 use loader::yaml_loader::FlowYamlLoader;
 use loader::toml_loader::FlowTomelLoader;
+use std::env;
+
+pub trait Loader {
+    fn load_flow(&self, contents: &str) -> Result<Flow, String>;
+    fn load_function(&self, contents: &str) -> Result<Function, String>;
+}
 
 pub trait Validate {
     fn validate(&self) -> Result<(), String>;
 }
 
-pub trait Loader {
-    fn load_flow(&self, contents: &str) -> Result<Flow, String>;
-}
+// TODO fic this...
+/*
+static LOADERS: phf::Map<&'static str, &Loader> = phf_map! {
+    "toml" => &FlowTomelLoader {},
+    "yaml" => &FlowYamlLoader {}
+};
+*/
 
+const TOML: &Loader = &FlowTomelLoader{} as &Loader;
+const YAML: &Loader = &FlowYamlLoader{} as &Loader;
+
+fn get_loader(file_path: &PathBuf) -> Result<&'static Loader, String> {
+    /*
+        match file_path.extension() {
+        Some(ext) => {
+
+match loaders.get(ext) {
+    Some(&loader) => {
+
+                },
+                _ => Err(format!("No loader found for file extension '{:?}'", ext)),
+            }
+
+                    None => Err("No file extension so cannot determine file format".to_string())
+    */
+
+    Ok(TOML)
+}
 /*
     Helper method to read the content of a file found at 'file_path' into a String result.
     'file_path' could be absolute or relative, so we canonicalize it first...
@@ -32,7 +66,7 @@ fn get_contents(file_path: &PathBuf) -> Result<String, String> {
                 Ok(_) => Ok(contents),
                 Err(e) => Err(format!("{}", e))
             }
-        },
+        }
         Err(e) => Err(format!("{}", e))
     }
 }
@@ -41,15 +75,22 @@ fn get_contents(file_path: &PathBuf) -> Result<String, String> {
 fn get_contents_file_not_found() {
     match get_contents(&PathBuf::from("no-such-file")) {
         Ok(_) => assert!(false),
-        Err(e) => {}
+        Err(_) => {}
     }
 }
 
 #[test]
 fn get_contents_file_found() {
-    match get_contents(&fs::canonicalize(PathBuf::from(file!())).unwrap()) {
-        Ok(_) => {},
-        Err(e) => assert!(false)
+    // Wierdness getting an absolute path to the current source file!!!
+    let mut path = env::current_dir().unwrap().parent().unwrap().join(file!());
+    let abspath = fs::canonicalize(path).unwrap();
+
+    match get_contents(&abspath) {
+        Ok(_) => {}
+        Err(e) => {
+            eprintln!("path = {}, {}", abspath.display(), e);
+            assert!(false)
+        }
     }
 }
 
@@ -62,29 +103,11 @@ fn get_contents_file_found() {
 /// loader::load_flow(path).unwrap();
 /// ```
 pub fn load_flow(file_path: PathBuf) -> Result<Flow, String> {
-    let mut loaders = HashMap::new();
-    loaders.insert("toml", &FlowTomelLoader{} as &Loader);
-    loaders.insert("yaml", &FlowYamlLoader{} as &Loader);
+    let loader = get_loader(&file_path).unwrap();
 
-    let result = match file_path.extension() {
-        Some(ext) => {
-            /*
-            match loaders.get(ext) {
-                Some(&loader) => {
-                */
-            let toml = &FlowTomelLoader{};
-
-            match get_contents(&file_path) {
-                        Ok(contents) => toml.load_flow(&contents),
-                        Err(e) => Err(e),
-                    }
-            /*
-                },
-                _ => Err(format!("No loader found for file extension '{:?}'", ext)),
-            }
-            */
-        },
-        None => Err("No file extension so cannot determine file format".to_string())
+    let result = match get_contents(&file_path) {
+        Ok(contents) => loader.load_flow(&contents),
+        Err(e) => Err(e),
     };
 
     // TODO a try or expect here????
@@ -97,10 +120,37 @@ pub fn load_flow(file_path: PathBuf) -> Result<Flow, String> {
                         Ok(_) => Ok(flow),
                         Err(e) => Err(e)
                     }
-                },
+                }
                 Err(e) => Err(e)
             }
-        },
+        }
+        Err(e) => Err(e)
+    }
+}
+
+/// # Example
+/// ```
+/// use std::path::PathBuf;
+/// use flowlib::loader::loader;
+///
+/// let path = PathBuf::from("../samples/hello-world-simple-toml/terminal.toml");
+/// loader::load_function(path).unwrap();
+/// ```
+pub fn load_function(file_path: PathBuf) -> Result<Function, String> {
+    let loader = get_loader(&file_path).unwrap();
+
+    let result = match get_contents(&file_path) {
+        Ok(contents) => loader.load_function(&contents),
+        Err(e) => Err(e),
+    };
+
+    // TODO a try or expect here????
+    match result {
+        Ok(mut function) => {
+            function.source = file_path;
+            function.validate()?;
+            Ok(function)
+        }
         Err(e) => Err(e)
     }
 }
@@ -124,13 +174,16 @@ fn load_flow_contents(flow: &mut Flow) -> Result<(), String> {
         }
     }
 
-    //    pub flow: Option<Vec<FlowRef>>,
-    // pub flows: Vec<Box<Flow>>
-
     // load functions from function refs
+    if let Some(ref function_refs) = flow.function {
+        for ref function_ref in function_refs {
+            let function_path = get_canonical_path(PathBuf::from(&flow.source),
+                                                   PathBuf::from(&function_ref.source));
+            let function = load_function(function_path)?;
+            flow.functions.push(function);
+        }
+    }
 
-    // Validate all is consistent now it's loaded??
-    // flow.verify()
-
-    Ok(())
+    // verify all is consistent now it's loaded
+    flow.verify()
 }

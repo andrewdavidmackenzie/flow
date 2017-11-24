@@ -1,6 +1,6 @@
-use loader::loader::Validate;
 use description::name::Name;
 use description::datatype::DataType;
+use loader::loader::Validate;
 
 use std::fmt;
 
@@ -18,24 +18,13 @@ impl fmt::Display for Connection {
 }
 
 impl Connection {
-	// TODO change to references later
-	fn new(name: Option<Name>, from: IOName, to: IOName) -> Connection {
-		Connection {
-			name: name,
-			from: from,
-			to : to,
-		}
-	}
-}
-
-impl Validate for Connection {
     fn validate(&self) -> Result<(), String> {
         //self.name.unwrap().validate() // TODO early return
         Ok(())
 
-        // Validate other fields exist and are valid syntax
-        // TODO validate directions match the end points
-        // TODO Validate the two types are the same or can be inferred
+        // check other fields exist and are valid syntax
+        // TODO check directions match the end points
+        // TODO check the two types are the same or can be inferred
     }
 }
 
@@ -51,7 +40,7 @@ impl Validate for IO {
     fn validate(&self) -> Result<(), String> {
         self.name.validate()?;
 
-        // TODO validate datatype
+        // TODO check datatype
         Ok(())
     }
 }

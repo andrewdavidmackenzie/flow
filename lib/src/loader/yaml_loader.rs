@@ -4,12 +4,10 @@ use self::yaml_rust::YamlLoader;
 use description::flow::Flow;
 use loader::loader::Loader;
 use std::path::PathBuf;
+use description::function::Function;
 
 pub struct FlowYamlLoader {}
 
-/*
- laod the yaml file(s)
- */
 impl Loader for FlowYamlLoader {
     // TODO define our own errors types? so we can return errors from lower down directly
     fn load_flow(&self, contents: &str) -> Result<Flow, String> {
@@ -25,14 +23,25 @@ impl Loader for FlowYamlLoader {
                 io: None,
                 function: None,
                 value: None,
-                flows: vec ! ()
-                /*
-                entities: entities,
-                values: values,
-                connection_set: connection_set,
-                */
+                flows: vec!(), // TODO move into refs
+                functions: vec!() // TODO move into refs
             };
 
         Ok(flow)
+    }
+
+    fn load_function(&self, contents: &str) -> Result<Function, String> {
+        let docs = YamlLoader::load_from_str(&contents).unwrap();
+        let doc = &docs[0];
+
+        let function = Function {
+            source: PathBuf::from("."),
+            name: "fake".to_string(),
+            input: None,
+            output: None,
+            implementation: None
+        };
+
+        Ok(function)
     }
 }
