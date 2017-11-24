@@ -47,7 +47,7 @@ fn get_contents_file_not_found() {
 
 #[test]
 fn get_contents_file_found() {
-    match get_contents(&PathBuf::from(file!())) {
+    match get_contents(&fs::canonicalize(PathBuf::from(file!())).unwrap()) {
         Ok(_) => {},
         Err(e) => assert!(false)
     }
