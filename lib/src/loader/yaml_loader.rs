@@ -3,6 +3,7 @@ extern crate yaml_rust;
 use self::yaml_rust::YamlLoader;
 use description::flow::Flow;
 use loader::loader::Loader;
+use std::path::PathBuf;
 
 pub struct FlowYamlLoader {}
 
@@ -17,6 +18,7 @@ impl Loader for FlowYamlLoader {
 
         let flow =
             Flow {
+                source: PathBuf::from("fake"),
                 name: "fake".to_string(),
                 flow: None,
                 connection: None,

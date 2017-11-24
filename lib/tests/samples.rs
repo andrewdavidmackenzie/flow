@@ -28,16 +28,16 @@ fn sample_hello_world() {
 fn dump_hello_simple_toml() {
     let path = PathBuf::from("../samples/hello-world-simple-toml/context.toml");
     match loader::load_flow(path) {
-        Ok(f) => dump(f),
+        Ok(f) => dump(f, 0),
         _ => assert!(false),
     }
 }
 
 #[test]
-fn dump_hello_world_toml() {
+fn dump_hello_world_toml_context() {
     let path = PathBuf::from("../samples/hello-world-toml/context.toml");
     match loader::load_flow(path) {
-        Ok(f) => dump(f),
+        Ok(f) => dump(f, 0),
         _ => assert!(false),
     }
 }
@@ -46,7 +46,7 @@ fn dump_hello_world_toml() {
 fn dump_hello_world_flow1_toml() {
     let path = PathBuf::from("../samples/hello-world-toml/flow1.toml");
     match loader::load_flow(path) {
-        Ok(f) => dump(f),
+        Ok(f) => dump(f, 0),
         _ => assert!(false),
     }
 }

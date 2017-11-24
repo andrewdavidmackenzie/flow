@@ -9,7 +9,6 @@ pub struct FlowTomelLoader {}
  load the toml file which should contain a flow description
  */
 impl Loader for FlowTomelLoader {
-    // TODO define our own errors types? so we can return errors from lower down directly
     fn load_flow(&self, contents: &str) -> Result<Flow, String> {
         match toml::from_str(contents) {
             Ok(flow) => Ok(flow),
@@ -40,7 +39,7 @@ fn hello_world_simple_toml_context_loads() {
 
     let toml = FlowTomelLoader{};
     match toml.load_flow(flow_description) {
-        Ok(flow) => {}
+        Ok(_) => {}
         Err(error) => {
             eprintln!("{}", error);
             assert!(false)
@@ -59,7 +58,7 @@ fn load_fails_if_no_name() {
 
     let toml = FlowTomelLoader{};
     match toml.load_flow(flow_description) {
-        Ok(flow) => assert!(false),
+        Ok(_) => assert!(false),
         _ => {}
     }
 }

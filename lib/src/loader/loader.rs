@@ -1,8 +1,10 @@
 use std::fs::File;
+use std::fs;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::io::prelude::*;
 use std::collections::HashMap;
+use std::io;
 
 use description::flow::Flow;
 use loader::yaml_loader::FlowYamlLoader;
@@ -17,19 +19,39 @@ pub trait Loader {
 }
 
 /*
-    Helper method to read the content of a file found at 'file_path' into a String result
+    Helper method to read the content of a file found at 'file_path' into a String result.
+    'file_path' could be absolute or relative, so we canonicalize it first...
 */
 fn get_contents(file_path: &PathBuf) -> Result<String, String> {
-    let file = File::open(file_path).unwrap(); // TODO handle error
-    let mut buf_reader = BufReader::new(file);
-    let mut contents = String::new();
+    match File::open(file_path) {
+        Ok(file) => {
+            let mut buf_reader = BufReader::new(file);
+            let mut contents = String::new();
 
-    match buf_reader.read_to_string(&mut contents) {
-        Ok(_) => Ok(contents),
+            match buf_reader.read_to_string(&mut contents) {
+                Ok(_) => Ok(contents),
+                Err(e) => Err(format!("{}", e))
+            }
+        },
         Err(e) => Err(format!("{}", e))
     }
 }
 
+#[test]
+fn get_contents_file_not_found() {
+    match get_contents(&PathBuf::from("no-such-file")) {
+        Ok(_) => assert!(false),
+        Err(e) => {}
+    }
+}
+
+#[test]
+fn get_contents_file_found() {
+    match get_contents(&PathBuf::from(file!())) {
+        Ok(_) => {},
+        Err(e) => assert!(false)
+    }
+}
 
 /// # Example
 /// ```
@@ -54,7 +76,7 @@ pub fn load_flow(file_path: PathBuf) -> Result<Flow, String> {
 
             match get_contents(&file_path) {
                         Ok(contents) => toml.load_flow(&contents),
-                        Err(e) => Err(format!("{}", e)),
+                        Err(e) => Err(e),
                     }
             /*
                 },
@@ -67,9 +89,15 @@ pub fn load_flow(file_path: PathBuf) -> Result<Flow, String> {
 
     // TODO a try or expect here????
     match result {
-        Ok(flow) => {
+        Ok(mut flow) => {
             match flow.validate() {
-                Ok(_) => load_flow_contents(flow),
+                Ok(_) => {
+                    flow.source = file_path;
+                    match load_flow_contents(&mut flow) {
+                        Ok(_) => Ok(flow),
+                        Err(e) => Err(e)
+                    }
+                },
                 Err(e) => Err(e)
             }
         },
@@ -77,8 +105,25 @@ pub fn load_flow(file_path: PathBuf) -> Result<Flow, String> {
     }
 }
 
-fn load_flow_contents(flow: Flow) -> Result<Flow, String> {
+fn get_canonical_path(parent_path: PathBuf, child_path: PathBuf) -> PathBuf {
+    if child_path.is_relative() {
+        fs::canonicalize(parent_path).unwrap().parent().unwrap().join(child_path)
+    } else {
+        child_path
+    }
+}
+
+fn load_flow_contents(flow: &mut Flow) -> Result<(), String> {
     // Load subflows from FlowRefs
+    if let Some(ref flow_refs) = flow.flow {
+        for ref flow_ref in flow_refs {
+            let subflow_path = get_canonical_path(PathBuf::from(&flow.source),
+                                                  PathBuf::from(&flow_ref.source));
+            let subflow = load_flow(subflow_path)?;
+            flow.flows.push(subflow);
+        }
+    }
+
     //    pub flow: Option<Vec<FlowRef>>,
     // pub flows: Vec<Box<Flow>>
 
@@ -87,5 +132,5 @@ fn load_flow_contents(flow: Flow) -> Result<Flow, String> {
     // Validate all is consistent now it's loaded??
     // flow.verify()
 
-    Ok(flow)
+    Ok(())
 }

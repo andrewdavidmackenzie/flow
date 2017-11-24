@@ -5,6 +5,7 @@ use description::connection::IO;
 use description::function::FunctionRef;
 use description::value::Value;
 use std::fmt;
+use std::path::PathBuf;
 
 #[derive(Deserialize, Debug)]
 pub struct FlowRef {
@@ -14,12 +15,14 @@ pub struct FlowRef {
 
 impl fmt::Display for FlowRef {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Flow:\n\tname: {}\n\tsource: {}", self.name, self.source)
+        write!(f, "FlowRef:\n\tname: {}\n\tsource: {}", self.name, self.source)
     }
 }
 
 #[derive(Deserialize)]
 pub struct Flow {
+    #[serde(skip_deserializing)]
+    pub source: PathBuf,
     pub name: Name,
     pub flow: Option<Vec<FlowRef>>,
     pub io: Option<Vec<IO>>,
@@ -27,7 +30,7 @@ pub struct Flow {
     pub function: Option<Vec<FunctionRef>>,
     pub connection: Option<Vec<Connection>>,
     #[serde(skip_deserializing)]
-    pub flows: Vec<Box<Flow>>
+    pub flows: Vec<Flow>
 }
 
 /*
@@ -64,7 +67,7 @@ impl Validate for Flow {
 
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Flow:\n\tname: {}\n\tflow: {:?}\n\tvalue: {:?}\n\tio: {:?}\n\tfunction: {:?}\n\tconnection: {:?}",
+        write!(f, "\nFlow:\n\tname: {}\n\tFlowRefs: {:?}\n\tvalue: {:?}\n\tio: {:?}\n\tFunctionRefs: {:?}\n\tconnection: {:?}",
                self.name, self.flow, self.value, self.io, self.function, self.connection)
     }
 }

@@ -1,4 +1,4 @@
-name = "hello-world-toml"
+name = "hello-world-toml-context"
 
 [[function]]
 name = "print"
