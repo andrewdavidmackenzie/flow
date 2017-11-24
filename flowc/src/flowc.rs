@@ -54,7 +54,7 @@ fn main() {
                     info!("'{}' flow parsed and validated correctly", flow.name);
 
                     if matches.is_present("dump") {
-                        dump(flow);
+                        dump(flow, 0);
                     }
 
                     if !matches.is_present("check") {
