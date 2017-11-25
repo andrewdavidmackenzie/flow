@@ -120,12 +120,14 @@ impl Flow {
         Err(format!("Name '{}' was not found", element_name))
     }
 
-    // Check that the name of an io is valid and it exists in the flow
-    // Connection to/from Formats:
-    // "flow/this/out"
-    // "flow/hello/out"
-    // "function/print/stdout"
-    // "value/message"
+    /*
+        Check that the name of an io is valid and it exists in the flow
+            Connection to/from Formats:
+            "flow/this/out"
+            "flow/hello/out"
+            "function/print/stdout"
+            "value/message"
+     */
     fn io_name_valid(&self, io_name: &Name) -> Result<(), String> {
         let segments: Vec<&str> = io_name.split('/').collect();
         match segments.len() {
