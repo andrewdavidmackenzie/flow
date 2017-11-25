@@ -29,25 +29,25 @@ name = "o2"
 datatype = "String"
 
 [[connection]]
-from = "flow/this/i1"
+from = "input/i1"
 to = "function/function6/i1"
 
 [[connection]]
-from = "flow/this/i1"
+from = "input/i2"
 to = "function/function6/i2"
 
 [[connection]]
-from = "flow/this/i1"
+from = "input/i3"
 to = "function/function6/i3"
 
 [[connection]]
-from = "flow/this/i1"
+from = "input/i4"
 to = "function/function6/i4"
 
 [[connection]]
 from = "function/function6/o1"
-to = "flow/this/o1"
+to = "output/o1"
 
 [[connection]]
 from = "function/function6/o2"
-to = "flow/this/o2"
+to = "output/o2"

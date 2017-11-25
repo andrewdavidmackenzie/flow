@@ -134,27 +134,19 @@ impl Flow {
             2 => {
                 match (segments[0], segments[1]) {
                     ("value", value_name) => Flow::name_in_collection(&self.value, value_name),
-                    _ => Err(format!("Invalid io name '{}' used in connection", io_name))
+                    ("input", input)   => Flow::name_in_collection(&self.input, input),
+                    ("output", output) => Flow::name_in_collection(&self.output, output),
+                    _ => Err(format!("Invalid name '{}' used in connection", io_name))
                 }
             }
             3 => {
                 match (segments[0], segments[1], segments[2]) {
-                    ("flow", "this", io) => {
-                        if let Err(_) = Flow::name_in_collection(&self.input, io) {
-                            return Flow::name_in_collection(&self.output, io)
-                        }
-                        Ok(())
-                    }
-                    ("flow", flow_name, _) => {
-                        Flow::name_in_collection(&self.flow, flow_name)
-                    },
-                    ("function", function_name, _) => {
-                        Flow::name_in_collection(&self.function, function_name)
-                    },
-                    _ => Err(format!("Invalid io name '{}' used in connection", io_name))
+                    ("flow", flow_name, _) => Flow::name_in_collection(&self.flow, flow_name),
+                    ("function", function_name, _) => Flow::name_in_collection(&self.function, function_name),
+                    _ => Err(format!("Invalid name '{}' used in connection", io_name))
                 }
             }
-            _ => Err(format!("Invalid io name '{}' used in connection", io_name))
+            _ => Err(format!("Invalid name '{}' used in connection", io_name))
         }
     }
 }
