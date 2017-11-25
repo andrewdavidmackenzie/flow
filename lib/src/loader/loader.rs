@@ -63,6 +63,23 @@ fn get_loader(file_path: &PathBuf) -> Result<&'static Loader, String> {
     }
 }
 
+#[test]
+#[should_panic]
+fn no_extension() {
+    get_loader(&PathBuf::from("no_extension")).unwrap();
+}
+
+#[test]
+#[should_panic]
+fn invalid_extension() {
+    get_loader(&PathBuf::from("no_extension.wrong")).unwrap();
+}
+
+#[test]
+fn valid_extension() {
+    get_loader(&PathBuf::from("OK.toml")).unwrap();
+}
+
 // Helper method to read the content of a file found at 'file_path' into a String result.
 // 'file_path' could be absolute or relative, so we canonicalize it first...
 fn get_contents(file_path: &PathBuf) -> Result<String, String> {
@@ -97,29 +114,13 @@ fn get_contents_file_not_found() {
 /// loader::load_flow(path).unwrap();
 /// ```
 pub fn load_flow(file_path: PathBuf) -> Result<Flow, String> {
-    let loader = get_loader(&file_path).unwrap();
-
-    let result = match get_contents(&file_path) {
-        Ok(contents) => loader.load_flow(&contents),
-        Err(e) => Err(e),
-    };
-
-    // TODO a try or expect here????
-    match result {
-        Ok(mut flow) => {
-            match flow.validate() {
-                Ok(_) => {
-                    flow.source = file_path;
-                    match load_flow_contents(&mut flow) {
-                        Ok(_) => Ok(flow),
-                        Err(e) => Err(e)
-                    }
-                }
-                Err(e) => Err(e)
-            }
-        }
-        Err(e) => Err(e)
-    }
+    let loader = get_loader(&file_path)?;
+    let contents = get_contents(&file_path)?;
+    let mut flow = loader.load_flow(&contents)?;
+    flow.source = file_path;
+    flow.validate()?;
+    load_flow_contents(&mut flow)?;
+    Ok(flow)
 }
 
 /// # Example
@@ -131,22 +132,12 @@ pub fn load_flow(file_path: PathBuf) -> Result<Flow, String> {
 /// loader::load_function(path).unwrap();
 /// ```
 pub fn load_function(file_path: PathBuf) -> Result<Function, String> {
-    let loader = get_loader(&file_path).unwrap();
-
-    let result = match get_contents(&file_path) {
-        Ok(contents) => loader.load_function(&contents),
-        Err(e) => Err(e),
-    };
-
-    // TODO a try or expect here????
-    match result {
-        Ok(mut function) => {
-            function.source = file_path;
-            function.validate()?;
-            Ok(function)
-        }
-        Err(e) => Err(e)
-    }
+    let loader = get_loader(&file_path)?;
+    let contents = get_contents(&file_path)?;
+    let mut function = loader.load_function(&contents)?;
+    function.source = file_path;
+    function.validate()?;
+    Ok(function)
 }
 
 fn get_canonical_path(parent_path: PathBuf, child_path: PathBuf) -> PathBuf {
