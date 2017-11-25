@@ -104,8 +104,8 @@ pub fn load_flow(file_path: PathBuf) -> Result<Flow, String> {
     let mut flow = loader.load_flow(&contents)?;
     flow.source = file_path;
     flow.validate()?;
-    load_references(&mut flow)?;
-    flow.build_connections()?;
+    load_functions(&mut flow)?;
+    load_subflows(&mut flow)?;
     Ok(flow)
 }
 
@@ -125,7 +125,18 @@ pub fn load_function(file_path: &PathBuf) -> Result<Function, String> {
     Ok(function)
 }
 
-fn load_references(flow: &mut Flow) -> Result<(), String> {
+fn load_functions(flow: &mut Flow) -> Result<(), String> {
+    if let Some(ref mut function_refs) = flow.function {
+        for ref mut function_ref in function_refs {
+            let function_path = get_canonical_path(PathBuf::from(&flow.source),
+                                                   PathBuf::from(&function_ref.source));
+            function_ref.function = load_function(&function_path)?;
+        }
+    }
+    Ok(())
+}
+
+fn load_subflows(flow: &mut Flow) -> Result<(), String> {
     // Load subflows from References
     if let Some(ref mut flow_refs) = flow.flow {
         for ref mut flow_ref in flow_refs {
@@ -135,15 +146,5 @@ fn load_references(flow: &mut Flow) -> Result<(), String> {
             flow_ref.flow = subflow;
         }
     }
-
-    // load functions from References
-    if let Some(ref mut function_refs) = flow.function {
-        for ref mut function_ref in function_refs {
-            let function_path = get_canonical_path(PathBuf::from(&flow.source),
-                                                   PathBuf::from(&function_ref.source));
-            function_ref.function = load_function(&function_path)?;
-        }
-    }
-
     Ok(())
 }

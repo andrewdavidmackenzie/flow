@@ -95,36 +95,11 @@ impl Validate for Flow {
             }
         }
 
-        if let Some(ref connections) = self.connection {
-            for connection in connections {
-                connection.validate()?;
-                Flow::io_name_valid(&self, &connection.from)?;
-                Flow::io_name_valid(&self, &connection.to)?;
-            }
-        }
-
         Ok(())
     }
 }
 
 impl Flow {
-    // build all the internal connections
-    pub fn build_connections(&self) -> Result<(), String> {
-        // Need the connections hooked up by name to the actual IOs
-        // TODO Check the connections and connect them up with refs?
-        // pub connection: Option<Vec<Connection>>,
-        // check connection directions and types
-        // Check connections referring to IOs of this flow match those IOs
-        // check connections referring to values of this flow match those values
-        // Internal connection consistency io names exist, directions match, types match
-
-        // Inputs can only come from one connection
-        // Outputs can go to multiple connections (other inputs)
-
-        // top level flow has no inputs or outputs (context)
-        Ok(())
-    }
-
     // TODO Better to write this as a function/trait on other struct and test it
     fn name_in_collection<N: Named>(collection: &Option<Vec<N>>, element_name: &str) -> Result<(), String> {
         if let &Some(ref elements) = collection {
@@ -151,7 +126,7 @@ impl Flow {
             2 => {
                 match (segments[0], segments[1]) {
                     ("value", value_name) => Flow::name_in_collection(&self.value, value_name),
-                    ("input", input)   => Flow::name_in_collection(&self.input, input),
+                    ("input", input) => Flow::name_in_collection(&self.input, input),
                     ("output", output) => Flow::name_in_collection(&self.output, output),
                     _ => Err(format!("Invalid name '{}' used in connection", io_name))
                 }
@@ -165,6 +140,21 @@ impl Flow {
             }
             _ => Err(format!("Invalid name '{}' used in connection", io_name))
         }
+    }
+
+    /*
+        This is run after references have been loaded, so the full io name can be checked
+        in connections.
+    */
+    pub fn check_connections(&self) -> Result<(), String> {
+        if let Some(ref connections) = self.connection {
+            for connection in connections {
+                connection.validate()?;
+                self.io_name_valid(&connection.from)?;
+                self.io_name_valid(&connection.to)?;
+            }
+        }
+        Ok(())
     }
 }
 
