@@ -7,8 +7,8 @@ use std::fmt;
 #[derive(Deserialize, Debug)]
 pub struct Connection {
     pub name: Option<Name>,
-    from: IOName,
-    to: IOName,
+    pub from: Name,
+    pub to: Name,
 }
 
 impl fmt::Display for Connection {
@@ -17,31 +17,13 @@ impl fmt::Display for Connection {
     }
 }
 
-impl Connection {
+impl Validate for Connection {
+    // Called before everything is loaded and connected up to check all looks good
     fn validate(&self) -> Result<(), String> {
-        //self.name.unwrap().validate() // TODO early return
-        Ok(())
-
-        // check other fields exist and are valid syntax
-        // TODO check directions match the end points
-        // TODO check the two types are the same or can be inferred
-    }
-}
-
-pub type IOName = String;
-
-#[derive(Deserialize, Debug)]
-pub struct IO {
-    pub name: IOName,
-    pub datatype: Name
-}
-
-impl Validate for IO {
-    fn validate(&self) -> Result<(), String> {
-        self.name.validate()?;
-        self.datatype.validate()?;
-        let dt_slice: &str = &self.datatype[..];
-        DataType::valid_type(dt_slice)?;
-        Ok(())
+        if let Some(ref name) = self.name {
+            name.validate()?;
+        }
+        self.from.validate()?;
+        self.to.validate()
     }
 }

@@ -20,7 +20,8 @@ impl Loader for FlowYamlLoader {
                 name: "fake".to_string(),
                 flow: None,
                 connection: None,
-                io: None,
+                input: None,
+                output: None,
                 function: None,
                 value: None,
                 flows: vec!(), // TODO move into refs

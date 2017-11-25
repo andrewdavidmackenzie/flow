@@ -3,10 +3,14 @@ use std::fs;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::io::prelude::*;
+use std::fmt;
+
 use description::flow::Flow;
 use description::function::Function;
 use loader::yaml_loader::FlowYamlLoader;
 use loader::toml_loader::FlowTomelLoader;
+use description::name::Name;
+use description::name::Named;
 
 pub trait Loader {
     fn load_flow(&self, contents: &str) -> Result<Flow, String>;
@@ -15,6 +19,32 @@ pub trait Loader {
 
 pub trait Validate {
     fn validate(&self) -> Result<(), String>;
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Reference {
+    pub name: Name,
+    pub source: String
+}
+
+// TODO figure out how to have this derived automatically for types needing it
+impl Named for Reference {
+    fn name(&self) -> &str {
+        &self.name[..]
+    }
+}
+
+impl Validate for Reference {
+    fn validate(&self) -> Result<(), String> {
+        self.name.validate()
+        // Pretty much anything is a valid PathBuf - so not sure how to validate source...
+    }
+}
+
+impl fmt::Display for Reference {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Reference:\n\tname: {}\n\tsource: {}", self.name, self.source)
+    }
 }
 
 const TOML: &Loader = &FlowTomelLoader {} as &Loader;
@@ -128,7 +158,7 @@ fn get_canonical_path(parent_path: PathBuf, child_path: PathBuf) -> PathBuf {
 }
 
 fn load_flow_contents(flow: &mut Flow) -> Result<(), String> {
-    // Load subflows from FlowRefs
+    // Load subflows from Reference
     if let Some(ref flow_refs) = flow.flow {
         for ref flow_ref in flow_refs {
             let subflow_path = get_canonical_path(PathBuf::from(&flow.source),

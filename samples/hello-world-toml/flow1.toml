@@ -5,7 +5,7 @@ name = "message"
 datatype = "String"
 value = "Hello World!"
 
-[[io]]
+[[output]]
 name = "out"
 datatype = "String"
 

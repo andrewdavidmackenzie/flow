@@ -11,6 +11,10 @@ impl Validate for Name {
     }
 }
 
+pub trait Named {
+    fn name(&self) -> &str;
+}
+
 #[test]
 fn does_not_validate_when_empty() {
     let name = "".to_string();
