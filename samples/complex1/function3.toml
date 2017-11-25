@@ -1,0 +1,9 @@
+name = "function3"
+
+[[input]]
+name = "i1"
+datatype = "String"
+
+[[input]]
+name = "i2"
+datatype = "String"

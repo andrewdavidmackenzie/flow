@@ -1,0 +1,66 @@
+name = "flow1"
+
+[[value]]
+name = "value2"
+datatype = "String"
+value = "value2"
+
+[[function]]
+name = "function5"
+source = "function5.toml"
+
+[[flow]]
+name = "flow2"
+source = "flow2.toml"
+
+[[input]]
+name = "i1"
+datatype = "String"
+
+[[input]]
+name = "i2"
+datatype = "String"
+
+[[output]]
+name = "o1"
+datatype = "String"
+
+[[output]]
+name = "o2"
+datatype = "String"
+
+[[output]]
+name = "o3"
+datatype = "String"
+
+[[connection]]
+from = "flow/this/i1"
+to = "flow/flow2/i1"
+
+[[connection]]
+from = "flow/flow2/o1"
+to = "flow/this/o2"
+
+[[connection]]
+from = "value/value2"
+to = "flow/this/o1"
+
+[[connection]]
+from = "flow/this/i2"
+to = "flow/flow2/i2"
+
+[[connection]]
+from = "function/function5/o1"
+to = "flow/this/o3"
+
+[[connection]]
+from = "value/value2"
+to = "flow/flow2/i2"
+
+[[connection]]
+from = "function/function5/o1"
+to = "flow/flow2/i3"
+
+[[connection]]
+from = "flow/flow2/o2"
+to = "function/function5/i1"

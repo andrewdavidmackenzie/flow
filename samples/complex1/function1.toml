@@ -1,0 +1,5 @@
+name = "function1"
+
+[[output]]
+name = "o1"
+datatype = "String"

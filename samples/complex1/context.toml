@@ -1,0 +1,50 @@
+name = "complex1"
+
+[[function]]
+name = "function1"
+source = "function1.toml"
+
+[[function]]
+name = "function2"
+source = "function2.toml"
+
+[[function]]
+name = "function3"
+source = "function3.toml"
+
+[[function]]
+name = "function4"
+source = "function4.toml"
+
+[[value]]
+name = "value1"
+datatype = "String"
+value = "Value1"
+
+[[flow]]
+name = "flow1"
+source = "flow1.toml"
+
+[[connection]]
+from = "function/function1/o1"
+to = "flow/flow1/i1"
+
+[[connection]]
+from = "flow/flow1/i1"
+to = "function/function2/i1"
+
+[[connection]]
+from = "flow/flow1/o2"
+to = "function/function3/i1"
+
+[[connection]]
+from = "value/value1"
+to = "function/function3/i2"
+
+[[connection]]
+from = "value/value1"
+to = "flow/flow1/i2"
+
+[[connection]]
+from = "flow/flow1/o3"
+to = "function/function4/i1"
