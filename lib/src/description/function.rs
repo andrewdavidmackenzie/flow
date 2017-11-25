@@ -22,8 +22,20 @@ pub struct Function {
 
 impl Validate for Function {
 	fn validate(&self) -> Result<(), String> {
-		self.name.validate() // TODO early return
+		self.name.validate()?;
 
-        // TODO validate all the rest
+        if let Some(ref inputs) = self.input {
+            for i in inputs {
+                i.validate()?
+            }
+        }
+
+        if let Some(ref outputs) = self.output {
+            for o in outputs {
+                o.validate()?
+            }
+        }
+
+        Ok(())
 	}
 }

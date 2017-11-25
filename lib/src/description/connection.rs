@@ -33,14 +33,15 @@ pub type IOName = String;
 #[derive(Deserialize, Debug)]
 pub struct IO {
     pub name: IOName,
-    pub datatype: DataType
+    pub datatype: Name
 }
 
 impl Validate for IO {
     fn validate(&self) -> Result<(), String> {
         self.name.validate()?;
-
-        // TODO check datatype
+        self.datatype.validate()?;
+        let dt_slice: &str = &self.datatype[..];
+        DataType::valid_type(dt_slice)?;
         Ok(())
     }
 }

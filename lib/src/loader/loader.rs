@@ -33,10 +33,8 @@ fn get_loader(file_path: &PathBuf) -> Result<&'static Loader, String> {
     }
 }
 
-/*
-Helper method to read the content of a file found at 'file_path' into a String result.
-'file_path' could be absolute or relative, so we canonicalize it first...
-*/
+// Helper method to read the content of a file found at 'file_path' into a String result.
+// 'file_path' could be absolute or relative, so we canonicalize it first...
 fn get_contents(file_path: &PathBuf) -> Result<String, String> {
     match File::open(file_path) {
         Ok(file) => {

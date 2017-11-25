@@ -1,12 +1,11 @@
 use description::name::Name;
-use description::datatype::DataType;
 
 use std::fmt;
 
 #[derive(Deserialize, Debug)]
 pub struct Value {
     pub name: Name,
-    pub datatype: DataType,
+    pub datatype: Name,
     pub value: String // TODO for now....
 }
 
