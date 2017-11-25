@@ -50,3 +50,12 @@ fn dump_hello_world_flow1_toml() {
         _ => assert!(false),
     }
 }
+
+#[test]
+fn dump_complex1() {
+    let path = PathBuf::from("../samples/complex1/context.toml");
+    match loader::load_flow(path) {
+        Ok(f) => dump(f, 0),
+        _ => assert!(false),
+    }
+}

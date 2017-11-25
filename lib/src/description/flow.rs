@@ -91,10 +91,9 @@ impl Validate for Flow {
 }
 
 impl Flow {
-    // now that all is loaded, check all is OK
-    pub fn verify(&self) -> Result<(), String> {
+    // build all the internal connections
+    pub fn build_connections(&self) -> Result<(), String> {
         // Need the connections hooked up by name to the actual IOs
-
         // TODO Check the connections and connect them up with refs?
         // pub connection: Option<Vec<Connection>>,
         // check connection directions and types
@@ -102,9 +101,14 @@ impl Flow {
         // check connections referring to values of this flow match those values
         // Internal connection consistency io names exist, directions match, types match
 
+        // Inputs can only come from one connection
+        // Outputs can go to multiple connections (other inputs)
+
+        // top level flow has no inputs or outputs (context)
         Ok(())
     }
 
+    // TODO Better to write this as a function/trait on other struct and test it
     fn name_in_collection<N: Named>(collection: &Option<Vec<N>>, element_name: &str) -> Result<(), String> {
         if let &Some(ref elements) = collection {
             for element in elements {
@@ -134,18 +138,15 @@ impl Flow {
             3 => {
                 match (segments[0], segments[1], segments[2]) {
                     ("flow", "this", io) => {
-                        eprintln!("3 segments flow, this, {}", io);
                         if let Err(_) = Flow::name_in_collection(&self.input, io) {
                             return Flow::name_in_collection(&self.output, io)
                         }
                         Ok(())
                     }
                     ("flow", flow_name, _) => {
-                        eprintln!("3 segments flow, {}, _", flow_name);
                         Flow::name_in_collection(&self.flow, flow_name)
                     },
                     ("function", function_name, _) => {
-                        eprintln!("3 segments function, {}, _", function_name);
                         Flow::name_in_collection(&self.function, function_name)
                     },
                     _ => Err(format!("Invalid io name '{}' used in connection", io_name))
@@ -158,7 +159,7 @@ impl Flow {
 
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\nFlow:\n\tname: {}\n\tReferences: {:?}\n\tvalue: {:?}\n\tinputs: {:?}\n\toutputs: {:?}\n\tFunctionRefs: {:?}\n\tconnection: {:?}",
+        write!(f, "\nFlow:\n\tname: {}\n\tflows: {:?}\n\tvalues: {:?}\n\tinputs: {:?}\n\toutputs: {:?}\n\tfunctions: {:?}\n\tconnection: {:?}",
                self.name, self.flow, self.value, self.input, self.output, self.function, self.connection)
     }
 }

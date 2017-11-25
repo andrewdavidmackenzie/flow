@@ -4,6 +4,7 @@ use std::io::BufReader;
 use std::path::PathBuf;
 use std::io::prelude::*;
 use std::fmt;
+use std::env;
 
 use description::flow::Flow;
 use description::function::Function;
@@ -98,11 +99,25 @@ fn get_contents(file_path: &PathBuf) -> Result<String, String> {
 }
 
 #[test]
+#[should_panic]
 fn get_contents_file_not_found() {
-    match get_contents(&PathBuf::from("no-such-file")) {
-        Ok(_) => assert!(false),
-        Err(_) => {}
+    get_contents(&PathBuf::from("no-such-file")).unwrap();
+}
+
+// NOTE: these unwraps fail if the files don't actually exist!
+fn get_canonical_path(parent_path: PathBuf, child_path: PathBuf) -> PathBuf {
+    if child_path.is_relative() {
+        fs::canonicalize(parent_path).unwrap().parent().unwrap().join(child_path)
+    } else {
+        child_path
     }
+}
+
+#[test]
+fn absolute_path() {
+    let path = get_canonical_path(PathBuf::from("/root/me/original_file"),
+                                  PathBuf::from("/users/home/my_file"));
+    assert_eq!(path.to_str().unwrap(), "/users/home/my_file");
 }
 
 /// # Example
@@ -119,7 +134,8 @@ pub fn load_flow(file_path: PathBuf) -> Result<Flow, String> {
     let mut flow = loader.load_flow(&contents)?;
     flow.source = file_path;
     flow.validate()?;
-    load_flow_contents(&mut flow)?;
+    load_references(&mut flow)?;
+    flow.build_connections()?;
     Ok(flow)
 }
 
@@ -140,16 +156,8 @@ pub fn load_function(file_path: PathBuf) -> Result<Function, String> {
     Ok(function)
 }
 
-fn get_canonical_path(parent_path: PathBuf, child_path: PathBuf) -> PathBuf {
-    if child_path.is_relative() {
-        fs::canonicalize(parent_path).unwrap().parent().unwrap().join(child_path)
-    } else {
-        child_path
-    }
-}
-
-fn load_flow_contents(flow: &mut Flow) -> Result<(), String> {
-    // Load subflows from Reference
+fn load_references(flow: &mut Flow) -> Result<(), String> {
+    // Load subflows from References
     if let Some(ref flow_refs) = flow.flow {
         for ref flow_ref in flow_refs {
             let subflow_path = get_canonical_path(PathBuf::from(&flow.source),
@@ -159,7 +167,7 @@ fn load_flow_contents(flow: &mut Flow) -> Result<(), String> {
         }
     }
 
-    // load functions from function refs
+    // load functions from References
     if let Some(ref function_refs) = flow.function {
         for ref function_ref in function_refs {
             let function_path = get_canonical_path(PathBuf::from(&flow.source),
@@ -169,6 +177,5 @@ fn load_flow_contents(flow: &mut Flow) -> Result<(), String> {
         }
     }
 
-    // verify all is consistent now it's loaded
-    flow.verify()
+    Ok(())
 }
