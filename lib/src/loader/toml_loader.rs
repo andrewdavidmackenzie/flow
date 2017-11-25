@@ -1,5 +1,4 @@
 use toml;
-
 use loader::loader::Loader;
 use description::flow::Flow;
 use description::function::Function;
@@ -23,14 +22,13 @@ impl Loader for FlowTomelLoader {
 }
 
 #[test]
-fn hello_world_simple_toml_context_loads() {
+fn simple_context_loads() {
     let flow_description = "\
         name = 'hello-world-simple-toml'
 
         [[value]]
         name = 'message'
         datatype = 'String'
-        value = 'Hello World!'
 
         [[function]]
         name = 'print'
@@ -43,16 +41,11 @@ fn hello_world_simple_toml_context_loads() {
     ";
 
     let toml = FlowTomelLoader{};
-    match toml.load_flow(flow_description) {
-        Ok(_) => {}
-        Err(error) => {
-            eprintln!("{}", error);
-            assert!(false)
-        },
-    }
+    toml.load_flow(flow_description).unwrap();
 }
 
 #[test]
+#[should_panic]
 fn load_fails_if_no_name() {
     let flow_description = "\
         [[value]]
@@ -62,8 +55,5 @@ fn load_fails_if_no_name() {
     ";
 
     let toml = FlowTomelLoader{};
-    match toml.load_flow(flow_description) {
-        Ok(_) => assert!(false),
-        _ => {}
-    }
+    toml.load_flow(flow_description).unwrap();
 }

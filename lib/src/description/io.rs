@@ -3,8 +3,6 @@ use description::name::Named;
 use description::datatype::DataType;
 use loader::loader::Validate;
 
-use std::fmt;
-
 #[derive(Deserialize, Debug)]
 pub struct IO {
     pub name: Name,

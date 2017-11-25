@@ -8,7 +8,7 @@ use std::fmt;
 pub struct Value {
     pub name: Name,
     pub datatype: Name,
-    pub value: Option<String> // TODO for now....
+    pub value: Option<String>
 }
 
 // TODO figure out how to have this derived automatically for types needing it
@@ -23,10 +23,7 @@ impl Validate for Value {
         if let Some(ref value) = self.value {
             value.validate()?;
         }
-        self.datatype.validate()?;
-
-        // TODO validate the actual value, and that it matches type etc
-        Ok(())
+        self.datatype.validate()
     }
 }
 

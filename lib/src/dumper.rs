@@ -8,7 +8,9 @@ pub fn dump(flow: Flow, level: usize) {
     println!("{:indent$}{}", flow, indent=level * 4);
 
     // Dump sub-flows
-    for subflow in flow.flows {
-        dump(subflow, level +1);
+    if let Some(flow_refs) = flow.flow {
+        for flow_ref in flow_refs {
+            dump(flow_ref.flow, level +1);
+        }
     }
 }

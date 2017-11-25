@@ -1,6 +1,5 @@
 extern crate yaml_rust;
 
-use self::yaml_rust::YamlLoader;
 use description::flow::Flow;
 use loader::loader::Loader;
 use std::path::PathBuf;
@@ -24,8 +23,6 @@ impl Loader for FlowYamlLoader {
                 output: None,
                 function: None,
                 value: None,
-                flows: vec!(), // TODO move into refs
-                functions: vec!() // TODO move into refs
             };
 
         Ok(flow)
@@ -36,7 +33,6 @@ impl Loader for FlowYamlLoader {
 //        let doc = &docs[0];
 
         let function = Function {
-            source: PathBuf::from("."),
             name: "fake".to_string(),
             input: None,
             output: None,

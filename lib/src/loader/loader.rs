@@ -3,15 +3,11 @@ use std::fs;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::io::prelude::*;
-use std::fmt;
-use std::env;
 
 use description::flow::Flow;
 use description::function::Function;
 use loader::yaml_loader::FlowYamlLoader;
 use loader::toml_loader::FlowTomelLoader;
-use description::name::Name;
-use description::name::Named;
 
 pub trait Loader {
     fn load_flow(&self, contents: &str) -> Result<Flow, String>;
@@ -20,32 +16,6 @@ pub trait Loader {
 
 pub trait Validate {
     fn validate(&self) -> Result<(), String>;
-}
-
-#[derive(Deserialize, Debug)]
-pub struct Reference {
-    pub name: Name,
-    pub source: String
-}
-
-// TODO figure out how to have this derived automatically for types needing it
-impl Named for Reference {
-    fn name(&self) -> &str {
-        &self.name[..]
-    }
-}
-
-impl Validate for Reference {
-    fn validate(&self) -> Result<(), String> {
-        self.name.validate()
-        // Pretty much anything is a valid PathBuf - so not sure how to validate source...
-    }
-}
-
-impl fmt::Display for Reference {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Reference:\n\tname: {}\n\tsource: {}", self.name, self.source)
-    }
 }
 
 const TOML: &Loader = &FlowTomelLoader {} as &Loader;
@@ -145,35 +115,33 @@ pub fn load_flow(file_path: PathBuf) -> Result<Flow, String> {
 /// use flowlib::loader::loader;
 ///
 /// let path = PathBuf::from("../samples/hello-world-simple-toml/terminal.toml");
-/// loader::load_function(path).unwrap();
+/// loader::load_function(&path).unwrap();
 /// ```
-pub fn load_function(file_path: PathBuf) -> Result<Function, String> {
-    let loader = get_loader(&file_path)?;
-    let contents = get_contents(&file_path)?;
-    let mut function = loader.load_function(&contents)?;
-    function.source = file_path;
+pub fn load_function(file_path: &PathBuf) -> Result<Function, String> {
+    let loader = get_loader(file_path)?;
+    let contents = get_contents(file_path)?;
+    let function = loader.load_function(&contents)?;
     function.validate()?;
     Ok(function)
 }
 
 fn load_references(flow: &mut Flow) -> Result<(), String> {
     // Load subflows from References
-    if let Some(ref flow_refs) = flow.flow {
-        for ref flow_ref in flow_refs {
+    if let Some(ref mut flow_refs) = flow.flow {
+        for ref mut flow_ref in flow_refs {
             let subflow_path = get_canonical_path(PathBuf::from(&flow.source),
                                                   PathBuf::from(&flow_ref.source));
             let subflow = load_flow(subflow_path)?;
-            flow.flows.push(subflow);
+            flow_ref.flow = subflow;
         }
     }
 
     // load functions from References
-    if let Some(ref function_refs) = flow.function {
-        for ref function_ref in function_refs {
+    if let Some(ref mut function_refs) = flow.function {
+        for ref mut function_ref in function_refs {
             let function_path = get_canonical_path(PathBuf::from(&flow.source),
                                                    PathBuf::from(&function_ref.source));
-            let function = load_function(function_path)?;
-            flow.functions.push(function);
+            function_ref.function = load_function(&function_path)?;
         }
     }
 

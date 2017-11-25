@@ -1,5 +1,4 @@
 use description::name::Name;
-use description::datatype::DataType;
 use loader::loader::Validate;
 
 use std::fmt;

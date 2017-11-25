@@ -1,5 +1,3 @@
-use loader::loader::Validate;
-
 const DATATYPES: &'static [&'static str] = &["String"];
 
 pub struct DataType;

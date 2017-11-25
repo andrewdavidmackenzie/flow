@@ -2,38 +2,55 @@ use description::name::Name;
 use description::name::Named;
 use description::connection::Connection;
 use description::io::IO;
-use description::function::Function;
 use description::value::Value;
 use loader::loader::Validate;
-use loader::loader::Reference;
+use description::function::FunctionReference;
 
 use std::fmt;
 use std::path::PathBuf;
 
-#[derive(Deserialize)]
+#[derive(Default, Deserialize, Debug)]
+pub struct FlowReference {
+    pub name: Name,
+    pub source: String,
+    #[serde(skip_deserializing)]
+    pub flow: Flow
+}
+
+// TODO figure out how to have this derived automatically for types needing it
+impl Named for FlowReference {
+    fn name(&self) -> &str {
+        &self.name[..]
+    }
+}
+
+impl Validate for FlowReference {
+    fn validate(&self) -> Result<(), String> {
+        self.name.validate()
+        // Pretty much anything is a valid PathBuf - so not sure how to validate source...
+    }
+}
+
+impl fmt::Display for FlowReference {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "FlowReference:\n\tname: {}\n\tsource: {}", self.name, self.source)
+    }
+}
+
+#[derive(Default, Deserialize, Debug)]
 pub struct Flow {
     #[serde(skip_deserializing)]
     pub source: PathBuf,
     pub name: Name,
 
-    pub flow: Option<Vec<Reference>>,
-    pub function: Option<Vec<Reference>>,
+    pub flow: Option<Vec<FlowReference>>,
+    pub function: Option<Vec<FunctionReference>>,
 
     pub value: Option<Vec<Value>>,
 
     pub input: Option<Vec<IO>>,
     pub output: Option<Vec<IO>>,
     pub connection: Option<Vec<Connection>>,
-
-    #[serde(skip_deserializing)]
-    pub flows: Vec<Flow>,
-    #[serde(skip_deserializing)]
-    pub functions: Vec<Function>
-}
-
-pub enum Direction {
-    Input,
-    Output
 }
 
 // TODO figure out how to have this derived automatically for types needing it
