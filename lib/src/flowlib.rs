@@ -7,3 +7,4 @@ mod description;
 pub mod loader;
 pub mod info;
 pub mod dumper;
+pub mod compiler;
