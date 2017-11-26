@@ -1,7 +1,7 @@
 use toml;
 use loader::loader::Loader;
-use description::flow::Flow;
-use description::function::Function;
+use model::flow::Flow;
+use model::function::Function;
 
 pub struct FlowTomelLoader {}
 

@@ -3,7 +3,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate toml;
 
-mod description;
+mod model;
 pub mod loader;
 pub mod info;
 pub mod dumper;

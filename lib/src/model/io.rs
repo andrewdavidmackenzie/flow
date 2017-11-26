@@ -1,7 +1,7 @@
-use description::name::Name;
-use description::name::HasName;
-use description::name::HasRoute;
-use description::datatype::DataType;
+use model::name::Name;
+use model::name::HasName;
+use model::name::HasRoute;
+use model::datatype::DataType;
 use loader::loader::Validate;
 use std::fmt;
 

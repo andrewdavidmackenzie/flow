@@ -1,8 +1,8 @@
 use std::fmt;
 
-use description::name::Name;
-use description::name::HasName;
-use description::io::IO;
+use model::name::Name;
+use model::name::HasName;
+use model::io::IO;
 use loader::loader::Validate;
 
 #[derive(Default, Deserialize, Debug)]

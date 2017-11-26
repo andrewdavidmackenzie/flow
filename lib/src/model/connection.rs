@@ -1,4 +1,4 @@
-use description::name::Name;
+use model::name::Name;
 use loader::loader::Validate;
 
 use std::fmt;

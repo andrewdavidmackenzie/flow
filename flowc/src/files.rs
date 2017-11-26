@@ -15,7 +15,6 @@ fn get_default_file(path: PathBuf) -> io::Result<PathBuf> {
     // Try to glob for the default file using a pattern
     for entry in glob(file_pattern.as_str()).expect("Failed to read glob pattern") {
         // return first file found that matches the pattern, or error if none match
-        // TODO this by just checking size of paths and accessing first entry?
         match entry {
             Ok(context_file) => return Ok(context_file),
             Err(_) => return Err(io::Error::new(ErrorKind::NotFound,

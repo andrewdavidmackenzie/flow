@@ -1,12 +1,12 @@
-use description::name::Name;
-use description::name::HasName;
-use description::name::HasRoute;
-use description::connection::Connection;
-use description::io::IO;
-use description::value::Value;
-use description::flow_reference::FlowReference;
+use model::name::Name;
+use model::name::HasName;
+use model::name::HasRoute;
+use model::connection::Connection;
+use model::io::IO;
+use model::value::Value;
+use model::flow_reference::FlowReference;
 use loader::loader::Validate;
-use description::function_reference::FunctionReference;
+use model::function_reference::FunctionReference;
 
 use std::fmt;
 use std::path::PathBuf;
@@ -29,7 +29,6 @@ pub struct Flow {
     pub connection: Option<Vec<Connection>>,
 }
 
-// TODO figure out how to have this derived automatically for types needing it
 impl HasName for Flow {
     fn name(&self) -> &str {
         &self.name[..]

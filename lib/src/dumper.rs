@@ -1,4 +1,4 @@
-use description::flow::Flow;
+use model::flow::Flow;
 
 /*
     dump a valid flow to stdout

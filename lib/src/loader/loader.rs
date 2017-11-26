@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use description::flow::Flow;
-use description::function::Function;
+use model::flow::Flow;
+use model::function::Function;
 use loader::file_helper::get_contents;
 use loader::file_helper::get_canonical_path;
 use loader::loader_helper::get_loader;

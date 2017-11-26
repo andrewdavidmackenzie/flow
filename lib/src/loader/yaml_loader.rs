@@ -1,9 +1,9 @@
 extern crate yaml_rust;
 
-use description::flow::Flow;
+use model::flow::Flow;
 use loader::loader::Loader;
 use std::path::PathBuf;
-use description::function::Function;
+use model::function::Function;
 
 pub struct FlowYamlLoader {}
 
