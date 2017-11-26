@@ -9,7 +9,7 @@ pub struct FlowYamlLoader {}
 
 impl Loader for FlowYamlLoader {
     // TODO define our own errors types? so we can return errors from lower down directly
-    fn load_flow(&self, contents: &str) -> Result<Flow, String> {
+    fn load_flow(&self, _contents: &str) -> Result<Flow, String> {
 //        let docs = YamlLoader::load_from_str(&contents).unwrap();
 //        let doc = &docs[0];
 
@@ -28,7 +28,7 @@ impl Loader for FlowYamlLoader {
         Ok(flow)
     }
 
-    fn load_function(&self, contents: &str) -> Result<Function, String> {
+    fn load_function(&self, _contents: &str) -> Result<Function, String> {
 //        let docs = YamlLoader::load_from_str(&contents).unwrap();
 //        let doc = &docs[0];
 
