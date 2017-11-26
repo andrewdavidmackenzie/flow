@@ -45,9 +45,21 @@ impl fmt::Display for Function {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "\t\t\t\t\t\tname: \t\t{}\n",
                self.name).unwrap();
-        write!(f, "\t\t\t\t\t\t\tinputs: \t{:?}\n",
-               self.input).unwrap();
-        write!(f, "\t\t\t\t\t\t\toutputs: \t{:?}\n",
-               self.output)
+
+        write!(f, "\t\t\t\t\tinputs:\n").unwrap();
+        if let Some(ref inputs) = self.input {
+            for input in inputs {
+                write!(f, "\t\t\t\t\t\t{}\n", input).unwrap();
+            }
+        }
+
+        write!(f, "\t\t\t\t\touputs:\n").unwrap();
+        if let Some(ref outputs) = self.output {
+            for output in outputs {
+                write!(f, "\t\t\t\t\t\t{}\n", output).unwrap();
+            }
+        }
+
+        Ok(())
     }
 }
