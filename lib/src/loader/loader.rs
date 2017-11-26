@@ -71,10 +71,10 @@ pub fn load_function(file_path: &PathBuf) -> Result<Function, String> {
 fn load_functions(flow: &mut Flow) -> Result<(), String> {
     if let Some(ref mut function_refs) = flow.function {
         for ref mut function_ref in function_refs {
-            function_ref.hierarchy_name = format!("{}/{}", flow.hierarchy_name, function_ref.reference_name);
             let function_path = get_canonical_path(PathBuf::from(&flow.source),
                                                    PathBuf::from(&function_ref.source));
             function_ref.function = load_function(&function_path)?;
+            function_ref.function.hierarchy_name = format!("{}/{}", flow.hierarchy_name, function_ref.function.name);
         }
     }
     Ok(())

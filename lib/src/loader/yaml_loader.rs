@@ -35,6 +35,7 @@ impl Loader for FlowYamlLoader {
 
         let function = Function {
             name: "fake".to_string(),
+            hierarchy_name: "fake/fake".to_string(),
             input: None,
             output: None,
             implementation: None
