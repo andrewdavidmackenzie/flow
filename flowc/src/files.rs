@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 /*
     Passed a path to a directory, it searches for the first file it can find in the directory
-    fitting the pattern "*.context", and if found opens it and returns it in the result
+    fitting the pattern "context.*", and if found opens it and returns it in the result
 */
 fn get_default_file(path: PathBuf) -> io::Result<PathBuf> {
     let file_pattern = format!("{}/context.*", path.display());
@@ -29,10 +29,10 @@ fn get_default_file(path: PathBuf) -> io::Result<PathBuf> {
 
 #[test]
 fn get_default_sample() {
-    let path = PathBuf::from("../samples/hello-world");
+    let path = PathBuf::from("../samples/hello-world-toml");
     match get_default_file(path) {
         Ok(path) => {
-            if path.file_name().unwrap() != "context.yaml" {
+            if path.file_name().unwrap() != "context.toml" {
                 assert!(false);
             }
         },
