@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use description::flow::Flow;
 use description::function::Function;
-use description::io::IO;
 use loader::file_helper::get_contents;
 use loader::file_helper::get_canonical_path;
 use loader::loader_helper::get_loader;
@@ -27,6 +26,7 @@ pub trait Validate {
 pub fn load_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, String> {
     let mut flow = load_single_flow(parent_route, file_path)?;
     load_subflows(&mut flow)?;
+    flow.normalize_connection_names();
     Ok(flow)
 }
 
@@ -47,8 +47,7 @@ pub fn load_single_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, 
     flow.validate()?;
     load_functions(&mut flow)?;
     load_values(&mut flow)?;
-    normalize_io_names(&flow.route, &mut flow.input);
-    normalize_io_names(&flow.route, &mut flow.output);
+    flow.normalize_io_names();
     Ok(flow)
 }
 
@@ -64,10 +63,8 @@ pub fn load_function(file_path: &PathBuf, parent_name: &str) -> Result<Function,
     let loader = get_loader(file_path)?;
     let contents = get_contents(file_path)?;
     let mut function = loader.load_function(&contents)?;
-    function.validate()?;
     function.route = format!("{}/{}", parent_name, function.name);
-    normalize_io_names(&function.route, &mut function.input);
-    normalize_io_names(&function.route, &mut function.output);
+    function.validate()?;
     Ok(function)
 }
 
@@ -79,7 +76,6 @@ fn load_functions(flow: &mut Flow) -> Result<(), String> {
         for ref mut function_ref in function_refs {
             let function_path = get_canonical_path(PathBuf::from(&flow.source),
                                                    PathBuf::from(&function_ref.source));
-            function_ref.route = format!("{}/{}", flow.route, function_ref.alias);
             function_ref.function = load_function(&function_path, &flow.route)?;
         }
     }
@@ -99,24 +95,12 @@ fn load_values(flow: &mut Flow) -> Result<(), String> {
 }
 
 /*
-    Change IO names to the hierarchical format, using the internal name of the thing referenced
-*/
-fn normalize_io_names(parent_name: &str, collection: &mut Option<Vec<IO>>) {
-    if let &mut Some(ref mut ios) = collection {
-        for ref mut io in ios {
-            io.route = format!("{}/{}", parent_name, io.name);
-        }
-    }
-}
-
-/*
     Load all subflows referenced from a flow
 */
 fn load_subflows(flow: &mut Flow) -> Result<(), String> {
     // Load subflows from References
     if let Some(ref mut flow_refs) = flow.flow {
         for ref mut flow_ref in flow_refs {
-            flow_ref.route = format!("{}/{}", flow.route, flow_ref.alias);
             let subflow_path = get_canonical_path(PathBuf::from(&flow.source),
                                                   PathBuf::from(&flow_ref.source));
             let subflow = load_flow(&flow.route, subflow_path)?;

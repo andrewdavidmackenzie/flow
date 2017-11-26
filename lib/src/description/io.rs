@@ -1,5 +1,6 @@
 use description::name::Name;
-use description::name::Named;
+use description::name::HasName;
+use description::name::HasRoute;
 use description::datatype::DataType;
 use loader::loader::Validate;
 use std::fmt;
@@ -13,9 +14,15 @@ pub struct IO {
 }
 
 // TODO figure out how to have this derived automatically for types needing it
-impl Named for IO {
+impl HasName for IO {
     fn name(&self) -> &str {
         &self.name[..]
+    }
+}
+
+impl HasRoute for IO {
+    fn route(&self) -> &str {
+        &self.route[..]
     }
 }
 

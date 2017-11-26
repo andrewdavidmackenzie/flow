@@ -1,5 +1,6 @@
 use description::name::Name;
-use description::name::Named;
+use description::name::HasName;
+use description::name::HasRoute;
 use loader::loader::Validate;
 
 use std::fmt;
@@ -14,9 +15,15 @@ pub struct Value {
 }
 
 // TODO figure out how to have this derived automatically for types needing it
-impl Named for Value {
+impl HasName for Value {
     fn name(&self) -> &str {
         &self.name[..]
+    }
+}
+
+impl HasRoute for Value {
+    fn route(&self) -> &str {
+        &self.route[..]
     }
 }
 

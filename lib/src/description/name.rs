@@ -11,8 +11,12 @@ impl Validate for Name {
     }
 }
 
-pub trait Named {
+pub trait HasName {
     fn name(&self) -> &str;
+}
+
+pub trait HasRoute {
+    fn route(&self) -> &str;
 }
 
 #[test]
