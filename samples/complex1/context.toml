@@ -30,7 +30,7 @@ from = "function/function1/o1"
 to = "flow/flow1/i1"
 
 [[connection]]
-from = "flow/flow1/i1"
+from = "flow/flow1/o1"
 to = "function/function2/i1"
 
 [[connection]]

@@ -47,7 +47,7 @@ to = "output/o1"
 
 [[connection]]
 from = "input/i2"
-to = "flow/flow2/i2"
+to = "flow/flow2/i4"
 
 [[connection]]
 from = "function/function5/o1"
