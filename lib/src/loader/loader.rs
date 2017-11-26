@@ -46,6 +46,7 @@ pub fn load_single_flow(parent_hierarchy_name: &str, file_path: PathBuf) -> Resu
     flow.validate()?;
     load_functions(&mut flow)?;
     load_values(&mut flow)?;
+    hierarchical_io_names(&mut flow);
     Ok(flow)
 }
 
@@ -90,6 +91,23 @@ fn load_values(flow: &mut Flow) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/*
+    Change IO names to the hierarchical format
+*/
+fn hierarchical_io_names(flow: &mut Flow) {
+    if let Some(ref mut inputs) = flow.input {
+        for ref mut input in inputs {
+            input.hierarchy_name = format!("{}/{}", flow.hierarchy_name, input.name);
+        }
+    }
+
+    if let Some(ref mut outputs) = flow.output {
+        for ref mut output in outputs {
+            output.hierarchy_name = format!("{}/{}", flow.hierarchy_name, output.name);
+        }
+    }
 }
 
 /*

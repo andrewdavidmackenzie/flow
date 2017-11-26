@@ -6,7 +6,9 @@ use loader::loader::Validate;
 #[derive(Deserialize, Debug)]
 pub struct IO {
     pub name: Name,
-    pub datatype: Name
+    pub datatype: Name,
+    #[serde(skip_deserializing)]
+    pub hierarchy_name: String
 }
 
 // TODO figure out how to have this derived automatically for types needing it
