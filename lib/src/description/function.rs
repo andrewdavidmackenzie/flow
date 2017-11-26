@@ -11,7 +11,9 @@ pub struct FunctionReference {
     pub reference_name: Name,
     pub source: String,
     #[serde(skip_deserializing)]
-    pub function: Function
+    pub function: Function,
+    #[serde(skip_deserializing)]
+    pub hierarchy_name: String
 }
 
 // TODO figure out how to have this derived automatically for types needing it
@@ -30,7 +32,8 @@ impl Validate for FunctionReference {
 
 impl fmt::Display for FunctionReference {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "FunctionReference:\n\tname: {}\n\tsource: {}", self.reference_name, self.source)
+        write!(f, "FunctionReference:\n\tname: {}\n\thierarchy_name: {}\n\tsource: {}",
+               self.reference_name, self.hierarchy_name, self.source)
     }
 }
 

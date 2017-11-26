@@ -43,6 +43,8 @@ pub struct Flow {
     #[serde(skip_deserializing)]
     pub source: PathBuf,
     pub name: Name,
+    #[serde(skip_deserializing)]
+    pub hierarchy_name: String,
 
     pub flow: Option<Vec<FlowReference>>,
     pub function: Option<Vec<FunctionReference>>,
@@ -97,6 +99,13 @@ impl Validate for Flow {
         }
 
         Ok(())
+    }
+}
+
+impl fmt::Display for Flow {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Flow:\n\tname: {}\n\tsource: {}\n\thierarchy_name: {:?}\n\tflows: {:?}\n\tvalues: {:?}\n\tinputs: {:?}\n\toutputs: {:?}\n\tfunctions: {:?}\n\tconnection: {:?}",
+               self.name, self.source.display(), self.hierarchy_name, self.flow, self.value, self.input, self.output, self.function, self.connection)
     }
 }
 
@@ -156,12 +165,5 @@ impl Flow {
             }
         }
         Ok(())
-    }
-}
-
-impl fmt::Display for Flow {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\nFlow:\n\tname: {}\n\tsource: {}\n\tflows: {:?}\n\tvalues: {:?}\n\tinputs: {:?}\n\toutputs: {:?}\n\tfunctions: {:?}\n\tconnection: {:?}",
-               self.name, self.source.display(), self.flow, self.value, self.input, self.output, self.function, self.connection)
     }
 }

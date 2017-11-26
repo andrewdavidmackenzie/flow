@@ -21,16 +21,31 @@ pub trait Validate {
 /// use flowlib::loader::loader;
 ///
 /// let path = PathBuf::from("../samples/hello-world-simple-toml/context.toml");
-/// loader::load_flow(path).unwrap();
+/// loader::load_flow("", path).unwrap();
 /// ```
-pub fn load_flow(file_path: PathBuf) -> Result<Flow, String> {
+pub fn load_flow(parent_hierarchy_name: &str, file_path: PathBuf) -> Result<Flow, String> {
+    let mut flow = load_single_flow(parent_hierarchy_name, file_path)?;
+    load_subflows(&mut flow)?;
+    Ok(flow)
+}
+
+/// # Example
+/// ```
+/// use std::path::PathBuf;
+/// use flowlib::loader::loader;
+///
+/// let path = PathBuf::from("../samples/hello-world-simple-toml/context.toml");
+/// loader::load_single_flow("", path).unwrap();
+/// ```
+pub fn load_single_flow(parent_hierarchy_name: &str, file_path: PathBuf) -> Result<Flow, String> {
     let loader = get_loader(&file_path)?;
     let contents = get_contents(&file_path)?;
     let mut flow = loader.load_flow(&contents)?;
     flow.source = file_path;
+    flow.hierarchy_name = format!("{}/{}", parent_hierarchy_name, flow.name);
     flow.validate()?;
     load_functions(&mut flow)?;
-    load_subflows(&mut flow)?;
+    load_values(&mut flow)?;
     Ok(flow)
 }
 
@@ -51,11 +66,12 @@ pub fn load_function(file_path: &PathBuf) -> Result<Function, String> {
 }
 
 /*
-    Load all functions references from a flow
+    Load all functions referenced from a flow
 */
 fn load_functions(flow: &mut Flow) -> Result<(), String> {
     if let Some(ref mut function_refs) = flow.function {
         for ref mut function_ref in function_refs {
+            function_ref.hierarchy_name = format!("{}/{}", flow.hierarchy_name, function_ref.reference_name);
             let function_path = get_canonical_path(PathBuf::from(&flow.source),
                                                    PathBuf::from(&function_ref.source));
             function_ref.function = load_function(&function_path)?;
@@ -65,7 +81,19 @@ fn load_functions(flow: &mut Flow) -> Result<(), String> {
 }
 
 /*
-    Load all flows references from a flow
+    Load all values defined in a flow
+*/
+fn load_values(flow: &mut Flow) -> Result<(), String> {
+    if let Some(ref mut values) = flow.value {
+        for ref mut value in values {
+            value.hierarchy_name = format!("{}/{}", flow.hierarchy_name, value.name);
+        }
+    }
+    Ok(())
+}
+
+/*
+    Load all subflows referenced from a flow
 */
 fn load_subflows(flow: &mut Flow) -> Result<(), String> {
     // Load subflows from References
@@ -73,7 +101,7 @@ fn load_subflows(flow: &mut Flow) -> Result<(), String> {
         for ref mut flow_ref in flow_refs {
             let subflow_path = get_canonical_path(PathBuf::from(&flow.source),
                                                   PathBuf::from(&flow_ref.source));
-            let subflow = load_flow(subflow_path)?;
+            let subflow = load_flow(&flow.hierarchy_name,subflow_path)?;
             flow_ref.flow = subflow;
         }
     }

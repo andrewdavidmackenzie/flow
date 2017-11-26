@@ -5,7 +5,7 @@ use description::flow::Flow;
  */
 pub fn dump(flow: &Flow, level: usize) {
     // TODO Doesn't work :-(
-    println!("{:indent$}{}", "", flow, indent=(level * 4));
+    println!("\nLevel={}\n{:indent$}{}", level, "", flow, indent=(level * 4));
 
     // Dump sub-flows
     if let Some(ref flow_refs) = flow.flow {

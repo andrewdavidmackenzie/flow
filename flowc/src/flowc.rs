@@ -29,7 +29,7 @@ fn main() {
     match files::get(path) {
         Ok(file_path) => {
             info!("Attempting to load file: '{:?}'", file_path);
-            match loader::load_flow(file_path) {
+            match loader::load_flow("", file_path) {
                 Ok(flow) => {
                     info!("'{}' flow loaded", flow.name);
 
