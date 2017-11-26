@@ -97,14 +97,14 @@ impl fmt::Display for Flow {
         write!(f, "\tinputs:\n").unwrap();
         if let Some(ref inputs) = self.input {
             for input in inputs {
-                write!(f, "\t\t\t\t{}\n", input).unwrap();
+                write!(f, "\t\t\t\t\t{}\n", input).unwrap();
             }
         }
 
         write!(f, "\touputs:\n").unwrap();
         if let Some(ref outputs) = self.output {
             for output in outputs {
-                write!(f, "\t\t\t\t{}\n", output).unwrap();
+                write!(f, "\t\t\t\t\t{}\n", output).unwrap();
             }
         }
 

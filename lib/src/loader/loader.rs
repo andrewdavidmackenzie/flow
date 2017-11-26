@@ -64,6 +64,17 @@ pub fn load_function(file_path: &PathBuf, parent_name: &str) -> Result<Function,
     let contents = get_contents(file_path)?;
     let mut function = loader.load_function(&contents)?;
     function.route = format!("{}/{}", parent_name, function.name);
+
+    if let Some(ref mut inputs) = function.input {
+        for ref mut input in inputs {
+            input.route = format!("{}/{}", function.route, input.name);
+        }
+    }
+    if let Some(ref mut outputs) = function.output {
+        for ref mut output in outputs {
+            output.route = format!("{}/{}", function.route, output.name);
+        }
+    }
     function.validate()?;
     Ok(function)
 }
