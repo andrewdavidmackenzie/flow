@@ -11,7 +11,8 @@ use std::path::PathBuf;
 
 #[derive(Default, Deserialize, Debug)]
 pub struct FlowReference {
-    pub name: Name,
+    #[serde(rename = "name")]
+    pub reference_name: Name,
     pub source: String,
     #[serde(skip_deserializing)]
     pub flow: Flow
@@ -20,20 +21,20 @@ pub struct FlowReference {
 // TODO figure out how to have this derived automatically for types needing it
 impl Named for FlowReference {
     fn name(&self) -> &str {
-        &self.name[..]
+        &self.reference_name[..]
     }
 }
 
 impl Validate for FlowReference {
     fn validate(&self) -> Result<(), String> {
-        self.name.validate()
+        self.reference_name.validate()
         // Pretty much anything is a valid PathBuf - so not sure how to validate source...
     }
 }
 
 impl fmt::Display for FlowReference {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "FlowReference:\n\tname: {}\n\tsource: {}", self.name, self.source)
+        write!(f, "FlowReference:\n\tname: {}\n\tsource: {}", self.reference_name, self.source)
     }
 }
 
@@ -160,7 +161,7 @@ impl Flow {
 
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\nFlow:\n\tname: {}\n\tflows: {:?}\n\tvalues: {:?}\n\tinputs: {:?}\n\toutputs: {:?}\n\tfunctions: {:?}\n\tconnection: {:?}",
-               self.name, self.flow, self.value, self.input, self.output, self.function, self.connection)
+        write!(f, "\nFlow:\n\tname: {}\n\tsource: {}\n\tflows: {:?}\n\tvalues: {:?}\n\tinputs: {:?}\n\toutputs: {:?}\n\tfunctions: {:?}\n\tconnection: {:?}",
+               self.name, self.source.display(), self.flow, self.value, self.input, self.output, self.function, self.connection)
     }
 }

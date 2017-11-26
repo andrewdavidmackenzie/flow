@@ -7,7 +7,8 @@ use loader::loader::Validate;
 
 #[derive(Default, Deserialize, Debug)]
 pub struct FunctionReference {
-    pub name: Name,
+    #[serde(rename = "name")]
+    pub reference_name: Name,
     pub source: String,
     #[serde(skip_deserializing)]
     pub function: Function
@@ -16,20 +17,20 @@ pub struct FunctionReference {
 // TODO figure out how to have this derived automatically for types needing it
 impl Named for FunctionReference {
     fn name(&self) -> &str {
-        &self.name[..]
+        &self.reference_name[..]
     }
 }
 
 impl Validate for FunctionReference {
     fn validate(&self) -> Result<(), String> {
-        self.name.validate()
+        self.reference_name.validate()
         // Pretty much anything is a valid PathBuf - so not sure how to validate source...
     }
 }
 
 impl fmt::Display for FunctionReference {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "FunctionReference:\n\tname: {}\n\tsource: {}", self.name, self.source)
+        write!(f, "FunctionReference:\n\tname: {}\n\tsource: {}", self.reference_name, self.source)
     }
 }
 
