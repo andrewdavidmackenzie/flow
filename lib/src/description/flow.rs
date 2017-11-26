@@ -12,8 +12,10 @@ use std::path::PathBuf;
 #[derive(Default, Deserialize, Debug)]
 pub struct FlowReference {
     #[serde(rename = "name")]
-    pub reference_name: Name,
+    pub alias: Name,
     pub source: String,
+    #[serde(skip_deserializing)]
+    pub route: String,
     #[serde(skip_deserializing)]
     pub flow: Flow
 }
@@ -21,20 +23,21 @@ pub struct FlowReference {
 // TODO figure out how to have this derived automatically for types needing it
 impl Named for FlowReference {
     fn name(&self) -> &str {
-        &self.reference_name[..]
+        &self.alias[..]
     }
 }
 
 impl Validate for FlowReference {
     fn validate(&self) -> Result<(), String> {
-        self.reference_name.validate()
+        self.alias.validate()
         // Pretty much anything is a valid PathBuf - so not sure how to validate source...
     }
 }
 
 impl fmt::Display for FlowReference {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "FlowReference:\n\tname: {}\n\tsource: {}", self.reference_name, self.source)
+        write!(f, "\t\t\t\talias: {}\n\t\t\t\t\tsource: {}\n\t\t\t\t\troute: {}\n",
+               self.alias, self.source, self.route)
     }
 }
 
@@ -44,7 +47,7 @@ pub struct Flow {
     pub source: PathBuf,
     pub name: Name,
     #[serde(skip_deserializing)]
-    pub hierarchy_name: String,
+    pub route: String,
 
     pub flow: Option<Vec<FlowReference>>,
     pub function: Option<Vec<FunctionReference>>,
@@ -104,8 +107,53 @@ impl Validate for Flow {
 
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Flow:\n\tname: {}\n\tsource: {}\n\thierarchy_name: {:?}\n\tflows: {:?}\n\tvalues: {:?}\n\tinputs: {:?}\n\toutputs: {:?}\n\tfunctions: {:?}\n\tconnection: {:?}",
-               self.name, self.source.display(), self.hierarchy_name, self.flow, self.value, self.input, self.output, self.function, self.connection)
+        write!(f, "\tname: \t\t\t{}\n\tsource: \t\t{}\n\troute: \t\t\t{}\n",
+               self.name, self.source.display(), self.route).unwrap();
+
+        write!(f, "\tvalues:\n").unwrap();
+        if let Some(ref values) = self.value {
+            for value in values {
+                write!(f, "\t\t\t\t{}\n", value).unwrap();
+            }
+        }
+
+        write!(f, "\tinputs:\n").unwrap();
+        if let Some(ref inputs) = self.input {
+            for input in inputs {
+                write!(f, "\t\t\t\t{}\n", input).unwrap();
+            }
+        }
+
+        write!(f, "\touputs:\n").unwrap();
+        if let Some(ref outputs) = self.output {
+            for output in outputs {
+                write!(f, "\t\t\t\t{}\n", output).unwrap();
+            }
+        }
+
+        write!(f, "\tsubflows:\n").unwrap();
+        if let Some(ref flow_refs) = self.flow {
+            for flow_ref in flow_refs {
+                write!(f, "\t{}\n", flow_ref).unwrap();
+            }
+        }
+
+        write!(f, "\tfunctions: \t\n").unwrap();
+        if let Some(ref function_refs) = self.function {
+            for function_ref in function_refs {
+                write!(f, "\t{}", function_ref).unwrap();
+                write!(f, "\t{}", function_ref.function).unwrap();
+            }
+        }
+
+        write!(f, "\tconnections: \t\n").unwrap();
+        if let Some(ref connections) = self.connection {
+            for connection in connections {
+                write!(f, "\t\t\t\t\t{} --> {}\n", connection.from, connection.to).unwrap();
+            }
+        }
+
+        Ok(())
     }
 }
 

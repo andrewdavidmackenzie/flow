@@ -10,7 +10,7 @@ pub struct Value {
     pub datatype: Name,
     pub value: Option<String>,
     #[serde(skip_deserializing)]
-    pub hierarchy_name: String,
+    pub route: String,
 }
 
 // TODO figure out how to have this derived automatically for types needing it
@@ -31,7 +31,7 @@ impl Validate for Value {
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Value:\n\tname: {}\n\thierarchy name: {}\n\tdatatype: {}\n\tvalue: {:?}",
-               self.name, self.hierarchy_name, self.datatype, self.value)
+        write!(f, "\tname: \t\t{}\n\t\t\t\t\troute: \t\t{}\n\t\t\t\t\tdatatype: \t{}\n\t\t\t\t\tvalue: \t\t{:?}",
+               self.name, self.route, self.datatype, self.value)
     }
 }

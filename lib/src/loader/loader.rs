@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use description::flow::Flow;
 use description::function::Function;
+use description::io::IO;
 use loader::file_helper::get_contents;
 use loader::file_helper::get_canonical_path;
 use loader::loader_helper::get_loader;
@@ -23,8 +24,8 @@ pub trait Validate {
 /// let path = PathBuf::from("../samples/hello-world-simple-toml/context.toml");
 /// loader::load_flow("", path).unwrap();
 /// ```
-pub fn load_flow(parent_hierarchy_name: &str, file_path: PathBuf) -> Result<Flow, String> {
-    let mut flow = load_single_flow(parent_hierarchy_name, file_path)?;
+pub fn load_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, String> {
+    let mut flow = load_single_flow(parent_route, file_path)?;
     load_subflows(&mut flow)?;
     Ok(flow)
 }
@@ -37,16 +38,17 @@ pub fn load_flow(parent_hierarchy_name: &str, file_path: PathBuf) -> Result<Flow
 /// let path = PathBuf::from("../samples/hello-world-simple-toml/context.toml");
 /// loader::load_single_flow("", path).unwrap();
 /// ```
-pub fn load_single_flow(parent_hierarchy_name: &str, file_path: PathBuf) -> Result<Flow, String> {
+pub fn load_single_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, String> {
     let loader = get_loader(&file_path)?;
     let contents = get_contents(&file_path)?;
     let mut flow = loader.load_flow(&contents)?;
     flow.source = file_path;
-    flow.hierarchy_name = format!("{}/{}", parent_hierarchy_name, flow.name);
+    flow.route = format!("{}/{}", parent_route, flow.name);
     flow.validate()?;
     load_functions(&mut flow)?;
     load_values(&mut flow)?;
-    hierarchical_io_names(&mut flow);
+    normalize_io_names(&flow.route, &mut flow.input);
+    normalize_io_names(&flow.route, &mut flow.output);
     Ok(flow)
 }
 
@@ -56,13 +58,16 @@ pub fn load_single_flow(parent_hierarchy_name: &str, file_path: PathBuf) -> Resu
 /// use flowlib::loader::loader;
 ///
 /// let path = PathBuf::from("../samples/hello-world-simple-toml/terminal.toml");
-/// loader::load_function(&path).unwrap();
+/// loader::load_function(&path, "").unwrap();
 /// ```
-pub fn load_function(file_path: &PathBuf) -> Result<Function, String> {
+pub fn load_function(file_path: &PathBuf, parent_name: &str) -> Result<Function, String> {
     let loader = get_loader(file_path)?;
     let contents = get_contents(file_path)?;
-    let function = loader.load_function(&contents)?;
+    let mut function = loader.load_function(&contents)?;
     function.validate()?;
+    function.route = format!("{}/{}", parent_name, function.name);
+    normalize_io_names(&function.route, &mut function.input);
+    normalize_io_names(&function.route, &mut function.output);
     Ok(function)
 }
 
@@ -74,8 +79,8 @@ fn load_functions(flow: &mut Flow) -> Result<(), String> {
         for ref mut function_ref in function_refs {
             let function_path = get_canonical_path(PathBuf::from(&flow.source),
                                                    PathBuf::from(&function_ref.source));
-            function_ref.function = load_function(&function_path)?;
-            function_ref.function.hierarchy_name = format!("{}/{}", flow.hierarchy_name, function_ref.function.name);
+            function_ref.route = format!("{}/{}", flow.route, function_ref.alias);
+            function_ref.function = load_function(&function_path, &flow.route)?;
         }
     }
     Ok(())
@@ -87,25 +92,19 @@ fn load_functions(flow: &mut Flow) -> Result<(), String> {
 fn load_values(flow: &mut Flow) -> Result<(), String> {
     if let Some(ref mut values) = flow.value {
         for ref mut value in values {
-            value.hierarchy_name = format!("{}/{}", flow.hierarchy_name, value.name);
+            value.route = format!("{}/{}", flow.route, value.name);
         }
     }
     Ok(())
 }
 
 /*
-    Change IO names to the hierarchical format
+    Change IO names to the hierarchical format, using the internal name of the thing referenced
 */
-fn hierarchical_io_names(flow: &mut Flow) {
-    if let Some(ref mut inputs) = flow.input {
-        for ref mut input in inputs {
-            input.hierarchy_name = format!("{}/{}", flow.hierarchy_name, input.name);
-        }
-    }
-
-    if let Some(ref mut outputs) = flow.output {
-        for ref mut output in outputs {
-            output.hierarchy_name = format!("{}/{}", flow.hierarchy_name, output.name);
+fn normalize_io_names(parent_name: &str, collection: &mut Option<Vec<IO>>) {
+    if let &mut Some(ref mut ios) = collection {
+        for ref mut io in ios {
+            io.route = format!("{}/{}", parent_name, io.name);
         }
     }
 }
@@ -117,9 +116,10 @@ fn load_subflows(flow: &mut Flow) -> Result<(), String> {
     // Load subflows from References
     if let Some(ref mut flow_refs) = flow.flow {
         for ref mut flow_ref in flow_refs {
+            flow_ref.route = format!("{}/{}", flow.route, flow_ref.alias);
             let subflow_path = get_canonical_path(PathBuf::from(&flow.source),
                                                   PathBuf::from(&flow_ref.source));
-            let subflow = load_flow(&flow.hierarchy_name,subflow_path)?;
+            let subflow = load_flow(&flow.route, subflow_path)?;
             flow_ref.flow = subflow;
         }
     }

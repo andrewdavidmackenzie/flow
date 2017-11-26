@@ -16,7 +16,7 @@ impl Loader for FlowYamlLoader {
         let flow =
             Flow {
                 source: PathBuf::from("fake"),
-                hierarchy_name: "fake/fake".to_string(),
+                route: "fake/fake".to_string(),
                 name: "fake".to_string(),
                 flow: None,
                 connection: None,
@@ -35,7 +35,7 @@ impl Loader for FlowYamlLoader {
 
         let function = Function {
             name: "fake".to_string(),
-            hierarchy_name: "fake/fake".to_string(),
+            route: "fake/fake".to_string(),
             input: None,
             output: None,
             implementation: None

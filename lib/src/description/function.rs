@@ -8,8 +8,10 @@ use loader::loader::Validate;
 #[derive(Default, Deserialize, Debug)]
 pub struct FunctionReference {
     #[serde(rename = "name")]
-    pub reference_name: Name,
+    pub alias: Name,
     pub source: String,
+    #[serde(skip_deserializing)]
+    pub route: String,
     #[serde(skip_deserializing)]
     pub function: Function
 }
@@ -17,21 +19,21 @@ pub struct FunctionReference {
 // TODO figure out how to have this derived automatically for types needing it
 impl Named for FunctionReference {
     fn name(&self) -> &str {
-        &self.reference_name[..]
+        &self.alias[..]
     }
 }
 
 impl Validate for FunctionReference {
     fn validate(&self) -> Result<(), String> {
-        self.reference_name.validate()
+        self.alias.validate()
         // Pretty much anything is a valid PathBuf - so not sure how to validate source...
     }
 }
 
 impl fmt::Display for FunctionReference {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "FunctionReference:\n\tname: {}\n\tsource: {}",
-               self.reference_name, self.source)
+        write!(f, "\t\t\t\talias: \t{}\n\t\t\t\t\troute: \t{}\n\t\t\t\t\timplementation:\n\t\t\t\t\t\t\tsource: \t{}\n",
+               self.alias, self.route, self.source)
     }
 }
 
@@ -42,7 +44,7 @@ pub struct Function {
     pub output: Option<Vec<IO>>,
     pub implementation: Option<String>, // TODO for now
     #[serde(skip_deserializing)]
-    pub hierarchy_name: String
+    pub route: String
 }
 
 // TODO figure out how to have this derived automatically for types needing it
@@ -70,4 +72,15 @@ impl Validate for Function {
 
         Ok(())
 	}
+}
+
+impl fmt::Display for Function {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "\t\t\t\t\t\tname: \t\t{}\t\n\t\t\t\t\t\t\troute: \t\t{}\n",
+               self.name, self.route).unwrap();
+        write!(f, "\t\t\t\t\t\t\tinputs: \t{:?}\n",
+               self.input).unwrap();
+        write!(f, "\t\t\t\t\t\t\toutputs: \t{:?}\n",
+               self.output)
+    }
 }
