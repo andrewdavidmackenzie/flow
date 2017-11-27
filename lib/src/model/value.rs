@@ -1,6 +1,8 @@
 use model::name::Name;
 use model::name::HasName;
 use model::name::HasRoute;
+use model::datatype::DataType;
+use model::datatype::HasDataType;
 use loader::loader::Validate;
 
 use std::fmt;
@@ -9,7 +11,7 @@ use std::fmt;
 pub struct Value {
     pub name: Name,
     #[serde(rename = "type")]
-    pub datatype: Name,
+    pub datatype: DataType,
     pub value: Option<String>,
     #[serde(skip_deserializing)]
     pub route: String,
@@ -19,6 +21,12 @@ pub struct Value {
 impl HasName for Value {
     fn name(&self) -> &str {
         &self.name[..]
+    }
+}
+
+impl HasDataType for Value {
+    fn datatype(&self) -> &str {
+        &self.datatype[..]
     }
 }
 

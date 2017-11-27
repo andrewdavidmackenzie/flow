@@ -2,6 +2,7 @@ use model::name::Name;
 use model::name::HasName;
 use model::name::HasRoute;
 use model::datatype::DataType;
+use model::datatype::HasDataType;
 use loader::loader::Validate;
 use std::fmt;
 
@@ -9,7 +10,7 @@ use std::fmt;
 pub struct IO {
     pub name: Name,
     #[serde(rename = "type")]
-    pub datatype: Name,
+    pub datatype: DataType,
     #[serde(skip_deserializing)]
     pub route: String
 }
@@ -18,6 +19,12 @@ pub struct IO {
 impl HasName for IO {
     fn name(&self) -> &str {
         &self.name[..]
+    }
+}
+
+impl HasDataType for IO {
+    fn datatype(&self) -> &str {
+        &self.datatype[..]
     }
 }
 
@@ -30,10 +37,7 @@ impl HasRoute for IO {
 impl Validate for IO {
     fn validate(&self) -> Result<(), String> {
         self.name.validate()?;
-        self.datatype.validate()?;
-        let dt_slice: &str = &self.datatype[..];
-        DataType::valid_type(dt_slice)?;
-        Ok(())
+        self.datatype.validate()
     }
 }
 

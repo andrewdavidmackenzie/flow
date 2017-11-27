@@ -1,28 +1,34 @@
 const DATATYPES: &'static [&'static str] = &["String"];
 
-pub struct DataType;
+pub type DataType = String;
 
 pub trait HasDataType {
     fn datatype(&self) -> &str;
 }
 
-impl DataType {
-    pub fn valid_type(datatype: &str) -> Result<(), String> {
-        if DATATYPES.contains(&datatype) {
+pub trait TypeCheck {
+    fn validate(&self) -> Result<(), String>;
+}
+
+impl TypeCheck for DataType {
+    fn validate(&self) -> Result<(), String> {
+        if DATATYPES.contains(&&self[..]) {
             return Ok(());
         }
 
-        Err(format!("DataType '{}' is unknown", datatype))
+        Err(format!("DataType '{}' is unknown", &self))
     }
 }
 
 #[test]
 fn valid_data_type() {
-    DataType::valid_type("String").unwrap();
+    let string_type = DataType::from("String".to_string());
+    string_type.validate().unwrap();
 }
 
 #[test]
 #[should_panic]
 fn invalid_data_type() {
-    DataType::valid_type("foo").unwrap();
+    let string_type = DataType::from("foo".to_string());
+    string_type.validate().unwrap();
 }

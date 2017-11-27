@@ -6,6 +6,7 @@ use loader::file_helper::get_contents;
 use loader::file_helper::get_canonical_path;
 use loader::loader_helper::get_loader;
 
+// Any loader of a file extension have to implement these methods
 pub trait Loader {
     fn load_flow(&self, contents: &str) -> Result<Flow, String>;
     fn load_function(&self, contents: &str) -> Result<Function, String>;
