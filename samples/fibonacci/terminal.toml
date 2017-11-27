@@ -1,0 +1,5 @@
+name = "terminal"
+
+[[input]]
+name = "stdout"
+type = "String"

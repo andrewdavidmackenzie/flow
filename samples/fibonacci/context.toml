@@ -1,0 +1,39 @@
+name = "fibonacci"
+
+[[value]]
+name = "HEAD-1"
+type = "u32"
+value = "1"
+
+[[value]]
+name = "HEAD"
+type = "u32"
+value = "1"
+
+[[function]]
+name = "print"
+source = "terminal.toml"
+
+[[function]]
+name = "sum"
+source = "add.toml"
+
+[[connection]]
+from = "value/HEAD-1"
+to = "function/print/stdout"
+
+[[connection]]
+from = "value/HEAD-1"
+to = "function/sum/i1"
+
+[[connection]]
+from = "value/HEAD"
+to = "value/HEAD-1"
+
+[[connection]]
+from = "value/HEAD"
+to = "function/sum/i2"
+
+[[connection]]
+from = "function/sum/o1"
+to = "value/HEAD"
