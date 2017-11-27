@@ -4,11 +4,11 @@ name: hello-world-simple
 
 entities:
     - name: terminal
-      datatype: String
+      type: String
       function: stdout
     - name: message
       source: message.yaml
-      datatype: String
+      type: String
 
 connections:
     - name: message

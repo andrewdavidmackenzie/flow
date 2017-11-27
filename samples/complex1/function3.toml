@@ -2,8 +2,8 @@ name = "function3"
 
 [[input]]
 name = "i1"
-datatype = "String"
+type = "String"
 
 [[input]]
 name = "i2"
-datatype = "String"
+type = "String"

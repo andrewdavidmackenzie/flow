@@ -2,7 +2,7 @@ name = "flow1"
 
 [[value]]
 name = "value2"
-datatype = "String"
+type = "String"
 value = "value2"
 
 [[function]]
@@ -15,23 +15,23 @@ source = "flow2.toml"
 
 [[input]]
 name = "i1"
-datatype = "String"
+type = "String"
 
 [[input]]
 name = "i2"
-datatype = "String"
+type = "String"
 
 [[output]]
 name = "o1"
-datatype = "String"
+type = "String"
 
 [[output]]
 name = "o2"
-datatype = "String"
+type = "String"
 
 [[output]]
 name = "o3"
-datatype = "String"
+type = "String"
 
 [[connection]]
 from = "input/i1"

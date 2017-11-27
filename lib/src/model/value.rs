@@ -8,6 +8,7 @@ use std::fmt;
 #[derive(Deserialize, Debug)]
 pub struct Value {
     pub name: Name,
+    #[serde(rename = "type")]
     pub datatype: Name,
     pub value: Option<String>,
     #[serde(skip_deserializing)]

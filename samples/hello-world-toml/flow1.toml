@@ -2,12 +2,12 @@ name = "hello-world-toml-flow1"
 
 [[value]]
 name = "message"
-datatype = "String"
+type = "String"
 value = "Hello World!"
 
 [[output]]
 name = "out"
-datatype = "String"
+type = "String"
 
 [[connection]]
 name = "message"

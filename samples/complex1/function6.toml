@@ -2,24 +2,24 @@ name = "function6"
 
 [[input]]
 name = "i1"
-datatype = "String"
+type = "String"
 
 [[input]]
 name = "i2"
-datatype = "String"
+type = "String"
 
 [[input]]
 name = "i3"
-datatype = "String"
+type = "String"
 
 [[input]]
 name = "i4"
-datatype = "String"
+type = "String"
 
 [[output]]
 name = "o1"
-datatype = "String"
+type = "String"
 
 [[output]]
 name = "o2"
-datatype = "String"
+type = "String"

@@ -2,4 +2,4 @@ name = "terminal"
 
 [[input]]
 name = "stdout"
-datatype = "String"
+type = "String"

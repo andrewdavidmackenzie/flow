@@ -2,6 +2,10 @@ const DATATYPES: &'static [&'static str] = &["String"];
 
 pub struct DataType;
 
+pub trait HasDataType {
+    fn datatype(&self) -> &str;
+}
+
 impl DataType {
     pub fn valid_type(datatype: &str) -> Result<(), String> {
         if DATATYPES.contains(&datatype) {

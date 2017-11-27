@@ -1,3 +1,3 @@
 name: message
-datatype: String
+type: String
 value: "Hello World!"

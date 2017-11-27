@@ -18,7 +18,7 @@ source = "function4.toml"
 
 [[value]]
 name = "value1"
-datatype = "String"
+type = "String"
 value = "Value1"
 
 [[flow]]

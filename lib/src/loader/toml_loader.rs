@@ -28,7 +28,7 @@ fn simple_context_loads() {
 
         [[value]]
         name = 'message'
-        datatype = 'String'
+        type = 'String'
 
         [[function]]
         name = 'print'
@@ -50,7 +50,7 @@ fn load_fails_if_no_name() {
     let flow_description = "\
         [[value]]
         name = 'message'
-        datatype = 'String'
+        type = 'String'
         value = Hello World!'
     ";
 

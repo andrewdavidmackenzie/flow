@@ -2,7 +2,7 @@ name: hello-world
 
 entities:
       - name: terminal
-        datatype: String
+        type: String
         function: stdout
 
 # The context level can contain one flow at most
@@ -12,6 +12,6 @@ flow:
 
 connections:
       - name: message
-        datatype: String
+        type: String
         from: flow/say hello/message
         to: entities/terminal/

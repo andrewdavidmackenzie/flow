@@ -6,27 +6,27 @@ source = "function6.toml"
 
 [[input]]
 name = "i1"
-datatype = "String"
+type = "String"
 
 [[input]]
 name = "i2"
-datatype = "String"
+type = "String"
 
 [[input]]
 name = "i3"
-datatype = "String"
+type = "String"
 
 [[input]]
 name = "i4"
-datatype = "String"
+type = "String"
 
 [[output]]
 name = "o1"
-datatype = "String"
+type = "String"
 
 [[output]]
 name = "o2"
-datatype = "String"
+type = "String"
 
 [[connection]]
 from = "input/i1"

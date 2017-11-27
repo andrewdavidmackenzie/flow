@@ -2,7 +2,7 @@ name = "hello-world-simple-toml"
 
 [[value]]
 name = "message"
-datatype = "String"
+type = "String"
 value = "Hello World!"
 
 [[function]]
