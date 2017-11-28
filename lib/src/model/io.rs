@@ -15,7 +15,6 @@ pub struct IO {
     pub route: String
 }
 
-// TODO figure out how to have this derived automatically for types needing it
 impl HasName for IO {
     fn name(&self) -> &str {
         &self.name[..]

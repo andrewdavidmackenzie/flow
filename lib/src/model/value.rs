@@ -12,12 +12,11 @@ pub struct Value {
     pub name: Name,
     #[serde(rename = "type")]
     pub datatype: DataType,
-    pub value: Option<String>,
     #[serde(skip_deserializing)]
     pub route: String,
+    pub value: Option<String>,
 }
 
-// TODO figure out how to have this derived automatically for types needing it
 impl HasName for Value {
     fn name(&self) -> &str {
         &self.name[..]
@@ -47,7 +46,11 @@ impl Validate for Value {
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\tname: \t\t{}\n\t\t\t\t\troute: \t\t{}\n\t\t\t\t\tdatatype: \t{}\n\t\t\t\t\tvalue: \t\t{:?}",
-               self.name, self.route, self.datatype, self.value)
+        write!(f, "\tname: \t\t{}\n\t\t\t\t\troute: \t\t{}\n\t\t\t\t\tdatatype: \t{}\n",
+               self.name, self.route, self.datatype).unwrap();
+        if let Some(ref value) = self.value {
+            write!(f, "\t\t\t\t\tvalue: \t\t{}", value).unwrap();
+        }
+        Ok(())
     }
 }
