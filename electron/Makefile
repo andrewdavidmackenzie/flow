@@ -1,3 +1,10 @@
+# TODO rustc -O --target wasm32-unknown-unknown main.rs
+# TODO this should work very soon and we can dump emscripten
+# as rustc nightly can have a wasm target directly....
+# TODO for now we have to do this...
+# wasm-gc main.wasm main.gc.wasm - to add garbage collection to it!
+
+
 EMCC := $(shell command -v emcc -v 2> /dev/null)
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 TARGETDIR = ../ui-target
