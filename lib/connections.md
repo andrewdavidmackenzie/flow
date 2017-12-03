@@ -11,8 +11,8 @@ Inside a flow:
 - value/value_name
 
 Referenced from a flow:  
-- flow/flow_name/output_name
-- function/function_name/output_name
+- flow/flow_alias/output_name
+- function/function_alias/output_name
 
 ## Data sinks
 Sinks for data which are valid for the *to* field of a connection are:
@@ -22,8 +22,8 @@ Inside a flow:
 - value/value_name
 
 Referenced from a flow:  
-- flow/flow_name/input_name
-- function/function_name/input_name
+- flow/flow_alias/input_name
+- function/function_alias/input_name
 
 ## Data Types
 for a connection to be valid and used in execution of a flow, the data source must be found,

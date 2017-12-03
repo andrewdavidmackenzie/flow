@@ -19,27 +19,27 @@ So, valid entries in a flow definition include:
 - function   - 0 or more functions referenced in this flow.
 - value      - 0 or more values contained in this flow
 
-TODO
-?? Function implementing what's inside the flow entirely????
-
 ## Name
 A string used to identify an element.
 
 ## Flow Reference
 A reference to a flow defined elsewhere
-name - a String that is used for display and referencing purposes within the flow it is used in.
+alias - a String that is used for display and referencing purposes within the flow it is used in.
 source - the location where the flow is defined.
 
 ## IO Reference
 This uniquely identifies an IO from a flow/value/function and is used to define connections between them.
-e.g. ObjectType/Flow.name/IO.name
-e.g. ObjectType/Value.name
-e.g. ObjectType/Function.name/IO.name
 
-Where ObjectType can be "flow", "value", "function".
-For IOs within the existing flow, "this" is used as the Flow.name.
+For references to flows or functions defined in other files, the reference should use the
+alias that is used in this file.
 
-IO References are only used in specifying connections.
+e.g. flow/Flow.alias/IO.name
+e.g. value/Value.name
+e.g. function/Function.alias/IO.name
+
+For IOs within the existing flow, use "output" or "input" and the IO name
+e.g. output/output_name
+e.g. input/input_name
 
 ## IO
 IOs produce or consume data of a specific type, and are where data enters/leaves a flow/value/function.
@@ -58,7 +58,7 @@ An input IO can receive data from (i.e. be connected to) multiple outputs.
 An output IO can be connected to multiple inputs (the data is copied to each one when produced).
 
 ## Function Reference
-name - the name of the function.
+alias - the name of the function.
 source - the source file where it is implemented
 
 A function can consume data on 0 or more IOs (it must have all available in order to run)
@@ -69,7 +69,9 @@ Pure functions (no side effects?)
 IO functions that interact with the system it's running on (like Haskell)?
 
 ### Value
-A static value of the specified type that is always available on an IO.
+A value of the specified type that is available as an input to something else, or which can
+be written to for storage.
+
 name - the name of the value
 datatype - the type of the value
 value - it's value
@@ -99,6 +101,25 @@ TODO think how to bundle multiple functions (like STDIO has 3).
 Must be able to be invoked by flow, and implement a defined interface to be able to invoke them and get the results.
 Rust or rust ffi to use functions from other languages?
 
-TO COnsider
+TO Consider
 specifying data types at all levels, or optionally, maybe at top level to make it very easy to 
 determine the input/output "contact" of flow without having to load all the levels all the way done...
+
+
+# Execution of a flow program
+
+## Init
+Any values with initial values make those available on their output, and hence they are 
+made available on the input of all connected objects (values and functions).
+
+Now, the execution loop can be started.
+
+## Execution Loop
+Statuses updated
+- Status of functions/values (runnable) are updated based on availability of data at their inputs.
+If they have data available at all inputs then their status is changed to runnable.
+
+Run
+- Functions/Values with status "runnable" are run
+- Any data produced is made available on the outputs of the value or function
+- The data on any ouput is made available to all connected inputs, copied if necessary to multiple.
