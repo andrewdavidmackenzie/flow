@@ -1,6 +1,6 @@
 use model::name::Name;
 use model::name::HasName;
-use model::name::HasRoute;
+use model::connection::HasRoute;
 use model::flow::Flow;
 use loader::loader::Validate;
 
@@ -8,14 +8,12 @@ use std::fmt;
 
 #[derive(Default, Deserialize, Debug)]
 pub struct FlowReference {
-    #[serde(rename = "name")]
     pub alias: Name,
     pub source: String,
     #[serde(skip_deserializing)]
     pub flow: Flow
 }
 
-// TODO figure out how to have this derived automatically for types needing it
 impl HasName for FlowReference {
     fn name(&self) -> &str {
         &self.alias[..]

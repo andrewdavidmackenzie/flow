@@ -21,7 +21,7 @@ pub trait Validate {
 /// use std::path::PathBuf;
 /// use flowlib::loader::loader;
 ///
-/// let path = PathBuf::from("../samples/hello-world-simple-toml/context.toml");
+/// let path = PathBuf::from("../samples/hello-world-simple/context.toml");
 /// loader::load_flow("", path).unwrap();
 /// ```
 pub fn load_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, String> {
@@ -36,7 +36,7 @@ pub fn load_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, String>
 /// use std::path::PathBuf;
 /// use flowlib::loader::loader;
 ///
-/// let path = PathBuf::from("../samples/hello-world-simple-toml/context.toml");
+/// let path = PathBuf::from("../samples/hello-world-simple/context.toml");
 /// loader::load_single_flow("", path).unwrap();
 /// ```
 pub fn load_single_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, String> {
@@ -48,7 +48,7 @@ pub fn load_single_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, 
     flow.validate()?;
     load_functions(&mut flow)?;
     load_values(&mut flow)?;
-    flow.normalize_io_names();
+    flow.set_io_routes();
     Ok(flow)
 }
 
@@ -57,7 +57,7 @@ pub fn load_single_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, 
 /// use std::path::PathBuf;
 /// use flowlib::loader::loader;
 ///
-/// let path = PathBuf::from("../samples/hello-world-simple-toml/terminal.toml");
+/// let path = PathBuf::from("../samples/hello-world-simple/terminal.toml");
 /// loader::load_function(&path, "").unwrap();
 /// ```
 pub fn load_function(file_path: &PathBuf, parent_name: &str) -> Result<Function, String> {
@@ -66,12 +66,12 @@ pub fn load_function(file_path: &PathBuf, parent_name: &str) -> Result<Function,
     let mut function = loader.load_function(&contents)?;
     function.route = format!("{}/{}", parent_name, function.name);
 
-    if let Some(ref mut inputs) = function.input {
+    if let Some(ref mut inputs) = function.inputs {
         for ref mut input in inputs {
             input.route = format!("{}/{}", function.route, input.name);
         }
     }
-    if let Some(ref mut outputs) = function.output {
+    if let Some(ref mut outputs) = function.outputs {
         for ref mut output in outputs {
             output.route = format!("{}/{}", function.route, output.name);
         }
@@ -84,7 +84,7 @@ pub fn load_function(file_path: &PathBuf, parent_name: &str) -> Result<Function,
     Load all functions referenced from a flow
 */
 fn load_functions(flow: &mut Flow) -> Result<(), String> {
-    if let Some(ref mut function_refs) = flow.function {
+    if let Some(ref mut function_refs) = flow.function_refs {
         for ref mut function_ref in function_refs {
             let function_path = get_canonical_path(PathBuf::from(&flow.source),
                                                    PathBuf::from(&function_ref.source));
@@ -98,7 +98,7 @@ fn load_functions(flow: &mut Flow) -> Result<(), String> {
     Load all values defined in a flow
 */
 fn load_values(flow: &mut Flow) -> Result<(), String> {
-    if let Some(ref mut values) = flow.value {
+    if let Some(ref mut values) = flow.values {
         for ref mut value in values {
             value.route = format!("{}/{}", flow.route, value.name);
         }
@@ -111,7 +111,7 @@ fn load_values(flow: &mut Flow) -> Result<(), String> {
 */
 fn load_subflows(flow: &mut Flow) -> Result<(), String> {
     // Load subflows from References
-    if let Some(ref mut flow_refs) = flow.flow {
+    if let Some(ref mut flow_refs) = flow.flow_refs {
         for ref mut flow_ref in flow_refs {
             let subflow_path = get_canonical_path(PathBuf::from(&flow.source),
                                                   PathBuf::from(&flow_ref.source));

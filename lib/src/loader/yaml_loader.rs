@@ -18,12 +18,12 @@ impl Loader for FlowYamlLoader {
                 source: PathBuf::from("fake"),
                 route: "fake/fake".to_string(),
                 name: "fake".to_string(),
-                flow: None,
-                connection: None,
-                input: None,
-                output: None,
-                function: None,
-                value: None,
+                flow_refs: None,
+                connections: None,
+                inputs: None,
+                outputs: None,
+                function_refs: None,
+                values: None,
             };
 
         Ok(flow)
@@ -36,8 +36,8 @@ impl Loader for FlowYamlLoader {
         let function = Function {
             name: "fake".to_string(),
             route: "fake/fake".to_string(),
-            input: None,
-            output: None,
+            inputs: None,
+            outputs: None,
             implementation: None
         };
 

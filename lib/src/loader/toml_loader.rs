@@ -31,7 +31,7 @@ fn simple_context_loads() {
         type = 'String'
 
         [[function]]
-        name = 'print'
+        alias = 'print'
         source = 'terminal.toml'
 
         [[connection]]

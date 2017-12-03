@@ -1,19 +1,19 @@
 name = "complex1"
 
 [[function]]
-name = "function1"
+alias = "function1"
 source = "function1.toml"
 
 [[function]]
-name = "function2"
+alias = "function2"
 source = "function2.toml"
 
 [[function]]
-name = "function3"
+alias = "function3"
 source = "function3.toml"
 
 [[function]]
-name = "function4"
+alias = "function4"
 source = "function4.toml"
 
 [[value]]
@@ -22,7 +22,7 @@ type = "String"
 value = "Value1"
 
 [[flow]]
-name = "flow1"
+alias = "flow1"
 source = "flow1.toml"
 
 [[connection]]

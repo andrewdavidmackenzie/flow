@@ -15,10 +15,6 @@ pub trait HasName {
     fn name(&self) -> &str;
 }
 
-pub trait HasRoute {
-    fn route(&self) -> &str;
-}
-
 #[test]
 fn does_not_validate_when_empty() {
     let name = "".to_string();

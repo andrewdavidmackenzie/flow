@@ -28,7 +28,7 @@ fn get_default_file(path: PathBuf) -> io::Result<PathBuf> {
 
 #[test]
 fn get_default_sample() {
-    let path = PathBuf::from("../samples/hello-world-toml");
+    let path = PathBuf::from("../samples/hello-world");
     match get_default_file(path) {
         Ok(path) => {
             if path.file_name().unwrap() != "context.toml" {

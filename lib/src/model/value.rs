@@ -1,9 +1,10 @@
 use model::name::Name;
 use model::name::HasName;
-use model::name::HasRoute;
+use model::connection::HasRoute;
 use model::datatype::DataType;
 use model::datatype::HasDataType;
 use loader::loader::Validate;
+use model::connection::Route;
 
 use std::fmt;
 
@@ -13,7 +14,7 @@ pub struct Value {
     #[serde(rename = "type")]
     pub datatype: DataType,
     #[serde(skip_deserializing)]
-    pub route: String,
+    pub route: Route,
     pub value: Option<String>,
 }
 

@@ -1,17 +1,34 @@
 use model::name::Name;
+use model::datatype::DataType;
 use loader::loader::Validate;
 
 use std::fmt;
+
+pub type Route = String;
+
+pub trait HasRoute {
+    fn route(&self) -> &str;
+}
+
+// This trait should be implemented by objects that have collections of IO objects as inputs
+// the method input_type should find an input by name and return the type it accepts
+pub trait HasInputs {
+    fn input_type(&self, input_name: &Name) -> Result<DataType, String>;
+}
 
 #[derive(Deserialize, Debug)]
 pub struct Connection {
     pub name: Option<Name>,
     pub from: Name,
     #[serde(skip_deserializing)]
-    pub from_route: String,
+    pub from_route: Route,
+    #[serde(skip_deserializing)]
+    pub from_type: DataType,
     pub to: Name,
     #[serde(skip_deserializing)]
-    pub to_route: String
+    pub to_route: Route,
+    #[serde(skip_deserializing)]
+    pub to_type: DataType
 }
 
 impl fmt::Display for Connection {

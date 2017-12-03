@@ -6,11 +6,11 @@ type = "String"
 value = "value2"
 
 [[function]]
-name = "function5"
+alias = "function5"
 source = "function5.toml"
 
 [[flow]]
-name = "flow2"
+alias = "flow2"
 source = "flow2.toml"
 
 [[input]]

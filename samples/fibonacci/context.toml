@@ -11,11 +11,11 @@ type = "u32"
 value = "1"
 
 [[function]]
-name = "print"
+alias = "print"
 source = "terminal.toml"
 
 [[function]]
-name = "sum"
+alias = "sum"
 source = "add.toml"
 
 [[connection]]

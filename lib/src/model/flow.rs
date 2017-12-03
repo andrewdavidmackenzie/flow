@@ -1,15 +1,20 @@
 use model::name::Name;
 use model::name::HasName;
-use model::name::HasRoute;
+use model::datatype::DataType;
+use model::connection::HasRoute;
 use model::connection::Connection;
+use model::connection::HasInputs;
+use model::datatype::HasDataType;
 use model::io::IO;
 use model::value::Value;
 use model::flow_reference::FlowReference;
+use model::connection::Route;
 use loader::loader::Validate;
 use model::function_reference::FunctionReference;
 
 use std::fmt;
 use std::path::PathBuf;
+use std::mem::replace;
 
 #[derive(Default, Deserialize, Debug)]
 pub struct Flow {
@@ -17,16 +22,23 @@ pub struct Flow {
     pub source: PathBuf,
     pub name: Name,
     #[serde(skip_deserializing)]
-    pub route: String,
+    pub route: Route,
 
-    pub flow: Option<Vec<FlowReference>>,
-    pub function: Option<Vec<FunctionReference>>,
+    #[serde(rename = "flow")]
+    pub flow_refs: Option<Vec<FlowReference>>,
+    #[serde(rename = "function")]
+    pub function_refs: Option<Vec<FunctionReference>>,
 
-    pub value: Option<Vec<Value>>,
+    #[serde(rename = "value")]
+    pub values: Option<Vec<Value>>,
 
-    pub input: Option<Vec<IO>>,
-    pub output: Option<Vec<IO>>,
-    pub connection: Option<Vec<Connection>>,
+    #[serde(rename = "input")]
+    pub inputs: Option<Vec<IO>>,
+    #[serde(rename = "output")]
+    pub outputs: Option<Vec<IO>>,
+
+    #[serde(rename = "connection")]
+    pub connections: Option<Vec<Connection>>,
 }
 
 impl HasName for Flow {
@@ -41,36 +53,51 @@ impl HasRoute for Flow {
     }
 }
 
+// TODO could this be a shared implementation for Function and Flow
+impl HasInputs for Flow {
+    fn input_type(&self, input_name: &Name) -> Result<DataType, String> {
+        if let Some(ref inputs) = self.inputs {
+            for input in inputs {
+                if &input.name == input_name {
+                    return Ok(format!("{}", input.datatype));
+                }
+            }
+            return Err(format!("Could not find input named '{}' in '{}'", input_name, self.route));
+        }
+        Err(format!("No inputs in '{}'", self.route))
+    }
+}
+
 impl Validate for Flow {
     // check the correctness of all the fields in this flow, prior to loading sub-elements
     fn validate(&self) -> Result<(), String> {
         self.name.validate()?;
 
-        if let Some(ref flows_refs) = self.flow {
+        if let Some(ref flows_refs) = self.flow_refs {
             for flow_ref in flows_refs {
                 flow_ref.validate()?;
             }
         }
 
-        if let Some(ref function_refs) = self.function {
+        if let Some(ref function_refs) = self.function_refs {
             for function_ref in function_refs {
                 function_ref.validate()?;
             }
         }
 
-        if let Some(ref inputs) = self.input {
+        if let Some(ref inputs) = self.inputs {
             for input in inputs {
                 input.validate()?;
             }
         }
 
-        if let Some(ref outputs) = self.output {
+        if let Some(ref outputs) = self.outputs {
             for output in outputs {
                 output.validate()?;
             }
         }
 
-        if let Some(ref values) = self.value {
+        if let Some(ref values) = self.values {
             for value in values {
                 value.validate()?;
             }
@@ -88,35 +115,35 @@ impl fmt::Display for Flow {
         // TODO dry this all up now it works.
 
         write!(f, "\tvalues:\n").unwrap();
-        if let Some(ref values) = self.value {
+        if let Some(ref values) = self.values {
             for value in values {
                 write!(f, "\t\t\t\t{}\n", value).unwrap();
             }
         }
 
         write!(f, "\tinputs:\n").unwrap();
-        if let Some(ref inputs) = self.input {
+        if let Some(ref inputs) = self.inputs {
             for input in inputs {
                 write!(f, "\t\t\t\t\t{}\n", input).unwrap();
             }
         }
 
         write!(f, "\touputs:\n").unwrap();
-        if let Some(ref outputs) = self.output {
+        if let Some(ref outputs) = self.outputs {
             for output in outputs {
                 write!(f, "\t\t\t\t\t{}\n", output).unwrap();
             }
         }
 
         write!(f, "\tsubflows:\n").unwrap();
-        if let Some(ref flow_refs) = self.flow {
+        if let Some(ref flow_refs) = self.flow_refs {
             for flow_ref in flow_refs {
                 write!(f, "\t{}\n", flow_ref).unwrap();
             }
         }
 
         write!(f, "\tfunctions: \t\n").unwrap();
-        if let Some(ref function_refs) = self.function {
+        if let Some(ref function_refs) = self.function_refs {
             for function_ref in function_refs {
                 write!(f, "\t{}", function_ref).unwrap();
                 write!(f, "\t{}", function_ref.function).unwrap();
@@ -124,7 +151,7 @@ impl fmt::Display for Flow {
         }
 
         write!(f, "\tconnections: \t\n").unwrap();
-        if let Some(ref connections) = self.connection {
+        if let Some(ref connections) = self.connections {
             for connection in connections {
                 write!(f, "\t\t\t\t\t{}\n", connection).unwrap();
             }
@@ -135,150 +162,147 @@ impl fmt::Display for Flow {
 }
 
 impl Flow {
-    fn find_route_by_name<E: HasName + HasRoute>(collection: &Option<Vec<E>>, element_name: &str)
-                                                 -> Result<String, String> {
+    /*
+        Set the routes of inputs and outputs in a flow to the hierarchical format
+        using the internal name of the thing referenced
+    */
+    pub fn set_io_routes(&mut self) {
+        if let &mut Some(ref mut ios) = &mut self.inputs {
+            for ref mut io in ios {
+                io.route = format!("{}/{}", self.route, io.name);
+            }
+        }
+        if let &mut Some(ref mut ios) = &mut self.outputs {
+            for ref mut io in ios {
+                io.route = format!("{}/{}", self.route, io.name);
+            }
+        }
+    }
+
+    fn get<E: HasName + HasRoute + HasDataType>(&self,
+                                                collection: &Option<Vec<E>>,
+                                                element_name: &str)
+                                                -> Result<(Route, DataType), String> {
         if let &Some(ref elements) = collection {
             for element in elements {
                 if element.name() == element_name {
-                    return Ok(format!("{}", element.route()));
+                    return Ok((format!("{}", element.route()),
+                               format!("{}", element.datatype())));
                 }
             }
+            return Err(format!("No output with name '{}' was found", element_name));
         }
-        Err(format!("No element with name '{}' was found", element_name))
+        Err(format!("No outputs found."))
     }
 
     /*
-        Check that the name of an io is valid and it exists in the flow
-            Connection to/from Formats:
-            "flow/this/out"
-            "flow/hello/out"
-            "function/print/stdout"
-            "value/message"
-     */
-    fn io_name_exists(&self, io_name: &Name) -> Result<String, String> {
-        let segments: Vec<&str> = io_name.split('/').collect();
+        Find an io of the specified "direction" ("value", "input" or "output") and "name"
+        within the flow.
+    */
+    fn get_io(&self, direction: &str, name: &str)
+              -> Result<(Route, DataType), String> {
+        match direction {
+            "value" => self.get(&self.values, name),
+            "input" => self.get(&self.inputs, name),
+            "output" => self.get(&self.outputs, name),
+            _ => Err(format!("Could not find name '{}' in '{}'", name, self.name))
+        }
+    }
+
+    // TODO Combine these two using a reference trait get_reference_io or just "flow" or function" switch
+    fn get_io_subflow(&self, subflow_alias: &str, io_name: &str)
+                      -> Result<(Route, DataType), String> {
+        if let Some(ref flow_refs) = self.flow_refs {
+            for flow_ref in flow_refs {
+                if flow_ref.name() == subflow_alias {
+                    // TODO There's probably a way to do this better using or_else
+                    let found = flow_ref.flow.get_io("input", io_name);
+                    if found.is_ok() {
+                        return found;
+                    }
+                    return flow_ref.flow.get_io("output", io_name);
+                }
+            }
+            return Err(format!("Could not find subflow named '{}'", subflow_alias));
+        }
+
+        return Err("No subflows present".to_string());
+    }
+
+    fn get_io_function(&self, function_alias: &str, io_name: &str)
+                       -> Result<(Route, DataType), String> {
+        if let Some(ref function_refs) = self.function_refs {
+            for function_ref in function_refs {
+                if function_ref.name() == function_alias {
+                    let found = function_ref.get_io("input", io_name);
+                    if found.is_ok() {
+                        return found;
+                    }
+                    return function_ref.get_io("output", io_name);
+                }
+            }
+            return Err(format!("Could not find function named '{}'", function_alias));
+        }
+
+        return Err("No functions present".to_string());
+    }
+
+    fn get_route_and_type(&mut self, conn_descriptor: &str) -> Result<(Route, DataType), String> {
+        let segments: Vec<&str> = conn_descriptor.split('/').collect();
+
         match segments.len() {
-            2 => {
-                match (segments[0], segments[1]) {
-                    ("value", value_name) => Flow::find_route_by_name(&self.value, value_name),
-                    ("input", input) => Flow::find_route_by_name(&self.input, input),
-                    ("output", output) => Flow::find_route_by_name(&self.output, output),
-                    _ => Err(format!("Invalid name '{}' used in connection", io_name))
-                }
-            }
-            3 => {
-                match (segments[0], segments[1], segments[2]) {
-                    ("flow", flow_name, _) => Flow::find_route_by_name(&self.flow, flow_name),
-                    ("function", function_name, _) => Flow::find_route_by_name(&self.function, function_name),
-                    _ => Err(format!("Invalid name '{}' used in connection", io_name))
-                }
-            }
-            _ => Err(format!("Invalid name '{}' used in connection", io_name))
+            2 => self.get_io(segments[0], segments[1]),
+
+            3 => match (segments[0], segments[1], segments[2]) {
+                ("flow", flow_alias, io_name) => self.get_io_subflow(flow_alias, io_name),
+                ("function", function_alias, io_name) => self.get_io_function(function_alias, io_name),
+                (_, _, _) => Err(format!("Invalid name '{}' used in connection", conn_descriptor))
+            },
+
+            _ => Err(format!("Invalid name format '{}' used in connection", conn_descriptor))
         }
     }
 
     /*
-        This is run after references have been loaded, so the full io name can be checked
-        in connections.
-    */
-    pub fn check_connections(&self) -> Result<(), String> {
-        if let Some(ref connections) = self.connection {
-            for connection in connections {
-                connection.validate()?;
-                self.io_name_exists(&connection.from)?;
-                self.io_name_exists(&connection.to)?;
-            }
-        }
-        Ok(())
-    }
+        Change the names of connections to be routes to the alias used in this flow,
+        in the process ensuring they exist, that direction is correct and types match
 
-    /*
-    Change IO names to the hierarchical format, using the internal name of the thing referenced
-    // TODO create an IOSet type and move this in there
-    */
-    pub fn normalize_io_names(&mut self) {
-        if let &mut Some(ref mut ios) = &mut self.input {
-            for ref mut io in ios {
-                io.route = format!("{}/{}", self.route, io.name);
-            }
-        }
-        if let &mut Some(ref mut ios) = &mut self.output {
-            for ref mut io in ios {
-                io.route = format!("{}/{}", self.route, io.name);
-            }
-        }
-    }
+        Connection to/from Formats:
+            "value/message"
+            "input/input_name"
+            "output/output_name"
 
-    /*
-        Change the names of connections to be routes to the alias used in this flow
+            "flow/flow_name/io_name"
+            "function/function_name/io_name"
     */
-    // TODO this is a mess and needs a total re-think. Also, it's not checking connection sense...
     pub fn normalize_connection_names(&mut self) {
-        if let &mut Some(ref mut connections) = &mut self.connection {
-            for ref mut connection in connections {
+        if self.connections.is_none() { return; }
 
-                let segments: Vec<&str> = connection.from.split('/').collect();
-                match segments.len() {
-                    2 => match (segments[0], segments[1]) {
-                        ("value", value_name) => {
-                            if let Ok(_) = Flow::find_route_by_name(&self.value, value_name) {
-                                connection.from_route = format!("{}/{}", self.route, value_name);
-                            }
-                        },
-                        ("input", input_name) => {
-                            if let Ok(_) = Flow::find_route_by_name(&self.input, input_name) {
-                                connection.from_route = format!("{}/{}", self.route, input_name);
-                            }
-                        },
-                        _ => println!("Invalid name '{}' used in connection", connection.from)
-                    },
-                    3 => match (segments[0], segments[1], segments[2]) {
-                        ("flow", flow_name, output_name) => {
-                            if let Ok(flow_route) = Flow::find_route_by_name(&self.flow, flow_name) {
-                                connection.from_route = format!("{}/{}", flow_route, output_name);
-                            }
-                        },
-                        ("function", function_name, output_name) => {
-                            if let Ok(function_route) = Flow::find_route_by_name(&self.function, function_name) {
-                                connection.from_route = format!("{}/{}", function_route, output_name);
-                            }
-                        },
-                        _ => println!("Invalid name '{}' used in connection", connection.from)
-                    },
-                    _ => println!("Invalid name '{}' used in connection", connection.from)
-                }
+        // get connections out of self - so we can use immutable references to self inside loop
+        let connections = replace(&mut self.connections, None);
+        let mut connections = connections.unwrap();
 
-                let segments: Vec<&str> = connection.to.split('/').collect();
-                match segments.len() {
-                    2 => match (segments[0], segments[1]) {
-                        ("value", value_name) => {
-                            if let Ok(_) = Flow::find_route_by_name(&self.value, value_name) {
-                                connection.to_route = format!("{}/{}", self.route, value_name);
-                            }
-                        },
-                        ("output", output_name) => {
-                            if let Ok(_) = Flow::find_route_by_name(&self.output, output_name) {
-                                connection.to_route = format!("{}/{}", self.route, output_name);
-                            }
-                        },
-                        _ => println!("Invalid name '{}' used in connection", connection.to)
-                    },
-                    3 => match (segments[0], segments[1], segments[2]) {
-                        ("flow", flow_name, output_name) => {
-                            if let Ok(flow_route) = Flow::find_route_by_name(&self.flow, flow_name) {
-                                connection.to_route = format!("{}/{}", flow_route, output_name);
-                            }
-                        },
-                        ("function", function_name, output_name) => {
-                            if let Ok(function_route) = Flow::find_route_by_name(&self.function, function_name) {
-                                connection.to_route = format!("{}/{}", function_route, output_name);
-                            }
-                        },
-                        _ => println!("Invalid name '{}' used in connection", connection.to)
-                    },
-                    _ => println!("Invalid name '{}' used in connection", connection.to)
+        for connection in connections.iter_mut() {
+            // TODO eliminate output as a possible source
+            if let Ok((from_route, from_type)) = self.get_route_and_type(&connection.from) {
+                // TODO eliminate to as a possible source
+                if let Ok((to_route, to_type)) = self.get_route_and_type(&connection.to) {
+                    if from_type == to_type {
+                        connection.from_route = from_route;
+                        connection.to_route = to_route;
+                    } else {
+                        println!("Type mismatch from '{}' of type '{}' to '{}' of type '{}'",
+                                 from_route, from_type, to_route, to_type);
+                    }
+                } else {
+                    eprintln!("Did not find destination: {}", connection.to);
                 }
+            } else {
+                eprintln!("Did not find source: {}", connection.from);
             }
         }
+
+        // put connections back into self
+        replace(&mut self.connections, Some(connections));
     }
 }

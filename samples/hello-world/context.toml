@@ -1,11 +1,11 @@
 name = "hello-world-toml-context"
 
 [[function]]
-name = "print"
+alias = "print"
 source = "terminal.toml"
 
 [[flow]]
-name = "hello"
+alias = "hello"
 source = "flow1.toml"
 
 [[connection]]

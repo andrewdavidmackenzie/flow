@@ -6,7 +6,7 @@ type = "String"
 value = "Hello World!"
 
 [[function]]
-name = "print"
+alias = "print"
 source = "terminal.toml"
 
 [[connection]]

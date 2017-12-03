@@ -1,7 +1,7 @@
 # Fibonacci Series
 
 ## Init
-Initil values are made available in the inputs to ("HEAD" and "HEAD-1") by the run-time.
+Initial values are made available in the inputs to ("HEAD" and "HEAD-1") by the run-time.
 
 ## Operation
 Sstatuses updated

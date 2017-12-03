@@ -1,7 +1,7 @@
 name = "flow2"
 
 [[function]]
-name = "function6"
+alias = "function6"
 source = "function6.toml"
 
 [[input]]
