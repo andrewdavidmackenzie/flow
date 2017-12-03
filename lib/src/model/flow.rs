@@ -275,7 +275,7 @@ impl Flow {
             "flow/flow_name/io_name"
             "function/function_name/io_name"
     */
-    pub fn normalize_connection_names(&mut self) {
+    pub fn build_connections(&mut self) {
         if self.connections.is_none() { return; }
 
         // get connections out of self - so we can use immutable references to self inside loop

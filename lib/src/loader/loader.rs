@@ -27,7 +27,7 @@ pub trait Validate {
 pub fn load_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, String> {
     let mut flow = load_single_flow(parent_route, file_path)?;
     load_subflows(&mut flow)?;
-    flow.normalize_connection_names();
+    flow.build_connections();
     Ok(flow)
 }
 
