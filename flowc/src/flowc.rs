@@ -13,24 +13,19 @@ mod files;
 use std::env;
 use std::path::PathBuf;
 
-#[macro_use]
-extern crate log;
-extern crate log4rs;
-
 fn main() {
-    log4rs::init_file("log.yaml", Default::default()).unwrap();
-    info!("Logging started using 'log4rs', see log.yaml for configuration details");
-    info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    info!("'flowlib' version {}", info::version());
+    println!("Logging started using 'log4rs', see log.yaml for configuration details");
+    println!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+    println!("'flowlib' version {}", info::version());
 
     let (path, dump, compile) = get_args();
 
     match files::get(path) {
         Ok(file_path) => {
-            info!("Attempting to load file: '{:?}'", file_path);
+            println!("Attempting to load file: '{:?}'", file_path);
             match loader::load(file_path, dump) {
                 Ok(mut flow) => {
-                    info!("'{}' flow loaded", flow.name);
+                    println!("'{}' flow loaded", flow.name);
 
                     if compile {
                         compile::compile(&mut flow, dump);
@@ -63,7 +58,7 @@ fn get_args() -> (PathBuf, bool, bool) {
     // get the file name from the command line, use CDW if it is not present
     let path = match matches.value_of("flow") {
         None => {
-            info!("No path specified, so using Current Working Directory");
+            println!("No path specified, so using Current Working Directory");
             env::current_dir().unwrap()
         },
         Some(p) => PathBuf::from(p),

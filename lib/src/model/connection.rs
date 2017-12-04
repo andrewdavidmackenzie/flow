@@ -10,7 +10,7 @@ pub trait HasRoute {
     fn route(&self) -> &str;
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Connection {
     pub name: Option<Name>,
     pub from: Name,

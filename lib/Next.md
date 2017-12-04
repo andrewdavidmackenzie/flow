@@ -1,13 +1,9 @@
 
 Check connections all match up in direction.
 
+Write tests for compile functions and connection mapping and dropping etc
+
 Maybe add references to values and functions in the connections when we are doing that
-
-Use a hash table by route or name to find IO values, and not have to iterate through them?
-
-Create a flat connection table with all connections in it
-
-Reduce it down to connections between values and functions only.
 
 Then create table of values and table of functions
 
@@ -17,3 +13,6 @@ Code Improvements
 ================
 Look at methods in flow and loader and see how many of the ones that look for io etc
 could be returnng references and not creating new strings with format!
+
+Look to see how connection table sin compile could be done with just references and not creating
+all those new strings and new vectors.
