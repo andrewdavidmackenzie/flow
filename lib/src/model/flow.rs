@@ -164,13 +164,14 @@ impl Flow {
 
     fn get<E: HasName + HasRoute + HasDataType>(&self,
                                                 collection: &Option<Vec<E>>,
-                                                element_name: &str)
-                                                -> Result<(Route, DataType), String> {
+                                                element_name: &str, flow: bool)
+                                                -> Result<(Route, DataType, bool), String> {
         if let &Some(ref elements) = collection {
             for element in elements {
                 if element.name() == element_name {
                     return Ok((format!("{}", element.route()),
-                               format!("{}", element.datatype())));
+                               format!("{}", element.datatype()),
+                               flow));
                 }
             }
             return Err(format!("No output with name '{}' was found", element_name));
@@ -183,18 +184,18 @@ impl Flow {
         within the flow.
     */
     fn get_io(&self, direction: &str, name: &str)
-              -> Result<(Route, DataType), String> {
+              -> Result<(Route, DataType, bool), String> {
         match direction {
-            "value" => self.get(&self.values, name),
-            "input" => self.get(&self.inputs, name),
-            "output" => self.get(&self.outputs, name),
+            "value" => self.get(&self.values, name, false),
+            "input" => self.get(&self.inputs, name, true),
+            "output" => self.get(&self.outputs, name, true),
             _ => Err(format!("Could not find name '{}' in '{}'", name, self.name))
         }
     }
 
     // TODO Combine these two using a reference trait get_reference_io or just "flow" or function" switch
     fn get_io_subflow(&self, subflow_alias: &str, io_name: &str)
-                      -> Result<(Route, DataType), String> {
+                      -> Result<(Route, DataType, bool), String> {
         if let Some(ref flow_refs) = self.flow_refs {
             for flow_ref in flow_refs {
                 if flow_ref.name() == subflow_alias {
@@ -213,7 +214,7 @@ impl Flow {
     }
 
     fn get_io_function(&self, function_alias: &str, io_name: &str)
-                       -> Result<(Route, DataType), String> {
+                       -> Result<(Route, DataType, bool), String> {
         if let Some(ref function_refs) = self.function_refs {
             for function_ref in function_refs {
                 if function_ref.name() == function_alias {
@@ -230,7 +231,7 @@ impl Flow {
         return Err("No functions present".to_string());
     }
 
-    pub fn get_route_and_type(&mut self, conn_descriptor: &str) -> Result<(Route, DataType), String> {
+    pub fn get_route_and_type(&mut self, conn_descriptor: &str) -> Result<(Route, DataType, bool), String> {
         let segments: Vec<&str> = conn_descriptor.split('/').collect();
 
         match segments.len() {

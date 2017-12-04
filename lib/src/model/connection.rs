@@ -18,16 +18,25 @@ pub struct Connection {
     pub from_route: Route,
     #[serde(skip_deserializing)]
     pub from_type: DataType,
+    #[serde(skip_deserializing)]
+    pub starts_at_flow: bool,
     pub to: Name,
     #[serde(skip_deserializing)]
     pub to_route: Route,
     #[serde(skip_deserializing)]
-    pub to_type: DataType
+    pub to_type: DataType,
+    #[serde(skip_deserializing)]
+    pub ends_at_flow: bool
 }
 
 impl fmt::Display for Connection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} --> {}", self.from_route, self.to_route)
+        match (self.starts_at_flow, self.ends_at_flow) {
+            (true, true)   => write!(f, "(f){} --> (f){}", self.from_route, self.to_route),
+            (true, false)  => write!(f, "(f){} --> {}", self.from_route, self.to_route),
+            (false, true)  => write!(f, "{} --> (f){}", self.from_route, self.to_route),
+            (false, false) => write!(f, "{} --> {}", self.from_route, self.to_route)
+        }
     }
 }
 

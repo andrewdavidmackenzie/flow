@@ -38,7 +38,7 @@ pub fn load(file_path: PathBuf, dump: bool) -> Result<Flow, String> {
     flow
 }
 
-pub fn load_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, String> {
+fn load_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, String> {
     let mut flow = load_single_flow(parent_route, file_path)?;
     load_subflows(&mut flow)?;
     build_connections(&mut flow);
@@ -157,12 +157,14 @@ fn build_connections(flow: &mut Flow) {
 
     for connection in connections.iter_mut() {
         // TODO eliminate output as a possible source
-        if let Ok((from_route, from_type)) = flow.get_route_and_type(&connection.from) {
+        if let Ok((from_route, from_type, starts_at_flow)) = flow.get_route_and_type(&connection.from) {
             // TODO eliminate to as a possible source
-            if let Ok((to_route, to_type)) = flow.get_route_and_type(&connection.to) {
+            if let Ok((to_route, to_type, ends_at_flow)) = flow.get_route_and_type(&connection.to) {
                 if from_type == to_type {
                     connection.from_route = from_route;
+                    connection.starts_at_flow = starts_at_flow;
                     connection.to_route = to_route;
+                    connection.ends_at_flow = ends_at_flow;
                 } else {
                     eprintln!("Type mismatch from '{}' of type '{}' to '{}' of type '{}'",
                              from_route, from_type, to_route, to_type);

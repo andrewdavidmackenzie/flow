@@ -49,11 +49,13 @@ impl FunctionReference {
     fn get<E: HasName + HasRoute + HasDataType>(&self,
                                                 collection: &Option<Vec<E>>,
                                                 element_name: &str)
-                                                -> Result<(Route, DataType), String> {
+                                                -> Result<(Route, DataType, bool), String> {
         if let &Some(ref elements) = collection {
             for element in elements {
                 if element.name() == element_name {
-                    return Ok((format!("{}", element.route()), format!("{}", element.datatype())));
+                    return Ok((format!("{}", element.route()),
+                               format!("{}", element.datatype()),
+                               false));
                 }
             }
             return Err(format!("No element with name '{}' was found", element_name));
@@ -61,9 +63,9 @@ impl FunctionReference {
         Err(format!("No elements found."))
     }
 
-    pub fn get_io(&self, direction: &str, name: &str) -> Result<(Route, DataType), String> {
+    pub fn get_io(&self, direction: &str, name: &str) -> Result<(Route, DataType, bool), String> {
         match direction {
-            "input"  => self.get(&self.function.inputs, name),
+            "input" => self.get(&self.function.inputs, name),
             "output" => self.get(&self.function.outputs, name),
             _ => return Err(format!("Invalid name '{}' used in connection", name))
         }
