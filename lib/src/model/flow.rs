@@ -3,7 +3,6 @@ use model::name::HasName;
 use model::datatype::DataType;
 use model::connection::HasRoute;
 use model::connection::Connection;
-use model::connection::HasInputs;
 use model::datatype::HasDataType;
 use model::io::IO;
 use model::value::Value;
@@ -14,7 +13,6 @@ use model::function_reference::FunctionReference;
 
 use std::fmt;
 use std::path::PathBuf;
-use std::mem::replace;
 
 #[derive(Default, Deserialize, Debug)]
 pub struct Flow {
@@ -50,21 +48,6 @@ impl HasName for Flow {
 impl HasRoute for Flow {
     fn route(&self) -> &str {
         &self.route[..]
-    }
-}
-
-// TODO could this be a shared implementation for Function and Flow
-impl HasInputs for Flow {
-    fn input_type(&self, input_name: &Name) -> Result<DataType, String> {
-        if let Some(ref inputs) = self.inputs {
-            for input in inputs {
-                if &input.name == input_name {
-                    return Ok(format!("{}", input.datatype));
-                }
-            }
-            return Err(format!("Could not find input named '{}' in '{}'", input_name, self.route));
-        }
-        Err(format!("No inputs in '{}'", self.route))
     }
 }
 
@@ -247,7 +230,7 @@ impl Flow {
         return Err("No functions present".to_string());
     }
 
-    fn get_route_and_type(&mut self, conn_descriptor: &str) -> Result<(Route, DataType), String> {
+    pub fn get_route_and_type(&mut self, conn_descriptor: &str) -> Result<(Route, DataType), String> {
         let segments: Vec<&str> = conn_descriptor.split('/').collect();
 
         match segments.len() {
@@ -261,48 +244,5 @@ impl Flow {
 
             _ => Err(format!("Invalid name format '{}' used in connection", conn_descriptor))
         }
-    }
-
-    /*
-        Change the names of connections to be routes to the alias used in this flow,
-        in the process ensuring they exist, that direction is correct and types match
-
-        Connection to/from Formats:
-            "value/message"
-            "input/input_name"
-            "output/output_name"
-
-            "flow/flow_name/io_name"
-            "function/function_name/io_name"
-    */
-    pub fn build_connections(&mut self) {
-        if self.connections.is_none() { return; }
-
-        // get connections out of self - so we can use immutable references to self inside loop
-        let connections = replace(&mut self.connections, None);
-        let mut connections = connections.unwrap();
-
-        for connection in connections.iter_mut() {
-            // TODO eliminate output as a possible source
-            if let Ok((from_route, from_type)) = self.get_route_and_type(&connection.from) {
-                // TODO eliminate to as a possible source
-                if let Ok((to_route, to_type)) = self.get_route_and_type(&connection.to) {
-                    if from_type == to_type {
-                        connection.from_route = from_route;
-                        connection.to_route = to_route;
-                    } else {
-                        println!("Type mismatch from '{}' of type '{}' to '{}' of type '{}'",
-                                 from_route, from_type, to_route, to_type);
-                    }
-                } else {
-                    eprintln!("Did not find destination: {}", connection.to);
-                }
-            } else {
-                eprintln!("Did not find source: {}", connection.from);
-            }
-        }
-
-        // put connections back into self
-        replace(&mut self.connections, Some(connections));
     }
 }

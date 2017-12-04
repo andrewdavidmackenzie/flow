@@ -6,5 +6,4 @@ extern crate toml;
 mod model;
 pub mod loader;
 pub mod info;
-pub mod dumper;
 pub mod compiler;

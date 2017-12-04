@@ -4,7 +4,6 @@ use model::name::Name;
 use model::name::HasName;
 use model::datatype::DataType;
 use model::datatype::HasDataType;
-use model::connection::HasInputs;
 use model::connection::HasRoute;
 use model::io::IO;
 use model::connection::Route;
@@ -28,20 +27,6 @@ pub struct Function {
 impl HasName for Function {
     fn name(&self) -> &str {
         &self.name[..]
-    }
-}
-
-impl HasInputs for Function {
-    fn input_type(&self, input_name: &Name) -> Result<DataType, String> {
-        if let Some(ref inputs) = self.inputs {
-            for input in inputs {
-                if &input.name == input_name {
-                    return Ok(format!("{}", input.datatype));
-                }
-            }
-            return Err(format!("Could not find input named '{}' in '{}'", input_name, self.route));
-        }
-        Err(format!("No inputs found for '{}'", self.route))
     }
 }
 

@@ -6,7 +6,7 @@ use clap::{App, Arg};
 extern crate flowlib;
 use flowlib::info;
 use flowlib::loader::loader;
-use flowlib::dumper;
+use flowlib::model::dumper;
 use flowlib::compiler::compile;
 
 mod files;
@@ -29,13 +29,9 @@ fn main() {
     match files::get(path) {
         Ok(file_path) => {
             info!("Attempting to load file: '{:?}'", file_path);
-            match loader::load_flow("", file_path) {
+            match loader::load_flow(file_path, dump) {
                 Ok(flow) => {
                     info!("'{}' flow loaded", flow.name);
-
-                    if dump {
-                        dumper::dump(&flow, 0);
-                    }
 
                     if compile {
                         compile::compile(&flow);

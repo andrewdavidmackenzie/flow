@@ -10,12 +10,6 @@ pub trait HasRoute {
     fn route(&self) -> &str;
 }
 
-// This trait should be implemented by objects that have collections of IO objects as inputs
-// the method input_type should find an input by name and return the type it accepts
-pub trait HasInputs {
-    fn input_type(&self, input_name: &Name) -> Result<DataType, String>;
-}
-
 #[derive(Deserialize, Debug)]
 pub struct Connection {
     pub name: Option<Name>,

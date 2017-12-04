@@ -1,21 +1,30 @@
 # Flow Compiling
 
-## Load the Flow definition
-Read in the hierarchical definition, recursively until all is loaded.
-- this will build the connections between values, functions, input and oututs
-  using the unaliased routes to functions and subflows....
-  
-## Reducing
-Build a table of values and functions with their correct routes.
+Start with the hierarchical definition of flow program as produced by the loading stage.
 
+## Value and Function Tables
+Build a table of values and functions with their correct routes.
+  
+## Connection Reducing
 Build a flat table of connections.
 
-Pass therough the connection table, collapsing any connections that don't start or end 
-at a value or function, eliminating all the intermediate connection points are flow entry
-or exit boundaries, until we have the minimal connection set.
+Pass through the connection table.
+For every connection that starts at a flow:
+- Look through all other connections and for each one that ends at where this flow starts
+  replace the connection's destination with this connections destination.
+- Delete this connection
 
-When multiple connections have a single source as the source, they should all be connected,
-avoid lossing the initial connection when collapsing first two and so second connection cannot
-use it.
+? Maybe have to do multiple times?
 
-Prune any connection that doesn't originate or end at a value or function in the tables.
+When done there should be no connections starting at flows.
+Any connections left that end at flows, are unconnected and can be dropped in the pruning
+stage below.
+
+### Pruning
+Drop the following combinations, with warnings:
+- connection that ends at a flow, as none else connect to it.
+- values that don't have connections from them.
+- values that have only outputs and are not initialized.
+- functions that don't have connections from at least one output.
+- functions that don't have connections to all their inputs.
+

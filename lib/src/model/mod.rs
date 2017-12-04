@@ -7,3 +7,4 @@ pub mod flow;
 pub mod flow_reference;
 pub mod connection;
 pub mod io;
+pub mod dumper;

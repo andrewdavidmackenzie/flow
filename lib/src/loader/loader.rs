@@ -5,6 +5,8 @@ use model::function::Function;
 use loader::file_helper::get_contents;
 use loader::file_helper::get_canonical_path;
 use loader::loader_helper::get_loader;
+use model::dumper;
+use std::mem::replace;
 
 // Any loader of a file extension have to implement these methods
 pub trait Loader {
@@ -22,12 +24,24 @@ pub trait Validate {
 /// use flowlib::loader::loader;
 ///
 /// let path = PathBuf::from("../samples/hello-world-simple/context.toml");
-/// loader::load_flow("", path).unwrap();
+/// loader::load(path, false).unwrap();
 /// ```
+pub fn load(file_path: PathBuf, dump: bool) -> Result<Flow, String> {
+    let flow = load_flow("", file_path);
+
+    if let &Ok(ref loaded_flow) = &flow {
+        if dump {
+            dumper::dump(loaded_flow, 0);
+        }
+    }
+
+    flow
+}
+
 pub fn load_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, String> {
     let mut flow = load_single_flow(parent_route, file_path)?;
     load_subflows(&mut flow)?;
-    flow.build_connections();
+    build_connections(&mut flow);
     Ok(flow)
 }
 
@@ -120,4 +134,47 @@ fn load_subflows(flow: &mut Flow) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/*
+    Change the names of connections to be routes to the alias used in this flow,
+    in the process ensuring they exist, that direction is correct and types match
+
+    Connection to/from Formats:
+        "value/message"
+        "input/input_name"
+        "output/output_name"
+
+        "flow/flow_name/io_name"
+        "function/function_name/io_name"
+*/
+fn build_connections(flow: &mut Flow) {
+    if flow.connections.is_none() { return; }
+
+    // get connections out of self - so we can use immutable references to self inside loop
+    let connections = replace(&mut flow.connections, None);
+    let mut connections = connections.unwrap();
+
+    for connection in connections.iter_mut() {
+        // TODO eliminate output as a possible source
+        if let Ok((from_route, from_type)) = flow.get_route_and_type(&connection.from) {
+            // TODO eliminate to as a possible source
+            if let Ok((to_route, to_type)) = flow.get_route_and_type(&connection.to) {
+                if from_type == to_type {
+                    connection.from_route = from_route;
+                    connection.to_route = to_route;
+                } else {
+                    eprintln!("Type mismatch from '{}' of type '{}' to '{}' of type '{}'",
+                             from_route, from_type, to_route, to_type);
+                }
+            } else {
+                eprintln!("Did not find destination: {}", connection.to);
+            }
+        } else {
+            eprintln!("Did not find source: {}", connection.from);
+        }
+    }
+
+    // put connections back into self
+    replace(&mut flow.connections, Some(connections));
 }
