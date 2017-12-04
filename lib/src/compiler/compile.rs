@@ -7,10 +7,8 @@ pub fn compile(flow: &mut Flow, dump: bool) {
 
     let collapsed_table = collapse_connections(&connection_table);
 
-    let final_table = drop_connections(&collapsed_table);
-
     if dump {
-        print_connections(&final_table);
+        print_connections(&collapsed_table);
     }
 }
 
@@ -19,18 +17,6 @@ fn print_connections(table: &Vec<Connection>) {
     for connection in table.iter() {
         println!("{}", connection);
     }
-}
-
-fn drop_connections(connection_table: &Vec<Connection>) -> Vec<Connection> {
-    let mut final_table: Vec<Connection> = Vec::new();
-
-    for connection in connection_table {
-        if !connection.starts_at_flow && !connection.ends_at_flow {
-            final_table.push(connection.clone());
-        }
-    }
-
-    final_table
 }
 
 fn collapse_connections(complete_table: &Vec<Connection>) -> Vec<Connection> {
@@ -53,7 +39,16 @@ fn collapse_connections(complete_table: &Vec<Connection>) -> Vec<Connection> {
         }
     }
 
-    collapsed_table
+    // Now don't include the ones starting or ending on flows.
+    let mut final_table: Vec<Connection> = Vec::new();
+
+    for connection in collapsed_table {
+        if !connection.starts_at_flow && !connection.ends_at_flow {
+            final_table.push(connection.clone());
+        }
+    }
+
+    final_table
 }
 
 fn add_connections(connection_table: &mut Vec<Connection>, flow: &mut Flow) {
