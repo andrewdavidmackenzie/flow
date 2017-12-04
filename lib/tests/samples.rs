@@ -30,6 +30,12 @@ fn dump_hello_world_context() {
 }
 
 #[test]
+fn dump_hello_world_include() {
+    let path = PathBuf::from("../samples/hello-world-include/context.toml");
+    loader::load(path, true).unwrap();
+}
+
+#[test]
 fn dump_hello_world_flow1() {
     let path = PathBuf::from("../samples/hello-world/flow1.toml");
     loader::load(path, true).unwrap();

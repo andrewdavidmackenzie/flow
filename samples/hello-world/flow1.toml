@@ -1,4 +1,4 @@
-name = "hello-world-toml-flow1"
+name = "hello-world-flow1"
 
 [[value]]
 name = "message"

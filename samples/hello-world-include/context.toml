@@ -1,12 +1,12 @@
-name = "hello-world-context"
+name = "hello-world-include-context"
 
 [[function]]
 alias = "print"
-source = "terminal.toml"
+source = "../hello-world/terminal.toml"
 
 [[flow]]
 alias = "hello"
-source = "flow1.toml"
+source = "../hello-world/flow1.toml"
 
 [[connection]]
 name = "message"
