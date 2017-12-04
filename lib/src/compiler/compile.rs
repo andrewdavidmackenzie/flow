@@ -1,9 +1,16 @@
 use model::flow::Flow;
 use model:: connection::Connection;
 
-pub fn compile(flow: &mut Flow) {
+pub fn compile(flow: &mut Flow, dump: bool) {
     let mut connection_table: Vec<Connection> = Vec::new();
     add_connections(&mut connection_table, flow);
+
+    if dump {
+        println!("Connections:");
+        for connection in connection_table {
+            println!("{}", connection);
+        }
+    }
 }
 
 fn add_connections(connection_table: &mut Vec<Connection>, flow: &mut Flow) {
