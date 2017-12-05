@@ -1,24 +1,32 @@
 use model::flow::Flow;
+use model::value::Value;
+use model::function::Function;
 use model::connection::Connection;
+use std::fmt;
 
 pub fn compile(flow: &mut Flow, dump: bool) {
     let mut connection_table: Vec<Connection> = Vec::new();
-    add_connections(&mut connection_table, flow);
+    let mut value_table: Vec<Value> = Vec::new();
+    let mut function_table: Vec<Function> = Vec::new();
+    add_entries(&mut connection_table, &mut value_table, &mut function_table, flow);
 
     let collapsed_table = collapse_connections(&connection_table);
 
     if dump {
-        print_connections(&collapsed_table);
+        print(&collapsed_table, "Collapsed Connections");
+        print(&value_table, "Values");
+        print(&function_table, "Functions");
     }
 }
 
-fn print_connections(table: &Vec<Connection>) {
-    println!("\nConnections:");
-    for connection in table.iter() {
-        println!("{}", connection);
+fn print<E: fmt::Display>(table: &Vec<E>, title: &str) {
+    println!("\n{}:", title);
+    for e in table.iter() {
+        println!("{}", e);
     }
 }
 
+// TODO write tests for all this before any modification
 fn collapse_connections(complete_table: &Vec<Connection>) -> Vec<Connection> {
     let mut collapsed_table: Vec<Connection> = Vec::new();
 
@@ -51,16 +59,32 @@ fn collapse_connections(complete_table: &Vec<Connection>) -> Vec<Connection> {
     final_table
 }
 
-fn add_connections(connection_table: &mut Vec<Connection>, flow: &mut Flow) {
-    // Add connections from this flow to the table
+// TODO write tests for all this before any modification
+fn add_entries(connection_table: &mut Vec<Connection>,
+               value_table: &mut Vec<Value>,
+               function_table: &mut Vec<Function>,
+               flow: &mut Flow) {
+    // Add Connections from this flow to the table
     if let Some(ref mut connections) = flow.connections {
         connection_table.append(connections);
+    }
+
+    // Add Values from this flow to the table
+    if let Some(ref mut values) = flow.values {
+        value_table.append(values);
+    }
+
+    // Add Functions referenced from this flow to the table
+    if let Some(ref mut function_refs) = flow.function_refs {
+        for function_ref in function_refs {
+            function_table.push(function_ref.function.clone());
+        }
     }
 
     // Do the same for all subflows referenced from this one
     if let Some(ref mut flow_refs) = flow.flow_refs {
         for flow_ref in flow_refs {
-            add_connections(connection_table, &mut flow_ref.flow);
+            add_entries(connection_table, value_table, function_table, &mut flow_ref.flow);
         }
     }
 }

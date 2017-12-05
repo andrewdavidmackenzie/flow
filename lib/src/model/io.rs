@@ -8,7 +8,7 @@ use model::connection::Route;
 
 use std::fmt;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct IO {
     pub name: Name,
     #[serde(rename = "type")]

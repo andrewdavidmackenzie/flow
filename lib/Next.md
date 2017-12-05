@@ -5,6 +5,7 @@ Write tests for compile functions and connection mapping and dropping etc
 
 Write test cases for the pruning cases mentioned in flow_compiling.md
 
+
 Maybe add references to values and functions in the connections when we are doing that
 
 Then create table of values and table of functions
@@ -13,6 +14,7 @@ Using connections, for each output, add a reference to one or more input that da
 
 COnsider specifying built-in functions that the run-time knows about already.
 Will probably need some PATH to search to find them, similar to library flows...
+Maybe initialize default PATH with "." so that it finds default one.
 
 
 Code Improvements

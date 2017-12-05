@@ -5,17 +5,16 @@ From the hierarchical definition of a flow program as produced by the loading st
 ## Connection Reducing
 Build a flat table of connections.
 
-Pass through the connection table.
-For every connection that starts at a flow:
-- Look through all other connections and for each one that ends at where this flow starts
-  replace the connection's destination with this connections destination.
-- Delete this connection
+For every connection that ends at a flow:
+- Look through all other connections and for each one that starts where this flow starts:
+  - Replace the connection's destination with this connections destination.
+  - Delete this connection
 
-When done there should be no connections starting at flows.
-Any connections left that ends at a flow, is unconnected and can be dropped.
+When done there should be no connections end at flows.
+Any connections left that starts at a flow, is unconnected and can be deleted.
 
 ## Value and Function Tables
-Build a table of values and functions with their correct routes.
+Build a table of values and functions.
   
 ### Pruning Value and Function Tables
 Drop the following combinations, with warnings:

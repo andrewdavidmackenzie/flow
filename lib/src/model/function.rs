@@ -9,7 +9,7 @@ use model::io::IO;
 use model::connection::Route;
 use loader::loader::Validate;
 
-#[derive(Default, Deserialize, Debug)]
+#[derive(Default, Deserialize, Debug, Clone)]
 pub struct Function {
     pub name: Name,
 
