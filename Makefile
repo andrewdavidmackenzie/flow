@@ -3,13 +3,13 @@ RUSTUP := $(shell command -v rustup 2> /dev/null)
 
 all: test package
 
-test: test-lib test-flowc test-electron
+test: test-flowclib test-flowc test-electron
 
-test-lib:
+test-flowclib:
 	@echo ""
-	@echo "------- Started  testing lib ----------------"
-	@cargo test --manifest-path lib/Cargo.toml
-	@echo "------- Finished testing lib ----------------"
+	@echo "------- Started  testing flowclib ----------------"
+	@cargo test --manifest-path flowclib/Cargo.toml
+	@echo "------- Finished testing flowclib ----------------"
 
 test-flowc:
 	@echo ""
@@ -48,7 +48,7 @@ run-electron:
 clean:
 	rm -rf flowc/target
 	rm -rf flowc/log
-	rm -rf lib/target
+	rm -rf flowclib/target
 	rm -rf electron/target
 	cd electron && make clean
 

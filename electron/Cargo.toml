@@ -8,6 +8,6 @@ name = "ui"
 path = "src/ui.rs"
 
 [dependencies]
-flowlib = { path = "../lib" }
+flowlib = { path = "../flowclib" }
 
 [workspace]

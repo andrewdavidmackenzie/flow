@@ -39,7 +39,7 @@ src/flowui.js: $(TARGETDIR)/wasm32-unknown-emscripten/release/deps
 src/electronflowui.js: src/electron-prefix.js src/flowui.js
 	@cat $^ > $@
 
-$(TARGETDIR)/wasm32-unknown-emscripten/release/deps: ../lib rustup-target emcc src
+$(TARGETDIR)/wasm32-unknown-emscripten/release/deps: ../flowclib rustup-target emcc src
 # Compile output into a folder not under here to avoid it being packaged by electron-forge
 # since I cannot get the ignore[] part of config in package.json to ignore it when using electron-forge make
 	@CARGO_TARGET_DIR=$(TARGETDIR) cargo build --bin ui --target=wasm32-unknown-emscripten --release
