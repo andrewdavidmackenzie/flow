@@ -12,6 +12,8 @@ pub fn compile(flow: &mut Flow, dump: bool) {
 
     let collapsed_table = collapse_connections(&connection_table);
 
+    prune_tables(&mut connection_table, &mut value_table, &mut function_table);
+
     if dump {
         print(&collapsed_table, "Collapsed Connections");
         print(&value_table, "Values");
@@ -27,6 +29,7 @@ fn print<E: fmt::Display>(table: &Vec<E>, title: &str) {
 }
 
 // TODO write tests for all this before any modification
+// TODO Write a test that checks it actually eliminates connections thru multiple levels of flows
 fn collapse_connections(complete_table: &Vec<Connection>) -> Vec<Connection> {
     let mut collapsed_table: Vec<Connection> = Vec::new();
 
@@ -87,4 +90,18 @@ fn add_entries(connection_table: &mut Vec<Connection>,
             add_entries(connection_table, value_table, function_table, &mut flow_ref.flow);
         }
     }
+}
+
+/*
+    Drop the following combinations, with warnings:
+    - values that don't have connections from them.
+    - values that have only outputs and are not initialized.
+    - functions that don't have connections from at least one output.
+    - functions that don't have connections to all their inputs.
+*/
+// TODO implement this
+fn prune_tables(connection_table: &mut Vec<Connection>,
+                value_table: &mut Vec<Value>,
+                function_table: &mut Vec<Function>) {
+
 }

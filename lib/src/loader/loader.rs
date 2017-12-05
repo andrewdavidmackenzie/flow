@@ -180,3 +180,53 @@ fn build_connections(flow: &mut Flow) {
     // put connections back into self
     replace(&mut flow.connections, Some(connections));
 }
+
+#[test]
+#[ignore]
+fn sample_hello_world_simple_yaml() {
+    let path = PathBuf::from("../samples/hello-world-simple-yaml/context.yaml");
+    load(path, false).unwrap();
+}
+
+#[test]
+#[ignore]
+fn sample_hello_world_yaml() {
+    let path = PathBuf::from("../samples/hello-world-yaml/context.yaml");
+    load(path, false).unwrap();
+}
+
+#[test]
+fn dump_hello_world_simple() {
+    let path = PathBuf::from("../samples/hello-world-simple/context.toml");
+    load(path, true).unwrap();
+}
+
+#[test]
+fn dump_hello_world_context() {
+    let path = PathBuf::from("../samples/hello-world/context.toml");
+    load(path, true).unwrap();
+}
+
+#[test]
+fn dump_hello_world_include() {
+    let path = PathBuf::from("../samples/hello-world-include/context.toml");
+    load(path, true).unwrap();
+}
+
+#[test]
+fn dump_hello_world_flow1() {
+    let path = PathBuf::from("../samples/hello-world/flow1.toml");
+    load(path, true).unwrap();
+}
+
+#[test]
+fn dump_complex1() {
+    let path = PathBuf::from("../samples/complex1/context.toml");
+    load(path, true).unwrap();
+}
+
+#[test]
+fn dump_fibonacci() {
+    let path = PathBuf::from("../samples/fibonacci/context.toml");
+    load(path, true).unwrap();
+}

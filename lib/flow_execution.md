@@ -20,9 +20,8 @@ if we implement the actual connection - on it.
 Initial values are made available in the inputs to the values and their state set to runnable.
 
 ## Execution Loop
-Functions/Values with status "runnable" are run
-Output produced is made available to all connected inputs
+Outputs produced are made available to all connected inputs
 Status of Functions/Values are updated based on availability of data on all inputs
-
+Functions/Values with status "runnable" are run, producing outputs.
 
 

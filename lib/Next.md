@@ -8,7 +8,7 @@ Write test cases for the pruning cases mentioned in flow_compiling.md
 
 Maybe add references to values and functions in the connections when we are doing that
 
-Then create table of values and table of functions
+Drop unneeded functions and values
 
 Using connections, for each output, add a reference to one or more input that data should be sent to when made available.
 
