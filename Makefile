@@ -3,13 +3,19 @@ RUSTUP := $(shell command -v rustup 2> /dev/null)
 
 all: test package
 
-test: test-flowclib test-flowc test-electron
+test: test-flowclib test-flowrlib test-flowc test-electron
 
 test-flowclib:
 	@echo ""
 	@echo "------- Started  testing flowclib ----------------"
 	@cargo test --manifest-path flowclib/Cargo.toml
 	@echo "------- Finished testing flowclib ----------------"
+
+test-flowrlib:
+	@echo ""
+	@echo "------- Started  testing flowrlib ----------------"
+	@cargo test --manifest-path flowrlib/Cargo.toml
+	@echo "------- Finished testing flowrlib ----------------"
 
 test-flowc:
 	@echo ""

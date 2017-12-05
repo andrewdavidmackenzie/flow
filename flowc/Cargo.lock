@@ -38,12 +38,12 @@ name = "flow"
 version = "0.1.0"
 dependencies = [
  "clap 2.27.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "flowlib 0.1.1",
+ "flowclib 0.1.1",
  "glob 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
-name = "flowlib"
+name = "flowclib"
 version = "0.1.1"
 dependencies = [
  "serde 1.0.20 (registry+https://github.com/rust-lang/crates.io-index)",

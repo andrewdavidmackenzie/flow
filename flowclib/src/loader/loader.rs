@@ -21,7 +21,7 @@ pub trait Validate {
 /// # Example
 /// ```
 /// use std::path::PathBuf;
-/// use flowlib::loader::loader;
+/// use flowclib::loader::loader;
 ///
 /// let path = PathBuf::from("../samples/hello-world-simple/context.toml");
 /// loader::load(path, false).unwrap();
@@ -48,7 +48,7 @@ fn load_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, String> {
 /// # Example
 /// ```
 /// use std::path::PathBuf;
-/// use flowlib::loader::loader;
+/// use flowclib::loader::loader;
 ///
 /// let path = PathBuf::from("../samples/hello-world-simple/context.toml");
 /// loader::load_single_flow("", path).unwrap();
@@ -69,7 +69,7 @@ pub fn load_single_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, 
 /// # Example
 /// ```
 /// use std::path::PathBuf;
-/// use flowlib::loader::loader;
+/// use flowclib::loader::loader;
 ///
 /// let path = PathBuf::from("../samples/hello-world-simple/terminal.toml");
 /// loader::load_function(&path, "").unwrap();

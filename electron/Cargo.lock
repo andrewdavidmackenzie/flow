@@ -1,5 +1,5 @@
 [[package]]
-name = "flowlib"
+name = "flowclib"
 version = "0.1.1"
 dependencies = [
  "serde 1.0.21 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -12,7 +12,7 @@ dependencies = [
 name = "flowui"
 version = "0.1.2"
 dependencies = [
- "flowlib 0.1.1",
+ "flowclib 0.1.1",
 ]
 
 [[package]]

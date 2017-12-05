@@ -1,9 +1,9 @@
-extern crate flowlib;
-use flowlib::info;
+extern crate flowclib;
+use flowclib::info;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 fn main() {
     println!("'flow' version: {}", VERSION);
-    println!("'flowlib' version {}", info::version());
+    println!("'flowclib' version {}", info::version());
 }

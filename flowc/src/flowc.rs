@@ -3,10 +3,10 @@ extern crate glob;
 extern crate clap;
 use clap::{App, Arg};
 
-extern crate flowlib;
-use flowlib::info;
-use flowlib::loader::loader;
-use flowlib::compiler::compile;
+extern crate flowclib;
+use flowclib::info;
+use flowclib::loader::loader;
+use flowclib::compiler::compile;
 
 mod files;
 
@@ -16,7 +16,7 @@ use std::path::PathBuf;
 fn main() {
     println!("Logging started using 'log4rs', see log.yaml for configuration details");
     println!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    println!("'flowlib' version {}", info::version());
+    println!("'flowclib' version {}", info::version());
 
     let (path, dump, compile) = get_args();
 
