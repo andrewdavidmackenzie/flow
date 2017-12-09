@@ -25,12 +25,10 @@ With pre-requisites installed, from your command line:
 # Clone this repository
 git clone https://github.com/andrewdavidmackenzie/flow.git
 # Go into the repository directory
-cd flowui
+cd flow
 # Build and run the app
 make
 ```
-
-Note: If you're using Linux Bash for Windows, [see this guide](https://www.howtogeek.com/261575/how-to-run-graphical-linux-desktop-applications-from-windows-10s-bash-shell/) or use `node` from the command prompt.
 
 ## Packaging the app
 
@@ -39,33 +37,6 @@ You can package easily for the platform you are currently running on with:
 ```
 make package
 ```
-
-## Running the command line tools
-There are currently two command line tools 'run' and 'check'.
-
-They can be built and run using cargo:
-```
-cargo run --bin run
-```
-
-```
-cargo run --bin check
-```
-
-## Travis Locally
-
-If you have travis-CI problems, and (like me) get tired of pushing changes to try and figure it out, you can run a travis-node-js Docker Image locally, log in to it and try and figure it out, thus:
-
-- Download and install the Docker Engine.
-- Select an image from Quay.io. If you're not using a language-specific image pick travis-ruby. Open a terminal and start an interactive Docker session using the image URL:
-- docker run -it quay.io/travisci/travis-ruby /bin/bash
-- Switch to the travis user:
-- su - travis
-- Clone your git repository into the current folder (/home/travis) of the image.
-- Go into the 'flowui' directory
-- Manually install any dependencies.
-- Manually run your Travis CI build command.
-
 
 Flow Programming
 ##
@@ -83,20 +54,6 @@ Flow Descriptions
 
 Flows may have zero or more inputs, outputs, values (constants), functions, and other sub-flows.
 flow = [input] + [output] + [flow] + [values] + [functions]
-
-To Consider
-###
-Error handling
-
-Logging
-###
-Using the 'log' framework in libraries and main binary code to log.
-https://doc.rust-lang.org/log/log/index.html
-
-Using the log4rs log implementation, see https://github.com/sfackler/log4rs,
-configured in each of the binaries's main() function.
-
-log.toml is the log configuration file used by log4rs.
 
 ## License
 

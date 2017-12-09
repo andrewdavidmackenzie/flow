@@ -16,7 +16,7 @@ Using connections, for each output, add a reference to one or more input that da
 Loading of functions from stdlib (at compile time) - by finding them by name on the load path
 and then requesting their definition?
 
-COnsider specifying built-in functions that the run-time knows about already.
+Consider specifying built-in functions that the run-time knows about already.
 Will probably need some PATH to search to find them, similar to library flows...
 Maybe initialize default PATH with "." so that it finds default one.
 
