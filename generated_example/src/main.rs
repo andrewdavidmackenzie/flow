@@ -1,14 +1,13 @@
 extern crate flowrlib;
 extern crate flowstdlib;
 
-use values::values;
-use functions::functions;
-
-use flowrlib::execution::init;
 use flowrlib::execution::looper;
 
 mod functions;
 mod values;
+
+use values::get_values;
+use functions::get_functions;
 
 fn main() {
     println!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
@@ -18,6 +17,5 @@ fn main() {
     // TODO some standard inputs that are passed to main as arguments
     // a library function to help parse them?
 
-    init(&values);
-    looper(&values, &functions);
+    looper(get_values(), get_functions());
 }

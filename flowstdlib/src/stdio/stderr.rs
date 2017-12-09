@@ -1,6 +1,11 @@
 use flowrlib::function::Function;
+use flowrlib::implementation::Implementation;
 
-pub struct Stderr;
+use std::fmt;
+use std::fmt::Debug;
+
+pub struct Stderr {
+}
 
 const DEFINITION: &'static str =
 "name = 'Stderr'
@@ -8,14 +13,22 @@ const DEFINITION: &'static str =
 name = 'stderr'
 type = 'String'";
 
-impl Stderr {
-    pub fn run(stderr: String) {
-        eprintln!("{}", stderr);
+impl Implementation for Stderr {
+    fn number_of_inputs(&self) -> usize {
+        1
+    }
+
+    fn run(&self, function: &mut Function) {
+        eprintln!("{}", function.inputs[0].as_ref().unwrap());
+    }
+
+    fn define(&self) -> &'static str {
+        DEFINITION
     }
 }
 
-impl Function for Stderr {
-    fn define() -> &'static str {
-        DEFINITION
+impl Debug for Stderr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "stderr defined in file: '{}'", file!())
     }
 }

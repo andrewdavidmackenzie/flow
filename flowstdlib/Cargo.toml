@@ -5,7 +5,7 @@ authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 
 [lib]
 name = "flowstdlib"
-path = "src/flowstdlib.rs"
+path = "src/lib.rs"
 
 test = true
 doctest = true

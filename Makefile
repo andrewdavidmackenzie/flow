@@ -3,19 +3,20 @@ RUSTUP := $(shell command -v rustup 2> /dev/null)
 
 all: test package
 
-test: test-flowclib test-flowrlib test-flowc test-electron
+test: test-flowclib test-flowrlib test-flowc test-gen-sample test-electron
+#run-gen-sample
 
 test-flowclib:
 	@echo ""
-	@echo "------- Started  testing flowclib ----------------"
+	@echo "------- Started  testing flowclib -------------"
 	@cargo test --manifest-path flowclib/Cargo.toml
-	@echo "------- Finished testing flowclib ----------------"
+	@echo "------- Finished testing flowclib -------------"
 
 test-flowrlib:
 	@echo ""
-	@echo "------- Started  testing flowrlib ----------------"
+	@echo "------- Started  testing flowrlib -------------"
 	@cargo test --manifest-path flowrlib/Cargo.toml
-	@echo "------- Finished testing flowrlib ----------------"
+	@echo "------- Finished testing flowrlib -------------"
 
 test-flowc:
 	@echo ""
@@ -23,27 +24,36 @@ test-flowc:
 	@cargo test --manifest-path flowc/Cargo.toml
 	@echo "------- Finished testing flowc ----------------"
 
+test-gen-sample:
+	@echo ""
+	@echo "------- Started  testing generated_example ----"
+	@cargo test --manifest-path  generated_example/Cargo.toml
+	@echo "------- Finished testing generated_example ----"
+
 test-electron:
 	@echo ""
-	@echo "------- Started  testing electron ----------------"
+	@echo "------- Started  testing electron -------------"
 	@cargo test --manifest-path electron/Cargo.toml
-	@echo "------- Finished testing electron ----------------"
+	@echo "------- Finished testing electron -------------"
 
 package: package-electron package-flowc
 
 package-flowc: flowc
 	@echo ""
-	@echo "------- Started  packaging flowc ----------------"
-	@echo "------- Finished packaging flowc ----------------" # No specific packing steps after build ATM
+	@echo "------- Started  packaging flowc --------------"
+	@echo "------- Finished packaging flowc --------------" # No specific packing steps after build ATM
 
 flowc:
 	@cargo build --manifest-path flowc/Cargo.toml --bin flow
 
 package-electron:
 	@echo ""
-	@echo "------- Started  packaging electron ----------------"
+	@echo "------- Started  packaging electron -----------"
 	@cd electron && make package
-	@echo "------- Finished packaging electron ----------------"
+	@echo "------- Finished packaging electron -----------"
+
+run-gen-sample:
+	@cargo run --manifest-path generated_example/Cargo.toml
 
 run-flowc:
 	@cargo run --manifest-path flowc/Cargo.toml

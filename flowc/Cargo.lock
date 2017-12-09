@@ -46,10 +46,22 @@ dependencies = [
 name = "flowclib"
 version = "0.1.1"
 dependencies = [
+ "flowstdlib 0.1.0",
  "serde 1.0.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "yaml-rust 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "flowrlib"
+version = "0.1.1"
+
+[[package]]
+name = "flowstdlib"
+version = "0.1.0"
+dependencies = [
+ "flowrlib 0.1.1",
 ]
 
 [[package]]

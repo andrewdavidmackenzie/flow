@@ -8,6 +8,9 @@ use flowclib::info;
 use flowclib::loader::loader;
 use flowclib::compiler::compile;
 
+use std::error::Error;
+use std::io::{Write, stderr};
+
 mod files;
 
 use std::env;
@@ -31,12 +34,10 @@ fn main() {
                         compile::compile(&mut flow, dump);
                     }
                 },
-                Err(e) => {
-                    println!("{}", e);
-                }
+                Err(e) => eprintln!("{}", e)
             }
         },
-        Err(e) => println!("{}", e)
+        Err(e) => eprintln!("{}", e)
     }
 }
 

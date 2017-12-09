@@ -7,19 +7,30 @@ use std::process::exit;
     that have initial_value specified in their definition. That will update their "runnable"
     status and trigger making the value available on it's output to all connected inputs.
 */
-pub fn init(values: &[&'static Value]) {
-    println!("Loading values");
-    for &value in values.iter() {
-        if let Some(initial_value) = value.initial_value {
-            println!("initial_value: {}", initial_value);
-        }
+fn init(values: Vec<Value> ) {
+    println!("Initializing values");
+    for ref mut value in values {
+        value.init();
     }
 }
 
-pub fn looper(_values: &[&'static Value], _functions: &[&'static (Function+Sync)]) -> ! {
-    println!("Starting execution loop with values and functions");
+pub fn looper(values: Vec<Value> , mut functions: Vec<Function>) -> ! {
+    println!("Starting execution loop");
+
+    // TODO at the start assume all functions are blocked
+
+    // init may produce outputs from values - unblocking something
+    init(values);
+
     loop {
-        println!("Nothing to do yet...");
+        // for each function in runnable list
+        // call it's run function - that will make it's output (if it has any) available for others
+
+        // for everything that is listening on the output of the function/value that was just
+        // run... (if the function produces no output, then no one will be listening and null list
+        // their status needs to be checked...
+        functions[0].implementation.run(&mut functions[0]);
+
         exit(-1);
     }
 }

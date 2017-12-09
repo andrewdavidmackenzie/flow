@@ -1,7 +1,10 @@
 use flowrlib::function::Function;
+use flowrlib::implementation::Implementation;
+
+use std::fmt;
+use std::fmt::Debug;
 
 pub struct Stdout {
-    // some state
 }
 
 const DEFINITION: &'static str ="
@@ -10,16 +13,27 @@ name = 'Stdout'
 name = 'stdout'
 type = 'String'";
 
-impl Stdout {
-    fn run(stdout: String) {
-        println!("{}", stdout);
+unsafe impl Sync for Stdout {}
+
+impl Implementation for Stdout {
+    fn number_of_inputs(&self) -> usize {
+        1
+    }
+
+    fn run(&self, function: &mut Function) {
+        println!("{:?}", function);
+
+        // TODO gather my inputs if they are all there and call my implementation
+        println!("{:?}", function.inputs[0].as_ref().unwrap());
+    }
+
+    fn define(&self) -> &'static str {
+        DEFINITION
     }
 }
 
-unsafe impl Sync for Stdout {}
-
-impl Function for Stdout {
-    fn define() -> &'static str {
-        DEFINITION
+impl Debug for Stdout {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "stdout defined in file: '{}'", file!())
     }
 }

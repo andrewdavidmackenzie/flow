@@ -1,7 +1,11 @@
 use flowrlib::function::Function;
+
 use flowstdlib::stdio::stdout::Stdout;
 
-// Use alias for the instance name?
-static this_stdout: Stdout = Stdout{};
+pub fn get_functions() -> Vec<Function> {
+    let mut functions = Vec::<Function>::with_capacity(1);
 
-pub static functions: [&'static (Function+Sync); 1] = [&this_stdout];
+    functions.push(Function::new(&Stdout{}, 0));
+
+    functions
+}

@@ -1,10 +1,13 @@
 use flowrlib::value::Value;
 
-static message: Value = Value {
-    initial_value: Some("Hello-World"),
-    value: None,
-    output_count: 0
-};
+fn get_message() -> Value {
+    Value::new(Some("Hello-World"), 1)
+}
 
-// TODO make mutable and thread safe list of values
-pub static values: [&'static Value; 1] = [&message];
+pub fn get_values() -> Vec<Value> {
+    let mut values = Vec::<Value>::with_capacity(1);
+
+    values.push(get_message());
+
+    values
+}

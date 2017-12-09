@@ -100,8 +100,8 @@ fn add_entries(connection_table: &mut Vec<Connection>,
     - functions that don't have connections to all their inputs.
 */
 // TODO implement this
-fn prune_tables(connection_table: &mut Vec<Connection>,
-                value_table: &mut Vec<Value>,
-                function_table: &mut Vec<Function>) {
+fn prune_tables(_connection_table: &mut Vec<Connection>,
+                _value_table: &mut Vec<Value>,
+                _function_table: &mut Vec<Function>) {
 
 }
