@@ -1,4 +1,6 @@
+use runnable::Runnable;
 use implementation::Implementation;
+use std::mem::replace;
 
 #[derive(Debug)]
 pub struct Function {
@@ -6,6 +8,7 @@ pub struct Function {
     pub num_inputs: usize,
     pub num_inputs_pending: usize,
     pub inputs: Vec<Option<String>>,
+
     pub num_listeners: usize,         // How many listeners are listening on this value
     pub pending_reads: usize,      // How many "reads" of the value are needed before it's empty
     pub output: Option<String>
@@ -30,14 +33,6 @@ impl Function {
     }
 
     /*
-        provide a given input
-    */
-    pub fn write(&mut self, input_number: usize, value: String) {
-        self.num_inputs_pending -=1;
-        self.inputs[input_number] = Some(value);
-    }
-
-    /*
         This method is called when the function has just been ran
     */
     pub fn ran(&mut self) {
@@ -55,5 +50,28 @@ impl Function {
             self.output = None;
         }
         value
+    }
+}
+
+impl Runnable for Function {
+    /*
+        provide a given input
+    */
+    fn write_input(&mut self, input_number: usize, input_value: String) -> bool {
+        self.num_inputs_pending -=1;
+        self.inputs[input_number] = Some(input_value);
+        self.num_inputs_pending == 0 // all inputs satisfied
+    }
+
+    fn read_input(&mut self, input_number: usize) -> String {
+        replace(&mut self.inputs[input_number], None).unwrap()
+    }
+
+    fn run(&mut self) {
+        self.implementation.run(self);
+    }
+
+    fn set_output(&mut self, output_value: String) {
+        self.output = Some(output_value);
     }
 }

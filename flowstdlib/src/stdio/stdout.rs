@@ -1,11 +1,10 @@
-use flowrlib::function::Function;
+use flowrlib::runnable::Runnable;
 use flowrlib::implementation::Implementation;
 
 use std::fmt;
 use std::fmt::Debug;
 
-pub struct Stdout {
-}
+pub struct Stdout;
 
 const DEFINITION: &'static str ="
 name = 'Stdout'
@@ -20,11 +19,8 @@ impl Implementation for Stdout {
         1
     }
 
-    fn run(&self, function: &mut Function) {
-        println!("{:?}", function);
-
-        // TODO gather my inputs if they are all there and call my implementation
-        println!("{:?}", function.inputs[0].as_ref().unwrap());
+    fn run(&self, runnable: &mut Runnable) {
+        println!("{:?}", runnable.read_input(0));
     }
 
     fn define(&self) -> &'static str {

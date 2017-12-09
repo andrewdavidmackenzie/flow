@@ -1,11 +1,10 @@
-use flowrlib::function::Function;
+use flowrlib::runnable::Runnable;
 use flowrlib::implementation::Implementation;
 
 use std::fmt;
 use std::fmt::Debug;
 
-pub struct Stdin {
-}
+pub struct Stdin;
 
 const DEFINITION: &'static str ="
 name = 'Stdin'
@@ -18,12 +17,12 @@ impl Implementation for Stdin {
         0
     }
 
-    fn run(&self, function: &mut Function) {
+    fn run(&self, runnable: &mut Runnable) {
         use std::io::{self, Read};
 
         let mut buffer = String::new();
         io::stdin().read_to_string(&mut buffer).unwrap();
-        function.output = Some(buffer);
+        runnable.set_output(buffer);
     }
 
     fn define(&self) -> &'static str {
