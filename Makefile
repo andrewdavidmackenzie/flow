@@ -65,6 +65,9 @@ clean:
 	rm -rf flowc/target
 	rm -rf flowc/log
 	rm -rf flowclib/target
+	rm -rf flowrlib/target
+	rm -rf flowstdlib/target
+	rm -rf generated_example/target
 	rm -rf electron/target
 	cd electron && make clean
 

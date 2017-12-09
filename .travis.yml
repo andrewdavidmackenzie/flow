@@ -15,7 +15,7 @@ language: rust
 #  - '8'
 
 rust:
-  - 1.19.0
+  - 1.22.1
 
 os:
   - osx

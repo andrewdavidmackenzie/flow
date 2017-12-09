@@ -8,9 +8,6 @@ use flowclib::info;
 use flowclib::loader::loader;
 use flowclib::compiler::compile;
 
-use std::error::Error;
-use std::io::{Write, stderr};
-
 mod files;
 
 use std::env;
