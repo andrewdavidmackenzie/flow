@@ -62,6 +62,7 @@ run-electron:
 	@cd electron && make run-electron
 
 clean:
+	rm -rf target
 	rm -rf flowc/target
 	rm -rf flowc/log
 	rm -rf flowclib/target
