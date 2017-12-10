@@ -4,6 +4,10 @@ use model::function::Function;
 use model::connection::Connection;
 use std::fmt;
 
+/// Take a hierarchical flow definition in memory and compile it, generating code that implements
+/// the flow, including links to the flowrlib runtime library and library functions used in the
+/// flowstdlib standard library. It takes an optional bool dump option to dump to standard output
+/// some of the intermediate values and operations during the compilation process.
 pub fn compile(flow: &mut Flow, dump: bool) {
     let mut connection_table: Vec<Connection> = Vec::new();
     let mut value_table: Vec<Value> = Vec::new();

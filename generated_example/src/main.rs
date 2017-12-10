@@ -1,7 +1,7 @@
 extern crate flowrlib;
 extern crate flowstdlib;
 
-use flowrlib::execution::looper;
+use flowrlib::execution::execute;
 
 mod functions;
 mod values;
@@ -17,5 +17,5 @@ fn main() {
     // TODO some standard inputs that are passed to main as arguments
     // a library function to help parse them?
 
-    looper(get_values(), get_functions());
+    execute(get_values(), get_functions());
 }

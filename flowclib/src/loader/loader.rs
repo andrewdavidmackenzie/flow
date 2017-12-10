@@ -18,6 +18,14 @@ pub trait Validate {
     fn validate(&self) -> Result<(), String>;
 }
 
+/// load a flow definition from the `file_path` specified, and optionally dump a representation
+/// of the flow to stdout using the `dump` boolean.
+///
+/// It recursively loads all flows that are referenced.
+///
+/// The return value is a `Result` containing the hierarchical `Flow` in memory, or a `String`
+/// describing the error found while loading.
+///
 /// # Example
 /// ```
 /// use std::path::PathBuf;
@@ -45,6 +53,15 @@ fn load_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, String> {
     Ok(flow)
 }
 
+/// load a flow definition from the `file_path` specified, and optionally dump a representation
+/// of the flow to stdout using the `dump` boolean.
+///
+/// It loads only the flow defined in the file specified and does not recursively loads all
+/// flows that are referenced.
+///
+/// The return value is a `Result` containing the hierarchical `Flow` in memory, or a `String`
+/// describing the error found while loading.
+///
 /// # Example
 /// ```
 /// use std::path::PathBuf;
@@ -66,19 +83,23 @@ pub fn load_single_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, 
     Ok(flow)
 }
 
+/// load a function definition from the `file_path` specified, the `parent_route` parameter
+/// specifies where in the flow hierarchiy this instance of the function is referenced, and is
+/// used to create routes to the functions inputs and outputs.
+///
 /// # Example
 /// ```
 /// use std::path::PathBuf;
 /// use flowclib::loader::loader;
 ///
 /// let path = PathBuf::from("../samples/hello-world-simple/terminal.toml");
-/// loader::load_function(&path, "").unwrap();
+/// loader::load_function(&path, "/root_flow").unwrap();
 /// ```
-pub fn load_function(file_path: &PathBuf, parent_name: &str) -> Result<Function, String> {
+pub fn load_function(file_path: &PathBuf, parent_route: &str) -> Result<Function, String> {
     let loader = get_loader(file_path)?;
     let contents = get_contents(file_path)?;
     let mut function = loader.load_function(&contents)?;
-    function.route = format!("{}/{}", parent_name, function.name);
+    function.route = format!("{}/{}", parent_route, function.name);
 
     if let Some(ref mut inputs) = function.inputs {
         for ref mut input in inputs {
