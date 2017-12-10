@@ -7,12 +7,12 @@ const ONLY_INPUT: usize = 0;
 
 #[derive(Debug)]
 pub struct Value {
-    pub initial_value: Option<&'static str>,
-    pub implementation: &'static Implementation,
-    pub value: Option<String>,
-    pub output: Option<String>,
-    pub num_listeners: usize,       // How many listeners are listening on this value
-    pub pending_reads: usize        // How many "reads" of the value are needed before it's empty
+    initial_value: Option<&'static str>,
+    implementation: &'static Implementation,
+    input: Option<String>,
+    output: Option<String>,
+    num_listeners: usize,       // How many listeners are listening on this value
+    pending_reads: usize        // How many "reads" of the value are needed before it's empty
 }
 
 impl Value {
@@ -20,7 +20,7 @@ impl Value {
         Value {
             initial_value,
             implementation: &Fifo,
-            value: None,
+            input: None,
             output: None,
             num_listeners,
             pending_reads: 0
@@ -43,9 +43,9 @@ impl Value {
     */
     pub fn read(&mut self) -> String {
         self.pending_reads -= 1;
-        let value = self.value.clone().unwrap();
+        let value = self.input.clone().unwrap();
         if self.pending_reads == 0 {
-            self.value = None;
+            self.input = None;
         }
         value
     }
@@ -57,12 +57,12 @@ impl Runnable for Value {
         value has already been consumed by all the listeners and hence it can be overwritten.
     */
     fn write_input(&mut self, _input_number: usize, input_value: String) -> bool {
-        self.value = Some(input_value);
+        self.input = Some(input_value);
         true // inputs are all satisfied
     }
 
     fn read_input(&mut self, _input_number: usize) -> String {
-        replace(&mut self.value, None).unwrap()
+        replace(&mut self.input, None).unwrap()
     }
 
     fn run(&mut self) {

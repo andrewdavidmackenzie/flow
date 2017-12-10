@@ -6,8 +6,8 @@ pub struct Fifo;
 
 impl Implementation for Fifo {
     fn run(&self, runnable: &mut Runnable) {
-        let value = runnable.read_input(0);
-        runnable.set_output(value);
+        let input = runnable.read_input(0);
+        runnable.set_output(input);
         println!("run: value - copied input to output");
     }
 
