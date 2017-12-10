@@ -1,3 +1,8 @@
+#[macro_use]
+extern crate log;
+use log::LogLevelFilter;
+use log::SetLoggerError;
+
 extern crate glob;
 
 extern crate clap;
@@ -9,32 +14,44 @@ use flowclib::loader::loader;
 use flowclib::compiler::compile;
 
 mod files;
+mod simple_logger;
+
+use simple_logger::SimpleLogger;
 
 use std::env;
 use std::path::PathBuf;
 
+fn init_logging() -> Result<(), SetLoggerError> {
+    log::set_logger(|max_log_level| {
+        max_log_level.set(LogLevelFilter::Info);
+        Box::new(SimpleLogger)
+    })
+}
+
 fn main() {
-    println!("Logging started using 'log4rs', see log.yaml for configuration details");
-    println!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    println!("'flowclib' version {}", info::version());
+    init_logging().unwrap();
+
+    info!("Logging started using 'log4rs', see log.yaml for configuration details");
+    info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+    info!("'flowclib' version {}", info::version());
 
     let (path, dump, compile) = get_args();
 
     match files::get(path) {
         Ok(file_path) => {
-            println!("Attempting to load file: '{:?}'", file_path);
+            info!("Attempting to load file: '{:?}'", file_path);
             match loader::load(file_path, dump) {
                 Ok(mut flow) => {
-                    println!("'{}' flow loaded", flow.name);
+                    info!("'{}' flow loaded", flow.name);
 
                     if compile {
                         compile::compile(&mut flow, dump);
                     }
                 },
-                Err(e) => eprintln!("{}", e)
+                Err(e) => error!("{}", e)
             }
         },
-        Err(e) => eprintln!("{}", e)
+        Err(e) => error!("{}", e)
     }
 }
 
@@ -56,7 +73,7 @@ fn get_args() -> (PathBuf, bool, bool) {
     // get the file name from the command line, use CDW if it is not present
     let path = match matches.value_of("flow") {
         None => {
-            println!("No path specified, so using Current Working Directory");
+            info!("No path specified, so using Current Working Directory");
             env::current_dir().unwrap()
         },
         Some(p) => PathBuf::from(p),

@@ -11,3 +11,4 @@ path = "src/flowc.rs"
 clap = "~2.27.1"
 glob = "*"
 flowclib = { path = "../flowclib" }
+log = "*"

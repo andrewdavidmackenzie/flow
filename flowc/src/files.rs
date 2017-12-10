@@ -10,7 +10,7 @@ use std::path::PathBuf;
 */
 fn get_default_file(path: PathBuf) -> io::Result<PathBuf> {
     let file_pattern = format!("{}/context.*", path.display());
-    println!("Looking for files matching: '{}'", file_pattern);
+    info!("Looking for files matching: '{}'", file_pattern);
 
     // Try to glob for the default file using a pattern
     for entry in glob(file_pattern.as_str()).expect("Failed to read glob pattern") {
@@ -46,19 +46,19 @@ fn get_default_sample() {
         look for default file type in it by extension
 */
 pub fn get(path: PathBuf) -> io::Result<PathBuf> {
-    println!("Attempting to open flow file using path = '{}'", path.display());
+    info!("Attempting to open flow file using path = '{}'", path.display());
 
     match metadata(&path) {
         Ok(md) => {
             if md.is_dir() {
-                println!("'{}' is a directory, so attempting to find context file in it", path.display());
+                info!("'{}' is a directory, so attempting to find context file in it", path.display());
                 get_default_file(path)
             } else {
                 Ok(path)
             }
         },
         Err(e) => {
-            println!("Error getting file metadata for path: '{}', {}", path.display(), e);
+            error!("Error getting file metadata for path: '{}', {}", path.display(), e);
             Err(io::Error::new(ErrorKind::NotFound,
                                format!("File or Directory '{}' could not be found or opened. ({})", path.display(), e)))
         }
