@@ -29,10 +29,14 @@ fn init(values: Vec<Box<Value>>, functions: Vec<Box<Function>>,
 /// loaded at program start-up then start executing the program using the `execute` method.
 /// You should not have to write code to use this method yourself, it will be called from the
 /// generated code in the `main` method.
+///
+/// It is a divergent function that will never return. On completion of the execution of the flow
+/// it will exit the process.
+///
 /// # Example
 /// ```
-/// use flowrlib::function::Function;
-/// use flowrlib::value::Value;
+/// # use flowrlib::function::Function;
+/// # use flowrlib::value::Value;
 /// use flowrlib::execution::execute;
 ///
 /// let values = Vec::<Box<Value>>::new();
@@ -40,9 +44,6 @@ fn init(values: Vec<Box<Value>>, functions: Vec<Box<Function>>,
 ///
 /// execute(values, functions);
 /// ```
-///
-/// It is a divergent function that will never return. On completion of the execution of the flow
-/// it will exit the process.
 pub fn execute(values: Vec<Box<Value>>, functions: Vec<Box<Function>>) -> ! {
     let mut blocked = Vec::<Box<Runnable>>::new();
     let mut ready = Vec::<Box<Runnable>>::new();
