@@ -1,28 +1,24 @@
 use runnable::Runnable;
-use value::Value;
-use function::Function;
 use std::process::exit;
 
 /*
-    This function is responsible for initializing the value of any Values that have initial_value
-    specified in their definition, and if they do, placing them in the `ready` queue.
-
-    It places all unitialized values and all functions in the `blocked` queue pending inputs.
+    This function is responsible for initializing all runnables. Each one returns a boolean to
+    indicate if they are now able to be run - and if so it is placed in the ready queue which is
+    returned.
 */
-fn init(values: Vec<Box<Value>>, functions: Vec<Box<Function>>,
-        blocked: &mut Vec<Box<Runnable>>, ready: &mut Vec<Box<Runnable>>) {
-    println!("Initializing values");
-    for mut value in values {
-        if value.init() {
-            ready.push(value);
-        } else {
-            blocked.push(value);
-        }
+fn init(runnables: Vec<Box<Runnable>>) -> Vec<Box<Runnable>> {
+    let mut ready = Vec::<Box<Runnable>>::new();
+
+    info!("Initializing values");
+    for mut runnable in runnables {
+        if runnable.init() {
+            ready.push(runnable);
+        }/* else {
+            blocked.push(runnable);
+        }*/
     }
 
-    for function in functions {
-        blocked.push(function);
-    }
+    ready
 }
 
 /// The generated code for a flow consists of values and functions. Once these lists have been
@@ -35,32 +31,33 @@ fn init(values: Vec<Box<Value>>, functions: Vec<Box<Function>>,
 ///
 /// # Example
 /// ```
-/// # use flowrlib::function::Function;
-/// # use flowrlib::value::Value;
+/// use flowrlib::runnable::Runnable;
 /// use flowrlib::execution::execute;
 ///
-/// let values = Vec::<Box<Value>>::new();
-/// let functions = Vec::<Box<Function>>::new();
+/// let runnables = Vec::<Box<Runnable>>::new();
 ///
-/// execute(values, functions);
+/// execute(runnables);
 /// ```
-pub fn execute(values: Vec<Box<Value>>, functions: Vec<Box<Function>>) -> ! {
-    let mut blocked = Vec::<Box<Runnable>>::new();
-    let mut ready = Vec::<Box<Runnable>>::new();
+pub fn execute(runnables: Vec<Box<Runnable>>) -> ! {
+    let mut ready = init(runnables);
 
-    init(values, functions, &mut blocked, &mut ready);
-
-    println!("Starting execution loop");
+    info!("Starting execution loop");
     loop {
         for mut runnable in ready {
             runnable.run();
+
+//            blocked.push(runnable);
+
+            // for everything that is listening on the output of the function/value that was just
+            // run... (if the function produces no output, then no one will be listening and null list
+            // their status needs to be checked...
+//        functions[0].implementation.run(&mut functions[0]);
         }
 
-        // for everything that is listening on the output of the function/value that was just
-        // run... (if the function produces no output, then no one will be listening and null list
-        // their status needs to be checked...
-//        functions[0].implementation.run(&mut functions[0]);
+        ready = Vec::<Box<Runnable>>::new();
 
-        exit(0);
+        if ready.is_empty() {
+            exit(0);
+        }
     }
 }

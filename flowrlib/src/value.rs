@@ -34,20 +34,20 @@ impl Value {
             pending_reads: 0
         }
     }
+}
 
+impl Runnable for Value {
     /*
         If an initial value is defined then write it to the current value.
         Return true if ready to run as all inputs (single in this case) are satisfied.
     */
-    pub fn init(&mut self) -> bool {
+    fn init(&mut self) -> bool {
         if let Some(new_value) = self.initial_value {
             return self.write_input(ONLY_INPUT, new_value.to_string());
         }
         false
     }
-}
 
-impl Runnable for Value {
     /*
         Update the value stored - this should only be called when the input is available and the
         value has already been consumed by all the listeners and hence it can be overwritten.

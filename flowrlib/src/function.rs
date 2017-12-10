@@ -57,6 +57,8 @@ impl Function {
 }
 
 impl Runnable for Function {
+    fn init(&mut self) -> bool { false }
+
     /*
         provide a given input
     */

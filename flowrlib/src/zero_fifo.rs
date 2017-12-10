@@ -8,7 +8,7 @@ impl Implementation for Fifo {
     fn run(&self, runnable: &mut Runnable) {
         let input = runnable.read_input(0);
         runnable.set_output(input);
-        println!("run: value - copied input to output");
+        info!("run: Fifo - copied input to output");
     }
 
     fn number_of_inputs(&self) -> usize {
