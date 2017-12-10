@@ -1,14 +1,12 @@
 use implementation::Implementation;
-use runnable::Runnable;
 
 #[derive(Debug)]
 pub struct Fifo;
 
 impl Implementation for Fifo {
-    fn run(&self, runnable: &mut Runnable) {
-        let input = runnable.read_input(0);
-        runnable.set_output(input);
-        info!("run: Fifo - copied input to output");
+    fn run(&self, mut inputs: Vec<Option<String>>) -> Option<String> {
+        info!("run: Fifo - sole input provided to output");
+        inputs.remove(0)
     }
 
     fn number_of_inputs(&self) -> usize {

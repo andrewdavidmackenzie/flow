@@ -1,4 +1,3 @@
-use flowrlib::runnable::Runnable;
 use flowrlib::implementation::Implementation;
 
 use std::fmt;
@@ -17,12 +16,12 @@ impl Implementation for Stdin {
         0
     }
 
-    fn run(&self, runnable: &mut Runnable) {
+    fn run(&self, _inputs: Vec<Option<String>>) -> Option<String> {
         use std::io::{self, Read};
 
         let mut buffer = String::new();
         io::stdin().read_to_string(&mut buffer).unwrap();
-        runnable.set_output(buffer);
+        Some(buffer)
     }
 
     fn define(&self) -> &'static str {

@@ -1,4 +1,3 @@
-use flowrlib::runnable::Runnable;
 use flowrlib::implementation::Implementation;
 
 use std::fmt;
@@ -17,8 +16,9 @@ impl Implementation for Stderr {
         1
     }
 
-    fn run(&self, runnable: &mut Runnable) {
-        eprintln!("{}", runnable.read_input(0));
+    fn run(&self, mut inputs: Vec<Option<String>>) -> Option<String> {
+        eprintln!("{}", inputs.remove(0).unwrap());
+        None
     }
 
     fn define(&self) -> &'static str {

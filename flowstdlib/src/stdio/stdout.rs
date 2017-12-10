@@ -1,4 +1,3 @@
-use flowrlib::runnable::Runnable;
 use flowrlib::implementation::Implementation;
 
 use std::fmt;
@@ -19,8 +18,9 @@ impl Implementation for Stdout {
         1
     }
 
-    fn run(&self, runnable: &mut Runnable) {
-        println!("{:?}", runnable.read_input(0));
+    fn run(&self, mut inputs: Vec<Option<String>>) -> Option<String> {
+        println!("{:?}", inputs.remove(0).unwrap());
+        None
     }
 
     fn define(&self) -> &'static str {

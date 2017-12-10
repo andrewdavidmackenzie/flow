@@ -7,31 +7,31 @@ const ONLY_INPUT: usize = 0;
 
 #[derive(Debug)]
 pub struct Value {
+    id: u32,
+
     initial_value: Option<&'static str>,
     implementation: &'static Implementation,
 
     num_inputs: usize,
     num_inputs_pending: usize,
-    pub inputs: Vec<Option<String>>,
+    inputs: Vec<Option<String>>,
 
-    output: Option<String>,
-    num_listeners: usize,       // How many listeners are listening on this value
-    pending_reads: usize        // How many "reads" of the value are needed before it's empty
+    output_routes: Vec<(usize, usize)>
 }
 
 impl Value {
-    pub fn new(initial_value: Option<&'static str>, num_listeners: usize) -> Value {
+    pub fn new(id: u32, initial_value: Option<&'static str>,
+               output_routes: Vec<(usize, usize)>) -> Value {
         let number_of_inputs = 1;
 
         Value {
+            id,
             initial_value,
             implementation: &Fifo,
             num_inputs: number_of_inputs,
             num_inputs_pending: number_of_inputs,
             inputs: vec![None; number_of_inputs],
-            output: None,
-            num_listeners,
-            pending_reads: 0
+            output_routes
         }
     }
 }
@@ -43,7 +43,7 @@ impl Runnable for Value {
     */
     fn init(&mut self) -> bool {
         if let Some(new_value) = self.initial_value {
-            return self.write_input(ONLY_INPUT, new_value.to_string());
+            return self.write_input(ONLY_INPUT, Some(new_value.to_string()));
         }
         false
     }
@@ -52,22 +52,22 @@ impl Runnable for Value {
         Update the value stored - this should only be called when the input is available and the
         value has already been consumed by all the listeners and hence it can be overwritten.
     */
-    fn write_input(&mut self, input_number: usize, input_value: String) -> bool {
-        self.num_inputs_pending -=1;
-        self.inputs[input_number] = Some(input_value);
+    fn write_input(&mut self, input_number: usize, input_value: Option<String>) -> bool {
+        self.num_inputs_pending -= 1;
+        self.inputs[input_number] = input_value;
         self.num_inputs_pending == 0 // all inputs satisfied
     }
 
-    fn read_input(&mut self, input_number: usize) -> String {
-        replace(&mut self.inputs[input_number], None).unwrap()
+    /*
+        A Runnable is run by running the actual implementation and passing in the inputs
+    */
+    fn run(&mut self) -> Option<String> {
+        // Consume the inputs
+        let inputs = replace(&mut self.inputs, vec![None; self.num_inputs]);
+        self.implementation.run(inputs)
     }
 
-    fn run(&mut self) {
-        self.implementation.run(self);
-    }
-
-    fn set_output(&mut self, output_value: String) {
-        self.pending_reads = self.num_listeners;
-        self.output = Some(output_value);
+    fn get_affected(&self) -> Vec<(usize, usize)> {
+        self.output_routes.clone()
     }
 }

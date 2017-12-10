@@ -1,21 +1,22 @@
 use runnable::Runnable;
 use std::process::exit;
+use std::sync::{Arc, Mutex};
 
 /*
-    This function is responsible for initializing all runnables. Each one returns a boolean to
-    indicate if they are now able to be run - and if so it is placed in the ready queue which is
-    returned.
+    This function is responsible for initializing all runnables. On initialization each one returns
+    a boolean to indicate if they are now able to be run - if so it is placed in the ready queue
+    which is returned.
 */
-fn init(runnables: Vec<Box<Runnable>>) -> Vec<Box<Runnable>> {
-    let mut ready = Vec::<Box<Runnable>>::new();
+fn init(runnables: &Vec<Arc<Mutex<Runnable>>>) -> Vec<Arc<Mutex<Runnable>>> {
+    let mut ready = Vec::<Arc<Mutex<Runnable>>>::new();
 
     info!("Initializing values");
-    for mut runnable in runnables {
-        if runnable.init() {
-            ready.push(runnable);
-        }/* else {
-            blocked.push(runnable);
-        }*/
+    for runnable_arc_ref in runnables {
+        let runnable_arc = runnable_arc_ref.clone();
+        let mut runnable_mut = runnable_arc.lock().unwrap();
+        if runnable_mut.init() {
+            ready.push(runnable_arc.clone());
+        }
     }
 
     ready
@@ -38,23 +39,26 @@ fn init(runnables: Vec<Box<Runnable>>) -> Vec<Box<Runnable>> {
 ///
 /// execute(runnables);
 /// ```
-pub fn execute(runnables: Vec<Box<Runnable>>) -> ! {
-    let mut ready = init(runnables);
+pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) -> ! {
+    let mut ready = init(&runnables);
 
     info!("Starting execution loop");
     loop {
-        for mut runnable in ready {
-            runnable.run();
+        let runnable_arc = ready.remove(0).clone();
+        let mut runnable_mut = runnable_arc.lock().unwrap();
+        let output = runnable_mut.run();
+//        info!("Output = '{}'", output.unwrap());
 
-//            blocked.push(runnable);
-
-            // for everything that is listening on the output of the function/value that was just
-            // run... (if the function produces no output, then no one will be listening and null list
-            // their status needs to be checked...
-//        functions[0].implementation.run(&mut functions[0]);
+        for (run_id, io_number) in runnable_mut.get_affected() {
+            let affected_arc = runnables[run_id].clone();
+            let mut affected = affected_arc.lock().unwrap();
+            if affected.write_input(io_number, output.clone()){
+                ready.push(affected_arc.clone());
+            }
         }
 
-        ready = Vec::<Box<Runnable>>::new();
+        // See if that produced any changes in other runnables, such that they should be added to
+        // the runnables list.
 
         if ready.is_empty() {
             exit(0);
