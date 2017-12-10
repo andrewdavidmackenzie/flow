@@ -18,3 +18,4 @@ toml = "0.4"
 serde_derive = "*"
 serde = "*"
 flowstdlib = { path = "../flowstdlib" }
+log = "*"

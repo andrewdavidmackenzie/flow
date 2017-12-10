@@ -187,14 +187,14 @@ fn build_connections(flow: &mut Flow) {
                     connection.to_route = to_route;
                     connection.ends_at_flow = ends_at_flow;
                 } else {
-                    eprintln!("Type mismatch from '{}' of type '{}' to '{}' of type '{}'",
+                    error!("Type mismatch from '{}' of type '{}' to '{}' of type '{}'",
                              from_route, from_type, to_route, to_type);
                 }
             } else {
-                eprintln!("Did not find destination: {}", connection.to);
+                error!("Did not find destination: {}", connection.to);
             }
         } else {
-            eprintln!("Did not find source: {}", connection.from);
+            error!("Did not find source: {}", connection.from);
         }
     }
 
