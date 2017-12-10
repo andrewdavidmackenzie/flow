@@ -19,3 +19,4 @@ serde_derive = "*"
 serde = "*"
 flowstdlib = { path = "../flowstdlib" }
 log = "*"
+strfmt = "0.1.5"

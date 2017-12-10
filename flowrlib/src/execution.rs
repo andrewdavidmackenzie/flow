@@ -32,10 +32,11 @@ fn init(runnables: &Vec<Arc<Mutex<Runnable>>>) -> Vec<Arc<Mutex<Runnable>>> {
 ///
 /// # Example
 /// ```
+/// use std::sync::{Arc, Mutex};
 /// use flowrlib::runnable::Runnable;
 /// use flowrlib::execution::execute;
 ///
-/// let runnables = Vec::<Box<Runnable>>::new();
+/// let runnables = Vec::<Arc<Mutex<Runnable>>>::new();
 ///
 /// execute(runnables);
 /// ```
@@ -43,7 +44,7 @@ pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) -> ! {
     let mut ready = init(&runnables);
 
     info!("Starting execution loop");
-    loop {
+    while !ready.is_empty()  {
         let runnable_arc = ready.remove(0).clone();
         let mut runnable_mut = runnable_arc.lock().unwrap();
         let output = runnable_mut.run();
@@ -59,9 +60,7 @@ pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) -> ! {
 
         // See if that produced any changes in other runnables, such that they should be added to
         // the runnables list.
-
-        if ready.is_empty() {
-            exit(0);
-        }
     }
+
+    exit(0);
 }
