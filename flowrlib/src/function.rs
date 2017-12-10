@@ -4,14 +4,16 @@ use std::mem::replace;
 
 #[derive(Debug)]
 pub struct Function {
-    pub implementation: &'static Implementation,
-    pub num_inputs: usize,
-    pub num_inputs_pending: usize,
-    pub inputs: Vec<Option<String>>,
+    initial_value: Option<&'static str>,
+    implementation: &'static Implementation,
 
-    pub num_listeners: usize,         // How many listeners are listening on this value
-    pub pending_reads: usize,      // How many "reads" of the value are needed before it's empty
-    pub output: Option<String>
+    num_inputs: usize,
+    num_inputs_pending: usize,
+    inputs: Vec<Option<String>>,
+
+    num_listeners: usize,         // How many listeners are listening on this value
+    pending_reads: usize,      // How many "reads" of the value are needed before it's empty
+    output: Option<String>
 }
 
 // TODO these methods will need to be made thread safe
@@ -22,10 +24,11 @@ impl Function {
     pub fn new(implementation: &'static Implementation, num_listeners: usize) -> Function {
         let number_of_inputs = implementation.number_of_inputs();
         Function {
+            initial_value: None,
             implementation,
             num_inputs: number_of_inputs,
             num_inputs_pending: number_of_inputs,
-            inputs: Vec::<Option<String>>::with_capacity(number_of_inputs),
+            inputs: vec![None; number_of_inputs],
             num_listeners,
             pending_reads: num_listeners,
             output: None
