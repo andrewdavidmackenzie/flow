@@ -1,19 +1,33 @@
+#[macro_use]
+extern crate log;
+use log::LogLevelFilter;
+use log::SetLoggerError;
+
 extern crate flowrlib;
 extern crate flowstdlib;
 
 use flowrlib::execution::execute;
 
-mod functions;
-mod values;
+mod runnables;
+mod simple_logger;
 
-use values::get_values;
-use functions::get_functions;
+use runnables::get_runnables;
+use simple_logger::SimpleLogger;
+
+fn init_logging() -> Result<(), SetLoggerError> {
+    log::set_logger(|max_log_level| {
+        max_log_level.set(LogLevelFilter::Info);
+        Box::new(SimpleLogger)
+    })
+}
 
 fn main() {
-    println!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+    init_logging().unwrap();
+
+    info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
 
     // TODO some standard inputs that are passed to main as arguments
     // a library function to help parse them?
 
-    execute(get_values(), get_functions());
+    execute(get_runnables());
 }

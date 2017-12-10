@@ -10,3 +10,4 @@ path = "src/main.rs"
 [dependencies]
 flowrlib = { path = "../flowrlib" }
 flowstdlib = { path = "../flowstdlib" }
+log = "*"
