@@ -16,6 +16,9 @@ path = \"src/{main_filename}\"
 flowrlib = {{ path = \"/Users/andrew/workspace/flow/flowrlib\", version = \"*\" }}
 flowstdlib = {{ path = \"/Users/andrew/workspace/flow/flowstdlib\", version = \"*\"}}
 log = \"*\"
+
+[workspace]
+exclude = [\"..\"]
 ";
 
 pub fn cargo_file_contents(vars: &HashMap<String, &str>) -> Result<String> {
