@@ -3,6 +3,7 @@ use model::value::Value;
 use model::function::Function;
 use model::connection::Connection;
 use std::fmt;
+use compiler::generator::code_gen;
 
 /// Take a hierarchical flow definition in memory and compile it, generating code that implements
 /// the flow, including links to the flowrlib runtime library and library functions used in the
@@ -23,6 +24,12 @@ pub fn compile(flow: &mut Flow, dump: bool) {
         print(&value_table, "Values");
         print(&function_table, "Functions");
     }
+
+    let mut directory = flow.source.clone();
+    directory.pop();
+    directory.push("rust");
+    info!("Generating code in dir '{}'", directory.to_str().unwrap());
+    code_gen::generate(directory, true).unwrap();
 }
 
 fn print<E: fmt::Display>(table: &Vec<E>, title: &str) {
