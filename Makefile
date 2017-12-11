@@ -3,8 +3,7 @@ RUSTUP := $(shell command -v rustup 2> /dev/null)
 
 all: test package
 
-test: test-flowclib test-flowrlib test-flowc test-gen-sample test-electron
-#run-gen-sample
+test: test-flowclib test-flowrlib test-flowc test-hello-simple test-electron
 
 test-flowclib:
 	@echo ""
@@ -18,17 +17,22 @@ test-flowrlib:
 	@cargo test --manifest-path flowrlib/Cargo.toml
 	@echo "------- Finished testing flowrlib -------------"
 
-test-flowc:
+./target/debug/flowc:
+	@cargo build --manifest-path flowc/Cargo.toml
+
+test-flowc: ./target/debug/flowc
 	@echo ""
 	@echo "------- Started  testing flowc ----------------"
 	@cargo test --manifest-path flowc/Cargo.toml
 	@echo "------- Finished testing flowc ----------------"
 
-test-gen-sample:
+test-hello-simple: ./target/debug/flowc
 	@echo ""
-	@echo "------- Started  testing generated_example ----"
-	@cargo test --manifest-path  generated_example/Cargo.toml
-	@echo "------- Finished testing generated_example ----"
+	@echo "------- Started testing generation of hello-world-simple ----"
+	@rm -rf samples/hello-world-simple/rust
+	./target/debug/flowc samples/hello-world-simple
+	@cargo run --manifest-path  samples/hello-world-simple/rust/Cargo.toml
+	@echo "------- Finished testing generation of hello-world-simple ----"
 
 test-electron:
 	@echo ""
@@ -70,6 +74,7 @@ clean:
 	rm -rf flowstdlib/target
 	rm -rf generated_example/target
 	rm -rf electron/target
+	rm -rf samples/hello-world-simple/rust
 	cd electron && make clean
 
 dependencies.png: dependencies.dot

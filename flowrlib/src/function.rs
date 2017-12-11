@@ -4,8 +4,6 @@ use std::mem::replace;
 
 #[derive(Debug)]
 pub struct Function {
-    id: u32,
-
     initial_value: Option<&'static str>,
     implementation: &'static Implementation,
 
@@ -21,11 +19,10 @@ pub struct Function {
 // TODO Make these doc comments and produce some documentation?
 
 impl Function {
-    pub fn new(id: u32, implementation: &'static Implementation, output_routes: Vec<(usize, usize)>)
+    pub fn new(implementation: &'static Implementation, output_routes: Vec<(usize, usize)>)
                -> Function {
         let number_of_inputs = implementation.number_of_inputs();
         Function {
-            id,
             initial_value: None,
             implementation,
             num_inputs: number_of_inputs,

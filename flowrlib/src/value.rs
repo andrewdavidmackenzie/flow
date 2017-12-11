@@ -7,8 +7,6 @@ const ONLY_INPUT: usize = 0;
 
 #[derive(Debug)]
 pub struct Value {
-    id: u32,
-
     initial_value: Option<&'static str>,
     implementation: &'static Implementation,
 
@@ -20,12 +18,11 @@ pub struct Value {
 }
 
 impl Value {
-    pub fn new(id: u32, initial_value: Option<&'static str>,
+    pub fn new(initial_value: Option<&'static str>,
                output_routes: Vec<(usize, usize)>) -> Value {
         let number_of_inputs = 1;
 
         Value {
-            id,
             initial_value,
             implementation: &Fifo,
             num_inputs: number_of_inputs,

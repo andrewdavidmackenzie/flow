@@ -1,4 +1,14 @@
 
+Loading of functions from stdlib (at compile time) - by finding them by name on the load path
+and then requesting their definition?
+Maybe initialize default PATH with "." so that it finds default one.
+
+Using connections, for each output, add a reference to one or more input that data should be sent to when made available.
+
+Runnables generation with the references to the runnable number and input number.
+
+Drop unneeded functions and values
+
 Check connections all match up in direction.
 
 Write tests for compile functions and connection mapping and dropping etc
@@ -8,17 +18,6 @@ Write test cases for the pruning cases mentioned in flow_compiling.md
 Look at error chain crate and define own errors in loader/flowc in particular
 
 Maybe add references to values and functions in the connections when we are doing that
-
-Drop unneeded functions and values
-
-Using connections, for each output, add a reference to one or more input that data should be sent to when made available.
-
-Loading of functions from stdlib (at compile time) - by finding them by name on the load path
-and then requesting their definition?
-
-Consider specifying built-in functions that the run-time knows about already.
-Will probably need some PATH to search to find them, similar to library flows...
-Maybe initialize default PATH with "." so that it finds default one.
 
 Definition Doubts
 =================
