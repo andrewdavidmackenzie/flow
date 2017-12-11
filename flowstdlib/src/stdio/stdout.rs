@@ -11,8 +11,6 @@ name = 'Stdout'
 name = 'stdout'
 type = 'String'";
 
-unsafe impl Sync for Stdout {}
-
 impl Implementation for Stdout {
     fn number_of_inputs(&self) -> usize {
         1
