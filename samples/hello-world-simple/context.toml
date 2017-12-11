@@ -7,7 +7,7 @@ value = "Hello World!"
 
 [[function]]
 alias = "print"
-source = "terminal.toml"
+source = "stdout.toml"
 
 [[connection]]
 name = "message"

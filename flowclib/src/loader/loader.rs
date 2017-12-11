@@ -92,7 +92,7 @@ pub fn load_single_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, 
 /// use std::path::PathBuf;
 /// use flowclib::loader::loader;
 ///
-/// let path = PathBuf::from("../samples/hello-world-simple/terminal.toml");
+/// let path = PathBuf::from("../samples/hello-world-simple/stdout.toml");
 /// loader::load_function(&path, "/root_flow").unwrap();
 /// ```
 pub fn load_function(file_path: &PathBuf, parent_route: &str) -> Result<Function, String> {

@@ -1,4 +1,4 @@
-name = "terminal"
+name = "stdout"
 
 [[input]]
 name = "stdout"
