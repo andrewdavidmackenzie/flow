@@ -27,8 +27,7 @@ pub fn compile(flow: &mut Flow, dump: bool) {
 
     let mut directory = flow.source.clone();
     directory.pop();
-    directory.push("rust");
-    info!("Generating code in dir '{}'", directory.to_str().unwrap());
+    info!("Generating rust project into dir '{}'", directory.to_str().unwrap());
     code_gen::generate(directory, true).unwrap();
 }
 
