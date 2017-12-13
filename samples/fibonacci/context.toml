@@ -2,17 +2,17 @@ name = "fibonacci"
 
 [[value]]
 name = "HEAD-1"
-type = "u32"
+type = "String"
 value = "1"
 
 [[value]]
 name = "HEAD"
-type = "u32"
+type = "String"
 value = "1"
 
 [[function]]
 alias = "print"
-source = "terminal.toml"
+source = "stdout.toml"
 
 [[function]]
 alias = "sum"

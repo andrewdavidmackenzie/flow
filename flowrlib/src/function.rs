@@ -113,7 +113,7 @@ impl Runnable for Function {
         // Add the vector of tuples of elements and their inputs it's connected to
         code.push_str(" vec!(");
         for ref route in &self.output_routes {
-            code.push_str(&format!("({},{})", route.0, route.1));
+            code.push_str(&format!("({},{}),", route.0, route.1));
         }
         code.push_str(")");
 

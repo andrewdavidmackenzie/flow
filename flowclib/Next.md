@@ -1,4 +1,7 @@
 
+use build.rs in std lib to build tables of runnables that compiler can use to find them by path.
+
+
 Loading of functions from stdlib (at compile time) - by finding them by name on the load path
 and then requesting their definition?
 Maybe initialize default PATH with "." so that it finds default one.

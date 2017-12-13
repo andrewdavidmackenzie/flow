@@ -99,6 +99,7 @@ fn inputs_table(value_table: &Vec<Value>, function_table: &Vec<Function>) -> Has
         runnable_index += 1;
     }
 
+    info!("Input routes: {:?}", input_route_table);
     input_route_table
 }
 
@@ -119,10 +120,12 @@ fn create_runnables_table(value_table: Vec<Value>,
     let mut runnables = Vec::<Box<Runnable>>::new();
 
     for value in &value_table {
+        info!("Looking for connection from value @ '{}'", &value.route);
         let mut output_connections = Vec::<(usize, usize)>::new();
         // Find the list of connections from the output of this runnable - there can be multiple
         for connection in &connection_table {
-            if connection.from_route == value.route {
+            if value.route == connection.from_route {
+                info!("Connection found: to '{}'", &connection.to_route);
                 // Get the index of runnable and input index of the destination of the connection
                 output_connections.push(inputs_routes.get(&connection.to_route).unwrap().clone());
             }
@@ -133,11 +136,16 @@ fn create_runnables_table(value_table: Vec<Value>,
 
     for function in &function_table {
         let mut output_connections = Vec::<(usize, usize)>::new();
-        // Find the list of connections from the output of this runnable - there can be multiple
-        for connection in &connection_table {
-            if connection.from_route == function.route {
-                // Get the index of runnable and input index of the destination of the connection
-                output_connections.push(*inputs_routes.get(&connection.to_route).unwrap());
+        // if it has any outputs at all
+        if let Some(ref outputs) = function.outputs {
+            info!("Looking for connection from function @ '{}'", &function.route);
+            // Find the list of connections from the output of this runnable - there can be multiple
+            for connection in &connection_table {
+                if outputs[0].route == connection.from_route {
+                    info!("Connection found: to '{}'", &connection.to_route);
+                    // Get the index of runnable and input index of the destination of the connection
+                    output_connections.push(*inputs_routes.get(&connection.to_route).unwrap());
+                }
             }
         }
         let implementation = Box::new(ImplementationStub{name: function.name.clone()});

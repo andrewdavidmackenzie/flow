@@ -43,23 +43,22 @@ fn init(runnables: &Vec<Arc<Mutex<Runnable>>>) -> Vec<Arc<Mutex<Runnable>>> {
 pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) -> ! {
     let mut ready = init(&runnables);
 
+    info!("");
     info!("Starting execution loop");
     while !ready.is_empty()  {
         let runnable_arc = ready.remove(0).clone();
         let mut runnable_mut = runnable_arc.lock().unwrap();
         let output = runnable_mut.run();
-//        info!("Output = '{}'", output.unwrap());
+        info!("Output = '{:?}'", &output);
 
         for (run_id, io_number) in runnable_mut.get_affected() {
             let affected_arc = runnables[run_id].clone();
             let mut affected = affected_arc.lock().unwrap();
-            if affected.write_input(io_number, output.clone()){
+            if affected.write_input(io_number, output.clone()) {
+                info!("Runnable ready");
                 ready.push(affected_arc.clone());
             }
         }
-
-        // See if that produced any changes in other runnables, such that they should be added to
-        // the runnables list.
     }
 
     exit(0);

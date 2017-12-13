@@ -8,7 +8,7 @@ const ONLY_INPUT: usize = 0;
 #[derive(Debug)]
 pub struct Value {
     initial_value: Option<String>,
-    implementation: &'static Implementation,
+    implementation: Box<Implementation>,
 
     num_inputs: usize,
     num_inputs_pending: usize,
@@ -24,7 +24,7 @@ impl Value {
 
         Value {
             initial_value,
-            implementation: &Fifo,
+            implementation: Box::new(Fifo),
             num_inputs: number_of_inputs,
             num_inputs_pending: number_of_inputs,
             inputs: vec![None; number_of_inputs],
@@ -38,7 +38,7 @@ fn value_to_code() {
     let value = Value::new(Some("Hello-World".to_string()),
                            vec!((1,0)));
     let code = value.to_code();
-    assert_eq!(code, "Value::new(Some(\"Hello-World\".to_string()), vec!((1,0)))")
+    assert_eq!(code, "Value::new(Some(\"Hello-World\".to_string()), vec!((1,0),))")
 }
 
 impl Runnable for Value {
@@ -49,6 +49,7 @@ impl Runnable for Value {
     fn init(&mut self) -> bool {
         let value = self.initial_value.clone();
         if value.is_some() {
+            info!("Value initialized by writing '{:?}' to input", &value);
             return self.write_input(ONLY_INPUT, value);
         }
         false // have no value set
@@ -89,7 +90,7 @@ impl Runnable for Value {
         // Add the vector of tuples of runnables and their inputs it's connected to
         code.push_str(" vec!(");
         for ref route in &self.output_routes {
-            code.push_str(&format!("({},{})", route.0, route.1));
+            code.push_str(&format!("({},{}),", route.0, route.1));
         }
         code.push_str(")");
 
