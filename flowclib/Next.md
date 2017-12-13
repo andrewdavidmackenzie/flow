@@ -2,8 +2,10 @@
 Loading of functions from stdlib (at compile time) - by finding them by name on the load path
 and then requesting their definition?
 Maybe initialize default PATH with "." so that it finds default one.
+remove terminal.toml from examples and use stdlib version in it's place.
 
 Find Implementations and create them for code generation, and check types etc before???
+
 
 Drop unneeded functions and values
 
