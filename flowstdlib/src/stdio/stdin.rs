@@ -24,9 +24,14 @@ impl Implementation for Stdin {
         Some(buffer)
     }
 
+    fn name(&self) -> &'static str {
+        "Stdin"
+    }
+
     fn define(&self) -> &'static str {
         DEFINITION
     }
+
 }
 
 impl Debug for Stdin {

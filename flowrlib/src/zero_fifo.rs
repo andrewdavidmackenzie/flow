@@ -16,4 +16,8 @@ impl Implementation for Fifo {
     fn define(&self) -> &'static str where Self: Sized {
         "value"
     }
+
+    fn name(&self) -> &'static str {
+        "Value"
+    }
 }

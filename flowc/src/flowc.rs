@@ -39,7 +39,7 @@ fn main() {
 
     match files::get(path) {
         Ok(file_path) => {
-            info!("Attempting to load file: '{:?}'", file_path);
+            info!("Attempting to load file: '{}'", file_path.to_str().unwrap());
             match loader::load(file_path, dump) {
                 Ok(mut flow) => {
                     info!("'{}' flow loaded", flow.name);

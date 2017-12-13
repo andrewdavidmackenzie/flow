@@ -7,7 +7,7 @@ const ONLY_INPUT: usize = 0;
 
 #[derive(Debug)]
 pub struct Value {
-    initial_value: Option<&'static str>,
+    initial_value: Option<String>,
     implementation: &'static Implementation,
 
     num_inputs: usize,
@@ -18,7 +18,7 @@ pub struct Value {
 }
 
 impl Value {
-    pub fn new(initial_value: Option<&'static str>,
+    pub fn new(initial_value: Option<String>,
                output_routes: Vec<(usize, usize)>) -> Value {
         let number_of_inputs = 1;
 
@@ -33,16 +33,25 @@ impl Value {
     }
 }
 
+#[test]
+fn value_to_code() {
+    let value = Value::new(Some("Hello-World".to_string()),
+                           vec!((1,0)));
+    let code = value.to_code();
+    assert_eq!(code, "Value::new(Some(\"Hello-World\".to_string()), vec!((1,0)))")
+}
+
 impl Runnable for Value {
     /*
         If an initial value is defined then write it to the current value.
         Return true if ready to run as all inputs (single in this case) are satisfied.
     */
     fn init(&mut self) -> bool {
-        if let Some(new_value) = self.initial_value {
-            return self.write_input(ONLY_INPUT, Some(new_value.to_string()));
+        let value = self.initial_value.clone();
+        if value.is_some() {
+            return self.write_input(ONLY_INPUT, value);
         }
-        false
+        false // have no value set
     }
 
     /*
@@ -66,5 +75,25 @@ impl Runnable for Value {
 
     fn get_affected(&self) -> Vec<(usize, usize)> {
         self.output_routes.clone()
+    }
+
+    // example   "Value::new(Some(\"Hello-World\".to_string()), vec!((1,0)))"
+    fn to_code(&self) -> String {
+        let mut code = "Value::new(".to_string();
+        let value = self.initial_value.clone();
+        if value.is_none() {
+            code.push_str("None");
+        } else {
+            code.push_str(&format!("Some(\"{}\".to_string()),", value.unwrap()));
+        }
+        // Add the vector of tuples of runnables and their inputs it's connected to
+        code.push_str(" vec!(");
+        for ref route in &self.output_routes {
+            code.push_str(&format!("({},{})", route.0, route.1));
+        }
+        code.push_str(")");
+
+        code.push_str(")");
+        code
     }
 }

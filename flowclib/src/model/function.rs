@@ -18,8 +18,6 @@ pub struct Function {
     #[serde(rename = "output")]
     pub outputs: Option<Vec<IO>>,
 
-    pub implementation: Option<String>,  // TODO for now
-
     #[serde(skip_deserializing)]
     pub route: Route
 }

@@ -24,6 +24,10 @@ impl Implementation for Stdout {
     fn define(&self) -> &'static str {
         DEFINITION
     }
+
+    fn name(&self) -> &'static str {
+        "Stdout"
+    }
 }
 
 impl Debug for Stdout {

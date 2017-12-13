@@ -3,9 +3,7 @@ Loading of functions from stdlib (at compile time) - by finding them by name on 
 and then requesting their definition?
 Maybe initialize default PATH with "." so that it finds default one.
 
-Using connections, for each output, add a reference to one or more input that data should be sent to when made available.
-
-Runnables generation with the references to the runnable number and input number.
+Find Implementations and create them for code generation, and check types etc before???
 
 Drop unneeded functions and values
 

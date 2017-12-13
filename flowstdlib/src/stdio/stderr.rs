@@ -21,6 +21,10 @@ impl Implementation for Stderr {
         None
     }
 
+    fn name(&self) -> &'static str {
+        "Stderr"
+    }
+
     fn define(&self) -> &'static str {
         DEFINITION
     }

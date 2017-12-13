@@ -31,7 +31,7 @@ test-hello-simple: ./target/debug/flowc
 	@echo "------- Started testing generation of hello-world-simple ----"
 	@rm -rf samples/hello-world-simple/rust
 	./target/debug/flowc samples/hello-world-simple
-	@cargo run --manifest-path  samples/hello-world-simple/rust/Cargo.toml
+	@cargo run --manifest-path  samples/hello-world-simple/Cargo.toml
 	@echo "------- Finished testing generation of hello-world-simple ----"
 
 test-electron:

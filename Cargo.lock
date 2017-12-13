@@ -47,6 +47,7 @@ dependencies = [
 name = "flowclib"
 version = "0.1.1"
 dependencies = [
+ "flowrlib 0.1.1",
  "flowstdlib 0.1.0",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.24 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -38,7 +38,6 @@ impl Loader for FlowYamlLoader {
             route: "fake/fake".to_string(),
             inputs: None,
             outputs: None,
-            implementation: None
         };
 
         Ok(function)

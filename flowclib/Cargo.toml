@@ -17,6 +17,7 @@ yaml-rust = "~0.3.5"
 toml = "0.4"
 serde_derive = "*"
 serde = "*"
+flowrlib = { path = "../flowrlib" }
 flowstdlib = { path = "../flowstdlib" }
 log = "*"
 strfmt = "0.1.5"
