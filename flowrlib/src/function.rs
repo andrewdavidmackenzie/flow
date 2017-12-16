@@ -4,6 +4,7 @@ use std::mem::replace;
 
 #[derive(Debug)]
 pub struct Function {
+    id: usize,
     initial_value: Option<&'static str>,
     implementation: Box<Implementation>,
 
@@ -19,11 +20,12 @@ pub struct Function {
 // TODO Make these doc comments and produce some documentation?
 
 impl Function {
-    pub fn new(implementation: Box<Implementation>,
+    pub fn new(id: usize, implementation: Box<Implementation>,
                output_routes: Vec<(usize, usize)>)
                -> Function {
         let number_of_inputs = implementation.number_of_inputs();
         Function {
+            id,
             initial_value: None,
             implementation,
             num_inputs: number_of_inputs,
@@ -77,38 +79,46 @@ type = 'String'";
 
     #[test]
     fn function_to_code() {
-        let function = Function::new(Box::new(Stdout), vec!());
+        let function = Function::new(1, Box::new(Stdout), vec!());
         let code = function.to_code();
-        assert_eq!(code, "Function::new(Box::new(Stdout{}), vec!())")
+        assert_eq!(code, "Function::new(1, Box::new(Stdout{}), vec!())")
     }
 }
 
 
 impl Runnable for Function {
+    fn id(&self) -> usize { self.id }
+
     fn init(&mut self) -> bool { false }
 
-    /*
-        provide a given input
-    */
-    fn write_input(&mut self, input_number: usize, input_value: Option<String>) -> bool {
+    fn write_input(&mut self, input_number: usize, input_value: Option<String>) {
         self.num_inputs_pending -= 1;
         self.inputs[input_number] = input_value;
-        self.num_inputs_pending == 0 // all inputs satisfied
     }
 
+    // responds true if all inputs have been satisfied - false otherwise
+    fn inputs_satisfied(&self) -> bool {
+        self.num_inputs_pending == 0
+    }
+
+    /*
+        Consume the inputs, reset the number of pending inputs and run the implementation
+    */
     fn run(&mut self) -> Option<String> {
-        // Consume the inputs
         let inputs = replace(&mut self.inputs, vec![None; self.num_inputs]);
+        self.num_inputs_pending = self.num_inputs;
+        info!("Running implementation: '{}'", &self.implementation.name());
         self.implementation.run(inputs)
     }
 
-    fn get_affected(&self) -> Vec<(usize, usize)> {
+    fn output_destinations(&self) -> Vec<(usize, usize)> {
         self.output_routes.clone()
     }
 
     // example "Function::new(Box::new(Stdout{}), vec!())
     fn to_code(&self) -> String {
-        let mut code = format!("Function::new(Box::new({}{{}}),", self.implementation.name());
+        let mut code = format!("Function::new({}, Box::new({}{{}}),", self.id,
+                               self.implementation.name());
 
         // Add the vector of tuples of elements and their inputs it's connected to
         code.push_str(" vec!(");

@@ -5,7 +5,6 @@ pub struct Fifo;
 
 impl Implementation for Fifo {
     fn run(&self, mut inputs: Vec<Option<String>>) -> Option<String> {
-        info!("run: Fifo - sole input provided to output");
         inputs.remove(0)
     }
 

@@ -7,27 +7,20 @@ const ONLY_INPUT: usize = 0;
 
 #[derive(Debug)]
 pub struct Value {
+    id: usize,
     initial_value: Option<String>,
     implementation: Box<Implementation>,
-
-    num_inputs: usize,
-    num_inputs_pending: usize,
-    inputs: Vec<Option<String>>,
-
+    input: Option<String>,
     output_routes: Vec<(usize, usize)>
 }
 
 impl Value {
-    pub fn new(initial_value: Option<String>,
-               output_routes: Vec<(usize, usize)>) -> Value {
-        let number_of_inputs = 1;
-
+    pub fn new(id: usize, initial_value: Option<String>, output_routes: Vec<(usize, usize)>) -> Value {
         Value {
+            id,
             initial_value,
             implementation: Box::new(Fifo),
-            num_inputs: number_of_inputs,
-            num_inputs_pending: number_of_inputs,
-            inputs: vec![None; number_of_inputs],
+            input: None,
             output_routes
         }
     }
@@ -35,13 +28,15 @@ impl Value {
 
 #[test]
 fn value_to_code() {
-    let value = Value::new(Some("Hello-World".to_string()),
+    let value = Value::new(1, Some("Hello-World".to_string()),
                            vec!((1,0)));
     let code = value.to_code();
-    assert_eq!(code, "Value::new(Some(\"Hello-World\".to_string()), vec!((1,0),))")
+    assert_eq!(code, "Value::new(1, Some(\"Hello-World\".to_string()), vec!((1,0),))")
 }
 
 impl Runnable for Value {
+    fn id(&self) -> usize { self.id }
+
     /*
         If an initial value is defined then write it to the current value.
         Return true if ready to run as all inputs (single in this case) are satisfied.
@@ -50,37 +45,40 @@ impl Runnable for Value {
         let value = self.initial_value.clone();
         if value.is_some() {
             info!("Value initialized by writing '{:?}' to input", &value);
-            return self.write_input(ONLY_INPUT, value);
+            self.write_input(ONLY_INPUT, value);
         }
-        false // have no value set
+        self.inputs_satisfied()
     }
 
     /*
-        Update the value stored - this should only be called when the input is available and the
-        value has already been consumed by all the listeners and hence it can be overwritten.
+        Update the value stored - this should only be called when the value has already been
+        consumed by all the listeners and hence it can be overwritten.
     */
-    fn write_input(&mut self, input_number: usize, input_value: Option<String>) -> bool {
-        self.num_inputs_pending -= 1;
-        self.inputs[input_number] = input_value;
-        self.num_inputs_pending == 0 // all inputs satisfied
+    fn write_input(&mut self, _input_number: usize, input_value: Option<String>) {
+        self.input = input_value;
+    }
+
+    // responds true if all inputs have been satisfied - false otherwise
+    fn inputs_satisfied(&self) -> bool {
+        self.input.is_some()
     }
 
     /*
-        A Runnable is run by running the actual implementation and passing in the inputs
+        Consume the inputs and pass them to the actual implementation
     */
     fn run(&mut self) -> Option<String> {
-        // Consume the inputs
-        let inputs = replace(&mut self.inputs, vec![None; self.num_inputs]);
-        self.implementation.run(inputs)
+        let input = replace(&mut self.input, None);
+        info!("Running implementation: '{}'", &self.implementation.name());
+        self.implementation.run(vec!(input))
     }
 
-    fn get_affected(&self) -> Vec<(usize, usize)> {
+    fn output_destinations(&self) -> Vec<(usize, usize)> {
         self.output_routes.clone()
     }
 
     // example   "Value::new(Some(\"Hello-World\".to_string()), vec!((1,0)))"
     fn to_code(&self) -> String {
-        let mut code = "Value::new(".to_string();
+        let mut code = format!("Value::new({}, ", self.id);
         let value = self.initial_value.clone();
         if value.is_none() {
             code.push_str("None");

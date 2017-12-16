@@ -118,6 +118,7 @@ fn create_runnables_table(value_table: Vec<Value>,
     let inputs_routes = inputs_table(&value_table, &function_table);
 
     let mut runnables = Vec::<Box<Runnable>>::new();
+    let mut runnable_index = 0;
 
     for value in &value_table {
         info!("Looking for connection from value @ '{}'", &value.route);
@@ -130,7 +131,10 @@ fn create_runnables_table(value_table: Vec<Value>,
                 output_connections.push(inputs_routes.get(&connection.to_route).unwrap().clone());
             }
         }
-        let runnable_value = Box::new(RunnableValue::new(value.value.clone(), output_connections));
+        let runnable_value = Box::new(RunnableValue::new(runnable_index,
+                                                         value.value.clone(),
+                                                         output_connections));
+        runnable_index += 1;
         runnables.push(runnable_value);
     }
 
@@ -148,8 +152,11 @@ fn create_runnables_table(value_table: Vec<Value>,
                 }
             }
         }
-        let implementation = Box::new(ImplementationStub{name: function.name.clone()});
-        let runnable_function = Box::new(RunnableFunction::new(implementation, output_connections));
+        let implementation = Box::new(ImplementationStub { name: function.name.clone() });
+        let runnable_function = Box::new(RunnableFunction::new(runnable_index,
+                                                               implementation, output_connections));
+        runnable_index += 1;
+
         runnables.push(runnable_function);
     }
 

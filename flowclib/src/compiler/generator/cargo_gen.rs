@@ -13,8 +13,8 @@ name = \"{binary_name}\"
 path = \"src/{main_filename}\"
 
 [dependencies]
-flowrlib = {{ path = \"/Users/andrew/workspace/flow/flowrlib\", version = \"*\" }}
-flowstdlib = {{ path = \"/Users/andrew/workspace/flow/flowstdlib\", version = \"*\"}}
+flowrlib = {{ path = \"../../flowrlib\", version = \"*\" }}
+flowstdlib = {{ path = \"../../flowstdlib\", version = \"*\"}}
 log = \"*\"
 
 [workspace]
