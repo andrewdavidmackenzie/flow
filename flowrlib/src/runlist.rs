@@ -100,22 +100,115 @@ impl RunList {
 
 #[cfg(test)]
 mod tests {
-    struct TestRunnable;
+    use super::RunList;
+    use super::Runnable;
+    use std::sync::{Arc, Mutex};
+
+    struct TestRunnable {
+        id: usize
+    }
+
+    impl TestRunnable {
+        fn new(id: usize) -> TestRunnable {
+            TestRunnable{id}
+        }
+    }
 
     impl Runnable for TestRunnable {
         fn init(&mut self) -> bool { false }
-        fn write_input(&mut self, input_number: usize, new_value: Option<String>) {}
-        fn inputs_satisfied(&self) -> bool {}
+        fn write_input(&mut self, _input_number: usize, _new_value: Option<String>) {}
+        fn inputs_satisfied(&self) -> bool {false}
         fn run(&mut self) -> Option<String> { Some("Output".to_string())}
         fn output_destinations(&self) -> Vec<(usize, usize)> {vec!((1,0))}
-        fn id(&self) -> usize { 0 }
-        fn to_code(&self) -> String {"fake code"}
+        fn id(&self) -> usize { self.id }
+        fn to_code(&self) -> String {"fake code".to_string()}
+    }
+
+    fn test_runnables() -> RunList {
+        let mut runs = RunList::new();
+        let r0 = Arc::new(Mutex::new(TestRunnable::new(0)));
+        let r1 = Arc::new(Mutex::new(TestRunnable::new(1)));
+        runs.set_runnables(vec!(r0, r1));
+        runs
+    }
+
+    #[test]
+    fn get_works() {
+        let runs = test_runnables();
+        let got_arc = runs.get(1);
+        let got = got_arc.lock().unwrap();
+        assert_eq!(got.id(), 1)
+    }
+
+    #[test]
+    fn blocked_works() {
+        let mut runs = test_runnables();
+
+        // Indicate that 0 is blocked by 1
+        runs.blocked_by(1, 0);
+        assert!(runs.is_blocked(0));
+    }
+
+    #[test]
+    fn no_next_if_none_ready() {
+        let mut runs = test_runnables();
+
+        assert!(runs.next().is_none());
+    }
+
+    #[test]
+    fn inputs_ready_makes_ready() {
+        let mut runs = test_runnables();
+
+        // Indicate that 0 has all it's inputs read
+        runs.inputs_ready( 0);
+
+        match runs.next() {
+            None => assert!(false),
+            Some(arc) => {
+                let next = arc.lock().unwrap();
+                assert_eq!(next.id(), 0);
+            }
+        }
     }
 
     #[test]
     fn blocked_is_not_ready() {
-        let runs = RunList::new();
-        let r0 = TestRunnable::new();
-        let r1 = TestRunnable::new();
+        let mut runs = test_runnables();
+
+        // Indicate that 0 is blocked by 1
+        runs.blocked_by(1, 0);
+
+        // Indicate that 0 has all it's inputs read
+        runs.inputs_ready( 0);
+
+        match runs.next() {
+            None => assert!(true),
+            Some(_) => assert!(false)
+        }
+    }
+
+    #[test]
+    fn unblocking_makes_ready() {
+        let mut runs = test_runnables();
+
+        // Indicate that 0 is blocked by 1
+        runs.blocked_by(1, 0);
+
+        // Indicate that 0 has all it's inputs read
+        runs.inputs_ready( 0);
+
+        assert!(runs.next().is_none());
+
+        // now unblock 0 by 1
+        runs.unblock_by(1);
+
+        match runs.next() {
+            None => assert!(false),
+            Some(arc) => {
+                let next = arc.lock().unwrap();
+                assert_eq!(next.id(), 0);
+            }
+        }
     }
 }

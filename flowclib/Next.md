@@ -1,9 +1,6 @@
 
 use build.rs in std lib to build tables of runnables that compiler can use to find them by path.
-
-check inputs are free before running something that will generate utput to that input.
-
-Avoid my hardcoded paths in libs, so that CI can start passing again.
+replaces usages of terminal.toml etc with those...
 
 Loading of functions from stdlib (at compile time) - by finding them by name on the load path
 and then requesting their definition?
@@ -13,6 +10,7 @@ remove terminal.toml from examples and use stdlib version in it's place.
 Find Implementations and create them for code generation, and check types etc before???
 
 Release versions of the libs to cargo.io and change cargo_gen.rs to use that and not path
+
 
 Drop unneeded functions and values
 

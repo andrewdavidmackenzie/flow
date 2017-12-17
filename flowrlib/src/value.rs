@@ -58,7 +58,9 @@ impl Runnable for Value {
         self.input = input_value;
     }
 
-    // responds true if all inputs have been satisfied - false otherwise
+    /*
+        Responds true if all inputs have been satisfied - false otherwise
+    */
     fn inputs_satisfied(&self) -> bool {
         self.input.is_some()
     }

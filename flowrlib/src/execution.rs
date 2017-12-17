@@ -3,11 +3,10 @@ use std::process::exit;
 use std::sync::{Arc, Mutex};
 use runlist::RunList;
 
-/*
-    This function is responsible for initializing all runnables. On initialization each one returns
-    a boolean to indicate if they are now able to be run - if so it is placed in the ready queue
-    which is returned.
-*/
+/// The ìnit' function is responsible for initializing all runnables.
+/// The ìnit`method on each runnable is called, which returns a boolean to indicate that it's
+/// inputs are fulfilled - and this information is added to the RunList to control the readyness of
+/// the Runnable to be executed
 fn init(runnables: Vec<Arc<Mutex<Runnable>>>) -> RunList {
     let mut run_list = RunList::new();
 
