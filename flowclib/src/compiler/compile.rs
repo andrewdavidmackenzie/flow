@@ -54,16 +54,20 @@ pub fn compile(flow: &mut Flow, dump: bool) {
 
     prune_tables(&mut connection_table, &mut value_table, &mut function_table);
 
+    let log_level;
     if dump {
         print(&connection_table, "Collapsed Connections");
         print(&value_table, "Values");
         print(&function_table, "Functions");
+        log_level = "Info";
+    } else {
+        log_level = "Warn";
     }
 
     let runnables = create_runnables_table(value_table,
                                            function_table, connection_table);
 
-    code_gen::generate(flow, true, runnables).unwrap();
+    code_gen::generate(flow, true, log_level,  runnables).unwrap();
 }
 
 fn print<E: fmt::Display>(table: &Vec<E>, title: &str) {

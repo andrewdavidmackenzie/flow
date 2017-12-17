@@ -21,7 +21,7 @@ use simple_logger::SimpleLogger;
 
 fn init_logging() -> Result<(), SetLoggerError> {{
     log::set_logger(|max_log_level| {{
-        max_log_level.set(LogLevelFilter::Info);
+        max_log_level.set(LogLevelFilter::{log_level});
         Box::new(SimpleLogger)
     }})
 }}

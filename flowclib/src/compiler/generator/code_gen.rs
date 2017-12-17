@@ -3,15 +3,17 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::Result;
 use std::collections::HashMap;
-use compiler::generator::cargo_gen::cargo_file_contents; // TODO
-use compiler::generator::main_gen::main_file_contents; // TODO
-use compiler::generator::runnables_gen::runnables_file_contents; // TODO
+use compiler::generator::cargo_gen::cargo_file_contents;
+// TODO
+use compiler::generator::main_gen::main_file_contents;
+// TODO
+use compiler::generator::runnables_gen::runnables_file_contents;
+// TODO
 use flowrlib::runnable::Runnable;
 use model::flow::Flow;
 
-pub fn generate(flow: &mut Flow, _overwrite: bool,
+pub fn generate(flow: &mut Flow, _overwrite: bool, log_level: &str,
                 runnables: Vec<Box<Runnable>>) -> Result<()> {
-
     let mut directory = flow.source.clone();
     directory.pop();
     info!("Generating rust project into dir '{}'", directory.to_str().unwrap());
@@ -21,7 +23,7 @@ pub fn generate(flow: &mut Flow, _overwrite: bool,
         fs::create_dir(&directory)?;
     }
 
-    let vars = vars_from_flow(flow);
+    let mut vars = vars_from_flow(flow);
 
     // write the cargo file into the root
     directory.push("Cargo.toml");
@@ -38,6 +40,7 @@ pub fn generate(flow: &mut Flow, _overwrite: bool,
     // write the main.rs file into src
     directory.push("main.rs");
     let mut main_rs = File::create(&directory)?;
+    vars.insert("log_level".to_string(), log_level);
     main_rs.write_all(main_file_contents(&vars).unwrap().as_bytes())?;
     directory.pop();
 
