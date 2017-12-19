@@ -1,7 +1,7 @@
 Avoid having to generate use for all functions in code gen - producing warnings....
 
 use build.rs in std lib to build tables of runnables that compiler can use to find them by path.
-replaces usages of terminal.toml etc with those...
+replaces usages of terminal.toml in samples with a stdlib version...
 
 Loading of functions from stdlib (at compile time) - by finding them by name on the load path
 and then requesting their definition?
@@ -46,6 +46,11 @@ other functions by reference, then freed when the last one is used. Arc.
 
 Code Improvements
 =================
+More idiomatic rust, in terms of collections and iterations. using filter, into_iter(), iter(), 
+retain, map, filter_map, collect, 
+
+Improve error handling by defining own error types and using error_chain?
+
 Define type aliases for the optional lists of inputs etc to give more meaning to signatures.
 
 Look at methods in flow and loader and see how many of the ones that look for io etc
