@@ -3,7 +3,9 @@ RUSTUP := $(shell command -v rustup 2> /dev/null)
 
 all: test package
 
-test: test-flowclib test-flowrlib test-flowc test-hello-simple test-fibonacci test-electron test-gtk
+test: travis test-gtk
+
+travis: test-flowclib test-flowrlib test-flowc test-hello-simple test-fibonacci test-electron
 
 test-flowclib:
 	@echo ""

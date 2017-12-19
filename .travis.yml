@@ -17,7 +17,7 @@ rust:
 os:
   - osx
 
-script: make test
+script: make travis
 
 matrix:
   allow_failures:
