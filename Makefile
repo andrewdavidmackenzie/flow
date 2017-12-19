@@ -3,7 +3,7 @@ RUSTUP := $(shell command -v rustup 2> /dev/null)
 
 all: test package
 
-test: test-flowclib test-flowrlib test-flowc test-hello-simple test-electron
+test: test-flowclib test-flowrlib test-flowc test-hello-simple test-fibonacci test-electron test-gtk
 
 test-flowclib:
 	@echo ""
@@ -34,11 +34,26 @@ test-hello-simple: ./target/debug/flowc
 	@cargo run --manifest-path  samples/hello-world-simple/Cargo.toml
 	@echo "------- Finished testing generation of hello-world-simple ----"
 
+# NOTE for now it only builds it, doesn't run it as it crashes with interger overflow
+test-fibonacci: ./target/debug/flowc
+	@echo ""
+	@echo "------- Started testing generation of fibonacci ----"
+	@rm -rf samples/hello-world-simple/src
+	./target/debug/flowc samples/fibonacci
+	@cargo build --manifest-path  samples/fibonacci/Cargo.toml
+	@echo "------- Finished testing generation of fibonacci ----"
+
 test-electron:
 	@echo ""
 	@echo "------- Started  testing electron -------------"
 	@cargo test --manifest-path electron/Cargo.toml
 	@echo "------- Finished testing electron -------------"
+
+test-gtk:
+	@echo ""
+	@echo "------- Started  testing gtk -------------"
+	@cargo test --manifest-path gtk/Cargo.toml
+	@echo "------- Finished testing gtk -------------"
 
 package: package-electron package-flowc
 
