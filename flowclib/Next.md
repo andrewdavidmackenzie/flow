@@ -1,3 +1,4 @@
+Avoid having to generate use for all functions in code gen - producing warnings....
 
 use build.rs in std lib to build tables of runnables that compiler can use to find them by path.
 replaces usages of terminal.toml etc with those...
@@ -24,12 +25,24 @@ Look at error chain crate and define own errors in loader/flowc in particular
 
 Maybe add references to values and functions in the connections when we are doing that
 
+Multithreading
+==============
+Experiment with multithreading of execution. Use rayon divide and conquer technique on 
+the list of runnables?
+
+Test Coverage
+=============
+https://github.com/codecov/example-rust
+
 Definition Doubts
 =================
-Functions have only one output?
-
 maybe need to define splitters to break up tuples or structs so others can act on
-parts of them?
+parts of them? Named fields as separate outputs of a Value?
+
+Efficiency
+==========
+Outputs of a function that has been run could be reference counted and given as inputs to 
+other functions by reference, then freed when the last one is used. Arc.
 
 Code Improvements
 =================
@@ -40,3 +53,7 @@ could be returnng references and not creating new strings with format!
 
 Look to see how connection tables in compile could be done with just references and not creating
 all those new strings and new vectors.
+
+Generics
+========
+Investogate how to make functions and values and I/O of generic types!

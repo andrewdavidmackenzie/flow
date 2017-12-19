@@ -51,9 +51,11 @@ pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) -> ! {
     while let Some(runnable_arc) = run_list.next() {
         let mut runnable = runnable_arc.lock().unwrap();
         info!("Running runnable #{}", runnable.id());
+
         let output = runnable.run();
 
         // If other runnables were blocked trying to send to this one - we can now unblock them
+        // as it has consumed it's inputs and they are free to be sent to again.
         run_list.unblock_by(runnable.id());
 
         for (destination_id, io_number) in runnable.output_destinations() {
