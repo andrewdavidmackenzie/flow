@@ -4,9 +4,14 @@ use std::io::ErrorKind;
 use std::fs::metadata;
 use std::path::PathBuf;
 
+extern crate url;
+use url::Url;
+
 /*
     Passed a path to a directory, it searches for the first file it can find in the directory
     fitting the pattern "context.*", and if found opens it and returns it in the result
+
+    TODO for http/https this will have to work differently, looking for each valid option in turn
 */
 fn get_default_file(path: PathBuf) -> io::Result<PathBuf> {
     let file_pattern = format!("{}/context.*", path.display());
@@ -40,21 +45,31 @@ fn get_default_sample() {
 }
 
 /*
-    Accept a path that could point to:
+    Accept a Url that:
+     -  maybe url formatted with http/https, file, or lib
+     That could point to:
      -  a specific file, that may or may not exist, try to open it
-     -  a specific directory, that may or may not exist,
-        look for default file type in it by extension
-*/
-pub fn get(path: PathBuf) -> io::Result<PathBuf> {
-    info!("Attempting to open flow file using path = '{}'", path.display());
+     -  a specific directory, that may or may not exist
 
+     If no file is specified, then look for default file in a directory specified
+*/
+pub fn find(url: Url) -> io::Result<Url> {
+    info!("Attempting to open flow at url = '{}'", url);
+
+    // TODO Implement switch by scheme - for now assume file:
+    get_file(url)
+}
+
+fn get_file(url: Url) -> io::Result<Url> {
+    let path = url.to_file_path().unwrap();
     match metadata(&path) {
         Ok(md) => {
             if md.is_dir() {
                 info!("'{}' is a directory, so attempting to find context file in it", path.display());
-                get_default_file(path)
+                // TODO see how to handle conversion of error types if these fail...
+                Ok(Url::from_file_path(get_default_file(path).unwrap()).unwrap())
             } else {
-                Ok(path)
+                Ok(url)
             }
         },
         Err(e) => {

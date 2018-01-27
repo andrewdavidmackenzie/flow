@@ -14,8 +14,11 @@ use model::flow::Flow;
 
 pub fn generate(flow: &mut Flow, _overwrite: bool, log_level: &str,
                 runnables: Vec<Box<Runnable>>) -> Result<()> {
-    let mut directory = flow.source.clone();
+
+    // TODO need to decide where to generate output when read from a URL!!!
+    let mut directory = flow.source_url.to_file_path().unwrap().clone();
     directory.pop();
+
     info!("Generating rust project into dir '{}'", directory.to_str().unwrap());
 
     // create the directory - if doesn't already exist

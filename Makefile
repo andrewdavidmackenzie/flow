@@ -1,11 +1,24 @@
 EMCC := $(shell command -v emcc -v 2> /dev/null)
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 
-all: test package
+all: test package doc
 
 test: travis test-gtk
 
+doc:
+	cargo doc
+
 travis: test-flowclib test-flowrlib test-flowc test-hello-simple test-fibonacci test-electron
+
+#TODO map the cargo cache as a volume to avoid re-downloading and compiling every time.
+pi:
+	@echo "Building flowc for pi in $(PWD)"
+	docker run -e "PKG_CONFIG_ALLOW_CROSS=1" --volume $(PWD):/home/cross/project rust-nightly-pi-cross build
+	@./target/debug/flowc samples/fibonacci
+	docker run -e "PKG_CONFIG_ALLOW_CROSS=1" --volume $(PWD):/home/cross/project rust-nightly-pi-cross build --manifest-path samples/fibonacci/Cargo.toml
+
+copy:
+	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/debug/flowc pi@raspberrypi.local:
 
 test-flowclib:
 	@echo ""

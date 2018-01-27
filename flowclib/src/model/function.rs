@@ -32,20 +32,42 @@ impl Validate for Function {
     fn validate(&self) -> Result<(), String> {
         self.name.validate()?;
 
+        let mut io_count = 0;
+
         if let Some(ref inputs) = self.inputs {
             for i in inputs {
+                io_count += 1;
                 i.validate()?
             }
         }
 
         if let Some(ref outputs) = self.outputs {
             for o in outputs {
+                io_count += 1;
                 o.validate()?
             }
         }
 
+        // A function must have at least one valid input or output
+        if io_count == 0 {
+            return Err("A function must have at least one input or output".to_string());
+        }
+
         Ok(())
     }
+}
+
+#[test]
+fn function_with_no_io_not_valid() {
+    let fun = Function {
+        name: "test_function".to_string(),
+        inputs: Some(vec!()),
+        outputs: Some(vec!()),
+        route: "".to_string()
+    };
+
+    assert_eq!(fun.validate().is_err(), true);
+
 }
 
 impl fmt::Display for Function {

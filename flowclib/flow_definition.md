@@ -58,8 +58,10 @@ An input IO can receive data from (i.e. be connected to) multiple outputs.
 An output IO can be connected to multiple inputs (the data is copied to each one when produced).
 
 ## Function Reference
-alias - the name of the function.
-source - the source file where it is implemented
+alias - the name of the function
+source - the source of where the function is defined. This can either be a file on the local file
+system, or a url, or a reference to a library function. If no scheme is specified a local file
+is assumed. Valid schemes are "file:", "http:", "https:" or the custom "lib:".
 
 A function can consume data on 0 or more IOs (it must have all available in order to run)
 and then can produce data on 1 or more IO.

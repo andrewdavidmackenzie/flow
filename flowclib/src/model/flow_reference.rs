@@ -3,13 +3,15 @@ use model::name::HasName;
 use model::connection::HasRoute;
 use model::flow::Flow;
 use loader::loader::Validate;
-
 use std::fmt;
+use url::Url;
 
-#[derive(Default, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct FlowReference {
     pub alias: Name,
     pub source: String,
+    #[serde(skip_deserializing, default = "FlowReference::default_url")]
+    pub source_url: Url,
     #[serde(skip_deserializing)]
     pub flow: Flow
 }
@@ -29,7 +31,8 @@ impl HasRoute for FlowReference {
 impl Validate for FlowReference {
     fn validate(&self) -> Result<(), String> {
         self.alias.validate()
-        // Pretty much anything is a valid PathBuf - so not sure how to validate source...
+            // TODO subsititure Source for Url and have it implement Validate trait
+//        self.source.validate()
     }
 }
 
@@ -37,5 +40,11 @@ impl fmt::Display for FlowReference {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "\t\t\t\talias: {}\n\t\t\t\t\tsource: {}\n",
                self.alias, self.source)
+    }
+}
+
+impl FlowReference {
+    fn default_url() -> Url {
+        Url::parse("file::///").unwrap()
     }
 }

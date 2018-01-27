@@ -3,7 +3,7 @@ use loader::loader::Loader;
 use model::flow::Flow;
 use model::function::Function;
 
-pub struct FlowTomelLoader {}
+pub struct FlowTomelLoader;
 
 impl Loader for FlowTomelLoader {
     fn load_flow(&self, contents: &str) -> Result<Flow, String> {
@@ -40,7 +40,50 @@ fn simple_context_loads() {
         to = 'function/print/stdout'
     ";
 
-    let toml = FlowTomelLoader{};
+    let toml = FlowTomelLoader {};
+    toml.load_flow(flow_description).unwrap();
+}
+
+/*#[test]
+fn flow_with_function_from_lib() {
+    let flow_description = "\
+        name = 'use-library-function'
+
+        [[function]]
+        alias = 'print'
+        source = 'lib://std::stdout::Stdout'
+    ";
+
+    let toml = FlowTomelLoader {};
+    toml.load_flow(flow_description).unwrap();
+}*/
+
+/*#[test]
+#[should_panic]
+fn flow_with_unknown_lib_function() {
+    let flow_description = "\
+        name = 'use-library-function'
+
+        [[function]]
+        alias = 'print'
+        lib = 'std::fake::Function'
+    ";
+
+    let toml = FlowTomelLoader {};
+    toml.load_flow(flow_description).unwrap();
+}*/
+
+#[test]
+#[should_panic]
+fn flow_with_function_without_source() {
+    let flow_description = "\
+        name = 'use-library-function'
+
+        [[function]]
+        alias = 'print'
+    ";
+
+    let toml = FlowTomelLoader {};
     toml.load_flow(flow_description).unwrap();
 }
 
@@ -54,6 +97,31 @@ fn load_fails_if_no_name() {
         value = Hello World!'
     ";
 
-    let toml = FlowTomelLoader{};
+    let toml = FlowTomelLoader {};
     toml.load_flow(flow_description).unwrap();
+}
+
+#[test]
+fn function_parses() {
+    let function_definition = "\
+name = 'stdout'
+
+[[input]]
+name = 'stdout'
+type = 'String'";
+
+    let toml = FlowTomelLoader {};
+    toml.load_function(function_definition).unwrap();
+}
+
+#[test]
+#[should_panic]
+fn function_lacks_name() {
+    let function_definition = "\
+[[input]]
+name = 'stdout'
+type = 'String'";
+
+    let toml = FlowTomelLoader {};
+    toml.load_function(function_definition).unwrap();
 }

@@ -6,6 +6,8 @@ extern crate flowrlib;
 #[macro_use]
 extern crate log;
 extern crate strfmt;
+extern crate url;
+extern crate yaml_rust;
 
 mod model;
 pub mod loader;

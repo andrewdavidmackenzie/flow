@@ -1,14 +1,17 @@
-use std::path::PathBuf;
-
 use model::flow::Flow;
 use model::function::Function;
-use loader::file_helper::get_contents;
-use loader::file_helper::get_canonical_path;
+use loader::content_helper::get_contents;
 use loader::loader_helper::get_loader;
 use model::dumper;
 use std::mem::replace;
 
-// Any loader of a file extension have to implement these methods
+use url::Url;
+
+// TODO use when we extend beyond just files -
+// These are the schemes we will accept for references to flows/functions
+// const SCHEMES: [&'static str; 4]= ["file:", "http:", "https:", "lib:"];
+
+// Any loader of a file type has to implement these methods
 pub trait Loader {
     fn load_flow(&self, contents: &str) -> Result<Flow, String>;
     fn load_function(&self, contents: &str) -> Result<Function, String>;
@@ -28,14 +31,16 @@ pub trait Validate {
 ///
 /// # Example
 /// ```
-/// use std::path::PathBuf;
-/// use flowclib::loader::loader;
+/// extern crate url;
+/// extern crate flowclib;
+/// use std::env;
 ///
-/// let path = PathBuf::from("../samples/hello-world-simple/context.toml");
-/// loader::load(path, false).unwrap();
+/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// url = url.join("samples/hello-world-simple/context.toml").unwrap();
+/// flowclib::loader::loader::load(&url, false).unwrap();
 /// ```
-pub fn load(file_path: PathBuf, dump: bool) -> Result<Flow, String> {
-    let flow = load_flow("", file_path);
+pub fn load(url: &Url, dump: bool) -> Result<Flow, String> {
+    let flow = load_flow("", url);
 
     if let &Ok(ref loaded_flow) = &flow {
         if dump {
@@ -46,8 +51,8 @@ pub fn load(file_path: PathBuf, dump: bool) -> Result<Flow, String> {
     flow
 }
 
-fn load_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, String> {
-    let mut flow = load_single_flow(parent_route, file_path)?;
+fn load_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
+    let mut flow = load_single_flow(parent_route, url)?;
     load_subflows(&mut flow)?;
     build_connections(&mut flow);
     Ok(flow)
@@ -64,17 +69,20 @@ fn load_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, String> {
 ///
 /// # Example
 /// ```
-/// use std::path::PathBuf;
-/// use flowclib::loader::loader;
+/// extern crate url;
+/// extern crate flowclib;
 ///
-/// let path = PathBuf::from("../samples/hello-world-simple/context.toml");
-/// loader::load_single_flow("", path).unwrap();
+/// use std::env;
+///
+/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// url = url.join("samples/hello-world-simple/context.toml").unwrap();
+/// flowclib::loader::loader::load_single_flow("", &url).unwrap();
 /// ```
-pub fn load_single_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, String> {
-    let loader = get_loader(&file_path)?;
-    let contents = get_contents(&file_path)?;
+pub fn load_single_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
+    let loader = get_loader(url)?;
+    let contents = get_contents(url)?;
     let mut flow = loader.load_flow(&contents)?;
-    flow.source = file_path;
+    flow.source_url = url.clone();
     flow.route = format!("{}/{}", parent_route, flow.name);
     flow.validate()?;
     load_functions(&mut flow)?;
@@ -89,15 +97,17 @@ pub fn load_single_flow(parent_route: &str, file_path: PathBuf) -> Result<Flow, 
 ///
 /// # Example
 /// ```
-/// use std::path::PathBuf;
-/// use flowclib::loader::loader;
+/// extern crate url;
+/// extern crate flowclib;
+/// use std::env;
 ///
-/// let path = PathBuf::from("../samples/hello-world-simple/stdout.toml");
-/// loader::load_function(&path, "/root_flow").unwrap();
+/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// url = url.join("samples/hello-world-simple/stdout.toml").unwrap();
+/// flowclib::loader::loader::load_function(&url, "/root_flow").unwrap();
 /// ```
-pub fn load_function(file_path: &PathBuf, parent_route: &str) -> Result<Function, String> {
-    let loader = get_loader(file_path)?;
-    let contents = get_contents(file_path)?;
+pub fn load_function(url: &Url, parent_route: &str) -> Result<Function, String> {
+    let loader = get_loader(url)?;
+    let contents = get_contents(url)?;
     let mut function = loader.load_function(&contents)?;
     function.route = format!("{}/{}", parent_route, function.name);
 
@@ -111,6 +121,7 @@ pub fn load_function(file_path: &PathBuf, parent_route: &str) -> Result<Function
             output.route = format!("{}/{}", function.route, output.name);
         }
     }
+
     function.validate()?;
     Ok(function)
 }
@@ -121,9 +132,9 @@ pub fn load_function(file_path: &PathBuf, parent_route: &str) -> Result<Function
 fn load_functions(flow: &mut Flow) -> Result<(), String> {
     if let Some(ref mut function_refs) = flow.function_refs {
         for ref mut function_ref in function_refs {
-            let function_path = get_canonical_path(PathBuf::from(&flow.source),
-                                                   PathBuf::from(&function_ref.source));
-            function_ref.function = load_function(&function_path, &flow.route)?;
+            let function_url = flow.source_url.join(&function_ref.source).expect("URL join error");
+            function_ref.source_url = function_url.clone();
+            function_ref.function = load_function(&function_url, &flow.route)?;
         }
     }
     Ok(())
@@ -148,9 +159,8 @@ fn load_subflows(flow: &mut Flow) -> Result<(), String> {
     // Load subflows from References
     if let Some(ref mut flow_refs) = flow.flow_refs {
         for ref mut flow_ref in flow_refs {
-            let subflow_path = get_canonical_path(PathBuf::from(&flow.source),
-                                                  PathBuf::from(&flow_ref.source));
-            let subflow = load_flow(&flow.route, subflow_path)?;
+            let subflow_url = flow.source_url.join(&flow_ref.source).expect("URL join error");
+            let subflow = load_flow(&flow.route, &subflow_url)?;
             flow_ref.flow = subflow;
         }
     }
@@ -188,7 +198,7 @@ fn build_connections(flow: &mut Flow) {
                     connection.ends_at_flow = ends_at_flow;
                 } else {
                     error!("Type mismatch from '{}' of type '{}' to '{}' of type '{}'",
-                             from_route, from_type, to_route, to_type);
+                           from_route, from_type, to_route, to_type);
                 }
             } else {
                 error!("Did not find destination: {}", connection.to);
@@ -202,52 +212,57 @@ fn build_connections(flow: &mut Flow) {
     replace(&mut flow.connections, Some(connections));
 }
 
-#[test]
-#[ignore]
-fn sample_hello_world_simple_yaml() {
-    let path = PathBuf::from("../samples/hello-world-simple-yaml/context.yaml");
-    load(path, false).unwrap();
-}
 
-#[test]
-#[ignore]
-fn sample_hello_world_yaml() {
-    let path = PathBuf::from("../samples/hello-world-yaml/context.yaml");
-    load(path, false).unwrap();
-}
+#[cfg(test)]
+mod test {
+    use url::Url;
+    use std::env;
+    use super::load;
 
-#[test]
-fn dump_hello_world_simple() {
-    let path = PathBuf::from("../samples/hello-world-simple/context.toml");
-    load(path, true).unwrap();
-}
+    fn url_from_rel_path(path: &str) -> Url {
+        let parent = Url::from_file_path(env::current_dir().unwrap()).unwrap();
+        parent.join(path).unwrap()
+    }
 
-#[test]
-fn dump_hello_world_context() {
-    let path = PathBuf::from("../samples/hello-world/context.toml");
-    load(path, true).unwrap();
-}
+    #[test]
+    #[ignore]
+    fn sample_hello_world_simple_yaml() {
+        load(&url_from_rel_path("samples/hello-world-simple-yaml/context.yaml"), false).unwrap();
+    }
 
-#[test]
-fn dump_hello_world_include() {
-    let path = PathBuf::from("../samples/hello-world-include/context.toml");
-    load(path, true).unwrap();
-}
+    #[test]
+    #[ignore]
+    fn sample_hello_world_yaml() {
+        load(&url_from_rel_path("samples/hello-world-yaml/context.yaml"), false).unwrap();
+    }
 
-#[test]
-fn dump_hello_world_flow1() {
-    let path = PathBuf::from("../samples/hello-world/flow1.toml");
-    load(path, true).unwrap();
-}
+    #[test]
+    fn dump_hello_world_simple() {
+        load(&url_from_rel_path("samples/hello-world-simple/context.toml"), true).unwrap();
+    }
 
-#[test]
-fn dump_complex1() {
-    let path = PathBuf::from("../samples/complex1/context.toml");
-    load(path, true).unwrap();
-}
+    #[test]
+    fn dump_hello_world_context() {
+        load(&url_from_rel_path("samples/hello-world/context.toml"), true).unwrap();
+    }
 
-#[test]
-fn dump_fibonacci() {
-    let path = PathBuf::from("../samples/fibonacci/context.toml");
-    load(path, true).unwrap();
+    #[test]
+    fn dump_hello_world_include() {
+        load(&url_from_rel_path("samples/hello-world-include/context.toml"), true).unwrap();
+    }
+
+    #[test]
+    fn dump_hello_world_flow1() {
+        load(&url_from_rel_path("samples/hello-world/flow1.toml"), true).unwrap();
+    }
+
+    #[test]
+    fn dump_complex1() {
+        load(&url_from_rel_path("samples/complex1/context.toml"), true).unwrap();
+    }
+
+    #[test]
+    fn dump_fibonacci() {
+        load(&url_from_rel_path("samples/fibonacci/context.toml"), true).unwrap();
+    }
 }

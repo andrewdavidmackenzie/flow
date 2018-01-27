@@ -1,11 +1,9 @@
-extern crate yaml_rust;
-
 use model::flow::Flow;
 use loader::loader::Loader;
-use std::path::PathBuf;
 use model::function::Function;
+use url::Url;
 
-pub struct FlowYamlLoader {}
+pub struct FlowYamlLoader;
 
 impl Loader for FlowYamlLoader {
     // TODO define our own errors types? so we can return errors from lower down directly
@@ -15,7 +13,7 @@ impl Loader for FlowYamlLoader {
 
         let flow =
             Flow {
-                source: PathBuf::from("fake"),
+                source_url: Url::parse("fake").unwrap(),
                 route: "fake/fake".to_string(),
                 name: "fake".to_string(),
                 flow_refs: None,

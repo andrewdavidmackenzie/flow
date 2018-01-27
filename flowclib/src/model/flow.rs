@@ -10,14 +10,13 @@ use model::flow_reference::FlowReference;
 use model::connection::Route;
 use loader::loader::Validate;
 use model::function_reference::FunctionReference;
-
 use std::fmt;
-use std::path::PathBuf;
+use url::Url;
 
-#[derive(Default, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Flow {
-    #[serde(skip_deserializing)]
-    pub source: PathBuf,
+    #[serde(skip_deserializing, default = "Flow::default_url")]
+    pub source_url: Url,
     pub name: Name,
     #[serde(skip_deserializing)]
     pub route: Route,
@@ -92,8 +91,8 @@ impl Validate for Flow {
 
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\tname: \t\t\t{}\n\tsource: \t\t{}\n\troute: \t\t\t{}\n",
-               self.name, self.source.display(), self.route).unwrap();
+        write!(f, "\tname: \t\t\t{}\n\tsource_url: \t\t{}\n\troute: \t\t\t{}\n",
+               self.name, self.source_url, self.route).unwrap();
 
         // TODO dry this all up now it works.
 
@@ -144,7 +143,27 @@ impl fmt::Display for Flow {
     }
 }
 
+impl Default for Flow {
+    fn default() -> Flow {
+        Flow {
+            source_url: Flow::default_url(),
+            name: "".to_string(),
+            route: "".to_string(),
+            flow_refs: None,
+            function_refs: None,
+            values: None,
+            inputs: None,
+            outputs: None,
+            connections: None,
+        }
+    }
+}
+
 impl Flow {
+    fn default_url() -> Url {
+        Url::parse("file:///").unwrap()
+    }
+
     /*
         Set the routes of inputs and outputs in a flow to the hierarchical format
         using the internal name of the thing referenced
