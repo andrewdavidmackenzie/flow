@@ -54,8 +54,6 @@ fn get_default_sample() {
      If no file is specified, then look for default file in a directory specified
 */
 pub fn find(url: Url) -> Result<Url, String>{
-    info!("Attempting to find flow using url = '{}'", url);
-
     // TODO Implement switch by scheme - for now assume file:
     get_file(url)
 }

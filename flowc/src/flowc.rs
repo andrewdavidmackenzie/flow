@@ -47,12 +47,18 @@ fn init_logging() {
     info!("Logging started using 'log4rs', see log.yaml for configuration details");
 }
 
+/*
+    Parse the command line arguments, then run the loader and (optional) compiling steps,
+    returning early (with an error string) if anything goes wrong along the way.
+*/
 fn run() -> Result<(), String> {
     let matches = get_matches();
     let mut url = get_url(&matches)?;
     let dump = matches.is_present("dump");
     let compile = !matches.is_present("load");
 
+    // The specified url maybe a directory or a specific file, see if we can find the flow to load
+    info!("Attempting to find flow using url: '{}'", url);
     url = files::find(url)?;
 
     info!("Attempting to load from url: '{}'", url);
@@ -67,6 +73,9 @@ fn run() -> Result<(), String> {
     }
 }
 
+/*
+    Parse the command line arguments using clap
+*/
 fn get_matches<'a>() -> ArgMatches<'a> {
     App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
