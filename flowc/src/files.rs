@@ -53,14 +53,14 @@ fn get_default_sample() {
 
      If no file is specified, then look for default file in a directory specified
 */
-pub fn find(url: Url) -> io::Result<Url> {
-    info!("Attempting to open flow at url = '{}'", url);
+pub fn find(url: Url) -> Result<Url, String>{
+    info!("Attempting to find flow using url = '{}'", url);
 
     // TODO Implement switch by scheme - for now assume file:
     get_file(url)
 }
 
-fn get_file(url: Url) -> io::Result<Url> {
+fn get_file(url: Url) -> Result<Url, String> {
     let path = url.to_file_path().unwrap();
     match metadata(&path) {
         Ok(md) => {
@@ -73,9 +73,7 @@ fn get_file(url: Url) -> io::Result<Url> {
             }
         },
         Err(e) => {
-            error!("Error getting file metadata for path: '{}', {}", path.display(), e);
-            Err(io::Error::new(ErrorKind::NotFound,
-                               format!("File or Directory '{}' could not be found or opened. ({})", path.display(), e)))
+            Err(format!("Error getting file metadata for path: '{}', {}", path.display(), e))
         }
     }
 }

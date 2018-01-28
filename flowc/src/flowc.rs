@@ -7,9 +7,10 @@ extern crate glob;
 
 extern crate clap;
 
-use clap::{App, Arg};
+use clap::{App, Arg, ArgMatches};
 
 extern crate flowclib;
+
 use flowclib::info;
 use flowclib::loader::loader;
 use flowclib::compiler::compile;
@@ -21,41 +22,21 @@ mod simple_logger;
 use simple_logger::SimpleLogger;
 
 extern crate url;
-use url::{Url, ParseError};
+
+use url::Url;
 
 use std::env;
 
 fn main() {
     init_logging();
 
-    info!("Logging started using 'log4rs', see log.yaml for configuration details");
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     info!("'flowclib' version {}", info::version());
 
-    let (url, dump, compile) = get_args();
-
-    match url {
-        Ok(url) => {
-            match files::find(url) {
-                Ok(url) => {
-                    info!("Attempting to load from url: '{}'", url);
-                    match loader::load(&url, dump) {
-                        Ok(mut flow) => {
-                            info!("'{}' flow loaded", flow.name);
-
-                            if compile {
-                                compile::compile(&mut flow, dump);
-                            }
-                        }
-                        Err(e) => error!("{}", e)
-                    }
-                }
-                Err(e) => error!("{}", e)
-            }
-        },
+    match run() {
+        Ok(_) => {}
         Err(e) => error!("{}", e)
     }
-
 }
 
 fn init_logging() {
@@ -63,10 +44,31 @@ fn init_logging() {
         max_log_level.set(LogLevelFilter::Info);
         Box::new(SimpleLogger)
     }).unwrap();
+    info!("Logging started using 'log4rs', see log.yaml for configuration details");
 }
 
-fn get_args() -> (Result<Url, ParseError>, bool, bool) {
-    let matches = App::new(env!("CARGO_PKG_NAME"))
+fn run() -> Result<(), String> {
+    let matches = get_matches();
+    let mut url = get_url(&matches)?;
+    let dump = matches.is_present("dump");
+    let compile = !matches.is_present("load");
+
+    url = files::find(url)?;
+
+    info!("Attempting to load from url: '{}'", url);
+    let mut flow = loader::load(&url, dump)?;
+    info!("'{}' flow loaded", flow.name);
+
+    if compile {
+        compile::compile(&mut flow, dump)
+    } else {
+        info!("Compiling skipped");
+        Ok(())
+    }
+}
+
+fn get_matches<'a>() -> ArgMatches<'a> {
+    App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
         .arg(Arg::with_name("load")
             .short("l")
@@ -78,12 +80,17 @@ fn get_args() -> (Result<Url, ParseError>, bool, bool) {
             .help("the name of the 'flow' file")
             .required(false)
             .index(1))
-        .get_matches();
+        .get_matches()
+}
 
+/*
+    Use the current working directory as the starting point ("parent") for parsing a command
+    line specified url where to load the flow from. This allows specifiying of full Urls
+    (http, file etc) as well as file paths relative to the working directory.
+
+    Returns a full url with appropriate scheme, and an absolute path.
+*/
+fn get_url(matches: &ArgMatches) -> Result<Url, String> {
     let parent = Url::from_directory_path(env::current_dir().unwrap()).unwrap();
-    let url = source_arg::url_from_cl_arg(&parent, matches.value_of("flow"));
-    let dump = matches.is_present("dump");
-    let compile = !matches.is_present("load");
-
-    (url, dump, compile)
+    source_arg::url_from_cl_arg(&parent, matches.value_of("flow"))
 }

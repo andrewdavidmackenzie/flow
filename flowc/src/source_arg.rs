@@ -8,14 +8,15 @@ use url::{Url, ParseError};
         - if parameter passed then join to parent, which will inherit the scheme of none is
           specified, and will resolve relative path if passed
 */
-pub fn url_from_cl_arg(parent: &Url, cl_arg: Option<&str>) -> Result<Url, ParseError> {
+pub fn url_from_cl_arg(parent: &Url, cl_arg: Option<&str>) -> Result<Url, String> {
     match cl_arg {
         None => {
             info!("No url specified, so using parent: '{}'", parent);
             Ok(parent.clone())
         },
         Some(cl_url_string) => {
-            parent.join(cl_url_string)
+            parent.join(cl_url_string).map_err(|e: ParseError|
+                e.to_string())
         }
     }
 }

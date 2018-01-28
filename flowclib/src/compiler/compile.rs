@@ -44,7 +44,7 @@ impl Debug for ImplementationStub {
 /// the flow, including links to the flowrlib runtime library and library functions used in the
 /// flowstdlib standard library. It takes an optional bool dump option to dump to standard output
 /// some of the intermediate values and operations during the compilation process.
-pub fn compile(flow: &mut Flow, dump: bool) {
+pub fn compile(flow: &mut Flow, dump: bool) -> Result<(), String> {
     let mut connection_table: Vec<Connection> = Vec::new();
     let mut value_table: Vec<Value> = Vec::new();
     let mut function_table: Vec<Function> = Vec::new();
@@ -68,6 +68,8 @@ pub fn compile(flow: &mut Flow, dump: bool) {
                                            function_table, connection_table);
 
     code_gen::generate(flow, true, log_level,  runnables).unwrap();
+
+    Ok(())
 }
 
 fn print<E: fmt::Display>(table: &Vec<E>, title: &str) {
