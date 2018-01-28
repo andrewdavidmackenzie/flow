@@ -15,7 +15,7 @@ use flowclib::loader::loader;
 use flowclib::compiler::compile;
 
 mod files;
-mod file_arg;
+mod source_arg;
 mod simple_logger;
 
 use simple_logger::SimpleLogger;
@@ -81,7 +81,7 @@ fn get_args() -> (Result<Url, ParseError>, bool, bool) {
         .get_matches();
 
     let parent = Url::from_directory_path(env::current_dir().unwrap()).unwrap();
-    let url = file_arg::url_from_cl_arg(&parent, matches.value_of("flow"));
+    let url = source_arg::url_from_cl_arg(&parent, matches.value_of("flow"));
     let dump = matches.is_present("dump");
     let compile = !matches.is_present("load");
 

@@ -29,13 +29,17 @@ mod test {
 
     use super::url_from_cl_arg;
 
+    fn cwd_as_url() -> Url {
+        Url::from_directory_path(env::current_dir().unwrap()).unwrap()
+    }
+
     /*
         If URL has a scheme, then it must be absolute path.
-        If URL does not have a scheme, then we assume it's a file and it could relative to CWD
+        If URL does not have a scheme, then inherit it from parent
     */
     #[test]
     fn no_option_returns_parent() {
-        let parent = Url::from_directory_path(env::current_dir().unwrap()).unwrap();
+        let parent = cwd_as_url();
 
         let url = url_from_cl_arg(&parent,None).unwrap();
 
@@ -45,7 +49,7 @@ mod test {
     #[test]
     fn file_scheme_and_absolute_path_preserved() {
         let path = "/some/file";
-        let parent = Url::from_directory_path(env::current_dir().unwrap()).unwrap();
+        let parent = cwd_as_url();
 
         let url = url_from_cl_arg(&parent,Some(&format!("file:{}", path))).unwrap();
 
@@ -54,11 +58,22 @@ mod test {
     }
 
     #[test]
+    fn http_scheme_and_absolute_path_preserved() {
+        let path = "/some/file";
+        let arg = format!("http://test.com{}", path);
+        let parent = cwd_as_url();
+
+        let url = url_from_cl_arg(&parent,Some(&arg)).unwrap();
+
+        assert_eq!(url.scheme(), "http");
+        assert_eq!(url.path(), path);
+    }
+
+    #[test]
     fn no_scheme_assumes_file() {
-        let parent = Url::from_directory_path(env::current_dir().unwrap()).unwrap();
         let path = "/some/file";
 
-        let url = url_from_cl_arg(&parent,Some(path)).unwrap();
+        let url = url_from_cl_arg(&cwd_as_url(),Some(path)).unwrap();
 
         assert_eq!(url.scheme(), "file");
         assert_eq!(url.path(), path);
@@ -76,5 +91,31 @@ mod test {
         let abs_path = format!("{}/{}", &dir.display(), this_file);
         assert_eq!(url.scheme(), "file");
         assert_eq!(url.path(), abs_path);
+    }
+
+    #[test]
+    fn relative_path_from_http_parent() {
+        let path = "/some/file.flow";
+        let parent = Url::parse(&format!("http://test.com{}", path)).unwrap();
+        println!("parent = {}", parent);
+        let relative_path = "other_file.flow";
+
+        let url = url_from_cl_arg(&parent, Some(&relative_path)).unwrap();
+
+        assert_eq!(url.scheme(), "http");
+        assert_eq!(url.path(), "/some/other_file.flow");
+    }
+
+    #[test]
+    fn absolute_path_from_http_parent() {
+        let path = "/some/file.flow";
+        let parent = Url::parse(&format!("http://test.com{}", path)).unwrap();
+        println!("parent = {}", parent);
+        let new_path = "/other/file.flow";
+
+        let url = url_from_cl_arg(&parent, Some(&new_path)).unwrap();
+
+        assert_eq!(url.scheme(), "http");
+        assert_eq!(url.path(), "/other/file.flow");
     }
 }
