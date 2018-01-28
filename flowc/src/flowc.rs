@@ -69,7 +69,11 @@ fn run() -> Result<(), String> {
     }
 
     if compile {
-        compile::compile(&mut flow, dump)
+        // TODO need to decide where to generate output when read from a URL!!!
+        let mut directory = flow.source_url.to_file_path().unwrap().clone();
+        directory.pop();
+
+        compile::compile(&mut flow, &directory, dump)
     } else {
         info!("Compiling skipped");
         Ok(())

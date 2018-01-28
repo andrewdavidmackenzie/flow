@@ -11,6 +11,7 @@ use flowrlib::value::Value as RunnableValue;
 use flowrlib::function::Function as RunnableFunction;
 use flowrlib::implementation::Implementation;
 use std::fmt::Debug;
+use std::path::PathBuf;
 
 pub struct ImplementationStub {
     name: String,
@@ -44,7 +45,7 @@ impl Debug for ImplementationStub {
 /// the flow, including links to the flowrlib runtime library and library functions used in the
 /// flowstdlib standard library. It takes an optional bool dump option to dump to standard output
 /// some of the intermediate values and operations during the compilation process.
-pub fn compile(flow: &mut Flow, dump: bool) -> Result<(), String> {
+pub fn compile(flow: &mut Flow, output_dir: &PathBuf, dump: bool) -> Result<(), String> {
     let mut connection_table: Vec<Connection> = Vec::new();
     let mut value_table: Vec<Value> = Vec::new();
     let mut function_table: Vec<Function> = Vec::new();
@@ -67,9 +68,7 @@ pub fn compile(flow: &mut Flow, dump: bool) -> Result<(), String> {
     let runnables = create_runnables_table(value_table,
                                            function_table, connection_table);
 
-    code_gen::generate(flow, true, log_level,  runnables).unwrap();
-
-    Ok(())
+    code_gen::generate(flow, output_dir, true, log_level,  runnables).map_err(|e| e.to_string())
 }
 
 fn print<E: fmt::Display>(table: &Vec<E>, title: &str) {

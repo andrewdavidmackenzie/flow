@@ -3,53 +3,48 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::Result;
 use std::collections::HashMap;
+use std::path::PathBuf;
+
 use compiler::generator::cargo_gen::cargo_file_contents;
-// TODO
 use compiler::generator::main_gen::main_file_contents;
-// TODO
 use compiler::generator::runnables_gen::runnables_file_contents;
-// TODO
 use flowrlib::runnable::Runnable;
 use model::flow::Flow;
 
-pub fn generate(flow: &mut Flow, _overwrite: bool, log_level: &str,
+pub fn generate(flow: &mut Flow, output_dir : &PathBuf, _overwrite: bool, log_level: &str,
                 runnables: Vec<Box<Runnable>>) -> Result<()> {
+    let mut dir = output_dir.clone();
+    info!("Generating rust project into dir '{}'", dir.to_str().unwrap());
 
-    // TODO need to decide where to generate output when read from a URL!!!
-    let mut directory = flow.source_url.to_file_path().unwrap().clone();
-    directory.pop();
-
-    info!("Generating rust project into dir '{}'", directory.to_str().unwrap());
-
-    // create the directory - if doesn't already exist
-    if !directory.exists() {
-        fs::create_dir(&directory)?;
+    if !dir.exists() {
+        fs::create_dir(&dir)?;
     }
 
     let mut vars = vars_from_flow(flow);
 
+
     // write the cargo file into the root
-    directory.push("Cargo.toml");
-    let mut cargo = File::create(&directory)?;
+    dir.push("Cargo.toml");
+    let mut cargo = File::create(&dir)?;
     cargo.write_all(cargo_file_contents(&vars).unwrap().as_bytes())?;
-    directory.pop();
+    dir.pop();
 
     // create the src subdir
-    directory.push("src");
-    if !directory.exists() {
-        fs::create_dir(&directory)?;
+    dir.push("src");
+    if !dir.exists() {
+        fs::create_dir(&dir)?;
     }
 
     // write the main.rs file into src
-    directory.push("main.rs");
-    let mut main_rs = File::create(&directory)?;
+    dir.push("main.rs");
+    let mut main_rs = File::create(&dir)?;
     vars.insert("log_level".to_string(), log_level);
     main_rs.write_all(main_file_contents(&vars).unwrap().as_bytes())?;
-    directory.pop();
+    dir.pop();
 
     // write the runnable.rs file into src
-    directory.push("runnables.rs");
-    let mut runnables_rs = File::create(&directory)?;
+    dir.push("runnables.rs");
+    let mut runnables_rs = File::create(&dir)?;
     runnables_rs.write_all(runnables_file_contents(&vars, runnables).unwrap().as_bytes())?;
 
     Ok(())
