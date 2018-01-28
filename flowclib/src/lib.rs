@@ -5,6 +5,7 @@ extern crate toml;
 extern crate flowrlib;
 #[macro_use]
 extern crate log;
+extern crate glob;
 extern crate strfmt;
 extern crate url;
 extern crate yaml_rust;

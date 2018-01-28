@@ -20,5 +20,6 @@ serde = "*"
 flowrlib = { path = "../flowrlib" }
 flowstdlib = { path = "../flowstdlib" }
 log = "0.3.8"
+glob = "*"
 strfmt = "0.1.5"
 url = "*"

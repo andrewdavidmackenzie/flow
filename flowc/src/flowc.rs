@@ -3,8 +3,6 @@ extern crate log;
 
 use log::LogLevelFilter;
 
-extern crate glob;
-
 extern crate clap;
 
 use clap::{App, Arg, ArgMatches};
@@ -13,9 +11,9 @@ extern crate flowclib;
 
 use flowclib::info;
 use flowclib::loader::loader;
+use flowclib::loader::content_provider;
 use flowclib::compiler::compile;
 
-mod files;
 mod source_arg;
 mod simple_logger;
 
@@ -59,7 +57,7 @@ fn run() -> Result<(), String> {
 
     // The specified url maybe a directory or a specific file, see if we can find the flow to load
     info!("Attempting to find flow using url: '{}'", url);
-    url = files::find(url)?;
+    url = content_provider::find(url)?;
 
     info!("Attempting to load from url: '{}'", url);
     let mut flow = loader::load(&url, dump)?;

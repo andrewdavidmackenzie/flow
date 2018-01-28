@@ -1,6 +1,6 @@
 use model::flow::Flow;
 use model::function::Function;
-use loader::content_helper::get_contents;
+use loader::content_provider;
 use loader::loader_helper::get_loader;
 use model::dumper;
 use std::mem::replace;
@@ -80,7 +80,7 @@ fn load_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
 /// ```
 pub fn load_single_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
     let loader = get_loader(url)?;
-    let contents = get_contents(url)?;
+    let contents = content_provider::get_contents(url)?;
     let mut flow = loader.load_flow(&contents)?;
     flow.source_url = url.clone();
     flow.route = format!("{}/{}", parent_route, flow.name);
@@ -107,7 +107,7 @@ pub fn load_single_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
 /// ```
 pub fn load_function(url: &Url, parent_route: &str) -> Result<Function, String> {
     let loader = get_loader(url)?;
-    let contents = get_contents(url)?;
+    let contents = content_provider::get_contents(url)?;
     let mut function = loader.load_function(&contents)?;
     function.route = format!("{}/{}", parent_route, function.name);
 

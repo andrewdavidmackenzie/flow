@@ -9,7 +9,6 @@ path = "src/flowc.rs"
 
 [dependencies]
 clap = "~2.27.1"
-glob = "*"
 flowclib = { path = "../flowclib" }
 log = "0.3.8"
 url = "*"
