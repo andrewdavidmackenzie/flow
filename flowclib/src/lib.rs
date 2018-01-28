@@ -12,5 +12,6 @@ extern crate yaml_rust;
 
 mod model;
 pub mod loader;
+pub mod content;
 pub mod info;
 pub mod compiler;

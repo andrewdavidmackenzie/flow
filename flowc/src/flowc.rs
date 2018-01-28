@@ -11,7 +11,7 @@ extern crate flowclib;
 
 use flowclib::info;
 use flowclib::loader::loader;
-use flowclib::loader::content_provider;
+use flowclib::content::provider;
 use flowclib::compiler::compile;
 
 mod source_arg;
@@ -57,7 +57,7 @@ fn run() -> Result<(), String> {
 
     // The specified url maybe a directory or a specific file, see if we can find the flow to load
     info!("Attempting to find flow using url: '{}'", url);
-    url = content_provider::find(url)?;
+    url = provider::find(url)?;
 
     info!("Attempting to load from url: '{}'", url);
     let mut flow = loader::load(&url, dump)?;
