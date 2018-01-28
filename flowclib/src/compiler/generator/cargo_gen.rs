@@ -15,7 +15,7 @@ path = \"src/{main_filename}\"
 [dependencies]
 flowrlib = {{ path = \"../../flowrlib\", version = \"*\" }}
 flowstdlib = {{ path = \"../../flowstdlib\", version = \"*\"}}
-log = \"*\"
+log = \"0.3.8\"
 
 [workspace]
 exclude = [\"..\"]

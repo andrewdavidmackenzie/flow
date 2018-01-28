@@ -6,7 +6,6 @@ const MAIN_TEMPLATE: &'static str = "
 #[macro_use]
 extern crate log;
 use log::LogLevelFilter;
-use log::SetLoggerError;
 
 extern crate flowrlib;
 extern crate flowstdlib;
@@ -19,15 +18,15 @@ mod runnables;
 use runnables::get_runnables;
 use simple_logger::SimpleLogger;
 
-fn init_logging() -> Result<(), SetLoggerError> {{
+fn init_logging() {{
     log::set_logger(|max_log_level| {{
         max_log_level.set(LogLevelFilter::{log_level});
         Box::new(SimpleLogger)
-    }})
+    }}).unwrap();
 }}
 
 fn main() {{
-    init_logging().unwrap();
+    init_logging();
     info!(\"'{{}}' version '{{}}'\", env!(\"CARGO_PKG_NAME\"), env!(\"CARGO_PKG_VERSION\"));
     execute(get_runnables());
 }}

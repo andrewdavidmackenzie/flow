@@ -19,6 +19,6 @@ serde_derive = "*"
 serde = "*"
 flowrlib = { path = "../flowrlib" }
 flowstdlib = { path = "../flowstdlib" }
-log = "*"
+log = "0.3.8"
 strfmt = "0.1.5"
 url = "*"
