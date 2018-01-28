@@ -3,8 +3,8 @@ use loader::toml_loader::FlowTomelLoader;
 use loader::loader::Loader;
 use url::Url;
 
-const TOML: &Loader = &FlowTomelLoader {} as &Loader;
-const YAML: &Loader = &FlowYamlLoader {} as &Loader;
+const TOML: &Loader = &FlowTomelLoader as &Loader;
+const YAML: &Loader = &FlowYamlLoader as &Loader;
 
 pub fn get_loader(url: &Url) -> Result<&'static Loader, String> {
     match get_file_extension(url) {
@@ -12,6 +12,7 @@ pub fn get_loader(url: &Url) -> Result<&'static Loader, String> {
             match ext.as_ref() {
                 "toml" => Ok(TOML),
                 "yaml" => Ok(YAML),
+                "yml" => Ok(YAML),
                 _ => Err("Unknown file extension so cannot determine which loader to use".to_string())
             }
         }
@@ -30,7 +31,6 @@ fn get_file_extension(url: &Url) -> Result<String, String> {
         Ok(splits.last().unwrap().to_string())
     }
 }
-
 
 #[cfg(test)]
 mod test {

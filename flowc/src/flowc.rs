@@ -57,7 +57,7 @@ fn run() -> Result<(), String> {
 
     // The specified url maybe a directory or a specific file, see if we can find the flow to load
     info!("Attempting to find flow using url: '{}'", url);
-    url = provider::find(url)?;
+    url = provider::find(&url)?;
 
     info!("Attempting to load from url: '{}'", url);
     let mut flow = loader::load(&url, dump)?;

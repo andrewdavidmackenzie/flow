@@ -80,7 +80,7 @@ fn load_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
 /// ```
 pub fn load_single_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
     let loader = get_loader(url)?;
-    let contents = provider::get_contents(url)?;
+    let contents = provider::get(url)?;
     let mut flow = loader.load_flow(&contents)?;
     flow.source_url = url.clone();
     flow.route = format!("{}/{}", parent_route, flow.name);
@@ -107,7 +107,7 @@ pub fn load_single_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
 /// ```
 pub fn load_function(url: &Url, parent_route: &str) -> Result<Function, String> {
     let loader = get_loader(url)?;
-    let contents = provider::get_contents(url)?;
+    let contents = provider::get(url)?;
     let mut function = loader.load_function(&contents)?;
     function.route = format!("{}/{}", parent_route, function.name);
 
