@@ -5,7 +5,8 @@ extern crate url;
 mod test {
     use url::Url;
     use std::env;
-    use flowclib::loader::loader::load;
+    use flowclib::loader::loader;
+    use flowclib::dumper::dumper;
 
     fn url_from_rel_path(path: &str) -> Url {
         let parent = Url::from_file_path(env::current_dir().unwrap()).unwrap();
@@ -14,31 +15,33 @@ mod test {
 
     #[test]
     fn dump_hello_world_simple() {
-        load(&url_from_rel_path("samples/hello-world-simple/context.toml"), true).unwrap();
+        let flow = loader::load(&url_from_rel_path("samples/hello-world-simple/context.toml")).unwrap();
+        dumper::dump(&flow);
     }
 
     #[test]
     fn dump_hello_world_context() {
-        load(&url_from_rel_path("samples/hello-world/context.toml"), true).unwrap();
+        let flow = loader::load(&url_from_rel_path("samples/hello-world/context.toml")).unwrap();
+        dumper::dump(&flow);
     }
 
     #[test]
     fn dump_hello_world_include() {
-        load(&url_from_rel_path("samples/hello-world-include/context.toml"), true).unwrap();
+        loader::load(&url_from_rel_path("samples/hello-world-include/context.toml")).unwrap();
     }
 
     #[test]
     fn dump_hello_world_flow1() {
-        load(&url_from_rel_path("samples/hello-world/flow1.toml"), true).unwrap();
+        loader::load(&url_from_rel_path("samples/hello-world/flow1.toml")).unwrap();
     }
 
     #[test]
     fn dump_complex1() {
-        load(&url_from_rel_path("samples/complex1/context.toml"), true).unwrap();
+        loader::load(&url_from_rel_path("samples/complex1/context.toml")).unwrap();
     }
 
     #[test]
     fn dump_fibonacci() {
-        load(&url_from_rel_path("samples/fibonacci/context.toml"), true).unwrap();
+        loader::load(&url_from_rel_path("samples/fibonacci/context.toml")).unwrap();
     }
 }

@@ -15,12 +15,12 @@ mod test {
     #[test]
     #[ignore]
     fn sample_hello_world_simple_yaml() {
-        loader::load(&url_from_rel_path("samples/hello-world-simple-yaml/context.yaml"), false).unwrap();
+        loader::load(&url_from_rel_path("samples/hello-world-simple-yaml/context.yaml")).unwrap();
     }
 
     #[test]
     #[ignore]
     fn sample_hello_world_yaml() {
-        loader::load(&url_from_rel_path("samples/hello-world-yaml/context.yaml"), false).unwrap();
+        loader::load(&url_from_rel_path("samples/hello-world-yaml/context.yaml")).unwrap();
     }
 }

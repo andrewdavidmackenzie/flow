@@ -11,6 +11,7 @@ extern crate flowclib;
 
 use flowclib::info;
 use flowclib::loader::loader;
+use flowclib::dumper::dumper;
 use flowclib::content::provider;
 use flowclib::compiler::compile;
 
@@ -60,8 +61,12 @@ fn run() -> Result<(), String> {
     url = provider::find(&url)?;
 
     info!("Attempting to load from url: '{}'", url);
-    let mut flow = loader::load(&url, dump)?;
+    let mut flow = loader::load(&url)?;
     info!("'{}' flow loaded", flow.name);
+
+    if dump {
+        dumper::dump(&flow);
+    }
 
     if compile {
         compile::compile(&mut flow, dump)

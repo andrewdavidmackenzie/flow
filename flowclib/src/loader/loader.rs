@@ -2,7 +2,6 @@ use model::flow::Flow;
 use model::function::Function;
 use content::provider;
 use loader::loader_helper::get_loader;
-use model::dumper;
 use std::mem::replace;
 
 use url::Url;
@@ -21,8 +20,7 @@ pub trait Validate {
     fn validate(&self) -> Result<(), String>;
 }
 
-/// load a flow definition from the `file_path` specified, and optionally dump a representation
-/// of the flow to stdout using the `dump` boolean.
+/// load a flow definition from the `file_path` specified
 ///
 /// It recursively loads all flows that are referenced.
 ///
@@ -37,18 +35,10 @@ pub trait Validate {
 ///
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
-/// flowclib::loader::loader::load(&url, false).unwrap();
+/// flowclib::loader::loader::load(&url).unwrap();
 /// ```
-pub fn load(url: &Url, dump: bool) -> Result<Flow, String> {
-    let flow = load_flow("", url);
-
-    if let &Ok(ref loaded_flow) = &flow {
-        if dump {
-            dumper::dump(loaded_flow, 0);
-        }
-    }
-
-    flow
+pub fn load(url: &Url) -> Result<Flow, String> {
+    load_flow("", url)
 }
 
 fn load_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
@@ -58,8 +48,7 @@ fn load_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
     Ok(flow)
 }
 
-/// load a flow definition from the `file_path` specified, and optionally dump a representation
-/// of the flow to stdout using the `dump` boolean.
+/// load a flow definition from the `file_path` specified
 ///
 /// It loads only the flow defined in the file specified and does not recursively loads all
 /// flows that are referenced.

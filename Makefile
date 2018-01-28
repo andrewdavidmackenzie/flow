@@ -8,11 +8,11 @@ test: local-tests test-gtk
 doc:
 	cargo doc
 
-travis: local-tests
+travis: local-tests online-tests
 
 local-tests: test-flowclib test-flowrlib test-flowc test-hello-simple test-fibonacci test-electron
 
-online-tests: flowc-online-tests
+online-tests: test-hello-simple-online
 
 #TODO map the cargo cache as a volume to avoid re-downloading and compiling every time.
 pi:
@@ -57,7 +57,7 @@ test-hello-simple-online: ./target/debug/flowc
 	@echo ""
 	@echo "------- Started testing generation of hello-world-simple-online ----"
 #	@rm -rf samples/hello-world-simple/rust
-	./target/debug/flowc https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
+	./target/debug/flowc -l https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 #	@cargo run --manifest-path  samples/hello-world-simple/Cargo.toml
 	@echo "------- Finished testing generation of hello-world-simple-online ----"
 
