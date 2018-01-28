@@ -45,4 +45,4 @@ debug-assertions = true
 codegen-units = 1
 
 [workspace]
-members = ["flowclib", "flowrlib", "flowstdlib", "flowc", "generated_example", "electron", "gtk"]
+members = ["flowclib", "flowrlib", "flowstdlib", "flowc", "electron", "gtk"]

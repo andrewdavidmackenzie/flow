@@ -3,12 +3,16 @@ RUSTUP := $(shell command -v rustup 2> /dev/null)
 
 all: test package doc
 
-test: travis test-gtk
+test: local-tests test-gtk
 
 doc:
 	cargo doc
 
-travis: test-flowclib test-flowrlib test-flowc test-hello-simple test-fibonacci test-electron
+travis: local-tests
+
+local-tests: test-flowclib test-flowrlib test-flowc test-hello-simple test-fibonacci test-electron
+
+online-tests: flowc-online-tests
 
 #TODO map the cargo cache as a volume to avoid re-downloading and compiling every time.
 pi:
@@ -49,11 +53,19 @@ test-hello-simple: ./target/debug/flowc
 	@cargo run --manifest-path  samples/hello-world-simple/Cargo.toml
 	@echo "------- Finished testing generation of hello-world-simple ----"
 
+test-hello-simple-online: ./target/debug/flowc
+	@echo ""
+	@echo "------- Started testing generation of hello-world-simple-online ----"
+#	@rm -rf samples/hello-world-simple/rust
+	./target/debug/flowc https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
+#	@cargo run --manifest-path  samples/hello-world-simple/Cargo.toml
+	@echo "------- Finished testing generation of hello-world-simple-online ----"
+
 # NOTE for now it only builds it, doesn't run it as it crashes with interger overflow
 test-fibonacci: ./target/debug/flowc
 	@echo ""
 	@echo "------- Started testing generation of fibonacci ----"
-	@rm -rf samples/hello-world-simple/src
+	@rm -rf samples/fibonacci/src
 	./target/debug/flowc samples/fibonacci
 	@cargo build --manifest-path  samples/fibonacci/Cargo.toml
 	@echo "------- Finished testing generation of fibonacci ----"
@@ -86,9 +98,6 @@ package-electron:
 	@cd electron && make package
 	@echo "------- Finished packaging electron -----------"
 
-run-gen-sample:
-	@cargo run --manifest-path generated_example/Cargo.toml
-
 run-flowc:
 	@cargo run --manifest-path flowc/Cargo.toml
 
@@ -102,7 +111,6 @@ clean:
 	rm -rf flowclib/target
 	rm -rf flowrlib/target
 	rm -rf flowstdlib/target
-	rm -rf generated_example/target
 	rm -rf electron/target
 	rm -rf samples/hello-world-simple/rust
 	cd electron && make clean

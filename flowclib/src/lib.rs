@@ -9,6 +9,7 @@ extern crate glob;
 extern crate strfmt;
 extern crate url;
 extern crate yaml_rust;
+extern crate curl;
 
 mod model;
 pub mod loader;

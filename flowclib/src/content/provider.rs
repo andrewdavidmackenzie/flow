@@ -1,5 +1,6 @@
 use url::Url;
 use content::file_provider::FileProvider;
+use content::http_provider::HttpProvider;
 
 pub trait Provider {
     fn find(&self, url: &Url) -> Result<Url, String>;
@@ -7,6 +8,7 @@ pub trait Provider {
 }
 
 const FILE_PROVIDER: &Provider = &FileProvider as &Provider;
+const HTTP_PROVIDER: &Provider = &HttpProvider as &Provider;
 
 /*
     Accept a Url that:
@@ -32,6 +34,7 @@ pub fn get(url: &Url) -> Result<String, String> {
 fn get_provider(url: &Url) -> Result<&'static Provider, String> {
     match url.scheme() {
         "file" => Ok(FILE_PROVIDER),
+        "http"|"https" => Ok(HTTP_PROVIDER),
         _ => Err(format!("Cannot determine which provider to use for url: '{}'", url))
     }
 }
