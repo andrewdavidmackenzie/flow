@@ -13,5 +13,5 @@ path = "src/flowc.rs"
 clap = "~2.27.1"
 flowclib = { path = "../flowclib", version = "~0.2.0" }
 log = "0.3.8"
-url = "*"
-tempdir = "*"
+url = "~1.6.0"
+tempdir = "~0.3.5"
