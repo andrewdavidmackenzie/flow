@@ -56,7 +56,6 @@ test-hello-simple: ./target/debug/flowc
 test-hello-simple-online: ./target/debug/flowc
 	@echo ""
 	@echo "------- Started testing generation of hello-world-simple-online ----"
-#	@rm -rf samples/hello-world-simple/rust
 	./target/debug/flowc https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 #	@cargo run --manifest-path  samples/hello-world-simple/Cargo.toml
 	@echo "------- Finished testing generation of hello-world-simple-online ----"
