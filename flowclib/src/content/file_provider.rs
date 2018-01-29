@@ -13,13 +13,13 @@ pub struct FileProvider;
 
 impl Provider for FileProvider {
     fn find(&self, url: &Url) -> Result<Url, String> {
-        let path = url.to_file_path().unwrap();
+        let mut path = url.to_file_path().unwrap();
         match metadata(&path) {
             Ok(md) => {
                 if md.is_dir() {
                     info!("'{}' is a directory, so attempting to find context file in it", path.display());
                     // TODO see how to handle conversion of error types if these fail...
-                    Ok(Url::from_file_path(FileProvider::find_default_file(path).unwrap()).unwrap())
+                    Ok(Url::from_file_path(FileProvider::find_default_file(&mut path).unwrap()).unwrap())
                 } else {
                     Ok(url.clone())
                 }
@@ -52,12 +52,13 @@ impl FileProvider {
     Passed a path to a directory, it searches for the first file it can find in the directory
     fitting the pattern "context.*", and if found opens it and returns it in the result
     */
-    fn find_default_file(path: PathBuf) -> io::Result<PathBuf> {
-        let file_pattern = format!("{}/context.*", path.display());
-        info!("Looking for files matching: '{}'", file_pattern);
+    fn find_default_file(path: &mut PathBuf) -> io::Result<PathBuf> {
+        path.push("context.*");
+        let pattern = path.to_str().unwrap();
+        info!("Looking for files matching: '{}'", pattern);
 
         // Try to glob for the default file using a pattern
-        for entry in glob(file_pattern.as_str()).expect("Failed to read glob pattern") {
+        for entry in glob(pattern).expect("Failed to read glob pattern") {
             // return first file found that matches the pattern, or error if none match
             match entry {
                 Ok(context_file) => return Ok(context_file),
@@ -80,8 +81,8 @@ mod test {
 
     #[test]
     fn get_default_sample() {
-        let path = PathBuf::from("../samples/hello-world");
-        match FileProvider::find_default_file(path) {
+        let mut path = PathBuf::from("../samples/hello-world");
+        match FileProvider::find_default_file(&mut path) {
             Ok(path) => {
                 if path.file_name().unwrap() != "context.toml" {
                     assert!(false);

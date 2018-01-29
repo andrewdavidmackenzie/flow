@@ -131,7 +131,7 @@ fn create_runnables_table(value_table: Vec<Value>,
         // Find the list of connections from the output of this runnable - there can be multiple
         for connection in &connection_table {
             if value.route == connection.from_route {
-                info!("Connection found: to '{}'", &connection.to_route);
+                debug!("Connection found: to '{}'", &connection.to_route);
                 // Get the index of runnable and input index of the destination of the connection
                 output_connections.push(inputs_routes.get(&connection.to_route).unwrap().clone());
             }
@@ -151,7 +151,7 @@ fn create_runnables_table(value_table: Vec<Value>,
             // Find the list of connections from the output of this runnable - there can be multiple
             for connection in &connection_table {
                 if outputs[0].route == connection.from_route {
-                    info!("Connection found: to '{}'", &connection.to_route);
+                    debug!("Connection found: to '{}'", &connection.to_route);
                     // Get the index of runnable and input index of the destination of the connection
                     output_connections.push(*inputs_routes.get(&connection.to_route).unwrap());
                 }

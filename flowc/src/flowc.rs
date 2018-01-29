@@ -3,14 +3,10 @@ extern crate log;
 extern crate url;
 extern crate tempdir;
 
-use log::LogLevelFilter;
-
 extern crate clap;
-
 use clap::{App, Arg, ArgMatches};
 
 extern crate flowclib;
-
 use flowclib::info;
 use flowclib::loader::loader;
 use flowclib::dumper::dumper;
@@ -23,23 +19,10 @@ mod simple_logger;
 use simple_logger::SimpleLogger;
 
 fn main() {
-    init_logging();
-
-    info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    info!("'flowclib' version {}", info::version());
-
     match run() {
         Ok(_) => {}
         Err(e) => error!("{}", e)
     }
-}
-
-fn init_logging() {
-    log::set_logger(|max_log_level| {
-        max_log_level.set(LogLevelFilter::Info);
-        Box::new(SimpleLogger)
-    }).unwrap();
-    info!("Logging started using 'log4rs', see log.yaml for configuration details");
 }
 
 /*
@@ -48,9 +31,14 @@ fn init_logging() {
 */
 fn run() -> Result<(), String> {
     let matches = get_matches();
+    SimpleLogger::init(matches.value_of("log"));
+
+    info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+    info!("'flowclib' version {}", info::version());
+
     let mut url = source_arg::url_from_cl_arg(matches.value_of("FLOW"))?;
     let dump = matches.is_present("dump");
-    let compile = !matches.is_present("load");
+    let compile = !matches.is_present("skip");
 
     // The specified url maybe a directory or a specific file, see if we can find the flow to load
     info!("Attempting to find flow using url: '{}'", url);
@@ -80,17 +68,26 @@ fn run() -> Result<(), String> {
 fn get_matches<'a>() -> ArgMatches<'a> {
     App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
-        .arg(Arg::with_name("load")
-            .short("l")
-            .help("Load the flow only, don't compile it"))
+        .arg(Arg::with_name("skip")
+            .short("s")
+            .long("skip")
+            .help("Skip compiling step"))
         .arg(Arg::with_name("dump")
             .short("d")
+            .long("dump")
             .help("Dump the flow to standard output after loading it"))
         .arg(Arg::with_name("output")
             .short("o")
+            .long("output")
             .takes_value(true)
             .value_name("OUTPUT_DIR")
             .help("Output directory for generated code"))
+        .arg(Arg::with_name("log")
+            .short("l")
+            .long("log")
+            .takes_value(true)
+            .value_name("LOG_LEVEL")
+            .help("Set log level for output (trace, debug, info, warn, error (default))"))
         .arg(Arg::with_name("FLOW")
             .help("the name of the 'flow' file")
             .required(false)
