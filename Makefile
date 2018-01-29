@@ -10,7 +10,7 @@ doc:
 
 travis: local-tests online-tests
 
-local-tests: test-flowclib test-flowrlib test-flowc test-hello-simple test-fibonacci test-electron
+local-tests: test-flowclib test-flowrlib test-flowc test-hello-world-simple test-fibonacci test-electron
 
 online-tests: test-hello-simple-online
 
@@ -45,7 +45,7 @@ test-flowc: ./target/debug/flowc
 	@cargo test --manifest-path flowc/Cargo.toml
 	@echo "------- Finished testing flowc ----------------"
 
-test-hello-simple: ./target/debug/flowc
+test-hello-world-simple: ./target/debug/flowc
 	@echo ""
 	@echo "------- Started testing generation of hello-world-simple ----"
 	@rm -rf samples/hello-world-simple/rust
