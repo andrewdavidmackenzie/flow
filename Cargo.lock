@@ -133,8 +133,8 @@ name = "flowclib"
 version = "0.1.1"
 dependencies = [
  "curl 0.4.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "flowrlib 0.1.1",
- "flowstdlib 0.1.0",
+ "flowrlib 0.2.0",
+ "flowstdlib 0.2.0",
  "glob 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.24 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -147,16 +147,16 @@ dependencies = [
 
 [[package]]
 name = "flowrlib"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "flowstdlib"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
- "flowrlib 0.1.1",
+ "flowrlib 0.2.0",
 ]
 
 [[package]]
