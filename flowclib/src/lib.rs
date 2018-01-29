@@ -11,9 +11,9 @@ extern crate url;
 extern crate yaml_rust;
 extern crate curl;
 
-mod model;
 pub mod loader;
 pub mod dumper;
 pub mod content;
 pub mod info;
 pub mod compiler;
+mod model;

@@ -12,3 +12,4 @@ clap = "~2.27.1"
 flowclib = { path = "../flowclib" }
 log = "0.3.8"
 url = "*"
+tempdir = "*"

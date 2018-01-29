@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate log;
+extern crate url;
+extern crate tempdir;
 
 use log::LogLevelFilter;
 
@@ -19,12 +21,6 @@ mod source_arg;
 mod simple_logger;
 
 use simple_logger::SimpleLogger;
-
-extern crate url;
-
-use url::Url;
-
-use std::env;
 
 fn main() {
     init_logging();
@@ -52,7 +48,7 @@ fn init_logging() {
 */
 fn run() -> Result<(), String> {
     let matches = get_matches();
-    let mut url = get_url(&matches)?;
+    let mut url = source_arg::url_from_cl_arg(matches.value_of("FLOW"))?;
     let dump = matches.is_present("dump");
     let compile = !matches.is_present("load");
 
@@ -69,11 +65,9 @@ fn run() -> Result<(), String> {
     }
 
     if compile {
-        // TODO need to decide where to generate output when read from a URL!!!
-        let mut directory = flow.source_url.to_file_path().unwrap().clone();
-        directory.pop();
-
-        compile::compile(&mut flow, &directory, dump)
+        let output_dir = source_arg::get_output_dir(&url, matches.value_of("OUTPUT_DIR"));
+        info!("Generating rust project into dir '{}'", output_dir.to_str().unwrap());
+        compile::compile(&mut flow, &output_dir, dump)
     } else {
         info!("Compiling skipped");
         Ok(())
@@ -92,21 +86,14 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .arg(Arg::with_name("dump")
             .short("d")
             .help("Dump the flow to standard output after loading it"))
-        .arg(Arg::with_name("flow")
+        .arg(Arg::with_name("output")
+            .short("o")
+            .takes_value(true)
+            .value_name("OUTPUT_DIR")
+            .help("Output directory for generated code"))
+        .arg(Arg::with_name("FLOW")
             .help("the name of the 'flow' file")
             .required(false)
             .index(1))
         .get_matches()
-}
-
-/*
-    Use the current working directory as the starting point ("parent") for parsing a command
-    line specified url where to load the flow from. This allows specifiying of full Urls
-    (http, file etc) as well as file paths relative to the working directory.
-
-    Returns a full url with appropriate scheme, and an absolute path.
-*/
-fn get_url(matches: &ArgMatches) -> Result<Url, String> {
-    let parent = Url::from_directory_path(env::current_dir().unwrap()).unwrap();
-    source_arg::url_from_cl_arg(&parent, matches.value_of("flow"))
 }
