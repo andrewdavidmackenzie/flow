@@ -20,7 +20,7 @@ use simple_logger::SimpleLogger;
 
 fn main() {
     match run() {
-        Ok(_) => {}
+        Ok(message) => println!("{}", message),
         Err(e) => error!("{}", e)
     }
 }
@@ -29,7 +29,7 @@ fn main() {
     Parse the command line arguments, then run the loader and (optional) compiling steps,
     returning early (with an error string) if anything goes wrong along the way.
 */
-fn run() -> Result<(), String> {
+fn run() -> Result<String, String> {
     let matches = get_matches();
     SimpleLogger::init(matches.value_of("log"));
 
@@ -57,8 +57,7 @@ fn run() -> Result<(), String> {
         info!("Generating rust project into dir '{}'", output_dir.to_str().unwrap());
         compile::compile(&mut flow, &output_dir, dump)
     } else {
-        info!("Compiling skipped");
-        Ok(())
+        Ok("Compiling skipped".to_string())
     }
 }
 
