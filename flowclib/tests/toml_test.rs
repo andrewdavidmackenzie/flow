@@ -1,7 +1,6 @@
 extern crate flowclib;
 extern crate url;
 
-#[cfg(test)]
 mod test {
     use url::Url;
     use std::env;
