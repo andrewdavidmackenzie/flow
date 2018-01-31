@@ -17,9 +17,13 @@ impl Provider for FileProvider {
         match metadata(&path) {
             Ok(md) => {
                 if md.is_dir() {
-                    info!("'{}' is a directory, so attempting to find context file in it", path.display());
-                    // TODO see how to handle conversion of error types if these fail...
-                    Ok(Url::from_file_path(FileProvider::find_default_file(&mut path).unwrap()).unwrap())
+                    info!("'{}' is a directory, so attempting to find context file in it",
+                          path.display());
+                    let file = FileProvider::find_default_file(&mut path).
+                        map_err(|e| e.to_string())?;
+                    Url::from_file_path(&file)
+                        .map_err(|_| format!("Could not create url from file path '{}'",
+                                              file.to_str().unwrap()))
                 } else {
                     Ok(url.clone())
                 }
@@ -63,10 +67,12 @@ impl FileProvider {
             match entry {
                 Ok(context_file) => return Ok(context_file),
                 Err(_) => return Err(io::Error::new(ErrorKind::NotFound,
-                                                    format!("No default context file found in directory '{}'", path.display())))
+                                             format!("No context file found matching '{}'",
+                                                     path.display())))
             }
         }
 
+        // No matches
         Err(io::Error::new(ErrorKind::NotFound,
                            format!("No default context file found in directory '{}'", path.display())))
     }
@@ -95,7 +101,7 @@ mod test {
     #[test]
     #[should_panic]
     fn get_contents_file_not_found() {
-        let provider :&Provider = &FileProvider;
+        let provider: &Provider = &FileProvider;
         provider.get(&Url::parse("file:///no-such-file").unwrap()).unwrap();
     }
 }
