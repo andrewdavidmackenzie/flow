@@ -3,14 +3,15 @@ RUSTUP := $(shell command -v rustup 2> /dev/null)
 
 all: test package doc
 
-test: local-tests test-gtk
+test: local-tests online-tests test-gtk
 
 doc:
 	cargo doc
 
+# In Travis don't try to test gtk as needs many extra installs
 travis: local-tests online-tests
 
-local-tests: test-flowclib test-flowrlib test-flowc test-hello-world-simple test-fibonacci test-electron
+local-tests: test-flowclib test-flowrlib test-flowstdlib test-flowc test-electron test-samples
 
 online-tests: test-hello-simple-online
 
@@ -24,6 +25,7 @@ pi:
 copy:
 	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/debug/flowc pi@raspberrypi.local:
 
+#################### Libraries ####################
 test-flowclib:
 	@echo ""
 	@echo "------- Started  testing flowclib -------------"
@@ -36,45 +38,51 @@ test-flowrlib:
 	@cargo test --manifest-path flowrlib/Cargo.toml
 	@echo "------- Finished testing flowrlib -------------"
 
-./target/debug/flowc:
-	@cargo build --manifest-path flowc/Cargo.toml
+test-flowstdlib:
+	@echo ""
+	@echo "------- Started  testing flowstdlib -------------"
+	@cargo test --manifest-path flowstdlib/Cargo.toml
+	@echo "------- Finished testing flowstdlib -------------"
 
+################### CLI BINARY ##################
 test-flowc: ./target/debug/flowc
 	@echo ""
 	@echo "------- Started  testing flowc ----------------"
 	@cargo test --manifest-path flowc/Cargo.toml
 	@echo "------- Finished testing flowc ----------------"
 
-test-hello-world-simple: ./target/debug/flowc
-	@echo ""
-	@echo "------- Started testing generation of hello-world-simple ----"
-	@rm -rf samples/hello-world-simple/rust
-	./target/debug/flowc samples/hello-world-simple
-	@cargo run --manifest-path  samples/hello-world-simple/Cargo.toml
-	@echo "------- Finished testing generation of hello-world-simple ----"
+./target/debug/flowc: flowc
+	@cargo build --manifest-path flowc/Cargo.toml
 
-test-hello-simple-online: ./target/debug/flowc
+#################### SAMPLES ####################
+sample_flows := $(patsubst samples/%,samples/%/rust/target,$(wildcard samples/*))
+
+test-samples: $(sample_flows)
+
+samples/%/rust/Cargo.toml : samples/%/context.toml
+	@echo "------- Compiling and Generating code from flow: $< ----"
+	./target/debug/flowc $<
+
+samples/%/rust/target : samples/%/rust/Cargo.toml
+	@echo "------- Compiling and Running generated code: $< ----"
+	cargo run --quiet --manifest-path $<; true
+
+################# ONLINE SAMPLES ################
+test-hello-simple-online:
 	@echo ""
 	@echo "------- Started testing generation of hello-world-simple-online ----"
 	./target/debug/flowc https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 #	@cargo run --manifest-path  samples/hello-world-simple/Cargo.toml
 	@echo "------- Finished testing generation of hello-world-simple-online ----"
 
-# NOTE for now it only builds it, doesn't run it as it crashes with interger overflow
-test-fibonacci: ./target/debug/flowc
-	@echo ""
-	@echo "------- Started testing generation of fibonacci ----"
-	@rm -rf samples/fibonacci/src
-	./target/debug/flowc samples/fibonacci
-	@cargo build --manifest-path  samples/fibonacci/Cargo.toml
-	@echo "------- Finished testing generation of fibonacci ----"
-
+################## ELECTRON UI ##################
 test-electron:
 	@echo ""
 	@echo "------- Started  testing electron -------------"
 	@cargo test --manifest-path electron/Cargo.toml
 	@echo "------- Finished testing electron -------------"
 
+#################### GTK UI ####################
 test-gtk:
 	@echo ""
 	@echo "------- Started  testing gtk -------------"
@@ -83,13 +91,11 @@ test-gtk:
 
 package: package-electron package-flowc
 
-package-flowc: flowc
+package-flowc:
 	@echo ""
 	@echo "------- Started  packaging flowc --------------"
-	@echo "------- Finished packaging flowc --------------" # No specific packing steps after build ATM
-
-flowc:
-	@cargo build --manifest-path flowc/Cargo.toml --bin flow
+	@cargo package --manifest-path flowc/Cargo.toml
+	@echo "------- Finished packaging flowc --------------"
 
 package-electron:
 	@echo ""
@@ -111,7 +117,7 @@ clean:
 	rm -rf flowrlib/target
 	rm -rf flowstdlib/target
 	rm -rf electron/target
-	rm -rf samples/hello-world-simple/rust
+	find samples -name rust -exec rm -rf {} \;
 	cd electron && make clean
 
 dependencies.png: dependencies.dot
