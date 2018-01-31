@@ -53,8 +53,8 @@ fn run() -> Result<String, String> {
     }
 
     if compile {
-        let output_dir = source_arg::get_output_dir(&url, matches.value_of("OUTPUT_DIR"));
-        info!("Generating rust project into dir '{}'", output_dir.to_str().unwrap());
+        let output_dir = source_arg::get_output_dir(&url, matches.value_of("OUTPUT_DIR"))?;
+        info!("Generating rust project into directory '{}'", output_dir.to_str().unwrap());
         compile::compile(&mut flow, &output_dir, dump)
     } else {
         Ok("Compiling skipped".to_string())

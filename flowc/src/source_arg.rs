@@ -2,6 +2,7 @@ use url::{Url, ParseError};
 use std::env;
 use std::path::PathBuf;
 use tempdir::TempDir;
+use std::fs;
 
 /*
     Use the current working directory as the starting point ("parent") for parsing a command
@@ -35,32 +36,55 @@ fn cwd_as_url() -> Url {
     Url::from_directory_path(env::current_dir().unwrap()).unwrap()
 }
 
-pub fn get_output_dir(url: &Url, output_dir: Option<&str>) -> PathBuf {
-    // Allow command line argument to force output_dir
-    if let Some(dir) = output_dir {
-        return PathBuf::from(dir);
+pub fn get_output_dir(url: &Url, option: Option<&str>) -> Result<PathBuf, String> {
+    let mut output_dir;
+
+    // Allow the optional command line argument to force output_dir
+    if let Some(dir) = option {
+        output_dir = PathBuf::from(dir);
+    } else {
+        match url.scheme() {
+            // If loading flow from a local file, then generate in the same directory
+            "file" => {
+                output_dir = url.to_file_path().unwrap().clone();
+                output_dir.pop();
+                output_dir.push("rust");
+            }
+            // If not from a file, then create a dir with flow name under a temp dir
+            _ => {
+                output_dir = TempDir::new("flow").unwrap().into_path();
+            }
+        }
     }
 
-    match url.scheme() {
-        // If loading flow from a file, then generate in the same directory
-        "file" => {
-            let mut directory = url.to_file_path().unwrap().clone();
-            directory.pop();
-            return directory;
+    println!("directory = {}", output_dir.to_str().unwrap());
+
+    // Now make sure the directory exists, if not create it, and is writable
+    if output_dir.exists() {
+        // Check it's not a file!
+        let md = fs::metadata(&output_dir).map_err(|e| e.to_string())?;
+        if md.is_file() {
+            return Err(format!("Output directory '{}' already exists as a file",
+                        output_dir.to_str().unwrap()));
         }
-        // If not from a file, then create a dir with flow name under a temp dir
-        _ => {
-            TempDir::new("flow").unwrap().into_path()
+
+        if md.permissions().readonly() {
+            return Err(format!("Output directory '{}' is read only", output_dir.to_str().unwrap()));
         }
+    } else {
+        fs::create_dir(&output_dir).map_err(|e| e.to_string())?;
     }
+
+    Ok(output_dir)
 }
 
 #[cfg(test)]
 mod test {
     extern crate url;
+
     use url::Url;
     use std::path;
-    use std::env;
+    use tempdir::TempDir;
 
     use super::url_from_cl_arg;
     use super::cwd_as_url;
@@ -126,27 +150,42 @@ mod test {
     fn http_temp_dir() {
         let dir = super::get_output_dir(&Url::parse("http://test.com/dir/file.flow").unwrap(), None);
 
-        assert!(dir.exists());
+        assert!(dir.unwrap().exists());
     }
 
     #[test]
     fn output_dir_arg() {
-        let out_dir_arg = format!("{}/test", env::temp_dir().into_os_string().into_string().unwrap());
+        let temp_dir = TempDir::new("flow").unwrap().into_path();
+        let out_dir_arg = temp_dir.to_str().unwrap();
 
-        let dir = super::get_output_dir(&Url::parse("http://test.com/dir/file.flow").unwrap(),
-                                        Some(&out_dir_arg));
+        let dir = super::get_output_dir(
+            &Url::parse("http://test.com/dir/file.flow").unwrap(),
+            Some(&out_dir_arg));
 
-        assert_eq!(dir.to_str().unwrap(), out_dir_arg);
+        assert_eq!(dir.unwrap().to_str().unwrap(), out_dir_arg);
+    }
+
+    #[test]
+    fn output_dir_created() {
+        let temp_dir = TempDir::new("flow").unwrap().into_path();
+        let out_dir_arg = format!("{}/subdir", temp_dir.to_str().unwrap());
+
+        let dir = super::get_output_dir(
+            &Url::parse("http://test.com/dir/file.flow").unwrap(),
+            Some(&out_dir_arg));
+
+        assert_eq!(dir.unwrap().to_str().unwrap(), out_dir_arg);
     }
 
     #[test]
     fn file_same_directory() {
-        let flow_dir = format!("{}/test", env::temp_dir().into_os_string().into_string().unwrap());
+        let temp_dir = TempDir::new("flow").unwrap().into_path();
+        let flow_dir = temp_dir.to_str().unwrap();
         let flow_loc = format!("{}/fake.flow", flow_dir);
         let flow_url = Url::parse(&format!("file://{}", flow_loc)).unwrap();
 
-        let dir = super::get_output_dir(&flow_url,None);
+        let dir = super::get_output_dir(&flow_url, None);
 
-        assert_eq!(dir.to_str().unwrap(), flow_dir);
+        assert_eq!(dir.unwrap().to_str().unwrap(), format!("{}/rust", flow_dir));
     }
 }
