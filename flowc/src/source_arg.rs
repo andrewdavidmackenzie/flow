@@ -57,17 +57,16 @@ pub fn get_output_dir(url: &Url, option: Option<&str>) -> Result<PathBuf, String
         }
     }
 
-    println!("directory = {}", output_dir.to_str().unwrap());
-
     // Now make sure the directory exists, if not create it, and is writable
     if output_dir.exists() {
-        // Check it's not a file!
         let md = fs::metadata(&output_dir).map_err(|e| e.to_string())?;
+        // Check it's not a file!
         if md.is_file() {
             return Err(format!("Output directory '{}' already exists as a file",
                         output_dir.to_str().unwrap()));
         }
 
+        // check it's not read only!
         if md.permissions().readonly() {
             return Err(format!("Output directory '{}' is read only", output_dir.to_str().unwrap()));
         }
