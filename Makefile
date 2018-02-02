@@ -13,7 +13,10 @@ travis: local-tests online-tests
 
 local-tests: test-flowclib test-flowrlib test-flowstdlib test-flowc test-electron test-samples
 
-online-tests: test-hello-simple-online
+online-tests: test-hello-simple-online ignored-tests
+
+ignored-tests:
+	cargo test -- --ignored
 
 #TODO map the cargo cache as a volume to avoid re-downloading and compiling every time.
 pi:
