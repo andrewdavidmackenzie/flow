@@ -1,6 +1,6 @@
 [package]
 name = "flowc"
-version = "0.1.0"
+version = "0.2.0-dev"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A compiler for 'flow' programs"
 license = "MIT"
