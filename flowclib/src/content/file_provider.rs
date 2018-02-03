@@ -46,7 +46,7 @@ impl Provider for FileProvider {
                     Err(e) => Err(format!("{}", e))
                 }
             }
-            Err(e) => Err(format!("{}", e))
+            Err(e) => Err(format!("Could not load content from URL '{}' ({}", url, e))
         }
     }
 }
