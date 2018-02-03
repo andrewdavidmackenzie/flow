@@ -52,7 +52,7 @@ mod test {
     use content::provider::Provider;
 
     #[test]
-    #[ignore]
+    #[cfg_attr(not(feature = "online_tests"), ignore)]
     fn get_github_sample() {
         let provider: &Provider = &HttpProvider;
         provider.get(&Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml").unwrap()).unwrap();
@@ -60,7 +60,7 @@ mod test {
 
     #[test]
     #[should_panic]
-    #[ignore]
+    #[cfg_attr(not(feature = "online_tests"), ignore)]
     fn online_get_contents_file_not_found() {
         let provider: &Provider = &HttpProvider;
         provider.get(&Url::parse("http://google.com/no-such-file").unwrap()).unwrap();

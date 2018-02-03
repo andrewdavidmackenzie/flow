@@ -5,6 +5,14 @@ all: test package doc
 
 test: local-tests online-tests test-gtk
 
+online := true
+
+ifeq ($(online),true)
+features := --features "online_tests"
+else
+features :=
+endif
+
 doc:
 	cargo doc
 
@@ -13,10 +21,7 @@ travis: local-tests online-tests
 
 local-tests: test-flowclib test-flowrlib test-flowstdlib test-flowc test-electron test-samples
 
-online-tests: test-hello-simple-online ignored-tests
-
-ignored-tests:
-	cargo test -- --ignored
+online-tests: test-hello-simple-online
 
 #TODO map the cargo cache as a volume to avoid re-downloading and compiling every time.
 pi:
@@ -32,7 +37,7 @@ copy:
 test-flowclib:
 	@echo ""
 	@echo "------- Started  testing flowclib -------------"
-	@cargo test --manifest-path flowclib/Cargo.toml
+	@cargo test --manifest-path flowclib/Cargo.toml $(features)
 	@echo "------- Finished testing flowclib -------------"
 
 test-flowrlib:
