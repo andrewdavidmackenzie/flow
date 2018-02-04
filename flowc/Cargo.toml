@@ -4,6 +4,10 @@ version = "0.2.0-dev"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A compiler for 'flow' programs"
 license = "MIT"
+documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
+homepage = "https://github.com/andrewdavidmackenzie/flow/README.md"
+repository = "https://github.com/andrewdavidmackenzie/flow/"
+readme = "https://github.com/andrewdavidmackenzie/flow/README.md"
 
 [[bin]]
 name = "flowc"
