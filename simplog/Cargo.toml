@@ -1,12 +1,12 @@
 [package]
-name = "simple_logger"
+name = "simplog"
 version = "1.0.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "An extremely small and simple logger that has levels of output"
 license = "MIT"
 
 [lib]
-name = "simple_logger"
+name = "simplog"
 path = "src/lib.rs"
 
 [dependencies]
