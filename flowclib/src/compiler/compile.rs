@@ -29,10 +29,6 @@ impl Implementation for ImplementationStub {
     fn name(&self) -> &str {
         &self.name
     }
-
-    fn define(&self) -> &'static str where Self: Sized {
-        unimplemented!()
-    }
 }
 
 impl Debug for ImplementationStub {

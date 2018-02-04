@@ -118,13 +118,7 @@ run-electron:
 	@cd electron && make run-electron
 
 clean:
-	rm -rf target
-	rm -rf flowc/target
-	rm -rf flowc/log
-	rm -rf flowclib/target
-	rm -rf flowrlib/target
-	rm -rf flowstdlib/target
-	rm -rf electron/target
+	cargo clean
 	find samples -name rust -exec rm -rf {} \;
 	cd electron && make clean
 

@@ -13,9 +13,10 @@ name = \"{binary_name}\"
 path = \"src/{main_filename}\"
 
 [dependencies]
-flowrlib =   {{ path = \"../../../flowrlib\",   version = \"~0.2.0\"}}
-flowstdlib = {{ path = \"../../../flowstdlib\", version = \"~0.2.0\"}}
+flowrlib =   {{ path = \"../../../flowrlib\",   version = \"~0.3\"}}
+flowstdlib = {{ path = \"../../../flowstdlib\", version = \"~0.3\"}}
 log = \"0.3.8\"
+simplog = \"1.0.0\"
 
 [workspace]
 exclude = [\"..\"]

@@ -46,12 +46,6 @@ mod test {
 
     pub struct Stdout;
 
-    const DEFINITION: &'static str ="
-name = 'Stdout'
-[[input]]
-name = 'stdout'
-type = 'String'";
-
     impl Implementation for Stdout {
         fn number_of_inputs(&self) -> usize {
             1
@@ -64,10 +58,6 @@ type = 'String'";
 
         fn name(&self) -> &'static str {
             "Stdout"
-        }
-
-        fn define(&self) -> &'static str {
-            DEFINITION
         }
     }
 

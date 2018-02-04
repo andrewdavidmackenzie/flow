@@ -11,4 +11,3 @@ pub mod implementation;
 pub mod function;
 pub mod runnable;
 pub mod zero_fifo;
-pub mod simple_logger;

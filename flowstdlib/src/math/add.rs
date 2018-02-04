@@ -5,21 +5,6 @@ use std::fmt::Debug;
 
 pub struct Add;
 
-const DEFINITION: &'static str ="
-name = 'Add'
-
-[[input]]
-name = 'i1'
-type = 'u32'
-
-[[input]]
-name = 'i2'
-type = 'u32'
-
-[[output]]
-name = 'o1'
-type = 'u32'";
-
 impl Implementation for Add {
     fn number_of_inputs(&self) -> usize {
         2
@@ -30,10 +15,6 @@ impl Implementation for Add {
         let i2 = inputs[1].clone().unwrap().parse::<i32>().unwrap();
         let o1 = i1 + i2;
         Some(o1.to_string())
-    }
-
-    fn define(&self) -> &'static str {
-        DEFINITION
     }
 
     fn name(&self) -> &'static str {

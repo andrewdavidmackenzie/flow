@@ -5,12 +5,6 @@ use std::fmt::Debug;
 
 pub struct Stderr;
 
-const DEFINITION: &'static str =
-"name = 'Stderr'
-[[input]]
-name = 'stderr'
-type = 'String'";
-
 impl Implementation for Stderr {
     fn number_of_inputs(&self) -> usize {
         1
@@ -23,10 +17,6 @@ impl Implementation for Stderr {
 
     fn name(&self) -> &'static str {
         "Stderr"
-    }
-
-    fn define(&self) -> &'static str {
-        DEFINITION
     }
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "flowc"
-version = "0.2.0-dev"
+version = "0.3.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A compiler for 'flow' programs"
 license = "MIT"
@@ -15,7 +15,13 @@ path = "src/flowc.rs"
 
 [dependencies]
 clap = "~2.27.1"
-flowclib = { path = "../flowclib", version = "~0.2.0" }
+flowclib = { path = "../flowclib", version = "^0.3" }
+simplog = "^1"
 log = "0.3.8"
 url = "~1.6.0"
 tempdir = "~0.3.5"
+
+[package.metadata.bundle]
+identifier = "net.mackenzie-serres.flow.flowc"
+icon = ["icons/32x32.png", "icons/128x128.png"]
+resources = ["stdlib"]

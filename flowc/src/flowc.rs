@@ -14,9 +14,9 @@ use flowclib::content::provider;
 use flowclib::compiler::compile;
 
 mod source_arg;
-mod simple_logger;
 
-use simple_logger::SimpleLogger;
+extern crate simplog;
+use simplog::simplog::SimpleLogger;
 
 fn main() {
     match run() {

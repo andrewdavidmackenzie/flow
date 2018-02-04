@@ -1,0 +1,5 @@
+name = "Stdin"
+
+[[output]]
+name = "stdin"
+type = "String"

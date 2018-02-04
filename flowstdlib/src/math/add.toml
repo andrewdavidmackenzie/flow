@@ -1,0 +1,13 @@
+name = "Add"
+
+[[input]]
+name = "i1"
+type = "u32"
+
+[[input]]
+name = "i2"
+type = "u32"
+
+[[output]]
+name = "o1"
+type = "u32"

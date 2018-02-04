@@ -9,6 +9,4 @@ pub trait Implementation: Debug {
     fn number_of_inputs(&self) -> usize;
 
     fn name(&self) -> &str;
-
-    fn define(&self) -> &'static str where Self: Sized;
 }

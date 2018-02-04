@@ -5,12 +5,6 @@ use std::fmt::Debug;
 
 pub struct Stdin;
 
-const DEFINITION: &'static str ="
-name = 'Stdin'
-[[output]]
-name = 'stdin'
-type = 'String'";
-
 impl Implementation for Stdin {
     fn number_of_inputs(&self) -> usize {
         0
@@ -27,11 +21,6 @@ impl Implementation for Stdin {
     fn name(&self) -> &'static str {
         "Stdin"
     }
-
-    fn define(&self) -> &'static str {
-        DEFINITION
-    }
-
 }
 
 impl Debug for Stdin {
