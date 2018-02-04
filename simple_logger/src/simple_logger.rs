@@ -1,6 +1,5 @@
-extern crate log;
-
-use log::{LogRecord, LogLevel, LogMetadata};
+use log;
+use log::{Log, LogRecord, LogLevel, LogMetadata};
 use std::str::FromStr;
 
 pub struct SimpleLogger {
@@ -32,7 +31,7 @@ fn parse_log_level(arg: Option<&str>) -> LogLevel {
     }
 }
 
-impl log::Log for SimpleLogger {
+impl Log for SimpleLogger {
     fn enabled(&self, metadata: &LogMetadata) -> bool {
         metadata.level() <= self.log_level
     }
