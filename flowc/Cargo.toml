@@ -24,4 +24,4 @@ tempdir = "~0.3.5"
 [package.metadata.bundle]
 identifier = "net.mackenzie-serres.flow.flowc"
 icon = ["icons/32x32.png", "icons/128x128.png"]
-resources = ["stdlib"]
+resources = ["lib"]
