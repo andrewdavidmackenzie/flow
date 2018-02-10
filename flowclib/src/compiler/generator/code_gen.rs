@@ -17,6 +17,8 @@ pub fn generate(flow: &mut Flow, output_dir: &PathBuf, log_level: &str,
 
     // TODO - extract these from the flow definition.
     let mut library_references = Vec::new();
+    let mut external_crates = Vec::new();
+    external_crates.push("extern crate flowstdlib;\n");
     library_references.push("use flowstdlib::stdio::stdout::Stdout;\n");
     library_references.push("use flowstdlib::math::add::Add;\n");
 
@@ -36,7 +38,7 @@ pub fn generate(flow: &mut Flow, output_dir: &PathBuf, log_level: &str,
     dir.push("main.rs");
     let mut main_rs = File::create(&dir)?;
     vars.insert("log_level".to_string(), log_level);
-    main_rs.write_all(main_gen::contents(&vars).unwrap().as_bytes())?;
+    main_rs.write_all(main_gen::contents(&vars, external_crates).unwrap().as_bytes())?;
     dir.pop();
 
     // write the runnable.rs file into src

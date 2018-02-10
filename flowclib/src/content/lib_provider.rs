@@ -4,6 +4,7 @@ use std::io::BufReader;
 use std::path::PathBuf;
 use std::io::prelude::*;
 use content::provider::Provider;
+use std::env;
 
 pub struct LibProvider;
 
@@ -56,10 +57,14 @@ impl LibProvider {
         }
     }
 
+    // TODO this is a hack while developing to get the root dir of the project and so we can
+    // then find the stand library etc below it.
     fn lib_root() -> PathBuf {
-        const LIB_ROOT: &'static str = "/Users/andrew/workspace/flow";
-
-        PathBuf::from(LIB_ROOT)
+        let mut dir = env::current_exe().unwrap();
+        dir.pop();
+        dir.pop();
+        dir.pop();
+        dir
     }
 }
 

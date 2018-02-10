@@ -7,7 +7,6 @@ const MAIN_TEMPLATE: &'static str = "
 extern crate log;
 
 extern crate flowrlib;
-extern crate flowstdlib;
 
 use flowrlib::execution::execute;
 
@@ -25,6 +24,14 @@ fn main() {{
 }}
 ";
 
-pub fn contents(vars: &HashMap<String, &str>) -> Result<String>{
-    strfmt(MAIN_TEMPLATE, &vars)
+pub fn contents(vars: &HashMap<String, &str>, external_crates: Vec<&str>) -> Result<String>{
+    let mut content = String::new();
+
+    for external_crate in external_crates {
+        content.push_str(external_crate);
+    }
+
+    content.push_str(&strfmt(MAIN_TEMPLATE, &vars).unwrap());
+
+    Ok(content)
 }
