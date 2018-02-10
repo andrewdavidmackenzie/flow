@@ -3,15 +3,14 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::io::prelude::*;
-use std::env;
 use content::provider::Provider;
 
 pub struct LibProvider;
 
 /*
     Urls for library flows and functions and values will be of the form:
-    source = "lib://std/stdio/stdout.toml"
-    Where 'std' is the library name and 'stdio/stdout.toml' the path of the definition file
+    source = "lib://flowstdlib/src/stdio/stdout.toml"
+    Where 'flowstdlib' is the library name and 'src/stdio/stdout.toml' the path of the definition file
     within the library.
 
 */
@@ -35,7 +34,7 @@ impl Provider for LibProvider {
                     Err(e) => Err(format!("{}", e))
                 }
             }
-            Err(e) => Err(format!("Could not load content from URL '{}' ({}", url, e))
+            Err(e) => Err(format!("Could not load content from url '{}' ({}", url, e))
         }
     }
 }
@@ -44,14 +43,23 @@ impl LibProvider {
     // Take the lib url and convert to a path where the corresponding definition files
     // should be in the local install, below where this binary is running from
     fn path_from_lib_url(url: &Url) -> Result<PathBuf, String> {
-        let mut path = env::current_exe().unwrap();
-        path.pop();
-        path.push(url.path());
+        let mut path = Self::lib_root();
+        path.push(url.host_str().unwrap());
+        path.push("src"); // TODO
+        let lib_path = &url.path()[1..]; // Strip off leading '/'
+        path.push(lib_path);
+
         if path.exists() {
             Ok(path)
         } else {
             Err(format!("Could not locate url '{}' in installed libraries", url))
         }
+    }
+
+    fn lib_root() -> PathBuf {
+        const LIB_ROOT: &'static str = "/Users/andrew/workspace/flow";
+
+        PathBuf::from(LIB_ROOT)
     }
 }
 

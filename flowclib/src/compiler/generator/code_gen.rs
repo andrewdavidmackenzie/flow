@@ -4,22 +4,26 @@ use std::io::prelude::*;
 use std::io::Result;
 use std::collections::HashMap;
 use std::path::PathBuf;
-
 use compiler::generator::cargo_gen;
 use compiler::generator::main_gen;
 use compiler::generator::runnables_gen;
 use flowrlib::runnable::Runnable;
 use model::flow::Flow;
 
-pub fn generate(flow: &mut Flow, output_dir : &PathBuf, _overwrite: bool, log_level: &str,
+pub fn generate(flow: &mut Flow, output_dir: &PathBuf, log_level: &str,
                 runnables: Vec<Box<Runnable>>) -> Result<()> {
     let mut dir = output_dir.clone();
     let mut vars = vars_from_flow(flow);
 
+    // TODO - extract these from the flow definition.
+    let mut library_references = Vec::new();
+    library_references.push("use flowstdlib::stdio::stdout::Stdout;\n");
+    library_references.push("use flowstdlib::math::add::Add;\n");
+
     // write the cargo file into the root
     dir.push("Cargo.toml");
     let mut cargo = File::create(&dir)?;
-    cargo.write_all(cargo_gen::cargo_file_contents(&vars).unwrap().as_bytes())?;
+    cargo.write_all(cargo_gen::contents(&vars).unwrap().as_bytes())?;
     dir.pop();
 
     // create the src subdir
@@ -32,13 +36,15 @@ pub fn generate(flow: &mut Flow, output_dir : &PathBuf, _overwrite: bool, log_le
     dir.push("main.rs");
     let mut main_rs = File::create(&dir)?;
     vars.insert("log_level".to_string(), log_level);
-    main_rs.write_all(main_gen::main_file_contents(&vars).unwrap().as_bytes())?;
+    main_rs.write_all(main_gen::contents(&vars).unwrap().as_bytes())?;
     dir.pop();
 
     // write the runnable.rs file into src
     dir.push("runnables.rs");
     let mut runnables_rs = File::create(&dir)?;
-    runnables_rs.write_all(runnables_gen::runnables_file_contents(&vars, runnables).unwrap().as_bytes())?;
+    runnables_rs.write_all(runnables_gen::contents(&vars,
+                                                   library_references,
+                                                   runnables).unwrap().as_bytes())?;
 
     Ok(())
 }
@@ -46,8 +52,8 @@ pub fn generate(flow: &mut Flow, output_dir : &PathBuf, _overwrite: bool, log_le
 fn vars_from_flow(flow: &mut Flow) -> HashMap<String, &str> {
     let mut vars = HashMap::<String, &str>::new();
     let version = "0.0.0";
-    let author_name = "Andrew Mackenzie";
-    let author_email = "andrew@mackenzie-serres.net";
+    let author_name = "Andrew Mackenzie";  // TODO make a variable
+    let author_email = "andrew@mackenzie-serres.net"; // TODO
 
     vars.insert("package_name".to_string(), &flow.name);
     vars.insert("version".to_string(), version);
@@ -63,6 +69,9 @@ fn vars_from_flow(flow: &mut Flow) -> HashMap<String, &str> {
     vars.insert("binary_name".to_string(), &flow.name);
 
     vars.insert("main_filename".to_string(), "main.rs");
+
+    // TODO this just assumes flowstdlib is always used for now
+    vars.insert("libraries".to_string(), "flowstdlib = { path = \"../../../flowstdlib\", version = \"~0.3\"} ");
 
     vars
 }

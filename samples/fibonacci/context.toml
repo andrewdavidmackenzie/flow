@@ -6,7 +6,7 @@ source="fib.toml"
 
 [[function]]
 alias = "print"
-source = "stdout.toml"
+source = "lib://flowstdlib/stdio/stdout.toml"
 
 [[connection]]
 from = "flow/fib/series"

@@ -51,20 +51,16 @@ pub fn compile(flow: &mut Flow, output_dir: &PathBuf, dump: bool) -> Result<Stri
 
     prune_tables(&mut connection_table, &mut value_table, &mut function_table);
 
-    let log_level;
     if dump {
         print(&connection_table, "Collapsed Connections");
         print(&value_table, "Values");
         print(&function_table, "Functions");
-        log_level = "Info";
-    } else {
-        log_level = "Warn";
     }
 
     let runnables = create_runnables_table(value_table,
                                            function_table, connection_table);
 
-    code_gen::generate(flow, output_dir, true, log_level,  runnables).map_err(|e| e.to_string())?;
+    code_gen::generate(flow, output_dir, "Warn",  runnables).map_err(|e| e.to_string())?;
 
     Ok(format!("run command 'cargo run --manifest-path {}/Cargo.toml' to compile and run generated project",
                output_dir.to_str().unwrap()))

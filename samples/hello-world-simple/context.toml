@@ -7,7 +7,7 @@ value = "Hello World!"
 
 [[function]]
 alias = "print"
-source = "lib://std/stdio/stdout.toml"
+source = "lib://flowstdlib/stdio/stdout.toml"
 
 [[connection]]
 name = "message"

@@ -20,12 +20,11 @@ use simplog::simplog::SimpleLogger;
 
 fn main() {{
     SimpleLogger::init(None);
-    init_logging();
     info!(\"'{{}}' version '{{}}'\", env!(\"CARGO_PKG_NAME\"), env!(\"CARGO_PKG_VERSION\"));
     execute(get_runnables());
 }}
 ";
 
-pub fn main_file_contents(vars: &HashMap<String, &str>) -> Result<String>{
+pub fn contents(vars: &HashMap<String, &str>) -> Result<String>{
     strfmt(MAIN_TEMPLATE, &vars)
 }
