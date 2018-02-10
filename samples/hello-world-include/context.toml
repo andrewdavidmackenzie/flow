@@ -2,7 +2,7 @@ name = "hello-world-include-context"
 
 [[function]]
 alias = "print"
-source = "../hello-world/terminal.toml"
+source = "lib://flowstdlib/stdio/stdout.toml"
 
 [[flow]]
 alias = "hello"

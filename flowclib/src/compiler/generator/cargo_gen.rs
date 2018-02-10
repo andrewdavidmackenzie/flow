@@ -35,8 +35,9 @@ fn cargo_gen_works() {
     vars.insert("author_email".to_string(), "andrew@mackenzie-serres.net");
     vars.insert("binary_name".to_string(), "test-gen");
     vars.insert("main_filename".to_string(), "main.rs");
+    vars.insert("libraries".to_string(), "");
 
-    let output = cargo_file_contents(&vars).unwrap();
+    let output = contents(&vars).unwrap();
     assert!(output.contains("test-gen"));
     assert!(!output.contains("{package_name}"));
 }
