@@ -8,6 +8,25 @@ pub struct SimpleLogger {
 
 const DEFAULT_LOG_LEVEL: LogLevel = LogLevel::Error;
 
+
+/// Initialize the SimpleLogger using the 'init()' function by passing it an Option<&str>
+/// that has 'None' or 'Some("log_level_str")', where 'log_level_str' is a &str with a valid
+/// log level, in any case. The string will be parsed and if valid set as the log level.
+///
+/// # Example
+/// ```
+/// #[macro_use]
+/// extern crate log;
+///
+/// extern crate simplog;
+/// use simplog::simplog::SimpleLogger;
+///
+/// fn main() {
+///     SimpleLogger::init(None);
+///     info!("Hello World!");
+/// }
+///
+/// ```
 impl SimpleLogger {
     pub fn init(arg: Option<&str>) {
         let level = parse_log_level(arg);
