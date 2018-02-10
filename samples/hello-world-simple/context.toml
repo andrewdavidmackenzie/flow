@@ -1,4 +1,4 @@
-name = "hello-world-simple-toml"
+name = "hello-world-simple"
 
 [[value]]
 name = "message"
@@ -7,7 +7,7 @@ value = "Hello World!"
 
 [[function]]
 alias = "print"
-source = "stdout.toml"
+source = "lib://std/stdio/stdout.toml"
 
 [[connection]]
 name = "message"

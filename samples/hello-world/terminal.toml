@@ -1,5 +1,0 @@
-name = "stdout"
-
-[[input]]
-name = "stdout"
-type = "String"
