@@ -17,11 +17,7 @@ doc:
 	cargo doc
 
 # In Travis don't try to test gtk as needs many extra installs
-travis: lib_path local-tests online-tests
-
-lib_path:
-	@FLOW_LIB_PATH=$(TRAVIS_BUILD_DIR)
-	@echo "FLOW_LIB_PATH set to $(FLOW_LIB_PATH)"
+travis: local-tests online-tests
 
 local-tests: test-flowclib test-flowrlib test-flowstdlib test-flowc test-electron test-samples
 
