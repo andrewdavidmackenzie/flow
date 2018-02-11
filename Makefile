@@ -20,7 +20,7 @@ doc:
 travis: lib_path local-tests online-tests
 
 lib_path:
-	@FLOW_LIB_PATH=$(PWD)
+	@FLOW_LIB_PATH=`pwd`
 	@echo "FLOW_LIB_PATH set to $(FLOW_LIB_PATH)"
 
 local-tests: test-flowclib test-flowrlib test-flowstdlib test-flowc test-electron test-samples
