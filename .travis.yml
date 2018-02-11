@@ -3,10 +3,6 @@ addons:
     packages:
       - xvfb
 
-env:
-  global:
-    - FLOW_LIB_PATH=$TRAVIS_BUILD_DIR
-
 install:
   - export DISPLAY=':99.0'
   - Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
@@ -23,13 +19,9 @@ os:
 
 script: make travis
 
-matrix:
-  allow_failures:
-    - rust: nightly
-
 env:
   global:
-  - RUSTFLAGS="-C link-dead-code"
+  - RUSTFLAGS="-C link-dead-code" FLOW_LIB_PATH=$TRAVIS_BUILD_DIR
 
 addons:
   apt:
