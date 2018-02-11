@@ -12,7 +12,6 @@ extern crate flowclib;
 use flowclib::info;
 use flowclib::loader::loader;
 use flowclib::dumper::dumper;
-use flowclib::content::provider;
 use flowclib::compiler::compile;
 use flowclib::generator::code_gen;
 
