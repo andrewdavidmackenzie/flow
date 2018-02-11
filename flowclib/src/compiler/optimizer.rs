@@ -34,69 +34,72 @@ pub fn collapse_connections(complete_table: &Vec<Connection>) -> Vec<Connection>
     final_table
 }
 
-#[test]
-fn collapses_a_connection() {
-    let left_side = Connection {
-        name: Some("left".to_string()),
-        from: "point a".to_string(),
-        from_route: "/f1/a".to_string(),
-        from_type: "String".to_string(),
-        starts_at_flow: false,
-        to: "point b".to_string(),
-        to_route: "/f2/a".to_string(),
-        to_type: "String".to_string(),
-        ends_at_flow: true
-    };
+#[cfg(test)]
+mod test {
+    #[test]
+    fn collapses_a_connection() {
+        let left_side = Connection {
+            name: Some("left".to_string()),
+            from: "point a".to_string(),
+            from_route: "/f1/a".to_string(),
+            from_type: "String".to_string(),
+            starts_at_flow: false,
+            to: "point b".to_string(),
+            to_route: "/f2/a".to_string(),
+            to_type: "String".to_string(),
+            ends_at_flow: true
+        };
 
-    let right_side = Connection {
-        name: Some("right".to_string()),
-        from: "point b".to_string(),
-        from_route: "/f2/a".to_string(),
-        from_type: "String".to_string(),
-        starts_at_flow: true,
-        to: "point c".to_string(),
-        to_route: "/f3/a".to_string(),
-        to_type: "String".to_string(),
-        ends_at_flow: false
-    };
+        let right_side = Connection {
+            name: Some("right".to_string()),
+            from: "point b".to_string(),
+            from_route: "/f2/a".to_string(),
+            from_type: "String".to_string(),
+            starts_at_flow: true,
+            to: "point c".to_string(),
+            to_route: "/f3/a".to_string(),
+            to_type: "String".to_string(),
+            ends_at_flow: false
+        };
 
-    let connections = &vec!(left_side, right_side);
+        let connections = &vec!(left_side, right_side);
 
-    let collapsed = collapse_connections(connections);
-    assert_eq!(collapsed.len(), 1);
-    assert_eq!(collapsed[0].from_route, "/f1/a".to_string());
-    assert_eq!(collapsed[0].to_route, "/f3/a".to_string());
-}
+        let collapsed = collapse_connections(connections);
+        assert_eq!(collapsed.len(), 1);
+        assert_eq!(collapsed[0].from_route, "/f1/a".to_string());
+        assert_eq!(collapsed[0].to_route, "/f3/a".to_string());
+    }
 
-#[test]
-fn doesnt_collapse_a_non_connection() {
-    let one = Connection {
-        name: Some("left".to_string()),
-        from: "point a".to_string(),
-        from_route: "/f1/a".to_string(),
-        from_type: "String".to_string(),
-        starts_at_flow: false,
-        to: "point b".to_string(),
-        to_route: "/f2/a".to_string(),
-        to_type: "String".to_string(),
-        ends_at_flow: false
-    };
+    #[test]
+    fn doesnt_collapse_a_non_connection() {
+        let one = Connection {
+            name: Some("left".to_string()),
+            from: "point a".to_string(),
+            from_route: "/f1/a".to_string(),
+            from_type: "String".to_string(),
+            starts_at_flow: false,
+            to: "point b".to_string(),
+            to_route: "/f2/a".to_string(),
+            to_type: "String".to_string(),
+            ends_at_flow: false
+        };
 
-    let other = Connection {
-        name: Some("right".to_string()),
-        from: "point b".to_string(),
-        from_route: "/f3/a".to_string(),
-        from_type: "String".to_string(),
-        starts_at_flow: false,
-        to: "point c".to_string(),
-        to_route: "/f4/a".to_string(),
-        to_type: "String".to_string(),
-        ends_at_flow: false
-    };
+        let other = Connection {
+            name: Some("right".to_string()),
+            from: "point b".to_string(),
+            from_route: "/f3/a".to_string(),
+            from_type: "String".to_string(),
+            starts_at_flow: false,
+            to: "point c".to_string(),
+            to_route: "/f4/a".to_string(),
+            to_type: "String".to_string(),
+            ends_at_flow: false
+        };
 
-    let connections = &vec!(one, other);
-    let collapsed = collapse_connections(connections);
-    assert_eq!(collapsed.len(), 2);
+        let connections = &vec!(one, other);
+        let collapsed = collapse_connections(connections);
+        assert_eq!(collapsed.len(), 2);
+    }
 }
 
 /*
