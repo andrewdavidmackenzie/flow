@@ -4,14 +4,16 @@ use std::io::prelude::*;
 use std::io::Result;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use compiler::generator::cargo_gen;
-use compiler::generator::main_gen;
-use compiler::generator::runnables_gen;
+use generator::cargo_gen;
+use generator::main_gen;
+use generator::runnables_gen;
 use flowrlib::runnable::Runnable;
 use model::flow::Flow;
 
-pub fn generate(flow: &mut Flow, output_dir: &PathBuf, log_level: &str,
-                runnables: Vec<Box<Runnable>>) -> Result<()> {
+pub fn generate(flow: &Flow, output_dir: PathBuf, log_level: &str,
+                runnables: Vec<Box<Runnable>>) -> Result<String> {
+    info!("Generating rust project into directory '{}'", output_dir.to_str().unwrap());
+
     let mut dir = output_dir.clone();
     let mut vars = vars_from_flow(flow);
 
@@ -48,10 +50,11 @@ pub fn generate(flow: &mut Flow, output_dir: &PathBuf, log_level: &str,
                                                    library_references,
                                                    runnables).unwrap().as_bytes())?;
 
-    Ok(())
+    Ok(format!("run command 'cargo run --manifest-path {}/Cargo.toml' to compile and run generated project",
+               output_dir.to_str().unwrap()))
 }
 
-fn vars_from_flow(flow: &mut Flow) -> HashMap<String, &str> {
+fn vars_from_flow(flow: &Flow) -> HashMap<String, &str> {
     let mut vars = HashMap::<String, &str>::new();
     let version = "0.0.0";
     let author_name = "Andrew Mackenzie";  // TODO make a variable

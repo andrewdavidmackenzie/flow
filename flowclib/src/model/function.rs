@@ -19,7 +19,12 @@ pub struct Function {
     pub outputs: Option<Vec<IO>>,
 
     #[serde(skip_deserializing)]
-    pub route: Route
+    pub route: Route,
+
+    #[serde(skip_deserializing)]
+    pub libs: Vec<String>,
+    #[serde(skip_deserializing)]
+    pub lib_references: Vec<String>,
 }
 
 impl HasName for Function {
@@ -63,11 +68,12 @@ fn function_with_no_io_not_valid() {
         name: "test_function".to_string(),
         inputs: Some(vec!()),
         outputs: Some(vec!()),
-        route: "".to_string()
+        route: "".to_string(),
+        libs: vec!(),
+        lib_references: vec!()
     };
 
     assert_eq!(fun.validate().is_err(), true);
-
 }
 
 impl fmt::Display for Function {

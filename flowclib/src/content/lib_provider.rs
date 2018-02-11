@@ -1,10 +1,6 @@
 use url::Url;
-use std::fs::File;
-use std::io::BufReader;
-use std::path::PathBuf;
-use std::io::prelude::*;
 use content::provider::Provider;
-use std::env;
+use simpath::Simpath;
 
 pub struct LibProvider;
 
@@ -17,54 +13,29 @@ pub struct LibProvider;
 */
 impl Provider for LibProvider {
     /*
-        For the lib provider, find will just confirm the file at the specified url exists
+        For the lib provider, find the library file referenced in the Url in FLOW_LIB_PATH
+
+        It should return a "file://" style Url, so the file provider will actually read it
     */
-    fn find(&self, url: &Url) -> Result<Url, String> {
-        LibProvider::path_from_lib_url(url).map(|_path| url.clone())
-    }
+    fn resolve(&self, url: &Url) -> Result<(Url, Option<String>, Option<String>), String> {
+        let lib_name = url.host_str().unwrap();
+        let flow_lib_search_path = Simpath::new("FLOW_LIB_PATH");
+        let mut lib_path = flow_lib_search_path.find(lib_name).map_err(|e| e.to_string())?;
 
-    fn get(&self, url: &Url) -> Result<String, String> {
-        let file_path = LibProvider::path_from_lib_url(url)?;
-        match File::open(file_path) {
-            Ok(file) => {
-                let mut buf_reader = BufReader::new(file);
-                let mut contents = String::new();
+        let lib_ref = &url.path()[1..];
+        lib_path.push("src");
+        lib_path.push(&lib_ref); // Strip off leading '/' to concatenate to path
 
-                match buf_reader.read_to_string(&mut contents) {
-                    Ok(_) => Ok(contents),
-                    Err(e) => Err(format!("{}", e))
-                }
-            }
-            Err(e) => Err(format!("Could not load content from url '{}' ({}", url, e))
-        }
-    }
-}
-
-impl LibProvider {
-    // Take the lib url and convert to a path where the corresponding definition files
-    // should be in the local install, below where this binary is running from
-    fn path_from_lib_url(url: &Url) -> Result<PathBuf, String> {
-        let mut path = Self::lib_root();
-        path.push(url.host_str().unwrap());
-        path.push("src"); // TODO
-        let lib_path = &url.path()[1..]; // Strip off leading '/'
-        path.push(lib_path);
-
-        if path.exists() {
-            Ok(path)
+        if lib_path.exists() {
+            let resolved_url = Url::from_file_path(lib_path).map_err(|_e| "Could not convert file path to Url".to_string())?;
+            Ok((resolved_url, Some(lib_name.to_string()), Some(lib_ref.to_string())))
         } else {
-            Err(format!("Could not locate url '{}' in installed libraries", url))
+            Err(format!("Could not locate url '{}' in libraries in 'FLOW_LIB_PATH'", url))
         }
     }
 
-    // TODO this is a hack while developing to get the root dir of the project and so we can
-    // then find the stand library etc below it.
-    fn lib_root() -> PathBuf {
-        let mut dir = env::current_exe().unwrap();
-        dir.pop();
-        dir.pop();
-        dir.pop();
-        dir
+    fn get(&self, _url: &Url) -> Result<String, String> {
+        unimplemented!();
     }
 }
 

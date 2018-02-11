@@ -4,7 +4,14 @@ use content::lib_provider::LibProvider;
 use content::http_provider::HttpProvider;
 
 pub trait Provider {
-    fn find(&self, url: &Url) -> Result<Url, String>;
+    /// 'resolve' takes a Url and uses it to determine a url where actual content can be read from
+    /// using some provider specific logic. This may involve looking for default files in a
+    /// directory (a file provider) or a server path (an http provider), or it may involve
+    /// translating a virtual Url into a real on where content can be found (lib provider).
+    fn resolve(&self, url: &Url) -> Result<(Url, Option<String>, Option<String>), String>;
+
+    /// 'get' fetches content from a url. It resolves the url internally before attempting to
+    /// fetch actual content
     fn get(&self, url: &Url) -> Result<String, String>;
 }
 
@@ -21,16 +28,20 @@ const HTTP_PROVIDER: &Provider = &HttpProvider as &Provider;
 
      If no file is specified, then look for default file in a directory specified
 */
-pub fn find(url: &Url) -> Result<Url, String> {
+fn resolve(url: &Url) -> Result<(Url, Option<String>, Option<String>), String> {
     let provider = get_provider(url)?;
-    provider.find(url)
+    provider.resolve(url)
 }
 
-// Helper method to read the content of a file found at 'file_path' into a String result.
+// Helper method to read the content of a file found at 'file_path' into a String result,
+// plus an optional library name, and an optional function path in the library
 // 'file_path' could be absolute or relative, so we canonicalize it first...
-pub fn get(url: &Url) -> Result<String, String> {
-    let provider = get_provider(url)?;
-    provider.get(url)
+pub fn get(url: &Url) -> Result<(String, Option<String>, Option<String>), String> {
+    let (resolved_url, lib_name, lib_ref) = resolve(url)?;
+    // The 'resolved' Url maybe served by a different provider
+    let provider = get_provider(&resolved_url)?;
+    let content = provider.get(&resolved_url)?;
+    Ok((content, lib_name, lib_ref))
 }
 
 fn get_provider(url: &Url) -> Result<&'static Provider, String> {

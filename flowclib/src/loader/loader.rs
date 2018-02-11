@@ -69,10 +69,16 @@ fn load_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
 /// ```
 pub fn load_single_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
     let loader = get_loader(url)?;
-    let contents = provider::get(url)?;
+    let (contents, lib, lib_ref) = provider::get(url)?;
     let mut flow = loader.load_flow(&contents)?;
     flow.source_url = url.clone();
     flow.route = format!("{}/{}", parent_route, flow.name);
+    if let Some(l) = lib {
+        flow.libs.push(l);
+    };
+    if let Some(lr) = lib_ref {
+        flow.lib_references.push(lr);
+    };
     flow.validate()?;
     load_functions(&mut flow)?;
     load_values(&mut flow)?;
@@ -96,9 +102,17 @@ pub fn load_single_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
 /// ```
 pub fn load_function(url: &Url, parent_route: &str) -> Result<Function, String> {
     let loader = get_loader(url)?;
-    let contents = provider::get(url)?;
+    let (contents, lib, lib_ref) = provider::get(url)?;
     let mut function = loader.load_function(&contents)?;
     function.route = format!("{}/{}", parent_route, function.name);
+
+    if let Some(l) = lib {
+        function.libs.push(l);
+    };
+
+    if let Some(lr) = lib_ref {
+        function.lib_references.push(lr);
+    };
 
     if let Some(ref mut inputs) = function.inputs {
         for ref mut input in inputs {

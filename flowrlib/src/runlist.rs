@@ -19,7 +19,7 @@ pub struct RunList {
     runnables: Vec<Arc<Mutex<Runnable>>>,
     inputs_satisfied: HashSet<usize>,
     blocking: Vec<(usize, usize)>,
-    ready: Vec<usize>
+    ready: Vec<usize>,
 }
 
 impl RunList {
@@ -103,6 +103,7 @@ mod tests {
     use super::RunList;
     use super::Runnable;
     use std::sync::{Arc, Mutex};
+    use std::fmt;
 
     struct TestRunnable {
         id: usize
@@ -110,18 +111,25 @@ mod tests {
 
     impl TestRunnable {
         fn new(id: usize) -> TestRunnable {
-            TestRunnable{id}
+            TestRunnable { id }
+        }
+    }
+
+    impl fmt::Display for TestRunnable {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "\tid: {}\n", self.id).unwrap();
+            Ok(())
         }
     }
 
     impl Runnable for TestRunnable {
         fn init(&mut self) -> bool { false }
         fn write_input(&mut self, _input_number: usize, _new_value: Option<String>) {}
-        fn inputs_satisfied(&self) -> bool {false}
-        fn run(&mut self) -> Option<String> { Some("Output".to_string())}
-        fn output_destinations(&self) -> Vec<(usize, usize)> {vec!((1,0))}
+        fn inputs_satisfied(&self) -> bool { false }
+        fn run(&mut self) -> Option<String> { Some("Output".to_string()) }
+        fn output_destinations(&self) -> Vec<(usize, usize)> { vec!((1, 0)) }
         fn id(&self) -> usize { self.id }
-        fn to_code(&self) -> String {"fake code".to_string()}
+        fn to_code(&self) -> String { "fake code".to_string() }
     }
 
     fn test_runnables() -> RunList {
@@ -161,7 +169,7 @@ mod tests {
         let mut runs = test_runnables();
 
         // Indicate that 0 has all it's inputs read
-        runs.inputs_ready( 0);
+        runs.inputs_ready(0);
 
         match runs.next() {
             None => assert!(false),
@@ -180,7 +188,7 @@ mod tests {
         runs.blocked_by(1, 0);
 
         // Indicate that 0 has all it's inputs read
-        runs.inputs_ready( 0);
+        runs.inputs_ready(0);
 
         match runs.next() {
             None => assert!(true),
@@ -196,7 +204,7 @@ mod tests {
         runs.blocked_by(1, 0);
 
         // Indicate that 0 has all it's inputs read
-        runs.inputs_ready( 0);
+        runs.inputs_ready(0);
 
         assert!(runs.next().is_none());
 

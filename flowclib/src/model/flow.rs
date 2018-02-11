@@ -36,6 +36,11 @@ pub struct Flow {
 
     #[serde(rename = "connection")]
     pub connections: Option<Vec<Connection>>,
+
+    #[serde(skip_deserializing)]
+    pub libs: Vec<String>,
+    #[serde(skip_deserializing)]
+    pub lib_references: Vec<String>,
 }
 
 impl HasName for Flow {
@@ -155,6 +160,8 @@ impl Default for Flow {
             inputs: None,
             outputs: None,
             connections: None,
+            libs: vec!(),
+            lib_references: vec!()
         }
     }
 }

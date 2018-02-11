@@ -1,11 +1,11 @@
 use runnable::Runnable;
 use implementation::Implementation;
 use std::mem::replace;
+use std::fmt;
 
 #[derive(Debug)]
 pub struct Function {
     id: usize,
-    initial_value: Option<&'static str>,
     implementation: Box<Implementation>,
 
     num_inputs: usize,
@@ -19,6 +19,18 @@ pub struct Function {
 
 // TODO Make these doc comments and produce some documentation?
 
+impl fmt::Display for Function {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "\tid: {}\n\timplementation: {:?}\n",
+               self.id, self.implementation).unwrap();
+        write!(f, "\tnum_inputs: {:?}\n\tnum_inputs_pending: {:?}\n",
+               self.num_inputs, self.num_inputs_pending).unwrap();
+        write!(f, "\tinputs: {:?}\n\toutput_routes: {:?}\n",
+               self.inputs, self.output_routes).unwrap();
+        Ok(())
+    }
+}
+
 impl Function {
     pub fn new(id: usize, implementation: Box<Implementation>,
                output_routes: Vec<(usize, usize)>)
@@ -26,7 +38,6 @@ impl Function {
         let number_of_inputs = implementation.number_of_inputs();
         Function {
             id,
-            initial_value: None,
             implementation,
             num_inputs: number_of_inputs,
             num_inputs_pending: number_of_inputs,
@@ -74,7 +85,6 @@ mod test {
         assert_eq!(code, "Function::new(1, Box::new(Stdout{}), vec!())")
     }
 }
-
 
 impl Runnable for Function {
     fn id(&self) -> usize { self.id }

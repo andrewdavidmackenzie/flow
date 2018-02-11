@@ -22,6 +22,8 @@ impl Loader for FlowYamlLoader {
                 outputs: None,
                 function_refs: None,
                 values: None,
+                libs: vec!(),
+                lib_references: vec!()
             };
 
         Ok(flow)
@@ -36,6 +38,8 @@ impl Loader for FlowYamlLoader {
             route: "fake/fake".to_string(),
             inputs: None,
             outputs: None,
+            libs: vec!(),
+            lib_references: vec!()
         };
 
         Ok(function)

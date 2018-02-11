@@ -1,4 +1,6 @@
-pub trait Runnable {
+use std::fmt;
+
+pub trait Runnable : fmt::Display {
     fn init(&mut self) -> bool;
     fn write_input(&mut self, input_number: usize, new_value: Option<String>);
     fn inputs_satisfied(&self) -> bool;

@@ -4,18 +4,22 @@ extern crate url;
 extern crate tempdir;
 
 extern crate clap;
+
 use clap::{App, Arg, ArgMatches};
 
 extern crate flowclib;
+
 use flowclib::info;
 use flowclib::loader::loader;
 use flowclib::dumper::dumper;
 use flowclib::content::provider;
 use flowclib::compiler::compile;
+use flowclib::generator::code_gen;
 
 mod source_arg;
 
 extern crate simplog;
+
 use simplog::simplog::SimpleLogger;
 
 fn main() {
@@ -36,28 +40,27 @@ fn run() -> Result<String, String> {
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     info!("'flowclib' version {}", info::version());
 
-    let mut url = source_arg::url_from_cl_arg(matches.value_of("FLOW"))?;
+    let url = source_arg::url_from_cl_arg(matches.value_of("FLOW"))?;
     let dump = matches.is_present("dump");
-    let compile = !matches.is_present("skip");
-
-    // The specified url maybe a directory or a specific file, see if we can find the flow to load
-    info!("Attempting to find flow using url: '{}'", url);
-    url = provider::find(&url)?;
+    let generate = !matches.is_present("skip");
 
     info!("Attempting to load from url: '{}'", url);
     let mut flow = loader::load(&url)?;
     info!("'{}' flow loaded", flow.name);
 
+    let output_dir = source_arg::get_output_dir(&url, matches.value_of("OUTPUT_DIR"))?;
+    let (connections, values, functions, runnables)
+    = compile::compile(&mut flow);
+
     if dump {
-        dumper::dump(&flow);
+        dumper::dump_flow(&flow);
+        dumper::dump_tables(&connections, &values, &functions, &runnables);
     }
 
-    if compile {
-        let output_dir = source_arg::get_output_dir(&url, matches.value_of("OUTPUT_DIR"))?;
-        info!("Generating rust project into directory '{}'", output_dir.to_str().unwrap());
-        compile::compile(&mut flow, &output_dir, dump)
+    if generate {
+        code_gen::generate(&flow, output_dir, "Warn", runnables).map_err(|e| e.to_string())
     } else {
-        Ok("Compiling skipped".to_string())
+        Ok("Generations skipped".to_string())
     }
 }
 
@@ -70,7 +73,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .arg(Arg::with_name("skip")
             .short("s")
             .long("skip")
-            .help("Skip compiling step"))
+            .help("Skip generation step"))
         .arg(Arg::with_name("dump")
             .short("d")
             .long("dump")

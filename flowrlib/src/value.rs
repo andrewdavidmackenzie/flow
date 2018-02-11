@@ -2,6 +2,7 @@ use runnable::Runnable;
 use implementation::Implementation;
 use zero_fifo::Fifo;
 use std::mem::replace;
+use std::fmt;
 
 const ONLY_INPUT: usize = 0;
 
@@ -32,6 +33,16 @@ fn value_to_code() {
                            vec!((1,0)));
     let code = value.to_code();
     assert_eq!(code, "Value::new(1, Some(\"Hello-World\".to_string()), vec!((1,0),))")
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "\tid: {}\n\tinitial_value: {:?}\n\timplementation: {:?}\n",
+               self.id, self.initial_value, self.implementation).unwrap();
+        write!(f, "\tinput: {:?}\n\toutput_routes: {:?}\n",
+               self.input, self.output_routes).unwrap();
+        Ok(())
+    }
 }
 
 impl Runnable for Value {
