@@ -26,11 +26,13 @@ pub fn dump_flow(flow: &Flow) {
 }
 
 pub fn dump_tables(connections: &Vec<Connection>, values: &Vec<Value>, functions: &Vec<Function>,
-                   runnables: &Vec<Box<Runnable>>) {
+                   runnables: &Vec<Box<Runnable>>, libs: &Vec<String>, lib_references: &Vec<String>) {
     print(connections, "Collapsed Connections");
     print(values, "Values");
     print(functions, "Functions");
     print(runnables, "Runnables");
+    print(libs, "Libraries");
+    print(lib_references, "Library references");
 }
 
 fn print<E: fmt::Display>(table: &Vec<E>, title: &str) {

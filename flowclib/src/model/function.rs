@@ -22,9 +22,9 @@ pub struct Function {
     pub route: Route,
 
     #[serde(skip_deserializing)]
-    pub libs: Vec<String>,
+    pub lib: Option<String>,
     #[serde(skip_deserializing)]
-    pub lib_references: Vec<String>,
+    pub lib_reference: Option<String>,
 }
 
 impl HasName for Function {

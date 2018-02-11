@@ -105,20 +105,15 @@ pub fn load_function(url: &Url, parent_route: &str) -> Result<Function, String> 
     let (contents, lib, lib_ref) = provider::get(url)?;
     let mut function = loader.load_function(&contents)?;
     function.route = format!("{}/{}", parent_route, function.name);
-
-    if let Some(l) = lib {
-        function.libs.push(l);
-    };
-
-    if let Some(lr) = lib_ref {
-        function.lib_references.push(lr);
-    };
+    function.lib = lib;
+    function.lib_reference = lib_ref;
 
     if let Some(ref mut inputs) = function.inputs {
         for ref mut input in inputs {
             input.route = format!("{}/{}", function.route, input.name);
         }
     }
+
     if let Some(ref mut outputs) = function.outputs {
         for ref mut output in outputs {
             output.route = format!("{}/{}", function.route, output.name);
@@ -139,6 +134,12 @@ fn load_functions(flow: &mut Flow) -> Result<(), String> {
                 .expect("URL join error");
             function_ref.source_url = function_url.clone();
             function_ref.function = load_function(&function_url, &flow.route)?;
+            if let &Some(ref lib) = &function_ref.function.lib {
+                flow.libs.push(lib.clone());
+            }
+            if let &Some(ref lib_ref) = &function_ref.function.lib_reference {
+                flow.lib_references.push(lib_ref.clone());
+            }
         }
     }
     Ok(())

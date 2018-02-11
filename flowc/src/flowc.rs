@@ -23,7 +23,7 @@ use simplog::simplog::SimpleLogger;
 
 fn main() {
     match run() {
-        Ok(message) => println!("{}", message),
+        Ok(message) => println!("\n{}", message),
         Err(e) => error!("{}", e)
     }
 }
@@ -48,12 +48,13 @@ fn run() -> Result<String, String> {
     info!("'{}' flow loaded", flow.name);
 
     let output_dir = source_arg::get_output_dir(&url, matches.value_of("OUTPUT_DIR"))?;
-    let (connections, values, functions, runnables)
+    let (connections, values, functions, runnables,
+        libs, lib_references)
     = compile::compile(&mut flow);
 
     if dump {
         dumper::dump_flow(&flow);
-        dumper::dump_tables(&connections, &values, &functions, &runnables);
+        dumper::dump_tables(&connections, &values, &functions, &runnables, &libs, &lib_references);
     }
 
     if generate {
