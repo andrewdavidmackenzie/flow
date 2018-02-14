@@ -68,10 +68,11 @@ fn load_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
 /// flowclib::loader::loader::load_single_flow("", &url).unwrap();
 /// ```
 pub fn load_single_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
-    let loader = get_loader(url)?;
-    let (contents, lib_ref) = provider::get(url)?;
+    let (resolved_url, lib_ref) = provider::resolve(url)?;
+    let loader = get_loader(&resolved_url)?;
+    let contents = provider::get(&resolved_url)?;
     let mut flow = loader.load_flow(&contents)?;
-    flow.source_url = url.clone();
+    flow.source_url = resolved_url.clone();
     flow.route = format!("{}/{}", parent_route, flow.name);
     if let Some(lr) = lib_ref {
         flow.lib_references.push(lr);
@@ -98,8 +99,9 @@ pub fn load_single_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
 /// flowclib::loader::loader::load_function(&url, "/root_flow").unwrap();
 /// ```
 pub fn load_function(url: &Url, parent_route: &str) -> Result<Function, String> {
-    let loader = get_loader(url)?;
-    let (contents, lib_ref) = provider::get(url)?;
+    let (resolved_url, lib_ref) = provider::resolve(url)?;
+    let loader = get_loader(&resolved_url)?;
+    let contents= provider::get(&resolved_url)?;
     let mut function = loader.load_function(&contents)?;
     function.route = format!("{}/{}", parent_route, function.name);
     function.lib_reference = lib_ref;

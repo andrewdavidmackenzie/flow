@@ -40,4 +40,10 @@ mod test {
     fn load_fibonacci() {
         loader::load(&url_from_rel_path("samples/fibonacci/context.toml")).unwrap();
     }
+
+    #[test]
+    fn load_from_directory() {
+        loader::load(&url_from_rel_path("samples/fibonacci")).unwrap();
+    }
+
 }

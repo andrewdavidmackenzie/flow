@@ -30,8 +30,9 @@ fn get_provider(url: &Url) -> Result<&'static Provider, String> {
     }
 }
 
+// TODO doc comments
 // Resolve a content Url to determine where the content should attempt to be loaded from.
-fn resolve(url: &Url) -> Result<(Url, Option<String>), String> {
+pub fn resolve(url: &Url) -> Result<(Url, Option<String>), String> {
     let provider = get_provider(url)?;
     provider.resolve(url)
 }
@@ -45,10 +46,8 @@ fn resolve(url: &Url) -> Result<(Url, Option<String>), String> {
 ///           provider specific) and confirm it exists and can be opened, read and return contents
 ///     - a reference to a file in a library, transform the reference into a Url where the content
 ///        can be found in the file system, and read and return the contents
-pub fn get(url: &Url) -> Result<(String, Option<String>), String> {
-    let (resolved_url, lib_ref) = resolve(url)?;
-    // The 'resolved' Url maybe served by a different provider
-    let provider = get_provider(&resolved_url)?;
-    let content = provider.get(&resolved_url)?;
-    Ok((content, lib_ref))
+pub fn get(url: &Url) -> Result<String, String> {
+    let provider = get_provider(&url)?;
+    let content = provider.get(&url)?;
+    Ok(content)
 }
