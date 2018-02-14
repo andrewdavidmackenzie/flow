@@ -58,7 +58,8 @@ fn run() -> Result<String, String> {
     }
 
     if generate {
-        code_gen::generate(&flow, output_dir, "Warn", runnables).map_err(|e| e.to_string())
+        code_gen::generate(&flow, output_dir, "Warn",libs, lib_references, runnables)
+            .map_err(|e| e.to_string())
     } else {
         Ok("Generations skipped".to_string())
     }

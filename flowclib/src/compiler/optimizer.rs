@@ -36,6 +36,9 @@ pub fn collapse_connections(complete_table: &Vec<Connection>) -> Vec<Connection>
 
 #[cfg(test)]
 mod test {
+    use model::connection::Connection;
+    use super::collapse_connections;
+
     #[test]
     fn collapses_a_connection() {
         let left_side = Connection {

@@ -24,11 +24,11 @@ fn main() {{
 }}
 ";
 
-pub fn contents(vars: &HashMap<String, &str>, external_crates: Vec<&str>) -> Result<String>{
+pub fn contents(vars: &HashMap<String, &str>, external_crates: Vec<String>) -> Result<String>{
     let mut content = String::new();
 
     for external_crate in external_crates {
-        content.push_str(external_crate);
+        content.push_str(&external_crate);
     }
 
     content.push_str(&strfmt(MAIN_TEMPLATE, &vars).unwrap());

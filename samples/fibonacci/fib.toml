@@ -16,7 +16,7 @@ value = "1"
 
 [[function]]
 alias = "sum"
-source = "add.toml"
+source = "lib://flowstdlib/math/add.toml"
 
 [[connection]]
 from = "value/HEAD-1"

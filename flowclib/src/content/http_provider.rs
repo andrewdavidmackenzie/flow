@@ -14,12 +14,12 @@ impl Handler for Collector {
 }
 
 impl Provider for HttpProvider {
-    fn resolve(&self, url: &Url) -> Result<(Url, Option<String>, Option<String>), String> {
+    fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
         if url.path().ends_with('/') {
             info!("'{}' is a directory, so attempting to find context file in it", url);
-            Ok((HttpProvider::find_default_file(url).unwrap(), None, None))
+            Ok((HttpProvider::find_default_file(url).unwrap(), None))
         } else {
-            Ok((url.clone(), None, None))
+            Ok((url.clone(), None))
         }
     }
 

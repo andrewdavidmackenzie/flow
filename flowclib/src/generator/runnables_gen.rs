@@ -21,13 +21,13 @@ const RUNNABLES_SUFFIX: &'static str = "
 }}";
 
 pub fn contents(vars: &HashMap<String, &str>,
-                lib_references: Vec<&str>,
+                lib_references: Vec<String>,
                 runnables: Vec<Box<Runnable>>) -> Result<String> {
     let mut content = strfmt(RUNNABLES_PREFIX, &vars)?;
 
     content.push_str("\n// Library functions\n");
     for lib_ref in lib_references {
-        content.push_str(lib_ref);
+        content.push_str(&lib_ref);
     }
 
     let get_runnables = strfmt(GET_RUNNABLES, &vars)?;

@@ -22,8 +22,6 @@ pub struct Function {
     pub route: Route,
 
     #[serde(skip_deserializing)]
-    pub lib: Option<String>,
-    #[serde(skip_deserializing)]
     pub lib_reference: Option<String>,
 }
 
@@ -69,8 +67,7 @@ fn function_with_no_io_not_valid() {
         inputs: Some(vec!()),
         outputs: Some(vec!()),
         route: "".to_string(),
-        libs: vec!(),
-        lib_references: vec!()
+        lib_reference: None
     };
 
     assert_eq!(fun.validate().is_err(), true);

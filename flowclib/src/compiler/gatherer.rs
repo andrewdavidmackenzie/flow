@@ -2,13 +2,14 @@ use model::flow::Flow;
 use model::value::Value;
 use model::function::Function;
 use model::connection::Connection;
+use std::collections::HashSet;
 
 // TODO write tests for all this before any modification
 pub fn add_entries(connection_table: &mut Vec<Connection>,
                    value_table: &mut Vec<Value>,
                    function_table: &mut Vec<Function>,
-                   lib_table: &mut Vec<String>,
-                   lib_reference_table: &mut Vec<String>,
+                   lib_table: &mut HashSet<String>,
+                   lib_reference_table: &mut HashSet<String>,
                    flow: &mut Flow) {
     // Add Connections from this flow to the table
     if let Some(ref mut connections) = flow.connections {
@@ -27,12 +28,11 @@ pub fn add_entries(connection_table: &mut Vec<Connection>,
         }
     }
 
-    for lib in &flow.libs {
-        lib_table.push(lib.clone());
-    }
-
     for lib_ref in &flow.lib_references {
-        lib_reference_table.push(lib_ref.clone());
+        let lib_reference = lib_ref.clone();
+        let lib_name = lib_reference.split("/").next().unwrap().to_string();
+        lib_reference_table.insert(lib_reference);
+        lib_table.insert(lib_name);
     }
 
     // Do the same for all subflows referenced from this one

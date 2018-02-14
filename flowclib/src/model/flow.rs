@@ -38,8 +38,6 @@ pub struct Flow {
     pub connections: Option<Vec<Connection>>,
 
     #[serde(skip_deserializing)]
-    pub libs: Vec<String>,
-    #[serde(skip_deserializing)]
     pub lib_references: Vec<String>,
 }
 
@@ -160,7 +158,6 @@ impl Default for Flow {
             inputs: None,
             outputs: None,
             connections: None,
-            libs: vec!(),
             lib_references: vec!()
         }
     }

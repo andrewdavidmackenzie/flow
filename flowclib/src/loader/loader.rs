@@ -69,13 +69,10 @@ fn load_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
 /// ```
 pub fn load_single_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
     let loader = get_loader(url)?;
-    let (contents, lib, lib_ref) = provider::get(url)?;
+    let (contents, lib_ref) = provider::get(url)?;
     let mut flow = loader.load_flow(&contents)?;
     flow.source_url = url.clone();
     flow.route = format!("{}/{}", parent_route, flow.name);
-    if let Some(l) = lib {
-        flow.libs.push(l);
-    };
     if let Some(lr) = lib_ref {
         flow.lib_references.push(lr);
     };
@@ -102,10 +99,9 @@ pub fn load_single_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
 /// ```
 pub fn load_function(url: &Url, parent_route: &str) -> Result<Function, String> {
     let loader = get_loader(url)?;
-    let (contents, lib, lib_ref) = provider::get(url)?;
+    let (contents, lib_ref) = provider::get(url)?;
     let mut function = loader.load_function(&contents)?;
     function.route = format!("{}/{}", parent_route, function.name);
-    function.lib = lib;
     function.lib_reference = lib_ref;
 
     if let Some(ref mut inputs) = function.inputs {
@@ -134,11 +130,8 @@ fn load_functions(flow: &mut Flow) -> Result<(), String> {
                 .expect("URL join error");
             function_ref.source_url = function_url.clone();
             function_ref.function = load_function(&function_url, &flow.route)?;
-            if let &Some(ref lib) = &function_ref.function.lib {
-                flow.libs.push(lib.clone());
-            }
             if let &Some(ref lib_ref) = &function_ref.function.lib_reference {
-                flow.lib_references.push(lib_ref.clone());
+                flow.lib_references.push(format!("{}/{}", lib_ref, function_ref.function.name));
             }
         }
     }

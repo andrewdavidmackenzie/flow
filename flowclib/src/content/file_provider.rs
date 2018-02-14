@@ -12,7 +12,7 @@ use content::provider::Provider;
 pub struct FileProvider;
 
 impl Provider for FileProvider {
-    fn resolve(&self, url: &Url) -> Result<(Url, Option<String>, Option<String>), String> {
+    fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
         let mut path = url.to_file_path().unwrap();
         match metadata(&path) {
             Ok(md) => {
@@ -24,9 +24,9 @@ impl Provider for FileProvider {
                     let resolved_url = Url::from_file_path(&file)
                         .map_err(|_| format!("Could not create url from file path '{}'",
                                               file.to_str().unwrap()))?;
-                    Ok((resolved_url, None, None))
+                    Ok((resolved_url, None))
                 } else {
-                    Ok((url.clone(), None, None))
+                    Ok((url.clone(), None))
                 }
             }
             Err(e) => {
