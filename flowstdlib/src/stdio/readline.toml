@@ -1,0 +1,5 @@
+name = "Readline"
+
+[[output]]
+name = "line"
+type = "String"
