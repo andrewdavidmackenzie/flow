@@ -18,6 +18,7 @@ fn init(runnables: Vec<Arc<Mutex<Runnable>>>) -> RunList {
         let mut runnable = runnable_arc.lock().unwrap();
         info!("Initializing runnable #{}", &runnable.id());
         if runnable.init() {
+            debug!("Runnable #{} inputs ready, added to run list", &runnable.id());
             run_list.inputs_ready(runnable.id());
         }
     }

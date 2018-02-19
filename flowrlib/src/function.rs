@@ -12,7 +12,7 @@ pub struct Function {
     num_inputs_pending: usize,
     inputs: Vec<Option<String>>,
 
-    output_routes: Vec<(usize, usize)>
+    output_routes: Vec<(usize, usize)>,
 }
 
 // TODO these methods will need to be made thread safe
@@ -42,7 +42,7 @@ impl Function {
             num_inputs: number_of_inputs,
             num_inputs_pending: number_of_inputs,
             inputs: vec![None; number_of_inputs],
-            output_routes
+            output_routes,
         }
     }
 }
@@ -89,7 +89,10 @@ mod test {
 impl Runnable for Function {
     fn id(&self) -> usize { self.id }
 
-    fn init(&mut self) -> bool { false }
+    // If a function has zero inputs it is considered ready to run at init
+    fn init(&mut self) -> bool {
+        self.num_inputs == 0
+    }
 
     fn write_input(&mut self, input_number: usize, input_value: Option<String>) {
         self.num_inputs_pending -= 1;
