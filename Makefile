@@ -73,7 +73,7 @@ samples/%/rust/Cargo.toml : samples/%/context.toml
 
 samples/%/rust/target : samples/%/rust/Cargo.toml
 	@echo "------- Compiling and Running generated code: $< ----"
-	cargo run --quiet --manifest-path $<; true
+	echo "input" | cargo run --quiet --manifest-path $<; true
 
 ################# ONLINE SAMPLES ################
 test-hello-simple-online:
