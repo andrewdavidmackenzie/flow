@@ -47,7 +47,6 @@ fn run() -> Result<String, String> {
     let mut flow = loader::load(&url)?;
     info!("'{}' flow loaded", flow.name);
 
-    let output_dir = source_arg::get_output_dir(&url, matches.value_of("OUTPUT_DIR"))?;
     let (connections, values, functions, runnables,
         libs, lib_references)
     = compile::compile(&mut flow);
@@ -58,6 +57,7 @@ fn run() -> Result<String, String> {
     }
 
     if generate {
+        let output_dir = source_arg::get_output_dir(&flow.source_url, matches.value_of("OUTPUT_DIR"))?;
         code_gen::generate(&flow, output_dir, "Warn",libs, lib_references, runnables)
             .map_err(|e| e.to_string())
     } else {
