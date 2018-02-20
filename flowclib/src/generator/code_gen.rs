@@ -1,6 +1,4 @@
 use std::fs;
-use std::fs::File;
-use std::io::prelude::*;
 use std::io::Result;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -12,67 +10,30 @@ use model::flow::Flow;
 use std::str;
 use std::collections::HashSet;
 
+// Return a string with the command and args required to compile and run the generated code
 pub fn generate(flow: &Flow, output_dir: &PathBuf, log_level: &str,
-                libs: HashSet<String>, lib_references: HashSet<String>,
-                runnables: Vec<Box<Runnable>>) -> Result<(String, Vec<String>)> {
+                libs: &HashSet<String>, lib_references: &HashSet<String>,
+                runnables: &Vec<Box<Runnable>>) -> Result<(String, Vec<String>)> {
     info!("Generating rust project into directory '{}'", output_dir.to_str().unwrap());
 
-    let mut dir = output_dir.clone();
     let mut vars = vars_from_flow(flow);
+    vars.insert("log_level".to_string(), log_level);
 
-    let crates = crates(libs);
-    let lib_refs = lib_refs(lib_references);
+    let (cargo, args) = cargo_gen::create(&output_dir, &vars)?;
+    let src_dir = create_src_dir(&output_dir)?;
+    main_gen::create(&src_dir, &vars, libs)?;
+    runnables_gen::create(&src_dir, &vars, &runnables, &lib_references)?;
 
-    // write the cargo file into the root
-    dir.push("Cargo.toml");
-    let mut cargo = File::create(&dir)?;
-    cargo.write_all(cargo_gen::contents(&vars).unwrap().as_bytes())?;
-    dir.pop();
+    Ok((cargo, args))
+}
 
-    // create the src subdir
+fn create_src_dir(root: &PathBuf) -> Result<PathBuf> {
+    let mut dir = root.clone();
     dir.push("src");
     if !dir.exists() {
         fs::create_dir(&dir)?;
     }
-
-    // write the main.rs file into src
-    dir.push("main.rs");
-    let mut main_rs = File::create(&dir)?;
-    vars.insert("log_level".to_string(), log_level);
-    main_rs.write_all(main_gen::contents(&vars, crates).unwrap().as_bytes())?;
-    dir.pop();
-
-    // write the runnable.rs file into src
-    dir.push("runnables.rs");
-    let mut runnables_rs = File::create(&dir)?;
-    runnables_rs.write_all(runnables_gen::contents(&vars,
-                                                   lib_refs,
-                                                   runnables).unwrap().as_bytes())?;
-
-    // Return a string with the command and args required to compile and run the generated code
-    Ok(("cargo".to_string(),
-        vec!("run".to_string(),
-             "--manifest-path".to_string(),
-             format!("{}/Cargo.toml", output_dir.to_str().unwrap()))))
-}
-
-fn crates(libs: HashSet<String>) -> Vec<String>{
-    let mut crates: Vec<String> = Vec::new();
-    for lib in libs {
-        crates.push(format!("extern crate {};\n", lib));
-    }
-
-    crates
-}
-
-fn lib_refs(libs_references: HashSet<String>) -> Vec<String>{
-    let mut lib_refs: Vec<String> = Vec::new();
-    for lib_ref in libs_references {
-        let lib_use = str::replace(&lib_ref, "/", "::");
-        lib_refs.push(format!("use {};\n", lib_use));
-    }
-
-    lib_refs
+    Ok(dir)
 }
 
 fn vars_from_flow(flow: &Flow) -> HashMap<String, &str> {
@@ -93,7 +54,6 @@ fn vars_from_flow(flow: &Flow) -> HashMap<String, &str> {
     }
 
     vars.insert("binary_name".to_string(), &flow.name);
-
     vars.insert("main_filename".to_string(), "main.rs");
 
     // TODO this just assumes flowstdlib is always used for now

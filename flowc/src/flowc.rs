@@ -62,7 +62,8 @@ fn run() -> Result<String, String> {
         let output_dir = source_arg::get_output_dir(&flow.source_url,
                                                     matches.value_of("OUTPUT_DIR"))?;
 
-        let (command, args) = code_gen::generate(&flow, &output_dir, "Warn", libs, lib_references, runnables)
+        let (command, args) = code_gen::generate(&flow, &output_dir, "Warn",
+                                                 &libs, &lib_references, &runnables)
             .map_err(|e| e.to_string())?;
         Command::new(&command).args(args).spawn().unwrap();
 

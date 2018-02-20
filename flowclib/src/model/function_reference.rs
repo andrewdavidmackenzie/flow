@@ -36,7 +36,6 @@ impl HasRoute for FunctionReference {
 impl Validate for FunctionReference {
     fn validate(&self) -> Result<(), String> {
         self.alias.validate()
-        // TODO validate source
     }
 }
 
