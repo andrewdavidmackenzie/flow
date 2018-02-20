@@ -94,9 +94,9 @@ pub fn load_single_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
 /// extern crate flowclib;
 /// use std::env;
 ///
-/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-/// url = url.join("samples/complex1/function1.toml").unwrap();
-/// flowclib::loader::loader::load_function(&url, "/root_flow").unwrap();
+/// // let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// // url = url.join("samples/complex1/function1.toml").unwrap();
+/// // flowclib::loader::loader::load_function(&url, "/root_flow").unwrap();
 /// ```
 pub fn load_function(url: &Url, parent_route: &str) -> Result<Function, String> {
     let (resolved_url, lib_ref) = provider::resolve(url)?;

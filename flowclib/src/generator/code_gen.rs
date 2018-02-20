@@ -12,9 +12,9 @@ use model::flow::Flow;
 use std::str;
 use std::collections::HashSet;
 
-pub fn generate(flow: &Flow, output_dir: PathBuf, log_level: &str,
+pub fn generate(flow: &Flow, output_dir: &PathBuf, log_level: &str,
                 libs: HashSet<String>, lib_references: HashSet<String>,
-                runnables: Vec<Box<Runnable>>) -> Result<String> {
+                runnables: Vec<Box<Runnable>>) -> Result<(String, Vec<String>)> {
     info!("Generating rust project into directory '{}'", output_dir.to_str().unwrap());
 
     let mut dir = output_dir.clone();
@@ -49,8 +49,11 @@ pub fn generate(flow: &Flow, output_dir: PathBuf, log_level: &str,
                                                    lib_refs,
                                                    runnables).unwrap().as_bytes())?;
 
-    Ok(format!("run command 'cargo run --manifest-path {}/Cargo.toml' to compile and run generated project",
-               output_dir.to_str().unwrap()))
+    // Return a string with the command and args required to compile and run the generated code
+    Ok(("cargo".to_string(),
+        vec!("run".to_string(),
+             "--manifest-path".to_string(),
+             format!("{}/Cargo.toml", output_dir.to_str().unwrap()))))
 }
 
 fn crates(libs: HashSet<String>) -> Vec<String>{
@@ -76,7 +79,7 @@ fn vars_from_flow(flow: &Flow) -> HashMap<String, &str> {
     let mut vars = HashMap::<String, &str>::new();
     let version = "0.0.0";
     let author_name = "Andrew Mackenzie";  // TODO make a variable
-    let author_email = "andrew@mackenzie-serres.net"; // TODO
+    let author_email = "andrew@mackenzie-serres.net"; // TODO make a variable
 
     vars.insert("package_name".to_string(), &flow.name);
     vars.insert("version".to_string(), version);
@@ -94,7 +97,7 @@ fn vars_from_flow(flow: &Flow) -> HashMap<String, &str> {
     vars.insert("main_filename".to_string(), "main.rs");
 
     // TODO this just assumes flowstdlib is always used for now
-    vars.insert("libraries".to_string(), "flowstdlib = { path = \"../../../flowstdlib\", version = \"~0.3\"} ");
+    vars.insert("libraries".to_string(), "flowstdlib = \"~0.3\"");
 
     vars
 }

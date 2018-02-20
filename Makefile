@@ -67,20 +67,18 @@ sample_flows := $(patsubst samples/%,samples/%/rust/target,$(wildcard samples/*)
 
 test-samples: $(sample_flows)
 
-samples/%/rust/Cargo.toml : samples/%/context.toml
-	@echo "------- Compiling and Generating code from flow: $< ----"
+samples/%/rust/target : samples/%/context.toml
+	@echo "------- Compiling and Running flow: $< ----"
 	./target/debug/flowc $<
 
-samples/%/rust/target : samples/%/rust/Cargo.toml
-	@echo "------- Compiling and Running generated code: $< ----"
-	echo "input" | cargo run --quiet --manifest-path $<; true
+clean-samples:
+	find samples -name rust -exec rm -rf {} \;
 
 ################# ONLINE SAMPLES ################
-test-hello-simple-online:
+test-hello-simple-online: ./target/debug/flowc
 	@echo ""
 	@echo "------- Started testing generation of hello-world-simple-online ----"
 	./target/debug/flowc https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
-#	@cargo run --manifest-path  samples/hello-world-simple/Cargo.toml
 	@echo "------- Finished testing generation of hello-world-simple-online ----"
 
 ################## ELECTRON UI ##################
@@ -117,9 +115,8 @@ run-flowc:
 run-electron:
 	@cd electron && make run-electron
 
-clean:
+clean: clean-samples
 	cargo clean
-	find samples -name rust -exec rm -rf {} \;
 	cd electron && make clean
 
 dependencies.png: dependencies.dot

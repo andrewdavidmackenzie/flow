@@ -1,9 +1,0 @@
-name = "function5"
-
-[[input]]
-name = "i1"
-type = "String"
-
-[[output]]
-name = "o1"
-type = "String"

@@ -14,6 +14,7 @@ use flowclib::loader::loader;
 use flowclib::dumper::dumper;
 use flowclib::compiler::compile;
 use flowclib::generator::code_gen;
+use std::process::Command;
 
 mod source_arg;
 
@@ -29,8 +30,9 @@ fn main() {
 }
 
 /*
-    Parse the command line arguments, then run the loader and (optional) compiling steps,
-    returning early (with an error string) if anything goes wrong along the way.
+    Parse the command line arguments, then run the loader and (optional) compiling and code
+    generation steps, returning either an error string if anything goes wrong along the way or
+    a message to display to the user if all went OK
 */
 fn run() -> Result<String, String> {
     let matches = get_matches();
@@ -57,11 +59,16 @@ fn run() -> Result<String, String> {
     }
 
     if generate {
-        let output_dir = source_arg::get_output_dir(&flow.source_url, matches.value_of("OUTPUT_DIR"))?;
-        code_gen::generate(&flow, output_dir, "Warn",libs, lib_references, runnables)
-            .map_err(|e| e.to_string())
+        let output_dir = source_arg::get_output_dir(&flow.source_url,
+                                                    matches.value_of("OUTPUT_DIR"))?;
+
+        let (command, args) = code_gen::generate(&flow, &output_dir, "Warn", libs, lib_references, runnables)
+            .map_err(|e| e.to_string())?;
+        Command::new(&command).args(args).spawn().unwrap();
+
+        Ok(format!("Executing generated code in '{}' using '{}'", output_dir.display(), &command))
     } else {
-        Ok("Generations skipped".to_string())
+        Ok("Code Generation and Running skipped".to_string())
     }
 }
 
@@ -74,7 +81,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .arg(Arg::with_name("skip")
             .short("s")
             .long("skip")
-            .help("Skip generation step"))
+            .help("Skip code generation and running"))
         .arg(Arg::with_name("dump")
             .short("d")
             .long("dump")

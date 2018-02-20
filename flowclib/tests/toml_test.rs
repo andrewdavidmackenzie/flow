@@ -32,11 +32,6 @@ mod test {
     }
 
     #[test]
-    fn load_complex1() {
-        loader::load(&url_from_rel_path("samples/complex1/context.toml")).unwrap();
-    }
-
-    #[test]
     fn load_fibonacci() {
         loader::load(&url_from_rel_path("samples/fibonacci/context.toml")).unwrap();
     }
