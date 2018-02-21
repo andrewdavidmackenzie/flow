@@ -1,6 +1,5 @@
 use implementation::Implementation;
 
-#[derive(Debug)]
 pub struct Fifo;
 
 impl Implementation for Fifo {

@@ -3,7 +3,6 @@ use implementation::Implementation;
 use std::mem::replace;
 use std::fmt;
 
-#[derive(Debug)]
 pub struct Function {
     id: usize,
     implementation: Box<Implementation>,
@@ -21,8 +20,8 @@ pub struct Function {
 
 impl fmt::Display for Function {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\tid: {}\n\timplementation: {:?}\n",
-               self.id, self.implementation).unwrap();
+        write!(f, "\tid: {}\n\timplementation: {}\n",
+               self.id, self.implementation.name()).unwrap();
         write!(f, "\tnum_inputs: {:?}\n\tnum_inputs_pending: {:?}\n",
                self.num_inputs, self.num_inputs_pending).unwrap();
         write!(f, "\tinputs: {:?}\n\toutput_routes: {:?}\n",

@@ -1,6 +1,4 @@
-use std::fmt::Debug;
-
-pub trait Implementation: Debug {
+pub trait Implementation {
     /*
         An implementation runs, receiving an array of inputs and possibly producing an output
     */

@@ -6,7 +6,6 @@ use std::fmt;
 
 const ONLY_INPUT: usize = 0;
 
-#[derive(Debug)]
 pub struct Value {
     id: usize,
     initial_value: Option<String>,
@@ -37,8 +36,8 @@ fn value_to_code() {
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\tid: {}\n\tinitial_value: {:?}\n\timplementation: {:?}\n",
-               self.id, self.initial_value, self.implementation).unwrap();
+        write!(f, "\tid: {}\n\tinitial_value: {:?}\n\timplementation: {}\n",
+               self.id, self.initial_value, self.implementation.name()).unwrap();
         write!(f, "\tinput: {:?}\n\toutput_routes: {:?}\n",
                self.input, self.output_routes).unwrap();
         Ok(())
