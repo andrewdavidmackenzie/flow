@@ -8,15 +8,12 @@ use model::datatype::DataType;
 use model::datatype::HasDataType;
 use model::function::Function;
 use loader::loader::Validate;
-use url::Url;
 
 // This structure is (optionally) found as part of a flow file - inline in the description
 #[derive(Deserialize, Debug)]
 pub struct FunctionReference {
     pub alias: Name,
     pub source: String,
-    #[serde(skip_deserializing, default = "FunctionReference::default_url")]
-    pub source_url: Url,
     #[serde(skip_deserializing)]
     pub function: Function,
 }
@@ -48,10 +45,6 @@ impl fmt::Display for FunctionReference {
 
 // TODO see if can de-duplicate code from flow reference and function reference
 impl FunctionReference {
-    fn default_url() -> Url {
-        Url::parse("file:///").unwrap()
-    }
-
     fn get<E: HasName + HasRoute + HasDataType>(&self,
                                                 collection: &Option<Vec<E>>,
                                                 element_name: &str)

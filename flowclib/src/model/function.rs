@@ -8,8 +8,9 @@ use model::connection::HasRoute;
 use model::io::IO;
 use model::connection::Route;
 use loader::loader::Validate;
+use url::Url;
 
-#[derive(Default, Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Function {
     pub name: Name,
 
@@ -17,6 +18,9 @@ pub struct Function {
     pub inputs: Option<Vec<IO>>,
     #[serde(rename = "output")]
     pub outputs: Option<Vec<IO>>,
+
+    #[serde(skip_deserializing, default = "Function::default_url")]
+    pub source_url: Url,
 
     #[serde(skip_deserializing)]
     pub route: Route,
@@ -64,10 +68,11 @@ impl Validate for Function {
 fn function_with_no_io_not_valid() {
     let fun = Function {
         name: "test_function".to_string(),
+        source_url: Function::default_url(),
         inputs: Some(vec!()),
         outputs: Some(vec!()),
         route: "".to_string(),
-        lib_reference: None
+        lib_reference: None,
     };
 
     assert_eq!(fun.validate().is_err(), true);
@@ -96,7 +101,24 @@ impl fmt::Display for Function {
     }
 }
 
+impl Default for Function {
+    fn default() -> Function {
+        Function {
+            name: "".to_string(),
+            inputs: None,
+            outputs: None,
+            source_url: Function::default_url(),
+            route: "".to_string(),
+            lib_reference: None,
+        }
+    }
+}
+
 impl Function {
+    pub fn default_url() -> Url {
+        Url::parse("file:///").unwrap()
+    }
+
     fn get<E: HasName + HasRoute + HasDataType>(&self,
                                                 collection: &Option<Vec<E>>,
                                                 element_name: &str)
@@ -114,7 +136,7 @@ impl Function {
 
     pub fn get_io(&self, direction: &str, name: &Name) -> Result<(Route, DataType), String> {
         match direction {
-            "input"  => self.get(&self.inputs, name),
+            "input" => self.get(&self.inputs, name),
             "output" => self.get(&self.outputs, name),
             _ => Err(format!("Count not find {} named '{}' in Function named '{}'",
                              direction, name, self.name))
