@@ -1,6 +1,5 @@
-use model::value::Value;
-use model::function::Function;
 use model::connection::Connection;
+use compiler::compile::CompilerTables;
 
 pub fn collapse_connections(complete_table: &Vec<Connection>) -> Vec<Connection> {
     let mut collapsed_table: Vec<Connection> = Vec::new();
@@ -113,6 +112,4 @@ mod test {
     - functions that don't have connections to all their inputs.
 */
 // TODO implement this
-pub fn prune_tables(_connection_table: &mut Vec<Connection>,
-                _value_table: &mut Vec<Value>,
-                _function_table: &mut Vec<Function>) {}
+pub fn prune_tables(_tables: &CompilerTables) {}

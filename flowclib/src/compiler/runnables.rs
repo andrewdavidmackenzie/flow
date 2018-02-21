@@ -1,14 +1,13 @@
 use model::value::Value;
 use model::function::Function;
-use model::connection::Connection;
 use model::connection::Route;
 use std::collections::HashMap;
-use flowrlib::runnable::Runnable;
 use flowrlib::value::Value as RunnableValue;
 use flowrlib::function::Function as RunnableFunction;
 use flowrlib::implementation::Implementation;
 use std::fmt;
 use std::fmt::Debug;
+use compiler::compile::CompilerTables;
 
 pub struct ImplementationStub {
     name: String,
@@ -43,19 +42,15 @@ impl Debug for ImplementationStub {
     (according to each ruannable's output route in the original description plus each connection from it)
     to point to the runnable (by index) and the runnable's input (by index) in the table
 */
-pub fn create(value_table: &Vec<Value>,
-              function_table: &Vec<Function>,
-              connection_table: &Vec<Connection>) -> Vec<Box<Runnable>> {
-    let inputs_routes = inputs_table(&value_table, &function_table);
-
-    let mut runnables = Vec::<Box<Runnable>>::new();
+pub fn add(tables: &mut CompilerTables) {
+    let inputs_routes= inputs_table(&tables.values, &tables.functions);
     let mut runnable_index = 0;
 
-    for value in value_table {
+    for value in &tables.values {
         debug!("Looking for connection from value @ '{}'", &value.route);
         let mut output_connections = Vec::<(usize, usize)>::new();
         // Find the list of connections from the output of this runnable - there can be multiple
-        for connection in connection_table {
+        for connection in &tables.connections {
             if value.route == connection.from_route {
                 debug!("Connection found: to '{}'", &connection.to_route);
                 // Get the index of runnable and input index of the destination of the connection
@@ -66,16 +61,16 @@ pub fn create(value_table: &Vec<Value>,
                                                          value.value.clone(),
                                                          output_connections));
         runnable_index += 1;
-        runnables.push(runnable_value);
+        tables.runnables.push(runnable_value);
     }
 
-    for function in function_table {
+    for function in &tables.functions {
         let mut output_connections = Vec::<(usize, usize)>::new();
         // if it has any outputs at all
         if let Some(ref outputs) = function.outputs {
             debug!("Looking for connection from function @ '{}'", &function.route);
             // Find the list of connections from the output of this runnable - there can be multiple
-            for connection in connection_table {
+            for connection in &tables.connections {
                 if outputs[0].route == connection.from_route {
                     debug!("Connection found: to '{}'", &connection.to_route);
                     // Get the index of runnable and input index of the destination of the connection
@@ -88,10 +83,8 @@ pub fn create(value_table: &Vec<Value>,
                                                                implementation, output_connections));
         runnable_index += 1;
 
-        runnables.push(runnable_function);
+        tables.runnables.push(runnable_function);
     }
-
-    runnables
 }
 
 

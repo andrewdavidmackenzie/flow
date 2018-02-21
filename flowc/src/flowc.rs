@@ -49,13 +49,11 @@ fn run() -> Result<String, String> {
     let mut flow = loader::load(&url)?;
     info!("'{}' flow loaded", flow.name);
 
-    let (connections, values, functions, runnables,
-        libs, lib_references)
-    = compile::compile(&mut flow);
+    let tables = compile::compile(&mut flow);
 
     if dump {
         dumper::dump_flow(&flow);
-        dumper::dump_tables(&connections, &values, &functions, &runnables, &libs, &lib_references);
+        dumper::dump_tables(&tables);
     }
 
     if generate {
@@ -63,7 +61,7 @@ fn run() -> Result<String, String> {
                                                     matches.value_of("OUTPUT_DIR"))?;
 
         let (command, args) = code_gen::generate(&flow, &output_dir, "Warn",
-                                                 &libs, &lib_references, &runnables)
+                                                 &tables)
             .map_err(|e| e.to_string())?;
         Command::new(&command).args(args).spawn().unwrap();
 

@@ -8,24 +8,39 @@ use super::optimizer;
 use super::runnables;
 use std::collections::HashSet;
 
+pub struct CompilerTables {
+    pub connections: Vec<Connection>,
+    pub values: Vec<Value>,
+    pub functions: Vec<Function>,
+    pub libs: HashSet<String>,
+    pub lib_references: HashSet<String>,
+    pub runnables: Vec<Box<Runnable>>
+}
+
+impl CompilerTables {
+    pub fn new() -> Self {
+        CompilerTables {
+            connections: Vec::new(),
+            values: Vec::new(),
+            functions: Vec::new(),
+            libs: HashSet::new(),
+            lib_references: HashSet::new(),
+            runnables: Vec::new()
+        }
+    }
+}
+
 /// Take a hierarchical flow definition in memory and compile it, generating code that implements
 /// the flow, including links to the flowrlib runtime library and library functions used in the
 /// flowstdlib standard library. It takes an optional bool dump option to dump to standard output
 /// some of the intermediate values and operations during the compilation process.
-pub fn compile(flow: &mut Flow) ->
-    (Vec<Connection>, Vec<Value>, Vec<Function>, Vec<Box<Runnable>>, HashSet<String>, HashSet<String>) {
-    let mut connection_table: Vec<Connection> = Vec::new();
-    let mut value_table: Vec<Value> = Vec::new();
-    let mut function_table: Vec<Function> = Vec::new();
-    let mut libs: HashSet<String> = HashSet::new();
-    let mut lib_references: HashSet<String> = HashSet::new();
-    gatherer::add_entries(&mut connection_table, &mut value_table, &mut function_table,
-                &mut libs, &mut lib_references, flow);
+pub fn compile(flow: &mut Flow) -> CompilerTables {
+    let mut tables = CompilerTables::new();
+    gatherer::add_entries(flow, &mut tables);
 
-    connection_table = optimizer::collapse_connections(&connection_table);
-    optimizer::prune_tables(&mut connection_table, &mut value_table, &mut function_table);
+    tables.connections = optimizer::collapse_connections(&tables.connections);
+    optimizer::prune_tables(&mut tables);
+    runnables::add(&mut tables);
 
-    let runnables = runnables::create(&value_table, &function_table, &connection_table);
-
-    (connection_table, value_table, function_table, runnables, libs, lib_references)
+    tables
 }

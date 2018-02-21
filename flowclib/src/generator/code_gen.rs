@@ -5,15 +5,14 @@ use std::path::PathBuf;
 use generator::cargo_gen;
 use generator::main_gen;
 use generator::runnables_gen;
-use flowrlib::runnable::Runnable;
+use generator::functions_gen;
 use model::flow::Flow;
 use std::str;
-use std::collections::HashSet;
+use compiler::compile::CompilerTables;
 
 // Return a string with the command and args required to compile and run the generated code
-pub fn generate(flow: &Flow, output_dir: &PathBuf, log_level: &str,
-                libs: &HashSet<String>, lib_references: &HashSet<String>,
-                runnables: &Vec<Box<Runnable>>) -> Result<(String, Vec<String>)> {
+pub fn generate(flow: &Flow, output_dir: &PathBuf, log_level: &str, tables: &CompilerTables)
+    -> Result<(String, Vec<String>)> {
     info!("Generating rust project into directory '{}'", output_dir.to_str().unwrap());
 
     let mut vars = vars_from_flow(flow);
@@ -21,8 +20,9 @@ pub fn generate(flow: &Flow, output_dir: &PathBuf, log_level: &str,
 
     let (cargo, args) = cargo_gen::create(&output_dir, &vars)?;
     let src_dir = create_src_dir(&output_dir)?;
-    main_gen::create(&src_dir, &vars, libs)?;
-    runnables_gen::create(&src_dir, &vars, &runnables, &lib_references)?;
+    functions_gen::copy(&src_dir);
+    main_gen::create(&src_dir, &vars, &tables.libs)?;
+    runnables_gen::create(&src_dir, &vars, &tables.runnables, &tables.lib_references)?;
 
     Ok((cargo, args))
 }

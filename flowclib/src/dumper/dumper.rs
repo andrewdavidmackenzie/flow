@@ -1,10 +1,6 @@
 use model::flow::Flow;
-use model::value::Value;
-use model::function::Function;
-use model::connection::Connection;
-use flowrlib::runnable::Runnable;
 use std::fmt;
-use std::collections::HashSet;
+use compiler::compile::CompilerTables;
 
 /// dump a flow definition that has been loaded to stdout
 ///
@@ -26,14 +22,13 @@ pub fn dump_flow(flow: &Flow) {
     _dump(flow, 0);
 }
 
-pub fn dump_tables(connections: &Vec<Connection>, values: &Vec<Value>, functions: &Vec<Function>,
-                   runnables: &Vec<Box<Runnable>>, libs: &HashSet<String>, lib_references: &HashSet<String>) {
-    print(connections.iter(), "Collapsed Connections");
-    print(values.iter(), "Values");
-    print(functions.iter(), "Functions");
-    print(runnables.iter(), "Runnables");
-    print(libs.iter(), "Libraries");
-    print(lib_references.iter(), "Library references");
+pub fn dump_tables(tables: &CompilerTables) {
+    print(tables.connections.iter(), "Collapsed Connections");
+    print(tables.values.iter(), "Values");
+    print(tables.functions.iter(), "Functions");
+    print(tables.runnables.iter(), "Runnables");
+    print(tables.libs.iter(), "Libraries");
+    print(tables.lib_references.iter(), "Library references");
 }
 
 fn print<C: Iterator>(table: C, title: &str) where <C as Iterator>::Item: fmt::Display {
