@@ -72,7 +72,7 @@ samples/%/rust/target : samples/%/context.toml
 	./target/debug/flowc $<
 
 clean-samples:
-	find samples -name rust -exec rm -rf {} \;
+	find samples -name rust -delete
 
 ################# ONLINE SAMPLES ################
 test-hello-simple-online: ./target/debug/flowc
