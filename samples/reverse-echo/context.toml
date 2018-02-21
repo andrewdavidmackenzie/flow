@@ -1,0 +1,23 @@
+name = "reverse-echo"
+
+[[function]]
+alias = "read"
+source = "lib://flowstdlib/stdio/stdin.toml"
+
+[[function]]
+alias = "reverse"
+source = "reverse.toml"
+
+[[function]]
+alias = "print"
+source = "lib://flowstdlib/stdio/stdout.toml"
+
+[[connection]]
+name = "normal"
+from = "function/read/stdin"
+to = "function/reverse/in"
+
+[[connection]]
+name = "reversed"
+from = "function/reverse/out"
+to = "function/print/stdout"
