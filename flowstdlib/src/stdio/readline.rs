@@ -1,8 +1,5 @@
 use flowrlib::implementation::Implementation;
 
-use std::fmt;
-use std::fmt::Debug;
-
 pub struct Readline;
 
 impl Implementation for Readline {
@@ -21,11 +18,5 @@ impl Implementation for Readline {
 
     fn name(&self) -> &'static str {
         "Readline"
-    }
-}
-
-impl Debug for Readline {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Implementation: stdin defined in file: '{}'", file!())
     }
 }

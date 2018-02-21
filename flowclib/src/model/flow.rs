@@ -13,7 +13,7 @@ use model::function_reference::FunctionReference;
 use std::fmt;
 use url::Url;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct Flow {
     #[serde(skip_deserializing, default = "Flow::default_url")]
     pub source_url: Url,

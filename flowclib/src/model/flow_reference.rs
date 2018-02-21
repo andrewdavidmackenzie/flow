@@ -6,7 +6,7 @@ use loader::loader::Validate;
 use std::fmt;
 use url::Url;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct FlowReference {
     pub alias: Name,
     pub source: String,

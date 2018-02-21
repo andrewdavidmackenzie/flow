@@ -24,7 +24,7 @@ use simplog::simplog::SimpleLogger;
 
 fn main() {
     match run() {
-        Ok(message) => println!("\n{}", message),
+        Ok(message) => println!("{}\n", message),
         Err(e) => error!("{}", e)
     }
 }

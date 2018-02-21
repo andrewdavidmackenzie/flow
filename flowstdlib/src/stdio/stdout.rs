@@ -1,8 +1,5 @@
 use flowrlib::implementation::Implementation;
 
-use std::fmt;
-use std::fmt::Debug;
-
 pub struct Stdout;
 
 impl Implementation for Stdout {
@@ -17,11 +14,5 @@ impl Implementation for Stdout {
 
     fn name(&self) -> &'static str {
         "Stdout"
-    }
-}
-
-impl Debug for Stdout {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "stdout defined in file: '{}'", file!())
     }
 }

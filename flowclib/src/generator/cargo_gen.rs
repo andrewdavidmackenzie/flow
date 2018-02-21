@@ -17,7 +17,7 @@ name = \"{binary_name}\"
 path = \"src/{main_filename}\"
 
 [dependencies]
-flowrlib = \"~0.3\"
+flowrlib = \"~0.3.1\"
 {libraries}
 log = \"0.3.8\"
 simplog = \"1.0.2\"

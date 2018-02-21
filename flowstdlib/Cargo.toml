@@ -15,4 +15,4 @@ name = "flowstdlib"
 path = "src/lib.rs"
 
 [dependencies]
-flowrlib = { path = "../flowrlib", version = "^0.3" }
+flowrlib = { path = "../flowrlib", version = "~0.3.1" }

@@ -1,8 +1,5 @@
 use flowrlib::implementation::Implementation;
 
-use std::fmt;
-use std::fmt::Debug;
-
 pub struct Stderr;
 
 impl Implementation for Stderr {
@@ -17,11 +14,5 @@ impl Implementation for Stderr {
 
     fn name(&self) -> &'static str {
         "Stderr"
-    }
-}
-
-impl Debug for Stderr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "stderr defined in file: '{}'", file!())
     }
 }
