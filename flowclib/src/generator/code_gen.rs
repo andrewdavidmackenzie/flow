@@ -22,7 +22,7 @@ pub fn generate(flow: &Flow, output_dir: &PathBuf, log_level: &str, tables: &Com
     let src_dir = create_src_dir(&output_dir)?;
     functions_gen::copy(&src_dir, &tables)?;
     main_gen::create(&src_dir, &mut vars, tables)?;
-    runnables_gen::create(&src_dir, &vars, tables)?;
+    runnables_gen::create(&src_dir, tables)?;
 
     Ok((cargo, args))
 }

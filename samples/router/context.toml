@@ -1,0 +1,14 @@
+name = "router"
+
+[[function]]
+alias = "readline"
+source = "lib://flowstdlib/stdio/readline.toml"
+
+[[function]]
+alias = "print"
+source = "lib://flowstdlib/stdio/stdout.toml"
+
+[[connection]]
+name = "echo"
+from = "function/readline/line"
+to = "function/print/stdout"

@@ -65,20 +65,23 @@ test-flowc: ./target/debug/flowc
 #################### SAMPLES ####################
 sample_flows := $(patsubst samples/%,samples/%/rust/target,$(wildcard samples/*))
 
-test-samples: $(sample_flows)
+test-samples: list-samples $(sample_flows)
+
+list-samples:
+	@echo "Found following samples $(sample_flows)"
 
 samples/%/rust/target : samples/%/context.toml
-	@echo "------- Compiling and Running flow: $< ----"
-	./target/debug/flowc $<
+	@echo "\n------- Compiling and Running flow: $< ----"
+	@echo "Hello" | ./target/debug/flowc $<
 
 clean-samples:
-	find samples -name rust -delete
+	@find samples -name rust -type d -exec rm -rf {} + ; true
 
 ################# ONLINE SAMPLES ################
 test-hello-simple-online: ./target/debug/flowc
 	@echo ""
 	@echo "------- Started testing generation of hello-world-simple-online ----"
-	./target/debug/flowc https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
+	@echo "Hello" | ./target/debug/flowc https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 	@echo "------- Finished testing generation of hello-world-simple-online ----"
 
 ################## ELECTRON UI ##################

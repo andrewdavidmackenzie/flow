@@ -12,30 +12,43 @@ use compiler::compile::CompilerTables;
 const RUNNABLES_PREFIX: &'static str = "
 // Flow Run-time library references
 use flowrlib::runnable::Runnable;
-use flowrlib::value::Value;
-use flowrlib::function::Function;
+{value_used}
+{function_used}
 
 // Rust std library references
 use std::sync::{{Arc, Mutex}};\n";
 
 const GET_RUNNABLES: &'static str = "
 pub fn get_runnables() -> Vec<Arc<Mutex<Runnable>>> {{
-    let mut runnables = Vec::<Arc<Mutex<Runnable>>>::with_capacity(2);\n\n";
+    let mut runnables = Vec::<Arc<Mutex<Runnable>>>::with_capacity({num_runnables});\n\n";
 
 const RUNNABLES_SUFFIX: &'static str = "
     runnables
-}}";
+}";
 
-pub fn create(src_dir: &PathBuf, vars: &HashMap<String, &str>, tables: &CompilerTables)
+pub fn create(src_dir: &PathBuf, tables: &CompilerTables)
               -> Result<()> {
     let lib_refs = lib_refs(&tables.lib_references);
     let mut file = src_dir.clone();
     file.push("runnables.rs");
     let mut runnables_rs = File::create(&file)?;
-    runnables_rs.write_all(contents(vars, tables, &lib_refs).unwrap().as_bytes())
+    runnables_rs.write_all(contents(tables, &lib_refs).unwrap().as_bytes())
 }
 
-fn contents(vars: &HashMap<String, &str>, tables: &CompilerTables, lib_refs: &Vec<String>) -> Result<String> {
+fn contents(tables: &CompilerTables, lib_refs: &Vec<String>) -> Result<String> {
+    let num_runnables = &tables.runnables.len().to_string();
+    let mut vars = HashMap::new();
+    if tables.values.len() > 0 {
+        vars.insert("value_used".to_string(), "use flowrlib::value::Value;");
+    } else {
+        vars.insert("value_used".to_string(), "");
+    }
+    if tables.functions.len() > 0 {
+        vars.insert("function_used".to_string(), "use flowrlib::function::Function;");
+    } else {
+        vars.insert("function_used".to_string(), "");
+    }
+
     let mut content = strfmt(RUNNABLES_PREFIX, &vars).unwrap();
 
     content.push_str("\n// Library functions\n");
@@ -43,16 +56,23 @@ fn contents(vars: &HashMap<String, &str>, tables: &CompilerTables, lib_refs: &Ve
         content.push_str(&lib_ref);
     }
 
+    // Add "use" statements for functions referenced
     content.push_str(&usages(&tables.functions).unwrap());
+
+    // add declaration of runnables array etc - parameterized by the number of runnables
+    vars = HashMap::<String, &str>::new();
+    vars.insert("num_runnables".to_string(), num_runnables );
     content.push_str(&strfmt(GET_RUNNABLES, &vars).unwrap());
 
+    // Add each of the runnables to the runnables array
     for runnable in &tables.runnables {
         let run_str = format!("    runnables.push(Arc::new(Mutex::new({})));\n", runnable.to_code());
         content.push_str(&run_str);
     }
 
-    let suffix = strfmt(RUNNABLES_SUFFIX, &vars).unwrap();
-    content.push_str(&suffix);
+    // return the array of runnables - No templating in this part (at the moment)
+    content.push_str(RUNNABLES_SUFFIX);
+
     Ok(content)
 }
 
