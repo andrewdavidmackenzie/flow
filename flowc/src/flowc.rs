@@ -15,6 +15,7 @@ use flowclib::dumper::dumper;
 use flowclib::compiler::compile;
 use flowclib::generator::code_gen;
 use std::process::Command;
+use std::process::Stdio;
 
 mod source_arg;
 
@@ -63,19 +64,57 @@ fn run() -> Result<String, String> {
     let output_dir = source_arg::get_output_dir(&flow.source_url,
                                                 matches.value_of("OUTPUT_DIR"))?;
 
-    let ((build, build_args), (run, run_args)) =
+    let ((build_command, build_args),
+        (run_command, run_args)) =
         code_gen::generate(&flow, &output_dir, "Warn",
                            &tables, "rust").map_err(|e| e.to_string())?;
 
-    info!("Building generated code in '{}' using '{}'", output_dir.display(), &build);
-    Command::new(&build).args(build_args).output().map_err(|e| e.to_string())?;
+    info!("Building generated code in '{}' using '{}'", output_dir.display(), &build_command);
+    build(build_command, build_args)?;
 
-    let status = Command::new(&run).args(run_args).status().map_err(|e| e.to_string())?;
+    info!("Running generated code in '{}' using '{}'", output_dir.display(), &run_command);
+    run_flow(run_command, run_args)
+}
 
-    match status.code() {
+/*
+    Run the build command, capturing all stdout and stderr.
+    If everything executes fine, then return an Ok(), but don't produce any log or output
+    If build fails, return an Err() with message and output the stderr in an ERROR level log message
+*/
+fn build(command: String, args: Vec<String>) -> Result<String, String> {
+    let build_output = Command::new(&command).args(args).output().map_err(|e| e.to_string())?;
+    match build_output.status.code() {
+        Some(0) => Ok(format!("'{}' command succeeded", command)),
+        Some(code) => {
+            error!("Build STDERR: \n {}", String::from_utf8_lossy(&build_output.stderr));
+            return Err(format!("Exited with status code: {}", code));
+        }
+        None => {
+            return Err("Terminated by signal".to_string());
+        }
+    }
+}
+
+/*
+    Run flow that was previously built.
+    Inherit standard output and input and just let the process run as normal.
+    Capture standard error.
+    If the process exits correctly then just return an Ok() with message and no log
+    If the process fails then return an Err() with message and log stderr in an ERROR level message
+*/
+fn run_flow(command: String, args: Vec<String>) -> Result<String, String> {
+    let output = Command::new(&command).args(args)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::piped())
+        .output().map_err(|e| e.to_string())?;
+    match output.status.code() {
         Some(0) => Ok("Flow ran successfully".to_string()),
-        Some(code) => Err(format!("Exited with status code: {}", code)),
-        None    => Ok("Process terminated by signal".to_string())
+        Some(code) => {
+            error!("Process STDERR:\n{}", String::from_utf8_lossy(&output.stderr));
+            Err(format!("Exited with status code: {}", code))
+        }
+        None => Err("Process terminated by signal".to_string())
     }
 }
 
