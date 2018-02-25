@@ -129,7 +129,6 @@ mod tests {
         fn run(&mut self) -> Option<String> { Some("Output".to_string()) }
         fn output_destinations(&self) -> Vec<(usize, usize)> { vec!((1, 0)) }
         fn id(&self) -> usize { self.id }
-        fn to_code(&self) -> String { "fake code".to_string() }
     }
 
     fn test_runnables() -> RunList {

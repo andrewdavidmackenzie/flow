@@ -1,7 +1,10 @@
 use model::flow::Flow;
 use compiler::compile::CompilerTables;
 
-// TODO write tests for all this before any modification
+/*
+    This module is responsible for parsing the flow tree and gathering information into a set of
+    flat tables that the compiler can use for code generation.
+*/
 pub fn add_entries(flow: &mut Flow, tables: &mut CompilerTables) {
     // Add Connections from this flow to the table
     if let Some(ref mut connections) = flow.connections {

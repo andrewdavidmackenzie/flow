@@ -8,25 +8,26 @@ use model::connection::HasRoute;
 use model::io::IO;
 use model::connection::Route;
 use loader::loader::Validate;
+
 use url::Url;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Function {
     pub name: Name,
-
     #[serde(rename = "input")]
     pub inputs: Option<Vec<IO>>,
     #[serde(rename = "output")]
     pub outputs: Option<Vec<IO>>,
-
     #[serde(skip_deserializing, default = "Function::default_url")]
     pub source_url: Url,
-
     #[serde(skip_deserializing)]
     pub route: Route,
-
     #[serde(skip_deserializing)]
     pub lib_reference: Option<String>,
+    #[serde(skip_deserializing)]
+    pub output_routes: Vec<(usize, usize)>,
+    #[serde(skip_deserializing)]
+    pub id: usize,
 }
 
 impl HasName for Function {
@@ -73,6 +74,8 @@ fn function_with_no_io_not_valid() {
         outputs: Some(vec!()),
         route: "".to_string(),
         lib_reference: None,
+        id: 0,
+        output_routes: vec!((0,0))
     };
 
     assert_eq!(fun.validate().is_err(), true);
@@ -110,6 +113,8 @@ impl Default for Function {
             source_url: Function::default_url(),
             route: "".to_string(),
             lib_reference: None,
+            id: 0,
+            output_routes: vec!((0,0))
         }
     }
 }

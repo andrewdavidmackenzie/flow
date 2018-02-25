@@ -2,10 +2,9 @@ use model::flow::Flow;
 use model::value::Value;
 use model::function::Function;
 use model::connection::Connection;
-use flowrlib::runnable::Runnable;
 use super::gatherer;
 use super::optimizer;
-use super::runnables;
+use super::connector;
 use std::collections::HashSet;
 
 pub struct CompilerTables {
@@ -14,7 +13,6 @@ pub struct CompilerTables {
     pub functions: Vec<Function>,
     pub libs: HashSet<String>,
     pub lib_references: HashSet<String>,
-    pub runnables: Vec<Box<Runnable>>
 }
 
 impl CompilerTables {
@@ -25,7 +23,6 @@ impl CompilerTables {
             functions: Vec::new(),
             libs: HashSet::new(),
             lib_references: HashSet::new(),
-            runnables: Vec::new()
         }
     }
 }
@@ -40,7 +37,7 @@ pub fn compile(flow: &mut Flow) -> CompilerTables {
 
     tables.connections = optimizer::collapse_connections(&tables.connections);
     optimizer::prune_tables(&mut tables);
-    runnables::add(&mut tables);
+    connector::connect(&mut tables);
 
     tables
 }

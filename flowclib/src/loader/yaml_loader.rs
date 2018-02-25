@@ -38,7 +38,9 @@ impl Loader for FlowYamlLoader {
             route: "fake/fake".to_string(),
             inputs: None,
             outputs: None,
-            lib_reference: None
+            lib_reference: None,
+            id: 0,
+            output_routes: vec!((0,0))
         };
 
         Ok(function)

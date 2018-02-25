@@ -8,6 +8,8 @@ use std::collections::HashSet;
 use std::io::{Error, ErrorKind};
 use model::function::Function;
 use compiler::compile::CompilerTables;
+use super::function;
+use super::value;
 
 const RUNNABLES_PREFIX: &'static str = "
 // Flow Run-time library references
@@ -36,7 +38,7 @@ pub fn create(src_dir: &PathBuf, tables: &CompilerTables)
 }
 
 fn contents(tables: &CompilerTables, lib_refs: &Vec<String>) -> Result<String> {
-    let num_runnables = &tables.runnables.len().to_string();
+    let num_runnables = &(tables.values.len() + tables.functions.len()).to_string();
     let mut vars = HashMap::new();
     if tables.values.len() > 0 {
         vars.insert("value_used".to_string(), "use flowrlib::value::Value;");
@@ -64,9 +66,17 @@ fn contents(tables: &CompilerTables, lib_refs: &Vec<String>) -> Result<String> {
     vars.insert("num_runnables".to_string(), num_runnables );
     content.push_str(&strfmt(GET_RUNNABLES, &vars).unwrap());
 
-    // Add each of the runnables to the runnables array
-    for runnable in &tables.runnables {
-        let run_str = format!("    runnables.push(Arc::new(Mutex::new({})));\n", runnable.to_code());
+    // Generate code for each of the values
+    for value in &tables.values {
+        let run_str = format!("    runnables.push(Arc::new(Mutex::new({})));\n",
+                              value::to_code(&value));
+        content.push_str(&run_str);
+    }
+
+    // Generate code for each of the functions
+    for function in &tables.functions {
+        let run_str = format!("    runnables.push(Arc::new(Mutex::new({})));\n",
+                              function::to_code(&function));
         content.push_str(&run_str);
     }
 

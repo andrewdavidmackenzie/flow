@@ -2,51 +2,21 @@ use model::value::Value;
 use model::function::Function;
 use model::connection::Route;
 use std::collections::HashMap;
-use flowrlib::value::Value as RunnableValue;
-use flowrlib::function::Function as RunnableFunction;
-use flowrlib::implementation::Implementation;
-use std::fmt;
-use std::fmt::Debug;
 use compiler::compile::CompilerTables;
 
-pub struct ImplementationStub {
-    name: String,
-}
-
-impl Implementation for ImplementationStub {
-    fn run(&self, _inputs: Vec<Option<String>>) -> Option<String> {
-        unimplemented!()
-    }
-
-    fn number_of_inputs(&self) -> usize {
-        1
-    }
-
-    fn name(&self) -> &str {
-        &self.name
-    }
-}
-
-impl Debug for ImplementationStub {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "defined in file: '{}'", file!())
-    }
-}
-
-// TODO see if some of this can be bi-product of earlier stages?
 /*
     First build a table of routes to (runnable_index, input_index) for all inputs of runnables, to
     enable finding the destination of a connection as (runnable_index, input_index).
 
-    Then iterate through the runnables adding them to a list, with the output routes array setup
+    Then iterate through the values and function setting each one's id and the output routes array setup
     (according to each ruannable's output route in the original description plus each connection from it)
     to point to the runnable (by index) and the runnable's input (by index) in the table
 */
-pub fn add(tables: &mut CompilerTables) {
+pub fn connect(tables: &mut CompilerTables) {
     let inputs_routes= inputs_table(&tables.values, &tables.functions);
     let mut runnable_index = 0;
 
-    for value in &tables.values {
+    for value in &mut tables.values {
         debug!("Looking for connection from value @ '{}'", &value.route);
         let mut output_connections = Vec::<(usize, usize)>::new();
         // Find the list of connections from the output of this runnable - there can be multiple
@@ -57,14 +27,12 @@ pub fn add(tables: &mut CompilerTables) {
                 output_connections.push(inputs_routes.get(&connection.to_route).unwrap().clone());
             }
         }
-        let runnable_value = Box::new(RunnableValue::new(runnable_index,
-                                                         value.value.clone(),
-                                                         output_connections));
+        value.id = runnable_index;
+        value.output_routes = output_connections;
         runnable_index += 1;
-        tables.runnables.push(runnable_value);
     }
 
-    for function in &tables.functions {
+    for function in &mut tables.functions {
         let mut output_connections = Vec::<(usize, usize)>::new();
         // if it has any outputs at all
         if let Some(ref outputs) = function.outputs {
@@ -78,12 +46,9 @@ pub fn add(tables: &mut CompilerTables) {
                 }
             }
         }
-        let implementation = Box::new(ImplementationStub { name: function.name.clone() });
-        let runnable_function = Box::new(RunnableFunction::new(runnable_index,
-                                                               implementation, output_connections));
+        function.id = runnable_index;
+        function.output_routes = output_connections;
         runnable_index += 1;
-
-        tables.runnables.push(runnable_function);
     }
 }
 

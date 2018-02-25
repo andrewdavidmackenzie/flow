@@ -1,5 +1,5 @@
 //! Compile module that generates code from a loaded flow definition
 pub mod compile;
-mod runnables;
+mod connector;
 mod gatherer;
 mod optimizer;

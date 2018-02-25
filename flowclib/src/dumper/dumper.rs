@@ -26,7 +26,6 @@ pub fn dump_tables(tables: &CompilerTables) {
     print(tables.connections.iter(), "Collapsed Connections");
     print(tables.values.iter(), "Values");
     print(tables.functions.iter(), "Functions");
-    print(tables.runnables.iter(), "Runnables");
     print(tables.libs.iter(), "Libraries");
     print(tables.lib_references.iter(), "Library references");
 }

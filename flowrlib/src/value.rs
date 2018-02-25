@@ -26,14 +26,6 @@ impl Value {
     }
 }
 
-#[test]
-fn value_to_code() {
-    let value = Value::new(1, Some("Hello-World".to_string()),
-                           vec!((1,0)));
-    let code = value.to_code();
-    assert_eq!(code, "Value::new(1, Some(\"Hello-World\".to_string()), vec!((1,0),))")
-}
-
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "\tid: {}\n\tinitial_value: {:?}\n\timplementation: {}\n",
@@ -86,25 +78,5 @@ impl Runnable for Value {
 
     fn output_destinations(&self) -> Vec<(usize, usize)> {
         self.output_routes.clone()
-    }
-
-    // example   "Value::new(Some(\"Hello-World\".to_string()), vec!((1,0)))"
-    fn to_code(&self) -> String {
-        let mut code = format!("Value::new({}, ", self.id);
-        let value = self.initial_value.clone();
-        if value.is_none() {
-            code.push_str("None");
-        } else {
-            code.push_str(&format!("Some(\"{}\".to_string()),", value.unwrap()));
-        }
-        // Add the vector of tuples of runnables and their inputs it's connected to
-        code.push_str(" vec!(");
-        for ref route in &self.output_routes {
-            code.push_str(&format!("({},{}),", route.0, route.1));
-        }
-        code.push_str(")");
-
-        code.push_str(")");
-        code
     }
 }

@@ -7,5 +7,4 @@ pub trait Runnable : fmt::Display {
     fn inputs_satisfied(&self) -> bool;
     fn run(&mut self) -> Option<String>;
     fn output_destinations(&self) -> Vec<(usize, usize)>;
-    fn to_code(&self) -> String;
 }

@@ -16,6 +16,10 @@ pub struct Value {
     #[serde(skip_deserializing)]
     pub route: Route,
     pub value: Option<String>,
+    #[serde(skip_deserializing)]
+    pub output_routes: Vec<(usize, usize)>,
+    #[serde(skip_deserializing)]
+    pub id: usize,
 }
 
 impl HasName for Value {

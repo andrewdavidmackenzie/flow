@@ -4,3 +4,5 @@ mod main_gen;
 mod runnables_gen;
 mod functions_gen;
 pub mod code_gen;
+mod function;
+mod value;
