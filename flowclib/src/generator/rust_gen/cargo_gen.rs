@@ -26,16 +26,21 @@ simplog = \"1.0.2\"
 exclude = [\"..\"]
 ";
 
-pub fn create(root: &PathBuf, vars: &HashMap<String, &str>) -> Result<(String, Vec<String>)> {
+pub fn create(root: &PathBuf, vars: &HashMap<String, &str>)
+    -> Result<((String, Vec<String>), (String, Vec<String>))> {
     let mut cargo_path = root.clone();
     cargo_path.push("Cargo.toml");
     let mut cargo_file = File::create(&cargo_path)?;
     cargo_file.write_all(contents(&vars).unwrap().as_bytes())?;
     // command and array of args to run this cargo file
-    Ok(("cargo".to_string(),
+    Ok((("cargo".to_string(),
+        vec!("build".to_string(),
+             "--manifest-path".to_string(),
+             format!("{}/Cargo.toml", root.to_str().unwrap()))),
+       ("cargo".to_string(),
         vec!("run".to_string(),
              "--manifest-path".to_string(),
-             format!("{}/Cargo.toml", root.to_str().unwrap()))))
+             format!("{}/Cargo.toml", root.to_str().unwrap())))))
 }
 
 fn contents(vars: &HashMap<String, &str>) -> FmtResult<String> {

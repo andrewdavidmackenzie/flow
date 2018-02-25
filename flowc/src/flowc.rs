@@ -24,7 +24,7 @@ use simplog::simplog::SimpleLogger;
 
 fn main() {
     match run() {
-        Ok(message) => println!("{}\n", message),
+        Ok(message) => info!("{}", message),
         Err(e) => error!("{}", e)
     }
 }
@@ -56,18 +56,26 @@ fn run() -> Result<String, String> {
         dumper::dump_tables(&tables);
     }
 
-    if generate {
-        let output_dir = source_arg::get_output_dir(&flow.source_url,
-                                                    matches.value_of("OUTPUT_DIR"))?;
+    if !generate {
+        return Ok("Code Generation and Running skipped".to_string());
+    }
 
-        let (command, args) = code_gen::generate(&flow, &output_dir, "Warn",
-                                                 &tables)
-            .map_err(|e| e.to_string())?;
-        Command::new(&command).args(args).spawn().unwrap();
+    let output_dir = source_arg::get_output_dir(&flow.source_url,
+                                                matches.value_of("OUTPUT_DIR"))?;
 
-        Ok(format!("Executing generated code in '{}' using '{}'", output_dir.display(), &command))
-    } else {
-        Ok("Code Generation and Running skipped".to_string())
+    let ((build, build_args), (run, run_args)) =
+        code_gen::generate(&flow, &output_dir, "Warn",
+                           &tables, "rust").map_err(|e| e.to_string())?;
+
+    info!("Building generated code in '{}' using '{}'", output_dir.display(), &build);
+    Command::new(&build).args(build_args).output().map_err(|e| e.to_string())?;
+
+    let status = Command::new(&run).args(run_args).status().map_err(|e| e.to_string())?;
+
+    match status.code() {
+        Some(0) => Ok("Flow ran successfully".to_string()),
+        Some(code) => Err(format!("Exited with status code: {}", code)),
+        None    => Ok("Process terminated by signal".to_string())
     }
 }
 
