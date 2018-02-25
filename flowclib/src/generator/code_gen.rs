@@ -1,16 +1,19 @@
 use std::io::Result;
+use std::io::{Error, ErrorKind};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use model::flow::Flow;
 use std::str;
 use compiler::compile::CompilerTables;
-use generator::rust_gen::generator;
+use generator::rust_gen::generator::RustGenerator;
+
+const RUST: &CodeGenerator = &RustGenerator as &CodeGenerator;
 
 /*
     All code generators should implement this method
 */
 pub trait CodeGenerator {
-    fn generate(output_dir: &PathBuf, vars: &mut HashMap<String, &str>, tables: &CompilerTables)
+    fn generate(&self, output_dir: &PathBuf, vars: &mut HashMap<String, &str>, tables: &CompilerTables)
                 -> Result<((String, Vec<String>), (String, Vec<String>))>;
 }
 
@@ -20,14 +23,22 @@ pub trait CodeGenerator {
   2) command to run the project and array of args for the run command
 */
 pub fn generate(flow: &Flow, output_dir: &PathBuf, log_level: &str, tables: &CompilerTables,
-                generator: &str) -> Result<((String, Vec<String>), (String, Vec<String>))> {
-    info!("Generating project into directory '{}' using '{}' generator",
-          output_dir.to_str().unwrap(), generator);
-
+                extension: &str) -> Result<((String, Vec<String>), (String, Vec<String>))> {
     let mut vars = vars_from_flow(flow);
     vars.insert("log_level".to_string(), log_level);
 
-    generator::RustGenerator::generate(&output_dir, &mut vars, &tables )
+    let generator = get_generator(extension)?;
+    info!("Generating project into directory '{}' using '{}' generator",
+          output_dir.to_str().unwrap(), extension);
+    generator.generate(&output_dir, &mut vars, &tables)
+}
+
+fn get_generator(extension: &str) -> Result<&'static CodeGenerator> {
+    match extension {
+        "rs" => Ok(RUST),
+        _ => Err(Error::new(ErrorKind::InvalidData,
+                            format!("Could not find a code generator for extension '{}'", extension)))
+    }
 }
 
 /*
@@ -58,4 +69,20 @@ fn vars_from_flow(flow: &Flow) -> HashMap<String, &str> {
     vars.insert("libraries".to_string(), "flowstdlib = \"~0.3\"");
 
     vars
+}
+
+#[cfg(test)]
+mod test {
+    use super::get_generator;
+
+    #[test]
+    fn code_generator_for_rust() {
+        get_generator("rs").unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn no_code_generator_for_fake() {
+        get_generator("fake").unwrap();
+    }
 }

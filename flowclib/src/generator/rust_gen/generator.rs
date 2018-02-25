@@ -12,7 +12,7 @@ use super::super::code_gen::CodeGenerator;
 pub struct RustGenerator;
 
 impl CodeGenerator for RustGenerator {
-    fn generate(output_dir: &PathBuf, mut vars: &mut HashMap<String, &str>, tables: &CompilerTables)
+    fn generate(&self, output_dir: &PathBuf, mut vars: &mut HashMap<String, &str>, tables: &CompilerTables)
                 -> Result<((String, Vec<String>), (String, Vec<String>))> {
         let ((build, build_args), (run, run_args)) =
             cargo_gen::create(&output_dir, &vars)?;

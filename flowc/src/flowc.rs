@@ -67,7 +67,7 @@ fn run() -> Result<String, String> {
     let ((build_command, build_args),
         (run_command, run_args)) =
         code_gen::generate(&flow, &output_dir, "Warn",
-                           &tables, "rust").map_err(|e| e.to_string())?;
+                           &tables, "rs").map_err(|e| e.to_string())?;
 
     info!("Building generated code in '{}' using '{}'", output_dir.display(), &build_command);
     build(build_command, build_args)?;
