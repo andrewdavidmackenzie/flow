@@ -7,7 +7,7 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 use std::io::{Error, ErrorKind};
 
-use compiler::compile::CompilerTables;
+use generator::code_gen::CodeGenTables;
 use model::function::Function;
 
 const MAIN_PREFIX: &'static str = "
@@ -31,7 +31,7 @@ fn main() {{
     execute(get_runnables());
 }}
 ";
-pub fn create(src_dir: &PathBuf, vars: &mut HashMap<String, &str>, tables: &CompilerTables) -> Result<()> {
+pub fn create(src_dir: &PathBuf, vars: &mut HashMap<String, &str>, tables: &CodeGenTables) -> Result<()> {
     let mut file = src_dir.clone();
     file.push("main.rs");
     let mut main_rs = File::create(&file)?;

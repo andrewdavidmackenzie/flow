@@ -1,6 +1,6 @@
 use model::flow::Flow;
 use std::fmt;
-use compiler::compile::CompilerTables;
+use generator::code_gen::CodeGenTables;
 
 /// dump a flow definition that has been loaded to stdout
 ///
@@ -22,7 +22,7 @@ pub fn dump_flow(flow: &Flow) {
     _dump(flow, 0);
 }
 
-pub fn dump_tables(tables: &CompilerTables) {
+pub fn dump_tables(tables: &CodeGenTables) {
     print(tables.connections.iter(), "Collapsed Connections");
     print(tables.values.iter(), "Values");
     print(tables.functions.iter(), "Functions");

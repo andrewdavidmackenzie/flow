@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::collections::HashSet;
 use std::io::{Error, ErrorKind};
 use model::function::Function;
-use compiler::compile::CompilerTables;
+use generator::code_gen::CodeGenTables;
 use super::function;
 use super::value;
 
@@ -28,7 +28,7 @@ const RUNNABLES_SUFFIX: &'static str = "
     runnables
 }";
 
-pub fn create(src_dir: &PathBuf, tables: &CompilerTables)
+pub fn create(src_dir: &PathBuf, tables: &CodeGenTables)
               -> Result<()> {
     let lib_refs = lib_refs(&tables.lib_references);
     let mut file = src_dir.clone();
@@ -37,7 +37,7 @@ pub fn create(src_dir: &PathBuf, tables: &CompilerTables)
     runnables_rs.write_all(contents(tables, &lib_refs).unwrap().as_bytes())
 }
 
-fn contents(tables: &CompilerTables, lib_refs: &Vec<String>) -> Result<String> {
+fn contents(tables: &CodeGenTables, lib_refs: &Vec<String>) -> Result<String> {
     let num_runnables = &(tables.values.len() + tables.functions.len()).to_string();
     let mut vars = HashMap::new();
     if tables.values.len() > 0 {

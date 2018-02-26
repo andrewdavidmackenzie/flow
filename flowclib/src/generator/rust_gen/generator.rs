@@ -4,7 +4,7 @@ use generator::rust_gen::runnables_gen;
 use generator::rust_gen::main_gen;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use compiler::compile::CompilerTables;
+use generator::code_gen::CodeGenTables;
 use std::fs;
 use std::io::Result;
 use super::super::code_gen::CodeGenerator;
@@ -12,7 +12,7 @@ use super::super::code_gen::CodeGenerator;
 pub struct RustGenerator;
 
 impl CodeGenerator for RustGenerator {
-    fn generate(&self, output_dir: &PathBuf, mut vars: &mut HashMap<String, &str>, tables: &CompilerTables)
+    fn generate(&self, output_dir: &PathBuf, mut vars: &mut HashMap<String, &str>, tables: &CodeGenTables)
                 -> Result<((String, Vec<String>), (String, Vec<String>))> {
         let ((build, build_args), (run, run_args)) =
             cargo_gen::create(&output_dir, &vars)?;

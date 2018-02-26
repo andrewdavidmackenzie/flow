@@ -1,5 +1,5 @@
 use model::connection::Connection;
-use compiler::compile::CompilerTables;
+use generator::code_gen::CodeGenTables;
 
 pub fn collapse_connections(complete_table: &Vec<Connection>) -> Vec<Connection> {
     let mut collapsed_table: Vec<Connection> = Vec::new();
@@ -112,4 +112,4 @@ mod test {
     - functions that don't have connections to all their inputs.
 */
 // TODO implement this
-pub fn prune_tables(_tables: &CompilerTables) {}
+pub fn prune_tables(_tables: &CodeGenTables) {}

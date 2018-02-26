@@ -2,7 +2,7 @@ use model::value::Value;
 use model::function::Function;
 use model::connection::Route;
 use std::collections::HashMap;
-use compiler::compile::CompilerTables;
+use generator::code_gen::CodeGenTables;
 
 /*
     First build a table of routes to (runnable_index, input_index) for all inputs of runnables, to
@@ -12,7 +12,7 @@ use compiler::compile::CompilerTables;
     (according to each ruannable's output route in the original description plus each connection from it)
     to point to the runnable (by index) and the runnable's input (by index) in the table
 */
-pub fn connect(tables: &mut CompilerTables) {
+pub fn connect(tables: &mut CodeGenTables) {
     let inputs_routes= inputs_table(&tables.values, &tables.functions);
     let mut runnable_index = 0;
 

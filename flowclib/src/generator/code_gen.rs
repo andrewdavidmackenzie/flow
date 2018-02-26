@@ -4,16 +4,39 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use model::flow::Flow;
 use std::str;
-use compiler::compile::CompilerTables;
 use generator::rust_gen::generator::RustGenerator;
+use model::value::Value;
+use model::function::Function;
+use model::connection::Connection;
+use std::collections::HashSet;
 
 const RUST: &CodeGenerator = &RustGenerator as &CodeGenerator;
+
+pub struct CodeGenTables {
+    pub connections: Vec<Connection>,
+    pub values: Vec<Value>,
+    pub functions: Vec<Function>,
+    pub libs: HashSet<String>,
+    pub lib_references: HashSet<String>,
+}
+
+impl CodeGenTables {
+    pub fn new() -> Self {
+        CodeGenTables {
+            connections: Vec::new(),
+            values: Vec::new(),
+            functions: Vec::new(),
+            libs: HashSet::new(),
+            lib_references: HashSet::new(),
+        }
+    }
+}
 
 /*
     All code generators should implement this method
 */
 pub trait CodeGenerator {
-    fn generate(&self, output_dir: &PathBuf, vars: &mut HashMap<String, &str>, tables: &CompilerTables)
+    fn generate(&self, output_dir: &PathBuf, vars: &mut HashMap<String, &str>, tables: &CodeGenTables)
                 -> Result<((String, Vec<String>), (String, Vec<String>))>;
 }
 
@@ -22,7 +45,7 @@ pub trait CodeGenerator {
   1) command to build the project and array of args for the build command
   2) command to run the project and array of args for the run command
 */
-pub fn generate(flow: &Flow, output_dir: &PathBuf, log_level: &str, tables: &CompilerTables,
+pub fn generate(flow: &Flow, output_dir: &PathBuf, log_level: &str, tables: &CodeGenTables,
                 extension: &str) -> Result<((String, Vec<String>), (String, Vec<String>))> {
     let mut vars = vars_from_flow(flow);
     vars.insert("log_level".to_string(), log_level);

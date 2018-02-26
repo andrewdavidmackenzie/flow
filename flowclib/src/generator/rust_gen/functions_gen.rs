@@ -3,9 +3,9 @@ use std::io::{Error, ErrorKind};
 use std::io::Result;
 use std::fs;
 
-use compiler::compile::CompilerTables;
+use generator::code_gen::CodeGenTables;
 
-pub fn copy(src_dir: &PathBuf, tables: &CompilerTables) -> Result<()> {
+pub fn copy(src_dir: &PathBuf, tables: &CodeGenTables) -> Result<()> {
     // Find all the functions that are not loaded from libraries
     for function in &tables.functions {
         if function.lib_reference.is_none() {
