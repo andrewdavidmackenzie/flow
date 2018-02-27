@@ -64,16 +64,15 @@ fn run() -> Result<String, String> {
     let output_dir = source_arg::get_output_dir(&flow.source_url,
                                                 matches.value_of("OUTPUT_DIR"))?;
 
-    let ((build_command, build_args),
-        (run_command, run_args)) =
+    let (build, run) =
         code_gen::generate(&flow, &output_dir, "Warn",
                            &tables, "rs").map_err(|e| e.to_string())?;
 
-    info!("Building generated code in '{}' using '{}'", output_dir.display(), &build_command);
-    build(build_command, build_args)?;
+    info!("Building generated code in '{}' using '{}'", output_dir.display(), &build.0);
+    build_flow(build)?;
 
-    info!("Running generated code in '{}' using '{}'", output_dir.display(), &run_command);
-    run_flow(run_command, run_args)
+    info!("Running generated code in '{}' using '{}'", output_dir.display(), &run.0);
+    run_flow(run)
 }
 
 /*
@@ -81,10 +80,10 @@ fn run() -> Result<String, String> {
     If everything executes fine, then return an Ok(), but don't produce any log or output
     If build fails, return an Err() with message and output the stderr in an ERROR level log message
 */
-fn build(command: String, args: Vec<String>) -> Result<String, String> {
-    let build_output = Command::new(&command).args(args).output().map_err(|e| e.to_string())?;
+fn build_flow(command: (String, Vec<String>)) -> Result<String, String> {
+    let build_output = Command::new(&command.0).args(command.1).output().map_err(|e| e.to_string())?;
     match build_output.status.code() {
-        Some(0) => Ok(format!("'{}' command succeeded", command)),
+        Some(0) => Ok(format!("'{}' command succeeded", command.0)),
         Some(code) => {
             error!("Build STDERR: \n {}", String::from_utf8_lossy(&build_output.stderr));
             return Err(format!("Exited with status code: {}", code));
@@ -102,8 +101,8 @@ fn build(command: String, args: Vec<String>) -> Result<String, String> {
     If the process exits correctly then just return an Ok() with message and no log
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
-fn run_flow(command: String, args: Vec<String>) -> Result<String, String> {
-    let output = Command::new(&command).args(args)
+fn run_flow(command: (String, Vec<String>)) -> Result<String, String> {
+    let output = Command::new(&command.0).args(command.1)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::piped())
