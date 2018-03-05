@@ -36,19 +36,22 @@ impl RunList {
         self.runnables = runnables;
     }
 
-    // Get a runnable from the runnable ID
+    // Get a runnable from the runnable id
+    // TODO get this to return a mutable reference and avoid cloning
     pub fn get(&self, id: usize) -> Arc<Mutex<Runnable>> {
         self.runnables[id].clone()
     }
 
-    // save the fact that a particular Runnable's inputs are now satisfied
+    // save the fact that a particular Runnable's inputs are now satisfied and so it maybe ready
+    // to run (if not blocked sending on it's output)
     pub fn inputs_ready(&mut self, id: usize) {
-        info!("Runnable #{}'s inputs are all ready", id);
+        debug!("Runnable #{}'s inputs are all ready", id);
 
         if self.is_blocked(id) {
+            debug!("Runnable #{} is blocked on output", id);
             self.inputs_satisfied.insert(id);
         } else {
-            info!("Marking #{} as ready", id);
+            debug!("Runnable #{} marked as ready", id);
             self.ready.push(id);
         }
     }
@@ -59,9 +62,8 @@ impl RunList {
             return None;
         }
 
-        info!("Ready list: {:?}", self.ready);
+        debug!("Ready list: {:?}", self.ready);
 
-        // get the ID of the next runnable to be run
         let id = self.ready.remove(0);
         Some(self.runnables[id].clone())
     }
@@ -103,32 +105,36 @@ mod tests {
     use super::RunList;
     use super::Runnable;
     use std::sync::{Arc, Mutex};
-    use std::fmt;
+//    use std::fmt;
 
     struct TestRunnable {
-        id: usize
+        id: usize,
+        destinations: Vec<(usize, usize)>
     }
 
     impl TestRunnable {
         fn new(id: usize) -> TestRunnable {
-            TestRunnable { id }
+            TestRunnable {
+                id,
+                destinations: vec!((1, 0))
+            }
         }
     }
-
+/*
     impl fmt::Display for TestRunnable {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             write!(f, "\tid: {}\n", self.id).unwrap();
             Ok(())
         }
-    }
+    }*/
 
     impl Runnable for TestRunnable {
+        fn id(&self) -> usize { self.id }
         fn init(&mut self) -> bool { false }
         fn write_input(&mut self, _input_number: usize, _new_value: Option<String>) {}
         fn inputs_satisfied(&self) -> bool { false }
         fn run(&mut self) -> Option<String> { Some("Output".to_string()) }
-        fn output_destinations(&self) -> Vec<(usize, usize)> { vec!((1, 0)) }
-        fn id(&self) -> usize { self.id }
+        fn output_destinations(&self) -> &Vec<(usize, usize)> { &self.destinations }
     }
 
     fn test_runnables() -> RunList {

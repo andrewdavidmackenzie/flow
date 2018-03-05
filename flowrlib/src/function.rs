@@ -1,7 +1,6 @@
 use runnable::Runnable;
 use implementation::Implementation;
 use std::mem::replace;
-use std::fmt;
 
 pub struct Function {
     id: usize,
@@ -12,22 +11,6 @@ pub struct Function {
     inputs: Vec<Option<String>>,
 
     output_routes: Vec<(usize, usize)>,
-}
-
-// TODO these methods will need to be made thread safe
-
-// TODO Make these doc comments and produce some documentation?
-
-impl fmt::Display for Function {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\tid: {}\n\timplementation: {}\n",
-               self.id, self.implementation.name()).unwrap();
-        write!(f, "\tnum_inputs: {:?}\n\tnum_inputs_pending: {:?}\n",
-               self.num_inputs, self.num_inputs_pending).unwrap();
-        write!(f, "\tinputs: {:?}\n\toutput_routes: {:?}\n",
-               self.inputs, self.output_routes).unwrap();
-        Ok(())
-    }
 }
 
 impl Function {
@@ -74,7 +57,7 @@ impl Runnable for Function {
         self.implementation.run(inputs)
     }
 
-    fn output_destinations(&self) -> Vec<(usize, usize)> {
-        self.output_routes.clone()
+    fn output_destinations(&self) -> &Vec<(usize, usize)> {
+        &self.output_routes
     }
 }

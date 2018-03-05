@@ -2,7 +2,6 @@ use runnable::Runnable;
 use implementation::Implementation;
 use zero_fifo::Fifo;
 use std::mem::replace;
-use std::fmt;
 
 const ONLY_INPUT: usize = 0;
 
@@ -23,16 +22,6 @@ impl Value {
             input: None,
             output_routes
         }
-    }
-}
-
-impl fmt::Display for Value {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\tid: {}\n\tinitial_value: {:?}\n\timplementation: {}\n",
-               self.id, self.initial_value, self.implementation.name()).unwrap();
-        write!(f, "\tinput: {:?}\n\toutput_routes: {:?}\n",
-               self.input, self.output_routes).unwrap();
-        Ok(())
     }
 }
 
@@ -76,7 +65,7 @@ impl Runnable for Value {
         self.implementation.run(vec!(input))
     }
 
-    fn output_destinations(&self) -> Vec<(usize, usize)> {
-        self.output_routes.clone()
+    fn output_destinations(&self) -> &Vec<(usize, usize)> {
+        &self.output_routes
     }
 }

@@ -16,6 +16,7 @@ extern crate log;
 
 extern crate flowrlib;
 use flowrlib::execution::execute;
+use std::process::exit;
 
 mod runnables;
 use runnables::get_runnables;
@@ -29,6 +30,7 @@ fn main() {{
     SimpleLogger::init(None);
     info!(\"'{{}}' version '{{}}'\", env!(\"CARGO_PKG_NAME\"), env!(\"CARGO_PKG_VERSION\"));
     execute(get_runnables());
+    exit(0);
 }}
 ";
 pub fn create(src_dir: &PathBuf, vars: &mut HashMap<String, &str>, tables: &CodeGenTables) -> Result<()> {
