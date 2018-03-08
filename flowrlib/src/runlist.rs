@@ -15,25 +15,21 @@ use std::collections::HashSet;
     Those others maybe blocked trying to send to multiple.
     So, when a runnable is run, we remove all entries that depend on it.
 */
-pub struct RunList {
-    runnables: Vec<Arc<Mutex<Runnable>>>,
+pub struct RunList<'a> {
+    runnables: &'a Vec<Arc<Mutex<Runnable>>>,
     inputs_satisfied: HashSet<usize>,
     blocking: Vec<(usize, usize)>,
     ready: Vec<usize>,
 }
 
-impl RunList {
-    pub fn new() -> Self {
+impl<'a> RunList<'a> {
+    pub fn new(runnables: &'a Vec<Arc<Mutex<Runnable>>>) -> Self {
         RunList {
-            runnables: Vec::<Arc<Mutex<Runnable>>>::new(),
+            runnables,
             inputs_satisfied: HashSet::<usize>::new(),
             blocking: Vec::<(usize, usize)>::new(),
             ready: Vec::<usize>::new(),
         }
-    }
-
-    pub fn set_runnables(&mut self, runnables: Vec<Arc<Mutex<Runnable>>>) {
-        self.runnables = runnables;
     }
 
     // Get a runnable from the runnable id
@@ -65,6 +61,7 @@ impl RunList {
         debug!("Ready list: {:?}", self.ready);
 
         let id = self.ready.remove(0);
+        // TODO try to return a reference and avoid this clone
         Some(self.runnables[id].clone())
     }
 
@@ -137,17 +134,19 @@ mod tests {
         fn output_destinations(&self) -> &Vec<(usize, usize)> { &self.destinations }
     }
 
-    fn test_runnables() -> RunList {
-        let mut runs = RunList::new();
+    fn test_runnables() -> Vec<Arc<Mutex<Runnable>>> {
         let r0 = Arc::new(Mutex::new(TestRunnable::new(0)));
         let r1 = Arc::new(Mutex::new(TestRunnable::new(1)));
-        runs.set_runnables(vec!(r0, r1));
-        runs
+        let mut runnables: Vec<Arc<Mutex<Runnable>>> = Vec::new();
+        runnables.push(r0);
+        runnables.push(r1);
+        runnables
     }
 
     #[test]
     fn get_works() {
-        let runs = test_runnables();
+        let runnables = test_runnables();
+        let runs = RunList::new(&runnables);
         let got_arc = runs.get(1);
         let got = got_arc.lock().unwrap();
         assert_eq!(got.id(), 1)
@@ -155,7 +154,8 @@ mod tests {
 
     #[test]
     fn blocked_works() {
-        let mut runs = test_runnables();
+        let runnables = test_runnables();
+        let mut runs = RunList::new(&runnables);
 
         // Indicate that 0 is blocked by 1
         runs.blocked_by(1, 0);
@@ -164,14 +164,16 @@ mod tests {
 
     #[test]
     fn no_next_if_none_ready() {
-        let mut runs = test_runnables();
+        let runnables = test_runnables();
+        let mut runs = RunList::new(&runnables);
 
         assert!(runs.next().is_none());
     }
 
     #[test]
     fn inputs_ready_makes_ready() {
-        let mut runs = test_runnables();
+        let runnables = test_runnables();
+        let mut runs = RunList::new(&runnables);
 
         // Indicate that 0 has all it's inputs read
         runs.inputs_ready(0);
@@ -187,7 +189,8 @@ mod tests {
 
     #[test]
     fn blocked_is_not_ready() {
-        let mut runs = test_runnables();
+        let runnables = test_runnables();
+        let mut runs = RunList::new(&runnables);
 
         // Indicate that 0 is blocked by 1
         runs.blocked_by(1, 0);
@@ -203,7 +206,8 @@ mod tests {
 
     #[test]
     fn unblocking_makes_ready() {
-        let mut runs = test_runnables();
+        let runnables = test_runnables();
+        let mut runs = RunList::new(&runnables);
 
         // Indicate that 0 is blocked by 1
         runs.blocked_by(1, 0);
