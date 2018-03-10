@@ -3,17 +3,25 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashSet;
 
 /*
+    RunList is a structure that maintains the state of all the runnables in the currently
+    executing flow.
+
+    A runnable maybe blocking multiple others trying to send data to it.
+    Those others maybe blocked trying to send to multiple different runnables.
+
+    runnables:
+    A list of all the runnables that could be executed at some point.
+
     inputs_satisfied:
     A list of runnables who's inputs are satisfied.
 
-    blocked:
-    A list of tuples of runnable ids where first runnable_id is where data is trying
-    to be sent to, and the second runnable_id is the runnable trying to send to it.
-    Vec<(runnable_to_send_to, runnable_that_is_blocked_on_output)>
+    blocking:
+    A list of tuples of runnable ids where first id is id of the runnable data is trying to be sent
+    to, and the second id is the id of the runnable trying to send data.
 
-    Note that a runnable maybe blocking multiple others trying to send to it.
-    Those others maybe blocked trying to send to multiple.
-    So, when a runnable is run, we remove all entries that depend on it.
+    ready:
+    A list of Runnables who are ready to be run, they have their inputs satisfied and they are not
+    blocked on the output (so their output can be produced).
 */
 pub struct RunList {
     runnables: Vec<Arc<Mutex<Runnable>>>,
@@ -25,7 +33,7 @@ pub struct RunList {
 impl RunList {
     pub fn new() -> Self {
         RunList {
-            runnables: vec!(),
+            runnables: Vec::<Arc<Mutex<Runnable>>>::new(),
             inputs_satisfied: HashSet::<usize>::new(),
             blocking: Vec::<(usize, usize)>::new(),
             ready: Vec::<usize>::new(),
@@ -36,10 +44,22 @@ impl RunList {
         self.runnables = runnables;
     }
 
-    // Get a runnable from the runnable id
-    // TODO get this to return a mutable reference and avoid cloning
+    // Get a runnable from the runnable list by id (index)
     pub fn get(&self, id: usize) -> Arc<Mutex<Runnable>> {
+        // TODO avoid clone
         self.runnables[id].clone()
+    }
+
+    // Return the next runnable ready to be run if there is one
+    pub fn next(&mut self) -> Option<Arc<Mutex<Runnable>>> {
+        if self.ready.is_empty() {
+            return None;
+        }
+
+        let id = self.ready.remove(0);
+        debug!("Next ready runnable in runlist: {}", id);
+        // TODO avoid clone
+        Some(self.runnables[id].clone())
     }
 
     // save the fact that a particular Runnable's inputs are now satisfied and so it maybe ready
@@ -56,29 +76,41 @@ impl RunList {
         }
     }
 
-    // Return the next runnable at the head of the ready list if there is one
-    pub fn next(&mut self) -> Option<Arc<Mutex<Runnable>>> {
-        if self.ready.len() == 0 {
-            return None;
+    // Take an output produced by a runnable and modify the runlist accordingly
+    // If other runnables were blocked trying to send to this one - we can now unblock them
+    // as it has consumed it's inputs and they are free to be sent to again.
+    //
+    // Then take the output and send it to all destination IOs on different runnables it should be
+    // sent to, marking the source runnable as blocked because those others must consume the output
+    // if those other runnables have all their inputs, then mark them accordingly
+/*    pub fn process_output(&mut self, runnable: &MutexGuard<Runnable>, output: Option<String>) {
+        self.unblock_by(runnable.id());
+
+        for &(destination_id, io_number) in runnable.output_destinations() {
+            let destination_arc = self.get(destination_id);
+            let mut destination = destination_arc.lock().unwrap();
+            debug!("Sending output '{:?}' from #{} to #{} input #{}",
+                   &output, runnable.id(), &destination_id, &io_number);
+            self.blocked_by(destination_id, runnable.id());
+            destination.write_input(io_number, output.clone());
+            if destination.inputs_satisfied() {
+                self.inputs_ready(destination_id);
+            }
         }
-
-        debug!("Ready list: {:?}", self.ready);
-
-        let id = self.ready.remove(0);
-        // TODO try to return a reference and avoid this clone
-        Some(self.runnables[id].clone())
-    }
+    }*/
 
     // Save the fact that the runnable 'blocked_id' is blocked on it's output by 'blocking_id'
     pub fn blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
-        info!("Runnable #{} is blocking runnable #{}", &blocking_id, &blocked_id);
+        debug!("Runnable #{} is blocked on output by runnable #{}", &blocked_id, &blocking_id);
         self.blocking.push((blocking_id, blocked_id));
     }
 
     // unblock all runnables that were blocked trying to send to destination_id by removing all entries
     // in the list where the first value (blocking_id) matches the destination_id
+    // when each is unblocked on output, if it's inputs are satisfied, then it is ready to be run
+    // so put it on the ready queue
     pub fn unblock_by(&mut self, destination_id: usize) {
-        info!("Unblocking runnables blocked on #{}", &destination_id);
+        debug!("Unblocking runnables blocked on #{}", &destination_id);
         for &(blocking_id, blocked_id) in &self.blocking {
             if blocking_id == destination_id {
                 if self.inputs_satisfied.remove(&blocked_id) {
@@ -106,7 +138,6 @@ mod tests {
     use super::RunList;
     use super::Runnable;
     use std::sync::{Arc, Mutex};
-//    use std::fmt;
 
     struct TestRunnable {
         id: usize,
@@ -121,13 +152,6 @@ mod tests {
             }
         }
     }
-/*
-    impl fmt::Display for TestRunnable {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "\tid: {}\n", self.id).unwrap();
-            Ok(())
-        }
-    }*/
 
     impl Runnable for TestRunnable {
         fn id(&self) -> usize { self.id }
