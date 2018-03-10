@@ -2,13 +2,15 @@ use runnable::Runnable;
 use std::sync::{Arc, Mutex};
 use runlist::RunList;
 
-/// The generated code for a flow consists of values and functions. Once these lists have been
-/// loaded at program start-up then start executing the program using the `execute` method.
-/// You should not have to write code to use this method yourself, it will be called from the
+/// The generated code for a flow consists of values and functions formed into a list of Runnables.
+///
+/// This list is built program start-up in `main` which then starts execution of the flow by calling
+/// this `execute` method.
+///
+/// You should not have to write code to call `execute` yourself, it will be called from the
 /// generated code in the `main` method.
 ///
-/// It is a divergent function that will never return. On completion of the execution of the flow
-/// it will exit the process.
+/// On completion of the execution of the flow it will return and `main` will call `exit`
 ///
 /// # Example
 /// ```
@@ -17,14 +19,14 @@ use runlist::RunList;
 /// use flowrlib::execution::execute;
 /// use std::process::exit;
 ///
-/// let runnables = Vec::<Arc<Mutex<Runnable>>>::new();
+/// let mut runnables = Vec::<Arc<Mutex<Runnable>>>::new();
 ///
 /// execute(runnables);
 ///
 /// exit(0);
 /// ```
 pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) {
-    let mut run_list = init(&runnables);
+    let mut run_list = init(runnables);
 
     debug!("Starting execution loop");
     while let Some(runnable_arc) = run_list.next() {
@@ -49,8 +51,8 @@ pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) {
 //        process_output(&runnable, &mut run_list, output);
     }
 }
-/*
-fn process_output(runnable: &MutexGuard<Runnable>, run_list: &mut RunList, output: Option<String>) {
+
+/*fn process_output(runnable: &MutexGuard<Runnable>, run_list: &mut RunList, output: Option<String>) {
     // If other runnables were blocked trying to send to this one - we can now unblock them
     // as it has consumed it's inputs and they are free to be sent to again.
     run_list.unblock_by(runnable.id());
@@ -67,15 +69,15 @@ fn process_output(runnable: &MutexGuard<Runnable>, run_list: &mut RunList, outpu
     }
 }*/
 
-/// The ìnit' function is responsible for initializing all runnables.
-/// The ìnit`method on each runnable is called, which returns a boolean to indicate that it's
-/// inputs are fulfilled - and this information is added to the RunList to control the readyness of
-/// the Runnable to be executed
-fn init(runnables: &Vec<Arc<Mutex<Runnable>>>) -> RunList {
-    let mut run_list = RunList::new(runnables);
+// The ìnit' function is responsible for initializing all runnables.
+// The ìnit`method on each runnable is called, which returns a boolean to indicate that it's
+// inputs are fulfilled - and this information is added to the RunList to control the readyness of
+// the Runnable to be executed
+fn init(runnables: Vec<Arc<Mutex<Runnable>>>) -> RunList {
+    let mut run_list = RunList::new();
 
-    debug!("Initializing runnables");
-    for runnable_arc in runnables {
+    debug!("Initializing all runnables");
+    for runnable_arc in &runnables {
         let mut runnable = runnable_arc.lock().unwrap();
         debug!("Initializing runnable #{}", &runnable.id());
         if runnable.init() {
@@ -84,5 +86,6 @@ fn init(runnables: &Vec<Arc<Mutex<Runnable>>>) -> RunList {
         }
     }
 
+    run_list.set_runnables(runnables);
     run_list
 }

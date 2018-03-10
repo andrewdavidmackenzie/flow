@@ -15,21 +15,25 @@ use std::collections::HashSet;
     Those others maybe blocked trying to send to multiple.
     So, when a runnable is run, we remove all entries that depend on it.
 */
-pub struct RunList<'a> {
-    runnables: &'a Vec<Arc<Mutex<Runnable>>>,
+pub struct RunList {
+    runnables: Vec<Arc<Mutex<Runnable>>>,
     inputs_satisfied: HashSet<usize>,
     blocking: Vec<(usize, usize)>,
     ready: Vec<usize>,
 }
 
-impl<'a> RunList<'a> {
-    pub fn new(runnables: &'a Vec<Arc<Mutex<Runnable>>>) -> Self {
+impl RunList {
+    pub fn new() -> Self {
         RunList {
-            runnables,
+            runnables: vec!(),
             inputs_satisfied: HashSet::<usize>::new(),
             blocking: Vec::<(usize, usize)>::new(),
             ready: Vec::<usize>::new(),
         }
+    }
+
+    pub fn set_runnables(&mut self, runnables: Vec<Arc<Mutex<Runnable>>>) {
+        self.runnables = runnables;
     }
 
     // Get a runnable from the runnable id
@@ -146,7 +150,8 @@ mod tests {
     #[test]
     fn get_works() {
         let runnables = test_runnables();
-        let runs = RunList::new(&runnables);
+        let mut runs = RunList::new();
+        runs.set_runnables(runnables);
         let got_arc = runs.get(1);
         let got = got_arc.lock().unwrap();
         assert_eq!(got.id(), 1)
@@ -155,7 +160,8 @@ mod tests {
     #[test]
     fn blocked_works() {
         let runnables = test_runnables();
-        let mut runs = RunList::new(&runnables);
+        let mut runs = RunList::new();
+        runs.set_runnables(runnables);
 
         // Indicate that 0 is blocked by 1
         runs.blocked_by(1, 0);
@@ -165,7 +171,8 @@ mod tests {
     #[test]
     fn no_next_if_none_ready() {
         let runnables = test_runnables();
-        let mut runs = RunList::new(&runnables);
+        let mut runs = RunList::new();
+        runs.set_runnables(runnables);
 
         assert!(runs.next().is_none());
     }
@@ -173,7 +180,8 @@ mod tests {
     #[test]
     fn inputs_ready_makes_ready() {
         let runnables = test_runnables();
-        let mut runs = RunList::new(&runnables);
+        let mut runs = RunList::new();
+        runs.set_runnables(runnables);
 
         // Indicate that 0 has all it's inputs read
         runs.inputs_ready(0);
@@ -190,7 +198,8 @@ mod tests {
     #[test]
     fn blocked_is_not_ready() {
         let runnables = test_runnables();
-        let mut runs = RunList::new(&runnables);
+        let mut runs = RunList::new();
+        runs.set_runnables(runnables);
 
         // Indicate that 0 is blocked by 1
         runs.blocked_by(1, 0);
@@ -207,7 +216,8 @@ mod tests {
     #[test]
     fn unblocking_makes_ready() {
         let runnables = test_runnables();
-        let mut runs = RunList::new(&runnables);
+        let mut runs = RunList::new();
+        runs.set_runnables(runnables);
 
         // Indicate that 0 is blocked by 1
         runs.blocked_by(1, 0);
