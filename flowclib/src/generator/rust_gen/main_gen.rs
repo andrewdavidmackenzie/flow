@@ -24,6 +24,7 @@ use runnables::get_runnables;
 
 const MAIN_SUFFIX: &'static str = "
 extern crate simplog;
+extern crate serde_json;
 use simplog::simplog::SimpleLogger;
 
 fn main() {{

@@ -1,3 +1,4 @@
+use serde_json::Value as JsonValue;
 use runnable::Runnable;
 use implementation::Implementation;
 use std::mem::replace;
@@ -9,7 +10,7 @@ pub struct Function {
     implementation: Box<Implementation>,
 
     num_inputs_pending: usize,
-    inputs: Vec<Option<String>>,
+    inputs: Vec<JsonValue>,
 
     output_routes: Vec<(usize, usize)>,
 }
@@ -24,7 +25,7 @@ impl Function {
             id,
             implementation,
             num_inputs_pending: number_of_inputs,
-            inputs: vec![None; number_of_inputs],
+            inputs: vec![JsonValue::Null; number_of_inputs],
             output_routes,
         }
     }
@@ -42,7 +43,7 @@ impl Runnable for Function {
         self.number_of_inputs == 0
     }
 
-    fn write_input(&mut self, input_number: usize, input_value: Option<String>) {
+    fn write_input(&mut self, input_number: usize, input_value: JsonValue) {
         self.num_inputs_pending -= 1;
         self.inputs[input_number] = input_value;
     }
@@ -53,8 +54,8 @@ impl Runnable for Function {
     }
 
     // Consume the inputs, reset the number of pending inputs and run the implementation
-    fn run(&mut self) -> Option<String> {
-        let inputs = replace(&mut self.inputs, vec![None; self.number_of_inputs]);
+    fn run(&mut self) -> JsonValue {
+        let inputs = replace(&mut self.inputs, vec![JsonValue::Null; self.number_of_inputs]);
         self.num_inputs_pending = self.number_of_inputs;
         self.implementation.run(inputs)
     }

@@ -21,7 +21,7 @@ flowrlib = {{path = \"../../../flowrlib\", version = \"~0.4.0\"}}
 {libraries}
 log = \"0.3.8\"
 simplog = \"1.0.2\"
-
+serde_json = \"1.0\"
 [workspace]
 exclude = [\"..\"]
 ";

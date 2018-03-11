@@ -1,3 +1,4 @@
+use serde_json::Value as JsonValue;
 use model::name::Name;
 use model::name::HasName;
 use model::connection::HasRoute;
@@ -15,7 +16,7 @@ pub struct Value {
     pub datatype: DataType,
     #[serde(skip_deserializing)]
     pub route: Route,
-    pub value: Option<String>,
+    pub value: Option<JsonValue>,
     #[serde(skip_deserializing)]
     pub output_routes: Vec<(usize, usize)>,
     #[serde(skip_deserializing)]
@@ -42,9 +43,6 @@ impl HasRoute for Value {
 
 impl Validate for Value {
     fn validate(&self) -> Result<(), String> {
-        if let Some(ref value) = self.value {
-            value.validate()?;
-        }
         self.datatype.validate()
     }
 }
@@ -53,8 +51,8 @@ impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "\tname: \t\t{}\n\t\t\t\t\troute: \t\t{}\n\t\t\t\t\tdatatype: \t{}\n",
                self.name, self.route, self.datatype).unwrap();
-        if let Some(ref value) = self.value {
-            write!(f, "\t\t\t\t\tvalue: \t\t{}", value).unwrap();
+        if self.value.is_some() {
+            write!(f, "\t\t\t\t\tvalue: \t\t{:?}", self.value).unwrap();
         }
         Ok(())
     }

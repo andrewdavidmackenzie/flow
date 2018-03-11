@@ -1,3 +1,4 @@
+use serde_json::Value;
 use runnable::Runnable;
 use std::sync::{Arc, Mutex};
 use std::collections::HashSet;
@@ -82,7 +83,7 @@ impl RunList {
         sent to, marking the source runnable as blocked because those others must consume the output
         if those other runnables have all their inputs, then mark them accordingly.
     */
-    pub fn process_output(&mut self, runnable: &Runnable, output: Option<String>) {
+    pub fn process_output(&mut self, runnable: &Runnable, output: Value) {
         self.unblock_by(runnable.id());
 
         for &(destination_id, io_number) in runnable.output_destinations() {
@@ -137,6 +138,8 @@ mod tests {
     use super::RunList;
     use super::Runnable;
     use std::sync::{Arc, Mutex};
+    use serde_json;
+    use serde_json::Value as JsonValue;
 
     struct TestRunnable {
         id: usize,
@@ -157,9 +160,9 @@ mod tests {
         fn number_of_inputs(&self) -> usize { 1 }
         fn id(&self) -> usize { self.id }
         fn init(&mut self) -> bool { false }
-        fn write_input(&mut self, _input_number: usize, _new_value: Option<String>) {}
+        fn write_input(&mut self, _input_number: usize, _new_value: JsonValue) {}
         fn inputs_satisfied(&self) -> bool { false }
-        fn run(&mut self) -> Option<String> { Some("Output".to_string()) }
+        fn run(&mut self) -> JsonValue { serde_json::from_str("Output").unwrap() }
         fn output_destinations(&self) -> &Vec<(usize, usize)> { &self.destinations }
     }
 

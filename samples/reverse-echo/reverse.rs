@@ -1,11 +1,15 @@
+use serde_json::Value as JsonValue;
+use serde_json::Value::String as JsonString;
 use flowrlib::implementation::Implementation;
 
 pub struct Reverse;
 
 impl Implementation for Reverse {
-    fn run(&self, mut inputs: Vec<Option<String>>) -> Option<String> {
-        let input = inputs.remove(0).unwrap();
-        let output = input.chars().rev().collect::<String>();
-        Some(output)
+    fn run(&self, mut inputs: Vec<JsonValue>) -> JsonValue {
+        let input = inputs.remove(0);
+        match &input {
+            &JsonString(ref s) => JsonValue::String(s.chars().rev().collect::<String>()),
+            _ => JsonValue::Null
+        }
     }
 }

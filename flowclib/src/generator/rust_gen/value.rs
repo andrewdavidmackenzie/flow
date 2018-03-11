@@ -3,11 +3,11 @@ use model::value::Value;
 pub fn to_code(value: &Value) -> String {
     let mut code = format!("Value::new(\"{}\".to_string(), {}, ", value.name, value.id);
     let initial_value = value.value.clone();
-    // TODO see if simply printing with {:?} would do the same?
     if initial_value.is_none() {
         code.push_str("None");
     } else {
-        code.push_str(&format!("Some(\"{}\".to_string()),", initial_value.unwrap()));
+        // TODO make generic the writing to code
+        code.push_str(&format!("Some(JsonValue::String({}.to_string())),", initial_value.unwrap()));
     }
     // Add the vector of tuples of runnables and their inputs it's connected to
     code.push_str(" vec!(");
@@ -22,6 +22,7 @@ pub fn to_code(value: &Value) -> String {
 
 #[cfg(test)]
 mod test {
+    use serde_json::Value as JsonValue;
     use model::value::Value;
     use super::to_code;
 
@@ -30,13 +31,13 @@ mod test {
         let value = Value {
             name: "value".to_string(),
             datatype: "String".to_string(),
-            value: Some("Hello-World".to_string()),
+            value: Some(JsonValue::String("Hello-World".to_string())),
             route: "/flow0/value".to_string(),
-            output_routes: vec!((1,0)),
+            output_routes: vec!((1, 0)),
             id: 1,
         };
 
         let code = to_code(&value);
-        assert_eq!(code, "Value::new(\"value\".to_string(), 1, Some(\"Hello-World\".to_string()), vec!((1,0),))")
+        assert_eq!(code, "Value::new(\"value\".to_string(), 1, Some(JsonValue::String(\"Hello-World\".to_string())), vec!((1,0),))")
     }
 }

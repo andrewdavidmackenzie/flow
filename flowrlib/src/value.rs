@@ -1,27 +1,28 @@
+use serde_json;
+use serde_json::Value as JsonValue;
 use runnable::Runnable;
 use implementation::Implementation;
 use zero_fifo::Fifo;
-use std::mem::replace;
 
 const ONLY_INPUT: usize = 0;
 
 pub struct Value {
     name: String,
     id: usize,
-    initial_value: Option<String>,
+    initial_value: Option<JsonValue>,
     implementation: Box<Implementation>,
-    input: Option<String>,
+    input: JsonValue,
     output_routes: Vec<(usize, usize)>
 }
 
 impl Value {
-    pub fn new(name: String, id: usize, initial_value: Option<String>, output_routes: Vec<(usize, usize)>) -> Value {
+    pub fn new(name: String, id: usize, initial_value: Option<JsonValue>, output_routes: Vec<(usize, usize)>) -> Value {
         Value {
             name,
             id,
             initial_value,
             implementation: Box::new(Fifo),
-            input: None,
+            input: serde_json::Value::Null,
             output_routes
         }
     }
@@ -42,9 +43,9 @@ impl Runnable for Value {
     */
     fn init(&mut self) -> bool {
         let value = self.initial_value.clone();
-        if value.is_some() {
-            info!("Value initialized by writing '{:?}' to input", &value);
-            self.write_input(ONLY_INPUT, value);
+        if let Some(v) = value {
+            info!("Value initialized by writing '{:?}' to input", &v);
+            self.write_input(ONLY_INPUT, v);
         }
         self.inputs_satisfied()
     }
@@ -53,7 +54,7 @@ impl Runnable for Value {
         Update the value stored - this should only be called when the value has already been
         consumed by all the listeners and hence it can be overwritten.
     */
-    fn write_input(&mut self, _input_number: usize, input_value: Option<String>) {
+    fn write_input(&mut self, _input_number: usize, input_value: JsonValue) {
         self.input = input_value;
     }
 
@@ -61,14 +62,14 @@ impl Runnable for Value {
         Responds true if all inputs have been satisfied - false otherwise
     */
     fn inputs_satisfied(&self) -> bool {
-        self.input.is_some()
+        !self.input.is_null()
     }
 
     /*
         Consume the inputs and pass them to the actual implementation
     */
-    fn run(&mut self) -> Option<String> {
-        let input = replace(&mut self.input, None);
+    fn run(&mut self) -> JsonValue {
+        let input = self.input.take();
         self.implementation.run(vec!(input))
     }
 

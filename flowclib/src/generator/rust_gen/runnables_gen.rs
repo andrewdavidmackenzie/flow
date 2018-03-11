@@ -14,6 +14,7 @@ use super::value;
 const RUNNABLES_PREFIX: &'static str = "
 // Flow Run-time library references
 use flowrlib::runnable::Runnable;
+use serde_json::Value as JsonValue;
 {value_used}
 {function_used}
 
