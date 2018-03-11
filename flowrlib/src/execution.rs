@@ -30,10 +30,11 @@ pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) {
 
     debug!("Starting execution loop");
     while let Some(id) = run_list.next() {
-        run_list.run(id, |runnable| {
-            debug!("Running runnable #{}", runnable.id());
-            runnable.run()
-        });
+        debug!("Running next available runnable: #{}", id);
+        let runnable_arc = run_list.get(id);
+        let mut runnable = runnable_arc.lock().unwrap();
+        let output = runnable.run();
+        run_list.process_output(&*runnable, output);
     }
     debug!("Ended execution loop");
 }

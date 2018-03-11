@@ -44,6 +44,10 @@ impl RunList {
         self.runnables = runnables;
     }
 
+    pub fn get(&self, id: usize) -> Arc<Mutex<Runnable>> {
+        self.runnables[id].clone()
+    }
+
     // Return the next runnable ready to be run, if there is one
     pub fn next(&mut self) -> Option<usize> {
         if self.ready.is_empty() {
@@ -53,15 +57,6 @@ impl RunList {
         let id = self.ready.remove(0);
         debug!("Next ready runnable in runlist: {}", id);
         Some(id)
-    }
-
-    // run the runner closure, passing it the runnable with `id` in the runnables list
-    pub fn run<R>(&mut self, id: usize, mut runner: R)
-        where R: FnMut(&mut Runnable) -> Option<String> {
-        let runnable_arc = self.runnables[id].clone();
-        let mut runnable = runnable_arc.lock().unwrap();
-        let output = runner(&mut *runnable);
-        self.process_output(& *runnable, output);
     }
 
     // save the fact that a particular Runnable's inputs are now satisfied and so it maybe ready
@@ -184,6 +179,16 @@ mod tests {
         // Indicate that 0 is blocked by 1
         runs.blocked_by(1, 0);
         assert!(runs.is_blocked(0));
+    }
+
+    #[test]
+    fn get_works() {
+        let runnables = test_runnables();
+        let mut runs = RunList::new();
+        runs.set_runnables(runnables);
+        let got_arc = runs.get(1);
+        let got = got_arc.lock().unwrap();
+        assert_eq!(got.id(), 1)
     }
 
     #[test]
