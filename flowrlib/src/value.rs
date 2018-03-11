@@ -61,7 +61,6 @@ impl Runnable for Value {
     */
     fn run(&mut self) -> Option<String> {
         let input = replace(&mut self.input, None);
-        info!("Running implementation: '{}'", &self.implementation.name());
         self.implementation.run(vec!(input))
     }
 

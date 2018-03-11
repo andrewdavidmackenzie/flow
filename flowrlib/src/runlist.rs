@@ -44,22 +44,24 @@ impl RunList {
         self.runnables = runnables;
     }
 
-    // Get a runnable from the runnable list by id (index)
-    pub fn get(&self, id: usize) -> Arc<Mutex<Runnable>> {
-        // TODO avoid clone
-        self.runnables[id].clone()
-    }
-
-    // Return the next runnable ready to be run if there is one
-    pub fn next(&mut self) -> Option<Arc<Mutex<Runnable>>> {
+    // Return the next runnable ready to be run, if there is one
+    pub fn next(&mut self) -> Option<usize> {
         if self.ready.is_empty() {
             return None;
         }
 
         let id = self.ready.remove(0);
         debug!("Next ready runnable in runlist: {}", id);
-        // TODO avoid clone
-        Some(self.runnables[id].clone())
+        Some(id)
+    }
+
+    // run the runner closure, passing it the runnable with `id` in the runnables list
+    pub fn run<R>(&mut self, id: usize, mut runner: R)
+        where R: FnMut(&mut Runnable) -> Option<String> {
+        let runnable_arc = self.runnables[id].clone();
+        let mut runnable = runnable_arc.lock().unwrap();
+        let output = runner(&mut *runnable);
+        self.process_output(& *runnable, output);
     }
 
     // save the fact that a particular Runnable's inputs are now satisfied and so it maybe ready
@@ -76,18 +78,20 @@ impl RunList {
         }
     }
 
-    // Take an output produced by a runnable and modify the runlist accordingly
-    // If other runnables were blocked trying to send to this one - we can now unblock them
-    // as it has consumed it's inputs and they are free to be sent to again.
-    //
-    // Then take the output and send it to all destination IOs on different runnables it should be
-    // sent to, marking the source runnable as blocked because those others must consume the output
-    // if those other runnables have all their inputs, then mark them accordingly
-/*    pub fn process_output(&mut self, runnable: &MutexGuard<Runnable>, output: Option<String>) {
+    /*
+        Take an output produced by a runnable and modify the runlist accordingly
+        If other runnables were blocked trying to send to this one - we can now unblock them
+        as it has consumed it's inputs and they are free to be sent to again.
+
+        Then take the output and send it to all destination IOs on different runnables it should be
+        sent to, marking the source runnable as blocked because those others must consume the output
+        if those other runnables have all their inputs, then mark them accordingly.
+    */
+    pub fn process_output(&mut self, runnable: &Runnable, output: Option<String>) {
         self.unblock_by(runnable.id());
 
         for &(destination_id, io_number) in runnable.output_destinations() {
-            let destination_arc = self.get(destination_id);
+            let destination_arc = Arc::clone(&self.runnables[destination_id]);
             let mut destination = destination_arc.lock().unwrap();
             debug!("Sending output '{:?}' from #{} to #{} input #{}",
                    &output, runnable.id(), &destination_id, &io_number);
@@ -97,7 +101,7 @@ impl RunList {
                 self.inputs_ready(destination_id);
             }
         }
-    }*/
+    }
 
     // Save the fact that the runnable 'blocked_id' is blocked on it's output by 'blocking_id'
     pub fn blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
@@ -172,16 +176,6 @@ mod tests {
     }
 
     #[test]
-    fn get_works() {
-        let runnables = test_runnables();
-        let mut runs = RunList::new();
-        runs.set_runnables(runnables);
-        let got_arc = runs.get(1);
-        let got = got_arc.lock().unwrap();
-        assert_eq!(got.id(), 1)
-    }
-
-    #[test]
     fn blocked_works() {
         let runnables = test_runnables();
         let mut runs = RunList::new();
@@ -210,13 +204,7 @@ mod tests {
         // Indicate that 0 has all it's inputs read
         runs.inputs_ready(0);
 
-        match runs.next() {
-            None => assert!(false),
-            Some(arc) => {
-                let next = arc.lock().unwrap();
-                assert_eq!(next.id(), 0);
-            }
-        }
+        assert_eq!(runs.next().unwrap(), 0);
     }
 
     #[test]
@@ -254,12 +242,6 @@ mod tests {
         // now unblock 0 by 1
         runs.unblock_by(1);
 
-        match runs.next() {
-            None => assert!(false),
-            Some(arc) => {
-                let next = arc.lock().unwrap();
-                assert_eq!(next.id(), 0);
-            }
-        }
+        assert_eq!(runs.next().unwrap(), 0);
     }
 }
