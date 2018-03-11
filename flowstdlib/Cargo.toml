@@ -1,6 +1,6 @@
 [package]
 name = "flowstdlib"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "The standard library for 'flow' programs compiled with the 'flowc' compiler"
 license = "MIT"
@@ -15,5 +15,5 @@ name = "flowstdlib"
 path = "src/lib.rs"
 
 [dependencies]
-flowrlib = { path = "../flowrlib", version = "~0.4" }
+flowrlib = { path = "../flowrlib", version = "~0.4.1" }
 serde_json = "1.0"

@@ -2,12 +2,12 @@ name = "Add"
 
 [[input]]
 name = "i1"
-type = "String"
+type = "Number"
 
 [[input]]
 name = "i2"
-type = "String"
+type = "Number"
 
 [[output]]
 name = "o1"
-type = "String"
+type = "Number"

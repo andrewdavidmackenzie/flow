@@ -90,7 +90,7 @@ fn vars_from_flow(flow: &Flow) -> HashMap<String, &str> {
 
     // TODO this just assumes flowstdlib is always used for now
     vars.insert("libraries".to_string(),
-                "flowstdlib = {path = \"../../../flowstdlib\", version = \"~0.4.0\"}");
+                "flowstdlib = {path = \"../../../flowstdlib\", version = \"~0.4.1\"}");
     vars
 }
 

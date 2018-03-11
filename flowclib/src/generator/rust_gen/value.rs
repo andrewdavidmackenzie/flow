@@ -7,7 +7,7 @@ pub fn to_code(value: &Value) -> String {
         code.push_str("None");
     } else {
         // TODO make generic the writing to code
-        code.push_str(&format!("Some(JsonValue::String({}.to_string())),", initial_value.unwrap()));
+        code.push_str(&format!("Some(json!({})),", initial_value.unwrap()));
     }
     // Add the vector of tuples of runnables and their inputs it's connected to
     code.push_str(" vec!(");
@@ -38,6 +38,6 @@ mod test {
         };
 
         let code = to_code(&value);
-        assert_eq!(code, "Value::new(\"value\".to_string(), 1, Some(JsonValue::String(\"Hello-World\".to_string())), vec!((1,0),))")
+        assert_eq!(code, "Value::new(\"value\".to_string(), 1, Some(json!(\"Hello-World\")), vec!((1,0),))")
     }
 }

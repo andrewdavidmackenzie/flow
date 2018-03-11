@@ -1,4 +1,4 @@
-use serde_json::Value;
+use serde_json::Value as JsonValue;
 use runnable::Runnable;
 use std::sync::{Arc, Mutex};
 use std::collections::HashSet;
@@ -56,20 +56,17 @@ impl RunList {
         }
 
         let id = self.ready.remove(0);
-        debug!("Next ready runnable in runlist: {}", id);
         Some(id)
     }
 
     // save the fact that a particular Runnable's inputs are now satisfied and so it maybe ready
     // to run (if not blocked sending on it's output)
     pub fn inputs_ready(&mut self, id: usize) {
-        debug!("Runnable #{}'s inputs are all ready", id);
-
         if self.is_blocked(id) {
-            debug!("Runnable #{} is blocked on output", id);
+            debug!("Runnable #{} inputs all satisfied, blocked on output", id);
             self.inputs_satisfied.insert(id);
         } else {
-            debug!("Runnable #{} marked as ready", id);
+            debug!("Runnable #{} inputs all satisfied, not blocked on output, marked as ready", id);
             self.ready.push(id);
         }
     }
@@ -83,7 +80,7 @@ impl RunList {
         sent to, marking the source runnable as blocked because those others must consume the output
         if those other runnables have all their inputs, then mark them accordingly.
     */
-    pub fn process_output(&mut self, runnable: &Runnable, output: Value) {
+    pub fn process_output(&mut self, runnable: &Runnable, output: JsonValue) {
         self.unblock_by(runnable.id());
 
         for &(destination_id, io_number) in runnable.output_destinations() {

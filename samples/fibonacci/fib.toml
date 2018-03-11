@@ -2,17 +2,17 @@ name = "fib"
 
 [[output]]
 name = "series"
-type = "String"
+type = "Number"
 
 [[value]]
 name = "HEAD-1"
-type = "String"
-value = "1"
+type = "Number"
+value = 1
 
 [[value]]
 name = "HEAD"
-type = "String"
-value = "1"
+type = "Number"
+value = 1
 
 [[function]]
 alias = "sum"

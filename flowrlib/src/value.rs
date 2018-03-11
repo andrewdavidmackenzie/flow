@@ -1,4 +1,3 @@
-use serde_json;
 use serde_json::Value as JsonValue;
 use runnable::Runnable;
 use implementation::Implementation;
@@ -22,7 +21,7 @@ impl Value {
             id,
             initial_value,
             implementation: Box::new(Fifo),
-            input: serde_json::Value::Null,
+            input: JsonValue::Null,
             output_routes
         }
     }
@@ -44,7 +43,7 @@ impl Runnable for Value {
     fn init(&mut self) -> bool {
         let value = self.initial_value.clone();
         if let Some(v) = value {
-            info!("Value initialized by writing '{:?}' to input", &v);
+            debug!("Value initialized by writing '{:?}' to input", &v);
             self.write_input(ONLY_INPUT, v);
         }
         self.inputs_satisfied()
