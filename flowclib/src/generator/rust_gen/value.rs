@@ -1,8 +1,7 @@
 use model::value::Value;
 
-// example   "Value::new(Some(\"Hello-World\".to_string()), vec!((1,0)))"
 pub fn to_code(value: &Value) -> String {
-    let mut code = format!("Value::new({}, ", value.id);
+    let mut code = format!("Value::new(\"{}\".to_string(), {}, ", value.name, value.id);
     let initial_value = value.value.clone();
     // TODO see if simply printing with {:?} would do the same?
     if initial_value.is_none() {
@@ -38,6 +37,6 @@ mod test {
         };
 
         let code = to_code(&value);
-        assert_eq!(code, "Value::new(1, Some(\"Hello-World\".to_string()), vec!((1,0),))")
+        assert_eq!(code, "Value::new(\"value\".to_string(), 1, Some(\"Hello-World\".to_string()), vec!((1,0),))")
     }
 }

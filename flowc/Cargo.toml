@@ -1,6 +1,6 @@
 [package]
 name = "flowc"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A compiler for 'flow' programs"
 license = "MIT"
@@ -15,7 +15,7 @@ path = "src/flowc.rs"
 
 [dependencies]
 clap = "~2.27.1"
-flowclib = { path = "../flowclib", version = "^0.3" }
+flowclib = { path = "../flowclib", version = "^0.4" }
 simplog = "1.0.2"
 log = "0.3.8"
 url = "~1.6.0"

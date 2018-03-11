@@ -5,5 +5,9 @@ name = "in"
 type = "String"
 
 [[output]]
-name = "out"
+name = "reversed"
+type = "String"
+
+[[output]]
+name = "original"
 type = "String"

@@ -11,12 +11,4 @@ impl Implementation for Readline {
         let line = iterator.next().unwrap().unwrap();
         Some(line)
     }
-
-    fn number_of_inputs(&self) -> usize {
-        0
-    }
-
-    fn name(&self) -> &'static str {
-        "Readline"
-    }
 }

@@ -6,6 +6,7 @@ use std::mem::replace;
 const ONLY_INPUT: usize = 0;
 
 pub struct Value {
+    name: String,
     id: usize,
     initial_value: Option<String>,
     implementation: Box<Implementation>,
@@ -14,8 +15,9 @@ pub struct Value {
 }
 
 impl Value {
-    pub fn new(id: usize, initial_value: Option<String>, output_routes: Vec<(usize, usize)>) -> Value {
+    pub fn new(name: String, id: usize, initial_value: Option<String>, output_routes: Vec<(usize, usize)>) -> Value {
         Value {
+            name,
             id,
             initial_value,
             implementation: Box::new(Fifo),
@@ -26,6 +28,12 @@ impl Value {
 }
 
 impl Runnable for Value {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn number_of_inputs(&self) -> usize { 1 }
+
     fn id(&self) -> usize { self.id }
 
     /*

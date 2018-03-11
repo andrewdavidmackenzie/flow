@@ -10,12 +10,4 @@ impl Implementation for Stdin {
         io::stdin().read_to_string(&mut buffer).unwrap();
         Some(buffer)
     }
-
-    fn number_of_inputs(&self) -> usize {
-        0
-    }
-
-    fn name(&self) -> &'static str {
-        "Stdin"
-    }
 }

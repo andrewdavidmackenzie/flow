@@ -8,12 +8,4 @@ impl Implementation for Reverse {
         let output = input.chars().rev().collect::<String>();
         Some(output)
     }
-
-    fn number_of_inputs(&self) -> usize {
-        1
-    }
-
-    fn name(&self) -> &'static str {
-        "Reverse"
-    }
 }

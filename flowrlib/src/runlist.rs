@@ -153,6 +153,8 @@ mod tests {
     }
 
     impl Runnable for TestRunnable {
+        fn name(&self) -> &str { "TestRunnable"}
+        fn number_of_inputs(&self) -> usize { 1 }
         fn id(&self) -> usize { self.id }
         fn init(&mut self) -> bool { false }
         fn write_input(&mut self, _input_number: usize, _new_value: Option<String>) {}

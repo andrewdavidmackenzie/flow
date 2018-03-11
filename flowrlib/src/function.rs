@@ -3,10 +3,11 @@ use implementation::Implementation;
 use std::mem::replace;
 
 pub struct Function {
+    name: String,
+    number_of_inputs: usize,
     id: usize,
     implementation: Box<Implementation>,
 
-    num_inputs: usize,
     num_inputs_pending: usize,
     inputs: Vec<Option<String>>,
 
@@ -14,14 +15,14 @@ pub struct Function {
 }
 
 impl Function {
-    pub fn new(id: usize, implementation: Box<Implementation>,
+    pub fn new(name: String, number_of_inputs: usize, id: usize, implementation: Box<Implementation>,
                output_routes: Vec<(usize, usize)>)
                -> Function {
-        let number_of_inputs = implementation.number_of_inputs();
         Function {
+            name,
+            number_of_inputs,
             id,
             implementation,
-            num_inputs: number_of_inputs,
             num_inputs_pending: number_of_inputs,
             inputs: vec![None; number_of_inputs],
             output_routes,
@@ -30,11 +31,15 @@ impl Function {
 }
 
 impl Runnable for Function {
+    fn name(&self) -> &str { &self.name }
+
+    fn number_of_inputs(&self) -> usize { self.number_of_inputs }
+
     fn id(&self) -> usize { self.id }
 
     // If a function has zero inputs it is considered ready to run at init
     fn init(&mut self) -> bool {
-        self.num_inputs == 0
+        self.number_of_inputs == 0
     }
 
     fn write_input(&mut self, input_number: usize, input_value: Option<String>) {
@@ -47,13 +52,10 @@ impl Runnable for Function {
         self.num_inputs_pending == 0
     }
 
-    /*
-        Consume the inputs, reset the number of pending inputs and run the implementation
-    */
+    // Consume the inputs, reset the number of pending inputs and run the implementation
     fn run(&mut self) -> Option<String> {
-        let inputs = replace(&mut self.inputs, vec![None; self.num_inputs]);
-        self.num_inputs_pending = self.num_inputs;
-        info!("Running implementation: '{}'", &self.implementation.name());
+        let inputs = replace(&mut self.inputs, vec![None; self.number_of_inputs]);
+        self.num_inputs_pending = self.number_of_inputs;
         self.implementation.run(inputs)
     }
 

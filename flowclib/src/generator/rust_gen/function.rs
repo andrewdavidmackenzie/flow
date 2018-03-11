@@ -1,8 +1,12 @@
 use model::function::Function;
 
-// example "Function::new(Box::new(Stdout{}), vec!())
 pub fn to_code(function: &Function) -> String {
-    let mut code = format!("Function::new({}, Box::new({}{{}}),", function.id, function.name);
+    let mut code = format!("Function::new(\"{}\".to_string(), ", function.name);
+    match &function.inputs {
+        &None => code.push_str(&format!("{}, ", 0)),
+        &Some(ref inputs) => code.push_str(&format!("{}, ", inputs.len()))
+    }
+    code.push_str(&format!("{}, Box::new({}{{}}),", function.id, function.name));
     // Add the vector of tuples of elements and their inputs it's connected to
     code.push_str(" vec!(");
     for ref route in &function.output_routes {
@@ -35,6 +39,6 @@ mod test {
         };
 
         let code = to_code(&function);
-        assert_eq!(code, "Function::new(0, Box::new(Stdout{}), vec!())")
+        assert_eq!(code, "Function::new(\"Stdout\".to_string(), 0, 0, Box::new(Stdout{}), vec!())")
     }
 }
