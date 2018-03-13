@@ -17,7 +17,7 @@ npm install -g electron-forge
 
 See https://github.com/electron-userland/electron-forge for more details on how to use electron-forge.
 
-## To Run the app
+## To build
 
 With pre-requisites installed, from your command line:
 
@@ -29,6 +29,13 @@ cd flow
 # Build and run the app
 make
 ```
+
+### Dependencies
+You need to have gtk3 installed to build the gtk project (which is just a skeleton at the moment).
+
+On Debian and Ubuntu: sudo apt-get install libgtk-3-dev
+On Fedora: sudo dnf install gtk3-devel glib2-devel
+On Mac OS X: brew install gtk+3
 
 ## Packaging the app
 
