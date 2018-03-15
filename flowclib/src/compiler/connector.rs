@@ -5,11 +5,11 @@ use std::collections::HashMap;
 use generator::code_gen::CodeGenTables;
 
 /*
-    First build a table of routes to (runnable_index, input_index) for all inputs of runnables, to
-    enable finding the destination of a connection as (runnable_index, input_index).
+    First build a table of input routes to (runnable_index, input_index) for all inputs of runnables,
+    to enable finding the destination of a connection as (runnable_index, input_index) from a route.
 
     Then iterate through the values and function setting each one's id and the output routes array setup
-    (according to each ruannable's output route in the original description plus each connection from it)
+    (according to each runnable's output route in the original description plus each connection from it)
     to point to the runnable (by index) and the runnable's input (by index) in the table
 */
 pub fn connect(tables: &mut CodeGenTables) {
@@ -17,45 +17,41 @@ pub fn connect(tables: &mut CodeGenTables) {
     let mut runnable_index = 0;
 
     for value in &mut tables.values {
-        debug!("Looking for connection from value @ '{}'", &value.route);
-        let mut output_connections = Vec::<(usize, usize)>::new();
-        // Find the list of connections from the output of this runnable - there can be multiple
+        debug!("Looking for connection from '{}'", &value.route);
+        // Each value can have multiple connections from it's output - so create a Vector to hold them
         for connection in &tables.connections {
-            if value.route == connection.from_route {
+            // Find the connections that connect from the output of this value
+            if connection.from_route == value.route {
                 debug!("Connection found: to '{}'", &connection.to_route);
                 // Get the index of runnable and input index of the destination of the connection
-                output_connections.push(inputs_routes.get(&connection.to_route).unwrap().clone());
+                value.output_routes.push(inputs_routes.get(&connection.to_route).unwrap().clone());
             }
         }
         value.id = runnable_index;
-        value.output_routes = output_connections;
         runnable_index += 1;
     }
 
     for function in &mut tables.functions {
-        let mut output_connections = Vec::<(usize, usize)>::new();
         // if it has any outputs at all
         if let Some(ref outputs) = function.outputs {
-            debug!("Looking for connection from function @ '{}'", &function.route);
-            // Find the list of connections from the output of this runnable - there can be multiple
+            debug!("Looking for connection from '{}'", &function.route);
             for connection in &tables.connections {
-                if outputs[0].route == connection.from_route {
+                // Find the list of connections from the output of this runnable - there can be multiple
+                if connection.from_route == outputs[0].route {
                     debug!("Connection found: to '{}'", &connection.to_route);
                     // Get the index of runnable and input index of the destination of the connection
-                    output_connections.push(*inputs_routes.get(&connection.to_route).unwrap());
+                    function.output_routes.push(*inputs_routes.get(&connection.to_route).unwrap());
                 }
             }
         }
         function.id = runnable_index;
-        function.output_routes = output_connections;
         runnable_index += 1;
     }
 }
 
-
 /*
-    Construct a look-up table that we can use to find the index of a runnable
-    in the runnables table, and the index of it's input - for every route out of another runnable
+    Construct a look-up table that we can use to find the index of a runnable in the runnables table,
+    and the index of it's input - using the input route
 */
 fn inputs_table(value_table: &Vec<Value>, function_table: &Vec<Function>) -> HashMap<Route, (usize, usize)> {
     let mut input_route_table = HashMap::<Route, (usize, usize)>::new();
