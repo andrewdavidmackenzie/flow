@@ -1,9 +1,5 @@
 name = "fib"
 
-[[output]]
-name = "series"
-type = "Number"
-
 [[value]]
 name = "HEAD-1"
 type = "Number"
@@ -18,6 +14,10 @@ value = 1
 alias = "sum"
 source = "lib://flowstdlib/math/add.toml"
 
+[[output]]
+name = "series"
+type = "Number"
+
 [[connection]]
 from = "value/HEAD-1"
 to = "function/sum/i1"
@@ -31,7 +31,7 @@ from = "value/HEAD"
 to = "function/sum/i2"
 
 [[connection]]
-from = "function/sum/o1"
+from = "function/sum"
 to = "value/HEAD"
 
 [[connection]]

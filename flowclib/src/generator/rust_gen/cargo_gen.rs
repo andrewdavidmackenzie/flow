@@ -20,7 +20,7 @@ path = \"src/{main_filename}\"
 flowrlib = {{path = \"../../../flowrlib\", version = \"~0.4.1\"}}
 {libraries}
 log = \"0.3.8\"
-simplog = \"1.0.2\"
+simplog = \"1.0.3\"
 serde_json = \"1.0\"
 clap = \"~2.27.1\"
 [workspace]

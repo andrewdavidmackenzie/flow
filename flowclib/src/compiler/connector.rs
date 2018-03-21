@@ -13,11 +13,11 @@ use generator::code_gen::CodeGenTables;
     to point to the runnable (by index) and the runnable's input (by index) in the table
 */
 pub fn connect(tables: &mut CodeGenTables) {
-    let inputs_routes= inputs_table(&tables.values, &tables.functions);
+    let inputs_routes = inputs_table(&tables.values, &tables.functions);
     let mut runnable_index = 0;
 
     for value in &mut tables.values {
-        debug!("Looking for connection from '{}'", &value.route);
+        debug!("Looking for connection from output of value '{}'", &value.route);
         // Each value can have multiple connections from it's output - so create a Vector to hold them
         for connection in &tables.connections {
             // Find the connections that connect from the output of this value
@@ -33,14 +33,14 @@ pub fn connect(tables: &mut CodeGenTables) {
 
     for function in &mut tables.functions {
         // if it has any outputs at all
-        if let Some(ref outputs) = function.outputs {
-            debug!("Looking for connection from '{}'", &function.route);
+        if let Some(ref mut outputs) = function.outputs {
+            debug!("Looking for connection from outputs of function '{}'", &function.route);
             for connection in &tables.connections {
-                // Find the list of connections from the output of this runnable - there can be multiple
-                if connection.from_route == outputs[0].route {
-                    debug!("Connection found: to '{}'", &connection.to_route);
-                    // Get the index of runnable and input index of the destination of the connection
-                    function.output_routes.push(*inputs_routes.get(&connection.to_route).unwrap());
+                for ref mut output in outputs.iter() {
+                    if connection.from_route == output.route {
+                        debug!("Connection found: to '{}'", &connection.to_route);
+                        function.output_routes.push(*inputs_routes.get(&connection.to_route).unwrap());
+                    }
                 }
             }
         }

@@ -4,6 +4,10 @@ name = "Reverse"
 name = "in"
 type = "String"
 
+# There is only one output, so it is not named
+#[output]
+# The default root output type if not specified is "Json"
+# The output can also expose different output data types at different Json pointer positions
 [[output]]
 name = "reversed"
 type = "String"

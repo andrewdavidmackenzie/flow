@@ -5,7 +5,8 @@ use model::name::HasName;
 use model::datatype::DataType;
 use model::datatype::HasDataType;
 use model::connection::HasRoute;
-use model::io::IO;
+use model::input::Input;
+use model::output::Output;
 use model::connection::Route;
 use loader::loader::Validate;
 
@@ -15,9 +16,10 @@ use url::Url;
 pub struct Function {
     pub name: Name,
     #[serde(rename = "input")]
-    pub inputs: Option<Vec<IO>>,
+    pub inputs: Option<Vec<Input>>,
     #[serde(rename = "output")]
-    pub outputs: Option<Vec<IO>>,
+    pub outputs: Option<Vec<Output>>,
+
     #[serde(skip_deserializing, default = "Function::default_url")]
     pub source_url: Url,
     #[serde(skip_deserializing)]
@@ -50,9 +52,9 @@ impl Validate for Function {
         }
 
         if let Some(ref outputs) = self.outputs {
-            for o in outputs {
+            for i in outputs {
                 io_count += 1;
-                o.validate()?
+                i.validate()?
             }
         }
 
@@ -63,22 +65,6 @@ impl Validate for Function {
 
         Ok(())
     }
-}
-
-#[test]
-fn function_with_no_io_not_valid() {
-    let fun = Function {
-        name: "test_function".to_string(),
-        source_url: Function::default_url(),
-        inputs: Some(vec!()),
-        outputs: Some(vec!()),
-        route: "".to_string(),
-        lib_reference: None,
-        id: 0,
-        output_routes: vec!((0,0))
-    };
-
-    assert_eq!(fun.validate().is_err(), true);
 }
 
 impl fmt::Display for Function {
@@ -93,7 +79,7 @@ impl fmt::Display for Function {
             }
         }
 
-        write!(f, "\t\t\t\t\t\t\t\toutputs:\n").unwrap();
+        write!(f, "\t\t\t\t\t\t\t\toutput:\n").unwrap();
         if let Some(ref outputs) = self.outputs {
             for output in outputs {
                 write!(f, "\t\t\t\t\t\t\t{}\n", output).unwrap();
@@ -109,42 +95,191 @@ impl Default for Function {
         Function {
             name: "".to_string(),
             inputs: None,
-            outputs: None,
+            outputs: Some(vec!(Output { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string() })),
             source_url: Function::default_url(),
             route: "".to_string(),
             lib_reference: None,
             id: 0,
-            output_routes: vec!((0,0))
+            output_routes: vec!((0, 0)),
         }
     }
 }
 
 impl Function {
-    pub fn default_url() -> Url {
+    fn default_url() -> Url {
         Url::parse("file:///").unwrap()
     }
 
-    fn get<E: HasName + HasRoute + HasDataType>(&self,
-                                                collection: &Option<Vec<E>>,
-                                                element_name: &str)
-                                                -> Result<(Route, DataType), String> {
-        if let &Some(ref elements) = collection {
-            for element in elements {
-                if element.name() == element_name {
-                    return Ok((format!("{}", element.route()), format!("{}", element.datatype())));
-                }
+    pub fn set_routes(&mut self, parent_route: &str) {
+        self.route = format!("{}/{}", parent_route, self.name);
+
+        // Set routes to inputs
+        if let Some(ref mut inputs) = self.inputs {
+            for ref mut input in inputs {
+                input.route = format!("{}/{}", self.route, input.name);
             }
-            return Err(format!("No output with name '{}' was found", element_name));
         }
-        Err(format!("No outputs found."))
+
+        // set routes to outputs
+        if let Some(ref mut outputs) = self.outputs {
+            for ref mut output in outputs {
+                output.route = format!("{}/{}", self.route, output.name);
+            }
+        }
     }
 
-    pub fn get_io(&self, direction: &str, name: &Name) -> Result<(Route, DataType), String> {
-        match direction {
-            "input" => self.get(&self.inputs, name),
-            "output" => self.get(&self.outputs, name),
-            _ => Err(format!("Count not find {} named '{}' in Function named '{}'",
-                             direction, name, self.name))
+    pub fn get<E: HasName + HasRoute + HasDataType>(&self,
+                                                    collection: &Option<Vec<E>>,
+                                                    name: &str)
+                                                    -> Result<(Route, DataType, bool), String> {
+        if let &Some(ref elements) = collection {
+            for element in elements {
+                if element.name() == name {
+                    return Ok((format!("{}", element.route()), format!("{}", element.datatype()), false));
+                }
+            }
+            return Err(format!("No IO with name '{}' was found", name));
         }
+        Err(format!("No IO found."))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::Function;
+    use loader::loader::Validate;
+    use toml;
+
+    #[test]
+    fn function_with_no_io_not_valid() {
+        let fun = Function {
+            name: "test_function".to_string(),
+            source_url: Function::default_url(),
+            inputs: Some(vec!()), // No inputs!
+            outputs: None,         // No output!
+            route: "".to_string(),
+            lib_reference: None,
+            id: 0,
+            output_routes: vec!((0, 0)),
+        };
+
+        assert_eq!(fun.validate().is_err(), true);
+    }
+
+    #[test]
+    #[should_panic]
+    fn deserialize_missing_name() {
+        let function_str = "\
+        type = \"Json\"
+        ";
+
+        let _function: Function = toml::from_str(function_str).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn deserialize_invalid() {
+        let function_str = "\
+        name = \"test_function\"
+        ";
+
+        let function: Function = toml::from_str(function_str).unwrap();
+        function.validate().unwrap();
+    }
+
+    #[test]
+    fn deserialize_output_empty() {
+        let function_str = "\
+        name = \"test_function\"
+        [[output]]
+        ";
+
+        let function: Function = toml::from_str(function_str).unwrap();
+        function.validate().unwrap();
+        assert!(function.outputs.is_some());
+    }
+
+    #[test]
+    fn deserialize_default_output() {
+        let function_str = "\
+        name = \"test_function\"
+        [[output]]
+        type = \"String\"
+        ";
+
+        let function: Function = toml::from_str(function_str).unwrap();
+        function.validate().unwrap();
+        assert!(function.outputs.is_some());
+        let output = &function.outputs.unwrap()[0];
+        assert_eq!(output.name, "");
+        assert_eq!(output.datatype, "String");
+    }
+
+    #[test]
+    fn deserialize_output_specified() {
+        let function_str = "\
+        name = \"test_function\"
+        [[output]]
+        name = \"sub_output\"
+        type = \"String\"
+        ";
+
+        let function: Function = toml::from_str(function_str).unwrap();
+        function.validate().unwrap();
+        assert!(function.outputs.is_some());
+        let output = &function.outputs.unwrap()[0];
+        assert_eq!(output.name, "sub_output");
+        assert_eq!(output.datatype, "String");
+    }
+
+    #[test]
+    fn deserialize_two_outputs_specified() {
+        let function_str = "\
+        name = \"test_function\"
+        [[output]]
+        name = \"sub_output\"
+        type = \"String\"
+        [[output]]
+        name = \"other_output\"
+        type = \"Number\"
+        ";
+
+        let function: Function = toml::from_str(function_str).unwrap();
+        function.validate().unwrap();
+        assert!(function.outputs.is_some());
+        let outputs = function.outputs.unwrap();
+        assert_eq!(outputs.len(), 2);
+        let output0 = &outputs[0];
+        assert_eq!(output0.name, "sub_output");
+        assert_eq!(output0.datatype, "String");
+        let output1 = &outputs[1];
+        assert_eq!(output1.name, "other_output");
+        assert_eq!(output1.datatype, "Number");
+    }
+
+    #[test]
+    fn set_routes() {
+        let function_str = "\
+        name = \"test_function\"
+        [[output]]
+        name = \"sub_output\"
+        type = \"String\"
+        [[output]]
+        name = \"other_output\"
+        type = \"Number\"
+        ";
+
+        let mut function: Function = toml::from_str(function_str).unwrap();
+        function.set_routes("/flow");
+
+        assert_eq!(function.route, "/flow/test_function");
+
+        let outputs = function.outputs.unwrap();
+
+        let output0 = &outputs[0];
+        assert_eq!(output0.route, "/flow/test_function/sub_output");
+
+        let output1 = &outputs[1];
+        assert_eq!(output1.route, "/flow/test_function/other_output");
     }
 }

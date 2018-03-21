@@ -4,39 +4,37 @@ use model::datatype::DataType;
 use model::connection::HasRoute;
 use model::connection::Connection;
 use model::datatype::HasDataType;
-use model::io::IO;
+use model::input::Input;
+use model::output::Output;
 use model::value::Value;
 use model::flow_reference::FlowReference;
 use model::connection::Route;
 use loader::loader::Validate;
 use model::function_reference::FunctionReference;
+use model::connection::Direction;
 use std::fmt;
 use url::Url;
 
 #[derive(Deserialize)]
 pub struct Flow {
-    #[serde(skip_deserializing, default = "Flow::default_url")]
-    pub source_url: Url,
     pub name: Name,
-    #[serde(skip_deserializing)]
-    pub route: Route,
-
     #[serde(rename = "flow")]
     pub flow_refs: Option<Vec<FlowReference>>,
     #[serde(rename = "function")]
     pub function_refs: Option<Vec<FunctionReference>>,
-
     #[serde(rename = "value")]
     pub values: Option<Vec<Value>>,
-
     #[serde(rename = "input")]
-    pub inputs: Option<Vec<IO>>,
+    pub inputs: Option<Vec<Input>>,
     #[serde(rename = "output")]
-    pub outputs: Option<Vec<IO>>,
-
+    pub outputs: Option<Vec<Output>>,
     #[serde(rename = "connection")]
     pub connections: Option<Vec<Connection>>,
 
+    #[serde(skip_deserializing, default = "Flow::default_url")]
+    pub source_url: Url,
+    #[serde(skip_deserializing)]
+    pub route: Route,
     #[serde(skip_deserializing)]
     pub lib_references: Vec<String>,
 }
@@ -85,6 +83,12 @@ impl Validate for Flow {
         if let Some(ref values) = self.values {
             for value in values {
                 value.validate()?;
+            }
+        }
+
+        if let Some(ref connections) = self.connections {
+            for connection in connections {
+                connection.validate()?;
             }
         }
 
@@ -158,7 +162,7 @@ impl Default for Flow {
             inputs: None,
             outputs: None,
             connections: None,
-            lib_references: vec!()
+            lib_references: vec!(),
         }
     }
 }
@@ -170,64 +174,53 @@ impl Flow {
 
     /*
         Set the routes of inputs and outputs in a flow to the hierarchical format
-        using the internal name of the thing referenced
     */
     pub fn set_io_routes(&mut self) {
         if let &mut Some(ref mut ios) = &mut self.inputs {
-            for ref mut io in ios {
-                io.route = format!("{}/{}", self.route, io.name);
+            debug!("Setting Input routes for flow '{}'", self.source_url);
+            for ref mut input in ios {
+                input.route = format!("{}/{}", self.route, input.name);
+                debug!("Input route: '{}'", input.route);
             }
         }
+
         if let &mut Some(ref mut ios) = &mut self.outputs {
-            for ref mut io in ios {
-                io.route = format!("{}/{}", self.route, io.name);
+            debug!("Setting Output routes for flow '{}'", self.source_url);
+            for ref mut output in ios {
+                output.route = format!("{}/{}", self.route, output.name);
+                debug!("Output route: '{}'", output.route);
             }
         }
     }
 
+    // Look through a collection of inputs, or outputs, to find one by name and return it's
+    // route and datatype and if starts/ends at a flow boundary
     fn get<E: HasName + HasRoute + HasDataType>(&self,
                                                 collection: &Option<Vec<E>>,
-                                                element_name: &str, flow: bool)
+                                                element_name: &str)
                                                 -> Result<(Route, DataType, bool), String> {
         if let &Some(ref elements) = collection {
             for element in elements {
                 if element.name() == element_name {
                     return Ok((format!("{}", element.route()),
                                format!("{}", element.datatype()),
-                               flow));
+                               true));
                 }
             }
-            return Err(format!("No output with name '{}' was found", element_name));
+            return Err(format!("No inout or output with name '{}' was found", element_name));
         }
-        Err(format!("No outputs found."))
+        Err(format!("No inputs or outputs found when looking for input/output '{}'", element_name))
     }
 
-    /*
-        Find an io of the specified "direction" ("value", "input" or "output") and "name"
-        within the flow.
-    */
-    fn get_io(&self, direction: &str, name: &str)
-              -> Result<(Route, DataType, bool), String> {
-        match direction {
-            "value" => self.get(&self.values, name, false),
-            "input" => self.get(&self.inputs, name, true),
-            "output" => self.get(&self.outputs, name, true),
-            _ => Err(format!("Could not find name '{}' in '{}'", name, self.name))
-        }
-    }
-
-    // TODO Combine these two using a reference trait get_reference_io or just "flow" or function" switch
-    fn get_io_subflow(&self, subflow_alias: &str, io_name: &str)
+    fn get_io_subflow(&self, subflow_alias: &str, direction: Direction, io_name: &str)
                       -> Result<(Route, DataType, bool), String> {
         if let Some(ref flow_refs) = self.flow_refs {
             for flow_ref in flow_refs {
                 if flow_ref.name() == subflow_alias {
-                    // TODO There's probably a way to do this better using or_else
-                    let found = flow_ref.flow.get_io("input", io_name);
-                    if found.is_ok() {
-                        return found;
-                    }
-                    return flow_ref.flow.get_io("output", io_name);
+                    return match direction {
+                        Direction::TO => flow_ref.flow.get(&flow_ref.flow.inputs, io_name),
+                        Direction::FROM => flow_ref.flow.get(&flow_ref.flow.outputs, io_name)
+                    };
                 }
             }
             return Err(format!("Could not find subflow named '{}'", subflow_alias));
@@ -236,37 +229,55 @@ impl Flow {
         return Err("No subflows present".to_string());
     }
 
-    fn get_io_function(&self, function_alias: &str, io_name: &str)
-                       -> Result<(Route, DataType, bool), String> {
+    fn get_io_function(&self, function_alias: &str, direction: Direction, route: &str) -> Result<(Route, DataType, bool), String> {
         if let Some(ref function_refs) = self.function_refs {
             for function_ref in function_refs {
                 if function_ref.name() == function_alias {
-                    let found = function_ref.get_io("input", io_name);
-                    if found.is_ok() {
-                        return found;
-                    }
-                    return function_ref.get_io("output", io_name);
+                    return match direction {
+                        Direction::TO => function_ref.function.get(&function_ref.function.inputs, route),
+                        Direction::FROM => function_ref.function.get(&function_ref.function.outputs, route)
+                    };
                 }
             }
-            return Err(format!("Could not find function named '{}'", function_alias));
+            return Err(format!("Could not find function named '{}' in flow '{}'",
+                               function_alias, self.name));
         }
 
-        return Err("No functions present".to_string());
+        return Err(format!("No functions present in flow '{}'. Could not find route '{}'",
+                           self.name, route));
     }
 
-    pub fn get_route_and_type(&mut self, conn_descriptor: &str) -> Result<(Route, DataType, bool), String> {
-        let segments: Vec<&str> = conn_descriptor.split('/').collect();
+    fn get_io_value(&self, value_name: &str, direction: Direction, route: &str) -> Result<(Route, DataType, bool), String> {
+        if let &Some(ref values) = &self.values {
+            for value in values {
+                if value.name == value_name {
+                    return match direction {
+                        Direction::TO => Ok((value.route.clone(), value.datatype.clone(), false)),
+                        Direction::FROM => value.get_output(route)
+                    };
+                }
+            }
+            return Err(format!("Could not find value named '{}'", value_name));
+        }
 
-        match segments.len() {
-            2 => self.get_io(segments[0], segments[1]),
+        return Err("No values present".to_string());
+    }
 
-            3 => match (segments[0], segments[1], segments[2]) {
-                ("flow", flow_alias, io_name) => self.get_io_subflow(flow_alias, io_name),
-                ("function", function_alias, io_name) => self.get_io_function(function_alias, io_name),
-                (_, _, _) => Err(format!("Invalid name '{}' used in connection", conn_descriptor))
-            },
+    pub fn get_route_and_type(&mut self, direction: Direction, conn_descriptor: &str) -> Result<(Route, DataType, bool), String> {
+        let mut segments: Vec<&str> = conn_descriptor.split('/').collect();
+        let object_type = segments.remove(0); // first part is type of object
+        let object_name = segments.remove(0); // second part is the name of it
+        let route = segments.join("/");       // the rest is a sub-route
 
-            _ => Err(format!("Invalid name format '{}' used in connection", conn_descriptor))
+        debug!("Looking for connection {:?} '{}' of name '{}' with sub-route '{}'", direction, object_type, object_name, route);
+
+        match (&direction, object_type) {
+            (&Direction::TO, "output") => self.get(&self.outputs, object_name), // an output from this flow
+            (&Direction::FROM, "input") => self.get(&self.inputs, object_name), // an input to this flow
+            (_, "flow") => self.get_io_subflow(object_name, direction, &route), // input or output of a subflow
+            (_, "value") => self.get_io_value(object_name, direction, &route), // input or output of a contained value
+            (_, "function") => self.get_io_function(object_name, direction, &route), // input or output of a referenced function
+            _ => Err(format!("Unknown type of object '{}' used in IO descriptor '{}'", object_type, conn_descriptor))
         }
     }
 }

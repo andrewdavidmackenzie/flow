@@ -6,7 +6,6 @@ pub fn to_code(value: &Value) -> String {
     if initial_value.is_none() {
         code.push_str("None");
     } else {
-        // TODO make generic the writing to code
         code.push_str(&format!("Some(json!({})),", initial_value.unwrap()));
     }
     // Add the vector of tuples of runnables and their inputs it's connected to
@@ -24,6 +23,7 @@ pub fn to_code(value: &Value) -> String {
 mod test {
     use serde_json::Value as JsonValue;
     use model::value::Value;
+    use model::output::Output;
     use super::to_code;
 
     #[test]
@@ -33,6 +33,7 @@ mod test {
             datatype: "String".to_string(),
             value: Some(JsonValue::String("Hello-World".to_string())),
             route: "/flow0/value".to_string(),
+            outputs: Some(vec!(Output{name: "".to_string(), datatype: "Json".to_string(), route: "".to_string()})),
             output_routes: vec!((1, 0)),
             id: 1,
         };

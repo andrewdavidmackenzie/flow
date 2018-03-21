@@ -13,6 +13,7 @@ pub trait HasRoute {
 #[derive(Deserialize, Debug, Clone)]
 pub struct Connection {
     pub name: Option<Name>,
+
     pub from: Name,
     #[serde(skip_deserializing)]
     pub from_route: Route,
@@ -20,6 +21,7 @@ pub struct Connection {
     pub from_type: DataType,
     #[serde(skip_deserializing)]
     pub starts_at_flow: bool,
+
     pub to: Name,
     #[serde(skip_deserializing)]
     pub to_route: Route,
@@ -27,6 +29,11 @@ pub struct Connection {
     pub to_type: DataType,
     #[serde(skip_deserializing)]
     pub ends_at_flow: bool
+}
+
+#[derive(Debug)]
+pub enum Direction {
+    FROM, TO
 }
 
 impl fmt::Display for Connection {

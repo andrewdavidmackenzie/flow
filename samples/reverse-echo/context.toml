@@ -21,8 +21,3 @@ to = "function/reverse/in"
 name = "reversed"
 from = "function/reverse/reversed"
 to = "function/print/stdout"
-
-[[connection]]
-name = "original"
-from = "function/reverse/original"
-to = "function/print/stdout"

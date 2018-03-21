@@ -1,4 +1,4 @@
-const DATATYPES: &'static [&'static str] = &["String"];
+const DATATYPES: &'static [&'static str] = &["String", "Json", "Number"];
 
 pub type DataType = String;
 
@@ -7,11 +7,11 @@ pub trait HasDataType {
 }
 
 pub trait TypeCheck {
-    fn validate(&self) -> Result<(), String>;
+    fn valid(&self) -> Result<(), String>;
 }
 
 impl TypeCheck for DataType {
-    fn validate(&self) -> Result<(), String> {
+    fn valid(&self) -> Result<(), String> {
         if DATATYPES.contains(&&self[..]) {
             return Ok(());
         }
@@ -21,14 +21,20 @@ impl TypeCheck for DataType {
 }
 
 #[test]
-fn valid_data_type() {
+fn valid_data_string_type() {
     let string_type = DataType::from("String".to_string());
-    string_type.validate().unwrap();
+    string_type.valid().unwrap();
+}
+
+#[test]
+fn valid_data_json_type() {
+    let json_type = DataType::from("Json".to_string());
+    json_type.valid().unwrap();
 }
 
 #[test]
 #[should_panic]
 fn invalid_data_type() {
     let string_type = DataType::from("foo".to_string());
-    string_type.validate().unwrap();
+    string_type.valid().unwrap();
 }

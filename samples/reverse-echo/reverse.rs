@@ -8,7 +8,10 @@ impl Implementation for Reverse {
     fn run(&self, mut inputs: Vec<JsonValue>) -> JsonValue {
         let input = inputs.remove(0);
         match &input {
-            &JsonString(ref s) => JsonValue::String(s.chars().rev().collect::<String>()),
+            &JsonString(ref s) => json!({
+                "reversed" : s.chars().rev().collect::<String>(),
+                "original": s
+            }),
             _ => JsonValue::Null
         }
     }

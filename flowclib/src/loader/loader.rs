@@ -1,16 +1,14 @@
 use model::flow::Flow;
 use model::function::Function;
+use model::connection::Direction::FROM;
+use model::connection::Direction::TO;
 use content::provider;
 use loader::loader_helper::get_loader;
 use std::mem::replace;
 
 use url::Url;
 
-// TODO use when we extend beyond just files -
-// These are the schemes we will accept for references to flows/functions
-// const SCHEMES: [&'static str; 4]= ["file:", "http:", "https:", "lib:"];
-
-// Any loader of a file type has to implement these methods
+// Any loader has to implement these methods
 pub trait Loader {
     fn load_flow(&self, contents: &str) -> Result<Flow, String>;
     fn load_function(&self, contents: &str) -> Result<Function, String>;
@@ -44,7 +42,7 @@ pub fn load(url: &Url) -> Result<Flow, String> {
 fn load_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
     let mut flow = load_single_flow(parent_route, url)?;
     load_subflows(&mut flow)?;
-    build_connections(&mut flow);
+    build_connections(&mut flow)?;
     Ok(flow)
 }
 
@@ -70,9 +68,10 @@ fn load_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
 pub fn load_single_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
     let (resolved_url, lib_ref) = provider::resolve(url)?;
     let loader = get_loader(&resolved_url)?;
+    info!("Loading flow from '{}'", resolved_url);
     let contents = provider::get(&resolved_url)?;
     let mut flow = loader.load_flow(&contents)?;
-    flow.source_url = resolved_url.clone();
+    flow.source_url = resolved_url;
     flow.route = format!("{}/{}", parent_route, flow.name);
     if let Some(lr) = lib_ref {
         flow.lib_references.push(lr);
@@ -99,26 +98,14 @@ pub fn load_single_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
 /// // flowclib::loader::loader::load_function(&url, "/root_flow").unwrap();
 /// ```
 pub fn load_function(url: &Url, parent_route: &str) -> Result<Function, String> {
+    debug!("Loading function from '{}'", url);
     let (resolved_url, lib_ref) = provider::resolve(url)?;
     let loader = get_loader(&resolved_url)?;
-    let contents= provider::get(&resolved_url)?;
+    let contents = provider::get(&resolved_url)?;
     let mut function = loader.load_function(&contents)?;
     function.source_url = resolved_url.clone();
-    function.route = format!("{}/{}", parent_route, function.name);
     function.lib_reference = lib_ref;
-
-    if let Some(ref mut inputs) = function.inputs {
-        for ref mut input in inputs {
-            input.route = format!("{}/{}", function.route, input.name);
-        }
-    }
-
-    if let Some(ref mut outputs) = function.outputs {
-        for ref mut output in outputs {
-            output.route = format!("{}/{}", function.route, output.name);
-        }
-    }
-
+    function.set_routes(parent_route);
     function.validate()?;
     Ok(function)
 }
@@ -128,6 +115,7 @@ pub fn load_function(url: &Url, parent_route: &str) -> Result<Function, String> 
 */
 fn load_functions(flow: &mut Flow) -> Result<(), String> {
     if let Some(ref mut function_refs) = flow.function_refs {
+        debug!("Loading functions for flow '{}'", flow.source_url);
         for ref mut function_ref in function_refs {
             let function_url = flow.source_url.join(&function_ref.source)
                 .map_err(|_e| "URL join error")?;
@@ -145,8 +133,9 @@ fn load_functions(flow: &mut Flow) -> Result<(), String> {
 */
 fn load_values(flow: &mut Flow) -> Result<(), String> {
     if let Some(ref mut values) = flow.values {
+        debug!("Loading values for flow '{}'", flow.source_url);
         for ref mut value in values {
-            value.route = format!("{}/{}", flow.route, value.name);
+            value.set_routes(&flow.route);
         }
     }
     Ok(())
@@ -156,8 +145,8 @@ fn load_values(flow: &mut Flow) -> Result<(), String> {
     Load all subflows referenced from a flow
 */
 fn load_subflows(flow: &mut Flow) -> Result<(), String> {
-    // Load subflows from References
     if let Some(ref mut flow_refs) = flow.flow_refs {
+        debug!("Loading sub-flows of flow '{}'", flow.source_url);
         for ref mut flow_ref in flow_refs {
             let subflow_url = flow.source_url.join(&flow_ref.source).expect("URL join error");
             let subflow = load_flow(&flow.route, &subflow_url)?;
@@ -179,35 +168,46 @@ fn load_subflows(flow: &mut Flow) -> Result<(), String> {
         "flow/flow_name/io_name"
         "function/function_name/io_name"
 */
-fn build_connections(flow: &mut Flow) {
-    if flow.connections.is_none() { return; }
+fn build_connections(flow: &mut Flow) -> Result<(), String> {
+    if flow.connections.is_none() { return Ok(()); }
+
+    debug!("Building connections for flow '{}'", flow.source_url);
+
+    let mut error_count = 0;
 
     // get connections out of self - so we can use immutable references to self inside loop
     let connections = replace(&mut flow.connections, None);
     let mut connections = connections.unwrap();
 
     for connection in connections.iter_mut() {
-        // TODO eliminate output as a possible source
-        if let Ok((from_route, from_type, starts_at_flow)) = flow.get_route_and_type(&connection.from) {
-            // TODO eliminate to as a possible source
-            if let Ok((to_route, to_type, ends_at_flow)) = flow.get_route_and_type(&connection.to) {
+        if let Ok((from_route, from_type, starts_at_flow)) = flow.get_route_and_type(FROM,&connection.from) {
+            if let Ok((to_route, to_type, ends_at_flow)) = flow.get_route_and_type(TO,&connection.to) {
                 if from_type == to_type {
                     connection.from_route = from_route;
                     connection.starts_at_flow = starts_at_flow;
                     connection.to_route = to_route;
                     connection.ends_at_flow = ends_at_flow;
                 } else {
-                    error!("Type mismatch from '{}' of type '{}' to '{}' of type '{}'",
-                           from_route, from_type, to_route, to_type);
+                    error!("Type mismatch in connection from '{}' of type '{}' to '{}' of type '{}' specified in flow '{}'",
+                           from_route, from_type, to_route, to_type, flow.source_url);
+                    error_count += 1;
                 }
             } else {
-                error!("Did not find destination: {}", connection.to);
+                error!("Did not find connection destination: '{}' specified in flow '{}'", connection.to, flow.source_url);
+                error_count += 1;
             }
         } else {
-            error!("Did not find source: {}", connection.from);
+            error!("Did not find connection source: '{}' specified in flow '{}'", connection.from, flow.source_url);
+            error_count += 1;
         }
     }
 
     // put connections back into self
     replace(&mut flow.connections, Some(connections));
+
+    if error_count == 0 {
+        Ok(())
+    } else {
+        Err(format!("{} connections errors found in flow '{}'", error_count, flow.source_url))
+    }
 }

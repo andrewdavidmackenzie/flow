@@ -17,5 +17,5 @@ alias = "print"
 source = "lib://flowstdlib/stdio/stdout.toml"
 
 [[connection]]
-from = "function/toString/out"
+from = "function/toString"
 to = "function/print/stdout"

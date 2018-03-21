@@ -12,12 +12,12 @@ mod test {
     }
 
     #[test]
-    fn load_hello_world_simple() {
+    fn load_hello_world_simple_from_context() {
         loader::load(&url_from_rel_path("samples/hello-world-simple/context.toml")).unwrap();
     }
 
     #[test]
-    fn load_hello_world_context() {
+    fn load_hello_world_from_context() {
         loader::load(&url_from_rel_path("samples/hello-world/context.toml")).unwrap();
     }
 
@@ -32,12 +32,17 @@ mod test {
     }
 
     #[test]
-    fn load_fibonacci() {
+    fn load_reverse_echo_from_toml() {
+        loader::load(&url_from_rel_path("samples/reverse-echo/context.toml")).unwrap();
+    }
+
+    #[test]
+    fn load_fibonacci_from_toml() {
         loader::load(&url_from_rel_path("samples/fibonacci/context.toml")).unwrap();
     }
 
     #[test]
-    fn load_from_directory() {
+    fn load_fibonacci_from_directory() {
         loader::load(&url_from_rel_path("samples/fibonacci")).unwrap();
     }
 
