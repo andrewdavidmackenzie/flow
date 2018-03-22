@@ -12,7 +12,7 @@ use std::fmt;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Output {
-    #[serde(default = "default_pointer")]
+    #[serde(default = "default_name")]
     pub name: String,
     #[serde(rename = "type", default = "default_type")]
     pub datatype: DataType,
@@ -40,7 +40,7 @@ impl HasRoute for Output {
     }
 }
 
-fn default_pointer() -> String {
+fn default_name() -> String {
     "".to_string()
 }
 
