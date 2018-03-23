@@ -21,9 +21,8 @@ pub fn collapse_connections(complete_table: &Vec<Connection>) -> Vec<Connection>
         }
     }
 
-    // Now don't include the ones starting or ending on flows.
+    // Build the final connection table, leaving out the ones starting or ending at flow boundaries
     let mut final_table: Vec<Connection> = Vec::new();
-
     for connection in collapsed_table {
         if !connection.starts_at_flow && !connection.ends_at_flow {
             final_table.push(connection.clone());

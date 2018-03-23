@@ -27,7 +27,7 @@ pub struct Function {
     #[serde(skip_deserializing)]
     pub lib_reference: Option<String>,
     #[serde(skip_deserializing)]
-    pub output_routes: Vec<(usize, usize)>,
+    pub output_routes: Vec<(Route, usize, usize)>,
     #[serde(skip_deserializing)]
     pub id: usize,
 }
@@ -100,7 +100,7 @@ impl Default for Function {
             route: "".to_string(),
             lib_reference: None,
             id: 0,
-            output_routes: vec!((0, 0)),
+            output_routes: vec!(("".to_string(), 0, 0)),
         }
     }
 }
@@ -160,7 +160,7 @@ mod test {
             route: "".to_string(),
             lib_reference: None,
             id: 0,
-            output_routes: vec!((0, 0)),
+            output_routes: vec!(("test_function".to_string(), 0, 0)),
         };
 
         assert_eq!(fun.validate().is_err(), true);

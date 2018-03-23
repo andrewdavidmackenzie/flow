@@ -40,7 +40,7 @@ impl Loader for FlowYamlLoader {
             outputs: None,
             lib_reference: None,
             id: 0,
-            output_routes: vec!((0,0))
+            output_routes: vec!(("".to_string(), 0,0))
         };
 
         Ok(function)

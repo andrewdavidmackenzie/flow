@@ -39,7 +39,8 @@ pub fn connect(tables: &mut CodeGenTables) {
                 for ref mut output in outputs.iter() {
                     if connection.from_route == output.route {
                         debug!("Connection found: to '{}'", &connection.to_route);
-                        function.output_routes.push(*inputs_routes.get(&connection.to_route).unwrap());
+                        let (target_id, target_input_index) = *inputs_routes.get(&connection.to_route).unwrap();
+                        function.output_routes.push((output.name.clone(), target_id, target_input_index));
                     }
                 }
             }
