@@ -44,7 +44,7 @@ fn run() -> Result<String, String> {
 
     let url = source_arg::url_from_cl_arg(matches.value_of("FLOW"))?;
     let dump = matches.is_present("dump");
-    let generate = !matches.is_present("skip");
+    let skip_generation = matches.is_present("skip");
 
     info!("Attempting to load from url: '{}'", url);
     let mut flow = loader::load(&url)?;
@@ -57,7 +57,7 @@ fn run() -> Result<String, String> {
         dumper::dump_tables(&tables);
     }
 
-    if !generate {
+    if skip_generation {
         return Ok("Code Generation and Running skipped".to_string());
     }
 

@@ -2,6 +2,7 @@
 //! to enable it to be compiled and ran as a native program.
 #[macro_use]
 extern crate log;
+#[macro_use]
 extern crate serde_json;
 
 pub mod info;

@@ -8,5 +8,5 @@ pub trait Runnable {
     fn write_input(&mut self, input_number: usize, new_value: JsonValue);
     fn inputs_satisfied(&self) -> bool;
     fn run(&mut self) -> JsonValue;
-    fn output_destinations(&self) -> &Vec<(usize, usize)>;
+    fn output_destinations(&self) -> &Vec<(& 'static str, usize, usize)>;
 }

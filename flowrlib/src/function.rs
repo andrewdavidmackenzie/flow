@@ -12,12 +12,12 @@ pub struct Function {
     num_inputs_pending: usize,
     inputs: Vec<JsonValue>,
 
-    output_routes: Vec<(usize, usize)>,
+    output_routes: Vec<(& 'static str, usize, usize)>,
 }
 
 impl Function {
     pub fn new(name: String, number_of_inputs: usize, id: usize, implementation: Box<Implementation>,
-               output_routes: Vec<(usize, usize)>)
+               output_routes: Vec<(& 'static str, usize, usize)>)
                -> Function {
         Function {
             name,
@@ -60,7 +60,7 @@ impl Runnable for Function {
         self.implementation.run(inputs)
     }
 
-    fn output_destinations(&self) -> &Vec<(usize, usize)> {
+    fn output_destinations(&self) -> &Vec<(& 'static str, usize, usize)> {
         &self.output_routes
     }
 }

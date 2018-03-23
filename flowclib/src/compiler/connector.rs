@@ -16,15 +16,22 @@ pub fn connect(tables: &mut CodeGenTables) {
     let inputs_routes = inputs_table(&tables.values, &tables.functions);
     let mut runnable_index = 0;
 
+    // TODO ADM should be able to combine these loops now!
+
     for value in &mut tables.values {
-        debug!("Looking for connection from output of value '{}'", &value.route);
-        // Each value can have multiple connections from it's output - so create a Vector to hold them
-        for connection in &tables.connections {
-            // Find the connections that connect from the output of this value
-            if connection.from_route == value.route {
-                debug!("Connection found: to '{}'", &connection.to_route);
-                // Get the index of runnable and input index of the destination of the connection
-                value.output_routes.push(inputs_routes.get(&connection.to_route).unwrap().clone());
+        // if it has any outputs at all
+        if let Some(ref mut outputs) = value.outputs {
+            debug!("Looking for connection from output of value '{}'", &value.route);
+            // Each value can have multiple connections from it's output - so create a Vector to hold them
+            for connection in &tables.connections {
+                for ref mut output in outputs.iter() {
+                    if connection.from_route == output.route {
+                        debug!("Connection found: to '{}'", &connection.to_route);
+                        // Get the index of runnable and input index of the destination of the connection
+                        let (target_id, target_input_index) = *inputs_routes.get(&connection.to_route).unwrap();
+                        value.output_routes.push((output.name.clone(), target_id, target_input_index));
+                    }
+                }
             }
         }
         value.id = runnable_index;

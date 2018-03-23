@@ -7,10 +7,11 @@ pub fn to_code(function: &Function) -> String {
         &Some(ref inputs) => code.push_str(&format!("{}, ", inputs.len()))
     }
     code.push_str(&format!("{}, Box::new({}{{}}),", function.id, function.name));
-    // Add the vector of tuples of elements and their inputs it's connected to
+
+    // Add tuples of this function's output routes to runnables and the input it's connected to
     code.push_str(" vec!(");
     for ref route in &function.output_routes {
-        code.push_str(&format!("({},{}),", route.0, route.1));
+        code.push_str(&format!("(\"{}\", {},{}),", route.0, route.1, route.2));
     }
     code.push_str(")");
 

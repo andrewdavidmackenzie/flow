@@ -27,7 +27,7 @@ pub struct Value {
     #[serde(skip_deserializing)]
     pub route: Route,
     #[serde(skip_deserializing)]
-    pub output_routes: Vec<(usize, usize)>,
+    pub output_routes: Vec<(Route, usize, usize)>,
     #[serde(skip_deserializing)]
     pub id: usize,
 }
