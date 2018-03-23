@@ -81,41 +81,47 @@ impl Runnable for Value {
 mod test {
     use super::Value;
     use super::super::implementation::Implementation;
-    use serde_json::value::Value as JsonValue;
+    use serde_json::Value as JsonValue;
 
     struct TestValue;
 
     impl Implementation for TestValue {
-        fn run(&self, _inputs: Vec<JsonValue>) -> JsonValue {
-            json!("Output")
+        fn run(&self, mut inputs: Vec<JsonValue>) -> JsonValue {
+            inputs.remove(0)
         }
     }
 
     #[test]
     fn destructure_output_base_route() {
+        let json = json!("my_value");
         let value = Value {
             name: "test_value".to_string(),
             id: 0,
-            initial_value: Some(json!("my_value")),
+            initial_value: Some(json.clone()),
             implementation: Box::new(TestValue),
-            value: json!("my_value"),
+            value: json.clone(),
             output_routes: vec!(("", 1, 0)),
         };
 
-        assert_eq!(value.value.pointer("").unwrap(), "my_value");
+        let output = value.implementation.run(vec!(json.clone()));
+
+        assert_eq!(output.pointer("").unwrap(), "my_value");
     }
 
     #[test]
     fn destructure_json_value() {
+        let json: JsonValue = json!({ "sub_route": "sub_value" });
+
         let value = Value {
             name: "test_value".to_string(),
             id: 0,
-            initial_value: Some(json!("sub_route: sub_value")),
+            initial_value: Some(json.clone()),
             implementation: Box::new(TestValue),
-            value: json!({ "sub_route": "sub_value" }),
+            value: json.clone(),
             output_routes: vec!(("", 1, 0), ("sub_route", 2, 0)),
         };
 
-        assert_eq!(value.value.pointer("/sub_route").unwrap(), "sub_value");
+        let output = value.implementation.run(vec!(json));
+        assert_eq!(output.pointer("/sub_route").unwrap(), "sub_value");
     }
 }

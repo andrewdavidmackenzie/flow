@@ -64,3 +64,54 @@ impl Runnable for Function {
         &self.output_routes
     }
 }
+
+
+#[cfg(test)]
+mod test {
+    use super::Function;
+    use super::super::implementation::Implementation;
+    use serde_json::value::Value as JsonValue;
+
+    struct TestFunction;
+
+    impl Implementation for TestFunction {
+        fn run(&self, mut inputs: Vec<JsonValue>) -> JsonValue {
+            inputs.remove(0)
+        }
+    }
+
+    #[test]
+    fn destructure_output_base_route() {
+        let function = Function {
+            name: "test_function".to_string(),
+            number_of_inputs: 0,
+            id: 0,
+            implementation: Box::new(TestFunction),
+            num_inputs_pending: 0,
+            inputs: vec!(),
+            output_routes: vec!(("", 1, 0)),
+        };
+
+        let output = function.implementation.run(vec!(json!("simple")));
+
+        assert_eq!(output.pointer("").unwrap(), "simple");
+    }
+
+    #[test]
+    fn destructure_json_value() {
+        let json: JsonValue = json!({ "sub_route": "sub_output" });
+
+        let function = Function {
+            name: "test_function".to_string(),
+            number_of_inputs: 0,
+            id: 0,
+            implementation: Box::new(TestFunction),
+            num_inputs_pending: 0,
+            inputs: vec!(),
+            output_routes: vec!(("", 1, 0)),
+        };
+
+        let output = function.implementation.run(vec!(json.clone()));
+        assert_eq!(output.pointer("/sub_route").unwrap(), "sub_output");
+    }
+}
