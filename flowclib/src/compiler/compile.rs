@@ -8,13 +8,13 @@ use generator::code_gen::CodeGenTables;
 /// the flow, including links to the flowrlib runtime library and library functions used in the
 /// flowstdlib standard library. It takes an optional bool dump option to dump to standard output
 /// some of the intermediate values and operations during the compilation process.
-pub fn compile(flow: &mut Flow) -> CodeGenTables {
+pub fn compile(flow: &Flow) -> Result<CodeGenTables, String> {
     let mut tables = CodeGenTables::new();
+
     gatherer::add_entries(flow, &mut tables);
-
-    tables.connections = optimizer::collapse_connections(&tables.connections);
+    connector::collapse_connections(&mut tables);
+    connector::connect(&mut tables)?;
     optimizer::prune_tables(&mut tables);
-    connector::connect(&mut tables);
 
-    tables
+    Ok(tables)
 }

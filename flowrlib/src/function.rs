@@ -16,7 +16,11 @@ pub struct Function {
 }
 
 impl Function {
-    pub fn new(name: String, number_of_inputs: usize, id: usize, implementation: Box<Implementation>,
+    pub fn new(name: String,
+               number_of_inputs: usize,
+               id: usize,
+               implementation: Box<Implementation>,
+               _initial_value: Option<JsonValue>,
                output_routes: Vec<(& 'static str, usize, usize)>)
                -> Function {
         Function {

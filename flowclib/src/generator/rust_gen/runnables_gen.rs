@@ -6,15 +6,13 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 use std::collections::HashSet;
 use std::io::{Error, ErrorKind};
-use model::function::Function;
 use generator::code_gen::CodeGenTables;
-use super::function;
-use super::value;
+use model::runnable::Runnable;
 
 const RUNNABLES_PREFIX: &'static str = "
 // Flow Run-time library references
 use flowrlib::runnable::Runnable;
-use serde_json::Value as JsonValue;
+//use serde_json::Value as JsonValue;
 {value_used}
 {function_used}
 
@@ -35,22 +33,17 @@ pub fn create(src_dir: &PathBuf, tables: &CodeGenTables)
     let mut file = src_dir.clone();
     file.push("runnables.rs");
     let mut runnables_rs = File::create(&file)?;
-    runnables_rs.write_all(contents(tables, &lib_refs).unwrap().as_bytes())
+    let contents = contents(tables, &lib_refs);
+    runnables_rs.write_all(contents.unwrap().as_bytes())
 }
 
 fn contents(tables: &CodeGenTables, lib_refs: &Vec<String>) -> Result<String> {
-    let num_runnables = &(tables.values.len() + tables.functions.len()).to_string();
+    let num_runnables = &tables.runnables.len().to_string();
     let mut vars = HashMap::new();
-    if tables.values.len() > 0 {
-        vars.insert("value_used".to_string(), "use flowrlib::value::Value;");
-    } else {
-        vars.insert("value_used".to_string(), "");
-    }
-    if tables.functions.len() > 0 {
-        vars.insert("function_used".to_string(), "use flowrlib::function::Function;");
-    } else {
-        vars.insert("function_used".to_string(), "");
-    }
+
+    // TODO ADM get lib_refs back from value/function code gen to add to the HashSet
+    vars.insert("value_used".to_string(), "use flowrlib::value::Value;\nuse flowrlib::zero_fifo::Fifo;");
+    vars.insert("function_used".to_string(), "use flowrlib::function::Function;");
 
     let mut content = strfmt(RUNNABLES_PREFIX, &vars).unwrap();
 
@@ -60,24 +53,17 @@ fn contents(tables: &CodeGenTables, lib_refs: &Vec<String>) -> Result<String> {
     }
 
     // Add "use" statements for functions referenced
-    content.push_str(&usages(&tables.functions).unwrap());
+    content.push_str(&usages(&tables.runnables).unwrap());
 
     // add declaration of runnables array etc - parameterized by the number of runnables
     vars = HashMap::<String, &str>::new();
-    vars.insert("num_runnables".to_string(), num_runnables );
+    vars.insert("num_runnables".to_string(), num_runnables);
     content.push_str(&strfmt(GET_RUNNABLES, &vars).unwrap());
 
-    // Generate code for each of the values
-    for value in &tables.values {
+    // Generate code for each of the runnables
+    for runnable in &tables.runnables {
         let run_str = format!("    runnables.push(Arc::new(Mutex::new({})));\n",
-                              value::to_code(&value));
-        content.push_str(&run_str);
-    }
-
-    // Generate code for each of the functions
-    for function in &tables.functions {
-        let run_str = format!("    runnables.push(Arc::new(Mutex::new({})));\n",
-                              function::to_code(&function));
+                              runnable_to_code(runnable));
         content.push_str(&run_str);
     }
 
@@ -89,17 +75,17 @@ fn contents(tables: &CodeGenTables, lib_refs: &Vec<String>) -> Result<String> {
 
 // add use clauses for local functions filename::Functionname
 // "use reverse::Reverse;"
-fn usages(functions: &Vec<Function>) -> Result<String> {
+fn usages(runnables: &Vec<Box<Runnable>>) -> Result<String> {
     let mut usages_string = String::new();
 
     // Find all the functions that are not loaded from libraries
-    for function in functions {
-        if function.lib_reference.is_none() {
-            let mut source = function.source_url.to_file_path()
+    for runnable in runnables {
+        if let Some(source_url) = runnable.source_url() {
+            let mut source = source_url.to_file_path()
                 .map_err(|_e| Error::new(ErrorKind::InvalidData, "Could not convert to file path"))?;
             let usage = source.file_stem().unwrap();
             usages_string.push_str(&format!("use {}::{};\n",
-                                            usage.to_str().unwrap(), function.name));
+                                            usage.to_str().unwrap(), runnable.name()));
         }
     }
 
@@ -114,4 +100,82 @@ fn lib_refs(libs_references: &HashSet<String>) -> Vec<String> {
     }
 
     lib_refs
+}
+
+fn runnable_to_code(runnable: &Box<Runnable>) -> String {
+    let mut code = format!("{}::new(\"{}\".to_string(), ", runnable.get_type(), runnable.name());
+    match &runnable.get_inputs() {
+        &None => code.push_str(&format!("{}, ", 0)),
+        &Some(ref inputs) => code.push_str(&format!("{}, ", inputs.len()))
+    }
+    code.push_str(&format!("{}, Box::new({}{{}}), ", runnable.get_id(), runnable.get_implementation()));
+
+    code.push_str(&format!("{},",  match runnable.get_initial_value() {
+        None => "None".to_string(),
+        Some(value) => format!("Some(json!({}))", value.to_string())
+    }));
+
+    // Add tuples of this function's output routes to runnables and the input it's connected to
+    code.push_str(" vec!(");
+    debug!("Function '{}' output routes: {:?}", runnable.name(), runnable.get_output_routes());
+    for ref route in runnable.get_output_routes() {
+        if route.0.is_empty() {
+            code.push_str(&format!("(\"\", {}, {}),", route.1, route.2));
+        } else {
+            code.push_str(&format!("(\"/{}\", {}, {}),", route.0, route.1, route.2));
+        }
+    }
+    code.push_str(")");
+
+    code.push_str(")");
+
+    code
+}
+
+#[cfg(test)]
+mod test {
+    use serde_json::Value as JsonValue;
+    use model::value::Value;
+    use model::output::Output;
+    use model::function::Function;
+    use model::runnable::Runnable;
+    use url::Url;
+    use super::runnable_to_code;
+
+    #[test]
+    fn test_value_to_code() {
+        let value = Value {
+            name: "value".to_string(),
+            datatype: "String".to_string(),
+            value: Some(JsonValue::String("Hello-World".to_string())),
+            route: "/flow0/value".to_string(),
+            outputs: Some(vec!(Output { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string() })),
+            output_connections: vec!(("".to_string(), 1, 0)),
+            id: 1,
+        };
+
+        let br = Box::new(value) as Box<Runnable>;
+        let code = runnable_to_code(&br);
+        assert_eq!(code, "Value::new(\"value\".to_string(), 1, 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
+    }
+
+    // TODO ADM add a test checking code generation when an output sub-route is used
+
+    #[test]
+    fn test_function_to_code() {
+        let function = Function {
+            name: "Stdout".to_string(),
+            inputs: Some(vec!()),
+            outputs: None,
+            source_url: Url::parse("file:///fake/file").unwrap(),
+            route: "/flow0/stdout".to_string(),
+            lib_reference: None,
+            output_routes: vec!(),
+            id: 0,
+        };
+
+        let br = Box::new(function) as Box<Runnable>;
+        let code = runnable_to_code(&br);
+        assert_eq!(code, "Function::new(\"Stdout\".to_string(), 0, 0, Box::new(Stdout{}), None, vec!())")
+    }
 }

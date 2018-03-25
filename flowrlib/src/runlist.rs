@@ -83,13 +83,16 @@ impl RunList {
     pub fn process_output(&mut self, runnable: &Runnable, output: JsonValue) {
         self.unblock_by(runnable.id());
 
+        debug!("Runnable has output connections: {:?}", runnable.output_destinations());
         for &(output_route, destination_id, io_number) in runnable.output_destinations() {
             let destination_arc = Arc::clone(&self.runnables[destination_id]);
             let mut destination = destination_arc.lock().unwrap();
-            debug!("Sending output '{:?}' from #{} to #{} input #{}",
-                   &output, runnable.id(), &destination_id, &io_number);
+            debug!("Sending output '{:?}' from runnable #{} @ route '{}' to runnable #{} input #{}",
+                   &output, runnable.id(), output_route, &destination_id, &io_number);
             self.blocked_by(destination_id, runnable.id());
-            destination.write_input(io_number, output.pointer(output_route).unwrap().clone());
+            let output_value = output.pointer(output_route).unwrap();
+            debug!("Output value: {}", output_value);
+            destination.write_input(io_number, output_value.clone());
             if destination.inputs_satisfied() {
                 self.inputs_ready(destination_id);
             }

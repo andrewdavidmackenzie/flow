@@ -6,9 +6,8 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
 use std::io::{Error, ErrorKind};
-
 use generator::code_gen::CodeGenTables;
-use model::function::Function;
+use model::runnable::Runnable;
 
 const MAIN_PREFIX: &'static str = "
 #[macro_use]
@@ -58,7 +57,7 @@ pub fn create(src_dir: &PathBuf, vars: &mut HashMap<String, &str>, tables: &Code
     let mut content = String::new();
     content.push_str(&crates(&tables.libs));
     content.push_str(MAIN_PREFIX);
-    content.push_str(&modules(&tables.functions)?);
+    content.push_str(&modules(&tables.runnables)?);
     content.push_str(&strfmt(MAIN_SUFFIX, &vars).unwrap());
 
     main_rs.write_all(content.as_bytes())
@@ -74,13 +73,13 @@ fn crates(libs: &HashSet<String>) -> String {
 
 // add local function files as modules, using the file_stem portion of the file name of the function
 // e.g. "mod reverse;"
-fn modules(functions: &Vec<Function>) -> Result<String> {
+fn modules(runnables: &Vec<Box<Runnable>>) -> Result<String> {
     let mut modules_string = String::new();
 
     // Find all the functions that are not loaded from libraries
-    for function in functions {
-        if function.lib_reference.is_none() {
-            let mut source = function.source_url.to_file_path()
+    for runnable in runnables {
+        if let Some(source_url) = runnable.source_url() {
+            let mut source = source_url.to_file_path()
                 .map_err(|_e| Error::new(ErrorKind::InvalidData, "Could not convert to file path"))?;
             let module = source.file_stem().unwrap();
             modules_string.push_str(&format!("mod {};\n", module.to_str().unwrap()));

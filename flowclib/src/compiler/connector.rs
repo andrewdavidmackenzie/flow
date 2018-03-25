@@ -1,8 +1,9 @@
-use model::value::Value;
-use model::function::Function;
 use model::connection::Route;
 use std::collections::HashMap;
 use generator::code_gen::CodeGenTables;
+use model::runnable::Runnable;
+use model::connection::Connection;
+use std::mem::swap;
 
 /*
     First build a table of input routes to (runnable_index, input_index) for all inputs of runnables,
@@ -12,78 +13,170 @@ use generator::code_gen::CodeGenTables;
     (according to each runnable's output route in the original description plus each connection from it)
     to point to the runnable (by index) and the runnable's input (by index) in the table
 */
-pub fn connect(tables: &mut CodeGenTables) {
-    let inputs_routes = inputs_table(&tables.values, &tables.functions);
-    let mut runnable_index = 0;
+pub fn connect(tables: &mut CodeGenTables) -> Result<String, String> {
+    // TODO this only follows one jump into a sub-flow, it should follow the connection until it
+    // doesn't end at a flow, but a function or a value
 
-    // TODO ADM should be able to combine these loops now!
+    let (source_routes, destination_routes) = routes_table(&mut tables.runnables);
 
-    for value in &mut tables.values {
-        // if it has any outputs at all
-        if let Some(ref mut outputs) = value.outputs {
-            debug!("Looking for connection from output of value '{}'", &value.route);
-            // Each value can have multiple connections from it's output - so create a Vector to hold them
-            for connection in &tables.connections {
-                for ref mut output in outputs.iter() {
-                    if connection.from_route == output.route {
-                        debug!("Connection found: to '{}'", &connection.to_route);
-                        // Get the index of runnable and input index of the destination of the connection
-                        let (target_id, target_input_index) = *inputs_routes.get(&connection.to_route).unwrap();
-                        value.output_routes.push((output.name.clone(), target_id, target_input_index));
-                    }
-                }
+    debug!("Building connections");
+    for connection in &tables.connections {
+        let source = source_routes.get(&connection.from_route);
+        let destination = destination_routes.get(&connection.to_route);
+
+        if let Some(&(ref output_name, source_id)) = source {
+            if let Some(&(destination_id, destination_input_index)) = destination {
+                let mut source_runnable = tables.runnables.get_mut(source_id).unwrap();
+                debug!("Connection built: from '{}' to '{}'", &connection.from_route, &connection.to_route);
+                source_runnable.add_output_connection((output_name.to_string(), destination_id, destination_input_index));
+            } else {
+                return Err(format!("Connection destination '{}' not found", connection.to_route));
             }
+        } else {
+            return Err(format!("Connection source '{}' not found", connection.from_route));
         }
-        value.id = runnable_index;
-        runnable_index += 1;
     }
+    debug!("All connections built");
 
-    for function in &mut tables.functions {
-        // if it has any outputs at all
-        if let Some(ref mut outputs) = function.outputs {
-            debug!("Looking for connection from outputs of function '{}'", &function.route);
-            for connection in &tables.connections {
-                for ref mut output in outputs.iter() {
-                    if connection.from_route == output.route {
-                        debug!("Connection found: to '{}'", &connection.to_route);
-                        let (target_id, target_input_index) = *inputs_routes.get(&connection.to_route).unwrap();
-                        function.output_routes.push((output.name.clone(), target_id, target_input_index));
-                    }
-                }
-            }
-        }
-        function.id = runnable_index;
-        runnable_index += 1;
-    }
+    Ok("All connections built".to_string())
 }
 
 /*
     Construct a look-up table that we can use to find the index of a runnable in the runnables table,
     and the index of it's input - using the input route
 */
-fn inputs_table(value_table: &Vec<Value>, function_table: &Vec<Function>) -> HashMap<Route, (usize, usize)> {
-    let mut input_route_table = HashMap::<Route, (usize, usize)>::new();
+fn routes_table(runnables: &mut Vec<Box<Runnable>>) -> (HashMap<Route, (String, usize)>, HashMap<Route, (usize, usize)>) {
+    let mut source_route_table = HashMap::<Route, (String, usize)>::new();
+    let mut destination_route_table = HashMap::<Route, (usize, usize)>::new();
     let mut runnable_index = 0;
 
-    for value in value_table {
-        // Value has only one input and it's route is that of the value itself
-        input_route_table.insert(value.route.clone(), (runnable_index, 0));
-        runnable_index += 1;
-    }
+    for mut runnable in runnables {
+        runnable.set_id(runnable_index);
 
-    for function in function_table {
+        // Add any output routes it has to the source routes rable
+        if let Some(ref outputs) = runnable.get_outputs() {
+            for output in outputs {
+                source_route_table.insert(output.route.clone(), (output.name.clone(), runnable_index));
+            }
+        }
+
+        // Add any inputs it has to the destination routes table
         let mut input_index = 0;
-        // A function can have a number of inputs, each with different routes
-        if let Some(ref inputs) = function.inputs {
+        if let Some(ref inputs) = runnable.get_inputs() {
             for input in inputs {
-                input_route_table.insert(input.route.clone(), (runnable_index, input_index));
+                destination_route_table.insert(input.route.clone(), (runnable.get_id(), input_index));
                 input_index += 1;
             }
         }
         runnable_index += 1;
     }
 
-    debug!("Input routes: {:?}", input_route_table);
-    input_route_table
+    debug!("Source routes table built\n{:?}", source_route_table);
+    debug!("Destination routes table built\n{:?}", destination_route_table);
+    (source_route_table, destination_route_table)
 }
 
+pub fn collapse_connections(tables: & mut CodeGenTables) {
+    let mut collapsed_table: Vec<Connection> = Vec::new();
+
+    for left in &tables.connections {
+        if left.ends_at_flow {
+            for ref right in &tables.connections {
+                if left.to_route == right.from_route {
+                    // They are connected - modify first to go to destination of second
+                    let mut joined_connection = left.clone();
+                    joined_connection.to_route = format!("{}", right.to_route);
+                    joined_connection.ends_at_flow = right.ends_at_flow;
+                    collapsed_table.push(joined_connection);
+                    //                      connection_table.drop(right)
+                }
+            }
+        } else {
+            collapsed_table.push(left.clone());
+        }
+    }
+
+    // Build the final connection table, leaving out the ones starting or ending at flow boundaries
+    let mut final_table: Vec<Connection> = Vec::new();
+    for connection in collapsed_table {
+        if !connection.starts_at_flow && !connection.ends_at_flow {
+            final_table.push(connection.clone());
+        }
+    }
+
+    swap(&mut tables.connections , &mut final_table);
+}
+
+#[cfg(test)]
+mod test {
+    use model::connection::Connection;
+    use super::collapse_connections;
+    use generator::code_gen::CodeGenTables;
+
+    #[test]
+    fn collapses_a_connection() {
+        let left_side = Connection {
+            name: Some("left".to_string()),
+            from: "point a".to_string(),
+            from_route: "/f1/a".to_string(),
+            from_type: "String".to_string(),
+            starts_at_flow: false,
+            to: "point b".to_string(),
+            to_route: "/f2/a".to_string(),
+            to_type: "String".to_string(),
+            ends_at_flow: true
+        };
+
+        let right_side = Connection {
+            name: Some("right".to_string()),
+            from: "point b".to_string(),
+            from_route: "/f2/a".to_string(),
+            from_type: "String".to_string(),
+            starts_at_flow: true,
+            to: "point c".to_string(),
+            to_route: "/f3/a".to_string(),
+            to_type: "String".to_string(),
+            ends_at_flow: false
+        };
+
+        let mut tables = CodeGenTables::new();
+        tables.connections = vec!(left_side, right_side);
+
+        collapse_connections(&mut tables);
+        assert_eq!(tables.connections.len(), 1);
+        assert_eq!(tables.connections[0].from_route, "/f1/a".to_string());
+        assert_eq!(tables.connections[0].to_route, "/f3/a".to_string());
+    }
+
+    #[test]
+    fn doesnt_collapse_a_non_connection() {
+        let one = Connection {
+            name: Some("left".to_string()),
+            from: "point a".to_string(),
+            from_route: "/f1/a".to_string(),
+            from_type: "String".to_string(),
+            starts_at_flow: false,
+            to: "point b".to_string(),
+            to_route: "/f2/a".to_string(),
+            to_type: "String".to_string(),
+            ends_at_flow: false
+        };
+
+        let other = Connection {
+            name: Some("right".to_string()),
+            from: "point b".to_string(),
+            from_route: "/f3/a".to_string(),
+            from_type: "String".to_string(),
+            starts_at_flow: false,
+            to: "point c".to_string(),
+            to_route: "/f4/a".to_string(),
+            to_type: "String".to_string(),
+            ends_at_flow: false
+        };
+
+        let mut tables = CodeGenTables::new();
+        tables.connections = vec!(one, other);
+        collapse_connections(&mut tables);
+        assert_eq!(tables.connections.len(), 2);
+    }
+}

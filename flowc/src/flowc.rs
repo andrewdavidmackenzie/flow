@@ -16,7 +16,6 @@ use flowclib::compiler::compile;
 use flowclib::generator::code_gen;
 use std::process::Command;
 use std::process::Stdio;
-
 mod source_arg;
 
 extern crate simplog;
@@ -40,7 +39,7 @@ fn run() -> Result<String, String> {
     SimpleLogger::init(matches.value_of("log"));
 
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    info!("'flowclib' version {}", info::version());
+    info!("'flowclib' version {}\n", info::version());
 
     let url = source_arg::url_from_cl_arg(matches.value_of("FLOW"))?;
     let dump = matches.is_present("dump");
@@ -48,9 +47,9 @@ fn run() -> Result<String, String> {
 
     info!("Attempting to load from url: '{}'", url);
     let mut flow = loader::load(&url)?;
-    info!("'{}' flow loaded", flow.name);
+    info!("'{}' flow loaded\n", flow.name);
 
-    let tables = compile::compile(&mut flow);
+    let tables = compile::compile(&mut flow)?;
 
     if dump {
         dumper::dump_flow(&flow);

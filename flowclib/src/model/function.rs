@@ -9,7 +9,8 @@ use model::input::Input;
 use model::output::Output;
 use model::connection::Route;
 use loader::loader::Validate;
-
+use model::runnable::Runnable;
+use serde_json::Value as JsonValue;
 use url::Url;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -35,6 +36,50 @@ pub struct Function {
 impl HasName for Function {
     fn name(&self) -> &str {
         &self.name[..]
+    }
+}
+
+impl Runnable for Function {
+    fn set_id(&mut self, id: usize) {
+        self.id = id;
+    }
+
+    fn get_id(&self) -> usize {
+        self.id
+    }
+
+    fn get_inputs(&self) -> Option<Vec<Input>> {
+        self.inputs.clone()
+    }
+
+    fn get_outputs(&self) -> Option<Vec<Output>> {
+        self.outputs.clone()
+    }
+
+    fn add_output_connection(&mut self, connection: (Route, usize, usize)) {
+        self.output_routes.push(connection);
+    }
+
+    fn source_url(&self) -> Option<Url> {
+        if self.lib_reference.is_none() {
+            Some(self.source_url.clone())
+        } else {
+            None
+        }
+    }
+
+    fn get_type(&self) -> &str {
+        "Function"
+    }
+
+    fn get_output_routes(&self) -> &Vec<(Route, usize, usize)> {
+        &self.output_routes
+    }
+
+    fn get_initial_value(&self) -> Option<JsonValue> { None }
+
+    fn get_implementation(&self) -> &str {
+        &self.name
     }
 }
 

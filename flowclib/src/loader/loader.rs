@@ -181,8 +181,11 @@ fn build_connections(flow: &mut Flow) -> Result<(), String> {
 
     for connection in connections.iter_mut() {
         if let Ok((from_route, from_type, starts_at_flow)) = flow.get_route_and_type(FROM,&connection.from) {
+            debug!("Found source of connection: route = '{}', type = '{}'", from_route, from_type);
             if let Ok((to_route, to_type, ends_at_flow)) = flow.get_route_and_type(TO,&connection.to) {
+                debug!("Found destination of connection: route = '{}', type = '{}'", to_route, to_type);
                 if from_type == to_type {
+                    debug!("Connection source and destination types match, connection built");
                     connection.from_route = from_route;
                     connection.starts_at_flow = starts_at_flow;
                     connection.to_route = to_route;
@@ -206,6 +209,7 @@ fn build_connections(flow: &mut Flow) -> Result<(), String> {
     replace(&mut flow.connections, Some(connections));
 
     if error_count == 0 {
+        debug!("All connections built inside flow '{}'", flow.source_url);
         Ok(())
     } else {
         Err(format!("{} connections errors found in flow '{}'", error_count, flow.source_url))

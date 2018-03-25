@@ -1,7 +1,6 @@
 use serde_json::Value as JsonValue;
 use runnable::Runnable;
 use implementation::Implementation;
-use zero_fifo::Fifo;
 
 const ONLY_INPUT: usize = 0;
 
@@ -15,12 +14,17 @@ pub struct Value {
 }
 
 impl Value {
-    pub fn new(name: String, id: usize, initial_value: Option<JsonValue>, output_routes: Vec<(&'static str, usize, usize)>) -> Value {
+    pub fn new(name: String,
+               _num_inputs: usize,
+               id: usize,
+               implementation: Box<Implementation>,
+               initial_value: Option<JsonValue>,
+               output_routes: Vec<(&'static str, usize, usize)>) -> Value {
         Value {
             name,
             id,
             initial_value,
-            implementation: Box::new(Fifo),
+            implementation,
             value: JsonValue::Null,
             output_routes,
         }

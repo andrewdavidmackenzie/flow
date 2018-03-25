@@ -5,17 +5,15 @@ use std::path::PathBuf;
 use model::flow::Flow;
 use std::str;
 use generator::rust_gen::generator::RustGenerator;
-use model::value::Value;
-use model::function::Function;
 use model::connection::Connection;
 use std::collections::HashSet;
+use model::runnable::Runnable;
 
 const RUST: &CodeGenerator = &RustGenerator as &CodeGenerator;
 
 pub struct CodeGenTables {
     pub connections: Vec<Connection>,
-    pub values: Vec<Value>,
-    pub functions: Vec<Function>,
+    pub runnables: Vec<Box<Runnable>>,
     pub libs: HashSet<String>,
     pub lib_references: HashSet<String>,
 }
@@ -24,8 +22,7 @@ impl CodeGenTables {
     pub fn new() -> Self {
         CodeGenTables {
             connections: Vec::new(),
-            values: Vec::new(),
-            functions: Vec::new(),
+            runnables: Vec::new(),
             libs: HashSet::new(),
             lib_references: HashSet::new(),
         }

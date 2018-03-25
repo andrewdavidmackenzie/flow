@@ -7,10 +7,13 @@ use model::datatype::HasDataType;
 use loader::loader::Validate;
 use model::connection::Route;
 use model::output::Output;
+use model::input::Input;
+use model::runnable::Runnable;
+use url::Url;
 
 use std::fmt;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct Value {
     pub name: Name,
     #[serde(rename = "type")]
@@ -27,7 +30,7 @@ pub struct Value {
     #[serde(skip_deserializing)]
     pub route: Route,
     #[serde(skip_deserializing)]
-    pub output_routes: Vec<(Route, usize, usize)>,
+    pub output_connections: Vec<(Route, usize, usize)>,
     #[serde(skip_deserializing)]
     pub id: usize,
 }
@@ -50,6 +53,54 @@ impl HasRoute for Value {
     }
 }
 
+impl Runnable for Value {
+    fn set_id(&mut self, id: usize) {
+        self.id = id;
+    }
+
+    fn get_id(&self) -> usize {
+        self.id
+    }
+
+    fn get_inputs(&self) -> Option<Vec<Input>> {
+        let value_input = Input {
+            name: "".to_string(),
+            datatype: self.datatype.clone(),
+            route: self.route.clone()
+        };
+
+        Some(vec!(value_input))
+    }
+
+    fn get_outputs(&self) -> Option<Vec<Output>> {
+        self.outputs.clone()
+    }
+
+    fn add_output_connection(&mut self, connection: (Route, usize, usize)) {
+        self.output_connections.push(connection);
+    }
+
+    fn source_url(&self) -> Option<Url> {
+        None
+    }
+
+    fn get_type(&self) -> &str {
+        "Value"
+    }
+
+    fn get_output_routes(&self) -> &Vec<(Route, usize, usize)> {
+        &self.output_connections
+    }
+
+    fn get_initial_value(&self) -> Option<JsonValue> {
+        self.value.clone()
+    }
+
+    fn get_implementation(&self) -> &str {
+        "Fifo"
+    }
+}
+
 impl Validate for Value {
     fn validate(&self) -> Result<(), String> {
         self.datatype.validate()
@@ -69,18 +120,37 @@ impl fmt::Display for Value {
 
 impl Value {
     pub fn set_routes(&mut self, parent_route: &str) {
-        // Set the route of the 'base' of this value
+        // Set the route for this value
         self.route = format!("{}/{}", parent_route, self.name);
 
-        // Set sub routes for all specified outputs
+        // Specifying outputs in the spec is optional - so there could be none initially
+        if self.outputs.is_none() {
+            self.outputs = Some(vec!());
+        }
+
         if let Some(ref mut outputs) = self.outputs {
+            // Create an output for the "base"/"default" output of this value and insert at head of vec
+            // of output routes
+            let base_output = Output {
+                name: "".to_string(),
+                datatype: self.datatype.clone(),
+                route: self.route.clone(),
+            };
+            outputs.insert(0, base_output);
+
+            // Set sub routes for all outputs
             for ref mut output in outputs {
-                output.route = format!("{}/{}", self.route, output.name);
+                if output.name.is_empty() {
+                    output.route = self.route.clone();
+                } else {
+                    output.route = format!("{}/{}", self.route, output.name);
+                }
             }
         }
     }
 
     pub fn get_output(&self, route: &str) -> Result<(Route, DataType, bool), String> {
+        // TODO ADM this might be able to removed, but depends on the trailing slash and if will match
         if route.is_empty() {
             return Ok((self.route.clone(), self.datatype.clone(), false));
         }
@@ -234,7 +304,26 @@ mod test {
     }
 
     #[test]
-    fn set_routes() {
+    fn set_routes_base_route_only() {
+        let value_str = "\
+        name = \"test_value\"
+        type = \"Json\"
+        ";
+
+        let mut value: Value = toml::from_str(value_str).unwrap();
+        value.set_routes("/flow");
+
+        assert_eq!(value.route, "/flow/test_value");
+
+        let outputs = value.outputs.unwrap();
+        assert_eq!(outputs.len(), 1);
+
+        let base_output = &outputs[0];
+        assert_eq!(base_output.route, "/flow/test_value");
+    }
+
+    #[test]
+    fn set_routes_with_sub_routes() {
         let value_str = "\
         name = \"test_value\"
         type = \"Json\"
@@ -255,10 +344,13 @@ mod test {
         let outputs = value.outputs.unwrap();
 
         let output0 = &outputs[0];
-        assert_eq!(output0.route, "/flow/test_value/sub_output");
+        assert_eq!(output0.route, "/flow/test_value");
 
         let output1 = &outputs[1];
-        assert_eq!(output1.route, "/flow/test_value/other_output");
+        assert_eq!(output1.route, "/flow/test_value/sub_output");
+
+        let output2 = &outputs[2];
+        assert_eq!(output2.route, "/flow/test_value/other_output");
     }
 
     #[test]

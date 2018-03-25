@@ -269,7 +269,7 @@ impl Flow {
         let object_name = segments.remove(0); // second part is the name of it
         let route = segments.join("/");       // the rest is a sub-route
 
-        debug!("Looking for connection {:?} '{}' of name '{}' with sub-route '{}'", direction, object_type, object_name, route);
+        debug!("Looking for connection {:?} {} '{}' with sub-route '{}'", direction, object_type, object_name, route);
 
         match (&direction, object_type) {
             (&Direction::TO, "output") => self.get(&self.outputs, object_name), // an output from this flow

@@ -5,21 +5,24 @@ use generator::code_gen::CodeGenTables;
     This module is responsible for parsing the flow tree and gathering information into a set of
     flat tables that the compiler can use for code generation.
 */
-pub fn add_entries(flow: &mut Flow, tables: &mut CodeGenTables) {
+pub fn add_entries(flow: &Flow, tables: &mut CodeGenTables) {
     // Add Connections from this flow to the table
-    if let Some(ref mut connections) = flow.connections {
-        tables.connections.append(connections);
+    if let Some(ref connections) = flow.connections {
+        let mut conns = connections.clone();
+        tables.connections.append(&mut conns);
     }
 
     // Add Values from this flow to the table
-    if let Some(ref mut values) = flow.values {
-        tables.values.append(values);
+    if let Some(ref values) = flow.values {
+        for value in values {
+            tables.runnables.push(Box::new(value.clone()));
+        }
     }
 
     // Add Functions referenced from this flow to the table
-    if let Some(ref mut function_refs) = flow.function_refs {
+    if let Some(ref function_refs) = flow.function_refs {
         for function_ref in function_refs {
-            tables.functions.push(function_ref.function.clone());
+            tables.runnables.push(Box::new(function_ref.function.clone()));
         }
     }
 
@@ -31,9 +34,9 @@ pub fn add_entries(flow: &mut Flow, tables: &mut CodeGenTables) {
     }
 
     // Do the same for all subflows referenced from this one
-    if let Some(ref mut flow_refs) = flow.flow_refs {
+    if let Some(ref flow_refs) = flow.flow_refs {
         for flow_ref in flow_refs {
-            add_entries(&mut flow_ref.flow, tables);
+            add_entries(&flow_ref.flow, tables);
         }
     }
 }
