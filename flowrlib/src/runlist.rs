@@ -2,6 +2,37 @@ use serde_json::Value as JsonValue;
 use runnable::Runnable;
 use std::sync::{Arc, Mutex};
 use std::collections::HashSet;
+use std::fmt;
+use std::time::Instant;
+
+struct Metrics {
+    num_runnables: usize,
+    invocations: u32,
+    outputs_sent: u32,
+    start_time: Instant
+}
+
+impl Metrics {
+    fn new() -> Self {
+        let now = Instant::now();
+        Metrics {
+            num_runnables: 0,
+            invocations: 0,
+            outputs_sent: 0,
+            start_time: now
+        }
+    }
+}
+
+impl fmt::Display for Metrics {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let elapsed = self.start_time.elapsed();
+        write!(f, "\t\tNumber of Runnables: \t{}\n", self.num_runnables)?;
+        write!(f, "\t\tRunnable invocations: \t{}\n", self.invocations)?;
+        write!(f, "\t\tOutputs sent: \t\t{}\n", self.outputs_sent)?;
+        write!(f, "\t\tElapsed time(s): \t{:.*}\n", 9, elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9)
+    }
+}
 
 /*
     RunList is a structure that maintains the state of all the runnables in the currently
@@ -29,6 +60,7 @@ pub struct RunList {
     inputs_satisfied: HashSet<usize>,
     blocking: Vec<(usize, usize)>,
     ready: Vec<usize>,
+    metrics: Metrics
 }
 
 impl RunList {
@@ -38,11 +70,17 @@ impl RunList {
             inputs_satisfied: HashSet::<usize>::new(),
             blocking: Vec::<(usize, usize)>::new(),
             ready: Vec::<usize>::new(),
+            metrics: Metrics::new()
         }
+    }
+
+    pub fn end(&self) {
+        debug!("Metrics: \n {}", self.metrics);
     }
 
     pub fn set_runnables(&mut self, runnables: Vec<Arc<Mutex<Runnable>>>) {
         self.runnables = runnables;
+        self.metrics.num_runnables = self.runnables.len();
     }
 
     pub fn get(&self, id: usize) -> Arc<Mutex<Runnable>> {
@@ -55,6 +93,7 @@ impl RunList {
             return None;
         }
 
+        self.metrics.invocations += 1;
         let id = self.ready.remove(0);
         Some(id)
     }
@@ -98,6 +137,7 @@ impl RunList {
                    destination.name(), &io_number);
             self.blocked_by(destination_id, runnable.id());
             destination.write_input(io_number, output_value.clone());
+            self.metrics.outputs_sent += 1;
             if destination.inputs_satisfied() {
                 self.inputs_ready(destination_id);
             }

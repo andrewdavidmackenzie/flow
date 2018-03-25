@@ -36,12 +36,15 @@ pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) {
         debug!("Running runnable: #{} '{}'", id, runnable.name());
         let output = runnable.run();
 
-        if output != JsonValue::Null {
+        // TODO ADM figure out why this crashes fibonacci
+    //    if output != JsonValue::Null {
             debug!("Processing output of runnable: #{} '{}'", id, runnable.name());
             run_list.process_output(&*runnable, output);
-        }
+  //      }
     }
     debug!("Ended execution loop");
+
+    run_list.end();
 }
 
 /*
