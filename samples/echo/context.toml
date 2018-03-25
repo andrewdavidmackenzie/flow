@@ -2,7 +2,7 @@ name = "echo"
 
 [[function]]
 alias = "read"
-source = "lib://flowstdlib/stdio/stdin.toml"
+source = "lib://flowstdlib/stdio/readline.toml"
 
 [[function]]
 alias = "print"
