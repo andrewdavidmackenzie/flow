@@ -5,17 +5,17 @@ alias = "fib"
 source="fib.toml"
 
 [[function]]
-alias = "toString"
-source = "lib://flowstdlib/fmt/toString.toml"
+alias = "to_string"
+source = "lib://flowstdlib/fmt/to_string.toml"
 
 [[connection]]
 from = "flow/fib/series"
-to = "function/toString/in"
+to = "function/to_string/in"
 
 [[function]]
 alias = "print"
 source = "lib://flowstdlib/stdio/stdout.toml"
 
 [[connection]]
-from = "function/toString"
+from = "function/to_string"
 to = "function/print/stdout"

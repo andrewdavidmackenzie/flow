@@ -1,3 +1,3 @@
 extern crate flowrlib;
 
-pub mod toString;
+pub mod to_string;
