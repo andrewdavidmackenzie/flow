@@ -79,7 +79,7 @@ fn modules(runnables: &Vec<Box<Runnable>>) -> Result<String> {
     // Find all the functions that are not loaded from libraries
     for runnable in runnables {
         if let Some(source_url) = runnable.source_url() {
-            let mut source = source_url.to_file_path()
+            let source = source_url.to_file_path()
                 .map_err(|_e| Error::new(ErrorKind::InvalidData, "Could not convert to file path"))?;
             let module = source.file_stem().unwrap();
             modules_string.push_str(&format!("mod {};\n", module.to_str().unwrap()));

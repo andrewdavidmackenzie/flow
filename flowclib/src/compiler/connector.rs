@@ -26,7 +26,7 @@ pub fn connect(tables: &mut CodeGenTables) -> Result<String, String> {
 
         if let Some(&(ref output_name, source_id)) = source {
             if let Some(&(destination_id, destination_input_index)) = destination {
-                let mut source_runnable = tables.runnables.get_mut(source_id).unwrap();
+                let source_runnable = tables.runnables.get_mut(source_id).unwrap();
                 debug!("Connection built: from '{}' to '{}'", &connection.from_route, &connection.to_route);
                 source_runnable.add_output_connection((output_name.to_string(), destination_id, destination_input_index));
             } else {
@@ -50,7 +50,7 @@ fn routes_table(runnables: &mut Vec<Box<Runnable>>) -> (HashMap<Route, (String, 
     let mut destination_route_table = HashMap::<Route, (usize, usize)>::new();
     let mut runnable_index = 0;
 
-    for mut runnable in runnables {
+    for runnable in runnables {
         runnable.set_id(runnable_index);
 
         // Add any output routes it has to the source routes rable
