@@ -95,6 +95,7 @@ impl RunList {
 
         self.metrics.invocations += 1;
         let id = self.ready.remove(0);
+        self.unblock_by(id);
         Some(id)
     }
 
@@ -102,10 +103,10 @@ impl RunList {
     // to run (if not blocked sending on it's output)
     pub fn inputs_ready(&mut self, id: usize) {
         if self.is_blocked(id) {
-            debug!("Runnable #{} inputs all satisfied, blocked on output", id);
+            debug!("\tRunnable #{} inputs all satisfied, blocked on output", id);
             self.inputs_satisfied.insert(id);
         } else {
-            debug!("Runnable #{} inputs all satisfied, not blocked on output, marked as ready", id);
+            debug!("\tRunnable #{} inputs all satisfied, not blocked on output, marked as ready", id);
             self.ready.push(id);
         }
     }
@@ -120,10 +121,8 @@ impl RunList {
         if those other runnables have all their inputs, then mark them accordingly.
     */
     pub fn process_output(&mut self, runnable: &Runnable, output: JsonValue) {
-        self.unblock_by(runnable.id());
-
         if !runnable.output_destinations().is_empty() {
-            debug!("Runnable #{} '{}' has output connections: {:?}",
+            debug!("\tRunnable #{} '{}' has output connections: {:?}",
                    runnable.id(), runnable.name(),
                    runnable.output_destinations());
         }
@@ -132,7 +131,7 @@ impl RunList {
             let destination_arc = Arc::clone(&self.runnables[destination_id]);
             let mut destination = destination_arc.lock().unwrap();
             let output_value = output.pointer(output_route).unwrap();
-            debug!("Sending output '{}' from runnable #{} '{}' @route '{}' to runnable #{} '{}' input #{}",
+            debug!("\tSending output '{}' from runnable #{} '{}' @route '{}' to runnable #{} '{}' input #{}",
                    output_value, runnable.id(), runnable.name(), output_route, &destination_id,
                    destination.name(), &io_number);
             self.blocked_by(destination_id, runnable.id());
@@ -145,8 +144,8 @@ impl RunList {
     }
 
     // Save the fact that the runnable 'blocked_id' is blocked on it's output by 'blocking_id'
-    pub fn blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
-        debug!("Runnable #{} is blocked on output by runnable #{}", &blocked_id, &blocking_id);
+    fn blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
+        debug!("\tRunnable #{} is blocked on output by runnable #{}", &blocked_id, &blocking_id);
         self.blocking.push((blocking_id, blocked_id));
     }
 
@@ -154,8 +153,8 @@ impl RunList {
     // in the list where the first value (blocking_id) matches the destination_id
     // when each is unblocked on output, if it's inputs are satisfied, then it is ready to be run
     // so put it on the ready queue
-    pub fn unblock_by(&mut self, destination_id: usize) {
-        debug!("Unblocking runnables blocked on #{}", &destination_id);
+    fn unblock_by(&mut self, destination_id: usize) {
+        debug!("\tUnblocking runnables blocked on #{}", &destination_id);
         for &(blocking_id, blocked_id) in &self.blocking {
             if blocking_id == destination_id {
                 if self.inputs_satisfied.remove(&blocked_id) {

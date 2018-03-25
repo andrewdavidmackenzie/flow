@@ -36,11 +36,10 @@ pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) {
         debug!("Running runnable: #{} '{}'", id, runnable.name());
         let output = runnable.run();
 
-        // TODO ADM figure out why this crashes fibonacci
-    //    if output != JsonValue::Null {
+        if output != JsonValue::Null {
             debug!("Processing output of runnable: #{} '{}'", id, runnable.name());
             run_list.process_output(&*runnable, output);
-  //      }
+        }
     }
     debug!("Ended execution loop");
 
@@ -61,7 +60,7 @@ fn init(runnables: Vec<Arc<Mutex<Runnable>>>) -> RunList {
     debug!("Initializing all runnables");
     for runnable_arc in &runnables {
         let mut runnable = runnable_arc.lock().unwrap();
-        debug!("Initializing runnable #{}", &runnable.id());
+        debug!("Initializing runnable #{} '{}'", &runnable.id(), runnable.name());
         if runnable.init() {
             run_list.inputs_ready(runnable.id());
         }

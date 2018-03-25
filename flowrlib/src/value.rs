@@ -47,7 +47,7 @@ impl Runnable for Value {
     fn init(&mut self) -> bool {
         let value = self.initial_value.clone();
         if let Some(v) = value {
-            debug!("Value initialized by writing '{:?}' to input", &v);
+            debug!("\tValue initialized by writing '{:?}' to input", &v);
             self.write_input(ONLY_INPUT, v);
         }
         self.inputs_satisfied()
