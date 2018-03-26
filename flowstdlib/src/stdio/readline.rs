@@ -9,7 +9,11 @@ impl Implementation for Readline {
 
         let stdin = io::stdin();
         let mut iterator = stdin.lock().lines();
-        let line = iterator.next().unwrap().unwrap();
-        JsonValue::String(line)
+        if let Some(result) = iterator.next() {
+            if let Ok(line) = result {
+                return JsonValue::String(line);
+            }
+        }
+        JsonValue::Null
     }
 }
