@@ -10,10 +10,7 @@ use generator::code_gen::CodeGenTables;
 use model::runnable::Runnable;
 
 const MAIN_PREFIX: &'static str = "
-#[cfg(test)]
 #[macro_use]
-extern crate log;
-#[cfg(not(test))]
 extern crate log;
 
 extern crate flowrlib;
@@ -33,6 +30,7 @@ use clap::{{App, Arg, ArgMatches}};
 use simplog::simplog::SimpleLogger;
 
 fn main() {{
+    let _hide_a_warning = json!(\"Gone!\");
     let matches = get_matches();
     SimpleLogger::init(matches.value_of(\"log\"));
     info!(\"'{{}}' version '{{}}'\", env!(\"CARGO_PKG_NAME\"), env!(\"CARGO_PKG_VERSION\"));
