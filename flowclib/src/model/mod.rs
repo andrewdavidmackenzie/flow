@@ -6,6 +6,5 @@ pub mod function_reference;
 pub mod flow;
 pub mod flow_reference;
 pub mod connection;
-pub mod input;
-pub mod output;
+pub mod io;
 pub mod runnable;

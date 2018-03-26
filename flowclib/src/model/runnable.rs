@@ -1,6 +1,5 @@
 use model::connection::Route;
-use model::input::Input;
-use model::output::Output;
+use model::io::IO;
 use url::Url;
 use model::name::HasName;
 use serde_json::Value as JsonValue;
@@ -9,9 +8,9 @@ use std::fmt;
 pub trait Runnable: fmt::Display + HasName {
     fn set_id(&mut self, id: usize);
     fn get_id(&self) -> usize;
-    fn get_inputs(&self) -> Option<Vec<Input>>;
-    fn get_outputs(&self) -> Option<Vec<Output>>;
-    fn add_output_connection(&mut self, (Route, usize, usize)); // Route is the output subroute
+    fn get_inputs(&self) -> Option<Vec<IO>>;
+    fn get_outputs(&self) -> Option<Vec<IO>>;
+    fn add_output_connection(&mut self, connection: (Route, usize, usize)); // Route is the output subroute
     fn source_url(&self) -> Option<Url>;
     fn get_type(&self) -> &str;
     fn get_output_routes(&self) -> &Vec<(Route, usize, usize)>;

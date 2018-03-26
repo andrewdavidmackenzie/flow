@@ -5,8 +5,7 @@ use model::name::HasName;
 use model::datatype::DataType;
 use model::datatype::HasDataType;
 use model::connection::HasRoute;
-use model::input::Input;
-use model::output::Output;
+use model::io::IO;
 use model::connection::Route;
 use loader::loader::Validate;
 use model::runnable::Runnable;
@@ -17,9 +16,9 @@ use url::Url;
 pub struct Function {
     pub name: Name,
     #[serde(rename = "input")]
-    pub inputs: Option<Vec<Input>>,
+    pub inputs: Option<Vec<IO>>,
     #[serde(rename = "output")]
-    pub outputs: Option<Vec<Output>>,
+    pub outputs: Option<Vec<IO>>,
 
     #[serde(skip_deserializing, default = "Function::default_url")]
     pub source_url: Url,
@@ -48,11 +47,11 @@ impl Runnable for Function {
         self.id
     }
 
-    fn get_inputs(&self) -> Option<Vec<Input>> {
+    fn get_inputs(&self) -> Option<Vec<IO>> {
         self.inputs.clone()
     }
 
-    fn get_outputs(&self) -> Option<Vec<Output>> {
+    fn get_outputs(&self) -> Option<Vec<IO>> {
         self.outputs.clone()
     }
 
@@ -140,7 +139,7 @@ impl Default for Function {
         Function {
             name: "".to_string(),
             inputs: None,
-            outputs: Some(vec!(Output { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string() })),
+            outputs: Some(vec!(IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string() })),
             source_url: Function::default_url(),
             route: "".to_string(),
             lib_reference: None,

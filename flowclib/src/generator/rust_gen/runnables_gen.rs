@@ -136,7 +136,7 @@ fn runnable_to_code(runnable: &Box<Runnable>) -> String {
 mod test {
     use serde_json::Value as JsonValue;
     use model::value::Value;
-    use model::output::Output;
+    use model::io::IO;
     use model::function::Function;
     use model::runnable::Runnable;
     use url::Url;
@@ -149,7 +149,7 @@ mod test {
             datatype: "String".to_string(),
             value: Some(JsonValue::String("Hello-World".to_string())),
             route: "/flow0/value".to_string(),
-            outputs: Some(vec!(Output { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string() })),
+            outputs: Some(vec!(IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string() })),
             output_connections: vec!(("".to_string(), 1, 0)),
             id: 1,
         };
@@ -167,8 +167,8 @@ mod test {
             value: Some(JsonValue::String("Hello-World".to_string())),
             route: "/flow0/value".to_string(),
             outputs: Some(vec!(
-                Output { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string() },
-                Output { name: "sub_route".to_string(), datatype: "String".to_string(), route: "".to_string() }
+                IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string() },
+                IO { name: "sub_route".to_string(), datatype: "String".to_string(), route: "".to_string() }
             )),
             output_connections: vec!(("".to_string(), 1, 0), ("sub_route".to_string(), 2, 0)),
             id: 1,
@@ -185,8 +185,8 @@ mod test {
             name: "Stdout".to_string(),
             inputs: Some(vec!()),
             outputs: Some(vec!(
-                Output { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string() },
-                Output { name: "sub_route".to_string(), datatype: "String".to_string(), route: "".to_string() }
+                IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string() },
+                IO { name: "sub_route".to_string(), datatype: "String".to_string(), route: "".to_string() }
             )),
             source_url: Url::parse("file:///fake/file").unwrap(),
             route: "/flow0/stdout".to_string(),

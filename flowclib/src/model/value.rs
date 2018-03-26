@@ -6,8 +6,7 @@ use model::datatype::DataType;
 use model::datatype::HasDataType;
 use loader::loader::Validate;
 use model::connection::Route;
-use model::output::Output;
-use model::input::Input;
+use model::io::IO;
 use model::runnable::Runnable;
 use url::Url;
 
@@ -24,7 +23,7 @@ pub struct Value {
     // Output from a value is assumed, at the route of the value itself and always possible
     // Additional outputs that are parts of the default Output structure are possible at subpaths
     #[serde(rename = "output")]
-    pub outputs: Option<Vec<Output>>,
+    pub outputs: Option<Vec<IO>>,
 
     // Input and Output routes are the same. We assume a value has an output as otherwise it's useless
     #[serde(skip_deserializing)]
@@ -62,8 +61,8 @@ impl Runnable for Value {
         self.id
     }
 
-    fn get_inputs(&self) -> Option<Vec<Input>> {
-        let value_input = Input {
+    fn get_inputs(&self) -> Option<Vec<IO>> {
+        let value_input = IO {
             name: "".to_string(),
             datatype: self.datatype.clone(),
             route: self.route.clone()
@@ -72,7 +71,7 @@ impl Runnable for Value {
         Some(vec!(value_input))
     }
 
-    fn get_outputs(&self) -> Option<Vec<Output>> {
+    fn get_outputs(&self) -> Option<Vec<IO>> {
         self.outputs.clone()
     }
 
@@ -131,7 +130,7 @@ impl Value {
         if let Some(ref mut outputs) = self.outputs {
             // Create an output for the "base"/"default" output of this value and insert at head of vec
             // of output routes
-            let base_output = Output {
+            let base_output = IO {
                 name: "".to_string(),
                 datatype: self.datatype.clone(),
                 route: self.route.clone(),

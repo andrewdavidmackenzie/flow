@@ -4,8 +4,7 @@ use model::datatype::DataType;
 use model::connection::HasRoute;
 use model::connection::Connection;
 use model::datatype::HasDataType;
-use model::input::Input;
-use model::output::Output;
+use model::io::IO;
 use model::value::Value;
 use model::flow_reference::FlowReference;
 use model::connection::Route;
@@ -25,9 +24,9 @@ pub struct Flow {
     #[serde(rename = "value")]
     pub values: Option<Vec<Value>>,
     #[serde(rename = "input")]
-    pub inputs: Option<Vec<Input>>,
+    pub inputs: Option<Vec<IO>>,
     #[serde(rename = "output")]
-    pub outputs: Option<Vec<Output>>,
+    pub outputs: Option<Vec<IO>>,
     #[serde(rename = "connection")]
     pub connections: Option<Vec<Connection>>,
 
