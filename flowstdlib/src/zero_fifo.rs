@@ -1,5 +1,5 @@
 use serde_json::Value as JsonValue;
-use implementation::Implementation;
+use flowrlib::implementation::Implementation;
 
 pub struct Fifo;
 

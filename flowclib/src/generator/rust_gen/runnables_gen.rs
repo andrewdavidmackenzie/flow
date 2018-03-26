@@ -42,7 +42,7 @@ fn contents(tables: &CodeGenTables, lib_refs: &Vec<String>) -> Result<String> {
     let mut vars = HashMap::new();
 
     // TODO ADM get lib_refs back from value/function code gen to add to the HashSet
-    vars.insert("value_used".to_string(), "use flowrlib::value::Value;\nuse flowrlib::zero_fifo::Fifo;");
+    vars.insert("value_used".to_string(), "use flowrlib::value::Value;\nuse flowstdlib::zero_fifo::Fifo;");
     vars.insert("function_used".to_string(), "use flowrlib::function::Function;");
 
     let mut content = strfmt(RUNNABLES_PREFIX, &vars).unwrap();

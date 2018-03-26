@@ -2,7 +2,10 @@
 //! to enable it to be compiled and ran as a native program.
 #[macro_use]
 extern crate log;
+#[cfg(test)]
 #[macro_use]
+extern crate serde_json;
+#[cfg(not(test))]
 extern crate serde_json;
 
 pub mod info;
@@ -12,4 +15,3 @@ pub mod value;
 pub mod implementation;
 pub mod function;
 pub mod runnable;
-pub mod zero_fifo;
