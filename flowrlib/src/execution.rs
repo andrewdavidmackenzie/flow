@@ -37,7 +37,7 @@ pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) {
         let output = runnable.run();
 
         if output != JsonValue::Null {
-            debug!("Processing output of runnable: #{} '{}'", id, runnable.name());
+            debug!("\tProcessing output of runnable: #{} '{}'", id, runnable.name());
             run_list.process_output(&*runnable, output);
         }
     }
