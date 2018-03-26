@@ -1,7 +1,7 @@
 use serde_json::Value as JsonValue;
 use runnable::Runnable;
 use std::sync::{Arc, Mutex};
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::fmt;
 use std::time::Instant;
 
@@ -9,7 +9,7 @@ struct Metrics {
     num_runnables: usize,
     invocations: u32,
     outputs_sent: u32,
-    start_time: Instant
+    start_time: Instant,
 }
 
 impl Metrics {
@@ -19,7 +19,7 @@ impl Metrics {
             num_runnables: 0,
             invocations: 0,
             outputs_sent: 0,
-            start_time: now
+            start_time: now,
         }
     }
 }
@@ -57,20 +57,20 @@ impl fmt::Display for Metrics {
 */
 pub struct RunList {
     runnables: Vec<Arc<Mutex<Runnable>>>,
-    inputs_satisfied: HashSet<usize>,
+    inputs_satisfied: HashMap<usize, usize>,
     blocking: Vec<(usize, usize)>,
     ready: Vec<usize>,
-    metrics: Metrics
+    metrics: Metrics,
 }
 
 impl RunList {
     pub fn new() -> Self {
         RunList {
             runnables: Vec::<Arc<Mutex<Runnable>>>::new(),
-            inputs_satisfied: HashSet::<usize>::new(),
+            inputs_satisfied: HashMap::<usize, usize>::new(),
             blocking: Vec::<(usize, usize)>::new(),
             ready: Vec::<usize>::new(),
-            metrics: Metrics::new()
+            metrics: Metrics::new(),
         }
     }
 
@@ -87,7 +87,7 @@ impl RunList {
         self.runnables[id].clone()
     }
 
-    // Return the next runnable ready to be run, if there is one
+    // Return the id of the next runnable ready to be run, if there is one
     pub fn next(&mut self) -> Option<usize> {
         if self.ready.is_empty() {
             return None;
@@ -102,10 +102,7 @@ impl RunList {
     // save the fact that a particular Runnable's inputs are now satisfied and so it maybe ready
     // to run (if not blocked sending on it's output)
     pub fn inputs_ready(&mut self, id: usize) {
-        if self.is_blocked(id) {
-            debug!("\tRunnable #{} inputs all satisfied, blocked on output", id);
-            self.inputs_satisfied.insert(id);
-        } else {
+        if !self.is_blocked(id) {
             debug!("\tRunnable #{} inputs all satisfied, not blocked on output, marked as ready", id);
             self.ready.push(id);
         }
@@ -135,8 +132,8 @@ impl RunList {
                    output_value, runnable.id(), runnable.name(), output_route, &destination_id,
                    destination.name(), &io_number);
             self.blocked_by(destination_id, runnable.id());
-            destination.write_input(io_number, output_value.clone());
             self.metrics.outputs_sent += 1;
+            destination.write_input(io_number, output_value.clone());
             if destination.inputs_satisfied() {
                 self.inputs_ready(destination_id);
             }
@@ -152,20 +149,25 @@ impl RunList {
     // unblock all runnables that were blocked trying to send to destination_id by removing all entries
     // in the list where the first value (blocking_id) matches the destination_id
     // when each is unblocked on output, if it's inputs are satisfied, then it is ready to be run
-    // so put it on the ready queue
+    // again, so put it on the ready queue
     fn unblock_by(&mut self, destination_id: usize) {
-        debug!("\tUnblocking runnables blocked on #{}", &destination_id);
+        debug!("\tUnblocking runnables blocked on sending to #{}", destination_id);
         for &(blocking_id, blocked_id) in &self.blocking {
             if blocking_id == destination_id {
-                if self.inputs_satisfied.remove(&blocked_id) {
-                    self.ready.push(blocked_id);
-                }
+                debug!("\tRunnable #{} has inputs satisfied, so moving to ready", blocked_id);
+                self.ready.push(blocked_id);
+
+                // Only remove from inputs_satisfied list if it has inputs needing satisfied
+                debug!("\tFound runnable #{} blocked on sending to #{}", blocked_id, destination_id);
+                self.inputs_satisfied.retain(|&id, num_inputs| id != blocked_id || *num_inputs == 0);
             }
         }
 
         self.blocking.retain(|&(blocking_id, _blocked_id)| blocking_id != destination_id);
     }
 
+    // TODO ADM optimize this by also having a flag in the runnable?
+    // Or use the blocked_id as a key to a HashSet?
     // See if there is any tuple in the vector where the second (blocked_id) is the one we're after
     fn is_blocked(&self, id: usize) -> bool {
         for &(_blocking_id, blocked_id) in &self.blocking {
@@ -225,7 +227,7 @@ mod tests {
         let mut runs = RunList::new();
         runs.set_runnables(runnables);
 
-        // Indicate that 0 is blocked by 1
+// Indicate that 0 is blocked by 1
         runs.blocked_by(1, 0);
         assert!(runs.is_blocked(0));
     }
@@ -255,7 +257,7 @@ mod tests {
         let mut runs = RunList::new();
         runs.set_runnables(runnables);
 
-        // Indicate that 0 has all it's inputs read
+// Indicate that 0 has all it's inputs read
         runs.inputs_ready(0);
 
         assert_eq!(runs.next().unwrap(), 0);
@@ -267,10 +269,10 @@ mod tests {
         let mut runs = RunList::new();
         runs.set_runnables(runnables);
 
-        // Indicate that 0 is blocked by 1
+// Indicate that 0 is blocked by 1
         runs.blocked_by(1, 0);
 
-        // Indicate that 0 has all it's inputs read
+// Indicate that 0 has all it's inputs read
         runs.inputs_ready(0);
 
         match runs.next() {
@@ -285,15 +287,15 @@ mod tests {
         let mut runs = RunList::new();
         runs.set_runnables(runnables);
 
-        // Indicate that 0 is blocked by 1
+// Indicate that 0 is blocked by 1
         runs.blocked_by(1, 0);
 
-        // Indicate that 0 has all it's inputs read
+// Indicate that 0 has all it's inputs read
         runs.inputs_ready(0);
 
         assert!(runs.next().is_none());
 
-        // now unblock 0 by 1
+// now unblock 0 by 1
         runs.unblock_by(1);
 
         assert_eq!(runs.next().unwrap(), 0);

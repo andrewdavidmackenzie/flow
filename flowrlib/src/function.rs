@@ -42,14 +42,14 @@ impl Runnable for Function {
 
     fn id(&self) -> usize { self.id }
 
-    // If a function has zero inputs it is considered ready to run at init
+    // If a function has zero inputs it is considered ready to run any time it's not blocked on output
     fn init(&mut self) -> bool {
-        self.number_of_inputs == 0
+        self.inputs_satisfied()
     }
 
     fn write_input(&mut self, input_number: usize, input_value: JsonValue) {
-        self.num_inputs_pending -= 1;
         self.inputs[input_number] = input_value;
+        self.num_inputs_pending -= 1;
     }
 
     // responds true if all inputs have been satisfied - false otherwise

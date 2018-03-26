@@ -10,7 +10,10 @@ use generator::code_gen::CodeGenTables;
 use model::runnable::Runnable;
 
 const MAIN_PREFIX: &'static str = "
+#[cfg(test)]
 #[macro_use]
+extern crate log;
+#[cfg(not(test))]
 extern crate log;
 
 extern crate flowrlib;
