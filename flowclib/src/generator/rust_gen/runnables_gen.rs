@@ -12,8 +12,8 @@ use model::runnable::Runnable;
 const RUNNABLES_PREFIX: &'static str = "
 // Flow Run-time library references
 use flowrlib::runnable::Runnable;
-//use serde_json::Value as JsonValue;
 {value_used}
+{value_implementation_used}
 {function_used}
 
 // Rust std library references
@@ -27,6 +27,7 @@ const RUNNABLES_SUFFIX: &'static str = "
     runnables
 }";
 
+// Create the 'runnables.rs' file in the output project's source folder
 pub fn create(src_dir: &PathBuf, tables: &CodeGenTables)
               -> Result<()> {
     let lib_refs = lib_refs(&tables.lib_references);
@@ -37,13 +38,32 @@ pub fn create(src_dir: &PathBuf, tables: &CodeGenTables)
     runnables_rs.write_all(contents.unwrap().as_bytes())
 }
 
+fn uses(runnable_type: &str, runnables: &Vec<Box<Runnable>>) -> bool {
+    for runnable in runnables {
+        if runnable.get_type() == runnable_type {
+            return true;
+        }
+    }
+    return false;
+}
+
 fn contents(tables: &CodeGenTables, lib_refs: &Vec<String>) -> Result<String> {
     let num_runnables = &tables.runnables.len().to_string();
     let mut vars = HashMap::new();
 
-    // TODO ADM get lib_refs back from value/function code gen to add to the HashSet
-    vars.insert("value_used".to_string(), "use flowrlib::value::Value;\nuse flowstdlib::zero_fifo::Fifo;");
-    vars.insert("function_used".to_string(), "use flowrlib::function::Function;");
+    if uses("Value", &tables.runnables) {
+        vars.insert("value_used".to_string(), "use flowrlib::value::Value;");
+        vars.insert("value_implementation_used".to_string(), "use flowstdlib::zero_fifo::Fifo;");
+    } else {
+        vars.insert("value_used".to_string(), "");
+        vars.insert("value_implementation_used".to_string(), "");
+    }
+
+    if uses("Function", &tables.runnables) {
+        vars.insert("function_used".to_string(), "use flowrlib::function::Function;");
+    } else {
+        vars.insert("function_used".to_string(), "");
+    }
 
     let mut content = strfmt(RUNNABLES_PREFIX, &vars).unwrap();
 
@@ -73,8 +93,8 @@ fn contents(tables: &CodeGenTables, lib_refs: &Vec<String>) -> Result<String> {
     Ok(content)
 }
 
-// add use clauses for local functions filename::Functionname
-// "use reverse::Reverse;"
+// add use clauses for functions that are part of the flow, not library functions
+// "use module::Functionname;" e.g. "use reverse::Reverse;"
 fn usages(runnables: &Vec<Box<Runnable>>) -> Result<String> {
     let mut usages_string = String::new();
 
@@ -92,6 +112,7 @@ fn usages(runnables: &Vec<Box<Runnable>>) -> Result<String> {
     Ok(usages_string)
 }
 
+// Convert a set of libraries used in all the flows in '/' format into use statements of rust
 fn lib_refs(libs_references: &HashSet<String>) -> Vec<String> {
     let mut lib_refs: Vec<String> = Vec::new();
     for lib_ref in libs_references {
@@ -102,6 +123,8 @@ fn lib_refs(libs_references: &HashSet<String>) -> Vec<String> {
     lib_refs
 }
 
+// Output a statement that instantiates an instance of the Runnable type used, that can be used
+// to build the list of runnables
 fn runnable_to_code(runnable: &Box<Runnable>) -> String {
     let mut code = format!("{}::new(\"{}\".to_string(), ", runnable.get_type(), runnable.name());
     match &runnable.get_inputs() {
