@@ -159,23 +159,44 @@ mod test {
         assert_eq!(code, "Value::new(\"value\".to_string(), 1, 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
     }
 
-    // TODO ADM add a test checking code generation when an output sub-route is used
+    #[test]
+    fn value_with_sub_route_output_to_code() {
+        let value = Value {
+            name: "value".to_string(),
+            datatype: "String".to_string(),
+            value: Some(JsonValue::String("Hello-World".to_string())),
+            route: "/flow0/value".to_string(),
+            outputs: Some(vec!(
+                Output { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string() },
+                Output { name: "sub_route".to_string(), datatype: "String".to_string(), route: "".to_string() }
+            )),
+            output_connections: vec!(("".to_string(), 1, 0), ("sub_route".to_string(), 2, 0)),
+            id: 1,
+        };
+
+        let br = Box::new(value) as Box<Runnable>;
+        let code = runnable_to_code(&br);
+        assert_eq!(code, "Value::new(\"value\".to_string(), 1, 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+    }
 
     #[test]
-    fn test_function_to_code() {
+    fn function_with_sub_route_output_to_code() {
         let function = Function {
             name: "Stdout".to_string(),
             inputs: Some(vec!()),
-            outputs: None,
+            outputs: Some(vec!(
+                Output { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string() },
+                Output { name: "sub_route".to_string(), datatype: "String".to_string(), route: "".to_string() }
+            )),
             source_url: Url::parse("file:///fake/file").unwrap(),
             route: "/flow0/stdout".to_string(),
             lib_reference: None,
-            output_routes: vec!(),
+            output_connections: vec!(("".to_string(), 1, 0), ("sub_route".to_string(), 2, 0)),
             id: 0,
         };
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Function::new(\"Stdout\".to_string(), 0, 0, Box::new(Stdout{}), None, vec!())")
+        assert_eq!(code, "Function::new(\"Stdout\".to_string(), 0, 0, Box::new(Stdout{}), None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
     }
 }
