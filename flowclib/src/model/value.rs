@@ -149,11 +149,6 @@ impl Value {
     }
 
     pub fn get_output(&self, route: &str) -> Result<(Route, DataType, bool), String> {
-        // TODO ADM this might be able to removed, but depends on the trailing slash and if will match
-        if route.is_empty() {
-            return Ok((self.route.clone(), self.datatype.clone(), false));
-        }
-
         if let &Some(ref outputs) = &self.outputs {
             for output in outputs {
                 if output.name() == route {
