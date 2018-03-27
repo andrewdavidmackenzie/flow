@@ -5,6 +5,7 @@ use model::datatype::DataType;
 use model::datatype::TypeCheck;
 use loader::loader::Validate;
 use model::connection::Route;
+use std::collections::HashSet;
 
 use std::fmt;
 
@@ -55,9 +56,18 @@ impl Validate for IO {
 
 impl Validate for IOSet {
     fn validate(&self) -> Result<(), String> {
+        let mut name_set = HashSet::new();
         if let &Some(ref ios) = self {
             for io in ios {
                 io.validate()?;
+
+                if io.name.is_empty() && ios.len() > 0 {
+                    return Err("Cannot have empty IO name when there are multiple IOs".to_string())
+                }
+
+                if !name_set.insert(&io.name) {
+                    return Err(format!("Two IOs cannot have the same name: '{}'", io.name));
+                }
             }
         }
         Ok(())
@@ -119,9 +129,6 @@ mod test {
         assert_eq!(output.name, "/sub_route");
     }
 
-
-
-
     #[test]
     fn deserialize_valid_string_type() {
         let input_str = "\
@@ -163,5 +170,51 @@ mod test {
 
         let input: IO = toml::from_str(input_str).unwrap();
         input.validate().unwrap();
+    }
+
+    #[test]
+    fn unique_io_names_validate() {
+        let io0 = IO {
+            name: "io_name".to_string(),
+            datatype: "String".to_string(),
+            route: "".to_string(),
+        };
+        let io1 = IO {
+            name: "different_name".to_string(),
+            datatype: "String".to_string(),
+            route: "".to_string(),
+        };
+        let ioset = Some(vec!(io0, io1));
+        ioset.validate().unwrap()
+    }
+
+    #[test]
+    #[should_panic]
+    fn non_unique_io_names_wont_validate() {
+        let io0 = IO {
+            name: "io_name".to_string(),
+            datatype: "String".to_string(),
+            route: "".to_string(),
+        };
+        let io1 = io0.clone();
+        let ioset = Some(vec!(io0, io1));
+        ioset.validate().unwrap()
+    }
+
+    #[test]
+    #[should_panic]
+    fn multiple_inputs_empty_name_not_allowed() {
+        let io0 = IO {
+            name: "io_name".to_string(),
+            datatype: "String".to_string(),
+            route: "".to_string(),
+        };
+        let io1 = IO {
+            name: "".to_string(),
+            datatype: "String".to_string(),
+            route: "".to_string(),
+        };
+        let ioset = Some(vec!(io0, io1));
+        ioset.validate().unwrap()
     }
 }
