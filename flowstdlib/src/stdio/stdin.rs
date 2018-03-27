@@ -8,7 +8,12 @@ impl Implementation for Stdin {
         use std::io::{self, Read};
 
         let mut buffer = String::new();
-        io::stdin().read_to_string(&mut buffer).unwrap();
-        JsonValue::String(buffer)
+        if let Ok(size) = io::stdin().read_to_string(&mut buffer) {
+            if size > 0 {
+                return JsonValue::String(buffer);
+            }
+        }
+
+        JsonValue::Null
     }
 }
