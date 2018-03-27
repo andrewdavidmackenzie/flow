@@ -7,6 +7,7 @@ use model::datatype::HasDataType;
 use loader::loader::Validate;
 use model::connection::Route;
 use model::io::IO;
+use model::io::IOSet;
 use model::runnable::Runnable;
 use url::Url;
 
@@ -23,7 +24,7 @@ pub struct Value {
     // Output from a value is assumed, at the route of the value itself and always possible
     // Additional outputs that are parts of the default Output structure are possible at subpaths
     #[serde(rename = "output")]
-    pub outputs: Option<Vec<IO>>,
+    pub outputs: IOSet,
 
     // Input and Output routes are the same. We assume a value has an output as otherwise it's useless
     #[serde(skip_deserializing)]

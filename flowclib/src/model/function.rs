@@ -6,6 +6,7 @@ use model::datatype::DataType;
 use model::datatype::HasDataType;
 use model::connection::HasRoute;
 use model::io::IO;
+use model::io::IOSet;
 use model::connection::Route;
 use loader::loader::Validate;
 use model::runnable::Runnable;
@@ -16,9 +17,9 @@ use url::Url;
 pub struct Function {
     pub name: Name,
     #[serde(rename = "input")]
-    pub inputs: Option<Vec<IO>>,
+    pub inputs: IOSet,
     #[serde(rename = "output")]
-    pub outputs: Option<Vec<IO>>,
+    pub outputs: IOSet,
 
     #[serde(skip_deserializing, default = "Function::default_url")]
     pub source_url: Url,

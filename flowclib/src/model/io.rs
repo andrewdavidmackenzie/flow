@@ -19,6 +19,8 @@ pub struct IO {
     pub route: Route,
 }
 
+pub type IOSet = Option<Vec<IO>>;
+
 impl HasName for IO {
     fn name(&self) -> &str {
         &self.name[..]
@@ -48,6 +50,17 @@ fn default_type() -> String {
 impl Validate for IO {
     fn validate(&self) -> Result<(), String> {
         self.datatype.valid()
+    }
+}
+
+impl Validate for IOSet {
+    fn validate(&self) -> Result<(), String> {
+        if let &Some(ref ios) = self {
+            for io in ios {
+                io.validate()?;
+            }
+        }
+        Ok(())
     }
 }
 
