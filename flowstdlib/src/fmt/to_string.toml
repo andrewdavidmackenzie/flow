@@ -1,7 +1,6 @@
 name = "ToString"
 
 [[input]]
-name = "in"
 type = "Number"
 
 [[output]]

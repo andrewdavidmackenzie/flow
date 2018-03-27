@@ -10,7 +10,7 @@ source = "lib://flowstdlib/fmt/to_string.toml"
 
 [[connection]]
 from = "flow/fib/series"
-to = "function/to_string/in"
+to = "function/to_string"
 
 [[function]]
 alias = "print"
