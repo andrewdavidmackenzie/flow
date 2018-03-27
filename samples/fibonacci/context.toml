@@ -18,4 +18,4 @@ source = "lib://flowstdlib/stdio/stdout.toml"
 
 [[connection]]
 from = "function/to_string"
-to = "function/print/stdout"
+to = "function/print"

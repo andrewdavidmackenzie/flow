@@ -11,4 +11,4 @@ source = "lib://flowstdlib/stdio/stdout.toml"
 [[connection]]
 name = "echo"
 from = "function/readline"
-to = "function/print/stdout"
+to = "function/print"

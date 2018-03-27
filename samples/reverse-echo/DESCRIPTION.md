@@ -8,6 +8,7 @@ Features Used
 * Custom function (in rust) with a structure on the output with sub-elements
 * Connections between functions
 * Connections from sub-elements of a function's output
+* Function with single input (stdout) not requiring input name
 
 Description
 ===
