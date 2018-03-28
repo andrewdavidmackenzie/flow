@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use generator::code_gen::CodeGenTables;
 use model::runnable::Runnable;
 use model::connection::Connection;
-use std::mem::swap;
 
 /*
     First build a table of input routes to (runnable_index, input_index) for all inputs of runnables,
@@ -14,9 +13,6 @@ use std::mem::swap;
     to point to the runnable (by index) and the runnable's input (by index) in the table
 */
 pub fn connect(tables: &mut CodeGenTables) -> Result<String, String> {
-    // TODO this only follows one jump into a sub-flow, it should follow the connection until it
-    // doesn't end at a flow, but a function or a value
-
     let (source_routes, destination_routes) = routes_table(&mut tables.runnables);
 
     debug!("Building connections");
@@ -76,12 +72,12 @@ fn routes_table(runnables: &mut Vec<Box<Runnable>>) -> (HashMap<Route, (String, 
     (source_route_table, destination_route_table)
 }
 
-pub fn collapse_connections(tables: & mut CodeGenTables) {
+pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Connection> {
     let mut collapsed_table: Vec<Connection> = Vec::new();
 
-    for left in &tables.connections {
+    for left in original_connections {
         if left.ends_at_flow {
-            for ref right in &tables.connections {
+            for ref right in original_connections {
                 if left.to_route == right.from_route {
                     // They are connected - modify first to go to destination of second
                     let mut joined_connection = left.clone();
@@ -96,6 +92,8 @@ pub fn collapse_connections(tables: & mut CodeGenTables) {
         }
     }
 
+    // TODO this only follows one jump into a sub-flow, it should follow the connection until it
+    // doesn't end at a flow, but a function or a value
     // Build the final connection table, leaving out the ones starting or ending at flow boundaries
     let mut final_table: Vec<Connection> = Vec::new();
     for connection in collapsed_table {
@@ -104,14 +102,13 @@ pub fn collapse_connections(tables: & mut CodeGenTables) {
         }
     }
 
-    swap(&mut tables.connections , &mut final_table);
+    final_table
 }
 
 #[cfg(test)]
 mod test {
     use model::connection::Connection;
     use super::collapse_connections;
-    use generator::code_gen::CodeGenTables;
 
     #[test]
     fn collapses_a_connection() {
@@ -139,13 +136,12 @@ mod test {
             ends_at_flow: false
         };
 
-        let mut tables = CodeGenTables::new();
-        tables.connections = vec!(left_side, right_side);
+        let connections = vec!(left_side, right_side);
 
-        collapse_connections(&mut tables);
-        assert_eq!(tables.connections.len(), 1);
-        assert_eq!(tables.connections[0].from_route, "/f1/a".to_string());
-        assert_eq!(tables.connections[0].to_route, "/f3/a".to_string());
+        let collapsed = collapse_connections(&connections);
+        assert_eq!(collapsed.len(), 1);
+        assert_eq!(collapsed[0].from_route, "/f1/a".to_string());
+        assert_eq!(collapsed[0].to_route, "/f3/a".to_string());
     }
 
     #[test]
@@ -174,9 +170,8 @@ mod test {
             ends_at_flow: false
         };
 
-        let mut tables = CodeGenTables::new();
-        tables.connections = vec!(one, other);
-        collapse_connections(&mut tables);
-        assert_eq!(tables.connections.len(), 2);
+        let connections = vec!(one, other);
+        let collapsed = collapse_connections(&connections);
+        assert_eq!(collapsed.len(), 2);
     }
 }

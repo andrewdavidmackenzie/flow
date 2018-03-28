@@ -1,10 +1,18 @@
 [![Build Status](https://travis-ci.org/andrewdavidmackenzie/flow.svg?branch=master)](https://travis-ci.org/andrewdavidmackenzie/flow)
 
 # Flow
+Flow is a library and cli creation and execution of asynchronous, data-driven, programs. See [Flow Programming] section below.
 
-Flow is a library, cli and app for the visual creation and execution of asynchronous, data-driven, programs. See [Flow Programming] section below.
+# Inspirations
+* Structured Analysis (and Design) from my work with it in HP the '80s!
+* Trace based compiler instruction scheduling work done at MultiFlow and later HP by Josh Fisher, Paolo Faraboschi and others
+* UNIX pipes
+* Amoeba distributed OS by Andrew Tannenbaum that made a collaborating network of computers appear as one to the user of a "Workstation"
 
-At the moment the app is just a skeleton Electron app while I play with it and learn Electron, and integrating library code written in rust and compiled to WebAssembly.
+# Project Idea
+
+# Future Plans
+Visual building of apps by creating and combining existing flows (which contain Functions and Values) into a hierarchy.
 
 ## Pre-requisites
 
