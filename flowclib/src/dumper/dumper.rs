@@ -23,7 +23,7 @@ pub fn dump_flow(flow: &Flow) {
 }
 
 pub fn dump_tables(tables: &CodeGenTables) {
-    print(tables.connections.iter(), "Collapsed Connections");
+    print(tables.collapsed_connections.iter(), "Collapsed Connections");
     print(tables.runnables.iter(), "Runnables");
     print(tables.libs.iter(), "Libraries");
     print(tables.lib_references.iter(), "Library references");

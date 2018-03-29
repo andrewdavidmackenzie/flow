@@ -15,6 +15,7 @@ use std::fmt;
 
 #[derive(Deserialize, Clone)]
 pub struct Value {
+    // TODO ADM this could use a single IO for it's only input, no?
     pub name: Name,
     #[serde(rename = "type")]
     pub datatype: DataType,

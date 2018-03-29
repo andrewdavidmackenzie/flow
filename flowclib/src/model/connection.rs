@@ -10,6 +10,7 @@ pub trait HasRoute {
     fn route(&self) -> &str;
 }
 
+// TODO ADM should be able to make connections use IO type now?
 #[derive(Deserialize, Debug, Clone)]
 pub struct Connection {
     pub name: Option<Name>,

@@ -13,6 +13,7 @@ const RUST: &CodeGenerator = &RustGenerator as &CodeGenerator;
 
 pub struct CodeGenTables {
     pub connections: Vec<Connection>,
+    pub collapsed_connections: Vec<Connection>,
     pub runnables: Vec<Box<Runnable>>,
     pub libs: HashSet<String>,
     pub lib_references: HashSet<String>,
@@ -22,6 +23,7 @@ impl CodeGenTables {
     pub fn new() -> Self {
         CodeGenTables {
             connections: Vec::new(),
+            collapsed_connections: Vec::new(),
             runnables: Vec::new(),
             libs: HashSet::new(),
             lib_references: HashSet::new(),

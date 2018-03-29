@@ -2,4 +2,3 @@
 pub mod compile;
 mod connector;
 mod gatherer;
-mod optimizer;
