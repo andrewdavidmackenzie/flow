@@ -2,9 +2,6 @@ use std::fmt;
 
 use model::name::Name;
 use model::name::HasName;
-use model::datatype::DataType;
-use model::datatype::HasDataType;
-use model::connection::HasRoute;
 use model::io::IO;
 use model::io::IOSet;
 use model::connection::Route;
@@ -48,11 +45,11 @@ impl Runnable for Function {
         self.id
     }
 
-    fn get_inputs(&self) -> Option<Vec<IO>> {
+    fn get_inputs(&self) -> IOSet {
         self.inputs.clone()
     }
 
-    fn get_outputs(&self) -> Option<Vec<IO>> {
+    fn get_outputs(&self) -> IOSet {
         self.outputs.clone()
     }
 
@@ -140,7 +137,11 @@ impl Default for Function {
         Function {
             name: "".to_string(),
             inputs: None,
-            outputs: Some(vec!(IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string() })),
+            outputs: Some(vec!(IO {
+                name: "".to_string(),
+                datatype: "Json".to_string(),
+                route: "".to_string(),
+                flow_io: false })),
             source_url: Function::default_url(),
             route: "".to_string(),
             lib_reference: None,
@@ -173,14 +174,11 @@ impl Function {
         }
     }
 
-    pub fn get<E: HasName + HasRoute + HasDataType>(&self,
-                                                    collection: &Option<Vec<E>>,
-                                                    name: &str)
-                                                    -> Result<(Route, DataType, bool), String> {
+    pub fn get(&self, collection: &IOSet, name: &str) -> Result<IO, String> {
         if let &Some(ref elements) = collection {
             for element in elements {
                 if element.name() == name {
-                    return Ok((format!("{}", element.route()), format!("{}", element.datatype()), false));
+                    return Ok(element.clone());
                 }
             }
             return Err(format!("No IO with name '{}' was found", name));

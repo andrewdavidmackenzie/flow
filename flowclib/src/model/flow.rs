@@ -1,10 +1,8 @@
 use model::name::Name;
 use model::name::HasName;
-use model::datatype::DataType;
-use model::connection::HasRoute;
 use model::connection::Connection;
-use model::datatype::HasDataType;
 use model::io::IO;
+use model::io::IOSet;
 use model::value::Value;
 use model::flow_reference::FlowReference;
 use model::connection::Route;
@@ -24,9 +22,9 @@ pub struct Flow {
     #[serde(rename = "value")]
     pub values: Option<Vec<Value>>,
     #[serde(rename = "input")]
-    pub inputs: Option<Vec<IO>>,
+    pub inputs: IOSet,
     #[serde(rename = "output")]
-    pub outputs: Option<Vec<IO>>,
+    pub outputs: IOSet,
     #[serde(rename = "connection")]
     pub connections: Option<Vec<Connection>>,
 
@@ -36,18 +34,6 @@ pub struct Flow {
     pub route: Route,
     #[serde(skip_deserializing)]
     pub lib_references: Vec<String>,
-}
-
-impl HasName for Flow {
-    fn name(&self) -> &str {
-        &self.name[..]
-    }
-}
-
-impl HasRoute for Flow {
-    fn route(&self) -> &str {
-        &self.route[..]
-    }
 }
 
 impl Validate for Flow {
@@ -179,6 +165,7 @@ impl Flow {
             debug!("Setting Input routes for flow '{}'", self.source_url);
             for ref mut input in ios {
                 input.route = format!("{}/{}", self.route, input.name);
+                input.flow_io = true;
                 debug!("Input route: '{}'", input.route);
             }
         }
@@ -187,23 +174,18 @@ impl Flow {
             debug!("Setting Output routes for flow '{}'", self.source_url);
             for ref mut output in ios {
                 output.route = format!("{}/{}", self.route, output.name);
+                output.flow_io = true;
                 debug!("Output route: '{}'", output.route);
             }
         }
     }
 
-    // Look through a collection of inputs, or outputs, to find one by name and return it's
-    // route and datatype and if starts/ends at a flow boundary
-    fn get<E: HasName + HasRoute + HasDataType>(&self,
-                                                collection: &Option<Vec<E>>,
-                                                element_name: &str)
-                                                -> Result<(Route, DataType, bool), String> {
+    // Look through an IOSet, to find one by name and return it
+    fn get(&self, collection: &IOSet, element_name: &str) -> Result<IO, String> {
         if let &Some(ref elements) = collection {
             for element in elements {
-                if element.name() == element_name {
-                    return Ok((format!("{}", element.route()),
-                               format!("{}", element.datatype()),
-                               true));
+                if element.name == element_name {
+                    return Ok(element.clone());
                 }
             }
             return Err(format!("No inout or output with name '{}' was found", element_name));
@@ -211,8 +193,7 @@ impl Flow {
         Err(format!("No inputs or outputs found when looking for input/output '{}'", element_name))
     }
 
-    fn get_io_subflow(&self, subflow_alias: &str, direction: Direction, io_name: &str)
-                      -> Result<(Route, DataType, bool), String> {
+    fn get_io_subflow(&self, subflow_alias: &str, direction: Direction, io_name: &str) -> Result<IO, String> {
         if let Some(ref flow_refs) = self.flow_refs {
             for flow_ref in flow_refs {
                 if flow_ref.name() == subflow_alias {
@@ -228,7 +209,7 @@ impl Flow {
         return Err("No subflows present".to_string());
     }
 
-    fn get_io_function(&self, function_alias: &str, direction: Direction, route: &str) -> Result<(Route, DataType, bool), String> {
+    fn get_io_function(&self, function_alias: &str, direction: Direction, route: &str) -> Result<IO, String> {
         if let Some(ref function_refs) = self.function_refs {
             for function_ref in function_refs {
                 if function_ref.name() == function_alias {
@@ -246,12 +227,18 @@ impl Flow {
                            self.name, route));
     }
 
-    fn get_io_value(&self, value_name: &str, direction: Direction, route: &str) -> Result<(Route, DataType, bool), String> {
+    fn get_io_value(&self, value_name: &str, direction: Direction, route: &str) -> Result<IO, String> {
         if let &Some(ref values) = &self.values {
             for value in values {
                 if value.name == value_name {
                     return match direction {
-                        Direction::TO => Ok((value.route.clone(), value.datatype.clone(), false)),
+                        // TODO ADM remove when value uses IO
+                        Direction::TO => Ok(IO {
+                            name: "".to_string(),
+                            route: value.route.clone(),
+                            datatype: value.datatype.clone(),
+                            flow_io: false
+                        }),
                         Direction::FROM => value.get_output(route)
                     };
                 }
@@ -262,7 +249,7 @@ impl Flow {
         return Err("No values present".to_string());
     }
 
-    pub fn get_route_and_type(&mut self, direction: Direction, conn_descriptor: &str) -> Result<(Route, DataType, bool), String> {
+    pub fn get_route_and_type(&mut self, direction: Direction, conn_descriptor: &str) -> Result<IO, String> {
         let mut segments: Vec<&str> = conn_descriptor.split('/').collect();
         let object_type = segments.remove(0); // first part is type of object
         let object_name = segments.remove(0); // second part is the name of it

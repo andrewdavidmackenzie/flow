@@ -18,9 +18,22 @@ pub struct IO {
 
     #[serde(skip_deserializing)]
     pub route: Route,
+    #[serde(skip_deserializing)]
+    pub flow_io: bool,
 }
 
 pub type IOSet = Option<Vec<IO>>;
+
+impl Default for IO {
+    fn default() -> Self {
+        IO {
+            name: "".to_string(),
+            datatype: "Json".to_string(),
+            route: "".to_string(),
+            flow_io: false,
+        }
+    }
+}
 
 impl HasName for IO {
     fn name(&self) -> &str {
@@ -62,7 +75,7 @@ impl Validate for IOSet {
                 io.validate()?;
 
                 if io.name.is_empty() && ios.len() > 0 {
-                    return Err("Cannot have empty IO name when there are multiple IOs".to_string())
+                    return Err("Cannot have empty IO name when there are multiple IOs".to_string());
                 }
 
                 if !name_set.insert(&io.name) {
@@ -178,11 +191,13 @@ mod test {
             name: "io_name".to_string(),
             datatype: "String".to_string(),
             route: "".to_string(),
+            flow_io: false,
         };
         let io1 = IO {
             name: "different_name".to_string(),
             datatype: "String".to_string(),
             route: "".to_string(),
+            flow_io: false,
         };
         let ioset = Some(vec!(io0, io1));
         ioset.validate().unwrap()
@@ -195,6 +210,7 @@ mod test {
             name: "io_name".to_string(),
             datatype: "String".to_string(),
             route: "".to_string(),
+            flow_io: false,
         };
         let io1 = io0.clone();
         let ioset = Some(vec!(io0, io1));
@@ -208,11 +224,13 @@ mod test {
             name: "io_name".to_string(),
             datatype: "String".to_string(),
             route: "".to_string(),
+            flow_io: false,
         };
         let io1 = IO {
             name: "".to_string(),
             datatype: "String".to_string(),
             route: "".to_string(),
+            flow_io: false,
         };
         let ioset = Some(vec!(io0, io1));
         ioset.validate().unwrap()

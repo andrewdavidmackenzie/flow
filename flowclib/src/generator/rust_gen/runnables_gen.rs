@@ -140,7 +140,7 @@ fn runnable_to_code(runnable: &Box<Runnable>) -> String {
 
     // Add tuples of this function's output routes to runnables and the input it's connected to
     code.push_str(" vec!(");
-    debug!("Function '{}' output routes: {:?}", runnable.name(), runnable.get_output_routes());
+    debug!("Runnable '{}' output routes: {:?}", runnable.name(), runnable.get_output_routes());
     for ref route in runnable.get_output_routes() {
         if route.0.is_empty() {
             code.push_str(&format!("(\"\", {}, {}),", route.1, route.2));
@@ -172,7 +172,11 @@ mod test {
             datatype: "String".to_string(),
             value: Some(JsonValue::String("Hello-World".to_string())),
             route: "/flow0/value".to_string(),
-            outputs: Some(vec!(IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string() })),
+            outputs: Some(vec!(IO {
+                name: "".to_string(),
+                datatype: "Json".to_string(),
+                route: "".to_string(),
+                flow_io: false })),
             output_connections: vec!(("".to_string(), 1, 0)),
             id: 1,
         };
@@ -190,8 +194,8 @@ mod test {
             value: Some(JsonValue::String("Hello-World".to_string())),
             route: "/flow0/value".to_string(),
             outputs: Some(vec!(
-                IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string() },
-                IO { name: "sub_route".to_string(), datatype: "String".to_string(), route: "".to_string() }
+                IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string(), flow_io: false },
+                IO { name: "sub_route".to_string(), datatype: "String".to_string(), route: "".to_string(), flow_io: false }
             )),
             output_connections: vec!(("".to_string(), 1, 0), ("sub_route".to_string(), 2, 0)),
             id: 1,
@@ -208,8 +212,8 @@ mod test {
             name: "Stdout".to_string(),
             inputs: Some(vec!()),
             outputs: Some(vec!(
-                IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string() },
-                IO { name: "sub_route".to_string(), datatype: "String".to_string(), route: "".to_string() }
+                IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string(), flow_io: false },
+                IO { name: "sub_route".to_string(), datatype: "String".to_string(), route: "".to_string(), flow_io: false }
             )),
             source_url: Url::parse("file:///fake/file").unwrap(),
             route: "/flow0/stdout".to_string(),

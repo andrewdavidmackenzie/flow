@@ -1,6 +1,6 @@
 use model::name::Name;
-use model::datatype::DataType;
 use loader::loader::Validate;
+use model::io::IO;
 
 use std::fmt;
 
@@ -10,26 +10,16 @@ pub trait HasRoute {
     fn route(&self) -> &str;
 }
 
-// TODO ADM should be able to make connections use IO type now?
 #[derive(Deserialize, Debug, Clone)]
 pub struct Connection {
     pub name: Option<Name>,
+    pub from: Route,
+    pub to: Route,
 
-    pub from: Name,
     #[serde(skip_deserializing)]
-    pub from_route: Route,
+    pub from_io: IO,
     #[serde(skip_deserializing)]
-    pub from_type: DataType,
-    #[serde(skip_deserializing)]
-    pub starts_at_flow: bool,
-
-    pub to: Name,
-    #[serde(skip_deserializing)]
-    pub to_route: Route,
-    #[serde(skip_deserializing)]
-    pub to_type: DataType,
-    #[serde(skip_deserializing)]
-    pub ends_at_flow: bool
+    pub to_io: IO
 }
 
 #[derive(Debug)]
@@ -39,11 +29,11 @@ pub enum Direction {
 
 impl fmt::Display for Connection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match (self.starts_at_flow, self.ends_at_flow) {
-            (true, true)   => write!(f, "(f){} --> (f){}", self.from_route, self.to_route),
-            (true, false)  => write!(f, "(f){} --> {}", self.from_route, self.to_route),
-            (false, true)  => write!(f, "{} --> (f){}", self.from_route, self.to_route),
-            (false, false) => write!(f, "{} --> {}", self.from_route, self.to_route)
+        match (self.from_io.flow_io, self.to_io.flow_io) {
+            (true, true)   => write!(f, "(f){} --> (f){}", self.from_io.route, self.to_io.route),
+            (true, false)  => write!(f, "(f){} --> {}", self.from_io.route, self.to_io.route),
+            (false, true)  => write!(f, "{} --> (f){}", self.from_io.route, self.to_io.route),
+            (false, false) => write!(f, "{} --> {}", self.from_io.route, self.to_io.route)
         }
     }
 }

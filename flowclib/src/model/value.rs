@@ -63,17 +63,18 @@ impl Runnable for Value {
         self.id
     }
 
-    fn get_inputs(&self) -> Option<Vec<IO>> {
+    fn get_inputs(&self) -> IOSet {
         let value_input = IO {
             name: "".to_string(),
             datatype: self.datatype.clone(),
-            route: self.route.clone()
+            route: self.route.clone(),
+            flow_io: false
         };
 
         Some(vec!(value_input))
     }
 
-    fn get_outputs(&self) -> Option<Vec<IO>> {
+    fn get_outputs(&self) -> IOSet {
         self.outputs.clone()
     }
 
@@ -136,6 +137,7 @@ impl Value {
                 name: "".to_string(),
                 datatype: self.datatype.clone(),
                 route: self.route.clone(),
+                flow_io: false
             };
             outputs.insert(0, base_output);
 
@@ -150,11 +152,11 @@ impl Value {
         }
     }
 
-    pub fn get_output(&self, route: &str) -> Result<(Route, DataType, bool), String> {
+    pub fn get_output(&self, route: &str) -> Result<IO, String> {
         if let &Some(ref outputs) = &self.outputs {
             for output in outputs {
-                if output.name() == route {
-                    return Ok((format!("{}", output.route()), format!("{}", output.datatype()), false));
+                if output.name == route {
+                    return Ok(output.clone());
                 }
             }
             return Err(format!("No output with name '{}' was found", route));
@@ -359,10 +361,10 @@ mod test {
         let mut value: Value = toml::from_str(value_str).unwrap();
         value.set_routes("/flow");
 
-        let (output_route, datatype, ends_at_flow) = value.get_output("").unwrap();
-        assert_eq!(output_route, "/flow/test_value");
-        assert_eq!(datatype, "Json");
-        assert_eq!(ends_at_flow, false);
+        let output = value.get_output("").unwrap();
+        assert_eq!(output.route, "/flow/test_value");
+        assert_eq!(output.datatype, "Json");
+        assert_eq!(output.flow_io, false);
     }
 
 
@@ -382,9 +384,9 @@ mod test {
         let mut value: Value = toml::from_str(value_str).unwrap();
         value.set_routes("/flow");
 
-        let (output_route, datatype, ends_at_flow) = value.get_output("sub_output").unwrap();
-        assert_eq!(output_route, "/flow/test_value/sub_output");
-        assert_eq!(datatype, "String");
-        assert_eq!(ends_at_flow, false);
+        let output = value.get_output("sub_output").unwrap();
+        assert_eq!(output.route, "/flow/test_value/sub_output");
+        assert_eq!(output.datatype, "String");
+        assert_eq!(output.flow_io, false);
     }
 }

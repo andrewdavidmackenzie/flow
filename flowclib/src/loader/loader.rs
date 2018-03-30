@@ -180,19 +180,17 @@ fn build_connections(flow: &mut Flow) -> Result<(), String> {
     let mut connections = connections.unwrap();
 
     for connection in connections.iter_mut() {
-        if let Ok((from_route, from_type, starts_at_flow)) = flow.get_route_and_type(FROM,&connection.from) {
-            debug!("Found source of connection: route = '{}', type = '{}'", from_route, from_type);
-            if let Ok((to_route, to_type, ends_at_flow)) = flow.get_route_and_type(TO,&connection.to) {
-                debug!("Found destination of connection: route = '{}', type = '{}'", to_route, to_type);
-                if from_type == to_type {
+        if let Ok(from) = flow.get_route_and_type(FROM,&connection.from) {
+            debug!("Found source of connection: '{}'", from);
+            if let Ok(to) = flow.get_route_and_type(TO,&connection.to) {
+                debug!("Found destination of connection: '{}'", to);
+                if from.datatype == to.datatype {
                     debug!("Connection source and destination types match, connection built");
-                    connection.from_route = from_route;
-                    connection.starts_at_flow = starts_at_flow;
-                    connection.to_route = to_route;
-                    connection.ends_at_flow = ends_at_flow;
+                    connection.from_io = from;
+                    connection.to_io = to;
                 } else {
-                    error!("Type mismatch in connection from '{}' of type '{}' to '{}' of type '{}' specified in flow '{}'",
-                           from_route, from_type, to_route, to_type, flow.source_url);
+                    error!("Type mismatch in connection from '{}' to '{}' specified in flow '{}'",
+                           from, to, flow.source_url);
                     error_count += 1;
                 }
             } else {

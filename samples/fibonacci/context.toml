@@ -8,13 +8,13 @@ source="fib.toml"
 alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string.toml"
 
-[[connection]]
-from = "flow/fib/series"
-to = "function/to_string"
-
 [[function]]
 alias = "print"
 source = "lib://flowstdlib/stdio/stdout.toml"
+
+[[connection]]
+from = "flow/fib/series"
+to = "function/to_string"
 
 [[connection]]
 from = "function/to_string"
