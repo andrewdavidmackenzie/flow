@@ -69,7 +69,7 @@ impl Runnable for Function {
 
         return match result {
             Ok(output) => output,
-            Err(e) => {
+            Err(_) => {
                 error!("Error while executing runnable #{} '{}'", self.id, self.name());
                 JsonValue::Null
             }
