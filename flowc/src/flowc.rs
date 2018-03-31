@@ -107,7 +107,7 @@ fn run_flow(command: (String, Vec<String>)) -> Result<String, String> {
         .stderr(Stdio::piped())
         .output().map_err(|e| e.to_string())?;
     match output.status.code() {
-        Some(0) => Ok("Flow ran successfully".to_string()),
+        Some(0) => Ok("Flow ran to completion".to_string()),
         Some(code) => {
             error!("Process STDERR:\n{}", String::from_utf8_lossy(&output.stderr));
             Err(format!("Exited with status code: {}", code))

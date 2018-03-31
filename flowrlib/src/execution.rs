@@ -2,6 +2,7 @@ use runnable::Runnable;
 use std::sync::{Arc, Mutex};
 use runlist::RunList;
 use serde_json::Value as JsonValue;
+use std::panic;
 
 /// The generated code for a flow consists of values and functions formed into a list of Runnables.
 ///
@@ -28,6 +29,15 @@ use serde_json::Value as JsonValue;
 /// ```
 pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) {
     let mut run_list = init(runnables);
+
+    panic::set_hook(Box::new(|panic_info| {
+        if let Some(location) = panic_info.location() {
+            println!("panic occurred in file '{}' at line {}", location.file(),
+                     location.line());
+        } else {
+            println!("panic occurred but can't get location information...");
+        }
+    }));
 
     debug!("Starting execution loop");
     while let Some(id) = run_list.next() {

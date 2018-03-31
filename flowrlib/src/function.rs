@@ -2,6 +2,7 @@ use serde_json::Value as JsonValue;
 use runnable::Runnable;
 use implementation::Implementation;
 use std::mem::replace;
+use std::panic;
 
 pub struct Function {
     name: String,
@@ -12,7 +13,7 @@ pub struct Function {
     num_inputs_pending: usize,
     inputs: Vec<JsonValue>,
 
-    output_routes: Vec<(& 'static str, usize, usize)>,
+    output_routes: Vec<(&'static str, usize, usize)>,
 }
 
 impl Function {
@@ -21,7 +22,7 @@ impl Function {
                id: usize,
                implementation: Box<Implementation>,
                _initial_value: Option<JsonValue>,
-               output_routes: Vec<(& 'static str, usize, usize)>)
+               output_routes: Vec<(&'static str, usize, usize)>)
                -> Function {
         Function {
             name,
@@ -61,10 +62,21 @@ impl Runnable for Function {
     fn run(&mut self) -> JsonValue {
         let inputs = replace(&mut self.inputs, vec![JsonValue::Null; self.number_of_inputs]);
         self.num_inputs_pending = self.number_of_inputs;
-        self.implementation.run(inputs)
+
+        let result = panic::catch_unwind(|| {
+            self.implementation.run(inputs)
+        });
+
+        return match result {
+            Ok(output) => output,
+            Err(e) => {
+                error!("Error while executing runnable #{} '{}'", self.id, self.name());
+                JsonValue::Null
+            }
+        };
     }
 
-    fn output_destinations(&self) -> &Vec<(& 'static str, usize, usize)> {
+    fn output_destinations(&self) -> &Vec<(&'static str, usize, usize)> {
         &self.output_routes
     }
 }
