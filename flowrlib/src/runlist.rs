@@ -227,7 +227,7 @@ mod tests {
         let mut runs = RunList::new();
         runs.set_runnables(runnables);
 
-// Indicate that 0 is blocked by 1
+        // Indicate that 0 is blocked by 1
         runs.blocked_by(1, 0);
         assert!(runs.is_blocked(0));
     }
@@ -257,7 +257,7 @@ mod tests {
         let mut runs = RunList::new();
         runs.set_runnables(runnables);
 
-// Indicate that 0 has all it's inputs read
+        // Indicate that 0 has all it's inputs read
         runs.inputs_ready(0);
 
         assert_eq!(runs.next().unwrap(), 0);
@@ -269,10 +269,10 @@ mod tests {
         let mut runs = RunList::new();
         runs.set_runnables(runnables);
 
-// Indicate that 0 is blocked by 1
+        // Indicate that 0 is blocked by 1
         runs.blocked_by(1, 0);
 
-// Indicate that 0 has all it's inputs read
+        // Indicate that 0 has all it's inputs read
         runs.inputs_ready(0);
 
         match runs.next() {
@@ -287,15 +287,15 @@ mod tests {
         let mut runs = RunList::new();
         runs.set_runnables(runnables);
 
-// Indicate that 0 is blocked by 1
+        // Indicate that 0 is blocked by 1
         runs.blocked_by(1, 0);
 
-// Indicate that 0 has all it's inputs read
+        // Indicate that 0 has all it's inputs read
         runs.inputs_ready(0);
 
         assert!(runs.next().is_none());
 
-// now unblock 0 by 1
+        // now unblock 0 by 1
         runs.unblock_by(1);
 
         assert_eq!(runs.next().unwrap(), 0);
