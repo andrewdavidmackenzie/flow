@@ -15,7 +15,6 @@ use std::fmt;
 
 #[derive(Deserialize, Clone)]
 pub struct Value {
-    // TODO ADM this could use a single IO for it's only input, no?
     pub name: Name,
     #[serde(rename = "type")]
     pub datatype: DataType,
@@ -150,6 +149,15 @@ impl Value {
                 }
             }
         }
+    }
+
+    pub fn get_input(&self) -> Result<IO, String> {
+        Ok(IO {
+            name: "".to_string(),
+            route: self.route.clone(),
+            datatype: self.datatype.clone(),
+            flow_io: false
+        })
     }
 
     pub fn get_output(&self, route: &str) -> Result<IO, String> {

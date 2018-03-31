@@ -232,13 +232,7 @@ impl Flow {
             for value in values {
                 if value.name == value_name {
                     return match direction {
-                        // TODO ADM remove when value uses IO
-                        Direction::TO => Ok(IO {
-                            name: "".to_string(),
-                            route: value.route.clone(),
-                            datatype: value.datatype.clone(),
-                            flow_io: false
-                        }),
+                        Direction::TO => value.get_input(),
                         Direction::FROM => value.get_output(route)
                     };
                 }
