@@ -1,7 +1,6 @@
 use runnable::Runnable;
 use std::sync::{Arc, Mutex};
 use runlist::RunList;
-use serde_json::Value as JsonValue;
 use std::panic;
 
 /// The generated code for a flow consists of values and functions formed into a list of Runnables.
@@ -41,20 +40,19 @@ pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) {
 
     debug!("Starting execution loop");
     while let Some(id) = run_list.next() {
-        let runnable_arc = run_list.get(id);
-        let mut runnable: &mut Runnable = &mut *runnable_arc.lock().unwrap();
-
-        debug!("Running runnable: #{} '{}'", id, runnable.name());
-        let output = runnable.run();
-
-        if output != JsonValue::Null {
-            debug!("\tProcessing output of runnable: #{} '{}'", id, runnable.name());
-            run_list.process_output(&*runnable, output);
-        }
+        dispatch(&mut run_list, id);
     }
     debug!("Ended execution loop");
 
     run_list.end();
+}
+
+fn dispatch(run_list: &mut RunList, id: usize) {
+    let runnable_arc = run_list.get(id);
+    let runnable: &mut Runnable = &mut *runnable_arc.lock().unwrap();
+
+    debug!("Running runnable: #{} '{}'", id, runnable.name());
+    runnable.execute(run_list);
 }
 
 /*

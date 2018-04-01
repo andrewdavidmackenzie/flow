@@ -5,10 +5,10 @@ use std::collections::HashMap;
 use std::fmt;
 use std::time::Instant;
 
-struct Metrics {
+pub struct Metrics {
     num_runnables: usize,
     invocations: u32,
-    outputs_sent: u32,
+    pub outputs_sent: u32,
     start_time: Instant,
 }
 
@@ -56,11 +56,11 @@ impl fmt::Display for Metrics {
     blocked on the output (so their output can be produced).
 */
 pub struct RunList {
-    runnables: Vec<Arc<Mutex<Runnable>>>,
+    pub runnables: Vec<Arc<Mutex<Runnable>>>,
     inputs_satisfied: HashMap<usize, usize>,
     blocking: Vec<(usize, usize)>,
     ready: Vec<usize>,
-    metrics: Metrics,
+    pub metrics: Metrics,
 }
 
 impl RunList {
@@ -118,12 +118,6 @@ impl RunList {
         if those other runnables have all their inputs, then mark them accordingly.
     */
     pub fn process_output(&mut self, runnable: &Runnable, output: JsonValue) {
-        if !runnable.output_destinations().is_empty() {
-            debug!("\tRunnable #{} '{}' has output connections: {:?}",
-                   runnable.id(), runnable.name(),
-                   runnable.output_destinations());
-        }
-
         for &(output_route, destination_id, io_number) in runnable.output_destinations() {
             let destination_arc = Arc::clone(&self.runnables[destination_id]);
             let mut destination = destination_arc.lock().unwrap();
@@ -141,7 +135,7 @@ impl RunList {
     }
 
     // Save the fact that the runnable 'blocked_id' is blocked on it's output by 'blocking_id'
-    fn blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
+    pub fn blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
         debug!("\tRunnable #{} is blocked on output by runnable #{}", &blocked_id, &blocking_id);
         self.blocking.push((blocking_id, blocked_id));
     }
