@@ -2,7 +2,8 @@ use serde_json::Value as JsonValue;
 use runnable::Runnable;
 use implementation::Implementation;
 use std::mem::replace;
-use std::panic;
+use std::panic::RefUnwindSafe;
+use std::panic::UnwindSafe;
 
 pub struct Function {
     name: String,
@@ -36,6 +37,9 @@ impl Function {
     }
 }
 
+impl RefUnwindSafe for Function {}
+impl UnwindSafe for Function {}
+
 impl Runnable for Function {
     fn name(&self) -> &str { &self.name }
 
@@ -49,6 +53,9 @@ impl Runnable for Function {
     }
 
     fn write_input(&mut self, input_number: usize, input_value: JsonValue) {
+        if self.inputs[input_number] != JsonValue::Null {
+            error!("Overwriting input that has not been consumed");
+        }
         self.inputs[input_number] = input_value;
         self.num_inputs_pending -= 1;
     }
@@ -58,76 +65,42 @@ impl Runnable for Function {
         self.num_inputs_pending == 0
     }
 
-    // Consume the inputs, reset the number of pending inputs and run the implementation
-    fn run(&mut self) -> JsonValue {
+    fn get_inputs(&mut self) -> Vec<JsonValue> {
         let inputs = replace(&mut self.inputs, vec![JsonValue::Null; self.number_of_inputs]);
         self.num_inputs_pending = self.number_of_inputs;
-
-        let result = panic::catch_unwind(|| {
-            self.implementation.run(inputs)
-        });
-
-        return match result {
-            Ok(output) => output,
-            Err(_) => {
-                error!("Error while executing runnable #{} '{}'", self.id, self.name());
-                JsonValue::Null
-            }
-        };
+        inputs
     }
 
-    fn output_destinations(&self) -> &Vec<(&'static str, usize, usize)> {
-        &self.output_routes
-    }
+    fn output_destinations(&self) -> &Vec<(&'static str, usize, usize)> { &self.output_routes }
+
+    fn implementation(&self) -> &Box<Implementation> { &self.implementation }
 }
 
 
 #[cfg(test)]
 mod test {
-    use super::Function;
     use super::super::implementation::Implementation;
     use serde_json::value::Value as JsonValue;
+    use super::super::runlist::RunList;
+    use super::super::runnable::Runnable;
 
     struct TestFunction;
 
     impl Implementation for TestFunction {
-        fn run(&self, mut inputs: Vec<JsonValue>) -> JsonValue {
-            inputs.remove(0)
+        fn run(&self, runnable: &Runnable, mut inputs: Vec<JsonValue>, run_list: &mut RunList) {
+            run_list.send_output(runnable, inputs.remove(0));
         }
     }
 
     #[test]
     fn destructure_output_base_route() {
-        let function = Function {
-            name: "test_function".to_string(),
-            number_of_inputs: 0,
-            id: 0,
-            implementation: Box::new(TestFunction),
-            num_inputs_pending: 0,
-            inputs: vec!(),
-            output_routes: vec!(("", 1, 0)),
-        };
-
-        let output = function.implementation.run(vec!(json!("simple")));
-
-        assert_eq!(output.pointer("").unwrap(), "simple");
+        let json = json!("simple");
+        assert_eq!(json.pointer("").unwrap(), "simple");
     }
 
     #[test]
     fn destructure_json_value() {
         let json: JsonValue = json!({ "sub_route": "sub_output" });
-
-        let function = Function {
-            name: "test_function".to_string(),
-            number_of_inputs: 0,
-            id: 0,
-            implementation: Box::new(TestFunction),
-            num_inputs_pending: 0,
-            inputs: vec!(),
-            output_routes: vec!(("", 1, 0)),
-        };
-
-        let output = function.implementation.run(vec!(json.clone()));
-        assert_eq!(output.pointer("/sub_route").unwrap(), "sub_output");
+        assert_eq!(json.pointer("/sub_route").unwrap(), "sub_output");
     }
 }

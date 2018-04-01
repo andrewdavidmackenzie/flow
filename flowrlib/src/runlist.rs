@@ -1,9 +1,11 @@
-use serde_json::Value as JsonValue;
 use runnable::Runnable;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::fmt;
 use std::time::Instant;
+use serde_json::Value as JsonValue;
+use std::panic::RefUnwindSafe;
+use std::panic::UnwindSafe;
 
 pub struct Metrics {
     num_runnables: usize,
@@ -63,6 +65,9 @@ pub struct RunList {
     pub metrics: Metrics,
 }
 
+impl RefUnwindSafe for RunList {}
+impl UnwindSafe for RunList {}
+
 impl RunList {
     pub fn new() -> Self {
         RunList {
@@ -103,7 +108,7 @@ impl RunList {
     // to run (if not blocked sending on it's output)
     pub fn inputs_ready(&mut self, id: usize) {
         if !self.is_blocked(id) {
-            debug!("\tRunnable #{} inputs all satisfied, not blocked on output, marked as ready", id);
+            debug!("\tRunnable #{} inputs all satisfied, not blocked on output, added to end of READY list", id);
             self.ready.push(id);
         }
     }
@@ -117,19 +122,21 @@ impl RunList {
         sent to, marking the source runnable as blocked because those others must consume the output
         if those other runnables have all their inputs, then mark them accordingly.
     */
-    pub fn process_output(&mut self, runnable: &Runnable, output: JsonValue) {
-        for &(output_route, destination_id, io_number) in runnable.output_destinations() {
-            let destination_arc = Arc::clone(&self.runnables[destination_id]);
-            let mut destination = destination_arc.lock().unwrap();
-            let output_value = output.pointer(output_route).unwrap();
-            debug!("\tSending output '{}' from runnable #{} '{}' @route '{}' to runnable #{} '{}' input #{}",
-                   output_value, runnable.id(), runnable.name(), output_route, &destination_id,
-                   destination.name(), &io_number);
-            self.blocked_by(destination_id, runnable.id());
-            self.metrics.outputs_sent += 1;
-            destination.write_input(io_number, output_value.clone());
-            if destination.inputs_satisfied() {
-                self.inputs_ready(destination_id);
+    pub fn send_output(&mut self, runnable: &Runnable, output: JsonValue) {
+        if output != JsonValue::Null {
+            for &(output_route, destination_id, io_number) in runnable.output_destinations() {
+                let destination_arc = Arc::clone(&self.runnables[destination_id]);
+                let mut destination = destination_arc.lock().unwrap();
+                let output_value = output.pointer(output_route).unwrap();
+                debug!("\tSending output '{}' from runnable #{} '{}' @route '{}' to runnable #{} '{}' input #{}",
+                       output_value, runnable.id(), runnable.name(), output_route, &destination_id,
+                       destination.name(), &io_number);
+                self.blocked_by(destination_id, runnable.id());
+                self.metrics.outputs_sent += 1;
+                destination.write_input(io_number, output_value.clone());
+                if destination.inputs_satisfied() {
+                    self.inputs_ready(destination_id);
+                }
             }
         }
     }
@@ -180,10 +187,20 @@ mod tests {
     use std::sync::{Arc, Mutex};
     use serde_json;
     use serde_json::Value as JsonValue;
+    use super::super::implementation::Implementation;
+
+    struct TestImplementation;
+
+    impl Implementation for TestImplementation {
+        fn run(&self, runnable: &Runnable, inputs: Vec<JsonValue>, run_list: &mut RunList) {
+            run_list.send_output(runnable, inputs.get(0).unwrap().clone())
+        }
+    }
 
     struct TestRunnable {
         id: usize,
         destinations: Vec<(&'static str, usize, usize)>,
+        implementation: Box<Implementation>
     }
 
     impl TestRunnable {
@@ -191,6 +208,7 @@ mod tests {
             TestRunnable {
                 id,
                 destinations: vec!(("", 1, 0)),
+                implementation: Box::new(TestImplementation)
             }
         }
     }
@@ -202,8 +220,9 @@ mod tests {
         fn init(&mut self) -> bool { false }
         fn write_input(&mut self, _input_number: usize, _new_value: JsonValue) {}
         fn inputs_satisfied(&self) -> bool { false }
-        fn run(&mut self) -> JsonValue { serde_json::from_str("Output").unwrap() }
+        fn get_inputs(&mut self) -> Vec<JsonValue> {vec!(serde_json::from_str("Input").unwrap())}
         fn output_destinations(&self) -> &Vec<(&'static str, usize, usize)> { &self.destinations }
+        fn implementation(&self) -> &Box<Implementation> { &self.implementation }
     }
 
     fn test_runnables() -> Vec<Arc<Mutex<Runnable>>> {

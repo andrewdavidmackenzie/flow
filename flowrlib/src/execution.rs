@@ -27,16 +27,8 @@ use std::panic;
 /// exit(0);
 /// ```
 pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) {
+    set_panic_hook();
     let mut run_list = init(runnables);
-
-    panic::set_hook(Box::new(|panic_info| {
-        if let Some(location) = panic_info.location() {
-            println!("panic occurred in file '{}' at line {}", location.file(),
-                     location.line());
-        } else {
-            println!("panic occurred but can't get location information...");
-        }
-    }));
 
     debug!("Starting execution loop");
     while let Some(id) = run_list.next() {
@@ -47,12 +39,33 @@ pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) {
     run_list.end();
 }
 
+/*
+    Given a runnable id, start running it
+*/
 fn dispatch(run_list: &mut RunList, id: usize) {
     let runnable_arc = run_list.get(id);
     let runnable: &mut Runnable = &mut *runnable_arc.lock().unwrap();
 
     debug!("Running runnable: #{} '{}'", id, runnable.name());
-    runnable.execute(run_list);
+    let inputs = runnable.get_inputs();
+    let implementation = runnable.implementation();
+    implementation.run(runnable, inputs, run_list);
+    debug!("Runnable: #{} '{}' completed", id, runnable.name());
+}
+
+/*
+    Replace the standard panic hook with one that just outputs the file and line of any runnable's
+    runtime panic.
+*/
+fn set_panic_hook() {
+    panic::set_hook(Box::new(|panic_info| {
+        if let Some(location) = panic_info.location() {
+            error!("panic occurred in file '{}' at line {}", location.file(), location.line());
+        } else {
+            error!("panic occurred but can't get location information...");
+        }
+    }));
+    debug!("Panic hook set to catch panics in runnables");
 }
 
 /*

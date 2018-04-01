@@ -1,15 +1,17 @@
 use serde_json::Value as JsonValue;
 use serde_json::Value::Number;
 use flowrlib::implementation::Implementation;
+use flowrlib::runlist::RunList;
+use flowrlib::runnable::Runnable;
 
 pub struct ToString;
 
 impl Implementation for ToString {
-    fn run(&self, mut inputs: Vec<JsonValue>) -> JsonValue {
+    fn run(&self, runnable: &Runnable, mut inputs: Vec<JsonValue>, run_list: &mut RunList) {
         let input = inputs.remove(0);
         match &input {
-            &Number(ref n) => JsonValue::String(n.to_string()),
-            _ => JsonValue::Null
+            &Number(ref n) => run_list.send_output(runnable, JsonValue::String(n.to_string())),
+            _ => {}
         }
     }
 }
