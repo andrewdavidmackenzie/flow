@@ -10,7 +10,7 @@ use std::panic::UnwindSafe;
 pub struct Metrics {
     num_runnables: usize,
     invocations: u32,
-    pub outputs_sent: u32,
+    outputs_sent: u32,
     start_time: Instant,
 }
 
@@ -58,11 +58,11 @@ impl fmt::Display for Metrics {
     blocked on the output (so their output can be produced).
 */
 pub struct RunList {
-    pub runnables: Vec<Arc<Mutex<Runnable>>>,
+    runnables: Vec<Arc<Mutex<Runnable>>>,
     inputs_satisfied: HashMap<usize, usize>,
     blocking: Vec<(usize, usize)>,
     ready: Vec<usize>,
-    pub metrics: Metrics,
+    metrics: Metrics,
 }
 
 impl RefUnwindSafe for RunList {}

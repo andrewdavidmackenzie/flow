@@ -81,18 +81,7 @@ impl Runnable for Value {
 
 #[cfg(test)]
 mod test {
-    use super::super::implementation::Implementation;
     use serde_json::Value as JsonValue;
-    use super::super::runlist::RunList;
-    use super::super::runnable::Runnable;
-
-    struct TestValue;
-
-    impl Implementation for TestValue {
-        fn run(&self, runnable: &Runnable, mut inputs: Vec<JsonValue>, run_list: &mut RunList) {
-            run_list.send_output(runnable, inputs.remove(0));
-        }
-    }
 
     #[test]
     fn destructure_output_base_route() {
