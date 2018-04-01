@@ -181,16 +181,16 @@ fn build_connections(flow: &mut Flow) -> Result<(), String> {
 
     for connection in connections.iter_mut() {
         if let Ok(from) = flow.get_route_and_type(FROM,&connection.from) {
-            debug!("Found source of connection: '{}'", from);
+            debug!("Found source of connection:\n\t{}", from);
             if let Ok(to) = flow.get_route_and_type(TO,&connection.to) {
-                debug!("Found destination of connection: '{}'", to);
-                if from.datatype == to.datatype {
+                debug!("Found destination of connection:\n\t{}", to);
+                if from.datatype == to.datatype || to.datatype == "Json" {
                     debug!("Connection source and destination types match, connection built");
                     connection.from_io = from;
                     connection.to_io = to;
                 } else {
-                    error!("Type mismatch in connection from '{}' to '{}' specified in flow '{}'",
-                           from, to, flow.source_url);
+                    error!("Type mismatch in flow '{}' connection from\n\t{}\n\tto\n\n\t{}",
+                           flow.source_url, from, to);
                     error_count += 1;
                 }
             } else {
