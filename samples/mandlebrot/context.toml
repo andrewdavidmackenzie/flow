@@ -1,0 +1,13 @@
+name = "mandlebrot"
+
+[[function]]
+alias = "readline"
+source = "lib://flowstdlib/stdio/readline.toml"
+
+[[function]]
+alias = "print"
+source = "lib://flowstdlib/stdio/stdout.toml"
+
+[[connection]]
+from = "function/readline"
+to = "function/print"
