@@ -16,6 +16,7 @@ use flowclib::compiler::compile;
 use flowclib::generator::code_gen;
 use std::process::Command;
 use std::process::Stdio;
+
 mod source_arg;
 
 extern crate simplog;
@@ -51,17 +52,18 @@ fn run() -> Result<String, String> {
 
     let tables = compile::compile(&mut flow)?;
 
+    let output_dir = source_arg::get_output_dir(&flow.source_url,
+                                                matches.value_of("OUTPUT_DIR"))?;
+
     if dump {
         dumper::dump_flow(&flow);
         dumper::dump_tables(&tables);
+        dumper::dump_dot(&flow, &tables, &output_dir).map_err(|e| e.to_string())?;
     }
 
     if skip_generation {
         return Ok("Code Generation and Running skipped".to_string());
     }
-
-    let output_dir = source_arg::get_output_dir(&flow.source_url,
-                                                matches.value_of("OUTPUT_DIR"))?;
 
     let (build, run) =
         code_gen::generate(&flow, &output_dir, "Warn",
