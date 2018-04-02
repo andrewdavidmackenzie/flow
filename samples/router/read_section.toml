@@ -6,11 +6,3 @@ type = "String"
 [[output]]
 name = "a"
 type = "String"
-
-[[output]]
-name = "b"
-type = "String"
-
-[[output]]
-name = "c"
-type = "String"
