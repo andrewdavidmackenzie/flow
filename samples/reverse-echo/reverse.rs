@@ -12,11 +12,11 @@ impl Implementation for Reverse {
         match &input {
             &JsonString(ref s) => {
                 let output = json!({
-                "reversed" : s.chars().rev().collect::<String>(),
-                "original": s
-            });
+                    "reversed" : s.chars().rev().collect::<String>(),
+                    "original": s
+                });
                 run_list.send_output(runnable, output);
-            },
+            }
             _ => {}
         }
     }

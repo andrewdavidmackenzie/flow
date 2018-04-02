@@ -1,7 +1,6 @@
 name = "Reverse"
 
 [[input]]
-name = "in"
 type = "String"
 
 # There is only one output, so it is not named

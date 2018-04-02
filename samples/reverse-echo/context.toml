@@ -15,7 +15,7 @@ source = "lib://flowstdlib/stdio/stdout.toml"
 [[connection]]
 name = "normal"
 from = "function/read"
-to = "function/reverse/in"
+to = "function/reverse"
 
 [[connection]]
 name = "reversed"
