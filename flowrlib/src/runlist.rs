@@ -143,7 +143,7 @@ impl RunList {
 
     // Save the fact that the runnable 'blocked_id' is blocked on it's output by 'blocking_id'
     pub fn blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
-        debug!("\t\tRunnable #{} is blocked on output by Runnable #{}", &blocked_id, &blocking_id);
+        debug!("\t\tRunnable #{} is now blocked on output by Runnable #{}", &blocked_id, &blocking_id);
         self.blocking.push((blocking_id, blocked_id));
     }
 
@@ -151,13 +151,14 @@ impl RunList {
     // in the list where the first value (blocking_id) matches the destination_id
     // when each is unblocked on output, if it's inputs are satisfied, then it is ready to be run
     // again, so put it on the ready queue
-    pub fn inputs_consumed(&mut self, runnable_id: usize) {
-        debug!("\tRunnable #{} inputs consumed, unblocking any runnable blocked sending to it", runnable_id);
+    pub fn unblock_senders(&mut self, runnable_id: usize) {
         if !self.blocking.is_empty() {
             for &(blocking_id, blocked_id) in &self.blocking {
                 if blocking_id == runnable_id {
+                    debug!("\t\tRunnable #{} was blocked sending to #{}", blocked_id, blocking_id);
+
                     // TODO ADM this won't always be true when it has multiple inputs?
-                    debug!("\t\tRunnable #{} has inputs satisfied, added to end of READY list", blocked_id);
+                    debug!("\t\tRunnable #{} added to end of READY list", blocked_id);
                     self.ready.push(blocked_id);
 
                     // Only remove from inputs_satisfied list if it has inputs needing satisfied
@@ -312,7 +313,7 @@ mod tests {
         assert!(runs.next().is_none());
 
         // now unblock 0 by 1
-        runs.inputs_consumed(1);
+        runs.unblock_senders(1);
 
         assert_eq!(runs.next().unwrap(), 0);
     }

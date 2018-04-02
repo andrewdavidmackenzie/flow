@@ -2,6 +2,9 @@ use runnable::Runnable;
 use std::sync::{Arc, Mutex};
 use runlist::RunList;
 use std::panic;
+use serde_json::Value as JsonValue;
+
+static NO_INPUT: &'static [JsonValue] = &[];
 
 /// The generated code for a flow consists of values and functions formed into a list of Runnables.
 ///
@@ -46,12 +49,19 @@ fn dispatch(run_list: &mut RunList, id: usize) {
     let runnable_arc = run_list.get(id);
     let runnable: &mut Runnable = &mut *runnable_arc.lock().unwrap();
 
-    debug!("Runnable: #{} '{}' started", id, runnable.name());
-    let inputs = runnable.get_inputs();
-    run_list.inputs_consumed(id);
+    debug!("Runnable: #{} '{}' dispatched", id, runnable.name());
+
+    let inputs;
+    if runnable.number_of_inputs() > 0 {
+        inputs = runnable.get_inputs();
+        debug!("\tRunnable #{} inputs consumed", id);
+        run_list.unblock_senders(id);
+    } else {
+        inputs = NO_INPUT.to_vec();
+    }
+
     let implementation = runnable.implementation();
     implementation.run(runnable, inputs, run_list);
-    debug!("Runnable: #{} '{}' completed", id, runnable.name());
 }
 
 /*
