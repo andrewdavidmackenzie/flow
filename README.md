@@ -8,6 +8,7 @@ Flow is a library and cli creation and execution of asynchronous, data-driven, p
 * Trace based compiler instruction scheduling work done at MultiFlow and later HP by Josh Fisher, Paolo Faraboschi and others
 * UNIX pipes
 * Amoeba distributed OS by Andrew Tannenbaum that made a collaborating network of computers appear as one to the user of a "Workstation"
+* The transputer and it's Occam parallel programming language (which I studied at Univerity)
 
 # Project Idea
 
