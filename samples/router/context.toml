@@ -1,29 +1,21 @@
 name = "router"
 
 [[function]]
-alias = "to_string"
-source = "lib://flowstdlib/fmt/to_string.toml"
-
-[[function]]
 alias = "readline"
 source = "lib://flowstdlib/stdio/readline.toml"
-
-[[function]]
-alias = "read_section"
-source = "read_section.toml"
-
-[[function]]
-alias = "print"
-source = "lib://flowstdlib/stdio/stdout.toml"
 
 [[connection]]
 from = "function/readline"
 to = "function/read_section"
 
-[[connection]]
-from = "function/read_section"
-to = "function/to_string"
+[[function]]
+alias = "read_section"
+source = "read_section.toml"
 
 [[connection]]
-from = "function/to_string"
+from = "function/read_section/a"
 to = "function/print"
+
+[[function]]
+alias = "print"
+source = "lib://flowstdlib/stdio/stdout.toml"
