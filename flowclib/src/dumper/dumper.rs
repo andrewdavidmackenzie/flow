@@ -60,14 +60,13 @@ pub fn dump_tables(tables: &CodeGenTables) {
 /// extern crate tempdir;
 ///
 /// use std::env;
-/// use tempdir::TempDir;
 ///
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// println!("url = {:?}", url);
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
 /// let mut flow = flowclib::loader::loader::load(&url).unwrap();
 /// let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
-/// let output_dir = TempDir::new("flow").unwrap().into_path();
+/// let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 /// flowclib::dumper::dumper::dump_dot(&flow, &tables, &output_dir).unwrap();
 /// ```
 ///
