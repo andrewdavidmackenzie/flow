@@ -3,5 +3,5 @@ target
 ui-target
 .idea
 *.iml
-dependencies.dot
+*.dot
 dependencies.png
