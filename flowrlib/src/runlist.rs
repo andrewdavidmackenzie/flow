@@ -66,6 +66,7 @@ pub struct RunList {
 }
 
 impl RefUnwindSafe for RunList {}
+
 impl UnwindSafe for RunList {}
 
 impl RunList {
@@ -100,7 +101,6 @@ impl RunList {
 
         self.metrics.invocations += 1;
         let id = self.ready.remove(0);
-        self.unblock_by(id);
         Some(id)
     }
 
@@ -108,7 +108,7 @@ impl RunList {
     // to run (if not blocked sending on it's output)
     pub fn inputs_ready(&mut self, id: usize) {
         if !self.is_blocked(id) {
-            debug!("\tRunnable #{} inputs all satisfied, not blocked on output, added to end of READY list", id);
+            debug!("\t\tRunnable #{} inputs all satisfied, not blocked on output, added to end of READY list", id);
             self.ready.push(id);
         }
     }
@@ -128,12 +128,12 @@ impl RunList {
                 let destination_arc = Arc::clone(&self.runnables[destination_id]);
                 let mut destination = destination_arc.lock().unwrap();
                 let output_value = output.pointer(output_route).unwrap();
-                debug!("\tSending output '{}' from runnable #{} '{}' @route '{}' to runnable #{} '{}' input #{}",
-                       output_value, runnable.id(), runnable.name(), output_route, &destination_id,
+                destination.write_input(io_number, output_value.clone());
+                self.metrics.outputs_sent += 1;
+                debug!("\tRunnable #{} '{}/{}' sent output '{}' to Runnable #{} '{}' input #{}",
+                       runnable.id(), runnable.name(), output_route, output_value, &destination_id,
                        destination.name(), &io_number);
                 self.blocked_by(destination_id, runnable.id());
-                self.metrics.outputs_sent += 1;
-                destination.write_input(io_number, output_value.clone());
                 if destination.inputs_satisfied() {
                     self.inputs_ready(destination_id);
                 }
@@ -143,7 +143,7 @@ impl RunList {
 
     // Save the fact that the runnable 'blocked_id' is blocked on it's output by 'blocking_id'
     pub fn blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
-        debug!("\tRunnable #{} is blocked on output by runnable #{}", &blocked_id, &blocking_id);
+        debug!("\t\tRunnable #{} is blocked on output by Runnable #{}", &blocked_id, &blocking_id);
         self.blocking.push((blocking_id, blocked_id));
     }
 
@@ -151,20 +151,23 @@ impl RunList {
     // in the list where the first value (blocking_id) matches the destination_id
     // when each is unblocked on output, if it's inputs are satisfied, then it is ready to be run
     // again, so put it on the ready queue
-    fn unblock_by(&mut self, destination_id: usize) {
-        debug!("\tUnblocking runnables blocked on sending to #{}", destination_id);
-        for &(blocking_id, blocked_id) in &self.blocking {
-            if blocking_id == destination_id {
-                debug!("\tRunnable #{} has inputs satisfied, so moving to ready", blocked_id);
-                self.ready.push(blocked_id);
+    pub fn inputs_consumed(&mut self, runnable_id: usize) {
+        debug!("\tRunnable #{} inputs consumed, unblocking any runnable blocked sending to it", runnable_id);
+        if !self.blocking.is_empty() {
+            for &(blocking_id, blocked_id) in &self.blocking {
+                if blocking_id == runnable_id {
+                    // TODO ADM this won't always be true when it has multiple inputs?
+                    debug!("\t\tRunnable #{} has inputs satisfied, added to end of READY list", blocked_id);
+                    self.ready.push(blocked_id);
 
-                // Only remove from inputs_satisfied list if it has inputs needing satisfied
-                debug!("\tFound runnable #{} blocked on sending to #{}", blocked_id, destination_id);
-                self.inputs_satisfied.retain(|&id, num_inputs| id != blocked_id || *num_inputs == 0);
+                    // Only remove from inputs_satisfied list if it has inputs needing satisfied
+                    debug!("\t\tRunnable #{} is blocked on output by Runnable #{}", blocked_id, runnable_id);
+                    self.inputs_satisfied.retain(|&id, num_inputs| id != blocked_id || *num_inputs == 0);
+                }
             }
-        }
 
-        self.blocking.retain(|&(blocking_id, _blocked_id)| blocking_id != destination_id);
+            self.blocking.retain(|&(blocking_id, _blocked_id)| blocking_id != runnable_id);
+        }
     }
 
     // TODO ADM optimize this by also having a flag in the runnable?
@@ -200,7 +203,7 @@ mod tests {
     struct TestRunnable {
         id: usize,
         destinations: Vec<(&'static str, usize, usize)>,
-        implementation: Box<Implementation>
+        implementation: Box<Implementation>,
     }
 
     impl TestRunnable {
@@ -208,7 +211,7 @@ mod tests {
             TestRunnable {
                 id,
                 destinations: vec!(("", 1, 0)),
-                implementation: Box::new(TestImplementation)
+                implementation: Box::new(TestImplementation),
             }
         }
     }
@@ -220,7 +223,7 @@ mod tests {
         fn init(&mut self) -> bool { false }
         fn write_input(&mut self, _input_number: usize, _new_value: JsonValue) {}
         fn inputs_satisfied(&self) -> bool { false }
-        fn get_inputs(&mut self) -> Vec<JsonValue> {vec!(serde_json::from_str("Input").unwrap())}
+        fn get_inputs(&mut self) -> Vec<JsonValue> { vec!(serde_json::from_str("Input").unwrap()) }
         fn output_destinations(&self) -> &Vec<(&'static str, usize, usize)> { &self.destinations }
         fn implementation(&self) -> &Box<Implementation> { &self.implementation }
     }
@@ -309,7 +312,7 @@ mod tests {
         assert!(runs.next().is_none());
 
         // now unblock 0 by 1
-        runs.unblock_by(1);
+        runs.inputs_consumed(1);
 
         assert_eq!(runs.next().unwrap(), 0);
     }

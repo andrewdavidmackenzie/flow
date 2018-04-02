@@ -46,8 +46,9 @@ fn dispatch(run_list: &mut RunList, id: usize) {
     let runnable_arc = run_list.get(id);
     let runnable: &mut Runnable = &mut *runnable_arc.lock().unwrap();
 
-    debug!("Running runnable: #{} '{}'", id, runnable.name());
+    debug!("Runnable: #{} '{}' started", id, runnable.name());
     let inputs = runnable.get_inputs();
+    run_list.inputs_consumed(id);
     let implementation = runnable.implementation();
     implementation.run(runnable, inputs, run_list);
     debug!("Runnable: #{} '{}' completed", id, runnable.name());
