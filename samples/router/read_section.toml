@@ -2,7 +2,6 @@ name = "ReadSection"
 
 [[input]]
 type = "String"
+depth = 3
 
 [[output]]
-name = "a"
-type = "String"

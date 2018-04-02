@@ -13,7 +13,15 @@ alias = "read_section"
 source = "read_section.toml"
 
 [[connection]]
-from = "function/read_section/a"
+from = "function/read_section"
+to = "function/to_string"
+
+[[function]]
+alias = "to_string"
+source = "lib://flowstdlib/fmt/to_string.toml"
+
+[[connection]]
+from = "function/to_string"
 to = "function/print"
 
 [[function]]

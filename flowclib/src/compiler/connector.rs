@@ -134,12 +134,14 @@ mod test {
                 name: "point a".to_string(),
                 route: "/f1/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: false,
             },
             to_io: IO {
                 name: "point b".to_string(),
                 route: "/f2/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: true,
             },
         };
@@ -159,12 +161,14 @@ mod test {
                 name: "point a".to_string(),
                 route: "/f1/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: false,
             },
             to_io: IO {
                 name: "point b".to_string(),
                 route: "/f2/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: true,
             },
         };
@@ -178,12 +182,14 @@ mod test {
                 name: "point b".to_string(),
                 route: "/f2/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: true,
             },
             to_io: IO {
                 name: "pointless".to_string(),
                 route: "/f4/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: true,
             },
         };
@@ -196,12 +202,14 @@ mod test {
                 name: "point b".to_string(),
                 route: "/f2/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: true,
             },
             to_io: IO {
                 name: "point c".to_string(),
                 route: "/f3/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: false,
             },
         };
@@ -232,12 +240,14 @@ mod test {
                 name: "point a".to_string(),
                 route: "/f1/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: false,
             },
             to_io: IO {
                 name: "point b".to_string(),
                 route: "/f2/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: true,
             },
         };
@@ -250,12 +260,14 @@ mod test {
                 name: "point b".to_string(),
                 route: "/f2/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: true,
             },
             to_io: IO {
                 name: "point c".to_string(),
                 route: "/f2/value1".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: false,
             },
         };
@@ -268,12 +280,14 @@ mod test {
                 name: "point c".to_string(),
                 route: "/f2/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: true,
             },
             to_io: IO {
                 name: "point c".to_string(),
                 route: "/f2/value2".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: false,
             },
         };
@@ -303,12 +317,14 @@ mod test {
                 name: "value_in_context".to_string(),
                 route: "/value".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: false,
             },
             to_io: IO {
                 name: "sub-flow".to_string(),
                 route: "/f1/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: true,
             },
         };
@@ -321,12 +337,14 @@ mod test {
                 name: "sub-flow".to_string(),
                 route: "/f1/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: true,
             },
             to_io: IO {
                 name: "sub-sub-flow".to_string(),
                 route: "/f2/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: true,
             },
         };
@@ -339,12 +357,14 @@ mod test {
                 name: "sub-sub-flow".to_string(),
                 route: "/f2/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: true,
             },
             to_io: IO {
                 name: "function_in_sub_sub_flow".to_string(),
                 route: "/f2/func/in".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: false,
             },
         };
@@ -369,12 +389,14 @@ mod test {
                 name: "point a".to_string(),
                 route: "/f1/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: false,
             },
             to_io: IO {
                 name: "point b".to_string(),
                 route: "/f2/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: false,
             },
         };
@@ -387,12 +409,14 @@ mod test {
                 name: "point b".to_string(),
                 route: "/f3/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: false,
             },
             to_io: IO {
                 name: "point c".to_string(),
                 route: "/f4/a".to_string(),
                 datatype: "String".to_string(),
+                depth: 1,
                 flow_io: false,
             },
         };

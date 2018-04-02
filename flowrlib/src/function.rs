@@ -1,39 +1,42 @@
 use serde_json::Value as JsonValue;
 use runnable::Runnable;
 use implementation::Implementation;
-use std::mem::replace;
 use std::panic::RefUnwindSafe;
 use std::panic::UnwindSafe;
+use input::Input;
 
 pub struct Function {
     name: String,
     number_of_inputs: usize,
     id: usize,
     implementation: Box<Implementation>,
-
-    num_inputs_pending: usize,
-    inputs: Vec<JsonValue>,
-
+    inputs: Vec<Input>,
     output_routes: Vec<(&'static str, usize, usize)>,
 }
 
 impl Function {
     pub fn new(name: String,
                number_of_inputs: usize,
+               input_depths: Vec<usize>,
                id: usize,
                implementation: Box<Implementation>,
                _initial_value: Option<JsonValue>,
                output_routes: Vec<(&'static str, usize, usize)>)
                -> Function {
-        Function {
+        let mut function = Function {
             name,
             number_of_inputs,
             id,
             implementation,
-            num_inputs_pending: number_of_inputs,
-            inputs: vec![JsonValue::Null; number_of_inputs],
+            inputs: Vec::with_capacity(number_of_inputs),
             output_routes,
+        };
+
+        for input_depth in input_depths {
+            function.inputs.push(Input::new(input_depth));
         }
+
+        function
     }
 }
 
@@ -47,27 +50,39 @@ impl Runnable for Function {
 
     fn id(&self) -> usize { self.id }
 
-    // If a function has zero inputs it is considered ready to run any time it's not blocked on output
+    // If a function has zero inputs can be ready to run without receiving any input
     fn init(&mut self) -> bool {
-        self.inputs_satisfied()
+        self.inputs_full()
     }
 
     fn write_input(&mut self, input_number: usize, input_value: JsonValue) {
-        if self.inputs[input_number] != JsonValue::Null {
-            error!("Overwriting input that has not been consumed");
+        if self.inputs[input_number].full() {
+            error!("Runnable #{} '{}' Input overflow on input number {}", self.id(), self.name(), input_number);
+        } else {
+            self.inputs[input_number].push(input_value);
         }
-        self.inputs[input_number] = input_value;
-        self.num_inputs_pending -= 1;
+    }
+
+    fn input_full(&self, input_number: usize) -> bool {
+        self.inputs[input_number].full()
     }
 
     // responds true if all inputs have been satisfied - false otherwise
-    fn inputs_satisfied(&self) -> bool {
-        self.num_inputs_pending == 0
+    fn inputs_full(&self) -> bool {
+        for input in &self.inputs {
+            if !input.full() {
+                return false;
+            }
+        }
+
+        return true
     }
 
-    fn get_inputs(&mut self) -> Vec<JsonValue> {
-        let inputs = replace(&mut self.inputs, vec![JsonValue::Null; self.number_of_inputs]);
-        self.num_inputs_pending = self.number_of_inputs;
+    fn get_inputs(&mut self) -> Vec<Vec<JsonValue>> {
+        let mut inputs: Vec<Vec<JsonValue>> = Vec::new();
+        for mut input in &mut self.inputs {
+            inputs.push(input.get());
+        }
         inputs
     }
 

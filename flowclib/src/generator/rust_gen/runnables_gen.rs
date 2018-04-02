@@ -128,8 +128,17 @@ fn lib_refs(libs_references: &HashSet<String>) -> Vec<String> {
 fn runnable_to_code(runnable: &Box<Runnable>) -> String {
     let mut code = format!("{}::new(\"{}\".to_string(), ", runnable.get_type(), runnable.name());
     match &runnable.get_inputs() {
-        &None => code.push_str(&format!("{}, ", 0)),
-        &Some(ref inputs) => code.push_str(&format!("{}, ", inputs.len()))
+        // No inputs, so put a '0' and an empty vector of input depths
+        &None => code.push_str(&format!("{}, vec!(),", 0)),
+        // Some inputs, so put the number and the vector of input depths
+        &Some(ref inputs) => {
+            code.push_str(&format!("{}, vec!(", inputs.len()));
+            for input in inputs {
+                code.push_str(&format!("{}, ", input.depth));
+
+            }
+            code.push_str(&format!("), "));
+        }
     }
     code.push_str(&format!("{}, Box::new({}{{}}), ", runnable.get_id(), runnable.get_implementation()));
 
@@ -175,6 +184,7 @@ mod test {
             outputs: Some(vec!(IO {
                 name: "".to_string(),
                 datatype: "Json".to_string(),
+                depth: 1,
                 route: "".to_string(),
                 flow_io: false })),
             output_connections: vec!(("".to_string(), 1, 0)),
@@ -183,7 +193,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\".to_string(), 1, 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Value::new(\"value\".to_string(), 1, vec!(1, ), 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
     }
 
     #[test]
@@ -194,8 +204,8 @@ mod test {
             value: Some(JsonValue::String("Hello-World".to_string())),
             route: "/flow0/value".to_string(),
             outputs: Some(vec!(
-                IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string(), flow_io: false },
-                IO { name: "sub_route".to_string(), datatype: "String".to_string(), route: "".to_string(), flow_io: false }
+                IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string(), depth: 1, flow_io: false },
+                IO { name: "sub_route".to_string(), datatype: "String".to_string(), route: "".to_string(), depth: 1, flow_io: false }
             )),
             output_connections: vec!(("".to_string(), 1, 0), ("sub_route".to_string(), 2, 0)),
             id: 1,
@@ -203,7 +213,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\".to_string(), 1, 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+        assert_eq!(code, "Value::new(\"value\".to_string(), 1, vec!(1, ), 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
     }
 
     #[test]
@@ -212,8 +222,8 @@ mod test {
             name: "Stdout".to_string(),
             inputs: Some(vec!()),
             outputs: Some(vec!(
-                IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string(), flow_io: false },
-                IO { name: "sub_route".to_string(), datatype: "String".to_string(), route: "".to_string(), flow_io: false }
+                IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string(), depth: 1, flow_io: false },
+                IO { name: "sub_route".to_string(), datatype: "String".to_string(), route: "".to_string(), depth: 1, flow_io: false }
             )),
             source_url: Url::parse("file:///fake/file").unwrap(),
             route: "/flow0/stdout".to_string(),
@@ -224,6 +234,6 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Function::new(\"Stdout\".to_string(), 0, 0, Box::new(Stdout{}), None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+        assert_eq!(code, "Function::new(\"Stdout\".to_string(), 0, vec!(), 0, Box::new(Stdout{}), None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
     }
 }

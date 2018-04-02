@@ -6,8 +6,8 @@ use flowrlib::runnable::Runnable;
 pub struct ToString;
 
 impl Implementation for ToString {
-    fn run(&self, runnable: &Runnable, mut inputs: Vec<JsonValue>, run_list: &mut RunList) {
-        let input = inputs.remove(0);
+    fn run(&self, runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) {
+        let input = inputs.remove(0).remove(0);
         run_list.send_output(runnable, JsonValue::String(input.to_string()));
     }
 }

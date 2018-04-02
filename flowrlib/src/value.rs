@@ -16,6 +16,7 @@ pub struct Value {
 impl Value {
     pub fn new(name: String,
                _num_inputs: usize,
+               _input_depths: Vec<usize>,
                id: usize,
                implementation: Box<Implementation>,
                initial_value: Option<JsonValue>,
@@ -50,7 +51,7 @@ impl Runnable for Value {
             debug!("\tValue initialized by writing '{:?}' to input", &v);
             self.write_input(ONLY_INPUT, v);
         }
-        self.inputs_satisfied()
+        self.inputs_full()
     }
 
     /*
@@ -61,15 +62,19 @@ impl Runnable for Value {
         self.value = input_value;
     }
 
-    /*
-        Responds true if all inputs have been satisfied - false otherwise
-    */
-    fn inputs_satisfied(&self) -> bool {
+    fn input_full(&self, _input_number: usize) -> bool {
         !self.value.is_null()
     }
 
-    fn get_inputs(&mut self) -> Vec<JsonValue> {
-        vec!(self.value.take())
+    /*
+        Responds true if all inputs have been satisfied - false otherwise
+    */
+    fn inputs_full(&self) -> bool {
+        !self.value.is_null()
+    }
+
+    fn get_inputs(&mut self) -> Vec<Vec<JsonValue>> {
+        vec!(vec!(self.value.take()))
     }
 
     fn output_destinations(&self) -> &Vec<(&'static str, usize, usize)> {

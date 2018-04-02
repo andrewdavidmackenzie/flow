@@ -6,5 +6,5 @@ use runlist::RunList;
 
 pub trait Implementation : RefUnwindSafe + UnwindSafe {
     // An implementation runs, receiving an array of inputs and possibly producing an output
-    fn run(&self, runnable: &Runnable, inputs: Vec<JsonValue>, run_list: &mut RunList);
+    fn run(&self, runnable: &Runnable, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList);
 }

@@ -63,12 +63,9 @@ impl Runnable for Value {
     }
 
     fn get_inputs(&self) -> IOSet {
-        let value_input = IO {
-            name: "".to_string(),
-            datatype: self.datatype.clone(),
-            route: self.route.clone(),
-            flow_io: false
-        };
+        let mut value_input = IO::default();
+        value_input.datatype = self.datatype.clone();
+        value_input.route = self.route.clone();
 
         Some(vec!(value_input))
     }
@@ -136,6 +133,7 @@ impl Value {
                 name: "".to_string(),
                 datatype: self.datatype.clone(),
                 route: self.route.clone(),
+                depth: 1,
                 flow_io: false
             };
             outputs.insert(0, base_output);
@@ -156,6 +154,7 @@ impl Value {
             name: "".to_string(),
             route: self.route.clone(),
             datatype: self.datatype.clone(),
+            depth: 1,
             flow_io: false
         })
     }

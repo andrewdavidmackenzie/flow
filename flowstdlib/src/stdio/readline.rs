@@ -6,7 +6,7 @@ use flowrlib::runlist::RunList;
 pub struct Readline;
 
 impl Implementation for Readline {
-    fn run(&self, runnable: &Runnable, _inputs: Vec<JsonValue>, run_list: &mut RunList) {
+    fn run(&self, runnable: &Runnable, _inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) {
         use std::io::{self, BufRead};
 
         let stdin = io::stdin();

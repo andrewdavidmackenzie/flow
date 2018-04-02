@@ -15,6 +15,8 @@ pub struct IO {
     pub name: String,
     #[serde(rename = "type", default = "default_type")]
     pub datatype: DataType,
+    #[serde(default = "default_depth")]
+    pub depth: usize,
 
     #[serde(skip_deserializing)]
     pub route: Route,
@@ -27,8 +29,9 @@ pub type IOSet = Option<Vec<IO>>;
 impl Default for IO {
     fn default() -> Self {
         IO {
-            name: "".to_string(),
-            datatype: "Json".to_string(),
+            name: default_name(),
+            datatype: default_type(),
+            depth: default_depth(),
             route: "".to_string(),
             flow_io: false,
         }
@@ -59,6 +62,10 @@ fn default_name() -> String {
 
 fn default_type() -> String {
     "Json".to_string()
+}
+
+fn default_depth() -> usize {
+    1
 }
 
 impl Validate for IO {
@@ -191,12 +198,14 @@ mod test {
             name: "io_name".to_string(),
             datatype: "String".to_string(),
             route: "".to_string(),
+            depth: 1,
             flow_io: false,
         };
         let io1 = IO {
             name: "different_name".to_string(),
             datatype: "String".to_string(),
             route: "".to_string(),
+            depth: 1,
             flow_io: false,
         };
         let ioset = Some(vec!(io0, io1));
@@ -210,6 +219,7 @@ mod test {
             name: "io_name".to_string(),
             datatype: "String".to_string(),
             route: "".to_string(),
+            depth: 1,
             flow_io: false,
         };
         let io1 = io0.clone();
@@ -224,12 +234,14 @@ mod test {
             name: "io_name".to_string(),
             datatype: "String".to_string(),
             route: "".to_string(),
+            depth: 1,
             flow_io: false,
         };
         let io1 = IO {
             name: "".to_string(),
             datatype: "String".to_string(),
             route: "".to_string(),
+            depth: 1,
             flow_io: false,
         };
         let ioset = Some(vec!(io0, io1));

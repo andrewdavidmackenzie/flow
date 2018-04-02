@@ -141,6 +141,7 @@ impl Default for Function {
                 name: "".to_string(),
                 datatype: "Json".to_string(),
                 route: "".to_string(),
+                depth: 1,
                 flow_io: false })),
             source_url: Function::default_url(),
             route: "".to_string(),

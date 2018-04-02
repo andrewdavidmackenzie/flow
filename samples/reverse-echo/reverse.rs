@@ -7,8 +7,8 @@ use flowrlib::runlist::RunList;
 pub struct Reverse;
 
 impl Implementation for Reverse {
-    fn run(&self, runnable: &Runnable, mut inputs: Vec<JsonValue>, run_list: &mut RunList) {
-        let input = inputs.remove(0);
+    fn run(&self, runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) {
+        let input = inputs.remove(0).remove(0);
         match input {
             JsonString(ref s) => {
                 let output = json!({

@@ -7,7 +7,7 @@ use std::io::{self, Read};
 pub struct Stdin;
 
 impl Implementation for Stdin {
-    fn run(&self, runnable: &Runnable, mut _inputs: Vec<JsonValue>, run_list: &mut RunList) {
+    fn run(&self, runnable: &Runnable, mut _inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) {
         let mut buffer = String::new();
         if let Ok(size) = io::stdin().read_to_string(&mut buffer) {
             if size > 0 {

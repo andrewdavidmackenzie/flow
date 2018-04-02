@@ -55,13 +55,19 @@ fn dispatch(run_list: &mut RunList, id: usize) {
     if runnable.number_of_inputs() > 0 {
         inputs = runnable.get_inputs();
         debug!("\tRunnable #{} inputs consumed", id);
-        run_list.unblock_senders(id);
+        run_list.inputs_consumed(id);
+        run_list.unblock_senders_to(id);
     } else {
-        inputs = NO_INPUT.to_vec();
+        inputs = vec!(NO_INPUT.to_vec());
     }
 
     let implementation = runnable.implementation();
     implementation.run(runnable, inputs, run_list);
+
+    // if after all is said and done it can run again, then add to the end of the ready list
+    if runnable.inputs_full() {
+        run_list.inputs_ready(runnable.id());
+    }
 }
 
 /*
