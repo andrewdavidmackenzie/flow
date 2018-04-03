@@ -50,13 +50,11 @@ pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) {
 fn dispatch(run_list: &mut RunList, id: usize) {
     let runnable_arc = run_list.get(id);
     let runnable: &mut Runnable = &mut *runnable_arc.lock().unwrap();
-
     debug!("Runnable: #{} '{}' dispatched", id, runnable.name());
 
     let inputs;
     if runnable.number_of_inputs() > 0 {
         inputs = runnable.get_inputs();
-        debug!("\tRunnable #{} inputs consumed", id);
         run_list.inputs_consumed(id);
         run_list.unblock_senders_to(id);
     } else {
@@ -64,6 +62,7 @@ fn dispatch(run_list: &mut RunList, id: usize) {
     }
 
     let implementation = runnable.implementation();
+    debug!("\tRunnable: #{} '{}' running with inputs: {:?}", id, runnable.name(), inputs);
     implementation.run(runnable, inputs, run_list);
 
     // if after all is said and done it can run again, then add to the end of the ready list
