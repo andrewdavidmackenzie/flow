@@ -80,7 +80,7 @@ impl Runnable for Function {
 
     fn get_inputs(&mut self) -> Vec<Vec<JsonValue>> {
         let mut inputs: Vec<Vec<JsonValue>> = Vec::new();
-        for mut input in &mut self.inputs {
+        for input in &mut self.inputs {
             inputs.push(input.get());
         }
         inputs
