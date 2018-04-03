@@ -59,11 +59,11 @@ impl fmt::Display for Metrics {
 */
 pub struct RunList {
     runnables: Vec<Arc<Mutex<Runnable>>>,
-    inputs_ready: HashSet<usize>,
+    can_run: HashSet<usize>,
     // runnable_id
     blocking: Vec<(usize, usize)>,
     // blocking_id, blocked_id
-    ready: Vec<usize>,
+    will_run: Vec<usize>,
     // runnable_id
     metrics: Metrics,
 }
@@ -76,17 +76,17 @@ impl RunList {
     pub fn new() -> Self {
         RunList {
             runnables: Vec::<Arc<Mutex<Runnable>>>::new(),
-            inputs_ready: HashSet::<usize>::new(),
+            can_run: HashSet::<usize>::new(),
             blocking: Vec::<(usize, usize)>::new(),
-            ready: Vec::<usize>::new(),
+            will_run: Vec::<usize>::new(),
             metrics: Metrics::new(),
         }
     }
 
     pub fn debug(&self) {
-        debug!("       Ready: {:?}", self.ready);
-        debug!("Inputs Ready: {:?}", self.inputs_ready);
-        debug!("    Blocking: {:?}", self.blocking);
+        debug!(" Can Run: {:?}", self.can_run);
+        debug!("Blocking: {:?}", self.blocking);
+        debug!("Will Run: {:?}", self.will_run);
     }
 
     pub fn end(&self) {
@@ -104,30 +104,30 @@ impl RunList {
 
     // Return the id of the next runnable ready to be run, if there is one
     pub fn next(&mut self) -> Option<usize> {
-        if self.ready.is_empty() {
+        if self.will_run.is_empty() {
             return None;
         }
 
         self.metrics.invocations += 1;
-        Some(self.ready.remove(0))
+        Some(self.will_run.remove(0))
     }
 
     // save the fact that a particular Runnable's inputs are now satisfied and so it maybe ready
     // to run (if not blocked sending on it's output)
-    pub fn inputs_ready(&mut self, id: usize) {
+    pub fn can_run(&mut self, id: usize) {
         debug!("\t\tRunnable #{} inputs are ready", id);
-        self.inputs_ready.insert(id);
+        self.can_run.insert(id);
 
         if !self.is_blocked(id) {
             debug!("\t\tRunnable #{} not blocked on output, so added to end of READY list", id);
-            self.ready.push(id);
+            self.will_run.push(id);
         }
     }
 
     // when a runnable consumes it's inputs, then take if off the list of runnables with inputs ready
     pub fn inputs_consumed(&mut self, id: usize) {
         debug!("\tRunnable #{} inputs consumed", id);
-        self.inputs_ready.remove(&id);
+        self.can_run.remove(&id);
     }
 
     /*
@@ -153,8 +153,8 @@ impl RunList {
                 self.blocked_by(destination_id, runnable.id());
             }
 
-            if destination.inputs_full() {
-                self.inputs_ready(destination_id);
+            if destination.can_run() {
+                self.can_run(destination_id);
             }
         }
     }
@@ -186,9 +186,9 @@ impl RunList {
             // see if the ones unblocked should be made ready. Note, they could be blocked on others not the
             // one that unblocked.
             for unblocked in unblocked_list {
-                if self.inputs_ready.contains(&unblocked) && !self.is_blocked(unblocked) {
+                if self.can_run.contains(&unblocked) && !self.is_blocked(unblocked) {
                     debug!("\t\tRunnable #{} was unblocked and it inputs are ready, so added to end of READY list", unblocked);
-                    self.ready.push(unblocked);
+                    self.will_run.push(unblocked);
                 }
             }
         }
@@ -219,8 +219,9 @@ mod tests {
     struct TestImplementation;
 
     impl Implementation for TestImplementation {
-        fn run(&self, runnable: &Runnable, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) {
-            run_list.send_output(runnable, inputs.get(0).unwrap().get(0).unwrap().clone())
+        fn run(&self, runnable: &Runnable, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> bool {
+            run_list.send_output(runnable, inputs.get(0).unwrap().get(0).unwrap().clone());
+            true
         }
     }
 
@@ -249,7 +250,7 @@ mod tests {
         fn init(&mut self) -> bool { false }
         fn write_input(&mut self, _input_number: usize, _new_value: JsonValue) {}
         fn input_full(&self, _input_number: usize) -> bool { true }
-        fn inputs_full(&self) -> bool { true }
+        fn can_run(&self) -> bool { true }
         fn get_inputs(&mut self) -> Vec<Vec<JsonValue>> {
             vec!(vec!(serde_json::from_str("Input").unwrap()))
         }
@@ -302,7 +303,7 @@ mod tests {
         runs.set_runnables(runnables);
 
         // Indicate that 0 has all it's inputs read
-        runs.inputs_ready(0);
+        runs.can_run(0);
 
         assert_eq!(runs.next().unwrap(), 0);
     }
@@ -317,7 +318,7 @@ mod tests {
         runs.blocked_by(1, 0);
 
         // Indicate that 0 has all it's inputs read
-        runs.inputs_ready(0);
+        runs.can_run(0);
 
         match runs.next() {
             None => assert!(true),
@@ -335,7 +336,7 @@ mod tests {
         runs.blocked_by(1, 0);
 
         // Indicate that 0 has all it's inputs read
-        runs.inputs_ready(0);
+        runs.can_run(0);
 
         assert_eq!(runs.next(), None);
 
@@ -357,7 +358,7 @@ mod tests {
         runs.blocked_by(2, 0);
 
         // Indicate that 0 has all it's inputs read
-        runs.inputs_ready(0);
+        runs.can_run(0);
 
         assert_eq!(runs.next(), None);
 

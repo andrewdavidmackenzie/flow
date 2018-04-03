@@ -11,7 +11,7 @@ pub struct Add;
 // TODO implementation of `std::ops::Add` might be missing for `&serde_json::Number`
 
 impl Implementation for Add {
-    fn run(&self, runnable: &Runnable, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) {
+    fn run(&self, runnable: &Runnable, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> bool {
         let input_a = inputs.get(0).unwrap();
         let input_b = inputs.get(1).unwrap();
         match (&input_a[0], &input_b[0]) {
@@ -36,5 +36,7 @@ impl Implementation for Add {
             }
             (_, _) => {}
         }
+
+        true
     }
 }

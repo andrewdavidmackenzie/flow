@@ -6,7 +6,7 @@ use flowrlib::runlist::RunList;
 pub struct ReadSection;
 
 impl Implementation for ReadSection {
-    fn run(&self, runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) {
+    fn run(&self, runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> bool {
         let input_stream = inputs.remove(0);
         let ra = input_stream[0].as_str().unwrap().parse::<u64>();
         let rb = input_stream[1].as_str().unwrap().parse::<u64>();
@@ -20,5 +20,7 @@ impl Implementation for ReadSection {
             },
             _ => {}
         }
+
+        true
     }
 }

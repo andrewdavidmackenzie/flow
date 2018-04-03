@@ -51,7 +51,7 @@ impl Runnable for Value {
             debug!("\tValue initialized by writing '{:?}' to input", &v);
             self.write_input(ONLY_INPUT, v);
         }
-        self.inputs_full()
+        self.can_run()
     }
 
     /*
@@ -66,10 +66,8 @@ impl Runnable for Value {
         !self.value.is_null()
     }
 
-    /*
-        Responds true if all inputs have been satisfied - false otherwise
-    */
-    fn inputs_full(&self) -> bool {
+    // Responds true if all inputs have been satisfied and can be run - false otherwise
+    fn can_run(&self) -> bool {
         !self.value.is_null()
     }
 

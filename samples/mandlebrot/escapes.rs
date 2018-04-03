@@ -14,7 +14,7 @@ pub struct Escapes;
     able to prove that 'c' is not a member) return 'None'
 */
 impl Implementation for Escapes {
-    fn run(&self, runnable: &Runnable, mut inputs: Vec<JsonValue>, run_list: &mut RunList) {
+    fn run(&self, runnable: &Runnable, mut inputs: Vec<JsonValue>, run_list: &mut RunList) -> bool {
         let point = inputs.remove(0);
         // pixel_bounds: (usize, usize),
         let re = point["re"].as_f64().unwrap();
@@ -25,7 +25,7 @@ impl Implementation for Escapes {
 
         if c.norm_sqr() > 4.0 {
             run_list.send_output(runnable, json!(255));
-            return;
+            return true;
         }
 
         let mut z = c;
@@ -35,11 +35,13 @@ impl Implementation for Escapes {
             if z.norm_sqr() > 4.0 {
                 let output = json!(i);
                 run_list.send_output(runnable, output);
-                return;
+                return true;
             }
         }
 
         run_list.send_output(runnable, json!(255));
+
+        true
     }
 }
 

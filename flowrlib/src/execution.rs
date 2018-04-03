@@ -63,11 +63,12 @@ fn dispatch(run_list: &mut RunList, id: usize) {
 
     let implementation = runnable.implementation();
     debug!("\tRunnable: #{} '{}' running with inputs: {:?}", id, runnable.name(), inputs);
-    implementation.run(runnable, inputs, run_list);
 
     // if after all is said and done it can run again, then add to the end of the ready list
-    if runnable.inputs_full() {
-        run_list.inputs_ready(runnable.id());
+    let run_again = implementation.run(runnable, inputs, run_list);
+
+    if run_again && runnable.can_run() {
+        run_list.can_run(runnable.id());
     }
 }
 
@@ -102,7 +103,7 @@ fn init(runnables: Vec<Arc<Mutex<Runnable>>>) -> RunList {
         let mut runnable = runnable_arc.lock().unwrap();
         debug!("Initializing runnable #{} '{}'", &runnable.id(), runnable.name());
         if runnable.init() {
-            run_list.inputs_ready(runnable.id());
+            run_list.can_run(runnable.id());
         }
     }
 

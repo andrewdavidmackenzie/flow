@@ -52,7 +52,7 @@ impl Runnable for Function {
 
     // If a function has zero inputs can be ready to run without receiving any input
     fn init(&mut self) -> bool {
-        self.inputs_full()
+        self.can_run()
     }
 
     fn write_input(&mut self, input_number: usize, input_value: JsonValue) {
@@ -67,8 +67,8 @@ impl Runnable for Function {
         self.inputs[input_number].full()
     }
 
-    // responds true if all inputs have been satisfied - false otherwise
-    fn inputs_full(&self) -> bool {
+    // responds true if all inputs have been satisfied and this runnable can be run - false otherwise
+    fn can_run(&self) -> bool {
         for input in &self.inputs {
             if !input.full() {
                 return false;

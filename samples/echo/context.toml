@@ -1,8 +1,8 @@
 name = "echo"
 
 [[function]]
-alias = "read"
-source = "lib://flowstdlib/stdio/readline.toml"
+alias = "stdin"
+source = "lib://flowstdlib/stdio/stdin.toml"
 
 [[function]]
 alias = "print"
@@ -10,5 +10,5 @@ source = "lib://flowstdlib/stdio/stdout.toml"
 
 [[connection]]
 name = "echo"
-from = "function/read"
+from = "function/stdin"
 to = "function/print"
