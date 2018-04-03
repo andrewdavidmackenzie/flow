@@ -83,6 +83,12 @@ impl RunList {
         }
     }
 
+    pub fn debug(&self) {
+        debug!("       Ready: {:?}", self.ready);
+        debug!("Inputs Ready: {:?}", self.inputs_ready);
+        debug!("    Blocking: {:?}", self.blocking);
+    }
+
     pub fn end(&self) {
         debug!("Metrics: \n {}", self.metrics);
     }
@@ -164,19 +170,26 @@ impl RunList {
     // again, so put it on the ready queue
     pub fn unblock_senders_to(&mut self, blocker_id: usize) {
         if !self.blocking.is_empty() {
+            let mut unblocked_list = vec!();
+
             for &(blocking_id, blocked_id) in &self.blocking {
                 if blocking_id == blocker_id {
                     debug!("\t\tRunnable #{} was blocked sending to #{}", blocked_id, blocking_id);
-
-                    if self.inputs_ready.contains(&blocked_id) {
-                        debug!("\t\tRunnable #{} inputs are ready, so added to end of READY list", blocked_id);
-                        self.ready.push(blocked_id);
-                    }
+                    unblocked_list.push(blocked_id);
                 }
             }
 
-            // when done remove all entries from the blocking list where it was this blocker_id runnable that was blocking others
+            // when done remove all entries from the blocking list where it was this blocker_id
             self.blocking.retain(|&(blocking_id, _blocked_id)| blocking_id != blocker_id);
+
+            // see if the ones unblocked should be made ready. Note, they could be blocked on others not the
+            // one that unblocked.
+            for unblocked in unblocked_list {
+                if self.inputs_ready.contains(&unblocked) && !self.is_blocked(unblocked) {
+                    debug!("\t\tRunnable #{} was unblocked and it inputs are ready, so added to end of READY list", unblocked);
+                    self.ready.push(unblocked);
+                }
+            }
         }
     }
 
@@ -244,9 +257,11 @@ mod tests {
     }
 
     fn test_runnables() -> Vec<Arc<Mutex<Runnable>>> {
-        let r0 = Arc::new(Mutex::new(TestRunnable::new(0, 0, vec!(("", 1, 0)))));
+        let r0 = Arc::new(Mutex::new(TestRunnable::new(0, 0,
+                                                       vec!(("", 1, 0), ("", 1, 0)))));
         let r1 = Arc::new(Mutex::new(TestRunnable::new(1, 1, vec!())));
-        vec!(r0, r1)
+        let r2 = Arc::new(Mutex::new(TestRunnable::new(2, 1, vec!())));
+        vec!(r0, r1, r2)
     }
 
     #[test]
@@ -328,5 +343,27 @@ mod tests {
 
         // Now runnable with id 0 should be ready and served up by next
         assert_eq!(runs.next(), Some(0));
+    }
+
+    #[test]
+    fn unblocking_doubly_blocked_runnable_not_ready() {
+        let runnables = test_runnables();
+        let mut runs = RunList::new();
+        runs.set_runnables(runnables);
+
+        // Indicate that 0 is blocked by 1 and 2
+        runs.blocked_by(1, 0);
+        runs.blocked_by(2, 0);
+
+        // Indicate that 0 has all it's inputs read
+        runs.inputs_ready(0);
+
+        assert_eq!(runs.next(), None);
+
+        // now unblock 0 by 1
+        runs.unblock_senders_to(1);
+
+        // Now runnable with id 0 should still not be ready as still blocked on 2
+        assert_eq!(runs.next(), None);
     }
 }
