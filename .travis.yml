@@ -21,7 +21,7 @@ script: make travis
 
 env:
   global:
-  - RUSTFLAGS="-C link-dead-code" FLOW_LIB_PATH=$TRAVIS_BUILD_DIR
+  - RUSTFLAGS="-C link-dead-code" FLOW_LIB_PATH=$TRAVIS_BUILD_DIR PKG_CONFIG_PATH=/usr/share/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig
 
 addons:
   apt:
