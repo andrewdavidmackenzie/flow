@@ -13,7 +13,7 @@ pub struct Add;
 impl Implementation for Add {
     fn run(&self, runnable: &Runnable, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) {
         let input_a = inputs.get(0).unwrap();
-        let input_b = inputs.get(0).unwrap();
+        let input_b = inputs.get(1).unwrap();
         match (&input_a[0], &input_b[0]) {
             (&Number(ref a), &Number(ref b)) => {
                 // TODO mixed signed and unsigned integers
