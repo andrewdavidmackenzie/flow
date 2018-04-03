@@ -3,10 +3,7 @@ RUSTUP := $(shell command -v rustup 2> /dev/null)
 
 all: test package doc
 
-test: local-tests online-tests
-#  test-gtk for now
-
-online := false
+online := true
 
 ifeq ($(online),true)
 features := --features "online_tests"
@@ -17,8 +14,10 @@ endif
 doc:
 	cargo doc
 
+test: travis test-gtk
+
 # In Travis don't try to test gtk as needs many extra installs
-travis: local-tests online-tests
+travis: local-tests
 
 local-tests: test-flow test-samples
 
