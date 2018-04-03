@@ -3,9 +3,10 @@ RUSTUP := $(shell command -v rustup 2> /dev/null)
 
 all: test package doc
 
-test: local-tests online-tests test-gtk
+test: local-tests online-tests
+#  test-gtk for now
 
-online := true
+online := false
 
 ifeq ($(online),true)
 features := --features "online_tests"
@@ -19,7 +20,7 @@ doc:
 # In Travis don't try to test gtk as needs many extra installs
 travis: local-tests online-tests
 
-local-tests: test-flowclib test-flowrlib test-flowstdlib test-flowc test-electron test-samples
+local-tests: test-flow test-samples
 
 online-tests: test-hello-simple-online
 
@@ -33,46 +34,23 @@ pi:
 copy:
 	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/debug/flowc pi@raspberrypi.local:
 
-#################### Libraries ####################
-test-flowclib:
+#################### Flow ####################
+test-flow:
 	@echo ""
-	@echo "------- Started  testing flowclib -------------"
-	@cargo test --manifest-path flowclib/Cargo.toml $(features)
-	@echo "------- Finished testing flowclib -------------"
-
-test-flowrlib:
-	@echo ""
-	@echo "------- Started  testing flowrlib -------------"
-	@cargo test --manifest-path flowrlib/Cargo.toml
-	@echo "------- Finished testing flowrlib -------------"
-
-test-flowstdlib:
-	@echo ""
-	@echo "------- Started  testing flowstdlib -------------"
-	@cargo test --manifest-path flowstdlib/Cargo.toml
-	@echo "------- Finished testing flowstdlib -------------"
-
-################### CLI BINARY ##################
-test-flowc: ./target/debug/flowc
-	@echo ""
-	@echo "------- Started  testing flowc ----------------"
-	@cargo test --manifest-path flowc/Cargo.toml
-	@echo "------- Finished testing flowc ----------------"
-
-./target/debug/flowc: flowc
-	@cargo build --manifest-path flowc/Cargo.toml
+	@echo "------- Started  testing flow -------------"
+	@cargo test $(features)
+	@echo "------- Finished testing flow -------------"
 
 #################### SAMPLES ####################
-sample_flows := $(patsubst samples/%,samples/%/rust/target,$(wildcard samples/*))
+sample_flows := $(patsubst samples/%,samples/%/test_output.txt,$(wildcard samples/*))
 
-test-samples: list-samples $(sample_flows)
+test-samples: $(sample_flows)
 
-list-samples:
-	@echo "Found following samples $(sample_flows)"
-
-samples/%/rust/target : samples/%/context.toml
-	@echo "\n------- Compiling and Running flow: $< ----"
-	@echo "Hello" | ./target/debug/flowc $<
+samples/%/test_output.txt : samples/%/test_input.txt
+	@echo "\n------- Compiling and Running sample $(@D) ----"
+	@cat $< | ./target/debug/flowc $(@D) > $@
+	diff $@ $(@D)/expected_output.txt
+	@rm $@
 
 clean-samples:
 	@find samples -name rust -type d -exec rm -rf {} + ; true
@@ -83,20 +61,6 @@ test-hello-simple-online: ./target/debug/flowc
 	@echo "------- Started testing generation of hello-world-simple-online ----"
 	@echo "Hello" | ./target/debug/flowc https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 	@echo "------- Finished testing generation of hello-world-simple-online ----"
-
-################## ELECTRON UI ##################
-test-electron:
-	@echo ""
-	@echo "------- Started  testing electron -------------"
-	@cargo test --manifest-path electron/Cargo.toml
-	@echo "------- Finished testing electron -------------"
-
-#################### GTK UI ####################
-test-gtk:
-	@echo ""
-	@echo "------- Started  testing gtk -------------"
-	@cargo test --manifest-path gtk/Cargo.toml
-	@echo "------- Finished testing gtk -------------"
 
 package: package-electron package-flowc
 
