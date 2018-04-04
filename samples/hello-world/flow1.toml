@@ -3,7 +3,7 @@ name = "flow1"
 [[value]]
 name = "message"
 type = "String"
-value = "Hello World!"
+init = "Hello World!"
 
 [[output]]
 name = "out"

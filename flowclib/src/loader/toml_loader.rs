@@ -88,7 +88,7 @@ fn load_fails_if_no_name() {
         [[value]]
         name = 'message'
         type = 'String'
-        value = Hello World!'
+        init = Hello World!'
     ";
 
     let toml = FlowTomelLoader {};

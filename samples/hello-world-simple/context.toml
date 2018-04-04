@@ -3,7 +3,7 @@ name = "hello-world-simple"
 [[value]]
 name = "message"
 type = "String"
-value = "Hello World!"
+init = "Hello World!"
 
 [[function]]
 alias = "print"

@@ -18,7 +18,7 @@ pub struct Value {
     pub name: Name,
     #[serde(rename = "type")]
     pub datatype: DataType,
-    pub value: Option<JsonValue>,
+    pub init: Option<JsonValue>,
 
     // Input to a value is assumed, at the route of the value itself and always possible
     // Output from a value is assumed, at the route of the value itself and always possible
@@ -91,7 +91,7 @@ impl Runnable for Value {
     }
 
     fn get_initial_value(&self) -> Option<JsonValue> {
-        self.value.clone()
+        self.init.clone()
     }
 
     fn get_implementation(&self) -> &str {
@@ -109,8 +109,8 @@ impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "\tname: \t\t{}\n\t\t\t\t\troute: \t\t{}\n\t\t\t\t\tdatatype: \t{}\n",
                self.name, self.route, self.datatype).unwrap();
-        if self.value.is_some() {
-            write!(f, "\t\t\t\t\tvalue: \t\t{:?}", self.value).unwrap();
+        if self.init.is_some() {
+            write!(f, "\t\t\t\t\tinit: \t\t{:?}", self.init).unwrap();
         }
         Ok(())
     }
@@ -211,7 +211,7 @@ mod test {
         value.validate().unwrap();
         assert_eq!(value.name, "test_value");
         assert_eq!(value.datatype, "Json");
-        assert!(value.value.is_none());
+        assert!(value.init.is_none());
         assert!(value.outputs.is_none());
     }
 
@@ -221,12 +221,12 @@ mod test {
         let value_str = "\
         name = \"test_value\"
         type = \"Json\"
-        value = 10
+        init = 10
         ";
 
         let value: Value = toml::from_str(value_str).unwrap();
         value.validate().unwrap();
-        let initial_value = value.value.unwrap();
+        let initial_value = value.init.unwrap();
         assert_eq!(initial_value, json!(10));
     }
 
@@ -236,12 +236,12 @@ mod test {
         let value_str = "\
         name = \"test_value\"
         type = \"Json\"
-        value = \"Hello\"
+        init = \"Hello\"
         ";
 
         let value: Value = toml::from_str(value_str).unwrap();
         value.validate().unwrap();
-        let initial_value = value.value.unwrap();
+        let initial_value = value.init.unwrap();
         assert_eq!(initial_value, json!("Hello"));
     }
 

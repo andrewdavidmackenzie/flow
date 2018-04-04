@@ -3,12 +3,12 @@ name = "fib"
 [[value]]
 name = "HEAD-1"
 type = "Number"
-value = 1
+init = 1
 
 [[value]]
 name = "HEAD"
 type = "Number"
-value = 1
+init = 1
 
 [[function]]
 alias = "sum"

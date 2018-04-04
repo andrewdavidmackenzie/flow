@@ -179,7 +179,7 @@ mod test {
         let value = Value {
             name: "value".to_string(),
             datatype: "String".to_string(),
-            value: Some(JsonValue::String("Hello-World".to_string())),
+            init: Some(JsonValue::String("Hello-World".to_string())),
             route: "/flow0/value".to_string(),
             outputs: Some(vec!(IO {
                 name: "".to_string(),
@@ -201,7 +201,7 @@ mod test {
         let value = Value {
             name: "value".to_string(),
             datatype: "String".to_string(),
-            value: Some(JsonValue::String("Hello-World".to_string())),
+            init: Some(JsonValue::String("Hello-World".to_string())),
             route: "/flow0/value".to_string(),
             outputs: Some(vec!(
                 IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string(), depth: 1, flow_io: false },
