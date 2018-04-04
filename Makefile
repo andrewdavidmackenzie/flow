@@ -14,7 +14,7 @@ endif
 doc:
 	cargo doc
 
-test: travis test-gtk
+test: travis online-tests
 
 # In Travis don't try to test gtk as needs many extra installs
 travis: local-tests
@@ -40,19 +40,19 @@ test-flow:
 	@cargo test $(features)
 	@echo "------- Finished testing flow -------------"
 
+compiler:
+	@cargo build --manifest-path=flowc/Cargo.toml
+
 #################### SAMPLES ####################
 sample_flows := $(patsubst samples/%,samples/%/test_output.txt,$(wildcard samples/*))
 
 test-samples: $(sample_flows)
 
-samples/%/test_output.txt : samples/%/test_input.txt
+samples/%/test_output.txt : samples/%/test_input.txt compiler
 	@echo "\n------- Compiling and Running sample $(@D) ----"
 	@cat $< | ./target/debug/flowc $(@D) > $@
 	diff $@ $(@D)/expected_output.txt
 	@rm $@
-
-clean-samples:
-	@find samples -name rust -type d -exec rm -rf {} + ; true
 
 ################# ONLINE SAMPLES ################
 test-hello-simple-online: ./target/debug/flowc
@@ -75,19 +75,11 @@ package-electron:
 	@cd electron && make package
 	@echo "------- Finished packaging electron -----------"
 
-run-flowc:
-	@cargo run --manifest-path flowc/Cargo.toml
-
 run-electron:
 	@cd electron && make run-electron
 
-clean: clean-samples
+clean:
 	cargo clean
+	@find samples -name rust -type d -exec rm -rf {} + ; true
+	@find samples -name test_output.txt -exec rm -rf {} + ; true
 	cd electron && make clean
-
-dependencies.png: dependencies.dot
-	@dot -T png -o $@ $^
-	@open $@
-
-dependencies.dot: Makefile
-	@$(MAKE) -Bnd | make2graph > $@
