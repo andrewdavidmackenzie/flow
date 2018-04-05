@@ -11,23 +11,23 @@ type = "Number"
 constant = 1
 
 [[function]]
-alias = "add"
+alias = "sum"
 source = "lib://flowstdlib/math/add.toml"
 
 [[connection]]
 from = "value/a"
-to = "function/add/i1"
+to = "function/sum/i1"
 
 [[connection]]
 from = "value/constant"
-to = "function/add/i2"
+to = "function/sum/i2"
 
 [[function]]
 alias = "add_again"
 source = "lib://flowstdlib/math/add.toml"
 
 [[connection]]
-from = "function/add"
+from = "function/sum"
 to = "function/add_again/i1"
 
 [[connection]]

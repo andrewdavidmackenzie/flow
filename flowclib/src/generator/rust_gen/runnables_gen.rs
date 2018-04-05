@@ -92,7 +92,8 @@ fn contents(tables: &CodeGenTables, lib_refs: &Vec<String>) -> Result<String> {
 
     } else {
         vars.insert("value_used".to_string(), "");
-        vars.insert("value_implementation_used".to_string(), "");
+        vars.insert("value_constant_implementation_used".to_string(), "");
+        vars.insert("value_variable_implementation_used".to_string(), "");
     }
 
     if uses_function(&tables.runnables) {
@@ -162,7 +163,7 @@ fn lib_refs(libs_references: &HashSet<String>) -> Vec<String> {
 // Output a statement that instantiates an instance of the Runnable type used, that can be used
 // to build the list of runnables
 fn runnable_to_code(runnable: &Box<Runnable>) -> String {
-    let mut code = format!("{}::new(\"{}\".to_string(), ", runnable.get_type(), runnable.name());
+    let mut code = format!("{}::new(\"{}\".to_string(), ", runnable.get_type(), runnable.alias());
     match &runnable.get_inputs() {
         // No inputs, so put a '0' and an empty vector of input depths
         &None => code.push_str(&format!("{}, vec!(), ", 0)),
@@ -286,6 +287,7 @@ mod test {
     fn function_with_sub_route_output_to_code() {
         let function = Function {
             name: "Stdout".to_string(),
+            alias: "print".to_string(),
             inputs: Some(vec!()),
             outputs: Some(vec!(
                 IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string(), depth: 1, flow_io: false },
@@ -300,6 +302,6 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Function::new(\"Stdout\".to_string(), 0, vec!(), 0, Box::new(Stdout{}), None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+        assert_eq!(code, "Function::new(\"print\".to_string(), 0, vec!(), 0, Box::new(Stdout{}), None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
     }
 }

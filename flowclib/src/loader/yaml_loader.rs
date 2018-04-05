@@ -34,6 +34,7 @@ impl Loader for FlowYamlLoader {
 
         let function = Function {
             name: "fake".to_string(),
+            alias: "fake".to_string(),
             source_url: Url::parse("file:///").unwrap(),
             route: "fake/fake".to_string(),
             inputs: None,

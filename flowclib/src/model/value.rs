@@ -37,9 +37,8 @@ pub struct Value {
 }
 
 impl HasName for Value {
-    fn name(&self) -> &str {
-        &self.name[..]
-    }
+    fn name(&self) -> &str { &self.name[..] }
+    fn alias(&self) -> &str { &self.name[..] }
 }
 
 impl HasDataType for Value {
@@ -129,7 +128,7 @@ impl fmt::Display for Value {
             write!(f, "\t\t\t\t\tinit: \t\t{:?}", self.init).unwrap();
         }
         if self.constant.is_some() {
-            write!(f, "\t\t\t\t\tconstant: \t\t{:?}", self.init).unwrap();
+            write!(f, "\t\t\t\t\tconstant: \t{:?}", self.constant).unwrap();
         }
         Ok(())
     }
@@ -262,11 +261,6 @@ mod test {
         value.validate().unwrap();
         assert_eq!(value.init, None);
         assert_eq!(value.constant.unwrap(), json!(10));
-    }
-
-    #[test]
-    fn get_constant_multiple_times() {
-        // TODO ADM
     }
 
     #[test]

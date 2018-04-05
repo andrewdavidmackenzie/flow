@@ -13,6 +13,7 @@ impl Validate for Name {
 
 pub trait HasName {
     fn name(&self) -> &str;
+    fn alias(&self) -> &str;
 }
 
 #[test]

@@ -74,7 +74,11 @@ impl Runnable for Value {
     }
 
     fn get_inputs(&mut self) -> Vec<Vec<JsonValue>> {
-        vec!(vec!(self.value.take()))
+        if self.number_of_inputs == 0 { // never get's refreshed, is a constant!
+            vec!(vec!(self.value.clone()))
+        } else {
+            vec!(vec!(self.value.take())) // consume the value and it will get refilled later
+        }
     }
 
     fn output_destinations(&self) -> &Vec<(&'static str, usize, usize)> {

@@ -17,9 +17,8 @@ pub struct FlowReference {
 }
 
 impl HasName for FlowReference {
-    fn name(&self) -> &str {
-        &self.alias[..]
-    }
+    fn name(&self) -> &str {  &self.alias[..]  }
+    fn alias(&self) -> &str {  &self.alias[..]  }
 }
 
 impl HasRoute for FlowReference {

@@ -16,9 +16,8 @@ pub struct FunctionReference {
 }
 
 impl HasName for FunctionReference {
-    fn name(&self) -> &str {
-        &self.alias[..]
-    }
+    fn name(&self) -> &str {  &self.alias[..] }
+    fn alias(&self) -> &str { &self.alias[..] }
 }
 
 impl HasRoute for FunctionReference {
@@ -35,7 +34,7 @@ impl Validate for FunctionReference {
 
 impl fmt::Display for FunctionReference {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\t\t\t\t\talias: \t{}\n\t\t\t\t\timplementation:\n\t\t\t\t\t\t\t\tsource: \t{}\n",
+        write!(f, "\t\t\t\talias: \t{}\n\t\t\t\t\timplementation:\n\t\t\t\t\tsource: \t{}\n",
                self.alias, self.source)
     }
 }

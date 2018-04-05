@@ -97,12 +97,13 @@ pub fn load_single_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
 /// // url = url.join("samples/complex1/function1.toml").unwrap();
 /// // flowclib::loader::loader::load_function(&url, "/root_flow").unwrap();
 /// ```
-pub fn load_function(url: &Url, parent_route: &str) -> Result<Function, String> {
+pub fn load_function(url: &Url, parent_route: &str, alias: &str) -> Result<Function, String> {
     debug!("Loading function from '{}'", url);
     let (resolved_url, lib_ref) = provider::resolve(url)?;
     let loader = get_loader(&resolved_url)?;
     let contents = provider::get(&resolved_url)?;
     let mut function = loader.load_function(&contents)?;
+    function.alias = alias.to_string();
     function.source_url = resolved_url.clone();
     function.lib_reference = lib_ref;
     function.set_routes(parent_route);
@@ -119,7 +120,9 @@ fn load_functions(flow: &mut Flow) -> Result<(), String> {
         for ref mut function_ref in function_refs {
             let function_url = flow.source_url.join(&function_ref.source)
                 .map_err(|_e| "URL join error")?;
-            function_ref.function = load_function(&function_url, &flow.route)?;
+            function_ref.function = load_function(&function_url,
+                                                  &flow.route,
+                                                  &function_ref.alias)?;
             if let &Some(ref lib_ref) = &function_ref.function.lib_reference {
                 flow.lib_references.push(format!("{}/{}", lib_ref, function_ref.function.name));
             }

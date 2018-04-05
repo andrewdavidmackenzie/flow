@@ -42,6 +42,7 @@ impl HasName for IO {
     fn name(&self) -> &str {
         &self.name[..]
     }
+    fn alias(&self) -> &str {  &self.name[..] }
 }
 
 impl HasDataType for IO {

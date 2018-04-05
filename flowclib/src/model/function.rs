@@ -18,6 +18,8 @@ pub struct Function {
     #[serde(rename = "output")]
     pub outputs: IOSet,
 
+    #[serde(skip_deserializing)]
+    pub alias: Name,
     #[serde(skip_deserializing, default = "Function::default_url")]
     pub source_url: Url,
     #[serde(skip_deserializing)]
@@ -31,9 +33,8 @@ pub struct Function {
 }
 
 impl HasName for Function {
-    fn name(&self) -> &str {
-        &self.name[..]
-    }
+    fn name(&self) -> &str { &self.name[..] }
+    fn alias(&self) -> &str { &self.alias[..] }
 }
 
 impl Runnable for Function {
@@ -113,20 +114,20 @@ impl Validate for Function {
 
 impl fmt::Display for Function {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\t\t\t\t\t\t\t\tname: \t\t{}\n",
-               self.name).unwrap();
+        write!(f, "\t\t\t\t\t\t\t\tname: \t\t{}\n", self.name)?;
+        write!(f, "\t\t\t\t\t\t\t\talias: \t\t{}\n", self.alias)?;
 
-        write!(f, "\t\t\t\t\t\t\t\tinputs:\n").unwrap();
+        write!(f, "\t\t\t\t\t\t\t\tinputs:\n")?;
         if let Some(ref inputs) = self.inputs {
             for input in inputs {
-                write!(f, "\t\t\t\t\t\t\t{}\n", input).unwrap();
+                write!(f, "\t\t\t\t\t\t\t{}\n", input)?;
             }
         }
 
-        write!(f, "\t\t\t\t\t\t\t\toutput:\n").unwrap();
+        write!(f, "\t\t\t\t\t\t\t\toutput:\n")?;
         if let Some(ref outputs) = self.outputs {
             for output in outputs {
-                write!(f, "\t\t\t\t\t\t\t{}\n", output).unwrap();
+                write!(f, "\t\t\t\t\t\t\t{}\n", output)?;
             }
         }
 
@@ -138,6 +139,7 @@ impl Default for Function {
     fn default() -> Function {
         Function {
             name: "".to_string(),
+            alias: "".to_string(),
             inputs: None,
             outputs: Some(vec!(IO {
                 name: "".to_string(),
@@ -160,7 +162,7 @@ impl Function {
     }
 
     pub fn set_routes(&mut self, parent_route: &str) {
-        self.route = format!("{}/{}", parent_route, self.name);
+        self.route = format!("{}/{}", parent_route, self.alias);
 
         // Set routes to inputs
         if let Some(ref mut inputs) = self.inputs {
@@ -200,6 +202,7 @@ mod test {
     fn function_with_no_io_not_valid() {
         let fun = Function {
             name: "test_function".to_string(),
+            alias: "test_function".to_string(),
             source_url: Function::default_url(),
             inputs: Some(vec!()), // No inputs!
             outputs: None,         // No output!
@@ -315,17 +318,21 @@ mod test {
         type = \"Number\"
         ";
 
+        // Setup
         let mut function: Function = toml::from_str(function_str).unwrap();
+        function.alias = "test_alias".to_string();
+
+        // Test
         function.set_routes("/flow");
 
-        assert_eq!(function.route, "/flow/test_function");
+        assert_eq!(function.route, "/flow/test_alias");
 
         let outputs = function.outputs.unwrap();
 
         let output0 = &outputs[0];
-        assert_eq!(output0.route, "/flow/test_function/sub_output");
+        assert_eq!(output0.route, "/flow/test_alias/sub_output");
 
         let output1 = &outputs[1];
-        assert_eq!(output1.route, "/flow/test_function/other_output");
+        assert_eq!(output1.route, "/flow/test_alias/other_output");
     }
 }
