@@ -13,7 +13,8 @@ const RUNNABLES_PREFIX: &'static str = "
 // Flow Run-time library references
 use flowrlib::runnable::Runnable;
 {value_used}
-{value_implementation_used}
+{value_variable_implementation_used}
+{value_constant_implementation_used}
 {function_used}
 
 // Rust std library references
@@ -38,9 +39,30 @@ pub fn create(src_dir: &PathBuf, tables: &CodeGenTables)
     runnables_rs.write_all(contents.unwrap().as_bytes())
 }
 
-fn uses(runnable_type: &str, runnables: &Vec<Box<Runnable>>) -> bool {
+fn uses_value(runnables: &Vec<Box<Runnable>>) -> (bool, bool, bool) {
+    let mut value_used = false;
+    let mut constant_used = false;
+    let mut variable_used = false;
+
     for runnable in runnables {
-        if runnable.get_type() == runnable_type {
+        if runnable.get_type() == "Value" {
+            value_used = true;
+
+            if runnable.get_constant_value().is_some() {
+                constant_used = true;
+            } else {
+                variable_used = true;
+            }
+
+        }
+    }
+
+    (value_used, constant_used, variable_used)
+}
+
+fn uses_function(runnables: &Vec<Box<Runnable>>) -> bool {
+    for runnable in runnables {
+        if runnable.get_type() == "Function" {
             return true;
         }
     }
@@ -51,15 +73,29 @@ fn contents(tables: &CodeGenTables, lib_refs: &Vec<String>) -> Result<String> {
     let num_runnables = &tables.runnables.len().to_string();
     let mut vars = HashMap::new();
 
-    if uses("Value", &tables.runnables) {
+    let (value_used, constant_used, variable_used) = uses_value(&tables.runnables);
+
+    if value_used {
         vars.insert("value_used".to_string(), "use flowrlib::value::Value;");
-        vars.insert("value_implementation_used".to_string(), "use flowstdlib::zero_fifo::Fifo;");
+
+        if constant_used {
+            vars.insert("value_constant_implementation_used".to_string(), "use flowstdlib::constant::Constant;");
+        } else {
+            vars.insert("value_constant_implementation_used".to_string(), "");
+        }
+
+        if variable_used {
+            vars.insert("value_variable_implementation_used".to_string(), "use flowstdlib::zero_fifo::Fifo;");
+        } else {
+            vars.insert("value_variable_implementation_used".to_string(), "");
+        }
+
     } else {
         vars.insert("value_used".to_string(), "");
         vars.insert("value_implementation_used".to_string(), "");
     }
 
-    if uses("Function", &tables.runnables) {
+    if uses_function(&tables.runnables) {
         vars.insert("function_used".to_string(), "use flowrlib::function::Function;");
     } else {
         vars.insert("function_used".to_string(), "");
@@ -143,7 +179,12 @@ fn runnable_to_code(runnable: &Box<Runnable>) -> String {
     code.push_str(&format!("{}, Box::new({}{{}}), ", runnable.get_id(), runnable.get_implementation()));
 
     code.push_str(&format!("{},",  match runnable.get_initial_value() {
-        None => "None".to_string(),
+        None => {
+            match runnable.get_constant_value() {
+                None => "None".to_string(),
+                Some(constant) => format!("Some(json!({}))", constant.to_string())
+            }
+        },
         Some(value) => format!("Some(json!({}))", value.to_string())
     }));
 
@@ -180,6 +221,7 @@ mod test {
             name: "value".to_string(),
             datatype: "String".to_string(),
             init: Some(JsonValue::String("Hello-World".to_string())),
+            constant: None,
             route: "/flow0/value".to_string(),
             outputs: Some(vec!(IO {
                 name: "".to_string(),
@@ -197,11 +239,35 @@ mod test {
     }
 
     #[test]
+    fn test_constant_value_to_code() {
+        let value = Value {
+            name: "value".to_string(),
+            datatype: "String".to_string(),
+            init: None,
+            constant: Some(JsonValue::String("Hello-World".to_string())),
+            route: "/flow0/value".to_string(),
+            outputs: Some(vec!(IO {
+                name: "".to_string(),
+                datatype: "Json".to_string(),
+                depth: 1,
+                route: "".to_string(),
+                flow_io: false })),
+            output_connections: vec!(("".to_string(), 1, 0)),
+            id: 1,
+        };
+
+        let br = Box::new(value) as Box<Runnable>;
+        let code = runnable_to_code(&br);
+        assert_eq!(code, "Value::new(\"value\".to_string(), 1, vec!(1, ), 1, Box::new(Constant{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
+    }
+
+    #[test]
     fn value_with_sub_route_output_to_code() {
         let value = Value {
             name: "value".to_string(),
             datatype: "String".to_string(),
             init: Some(JsonValue::String("Hello-World".to_string())),
+            constant: None,
             route: "/flow0/value".to_string(),
             outputs: Some(vec!(
                 IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string(), depth: 1, flow_io: false },

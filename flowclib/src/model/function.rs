@@ -75,6 +75,8 @@ impl Runnable for Function {
 
     fn get_initial_value(&self) -> Option<JsonValue> { None }
 
+    fn get_constant_value(&self) -> Option<JsonValue> { None }
+
     fn get_implementation(&self) -> &str {
         &self.name
     }

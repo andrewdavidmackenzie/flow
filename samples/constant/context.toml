@@ -1,0 +1,39 @@
+name = "constant"
+
+[[value]]
+name = "a"
+type = "Number"
+init = 1
+
+[[value]]
+name = "b"
+type = "Number"
+constant = 1
+
+[[function]]
+alias = "add"
+source = "lib://flowstdlib/math/add.toml"
+
+[[connection]]
+from = "value/a"
+to = "function/add/i1"
+
+[[connection]]
+from = "value/b"
+to = "function/add/i2"
+
+[[function]]
+alias = "to_string"
+source = "lib://flowstdlib/fmt/to_string.toml"
+
+[[connection]]
+from = "function/add"
+to = "function/to_string"
+
+[[function]]
+alias = "print"
+source = "lib://flowstdlib/stdio/stdout.toml"
+
+[[connection]]
+from = "function/to_string"
+to = "function/print"

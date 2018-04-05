@@ -19,6 +19,7 @@ pub struct Value {
     #[serde(rename = "type")]
     pub datatype: DataType,
     pub init: Option<JsonValue>,
+    pub constant: Option<JsonValue>,
 
     // Input to a value is assumed, at the route of the value itself and always possible
     // Output from a value is assumed, at the route of the value itself and always possible
@@ -94,13 +95,24 @@ impl Runnable for Value {
         self.init.clone()
     }
 
+    fn get_constant_value(&self) -> Option<JsonValue> {
+        self.constant.clone()
+    }
+
     fn get_implementation(&self) -> &str {
-        "Fifo"
+        if self.constant.is_some() {
+            "Constant"
+        } else {
+            "Fifo"
+        }
     }
 }
 
 impl Validate for Value {
     fn validate(&self) -> Result<(), String> {
+        if self.init.is_some() && self.constant.is_some() {
+            return Err("Value cannot have an initial and a constant value".to_string());
+        }
         self.datatype.validate()
     }
 }
@@ -111,6 +123,9 @@ impl fmt::Display for Value {
                self.name, self.route, self.datatype).unwrap();
         if self.init.is_some() {
             write!(f, "\t\t\t\t\tinit: \t\t{:?}", self.init).unwrap();
+        }
+        if self.constant.is_some() {
+            write!(f, "\t\t\t\t\tconstant: \t\t{:?}", self.init).unwrap();
         }
         Ok(())
     }
@@ -228,6 +243,41 @@ mod test {
         value.validate().unwrap();
         let initial_value = value.init.unwrap();
         assert_eq!(initial_value, json!(10));
+    }
+
+    #[test]
+    fn deserialize_constant_number_value() {
+        // no outputs specified
+        let value_str = "\
+        name = \"test_value\"
+        type = \"Json\"
+        constant = 10
+        ";
+
+        let value: Value = toml::from_str(value_str).unwrap();
+        value.validate().unwrap();
+        assert_eq!(value.init, None);
+        assert_eq!(value.constant.unwrap(), json!(10));
+    }
+
+    #[test]
+    fn get_constant_multiple_times() {
+        // TODO ADM
+    }
+
+    #[test]
+    #[should_panic]
+    fn constant_and_init_invalid() {
+        // no outputs specified
+        let value_str = "\
+        name = \"test_value\"
+        type = \"Json\"
+        init = 10
+        constant = 10
+        ";
+
+        let value: Value = toml::from_str(value_str).unwrap();
+        value.validate().unwrap();
     }
 
     #[test]

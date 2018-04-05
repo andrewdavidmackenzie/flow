@@ -15,5 +15,6 @@ pub trait Runnable: fmt::Display + HasName {
     fn get_type(&self) -> &str;
     fn get_output_routes(&self) -> &Vec<(Route, usize, usize)>;
     fn get_initial_value(&self) -> Option<JsonValue>;
+    fn get_constant_value(&self) -> Option<JsonValue>;
     fn get_implementation(&self) -> &str;
 }
