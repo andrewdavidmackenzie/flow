@@ -57,7 +57,7 @@ impl Runnable for Function {
 
     fn write_input(&mut self, input_number: usize, input_value: JsonValue) {
         if self.inputs[input_number].full() {
-            error!("Runnable #{} '{}' Input overflow on input number {}", self.id(), self.name(), input_number);
+            error!("\t\tRunnable #{} '{}' Input overflow on input number {}", self.id(), self.name(), input_number);
         } else {
             self.inputs[input_number].push(input_value);
         }

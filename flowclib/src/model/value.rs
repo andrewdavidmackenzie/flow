@@ -64,11 +64,15 @@ impl Runnable for Value {
     }
 
     fn get_inputs(&self) -> IOSet {
-        let mut value_input = IO::default();
-        value_input.datatype = self.datatype.clone();
-        value_input.route = self.route.clone();
+        if self.constant.is_some() {
+            None
+        } else {
+            let mut value_input = IO::default();
+            value_input.datatype = self.datatype.clone();
+            value_input.route = self.route.clone();
 
-        Some(vec!(value_input))
+            Some(vec!(value_input))
+        }
     }
 
     fn get_outputs(&self) -> IOSet {

@@ -165,7 +165,7 @@ fn runnable_to_code(runnable: &Box<Runnable>) -> String {
     let mut code = format!("{}::new(\"{}\".to_string(), ", runnable.get_type(), runnable.name());
     match &runnable.get_inputs() {
         // No inputs, so put a '0' and an empty vector of input depths
-        &None => code.push_str(&format!("{}, vec!(),", 0)),
+        &None => code.push_str(&format!("{}, vec!(), ", 0)),
         // Some inputs, so put the number and the vector of input depths
         &Some(ref inputs) => {
             code.push_str(&format!("{}, vec!(", inputs.len()));
@@ -258,7 +258,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\".to_string(), 1, vec!(1, ), 1, Box::new(Constant{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Value::new(\"value\".to_string(), 0, vec!(), 1, Box::new(Constant{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
     }
 
     #[test]

@@ -6,6 +6,7 @@ const ONLY_INPUT: usize = 0;
 
 pub struct Value {
     name: String,
+    number_of_inputs: usize,
     id: usize,
     initial_value: Option<JsonValue>,
     implementation: Box<Implementation>,
@@ -15,7 +16,7 @@ pub struct Value {
 
 impl Value {
     pub fn new(name: String,
-               _num_inputs: usize,
+               number_of_inputs: usize,
                _input_depths: Vec<usize>,
                id: usize,
                implementation: Box<Implementation>,
@@ -23,6 +24,7 @@ impl Value {
                output_routes: Vec<(&'static str, usize, usize)>) -> Value {
         Value {
             name,
+            number_of_inputs,
             id,
             initial_value,
             implementation,
@@ -37,7 +39,7 @@ impl Runnable for Value {
         &self.name
     }
 
-    fn number_of_inputs(&self) -> usize { 1 }
+    fn number_of_inputs(&self) -> usize { self.number_of_inputs }
 
     fn id(&self) -> usize { self.id }
 

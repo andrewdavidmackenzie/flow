@@ -6,7 +6,7 @@ type = "Number"
 init = 1
 
 [[value]]
-name = "b"
+name = "constant"
 type = "Number"
 constant = 1
 
@@ -19,15 +19,27 @@ from = "value/a"
 to = "function/add/i1"
 
 [[connection]]
-from = "value/b"
+from = "value/constant"
 to = "function/add/i2"
+
+[[function]]
+alias = "add_again"
+source = "lib://flowstdlib/math/add.toml"
+
+[[connection]]
+from = "function/add"
+to = "function/add_again/i1"
+
+[[connection]]
+from = "value/constant"
+to = "function/add_again/i2"
 
 [[function]]
 alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string.toml"
 
 [[connection]]
-from = "function/add"
+from = "function/add_again"
 to = "function/to_string"
 
 [[function]]
