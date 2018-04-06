@@ -146,7 +146,7 @@ impl RunList {
             let output_value = output.pointer(output_route).unwrap();
             destination.write_input(io_number, output_value.clone());
             self.metrics.outputs_sent += 1;
-            debug!("\tRunnable #{} '{}/{}' sent output '{}' to Runnable #{} '{}' input #{}",
+            debug!("\tRunnable #{} '{}{}' sent output '{}' to Runnable #{} '{}' input #{}",
                    runnable.id(), runnable.name(), output_route, output_value, &destination_id,
                    destination.name(), &io_number);
             if destination.input_full(io_number) {
