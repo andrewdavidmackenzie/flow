@@ -58,8 +58,9 @@ fn run() -> Result<String, String> {
     if dump {
         dumper::dump_flow(&flow);
         dumper::dump_tables(&tables);
-        dumper::dump_dot(&flow, &tables, &output_dir).map_err(|e| e.to_string())?;
     }
+
+    dumper::dump_dot(&flow, &tables, &output_dir).map_err(|e| e.to_string())?;
 
     if skip_generation {
         return Ok("Code Generation and Running skipped".to_string());

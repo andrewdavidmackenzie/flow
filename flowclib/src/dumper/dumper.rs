@@ -72,6 +72,7 @@ pub fn dump_tables(tables: &CodeGenTables) {
 ///
 pub fn dump_dot(flow: &Flow, tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<String> {
     let mut output_path = output_dir.clone();
+    output_path.pop();
     let mut output_file = PathBuf::from(&flow.name);
     output_file.set_extension("dot");
     output_path.push(&output_file);
