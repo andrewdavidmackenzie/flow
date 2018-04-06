@@ -187,7 +187,7 @@ fn build_connections(flow: &mut Flow) -> Result<(), String> {
             debug!("Found source of connection:\n\t{}", from);
             if let Ok(to) = flow.get_route_and_type(TO,&connection.to) {
                 debug!("Found destination of connection:\n\t{}", to);
-                if from.datatype == to.datatype || to.datatype == "Json" {
+                if from.datatype == to.datatype || from.datatype == "Json" || to.datatype == "Json" {
                     debug!("Connection source and destination types match, connection built");
                     connection.from_io = from;
                     connection.to_io = to;
