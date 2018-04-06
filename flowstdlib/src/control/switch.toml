@@ -1,0 +1,10 @@
+name = "Switch"
+
+[[input]]
+name = "data"
+
+[[input]]
+name = "control"
+type = "Bool"
+
+[[output]]

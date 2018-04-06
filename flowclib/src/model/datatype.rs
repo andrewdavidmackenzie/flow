@@ -1,4 +1,4 @@
-const DATATYPES: &'static [&'static str] = &["String", "Json", "Number"];
+const DATATYPES: &'static [&'static str] = &["String", "Json", "Number", "Bool"];
 
 pub type DataType = String;
 
@@ -16,7 +16,7 @@ impl TypeCheck for DataType {
             return Ok(());
         }
 
-        Err(format!("DataType '{}' is unknown", &self))
+        Err(format!("Type '{}' is unknown", &self))
     }
 }
 

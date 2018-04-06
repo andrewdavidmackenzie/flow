@@ -27,7 +27,7 @@ use std::panic;
 /// exit(0);
 /// ```
 pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) {
-    set_panic_hook();
+//    set_panic_hook();
     let mut run_list = init(runnables);
 
     debug!("Starting execution loop");

@@ -10,6 +10,11 @@ name = "constant"
 type = "Number"
 constant = 1
 
+[[value]]
+name = "true"
+type = "Bool"
+init = false
+
 [[function]]
 alias = "sum"
 source = "lib://flowstdlib/math/add.toml"
@@ -43,8 +48,24 @@ from = "function/add_again"
 to = "function/to_string"
 
 [[function]]
+alias = "switch"
+source = "lib://flowstdlib/control/switch.toml"
+
+[[connection]]
+from = "function/add_again"
+to = "function/switch/data"
+
+[[connection]]
+from = "value/true"
+to = "function/switch/control"
+
+[[function]]
 alias = "print"
 source = "lib://flowstdlib/stdio/stdout.toml"
+
+[[connection]]
+from = "function/switch"
+to = "function/to_string"
 
 [[connection]]
 from = "function/to_string"
