@@ -1,4 +1,4 @@
-name = "constant"
+name = "primitives"
 
 [[value]]
 name = "a"
@@ -51,13 +51,34 @@ to = "function/to_string"
 alias = "switch"
 source = "lib://flowstdlib/control/switch.toml"
 
+[[function]]
+alias = "compare"
+source = "lib://flowstdlib/control/compare.toml"
+
 [[connection]]
 from = "function/add_again"
 to = "function/switch/data"
 
 [[connection]]
+from = "function/add_again"
+to = "function/compare/left"
+
+[[value]]
+name = "2"
+type = "Number"
+init = 2
+
+[[connection]]
+from = "value/2"
+to = "function/compare/right"
+
+[[connection]]
 from = "value/true"
 to = "function/switch/control"
+
+[[connection]]
+from = "function/compare/gt"
+to = "function/to_string"
 
 [[function]]
 alias = "print"
