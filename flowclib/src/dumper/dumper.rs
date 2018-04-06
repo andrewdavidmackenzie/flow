@@ -73,7 +73,7 @@ pub fn dump_tables(tables: &CodeGenTables) {
 pub fn dump_dot(flow: &Flow, tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<String> {
     let mut output_path = output_dir.clone();
     output_path.pop();
-    let mut output_file = PathBuf::from(&flow.name);
+    let mut output_file = PathBuf::from("runnables");
     output_file.set_extension("dot");
     output_path.push(&output_file);
     info!("Generating dot file at '{}'", output_path.display());
@@ -85,18 +85,22 @@ pub fn dump_dot(flow: &Flow, tables: &CodeGenTables, output_dir: &PathBuf) -> io
     let mut runnables = String::new();
     for (index, ref runnable) in tables.runnables.iter().enumerate() {
         let mut second_line;
+        let mut shape;
 
         if let Some(constant) = runnable.get_constant_value() {
             second_line = format!("\\n(={})", constant);
+            shape = "[shape=square]";
         } else {
             second_line = "".to_string();
+            shape = "";
         }
 
-        runnables.push_str(&format!("r{}[label=\"{} (#{}){}\"];\n",
+        runnables.push_str(&format!("r{}[label=\"{} (#{}){}\"]{};\n",
                                     index,
                                     runnable.name(),
                                     runnable.get_id(),
-                                    second_line));
+                                    second_line,
+                                    shape));
 
         if let Some(iv) = runnable.get_initial_value() {
             // Add an extra graph entry for the initial value
