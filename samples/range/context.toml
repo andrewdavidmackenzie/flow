@@ -1,0 +1,39 @@
+name = "range-flow"
+
+[[flow]]
+alias = "range-gen"
+source = "range.toml"
+
+[[value]]
+name = "start"
+type = "Number"
+init = 1
+
+[[value]]
+name = "end"
+type = "Number"
+constant = 100
+
+[[function]]
+alias = "to_string"
+source = "lib://flowstdlib/fmt/to_string.toml"
+
+[[connection]]
+from = "value/start"
+to = "flow/range-gen/start"
+
+[[connection]]
+from = "value/end"
+to = "flow/range-gen/limit"
+
+[[connection]]
+from = "flow/range-gen/series"
+to = "function/to_string"
+
+[[function]]
+alias = "print"
+source = "lib://flowstdlib/stdio/stdout.toml"
+
+[[connection]]
+from = "function/to_string"
+to = "function/print"

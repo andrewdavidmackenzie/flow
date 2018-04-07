@@ -1,0 +1,50 @@
+name = "range"
+
+[[input]]
+name = "start"
+type = "Number"
+
+[[input]]
+name = "limit"
+type = "Number"
+
+[[output]]
+name = "series"
+type = "Number"
+
+[[flow]]
+alias = "pilt"
+source = "pass_if_less_than.toml"
+
+[[function]]
+alias = "add"
+source = "lib://flowstdlib/math/add.toml"
+
+[[connection]]
+from = "input/start"
+to = "flow/pilt/in"
+
+[[connection]]
+from = "input/limit"
+to = "flow/pilt/max"
+
+[[connection]]
+from = "flow/pilt/out"
+to = "output/series"
+
+[[connection]]
+from = "flow/pilt/out"
+to = "function/add/i1"
+
+[[value]]
+name = "1"
+type = "Number"
+constant = 1
+
+[[connection]]
+from = "value/1"
+to = "function/add/i2"
+
+[[connection]]
+from = "function/add"
+to = "flow/pilt/in"

@@ -1,0 +1,41 @@
+name = "pass-if-less-than"
+
+[[input]]
+name = "in"
+type = "Number"
+
+[[input]]
+name = "max"
+type = "Number"
+
+[[output]]
+name = "out"
+type = "Number"
+
+[[function]]
+alias = "switch"
+source = "lib://flowstdlib/control/switch.toml"
+
+[[function]]
+alias = "compare"
+source = "lib://flowstdlib/control/compare.toml"
+
+[[connection]]
+from = "input/in"
+to = "function/switch/data"
+
+[[connection]]
+from = "input/in"
+to = "function/compare/left"
+
+[[connection]]
+from = "input/max"
+to = "function/compare/right"
+
+[[connection]]
+from = "function/compare/lt"
+to = "function/switch/control"
+
+[[connection]]
+from = "function/switch"
+to = "output/out"
