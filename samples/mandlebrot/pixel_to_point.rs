@@ -15,13 +15,13 @@ pub struct PixelToPoint;
     plane designating the area our image covers.
 */
 impl Implementation for PixelToPoint {
-    fn run(&self, runnable: &Runnable, mut inputs: Vec<JsonValue>, run_list: &mut RunList) {
-        let pixel_bounds = inputs.remove(0);
+    fn run(&self, runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> bool {
+        let pixel_bounds = inputs.remove(0).remove(0);
         // pixel_bounds: (usize, usize),
         let pixel_bounds_x = pixel_bounds["x"].as_f64().unwrap();
         let pixel_bounds_y = pixel_bounds["y"].as_f64().unwrap();
 
-        let complex_bounds = inputs.remove(0);
+        let complex_bounds = inputs.remove(0).remove(0);
         // complex_bounds(upper_left, lower_right): (Complex<f64>, Complex<f64>)
         let upper_left = &complex_bounds["ul"];
         let upper_left_re = upper_left["re"].as_f64().unwrap();
@@ -31,7 +31,7 @@ impl Implementation for PixelToPoint {
         let lower_right_re = lower_right["re"].as_f64().unwrap();
         let lower_right_im = lower_right["im"].as_f64().unwrap();
 
-        let pixel = inputs.remove(0);
+        let pixel = inputs.remove(0).remove(0);
         //pixel: (x, y),
         let pixel_x = pixel["x"].as_f64().unwrap();
         let pixel_y = pixel["y"].as_f64().unwrap();
@@ -47,6 +47,8 @@ impl Implementation for PixelToPoint {
         // output: Complex<f64>
         let output = json!({ "re" : re, "im": im });
         run_list.send_output(runnable, output);
+
+        true
     }
 }
 
@@ -64,10 +66,10 @@ mod tests {
         let pixel_bounds = json!({"x": 100, "y": 100 });
         let complex_bounds = json!({ "ul" : {"re": 0.0, "im": 0.0 }, "lr": {"re": 1.0, "im": 1.0 }});
         let pixel = json!({"x": 50, "y": 50 });
-        let inputs: Vec<JsonValue> = vec!(pixel_bounds, complex_bounds, pixel);
+        let inputs: Vec<Vec<JsonValue>> = vec!(vec!(pixel_bounds), vec!(complex_bounds), vec!(pixel));
 
         let mut run_list = RunList::new();
-        let p2p = &Function::new("p2p".to_string(), 3, 0, Box::new(PixelToPoint), None, vec!()) as &Runnable;
+        let p2p = &Function::new("p2p".to_string(), 3, vec!(1,1,1), 0, Box::new(PixelToPoint), None, vec!()) as &Runnable;
         let implementation = p2p.implementation();
 
         implementation.run(p2p, inputs, &mut run_list);
