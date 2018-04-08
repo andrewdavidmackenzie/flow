@@ -1,16 +1,16 @@
 [package]
 name = "mandlebrot"
-version = "0.0.0"
+version = "4.0.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
-
-[lib]
-name = "mandlebrot"
-path = "lib.rs"
 
 [dependencies]
 flowrlib = { path = "../../flowrlib", version = "~0.5.0" }
 serde_json = "1.0"
 num = "0.1.27"
+image = "0.6.1"
+rayon = "*"
+tempdir = "*"
+dir-diff = "*"
 
 [workspace]
 exclude = [".."]
