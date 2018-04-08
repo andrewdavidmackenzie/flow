@@ -174,7 +174,6 @@ fn run_to_dot(runnable: &Runnable) -> String {
     visually - but this breaks down if we have more than 3 inputs
 */
 fn add_input_set(input_set: &IOSet, to: &Route) -> String {
-    let mut input_ports = vec!("n", "ne", "nw");
     let mut string = String::new();
 
     if let &Some(ref inputs) = input_set {
@@ -185,9 +184,8 @@ fn add_input_set(input_set: &IOSet, to: &Route) -> String {
                 // Add an entry for each input using it's route
                 string.push_str(&format!("\t\t\t\"{}\" [label=\"\", style=filled, fixedsize=true, width=0.2, height=0.2, fillcolor=grey];\n", input.route));
                 // and connect the input to the sub-flow
-                string.push_str(&format!("\t\t\t\"{}\" -> \"{}\":{} [len=0, weight=1000, style=invis, headtooltip=\"{}\"];\n",
-                                         input.route, to, input_ports[0], input.name));
-                input_ports.rotate_left(1);
+                string.push_str(&format!("\t\t\t\"{}\" -> \"{}\":n [len=0, weight=1000, style=invis, headtooltip=\"{}\"];\n",
+                                         input.route, to, input.name));
             }
         }
     }
@@ -199,7 +197,6 @@ fn add_input_set(input_set: &IOSet, to: &Route) -> String {
     visually - but this breaks down if we have more than 3 outputs
 */
 fn add_output_set(output_set: &IOSet, from: &Route) -> String {
-    let mut output_ports = vec!("s", "se", "sw");
     let mut string = String::new();
 
     if let &Some(ref outputs) = output_set {
@@ -210,9 +207,8 @@ fn add_output_set(output_set: &IOSet, from: &Route) -> String {
                 // Add an entry for each output using it's route
                 string.push_str(&format!("\t\t\t\"{}\" [label=\"\", style=filled, fixedsize=true, width=0.2, height=0.2, fillcolor=grey];\n", output.route));
                 // and connect the output to the sub-flow
-                string.push_str(&format!("\t\t\t\"{}\":{} -> \"{}\"[len=0, style=invis, weight=1000, headtooltip=\"{}\"];\n",
-                                         from, output_ports[0], output.route, output.name));
-                output_ports.rotate_left(1);
+                string.push_str(&format!("\t\t\t\"{}\":s -> \"{}\"[len=0, style=invis, weight=1000, headtooltip=\"{}\"];\n",
+                                         from, output.route, output.name));
             }
         }
     }
