@@ -5,6 +5,7 @@ use model::name::HasName;
 use model::io::IO;
 use model::io::IOSet;
 use model::connection::Route;
+use model::connection::HasRoute;
 use loader::loader::Validate;
 use model::runnable::Runnable;
 use serde_json::Value as JsonValue;
@@ -35,6 +36,12 @@ pub struct Function {
 impl HasName for Function {
     fn name(&self) -> &str { &self.name[..] }
     fn alias(&self) -> &str { &self.alias[..] }
+}
+
+impl HasRoute for Function {
+    fn route(&self) -> &str {
+        &self.route[..]
+    }
 }
 
 impl Runnable for Function {

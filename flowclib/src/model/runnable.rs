@@ -2,10 +2,11 @@ use model::connection::Route;
 use model::io::IOSet;
 use url::Url;
 use model::name::HasName;
+use model::connection::HasRoute;
 use serde_json::Value as JsonValue;
 use std::fmt;
 
-pub trait Runnable: fmt::Display + HasName {
+pub trait Runnable: fmt::Display + HasName + HasRoute {
     fn set_id(&mut self, id: usize);
     fn get_id(&self) -> usize;
     fn get_inputs(&self) -> IOSet;

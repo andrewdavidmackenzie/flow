@@ -56,9 +56,14 @@ fn run() -> Result<String, String> {
                                                 matches.value_of("OUTPUT_DIR"))?;
 
     if dump {
-        dumper::dump_flow(&flow);
-        dumper::dump_tables(&tables);
-        dumper::dump_dot(&flow, &tables, &output_dir).map_err(|e| e.to_string())?;
+        // Dump data describing flows and tables in the parent directory of the code generation
+        let mut dump_dir = output_dir.clone();
+        dump_dir.pop();
+        info!("Dumping flow, compiler tables and runnable descriptions in '{}'", dump_dir.display());
+
+        dumper::dump_flow(&flow, &dump_dir).map_err(|e| e.to_string())?;
+        dumper::dump_tables(&tables, &dump_dir).map_err(|e| e.to_string())?;
+        dumper::dump_runnables(&flow, &tables, &dump_dir).map_err(|e| e.to_string())?;
     }
 
     if skip_generation {

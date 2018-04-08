@@ -1,7 +1,7 @@
 name = "range-flow"
 
 [[flow]]
-alias = "range-gen"
+alias = "range"
 source = "range.toml"
 
 [[value]]
@@ -20,14 +20,14 @@ source = "lib://flowstdlib/fmt/to_string.toml"
 
 [[connection]]
 from = "value/start"
-to = "flow/range-gen/start"
+to = "flow/range/start"
 
 [[connection]]
 from = "value/end"
-to = "flow/range-gen/limit"
+to = "flow/range/limit"
 
 [[connection]]
-from = "flow/range-gen/series"
+from = "flow/range/series"
 to = "function/to_string"
 
 [[function]]
