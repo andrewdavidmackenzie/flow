@@ -8,7 +8,21 @@ pub struct ToString;
 impl Implementation for ToString {
     fn run(&self, runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> bool {
         let input = inputs.remove(0).remove(0);
-        run_list.send_output(runnable, JsonValue::String(input.to_string()));
+        match input {
+            JsonValue::String(_) => {
+                run_list.send_output(runnable, input);
+            },
+            JsonValue::Number(number) => {
+                run_list.send_output(runnable, JsonValue::String(number.to_string()));
+            },
+            JsonValue::Array(array) => {
+                for entry in array {
+                    run_list.send_output(runnable,entry);
+                }
+            },
+            _ => {}
+        };
+
         true
     }
 }

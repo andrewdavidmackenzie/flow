@@ -27,10 +27,11 @@ use std::panic;
 /// exit(0);
 /// ```
 pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) {
-    set_panic_hook();
+// TODO     set_panic_hook();
     let mut run_list = init(runnables);
 
     debug!("Starting execution loop");
+    debug!("-----------------------------------------------------------------");
     run_list.debug();
     while let Some(id) = run_list.next() {
         dispatch(&mut run_list, id);
@@ -47,20 +48,20 @@ pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) {
 fn dispatch(run_list: &mut RunList, id: usize) {
     let runnable_arc = run_list.get(id);
     let runnable: &mut Runnable = &mut *runnable_arc.lock().unwrap();
+    debug!("------------------------------------");
     debug!("Runnable: #{} '{}' dispatched", id, runnable.name());
 
     let inputs = runnable.get_inputs();
-    if runnable.number_of_inputs() > 0 {
-        run_list.inputs_consumed(id);
-        run_list.unblock_senders_to(id);
-    }
+    run_list.inputs_consumed(id);
+    run_list.unblock_senders_to(id);
+    debug!("\tRunnable: #{} '{}' running with inputs: {:?}", id, runnable.name(), inputs);
 
     let implementation = runnable.implementation();
-    debug!("\tRunnable: #{} '{}' running with inputs: {:?}", id, runnable.name(), inputs);
 
     // if after all is said and done it can run again, then add to the end of the ready list
     let run_again = implementation.run(runnable, inputs, run_list);
 
+    // if it wants to run again and it can (inputs ready) then add back to the Can Run list
     if run_again && runnable.can_run() {
         run_list.can_run(runnable.id());
     }

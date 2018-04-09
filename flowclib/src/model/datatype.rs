@@ -1,4 +1,4 @@
-const DATATYPES: &'static [&'static str] = &["String", "Json", "Number", "Bool"];
+const DATATYPES: &'static [&'static str] = &["String", "Json", "Number", "Bool", "Map", "Array"];
 
 pub type DataType = String;
 

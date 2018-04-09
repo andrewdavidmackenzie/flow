@@ -1,0 +1,13 @@
+name = "WriteBitmap"
+
+[[input]]
+name = "i1"
+type = "String"
+
+[[input]]
+name = "i2"
+type = "Array"
+
+[[input]]
+name = "i3"
+type = "Map"

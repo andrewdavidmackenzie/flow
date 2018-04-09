@@ -1,13 +1,21 @@
 name = "mandlebrot"
 
 [[function]]
-alias = "readline"
-source = "lib://flowstdlib/stdio/readline.toml"
+alias = "args"
+source = "lib://flowstdlib/env/args.toml"
+
+[[function]]
+alias = "to_string"
+source = "lib://flowstdlib/fmt/to_string.toml"
+
+[[connection]]
+from = "function/args"
+to = "function/to_string"
 
 [[function]]
 alias = "print"
 source = "lib://flowstdlib/stdio/stdout.toml"
 
 [[connection]]
-from = "function/readline"
+from = "function/to_string"
 to = "function/print"

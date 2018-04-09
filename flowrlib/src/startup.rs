@@ -1,11 +1,14 @@
 use clap::{{App, Arg, ArgMatches, AppSettings}};
 use simplog::simplog::SimpleLogger;
+use std::env;
 
 pub fn start() {
     let matches = get_matches();
+    // Set anvironment variable with the args
+    // TODO ADM this will not be unique :-(
     if let Some(flow_args) = matches.values_of("flow_args") {{
         let args: Vec<&str> = flow_args.collect();
-        println!("Flow Args {}", args.join(" "));
+        env::set_var("FLOW_ARGS", args.join(" "));
     }}
     SimpleLogger::init(matches.value_of("log"));
     info!("'{}' version '{}'", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
