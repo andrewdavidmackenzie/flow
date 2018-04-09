@@ -95,7 +95,7 @@ fn init(runnables: Vec<Arc<Mutex<Runnable>>>) -> RunList {
     debug!("Initializing all runnables");
     for runnable_arc in &runnables {
         let mut runnable = runnable_arc.lock().unwrap();
-        debug!("Initializing runnable #{} '{}'", &runnable.id(), runnable.name());
+        debug!("\tInitializing runnable #{} '{}'", &runnable.id(), runnable.name());
         if runnable.init() {
             run_list.can_run(runnable.id());
         }
