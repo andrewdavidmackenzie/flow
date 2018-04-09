@@ -41,7 +41,9 @@ pub fn create(root: &PathBuf, vars: &HashMap<String, &str>)
        ("cargo".to_string(),
         vec!("run".to_string(),
              "--manifest-path".to_string(),
-             format!("{}/Cargo.toml", root.to_str().unwrap())))))
+             format!("{}/Cargo.toml", root.to_str().unwrap()),
+             "--".to_string(),
+        ))))
 }
 
 fn contents(vars: &HashMap<String, &str>) -> FmtResult<String> {

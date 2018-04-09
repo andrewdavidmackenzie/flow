@@ -5,7 +5,7 @@ extern crate tempdir;
 
 extern crate clap;
 
-use clap::{App, Arg, ArgMatches};
+use clap::{App, Arg, ArgMatches, AppSettings};
 
 extern crate flowclib;
 
@@ -37,6 +37,12 @@ fn main() {
 */
 fn run() -> Result<String, String> {
     let matches = get_matches();
+
+    let mut args: Vec<String> = vec!();
+    if let Some(flow_args) = matches.values_of("flow_args") {
+        args = flow_args.map(|a| a.to_string()).collect();
+    }
+
     SimpleLogger::init(matches.value_of("log"));
 
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
@@ -74,11 +80,10 @@ fn run() -> Result<String, String> {
         code_gen::generate(&flow, &output_dir, "Warn",
                            &tables, "rs").map_err(|e| e.to_string())?;
 
-    info!("Building generated code in '{}' using '{}'", output_dir.display(), &build.0);
     build_flow(build)?;
 
-    info!("Running generated code in '{}' using '{}'", output_dir.display(), &run.0);
-    run_flow(run)
+    // Append flow arguments at the end of the run arguments so that are passed on it when it's run
+    run_flow(run, args)
 }
 
 /*
@@ -87,6 +92,8 @@ fn run() -> Result<String, String> {
     If build fails, return an Err() with message and output the stderr in an ERROR level log message
 */
 fn build_flow(command: (String, Vec<String>)) -> Result<String, String> {
+    info!("Building generated code using '{} {:?}'", &command.0, &command.1);
+
     let build_output = Command::new(&command.0).args(command.1).output().map_err(|e| e.to_string())?;
     match build_output.status.code() {
         Some(0) => Ok(format!("'{}' command succeeded", command.0)),
@@ -107,8 +114,11 @@ fn build_flow(command: (String, Vec<String>)) -> Result<String, String> {
     If the process exits correctly then just return an Ok() with message and no log
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
-fn run_flow(command: (String, Vec<String>)) -> Result<String, String> {
-    let output = Command::new(&command.0).args(command.1)
+fn run_flow(command: (String, Vec<String>), mut flow_args: Vec<String>) -> Result<String, String> {
+    let mut run_args = command.1.clone();
+    run_args.append(&mut flow_args);
+    info!("Running generated code using '{} {:?}'", &command.0, &run_args);
+    let output = Command::new(&command.0).args(run_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::piped())
@@ -128,6 +138,7 @@ fn run_flow(command: (String, Vec<String>)) -> Result<String, String> {
 */
 fn get_matches<'a>() -> ArgMatches<'a> {
     App::new(env!("CARGO_PKG_NAME"))
+        .setting(AppSettings::TrailingVarArg)
         .version(env!("CARGO_PKG_VERSION"))
         .arg(Arg::with_name("skip")
             .short("s")
@@ -153,5 +164,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .help("the name of the 'flow' file")
             .required(false)
             .index(1))
+        .arg(Arg::with_name("flow_args")
+            .multiple(true))
         .get_matches()
 }
