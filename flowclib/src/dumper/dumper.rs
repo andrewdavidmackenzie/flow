@@ -22,12 +22,14 @@ use model::connection::Route;
 /// use std::env;
 /// use tempdir::TempDir;
 ///
-/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-/// url = url.join("samples/hello-world-simple/context.toml").unwrap();
-/// let flow = flowclib::loader::loader::load(&url).unwrap();
-/// let output_dir = TempDir::new("dumper").unwrap().into_path();
+/// fn main() {
+///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
+///     let flow = flowclib::loader::loader::load(&url).unwrap();
+///     let output_dir = TempDir::new("dumper").unwrap().into_path();
 ///
-/// flowclib::dumper::dumper::dump_flow(&flow, &output_dir).unwrap();
+///     flowclib::dumper::dumper::dump_flow(&flow, &output_dir).unwrap();
+/// }
 /// ```
 ///
 pub fn dump_flow(flow: &Flow, output_dir: &PathBuf) -> io::Result<String> {
@@ -246,14 +248,16 @@ fn flow_to_dot(flow_ref: &FlowReference) -> String {
 /// use std::env;
 /// use tempdir::TempDir;
 ///
-/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-/// println!("url = {:?}", url);
-/// url = url.join("samples/hello-world-simple/context.toml").unwrap();
-/// let mut flow = flowclib::loader::loader::load(&url).unwrap();
-/// let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
-/// let output_dir = TempDir::new("dumper").unwrap().into_path();
+/// fn main() {
+///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+///     println!("url = {:?}", url);
+///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
+///     let mut flow = flowclib::loader::loader::load(&url).unwrap();
+///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
+///     let output_dir = TempDir::new("dumper").unwrap().into_path();
 ///
-/// flowclib::dumper::dumper::dump_tables(&tables, &output_dir).unwrap();
+///     flowclib::dumper::dumper::dump_tables(&tables, &output_dir).unwrap();
+/// }
 /// ```
 ///
 pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<String> {
@@ -275,14 +279,16 @@ pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<S
 ///
 /// use std::env;
 ///
-/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-/// println!("url = {:?}", url);
-/// url = url.join("samples/hello-world-simple/context.toml").unwrap();
-/// let mut flow = flowclib::loader::loader::load(&url).unwrap();
-/// let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
-/// let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
+/// fn main() {
+///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+///     println!("url = {:?}", url);
+///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
+///     let mut flow = flowclib::loader::loader::load(&url).unwrap();
+///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
+///     let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///
-/// flowclib::dumper::dumper::dump_runnables(&flow, &tables, &output_dir).unwrap();
+///     flowclib::dumper::dumper::dump_runnables(&flow, &tables, &output_dir).unwrap();
+/// }
 /// ```
 ///
 pub fn dump_runnables(flow: &Flow, tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<String> {
@@ -310,7 +316,7 @@ fn dump_runnables_dot(flow_name: &str, tables: &CodeGenTables, dot_file: &mut Wr
     Ok("Dot file written".to_string())
 }
 
-// Given a RUnnable as used in the code generation - generate a "dot" format string to draw it
+// Given a Runnable as used in the code generation - generate a "dot" format string to draw it
 fn runnable_to_dot(runnable: &Box<Runnable>, index: usize) -> String {
     let mut runnable_string = String::new();
     let second_line;
