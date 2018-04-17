@@ -20,13 +20,13 @@ use model::connection::Route;
 /// extern crate tempdir;
 ///
 /// use std::env;
-/// use tempdir::TempDir;
+/// use tempdir;
 ///
 /// fn main() {
 ///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 ///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
 ///     let flow = flowclib::loader::loader::load(&url).unwrap();
-///     let output_dir = TempDir::new("dumper").unwrap().into_path();
+///     let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
 ///
 ///     flowclib::dumper::dumper::dump_flow(&flow, &output_dir).unwrap();
 /// }
@@ -246,7 +246,7 @@ fn flow_to_dot(flow_ref: &FlowReference) -> String {
 /// extern crate tempdir;
 ///
 /// use std::env;
-/// use tempdir::TempDir;
+/// use tempdir;
 ///
 /// fn main() {
 ///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
@@ -254,7 +254,7 @@ fn flow_to_dot(flow_ref: &FlowReference) -> String {
 ///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
 ///     let mut flow = flowclib::loader::loader::load(&url).unwrap();
 ///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
-///     let output_dir = TempDir::new("dumper").unwrap().into_path();
+///     let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
 ///
 ///     flowclib::dumper::dumper::dump_tables(&tables, &output_dir).unwrap();
 /// }
@@ -278,6 +278,7 @@ pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<S
 /// extern crate tempdir;
 ///
 /// use std::env;
+/// use tempdir;
 ///
 /// fn main() {
 ///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
