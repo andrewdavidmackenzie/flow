@@ -20,7 +20,6 @@ use model::connection::Route;
 /// extern crate tempdir;
 ///
 /// use std::env;
-/// use tempdir;
 ///
 /// fn main() {
 ///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
@@ -246,7 +245,6 @@ fn flow_to_dot(flow_ref: &FlowReference) -> String {
 /// extern crate tempdir;
 ///
 /// use std::env;
-/// use tempdir;
 ///
 /// fn main() {
 ///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
@@ -278,7 +276,6 @@ pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<S
 /// extern crate tempdir;
 ///
 /// use std::env;
-/// use tempdir;
 ///
 /// fn main() {
 ///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
