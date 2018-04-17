@@ -17,13 +17,16 @@ use model::connection::Route;
 /// ```
 /// extern crate url;
 /// extern crate flowclib;
+/// extern crate tempdir;
+///
 /// use std::env;
+/// use tempdir::TempDir;
 ///
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// println!("url = {:?}", url);
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
 /// let flow = flowclib::loader::loader::load(&url).unwrap();
-/// let output_dir = env::current_dir().unwrap();
+/// let output_dir = TempDir::new("dumper").unwrap().into_path();
 ///
 /// flowclib::dumper::dumper::dump_flow(&flow, &output_dir).unwrap();
 /// ```
