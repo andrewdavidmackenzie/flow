@@ -41,6 +41,7 @@ impl Function {
 }
 
 impl RefUnwindSafe for Function {}
+
 impl UnwindSafe for Function {}
 
 impl Runnable for Function {
@@ -75,7 +76,7 @@ impl Runnable for Function {
             }
         }
 
-        return true
+        return true;
     }
 
     fn get_inputs(&mut self) -> Vec<Vec<JsonValue>> {
@@ -106,5 +107,13 @@ mod test {
     fn destructure_json_value() {
         let json: JsonValue = json!({ "sub_route": "sub_output" });
         assert_eq!(json.pointer("/sub_route").unwrap(), "sub_output");
+    }
+
+    #[test]
+    fn access_array_elements() {
+        let args: Vec<&str> = vec!("arg0", "arg1", "arg2");
+        let json = json!(args);
+        assert_eq!(json.pointer("/0").unwrap(), "arg0");
+        assert_eq!(json.pointer("/1").unwrap(), "arg1");
     }
 }
