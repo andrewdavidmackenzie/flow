@@ -49,9 +49,9 @@ sample_flows := $(patsubst samples/%,samples/%/test_output.txt,$(wildcard sample
 test-samples: $(sample_flows)
 
 samples/%/test_output.txt : samples/%/test_input.txt compiler
-	@echo "\n------- Compiling and Running sample $(@D) ----"
+	@echo "\n------- Compiling and Running $(@D) ----"
 # remove local file path from output messages to make local failures match travis failures
-	@cat $< | ./target/debug/flowc $(@D) | sed -e 's/\/Users\/andrew\/workspace\/flow\///' > $@
+	@cat $< | ./target/debug/flowc $(@D) | sed -e 's/\/Users\/andrew\/workspace\/flow\///' | grep -v "Finished dev" > $@; true
 	diff $@ $(@D)/expected_output.txt
 	@rm $@
 
