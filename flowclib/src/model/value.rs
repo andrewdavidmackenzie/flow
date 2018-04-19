@@ -10,6 +10,7 @@ use model::io::IO;
 use model::io::IOSet;
 use model::runnable::Runnable;
 use url::Url;
+use model::connection;
 
 use std::fmt;
 
@@ -177,14 +178,16 @@ impl Value {
         })
     }
 
-    pub fn get_output(&self, route: &str) -> Result<IO, String> {
+    pub fn get_output(&self, io_sub_route: &str) -> Result<IO, String> {
         if let &Some(ref outputs) = &self.outputs {
             for output in outputs {
-                if output.name == route {
+                let (array_route, array_index) = connection::name_without_trailing_number(io_sub_route);
+                if (array_index && (output.datatype == "Array") && (output.name() == array_route)) ||
+                    (output.name() == io_sub_route) {
                     return Ok(output.clone());
                 }
             }
-            return Err(format!("No output with name '{}' was found", route));
+            return Err(format!("No output with name '{}' was found", io_sub_route));
         }
 
         Err(format!("No output found."))

@@ -9,7 +9,7 @@ alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string.toml"
 
 [[connection]]
-from = "function/args"
+from = "function/args/0"
 to = "function/to_string"
 
 [[function]]

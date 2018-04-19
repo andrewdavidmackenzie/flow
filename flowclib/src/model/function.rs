@@ -10,6 +10,7 @@ use loader::loader::Validate;
 use model::runnable::Runnable;
 use serde_json::Value as JsonValue;
 use url::Url;
+use model::connection;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Function {
@@ -186,14 +187,16 @@ impl Function {
         }
     }
 
-    pub fn get(&self, collection: &IOSet, name: &str) -> Result<IO, String> {
-        if let &Some(ref elements) = collection {
-            for element in elements {
-                if element.name() == name {
-                    return Ok(element.clone());
+    pub fn get(&self, ioset: &IOSet, io_sub_route: &str) -> Result<IO, String> {
+        if let &Some(ref ios) = ioset {
+            for io in ios {
+                let (array_route, array_index) = connection::name_without_trailing_number(io_sub_route);
+                if (array_index && (io.datatype == "Array") && (io.name() == array_route)) ||
+                    (io.name() == io_sub_route) {
+                    return Ok(io.clone());
                 }
             }
-            return Err(format!("No IO with name '{}' was found", name));
+            return Err(format!("No IO with name '{}' was found", io_sub_route));
         }
         Err(format!("No IO found."))
     }
@@ -341,5 +344,25 @@ mod test {
 
         let output1 = &outputs[1];
         assert_eq!(output1.route, "/flow/test_alias/other_output");
+    }
+
+    #[test]
+    fn get_array_element_of_root_output() {
+        // Create a function where the output is an Array (of something)
+        let function_str = "\
+        name = \"test_function\"
+        [[output]]
+        type = \"Array\"
+        ";
+
+        // Setup
+        let mut function: Function = toml::from_str(function_str).unwrap();
+        function.alias = "test_alias".to_string();
+        function.set_routes("/flow");
+
+        // Test
+        // Try and get the output using a route to a specific element of the output
+        let output = function.get(&function.outputs, "0").unwrap();
+        assert_eq!(output.name, "");
     }
 }
