@@ -178,12 +178,19 @@ impl Value {
         })
     }
 
+    // TODO ADM merge this with one used in function and move into 'connection.rs' or similar, passing in a collaction
+    // or as a method of IOSet?
     pub fn get_output(&self, io_sub_route: &str) -> Result<IO, String> {
         if let &Some(ref outputs) = &self.outputs {
             for output in outputs {
                 let (array_route, array_index) = connection::name_without_trailing_number(io_sub_route);
-                if (array_index && (output.datatype == "Array") && (output.name() == array_route)) ||
-                    (output.name() == io_sub_route) {
+                if array_index && (output.datatype == "Array") && (output.name() == array_route) {
+                    let mut found = output.clone();
+                    found.route.push_str(io_sub_route);
+                    return Ok(found);
+                }
+
+                if output.name() == io_sub_route {
                     return Ok(output.clone());
                 }
             }

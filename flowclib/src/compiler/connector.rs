@@ -16,6 +16,7 @@ pub fn connect(tables: &mut CodeGenTables) -> Result<String, String> {
     let (source_routes, destination_routes) = routes_table(&mut tables.runnables);
 
     debug!("Building connections");
+    // TODO ADM handle trailing numbers for array indexes in here when searching for connections sources in outputs
     for connection in &tables.collapsed_connections {
         let source = source_routes.get(&connection.from_io.route);
         let destination = destination_routes.get(&connection.to_io.route);
@@ -49,7 +50,7 @@ fn routes_table(runnables: &mut Vec<Box<Runnable>>) -> (HashMap<Route, (String, 
     for runnable in runnables {
         runnable.set_id(runnable_index);
 
-        // Add any output routes it has to the source routes rable
+        // Add any output routes it has to the source routes table
         if let Some(ref outputs) = runnable.get_outputs() {
             for output in outputs {
                 source_route_table.insert(output.route.clone(), (output.name.clone(), runnable_index));

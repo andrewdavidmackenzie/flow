@@ -236,7 +236,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\".to_string(), 1, vec!(1, ), 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Value::new(\"value\", 1, vec!(1, ), 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
     }
 
     #[test]
@@ -259,7 +259,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\".to_string(), 0, vec!(), 1, Box::new(Constant{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Value::new(\"value\", 0, vec!(), 1, Box::new(Constant{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
     }
 
     #[test]
@@ -280,7 +280,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\".to_string(), 1, vec!(1, ), 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+        assert_eq!(code, "Value::new(\"value\", 1, vec!(1, ), 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
     }
 
     #[test]
@@ -302,6 +302,6 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Function::new(\"print\".to_string(), 0, vec!(), 0, Box::new(Stdout{}), None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+        assert_eq!(code, "Function::new(\"print\", 0, vec!(), 0, Box::new(Stdout{}), None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
     }
 }

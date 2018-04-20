@@ -209,7 +209,7 @@ impl Flow {
         return Err("No subflows present".to_string());
     }
 
-    fn get_io_function(&self, function_alias: &str, direction: Direction, route: &str) -> Result<IO, String> {
+    fn get_io_from_function_ref(&self, function_alias: &str, direction: Direction, route: &str) -> Result<IO, String> {
         if let Some(ref function_refs) = self.function_refs {
             for function_ref in function_refs {
                 if function_ref.name() == function_alias {
@@ -227,7 +227,7 @@ impl Flow {
                            self.name, route));
     }
 
-    fn get_io_value(&self, value_name: &str, direction: Direction, route: &str) -> Result<IO, String> {
+    fn get_io_from_value(&self, value_name: &str, direction: Direction, route: &str) -> Result<IO, String> {
         if let &Some(ref values) = &self.values {
             for value in values {
                 if value.name == value_name {
@@ -255,8 +255,8 @@ impl Flow {
             (&Direction::TO, "output") => self.get(&self.outputs, object_name), // an output from this flow
             (&Direction::FROM, "input") => self.get(&self.inputs, object_name), // an input to this flow
             (_, "flow") => self.get_io_subflow(object_name, direction, &route), // input or output of a subflow
-            (_, "value") => self.get_io_value(object_name, direction, &route), // input or output of a contained value
-            (_, "function") => self.get_io_function(object_name, direction, &route), // input or output of a referenced function
+            (_, "value") => self.get_io_from_value(object_name, direction, &route), // input or output of a contained value
+            (_, "function") => self.get_io_from_function_ref(object_name, direction, &route), // input or output of a referenced function
             _ => Err(format!("Unknown type of object '{}' used in IO descriptor '{}'", object_type, conn_descriptor))
         }
     }

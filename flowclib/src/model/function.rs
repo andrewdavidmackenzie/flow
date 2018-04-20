@@ -191,8 +191,13 @@ impl Function {
         if let &Some(ref ios) = ioset {
             for io in ios {
                 let (array_route, array_index) = connection::name_without_trailing_number(io_sub_route);
-                if (array_index && (io.datatype == "Array") && (io.name() == array_route)) ||
-                    (io.name() == io_sub_route) {
+                if array_index && (io.datatype == "Array") && (io.name() == array_route) {
+                    let mut found = io.clone();
+                    found.route.push_str(io_sub_route);
+                    return Ok(found);
+                }
+
+                if io.name() == io_sub_route {
                     return Ok(io.clone());
                 }
             }
