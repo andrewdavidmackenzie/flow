@@ -15,7 +15,7 @@ pub struct Value {
 }
 
 impl Value {
-    pub fn new(name: String,
+    pub fn new(name: &str,
                number_of_inputs: usize,
                _input_depths: Vec<usize>,
                id: usize,
@@ -23,7 +23,7 @@ impl Value {
                initial_value: Option<JsonValue>,
                output_routes: Vec<(&'static str, usize, usize)>) -> Value {
         Value {
-            name,
+            name: name.to_string(),
             number_of_inputs,
             id,
             initial_value,
