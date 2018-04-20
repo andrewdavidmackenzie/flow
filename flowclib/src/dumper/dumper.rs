@@ -352,9 +352,9 @@ fn runnable_to_dot(runnable: &Box<Runnable>, index: usize) -> String {
 
 fn dump_table<C: Iterator>(table: C, title: &str, writer: &mut Write) -> io::Result<String>
     where <C as Iterator>::Item: fmt::Display {
-    writer.write_all(format!("\n{}:", title).as_bytes())?;
+    writer.write_all(format!("{}:\n", title).as_bytes())?;
     for e in table.into_iter() {
-        writer.write_all(format!("{}", e).as_bytes())?;
+        writer.write_all(format!("\t{}\n", e).as_bytes())?;
     }
     Ok("printed".to_string())
 }
