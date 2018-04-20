@@ -163,7 +163,7 @@ fn lib_refs(libs_references: &HashSet<String>) -> Vec<String> {
 // Output a statement that instantiates an instance of the Runnable type used, that can be used
 // to build the list of runnables
 fn runnable_to_code(runnable: &Box<Runnable>) -> String {
-    let mut code = format!("{}::new(\"{}\".to_string(), ", runnable.get_type(), runnable.alias());
+    let mut code = format!("{}::new(\"{}\", ", runnable.get_type(), runnable.alias());
     match &runnable.get_inputs() {
         // No inputs, so put a '0' and an empty vector of input depths
         &None => code.push_str(&format!("{}, vec!(), ", 0)),

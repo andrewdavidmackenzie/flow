@@ -15,7 +15,7 @@ pub struct Function {
 }
 
 impl Function {
-    pub fn new(name: String,
+    pub fn new(name: &str,
                number_of_inputs: usize,
                input_depths: Vec<usize>,
                id: usize,
@@ -24,7 +24,7 @@ impl Function {
                output_routes: Vec<(&'static str, usize, usize)>)
                -> Function {
         let mut function = Function {
-            name,
+            name: name.to_string(),
             number_of_inputs,
             id,
             implementation,
