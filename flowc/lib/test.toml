@@ -1,5 +1,0 @@
-name = "Stderr"
-
-[[input]]
-name = "stderr"
-type = "String"

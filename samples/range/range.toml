@@ -37,12 +37,12 @@ from = "flow/pilt/out"
 to = "function/add/i1"
 
 [[value]]
-name = "1"
+name = "one"
 type = "Number"
 constant = 1
 
 [[connection]]
-from = "value/1"
+from = "value/one"
 to = "function/add/i2"
 
 [[connection]]

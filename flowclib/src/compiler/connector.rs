@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use generator::code_gen::CodeGenTables;
 use model::runnable::Runnable;
 use model::connection::Connection;
+use model::connection;
 
 /*
     First build a table of input routes to (runnable_index, input_index) for all inputs of runnables,
@@ -16,16 +17,15 @@ pub fn connect(tables: &mut CodeGenTables) -> Result<String, String> {
     let (source_routes, destination_routes) = routes_table(&mut tables.runnables);
 
     debug!("Building connections");
-    // TODO ADM handle trailing numbers for array indexes in here when searching for connections sources in outputs
     for connection in &tables.collapsed_connections {
-        let source = source_routes.get(&connection.from_io.route);
-        let destination = destination_routes.get(&connection.to_io.route);
+        let source = get_source(&source_routes, &connection.from_io.route);
 
-        if let Some(&(ref output_name, source_id)) = source {
+        if let Some((output_route, source_id)) = source {
+            let destination = destination_routes.get(&connection.to_io.route);
             if let Some(&(destination_id, destination_input_index)) = destination {
                 let source_runnable = tables.runnables.get_mut(source_id).unwrap();
                 debug!("Connection built: from '{}' to '{}'", &connection.from_io.route, &connection.to_io.route);
-                source_runnable.add_output_connection((output_name.to_string(), destination_id, destination_input_index));
+                source_runnable.add_output_connection((output_route.to_string(), destination_id, destination_input_index));
             } else {
                 return Err(format!("Connection destination '{}' not found", connection.to_io.route));
             }
@@ -36,6 +36,29 @@ pub fn connect(tables: &mut CodeGenTables) -> Result<String, String> {
     debug!("All connections built");
 
     Ok("All connections built".to_string())
+}
+
+/*
+    find a source using the root to the output (removing the array index first to find outputs that are arrays)
+    return a tuple of the sub-route to use (possibly with array index included), and the runnable index
+*/
+fn get_source<'a>(source_routes: &'a HashMap<Route, (String, usize)>, from_route: &str) -> Option<(String, usize)> {
+    let (source_without_index, num, array) = connection::name_without_trailing_number(from_route);
+    let source = source_routes.get(&source_without_index.to_string());
+
+    if let Some(&(ref route, runnable_index)) = source {
+        if array {
+            if route.is_empty() {
+                return Some((format!("{}", num), runnable_index)); // avoid leading '/'
+            } else {
+                return Some((format!("{}/{}", route, num), runnable_index));
+            }
+        } else {
+            return Some((route.to_string(), runnable_index));
+        }
+    } else {
+        return None;
+    }
 }
 
 /*
@@ -68,8 +91,8 @@ fn routes_table(runnables: &mut Vec<Box<Runnable>>) -> (HashMap<Route, (String, 
         runnable_index += 1;
     }
 
-    debug!("Source routes table built\n{:?}", source_route_table);
-    debug!("Destination routes table built\n{:?}", destination_route_table);
+    debug!("Source routes table built\n{:#?}", source_route_table);
+    debug!("Destination routes table built\n{:#?}", destination_route_table);
     (source_route_table, destination_route_table)
 }
 

@@ -29,18 +29,20 @@ pub enum Direction {
 }
 
 /*
-    return the io name without a trailing number (array index) and if it has one or not
+    return the io route without a trailing number (array index) and if it has one or not
+
+    If the trailing number was present then return the route with a trailing '/'
 */
-pub fn name_without_trailing_number<'a>(route: &'a str) -> (Cow<'a, str>, bool) {
+pub fn name_without_trailing_number<'a>(route: &'a str) -> (Cow<'a, str>, usize, bool) {
     let mut parts: Vec<&str> = route.split('/').collect();
     if let Some(last_part) = parts.pop() {
-        if let Ok(_number) = last_part.parse::<i32>() {
+        if let Ok(number) = last_part.parse::<usize>() {
             let route_without_number = parts.join("/");
-            return (Cow::Owned(route_without_number), true);
+            return (Cow::Owned(route_without_number), number, true);
         }
     }
 
-    (Cow::Borrowed(route), false)
+    (Cow::Borrowed(route), 0, false)
 }
 
 impl fmt::Display for Connection {
@@ -72,7 +74,7 @@ mod test {
     #[test]
     fn no_path_no_change() {
         let route = "";
-        let (new_route, trailing_number) = name_without_trailing_number(route);
+        let (new_route, _num, trailing_number) = name_without_trailing_number(route);
         assert_eq!(new_route, "");
         assert_eq!(trailing_number, false);
     }
@@ -80,7 +82,7 @@ mod test {
     #[test]
     fn just_slash_no_change() {
         let route = "/";
-        let (new_route, trailing_number) = name_without_trailing_number(route);
+        let (new_route, _num, trailing_number) = name_without_trailing_number(route);
         assert_eq!(new_route, "/");
         assert_eq!(trailing_number, false);
     }
@@ -88,7 +90,7 @@ mod test {
     #[test]
     fn no_trailing_number_no_change() {
         let route = "/output1";
-        let (new_route, trailing_number) = name_without_trailing_number(route);
+        let (new_route, _num, trailing_number) = name_without_trailing_number(route);
         assert_eq!(new_route, "/output1");
         assert_eq!(trailing_number, false);
     }
@@ -96,16 +98,18 @@ mod test {
     #[test]
     fn detect_array_at_output_root() {
         let route = "/0";
-        let (new_route, trailing_number) = name_without_trailing_number(route);
+        let (new_route, num, trailing_number) = name_without_trailing_number(route);
         assert_eq!(new_route, "");
+        assert_eq!(num, 0);
         assert_eq!(trailing_number, true);
     }
 
     #[test]
     fn detect_array_at_output_subpath() {
         let route = "/array_output/0";
-        let (new_route, trailing_number) = name_without_trailing_number(route);
+        let (new_route, num, trailing_number) = name_without_trailing_number(route);
         assert_eq!(new_route, "/array_output");
+        assert_eq!(num, 0);
         assert_eq!(trailing_number, true);
     }
 }

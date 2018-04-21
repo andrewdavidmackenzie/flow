@@ -175,14 +175,22 @@ impl Function {
         // Set routes to inputs
         if let Some(ref mut inputs) = self.inputs {
             for ref mut input in inputs {
-                input.route = format!("{}/{}", self.route, input.name);
+                if input.name.is_empty() {
+                    input.route = self.route.clone();
+                } else {
+                    input.route = format!("{}/{}", self.route, input.name);
+                }
             }
         }
 
         // set routes to outputs
         if let Some(ref mut outputs) = self.outputs {
             for ref mut output in outputs {
-                output.route = format!("{}/{}", self.route, output.name);
+                if output.name.is_empty() {
+                    output.route = self.route.clone();
+                } else {
+                    output.route = format!("{}/{}", self.route, output.name);
+                }
             }
         }
     }
@@ -190,9 +198,10 @@ impl Function {
     pub fn get(&self, ioset: &IOSet, io_sub_route: &str) -> Result<IO, String> {
         if let &Some(ref ios) = ioset {
             for io in ios {
-                let (array_route, array_index) = connection::name_without_trailing_number(io_sub_route);
+                let (array_route, _num, array_index) = connection::name_without_trailing_number(io_sub_route);
                 if array_index && (io.datatype == "Array") && (io.name() == array_route) {
                     let mut found = io.clone();
+                    found.route.push_str("/");
                     found.route.push_str(io_sub_route);
                     return Ok(found);
                 }
@@ -367,7 +376,7 @@ mod test {
 
         // Test
         // Try and get the output using a route to a specific element of the output
-        let output = function.get(&function.outputs, "0").unwrap();
+        let output = function.get(&function.outputs, "/0").unwrap();
         assert_eq!(output.name, "");
     }
 }

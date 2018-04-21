@@ -194,7 +194,7 @@ fn runnable_to_code(runnable: &Box<Runnable>) -> String {
     debug!("Runnable '{}' output routes: {:?}", runnable.name(), runnable.get_output_routes());
     for ref route in runnable.get_output_routes() {
         if route.0.is_empty() {
-            code.push_str(&format!("(\"\", {}, {}),", route.1, route.2));
+            code.push_str(&format!("(\"\", {}, {}),", route.1, route.2)); // no leading '/'
         } else {
             code.push_str(&format!("(\"/{}\", {}, {}),", route.0, route.1, route.2));
         }
@@ -303,5 +303,47 @@ mod test {
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
         assert_eq!(code, "Function::new(\"print\", 0, vec!(), 0, Box::new(Stdout{}), None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+    }
+
+    #[test]
+    fn function_to_code() {
+        let function = Function {
+            name: "Stdout".to_string(),
+            alias: "print".to_string(),
+            inputs: Some(vec!()),
+            outputs: Some(vec!(
+                IO { name: "".to_string(), datatype: "String".to_string(), route: "".to_string(), depth: 1, flow_io: false }
+            )),
+            source_url: Url::parse("file:///fake/file").unwrap(),
+            route: "/flow0/stdout".to_string(),
+            lib_reference: None,
+            output_connections: vec!(("".to_string(), 1, 0)),
+            id: 0,
+        };
+
+        let br = Box::new(function) as Box<Runnable>;
+        let code = runnable_to_code(&br);
+        assert_eq!(code, "Function::new(\"print\", 0, vec!(), 0, Box::new(Stdout{}), None, vec!((\"\", 1, 0),))")
+    }
+
+    #[test]
+    fn function_with_array_element_output() {
+        let function = Function {
+            name: "Stdout".to_string(),
+            alias: "print".to_string(),
+            inputs: Some(vec!()),
+            outputs: Some(vec!(
+                IO { name: "".to_string(), datatype: "Array".to_string(), route: "".to_string(), depth: 1, flow_io: false }
+            )),
+            source_url: Url::parse("file:///fake/file").unwrap(),
+            route: "/flow0/stdout".to_string(),
+            lib_reference: None,
+            output_connections: vec!(("0".to_string(), 1, 0)),
+            id: 0,
+        };
+
+        let br = Box::new(function) as Box<Runnable>;
+        let code = runnable_to_code(&br);
+        assert_eq!(code, "Function::new(\"print\", 0, vec!(), 0, Box::new(Stdout{}), None, vec!((\"/0\", 1, 0),))")
     }
 }

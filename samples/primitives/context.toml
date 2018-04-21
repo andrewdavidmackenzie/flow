@@ -64,12 +64,12 @@ from = "function/add_again"
 to = "function/compare/left"
 
 [[value]]
-name = "2"
+name = "two"
 type = "Number"
 init = 2
 
 [[connection]]
-from = "value/2"
+from = "value/two"
 to = "function/compare/right"
 
 [[connection]]

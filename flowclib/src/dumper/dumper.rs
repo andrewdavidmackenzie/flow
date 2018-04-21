@@ -260,6 +260,7 @@ fn flow_to_dot(flow_ref: &FlowReference) -> String {
 ///
 pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<String> {
     let mut writer = create_output_file(&output_dir, "tables", "txt")?;
+    dump_table(tables.connections.iter(), "Original Connections", &mut writer)?;
     dump_table(tables.collapsed_connections.iter(), "Collapsed Connections", &mut writer)?;
     dump_table(tables.libs.iter(), "Libraries", &mut writer)?;
     dump_table(tables.lib_references.iter(), "Library references", &mut writer)?;
@@ -356,6 +357,7 @@ fn dump_table<C: Iterator>(table: C, title: &str, writer: &mut Write) -> io::Res
     for e in table.into_iter() {
         writer.write_all(format!("\t{}\n", e).as_bytes())?;
     }
+    writer.write_all(b"\n")?;
     Ok("printed".to_string())
 }
 

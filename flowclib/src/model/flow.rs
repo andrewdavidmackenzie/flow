@@ -83,7 +83,7 @@ impl Validate for Flow {
 
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\tname: \t\t\t{}\n\tsource_url: \t\t{}\n\troute: \t\t\t{}\n",
+        write!(f, "\tname: \t\t\t{}\n\tsource_url: \t{}\n\troute: \t\t\t{}\n",
                self.name, self.source_url, self.route).unwrap();
 
         // TODO dry this all up now it works.
