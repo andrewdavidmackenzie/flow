@@ -43,8 +43,9 @@ impl HasName for Value {
 }
 
 impl HasDataType for Value {
-    fn datatype(&self) -> &str {
-        &self.datatype[..]
+    fn datatype(&self, level: usize) -> &str {
+        let type_levels: Vec<&str> = self.datatype.split('/').collect();
+        type_levels[level]
     }
 }
 
@@ -67,11 +68,7 @@ impl Runnable for Value {
         if self.constant.is_some() {
             None
         } else {
-            let mut value_input = IO::default();
-            value_input.datatype = self.datatype.clone();
-            value_input.route = self.route.clone();
-
-            Some(vec!(value_input))
+            Some(vec!(IO::new(&self.datatype, &self.route)))
         }
     }
 
@@ -148,13 +145,7 @@ impl Value {
         if let Some(ref mut outputs) = self.outputs {
             // Create an output for the "base"/"default" output of this value and insert at head of vec
             // of output routes
-            let base_output = IO {
-                name: "".to_string(),
-                datatype: self.datatype.clone(),
-                route: self.route.clone(),
-                depth: 1,
-                flow_io: false
-            };
+            let base_output = IO::new(&self.datatype, &self.route);
             outputs.insert(0, base_output);
 
             // Set sub routes for all outputs
@@ -169,13 +160,7 @@ impl Value {
     }
 
     pub fn get_input(&self) -> Result<IO, String> {
-        Ok(IO {
-            name: "".to_string(),
-            route: self.route.clone(),
-            datatype: self.datatype.clone(),
-            depth: 1,
-            flow_io: false
-        })
+        Ok(IO::new(&self.datatype, &self.route))
     }
 
     // TODO ADM merge this with one used in function and move into 'connection.rs' or similar, passing in a collaction
@@ -184,7 +169,7 @@ impl Value {
         if let &Some(ref outputs) = &self.outputs {
             for output in outputs {
                 let (array_route, _num, array_index) = connection::name_without_trailing_number(io_sub_route);
-                if array_index && (output.datatype == "Array") && (output.name() == array_route) {
+                if array_index && (output.datatype(0) == "Array") && (output.name() == array_route) {
                     let mut found = output.clone();
                     found.route.push_str("/");
                     found.route.push_str(io_sub_route);
@@ -318,7 +303,7 @@ mod test {
         assert!(value.outputs.is_some());
         let output = &value.outputs.unwrap()[0];
         assert_eq!(output.name, "");
-        assert_eq!(output.datatype, "Json");
+        assert_eq!(output.datatype(0), "Json");
     }
 
     #[test]
@@ -337,7 +322,7 @@ mod test {
         assert!(value.outputs.is_some());
         let output = &value.outputs.unwrap()[0];
         assert_eq!(output.name, "sub_output");
-        assert_eq!(output.datatype, "String");
+        assert_eq!(output.datatype(0), "String");
     }
 
     #[test]
@@ -361,10 +346,10 @@ mod test {
         assert_eq!(outputs.len(), 2);
         let output0 = &outputs[0];
         assert_eq!(output0.name, "sub_output");
-        assert_eq!(output0.datatype, "String");
+        assert_eq!(output0.datatype(0), "String");
         let output1 = &outputs[1];
         assert_eq!(output1.name, "other_output");
-        assert_eq!(output1.datatype, "Number");
+        assert_eq!(output1.datatype(0), "Number");
     }
 
     #[test]
@@ -429,7 +414,7 @@ mod test {
 
         let output = value.get_output("").unwrap();
         assert_eq!(output.route, "/flow/test_value");
-        assert_eq!(output.datatype, "Json");
+        assert_eq!(output.datatype(0), "Json");
         assert_eq!(output.flow_io, false);
     }
 
@@ -452,7 +437,7 @@ mod test {
 
         let output = value.get_output("sub_output").unwrap();
         assert_eq!(output.route, "/flow/test_value/sub_output");
-        assert_eq!(output.datatype, "String");
+        assert_eq!(output.datatype(0), "String");
         assert_eq!(output.flow_io, false);
     }
 }

@@ -149,26 +149,15 @@ mod test {
 
     #[test]
     fn drop_useless_connections() {
-        let unused = Connection {
+        let mut unused = Connection {
             name: Some("left".to_string()),
             from: "/f1/a".to_string(),
             to: "/f2/a".to_string(),
 
-            from_io: IO {
-                name: "point a".to_string(),
-                route: "/f1/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: false,
-            },
-            to_io: IO {
-                name: "point b".to_string(),
-                route: "/f2/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: true,
-            },
+            from_io: IO::new(&"String".to_string(), &"/f1/a".to_string()),
+            to_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
         };
+        unused.to_io.flow_io = true;
 
         let connections = vec!(unused);
         let collapsed = collapse_connections(&connections);
@@ -177,66 +166,38 @@ mod test {
 
     #[test]
     fn collapse_a_connection() {
-        let left_side = Connection {
+        let mut left_side = Connection {
             name: Some("left".to_string()),
             from: "/f1/a".to_string(),
             to: "/f2/a".to_string(),
-            from_io: IO {
-                name: "point a".to_string(),
-                route: "/f1/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: false,
-            },
-            to_io: IO {
-                name: "point b".to_string(),
-                route: "/f2/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: true,
-            },
+            from_io: IO::new(&"String".to_string(), &"/f1/a".to_string()),
+            to_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
         };
+        left_side.to_io.name = "point b".to_string();
+        left_side.to_io.flow_io = true;
 
         // This one goes to a flow but then nowhere, so should be dropped
-        let extra_one = Connection {
+        let mut extra_one = Connection {
             name: Some("unused".to_string()),
             from: "/f2/a".to_string(),
             to: "/f4/a".to_string(),
-            from_io: IO {
-                name: "point b".to_string(),
-                route: "/f2/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: true,
-            },
-            to_io: IO {
-                name: "pointless".to_string(),
-                route: "/f4/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: true,
-            },
+            from_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
+            to_io: IO::new(&"String".to_string(), &"/f4/a".to_string())
         };
+        extra_one.from_io.name = "point b".to_string();
+        extra_one.from_io.flow_io = true;
+        extra_one.to_io.name = "pointless".to_string();
+        extra_one.to_io.flow_io = true;
 
-        let right_side = Connection {
+
+    let mut right_side = Connection {
             name: Some("right".to_string()),
             from: "/f2/a".to_string(),
             to: "/f3/a".to_string(),
-            from_io: IO {
-                name: "point b".to_string(),
-                route: "/f2/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: true,
-            },
-            to_io: IO {
-                name: "point c".to_string(),
-                route: "/f3/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: false,
-            },
+            from_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
+            to_io: IO::new(&"String".to_string(), &"/f3/a".to_string())
         };
+        right_side.from_io.flow_io = true;
 
         let connections = vec!(left_side,
                                extra_one, right_side);
@@ -256,65 +217,32 @@ mod test {
     */
     #[test]
     fn two_connections_from_flow_boundary() {
-        let left_side = Connection {
+        let mut left_side = Connection {
             name: Some("left".to_string()),
             from: "/f1/a".to_string(),
             to: "/f2/a".to_string(),
-            from_io: IO {
-                name: "point a".to_string(),
-                route: "/f1/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: false,
-            },
-            to_io: IO {
-                name: "point b".to_string(),
-                route: "/f2/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: true,
-            },
+            from_io: IO::new(&"String".to_string(), &"/f1/a".to_string()),
+            to_io: IO::new(&"String".to_string(), &"/f2/a".to_string())
         };
+        left_side.to_io.flow_io = true;
 
-        let right_side_one = Connection {
+        let mut right_side_one = Connection {
             name: Some("right1".to_string()),
             from: "/f2/a".to_string(),
             to: "/f2/value1".to_string(),
-            from_io: IO {
-                name: "point b".to_string(),
-                route: "/f2/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: true,
-            },
-            to_io: IO {
-                name: "point c".to_string(),
-                route: "/f2/value1".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: false,
-            },
+            from_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
+            to_io: IO::new(&"String".to_string(), &"/f2/value1".to_string())
         };
+        right_side_one.from_io.flow_io = true;
 
-        let right_side_two = Connection {
+        let mut right_side_two = Connection {
             name: Some("right2".to_string()),
             from: "/f2/a".to_string(),
             to: "/f2/value2".to_string(),
-            from_io: IO {
-                name: "point c".to_string(),
-                route: "/f2/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: true,
-            },
-            to_io: IO {
-                name: "point c".to_string(),
-                route: "/f2/value2".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: false,
-            },
+            from_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
+            to_io: IO::new(&"String".to_string(), &"/f2/value2".to_string())
         };
+        right_side_two.from_io.flow_io = true;
 
         let connections = vec!(left_side,
                                right_side_one,
@@ -333,65 +261,33 @@ mod test {
 
     #[test]
     fn collapses_connection_traversing_a_flow() {
-        let first_level = Connection {
+        let mut first_level = Connection {
             name: Some("context".to_string()),
             from: "/value".to_string(),
             to: "/f1/a".to_string(),
-            from_io: IO {
-                name: "value_in_context".to_string(),
-                route: "/value".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: false,
-            },
-            to_io: IO {
-                name: "sub-flow".to_string(),
-                route: "/f1/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: true,
-            },
+            from_io: IO::new(&"String".to_string(), &"/value".to_string()),
+            to_io: IO::new(&"String".to_string(), &"/f1/a".to_string())
         };
+        first_level.to_io.flow_io = true;
 
-        let second_level = Connection {
+        let mut second_level = Connection {
             name: Some("subflow_connection".to_string()),
             from: "/f1/a".to_string(),
             to: "/f2/a".to_string(),
-            from_io: IO {
-                name: "sub-flow".to_string(),
-                route: "/f1/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: true,
-            },
-            to_io: IO {
-                name: "sub-sub-flow".to_string(),
-                route: "/f2/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: true,
-            },
+            from_io: IO::new(&"String".to_string(), &"/f1/a".to_string()),
+            to_io: IO::new(&"String".to_string(), &"/f2/a".to_string())
         };
+        second_level.from_io.flow_io = true;
+        second_level.to_io.flow_io = true;
 
-        let third_level = Connection {
+        let mut third_level = Connection {
             name: Some("subsubflow_connection".to_string()),
             from: "/f2/a".to_string(),
             to: "/f2/func/in".to_string(),
-            from_io: IO {
-                name: "sub-sub-flow".to_string(),
-                route: "/f2/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: true,
-            },
-            to_io: IO {
-                name: "function_in_sub_sub_flow".to_string(),
-                route: "/f2/func/in".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: false,
-            },
+            from_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
+            to_io: IO::new(&"String".to_string(), &"/f2/func/in".to_string())
         };
+        third_level.from_io.flow_io = true;
 
         let connections = vec!(first_level,
                                second_level,
@@ -409,40 +305,16 @@ mod test {
             name: Some("left".to_string()),
             from: "/f1/a".to_string(),
             to: "/f2/a".to_string(),
-            from_io: IO {
-                name: "point a".to_string(),
-                route: "/f1/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: false,
-            },
-            to_io: IO {
-                name: "point b".to_string(),
-                route: "/f2/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: false,
-            },
+            from_io: IO::new(&"String".to_string(), &"/f1/a".to_string()),
+            to_io: IO::new(&"String".to_string(), &"/f2/a".to_string())
         };
 
         let other = Connection {
             name: Some("right".to_string()),
             from: "/f3/a".to_string(),
             to: "/f4/a".to_string(),
-            from_io: IO {
-                name: "point b".to_string(),
-                route: "/f3/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: false,
-            },
-            to_io: IO {
-                name: "point c".to_string(),
-                route: "/f4/a".to_string(),
-                datatype: "String".to_string(),
-                depth: 1,
-                flow_io: false,
-            },
+            from_io: IO::new(&"String".to_string(), &"/f3/a".to_string()),
+            to_io: IO::new(&"String".to_string(), &"/f4/a".to_string())
         };
 
         let connections = vec!(one, other);

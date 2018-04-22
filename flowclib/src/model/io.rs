@@ -14,7 +14,7 @@ pub struct IO {
     #[serde(default = "default_name")]
     pub name: String,
     #[serde(rename = "type", default = "default_type")]
-    pub datatype: DataType,
+    datatype: DataType,
     #[serde(default = "default_depth")]
     pub depth: usize,
 
@@ -46,8 +46,22 @@ impl HasName for IO {
 }
 
 impl HasDataType for IO {
-    fn datatype(&self) -> &str {
-        &self.datatype[..]
+    fn datatype(&self, level: usize) -> &str {
+        self.datatype(level)
+    }
+}
+
+impl IO {
+    pub fn new(datatype: &DataType, route: &Route) -> Self {
+        let mut io = IO::default();
+        io.datatype = datatype.clone();
+        io.route = route.clone();
+        io
+    }
+
+    pub fn datatype(&self, level: usize) -> &str {
+        let type_levels: Vec<&str> = self.datatype.split('/').collect();
+        type_levels[level]
     }
 }
 
@@ -108,7 +122,6 @@ mod test {
     use super::IO;
     use loader::loader::Validate;
     use model::name::HasName;
-    use model::datatype::HasDataType;
 
     #[test]
     fn deserialize_empty_string() {
@@ -168,7 +181,7 @@ mod test {
 
         let input: IO = toml::from_str(input_str).unwrap();
         assert_eq!(input.name(), "input");
-        assert_eq!(input.datatype(), "String");
+        assert_eq!(input.datatype(0), "String");
     }
 
     #[test]

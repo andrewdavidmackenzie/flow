@@ -187,12 +187,13 @@ fn build_connections(flow: &mut Flow) -> Result<(), String> {
             debug!("Found source of connection:\n\t{}", from);
             if let Ok(to) = flow.get_route_and_type(TO,&connection.to) {
                 debug!("Found destination of connection:\n\t{}", to);
-                if from.datatype == to.datatype || from.datatype == "Json" || to.datatype == "Json" {
+                if (from.datatype(0) == to.datatype(0)) ||
+                    from.datatype(0) == "Json" || to.datatype(0) == "Json" {
                     debug!("Connection source and destination types match, connection built");
                     connection.from_io = from;
                     connection.to_io = to;
                 } else {
-                    error!("Type mismatch in flow '{}' connection from\n\t{}\n\tto\n\n\t{}",
+                    error!("Type mismatch in flow '{}' connection from\n{:#?}\n\nto\n\n{:#?}",
                            flow.source_url, from, to);
                     error_count += 1;
                 }

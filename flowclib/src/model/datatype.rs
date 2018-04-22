@@ -3,7 +3,7 @@ const DATATYPES: &'static [&'static str] = &["String", "Json", "Number", "Bool",
 pub type DataType = String;
 
 pub trait HasDataType {
-    fn datatype(&self) -> &str;
+    fn datatype(&self, level: usize) -> &str;
 }
 
 pub trait TypeCheck {
@@ -12,11 +12,15 @@ pub trait TypeCheck {
 
 impl TypeCheck for DataType {
     fn valid(&self) -> Result<(), String> {
-        if DATATYPES.contains(&&self[..]) {
-            return Ok(());
-        }
+        // Split the type hierarchy and check all levels are valid
+        let type_levels = self.split('/');
 
-        Err(format!("Type '{}' is unknown", &self))
+        for type_level in type_levels {
+            if !DATATYPES.contains(&type_level) {
+                return Err(format!("Type '{}' is invalid", &self));
+            }
+        }
+        return Ok(());
     }
 }
 

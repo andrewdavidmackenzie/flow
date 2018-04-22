@@ -8,9 +8,13 @@ source = "lib://flowstdlib/env/args.toml"
 alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string.toml"
 
+[[function]]
+alias = "write_bitmap"
+source = "lib://flowstdlib/image/write_bitmap.toml"
+
 [[connection]]
 from = "function/args/0"
-to = "function/to_string"
+to = "function/write_bitmap/filename"
 
 [[function]]
 alias = "print"

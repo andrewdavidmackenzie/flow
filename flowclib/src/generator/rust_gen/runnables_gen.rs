@@ -224,12 +224,7 @@ mod test {
             init: Some(JsonValue::String("Hello-World".to_string())),
             constant: None,
             route: "/flow0/value".to_string(),
-            outputs: Some(vec!(IO {
-                name: "".to_string(),
-                datatype: "Json".to_string(),
-                depth: 1,
-                route: "".to_string(),
-                flow_io: false })),
+            outputs: Some(vec!(IO::new(&"Json".to_string(),&"".to_string()))),
             output_connections: vec!(("".to_string(), 1, 0)),
             id: 1,
         };
@@ -247,12 +242,7 @@ mod test {
             init: None,
             constant: Some(JsonValue::String("Hello-World".to_string())),
             route: "/flow0/value".to_string(),
-            outputs: Some(vec!(IO {
-                name: "".to_string(),
-                datatype: "Json".to_string(),
-                depth: 1,
-                route: "".to_string(),
-                flow_io: false })),
+            outputs: Some(vec!(IO::new(&"Json".to_string(), &"".to_string()))),
             output_connections: vec!(("".to_string(), 1, 0)),
             id: 1,
         };
@@ -271,9 +261,8 @@ mod test {
             constant: None,
             route: "/flow0/value".to_string(),
             outputs: Some(vec!(
-                IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string(), depth: 1, flow_io: false },
-                IO { name: "sub_route".to_string(), datatype: "String".to_string(), route: "".to_string(), depth: 1, flow_io: false }
-            )),
+                IO::new(&"Json".to_string(), &"".to_string()),
+                IO::new(&"String".to_string(), &"".to_string()))),
             output_connections: vec!(("".to_string(), 1, 0), ("sub_route".to_string(), 2, 0)),
             id: 1,
         };
@@ -290,8 +279,8 @@ mod test {
             alias: "print".to_string(),
             inputs: Some(vec!()),
             outputs: Some(vec!(
-                IO { name: "".to_string(), datatype: "Json".to_string(), route: "".to_string(), depth: 1, flow_io: false },
-                IO { name: "sub_route".to_string(), datatype: "String".to_string(), route: "".to_string(), depth: 1, flow_io: false }
+                IO::new(&"Json".to_string(), &"".to_string()),
+                IO::new(&"String".to_string(), &"".to_string())
             )),
             source_url: Url::parse("file:///fake/file").unwrap(),
             route: "/flow0/stdout".to_string(),
@@ -312,7 +301,7 @@ mod test {
             alias: "print".to_string(),
             inputs: Some(vec!()),
             outputs: Some(vec!(
-                IO { name: "".to_string(), datatype: "String".to_string(), route: "".to_string(), depth: 1, flow_io: false }
+                IO::new(&"String".to_string(), &"".to_string())
             )),
             source_url: Url::parse("file:///fake/file").unwrap(),
             route: "/flow0/stdout".to_string(),
@@ -333,7 +322,7 @@ mod test {
             alias: "print".to_string(),
             inputs: Some(vec!()),
             outputs: Some(vec!(
-                IO { name: "".to_string(), datatype: "Array".to_string(), route: "".to_string(), depth: 1, flow_io: false }
+                IO::new(&"Array".to_string(), &"".to_string())
             )),
             source_url: Url::parse("file:///fake/file").unwrap(),
             route: "/flow0/stdout".to_string(),

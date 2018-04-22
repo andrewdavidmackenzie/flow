@@ -149,12 +149,7 @@ impl Default for Function {
             name: "".to_string(),
             alias: "".to_string(),
             inputs: None,
-            outputs: Some(vec!(IO {
-                name: "".to_string(),
-                datatype: "Json".to_string(),
-                route: "".to_string(),
-                depth: 1,
-                flow_io: false })),
+            outputs: Some(vec!(IO::new(&"Json".to_string(), &"".to_string()))),
             source_url: Function::default_url(),
             route: "".to_string(),
             lib_reference: None,
@@ -199,7 +194,7 @@ impl Function {
         if let &Some(ref ios) = ioset {
             for io in ios {
                 let (array_route, _num, array_index) = connection::name_without_trailing_number(io_sub_route);
-                if array_index && (io.datatype == "Array") && (io.name() == array_route) {
+                if array_index && (io.datatype(0) == "Array") && (io.name() == array_route) {
                     let mut found = io.clone();
                     found.route.push_str("/");
                     found.route.push_str(io_sub_route);
@@ -285,7 +280,7 @@ mod test {
         assert!(function.outputs.is_some());
         let output = &function.outputs.unwrap()[0];
         assert_eq!(output.name, "");
-        assert_eq!(output.datatype, "String");
+        assert_eq!(output.datatype(0), "String");
     }
 
     #[test]
@@ -302,7 +297,7 @@ mod test {
         assert!(function.outputs.is_some());
         let output = &function.outputs.unwrap()[0];
         assert_eq!(output.name, "sub_output");
-        assert_eq!(output.datatype, "String");
+        assert_eq!(output.datatype(0), "String");
     }
 
     #[test]
@@ -324,10 +319,10 @@ mod test {
         assert_eq!(outputs.len(), 2);
         let output0 = &outputs[0];
         assert_eq!(output0.name, "sub_output");
-        assert_eq!(output0.datatype, "String");
+        assert_eq!(output0.datatype(0), "String");
         let output1 = &outputs[1];
         assert_eq!(output1.name, "other_output");
-        assert_eq!(output1.datatype, "Number");
+        assert_eq!(output1.datatype(0), "Number");
     }
 
     #[test]
