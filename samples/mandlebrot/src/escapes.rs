@@ -58,9 +58,12 @@ mod tests {
     use flowrlib::function::Function;
     use serde_json::Value as JsonValue;
     use super::Escapes;
+    use super::escapes;
+    use test::Bencher;
+    use num::Complex;
 
     #[test]
-    fn escapes() {
+    fn test_escapes() {
         // Create input vector
         let point = json!({"re": 0.5, "im": 0.5 });
         let limit = json!(100);
@@ -71,5 +74,12 @@ mod tests {
         let implementation = escapes.implementation();
 
         implementation.run(escapes, inputs, &mut run_list);
+    }
+
+    #[bench]
+    fn bench_escapes(b: &mut Bencher) {
+        let upper_left = Complex { re: -1.20, im: 0.35 };
+
+        b.iter(|| escapes(upper_left, 255));
     }
 }

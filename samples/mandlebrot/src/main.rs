@@ -22,13 +22,14 @@ extern crate serde_json;
 
 mod escapes;
 mod pixel_to_point;
+mod create_complex;
+mod parse_pair;
 
 use pixel_to_point::pixel_to_point;
 use escapes::escapes;
 
 use std::fs::File;
 use std::path::PathBuf;
-use std::str::FromStr;
 use std::io::Result;
 use std::io::Write;
 
@@ -41,43 +42,23 @@ fn main() {
         std::process::exit(1);
     }
 
+    let _executable_name = &args[0];
+
     let filename = PathBuf::from(&args[1]);
 
-    let bounds = parse_pair(&args[2], 'x').expect("error parsing image dimensions");
-    let upper_left = parse_complex(&args[3]).expect("error parsing upper left corner point");
-    let lower_right = parse_complex(&args[4]).expect("error parsing lower right corner point");
+    let bounds = parse_pair::parse_pair(&args[2], "x").expect("error parsing image dimensions");
+
+    let upper_left_args: (f64, f64) = parse_pair::parse_pair(&args[3], ",").expect("error parsing upper left corner point");
+    let upper_left = create_complex::create_complex(upper_left_args.0, upper_left_args.1);
+
+    let lower_right_args = parse_pair::parse_pair(&args[4], ",").expect("error parsing lower rightcorner point");
+    let lower_right = create_complex::create_complex(lower_right_args.0, lower_right_args.1);
 
     let mut pixels = vec![0; bounds.0 * bounds.1];
 
     render(&mut pixels, bounds, upper_left, lower_right);
 
     write_bitmap(&filename, &pixels, bounds).expect("error writing PNG file");
-}
-
-/// Parse the string 's' as a coordinate pair, like "400x600" or "1.0,0.5"
-/// Specifically, 's' should have the form <left><sep><right> where <sep> is the character given by
-/// the 'separator' argument, and <left> and <right> are both strings that can be parsed
-/// by 'T::from_str'.
-/// If 's' has the proper form, return 'Some<(x,y)>'.
-/// If 's' doesn't parse correctly, return None.
-fn parse_pair<T: FromStr>(s: &str, separator: char) -> Option<(T, T)> {
-    match s.find(separator) {
-        None => None,
-        Some(index) => {
-            match (T::from_str(&s[..index]), T::from_str(&s[index + 1..])) {
-                (Ok(l), Ok(r)) => Some((l, r)),
-                _ => None
-            }
-        }
-    }
-}
-
-/// Parse a pair of floating-point numbers separated by a comma as a complex /// number.
-fn parse_complex(s: &str) -> Option<Complex<f64>> {
-    match parse_pair(s, ',') {
-        Some((re, im)) => Some(Complex { re, im }),
-        None => None
-    }
 }
 
 fn render(pixels: &mut [u8], bounds: (usize, usize),
@@ -126,43 +107,8 @@ fn write_bitmap(filename: &PathBuf, pixels: &[u8], bounds: (usize, usize)) -> Re
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test::Bencher;
     use tempdir::TempDir;
-
-    #[test]
-    fn test_pixel_to_point() {
-        let upper_left = Complex { re: -1.0, im: 1.0 };
-        let lower_right = Complex { re: 1.0, im: -1.0 };
-
-        assert_eq!(pixel_to_point((100, 100), (25, 75),
-                                  upper_left, lower_right),
-                   Complex { re: -0.5, im: -0.5 });
-    }
-
-    #[test]
-    fn test_parse_pair() {
-        assert_eq!(parse_pair::<i32>("", ','), None);
-        assert_eq!(parse_pair::<i32>("10,", ','), None);
-        assert_eq!(parse_pair::<i32>(",10", ','), None);
-        assert_eq!(parse_pair::<i32>("10,20", ','), Some((10, 20)));
-        assert_eq!(parse_pair::<i32>("10,20xy", ','), None);
-        assert_eq!(parse_pair::<f64>("0.5x", ','), None);
-        assert_eq!(parse_pair::<f64>("0.5x1.5", 'x'), Some((0.5, 1.5)));
-    }
-
-    #[test]
-    fn test_parse_complex() {
-        assert_eq!(parse_complex("1.25,-0.0625"),
-                   Some(Complex { re: 1.25, im: -0.0625 }));
-        assert_eq!(parse_complex(",-0.0625"), None);
-    }
-
-    #[bench]
-    fn bench_escapes(b: &mut Bencher) {
-        let upper_left = Complex { re: -1.20, im: 0.35 };
-
-        b.iter(|| escapes(upper_left, 255));
-    }
+    use test::Bencher;
 
     #[bench]
     fn bench_render_100_by_100(b: &mut Bencher) {

@@ -12,6 +12,14 @@ source = "lib://flowstdlib/fmt/to_string.toml"
 from = "function/args/0"
 to = "function/to_string"
 
+[[connection]]
+from = "function/args/1"
+to = "function/to_string"
+
+[[connection]]
+from = "function/args/2"
+to = "function/to_string"
+
 [[function]]
 alias = "print"
 source = "lib://flowstdlib/stdio/stdout.toml"

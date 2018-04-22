@@ -83,7 +83,19 @@ mod tests {
     use flowrlib::runlist::RunList;
     use flowrlib::function::Function;
     use serde_json::Value as JsonValue;
+    use num::Complex;
     use super::PixelToPoint;
+    use super::pixel_to_point;
+
+    #[test]
+    fn test_pixel_to_point() {
+        let upper_left = Complex { re: -1.0, im: 1.0 };
+        let lower_right = Complex { re: 1.0, im: -1.0 };
+
+        assert_eq!(pixel_to_point((100, 100), (25, 75),
+                                  upper_left, lower_right),
+                   Complex { re: -0.5, im: -0.5 });
+    }
 
     #[test]
     fn pixel() {
