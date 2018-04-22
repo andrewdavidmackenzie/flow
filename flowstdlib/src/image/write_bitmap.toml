@@ -1,13 +1,13 @@
 name = "WriteBitmap"
 
 [[input]]
-name = "i1"
+name = "filename"
 type = "String"
 
 [[input]]
-name = "i2"
+name = "bytes"
 type = "Array"
 
 [[input]]
-name = "i3"
-type = "Map"
+name = "bounds"
+type = "Json"
