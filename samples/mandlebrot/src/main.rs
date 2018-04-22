@@ -1,24 +1,13 @@
 #![feature(test)]
 
 extern crate num;
-
-use num::Complex;
-
 extern crate image;
 extern crate rayon;
-
-use rayon::prelude::*;
-
-use image::ColorType;
-use image::png::PNGEncoder;
-
 extern crate test;
 extern crate dir_diff;
 extern crate tempdir;
-
 extern crate flowrlib;
-#[macro_use]
-extern crate serde_json;
+#[macro_use] extern crate serde_json;
 
 mod escapes;
 mod pixel_to_point;
@@ -27,11 +16,14 @@ mod parse_pair;
 
 use pixel_to_point::pixel_to_point;
 use escapes::escapes;
-
+use num::Complex;
 use std::fs::File;
 use std::path::PathBuf;
 use std::io::Result;
 use std::io::Write;
+use rayon::prelude::*;
+use image::ColorType;
+use image::png::PNGEncoder;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -99,9 +91,7 @@ fn write_bitmap(filename: &PathBuf, pixels: &[u8], bounds: (usize, usize)) -> Re
 
     let encoder = PNGEncoder::new(output);
     encoder.encode(&pixels, bounds.0 as u32, bounds.1 as u32,
-                   ColorType::Gray(8))?;
-
-    Ok(())
+                   ColorType::Gray(8))
 }
 
 #[cfg(test)]

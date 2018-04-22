@@ -194,8 +194,10 @@ impl Function {
         if let &Some(ref ios) = ioset {
             for io in ios {
                 let (array_route, _num, array_index) = connection::name_without_trailing_number(io_sub_route);
+
                 if array_index && (io.datatype(0) == "Array") && (io.name() == array_route) {
                     let mut found = io.clone();
+                    found.datatype = io.datatype(1).to_string(); // the type within the array
                     found.route.push_str("/");
                     found.route.push_str(io_sub_route);
                     return Ok(found);
@@ -357,11 +359,11 @@ mod test {
 
     #[test]
     fn get_array_element_of_root_output() {
-        // Create a function where the output is an Array (of something)
+        // Create a function where the output is an Array of String
         let function_str = "\
         name = \"test_function\"
         [[output]]
-        type = \"Array\"
+        type = \"Array/String\"
         ";
 
         // Setup

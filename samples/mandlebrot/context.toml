@@ -5,21 +5,9 @@ alias = "args"
 source = "lib://flowstdlib/env/args.toml"
 
 [[function]]
-alias = "to_string"
-source = "lib://flowstdlib/fmt/to_string.toml"
-
-[[function]]
 alias = "write_bitmap"
-source = "lib://flowstdlib/image/write_bitmap.toml"
+source = "lib://flowstdlib/img/write_bitmap.toml"
 
 [[connection]]
 from = "function/args/0"
 to = "function/write_bitmap/filename"
-
-[[function]]
-alias = "print"
-source = "lib://flowstdlib/stdio/stdout.toml"
-
-[[connection]]
-from = "function/to_string"
-to = "function/print"

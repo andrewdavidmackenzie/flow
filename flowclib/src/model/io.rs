@@ -12,7 +12,7 @@ pub struct IO {
     #[serde(default = "default_name")]
     pub name: String,
     #[serde(rename = "type", default = "default_type")]
-    datatype: DataType,
+    pub datatype: DataType,
     #[serde(default = "default_depth")]
     pub depth: usize,
 

@@ -193,7 +193,7 @@ fn build_connections(flow: &mut Flow) -> Result<(), String> {
                     connection.from_io = from;
                     connection.to_io = to;
                 } else {
-                    error!("Type mismatch in flow '{}' connection from\n{:#?}\n\nto\n\n{:#?}",
+                    error!("Type mismatch in flow '{}' connection:\n\nfrom\n\n{:#?}\n\nto\n\n{:#?}",
                            flow.source_url, from, to);
                     error_count += 1;
                 }
