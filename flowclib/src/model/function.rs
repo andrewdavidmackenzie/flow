@@ -128,14 +128,14 @@ impl fmt::Display for Function {
         write!(f, "\t\t\t\t\t\t\t\tinputs:\n")?;
         if let Some(ref inputs) = self.inputs {
             for input in inputs {
-                write!(f, "\t\t\t\t\t\t\t{}\n", input)?;
+                write!(f, "\t\t\t\t\t\t\t{:#?}\n", input)?;
             }
         }
 
         write!(f, "\t\t\t\t\t\t\t\toutput:\n")?;
         if let Some(ref outputs) = self.outputs {
             for output in outputs {
-                write!(f, "\t\t\t\t\t\t\t{}\n", output)?;
+                write!(f, "\t\t\t\t\t\t\t{:#?}\n", output)?;
             }
         }
 

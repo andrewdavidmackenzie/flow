@@ -7,8 +7,6 @@ use loader::loader::Validate;
 use model::connection::Route;
 use std::collections::HashSet;
 
-use std::fmt;
-
 #[derive(Deserialize, Debug, Clone)]
 pub struct IO {
     #[serde(default = "default_name")]
@@ -106,13 +104,6 @@ impl Validate for IOSet {
             }
         }
         Ok(())
-    }
-}
-
-impl fmt::Display for IO {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "name: \t\t{}\n\troute: \t\t{}\n\tdatatype: \t{}\n",
-               self.name, self.route, self.datatype)
     }
 }
 
