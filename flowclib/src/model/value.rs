@@ -171,6 +171,7 @@ impl Value {
                 let (array_route, _num, array_index) = connection::name_without_trailing_number(io_sub_route);
                 if array_index && (output.datatype(0) == "Array") && (output.name() == array_route) {
                     let mut found = output.clone();
+                    found.datatype = io.datatype(1).to_string(); // the type within the array
                     found.route.push_str("/");
                     found.route.push_str(io_sub_route);
                     return Ok(found);
