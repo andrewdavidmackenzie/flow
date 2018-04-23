@@ -7,7 +7,8 @@ pub fn start() {
     // Set anvironment variable with the args
     // this will not be unique, but it will be used very soon and removed
     if let Some(flow_args) = matches.values_of("flow_args") {
-        let args: Vec<&str> = flow_args.collect();
+        let mut args: Vec<&str> = flow_args.collect();
+        args.insert(0, env!("CARGO_PKG_NAME")); // arg #0 is the flow/package name
         env::set_var("FLOW_ARGS", args.join(" "));
     }
     SimpleLogger::init(matches.value_of("log"));
