@@ -55,14 +55,19 @@ fn crates(libs: &HashSet<String>) -> String {
 // e.g. "mod reverse;"
 fn modules(runnables: &Vec<Box<Runnable>>) -> Result<String> {
     let mut modules_string = String::new();
+    let mut modules_declared = HashSet::new();
 
-    // Find all the functions that are not loaded from libraries
+    // Find all the functions that are not loaded from libraries and add 'mod' declarations for them in main.rs
     for runnable in runnables {
         if let Some(source_url) = runnable.source_url() {
             let source = source_url.to_file_path()
                 .map_err(|_e| Error::new(ErrorKind::InvalidData, "Could not convert to file path"))?;
             let module = source.file_stem().unwrap();
-            modules_string.push_str(&format!("mod {};\n", module.to_str().unwrap()));
+            let module_name = module.to_str().unwrap().to_string();
+            // Don't add the same module twice
+            if modules_declared.insert(module_name.clone()) {
+                modules_string.push_str(&format!("mod {};\n", module_name));
+            }
         }
     }
 

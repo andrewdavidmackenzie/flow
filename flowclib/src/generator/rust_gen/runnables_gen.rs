@@ -53,7 +53,6 @@ fn uses_value(runnables: &Vec<Box<Runnable>>) -> (bool, bool, bool) {
             } else {
                 variable_used = true;
             }
-
         }
     }
 
@@ -89,7 +88,6 @@ fn contents(tables: &CodeGenTables, lib_refs: &Vec<String>) -> Result<String> {
         } else {
             vars.insert("value_variable_implementation_used".to_string(), "");
         }
-
     } else {
         vars.insert("value_used".to_string(), "");
         vars.insert("value_constant_implementation_used".to_string(), "");
@@ -134,6 +132,7 @@ fn contents(tables: &CodeGenTables, lib_refs: &Vec<String>) -> Result<String> {
 // "use module::Functionname;" e.g. "use reverse::Reverse;"
 fn usages(runnables: &Vec<Box<Runnable>>) -> Result<String> {
     let mut usages_string = String::new();
+    let mut uses_declared = HashSet::new();
 
     // Find all the functions that are not loaded from libraries
     for runnable in runnables {
@@ -141,8 +140,11 @@ fn usages(runnables: &Vec<Box<Runnable>>) -> Result<String> {
             let source = source_url.to_file_path()
                 .map_err(|_e| Error::new(ErrorKind::InvalidData, "Could not convert to file path"))?;
             let usage = source.file_stem().unwrap();
-            usages_string.push_str(&format!("use {}::{};\n",
-                                            usage.to_str().unwrap(), runnable.name()));
+            let use_string = format!("use {}::{};\n", usage.to_str().unwrap(), runnable.name());
+            // Don't add the same use twice
+            if uses_declared.insert(use_string.clone()) {
+                usages_string.push_str(&use_string);
+            }
         }
     }
 
@@ -172,20 +174,19 @@ fn runnable_to_code(runnable: &Box<Runnable>) -> String {
             code.push_str(&format!("{}, vec!(", inputs.len()));
             for input in inputs {
                 code.push_str(&format!("{}, ", input.depth));
-
             }
             code.push_str(&format!("), "));
         }
     }
     code.push_str(&format!("{}, Box::new({}{{}}), ", runnable.get_id(), runnable.get_implementation()));
 
-    code.push_str(&format!("{},",  match runnable.get_initial_value() {
+    code.push_str(&format!("{},", match runnable.get_initial_value() {
         None => {
             match runnable.get_constant_value() {
                 None => "None".to_string(),
                 Some(constant) => format!("Some(json!({}))", constant.to_string())
             }
-        },
+        }
         Some(value) => format!("Some(json!({}))", value.to_string())
     }));
 
@@ -224,7 +225,7 @@ mod test {
             init: Some(JsonValue::String("Hello-World".to_string())),
             constant: None,
             route: "/flow0/value".to_string(),
-            outputs: Some(vec!(IO::new(&"Json".to_string(),&"".to_string()))),
+            outputs: Some(vec!(IO::new(&"Json".to_string(), &"".to_string()))),
             output_connections: vec!(("".to_string(), 1, 0)),
             id: 1,
         };
