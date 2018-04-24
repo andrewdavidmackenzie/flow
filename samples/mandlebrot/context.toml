@@ -16,7 +16,7 @@ to = "function/write_bitmap/filename"
 [[value]]
 name = "bounds_separator"
 type = "String"
-init = "x"
+constant = "x"
 
 [[function]]
 alias = "parse_bounds"
@@ -53,16 +53,16 @@ to = "function/parse_upper_left/input"
 
 
 # Lower Right Coordinate
-#[[function]]
-#alias = "parse_lower_right"
-#source = "src/parse_pair.toml"
+[[function]]
+alias = "parse_lower_right"
+source = "src/parse_pair.toml"
 
-#[[connection]]
-#from = "value/point_separator"
-#to = "function/parse_upper_left/separator"
+[[connection]]
+from = "value/point_separator"
+to = "function/parse_lower_right/separator"
 
-#[[connection]]
-#from = "function/args/4"
-#to = "function/parse_lower_right/input"
+[[connection]]
+from = "function/args/4"
+to = "function/parse_lower_right/input"
 
 
