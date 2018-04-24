@@ -140,8 +140,9 @@ fn run_to_dot(runnable: &Runnable) -> String {
         second_line = "".to_string();
     }
 
-    dot_string.push_str(&format!("\t\t\"{}\" [label=\"{}{}\"]; // runnable @ route, label = runnable name \n",
+    dot_string.push_str(&format!("\t\t\"{}\" [label=\"{}\\n({}){}\"]; // runnable @ route, label = runnable name \n",
                                  runnable.route(),
+                                 runnable.alias(),
                                  runnable.name(),
                                  second_line));
 
