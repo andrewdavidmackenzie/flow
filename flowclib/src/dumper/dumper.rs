@@ -134,7 +134,8 @@ fn run_to_dot(runnable: &Runnable) -> String {
     let second_line;
 
     if let Some(constant) = runnable.get_constant_value() {
-        second_line = format!("\\n(={})", constant);
+        let const_string = str::replace(&constant.to_string(), "\"", "'");
+        second_line = format!("\\n(={})", const_string);
     } else {
         second_line = "".to_string();
     }
@@ -148,8 +149,9 @@ fn run_to_dot(runnable: &Runnable) -> String {
         // Add an extra graph entry for the initial value
         dot_string.push_str(&format!("\t\t\t\t\"{}_iv\"[style=invis] ; // initial value\n", runnable.route()));
         // with a connection to the runnable
+        let iv_string = str::replace(&iv.to_string(), "\"", "'");
         dot_string.push_str(&format!("\t\t\t\t\"{}_iv\" -> \"{}\" [style=dotted] [color=blue] [label=\"{}\"]; // connect initial value to runnable\n",
-                                     runnable.route(), runnable.route(), iv));
+                                     runnable.route(), runnable.route(), iv_string));
     }
 
     dot_string.push_str(&add_input_set(&runnable.get_inputs(), &runnable.route().to_string()));
