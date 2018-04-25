@@ -1,26 +1,20 @@
 name = "mandlebrot"
 
+# Args
 [[function]]
 alias = "args"
 source = "lib://flowstdlib/env/args.toml"
 
-[[function]]
-alias = "write_bitmap"
-source = "lib://flowstdlib/img/write_bitmap.toml"
-
-[[connection]]
-from = "function/args/1"
-to = "function/write_bitmap/filename"
 
 # Bounds
+[[function]]
+alias = "parse_bounds"
+source = "src/parse_pair.toml"
+
 [[value]]
 name = "bounds_separator"
 type = "String"
 constant = "x"
-
-[[function]]
-alias = "parse_bounds"
-source = "src/parse_pair.toml"
 
 [[connection]]
 from = "function/args/2"
@@ -65,6 +59,7 @@ to = "function/parse_lower_right/separator"
 from = "function/args/4"
 to = "function/parse_lower_right/input"
 
+
 # Subflow 'render'
 [[flow]]
 alias = "render"
@@ -82,10 +77,20 @@ to = "flow/render/upper_left"
 from = "function/parse_lower_right"
 to = "flow/render/lower_right"
 
+
+# Write Bitmap
+[[function]]
+alias = "write_bitmap"
+source = "lib://flowstdlib/img/write_bitmap.toml"
+
+[[connection]]
+from = "function/args/0"
+to = "function/write_bitmap/filename"
+
+[[connection]]
+from = "flow/render/bitmap_bounds"
+to = "function/write_bitmap/bounds"
+
 [[connection]]
 from = "flow/render/bytes"
 to = "function/write_bitmap/bytes"
-
-[[connection]]
-from = "function/parse_bounds"
-to = "function/write_bitmap/bounds"

@@ -11,3 +11,6 @@ name = "lower_right"
 
 [[output]]
 name = "bytes"
+
+[[output]]
+name = "bitmap_bounds"
