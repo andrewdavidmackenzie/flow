@@ -169,10 +169,10 @@ fn run_to_dot(runnable: &Runnable) -> String {
     {}
     {}\t\t}} // close runnable {} \n",
             runnable.get_type(),
-            str::replace(&runnable.name(), "-", "_"),
+            str::replace(&runnable.alias(), "-", "_"),
             box_visibility,
             dot_string,
-            runnable.name())
+            runnable.alias())
 }
 
 /*
