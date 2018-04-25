@@ -6,7 +6,6 @@ type = "String"
 
 [[input]]
 name = "bytes"
-type = "Array"
 
 [[input]]
 name = "bounds"

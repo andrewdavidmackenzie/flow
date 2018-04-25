@@ -65,4 +65,27 @@ to = "function/parse_lower_right/separator"
 from = "function/args/4"
 to = "function/parse_lower_right/input"
 
+# Subflow 'render'
+[[flow]]
+alias = "render"
+source = "./render.toml"
 
+[[connection]]
+from = "function/parse_bounds"
+to = "flow/render/bounds"
+
+[[connection]]
+from = "function/parse_upper_left"
+to = "flow/render/upper_left"
+
+[[connection]]
+from = "function/parse_lower_right"
+to = "flow/render/lower_right"
+
+[[connection]]
+from = "flow/render/bytes"
+to = "function/write_bitmap/bytes"
+
+[[connection]]
+from = "function/parse_bounds"
+to = "function/write_bitmap/bounds"

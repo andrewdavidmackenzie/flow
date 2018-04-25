@@ -1,0 +1,13 @@
+name = "render"
+
+[[input]]
+name = "bounds"
+
+[[input]]
+name = "upper_left"
+
+[[input]]
+name = "lower_right"
+
+[[output]]
+name = "bytes"
