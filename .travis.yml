@@ -12,7 +12,7 @@ install:
 language: rust
 
 rust:
-  - 1.27.0
+  - 1.25.0
 
 os:
   - osx

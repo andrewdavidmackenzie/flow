@@ -235,7 +235,7 @@ fn add_output_routes(output_routes: &Vec<(Route, usize, usize)>, from: &Route) -
     let mut string = String::new();
 
     string.push_str("\n\t\t\t// Output Routes\n");
-    for (output_route, _, _) in output_routes {
+    for &(ref output_route, _, _) in output_routes {
         // Avoid creating extra points for default output ("")
         if *output_route != from.to_string() {
             // Add an entry for each output using it's route
