@@ -9,6 +9,7 @@ use model::runnable::Runnable;
 use model::flow_reference::FlowReference;
 use model::io::IOSet;
 use model::connection::Route;
+use model::connection;
 
 /// dump a flow definition that has been loaded to a file in the specified output directory
 ///
@@ -86,10 +87,17 @@ fn dump_flow_dot(flow: &Flow, level: usize, dot_file: &mut Write) -> io::Result<
 
     // Connections inside this flows
     if let &Some(ref connections) = &flow.connections {
-        contents.push_str("\t// Connections\n");
+        contents.push_str("\n\t// Connections");
         for connection in connections {
-            contents.push_str(&format!("\t\"{}\" -> \"{}\";\n",
-                                       connection.from_io.route, connection.to_io.route));
+            let (from_route, number, array_index) = connection::name_without_trailing_number(&connection.from_io.route);
+
+            if array_index {
+                contents.push_str(&format!("\n\t\"{}\" -> \"{}\" [label=\"{}\"];",
+                                           from_route, connection.to_io.route, number));
+            } else {
+                contents.push_str(&format!("\n\t\"{}\" -> \"{}\";",
+                                           from_route, connection.to_io.route));
+            }
         }
     }
 
@@ -156,11 +164,11 @@ fn run_to_dot(runnable: &Runnable) -> String {
     }
 
     dot_string.push_str(&add_input_set(&runnable.get_inputs(), &runnable.route().to_string()));
-    dot_string.push_str(&add_output_set(&runnable.get_outputs(), &runnable.route().to_string()));
+    dot_string.push_str(&add_output_routes(&runnable.get_output_routes(), &runnable.route().to_string()));
 
     let mut box_visibility = "";
     if runnable.get_type() == "Value" {
-        box_visibility = "\t\tstyle=invis;\n";
+        box_visibility = "\t\tstyle=invis;";
     }
 
     // Put inside a cluster of it's own
@@ -199,8 +207,7 @@ fn add_input_set(input_set: &IOSet, to: &Route) -> String {
 }
 
 /*
-    Rotate through the 3 bottom 'ports' on the sub-flow bubble to try and make outputs separate out
-    visually - but this breaks down if we have more than 3 outputs
+    Add the outputs from a flow to add points to connect to
 */
 fn add_output_set(output_set: &IOSet, from: &Route) -> String {
     let mut string = String::new();
@@ -208,7 +215,7 @@ fn add_output_set(output_set: &IOSet, from: &Route) -> String {
     if let &Some(ref outputs) = output_set {
         string.push_str("\n\t\t\t// Outputs\n");
         for output in outputs {
-            // Avoid creating extra points to connect to for default ouput (e.g. on a value)
+            // Avoid creating extra points for default output ("")
             if output.route != from.to_string() {
                 // Add an entry for each output using it's route
                 string.push_str(&format!("\t\t\t\"{}\" [label=\"\", style=filled, fixedsize=true, width=0.2, height=0.2, fillcolor=grey];\n", output.route));
@@ -216,6 +223,26 @@ fn add_output_set(output_set: &IOSet, from: &Route) -> String {
                 string.push_str(&format!("\t\t\t\"{}\":s -> \"{}\"[len=0, style=invis, weight=1000, headtooltip=\"{}\"];\n",
                                          from, output.route, output.name));
             }
+        }
+    }
+    string
+}
+
+/*
+    Add the actual outputs used from a Runnable to add points to connect to inside the Runnable cluster
+*/
+fn add_output_routes(output_routes: &Vec<(Route, usize, usize)>, from: &Route) -> String {
+    let mut string = String::new();
+
+    string.push_str("\n\t\t\t// Output Routes\n");
+    for (output_route, _, _) in output_routes {
+        // Avoid creating extra points for default output ("")
+        if *output_route != from.to_string() {
+            // Add an entry for each output using it's route
+            string.push_str(&format!("\t\t\t\"{}\" [label=\"\", style=filled, fixedsize=true, width=0.2, height=0.2, fillcolor=grey];\n", output_route));
+            // and connect the output to the sub-flow
+            string.push_str(&format!("\t\t\t\"{}\":s -> \"{}\"[len=0, style=invis, weight=1000, headtooltip=\"{}\"];\n",
+                                     from, output_route, output_route));
         }
     }
     string
