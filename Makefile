@@ -51,7 +51,7 @@ test-samples: $(sample_flows)
 samples/%/test_output.txt: samples/%/test_input.txt compiler
 	@echo "\n------- Compiling and Running $(@D) ----"
 # remove local file path from output messages to make local failures match travis failures
-	@cat $< | ./target/debug/flowc $(@D) -- `cat $(@D)/test_arguments.txt` | sed -e 's/\/Users\/andrew\/workspace\/flow\///' | sed -e 's/\/Users\/travis\/build\/andrewdavidmackenzie\/flow\///' | grep -v "Finished dev" > $@; true
+	@cat $< | ./target/debug/flowc $(@D) -- `cat $(@D)/test_arguments.txt` | sed -e 's/\/.*\/flow\///' | grep -v "Finished dev" > $@; true
 	diff $@ $(@D)/expected_output.txt
 	@rm $@
 
