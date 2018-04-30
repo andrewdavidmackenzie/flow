@@ -1,0 +1,12 @@
+name = "Subtract"
+
+[[input]]
+name = "i1"
+type = "Number"
+
+[[input]]
+name = "i2"
+type = "Number"
+
+[[output]]
+type = "Number"
