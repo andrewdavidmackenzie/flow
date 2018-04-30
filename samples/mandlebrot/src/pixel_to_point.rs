@@ -17,36 +17,32 @@ pub struct PixelToPoint;
 */
 impl Implementation for PixelToPoint {
     fn run(&self, runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> bool {
-        let pixel_bounds = inputs.remove(0).remove(0);
-        // pixel_bounds: (usize, usize),
-        let pixel_bounds_x = pixel_bounds["x"].as_u64().unwrap() as usize;
-        let pixel_bounds_y = pixel_bounds["y"].as_u64().unwrap() as usize;
+        let width = inputs.remove(0).remove(0).as_u64().unwrap() as usize;
+        let height = inputs.remove(0).remove(0).as_u64().unwrap() as usize;
 
-        let complex_bounds = inputs.remove(0).remove(0);
-        // complex_bounds(upper_left, lower_right): (Complex<f64>, Complex<f64>)
-        let upper_left = &complex_bounds["ul"];
+        let upper_left = inputs.remove(0).remove(0);
         let upper_left_re = upper_left["re"].as_f64().unwrap();
         let upper_left_im = upper_left["im"].as_f64().unwrap();
         let upper_left_complex = Complex { re: upper_left_re, im: upper_left_im };
 
-        let lower_right = &complex_bounds["lr"];
+        let lower_right = inputs.remove(0).remove(0);
         let lower_right_re = lower_right["re"].as_f64().unwrap();
         let lower_right_im = lower_right["im"].as_f64().unwrap();
         let lower_right_complex = Complex { re: lower_right_re, im: lower_right_im };
 
-        let pixel = inputs.remove(0).remove(0);
-        //pixel: (x, y),
-        let pixel_x = pixel["x"].as_u64().unwrap() as usize;
-        let pixel_y = pixel["y"].as_u64().unwrap() as usize;
+        let pixel_x = inputs.remove(0).remove(0).as_u64().unwrap() as usize;
+        let pixel_y = inputs.remove(0).remove(0).as_u64().unwrap() as usize;
 
         let complex_point = pixel_to_point(
-            (pixel_bounds_x, pixel_bounds_y),
+            (width, height),
             (pixel_x, pixel_y),
             upper_left_complex,
             lower_right_complex,
         );
 
         // output: Complex<f64>
+        // TODO Implement to_json() or similar for Complex? Or see if can just use serde and it
+        // either already implements or we can derive serialization and deserialization
         let output = json!({ "re" : complex_point.re, "im": complex_point.im });
         run_list.send_output(runnable, output);
 
@@ -100,10 +96,15 @@ mod tests {
     #[test]
     fn pixel() {
         // Create input vector
-        let pixel_bounds = json!({"x": 100, "y": 100 });
-        let complex_bounds = json!({ "ul" : {"re": 0.0, "im": 0.0 }, "lr": {"re": 1.0, "im": 1.0 }});
-        let pixel = json!({"x": 50, "y": 50 });
-        let inputs: Vec<Vec<JsonValue>> = vec!(vec!(pixel_bounds), vec!(complex_bounds), vec!(pixel));
+        let width = json!(100);
+        let height = json!(100);
+
+        let upper_left = json!({"re": 0.0, "im": 0.0 });
+        let lower_right = json!({"re": 1.0, "im": 1.0 });
+
+        let pixel_x = json!(50);
+        let pixel_y = json!(50);
+        let inputs: Vec<Vec<JsonValue>> = vec!(vec!(width), vec!(height), vec!(upper_left), vec!(lower_right), vec!(pixel_x), vec!(pixel_y));
 
         let mut run_list = RunList::new();
         let p2p = &Function::new("p2p", 3, vec!(1, 1, 1), 0, Box::new(PixelToPoint), None, vec!()) as &Runnable;

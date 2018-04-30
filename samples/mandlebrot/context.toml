@@ -63,7 +63,7 @@ to = "function/parse_lower_right/input"
 # Subflow 'render'
 [[flow]]
 alias = "render"
-source = "./render.toml"
+source = "./render_by_row.toml"  # Use the by row implementation
 
 [[connection]]
 from = "function/parse_bounds"

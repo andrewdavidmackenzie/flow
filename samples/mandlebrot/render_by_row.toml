@@ -1,0 +1,88 @@
+name = "render_by_row"
+
+[[input]]
+name = "bounds"
+
+[[input]]
+name = "upper_left"
+
+[[input]]
+name = "lower_right"
+
+[[output]]
+name = "bytes"
+
+[[output]]
+name = "bitmap_bounds"
+
+# just copy the same input value
+[[connection]]
+from = "input/bounds"
+to = "output/bitmap_bounds"
+
+
+# Row index generator
+[[value]]
+name = "row_0"
+type = "Number"
+initial = 0
+
+[[flow]]
+alias = "row_range"
+source = "../range/range.toml"
+
+[[connection]]
+from = "value/row_0"
+to = "flow/row_range/start"
+
+[[connection]]
+from = "input/bounds/1"  # y or row limit
+to = "flow/row_range/limit"
+
+
+# calculate row upper left complex coordinate
+[[function]]
+alias = "calc_upper_left"
+source = "src/pixel_to_point.toml"
+
+
+# calculate row lower right complex coordinate
+[[function]]
+alias = "calc_lower_right"
+source = "src/pixel_to_point.toml"
+
+
+# render a row
+[[flow]]
+alias = "render_a_row"
+source = "render_a_row.toml"
+
+# TODO construct row bounds (width, 1) from input bounds
+
+
+[[connection]]
+from = "flow/row_range/series"
+to = "flow/render_a_row/row_index"
+
+[[connection]]
+from = "function/calc_upper_left"
+to = "flow/render_a_row/upper_left"
+
+[[connection]]
+from = "function/calc_lower_right"
+to = "flow/render_a_row/lower_right"
+
+
+# TODO ADM a dummy function for now...
+# TODO need a combined or rows into one output stream of bytes
+[[function]]
+alias = "row_combiner"
+source = "src/combiner.toml"
+
+[[connection]]
+from = "flow/render_a_row/bytes"
+to = "function/row_combiner"
+
+[[connection]]
+from = "function/row_combiner"
+to = "output/bytes"

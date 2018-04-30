@@ -17,4 +17,6 @@ Features Used
 
 Description
 ===
-A flow that generates a series of output numbers in a range between two input numbers
+A flow that generates a series of output numbers in a range between two input numbers.
+Additionally each time it outputs a number it also outputs the start and the limit,
+as they can be useful downstream.
