@@ -58,4 +58,5 @@ debug-assertions = true
 codegen-units = 1
 
 [workspace]
-members = ["flowclib", "flowrlib", "flowstdlib", "flowc", "electron"]
+members = ["flowclib", "flowrlib", "flowstdlib", "flowc", "electron", "samples/mandlebrot"]
+default-members = ["flowclib", "flowrlib", "flowstdlib", "flowc"]
