@@ -59,8 +59,10 @@ fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<Str
 fn dump_flow_dot(flow: &Flow, level: usize, dot_file: &mut Write) -> io::Result<String> {
     let mut contents = String::new();
     // Inputs
+    contents.push_str(&add_input_set(&flow.inputs, &flow.route, false));
 
     // Outputs
+    contents.push_str(&add_output_set(&flow.outputs, &flow.route, false));
 
     // Values
     if let &Some(ref values) = &flow.values {
@@ -80,7 +82,7 @@ fn dump_flow_dot(flow: &Flow, level: usize, dot_file: &mut Write) -> io::Result<
     if let &Some(ref flow_refs) = &flow.flow_refs {
         contents.push_str("\n\t\tsubgraph cluster_sub_flows {\n\n");
         for flow_ref in flow_refs {
-            contents.push_str(&flow_to_dot(&flow_ref));
+            contents.push_str(&flow_reference_to_dot(&flow_ref));
         }
         contents.push_str("\t\t} // close cluster_sub_flows\n\n"); // subgraph cluster_sub_flows
     }
@@ -123,10 +125,10 @@ fn digraph_wrapper_start(flow: &Flow, level: usize) -> String {
     if level == 0 { // Context
         wrapper.push_str("\n\tsubgraph cluster_context {\n\t\tshape=square;\n");
     } else {
-        wrapper.push_str("\n\tsubgraph cluster_flow {\n\t\tshape=regular;\n");
+        wrapper.push_str("\n\tsubgraph cluster_flow {\n\t\tshape=regular;	\n");
     }
 
-    wrapper.push_str("\t\tmargin=0.4;\n\t\tlabel=\"\";\n");
+    wrapper.push_str("\t\tmargin=50;\n\t\tlabel=\"\";\n");
 
     wrapper
 }
@@ -163,8 +165,8 @@ fn run_to_dot(runnable: &Runnable) -> String {
                                      runnable.route(), runnable.route(), iv_string));
     }
 
-    dot_string.push_str(&add_input_set(&runnable.get_inputs(), &runnable.route().to_string()));
-    dot_string.push_str(&add_output_routes(&runnable.get_output_routes(), &runnable.route().to_string()));
+    dot_string.push_str(&add_input_set(&runnable.get_inputs(), &runnable.route().to_string(), true));
+    dot_string.push_str(&add_output_set(&runnable.get_outputs(), &runnable.route().to_string(), true));
 
     let mut box_visibility = "";
     if runnable.get_type() == "Value" {
@@ -174,6 +176,7 @@ fn run_to_dot(runnable: &Runnable) -> String {
     // Put inside a cluster of it's own
     format!("\n\t\t// Runnable of type = {}
     \tsubgraph cluster_runnable_{} {{
+			margin=0;
     {}
     {}\t\t}} // close runnable {} \n",
             runnable.get_type(),
@@ -187,7 +190,7 @@ fn run_to_dot(runnable: &Runnable) -> String {
     Rotate through the 3 top 'ports' on the sub-flow bubble to try and make inputs separate out
     visually - but this breaks down if we have more than 3 inputs
 */
-fn add_input_set(input_set: &IOSet, to: &Route) -> String {
+fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String {
     let mut string = String::new();
 
     if let &Some(ref inputs) = input_set {
@@ -196,10 +199,14 @@ fn add_input_set(input_set: &IOSet, to: &Route) -> String {
             // Avoid creating extra points to connect to for default input (e.g. on a value)
             if input.route != to.to_string() {
                 // Add an entry for each input using it's route
-                string.push_str(&format!("\t\t\t\"{}\" [label=\"\", style=filled, fixedsize=true, width=0.2, height=0.2, fillcolor=grey];\n", input.route));
-                // and connect the input to the sub-flow
-                string.push_str(&format!("\t\t\t\"{}\" -> \"{}\":n [len=0, weight=1000, style=invis, headtooltip=\"{}\"];\n",
-                                         input.route, to, input.name));
+                string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", style=filled, fixedsize=true, width=0.2, height=0.2, fillcolor=grey];\n",
+                                         input.route, input.name));
+
+                if connect_subflow {
+                    // and connect the input to the sub-flow
+                    string.push_str(&format!("\t\t\t\"{}\" -> \"{}\":n [len=0, weight=1000, style=invis, headtooltip=\"{}\"];\n",
+                                             input.route, to, input.name));
+                }
             }
         }
     }
@@ -209,16 +216,17 @@ fn add_input_set(input_set: &IOSet, to: &Route) -> String {
 /*
     Add the outputs from a flow to add points to connect to
 */
-fn add_output_set(output_set: &IOSet, from: &Route) -> String {
+fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> String {
     let mut string = String::new();
 
     if let &Some(ref outputs) = output_set {
         string.push_str("\n\t\t\t// Outputs\n");
         for output in outputs {
-            // Avoid creating extra points for default output ("")
-            if output.route != from.to_string() {
-                // Add an entry for each output using it's route
-                string.push_str(&format!("\t\t\t\"{}\" [label=\"\", style=filled, fixedsize=true, width=0.2, height=0.2, fillcolor=grey];\n", output.route));
+            // Add an entry for each output using it's route
+            string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", style=filled, fixedsize=true, width=0.2, height=0.2, fillcolor=grey];\n",
+                                     output.route, output.name));
+
+            if connect_subflow {
                 // and connect the output to the sub-flow
                 string.push_str(&format!("\t\t\t\"{}\":s -> \"{}\"[len=0, style=invis, weight=1000, headtooltip=\"{}\"];\n",
                                          from, output.route, output.name));
@@ -228,27 +236,7 @@ fn add_output_set(output_set: &IOSet, from: &Route) -> String {
     string
 }
 
-/*
-    Add the actual outputs used from a Runnable to add points to connect to inside the Runnable cluster
-*/
-fn add_output_routes(output_routes: &Vec<(Route, usize, usize)>, from: &Route) -> String {
-    let mut string = String::new();
-
-    string.push_str("\n\t\t\t// Output Routes\n");
-    for &(ref output_route, _, _) in output_routes {
-        // Avoid creating extra points for default output ("")
-        if *output_route != from.to_string() {
-            // Add an entry for each output using it's route
-            string.push_str(&format!("\t\t\t\"{}\" [label=\"\", style=filled, fixedsize=true, width=0.2, height=0.2, fillcolor=grey];\n", output_route));
-            // and connect the output to the sub-flow
-            string.push_str(&format!("\t\t\t\"{}\":s -> \"{}\"[len=0, style=invis, weight=1000, headtooltip=\"{}\"];\n",
-                                     from, output_route, output_route));
-        }
-    }
-    string
-}
-
-fn flow_to_dot(flow_ref: &FlowReference) -> String {
+fn flow_reference_to_dot(flow_ref: &FlowReference) -> String {
     let mut dot_string = String::new();
 
     dot_string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", fixedsize=true, width=1, height=1, URL=\"{}.dot\"];\n",
@@ -256,8 +244,8 @@ fn flow_to_dot(flow_ref: &FlowReference) -> String {
                                  flow_ref.alias,
                                  flow_ref.flow.name));
 
-    dot_string.push_str(&format!("\t\t\t{}", &add_input_set(&flow_ref.flow.inputs, &flow_ref.flow.route)));
-    dot_string.push_str(&format!("\t\t\t{}", &add_output_set(&flow_ref.flow.outputs, &flow_ref.flow.route)));
+    dot_string.push_str(&format!("\t\t\t{}", &add_input_set(&flow_ref.flow.inputs, &flow_ref.flow.route, true)));
+    dot_string.push_str(&format!("\t\t\t{}", &add_output_set(&flow_ref.flow.outputs, &flow_ref.flow.route, true)));
 
     // Put inside a cluster of it's own
     format!("\t\t\t// Sub-flow\n\t\t\tsubgraph cluster_sub_flow_{} {{
