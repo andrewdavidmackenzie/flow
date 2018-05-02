@@ -12,6 +12,11 @@ type = "Number"
 name = "out"
 type = "Number"
 
+[[output]]
+name = "control"
+type = "Number"
+
+
 [[function]]
 alias = "switch"
 source = "lib://flowstdlib/control/switch.toml"
@@ -39,3 +44,7 @@ to = "function/switch/control"
 [[connection]]
 from = "function/switch"
 to = "output/out"
+
+[[connection]]
+from = "input/max"
+to = "output/control"
