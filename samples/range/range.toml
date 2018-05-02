@@ -12,6 +12,14 @@ type = "Number"
 name = "series"
 type = "Number"
 
+[[output]]
+name = "min"
+type = "Number"
+
+[[output]]
+name = "max"
+type = "Number"
+
 [[flow]]
 alias = "pilt"
 source = "pass_if_less_than.toml"
@@ -48,3 +56,11 @@ to = "function/add/i2"
 [[connection]]
 from = "function/add"
 to = "flow/pilt/in"
+
+[[connection]]
+from = "input/start"
+to = "output/min"
+
+[[connection]]
+from = "input/limit"
+to = "output/max"
