@@ -49,12 +49,12 @@ fn dispatch(run_list: &mut RunList, id: usize) {
     let runnable_arc = run_list.get(id);
     let runnable: &mut Runnable = &mut *runnable_arc.lock().unwrap();
     debug!("------------------------------------");
-    debug!("Runnable: #{} '{}' dispatched", id, runnable.name());
+    debug!("Runnable #{} '{}' dispatched", id, runnable.name());
 
     let inputs = runnable.get_inputs();
     run_list.inputs_consumed(id);
     run_list.unblock_senders_to(id);
-    debug!("\tRunnable: #{} '{}' running with inputs: {:?}", id, runnable.name(), inputs);
+    debug!("\tRunnable #{} '{}' running with inputs: {:?}", id, runnable.name(), inputs);
 
     let implementation = runnable.implementation();
 
