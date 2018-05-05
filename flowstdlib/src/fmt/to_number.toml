@@ -1,0 +1,7 @@
+name = "ToNumber"
+
+[[input]]
+type = "String"
+
+[[output]]
+type = "Number"
