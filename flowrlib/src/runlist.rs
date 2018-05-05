@@ -84,9 +84,11 @@ impl RunList {
     }
 
     pub fn debug(&self) {
-        debug!(" Can Run: {:?}", self.can_run);
-        debug!("Blocking: {:?}", self.blocking);
-        debug!("Will Run: {:?}", self.will_run);
+        debug!("Dispatch count: {}", self.metrics.invocations);
+        debug!("       Can Run: {:?}", self.can_run);
+        debug!("      Blocking: {:?}", self.blocking);
+        debug!("      Will Run: {:?}", self.will_run);
+        debug!("-------------------------------------");
     }
 
     pub fn end(&self) {

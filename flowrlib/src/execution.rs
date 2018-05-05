@@ -48,7 +48,6 @@ pub fn execute(runnables: Vec<Arc<Mutex<Runnable>>>) {
 fn dispatch(run_list: &mut RunList, id: usize) {
     let runnable_arc = run_list.get(id);
     let runnable: &mut Runnable = &mut *runnable_arc.lock().unwrap();
-    debug!("------------------------------------");
     debug!("Runnable #{} '{}' dispatched", id, runnable.name());
 
     let inputs = runnable.get_inputs();
