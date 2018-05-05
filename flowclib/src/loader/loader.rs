@@ -183,27 +183,35 @@ fn build_connections(flow: &mut Flow) -> Result<(), String> {
     let mut connections = connections.unwrap();
 
     for connection in connections.iter_mut() {
-        if let Ok(from) = flow.get_route_and_type(FROM,&connection.from) {
-            debug!("Found source of connection:\n\t{:#?}", from);
-            if let Ok(to) = flow.get_route_and_type(TO,&connection.to) {
-                debug!("Found destination of connection:\n\t{:#?}", to);
-                if (from.datatype(0) == to.datatype(0)) ||
-                    from.datatype(0) == "Json" || to.datatype(0) == "Json" {
-                    debug!("Connection source and destination types match, connection built");
-                    connection.from_io = from;
-                    connection.to_io = to;
-                } else {
-                    error!("Type mismatch in flow '{}' connection:\n\nfrom\n\n{:#?}\n\nto\n\n{:#?}",
-                           flow.source_url, from, to);
-                    error_count += 1;
+        match flow.get_route_and_type(FROM, &connection.from) {
+            Ok(from) => {
+                debug!("Found source of connection:\n{:#?}", from);
+                match flow.get_route_and_type(TO, &connection.to) {
+                    Ok(to) => {
+                        debug!("Found destination of connection:\n{:#?}", to);
+                        if (from.datatype(0) == to.datatype(0)) ||
+                            from.datatype(0) == "Json" || to.datatype(0) == "Json" {
+                            debug!("Connection source and destination types match, connection built");
+                            connection.from_io = from;
+                            connection.to_io = to;
+                        } else {
+                            error!("Type mismatch in flow '{}' connection:\n\nfrom\n\n{:#?}\n\nto\n\n{:#?}",
+                                   flow.source_url, from, to);
+                            error_count += 1;
+                        }
+                    }
+                    Err(error) => {
+                        error!("Did not find connection destination: '{}' specified in flow '{}'\n\t\t{}",
+                               connection.to, flow.source_url, error);
+                        error_count += 1;
+                    }
                 }
-            } else {
-                error!("Did not find connection destination: '{}' specified in flow '{}'", connection.to, flow.source_url);
+            }
+            Err(error) => {
+                error!("Did not find connection source: '{}' specified in flow '{}'\n\t\t{}",
+                       connection.from, flow.source_url, error);
                 error_count += 1;
             }
-        } else {
-            error!("Did not find connection source: '{}' specified in flow '{}'", connection.from, flow.source_url);
-            error_count += 1;
         }
     }
 
