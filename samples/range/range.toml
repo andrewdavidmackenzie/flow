@@ -32,9 +32,23 @@ source = "lib://flowstdlib/math/add.toml"
 from = "input/start"
 to = "flow/pilt/in"
 
+# A store for the limit value that always refreshes itself, so it's value is always available
+[[value]]
+name = "limit_store"
+type = "Number"
+
 [[connection]]
 from = "input/limit"
+to = "value/limit_store"
+
+[[connection]]
+from = "value/limit_store"
+to = "value/limit_store"
+
+[[connection]]
+from = "value/limit_store"
 to = "flow/pilt/max"
+
 
 [[connection]]
 from = "flow/pilt/out"

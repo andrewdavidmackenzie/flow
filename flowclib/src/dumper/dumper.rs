@@ -117,7 +117,6 @@ fn digraph_wrapper_start(flow: &Flow, level: usize) -> String {
     wrapper.push_str(&format!("digraph {} {{\n", str::replace(&flow.name, "-", "_")));
     wrapper.push_str(&format!("\tlabel=\"{}\";\n", flow.name));
     wrapper.push_str("\tlabelloc=t;\n");
-    wrapper.push_str("\tconcentrate=true;\n");
     wrapper.push_str("\tmargin=0.4;\n");
     wrapper.push_str("\tcompound=true;\n");
     wrapper.push_str("\tmodel=mds;\n");
@@ -320,7 +319,6 @@ pub fn dump_runnables(flow: &Flow, tables: &CodeGenTables, output_dir: &PathBuf)
 fn dump_runnables_dot(flow_name: &str, tables: &CodeGenTables, dot_file: &mut Write) -> io::Result<String> {
     // Create a directed graph named after the flow
     dot_file.write_all(format!("digraph {} {{\n", str::replace(flow_name, "-", "_")).as_bytes())?;
-    dot_file.write_all("concentrate=true;\n".as_bytes())?;
 
     let mut runnables = String::new();
     for (index, ref runnable) in tables.runnables.iter().enumerate() {

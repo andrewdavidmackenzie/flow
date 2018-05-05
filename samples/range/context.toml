@@ -1,30 +1,47 @@
 name = "range-flow"
 
-[[flow]]
-alias = "range"
-source = "range.toml"
-
 [[value]]
 name = "start"
 type = "Number"
 init = 1
 
-[[value]]
-name = "end"
-type = "Number"
-constant = 100
-
-[[function]]
-alias = "to_string"
-source = "lib://flowstdlib/fmt/to_string.toml"
-
 [[connection]]
 from = "value/start"
 to = "flow/range/start"
 
+# Generate a list of candidates from 1 up to the max specified in arg 1
+[[function]]
+alias = "args"
+source = "lib://flowstdlib/env/args.toml"
+
 [[connection]]
-from = "value/end"
+from = "function/args/1"
+to = "function/to_number"
+
+[[function]]
+alias = "to_number"
+source = "lib://flowstdlib/fmt/to_number.toml"
+
+[[connection]]
+from = "function/to_number"
 to = "flow/range/limit"
+
+#[[value]]
+#name = "end"
+##type = "Number"
+#constant = 100
+
+#[[connection]]
+#from = "value/end"
+#to = "flow/range/limit"
+
+[[flow]]
+alias = "range"
+source = "range.toml"
+
+[[function]]
+alias = "to_string"
+source = "lib://flowstdlib/fmt/to_string.toml"
 
 [[connection]]
 from = "flow/range/series"
