@@ -7,6 +7,7 @@ const ONLY_INPUT: usize = 0;
 pub struct Value {
     name: String,
     number_of_inputs: usize,
+    reading_consumes: bool,
     id: usize,
     initial_value: Option<JsonValue>,
     implementation: Box<Implementation>,
@@ -17,6 +18,7 @@ pub struct Value {
 impl Value {
     pub fn new(name: &str,
                number_of_inputs: usize,
+               reading_consumes: bool,
                _input_depths: Vec<usize>,
                id: usize,
                implementation: Box<Implementation>,
@@ -25,6 +27,7 @@ impl Value {
         Value {
             name: name.to_string(),
             number_of_inputs,
+            reading_consumes,
             id,
             initial_value,
             implementation,
@@ -74,6 +77,7 @@ impl Runnable for Value {
     }
 
     fn get_inputs(&mut self) -> Vec<Vec<JsonValue>> {
+        // TODO ADM this will need changes
         if self.number_of_inputs == 0 { // never get's refreshed, is a constant!
             vec!(vec!(self.value.clone()))
         } else {

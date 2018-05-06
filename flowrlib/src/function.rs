@@ -17,6 +17,7 @@ pub struct Function {
 impl Function {
     pub fn new(name: &str,
                number_of_inputs: usize,
+               _reading_consumes: bool,
                input_depths: Vec<usize>,
                id: usize,
                implementation: Box<Implementation>,

@@ -54,7 +54,7 @@ mod tests {
         let inputs: Vec<Vec<JsonValue>> = vec!(vec!(arg1), vec!(arg2));
 
         let mut run_list = RunList::new();
-        let pc = &Function::new("pc", 2, vec!(1, 1, 1), 0, Box::new(CreateComplex), None, vec!()) as &Runnable;
+        let pc = &Function::new("pc", 2, true, vec!(1, 1, 1), 0, Box::new(CreateComplex), None, vec!()) as &Runnable;
         let implementation = pc.implementation();
 
         implementation.run(pc, inputs, &mut run_list);

@@ -101,11 +101,7 @@ impl Runnable for Value {
     }
 
     fn get_implementation(&self) -> &str {
-        if self.constant.is_some() {
-            "Constant"
-        } else {
-            "Fifo"
-        }
+        "Fifo"
     }
 }
 

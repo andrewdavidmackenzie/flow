@@ -41,9 +41,10 @@ type = "Number"
 from = "input/limit"
 to = "value/limit_store"
 
-[[connection]]
-from = "value/limit_store"
-to = "value/limit_store"
+# TODO ADM need the persistent store
+#[[connection]]
+#from = "value/limit_store"
+#to = "value/limit_store"
 
 [[connection]]
 from = "value/limit_store"

@@ -74,7 +74,7 @@ mod tests {
         let inputs: Vec<Vec<JsonValue>> = vec!(vec!(string), vec!(separator));
 
         let mut run_list = RunList::new();
-        let pp = &Function::new("pp", 2, vec!(1, 1, 1),
+        let pp = &Function::new("pp", 2, true, vec!(1, 1, 1),
                                 0,
                                 Box::new(ParsePair),
                                 None,

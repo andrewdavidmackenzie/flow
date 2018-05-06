@@ -106,7 +106,7 @@ mod tests {
         let inputs: Vec<Vec<JsonValue>> = vec!(vec!(pixel_bounds), vec!(complex_bounds), vec!(pixel));
 
         let mut run_list = RunList::new();
-        let p2p = &Function::new("p2p", 3, vec!(1, 1, 1), 0, Box::new(PixelToPoint), None, vec!()) as &Runnable;
+        let p2p = &Function::new("p2p", 3, true, vec!(1, 1, 1), 0, Box::new(PixelToPoint), None, vec!()) as &Runnable;
         let implementation = p2p.implementation();
 
         implementation.run(p2p, inputs, &mut run_list);

@@ -13,8 +13,6 @@ const RUNNABLES_PREFIX: &'static str = "
 // Flow Run-time library references
 use flowrlib::runnable::Runnable;
 {value_used}
-{value_variable_implementation_used}
-{value_constant_implementation_used}
 {function_used}
 
 // Rust std library references
@@ -39,24 +37,14 @@ pub fn create(src_dir: &PathBuf, tables: &CodeGenTables)
     runnables_rs.write_all(contents.unwrap().as_bytes())
 }
 
-fn uses_value(runnables: &Vec<Box<Runnable>>) -> (bool, bool, bool) {
-    let mut value_used = false;
-    let mut constant_used = false;
-    let mut variable_used = false;
-
+fn uses_value(runnables: &Vec<Box<Runnable>>) -> bool {
     for runnable in runnables {
         if runnable.get_type() == "Value" {
-            value_used = true;
-
-            if runnable.get_constant_value().is_some() {
-                constant_used = true;
-            } else {
-                variable_used = true;
-            }
+            return true;
         }
     }
 
-    (value_used, constant_used, variable_used)
+    false
 }
 
 fn uses_function(runnables: &Vec<Box<Runnable>>) -> bool {
@@ -72,26 +60,10 @@ fn contents(tables: &CodeGenTables, lib_refs: &Vec<String>) -> Result<String> {
     let num_runnables = &tables.runnables.len().to_string();
     let mut vars = HashMap::new();
 
-    let (value_used, constant_used, variable_used) = uses_value(&tables.runnables);
-
-    if value_used {
-        vars.insert("value_used".to_string(), "use flowrlib::value::Value;");
-
-        if constant_used {
-            vars.insert("value_constant_implementation_used".to_string(), "use flowstdlib::constant::Constant;");
-        } else {
-            vars.insert("value_constant_implementation_used".to_string(), "");
-        }
-
-        if variable_used {
-            vars.insert("value_variable_implementation_used".to_string(), "use flowstdlib::zero_fifo::Fifo;");
-        } else {
-            vars.insert("value_variable_implementation_used".to_string(), "");
-        }
+    if uses_value(&tables.runnables) {
+        vars.insert("value_used".to_string(), "use flowrlib::value::Value;\nuse flowstdlib::zero_fifo::Fifo;");
     } else {
         vars.insert("value_used".to_string(), "");
-        vars.insert("value_constant_implementation_used".to_string(), "");
-        vars.insert("value_variable_implementation_used".to_string(), "");
     }
 
     if uses_function(&tables.runnables) {
@@ -168,10 +140,11 @@ fn runnable_to_code(runnable: &Box<Runnable>) -> String {
     let mut code = format!("{}::new(\"{}\", ", runnable.get_type(), runnable.alias());
     match &runnable.get_inputs() {
         // No inputs, so put a '0' and an empty vector of input depths
-        &None => code.push_str(&format!("{}, vec!(), ", 0)),
+        &None => code.push_str(&format!("{}, true, vec!(), ", 0)),
+
         // Some inputs, so put the number and the vector of input depths
         &Some(ref inputs) => {
-            code.push_str(&format!("{}, vec!(", inputs.len()));
+            code.push_str(&format!("{}, true, vec!(", inputs.len()));
             for input in inputs {
                 code.push_str(&format!("{}, ", input.depth));
             }
@@ -232,7 +205,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\", 1, vec!(1, ), 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Value::new(\"value\", 1, true, vec!(1, ), 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
     }
 
     #[test]
@@ -250,7 +223,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\", 0, vec!(), 1, Box::new(Constant{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Value::new(\"value\", 0, true, vec!(), 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
     }
 
     #[test]
@@ -270,7 +243,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\", 1, vec!(1, ), 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+        assert_eq!(code, "Value::new(\"value\", 1, true, vec!(1, ), 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
     }
 
     #[test]
@@ -292,7 +265,7 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Function::new(\"print\", 0, vec!(), 0, Box::new(Stdout{}), None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+        assert_eq!(code, "Function::new(\"print\", 0, true, vec!(), 0, Box::new(Stdout{}), None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
     }
 
     #[test]
@@ -313,7 +286,7 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Function::new(\"print\", 0, vec!(), 0, Box::new(Stdout{}), None, vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Function::new(\"print\", 0, true, vec!(), 0, Box::new(Stdout{}), None, vec!((\"\", 1, 0),))")
     }
 
     #[test]
@@ -334,6 +307,6 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Function::new(\"print\", 0, vec!(), 0, Box::new(Stdout{}), None, vec!((\"/0\", 1, 0),))")
+        assert_eq!(code, "Function::new(\"print\", 0, true, vec!(), 0, Box::new(Stdout{}), None, vec!((\"/0\", 1, 0),))")
     }
 }

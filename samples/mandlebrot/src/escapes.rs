@@ -70,7 +70,7 @@ mod tests {
         let inputs: Vec<Vec<JsonValue>> = vec!(vec!(point), vec!(limit));
 
         let mut run_list = RunList::new();
-        let escapes = &Function::new("escapes", 2, vec!(1,1), 0, Box::new(Escapes), None, vec!()) as &Runnable;
+        let escapes = &Function::new("escapes", 2, true, vec!(1,1), 0, Box::new(Escapes), None, vec!()) as &Runnable;
         let implementation = escapes.implementation();
 
         implementation.run(escapes, inputs, &mut run_list);
