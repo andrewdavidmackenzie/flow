@@ -41,7 +41,8 @@ to = "function/to_string"
 #[[value]]
 #name = "lowest_divisor"
 #type = "Number"
-#constant = 1
+#init = 1
+#static = true
 
 #[[flow]]
 #alias = "divisor-range"
@@ -75,7 +76,8 @@ to = "function/to_string"
 #[[value]]
 #name = "zero"
 #type = "Number"
-#constant = 0
+#init = 0
+#static = true
 
 #[[function]]
 #alias = "zero_remainder"

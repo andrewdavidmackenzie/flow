@@ -14,7 +14,8 @@ source = "src/parse_pair.toml"
 [[value]]
 name = "bounds_separator"
 type = "String"
-constant = "x"
+init = "x"
+status = true
 
 [[connection]]
 from = "function/args/2"
@@ -29,7 +30,8 @@ to = "function/parse_bounds/separator"
 [[value]]
 name = "point_separator"
 type = "String"
-constant = ","
+init = ","
+static = true
 
 
 # Upper Left Coordinate

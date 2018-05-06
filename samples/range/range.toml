@@ -36,15 +36,11 @@ to = "flow/pilt/in"
 [[value]]
 name = "limit_store"
 type = "Number"
+static = true
 
 [[connection]]
 from = "input/limit"
 to = "value/limit_store"
-
-# TODO ADM need the persistent store
-#[[connection]]
-#from = "value/limit_store"
-#to = "value/limit_store"
 
 [[connection]]
 from = "value/limit_store"
@@ -62,7 +58,8 @@ to = "function/add/i1"
 [[value]]
 name = "one"
 type = "Number"
-constant = 1
+init = 1
+static = true
 
 [[connection]]
 from = "value/one"

@@ -8,7 +8,8 @@ init = 1
 [[value]]
 name = "constant"
 type = "Number"
-constant = 1
+init = 1
+static = true
 
 [[value]]
 name = "true"

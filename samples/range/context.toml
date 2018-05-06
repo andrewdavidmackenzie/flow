@@ -29,7 +29,8 @@ to = "flow/range/limit"
 #[[value]]
 #name = "end"
 ##type = "Number"
-#constant = 100
+#init = 100
+#static = true
 
 #[[connection]]
 #from = "value/end"

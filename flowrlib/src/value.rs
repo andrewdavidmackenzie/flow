@@ -76,12 +76,13 @@ impl Runnable for Value {
         !self.value.is_null()
     }
 
+    // If the value is a static value then it's value is always available and never get's consumed
+    // otherwise, getting the value should consume the value and it will have to get refilled
     fn get_inputs(&mut self) -> Vec<Vec<JsonValue>> {
-        // TODO ADM this will need changes
-        if self.number_of_inputs == 0 { // never get's refreshed, is a constant!
+        if self.static_value {
             vec!(vec!(self.value.clone()))
         } else {
-            vec!(vec!(self.value.take())) // consume the value and it will get refilled later
+            vec!(vec!(self.value.take()))
         }
     }
 
