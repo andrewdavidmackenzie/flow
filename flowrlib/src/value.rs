@@ -7,7 +7,7 @@ const ONLY_INPUT: usize = 0;
 pub struct Value {
     name: String,
     number_of_inputs: usize,
-    reading_consumes: bool,
+    static_value: bool,
     id: usize,
     initial_value: Option<JsonValue>,
     implementation: Box<Implementation>,
@@ -18,7 +18,7 @@ pub struct Value {
 impl Value {
     pub fn new(name: &str,
                number_of_inputs: usize,
-               reading_consumes: bool,
+               static_value: bool,
                _input_depths: Vec<usize>,
                id: usize,
                implementation: Box<Implementation>,
@@ -27,7 +27,7 @@ impl Value {
         Value {
             name: name.to_string(),
             number_of_inputs,
-            reading_consumes,
+            static_value,
             id,
             initial_value,
             implementation,

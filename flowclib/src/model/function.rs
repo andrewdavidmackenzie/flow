@@ -78,13 +78,13 @@ impl Runnable for Function {
         "Function"
     }
 
+    fn is_static_value(&self) -> bool { false }
+
     fn get_output_routes(&self) -> &Vec<(Route, usize, usize)> {
         &self.output_connections
     }
 
     fn get_initial_value(&self) -> Option<JsonValue> { None }
-
-    fn get_constant_value(&self) -> Option<JsonValue> { None }
 
     fn get_implementation(&self) -> &str {
         &self.name

@@ -140,20 +140,11 @@ fn digraph_wrapper_end() -> String {
 
 fn run_to_dot(runnable: &Runnable) -> String {
     let mut dot_string = String::new();
-    let second_line;
 
-    if let Some(constant) = runnable.get_constant_value() {
-        let const_string = str::replace(&constant.to_string(), "\"", "'");
-        second_line = format!("\\n(={})", const_string);
-    } else {
-        second_line = "".to_string();
-    }
-
-    dot_string.push_str(&format!("\t\t\"{}\" [label=\"{}\\n({}){}\"]; // runnable @ route, label = runnable name \n",
+    dot_string.push_str(&format!("\t\t\"{}\" [label=\"{}\\n({})\"]; // runnable @ route, label = runnable name \n",
                                  runnable.route(),
                                  runnable.alias(),
-                                 runnable.name(),
-                                 second_line));
+                                 runnable.name()));
 
     if let Some(iv) = runnable.get_initial_value() {
         // Add an extra graph entry for the initial value
@@ -334,23 +325,11 @@ fn dump_runnables_dot(flow_name: &str, tables: &CodeGenTables, dot_file: &mut Wr
 // Given a Runnable as used in the code generation - generate a "dot" format string to draw it
 fn runnable_to_dot(runnable: &Box<Runnable>, index: usize) -> String {
     let mut runnable_string = String::new();
-    let second_line;
-    let shape;
 
-    if let Some(constant) = runnable.get_constant_value() {
-        second_line = format!("\\n(={})", constant);
-        shape = "[shape=square]";
-    } else {
-        second_line = "".to_string();
-        shape = "";
-    }
-
-    runnable_string.push_str(&format!("r{}[label=\"{} (#{}){}\"]{};\n",
+    runnable_string.push_str(&format!("r{}[label=\"{} (#{})\"];\n",
                                       index,
                                       runnable.name(),
-                                      runnable.get_id(),
-                                      second_line,
-                                      shape));
+                                      runnable.get_id()));
 
     if let Some(iv) = runnable.get_initial_value() {
         // Add an extra graph entry for the initial value

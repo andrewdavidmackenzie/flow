@@ -14,8 +14,8 @@ pub trait Runnable: fmt::Display + HasName + HasRoute {
     fn add_output_connection(&mut self, connection: (Route, usize, usize)); // Route is the output subroute
     fn source_url(&self) -> Option<Url>;
     fn get_type(&self) -> &str;
+    fn is_static_value(&self) -> bool;
     fn get_output_routes(&self) -> &Vec<(Route, usize, usize)>;
     fn get_initial_value(&self) -> Option<JsonValue>;
-    fn get_constant_value(&self) -> Option<JsonValue>;
     fn get_implementation(&self) -> &str;
 }

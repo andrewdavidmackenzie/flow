@@ -20,7 +20,8 @@ pub struct Value {
     #[serde(rename = "type")]
     pub datatype: DataType,
     pub init: Option<JsonValue>,
-    pub constant: Option<JsonValue>,
+    #[serde(rename = "static", default = "default_static")]
+    pub static_value: bool,
 
     // Input to a value is assumed, at the route of the value itself and always possible
     // Output from a value is assumed, at the route of the value itself and always possible
@@ -35,6 +36,10 @@ pub struct Value {
     pub output_connections: Vec<(Route, usize, usize)>,
     #[serde(skip_deserializing)]
     pub id: usize,
+}
+
+fn default_static() -> bool {
+    false
 }
 
 impl HasName for Value {
@@ -65,11 +70,7 @@ impl Runnable for Value {
     }
 
     fn get_inputs(&self) -> IOSet {
-        if self.constant.is_some() {
-            None
-        } else {
-            Some(vec!(IO::new(&self.datatype, &self.route)))
-        }
+        Some(vec!(IO::new(&self.datatype, &self.route)))
     }
 
     fn get_outputs(&self) -> IOSet {
@@ -88,16 +89,16 @@ impl Runnable for Value {
         "Value"
     }
 
+    fn is_static_value(&self) -> bool {
+        self.static_value
+    }
+
     fn get_output_routes(&self) -> &Vec<(Route, usize, usize)> {
         &self.output_connections
     }
 
     fn get_initial_value(&self) -> Option<JsonValue> {
         self.init.clone()
-    }
-
-    fn get_constant_value(&self) -> Option<JsonValue> {
-        self.constant.clone()
     }
 
     fn get_implementation(&self) -> &str {
@@ -107,9 +108,6 @@ impl Runnable for Value {
 
 impl Validate for Value {
     fn validate(&self) -> Result<(), String> {
-        if self.init.is_some() && self.constant.is_some() {
-            return Err("Value cannot have an initial and a constant value".to_string());
-        }
         self.datatype.validate()
     }
 }
@@ -120,9 +118,6 @@ impl fmt::Display for Value {
                self.name, self.route, self.datatype).unwrap();
         if self.init.is_some() {
             write!(f, "\t\t\t\t\tinit: \t\t{:?}", self.init).unwrap();
-        }
-        if self.constant.is_some() {
-            write!(f, "\t\t\t\t\tconstant: \t{:?}", self.constant).unwrap();
         }
         Ok(())
     }
@@ -242,29 +237,13 @@ mod test {
     }
 
     #[test]
-    fn deserialize_constant_number_value() {
-        // no outputs specified
-        let value_str = "\
-        name = \"test_value\"
-        type = \"Json\"
-        constant = 10
-        ";
-
-        let value: Value = toml::from_str(value_str).unwrap();
-        value.validate().unwrap();
-        assert_eq!(value.init, None);
-        assert_eq!(value.constant.unwrap(), json!(10));
-    }
-
-    #[test]
-    #[should_panic]
-    fn constant_and_init_invalid() {
+    fn initialized_static() {
         // no outputs specified
         let value_str = "\
         name = \"test_value\"
         type = \"Json\"
         init = 10
-        constant = 10
+        static = true
         ";
 
         let value: Value = toml::from_str(value_str).unwrap();
