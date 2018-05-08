@@ -34,7 +34,10 @@ to = "flow/pilt/in"
 [[value]]
 name = "limit_store"
 type = "Number"
-static = true
+
+[[connection]]
+from = "value/limit_store"
+to = "value/limit_store"
 
 [[connection]]
 from = "input/limit"
