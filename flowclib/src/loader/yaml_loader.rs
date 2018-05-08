@@ -13,9 +13,9 @@ impl Loader for FlowYamlLoader {
 
         let flow =
             Flow {
+                alias: "fake".to_string(),
                 source_url: Url::parse("fake").unwrap(),
                 route: "fake/fake".to_string(),
-                name: "fake".to_string(),
                 flow_refs: None,
                 connections: None,
                 inputs: None,

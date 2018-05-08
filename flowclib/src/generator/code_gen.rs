@@ -73,7 +73,7 @@ fn vars_from_flow(flow: &Flow) -> HashMap<String, &str> {
     let author_name = "Andrew Mackenzie";  // TODO make a variable
     let author_email = "andrew@mackenzie-serres.net"; // TODO make a variable
 
-    vars.insert("package_name".to_string(), &flow.name);
+    vars.insert("package_name".to_string(), &flow.alias);
     vars.insert("version".to_string(), version);
 
     if !author_name.is_empty() { // TODO FIX
@@ -84,7 +84,7 @@ fn vars_from_flow(flow: &Flow) -> HashMap<String, &str> {
         vars.insert("author_email".to_string(), author_email);
     }
 
-    vars.insert("binary_name".to_string(), &flow.name);
+    vars.insert("binary_name".to_string(), &flow.alias);
     vars.insert("main_filename".to_string(), "main.rs");
 
     // TODO this just assumes flowstdlib is always used for now

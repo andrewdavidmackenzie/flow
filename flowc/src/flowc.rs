@@ -53,8 +53,8 @@ fn run() -> Result<String, String> {
     let skip_generation = matches.is_present("skip");
 
     info!("Attempting to load from url: '{}'", url);
-    let mut flow = loader::load(&url)?;
-    info!("'{}' flow loaded\n", flow.name);
+    let mut flow = loader::load(&"root".to_string(), &url)?;
+    info!("flow loaded with alias '{}'\n", flow.alias);
 
     let tables = compile::compile(&mut flow)?;
 

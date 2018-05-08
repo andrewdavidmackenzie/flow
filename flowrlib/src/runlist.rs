@@ -128,7 +128,7 @@ impl RunList {
 
     // when a runnable consumes it's inputs, then take if off the list of runnables with inputs ready
     pub fn inputs_consumed(&mut self, id: usize) {
-        debug!("\tRunnable #{} inputs consumed", id);
+        debug!("\tRunnable #{} consumed its inputs, removing from the 'Can Run' list", id);
         self.can_run.remove(&id);
     }
 
@@ -163,8 +163,11 @@ impl RunList {
 
     // Save the fact that the runnable 'blocked_id' is blocked on it's output by 'blocking_id'
     pub fn blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
-        debug!("\t\tRunnable #{} is now blocked on output by Runnable #{}", &blocked_id, &blocking_id);
-        self.blocking.push((blocking_id, blocked_id));
+        // avoid deadlocks by a runnable blocking itself
+        if blocked_id != blocking_id {
+            debug!("\t\tRunnable #{} is now blocked on output by Runnable #{}", &blocked_id, &blocking_id);
+            self.blocking.push((blocking_id, blocked_id));
+        }
     }
 
     // unblock all runnables that were blocked trying to send to blocker_id by removing all entries

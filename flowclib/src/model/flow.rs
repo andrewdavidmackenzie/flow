@@ -14,7 +14,6 @@ use url::Url;
 
 #[derive(Deserialize)]
 pub struct Flow {
-    pub name: Name,
     #[serde(rename = "flow")]
     pub flow_refs: Option<Vec<FlowReference>>,
     #[serde(rename = "function")]
@@ -28,6 +27,8 @@ pub struct Flow {
     #[serde(rename = "connection")]
     pub connections: Option<Vec<Connection>>,
 
+    #[serde(skip_deserializing)]
+    pub alias: Name,
     #[serde(skip_deserializing, default = "Flow::default_url")]
     pub source_url: Url,
     #[serde(skip_deserializing)]
@@ -39,8 +40,6 @@ pub struct Flow {
 impl Validate for Flow {
     // check the correctness of all the fields in this flow, prior to loading sub-elements
     fn validate(&self) -> Result<(), String> {
-        self.name.validate()?;
-
         if let Some(ref flows_refs) = self.flow_refs {
             for flow_ref in flows_refs {
                 flow_ref.validate()?;
@@ -83,8 +82,8 @@ impl Validate for Flow {
 
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\tname: \t\t\t{}\n\tsource_url: \t{}\n\troute: \t\t\t{}\n",
-               self.name, self.source_url, self.route).unwrap();
+        write!(f, "\talias: \t\t\t{}\n\tsource_url: \t{}\n\troute: \t\t\t{}\n",
+               self.alias, self.source_url, self.route).unwrap();
 
         // TODO dry this all up now it works.
 
@@ -138,8 +137,8 @@ impl fmt::Display for Flow {
 impl Default for Flow {
     fn default() -> Flow {
         Flow {
+            alias: "".to_string(),
             source_url: Flow::default_url(),
-            name: "".to_string(),
             route: "".to_string(),
             flow_refs: None,
             function_refs: None,
@@ -220,11 +219,11 @@ impl Flow {
                 }
             }
             return Err(format!("Could not find function named '{}' in flow '{}'",
-                               function_alias, self.name));
+                               function_alias, self.alias));
         }
 
         return Err(format!("No functions present in flow '{}'. Could not find route '{}'",
-                           self.name, route));
+                           self.alias, route));
     }
 
     fn get_io_from_value(&self, value_name: &str, direction: Direction, route: &str) -> Result<IO, String> {

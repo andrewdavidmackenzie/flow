@@ -13,37 +13,36 @@ mod test {
 
     #[test]
     fn load_hello_world_simple_from_context() {
-        loader::load(&url_from_rel_path("samples/hello-world-simple/context.toml")).unwrap();
+        loader::load(&"hello-world-simple".to_string(), &url_from_rel_path("samples/hello-world-simple/context.toml")).unwrap();
     }
 
     #[test]
     fn load_hello_world_from_context() {
-        loader::load(&url_from_rel_path("samples/hello-world/context.toml")).unwrap();
+        loader::load(&"hello-world".to_string(), &url_from_rel_path("samples/hello-world/context.toml")).unwrap();
     }
 
     #[test]
     fn load_hello_world_include() {
-        loader::load(&url_from_rel_path("samples/hello-world-include/context.toml")).unwrap();
+        loader::load(&"hello-world-include".to_string(), &url_from_rel_path("samples/hello-world-include/context.toml")).unwrap();
     }
 
     #[test]
     fn load_hello_world_flow1() {
-        loader::load(&url_from_rel_path("samples/hello-world/flow1.toml")).unwrap();
+        loader::load(&"flow1".to_string(), &url_from_rel_path("samples/hello-world/flow1.toml")).unwrap();
     }
 
     #[test]
     fn load_reverse_echo_from_toml() {
-        loader::load(&url_from_rel_path("samples/reverse-echo/context.toml")).unwrap();
+        loader::load(&"reverse-echo".to_string(), &url_from_rel_path("samples/reverse-echo/context.toml")).unwrap();
     }
 
     #[test]
     fn load_fibonacci_from_toml() {
-        loader::load(&url_from_rel_path("samples/fibonacci/context.toml")).unwrap();
+        loader::load(&"fibonacci".to_string(), &url_from_rel_path("samples/fibonacci/context.toml")).unwrap();
     }
 
     #[test]
     fn load_fibonacci_from_directory() {
-        loader::load(&url_from_rel_path("samples/fibonacci")).unwrap();
+        loader::load(&"fibonacci".to_string(), &url_from_rel_path("samples/fibonacci")).unwrap();
     }
-
 }

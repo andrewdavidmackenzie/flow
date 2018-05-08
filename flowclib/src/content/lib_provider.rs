@@ -36,7 +36,7 @@ impl Provider for LibProvider {
         If the file exists, then create a "file:" Url that points to the file, for the file provider
         to use later to read the content.
 
-        Also, constuct a string that is a reference to that module in the library, such as:
+        Also, construct a string that is a reference to that module in the library, such as:
             "flowstdlib/stdio/stdout" and return that also.
     */
     fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
@@ -61,6 +61,8 @@ impl Provider for LibProvider {
         }
     }
 
+    // All Urls that start with "lib://" should resource to a different Url with "http(s)" or "file"
+    // and so we should never get a request to get content from a Url with such a scheme
     fn get(&self, _url: &Url) -> Result<String, String> {
         unimplemented!();
     }

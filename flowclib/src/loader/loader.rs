@@ -2,6 +2,7 @@ use model::flow::Flow;
 use model::function::Function;
 use model::connection::Direction::FROM;
 use model::connection::Direction::TO;
+use model::name::Name;
 use content::provider;
 use loader::loader_helper::get_loader;
 use std::mem::replace;
@@ -34,16 +35,17 @@ pub trait Validate {
 ///
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
-/// flowclib::loader::loader::load(&url).unwrap();
+/// flowclib::loader::loader::load(&"root".to_string(), &url).unwrap();
 /// ```
-pub fn load(url: &Url) -> Result<Flow, String> {
-    load_flow("", url)
+pub fn load(alias: &Name, url: &Url) -> Result<Flow, String> {
+    load_flow("", alias, url)
+        .map_err(|e| format!("while loading flow from Url '{}'\n\t- {}", url, e.to_string()))
 }
 
-fn load_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
-    let mut flow = load_single_flow(parent_route, url)?;
+fn load_flow(parent_route: &str, alias: &Name, url: &Url) -> Result<Flow, String> {
+    let mut flow = load_single_flow(parent_route, alias, url)?;
     load_subflows(&mut flow)?;
-    build_connections(&mut flow)?;
+    build_flow_connections(&mut flow)?;
     Ok(flow)
 }
 
@@ -64,16 +66,18 @@ fn load_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
 ///
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
-/// flowclib::loader::loader::load_single_flow("", &url).unwrap();
+/// flowclib::loader::loader::load_single_flow("", &"call-me-hello".to_string(), &url).unwrap();
 /// ```
-pub fn load_single_flow(parent_route: &str, url: &Url) -> Result<Flow, String> {
+pub fn load_single_flow(parent_route: &str, alias: &Name, url: &Url) -> Result<Flow, String> {
     let (resolved_url, lib_ref) = provider::resolve(url)?;
     let loader = get_loader(&resolved_url)?;
     info!("Loading flow from '{}'", resolved_url);
     let contents = provider::get(&resolved_url)?;
-    let mut flow = loader.load_flow(&contents)?;
+    let mut flow = loader.load_flow(&contents)
+        .map_err(|e| format!("while loading flow - {}", e.to_string()))?;
+    flow.alias = alias.clone();
     flow.source_url = resolved_url;
-    flow.route = format!("{}/{}", parent_route, flow.name);
+    flow.route = format!("{}/{}", parent_route, alias);
     if let Some(lr) = lib_ref {
         flow.lib_references.push(lr);
     };
@@ -121,9 +125,9 @@ fn load_functions(flow: &mut Flow) -> Result<(), String> {
         for ref mut function_ref in function_refs {
             let function_url = flow.source_url.join(&function_ref.source)
                 .map_err(|_e| "URL join error")?;
-            function_ref.function = load_function(&function_url,
-                                                  &flow.route,
-                                                  &function_ref.alias)?;
+            function_ref.function = load_function(&function_url, &flow.route, &function_ref.alias)
+                .map_err(|e| format!("while loading function from Url '{}' - {}",
+                                     function_url, e.to_string()))?;
             if let &Some(ref lib_ref) = &function_ref.function.lib_reference {
                 flow.lib_references.push(format!("{}/{}", lib_ref, function_ref.function.name));
             }
@@ -146,23 +150,23 @@ fn load_values(flow: &mut Flow) -> Result<(), String> {
 }
 
 /*
-    Load all subflows referenced from a flow
+    Load all sub-flows referenced from a flow via the flow_references
 */
 fn load_subflows(flow: &mut Flow) -> Result<(), String> {
     if let Some(ref mut flow_refs) = flow.flow_refs {
         debug!("Loading sub-flows of flow '{}'", flow.source_url);
         for ref mut flow_ref in flow_refs {
             let subflow_url = flow.source_url.join(&flow_ref.source).expect("URL join error");
-            let subflow = load_flow(&flow.route, &subflow_url)?;
+            let subflow = load_flow(&flow.route, &flow_ref.alias, &subflow_url)?;
             flow_ref.flow = subflow;
         }
     }
     Ok(())
 }
 
-fn check_for_loops(connection: &Connection) -> Result<(), String> {
+fn check_for_loops(flow: &Flow, connection: &Connection) -> Result<(), String> {
     if connection.from == connection.to {
-        error!("Connection loop detected from '{}' to '{}'", connection.from, connection.to);
+        error!("Connection loop detected in flow '{}' from '{}' to '{}'", flow.source_url, connection.from, connection.to);
     }
 
     Ok(())
@@ -180,7 +184,7 @@ fn check_for_loops(connection: &Connection) -> Result<(), String> {
         "flow/flow_name/io_name"
         "function/function_name/io_name"
 */
-fn build_connections(flow: &mut Flow) -> Result<(), String> {
+fn build_flow_connections(flow: &mut Flow) -> Result<(), String> {
     if flow.connections.is_none() { return Ok(()); }
 
     debug!("Building connections for flow '{}'", flow.source_url);
@@ -192,7 +196,7 @@ fn build_connections(flow: &mut Flow) -> Result<(), String> {
     let mut connections = connections.unwrap();
 
     for connection in connections.iter_mut() {
-        check_for_loops(connection)?;
+        check_for_loops(flow, connection)?;
         match flow.get_route_and_type(FROM, &connection.from) {
             Ok(from) => {
                 debug!("Found source of connection:\n{:#?}", from);
