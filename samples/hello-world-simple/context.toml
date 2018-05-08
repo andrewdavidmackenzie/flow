@@ -1,5 +1,3 @@
-name = "hello-world-simple"
-
 [[value]]
 name = "message"
 type = "String"

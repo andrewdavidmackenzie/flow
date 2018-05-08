@@ -1,5 +1,3 @@
-name = "reverse-echo"
-
 [[function]]
 alias = "read"
 source = "lib://flowstdlib/stdio/readline.toml"

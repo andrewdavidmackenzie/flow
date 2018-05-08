@@ -1,5 +1,3 @@
-name = "mandlebrot"
-
 # Args
 [[function]]
 alias = "args"

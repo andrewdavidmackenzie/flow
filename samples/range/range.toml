@@ -1,5 +1,3 @@
-name = "range"
-
 [[input]]
 name = "start"
 type = "Number"
@@ -22,7 +20,7 @@ type = "Number"
 
 [[flow]]
 alias = "pilt"
-source = "pass_if_less_than.toml"
+source = "pass_if_lte.toml"
 
 [[function]]
 alias = "add"
@@ -45,7 +43,6 @@ to = "value/limit_store"
 [[connection]]
 from = "value/limit_store"
 to = "flow/pilt/max"
-
 
 [[connection]]
 from = "flow/pilt/out"

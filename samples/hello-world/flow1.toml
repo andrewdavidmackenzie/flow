@@ -1,5 +1,3 @@
-name = "flow1"
-
 [[value]]
 name = "message"
 type = "String"
