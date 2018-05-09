@@ -192,7 +192,7 @@ impl RunList {
             // one that unblocked.
             for unblocked in unblocked_list {
                 if self.can_run.contains(&unblocked) && !self.is_blocked(unblocked) {
-                    debug!("\t\tRunnable #{} was unblocked and it inputs are ready, so added to end of 'Will Run' list", unblocked);
+                    debug!("\t\t\tRunnable #{} was unblocked and it inputs are ready, so added to end of 'Will Run' list", unblocked);
                     self.will_run.push(unblocked);
                 }
             }
