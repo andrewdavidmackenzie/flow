@@ -140,7 +140,7 @@ fn runnable_to_code(runnable: &Box<Runnable>) -> String {
     let mut code = format!("{}::new(\"{}\", ", runnable.get_type(), runnable.alias());
     match &runnable.get_inputs() {
         // No inputs, so put a '0' and an empty vector of input depths
-        &None => code.push_str(&format!("{}, true, vec!(), ", 0)),
+        &None => code.push_str(&format!("{}, {}, vec!(), ", 0, runnable.is_static_value())),
 
         // Some inputs, so put the number and the vector of input depths
         &Some(ref inputs) => {
