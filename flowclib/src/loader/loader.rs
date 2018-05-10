@@ -6,7 +6,6 @@ use model::name::Name;
 use content::provider;
 use loader::loader_helper::get_loader;
 use std::mem::replace;
-use model::connection::Connection;
 
 use url::Url;
 
@@ -164,14 +163,6 @@ fn load_subflows(flow: &mut Flow) -> Result<(), String> {
     Ok(())
 }
 
-fn check_for_loops(flow: &Flow, connection: &Connection) -> Result<(), String> {
-    if connection.from == connection.to {
-        error!("Connection loop detected in flow '{}' from '{}' to '{}'", flow.source_url, connection.from, connection.to);
-    }
-
-    Ok(())
-}
-
 /*
     Change the names of connections to be routes to the alias used in this flow,
     in the process ensuring they exist, that direction is correct and types match
@@ -196,7 +187,7 @@ fn build_flow_connections(flow: &mut Flow) -> Result<(), String> {
     let mut connections = connections.unwrap();
 
     for connection in connections.iter_mut() {
-        check_for_loops(flow, connection)?;
+        connection.check_for_loops(flow.source_url.as_str())?;
         match flow.get_route_and_type(FROM, &connection.from) {
             Ok(from) => {
                 debug!("Found source of connection:\n{:#?}", from);

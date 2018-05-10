@@ -45,6 +45,16 @@ pub fn name_without_trailing_number<'a>(route: &'a str) -> (Cow<'a, str>, usize,
     (Cow::Borrowed(route), 0, false)
 }
 
+impl Connection {
+    pub fn check_for_loops(&self, source: &str) -> Result<(), String> {
+        if self.from == self.to {
+            error!("Connection loop detected in flow '{}' from '{}' to '{}'", source, self.from, self.to);
+        }
+
+        Ok(())
+    }
+}
+
 impl fmt::Display for Connection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match (self.from_io.flow_io, self.to_io.flow_io) {

@@ -119,7 +119,7 @@ fn find_destinations(from_route: &Route, connections: &Vec<Connection>) -> Vec<R
     destinations
 }
 
-pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Connection> {
+pub fn collapse_connections(original_connections: &Vec<Connection>) -> Result<Vec<Connection>, String> {
     let mut collapsed_connections: Vec<Connection> = Vec::new();
 
     for left in original_connections {
@@ -138,7 +138,11 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
     // Remove connections starting or ending at flow boundaries as they don't go anywhere useful
     collapsed_connections.retain(|conn| !conn.from_io.flow_io && !conn.to_io.flow_io);
 
-    collapsed_connections
+    for connection in &collapsed_connections {
+        connection.check_for_loops("Collapsed Connections list")?;
+    }
+
+    Ok(collapsed_connections)
 }
 
 #[cfg(test)]
@@ -160,7 +164,7 @@ mod test {
         unused.to_io.flow_io = true;
 
         let connections = vec!(unused);
-        let collapsed = collapse_connections(&connections);
+        let collapsed = collapse_connections(&connections).unwrap();
         assert_eq!(collapsed.len(), 0);
     }
 
@@ -202,7 +206,7 @@ mod test {
         let connections = vec!(left_side,
                                extra_one, right_side);
 
-        let collapsed = collapse_connections(&connections);
+        let collapsed = collapse_connections(&connections).unwrap();
         println!("collapsed: {:?}", collapsed);
         assert_eq!(collapsed.len(), 1);
         assert_eq!(collapsed[0].from_io.route, "/f1/a".to_string());
@@ -250,7 +254,7 @@ mod test {
 
         assert_eq!(connections.len(), 3);
 
-        let collapsed = collapse_connections(&connections);
+        let collapsed = collapse_connections(&connections).unwrap();
         println!("Connections \n{:?}", collapsed);
         assert_eq!(collapsed.len(), 2);
         assert_eq!(collapsed[0].from_io.route, "/f1/a".to_string());
@@ -293,7 +297,7 @@ mod test {
                                second_level,
                                third_level);
 
-        let collapsed = collapse_connections(&connections);
+        let collapsed = collapse_connections(&connections).unwrap();
         assert_eq!(collapsed.len(), 1);
         assert_eq!(collapsed[0].from_io.route, "/value".to_string());
         assert_eq!(collapsed[0].to_io.route, "/f2/func/in".to_string());
@@ -318,7 +322,7 @@ mod test {
         };
 
         let connections = vec!(one, other);
-        let collapsed = collapse_connections(&connections);
+        let collapsed = collapse_connections(&connections).unwrap();
         assert_eq!(collapsed.len(), 2);
     }
 }

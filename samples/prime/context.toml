@@ -34,10 +34,6 @@ name = "lowest-divisor"
 type = "Number"
 init = 1
 
-[[connection]]
-from = "value/lowest-divisor"
-to = "value/lowest-divisor"
-
 [[flow]]
 alias = "divisor-range"
 source = "../range/range.toml"

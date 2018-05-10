@@ -17,7 +17,7 @@ pub struct Function {
 impl Function {
     pub fn new(name: &str,
                number_of_inputs: usize,
-               _reading_consumes: bool,
+               _static_value: bool,
                input_depths: Vec<usize>,
                id: usize,
                implementation: Box<Implementation>,
@@ -59,7 +59,7 @@ impl Runnable for Function {
 
     fn write_input(&mut self, input_number: usize, input_value: JsonValue) {
         if self.inputs[input_number].full() {
-            error!("\t\tRunnable #{} '{}' Input overflow on input number {}", self.id(), self.name(), input_number);
+            error!("\t\t\tRunnable #{} '{}' Input overflow on input number {}", self.id(), self.name(), input_number);
         } else {
             self.inputs[input_number].push(input_value);
         }

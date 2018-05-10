@@ -117,11 +117,11 @@ impl RunList {
     // save the fact that a particular Runnable's inputs are now satisfied and so it maybe ready
     // to run (if not blocked sending on it's output)
     pub fn can_run(&mut self, id: usize) {
-        debug!("\t\tRunnable #{} inputs are ready", id);
+        debug!("\t\t\tRunnable #{} inputs are ready", id);
         self.can_run.insert(id);
 
         if !self.is_blocked(id) {
-            debug!("\t\tRunnable #{} not blocked on output, so added to end of 'Will Run' list", id);
+            debug!("\t\t\tRunnable #{} not blocked on output, so added to end of 'Will Run' list", id);
             self.will_run.push(id);
         }
     }
@@ -146,11 +146,11 @@ impl RunList {
             let destination_arc = Arc::clone(&self.runnables[destination_id]);
             let mut destination = destination_arc.lock().unwrap();
             let output_value = output.pointer(output_route).unwrap();
-            destination.write_input(io_number, output_value.clone());
-            self.metrics.outputs_sent += 1;
-            debug!("\tRunnable #{} '{}{}' sent output '{}' to Runnable #{} '{}' input #{}",
+            debug!("\t\tRunnable #{} '{}{}' sending output '{}' to Runnable #{} '{}' input #{}",
                    runnable.id(), runnable.name(), output_route, output_value, &destination_id,
                    destination.name(), &io_number);
+            destination.write_input(io_number, output_value.clone());
+            self.metrics.outputs_sent += 1;
             if destination.input_full(io_number) {
                 self.blocked_by(destination_id, runnable.id());
             }
@@ -165,7 +165,7 @@ impl RunList {
     pub fn blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
         // avoid deadlocks by a runnable blocking itself
         if blocked_id != blocking_id {
-            debug!("\t\tRunnable #{} is now blocked on output by Runnable #{}", &blocked_id, &blocking_id);
+            debug!("\t\t\tRunnable #{} is now blocked on output by Runnable #{}", &blocked_id, &blocking_id);
             self.blocking.push((blocking_id, blocked_id));
         }
     }
