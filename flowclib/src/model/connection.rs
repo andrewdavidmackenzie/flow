@@ -48,7 +48,8 @@ pub fn name_without_trailing_number<'a>(route: &'a str) -> (Cow<'a, str>, usize,
 impl Connection {
     pub fn check_for_loops(&self, source: &str) -> Result<(), String> {
         if self.from == self.to {
-            error!("Connection loop detected in flow '{}' from '{}' to '{}'", source, self.from, self.to);
+            return Err(format!("Connection loop detected in flow '{}' from '{}' to '{}'",
+                               source, self.from, self.to));
         }
 
         Ok(())
