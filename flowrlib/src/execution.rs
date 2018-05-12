@@ -64,6 +64,7 @@ fn dispatch(run_list: &mut RunList, id: usize) {
     if run_again && runnable.can_run() {
         run_list.can_run(runnable.id());
     }
+    debug!("\tRunnable #{} '{}' completed", id, runnable.name());
 }
 
 /*
