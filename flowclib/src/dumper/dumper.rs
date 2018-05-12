@@ -77,10 +77,12 @@ fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<Str
 ///
 pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<String> {
     let mut writer = create_output_file(&output_dir, "tables", "txt")?;
-    dump_table(tables.connections.iter(), "Original Connections", &mut writer)?;
-    dump_table(tables.collapsed_connections.iter(), "Collapsed Connections", &mut writer)?;
-    dump_table(tables.libs.iter(), "Libraries", &mut writer)?;
-    dump_table(tables.lib_references.iter(), "Library references", &mut writer)?;
+    writer.write_all(format!("{}:\n{:#?}\n", "Original Connections", tables.connections).as_bytes())?;
+    writer.write_all(format!("{}:\n{:#?}\n", "Source Routes", tables.source_routes).as_bytes())?;
+    writer.write_all(format!("{}:\n{:#?}\n", "Destination Routes", tables.destination_routes).as_bytes())?;
+    writer.write_all(format!("{}:\n{:#?}\n", "Collapsed Connections", tables.collapsed_connections).as_bytes())?;
+    writer.write_all(format!("{}:\n{:#?}\n", "Libraries", tables.libs).as_bytes())?;
+    writer.write_all(format!("{}:\n{:#?}\n", "Library references", tables.lib_references).as_bytes())?;
     Ok("All tables dumped".to_string())
 }
 

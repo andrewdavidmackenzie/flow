@@ -8,11 +8,14 @@ use generator::rust_gen::generator::RustGenerator;
 use model::connection::Connection;
 use std::collections::HashSet;
 use model::runnable::Runnable;
+use model::connection::Route;
 
 const RUST: &CodeGenerator = &RustGenerator as &CodeGenerator;
 
 pub struct CodeGenTables {
     pub connections: Vec<Connection>,
+    pub source_routes: HashMap<Route, (String, usize)>,
+    pub destination_routes: HashMap<Route, (usize, usize)>,
     pub collapsed_connections: Vec<Connection>,
     pub runnables: Vec<Box<Runnable>>,
     pub libs: HashSet<String>,
@@ -23,6 +26,8 @@ impl CodeGenTables {
     pub fn new() -> Self {
         CodeGenTables {
             connections: Vec::new(),
+            source_routes: HashMap::<Route, (String, usize)>::new(),
+            destination_routes: HashMap::<Route, (usize, usize)>::new(),
             collapsed_connections: Vec::new(),
             runnables: Vec::new(),
             libs: HashSet::new(),

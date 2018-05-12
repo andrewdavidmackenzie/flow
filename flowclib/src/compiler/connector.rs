@@ -1,27 +1,21 @@
 use model::connection::Route;
 use std::collections::HashMap;
 use generator::code_gen::CodeGenTables;
-use model::runnable::Runnable;
 use model::connection::Connection;
 use model::connection;
 
 /*
-    First build a table of input routes to (runnable_index, input_index) for all inputs of runnables,
-    to enable finding the destination of a connection as (runnable_index, input_index) from a route.
-
     Then iterate through the values and function setting each one's id and the output routes array setup
     (according to each runnable's output route in the original description plus each connection from it)
     to point to the runnable (by index) and the runnable's input (by index) in the table
 */
 pub fn set_runnable_outputs(tables: &mut CodeGenTables) -> Result<(), String> {
-    let (source_routes, destination_routes) = routes_table(&mut tables.runnables);
-
     debug!("Building connections");
     for connection in &tables.collapsed_connections {
-        let source = get_source(&source_routes, &connection.from_io.route);
+        let source = get_source(&tables.source_routes, &connection.from_io.route);
 
         if let Some((output_route, source_id)) = source {
-            let destination = destination_routes.get(&connection.to_io.route);
+            let destination = tables.destination_routes.get(&connection.to_io.route);
             if let Some(&(destination_id, destination_input_index)) = destination {
                 let source_runnable = tables.runnables.get_mut(source_id).unwrap();
                 debug!("Connection built: from '{}' to '{}'", &connection.from_io.route, &connection.to_io.route);
@@ -39,7 +33,7 @@ pub fn set_runnable_outputs(tables: &mut CodeGenTables) -> Result<(), String> {
 }
 
 /*
-    find a source using the root to the output (removing the array index first to find outputs that are arrays)
+    find a runnable using the route to its output (removing the array index first to find outputs that are arrays)
     return a tuple of the sub-route to use (possibly with array index included), and the runnable index
 */
 fn get_source<'a>(source_routes: &'a HashMap<Route, (String, usize)>, from_route: &str) -> Option<(String, usize)> {
@@ -62,21 +56,15 @@ fn get_source<'a>(source_routes: &'a HashMap<Route, (String, usize)>, from_route
 }
 
 /*
-    Construct a look-up table that we can use to find the index of a runnable in the runnables table,
+    Construct a look-up table that can be used to find the index of a runnable in the runnables table,
     and the index of it's input - using the input route
 */
-fn routes_table(runnables: &mut Vec<Box<Runnable>>) -> (HashMap<Route, (String, usize)>, HashMap<Route, (usize, usize)>) {
-    let mut source_route_table = HashMap::<Route, (String, usize)>::new();
-    let mut destination_route_table = HashMap::<Route, (usize, usize)>::new();
-    let mut runnable_index = 0;
-
-    for runnable in runnables {
-        runnable.set_id(runnable_index);
-
+pub fn routes_table(tables: &mut CodeGenTables) {
+    for mut runnable in &mut tables.runnables {
         // Add any output routes it has to the source routes table
         if let Some(ref outputs) = runnable.get_outputs() {
             for output in outputs {
-                source_route_table.insert(output.route.clone(), (output.name.clone(), runnable_index));
+                tables.source_routes.insert(output.route.clone(), (output.name.clone(), runnable.get_id()));
             }
         }
 
@@ -84,16 +72,11 @@ fn routes_table(runnables: &mut Vec<Box<Runnable>>) -> (HashMap<Route, (String, 
         let mut input_index = 0;
         if let Some(ref inputs) = runnable.get_inputs() {
             for input in inputs {
-                destination_route_table.insert(input.route.clone(), (runnable.get_id(), input_index));
+                tables.destination_routes.insert(input.route.clone(), (runnable.get_id(), input_index));
                 input_index += 1;
             }
         }
-        runnable_index += 1;
     }
-
-    debug!("Source routes table built\n{:#?}", source_route_table);
-    debug!("Destination routes table built\n{:#?}", destination_route_table);
-    (source_route_table, destination_route_table)
 }
 
 /*
@@ -129,7 +112,7 @@ fn find_destinations(from_route: &Route, connections: &Vec<Connection>) -> Vec<R
     to the table of "collapsed" connections which will be used to configure the outputs of the
     runnables.
 */
-pub fn collapse_connections(original_connections: &Vec<Connection>) -> Result<Vec<Connection>, String> {
+pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Connection> {
     let mut collapsed_connections: Vec<Connection> = Vec::new();
 
     for left in original_connections {
@@ -148,11 +131,45 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Result<Ve
     // Remove connections starting or ending at flow boundaries as they don't go anywhere useful
     collapsed_connections.retain(|conn| !conn.from_io.flow_io && !conn.to_io.flow_io);
 
-    for connection in &collapsed_connections {
+    collapsed_connections
+}
+
+/*
+    Check for a series of potential problems in connections
+*/
+pub fn check_connections(tables: &CodeGenTables) -> Result<(), String> {
+    for connection in &tables.collapsed_connections {
         connection.check_for_loops("Collapsed Connections list")?;
     }
 
-    Ok(collapsed_connections)
+    check_for_competing_inputs(tables)
+}
+
+/*
+    When two runnables try to send to the same input, and one of them is a static value (that is
+    always available), then there will be a run-time problem as the other input will never be able
+    to win. So detect this and report the error.
+*/
+fn check_for_competing_inputs(tables: &CodeGenTables) -> Result<(), String> {
+    let mut used_destinations = HashMap::<Route, bool> ::new();
+    for connection in &tables.collapsed_connections {
+        if let Some((_output_route, sender_id)) = get_source(&tables.source_routes, &connection.from_io.route) {
+            let sender = tables.runnables.get(sender_id).unwrap();
+            match used_destinations.insert(connection.to_io.route.clone(), sender.is_static_value()) {
+                Some(other_sender_is_static_value) => {
+                    // this destination is being sent to already - if the existing sender or this sender are
+                    // static then it's being used by two senders, at least one of which is static :-(
+                    if other_sender_is_static_value || sender.is_static_value() {
+                        return Err(format!("The route '{}' is being sent to by a static value as well as other outputs, causing competition that will fail at run-time",
+                                           connection.to_io.route));
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -174,7 +191,7 @@ mod test {
         unused.to_io.flow_io = true;
 
         let connections = vec!(unused);
-        let collapsed = collapse_connections(&connections).unwrap();
+        let collapsed = collapse_connections(&connections);
         assert_eq!(collapsed.len(), 0);
     }
 
@@ -196,7 +213,7 @@ mod test {
             from: "/f2/a".to_string(),
             to: "/f4/a".to_string(),
             from_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/f4/a".to_string())
+            to_io: IO::new(&"String".to_string(), &"/f4/a".to_string()),
         };
         extra_one.from_io.name = "point b".to_string();
         extra_one.from_io.flow_io = true;
@@ -204,19 +221,19 @@ mod test {
         extra_one.to_io.flow_io = true;
 
 
-    let mut right_side = Connection {
+        let mut right_side = Connection {
             name: Some("right".to_string()),
             from: "/f2/a".to_string(),
             to: "/f3/a".to_string(),
             from_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/f3/a".to_string())
+            to_io: IO::new(&"String".to_string(), &"/f3/a".to_string()),
         };
         right_side.from_io.flow_io = true;
 
         let connections = vec!(left_side,
                                extra_one, right_side);
 
-        let collapsed = collapse_connections(&connections).unwrap();
+        let collapsed = collapse_connections(&connections);
         println!("collapsed: {:?}", collapsed);
         assert_eq!(collapsed.len(), 1);
         assert_eq!(collapsed[0].from_io.route, "/f1/a".to_string());
@@ -236,7 +253,7 @@ mod test {
             from: "/f1/a".to_string(),
             to: "/f2/a".to_string(),
             from_io: IO::new(&"String".to_string(), &"/f1/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/f2/a".to_string())
+            to_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
         };
         left_side.to_io.flow_io = true;
 
@@ -245,7 +262,7 @@ mod test {
             from: "/f2/a".to_string(),
             to: "/f2/value1".to_string(),
             from_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/f2/value1".to_string())
+            to_io: IO::new(&"String".to_string(), &"/f2/value1".to_string()),
         };
         right_side_one.from_io.flow_io = true;
 
@@ -254,7 +271,7 @@ mod test {
             from: "/f2/a".to_string(),
             to: "/f2/value2".to_string(),
             from_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/f2/value2".to_string())
+            to_io: IO::new(&"String".to_string(), &"/f2/value2".to_string()),
         };
         right_side_two.from_io.flow_io = true;
 
@@ -264,7 +281,7 @@ mod test {
 
         assert_eq!(connections.len(), 3);
 
-        let collapsed = collapse_connections(&connections).unwrap();
+        let collapsed = collapse_connections(&connections);
         println!("Connections \n{:?}", collapsed);
         assert_eq!(collapsed.len(), 2);
         assert_eq!(collapsed[0].from_io.route, "/f1/a".to_string());
@@ -280,7 +297,7 @@ mod test {
             from: "/value".to_string(),
             to: "/f1/a".to_string(),
             from_io: IO::new(&"String".to_string(), &"/value".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/f1/a".to_string())
+            to_io: IO::new(&"String".to_string(), &"/f1/a".to_string()),
         };
         first_level.to_io.flow_io = true;
 
@@ -289,7 +306,7 @@ mod test {
             from: "/f1/a".to_string(),
             to: "/f2/a".to_string(),
             from_io: IO::new(&"String".to_string(), &"/f1/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/f2/a".to_string())
+            to_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
         };
         second_level.from_io.flow_io = true;
         second_level.to_io.flow_io = true;
@@ -299,7 +316,7 @@ mod test {
             from: "/f2/a".to_string(),
             to: "/f2/func/in".to_string(),
             from_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/f2/func/in".to_string())
+            to_io: IO::new(&"String".to_string(), &"/f2/func/in".to_string()),
         };
         third_level.from_io.flow_io = true;
 
@@ -307,7 +324,7 @@ mod test {
                                second_level,
                                third_level);
 
-        let collapsed = collapse_connections(&connections).unwrap();
+        let collapsed = collapse_connections(&connections);
         assert_eq!(collapsed.len(), 1);
         assert_eq!(collapsed[0].from_io.route, "/value".to_string());
         assert_eq!(collapsed[0].to_io.route, "/f2/func/in".to_string());
@@ -320,7 +337,7 @@ mod test {
             from: "/f1/a".to_string(),
             to: "/f2/a".to_string(),
             from_io: IO::new(&"String".to_string(), &"/f1/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/f2/a".to_string())
+            to_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
         };
 
         let other = Connection {
@@ -328,11 +345,11 @@ mod test {
             from: "/f3/a".to_string(),
             to: "/f4/a".to_string(),
             from_io: IO::new(&"String".to_string(), &"/f3/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/f4/a".to_string())
+            to_io: IO::new(&"String".to_string(), &"/f4/a".to_string()),
         };
 
         let connections = vec!(one, other);
-        let collapsed = collapse_connections(&connections).unwrap();
+        let collapsed = collapse_connections(&connections);
         assert_eq!(collapsed.len(), 2);
     }
 }

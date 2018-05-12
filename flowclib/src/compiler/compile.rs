@@ -11,9 +11,11 @@ pub fn compile(flow: &Flow) -> Result<CodeGenTables, String> {
     let mut tables = CodeGenTables::new();
 
     gatherer::add_entries(flow, &mut tables);
-    tables.collapsed_connections = connector::collapse_connections(&tables.connections)?;
-
+    gatherer::index_runnables(&mut tables.runnables);
+    tables.collapsed_connections = connector::collapse_connections(&tables.connections);
+    connector::routes_table(&mut tables);
     connector::set_runnable_outputs(&mut tables)?;
+    connector::check_connections(&tables)?;
 
     Ok(tables)
 }

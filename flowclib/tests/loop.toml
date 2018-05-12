@@ -1,0 +1,8 @@
+[[value]]
+name = "one"
+type = "Number"
+init = 1
+
+[[connection]]
+from = "value/one"
+to = "value/one"

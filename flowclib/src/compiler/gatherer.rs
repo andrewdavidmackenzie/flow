@@ -1,4 +1,6 @@
 use model::flow::Flow;
+use model::runnable::Runnable;
+
 use generator::code_gen::CodeGenTables;
 
 /*
@@ -38,5 +40,15 @@ pub fn add_entries(flow: &Flow, tables: &mut CodeGenTables) {
         for flow_ref in flow_refs {
             add_entries(&flow_ref.flow, tables);
         }
+    }
+}
+
+/*
+    Give each runnable a unique index that will later be used to indicate where outputs get sent
+    to, and used in code generation.
+*/
+pub fn index_runnables(runnables: &mut Vec<Box<Runnable>>) {
+    for (index, mut runnable) in runnables.into_iter().enumerate() {
+        runnable.set_id(index);
     }
 }
