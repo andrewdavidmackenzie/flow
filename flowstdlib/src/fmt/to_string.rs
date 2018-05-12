@@ -12,6 +12,9 @@ impl Implementation for ToString {
             JsonValue::String(_) => {
                 run_list.send_output(runnable, input);
             },
+            JsonValue::Bool(boolean) => {
+                run_list.send_output(runnable, JsonValue::String(boolean.to_string()));
+            },
             JsonValue::Number(number) => {
                 run_list.send_output(runnable, JsonValue::String(number.to_string()));
             },
