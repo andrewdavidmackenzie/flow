@@ -13,7 +13,7 @@ use model::connection;
     (according to each runnable's output route in the original description plus each connection from it)
     to point to the runnable (by index) and the runnable's input (by index) in the table
 */
-pub fn connect(tables: &mut CodeGenTables) -> Result<String, String> {
+pub fn set_runnable_outputs(tables: &mut CodeGenTables) -> Result<(), String> {
     let (source_routes, destination_routes) = routes_table(&mut tables.runnables);
 
     debug!("Building connections");
@@ -35,7 +35,7 @@ pub fn connect(tables: &mut CodeGenTables) -> Result<String, String> {
     }
     debug!("All connections built");
 
-    Ok("All connections built".to_string())
+    Ok(())
 }
 
 /*
@@ -97,9 +97,12 @@ fn routes_table(runnables: &mut Vec<Box<Runnable>>) -> (HashMap<Route, (String, 
 }
 
 /*
-    Given a route we have a connection to, attempt to find the final destination, potentially
-    traversing multiple intermediate connections (recusively) until we find one that does not
-    end at a flow. Return that as the final destination.
+    Given a route we have a connection to, attempt to find the final destinations, potentially
+    traversing multiple intermediate connections (recursively) until we find any that do not
+    end at a flow. Return them as the final destinations.
+
+    As a connection at a flow boundary can connect to multiple destinations, one
+    original connection can branch into multiple.
 */
 fn find_destinations(from_route: &Route, connections: &Vec<Connection>) -> Vec<Route> {
     let mut destinations = vec!();
@@ -119,6 +122,13 @@ fn find_destinations(from_route: &Route, connections: &Vec<Connection>) -> Vec<R
     destinations
 }
 
+/*
+    Take the original table of connections as gathered from the flow hierarchy, and for each one
+    follow it through any intermediate connections (sub-flow boundaries) to arrive at the final
+    destination. Then create a new direct connection from source to destination and add that
+    to the table of "collapsed" connections which will be used to configure the outputs of the
+    runnables.
+*/
 pub fn collapse_connections(original_connections: &Vec<Connection>) -> Result<Vec<Connection>, String> {
     let mut collapsed_connections: Vec<Connection> = Vec::new();
 

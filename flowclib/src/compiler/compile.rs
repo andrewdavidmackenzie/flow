@@ -13,7 +13,7 @@ pub fn compile(flow: &Flow) -> Result<CodeGenTables, String> {
     gatherer::add_entries(flow, &mut tables);
     tables.collapsed_connections = connector::collapse_connections(&tables.connections)?;
 
-    connector::connect(&mut tables)?;
+    connector::set_runnable_outputs(&mut tables)?;
 
     Ok(tables)
 }
