@@ -10,7 +10,7 @@ init = 1
 static = true
 
 [[value]]
-name = "true"
+name = "false"
 type = "Bool"
 init = false
 
@@ -72,7 +72,7 @@ from = "value/two"
 to = "function/compare/right"
 
 [[connection]]
-from = "value/true"
+from = "value/false"
 to = "function/switch/control"
 
 [[connection]]
