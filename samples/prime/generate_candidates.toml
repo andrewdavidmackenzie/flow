@@ -1,0 +1,37 @@
+# Generate a list of candidates from 1 up to the max specified in arg 1
+[[input]]
+name = "limit"
+type = "String"
+
+[[output]]
+name = "candidates"
+type = "Number"
+
+[[connection]]
+from = "input/limit"
+to = "function/to_number"
+
+[[function]]
+alias = "to_number"
+source = "lib://flowstdlib/fmt/to_number.toml"
+
+[[connection]]
+from = "function/to_number"
+to = "flow/candidates-range/limit"
+
+[[value]]
+name = "lowest-candidate"
+type = "Number"
+init = 1
+
+[[connection]]
+from = "value/lowest-candidate"
+to = "flow/candidates-range/start"
+
+[[flow]]
+alias = "candidates-range"
+source = "../range/range.toml"
+
+[[connection]]
+from = "flow/candidates-range/series"
+to = "output/candidates"

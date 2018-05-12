@@ -3,115 +3,27 @@
 alias = "args"
 source = "lib://flowstdlib/env/args.toml"
 
+[[flow]]
+alias = "generate-candidates"
+source = "generate_candidates.toml"
+
 [[connection]]
 from = "function/args/1"
-to = "function/to_number"
-
-[[function]]
-alias = "to_number"
-source = "lib://flowstdlib/fmt/to_number.toml"
+to = "flow/generate-candidates/limit"
 
 [[connection]]
-from = "function/to_number"
-to = "flow/candidates-range/limit"
-
-[[value]]
-name = "lowest-candidate"
-type = "Number"
-init = 1
-
-[[connection]]
-from = "value/lowest-candidate"
-to = "flow/candidates-range/start"
+from = "flow/generate-candidates/candidates"
+to = "flow/check-if-prime/candidate"
 
 [[flow]]
-alias = "candidates-range"
-source = "../range/range.toml"
-
-# Generate a series of possible divisors of the candidate, from 1 up to the candidate
-[[value]]
-name = "lowest-divisor"
-type = "Number"
-init = 1
-
-[[flow]]
-alias = "divisor-range"
-source = "../range/range.toml"
+alias = "check-if-prime"
+source = "check_if_prime.toml"
 
 [[connection]]
-from = "value/lowest-divisor"
-to = "flow/divisor-range/start"
-
-[[connection]]
-from = "flow/candidates-range/series"
-to = "flow/divisor-range/limit"
-######################################
-
-
-# TODO ADM Debugging
-[[connection]]
-from = "flow/divisor-range/series"
+from = "flow/check-if-prime/prime"
 to = "function/to_string"
 
-
-######################################
-
-
-# divide the candidate by the divisor
-#[[function]]
-#alias = "divide"
-#source = "lib://flowstdlib/math/divide.toml"
-
-#[[connection]]
-#from = "flow/divisor-range/max"
-#to = "function/divide/dividend"
-
-#[[connection]]
-#from = "flow/divisor-range/series"
-# to = "function/divide/divisor"
-
-
-#check if the remainder is equal to 0
-#[[value]]
-#name = "zero"
-#type = "Number"
-#init = 0
-#static = true
-
-#[[function]]
-#alias = "zero_remainder"
-#source = "lib://flowstdlib/control/compare.toml"
-
-#[[connection]]
-#from = "value/zero"
-#to = "function/zero_remainder/left"
-
-#[[connection]]
-#from = "function/divide/remainder"
-#to = "function/zero_remainder/right"
-
-
-# if the remainder was 0 then let the value pass to output
-#[[function]]
-#alias = "switch"
-#source = "lib://flowstdlib/control/switch.toml"
-
-#[[connection]]
-#from = "function/zero_remainder/equal"
-#to = "function/switch/control"
-
-#[[connection]]
-#from = "function/divide/dividend"
-#to = "function/switch/data"
-
-# TODO AMD
-#[[connection]]
-#from = "function/switch"
-#to = "function/to_string"
-
-
-############################################
-# Convert any value that was output to string and print it
+# Convert any prime that was output to a string and print it
 [[function]]
 alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string.toml"
@@ -120,8 +32,6 @@ source = "lib://flowstdlib/fmt/to_string.toml"
 from = "function/to_string"
 to = "function/print"
 
-# Print out the series
 [[function]]
 alias = "print"
 source = "lib://flowstdlib/stdio/stdout.toml"
-############################################
