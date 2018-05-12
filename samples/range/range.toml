@@ -18,6 +18,10 @@ type = "Number"
 name = "max"
 type = "Number"
 
+[[output]]
+name = "done"
+type = "Bool"
+
 [[flow]]
 alias = "pilte"
 source = "pass_if_lte.toml"
@@ -69,6 +73,10 @@ to = "flow/pilte/in"
 [[connection]]
 from = "input/start"
 to = "output/min"
+
+[[connection]]
+from = "flow/pilte/blocked"
+to = "output/done"
 
 [[connection]]
 from = "input/limit"

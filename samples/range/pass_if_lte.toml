@@ -11,6 +11,10 @@ name = "passed"
 type = "Number"
 
 [[output]]
+name = "blocked"
+type = "Bool"
+
+[[output]]
 name = "control"
 type = "Number"
 
@@ -41,6 +45,10 @@ to = "function/switch/control"
 [[connection]]
 from = "function/switch"
 to = "output/passed"
+
+[[connection]]
+from = "function/compare/gt"
+to = "output/blocked"
 
 [[connection]]
 from = "input/max"

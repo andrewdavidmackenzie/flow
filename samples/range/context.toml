@@ -35,6 +35,30 @@ source = "lib://flowstdlib/fmt/to_string.toml"
 from = "flow/range/series"
 to = "function/to_string"
 
+# Output a string to show we're done when the series ends
+[[value]]
+name = "done"
+type = "String"
+init = "Range done"
+static = true
+
+[[function]]
+alias = "switch"
+source = "lib://flowstdlib/control/switch.toml"
+
+[[connection]]
+from = "value/done"
+to = "function/switch/data"
+
+[[connection]]
+from = "flow/range/done"
+to = "function/switch/control"
+
+[[connection]]
+from = "function/switch"
+to = "function/print"
+
+# Output
 [[function]]
 alias = "print"
 source = "lib://flowstdlib/stdio/stdout.toml"
