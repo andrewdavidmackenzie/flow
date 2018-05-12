@@ -7,7 +7,7 @@ name = "max"
 type = "Number"
 
 [[output]]
-name = "out"
+name = "passed"
 type = "Number"
 
 [[output]]
@@ -40,7 +40,7 @@ to = "function/switch/control"
 
 [[connection]]
 from = "function/switch"
-to = "output/out"
+to = "output/passed"
 
 [[connection]]
 from = "input/max"

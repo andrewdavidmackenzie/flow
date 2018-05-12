@@ -45,11 +45,11 @@ from = "value/limit_store"
 to = "flow/pilte/max"
 
 [[connection]]
-from = "flow/pilte/out"
+from = "flow/pilte/passed"
 to = "output/series"
 
 [[connection]]
-from = "flow/pilte/out"
+from = "flow/pilte/passed"
 to = "function/add/i1"
 
 [[value]]
