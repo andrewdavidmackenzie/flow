@@ -19,7 +19,7 @@ name = "max"
 type = "Number"
 
 [[flow]]
-alias = "pilt"
+alias = "pilte"
 source = "pass_if_lte.toml"
 
 [[function]]
@@ -28,7 +28,7 @@ source = "lib://flowstdlib/math/add.toml"
 
 [[connection]]
 from = "input/start"
-to = "flow/pilt/in"
+to = "flow/pilte/in"
 
 # A store for the limit value that always refreshes itself, so it's value is always available
 [[value]]
@@ -42,14 +42,14 @@ to = "value/limit_store"
 
 [[connection]]
 from = "value/limit_store"
-to = "flow/pilt/max"
+to = "flow/pilte/max"
 
 [[connection]]
-from = "flow/pilt/out"
+from = "flow/pilte/out"
 to = "output/series"
 
 [[connection]]
-from = "flow/pilt/out"
+from = "flow/pilte/out"
 to = "function/add/i1"
 
 [[value]]
@@ -64,7 +64,7 @@ to = "function/add/i2"
 
 [[connection]]
 from = "function/add"
-to = "flow/pilt/in"
+to = "flow/pilte/in"
 
 [[connection]]
 from = "input/start"
