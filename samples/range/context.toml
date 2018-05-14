@@ -40,7 +40,6 @@ to = "function/to_string"
 name = "done"
 type = "String"
 init = "Range done"
-static = true
 
 [[function]]
 alias = "switch"

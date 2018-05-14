@@ -74,8 +74,26 @@ to = "flow/pilte/in"
 from = "input/start"
 to = "output/min"
 
+[[value]]
+name = "range-done"
+type = "Bool"
+init = true
+static = true
+
+[[function]]
+alias = "when-done"
+source = "lib://flowstdlib/control/switch.toml"
+
+[[connection]]
+from = "value/range-done"
+to = "function/when-done/data"
+
 [[connection]]
 from = "flow/pilte/blocked"
+to = "function/when-done/control"
+
+[[connection]]
+from = "function/when-done"
 to = "output/done"
 
 [[connection]]
