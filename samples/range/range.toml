@@ -1,3 +1,4 @@
+# IO declarations
 [[input]]
 name = "start"
 type = "Number"
@@ -22,6 +23,52 @@ type = "Number"
 name = "done"
 type = "Bool"
 
+# IO switches
+[[value]]
+name = "start-signal"
+type = "Bool"
+init = true
+
+[[function]]
+alias = "limit-gate"
+source = "lib://flowstdlib/control/switch.toml"
+
+[[function]]
+alias = "start-gate"
+source = "lib://flowstdlib/control/switch.toml"
+
+[[connection]]
+from = "value/start-signal"
+to = "function/limit-gate/control"
+
+[[connection]]
+from = "input/limit"
+to = "function/limit-gate/data"
+
+[[connection]]
+from = "value/start-signal"
+to = "function/start-gate/control"
+
+[[connection]]
+from = "input/start"
+to = "function/start-gate/data"
+
+
+# A store for the limit value that always refreshes itself, so it's value is always available
+[[value]]
+name = "limit-store"
+type = "Number"
+static = true
+
+[[connection]]
+from = "function/limit-gate"
+to = "value/limit-store"
+
+[[connection]]
+from = "function/start-gate"
+to = "flow/pilte/in"
+
+# pass if less than or equal, add one and loop
 [[flow]]
 alias = "pilte"
 source = "pass_if_lte.toml"
@@ -31,21 +78,7 @@ alias = "add"
 source = "lib://flowstdlib/math/add.toml"
 
 [[connection]]
-from = "input/start"
-to = "flow/pilte/in"
-
-# A store for the limit value that always refreshes itself, so it's value is always available
-[[value]]
-name = "limit_store"
-type = "Number"
-static = true
-
-[[connection]]
-from = "input/limit"
-to = "value/limit_store"
-
-[[connection]]
-from = "value/limit_store"
+from = "value/limit-store"
 to = "flow/pilte/max"
 
 [[connection]]
@@ -95,6 +128,12 @@ to = "function/when-done/control"
 [[connection]]
 from = "function/when-done"
 to = "output/done"
+
+# re-open the input gates for another value to loop on
+[[connection]]
+from = "function/when-done"
+to = "value/start-signal"
+
 
 [[connection]]
 from = "input/limit"
