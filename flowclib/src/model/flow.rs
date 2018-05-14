@@ -187,7 +187,7 @@ impl Flow {
                     return Ok(element.clone());
                 }
             }
-            return Err(format!("No inout or output with name '{}' was found", element_name));
+            return Err(format!("No input or output with name '{}' was found", element_name));
         }
         Err(format!("No inputs or outputs found when looking for input/output '{}'", element_name))
     }
