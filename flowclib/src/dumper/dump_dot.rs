@@ -216,7 +216,7 @@ fn runnable_to_dot(runnable: &Box<Runnable>, index: usize) -> String {
 
     runnable_string.push_str(&format!("r{}[label=\"{} (#{})\"];\n",
                                       index,
-                                      runnable.name(),
+                                      runnable.alias(),
                                       runnable.get_id()));
 
     if let Some(iv) = runnable.get_initial_value() {
