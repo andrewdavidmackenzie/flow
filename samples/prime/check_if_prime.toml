@@ -1,3 +1,4 @@
+# Inputs and Outputs
 [[input]]
 name = "candidate"
 type = "Number"
@@ -6,15 +7,16 @@ type = "Number"
 name = "prime"
 type = "Number"
 
+[[output]]
+name = "done"
+type = "Bool"
+
+
 # Generate a series of possible divisors of the candidate, from 1 up to the candidate
 [[value]]
 name = "lowest-divisor"
 type = "Number"
 init = 1
-
-[[flow]]
-alias = "divisor-range"
-source = "../range/range.toml"
 
 [[connection]]
 from = "value/lowest-divisor"
@@ -23,6 +25,15 @@ to = "flow/divisor-range/start"
 [[connection]]
 from = "input/candidate"
 to = "flow/divisor-range/limit"
+
+[[flow]]
+alias = "divisor-range"
+source = "../range/range.toml"
+
+[[connection]]
+from = "flow/divisor-range/done"
+to = "output/done"
+
 ######################################
 
 
