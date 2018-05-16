@@ -223,8 +223,14 @@ fn runnable_to_dot(runnable: &Box<Runnable>, index: usize) -> String {
         // Add an extra graph entry for the initial value
         runnable_string.push_str(&format!("iv{}[style=invis];\n", index));
         // with a connection to the runnable
-        runnable_string.push_str(&format!("iv{} -> r{} [style=dotted] [color=blue] [label=\"{}\"];\n",
-                                          index, index, iv));
+        if iv.is_string() {
+            // escape the quotes in the value when converted to string
+            runnable_string.push_str(&format!("iv{} -> r{} [style=dotted] [color=blue] [label=\"'{}'\"];\n",
+                                              index, index, iv.as_str().unwrap()));
+        } else {
+            runnable_string.push_str(&format!("iv{} -> r{} [style=dotted] [color=blue] [label=\"{}\"];\n",
+                                              index, index, iv));
+        }
     }
 
     for &(ref output_route, destination_index, _) in runnable.get_output_routes() {
