@@ -8,6 +8,8 @@ use model::io::IOSet;
 use model::connection::Route;
 use model::connection;
 
+static RUNNABLES_INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
+
 pub fn dump_flow_dot(flow: &Flow, level: usize, dot_file: &mut Write) -> io::Result<String> {
     let mut contents = String::new();
     // Inputs
@@ -200,8 +202,8 @@ pub fn runnables_to_dot(flow_alias: &str, tables: &CodeGenTables, dot_file: &mut
     dot_file.write_all(format!("digraph {} {{\n", str::replace(flow_alias, "-", "_")).as_bytes())?;
 
     let mut runnables = String::new();
-    for (index, ref runnable) in tables.runnables.iter().enumerate() {
-        runnables.push_str(&runnable_to_dot(runnable, index));
+    for runnable in &tables.runnables {
+        runnables.push_str(&runnable_to_dot(&runnable, &tables.runnables));
     }
     dot_file.write_all(runnables.as_bytes())?;
 
@@ -211,30 +213,35 @@ pub fn runnables_to_dot(flow_alias: &str, tables: &CodeGenTables, dot_file: &mut
 }
 
 // Given a Runnable as used in the code generation - generate a "dot" format string to draw it
-fn runnable_to_dot(runnable: &Box<Runnable>, index: usize) -> String {
+fn runnable_to_dot(runnable: &Box<Runnable>, runnables: &Vec<Box<Runnable>>) -> String {
     let mut runnable_string = String::new();
 
     runnable_string.push_str(&format!("r{}[label=\"{} (#{})\"];\n",
-                                      index,
+                                      runnable.get_id(),
                                       runnable.alias(),
                                       runnable.get_id()));
 
     if let Some(iv) = runnable.get_initial_value() {
         // Add an extra graph entry for the initial value
-        runnable_string.push_str(&format!("iv{}[style=invis];\n", index));
+        runnable_string.push_str(&format!("iv{}[style=invis];\n", runnable.get_id()));
         // with a connection to the runnable
         if iv.is_string() {
             // escape the quotes in the value when converted to string
             runnable_string.push_str(&format!("iv{} -> r{} [style=dotted] [color=blue] [label=\"'{}'\"];\n",
-                                              index, index, iv.as_str().unwrap()));
+                                              runnable.get_id(), runnable.get_id(), iv.as_str().unwrap()));
         } else {
             runnable_string.push_str(&format!("iv{} -> r{} [style=dotted] [color=blue] [label=\"{}\"];\n",
-                                              index, index, iv));
+                                              runnable.get_id(), runnable.get_id(), iv));
         }
     }
 
-    for &(ref output_route, destination_index, _) in runnable.get_output_routes() {
-        runnable_string.push_str(&format!("r{} -> r{} [label = \"{}\"];\n", index, destination_index, output_route));
+    for &(ref output_route, destination_index, destination_input_index) in runnable.get_output_routes() {
+        let input_port = RUNNABLES_INPUT_PORTS[destination_input_index % RUNNABLES_INPUT_PORTS.len()];
+        let destination_runnable = &runnables[destination_index];
+        let input_name = &destination_runnable.get_inputs().unwrap()[destination_input_index].name;
+        runnable_string.push_str(&format!("r{}:s -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];\n",
+                                          runnable.get_id(), destination_index, input_port,
+                                          output_route, input_name));
     }
 
     runnable_string
