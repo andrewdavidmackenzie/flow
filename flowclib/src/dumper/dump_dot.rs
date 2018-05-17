@@ -216,8 +216,21 @@ pub fn runnables_to_dot(flow_alias: &str, tables: &CodeGenTables, dot_file: &mut
 fn runnable_to_dot(runnable: &Box<Runnable>, runnables: &Vec<Box<Runnable>>) -> String {
     let mut runnable_string = String::new();
 
-    runnable_string.push_str(&format!("r{}[label=\"{} (#{})\"];\n",
+    let shape = if runnable.get_type() == "Value" {
+        "shape=box,"
+    } else {
+        ""
+    };
+
+    let fill = if runnable.is_static_value() {
+        "style=filled, fillcolor=\"#999999\","
+    } else {
+        ""
+    };
+
+    runnable_string.push_str(&format!("r{}[{} {} label=\"{} (#{})\"];\n",
                                       runnable.get_id(),
+                                      shape, fill,
                                       runnable.alias(),
                                       runnable.get_id()));
 
@@ -235,6 +248,7 @@ fn runnable_to_dot(runnable: &Box<Runnable>, runnables: &Vec<Box<Runnable>>) -> 
         }
     }
 
+    // Add edges for each of th eoutputs of this runnable to other ones
     for &(ref output_route, destination_index, destination_input_index) in runnable.get_output_routes() {
         let input_port = RUNNABLES_INPUT_PORTS[destination_input_index % RUNNABLES_INPUT_PORTS.len()];
         let destination_runnable = &runnables[destination_index];
