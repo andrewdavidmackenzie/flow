@@ -143,7 +143,7 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
             // Avoid creating extra points to connect to for default input (e.g. on a value)
             if input.route != to.to_string() {
                 // Add an entry for each input using it's route
-                string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", style=filled, fixedsize=true, width=0.2, height=0.2, fillcolor=grey];\n",
+                string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", style=filled, width=0.2, height=0.2, fillcolor=grey];\n",
                                          input.route, input.name));
 
                 if connect_subflow {
@@ -167,7 +167,7 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
         string.push_str("\n\t\t\t// Outputs\n");
         for output in outputs {
             // Add an entry for each output using it's route
-            string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", style=filled, fixedsize=true, width=0.2, height=0.2, fillcolor=grey];\n",
+            string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", style=filled, width=0.2, height=0.2, fillcolor=grey];\n",
                                      output.route, output.name));
 
             if connect_subflow {
@@ -183,7 +183,7 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
 fn flow_reference_to_dot(flow_ref: &FlowReference) -> String {
     let mut dot_string = String::new();
 
-    dot_string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", fixedsize=true, width=1, height=1, URL=\"{}.dot\"];\n",
+    dot_string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", width=1, height=1, URL=\"{}.dot\"];\n",
                                  flow_ref.flow.route,
                                  flow_ref.alias,
                                  flow_ref.flow.alias));
