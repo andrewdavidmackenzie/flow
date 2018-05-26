@@ -127,7 +127,7 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
             // Avoid creating extra points to connect to for default input (e.g. on a value)
             if input.route != to.to_string() {
                 // Add an entry for each input using it's route
-                string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", style=filled, width=0.2, height=0.2, fillcolor=grey];\n",
+                string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", style=filled, fillcolor=grey];\n",
                                          input.route, input.name));
 
                 if connect_subflow {
@@ -153,7 +153,7 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
             // Only add output if it's not got the same route as it's runnable i.e. it's not the default output
             if output.route != *from {
                 // Add an entry for each output using it's route
-                string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", style=filled, width=0.2, height=0.2, fillcolor=grey];\n",
+                string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", style=filled, fillcolor=grey];\n",
                                          output.route, output.name));
 
                 if connect_subflow {
