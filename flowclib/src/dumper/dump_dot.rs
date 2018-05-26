@@ -101,20 +101,14 @@ fn run_to_dot(runnable: &Runnable) -> String {
     dot_string.push_str(&add_input_set(&runnable.get_inputs(), &runnable.route().to_string(), true));
     dot_string.push_str(&add_output_set(&runnable.get_outputs(), &runnable.route().to_string(), true));
 
-    let mut box_visibility = "";
-    if runnable.get_type() == "Value" {
-        box_visibility = "\t\tstyle=invis;";
-    }
-
     // Put inside a cluster of it's own
     format!("\n\t\t// Runnable of type = {}
     \tsubgraph cluster_runnable_{} {{
 			margin=0;
-    {}
+            style=invis;
     {}\t\t}} // close runnable {} \n",
             runnable.get_type(),
             str::replace(&runnable.alias(), "-", "_"),
-            box_visibility,
             dot_string,
             runnable.alias())
 }
