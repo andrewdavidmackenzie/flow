@@ -10,7 +10,7 @@ use model::connection;
 
 static RUNNABLES_INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
 
-pub fn dump_flow_dot(flow: &Flow, level: usize, dot_file: &mut Write) -> io::Result<String> {
+pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
     let mut contents = String::new();
     // Inputs
     contents.push_str(&add_input_set(&flow.inputs, &flow.route, false));
@@ -55,14 +55,14 @@ pub fn dump_flow_dot(flow: &Flow, level: usize, dot_file: &mut Write) -> io::Res
         }
     }
 
-    dot_file.write_all(digraph_wrapper_start(flow, level).as_bytes())?;
+    dot_file.write_all(digraph_wrapper_start(flow).as_bytes())?;
     dot_file.write_all(contents.as_bytes())?;
     dot_file.write_all(&digraph_wrapper_end().as_bytes())?;
 
     Ok("Dot file written".to_string())
 }
 
-fn digraph_wrapper_start(flow: &Flow, level: usize) -> String {
+fn digraph_wrapper_start(flow: &Flow) -> String {
     let mut wrapper = String::new();
 
     // Create a directed graph named after the flow
@@ -73,20 +73,11 @@ fn digraph_wrapper_start(flow: &Flow, level: usize) -> String {
     wrapper.push_str("\tcompound=true;\n");
     wrapper.push_str("\tmodel=mds;\n");
 
-    if level == 0 { // Context
-        wrapper.push_str("\n\tsubgraph cluster_context {\n\t\tshape=square;\n");
-    } else {
-        wrapper.push_str("\n\tsubgraph cluster_flow {\n\t\tshape=regular;	\n");
-    }
-
-    wrapper.push_str("\t\tmargin=50;\n\t\tlabel=\"\";\n");
-
     wrapper
 }
 
 fn digraph_wrapper_end() -> String {
     "
-    } // close top level cluster
 } // close digraph\n".to_string()
 }
 
