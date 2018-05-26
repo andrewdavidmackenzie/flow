@@ -7,11 +7,14 @@ use model::flow_reference::FlowReference;
 use model::io::IOSet;
 use model::connection::Route;
 use model::connection;
+use model::connection::Connection;
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
 static OUTPUT_PORTS: &[&str] = &["s", "se", "sw"];
 
 pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
+    dot_file.write_all(digraph_wrapper_start(flow).as_bytes())?;
+
     let mut contents = String::new();
     // Inputs
     contents.push_str(&add_input_set(&flow.inputs, &flow.route, false));
@@ -40,30 +43,33 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
         }
     }
 
-    // Connections inside this flow
+    // Connections
     if let &Some(ref connections) = &flow.connections {
         contents.push_str("\n\t// Connections");
         for connection in connections {
-            let (from_route, number, array_index) = connection::name_without_trailing_number(&connection.from_io.route);
-
-            // TODO Connect to a different port for each input
-            let from_node = node_from_io_route(&from_route.to_string(), &connection.from_io.name);
-            let to_node = node_from_io_route(&connection.to_io.route, &connection.to_io.name);
-            if array_index {
-                contents.push_str(&format!("\n\t\"{}\" -> \"{}\" [taillabel=\"{}[{}]\", headlabel=\"{}\"];",
-                                           from_node, to_node, connection.from_io.name, number, connection.to_io.name));
-            } else {
-                contents.push_str(&format!("\n\t\"{}\" -> \"{}\" [taillabel=\"{}\", headlabel=\"{}\"];",
-                                           from_node, to_node, connection.from_io.name, connection.to_io.name));
-            }
+            contents.push_str(&connection_to_dot(&connection, &flow.inputs, &flow.outputs));
         }
     }
 
-    dot_file.write_all(digraph_wrapper_start(flow).as_bytes())?;
     dot_file.write_all(contents.as_bytes())?;
+
     dot_file.write_all(&digraph_wrapper_end().as_bytes())?;
 
     Ok("Dot file written".to_string())
+}
+
+fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IOSet) -> String {
+    let (from_route, number, array_index) = connection::name_without_trailing_number(&connection.from_io.route);
+
+    let from_node = node_from_io_route(&from_route.to_string(), &connection.from_io.name, input_set);
+    let to_node = node_from_io_route(&connection.to_io.route, &connection.to_io.name, output_set);
+    if array_index {
+        format!("\n\t\"{}\" -> \"{}\" [taillabel=\"{}[{}]\", headlabel=\"{}\"];",
+                                   from_node, to_node, connection.from_io.name, number, connection.to_io.name)
+    } else {
+        format!("\n\t\"{}\" -> \"{}\" [taillabel=\"{}\", headlabel=\"{}\"];",
+                                   from_node, to_node, connection.from_io.name, connection.to_io.name)
+    }
 }
 
 /*
@@ -74,13 +80,27 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
     If the input or output IS NOT the default one ("" empty string) then remove the IO name from the
     route and return that.
 */
-fn node_from_io_route(route: &Route, name: &str) -> String {
-    if name.is_empty() {
+fn node_from_io_route(route: &Route, name: &str, io_set: &IOSet) -> String {
+    if name.is_empty() || route_in_io_set(route, io_set) {
         return route.clone();
     } else {
         let length_without_io_name = route.len() - name.len() - 1; // 1 for '/'
         return route.clone()[..length_without_io_name].to_string();
     }
+}
+
+/*
+    For a given route, determine if it's the route to one of the IOs in the given IOSet
+*/
+fn route_in_io_set(route: &Route, io_set: &IOSet) -> bool {
+    if let &Some(ref ios) = io_set {
+        for io in ios {
+            if io.route == *route {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 fn digraph_wrapper_start(flow: &Flow) -> String {
@@ -105,26 +125,23 @@ fn digraph_wrapper_end() -> String {
 fn run_to_dot(runnable: &Runnable) -> String {
     let mut dot_string = String::new();
 
-    dot_string.push_str(&format!("\t\t\"{}\" [label=\"{}\\n({})\"]; // runnable @ route, label = runnable name \n",
+    dot_string.push_str(&format!("\t\"{}\" [label=\"{}\\n({})\"]; // runnable @ route, label = runnable name \n",
                                  runnable.route(),
                                  runnable.alias(),
                                  runnable.name()));
 
     if let Some(iv) = runnable.get_initial_value() {
         // Add an extra graph entry for the initial value
-        dot_string.push_str(&format!("\t\t\t\t\"{}_iv\"[style=invis] ; // initial value\n", runnable.route()));
+        dot_string.push_str(&format!("\t\t\"{}_iv\"[style=invis] ; // initial value\n", runnable.route()));
         // with a connection to the runnable
         let iv_string = str::replace(&iv.to_string(), "\"", "'");
-        dot_string.push_str(&format!("\t\t\t\t\"{}_iv\" -> \"{}\" [style=dotted] [color=blue] [label=\"{}\"]; // connect initial value to runnable\n",
+        dot_string.push_str(&format!("\t\t\"{}_iv\" -> \"{}\" [style=dotted] [color=blue] [label=\"{}\"]; // connect initial value to runnable\n",
                                      runnable.route(), runnable.route(), iv_string));
     }
 
     // Put inside a cluster of it's own to help us gather it with it's inputs and outputs
-    format!("\n\t\t// Runnable of type = {}
-    \tsubgraph cluster_runnable_{} {{
-			margin=0;
-            style=invis;
-    {}\t\t}} // close runnable {} \n",
+    format!("\n\t// Runnable of type = {}\n\tsubgraph cluster_runnable_{} {{\n\t\tmargin=0;\n\t\tstyle=invis;
+    {}\t}} // close runnable {} \n",
             runnable.get_type(),
             str::replace(&runnable.alias(), "-", "_"),
             dot_string,
@@ -139,17 +156,17 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
     let mut string = String::new();
 
     if let &Some(ref inputs) = input_set {
-        string.push_str("\n\t\t\t// Inputs\n");
+        string.push_str("\n\t// Inputs\n");
         for input in inputs {
             // Avoid creating extra points to connect to for default input (e.g. on a value)
             if input.route != to.to_string() {
                 // Add an entry for each input using it's route
-                string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", style=filled, fillcolor=grey];\n",
+                string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=grey];\n",
                                          input.route, input.name));
 
                 if connect_subflow {
                     // and connect the input to the sub-flow
-                    string.push_str(&format!("\t\t\t\"{}\" -> \"{}\":n [style=invis, headtooltip=\"{}\"];\n",
+                    string.push_str(&format!("\t\"{}\" -> \"{}\":n [style=invis, headtooltip=\"{}\"];\n",
                                              input.route, to, input.name));
                 }
             }
@@ -165,17 +182,17 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
     let mut string = String::new();
 
     if let &Some(ref outputs) = output_set {
-        string.push_str("\n\t\t\t// Outputs\n");
+        string.push_str("\n\t// Outputs\n");
         for output in outputs {
             // Only add output if it's not got the same route as it's runnable i.e. it's not the default output
             if output.route != *from {
                 // Add an entry for each output using it's route
-                string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", style=filled, fillcolor=grey];\n",
+                string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=grey];\n",
                                          output.route, output.name));
 
                 if connect_subflow {
                     // and connect the output to the sub-flow
-                    string.push_str(&format!("\t\t\t\"{}\":s -> \"{}\"[style=invis, headtooltip=\"{}\"];\n",
+                    string.push_str(&format!("\t\"{}\":s -> \"{}\"[style=invis, headtooltip=\"{}\"];\n",
                                              from, output.route, output.name));
                 }
             }
@@ -187,15 +204,14 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
 fn flow_reference_to_dot(flow_ref: &FlowReference) -> String {
     let mut dot_string = String::new();
 
-    dot_string.push_str(&format!("\t\t\"{}\" [label=\"{}\", width=3, height=3, URL=\"{}.dot\"];\n",
+    dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", width=3, height=3, URL=\"{}.dot\"];\n",
                                  flow_ref.flow.route,
                                  flow_ref.alias,
                                  flow_ref.flow.alias));
 
     // Put inside a cluster of it's own
-    format!("\t\t\t// Sub-flow\n\t\t\tsubgraph cluster_sub_flow_{} {{
-                style=invis;
-    {}\t\t\t}} // close sub-flow {}\n\n", str::replace(&flow_ref.flow.alias, "-", "_"), dot_string, flow_ref.flow.alias)
+    format!("\n\t// Sub-flow\n\tsubgraph cluster_sub_flow_{} {{\n\t\tstyle=invis;
+    {}\t}} // close sub-flow {}\n", str::replace(&flow_ref.flow.alias, "-", "_"), dot_string, flow_ref.flow.alias)
 }
 
 pub fn runnables_to_dot(flow_alias: &str, tables: &CodeGenTables, dot_file: &mut Write) -> io::Result<String> {
