@@ -99,9 +99,10 @@ fn run_to_dot(runnable: &Runnable) -> String {
     }
 
     dot_string.push_str(&add_input_set(&runnable.get_inputs(), &runnable.route().to_string(), true));
+
     dot_string.push_str(&add_output_set(&runnable.get_outputs(), &runnable.route().to_string(), true));
 
-    // Put inside a cluster of it's own
+    // Put inside a cluster of it's own to help us gather it with it's inputs and outputs
     format!("\n\t\t// Runnable of type = {}
     \tsubgraph cluster_runnable_{} {{
 			margin=0;
@@ -149,14 +150,17 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
     if let &Some(ref outputs) = output_set {
         string.push_str("\n\t\t\t// Outputs\n");
         for output in outputs {
-            // Add an entry for each output using it's route
-            string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", style=filled, width=0.2, height=0.2, fillcolor=grey];\n",
-                                     output.route, output.name));
+            // Only add output if it's not got the same route as it's runnable i.e. it's not the default output
+            if output.route != *from {
+                // Add an entry for each output using it's route
+                string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", style=filled, width=0.2, height=0.2, fillcolor=grey];\n",
+                                         output.route, output.name));
 
-            if connect_subflow {
-                // and connect the output to the sub-flow
-                string.push_str(&format!("\t\t\t\"{}\":s -> \"{}\"[len=0, style=invis, weight=1000, headtooltip=\"{}\"];\n",
-                                         from, output.route, output.name));
+                if connect_subflow {
+                    // and connect the output to the sub-flow
+                    string.push_str(&format!("\t\t\t\"{}\":s -> \"{}\"[len=0, style=invis, weight=1000, headtooltip=\"{}\"];\n",
+                                             from, output.route, output.name));
+                }
             }
         }
     }
