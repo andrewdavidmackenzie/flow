@@ -8,7 +8,8 @@ use model::io::IOSet;
 use model::connection::Route;
 use model::connection;
 
-static RUNNABLES_INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
+static INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
+static OUTPUT_PORTS: &[&str] = &["s", "se", "sw"];
 
 pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
     let mut contents = String::new();
@@ -39,18 +40,21 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
         }
     }
 
-    // Connections inside this flows
+    // Connections inside this flow
     if let &Some(ref connections) = &flow.connections {
         contents.push_str("\n\t// Connections");
         for connection in connections {
             let (from_route, number, array_index) = connection::name_without_trailing_number(&connection.from_io.route);
 
+            // TODO Connect to a different port for each input
+            let from_node = node_from_io_route(&from_route.to_string(), &connection.from_io.name);
+            let to_node = node_from_io_route(&connection.to_io.route, &connection.to_io.name);
             if array_index {
-                contents.push_str(&format!("\n\t\"{}\" -> \"{}\" [label=\"{}\"];",
-                                           from_route, connection.to_io.route, number));
+                contents.push_str(&format!("\n\t\"{}\" -> \"{}\" [taillabel=\"{}[{}]\", headlabel=\"{}\"];",
+                                           from_node, to_node, connection.from_io.name, number, connection.to_io.name));
             } else {
-                contents.push_str(&format!("\n\t\"{}\" -> \"{}\";",
-                                           from_route, connection.to_io.route));
+                contents.push_str(&format!("\n\t\"{}\" -> \"{}\" [taillabel=\"{}\", headlabel=\"{}\"];",
+                                           from_node, to_node, connection.from_io.name, connection.to_io.name));
             }
         }
     }
@@ -60,6 +64,23 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
     dot_file.write_all(&digraph_wrapper_end().as_bytes())?;
 
     Ok("Dot file written".to_string())
+}
+
+/*
+    Return the route to a node (value, function, flow) for a given route, by:
+
+    If the input or output name IS the default one ("" empty string), then just return the route.
+
+    If the input or output IS NOT the default one ("" empty string) then remove the IO name from the
+    route and return that.
+*/
+fn node_from_io_route(route: &Route, name: &str) -> String {
+    if name.is_empty() {
+        return route.clone();
+    } else {
+        let length_without_io_name = route.len() - name.len() - 1; // 1 for '/'
+        return route.clone()[..length_without_io_name].to_string();
+    }
 }
 
 fn digraph_wrapper_start(flow: &Flow) -> String {
@@ -97,10 +118,6 @@ fn run_to_dot(runnable: &Runnable) -> String {
         dot_string.push_str(&format!("\t\t\t\t\"{}_iv\" -> \"{}\" [style=dotted] [color=blue] [label=\"{}\"]; // connect initial value to runnable\n",
                                      runnable.route(), runnable.route(), iv_string));
     }
-
-    dot_string.push_str(&add_input_set(&runnable.get_inputs(), &runnable.route().to_string(), true));
-
-    dot_string.push_str(&add_output_set(&runnable.get_outputs(), &runnable.route().to_string(), true));
 
     // Put inside a cluster of it's own to help us gather it with it's inputs and outputs
     format!("\n\t\t// Runnable of type = {}
@@ -170,13 +187,10 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
 fn flow_reference_to_dot(flow_ref: &FlowReference) -> String {
     let mut dot_string = String::new();
 
-    dot_string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", width=3, height=3, URL=\"{}.dot\"];\n",
+    dot_string.push_str(&format!("\t\t\"{}\" [label=\"{}\", width=3, height=3, URL=\"{}.dot\"];\n",
                                  flow_ref.flow.route,
                                  flow_ref.alias,
                                  flow_ref.flow.alias));
-
-    dot_string.push_str(&format!("\t\t\t{}", &add_input_set(&flow_ref.flow.inputs, &flow_ref.flow.route, true)));
-    dot_string.push_str(&format!("\t\t\t{}", &add_output_set(&flow_ref.flow.outputs, &flow_ref.flow.route, true)));
 
     // Put inside a cluster of it's own
     format!("\t\t\t// Sub-flow\n\t\t\tsubgraph cluster_sub_flow_{} {{
@@ -235,9 +249,9 @@ fn runnable_to_dot(runnable: &Box<Runnable>, runnables: &Vec<Box<Runnable>>) -> 
         }
     }
 
-    // Add edges for each of th eoutputs of this runnable to other ones
+    // Add edges for each of the outputs of this runnable to other ones
     for &(ref output_route, destination_index, destination_input_index) in runnable.get_output_routes() {
-        let input_port = RUNNABLES_INPUT_PORTS[destination_input_index % RUNNABLES_INPUT_PORTS.len()];
+        let input_port = INPUT_PORTS[destination_input_index % INPUT_PORTS.len()];
         let destination_runnable = &runnables[destination_index];
         let input_name = &destination_runnable.get_inputs().unwrap()[destination_input_index].name;
         runnable_string.push_str(&format!("r{}:s -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];\n",
