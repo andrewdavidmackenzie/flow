@@ -65,10 +65,10 @@ fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IO
     let to_node = node_from_io_route(&connection.to_io.route, &connection.to_io.name, output_set);
     if array_index {
         format!("\n\t\"{}\" -> \"{}\" [taillabel=\"{}[{}]\", headlabel=\"{}\"];",
-                                   from_node, to_node, connection.from_io.name, number, connection.to_io.name)
+                from_node, to_node, connection.from_io.name, number, connection.to_io.name)
     } else {
         format!("\n\t\"{}\" -> \"{}\" [taillabel=\"{}\", headlabel=\"{}\"];",
-                                   from_node, to_node, connection.from_io.name, connection.to_io.name)
+                from_node, to_node, connection.from_io.name, connection.to_io.name)
     }
 }
 
@@ -125,8 +125,9 @@ fn digraph_wrapper_end() -> String {
 fn run_to_dot(runnable: &Runnable) -> String {
     let mut dot_string = String::new();
 
-    dot_string.push_str(&format!("\t\"{}\" [label=\"{}\\n({})\"]; // runnable @ route, label = runnable name \n",
+    dot_string.push_str(&format!("\t\"{}\" [{} label=\"{}\\n({})\"]; // runnable @ route, label = runnable name \n",
                                  runnable.route(),
+                                 runnable_style(runnable),
                                  runnable.alias(),
                                  runnable.name()));
 
@@ -146,6 +147,58 @@ fn run_to_dot(runnable: &Runnable) -> String {
             str::replace(&runnable.alias(), "-", "_"),
             dot_string,
             runnable.alias())
+}
+
+
+// Given a Runnable as used in the code generation - generate a "dot" format string to draw it
+fn runnable_to_dot(runnable: &Box<Runnable>, runnables: &Vec<Box<Runnable>>) -> String {
+    let mut runnable_string = String::new();
+
+    let style = runnable_style(&**runnable);
+
+    runnable_string.push_str(&format!("r{}[{} label=\"{} (#{})\"];\n",
+                                      runnable.get_id(),
+                                      style,
+                                      runnable.alias(),
+                                      runnable.get_id()));
+
+    if let Some(iv) = runnable.get_initial_value() {
+        // Add an extra graph entry for the initial value
+        runnable_string.push_str(&format!("iv{}[style=invis];\n", runnable.get_id()));
+        // with a connection to the runnable
+        if iv.is_string() {
+            // escape the quotes in the value when converted to string
+            runnable_string.push_str(&format!("iv{} -> r{} [style=dotted] [color=blue] [label=\"'{}'\"];\n",
+                                              runnable.get_id(), runnable.get_id(), iv.as_str().unwrap()));
+        } else {
+            runnable_string.push_str(&format!("iv{} -> r{} [style=dotted] [color=blue] [label=\"{}\"];\n",
+                                              runnable.get_id(), runnable.get_id(), iv));
+        }
+    }
+
+    // Add edges for each of the outputs of this runnable to other ones
+    for &(ref output_route, destination_index, destination_input_index) in runnable.get_output_routes() {
+        let input_port = INPUT_PORTS[destination_input_index % INPUT_PORTS.len()];
+        let destination_runnable = &runnables[destination_index];
+        let input_name = &destination_runnable.get_inputs().unwrap()[destination_input_index].name;
+        runnable_string.push_str(&format!("r{}:s -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];\n",
+                                          runnable.get_id(), destination_index, input_port,
+                                          output_route, input_name));
+    }
+
+    runnable_string
+}
+
+fn runnable_style(runnable: &Runnable) -> &'static str {
+    if runnable.get_type() == "Value" {
+        if runnable.is_static_value() {
+            return "shape=box, style=filled, fillcolor=gray40,"; // static value
+        } else {
+            return "shape=box, style=filled, fillcolor=dodgerblue,"; // normal value
+        }
+    } else {
+        return "style=filled, fillcolor=coral,";
+    }
 }
 
 /*
@@ -204,7 +257,7 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
 fn flow_reference_to_dot(flow_ref: &FlowReference) -> String {
     let mut dot_string = String::new();
 
-    dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", width=3, height=3, URL=\"{}.dot\"];\n",
+    dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=3, height=3, URL=\"{}.dot\"];\n",
                                  flow_ref.flow.route,
                                  flow_ref.alias,
                                  flow_ref.flow.alias));
@@ -220,60 +273,11 @@ pub fn runnables_to_dot(flow_alias: &str, tables: &CodeGenTables, dot_file: &mut
 
     let mut runnables = String::new();
     for runnable in &tables.runnables {
-        runnables.push_str(&runnable_to_dot(&runnable, &tables.runnables));
+        runnables.push_str(&runnable_to_dot(runnable, &tables.runnables));
     }
     dot_file.write_all(runnables.as_bytes())?;
 
     dot_file.write_all("}".as_bytes())?;
 
     Ok("Dot file written".to_string())
-}
-
-// Given a Runnable as used in the code generation - generate a "dot" format string to draw it
-fn runnable_to_dot(runnable: &Box<Runnable>, runnables: &Vec<Box<Runnable>>) -> String {
-    let mut runnable_string = String::new();
-
-    let shape = if runnable.get_type() == "Value" {
-        "shape=box,"
-    } else {
-        ""
-    };
-
-    let fill = if runnable.is_static_value() {
-        "style=filled, fillcolor=\"#999999\","
-    } else {
-        ""
-    };
-
-    runnable_string.push_str(&format!("r{}[{} {} label=\"{} (#{})\"];\n",
-                                      runnable.get_id(),
-                                      shape, fill,
-                                      runnable.alias(),
-                                      runnable.get_id()));
-
-    if let Some(iv) = runnable.get_initial_value() {
-        // Add an extra graph entry for the initial value
-        runnable_string.push_str(&format!("iv{}[style=invis];\n", runnable.get_id()));
-        // with a connection to the runnable
-        if iv.is_string() {
-            // escape the quotes in the value when converted to string
-            runnable_string.push_str(&format!("iv{} -> r{} [style=dotted] [color=blue] [label=\"'{}'\"];\n",
-                                              runnable.get_id(), runnable.get_id(), iv.as_str().unwrap()));
-        } else {
-            runnable_string.push_str(&format!("iv{} -> r{} [style=dotted] [color=blue] [label=\"{}\"];\n",
-                                              runnable.get_id(), runnable.get_id(), iv));
-        }
-    }
-
-    // Add edges for each of the outputs of this runnable to other ones
-    for &(ref output_route, destination_index, destination_input_index) in runnable.get_output_routes() {
-        let input_port = INPUT_PORTS[destination_input_index % INPUT_PORTS.len()];
-        let destination_runnable = &runnables[destination_index];
-        let input_name = &destination_runnable.get_inputs().unwrap()[destination_input_index].name;
-        runnable_string.push_str(&format!("r{}:s -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];\n",
-                                          runnable.get_id(), destination_index, input_port,
-                                          output_route, input_name));
-    }
-
-    runnable_string
 }
