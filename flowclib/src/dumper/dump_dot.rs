@@ -34,11 +34,9 @@ pub fn dump_flow_dot(flow: &Flow, level: usize, dot_file: &mut Write) -> io::Res
 
     // Flow References
     if let &Some(ref flow_refs) = &flow.flow_refs {
-        contents.push_str("\n\t\tsubgraph cluster_sub_flows {\n\n");
         for flow_ref in flow_refs {
             contents.push_str(&flow_reference_to_dot(&flow_ref));
         }
-        contents.push_str("\t\t} // close cluster_sub_flows\n\n"); // subgraph cluster_sub_flows
     }
 
     // Connections inside this flows
