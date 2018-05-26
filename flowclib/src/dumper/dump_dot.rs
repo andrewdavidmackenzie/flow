@@ -10,7 +10,7 @@ use model::connection;
 use model::connection::Connection;
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
-static OUTPUT_PORTS: &[&str] = &["s", "se", "sw"];
+//static OUTPUT_PORTS: &[&str] = &["s", "se", "sw"];
 
 pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
     dot_file.write_all(digraph_wrapper_start(flow).as_bytes())?;
@@ -38,6 +38,7 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
 
     // Flow References
     if let &Some(ref flow_refs) = &flow.flow_refs {
+        contents.push_str("\n\t// Sub-Flows\n");
         for flow_ref in flow_refs {
             contents.push_str(&flow_reference_to_dot(&flow_ref));
         }
@@ -134,7 +135,7 @@ fn run_to_dot(runnable: &Runnable) -> String {
     let name = if runnable.name() == runnable.alias() {
         "".to_string()
     } else {
-        format!("\\n{}", runnable.name()).to_string()
+        format!("\\n({})", runnable.name()).to_string()
     };
 
     let initial_value = if let Some(iv) = runnable.get_initial_value() {
@@ -148,13 +149,7 @@ fn run_to_dot(runnable: &Runnable) -> String {
                                  runnable_style(runnable),
                                  runnable.alias(), name, initial_value));
 
-    // Put inside a cluster of it's own to help us gather it with it's inputs and outputs
-    format!("\n\t// Runnable of type = {}\n\tsubgraph cluster_runnable_{} {{\n\t\tmargin=0;\n\t\tstyle=invis;
-    {}\t}} // close runnable {} \n",
-            runnable.get_type(),
-            str::replace(&runnable.alias(), "-", "_"),
-            dot_string,
-            runnable.alias())
+    dot_string
 }
 
 
@@ -271,10 +266,7 @@ fn flow_reference_to_dot(flow_ref: &FlowReference) -> String {
                                  flow_ref.flow.route,
                                  flow_ref.alias,
                                  flow_ref.flow.alias));
-
-    // Put inside a cluster of it's own
-    format!("\n\t// Sub-flow\n\tsubgraph cluster_sub_flow_{} {{\n\t\tstyle=invis;
-    {}\t}} // close sub-flow {}\n", str::replace(&flow_ref.flow.alias, "-", "_"), dot_string, flow_ref.flow.alias)
+    dot_string
 }
 
 pub fn runnables_to_dot(flow_alias: &str, tables: &CodeGenTables, dot_file: &mut Write) -> io::Result<String> {
