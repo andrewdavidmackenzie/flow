@@ -214,7 +214,7 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
     let mut string = String::new();
 
     if let &Some(ref inputs) = input_set {
-        string.push_str("\n\t// Inputs\n");
+        string.push_str("\n\t// Inputs\n\t{ rank=source\n");
         for input in inputs {
             // Avoid creating extra points to connect to for default input (e.g. on a value)
             if input.route != to.to_string() {
@@ -229,6 +229,7 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
                 }
             }
         }
+        string.push_str("\t}\n");
     }
     string
 }
@@ -240,12 +241,12 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
     let mut string = String::new();
 
     if let &Some(ref outputs) = output_set {
-        string.push_str("\n\t// Outputs\n");
+        string.push_str("\n\t// Outputs\n\t{ rank=sink\n");
         for output in outputs {
             // Only add output if it's not got the same route as it's runnable i.e. it's not the default output
             if output.route != *from {
                 // Add an entry for each output using it's route
-                string.push_str(&format!("\t\"{}\" [label=\"{}\", shape=invhouse, style=filled, fillcolor=black, fontcolor=white];\n",
+                string.push_str(&format!("\t\"{}\" [label=\"{}\", rank=sink, shape=invhouse, style=filled, fillcolor=black, fontcolor=white];\n",
                                          output.route, output.name));
 
                 if connect_subflow {
@@ -255,6 +256,7 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
                 }
             }
         }
+        string.push_str("\t}\n");
     }
     string
 }
