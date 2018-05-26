@@ -132,7 +132,7 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
 
                 if connect_subflow {
                     // and connect the input to the sub-flow
-                    string.push_str(&format!("\t\t\t\"{}\" -> \"{}\":n [len=0, weight=1000, style=invis, headtooltip=\"{}\"];\n",
+                    string.push_str(&format!("\t\t\t\"{}\" -> \"{}\":n [style=invis, headtooltip=\"{}\"];\n",
                                              input.route, to, input.name));
                 }
             }
@@ -158,7 +158,7 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
 
                 if connect_subflow {
                     // and connect the output to the sub-flow
-                    string.push_str(&format!("\t\t\t\"{}\":s -> \"{}\"[len=0, style=invis, weight=1000, headtooltip=\"{}\"];\n",
+                    string.push_str(&format!("\t\t\t\"{}\":s -> \"{}\"[style=invis, headtooltip=\"{}\"];\n",
                                              from, output.route, output.name));
                 }
             }
