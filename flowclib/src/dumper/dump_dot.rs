@@ -61,14 +61,14 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
 fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IOSet) -> String {
     let (from_route, number, array_index) = connection::name_without_trailing_number(&connection.from_io.route);
 
-    let from_node = node_from_io_route(&from_route.to_string(), &connection.from_io.name, input_set);
-    let to_node = node_from_io_route(&connection.to_io.route, &connection.to_io.name, output_set);
+    let (from_node, from_label) = node_from_io_route(&from_route.to_string(), &connection.from_io.name, input_set);
+    let (to_node, to_label) = node_from_io_route(&connection.to_io.route, &connection.to_io.name, output_set);
     if array_index {
         format!("\n\t\"{}\" -> \"{}\" [taillabel=\"{}[{}]\", headlabel=\"{}\"];",
-                from_node, to_node, connection.from_io.name, number, connection.to_io.name)
+                from_node, to_node, from_label, number, to_label)
     } else {
         format!("\n\t\"{}\" -> \"{}\" [taillabel=\"{}\", headlabel=\"{}\"];",
-                from_node, to_node, connection.from_io.name, connection.to_io.name)
+                from_node, to_node, from_label, to_label)
     }
 }
 
@@ -80,12 +80,17 @@ fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IO
     If the input or output IS NOT the default one ("" empty string) then remove the IO name from the
     route and return that.
 */
-fn node_from_io_route(route: &Route, name: &str, io_set: &IOSet) -> String {
+fn node_from_io_route(route: &Route, name: &str, io_set: &IOSet) -> (String, String) {
+    let mut label = "".to_string();
+    if !route_in_io_set(route, io_set) {
+        label = name.to_string();
+    }
+
     if name.is_empty() || route_in_io_set(route, io_set) {
-        return route.clone();
+        return (route.clone(), label);
     } else {
         let length_without_io_name = route.len() - name.len() - 1; // 1 for '/'
-        return route.clone()[..length_without_io_name].to_string();
+        return (route.clone()[..length_without_io_name].to_string(), label);
     }
 }
 
@@ -192,9 +197,9 @@ fn runnable_to_dot(runnable: &Box<Runnable>, runnables: &Vec<Box<Runnable>>) -> 
 fn runnable_style(runnable: &Runnable) -> &'static str {
     if runnable.get_type() == "Value" {
         if runnable.is_static_value() {
-            return "shape=box, style=filled, fillcolor=gray40,"; // static value
+            return "shape=cylinder, style=filled, fillcolor=gray40,"; // static value
         } else {
-            return "shape=box, style=filled, fillcolor=dodgerblue,"; // normal value
+            return "shape=cylinder, style=filled, fillcolor=dodgerblue,"; // normal value
         }
     } else {
         return "style=filled, fillcolor=coral,";
@@ -214,7 +219,7 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
             // Avoid creating extra points to connect to for default input (e.g. on a value)
             if input.route != to.to_string() {
                 // Add an entry for each input using it's route
-                string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=grey];\n",
+                string.push_str(&format!("\t\"{}\" [label=\"{}\", shape=house, style=filled, fillcolor=white];\n",
                                          input.route, input.name));
 
                 if connect_subflow {
@@ -240,7 +245,7 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
             // Only add output if it's not got the same route as it's runnable i.e. it's not the default output
             if output.route != *from {
                 // Add an entry for each output using it's route
-                string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=grey];\n",
+                string.push_str(&format!("\t\"{}\" [label=\"{}\", shape=invhouse, style=filled, fillcolor=black, fontcolor=white];\n",
                                          output.route, output.name));
 
                 if connect_subflow {
