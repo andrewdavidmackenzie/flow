@@ -65,10 +65,10 @@ fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IO
     let (from_node, from_label) = node_from_io_route(&from_route.to_string(), &connection.from_io.name, input_set);
     let (to_node, to_label) = node_from_io_route(&connection.to_io.route, &connection.to_io.name, output_set);
     if array_index {
-        format!("\n\t\"{}\" -> \"{}\" [taillabel=\"{}[{}]\", headlabel=\"{}\"];",
+        format!("\n\t\"{}\" -> \"{}\" [labeldistance=\"3\", taillabel=\"{}[{}]\", headlabel=\"{}\"];",
                 from_node, to_node, from_label, number, to_label)
     } else {
-        format!("\n\t\"{}\" -> \"{}\" [taillabel=\"{}\", headlabel=\"{}\"];",
+        format!("\n\t\"{}\" -> \"{}\" [labeldistance=\"3\", taillabel=\"{}\", headlabel=\"{}\"];",
                 from_node, to_node, from_label, to_label)
     }
 }
