@@ -118,6 +118,7 @@ fn digraph_wrapper_start(flow: &Flow) -> String {
     wrapper.push_str("\tmargin=0.4;\n");
     wrapper.push_str("\tcompound=true;\n");
     wrapper.push_str("\tmodel=mds;\n");
+    wrapper.push_str("\tnodesep=1.5;\n");
 
     wrapper
 }
@@ -130,20 +131,22 @@ fn digraph_wrapper_end() -> String {
 fn run_to_dot(runnable: &Runnable) -> String {
     let mut dot_string = String::new();
 
-    dot_string.push_str(&format!("\t\"{}\" [{} label=\"{}\\n({})\"]; // runnable @ route, label = runnable name \n",
+    let name = if runnable.name() == runnable.alias() {
+        "".to_string()
+    } else {
+        format!("\\n{}", runnable.name()).to_string()
+    };
+
+    let initial_value = if let Some(iv) = runnable.get_initial_value() {
+        format!("\\ninit={}", iv).to_string()
+    } else {
+        "".to_string()
+    };
+
+    dot_string.push_str(&format!("\t\"{}\" [{} label=\"{}{}{}\"]; // runnable @ route, label = runnable name \n",
                                  runnable.route(),
                                  runnable_style(runnable),
-                                 runnable.alias(),
-                                 runnable.name()));
-
-    if let Some(iv) = runnable.get_initial_value() {
-        // Add an extra graph entry for the initial value
-        dot_string.push_str(&format!("\t\t\"{}_iv\"[style=invis] ; // initial value\n", runnable.route()));
-        // with a connection to the runnable
-        let iv_string = str::replace(&iv.to_string(), "\"", "'");
-        dot_string.push_str(&format!("\t\t\"{}_iv\" -> \"{}\" [style=dotted] [color=blue] [label=\"{}\"]; // connect initial value to runnable\n",
-                                     runnable.route(), runnable.route(), iv_string));
-    }
+                                 runnable.alias(), name, initial_value));
 
     // Put inside a cluster of it's own to help us gather it with it's inputs and outputs
     format!("\n\t// Runnable of type = {}\n\tsubgraph cluster_runnable_{} {{\n\t\tmargin=0;\n\t\tstyle=invis;
@@ -264,7 +267,7 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
 fn flow_reference_to_dot(flow_ref: &FlowReference) -> String {
     let mut dot_string = String::new();
 
-    dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=3, height=3, URL=\"{}.dot\"];\n",
+    dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot\"];\n",
                                  flow_ref.flow.route,
                                  flow_ref.alias,
                                  flow_ref.flow.alias));
@@ -276,7 +279,7 @@ fn flow_reference_to_dot(flow_ref: &FlowReference) -> String {
 
 pub fn runnables_to_dot(flow_alias: &str, tables: &CodeGenTables, dot_file: &mut Write) -> io::Result<String> {
     // Create a directed graph named after the flow
-    dot_file.write_all(format!("digraph {} {{\n", str::replace(flow_alias, "-", "_")).as_bytes())?;
+    dot_file.write_all(format!("digraph {} {{\nnodesep=1.5\n", str::replace(flow_alias, "-", "_")).as_bytes())?;
 
     let mut runnables = String::new();
     for runnable in &tables.runnables {
