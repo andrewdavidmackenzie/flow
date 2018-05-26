@@ -170,7 +170,7 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
 fn flow_reference_to_dot(flow_ref: &FlowReference) -> String {
     let mut dot_string = String::new();
 
-    dot_string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", width=1, height=1, URL=\"{}.dot\"];\n",
+    dot_string.push_str(&format!("\t\t\t\"{}\" [label=\"{}\", width=3, height=3, URL=\"{}.dot\"];\n",
                                  flow_ref.flow.route,
                                  flow_ref.alias,
                                  flow_ref.flow.alias));
