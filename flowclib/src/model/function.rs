@@ -25,7 +25,7 @@ pub struct Function {
     #[serde(skip_deserializing, default = "Function::default_url")]
     pub source_url: Url,
     #[serde(skip_deserializing)]
-    pub route: Route,
+    route: Route,
     #[serde(skip_deserializing)]
     pub lib_reference: Option<String>,
     #[serde(skip_deserializing)]
@@ -162,6 +162,14 @@ impl Default for Function {
 impl Function {
     fn default_url() -> Url {
         Url::parse("file:///").unwrap()
+    }
+
+    pub fn new(name: Name, alias: Name, inputs: IOSet, outputs: IOSet, source_url: Url,
+    route: Route, lib_reference: Option<String>, output_connections: Vec<(Route, usize, usize)>,
+    id: usize) -> Self {
+        Function {
+            name, alias, inputs, outputs, source_url, route, lib_reference, output_connections,  id
+        }
     }
 
     pub fn set_routes(&mut self, parent_route: &str) {

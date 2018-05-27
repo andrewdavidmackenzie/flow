@@ -31,7 +31,7 @@ pub struct Value {
 
     // Input and Output routes are the same. We assume a value has an output as otherwise it's useless
     #[serde(skip_deserializing)]
-    pub route: Route,
+    route: Route,
     #[serde(skip_deserializing)]
     pub output_connections: Vec<(Route, usize, usize)>,
     #[serde(skip_deserializing)]

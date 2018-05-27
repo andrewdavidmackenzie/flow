@@ -32,17 +32,7 @@ impl Loader for FlowYamlLoader {
 //        let docs = YamlLoader::load_from_str(&contents).unwrap();
 //        let doc = &docs[0];
 
-        let function = Function {
-            name: "fake".to_string(),
-            alias: "fake".to_string(),
-            source_url: Url::parse("file:///").unwrap(),
-            route: "fake/fake".to_string(),
-            inputs: None,
-            outputs: None,
-            lib_reference: None,
-            id: 0,
-            output_connections: vec!(("".to_string(), 0, 0))
-        };
+        let function = Function::default();
 
         Ok(function)
     }

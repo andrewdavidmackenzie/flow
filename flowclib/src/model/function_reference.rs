@@ -23,7 +23,7 @@ impl HasName for FunctionReference {
 
 impl HasRoute for FunctionReference {
     fn route(&self) -> &Route {
-        &self.function.route
+        &self.function.route()
     }
 }
 

@@ -239,20 +239,19 @@ mod test {
 
     #[test]
     fn function_with_sub_route_output_to_code() {
-        let function = Function {
-            name: "Stdout".to_string(),
-            alias: "print".to_string(),
-            inputs: Some(vec!()),
-            outputs: Some(vec!(
+        let function = Function::new(
+            "Stdout".to_string(),
+            "print".to_string(),
+            Some(vec!()),
+            Some(vec!(
                 IO::new(&"Json".to_string(), &"".to_string()),
                 IO::new(&"String".to_string(), &"".to_string())
             )),
-            source_url: Url::parse("file:///fake/file").unwrap(),
-            route: "/flow0/stdout".to_string(),
-            lib_reference: None,
-            output_connections: vec!(("".to_string(), 1, 0), ("sub_route".to_string(), 2, 0)),
-            id: 0,
-        };
+            Url::parse("file:///fake/file").unwrap(),
+            "/flow0/stdout".to_string(),
+            None,
+            vec!(("".to_string(), 1, 0), ("sub_route".to_string(), 2, 0)),
+            0);
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
@@ -261,19 +260,18 @@ mod test {
 
     #[test]
     fn function_to_code() {
-        let function = Function {
-            name: "Stdout".to_string(),
-            alias: "print".to_string(),
-            inputs: Some(vec!()),
-            outputs: Some(vec!(
+        let function = Function::new(
+            "Stdout".to_string(),
+            "print".to_string(),
+            Some(vec!()),
+            Some(vec!(
                 IO::new(&"String".to_string(), &"".to_string())
             )),
-            source_url: Url::parse("file:///fake/file").unwrap(),
-            route: "/flow0/stdout".to_string(),
-            lib_reference: None,
-            output_connections: vec!(("".to_string(), 1, 0)),
-            id: 0,
-        };
+            Url::parse("file:///fake/file").unwrap(),
+            "/flow0/stdout".to_string(),
+            None,
+            vec!(("".to_string(), 1, 0)),
+            0);
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
@@ -282,19 +280,18 @@ mod test {
 
     #[test]
     fn function_with_array_element_output() {
-        let function = Function {
-            name: "Stdout".to_string(),
-            alias: "print".to_string(),
-            inputs: Some(vec!()),
-            outputs: Some(vec!(
+        let function = Function::new(
+            "Stdout".to_string(),
+            "print".to_string(),
+            Some(vec!()),
+            Some(vec!(
                 IO::new(&"Array".to_string(), &"".to_string())
             )),
-            source_url: Url::parse("file:///fake/file").unwrap(),
-            route: "/flow0/stdout".to_string(),
-            lib_reference: None,
-            output_connections: vec!(("0".to_string(), 1, 0)),
-            id: 0,
-        };
+            Url::parse("file:///fake/file").unwrap(),
+            "/flow0/stdout".to_string(),
+            None,
+            vec!(("0".to_string(), 1, 0)),
+            0);
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
