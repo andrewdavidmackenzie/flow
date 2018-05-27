@@ -7,6 +7,7 @@ use model::flow_reference::FlowReference;
 use model::io::IOSet;
 use model::route::Route;
 use model::route::HasRoute;
+use model::route::FindRoute;
 use model::connection;
 use model::connection::Connection;
 use model::name::HasName;
@@ -85,30 +86,16 @@ fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IO
 */
 fn node_from_io_route(route: &Route, name: &str, io_set: &IOSet) -> (String, String) {
     let mut label = "".to_string();
-    if !route_in_io_set(route, io_set) {
+    if !io_set.find(route) {
         label = name.to_string();
     }
 
-    if name.is_empty() || route_in_io_set(route, io_set) {
+    if name.is_empty() || io_set.find(route) {
         return (route.clone(), label);
     } else {
         let length_without_io_name = route.len() - name.len() - 1; // 1 for '/'
         return (route.clone()[..length_without_io_name].to_string(), label);
     }
-}
-
-/*
-    For a given route, determine if it's the route to one of the IOs in the given IOSet
-*/
-fn route_in_io_set(route: &Route, io_set: &IOSet) -> bool {
-    if let &Some(ref ios) = io_set {
-        for io in ios {
-            if io.route() == route {
-                return true;
-            }
-        }
-    }
-    false
 }
 
 fn digraph_wrapper_start(flow: &Flow) -> String {

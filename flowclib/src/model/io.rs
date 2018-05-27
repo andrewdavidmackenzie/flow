@@ -1,6 +1,7 @@
 use model::name::Name;
 use model::name::HasName;
 use model::route::HasRoute;
+use model::route::FindRoute;
 use model::datatype::HasDataType;
 use model::datatype::DataType;
 use model::datatype::TypeCheck;
@@ -22,8 +23,6 @@ pub struct IO {
     #[serde(skip_deserializing)]
     pub flow_io: bool,
 }
-
-pub type IOSet = Option<Vec<IO>>;
 
 impl Default for IO {
     fn default() -> Self {
@@ -98,6 +97,8 @@ impl Validate for IO {
     }
 }
 
+pub type IOSet = Option<Vec<IO>>;
+
 impl Validate for IOSet {
     fn validate(&self) -> Result<(), String> {
         let mut name_set = HashSet::new();
@@ -115,6 +116,22 @@ impl Validate for IOSet {
             }
         }
         Ok(())
+    }
+}
+
+impl FindRoute for IOSet {
+    /*
+        Determine if it's a given route is in this IOSet
+    */
+    fn find(&self, route: &Route) -> bool {
+        if let &Some(ref ios) = self {
+            for io in ios {
+                if io.route() == route {
+                    return true;
+                }
+            }
+        }
+        false
     }
 }
 
