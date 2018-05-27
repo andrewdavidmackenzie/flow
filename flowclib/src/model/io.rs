@@ -1,3 +1,4 @@
+use model::name::Name;
 use model::name::HasName;
 use model::route::HasRoute;
 use model::datatype::HasDataType;
@@ -10,7 +11,7 @@ use std::collections::HashSet;
 #[derive(Deserialize, Debug, Clone)]
 pub struct IO {
     #[serde(default = "default_name")]
-    pub name: String,
+    pub name: Name,
     #[serde(rename = "type", default = "default_type")]
     pub datatype: DataType,
     #[serde(default = "default_depth")]
