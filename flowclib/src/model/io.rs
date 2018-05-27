@@ -4,7 +4,7 @@ use model::datatype::HasDataType;
 use model::datatype::DataType;
 use model::datatype::TypeCheck;
 use loader::loader::Validate;
-use model::connection::Route;
+use model::route::Route;
 use std::collections::HashSet;
 
 #[derive(Deserialize, Debug, Clone)]

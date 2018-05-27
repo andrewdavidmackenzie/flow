@@ -1,4 +1,4 @@
-use model::connection::Route;
+use model::route::Route;
 use model::io::IOSet;
 use url::Url;
 use model::name::HasName;

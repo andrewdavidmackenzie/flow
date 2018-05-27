@@ -5,7 +5,7 @@ use model::io::IO;
 use model::io::IOSet;
 use model::value::Value;
 use model::flow_reference::FlowReference;
-use model::connection::Route;
+use model::route::Route;
 use loader::loader::Validate;
 use model::function_reference::FunctionReference;
 use model::connection::Direction;

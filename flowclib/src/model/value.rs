@@ -5,7 +5,7 @@ use model::connection::HasRoute;
 use model::datatype::DataType;
 use model::datatype::HasDataType;
 use loader::loader::Validate;
-use model::connection::Route;
+use model::route::Route;
 use model::io::IO;
 use model::io::IOSet;
 use model::runnable::Runnable;

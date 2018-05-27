@@ -1,4 +1,4 @@
-use model::connection::Route;
+use model::route::Route;
 use std::collections::HashMap;
 use generator::code_gen::CodeGenTables;
 use model::connection::Connection;

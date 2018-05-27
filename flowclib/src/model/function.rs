@@ -4,7 +4,7 @@ use model::name::Name;
 use model::name::HasName;
 use model::io::IO;
 use model::io::IOSet;
-use model::connection::Route;
+use model::route::Route;
 use model::connection::HasRoute;
 use loader::loader::Validate;
 use model::runnable::Runnable;

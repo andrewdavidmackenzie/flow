@@ -1,10 +1,9 @@
 use model::name::Name;
 use loader::loader::Validate;
+use model::route::Route;
 use model::io::IO;
 use std::borrow::Cow;
 use std::fmt;
-
-pub type Route = String;
 
 pub trait HasRoute {
     fn route(&self) -> &str;

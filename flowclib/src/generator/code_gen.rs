@@ -8,7 +8,7 @@ use generator::rust_gen::generator::RustGenerator;
 use model::connection::Connection;
 use std::collections::HashSet;
 use model::runnable::Runnable;
-use model::connection::Route;
+use model::route::Route;
 
 const RUST: &CodeGenerator = &RustGenerator as &CodeGenerator;
 

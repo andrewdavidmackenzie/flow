@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use model::runnable::Runnable;
 use model::flow_reference::FlowReference;
 use model::io::IOSet;
-use model::connection::Route;
+use model::route::Route;
 use model::connection;
 use model::connection::Connection;
 
