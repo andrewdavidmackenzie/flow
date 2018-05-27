@@ -20,10 +20,10 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
 
     let mut contents = String::new();
     // Inputs
-    contents.push_str(&add_input_set(&flow.inputs, &flow.route, false));
+    contents.push_str(&add_input_set(&flow.inputs, flow.route(), false));
 
     // Outputs
-    contents.push_str(&add_output_set(&flow.outputs, &flow.route, false));
+    contents.push_str(&add_output_set(&flow.outputs, flow.route(), false));
 
     // Values
     if let &Some(ref values) = &flow.values {
@@ -252,7 +252,7 @@ fn flow_reference_to_dot(flow_ref: &FlowReference) -> String {
     let mut dot_string = String::new();
 
     dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot\"];\n",
-                                 flow_ref.flow.route,
+                                 flow_ref.flow.route(),
                                  flow_ref.alias(),
                                  flow_ref.flow.alias));
     dot_string

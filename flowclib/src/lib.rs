@@ -22,4 +22,4 @@ pub mod content;
 pub mod info;
 pub mod compiler;
 pub mod generator;
-mod model;
+pub mod model;

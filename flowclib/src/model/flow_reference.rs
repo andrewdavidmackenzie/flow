@@ -24,7 +24,7 @@ impl HasName for FlowReference {
 
 impl HasRoute for FlowReference {
     fn route(&self) -> &Route {
-        &self.flow.route
+        self.flow.route()
     }
 }
 

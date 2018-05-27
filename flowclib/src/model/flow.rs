@@ -34,7 +34,7 @@ pub struct Flow {
     #[serde(skip_deserializing, default = "Flow::default_url")]
     pub source_url: Url,
     #[serde(skip_deserializing)]
-    pub route: Route,
+    route: Route,
     #[serde(skip_deserializing)]
     pub lib_references: Vec<String>,
 }
@@ -153,9 +153,36 @@ impl Default for Flow {
     }
 }
 
+impl HasRoute for Flow {
+    fn route(&self) -> &Route {
+        &self.route
+    }
+}
+
 impl Flow {
     fn default_url() -> Url {
         Url::parse("file:///").unwrap()
+    }
+
+    pub fn new(alias: Name, source_url: Url, route: Route, flow_refs: Option<Vec<FlowReference>>,
+               connections: Option<Vec<Connection>>, inputs: IOSet, outputs: IOSet, function_refs: Option<Vec<FunctionReference>>,
+               values: Option<Vec<Value>>, lib_references: Vec<String>) -> Self {
+        Flow {
+            alias,
+            source_url,
+            route,
+            flow_refs,
+            connections,
+            inputs,
+            outputs,
+            function_refs,
+            values,
+            lib_references,
+        }
+    }
+
+    pub fn set_route_from_parent(&mut self, parent_route: &Route) {
+        self.route = format!("{}/{}", parent_route, self.alias);
     }
 
     /*

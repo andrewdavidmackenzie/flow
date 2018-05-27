@@ -11,19 +11,10 @@ impl Loader for FlowYamlLoader {
 //        let docs = YamlLoader::load_from_str(&contents).unwrap();
 //        let doc = &docs[0];
 
-        let flow =
-            Flow {
-                alias: "fake".to_string(),
-                source_url: Url::parse("fake").unwrap(),
-                route: "fake/fake".to_string(),
-                flow_refs: None,
-                connections: None,
-                inputs: None,
-                outputs: None,
-                function_refs: None,
-                values: None,
-                lib_references: vec!()
-            };
+        let flow = Flow::new("fake".to_string(), Url::parse("fake").unwrap(),
+                             "fake/fake".to_string(),
+                             None, None, None, None, None, None,
+                             vec!());
 
         Ok(flow)
     }
