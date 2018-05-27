@@ -6,6 +6,7 @@ use model::runnable::Runnable;
 use model::flow_reference::FlowReference;
 use model::io::IOSet;
 use model::route::Route;
+use model::route::HasRoute;
 use model::connection;
 use model::connection::Connection;
 use model::name::HasName;
@@ -61,10 +62,10 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
 }
 
 fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IOSet) -> String {
-    let (from_route, number, array_index) = connection::name_without_trailing_number(&connection.from_io.route);
+    let (from_route, number, array_index) = connection::name_without_trailing_number(&connection.from_io.route());
 
     let (from_node, from_label) = node_from_io_route(&from_route.to_string(), &connection.from_io.name(), input_set);
-    let (to_node, to_label) = node_from_io_route(&connection.to_io.route, &connection.to_io.name(), output_set);
+    let (to_node, to_label) = node_from_io_route(&connection.to_io.route(), &connection.to_io.name(), output_set);
     if array_index {
         format!("\n\t\"{}\" -> \"{}\" [labeldistance=\"3\", taillabel=\"{}[{}]\", headlabel=\"{}\"];",
                 from_node, to_node, from_label, number, to_label)
@@ -102,7 +103,7 @@ fn node_from_io_route(route: &Route, name: &str, io_set: &IOSet) -> (String, Str
 fn route_in_io_set(route: &Route, io_set: &IOSet) -> bool {
     if let &Some(ref ios) = io_set {
         for io in ios {
-            if io.route == *route {
+            if io.route() == route {
                 return true;
             }
         }
@@ -216,15 +217,15 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
         string.push_str("\n\t// Inputs\n\t{ rank=source\n");
         for input in inputs {
             // Avoid creating extra points to connect to for default input (e.g. on a value)
-            if input.route != to.to_string() {
+            if input.route() != to {
                 // Add an entry for each input using it's route
                 string.push_str(&format!("\t\"{}\" [label=\"{}\", shape=house, style=filled, fillcolor=white];\n",
-                                         input.route, input.name()));
+                                         input.route(), input.name()));
 
                 if connect_subflow {
                     // and connect the input to the sub-flow
                     string.push_str(&format!("\t\"{}\" -> \"{}\":n [style=invis, headtooltip=\"{}\"];\n",
-                                             input.route, to, input.name()));
+                                             input.route(), to, input.name()));
                 }
             }
         }
@@ -243,15 +244,15 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
         string.push_str("\n\t// Outputs\n\t{ rank=sink\n");
         for output in outputs {
             // Only add output if it's not got the same route as it's runnable i.e. it's not the default output
-            if output.route != *from {
+            if output.route() != from {
                 // Add an entry for each output using it's route
                 string.push_str(&format!("\t\"{}\" [label=\"{}\", rank=sink, shape=invhouse, style=filled, fillcolor=black, fontcolor=white];\n",
-                                         output.route, output.name()));
+                                         output.route(), output.name()));
 
                 if connect_subflow {
                     // and connect the output to the sub-flow
                     string.push_str(&format!("\t\"{}\":s -> \"{}\"[style=invis, headtooltip=\"{}\"];\n",
-                                             from, output.route, output.name()));
+                                             from, output.route(), output.name()));
                 }
             }
         }

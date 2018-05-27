@@ -149,10 +149,11 @@ impl Value {
 
             // Set sub routes for all outputs
             for ref mut output in outputs {
-                if output.name().is_empty() {
-                    output.route = self.route.clone();
+                let name = output.name().clone();
+                if name.is_empty() {
+                    output.set_route(self.route.clone());
                 } else {
-                    output.route = format!("{}/{}", self.route, output.name());
+                    output.set_route(format!("{}/{}", self.route, name));
                 }
             }
         }
@@ -170,9 +171,11 @@ impl Value {
                 let (array_route, _num, array_index) = connection::name_without_trailing_number(io_sub_route);
                 if array_index && (output.datatype(0) == "Array") && (output.name() as &str == array_route) {
                     let mut found = output.clone();
-                    found.datatype = output.datatype(1).to_string(); // the type within the array
-                    found.route.push_str("/");
-                    found.route.push_str(io_sub_route);
+                    found.set_datatype(output.datatype(1).to_string()); // the type within the array
+                    let mut new_route = found.route().clone();
+                    new_route.push_str("/");
+                    new_route.push_str(io_sub_route);
+                    found.set_route(new_route);
                     return Ok(found);
                 }
 
@@ -193,6 +196,7 @@ mod test {
     use super::Value;
     use loader::loader::Validate;
     use model::name::HasName;
+    use model::route::HasRoute;
 
     #[test]
     #[should_panic]
@@ -353,7 +357,7 @@ mod test {
         assert_eq!(outputs.len(), 1);
 
         let base_output = &outputs[0];
-        assert_eq!(base_output.route, "/flow/test_value");
+        assert_eq!(base_output.route(), "/flow/test_value");
     }
 
     #[test]
@@ -378,13 +382,13 @@ mod test {
         let outputs = value.outputs.unwrap();
 
         let output0 = &outputs[0];
-        assert_eq!(output0.route, "/flow/test_value");
+        assert_eq!(output0.route(), "/flow/test_value");
 
         let output1 = &outputs[1];
-        assert_eq!(output1.route, "/flow/test_value/sub_output");
+        assert_eq!(output1.route(), "/flow/test_value/sub_output");
 
         let output2 = &outputs[2];
-        assert_eq!(output2.route, "/flow/test_value/other_output");
+        assert_eq!(output2.route(), "/flow/test_value/other_output");
     }
 
     #[test]
@@ -398,7 +402,7 @@ mod test {
         value.set_routes("/flow");
 
         let output = value.get_output("").unwrap();
-        assert_eq!(output.route, "/flow/test_value");
+        assert_eq!(output.route(), "/flow/test_value");
         assert_eq!(output.datatype(0), "Json");
         assert_eq!(output.flow_io, false);
     }
@@ -421,7 +425,7 @@ mod test {
         value.set_routes("/flow");
 
         let output = value.get_output("sub_output").unwrap();
-        assert_eq!(output.route, "/flow/test_value/sub_output");
+        assert_eq!(output.route(), "/flow/test_value/sub_output");
         assert_eq!(output.datatype(0), "String");
         assert_eq!(output.flow_io, false);
     }

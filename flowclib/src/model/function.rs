@@ -195,10 +195,11 @@ impl Function {
         // Set routes to inputs
         if let Some(ref mut inputs) = self.inputs {
             for ref mut input in inputs {
-                if input.name().is_empty() {
-                    input.route = self.route.clone();
+                let name = input.name().clone();
+                if name.is_empty() {
+                    input.set_route(self.route.clone());
                 } else {
-                    input.route = format!("{}/{}", self.route, input.name());
+                    input.set_route(format!("{}/{}", self.route, name));
                 }
             }
         }
@@ -206,10 +207,11 @@ impl Function {
         // set routes to outputs
         if let Some(ref mut outputs) = self.outputs {
             for ref mut output in outputs {
-                if output.name().is_empty() {
-                    output.route = self.route.clone();
+                let name = output.name().clone();
+                if name.is_empty() {
+                    output.set_route(self.route.clone());
                 } else {
-                    output.route = format!("{}/{}", self.route, output.name());
+                    output.set_route(format!("{}/{}", self.route, name));
                 }
             }
         }
@@ -222,9 +224,11 @@ impl Function {
 
                 if array_index && (io.datatype(0) == "Array") && (io.name() as &str == array_route) {
                     let mut found = io.clone();
-                    found.datatype = io.datatype(1).to_string(); // the type within the array
-                    found.route.push_str("/");
-                    found.route.push_str(io_sub_route);
+                    found.set_datatype(io.datatype(1).to_string()); // the type within the array
+                    let mut new_route = found.route().clone();
+                    new_route.push_str("/");
+                    new_route.push_str(io_sub_route);
+                    found.set_route(new_route);
                     return Ok(found);
                 }
 
@@ -244,6 +248,7 @@ mod test {
     use loader::loader::Validate;
     use toml;
     use model::name::HasName;
+    use model::route::HasRoute;
 
     #[test]
     fn function_with_no_io_not_valid() {
@@ -377,10 +382,10 @@ mod test {
         let outputs = function.outputs.unwrap();
 
         let output0 = &outputs[0];
-        assert_eq!(output0.route, "/flow/test_alias/sub_output");
+        assert_eq!(output0.route(), "/flow/test_alias/sub_output");
 
         let output1 = &outputs[1];
-        assert_eq!(output1.route, "/flow/test_alias/other_output");
+        assert_eq!(output1.route(), "/flow/test_alias/other_output");
     }
 
     #[test]

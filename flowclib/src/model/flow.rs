@@ -6,6 +6,7 @@ use model::io::IOSet;
 use model::value::Value;
 use model::flow_reference::FlowReference;
 use model::route::Route;
+use model::route::HasRoute;
 use loader::loader::Validate;
 use model::function_reference::FunctionReference;
 use model::connection::Direction;
@@ -164,18 +165,20 @@ impl Flow {
         if let &mut Some(ref mut ios) = &mut self.inputs {
             debug!("Setting Input routes for flow '{}'", self.source_url);
             for ref mut input in ios {
-                input.route = format!("{}/{}", self.route, input.name());
+                let name = input.name().clone();
+                input.set_route(format!("{}/{}", self.route, name));
                 input.flow_io = true;
-                debug!("Input route: '{}'", input.route);
+                debug!("Input route: '{}'", input.route());
             }
         }
 
         if let &mut Some(ref mut ios) = &mut self.outputs {
             debug!("Setting Output routes for flow '{}'", self.source_url);
             for ref mut output in ios {
-                output.route = format!("{}/{}", self.route, output.name());
+                let name = output.name().clone();
+                output.set_route(format!("{}/{}", self.route, name));
                 output.flow_io = true;
-                debug!("Output route: '{}'", output.route);
+                debug!("Output route: '{}'", output.route());
             }
         }
     }

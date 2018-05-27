@@ -1,6 +1,7 @@
 use model::name::Name;
 use loader::loader::Validate;
 use model::route::Route;
+use model::route::HasRoute;
 use model::io::IO;
 use std::borrow::Cow;
 use std::fmt;
@@ -54,10 +55,10 @@ impl Connection {
 impl fmt::Display for Connection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match (self.from_io.flow_io, self.to_io.flow_io) {
-            (true, true) => write!(f, "(f){} --> (f){}", self.from_io.route, self.to_io.route),
-            (true, false) => write!(f, "(f){} --> {}", self.from_io.route, self.to_io.route),
-            (false, true) => write!(f, "{} --> (f){}", self.from_io.route, self.to_io.route),
-            (false, false) => write!(f, "{} --> {}", self.from_io.route, self.to_io.route)
+            (true, true) => write!(f, "(f){} --> (f){}", self.from_io.route(), self.to_io.route()),
+            (true, false) => write!(f, "(f){} --> {}", self.from_io.route(), self.to_io.route()),
+            (false, true) => write!(f, "{} --> (f){}", self.from_io.route(), self.to_io.route()),
+            (false, false) => write!(f, "{} --> {}", self.from_io.route(), self.to_io.route())
         }
     }
 }

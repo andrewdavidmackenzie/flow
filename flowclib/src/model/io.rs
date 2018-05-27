@@ -13,12 +13,12 @@ pub struct IO {
     #[serde(default = "default_name")]
     name: Name,
     #[serde(rename = "type", default = "default_type")]
-    pub datatype: DataType,
+    datatype: DataType,
     #[serde(default = "default_depth")]
     pub depth: usize,
 
     #[serde(skip_deserializing)]
-    pub route: Route,
+    route: Route,
     #[serde(skip_deserializing)]
     pub flow_io: bool,
 }
@@ -63,6 +63,14 @@ impl IO {
     pub fn datatype(&self, level: usize) -> &str {
         let type_levels: Vec<&str> = self.datatype.split('/').collect();
         type_levels[level]
+    }
+
+    pub fn set_route(&mut self, route: Route) {
+        self.route = route;
+    }
+
+    pub fn set_datatype(&mut self, datatype: DataType) {
+        self.datatype = datatype
     }
 }
 
