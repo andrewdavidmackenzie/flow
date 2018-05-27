@@ -155,7 +155,7 @@ dependencies = [
 
 [[package]]
 name = "flowstdlib"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "flowrlib 0.5.0",
  "image 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",

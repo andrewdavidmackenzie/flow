@@ -23,7 +23,7 @@ type = "Number"
 name = "done"
 type = "Bool"
 
-# IO switches
+# IO taps
 [[value]]
 name = "start-signal"
 type = "Bool"
@@ -31,11 +31,11 @@ init = true
 
 [[function]]
 alias = "limit-gate"
-source = "lib://flowstdlib/control/switch.toml"
+source = "lib://flowstdlib/control/tap.toml"
 
 [[function]]
 alias = "start-gate"
-source = "lib://flowstdlib/control/switch.toml"
+source = "lib://flowstdlib/control/tap.toml"
 
 [[connection]]
 from = "value/start-signal"
@@ -115,7 +115,7 @@ static = true
 
 [[function]]
 alias = "when-done"
-source = "lib://flowstdlib/control/switch.toml"
+source = "lib://flowstdlib/control/tap.toml"
 
 [[connection]]
 from = "value/range-done"

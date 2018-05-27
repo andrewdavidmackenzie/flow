@@ -42,19 +42,19 @@ type = "String"
 init = "Range done"
 
 [[function]]
-alias = "switch"
-source = "lib://flowstdlib/control/switch.toml"
+alias = "tap"
+source = "lib://flowstdlib/control/tap.toml"
 
 [[connection]]
 from = "value/done"
-to = "function/switch/data"
+to = "function/tap/data"
 
 [[connection]]
 from = "flow/range/done"
-to = "function/switch/control"
+to = "function/tap/control"
 
 [[connection]]
-from = "function/switch"
+from = "function/tap"
 to = "function/print"
 
 # Output

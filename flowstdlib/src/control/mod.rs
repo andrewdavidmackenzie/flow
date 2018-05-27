@@ -1,4 +1,4 @@
 extern crate flowrlib;
 
-pub mod switch;
+pub mod tap;
 pub mod compare;
