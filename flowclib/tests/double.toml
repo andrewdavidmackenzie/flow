@@ -1,0 +1,17 @@
+[[value]]
+name = "one"
+type = "Number"
+init = 1
+
+[[function]]
+alias = "sum"
+source = "lib://flowstdlib/math/add.toml"
+
+# two identical connections between them
+[[connection]]
+from = "value/one"
+to = "function/sum/i1"
+
+[[connection]]
+from = "value/one"
+to = "function/sum/i1"
