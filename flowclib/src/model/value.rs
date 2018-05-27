@@ -55,8 +55,8 @@ impl HasDataType for Value {
 }
 
 impl HasRoute for Value {
-    fn route(&self) -> &str {
-        &self.route[..]
+    fn route(&self) -> &Route {
+        &self.route
     }
 }
 

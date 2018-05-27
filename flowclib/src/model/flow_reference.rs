@@ -1,5 +1,6 @@
 use model::name::Name;
 use model::name::HasName;
+use model::route::Route;
 use model::route::HasRoute;
 use model::flow::Flow;
 use loader::loader::Validate;
@@ -22,8 +23,8 @@ impl HasName for FlowReference {
 }
 
 impl HasRoute for FlowReference {
-    fn route(&self) -> &str {
-        &self.flow.route[..]
+    fn route(&self) -> &Route {
+        &self.flow.route
     }
 }
 

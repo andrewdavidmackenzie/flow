@@ -40,8 +40,8 @@ impl HasName for Function {
 }
 
 impl HasRoute for Function {
-    fn route(&self) -> &str {
-        &self.route[..]
+    fn route(&self) -> &Route {
+        &self.route
     }
 }
 

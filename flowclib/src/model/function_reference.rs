@@ -2,6 +2,7 @@ use std::fmt;
 
 use model::name::Name;
 use model::name::HasName;
+use model::route::Route;
 use model::route::HasRoute;
 use model::function::Function;
 use loader::loader::Validate;
@@ -21,8 +22,8 @@ impl HasName for FunctionReference {
 }
 
 impl HasRoute for FunctionReference {
-    fn route(&self) -> &str {
-        &self.function.route[..]
+    fn route(&self) -> &Route {
+        &self.function.route
     }
 }
 

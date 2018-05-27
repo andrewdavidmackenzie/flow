@@ -64,8 +64,8 @@ impl IO {
 }
 
 impl HasRoute for IO {
-    fn route(&self) -> &str {
-        &self.route[..]
+    fn route(&self) -> &Route {
+        &self.route
     }
 }
 
