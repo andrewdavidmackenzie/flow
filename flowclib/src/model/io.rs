@@ -166,6 +166,24 @@ impl SetRoute for IOSet {
     }
 }
 
+pub trait FindName {
+    fn find(&self, name: &Name) -> Result<IO, String>;
+}
+
+impl FindName for IOSet {
+    fn find(&self, name: &Name) -> Result<IO, String> {
+        if let &Some(ref ios) = self {
+            for io in ios {
+                if io.name() == name {
+                    return Ok(io.clone());
+                }
+            }
+            return Err(format!("No input or output with name '{}' was found", name));
+        }
+        Err(format!("No inputs or outputs found when looking for input/output '{}'", name))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use toml;

@@ -8,6 +8,7 @@ use model::flow_reference::FlowReference;
 use model::route::Route;
 use model::route::HasRoute;
 use model::route::SetRoute;
+use model::io::FindName;
 use loader::loader::Validate;
 use model::function_reference::FunctionReference;
 use model::connection::Direction;
@@ -213,26 +214,13 @@ impl Flow {
         }
     }
 
-    // Look through an IOSet, to find one by name and return it
-    fn get(&self, collection: &IOSet, element_name: &str) -> Result<IO, String> {
-        if let &Some(ref elements) = collection {
-            for element in elements {
-                if element.name() == element_name {
-                    return Ok(element.clone());
-                }
-            }
-            return Err(format!("No input or output with name '{}' was found", element_name));
-        }
-        Err(format!("No inputs or outputs found when looking for input/output '{}'", element_name))
-    }
-
-    fn get_io_subflow(&self, subflow_alias: &str, direction: Direction, io_name: &str) -> Result<IO, String> {
+    fn get_io_subflow(&self, subflow_alias: &str, direction: Direction, io_name: &Name) -> Result<IO, String> {
         if let Some(ref flow_refs) = self.flow_refs {
             for flow_ref in flow_refs {
                 if flow_ref.name() == subflow_alias {
                     return match direction {
-                        Direction::TO => flow_ref.flow.get(&flow_ref.flow.inputs, io_name),
-                        Direction::FROM => flow_ref.flow.get(&flow_ref.flow.outputs, io_name)
+                        Direction::TO => flow_ref.flow.inputs.find(io_name),
+                        Direction::FROM => flow_ref.flow.outputs.find(io_name)
                     };
                 }
             }
@@ -279,14 +267,14 @@ impl Flow {
     pub fn get_route_and_type(&mut self, direction: Direction, conn_descriptor: &str) -> Result<IO, String> {
         let mut segments: Vec<&str> = conn_descriptor.split('/').collect();
         let object_type = segments.remove(0); // first part is type of object
-        let object_name = segments.remove(0); // second part is the name of it
+        let object_name = &Name::from(segments.remove(0)); // second part is the name of it
         let route = segments.join("/");       // the rest is a sub-route
 
         debug!("Looking for connection {:?} {} '{}' with sub-route '{}'", direction, object_type, object_name, route);
 
         match (&direction, object_type) {
-            (&Direction::TO, "output") => self.get(&self.outputs, object_name), // an output from this flow
-            (&Direction::FROM, "input") => self.get(&self.inputs, object_name), // an input to this flow
+            (&Direction::TO, "output") => self.outputs.find(object_name), // an output from this flow
+            (&Direction::FROM, "input") => self.inputs.find(object_name), // an input to this flow
             (_, "flow") => self.get_io_subflow(object_name, direction, &route), // input or output of a subflow
             (_, "value") => self.get_io_from_value(object_name, direction, &route), // input or output of a contained value
             (_, "function") => self.get_io_from_function_ref(object_name, direction, &route), // input or output of a referenced function
