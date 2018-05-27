@@ -109,8 +109,8 @@ pub fn load_function(url: &Url, parent_route: &str, alias: &str) -> Result<Funct
     let contents = provider::get(&resolved_url)?;
     let mut function = loader.load_function(&contents)?;
     function.set_alias(alias.to_string());
-    function.source_url = resolved_url.clone();
-    function.lib_reference = lib_ref;
+    function.set_source_url(resolved_url.clone());
+    function.set_lib_reference(lib_ref);
     function.set_routes(parent_route);
     function.validate()?;
     Ok(function)
@@ -128,7 +128,7 @@ fn load_functions(flow: &mut Flow) -> Result<(), String> {
             function_ref.function = load_function(&function_url, &flow.route, &function_ref.alias())
                 .map_err(|e| format!("while loading function from Url '{}' - {}",
                                      function_url, e.to_string()))?;
-            if let &Some(ref lib_ref) = &function_ref.function.lib_reference {
+            if let &Some(ref lib_ref) = function_ref.function.get_lib_reference() {
                 flow.lib_references.push(format!("{}/{}", lib_ref, function_ref.function.name()));
             }
         }

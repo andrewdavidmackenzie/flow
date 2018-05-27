@@ -16,22 +16,22 @@ use model::connection;
 pub struct Function {
     name: Name,
     #[serde(rename = "input")]
-    pub inputs: IOSet,
+    inputs: IOSet,
     #[serde(rename = "output")]
-    pub outputs: IOSet,
+    outputs: IOSet,
 
     #[serde(skip_deserializing)]
     alias: Name,
     #[serde(skip_deserializing, default = "Function::default_url")]
-    pub source_url: Url,
+    source_url: Url,
     #[serde(skip_deserializing)]
     route: Route,
     #[serde(skip_deserializing)]
-    pub lib_reference: Option<String>,
+    lib_reference: Option<String>,
     #[serde(skip_deserializing)]
-    pub output_connections: Vec<(Route, usize, usize)>,
+    output_routes: Vec<(Route, usize, usize)>,
     #[serde(skip_deserializing)]
-    pub id: usize,
+    id: usize,
 }
 
 impl HasName for Function {
@@ -63,7 +63,7 @@ impl Runnable for Function {
     }
 
     fn add_output_connection(&mut self, connection: (Route, usize, usize)) {
-        self.output_connections.push(connection);
+        self.output_routes.push(connection);
     }
 
     fn source_url(&self) -> Option<Url> {
@@ -81,7 +81,7 @@ impl Runnable for Function {
     fn is_static_value(&self) -> bool { false }
 
     fn get_output_routes(&self) -> &Vec<(Route, usize, usize)> {
-        &self.output_connections
+        &self.output_routes
     }
 
     fn get_initial_value(&self) -> Option<JsonValue> { None }
@@ -154,7 +154,7 @@ impl Default for Function {
             route: "".to_string(),
             lib_reference: None,
             id: 0,
-            output_connections: vec!(("".to_string(), 0, 0)),
+            output_routes: vec!(("".to_string(), 0, 0)),
         }
     }
 }
@@ -168,12 +168,25 @@ impl Function {
     route: Route, lib_reference: Option<String>, output_connections: Vec<(Route, usize, usize)>,
     id: usize) -> Self {
         Function {
-            name, alias, inputs, outputs, source_url, route, lib_reference, output_connections,  id
+            name, alias, inputs, outputs, source_url, route, lib_reference,
+            output_routes: output_connections,  id
         }
     }
 
     pub fn set_alias(&mut self, alias: String) {
         self.alias = alias
+    }
+
+    pub fn set_source_url(&mut self, source: Url) {
+        self.source_url = source
+    }
+
+    pub fn set_lib_reference(&mut self, lib_reference: Option<String>) {
+        self.lib_reference = lib_reference
+    }
+
+    pub fn get_lib_reference(&self) -> &Option<String> {
+        &self.lib_reference
     }
 
     pub fn set_routes(&mut self, parent_route: &str) {
@@ -243,7 +256,7 @@ mod test {
             route: "".to_string(),
             lib_reference: None,
             id: 0,
-            output_connections: vec!(("test_function".to_string(), 0, 0)),
+            output_routes: vec!(("test_function".to_string(), 0, 0)),
         };
 
         assert_eq!(fun.validate().is_err(), true);

@@ -18,24 +18,24 @@ use std::fmt;
 pub struct Value {
     name: Name,
     #[serde(rename = "type")]
-    pub datatype: DataType,
-    pub init: Option<JsonValue>,
+    datatype: DataType,
+    init: Option<JsonValue>,
     #[serde(rename = "static", default = "default_static")]
-    pub static_value: bool,
+    static_value: bool,
 
     // Input to a value is assumed, at the route of the value itself and always possible
     // Output from a value is assumed, at the route of the value itself and always possible
     // Additional outputs that are parts of the default Output structure are possible at subpaths
     #[serde(rename = "output")]
-    pub outputs: IOSet,
+    outputs: IOSet,
 
     // Input and Output routes are the same. We assume a value has an output as otherwise it's useless
     #[serde(skip_deserializing)]
     route: Route,
     #[serde(skip_deserializing)]
-    pub output_connections: Vec<(Route, usize, usize)>,
+    output_routes: Vec<(Route, usize, usize)>,
     #[serde(skip_deserializing)]
-    pub id: usize,
+    id: usize,
 }
 
 fn default_static() -> bool {
@@ -78,7 +78,7 @@ impl Runnable for Value {
     }
 
     fn add_output_connection(&mut self, connection: (Route, usize, usize)) {
-        self.output_connections.push(connection);
+        self.output_routes.push(connection);
     }
 
     fn source_url(&self) -> Option<Url> {
@@ -94,7 +94,7 @@ impl Runnable for Value {
     }
 
     fn get_output_routes(&self) -> &Vec<(Route, usize, usize)> {
-        &self.output_connections
+        &self.output_routes
     }
 
     fn get_initial_value(&self) -> Option<JsonValue> {
@@ -127,7 +127,8 @@ impl Value {
     pub fn new(name: Name, datatype: DataType, init: Option<JsonValue>, static_value: bool, route: Route,
     outputs: IOSet, output_connections: Vec<(Route, usize, usize)>, id: usize) -> Self {
         Value {
-            name, datatype, init, static_value, route, outputs, output_connections, id
+            name, datatype, init, static_value, route, outputs,
+            output_routes: output_connections, id
         }
     }
 

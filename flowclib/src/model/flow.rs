@@ -9,6 +9,7 @@ use model::route::Route;
 use loader::loader::Validate;
 use model::function_reference::FunctionReference;
 use model::connection::Direction;
+use model::runnable::Runnable;
 use std::fmt;
 use url::Url;
 
@@ -213,8 +214,8 @@ impl Flow {
             for function_ref in function_refs {
                 if function_ref.name() == function_alias {
                     return match direction {
-                        Direction::TO => function_ref.function.get(&function_ref.function.inputs, route),
-                        Direction::FROM => function_ref.function.get(&function_ref.function.outputs, route)
+                        Direction::TO => function_ref.function.get(&function_ref.function.get_inputs(), route),
+                        Direction::FROM => function_ref.function.get(&function_ref.function.get_outputs(), route)
                     };
                 }
             }
