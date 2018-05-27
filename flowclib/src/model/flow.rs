@@ -7,6 +7,7 @@ use model::value::Value;
 use model::flow_reference::FlowReference;
 use model::route::Route;
 use model::route::HasRoute;
+use model::route::SetRoute;
 use loader::loader::Validate;
 use model::function_reference::FunctionReference;
 use model::connection::Direction;
@@ -159,6 +160,14 @@ impl HasRoute for Flow {
     }
 }
 
+impl SetRoute for Flow {
+    fn set_routes_from_parent(&mut self, parent_route: &Route) {
+        self.route = format!("{}/{}", parent_route, self.alias);
+        // Set the routes for the IOSets in this flow relative to the flow's route just set
+        self.set_io_routes();
+    }
+}
+
 impl Flow {
     fn default_url() -> Url {
         Url::parse("file:///").unwrap()
@@ -181,31 +190,25 @@ impl Flow {
         }
     }
 
-    pub fn set_route_from_parent(&mut self, parent_route: &Route) {
-        self.route = format!("{}/{}", parent_route, self.alias);
-    }
-
     /*
         Set the routes of inputs and outputs in a flow to the hierarchical format
     */
-    pub fn set_io_routes(&mut self) {
+    fn set_io_routes(&mut self) {
+        debug!("Setting IO routes for flow '{}'", self.source_url);
+
         if let &mut Some(ref mut ios) = &mut self.inputs {
-            debug!("Setting Input routes for flow '{}'", self.source_url);
             for ref mut input in ios {
                 let name = input.name().clone();
                 input.set_route(format!("{}/{}", self.route, name));
                 input.set_flow_io(true);
-                debug!("Input route: '{}'", input.route());
             }
         }
 
         if let &mut Some(ref mut ios) = &mut self.outputs {
-            debug!("Setting Output routes for flow '{}'", self.source_url);
             for ref mut output in ios {
                 let name = output.name().clone();
                 output.set_route(format!("{}/{}", self.route, name));
                 output.set_flow_io(true);
-                debug!("Output route: '{}'", output.route());
             }
         }
     }

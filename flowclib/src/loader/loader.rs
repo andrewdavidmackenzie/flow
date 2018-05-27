@@ -82,14 +82,13 @@ pub fn load_single_flow(parent_route: &Route, alias: &Name, url: &Url) -> Result
         .map_err(|e| format!("while loading flow - {}", e.to_string()))?;
     flow.alias = alias.clone();
     flow.source_url = resolved_url;
-    flow.set_route_from_parent(parent_route);
+    flow.set_routes_from_parent(parent_route);
     if let Some(lr) = lib_ref {
         flow.lib_references.push(lr);
     };
     flow.validate()?;
     load_functions(&mut flow)?;
     load_values(&mut flow)?;
-    flow.set_io_routes();
     Ok(flow)
 }
 
