@@ -21,7 +21,7 @@ pub struct Function {
     pub outputs: IOSet,
 
     #[serde(skip_deserializing)]
-    pub alias: Name,
+    alias: Name,
     #[serde(skip_deserializing, default = "Function::default_url")]
     pub source_url: Url,
     #[serde(skip_deserializing)]
@@ -170,6 +170,10 @@ impl Function {
         Function {
             name, alias, inputs, outputs, source_url, route, lib_reference, output_connections,  id
         }
+    }
+
+    pub fn set_alias(&mut self, alias: String) {
+        self.alias = alias
     }
 
     pub fn set_routes(&mut self, parent_route: &str) {

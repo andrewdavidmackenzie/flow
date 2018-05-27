@@ -108,7 +108,7 @@ pub fn load_function(url: &Url, parent_route: &str, alias: &str) -> Result<Funct
     let loader = get_loader(&resolved_url)?;
     let contents = provider::get(&resolved_url)?;
     let mut function = loader.load_function(&contents)?;
-    function.alias = alias.to_string();
+    function.set_alias(alias.to_string());
     function.source_url = resolved_url.clone();
     function.lib_reference = lib_ref;
     function.set_routes(parent_route);
