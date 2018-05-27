@@ -94,7 +94,7 @@ fn find_destinations(from_route: &Route, connections: &Vec<Connection>) -> Vec<R
 
     for connection in connections {
         if connection.from_io.route() == from_route {
-            if connection.to_io.flow_io {
+            if connection.to_io.flow_io() {
                 // Keep following connections until you get to one that doesn't end at a flow
                 destinations.append(&mut find_destinations(&connection.to_io.route(), connections));
             } else {
@@ -118,11 +118,11 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
     let mut collapsed_connections: Vec<Connection> = Vec::new();
 
     for left in original_connections {
-        if left.to_io.flow_io {
+        if left.to_io.flow_io() {
             for final_destination in find_destinations(&left.to_io.route(), original_connections) {
                 let mut joined_connection = left.clone();
                 joined_connection.to_io.set_route(final_destination);
-                joined_connection.to_io.flow_io = false;
+                joined_connection.to_io.set_flow_io(false);
                 collapsed_connections.push(joined_connection);
             }
         } else {
@@ -131,7 +131,7 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
     }
 
     // Remove connections starting or ending at flow boundaries as they don't go anywhere useful
-    collapsed_connections.retain(|conn| !conn.from_io.flow_io && !conn.to_io.flow_io);
+    collapsed_connections.retain(|conn| !conn.from_io.flow_io() && !conn.to_io.flow_io());
 
     collapsed_connections
 }
@@ -191,7 +191,7 @@ mod test {
             from_io: IO::new(&"String".to_string(), &"/f1/a".to_string()),
             to_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
         };
-        unused.to_io.flow_io = true;
+        unused.to_io.set_flow_io(true);
 
         let connections = vec!(unused);
         let collapsed = collapse_connections(&connections);
@@ -208,7 +208,7 @@ mod test {
             to_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
         };
         left_side.to_io.set_name("point b".to_string());
-        left_side.to_io.flow_io = true;
+        left_side.to_io.set_flow_io(true);
 
         // This one goes to a flow but then nowhere, so should be dropped
         let mut extra_one = Connection {
@@ -219,9 +219,9 @@ mod test {
             to_io: IO::new(&"String".to_string(), &"/f4/a".to_string()),
         };
         extra_one.from_io.set_name("point b".to_string());
-        extra_one.from_io.flow_io = true;
+        extra_one.from_io.set_flow_io(true);
         extra_one.to_io.set_name("pointless".to_string());
-        extra_one.to_io.flow_io = true;
+        extra_one.to_io.set_flow_io(true);
 
 
         let mut right_side = Connection {
@@ -231,7 +231,7 @@ mod test {
             from_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
             to_io: IO::new(&"String".to_string(), &"/f3/a".to_string()),
         };
-        right_side.from_io.flow_io = true;
+        right_side.from_io.set_flow_io(true);
 
         let connections = vec!(left_side,
                                extra_one, right_side);
@@ -258,7 +258,7 @@ mod test {
             from_io: IO::new(&"String".to_string(), &"/f1/a".to_string()),
             to_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
         };
-        left_side.to_io.flow_io = true;
+        left_side.to_io.set_flow_io(true);
 
         let mut right_side_one = Connection {
             name: Some("right1".to_string()),
@@ -267,7 +267,7 @@ mod test {
             from_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
             to_io: IO::new(&"String".to_string(), &"/f2/value1".to_string()),
         };
-        right_side_one.from_io.flow_io = true;
+        right_side_one.from_io.set_flow_io(true);
 
         let mut right_side_two = Connection {
             name: Some("right2".to_string()),
@@ -276,7 +276,7 @@ mod test {
             from_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
             to_io: IO::new(&"String".to_string(), &"/f2/value2".to_string()),
         };
-        right_side_two.from_io.flow_io = true;
+        right_side_two.from_io.set_flow_io(true);
 
         let connections = vec!(left_side,
                                right_side_one,
@@ -302,7 +302,7 @@ mod test {
             from_io: IO::new(&"String".to_string(), &"/value".to_string()),
             to_io: IO::new(&"String".to_string(), &"/f1/a".to_string()),
         };
-        first_level.to_io.flow_io = true;
+        first_level.to_io.set_flow_io(true);
 
         let mut second_level = Connection {
             name: Some("subflow_connection".to_string()),
@@ -311,8 +311,8 @@ mod test {
             from_io: IO::new(&"String".to_string(), &"/f1/a".to_string()),
             to_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
         };
-        second_level.from_io.flow_io = true;
-        second_level.to_io.flow_io = true;
+        second_level.from_io.set_flow_io(true);
+        second_level.to_io.set_flow_io(true);
 
         let mut third_level = Connection {
             name: Some("subsubflow_connection".to_string()),
@@ -321,7 +321,7 @@ mod test {
             from_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
             to_io: IO::new(&"String".to_string(), &"/f2/func/in".to_string()),
         };
-        third_level.from_io.flow_io = true;
+        third_level.from_io.set_flow_io(true);
 
         let connections = vec!(first_level,
                                second_level,

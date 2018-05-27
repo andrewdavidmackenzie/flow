@@ -16,12 +16,12 @@ pub struct IO {
     #[serde(rename = "type", default = "default_type")]
     datatype: DataType,
     #[serde(default = "default_depth")]
-    pub depth: usize,
+    depth: usize,
 
     #[serde(skip_deserializing)]
     route: Route,
     #[serde(skip_deserializing)]
-    pub flow_io: bool,
+    flow_io: bool,
 }
 
 impl Default for IO {
@@ -38,7 +38,7 @@ impl Default for IO {
 
 impl HasName for IO {
     fn name(&self) -> &Name { &self.name }
-    fn alias(&self) -> &Name {  &self.name }
+    fn alias(&self) -> &Name { &self.name }
 }
 
 impl HasDataType for IO {
@@ -53,6 +53,18 @@ impl IO {
         io.datatype = datatype.clone();
         io.route = route.clone();
         io
+    }
+
+    pub fn depth(&self) -> usize {
+        self.depth
+    }
+
+    pub fn flow_io(&self) -> bool {
+        self.flow_io
+    }
+
+    pub fn set_flow_io(&mut self, flow_io: bool) {
+        self.flow_io = flow_io;
     }
 
     pub fn set_name(&mut self, name: String) {

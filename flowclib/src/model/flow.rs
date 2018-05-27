@@ -167,7 +167,7 @@ impl Flow {
             for ref mut input in ios {
                 let name = input.name().clone();
                 input.set_route(format!("{}/{}", self.route, name));
-                input.flow_io = true;
+                input.set_flow_io(true);
                 debug!("Input route: '{}'", input.route());
             }
         }
@@ -177,7 +177,7 @@ impl Flow {
             for ref mut output in ios {
                 let name = output.name().clone();
                 output.set_route(format!("{}/{}", self.route, name));
-                output.flow_io = true;
+                output.set_flow_io(true);
                 debug!("Output route: '{}'", output.route());
             }
         }

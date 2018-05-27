@@ -54,7 +54,7 @@ impl Connection {
 
 impl fmt::Display for Connection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match (self.from_io.flow_io, self.to_io.flow_io) {
+        match (self.from_io.flow_io(), self.to_io.flow_io()) {
             (true, true) => write!(f, "(f){} --> (f){}", self.from_io.route(), self.to_io.route()),
             (true, false) => write!(f, "(f){} --> {}", self.from_io.route(), self.to_io.route()),
             (false, true) => write!(f, "{} --> (f){}", self.from_io.route(), self.to_io.route()),

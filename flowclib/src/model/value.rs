@@ -404,7 +404,7 @@ mod test {
         let output = value.get_output("").unwrap();
         assert_eq!(output.route(), "/flow/test_value");
         assert_eq!(output.datatype(0), "Json");
-        assert_eq!(output.flow_io, false);
+        assert_eq!(output.flow_io(), false);
     }
 
 
@@ -427,6 +427,6 @@ mod test {
         let output = value.get_output("sub_output").unwrap();
         assert_eq!(output.route(), "/flow/test_value/sub_output");
         assert_eq!(output.datatype(0), "String");
-        assert_eq!(output.flow_io, false);
+        assert_eq!(output.flow_io(), false);
     }
 }

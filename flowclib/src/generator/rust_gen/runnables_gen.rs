@@ -146,7 +146,7 @@ fn runnable_to_code(runnable: &Box<Runnable>) -> String {
         &Some(ref inputs) => {
             code.push_str(&format!("{}, {}, vec!(", inputs.len(), runnable.is_static_value()));
             for input in inputs {
-                code.push_str(&format!("{}, ", input.depth));
+                code.push_str(&format!("{}, ", input.depth()));
             }
             code.push_str(&format!("), "));
         }
