@@ -187,16 +187,14 @@ mod test {
 
     #[test]
     fn test_value_to_code() {
-        let value = Value {
-            name: "value".to_string(),
-            datatype: "String".to_string(),
-            init: Some(JsonValue::String("Hello-World".to_string())),
-            static_value: false,
-            route: "/flow0/value".to_string(),
-            outputs: Some(vec!(IO::new(&"Json".to_string(), &"".to_string()))),
-            output_connections: vec!(("".to_string(), 1, 0)),
-            id: 1,
-        };
+        let value = Value::new("value".to_string(),
+                               "String".to_string(),
+                               Some(JsonValue::String("Hello-World".to_string())),
+                               false,
+                               "/flow0/value".to_string(),
+                               Some(vec!(IO::new(&"Json".to_string(), &"".to_string()))),
+                               vec!(("".to_string(), 1, 0)),
+                               1);
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
@@ -205,16 +203,15 @@ mod test {
 
     #[test]
     fn test_constant_value_to_code() {
-        let value = Value {
-            name: "value".to_string(),
-            datatype: "String".to_string(),
-            init: Some(JsonValue::String("Hello-World".to_string())),
-            static_value: true,
-            route: "/flow0/value".to_string(),
-            outputs: Some(vec!(IO::new(&"Json".to_string(), &"".to_string()))),
-            output_connections: vec!(("".to_string(), 1, 0)),
-            id: 1,
-        };
+        let value = Value::new(
+            "value".to_string(),
+            "String".to_string(),
+            Some(JsonValue::String("Hello-World".to_string())),
+            true,
+            "/flow0/value".to_string(),
+            Some(vec!(IO::new(&"Json".to_string(), &"".to_string()))),
+            vec!(("".to_string(), 1, 0)),
+            1);
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
@@ -223,18 +220,17 @@ mod test {
 
     #[test]
     fn value_with_sub_route_output_to_code() {
-        let value = Value {
-            name: "value".to_string(),
-            datatype: "String".to_string(),
-            init: Some(JsonValue::String("Hello-World".to_string())),
-            static_value: false,
-            route: "/flow0/value".to_string(),
-            outputs: Some(vec!(
+        let value = Value::new(
+            "value".to_string(),
+            "String".to_string(),
+            Some(JsonValue::String("Hello-World".to_string())),
+            false,
+            "/flow0/value".to_string(),
+            Some(vec!(
                 IO::new(&"Json".to_string(), &"".to_string()),
                 IO::new(&"String".to_string(), &"".to_string()))),
-            output_connections: vec!(("".to_string(), 1, 0), ("sub_route".to_string(), 2, 0)),
-            id: 1,
-        };
+            vec!(("".to_string(), 1, 0), ("sub_route".to_string(), 2, 0)),
+            1);
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);

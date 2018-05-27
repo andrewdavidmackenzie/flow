@@ -10,15 +10,15 @@ use loader::loader::Validate;
 // This structure is (optionally) found as part of a flow file - inline in the description
 #[derive(Deserialize, Debug)]
 pub struct FunctionReference {
-    pub alias: Name,
+    alias: Name,
     pub source: String,
     #[serde(skip_deserializing)]
     pub function: Function,
 }
 
 impl HasName for FunctionReference {
-    fn name(&self) -> &str {  &self.alias[..] }
-    fn alias(&self) -> &str { &self.alias[..] }
+    fn name(&self) -> &Name {  &self.alias }
+    fn alias(&self) -> &Name { &self.alias }
 }
 
 impl HasRoute for FunctionReference {

@@ -8,6 +8,7 @@ use model::io::IOSet;
 use model::route::Route;
 use model::connection;
 use model::connection::Connection;
+use model::name::HasName;
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
 //static OUTPUT_PORTS: &[&str] = &["s", "se", "sw"];
@@ -62,8 +63,8 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
 fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IOSet) -> String {
     let (from_route, number, array_index) = connection::name_without_trailing_number(&connection.from_io.route);
 
-    let (from_node, from_label) = node_from_io_route(&from_route.to_string(), &connection.from_io.name, input_set);
-    let (to_node, to_label) = node_from_io_route(&connection.to_io.route, &connection.to_io.name, output_set);
+    let (from_node, from_label) = node_from_io_route(&from_route.to_string(), &connection.from_io.name(), input_set);
+    let (to_node, to_label) = node_from_io_route(&connection.to_io.route, &connection.to_io.name(), output_set);
     if array_index {
         format!("\n\t\"{}\" -> \"{}\" [labeldistance=\"3\", taillabel=\"{}[{}]\", headlabel=\"{}\"];",
                 from_node, to_node, from_label, number, to_label)
@@ -183,7 +184,7 @@ fn runnable_to_dot(runnable: &Box<Runnable>, runnables: &Vec<Box<Runnable>>) -> 
     for &(ref output_route, destination_index, destination_input_index) in runnable.get_output_routes() {
         let input_port = INPUT_PORTS[destination_input_index % INPUT_PORTS.len()];
         let destination_runnable = &runnables[destination_index];
-        let input_name = &destination_runnable.get_inputs().unwrap()[destination_input_index].name;
+        let input_name = destination_runnable.get_inputs().unwrap()[destination_input_index].name().to_string();
         runnable_string.push_str(&format!("r{}:s -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];\n",
                                           runnable.get_id(), destination_index, input_port,
                                           output_route, input_name));
@@ -218,12 +219,12 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
             if input.route != to.to_string() {
                 // Add an entry for each input using it's route
                 string.push_str(&format!("\t\"{}\" [label=\"{}\", shape=house, style=filled, fillcolor=white];\n",
-                                         input.route, input.name));
+                                         input.route, input.name()));
 
                 if connect_subflow {
                     // and connect the input to the sub-flow
                     string.push_str(&format!("\t\"{}\" -> \"{}\":n [style=invis, headtooltip=\"{}\"];\n",
-                                             input.route, to, input.name));
+                                             input.route, to, input.name()));
                 }
             }
         }
@@ -245,12 +246,12 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
             if output.route != *from {
                 // Add an entry for each output using it's route
                 string.push_str(&format!("\t\"{}\" [label=\"{}\", rank=sink, shape=invhouse, style=filled, fillcolor=black, fontcolor=white];\n",
-                                         output.route, output.name));
+                                         output.route, output.name()));
 
                 if connect_subflow {
                     // and connect the output to the sub-flow
                     string.push_str(&format!("\t\"{}\":s -> \"{}\"[style=invis, headtooltip=\"{}\"];\n",
-                                             from, output.route, output.name));
+                                             from, output.route, output.name()));
                 }
             }
         }
@@ -264,7 +265,7 @@ fn flow_reference_to_dot(flow_ref: &FlowReference) -> String {
 
     dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot\"];\n",
                                  flow_ref.flow.route,
-                                 flow_ref.alias,
+                                 flow_ref.alias(),
                                  flow_ref.flow.alias));
     dot_string
 }

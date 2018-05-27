@@ -16,7 +16,7 @@ use std::fmt;
 
 #[derive(Deserialize, Clone)]
 pub struct Value {
-    pub name: Name,
+    name: Name,
     #[serde(rename = "type")]
     pub datatype: DataType,
     pub init: Option<JsonValue>,
@@ -43,8 +43,8 @@ fn default_static() -> bool {
 }
 
 impl HasName for Value {
-    fn name(&self) -> &str { &self.name[..] }
-    fn alias(&self) -> &str { &self.name[..] }
+    fn name(&self) -> &Name { &self.name }
+    fn alias(&self) -> &Name { &self.name }
 }
 
 impl HasDataType for Value {
@@ -124,6 +124,13 @@ impl fmt::Display for Value {
 }
 
 impl Value {
+    pub fn new(name: Name, datatype: DataType, init: Option<JsonValue>, static_value: bool, route: Route,
+    outputs: IOSet, output_connections: Vec<(Route, usize, usize)>, id: usize) -> Self {
+        Value {
+            name, datatype, init, static_value, route, outputs, output_connections, id
+        }
+    }
+
     pub fn set_routes(&mut self, parent_route: &str) {
         // Set the route for this value
         self.route = format!("{}/{}", parent_route, self.name);
@@ -141,10 +148,10 @@ impl Value {
 
             // Set sub routes for all outputs
             for ref mut output in outputs {
-                if output.name.is_empty() {
+                if output.name().is_empty() {
                     output.route = self.route.clone();
                 } else {
-                    output.route = format!("{}/{}", self.route, output.name);
+                    output.route = format!("{}/{}", self.route, output.name());
                 }
             }
         }
@@ -154,13 +161,13 @@ impl Value {
         Ok(IO::new(&self.datatype, &self.route))
     }
 
-    // TODO ADM merge this with one used in function and move into 'connection.rs' or similar, passing in a collaction
+    // TODO ADM merge this with one used in function and move into 'connection.rs' or similar, passing in a collection
     // or as a method of IOSet?
     pub fn get_output(&self, io_sub_route: &str) -> Result<IO, String> {
         if let &Some(ref outputs) = &self.outputs {
             for output in outputs {
                 let (array_route, _num, array_index) = connection::name_without_trailing_number(io_sub_route);
-                if array_index && (output.datatype(0) == "Array") && (output.name() == array_route) {
+                if array_index && (output.datatype(0) == "Array") && (output.name() as &str == array_route) {
                     let mut found = output.clone();
                     found.datatype = output.datatype(1).to_string(); // the type within the array
                     found.route.push_str("/");
@@ -184,6 +191,7 @@ mod test {
     use toml;
     use super::Value;
     use loader::loader::Validate;
+    use model::name::HasName;
 
     #[test]
     #[should_panic]
@@ -278,7 +286,7 @@ mod test {
         value.validate().unwrap();
         assert!(value.outputs.is_some());
         let output = &value.outputs.unwrap()[0];
-        assert_eq!(output.name, "");
+        assert_eq!(output.name(), "");
         assert_eq!(output.datatype(0), "Json");
     }
 
@@ -297,7 +305,7 @@ mod test {
         value.validate().unwrap();
         assert!(value.outputs.is_some());
         let output = &value.outputs.unwrap()[0];
-        assert_eq!(output.name, "sub_output");
+        assert_eq!(output.name(), "sub_output");
         assert_eq!(output.datatype(0), "String");
     }
 
@@ -321,10 +329,10 @@ mod test {
         let outputs = value.outputs.unwrap();
         assert_eq!(outputs.len(), 2);
         let output0 = &outputs[0];
-        assert_eq!(output0.name, "sub_output");
+        assert_eq!(output0.name(), "sub_output");
         assert_eq!(output0.datatype(0), "String");
         let output1 = &outputs[1];
-        assert_eq!(output1.name, "other_output");
+        assert_eq!(output1.name(), "other_output");
         assert_eq!(output1.datatype(0), "Number");
     }
 

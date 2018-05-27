@@ -9,7 +9,7 @@ use url::Url;
 
 #[derive(Deserialize)]
 pub struct FlowReference {
-    pub alias: Name,
+    alias: Name,
     pub source: String,
     #[serde(skip_deserializing, default = "FlowReference::default_url")]
     pub source_url: Url,
@@ -18,8 +18,8 @@ pub struct FlowReference {
 }
 
 impl HasName for FlowReference {
-    fn name(&self) -> &str {  &self.alias[..]  }
-    fn alias(&self) -> &str {  &self.alias[..]  }
+    fn name(&self) -> &Name {  &self.alias  }
+    fn alias(&self) -> &Name {  &self.alias  }
 }
 
 impl HasRoute for FlowReference {

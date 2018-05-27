@@ -11,7 +11,7 @@ use std::collections::HashSet;
 #[derive(Deserialize, Debug, Clone)]
 pub struct IO {
     #[serde(default = "default_name")]
-    pub name: Name,
+    name: Name,
     #[serde(rename = "type", default = "default_type")]
     pub datatype: DataType,
     #[serde(default = "default_depth")]
@@ -38,10 +38,8 @@ impl Default for IO {
 }
 
 impl HasName for IO {
-    fn name(&self) -> &str {
-        &self.name[..]
-    }
-    fn alias(&self) -> &str {  &self.name[..] }
+    fn name(&self) -> &Name { &self.name }
+    fn alias(&self) -> &Name {  &self.name }
 }
 
 impl HasDataType for IO {
@@ -56,6 +54,10 @@ impl IO {
         io.datatype = datatype.clone();
         io.route = route.clone();
         io
+    }
+
+    pub fn set_name(&mut self, name: String) {
+        self.name = name;
     }
 
     pub fn datatype(&self, level: usize) -> &str {

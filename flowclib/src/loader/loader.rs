@@ -3,6 +3,7 @@ use model::function::Function;
 use model::connection::Direction::FROM;
 use model::connection::Direction::TO;
 use model::name::Name;
+use model::name::HasName;
 use content::provider;
 use loader::loader_helper::get_loader;
 use std::mem::replace;
@@ -124,11 +125,11 @@ fn load_functions(flow: &mut Flow) -> Result<(), String> {
         for ref mut function_ref in function_refs {
             let function_url = flow.source_url.join(&function_ref.source)
                 .map_err(|_e| "URL join error")?;
-            function_ref.function = load_function(&function_url, &flow.route, &function_ref.alias)
+            function_ref.function = load_function(&function_url, &flow.route, &function_ref.alias())
                 .map_err(|e| format!("while loading function from Url '{}' - {}",
                                      function_url, e.to_string()))?;
             if let &Some(ref lib_ref) = &function_ref.function.lib_reference {
-                flow.lib_references.push(format!("{}/{}", lib_ref, function_ref.function.name));
+                flow.lib_references.push(format!("{}/{}", lib_ref, function_ref.function.name()));
             }
         }
     }
@@ -156,7 +157,7 @@ fn load_subflows(flow: &mut Flow) -> Result<(), String> {
         debug!("Loading sub-flows of flow '{}'", flow.source_url);
         for ref mut flow_ref in flow_refs {
             let subflow_url = flow.source_url.join(&flow_ref.source).expect("URL join error");
-            let subflow = load_flow(&flow.route, &flow_ref.alias, &subflow_url)?;
+            let subflow = load_flow(&flow.route, &flow_ref.alias(), &subflow_url)?;
             flow_ref.flow = subflow;
         }
     }

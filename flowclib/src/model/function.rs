@@ -35,8 +35,8 @@ pub struct Function {
 }
 
 impl HasName for Function {
-    fn name(&self) -> &str { &self.name[..] }
-    fn alias(&self) -> &str { &self.alias[..] }
+    fn name(&self) -> &Name { &self.name }
+    fn alias(&self) -> &Name { &self.alias }
 }
 
 impl HasRoute for Function {
@@ -170,10 +170,10 @@ impl Function {
         // Set routes to inputs
         if let Some(ref mut inputs) = self.inputs {
             for ref mut input in inputs {
-                if input.name.is_empty() {
+                if input.name().is_empty() {
                     input.route = self.route.clone();
                 } else {
-                    input.route = format!("{}/{}", self.route, input.name);
+                    input.route = format!("{}/{}", self.route, input.name());
                 }
             }
         }
@@ -181,10 +181,10 @@ impl Function {
         // set routes to outputs
         if let Some(ref mut outputs) = self.outputs {
             for ref mut output in outputs {
-                if output.name.is_empty() {
+                if output.name().is_empty() {
                     output.route = self.route.clone();
                 } else {
-                    output.route = format!("{}/{}", self.route, output.name);
+                    output.route = format!("{}/{}", self.route, output.name());
                 }
             }
         }
@@ -195,7 +195,7 @@ impl Function {
             for io in ios {
                 let (array_route, _num, array_index) = connection::name_without_trailing_number(io_sub_route);
 
-                if array_index && (io.datatype(0) == "Array") && (io.name() == array_route) {
+                if array_index && (io.datatype(0) == "Array") && (io.name() as &str == array_route) {
                     let mut found = io.clone();
                     found.datatype = io.datatype(1).to_string(); // the type within the array
                     found.route.push_str("/");
@@ -218,6 +218,7 @@ mod test {
     use super::Function;
     use loader::loader::Validate;
     use toml;
+    use model::name::HasName;
 
     #[test]
     fn function_with_no_io_not_valid() {
@@ -281,7 +282,7 @@ mod test {
         function.validate().unwrap();
         assert!(function.outputs.is_some());
         let output = &function.outputs.unwrap()[0];
-        assert_eq!(output.name, "");
+        assert_eq!(output.name(), "");
         assert_eq!(output.datatype(0), "String");
     }
 
@@ -298,7 +299,7 @@ mod test {
         function.validate().unwrap();
         assert!(function.outputs.is_some());
         let output = &function.outputs.unwrap()[0];
-        assert_eq!(output.name, "sub_output");
+        assert_eq!(output.name(), "sub_output");
         assert_eq!(output.datatype(0), "String");
     }
 
@@ -320,10 +321,10 @@ mod test {
         let outputs = function.outputs.unwrap();
         assert_eq!(outputs.len(), 2);
         let output0 = &outputs[0];
-        assert_eq!(output0.name, "sub_output");
+        assert_eq!(output0.name(), "sub_output");
         assert_eq!(output0.datatype(0), "String");
         let output1 = &outputs[1];
-        assert_eq!(output1.name, "other_output");
+        assert_eq!(output1.name(), "other_output");
         assert_eq!(output1.datatype(0), "Number");
     }
 
@@ -374,6 +375,6 @@ mod test {
         // Test
         // Try and get the output using a route to a specific element of the output
         let output = function.get(&function.outputs, "/0").unwrap();
-        assert_eq!(output.name, "");
+        assert_eq!(output.name(), "");
     }
 }

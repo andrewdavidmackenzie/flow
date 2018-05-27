@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use generator::code_gen::CodeGenTables;
 use model::connection::Connection;
 use model::connection;
+use model::name::HasName;
 
 /*
     Then iterate through the values and function setting each one's id and the output routes array setup
@@ -64,7 +65,7 @@ pub fn routes_table(tables: &mut CodeGenTables) {
         // Add any output routes it has to the source routes table
         if let Some(ref outputs) = runnable.get_outputs() {
             for output in outputs {
-                tables.source_routes.insert(output.route.clone(), (output.name.clone(), runnable.get_id()));
+                tables.source_routes.insert(output.route.clone(), (output.name().clone(), runnable.get_id()));
             }
         }
 
@@ -204,7 +205,7 @@ mod test {
             from_io: IO::new(&"String".to_string(), &"/f1/a".to_string()),
             to_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
         };
-        left_side.to_io.name = "point b".to_string();
+        left_side.to_io.set_name("point b".to_string());
         left_side.to_io.flow_io = true;
 
         // This one goes to a flow but then nowhere, so should be dropped
@@ -215,9 +216,9 @@ mod test {
             from_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
             to_io: IO::new(&"String".to_string(), &"/f4/a".to_string()),
         };
-        extra_one.from_io.name = "point b".to_string();
+        extra_one.from_io.set_name("point b".to_string());
         extra_one.from_io.flow_io = true;
-        extra_one.to_io.name = "pointless".to_string();
+        extra_one.to_io.set_name("pointless".to_string());
         extra_one.to_io.flow_io = true;
 
 

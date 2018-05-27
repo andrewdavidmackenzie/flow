@@ -163,7 +163,7 @@ impl Flow {
         if let &mut Some(ref mut ios) = &mut self.inputs {
             debug!("Setting Input routes for flow '{}'", self.source_url);
             for ref mut input in ios {
-                input.route = format!("{}/{}", self.route, input.name);
+                input.route = format!("{}/{}", self.route, input.name());
                 input.flow_io = true;
                 debug!("Input route: '{}'", input.route);
             }
@@ -172,7 +172,7 @@ impl Flow {
         if let &mut Some(ref mut ios) = &mut self.outputs {
             debug!("Setting Output routes for flow '{}'", self.source_url);
             for ref mut output in ios {
-                output.route = format!("{}/{}", self.route, output.name);
+                output.route = format!("{}/{}", self.route, output.name());
                 output.flow_io = true;
                 debug!("Output route: '{}'", output.route);
             }
@@ -183,7 +183,7 @@ impl Flow {
     fn get(&self, collection: &IOSet, element_name: &str) -> Result<IO, String> {
         if let &Some(ref elements) = collection {
             for element in elements {
-                if element.name == element_name {
+                if element.name() == element_name {
                     return Ok(element.clone());
                 }
             }
@@ -229,7 +229,7 @@ impl Flow {
     fn get_io_from_value(&self, value_name: &str, direction: Direction, route: &str) -> Result<IO, String> {
         if let &Some(ref values) = &self.values {
             for value in values {
-                if value.name == value_name {
+                if value.name() == value_name {
                     return match direction {
                         Direction::TO => value.get_input(),
                         Direction::FROM => value.get_output(route)
