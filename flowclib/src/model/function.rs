@@ -14,7 +14,7 @@ use model::connection;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Function {
-    pub name: Name,
+    name: Name,
     #[serde(rename = "input")]
     pub inputs: IOSet,
     #[serde(rename = "output")]
