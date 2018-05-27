@@ -7,6 +7,7 @@ use model::datatype::DataType;
 use model::datatype::TypeCheck;
 use loader::loader::Validate;
 use model::route::Route;
+use model::route::SetRoute;
 use std::collections::HashSet;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -80,6 +81,14 @@ impl IO {
         self.route = route;
     }
 
+    pub fn set_route_from_parent(&mut self, parent: &Route) {
+        if self.name.is_empty() {
+            self.route = parent.clone();
+        } else {
+            self.route = format!("{}/{}", parent, self.name);
+        }
+    }
+
     pub fn set_datatype(&mut self, datatype: DataType) {
         self.datatype = datatype
     }
@@ -144,6 +153,16 @@ impl FindRoute for IOSet {
             }
         }
         false
+    }
+}
+
+impl SetRoute for IOSet {
+    fn set_routes_from_parent(&mut self, parent: &Route) {
+        if let &mut Some(ref mut ios) = self {
+            for ref mut io in ios {
+                io.set_route_from_parent(parent)
+            }
+        }
     }
 }
 

@@ -1,4 +1,3 @@
-
 pub type Route = String;
 
 pub trait HasRoute {
@@ -7,4 +6,8 @@ pub trait HasRoute {
 
 pub trait FindRoute {
     fn find(&self, route: &Route) -> bool;
+}
+
+pub trait SetRoute {
+    fn set_routes_from_parent(&mut self, parent: &Route);
 }

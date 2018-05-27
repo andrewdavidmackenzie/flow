@@ -6,6 +6,7 @@ use model::datatype::HasDataType;
 use loader::loader::Validate;
 use model::route::Route;
 use model::route::HasRoute;
+use model::route::SetRoute;
 use model::io::IO;
 use model::io::IOSet;
 use model::runnable::Runnable;
@@ -123,16 +124,8 @@ impl fmt::Display for Value {
     }
 }
 
-impl Value {
-    pub fn new(name: Name, datatype: DataType, init: Option<JsonValue>, static_value: bool, route: Route,
-    outputs: IOSet, output_connections: Vec<(Route, usize, usize)>, id: usize) -> Self {
-        Value {
-            name, datatype, init, static_value, route, outputs,
-            output_routes: output_connections, id
-        }
-    }
-
-    pub fn set_routes(&mut self, parent_route: &str) {
+impl SetRoute for Value {
+    fn set_routes_from_parent(&mut self, parent_route: &Route) {
         // Set the route for this value
         self.route = format!("{}/{}", parent_route, self.name);
 
@@ -146,16 +139,18 @@ impl Value {
             // of output routes
             let base_output = IO::new(&self.datatype, &self.route);
             outputs.insert(0, base_output);
+        }
 
-            // Set sub routes for all outputs
-            for ref mut output in outputs {
-                let name = output.name().clone();
-                if name.is_empty() {
-                    output.set_route(self.route.clone());
-                } else {
-                    output.set_route(format!("{}/{}", self.route, name));
-                }
-            }
+        self.outputs.set_routes_from_parent(&self.route);
+    }
+}
+
+impl Value {
+    pub fn new(name: Name, datatype: DataType, init: Option<JsonValue>, static_value: bool, route: Route,
+    outputs: IOSet, output_connections: Vec<(Route, usize, usize)>, id: usize) -> Self {
+        Value {
+            name, datatype, init, static_value, route, outputs,
+            output_routes: output_connections, id
         }
     }
 
@@ -196,7 +191,9 @@ mod test {
     use super::Value;
     use loader::loader::Validate;
     use model::name::HasName;
+    use model::route::Route;
     use model::route::HasRoute;
+    use model::route::SetRoute;
 
     #[test]
     #[should_panic]
@@ -349,7 +346,7 @@ mod test {
         ";
 
         let mut value: Value = toml::from_str(value_str).unwrap();
-        value.set_routes("/flow");
+        value.set_routes_from_parent(&Route::from("/flow"));
 
         assert_eq!(value.route, "/flow/test_value");
 
@@ -375,7 +372,7 @@ mod test {
         ";
 
         let mut value: Value = toml::from_str(value_str).unwrap();
-        value.set_routes("/flow");
+        value.set_routes_from_parent(&Route::from("/flow"));
 
         assert_eq!(value.route, "/flow/test_value");
 
@@ -399,7 +396,7 @@ mod test {
         ";
 
         let mut value: Value = toml::from_str(value_str).unwrap();
-        value.set_routes("/flow");
+        value.set_routes_from_parent(&Route::from("/flow"));
 
         let output = value.get_output("").unwrap();
         assert_eq!(output.route(), "/flow/test_value");
@@ -422,7 +419,7 @@ mod test {
         ";
 
         let mut value: Value = toml::from_str(value_str).unwrap();
-        value.set_routes("/flow");
+        value.set_routes_from_parent(&Route::from("/flow"));
 
         let output = value.get_output("sub_output").unwrap();
         assert_eq!(output.route(), "/flow/test_value/sub_output");

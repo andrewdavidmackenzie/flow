@@ -4,6 +4,8 @@ use model::connection::Direction::FROM;
 use model::connection::Direction::TO;
 use model::name::Name;
 use model::name::HasName;
+use model::route::Route;
+use model::route::SetRoute;
 use content::provider;
 use loader::loader_helper::get_loader;
 use std::mem::replace;
@@ -102,7 +104,7 @@ pub fn load_single_flow(parent_route: &str, alias: &Name, url: &Url) -> Result<F
 /// // url = url.join("samples/complex1/function1.toml").unwrap();
 /// // flowclib::loader::loader::load_function(&url, "/root_flow").unwrap();
 /// ```
-pub fn load_function(url: &Url, parent_route: &str, alias: &str) -> Result<Function, String> {
+pub fn load_function(url: &Url, parent_route: &Route, alias: &str) -> Result<Function, String> {
     debug!("Loading function from '{}'", url);
     let (resolved_url, lib_ref) = provider::resolve(url)?;
     let loader = get_loader(&resolved_url)?;
@@ -111,7 +113,7 @@ pub fn load_function(url: &Url, parent_route: &str, alias: &str) -> Result<Funct
     function.set_alias(alias.to_string());
     function.set_source_url(resolved_url.clone());
     function.set_lib_reference(lib_ref);
-    function.set_routes(parent_route);
+    function.set_routes_from_parent(parent_route);
     function.validate()?;
     Ok(function)
 }
@@ -143,7 +145,7 @@ fn load_values(flow: &mut Flow) -> Result<(), String> {
     if let Some(ref mut values) = flow.values {
         debug!("Loading values for flow '{}'", flow.source_url);
         for ref mut value in values {
-            value.set_routes(&flow.route);
+            value.set_routes_from_parent(&flow.route);
         }
     }
     Ok(())

@@ -6,6 +6,7 @@ use model::io::IO;
 use model::io::IOSet;
 use model::route::Route;
 use model::route::HasRoute;
+use model::route::SetRoute;
 use loader::loader::Validate;
 use model::runnable::Runnable;
 use serde_json::Value as JsonValue;
@@ -159,6 +160,14 @@ impl Default for Function {
     }
 }
 
+impl SetRoute for Function {
+    fn set_routes_from_parent(&mut self, parent_route: &Route) {
+        self.route = format!("{}/{}", parent_route, self.alias);
+        self.inputs.set_routes_from_parent(&self.route);
+        self.outputs.set_routes_from_parent(&self.route);
+    }
+}
+
 impl Function {
     fn default_url() -> Url {
         Url::parse("file:///").unwrap()
@@ -187,34 +196,6 @@ impl Function {
 
     pub fn get_lib_reference(&self) -> &Option<String> {
         &self.lib_reference
-    }
-
-    pub fn set_routes(&mut self, parent_route: &str) {
-        self.route = format!("{}/{}", parent_route, self.alias);
-
-        // Set routes to inputs
-        if let Some(ref mut inputs) = self.inputs {
-            for ref mut input in inputs {
-                let name = input.name().clone();
-                if name.is_empty() {
-                    input.set_route(self.route.clone());
-                } else {
-                    input.set_route(format!("{}/{}", self.route, name));
-                }
-            }
-        }
-
-        // set routes to outputs
-        if let Some(ref mut outputs) = self.outputs {
-            for ref mut output in outputs {
-                let name = output.name().clone();
-                if name.is_empty() {
-                    output.set_route(self.route.clone());
-                } else {
-                    output.set_route(format!("{}/{}", self.route, name));
-                }
-            }
-        }
     }
 
     pub fn get(&self, ioset: &IOSet, io_sub_route: &str) -> Result<IO, String> {
@@ -248,7 +229,9 @@ mod test {
     use loader::loader::Validate;
     use toml;
     use model::name::HasName;
+    use model::route::Route;
     use model::route::HasRoute;
+    use model::route::SetRoute;
 
     #[test]
     fn function_with_no_io_not_valid() {
@@ -375,7 +358,7 @@ mod test {
         function.alias = "test_alias".to_string();
 
         // Test
-        function.set_routes("/flow");
+        function.set_routes_from_parent(&Route::from("/flow"));
 
         assert_eq!(function.route, "/flow/test_alias");
 
@@ -400,7 +383,7 @@ mod test {
         // Setup
         let mut function: Function = toml::from_str(function_str).unwrap();
         function.alias = "test_alias".to_string();
-        function.set_routes("/flow");
+        function.set_routes_from_parent(&Route::from("/flow"));
 
         // Test
         // Try and get the output using a route to a specific element of the output
