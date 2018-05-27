@@ -5,7 +5,7 @@ use model::name::HasName;
 use model::io::IO;
 use model::io::IOSet;
 use model::route::Route;
-use model::connection::HasRoute;
+use model::route::HasRoute;
 use loader::loader::Validate;
 use model::runnable::Runnable;
 use serde_json::Value as JsonValue;

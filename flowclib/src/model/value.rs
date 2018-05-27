@@ -1,11 +1,11 @@
 use serde_json::Value as JsonValue;
 use model::name::Name;
 use model::name::HasName;
-use model::connection::HasRoute;
 use model::datatype::DataType;
 use model::datatype::HasDataType;
 use loader::loader::Validate;
 use model::route::Route;
+use model::route::HasRoute;
 use model::io::IO;
 use model::io::IOSet;
 use model::runnable::Runnable;

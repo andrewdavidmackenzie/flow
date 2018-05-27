@@ -1,6 +1,6 @@
 use model::name::Name;
 use model::name::HasName;
-use model::connection::HasRoute;
+use model::route::HasRoute;
 use model::flow::Flow;
 use loader::loader::Validate;
 use std::fmt;

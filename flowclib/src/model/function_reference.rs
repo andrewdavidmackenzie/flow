@@ -2,7 +2,7 @@ use std::fmt;
 
 use model::name::Name;
 use model::name::HasName;
-use model::connection::HasRoute;
+use model::route::HasRoute;
 use model::function::Function;
 use loader::loader::Validate;
 

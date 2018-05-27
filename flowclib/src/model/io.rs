@@ -1,5 +1,5 @@
 use model::name::HasName;
-use model::connection::HasRoute;
+use model::route::HasRoute;
 use model::datatype::HasDataType;
 use model::datatype::DataType;
 use model::datatype::TypeCheck;

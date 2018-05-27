@@ -2,7 +2,7 @@ use model::route::Route;
 use model::io::IOSet;
 use url::Url;
 use model::name::HasName;
-use model::connection::HasRoute;
+use model::route::HasRoute;
 use serde_json::Value as JsonValue;
 use std::fmt;
 

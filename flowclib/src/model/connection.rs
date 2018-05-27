@@ -5,10 +5,6 @@ use model::io::IO;
 use std::borrow::Cow;
 use std::fmt;
 
-pub trait HasRoute {
-    fn route(&self) -> &str;
-}
-
 #[derive(Deserialize, Debug, Clone)]
 pub struct Connection {
     pub name: Option<Name>,
