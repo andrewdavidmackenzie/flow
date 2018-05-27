@@ -15,7 +15,7 @@ pub fn compile(flow: &Flow) -> Result<CodeGenTables, String> {
     tables.collapsed_connections = connector::collapse_connections(&tables.connections);
     connector::routes_table(&mut tables);
     connector::set_runnable_outputs(&mut tables)?;
-    connector::check_connections(&tables)?;
+    connector::check_connections(&mut tables)?;
 
     Ok(tables)
 }
