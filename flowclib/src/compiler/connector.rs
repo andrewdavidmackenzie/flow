@@ -8,18 +8,15 @@ use model::connection;
 use model::name::HasName;
 
 /*
-    Then iterate through the values and function setting each one's id and the output routes array setup
-    (according to each runnable's output route in the original description plus each connection from it)
-    to point to the runnable (by index) and the runnable's input (by index) in the table
+    Iterate through the values and function setting each one's output routes array
+    (according to each runnable's output route in the original description plus each connection from
+     that route, which could be to multiple destinations)
 */
 pub fn set_runnable_outputs(tables: &mut CodeGenTables) -> Result<(), String> {
     debug!("Building connections");
     for connection in &tables.collapsed_connections {
-        let source = get_source(&tables.source_routes, &connection.from_io.route());
-
-        if let Some((output_route, source_id)) = source {
-            let destination = tables.destination_routes.get(connection.to_io.route());
-            if let Some(&(destination_id, destination_input_index)) = destination {
+        if let Some((output_route, source_id)) = get_source(&tables.source_routes, &connection.from_io.route()) {
+            if let Some(&(destination_id, destination_input_index)) = tables.destination_routes.get(connection.to_io.route()) {
                 let source_runnable = tables.runnables.get_mut(source_id).unwrap();
                 debug!("Connection built: from '{}' to '{}'", &connection.from_io.route(), &connection.to_io.route());
                 source_runnable.add_output_connection((output_route.to_string(), destination_id, destination_input_index));
@@ -157,7 +154,7 @@ pub fn remove_duplicates(connections: &mut Vec<Connection>) -> Result<(), String
     let mut uniques = HashSet::<String>::new();
 
     // keep unique connections - dump duplicates
-    connections.retain(|conn | {
+    connections.retain(|conn| {
         let unique_key = format!("{}->{}", conn.from, conn.to);
         uniques.insert(unique_key)
     });
@@ -171,7 +168,7 @@ pub fn remove_duplicates(connections: &mut Vec<Connection>) -> Result<(), String
     to win. So detect this and report the error.
 */
 fn check_for_competing_inputs(tables: &CodeGenTables) -> Result<(), String> {
-    let mut used_destinations = HashMap::<Route, bool> ::new();
+    let mut used_destinations = HashMap::<Route, bool>::new();
     for connection in &tables.collapsed_connections {
         if let Some((_output_route, sender_id)) = get_source(&tables.source_routes, &connection.from_io.route()) {
             let sender = tables.runnables.get(sender_id).unwrap();
