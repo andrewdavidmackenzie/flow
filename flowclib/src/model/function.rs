@@ -5,7 +5,6 @@ use model::name::HasName;
 use model::io::IO;
 use model::io::IOSet;
 use model::route::Route;
-use model::route::Router;
 use model::route::HasRoute;
 use model::route::SetRoute;
 use loader::loader::Validate;
@@ -197,30 +196,6 @@ impl Function {
     pub fn get_lib_reference(&self) -> &Option<String> {
         &self.lib_reference
     }
-
-    pub fn get(&self, ioset: &IOSet, io_sub_route: &Route) -> Result<IO, String> {
-        if let &Some(ref ios) = ioset {
-            for io in ios {
-                let (array_route, _num, array_index) = Router::without_trailing_array_index(io_sub_route);
-
-                if array_index && (io.datatype(0) == "Array") && (io.name() == array_route.as_ref()) {
-                    let mut found = io.clone();
-                    found.set_datatype(&io.datatype(1)); // the type within the array
-                    let mut new_route = found.route().clone();
-                    new_route.push_str("/");
-                    new_route.push_str(io_sub_route);
-                    found.set_route(new_route, false);
-                    return Ok(found);
-                }
-
-                if io.name() == io_sub_route {
-                    return Ok(io.clone());
-                }
-            }
-            return Err(format!("No IO with name '{}' was found", io_sub_route));
-        }
-        Err(format!("No IO found."))
-    }
 }
 
 #[cfg(test)]
@@ -232,6 +207,7 @@ mod test {
     use model::route::Route;
     use model::route::HasRoute;
     use model::route::SetRoute;
+    use model::io::Find;
 
     #[test]
     fn function_with_no_io_not_valid() {
@@ -387,7 +363,7 @@ mod test {
 
         // Test
         // Try and get the output using a route to a specific element of the output
-        let output = function.get(&function.outputs, &Route::from("/0")).unwrap();
+        let output = function.outputs.find_by_route(&Route::from("/0")).unwrap();
         assert_eq!(output.name(), "");
     }
 }

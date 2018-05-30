@@ -8,7 +8,7 @@ use model::flow_reference::FlowReference;
 use model::route::Route;
 use model::route::HasRoute;
 use model::route::SetRoute;
-use model::io::FindName;
+use model::io::Find;
 use loader::loader::Validate;
 use model::function_reference::FunctionReference;
 use model::connection::Direction;
@@ -212,8 +212,8 @@ impl Flow {
             for function_ref in function_refs {
                 if function_ref.name() == function_alias {
                     return match direction {
-                        Direction::TO => function_ref.function.get(&function_ref.function.get_inputs(), route),
-                        Direction::FROM => function_ref.function.get(&function_ref.function.get_outputs(), route)
+                        Direction::TO => function_ref.function.get_inputs().find_by_route(route),
+                        Direction::FROM => function_ref.function.get_outputs().find_by_route(route)
                     };
                 }
             }
@@ -231,7 +231,7 @@ impl Flow {
                 if value.name() == value_name {
                     return match direction {
                         Direction::TO => value.get_input(),
-                        Direction::FROM => value.get_output(route)
+                        Direction::FROM => value.get_outputs().find_by_route(route)
                     };
                 }
             }

@@ -3,10 +3,8 @@ use model::name::Name;
 use model::name::HasName;
 use model::datatype::DataType;
 use model::datatype::HasDataType;
-use model::datatype::TypeCheck;
 use loader::loader::Validate;
 use model::route::Route;
-use model::route::Router;
 use model::route::HasRoute;
 use model::route::SetRoute;
 use model::io::IO;
@@ -71,10 +69,12 @@ impl Runnable for Value {
         self.id
     }
 
+    // TODO have this return a reference
     fn get_inputs(&self) -> IOSet {
         Some(vec!(IO::new(&self.datatype, &self.route)))
     }
 
+    // TODO have this return a reference
     fn get_outputs(&self) -> IOSet {
         self.outputs.clone()
     }
@@ -158,32 +158,6 @@ impl Value {
     pub fn get_input(&self) -> Result<IO, String> {
         Ok(IO::new(&self.datatype, &self.route))
     }
-
-    // TODO ADM merge this with one used in function and move into 'connection.rs' or similar, passing in a collection
-    // or as a method of IOSet?
-    pub fn get_output(&self, io_sub_route: &Route) -> Result<IO, String> {
-        if let &Some(ref outputs) = &self.outputs {
-            for output in outputs {
-                let (array_route, _num, array_index) = Router::without_trailing_array_index(io_sub_route);
-                if array_index && (output.datatype(0).is_array()) && (output.name() == array_route.as_ref()) {
-                    let mut found = output.clone();
-                    found.set_datatype(&output.datatype(1)); // the type within the array
-                    let mut new_route = found.route().clone();
-                    new_route.push_str("/");
-                    new_route.push_str(io_sub_route);
-                    found.set_route(new_route, false);
-                    return Ok(found);
-                }
-
-                if output.name() == io_sub_route {
-                    return Ok(output.clone());
-                }
-            }
-            return Err(format!("No output with name '{}' was found", io_sub_route));
-        }
-
-        Err(format!("No output found."))
-    }
 }
 
 #[cfg(test)]
@@ -195,6 +169,7 @@ mod test {
     use model::route::Route;
     use model::route::HasRoute;
     use model::route::SetRoute;
+    use model::io::Find;
     use model::datatype::DataType;
     use model::name::Name;
 
@@ -401,7 +376,7 @@ mod test {
         let mut value: Value = toml::from_str(value_str).unwrap();
         value.set_routes_from_parent(&Route::from("/flow"), false);
 
-        let output = value.get_output(&Route::from("")).unwrap();
+        let output = value.outputs.find_by_route(&Route::from("")).unwrap();
         assert_eq!(output.route(), &Route::from("/flow/test_value"));
         assert_eq!(output.datatype(0), DataType::from("Json"));
         assert_eq!(output.flow_io(), false);
@@ -424,7 +399,7 @@ mod test {
         let mut value: Value = toml::from_str(value_str).unwrap();
         value.set_routes_from_parent(&Route::from("/flow"), false);
 
-        let output = value.get_output(&Route::from("sub_output")).unwrap();
+        let output = value.outputs.find_by_route(&Route::from("sub_output")).unwrap();
         assert_eq!(output.route(), &Route::from("/flow/test_value/sub_output"));
         assert_eq!(output.datatype(0), DataType::from("String"));
         assert_eq!(output.flow_io(), false);

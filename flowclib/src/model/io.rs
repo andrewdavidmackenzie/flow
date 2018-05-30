@@ -9,6 +9,7 @@ use loader::loader::Validate;
 use model::route::Route;
 use model::route::SetRoute;
 use std::collections::HashSet;
+use model::route::Router;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct IO {
@@ -169,11 +170,12 @@ impl SetRoute for IOSet {
     }
 }
 
-pub trait FindName {
+pub trait Find {
     fn find(&self, name: &Name) -> Result<IO, String>;
+    fn find_by_route(&self, route: &Route) -> Result<IO, String>;
 }
 
-impl FindName for IOSet {
+impl Find for IOSet {
     fn find(&self, name: &Name) -> Result<IO, String> {
         if let &Some(ref ios) = self {
             for io in ios {
@@ -184,6 +186,32 @@ impl FindName for IOSet {
             return Err(format!("No input or output with name '{}' was found", name));
         }
         Err(format!("No inputs or outputs found when looking for input/output '{}'", name))
+    }
+
+    // TODO improve the Route handling of this - maybe moving into Router
+    // TODO return a reference to the IO, with same lifetime as IOSet?
+    fn find_by_route(&self, sub_route: &Route) -> Result<IO, String> {
+        if let &Some(ref ios) = self {
+            for io in ios {
+                let (array_route, _num, array_index) = Router::without_trailing_array_index(sub_route);
+                if array_index && (io.datatype(0).is_array()) && (io.name() == array_route.as_ref()) {
+                    let mut found = io.clone();
+                    found.set_datatype(&io.datatype(1)); // the type within the array
+                    let mut new_route = found.route().clone();
+                    new_route.push_str("/");
+                    new_route.push_str(sub_route);
+                    found.set_route(new_route, false);
+                    return Ok(found);
+                }
+
+                if io.name() == sub_route {
+                    return Ok(io.clone());
+                }
+            }
+            return Err(format!("No output with name '{}' was found", sub_route));
+        }
+
+        Err(format!("No output found."))
     }
 }
 
