@@ -6,9 +6,9 @@ use model::runnable::Runnable;
 use model::flow_reference::FlowReference;
 use model::io::IOSet;
 use model::route::Route;
+use model::route::Router;
 use model::route::HasRoute;
 use model::route::FindRoute;
-use model::connection;
 use model::connection::Connection;
 use model::name::HasName;
 
@@ -63,7 +63,7 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
 }
 
 fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IOSet) -> String {
-    let (from_route, number, array_index) = connection::name_without_trailing_number(&connection.from_io.route());
+    let (from_route, number, array_index) = Router::without_trailing_array_index(&connection.from_io.route());
 
     let (from_node, from_label) = node_from_io_route(&from_route.to_string(), &connection.from_io.name(), input_set);
     let (to_node, to_label) = node_from_io_route(&connection.to_io.route(), &connection.to_io.name(), output_set);

@@ -5,13 +5,13 @@ use model::name::HasName;
 use model::io::IO;
 use model::io::IOSet;
 use model::route::Route;
+use model::route::Router;
 use model::route::HasRoute;
 use model::route::SetRoute;
 use loader::loader::Validate;
 use model::runnable::Runnable;
 use serde_json::Value as JsonValue;
 use url::Url;
-use model::connection;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Function {
@@ -161,10 +161,10 @@ impl Default for Function {
 }
 
 impl SetRoute for Function {
-    fn set_routes_from_parent(&mut self, parent_route: &Route) {
+    fn set_routes_from_parent(&mut self, parent_route: &Route, flow_io: bool) {
         self.route = format!("{}/{}", parent_route, self.alias);
-        self.inputs.set_routes_from_parent(&self.route);
-        self.outputs.set_routes_from_parent(&self.route);
+        self.inputs.set_routes_from_parent(&self.route, flow_io);
+        self.outputs.set_routes_from_parent(&self.route, flow_io);
     }
 }
 
@@ -198,18 +198,18 @@ impl Function {
         &self.lib_reference
     }
 
-    pub fn get(&self, ioset: &IOSet, io_sub_route: &str) -> Result<IO, String> {
+    pub fn get(&self, ioset: &IOSet, io_sub_route: &Route) -> Result<IO, String> {
         if let &Some(ref ios) = ioset {
             for io in ios {
-                let (array_route, _num, array_index) = connection::name_without_trailing_number(io_sub_route);
+                let (array_route, _num, array_index) = Router::without_trailing_array_index(io_sub_route);
 
-                if array_index && (io.datatype(0) == "Array") && (io.name() as &str == array_route) {
+                if array_index && (io.datatype(0) == "Array") && (io.name() == array_route.as_ref()) {
                     let mut found = io.clone();
-                    found.set_datatype(io.datatype(1).to_string()); // the type within the array
+                    found.set_datatype(&io.datatype(1)); // the type within the array
                     let mut new_route = found.route().clone();
                     new_route.push_str("/");
                     new_route.push_str(io_sub_route);
-                    found.set_route(new_route);
+                    found.set_route(new_route, false);
                     return Ok(found);
                 }
 
@@ -358,7 +358,7 @@ mod test {
         function.alias = "test_alias".to_string();
 
         // Test
-        function.set_routes_from_parent(&Route::from("/flow"));
+        function.set_routes_from_parent(&Route::from("/flow"), false);
 
         assert_eq!(function.route, "/flow/test_alias");
 
@@ -383,11 +383,11 @@ mod test {
         // Setup
         let mut function: Function = toml::from_str(function_str).unwrap();
         function.alias = "test_alias".to_string();
-        function.set_routes_from_parent(&Route::from("/flow"));
+        function.set_routes_from_parent(&Route::from("/flow"), false);
 
         // Test
         // Try and get the output using a route to a specific element of the output
-        let output = function.get(&function.outputs, "/0").unwrap();
+        let output = function.get(&function.outputs, &Route::from("/0")).unwrap();
         assert_eq!(output.name(), "");
     }
 }

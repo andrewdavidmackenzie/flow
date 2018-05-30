@@ -162,10 +162,10 @@ impl HasRoute for Flow {
 }
 
 impl SetRoute for Flow {
-    fn set_routes_from_parent(&mut self, parent_route: &Route) {
+    fn set_routes_from_parent(&mut self, parent_route: &Route, flow_io: bool) {
         self.route = format!("{}/{}", parent_route, self.alias);
         // Set the routes for the IOSets in this flow relative to the flow's route just set
-        self.set_io_routes();
+        self.set_io_routes(flow_io);
     }
 }
 
@@ -194,22 +194,20 @@ impl Flow {
     /*
         Set the routes of inputs and outputs in a flow to the hierarchical format
     */
-    fn set_io_routes(&mut self) {
+    fn set_io_routes(&mut self, flow_io: bool) {
         debug!("Setting IO routes for flow '{}'", self.source_url);
 
         if let &mut Some(ref mut ios) = &mut self.inputs {
             for ref mut input in ios {
                 let name = input.name().clone();
-                input.set_route(format!("{}/{}", self.route, name));
-                input.set_flow_io(true);
+                input.set_route(format!("{}/{}", self.route, name), flow_io);
             }
         }
 
         if let &mut Some(ref mut ios) = &mut self.outputs {
             for ref mut output in ios {
                 let name = output.name().clone();
-                output.set_route(format!("{}/{}", self.route, name));
-                output.set_flow_io(true);
+                output.set_route(format!("{}/{}", self.route, name), flow_io);
             }
         }
     }
@@ -230,7 +228,7 @@ impl Flow {
         return Err("No subflows present".to_string());
     }
 
-    fn get_io_from_function_ref(&self, function_alias: &str, direction: Direction, route: &str) -> Result<IO, String> {
+    fn get_io_from_function_ref(&self, function_alias: &str, direction: Direction, route: &Route) -> Result<IO, String> {
         if let Some(ref function_refs) = self.function_refs {
             for function_ref in function_refs {
                 if function_ref.name() == function_alias {
@@ -248,7 +246,7 @@ impl Flow {
                            self.alias, route));
     }
 
-    fn get_io_from_value(&self, value_name: &str, direction: Direction, route: &str) -> Result<IO, String> {
+    fn get_io_from_value(&self, value_name: &str, direction: Direction, route: &Route) -> Result<IO, String> {
         if let &Some(ref values) = &self.values {
             for value in values {
                 if value.name() == value_name {

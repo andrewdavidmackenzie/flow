@@ -1,10 +1,10 @@
 use model::route::Route;
+use model::route::Router;
 use model::route::HasRoute;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use generator::code_gen::CodeGenTables;
 use model::connection::Connection;
-use model::connection;
 use model::name::HasName;
 
 /*
@@ -36,8 +36,8 @@ pub fn set_runnable_outputs(tables: &mut CodeGenTables) -> Result<(), String> {
     find a runnable using the route to its output (removing the array index first to find outputs that are arrays)
     return a tuple of the sub-route to use (possibly with array index included), and the runnable index
 */
-fn get_source<'a>(source_routes: &'a HashMap<Route, (String, usize)>, from_route: &str) -> Option<(String, usize)> {
-    let (source_without_index, num, array) = connection::name_without_trailing_number(from_route);
+fn get_source<'a>(source_routes: &'a HashMap<Route, (Route, usize)>, from_route: &Route) -> Option<(Route, usize)> {
+    let (source_without_index, num, array) = Router::without_trailing_array_index(from_route);
     let source = source_routes.get(&source_without_index.to_string());
 
     if let Some(&(ref route, runnable_index)) = source {
@@ -85,7 +85,7 @@ pub fn routes_table(tables: &mut CodeGenTables) {
     end at a flow. Return them as the final destinations.
 
     As a connection at a flow boundary can connect to multiple destinations, one
-    original connection can branch into multiple.
+    original connection can branch to connect to multiple destinations.
 */
 fn find_destinations(from_route: &Route, connections: &Vec<Connection>) -> Vec<Route> {
     let mut destinations = vec!();
@@ -119,8 +119,7 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
         if left.to_io.flow_io() {
             for final_destination in find_destinations(&left.to_io.route(), original_connections) {
                 let mut joined_connection = left.clone();
-                joined_connection.to_io.set_route(final_destination);
-                joined_connection.to_io.set_flow_io(false);
+                joined_connection.to_io.set_route(final_destination, false);
                 collapsed_connections.push(joined_connection);
             }
         } else {

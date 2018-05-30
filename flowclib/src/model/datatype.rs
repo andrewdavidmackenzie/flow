@@ -3,11 +3,12 @@ const DATATYPES: &'static [&'static str] = &["String", "Json", "Number", "Bool",
 pub type DataType = String;
 
 pub trait HasDataType {
-    fn datatype(&self, level: usize) -> &str;
+    fn datatype(&self, level: usize) -> DataType;
 }
 
 pub trait TypeCheck {
     fn valid(&self) -> Result<(), String>;
+    fn is_array(&self) -> bool;
 }
 
 impl TypeCheck for DataType {
@@ -21,6 +22,10 @@ impl TypeCheck for DataType {
             }
         }
         return Ok(());
+    }
+
+    fn is_array(&self) -> bool {
+        self == &DataType::from("Array")
     }
 }
 

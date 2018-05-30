@@ -43,7 +43,7 @@ impl HasName for IO {
 }
 
 impl HasDataType for IO {
-    fn datatype(&self, level: usize) -> &str {
+    fn datatype(&self, level: usize) -> DataType {
         self.datatype(level)
     }
 }
@@ -72,25 +72,28 @@ impl IO {
         self.name = name;
     }
 
-    pub fn datatype(&self, level: usize) -> &str {
+    pub fn datatype(&self, level: usize) -> DataType {
         let type_levels: Vec<&str> = self.datatype.split('/').collect();
-        type_levels[level]
+        DataType::from(type_levels[level])
     }
 
-    pub fn set_route(&mut self, route: Route) {
+    pub fn set_route(&mut self, route: Route, flow_io: bool) {
         self.route = route;
+        self.flow_io = flow_io;
     }
 
-    pub fn set_route_from_parent(&mut self, parent: &Route) {
-        if self.name.is_empty() {
-            self.route = parent.clone();
+    pub fn set_route_from_parent(&mut self, parent: &Route, flow_io: bool) {
+        let name = self.name().clone();
+
+        if name.is_empty() {
+            self.set_route(parent.clone(), flow_io);
         } else {
-            self.route = format!("{}/{}", parent, self.name);
+            self.set_route(format!("{}/{}", parent, name), flow_io);
         }
     }
 
-    pub fn set_datatype(&mut self, datatype: DataType) {
-        self.datatype = datatype
+    pub fn set_datatype(&mut self, datatype: &DataType) {
+        self.datatype = datatype.clone()
     }
 }
 
@@ -157,10 +160,10 @@ impl FindRoute for IOSet {
 }
 
 impl SetRoute for IOSet {
-    fn set_routes_from_parent(&mut self, parent: &Route) {
+    fn set_routes_from_parent(&mut self, parent: &Route, flow_io: bool) {
         if let &mut Some(ref mut ios) = self {
             for ref mut io in ios {
-                io.set_route_from_parent(parent)
+                io.set_route_from_parent(parent, flow_io)
             }
         }
     }

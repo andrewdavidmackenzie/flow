@@ -3,15 +3,16 @@ use model::name::Name;
 use model::name::HasName;
 use model::datatype::DataType;
 use model::datatype::HasDataType;
+use model::datatype::TypeCheck;
 use loader::loader::Validate;
 use model::route::Route;
+use model::route::Router;
 use model::route::HasRoute;
 use model::route::SetRoute;
 use model::io::IO;
 use model::io::IOSet;
 use model::runnable::Runnable;
 use url::Url;
-use model::connection;
 
 use std::fmt;
 
@@ -49,9 +50,9 @@ impl HasName for Value {
 }
 
 impl HasDataType for Value {
-    fn datatype(&self, level: usize) -> &str {
+    fn datatype(&self, level: usize) -> DataType {
         let type_levels: Vec<&str> = self.datatype.split('/').collect();
-        type_levels[level]
+        DataType::from(type_levels[level])
     }
 }
 
@@ -125,7 +126,7 @@ impl fmt::Display for Value {
 }
 
 impl SetRoute for Value {
-    fn set_routes_from_parent(&mut self, parent_route: &Route) {
+    fn set_routes_from_parent(&mut self, parent_route: &Route, flow_io: bool) {
         // Set the route for this value
         self.route = format!("{}/{}", parent_route, self.name);
 
@@ -141,7 +142,7 @@ impl SetRoute for Value {
             outputs.insert(0, base_output);
         }
 
-        self.outputs.set_routes_from_parent(&self.route);
+        self.outputs.set_routes_from_parent(&self.route, flow_io);
     }
 }
 
@@ -160,17 +161,17 @@ impl Value {
 
     // TODO ADM merge this with one used in function and move into 'connection.rs' or similar, passing in a collection
     // or as a method of IOSet?
-    pub fn get_output(&self, io_sub_route: &str) -> Result<IO, String> {
+    pub fn get_output(&self, io_sub_route: &Route) -> Result<IO, String> {
         if let &Some(ref outputs) = &self.outputs {
             for output in outputs {
-                let (array_route, _num, array_index) = connection::name_without_trailing_number(io_sub_route);
-                if array_index && (output.datatype(0) == "Array") && (output.name() as &str == array_route) {
+                let (array_route, _num, array_index) = Router::without_trailing_array_index(io_sub_route);
+                if array_index && (output.datatype(0).is_array()) && (output.name() == array_route.as_ref()) {
                     let mut found = output.clone();
-                    found.set_datatype(output.datatype(1).to_string()); // the type within the array
+                    found.set_datatype(&output.datatype(1)); // the type within the array
                     let mut new_route = found.route().clone();
                     new_route.push_str("/");
                     new_route.push_str(io_sub_route);
-                    found.set_route(new_route);
+                    found.set_route(new_route, false);
                     return Ok(found);
                 }
 
@@ -194,6 +195,8 @@ mod test {
     use model::route::Route;
     use model::route::HasRoute;
     use model::route::SetRoute;
+    use model::datatype::DataType;
+    use model::name::Name;
 
     #[test]
     #[should_panic]
@@ -225,8 +228,8 @@ mod test {
 
         let value: Value = toml::from_str(value_str).unwrap();
         value.validate().unwrap();
-        assert_eq!(value.name, "test_value");
-        assert_eq!(value.datatype, "Json");
+        assert_eq!(value.name, Name::from("test_value"));
+        assert_eq!(value.datatype, DataType::from("Json"));
         assert!(value.init.is_none());
         assert!(value.outputs.is_none());
     }
@@ -288,8 +291,8 @@ mod test {
         value.validate().unwrap();
         assert!(value.outputs.is_some());
         let output = &value.outputs.unwrap()[0];
-        assert_eq!(output.name(), "");
-        assert_eq!(output.datatype(0), "Json");
+        assert_eq!(output.name(), &Name::from(""));
+        assert_eq!(output.datatype(0), DataType::from("Json"));
     }
 
     #[test]
@@ -307,8 +310,8 @@ mod test {
         value.validate().unwrap();
         assert!(value.outputs.is_some());
         let output = &value.outputs.unwrap()[0];
-        assert_eq!(output.name(), "sub_output");
-        assert_eq!(output.datatype(0), "String");
+        assert_eq!(output.name(), &Name::from("sub_output"));
+        assert_eq!(output.datatype(0), DataType::from("String"));
     }
 
     #[test]
@@ -331,11 +334,11 @@ mod test {
         let outputs = value.outputs.unwrap();
         assert_eq!(outputs.len(), 2);
         let output0 = &outputs[0];
-        assert_eq!(output0.name(), "sub_output");
-        assert_eq!(output0.datatype(0), "String");
+        assert_eq!(output0.name(), &Name::from("sub_output"));
+        assert_eq!(output0.datatype(0), DataType::from("String"));
         let output1 = &outputs[1];
-        assert_eq!(output1.name(), "other_output");
-        assert_eq!(output1.datatype(0), "Number");
+        assert_eq!(output1.name(), &Name::from("other_output"));
+        assert_eq!(output1.datatype(0), DataType::from("Number"));
     }
 
     #[test]
@@ -346,15 +349,15 @@ mod test {
         ";
 
         let mut value: Value = toml::from_str(value_str).unwrap();
-        value.set_routes_from_parent(&Route::from("/flow"));
+        value.set_routes_from_parent(&Route::from("/flow"), false);
 
-        assert_eq!(value.route, "/flow/test_value");
+        assert_eq!(value.route, Route::from("/flow/test_value"));
 
         let outputs = value.outputs.unwrap();
         assert_eq!(outputs.len(), 1);
 
         let base_output = &outputs[0];
-        assert_eq!(base_output.route(), "/flow/test_value");
+        assert_eq!(base_output.route(), &Route::from("/flow/test_value"));
     }
 
     #[test]
@@ -372,20 +375,20 @@ mod test {
         ";
 
         let mut value: Value = toml::from_str(value_str).unwrap();
-        value.set_routes_from_parent(&Route::from("/flow"));
+        value.set_routes_from_parent(&Route::from("/flow"), false);
 
-        assert_eq!(value.route, "/flow/test_value");
+        assert_eq!(value.route, Route::from("/flow/test_value"));
 
         let outputs = value.outputs.unwrap();
 
         let output0 = &outputs[0];
-        assert_eq!(output0.route(), "/flow/test_value");
+        assert_eq!(output0.route(), &Route::from("/flow/test_value"));
 
         let output1 = &outputs[1];
-        assert_eq!(output1.route(), "/flow/test_value/sub_output");
+        assert_eq!(output1.route(), &Route::from("/flow/test_value/sub_output"));
 
         let output2 = &outputs[2];
-        assert_eq!(output2.route(), "/flow/test_value/other_output");
+        assert_eq!(output2.route(), &Route::from("/flow/test_value/other_output"));
     }
 
     #[test]
@@ -396,11 +399,11 @@ mod test {
         ";
 
         let mut value: Value = toml::from_str(value_str).unwrap();
-        value.set_routes_from_parent(&Route::from("/flow"));
+        value.set_routes_from_parent(&Route::from("/flow"), false);
 
-        let output = value.get_output("").unwrap();
-        assert_eq!(output.route(), "/flow/test_value");
-        assert_eq!(output.datatype(0), "Json");
+        let output = value.get_output(&Route::from("")).unwrap();
+        assert_eq!(output.route(), &Route::from("/flow/test_value"));
+        assert_eq!(output.datatype(0), DataType::from("Json"));
         assert_eq!(output.flow_io(), false);
     }
 
@@ -419,11 +422,11 @@ mod test {
         ";
 
         let mut value: Value = toml::from_str(value_str).unwrap();
-        value.set_routes_from_parent(&Route::from("/flow"));
+        value.set_routes_from_parent(&Route::from("/flow"), false);
 
-        let output = value.get_output("sub_output").unwrap();
-        assert_eq!(output.route(), "/flow/test_value/sub_output");
-        assert_eq!(output.datatype(0), "String");
+        let output = value.get_output(&Route::from("sub_output")).unwrap();
+        assert_eq!(output.route(), &Route::from("/flow/test_value/sub_output"));
+        assert_eq!(output.datatype(0), DataType::from("String"));
         assert_eq!(output.flow_io(), false);
     }
 }

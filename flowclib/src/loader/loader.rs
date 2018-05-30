@@ -82,7 +82,7 @@ pub fn load_single_flow(parent_route: &Route, alias: &Name, url: &Url) -> Result
         .map_err(|e| format!("while loading flow - {}", e.to_string()))?;
     flow.alias = alias.clone();
     flow.source_url = resolved_url;
-    flow.set_routes_from_parent(parent_route);
+    flow.set_routes_from_parent(parent_route, true);
     if let Some(lr) = lib_ref {
         flow.lib_references.push(lr);
     };
@@ -117,7 +117,7 @@ pub fn load_function(url: &Url, parent_route: &Route, alias: &Name) -> Result<Fu
     function.set_alias(alias.to_string());
     function.set_source_url(resolved_url.clone());
     function.set_lib_reference(lib_ref);
-    function.set_routes_from_parent(parent_route);
+    function.set_routes_from_parent(parent_route, false);
     function.validate()?;
     Ok(function)
 }
@@ -151,7 +151,7 @@ fn load_values(flow: &mut Flow) -> Result<(), String> {
     if let Some(ref mut values) = flow.values {
         debug!("Loading values for flow '{}'", flow.source_url);
         for ref mut value in values {
-            value.set_routes_from_parent(parent_route);
+            value.set_routes_from_parent(parent_route, false);
         }
     }
     Ok(())

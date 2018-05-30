@@ -3,7 +3,6 @@ use loader::loader::Validate;
 use model::route::Route;
 use model::route::HasRoute;
 use model::io::IO;
-use std::borrow::Cow;
 use std::fmt;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -22,23 +21,6 @@ pub struct Connection {
 pub enum Direction {
     FROM,
     TO,
-}
-
-/*
-    return the io route without a trailing number (array index) and if it has one or not
-
-    If the trailing number was present then return the route with a trailing '/'
-*/
-pub fn name_without_trailing_number<'a>(route: &'a str) -> (Cow<'a, str>, usize, bool) {
-    let mut parts: Vec<&str> = route.split('/').collect();
-    if let Some(last_part) = parts.pop() {
-        if let Ok(number) = last_part.parse::<usize>() {
-            let route_without_number = parts.join("/");
-            return (Cow::Owned(route_without_number), number, true);
-        }
-    }
-
-    (Cow::Borrowed(route), 0, false)
 }
 
 impl Connection {
@@ -76,46 +58,47 @@ impl Validate for Connection {
 
 #[cfg(test)]
 mod test {
-    use super::name_without_trailing_number;
+    use model::route::Route;
+    use model::route::Router;
 
     #[test]
     fn no_path_no_change() {
-        let route = "";
-        let (new_route, _num, trailing_number) = name_without_trailing_number(route);
-        assert_eq!(new_route, "");
+        let route = Route::from("");
+        let (new_route, _num, trailing_number) = Router::without_trailing_array_index(&route);
+        assert_eq!(new_route.as_ref(), "");
         assert_eq!(trailing_number, false);
     }
 
     #[test]
     fn just_slash_no_change() {
-        let route = "/";
-        let (new_route, _num, trailing_number) = name_without_trailing_number(route);
-        assert_eq!(new_route, "/");
+        let route = Route::from("/");
+        let (new_route, _num, trailing_number) = Router::without_trailing_array_index(&route);
+        assert_eq!(new_route.as_ref(), "/");
         assert_eq!(trailing_number, false);
     }
 
     #[test]
     fn no_trailing_number_no_change() {
-        let route = "/output1";
-        let (new_route, _num, trailing_number) = name_without_trailing_number(route);
-        assert_eq!(new_route, "/output1");
+        let route = Route::from("/output1");
+        let (new_route, _num, trailing_number) = Router::without_trailing_array_index(&route);
+        assert_eq!(new_route.as_ref(), "/output1");
         assert_eq!(trailing_number, false);
     }
 
     #[test]
     fn detect_array_at_output_root() {
-        let route = "/0";
-        let (new_route, num, trailing_number) = name_without_trailing_number(route);
-        assert_eq!(new_route, "");
+        let route = Route::from("/0");
+        let (new_route, num, trailing_number) = Router::without_trailing_array_index(&route);
+        assert_eq!(new_route.as_ref(), "");
         assert_eq!(num, 0);
         assert_eq!(trailing_number, true);
     }
 
     #[test]
     fn detect_array_at_output_subpath() {
-        let route = "/array_output/0";
-        let (new_route, num, trailing_number) = name_without_trailing_number(route);
-        assert_eq!(new_route, "/array_output");
+        let route = Route::from("/array_output/0");
+        let (new_route, num, trailing_number) = Router::without_trailing_array_index(&route);
+        assert_eq!(new_route.as_ref(), "/array_output");
         assert_eq!(num, 0);
         assert_eq!(trailing_number, true);
     }

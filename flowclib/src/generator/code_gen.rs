@@ -14,7 +14,7 @@ const RUST: &CodeGenerator = &RustGenerator as &CodeGenerator;
 
 pub struct CodeGenTables {
     pub connections: Vec<Connection>,
-    pub source_routes: HashMap<Route, (String, usize)>,
+    pub source_routes: HashMap<Route, (Route, usize)>,
     pub destination_routes: HashMap<Route, (usize, usize)>,
     pub collapsed_connections: Vec<Connection>,
     pub runnables: Vec<Box<Runnable>>,
