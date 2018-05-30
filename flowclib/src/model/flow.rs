@@ -164,8 +164,8 @@ impl HasRoute for Flow {
 impl SetRoute for Flow {
     fn set_routes_from_parent(&mut self, parent_route: &Route, flow_io: bool) {
         self.route = format!("{}/{}", parent_route, self.alias);
-        // Set the routes for the IOSets in this flow relative to the flow's route just set
-        self.set_io_routes(flow_io);
+        self.inputs.set_routes_from_parent(&self.route, flow_io);
+        self.outputs.set_routes_from_parent(&self.route, flow_io);
     }
 }
 
@@ -188,27 +188,6 @@ impl Flow {
             function_refs,
             values,
             lib_references,
-        }
-    }
-
-    /*
-        Set the routes of inputs and outputs in a flow to the hierarchical format
-    */
-    fn set_io_routes(&mut self, flow_io: bool) {
-        debug!("Setting IO routes for flow '{}'", self.source_url);
-
-        if let &mut Some(ref mut ios) = &mut self.inputs {
-            for ref mut input in ios {
-                let name = input.name().clone();
-                input.set_route(format!("{}/{}", self.route, name), flow_io);
-            }
-        }
-
-        if let &mut Some(ref mut ios) = &mut self.outputs {
-            for ref mut output in ios {
-                let name = output.name().clone();
-                output.set_route(format!("{}/{}", self.route, name), flow_io);
-            }
         }
     }
 
