@@ -47,3 +47,15 @@ fn invalid_data_type() {
     let string_type = DataType::from("foo".to_string());
     string_type.valid().unwrap();
 }
+
+#[test]
+fn is_array_true() {
+    let array_type = DataType::from("Array".to_string());
+    assert!(array_type.is_array());
+}
+
+#[test]
+fn is_array_false() {
+    let string_type = DataType::from("String".to_string());
+    assert_eq!(string_type.is_array(), false);
+}
