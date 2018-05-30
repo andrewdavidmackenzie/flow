@@ -171,12 +171,12 @@ impl SetRoute for IOSet {
 }
 
 pub trait Find {
-    fn find(&self, name: &Name) -> Result<IO, String>;
+    fn find_by_name(&self, name: &Name) -> Result<IO, String>;
     fn find_by_route(&self, route: &Route) -> Result<IO, String>;
 }
 
 impl Find for IOSet {
-    fn find(&self, name: &Name) -> Result<IO, String> {
+    fn find_by_name(&self, name: &Name) -> Result<IO, String> {
         if let &Some(ref ios) = self {
             for io in ios {
                 if io.name() == name {
@@ -208,10 +208,10 @@ impl Find for IOSet {
                     return Ok(io.clone());
                 }
             }
-            return Err(format!("No output with name '{}' was found", sub_route));
+            return Err(format!("No output with sub-route '{}' was found", sub_route));
         }
 
-        Err(format!("No output found."))
+        Err(format!("No inputs or outputs found when looking for input/output with sub-route '{}'", sub_route))
     }
 }
 

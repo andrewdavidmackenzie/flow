@@ -196,8 +196,8 @@ impl Flow {
             for flow_ref in flow_refs {
                 if flow_ref.name() == subflow_alias {
                     return match direction {
-                        Direction::TO => flow_ref.flow.inputs.find(io_name),
-                        Direction::FROM => flow_ref.flow.outputs.find(io_name)
+                        Direction::TO => flow_ref.flow.inputs.find_by_name(io_name),
+                        Direction::FROM => flow_ref.flow.outputs.find_by_name(io_name)
                     };
                 }
             }
@@ -241,17 +241,19 @@ impl Flow {
         return Err("No values present".to_string());
     }
 
+    // TODO consider finding the object first using it's type and name (flow, subflow, value, function)
+    // Then from the object find the IO (by name or route, probably route) in common code, maybe using IOSet directly?
     pub fn get_route_and_type(&mut self, direction: Direction, conn_descriptor: &str) -> Result<IO, String> {
         let mut segments: Vec<&str> = conn_descriptor.split('/').collect();
         let object_type = segments.remove(0); // first part is type of object
         let object_name = &Name::from(segments.remove(0)); // second part is the name of it
         let route = segments.join("/");       // the rest is a sub-route
 
-        debug!("Looking for connection {:?} {} '{}' with sub-route '{}'", direction, object_type, object_name, route);
+        debug!("Looking for connection {:?} {} '{}' with route '{}'", direction, object_type, object_name, route);
 
         match (&direction, object_type) {
-            (&Direction::TO, "output") => self.outputs.find(object_name), // an output from this flow
-            (&Direction::FROM, "input") => self.inputs.find(object_name), // an input to this flow
+            (&Direction::TO, "output") => self.outputs.find_by_name(object_name), // an output from this flow
+            (&Direction::FROM, "input") => self.inputs.find_by_name(object_name), // an input to this flow
             (_, "flow") => self.get_io_subflow(object_name, direction, &route), // input or output of a subflow
             (_, "value") => self.get_io_from_value(object_name, direction, &route), // input or output of a contained value
             (_, "function") => self.get_io_from_function_ref(object_name, direction, &route), // input or output of a referenced function
