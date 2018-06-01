@@ -162,24 +162,35 @@ pub fn remove_duplicates(connections: &mut Vec<Connection>) -> Result<(), String
 }
 
 /*
-    When two runnables try to send to the same input, and one of them is a static value (that is
-    always available), then there will be a run-time problem as the other input will never be able
-    to win. So detect this and report the error.
+    Check for two problems that lead to competition for inputs causing input overflow:
+    1) Two runnables have output connections to the same input, and one of them is a static value
+    2) A single runnable has two output connections to the same destination route.
 */
 fn check_for_competing_inputs(tables: &CodeGenTables) -> Result<(), String> {
-    let mut used_destinations = HashMap::<Route, bool>::new();
+    // HashMap where key is the Route of the input being sent to
+    //               value is  a tuple of (sender_id, static_sender)
+    // Use to determine when sending to a route if the same runnable is already sending to it
+    // or if there is a different static sender sending to it
+    let mut used_destinations = HashMap::<Route, (usize, bool)>::new();
+
     for connection in &tables.collapsed_connections {
         if let Some((_output_route, sender_id)) = get_source(&tables.source_routes, &connection.from_io.route()) {
             let sender = tables.runnables.get(sender_id).unwrap();
-            match used_destinations.insert(connection.to_io.route().clone(), sender.is_static_value()) {
-                Some(other_sender_is_static_value) => {
+            match used_destinations.insert(connection.to_io.route().clone(), (sender_id, sender.is_static_value())) {
+                Some((other_sender_id, other_sender_is_static_value)) => {
                     // this destination is being sent to already - if the existing sender or this sender are
                     // static then it's being used by two senders, at least one of which is static :-(
                     if other_sender_is_static_value || sender.is_static_value() {
                         return Err(format!("The route '{}' is being sent to by a static value as well as other outputs, causing competition that will fail at run-time",
                                            connection.to_io.route()));
                     }
-                }
+
+                    // The same runnable is already sending to this route!
+                    if other_sender_id == sender_id {
+                        return Err(format!("The runnable #'{}' has multiple outputs sending to the route '{}'",
+                                           sender_id, connection.to_io.route()));
+                    }
+                },
                 _ => {}
             }
         }

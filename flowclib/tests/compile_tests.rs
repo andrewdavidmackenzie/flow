@@ -28,9 +28,10 @@ mod test {
     }
 
     #[test]
+    #[should_panic]
     fn compile_double_connection() {
         let mut flow =  loader::load(&Name::from("double"),
                                      &url_from_rel_path("flowclib/tests/double.toml")).unwrap();
-        let _tables = compile::compile(&mut flow);
+        let _tables = compile::compile(&mut flow).unwrap();
     }
 }

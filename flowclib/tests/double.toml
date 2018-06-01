@@ -1,17 +1,31 @@
-[[value]]
-name = "one"
-type = "Number"
-init = 1
+[[function]]
+alias = "args"
+source = "lib://flowstdlib/env/args.toml"
+
+[[connection]]
+from = "function/args/1"
+to = "function/to_number"
+
+[[connection]]
+from = "function/args/2"
+to = "function/to_number"
 
 [[function]]
-alias = "sum"
-source = "lib://flowstdlib/math/add.toml"
-
-# two identical connections between them
-[[connection]]
-from = "value/one"
-to = "function/sum/i1"
+alias = "to_number"
+source = "lib://flowstdlib/fmt/to_number.toml"
 
 [[connection]]
-from = "value/one"
-to = "function/sum/i1"
+from = "function/to_number"
+to = "function/to_string"
+
+[[function]]
+alias = "to_string"
+source = "lib://flowstdlib/fmt/to_string.toml"
+
+[[connection]]
+from = "function/to_string"
+to = "function/print"
+
+[[function]]
+alias = "print"
+source = "lib://flowstdlib/stdio/stdout.toml"
