@@ -58,6 +58,5 @@ debug-assertions = true
 codegen-units = 1
 
 [workspace]
-# TODO ADM "sample/mandlebrot"
 members = ["flowclib", "flowrlib", "flowstdlib", "flowc", "electron"]
 default-members = ["flowclib", "flowrlib", "flowstdlib", "flowc"]
