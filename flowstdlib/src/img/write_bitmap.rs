@@ -2,6 +2,7 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::io;
 use flowrlib::implementation::Implementation;
+use flowrlib::implementation::RunAgain;
 use flowrlib::runlist::RunList;
 use flowrlib::runnable::Runnable;
 use image::png::PNGEncoder;
@@ -11,7 +12,7 @@ use serde_json::Value as JsonValue;
 pub struct WriteBitmap;
 
 impl Implementation for WriteBitmap {
-    fn run(&self, _runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList) -> bool {
+    fn run(&self, _runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList) -> RunAgain {
         let filename = inputs.remove(0).remove(0);
         let bytes = inputs.remove(0).remove(0);
         let bounds = inputs.remove(0).remove(0);

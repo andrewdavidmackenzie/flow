@@ -2,6 +2,7 @@ use serde_json;
 use serde_json::Value as JsonValue;
 use serde_json::Value::Number;
 use flowrlib::implementation::Implementation;
+use flowrlib::implementation::RunAgain;
 use flowrlib::runnable::Runnable;
 use flowrlib::runlist::RunList;
 
@@ -10,7 +11,7 @@ pub struct Subtract;
 // TODO implementation of `std::ops::Add` might be missing for `&serde_json::Number`
 
 impl Implementation for Subtract {
-    fn run(&self, runnable: &Runnable, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> bool {
+    fn run(&self, runnable: &Runnable, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
         let input_a = inputs.get(0).unwrap();
         let input_b = inputs.get(1).unwrap();
         match (&input_a[0], &input_b[0]) {

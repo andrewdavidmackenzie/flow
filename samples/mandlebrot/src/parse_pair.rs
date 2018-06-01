@@ -1,5 +1,6 @@
 use serde_json::Value as JsonValue;
 use flowrlib::implementation::Implementation;
+use flowrlib::implementation::RunAgain;
 use flowrlib::runnable::Runnable;
 use flowrlib::runlist::RunList;
 use std::str::FromStr;
@@ -16,7 +17,7 @@ pub struct ParsePair;
     plane designating the area our image covers.
 */
 impl Implementation for ParsePair {
-    fn run(&self, runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> bool {
+    fn run(&self, runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
         let string = inputs.remove(0).remove(0);
         let separator = inputs.remove(0).remove(0);
 

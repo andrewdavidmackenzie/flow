@@ -3,6 +3,7 @@ use serde_json::Value as JsonValue;
 use serde_json::Value::Number;
 use serde_json::Value::String;
 use flowrlib::implementation::Implementation;
+use flowrlib::implementation::RunAgain;
 use flowrlib::runnable::Runnable;
 use flowrlib::runlist::RunList;
 
@@ -11,7 +12,7 @@ pub struct Add;
 // TODO implementation of `std::ops::Add` might be missing for `&serde_json::Number`
 
 impl Implementation for Add {
-    fn run(&self, runnable: &Runnable, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> bool {
+    fn run(&self, runnable: &Runnable, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
         let input_a = inputs.get(0).unwrap();
         let input_b = inputs.get(1).unwrap();
         match (&input_a[0], &input_b[0]) {

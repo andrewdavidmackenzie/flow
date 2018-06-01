@@ -1,0 +1,31 @@
+[[function]]
+alias = "args"
+source = "lib://flowstdlib/env/args.toml"
+
+[[connection]]
+from = "function/args/1"
+to = "function/to_number"
+
+[[connection]]
+from = "function/args/2"
+to = "function/to_number"
+
+[[function]]
+alias = "to_number"
+source = "lib://flowstdlib/fmt/to_number.toml"
+
+[[connection]]
+from = "function/to_number"
+to = "function/to_string"
+
+[[function]]
+alias = "to_string"
+source = "lib://flowstdlib/fmt/to_string.toml"
+
+[[connection]]
+from = "function/to_string"
+to = "function/print"
+
+[[function]]
+alias = "print"
+source = "lib://flowstdlib/stdio/stdout.toml"

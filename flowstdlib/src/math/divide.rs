@@ -1,12 +1,13 @@
 use serde_json::Value as JsonValue;
 use flowrlib::implementation::Implementation;
+use flowrlib::implementation::RunAgain;
 use flowrlib::runnable::Runnable;
 use flowrlib::runlist::RunList;
 
 pub struct Divide;
 
 impl Implementation for Divide {
-    fn run(&self, runnable: &Runnable, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> bool {
+    fn run(&self, runnable: &Runnable, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
         let dividend = inputs.get(0).unwrap()[0].as_f64().unwrap();
         let divisor = inputs.get(1).unwrap()[0].as_f64().unwrap();
 

@@ -1,5 +1,6 @@
 use serde_json::Value as JsonValue;
 use flowrlib::implementation::Implementation;
+use flowrlib::implementation::RunAgain;
 use flowrlib::runnable::Runnable;
 use flowrlib::runlist::RunList;
 use std::io::{self, Read};
@@ -7,7 +8,7 @@ use std::io::{self, Read};
 pub struct Stdin;
 
 impl Implementation for Stdin {
-    fn run(&self, runnable: &Runnable, mut _inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> bool {
+    fn run(&self, runnable: &Runnable, mut _inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
         let mut buffer = String::new();
         if let Ok(size) = io::stdin().read_to_string(&mut buffer) {
             if size > 0 {

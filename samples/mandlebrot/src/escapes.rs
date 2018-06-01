@@ -1,5 +1,6 @@
 use serde_json::Value as JsonValue;
 use flowrlib::implementation::Implementation;
+use flowrlib::implementation::RunAgain;
 use flowrlib::runnable::Runnable;
 use flowrlib::runlist::RunList;
 use num::Complex;
@@ -14,7 +15,7 @@ pub struct Escapes;
     able to prove that 'c' is not a member) return 'None'
 */
 impl Implementation for Escapes {
-    fn run(&self, runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> bool {
+    fn run(&self, runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
         let point = inputs.remove(0).remove(0);
         // pixel_bounds: (usize, usize),
         let re = point["re"].as_f64().unwrap();
