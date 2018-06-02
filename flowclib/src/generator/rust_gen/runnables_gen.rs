@@ -143,7 +143,7 @@ fn runnable_to_code(runnable: &Box<Runnable>) -> String {
         &None => code.push_str(&format!("{}, {}, vec!(), ", 0, runnable.is_static_value())),
 
         // Some inputs, so put the number and the vector of input depths
-        &Some(ref inputs) => {
+        Some(inputs) => {
             code.push_str(&format!("{}, {}, vec!(", inputs.len(), runnable.is_static_value()));
             for input in inputs {
                 code.push_str(&format!("{}, ", input.depth()));

@@ -26,21 +26,21 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
     contents.push_str(&add_output_set(&flow.outputs, flow.route(), false));
 
     // Values
-    if let &Some(ref values) = &flow.values {
+    if let Some(values) = &flow.values {
         for value in values {
             contents.push_str(&run_to_dot(value));
         }
     }
 
     // Function References
-    if let &Some(ref function_refs) = &flow.function_refs {
+    if let Some(function_refs) = &flow.function_refs {
         for function_ref in function_refs {
             contents.push_str(&run_to_dot(&function_ref.function as &Runnable));
         }
     }
 
     // Flow References
-    if let &Some(ref flow_refs) = &flow.flow_refs {
+    if let Some(flow_refs) = &flow.flow_refs {
         contents.push_str("\n\t// Sub-Flows\n");
         for flow_ref in flow_refs {
             contents.push_str(&flow_reference_to_dot(&flow_ref));
@@ -48,7 +48,7 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
     }
 
     // Connections
-    if let &Some(ref connections) = &flow.connections {
+    if let Some(connections) = &flow.connections {
         contents.push_str("\n\t// Connections");
         for connection in connections {
             contents.push_str(&connection_to_dot(&connection, &flow.inputs, &flow.outputs));
@@ -200,7 +200,7 @@ fn runnable_style(runnable: &Runnable) -> &'static str {
 fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String {
     let mut string = String::new();
 
-    if let &Some(ref inputs) = input_set {
+    if let Some(inputs) = input_set {
         string.push_str("\n\t// Inputs\n\t{ rank=source\n");
         for input in inputs {
             // Avoid creating extra points to connect to for default input (e.g. on a value)
@@ -227,7 +227,7 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
 fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> String {
     let mut string = String::new();
 
-    if let &Some(ref outputs) = output_set {
+    if let Some(outputs) = output_set {
         string.push_str("\n\t// Outputs\n\t{ rank=sink\n");
         for output in outputs {
             // Only add output if it's not got the same route as it's runnable i.e. it's not the default output

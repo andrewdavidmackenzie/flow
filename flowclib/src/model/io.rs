@@ -127,7 +127,7 @@ pub type IOSet = Option<Vec<IO>>;
 impl Validate for IOSet {
     fn validate(&self) -> Result<(), String> {
         let mut name_set = HashSet::new();
-        if let &Some(ref ios) = self {
+        if let Some(ios) = self {
             for io in ios {
                 io.validate()?;
 
@@ -149,7 +149,7 @@ impl FindRoute for IOSet {
         Determine if it's a given route is in this IOSet
     */
     fn find(&self, route: &Route) -> bool {
-        if let &Some(ref ios) = self {
+        if let Some(ios) = self {
             for io in ios {
                 if io.route() == route {
                     return true;
@@ -177,7 +177,7 @@ pub trait Find {
 
 impl Find for IOSet {
     fn find_by_name(&self, name: &Name) -> Result<IO, String> {
-        if let &Some(ref ios) = self {
+        if let Some(ios) = self {
             for io in ios {
                 if io.name() == name {
                     return Ok(io.clone());
@@ -191,7 +191,7 @@ impl Find for IOSet {
     // TODO improve the Route handling of this - maybe moving into Router
     // TODO return a reference to the IO, with same lifetime as IOSet?
     fn find_by_route(&self, sub_route: &Route) -> Result<IO, String> {
-        if let &Some(ref ios) = self {
+        if let Some(ios) = self {
             for io in ios {
                 let (array_route, _num, array_index) = Router::without_trailing_array_index(sub_route);
                 if array_index && (io.datatype(0).is_array()) && (io.name() == array_route.as_ref()) {

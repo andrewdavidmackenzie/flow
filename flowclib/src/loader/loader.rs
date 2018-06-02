@@ -135,7 +135,7 @@ fn load_functions(flow: &mut Flow) -> Result<(), String> {
             function_ref.function = load_function(&function_url, parent_route, &function_ref.alias())
                 .map_err(|e| format!("while loading function from Url '{}' - {}",
                                      function_url, e.to_string()))?;
-            if let &Some(ref lib_ref) = function_ref.function.get_lib_reference() {
+            if let Some(lib_ref) = function_ref.function.get_lib_reference() {
                 flow.lib_references.push(format!("{}/{}", lib_ref, function_ref.function.name()));
             }
         }

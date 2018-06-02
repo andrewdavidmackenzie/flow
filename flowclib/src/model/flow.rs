@@ -226,7 +226,7 @@ impl Flow {
     }
 
     fn get_io_from_value(&self, value_name: &str, direction: Direction, route: &Route) -> Result<IO, String> {
-        if let &Some(ref values) = &self.values {
+        if let Some(values) = &self.values {
             for value in values {
                 if value.name() == value_name {
                     return match direction {
