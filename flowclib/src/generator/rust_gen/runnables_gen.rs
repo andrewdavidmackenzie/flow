@@ -12,6 +12,7 @@ use model::runnable::Runnable;
 const RUNNABLES_PREFIX: &'static str = "
 // Flow Run-time library references
 use flowrlib::runnable::Runnable;
+use flowrlib::implementation::Implementation;
 {value_used}
 {function_used}
 
@@ -27,13 +28,11 @@ const RUNNABLES_SUFFIX: &'static str = "
 }";
 
 // Create the 'runnables.rs' file in the output project's source folder
-pub fn create(src_dir: &PathBuf, tables: &CodeGenTables)
-              -> Result<()> {
-    let lib_refs = lib_refs(&tables.lib_references);
+pub fn create(src_dir: &PathBuf, tables: &CodeGenTables) -> Result<()> {
     let mut file = src_dir.clone();
     file.push("runnables.rs");
     let mut runnables_rs = File::create(&file)?;
-    let contents = contents(tables, &lib_refs);
+    let contents = contents(tables,implementations(&tables)?);
     runnables_rs.write_all(contents.unwrap().as_bytes())
 }
 
@@ -56,12 +55,11 @@ fn uses_function(runnables: &Vec<Box<Runnable>>) -> bool {
     return false;
 }
 
-fn contents(tables: &CodeGenTables, lib_refs: &Vec<String>) -> Result<String> {
-    let num_runnables = &tables.runnables.len().to_string();
+fn contents(tables: &CodeGenTables, implementations: (Vec<String>, Vec<String>)) -> Result<String> {
     let mut vars = HashMap::new();
 
     if uses_value(&tables.runnables) {
-        vars.insert("value_used".to_string(), "use flowrlib::value::Value;\nuse flowstdlib::zero_fifo::Fifo;");
+        vars.insert("value_used".to_string(), "use flowrlib::value::Value;");
     } else {
         vars.insert("value_used".to_string(), "");
     }
@@ -74,40 +72,72 @@ fn contents(tables: &CodeGenTables, lib_refs: &Vec<String>) -> Result<String> {
 
     let mut content = strfmt(RUNNABLES_PREFIX, &vars).unwrap();
 
-    content.push_str("\n// Library functions\n");
-    for lib_ref in lib_refs {
-        content.push_str(&lib_ref);
+    content.push_str("\n// Implementations used\n");
+    for implementation_use in implementations.0 {
+        content.push_str(&implementation_use);
     }
 
-    // Add "use" statements for functions referenced
-    content.push_str(&usages(&tables.runnables).unwrap());
+    content.push_str("\n\n// Implementations\n");
+    for implementation_instantiation in implementations.1 {
+        content.push_str(&implementation_instantiation);
+    }
 
-    // add declaration of runnables array etc - parameterized by the number of runnables
-    vars = HashMap::<String, &str>::new();
+    content.push_str(&runnables(tables));
+
+    Ok(content)
+}
+
+/*
+    Generate the string contents that declares an array of runnables
+*/
+fn runnables(tables: &CodeGenTables) -> String {
+    let mut runnables_declarations = String::new();
+    let num_runnables = &tables.runnables.len().to_string();
+
+    // add declaration of runnables array  - parameterized by the number of runnables
+    let mut vars = HashMap::<String, &str>::new();
     vars.insert("num_runnables".to_string(), num_runnables);
-    content.push_str(&strfmt(GET_RUNNABLES, &vars).unwrap());
+    runnables_declarations.push_str(&strfmt(GET_RUNNABLES, &vars).unwrap());
 
     // Generate code for each of the runnables
     for runnable in &tables.runnables {
         let run_str = format!("    runnables.push(Arc::new(Mutex::new({})));\n",
                               runnable_to_code(runnable));
-        content.push_str(&run_str);
+        runnables_declarations.push_str(&run_str);
     }
 
-    // return the array of runnables - No templating in this part (at the moment)
-    content.push_str(RUNNABLES_SUFFIX);
+    runnables_declarations.push_str(RUNNABLES_SUFFIX);
 
-    Ok(content)
+    // return the string declaring runnables array
+    runnables_declarations
 }
 
-// add use clauses for functions that are part of the flow, not library functions
-// "use module::Functionname;" e.g. "use reverse::Reverse;"
-fn usages(runnables: &Vec<Box<Runnable>>) -> Result<String> {
-    let mut usages_string = String::new();
-    let mut uses_declared = HashSet::new();
+/*
+    Convert a set of references used flows in '/' format into use statements of rust
+*/
+fn implementations(tables: &CodeGenTables) -> Result<(Vec<String>, Vec<String>)> {
+    let mut implementations_used: Vec<String> = Vec::new();
+    let mut implementation_instantiations: Vec<String> = Vec::new();
+
+    for lib_ref in &tables.lib_references {
+        let lib_use = str::replace(&lib_ref, "/", "::");
+        implementations_used.push(format!("use {};\n", lib_use));
+        let parts = lib_ref.split('/').collect::<Vec<&str>>();
+        let implementation = parts.last().unwrap();
+        implementation_instantiations.push(format!("static {}: &Implementation = &{}{{}} as &Implementation;\n",
+                                                   implementation.to_uppercase(), implementation));
+    }
+
+    // If Value is used then add a reference to an implementation of it from the std library
+    if uses_value(&tables.runnables) {
+        implementations_used.push("use flowstdlib::zero_fifo::Fifo;".to_string());
+
+        implementation_instantiations.push(format!("static FIFO: &Implementation = &Fifo{{}} as &Implementation;\n"));
+    }
 
     // Find all the functions that are not loaded from libraries
-    for runnable in runnables {
+    let mut uses_declared = HashSet::new();
+    for runnable in &tables.runnables {
         if let Some(source_url) = runnable.source_url() {
             let source = source_url.to_file_path()
                 .map_err(|_e| Error::new(ErrorKind::InvalidData, "Could not convert to file path"))?;
@@ -115,23 +145,14 @@ fn usages(runnables: &Vec<Box<Runnable>>) -> Result<String> {
             let use_string = format!("use {}::{};\n", usage.to_str().unwrap(), runnable.name());
             // Don't add the same use twice
             if uses_declared.insert(use_string.clone()) {
-                usages_string.push_str(&use_string);
+                implementations_used.push(use_string);
+                implementation_instantiations.push(format!("static {}: &Implementation = &{} as &Implementation;\n",
+                                                           runnable.get_implementation().to_uppercase(), runnable.get_implementation()));
             }
         }
     }
 
-    Ok(usages_string)
-}
-
-// Convert a set of libraries used in all the flows in '/' format into use statements of rust
-fn lib_refs(libs_references: &HashSet<String>) -> Vec<String> {
-    let mut lib_refs: Vec<String> = Vec::new();
-    for lib_ref in libs_references {
-        let lib_use = str::replace(&lib_ref, "/", "::");
-        lib_refs.push(format!("use {};\n", lib_use));
-    }
-
-    lib_refs
+    Ok((implementations_used, implementation_instantiations))
 }
 
 // Output a statement that instantiates an instance of the Runnable type used, that can be used
@@ -151,7 +172,8 @@ fn runnable_to_code(runnable: &Box<Runnable>) -> String {
             code.push_str(&format!("), "));
         }
     }
-    code.push_str(&format!("{}, &{}{{}}, ", runnable.get_id(), runnable.get_implementation()));
+    code.push_str(&format!("{}, {}, ", runnable.get_id(),
+                           runnable.get_implementation().to_uppercase()));
 
     code.push_str(&format!("{},", match runnable.get_initial_value() {
         None => "None".to_string(),
@@ -198,7 +220,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\", 1, false, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Value::new(\"value\", 1, false, vec!(1, ), 1, FIFO, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
     }
 
     #[test]
@@ -215,7 +237,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\", 1, true, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Value::new(\"value\", 1, true, vec!(1, ), 1, FIFO, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
     }
 
     #[test]
@@ -234,7 +256,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\", 1, false, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+        assert_eq!(code, "Value::new(\"value\", 1, false, vec!(1, ), 1, FIFO, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
     }
 
     #[test]
@@ -255,7 +277,7 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Function::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+        assert_eq!(code, "Function::new(\"print\", 0, false, vec!(), 0, STDOUT, None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
     }
 
     #[test]
@@ -275,7 +297,7 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Function::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Function::new(\"print\", 0, false, vec!(), 0, STDOUT, None, vec!((\"\", 1, 0),))")
     }
 
     #[test]
@@ -295,6 +317,6 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Function::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"/0\", 1, 0),))")
+        assert_eq!(code, "Function::new(\"print\", 0, false, vec!(), 0, STDOUT, None, vec!((\"/0\", 1, 0),))")
     }
 }
