@@ -5,25 +5,25 @@ use std::panic::RefUnwindSafe;
 use std::panic::UnwindSafe;
 use input::Input;
 
-pub struct Function {
+pub struct Function<'a> {
     name: String,
     number_of_inputs: usize,
     id: usize,
-    implementation: Box<Implementation>,
+    implementation: &'a Implementation,
     inputs: Vec<Input>,
     output_routes: Vec<(&'static str, usize, usize)>,
 }
 
-impl Function {
+impl<'a> Function<'a> {
     pub fn new(name: &str,
                number_of_inputs: usize,
                _static_value: bool,
                input_depths: Vec<usize>,
                id: usize,
-               implementation: Box<Implementation>,
+               implementation: &'a Implementation,
                _initial_value: Option<JsonValue>,
                output_routes: Vec<(&'static str, usize, usize)>)
-               -> Function {
+               -> Function<'a> {
         let mut function = Function {
             name: name.to_string(),
             number_of_inputs,
@@ -41,11 +41,11 @@ impl Function {
     }
 }
 
-impl RefUnwindSafe for Function {}
+impl<'a> RefUnwindSafe for Function<'a> {}
 
-impl UnwindSafe for Function {}
+impl<'a> UnwindSafe for Function<'a> {}
 
-impl Runnable for Function {
+impl<'a> Runnable for Function<'a> {
     fn name(&self) -> &str { &self.name }
 
     fn number_of_inputs(&self) -> usize { self.number_of_inputs }
@@ -90,7 +90,7 @@ impl Runnable for Function {
 
     fn output_destinations(&self) -> &Vec<(&'static str, usize, usize)> { &self.output_routes }
 
-    fn implementation(&self) -> &Box<Implementation> { &self.implementation }
+    fn implementation(&self) -> &Implementation { self.implementation }
 }
 
 

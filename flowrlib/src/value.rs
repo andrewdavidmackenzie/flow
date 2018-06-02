@@ -4,26 +4,26 @@ use implementation::Implementation;
 
 const ONLY_INPUT: usize = 0;
 
-pub struct Value {
+pub struct Value<'a> {
     name: String,
     number_of_inputs: usize,
     static_value: bool,
     id: usize,
     initial_value: Option<JsonValue>,
-    implementation: Box<Implementation>,
+    implementation: &'a Implementation,
     value: JsonValue,
     output_routes: Vec<(&'static str, usize, usize)>,
 }
 
-impl Value {
+impl<'a> Value<'a> {
     pub fn new(name: &str,
                number_of_inputs: usize,
                static_value: bool,
                _input_depths: Vec<usize>,
                id: usize,
-               implementation: Box<Implementation>,
+               implementation: &'a Implementation,
                initial_value: Option<JsonValue>,
-               output_routes: Vec<(&'static str, usize, usize)>) -> Value {
+               output_routes: Vec<(&'static str, usize, usize)>) -> Value<'a> {
         Value {
             name: name.to_string(),
             number_of_inputs,
@@ -37,7 +37,7 @@ impl Value {
     }
 }
 
-impl Runnable for Value {
+impl<'a> Runnable for Value<'a> {
     fn name(&self) -> &str {
         &self.name
     }
@@ -90,7 +90,7 @@ impl Runnable for Value {
         &self.output_routes
     }
 
-    fn implementation(&self) -> &Box<Implementation> { &self.implementation }
+    fn implementation(&self) -> &Implementation { self.implementation }
 }
 
 #[cfg(test)]

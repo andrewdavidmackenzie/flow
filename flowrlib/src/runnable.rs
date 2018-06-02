@@ -13,5 +13,5 @@ pub trait Runnable: RefUnwindSafe + UnwindSafe {
     fn can_run(&self) -> bool; // This runnable has all the inputs necessary and can be run
     fn get_inputs(&mut self) -> Vec<Vec<JsonValue>>;
     fn output_destinations(&self) -> &Vec<(&'static str, usize, usize)>;
-    fn implementation(&self) -> &Box<Implementation>;
+    fn implementation(&self) -> &Implementation;
 }

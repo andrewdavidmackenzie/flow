@@ -230,25 +230,25 @@ mod tests {
         }
     }
 
-    struct TestRunnable {
+    struct TestRunnable<'a> {
         id: usize,
         number_of_inputs: usize,
         destinations: Vec<(&'static str, usize, usize)>,
-        implementation: Box<Implementation>,
+        implementation: &'a Implementation,
     }
 
-    impl TestRunnable {
+    impl<'a> TestRunnable<'a> {
         fn new(id: usize, number_of_inputs: usize, destinations: Vec<(&'static str, usize, usize)>) -> TestRunnable {
             TestRunnable {
                 id,
                 number_of_inputs,
                 destinations,
-                implementation: Box::new(TestImplementation),
+                implementation: &TestImplementation,
             }
         }
     }
 
-    impl Runnable for TestRunnable {
+    impl<'a> Runnable for TestRunnable<'a> {
         fn name(&self) -> &str { "TestRunnable" }
         fn number_of_inputs(&self) -> usize { self.number_of_inputs }
         fn id(&self) -> usize { self.id }
@@ -260,7 +260,7 @@ mod tests {
             vec!(vec!(serde_json::from_str("Input").unwrap()))
         }
         fn output_destinations(&self) -> &Vec<(&'static str, usize, usize)> { &self.destinations }
-        fn implementation(&self) -> &Box<Implementation> { &self.implementation }
+        fn implementation(&self) -> &Implementation { self.implementation }
     }
 
     fn test_runnables() -> Vec<Arc<Mutex<Runnable>>> {

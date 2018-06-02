@@ -34,7 +34,7 @@ mod test {
         let inputs: Vec<Vec<JsonValue>> = vec!(vec!(dividend), vec!(divisor));
 
         let mut run_list = RunList::new();
-        let d = &Function::new("d", 3, true, vec!(1, 1, 1), 0, Box::new(Divide), None, vec!()) as &Runnable;
+        let d = &Function::new("d", 3, true, vec!(1, 1, 1), 0, &Divide, None, vec!()) as &Runnable;
         let implementation = d.implementation();
 
         implementation.run(d, inputs, &mut run_list);

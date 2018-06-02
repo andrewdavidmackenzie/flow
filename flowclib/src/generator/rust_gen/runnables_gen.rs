@@ -151,7 +151,7 @@ fn runnable_to_code(runnable: &Box<Runnable>) -> String {
             code.push_str(&format!("), "));
         }
     }
-    code.push_str(&format!("{}, Box::new({}{{}}), ", runnable.get_id(), runnable.get_implementation()));
+    code.push_str(&format!("{}, &{}{{}}, ", runnable.get_id(), runnable.get_implementation()));
 
     code.push_str(&format!("{},", match runnable.get_initial_value() {
         None => "None".to_string(),
@@ -198,7 +198,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\", 1, false, vec!(1, ), 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Value::new(\"value\", 1, false, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
     }
 
     #[test]
@@ -215,7 +215,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\", 1, true, vec!(1, ), 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Value::new(\"value\", 1, true, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
     }
 
     #[test]
@@ -234,7 +234,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\", 1, false, vec!(1, ), 1, Box::new(Fifo{}), Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+        assert_eq!(code, "Value::new(\"value\", 1, false, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
     }
 
     #[test]
@@ -255,7 +255,7 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Function::new(\"print\", 0, false, vec!(), 0, Box::new(Stdout{}), None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+        assert_eq!(code, "Function::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
     }
 
     #[test]
@@ -275,7 +275,7 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Function::new(\"print\", 0, false, vec!(), 0, Box::new(Stdout{}), None, vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Function::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"\", 1, 0),))")
     }
 
     #[test]
@@ -295,6 +295,6 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Function::new(\"print\", 0, false, vec!(), 0, Box::new(Stdout{}), None, vec!((\"/0\", 1, 0),))")
+        assert_eq!(code, "Function::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"/0\", 1, 0),))")
     }
 }

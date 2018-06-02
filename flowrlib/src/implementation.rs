@@ -5,6 +5,8 @@ use runnable::Runnable;
 use runlist::RunList;
 
 pub type RunAgain = bool;
+pub const RUN_AGAIN: RunAgain = true;
+pub const DONT_RUN_AGAIN: RunAgain = false;
 
 pub trait Implementation : RefUnwindSafe + UnwindSafe {
     // An implementation runs, receiving an array of inputs and possibly producing an output
