@@ -1,8 +1,6 @@
 use url::Url;
-use std::fs::File;
-use std::io::BufReader;
+use std::fs;
 use std::path::PathBuf;
-use std::io::prelude::*;
 use glob::glob;
 use std::io;
 use std::io::ErrorKind;
@@ -37,25 +35,15 @@ impl Provider for FileProvider {
 
     fn get(&self, url: &Url) -> Result<String, String> {
         let file_path = url.to_file_path().unwrap();
-        match File::open(file_path) {
-            Ok(file) => {
-                let mut buf_reader = BufReader::new(file);
-                let mut contents = String::new();
-
-                match buf_reader.read_to_string(&mut contents) {
-                    Ok(_) => Ok(contents),
-                    Err(e) => Err(format!("{}", e))
-                }
-            }
-            Err(e) => Err(format!("Could not load content from URL '{}' ({}", url, e))
-        }
+        fs::read_to_string(file_path).map_err(
+            |e| format!("Could not load content from '{}' ({}", url, e))
     }
 }
 
 impl FileProvider {
     /*
-    Passed a path to a directory, it searches for the first file it can find in the directory
-    fitting the pattern "context.*", and if found opens it and returns it in the result
+    Passed a path to a directory, it searches for a file in the directory matching the pattern "context.*"
+    If found, it opens the file and returns its contents as a String in the result
     */
     fn find_default_file(path: &mut PathBuf) -> io::Result<PathBuf> {
         path.push("context.*");
