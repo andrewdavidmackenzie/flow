@@ -127,11 +127,15 @@ fn run_to_dot(runnable: &Runnable) -> String {
         format!("\\n({})", runnable.name()).to_string()
     };
 
-    let initial_value = if let Some(iv) = runnable.get_initial_value() {
+    let mut initial_value = if let Some(iv) = runnable.get_initial_value() {
         format!("\\ninit={}", iv).to_string()
     } else {
         "".to_string()
     };
+
+    // Escape any quotes in intial value - as it might be a string value
+    initial_value = str::replace(&initial_value, "\"", "\\\"");
+
 
     dot_string.push_str(&format!("\t\"{}\" [{} label=\"{}{}{}\"]; // runnable @ route, label = runnable name \n",
                                  runnable.route(),
