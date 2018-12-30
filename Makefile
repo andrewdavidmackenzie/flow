@@ -16,7 +16,6 @@ doc:
 
 test: travis online-tests
 
-# In Travis don't try to test gtk as needs many extra installs
 travis: local-tests
 
 local-tests: test-flow test-samples
