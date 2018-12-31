@@ -1,4 +1,3 @@
-EMCC := $(shell command -v emcc -v 2> /dev/null)
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 
 all: test package doc
@@ -30,7 +29,7 @@ pi:
 	docker run -e "PKG_CONFIG_ALLOW_CROSS=1" --volume $(PWD):/home/cross/project rust-nightly-pi-cross build --manifest-path samples/fibonacci/Cargo.toml
 
 copy:
-	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/debug/flowc pi@raspberrypi.local:
+	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/debug/flowc andrew@raspberrypi.local:
 
 #################### Flow ####################
 test-flow:
@@ -69,11 +68,14 @@ package-flowc:
 	@cargo package --manifest-path flowc/Cargo.toml
 	@echo "------- Finished packaging flowc --------------"
 
-package-electron:
+package-electron: build-web
 	@echo ""
 	@echo "------- Started  packaging electron -----------"
 	@cd electron && make package
 	@echo "------- Finished packaging electron -----------"
+
+build-web:
+	cd web && make
 
 run-electron:
 	@cd electron && make run-electron
