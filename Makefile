@@ -15,7 +15,7 @@ doc:
 
 test: travis online-tests
 
-travis: local-tests
+travis: local-tests test-web
 
 local-tests: test-flow test-samples
 
@@ -73,6 +73,9 @@ package-electron: build-web
 	@echo "------- Started  packaging electron -----------"
 	@cd electron && make package
 	@echo "------- Finished packaging electron -----------"
+
+test-web:
+	cd web && make test
 
 build-web:
 	cd web && make

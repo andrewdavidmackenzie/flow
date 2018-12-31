@@ -1,4 +1,6 @@
 {
+  "name": "flow-web",
+  "description": "A web interface for 'flow'",
   "homepage": "https://github.com/andrewdavidmackenzie/flow#readme",
   "license": "MIT",
   "repository": {
