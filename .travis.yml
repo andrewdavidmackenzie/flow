@@ -12,6 +12,18 @@ matrix:
   allow_failures:
     - rust: stable
 
+before_install:
+  - rustup target add wasm32-unknown-unknown
+  - cargo install wasm-bindgen
+  - cargo install mdbook || true
+  - sudo pip install --upgrade pip
+  - sudo pip install ghp-import
+  - export PATH="$PATH:~/.cargo/bin"
+
+cache:
+  - cargo
+  - pip
+
 before_script: make install-prerequisites
 
 script: make travis
@@ -19,24 +31,14 @@ script: make travis
 env:
   global:
   - RUSTFLAGS="-C link-dead-code" FLOW_LIB_PATH=$TRAVIS_BUILD_DIR
+#    secure: Ysn0j....
 
-#install:
-#  - export DISPLAY=':99.0'
-#  - Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-#  - npm install -g electron-forge
-#  - npm install
-
-#addons:
-    #  apt:
-    #packages:
-    #  - xvfb
-    #  - libcurl4-openssl-dev
-    #  - libelf-dev
-    #  - libdw-dev
-    #  - cmake
-    #  - gcc
-    #  - binutils-dev
-    #  - libiberty-dev
+#after_success: |
+#  [ $TRAVIS_BRANCH = master ] &&
+#  [ $TRAVIS_PULL_REQUEST = false ] &&
+#  mdbook build &&
+#  ghp-import -n book &&
+#  git push -fq https://${GH_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages
 
 notifications:
   email:

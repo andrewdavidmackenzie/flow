@@ -21,9 +21,6 @@ local-tests: test-flow test-samples
 
 online-tests: test-hello-simple-online
 
-install-prerequisites:
-	rustup target add wasm32-unknown-unknown
-
 #TODO map the cargo cache as a volume to avoid re-downloading and compiling every time.
 pi:
 	@echo "Building flowc for pi in $(PWD)"
