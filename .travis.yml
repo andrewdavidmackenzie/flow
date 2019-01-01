@@ -14,7 +14,6 @@ matrix:
 
 before_install:
   - rustup target add wasm32-unknown-unknown
-  - cargo install wasm-bindgen
   - cargo install mdbook || true
   - sudo pip install --upgrade pip
   - sudo pip install ghp-import
