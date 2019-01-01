@@ -1,5 +1,5 @@
 build:
-	cargo build --target wasm32-unknown-unknown
+	cargo +nightly build --target wasm32-unknown-unknown
 	wasm-bindgen target/wasm32-unknown-unknown/debug/web.wasm --out-dir run
 
 run: build

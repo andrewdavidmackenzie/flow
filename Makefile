@@ -75,7 +75,10 @@ package-electron: build-web
 	@echo "------- Finished packaging electron -----------"
 
 test-web:
+	@echo ""
+	@echo "------- Started test of 'web' -----------------"
 	cd web && make test
+	@echo "------- Ended   test of 'web' -----------------"
 
 build-web:
 	cd web && make
