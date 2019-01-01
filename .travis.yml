@@ -23,8 +23,6 @@ cache:
   - cargo
   - pip
 
-before_script: make install-prerequisites
-
 script: make travis
 
 env:
