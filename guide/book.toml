@@ -1,0 +1,10 @@
+[book]
+title = "The `flow` Guide"
+authors = ["Andrew Mackenzie"]
+description = "A guide to what 'flow' is and how to use it"
+multilingual = false
+src = "src"
+
+[output.html]
+
+[output.linkcheck]  # enable the "mdbook-linkcheck" renderer
