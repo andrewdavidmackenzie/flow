@@ -13,11 +13,7 @@ matrix:
     - rust: stable
 
 before_install:
-  - rustup target add wasm32-unknown-unknown
-  - cargo install wasm-bindgen-cli
-  - cargo install mdbook || true
-  - sudo pip install --upgrade pip
-  - sudo pip install ghp-import
+  - make config
   - export PATH="$PATH:~/.cargo/bin"
 
 cache:

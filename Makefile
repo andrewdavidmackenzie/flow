@@ -10,6 +10,13 @@ else
 features :=
 endif
 
+config:
+	rustup target add wasm32-unknown-unknown
+	cargo install wasm-bindgen-cli || true
+	cargo install mdbook || true
+	sudo pip install --upgrade pip
+	sudo pip install ghp-import
+
 doc:
 	cargo doc
 
