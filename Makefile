@@ -2,7 +2,7 @@ RUSTUP := $(shell command -v rustup 2> /dev/null)
 
 all: test package doc
 
-online := true
+online := false
 
 ifeq ($(online),true)
 features := --features "online_tests"
