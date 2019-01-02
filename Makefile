@@ -1,6 +1,6 @@
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 
-all: test package doc
+all: test doc
 
 online := false
 
@@ -17,10 +17,14 @@ config:
 	sudo pip install --upgrade pip
 	sudo pip install ghp-import
 
-doc:
+doc: build-guide
 	cargo doc
 
-test: travis online-tests
+build-guide:
+	cd guide && mdbook build
+
+#test: travis online-tests
+test: travis
 
 travis: local-tests test-web
 
@@ -67,7 +71,8 @@ test-hello-simple-online: ./target/debug/flowc
 	@echo "Hello" | ./target/debug/flowc https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 	@echo "------- Finished testing generation of hello-world-simple-online ----"
 
-package: package-electron package-flowc
+#package: package-electron package-flowc
+package: package-flowc
 
 package-flowc:
 	@echo ""
