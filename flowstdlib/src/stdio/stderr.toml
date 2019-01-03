@@ -1,4 +1,3 @@
 name = "Stderr"
 
 [[input]]
-type = "String"

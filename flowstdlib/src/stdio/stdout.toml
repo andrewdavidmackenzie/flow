@@ -1,4 +1,3 @@
 name = "Stdout"
 
 [[input]]
-type = "String"
