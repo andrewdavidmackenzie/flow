@@ -1,6 +1,6 @@
-# Hello
+# Welcome!
 
-Welcome to my guide to my pet project 'flow'
+Welcome to the guide to my pet project called 'flow'
 
 `flow` is a system for defining and running parallel, data-dependency driven 'programs'.
  

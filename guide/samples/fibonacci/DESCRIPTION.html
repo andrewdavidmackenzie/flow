@@ -1,0 +1,229 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>fibonacci sample - The `flow` Guide</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A guide to what 'flow' is and how to use it">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">var path_to_root = "../../";</script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = 'light'; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li class="affix"><a href="../../welcome.html">Welcome!</a></li><li class="spacer"></li><li><a href="../../introduction/introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li><a href="../../introduction/what_is_flow.html"><strong aria-hidden="true">1.1.</strong> What is flow</a></li><li><a href="../../introduction/components.html"><strong aria-hidden="true">1.2.</strong> Components</a></li><li><a href="../../introduction/inspirations.html"><strong aria-hidden="true">1.3.</strong> The Inspirations for flow</a></li><li><a href="../../introduction/non_inspirations.html"><strong aria-hidden="true">1.4.</strong> Non-Inspirations</a></li><li><a href="../../introduction/status.html"><strong aria-hidden="true">1.5.</strong> Status</a></li><li><a href="../../introduction/flow_programming.html"><strong aria-hidden="true">1.6.</strong> Flow Programming</a></li></ol></li><li><a href="../../first_flow/first_flow.html"><strong aria-hidden="true">2.</strong> Your First Flow</a></li><li><ol class="section"><li><a href="../../first_flow/understanding.html"><strong aria-hidden="true">2.1.</strong> Understanding it</a></li><li><a href="../../first_flow/implementation.html"><strong aria-hidden="true">2.2.</strong> Real Implementation</a></li><li><a href="../../first_flow/step-by-step.html"><strong aria-hidden="true">2.3.</strong> Step-by-Step</a></li><li><a href="../../first_flow/debugging.html"><strong aria-hidden="true">2.4.</strong> Debugging your first flow</a></li></ol></li><li><a href="../../describing/describing_flows.html"><strong aria-hidden="true">3.</strong> Describing Flows</a></li><li><a href="../../running/running.html"><strong aria-hidden="true">4.</strong> Running flows</a></li><li><a href="../../samples/description.html"><strong aria-hidden="true">5.</strong> Samples</a></li><li><ol class="section"><li><a href="../../../../samples/first/DESCRIPTION.html"><strong aria-hidden="true">5.1.</strong> first sample</a></li><li><a href="../../../../samples/echo/DESCRIPTION.html"><strong aria-hidden="true">5.2.</strong> echo sample</a></li><li><a href="../../../../samples/fibonacci/DESCRIPTION.html" class="active"><strong aria-hidden="true">5.3.</strong> fibonacci sample</a></li><li><a href="../../../../samples/hello-world-include/DESCRIPTION.html"><strong aria-hidden="true">5.4.</strong> hello-world-include sample</a></li><li><a href="../../../../samples/hello-world-simple/DESCRIPTION.html"><strong aria-hidden="true">5.5.</strong> hello-world-simple sample</a></li><li><a href="../../../../samples/hello-world/DESCRIPTION.html"><strong aria-hidden="true">5.6.</strong> hello-world sample</a></li><li><a href="../../../../samples/line-echo/DESCRIPTION.html"><strong aria-hidden="true">5.7.</strong> line-echo sample</a></li><li><a href="../../../../samples/mandlebrot/DESCRIPTION.html"><strong aria-hidden="true">5.8.</strong> mandlebrot sample</a></li><li><a href="../../../../samples/prime/DESCRIPTION.html"><strong aria-hidden="true">5.9.</strong> prime sample</a></li><li><a href="../../../../samples/primitives/DESCRIPTION.html"><strong aria-hidden="true">5.10.</strong> primitives sample</a></li><li><a href="../../../../samples/range/DESCRIPTION.html"><strong aria-hidden="true">5.11.</strong> range sample</a></li><li><a href="../../../../samples/reverse-echo/DESCRIPTION.html"><strong aria-hidden="true">5.12.</strong> reverse-echo sample</a></li><li><a href="../../../../samples/router/DESCRIPTION.html"><strong aria-hidden="true">5.13.</strong> router sample</a></li></ol></li><li><a href="../../developing/overview.html"><strong aria-hidden="true">6.</strong> Developing 'flow'</a></li><li><ol class="section"><li><a href="../../developing/prereqs.html"><strong aria-hidden="true">6.1.</strong> Pre-requisites</a></li><li><a href="../../developing/make.html"><strong aria-hidden="true">6.2.</strong> Makefile targets</a></li><li><a href="../../developing/contributing.html"><strong aria-hidden="true">6.3.</strong> Ways to contribute</a></li><li><ol class="section"><li><a href="../../developing/issues.html"><strong aria-hidden="true">6.3.1.</strong> Issues</a></li><li><a href="../../developing/prs.html"><strong aria-hidden="true">6.3.2.</strong> PRs</a></li><li><a href="../../developing/samples.html"><strong aria-hidden="true">6.3.3.</strong> Samples</a></li><li><a href="../../developing/ci.html"><strong aria-hidden="true">6.3.4.</strong> Continuous Integration Tests</a></li></ol></li></ol></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light <span class="default">(default)</span></button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">The `flow` Guide</h1> 
+
+                        <div class="right-buttons">
+                            <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#fibonacci" id="fibonacci"><h1>Fibonacci</h1></a>
+<a class="header" href="#features-used" id="features-used"><h1>Features Used</h1></a>
+<ul>
+<li>Context Flow</li>
+<li>Child flow described separately, with named outputs to parent flow</li>
+<li>Connections between Input/Outputs of parent/child flows</li>
+<li>Values to store intermediate values</li>
+<li>Setting initial value of a Value at startup</li>
+<li>Multiple connections into and out of functions and values</li>
+<li>Library Functions used (<code>toString</code> and <code>add</code> from <code>flowstdlib</code>) to convert Number to String and to add numbers</li>
+<li>Use of aliases to refer to functions with different names inside a flow</li>
+<li>Connections between flows, functions and values</li>
+</ul>
+<a class="header" href="#description" id="description"><h1>Description</h1></a>
+<p>Generates a Fibonacci series of numbers and prints it out on <code>stdout</code> as Strings</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../../../samples/echo/DESCRIPTION.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../../../../samples/hello-world-include/DESCRIPTION.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="../../../../samples/echo/DESCRIPTION.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="../../../../samples/hello-world-include/DESCRIPTION.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload(true); // force reload from server (not from cache)
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+        
+
+        
+
+        
+
+        
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
