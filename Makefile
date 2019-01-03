@@ -15,8 +15,6 @@ config:
 	cargo install wasm-bindgen-cli || true
 	cargo install mdbook || true
 	cargo install mdbook-linkcheck || true
-	sudo pip install --upgrade pip
-	sudo pip install ghp-import
 
 doc: build-guide
 	cargo doc

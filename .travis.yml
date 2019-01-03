@@ -1,63 +1,41 @@
 language: rust
 
 rust:
-  - nightly
-  - stable
+- nightly
+- stable
 
 os:
-  - osx
-  - linux
+- osx
+- linux
 
 matrix:
   allow_failures:
-    - rust: stable
+  - rust: stable
 
 before_install:
-  - make config
-  - export PATH="$PATH:~/.cargo/bin"
+- make config
+- export PATH="$PATH:~/.cargo/bin"
 
 cache:
-  - cargo
-  - pip
+- cargo
 
 script: make travis
 
 env:
   global:
   - RUSTFLAGS="-C link-dead-code" FLOW_LIB_PATH=$TRAVIS_BUILD_DIR
-#    secure: Ysn0j....
+  matrix:
+    secure: pFjhnkemEkZQd3kVvR5alXYhJ4gzHW59pA3FOy4SwUavTFphiDHU+ERMR3bw9uqHANeey3WZLrYH9x7sEwVbH6/nNxnEiTrRZDK/DJrHaOCczH6sU7yNYc+mjtNR/B8b1zA/WMNehIZJivz88bkl0qXheLdmxofN9776RSRK/ER5SdGpOos1rMCHzz7TtUFxAvUV4klf826hZKb3PLuqKBjv0AqmUHrqFrm93nXFpIz7+LSAG5umWYyTCXBIR30mW7iJdjMwCMe/Js4qlXHs9sUPVD/2ipKPKXI8jn8QzEV2zw93tKVZJQqYGMzKeSoxfzIap3Uql8woQnaJs6W8H3JIv47KNvYWI1uDnIbwPPPDdltcV5XCQUUnHT9itvxX5vYNa3p8BO0PHolqmI8TftmRQNhsFdNmp7FF/3Gi34Nif95FGO2K8zMMk0ReKqMYpqYT51Ci3NHXDOGzletwj3fyIcW02PinSMbLzNj5pUN2KKV1qPKsHeGcwnH9XrQKUoLktZS7cPnpRMb0g3QeAjzMnsy4caRLvY58dHxgBuDijZZm45vG/tXQ59BpAJrYk62VGcCNaTR1BRQR626H83aK2Flc6hOZkbjWzXqZXinRq9JODz5LOArhvwIBzOyc+1mIQcjrD07Zqte1/2fHB8F3gtuXpEhkGYg/8Hy9xfY=
 
-#after_success: |
-#  [ $TRAVIS_BRANCH = master ] &&
-#  [ $TRAVIS_PULL_REQUEST = false ] &&
-#  mdbook build &&
-#  ghp-import -n book &&
-#  git push -fq https://${GH_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages
+deploy:
+  provider: pages
+  skip-cleanup: true
+  github-token: GITHUB_PAGES_TOKEN
+  local-dir: guide/book
+  keep-history: false
+  on:
+    branch: master
 
 notifications:
   email:
-    - andrew@mackenzie-serres.net
-
-#codecov coverage
-#after_success: |
-  #  wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
-  #tar xzf master.tar.gz &&
-  #cd kcov-master &&
-  #mkdir build &&
-  #cd build &&
-  #cmake .. &&
-  #make &&
-  #make install DESTDIR=../../kcov-build &&
-  #cd ../.. &&
-  #rm -rf kcov-master &&
-  #for file in target/debug/flow*-*[^\.d]; do mkdir -p "target/cov/$(basename $file)"; ./kcov-build/usr/local/bin/kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file"; done &&
-  #bash <(curl -s https://codecov.io/bash) &&
-  #echo "Uploaded code coverage"
-
-#coveralls code coverage
-  #after_success: |
-  #sudo apt-get install libcurl4-openssl-dev libelf-dev libdw-dev &&
-  #wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
-  #tar xzf master.tar.gz && mkdir kcov-master/build && cd kcov-master/build && cmake .. && make &&
-  #sudo make install && cd ../.. &&
-  #kcov --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov target/debug/flowc-*
+  - andrew@mackenzie-serres.net

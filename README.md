@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/andrewdavidmackenzie/flow.svg?branch=master)](https://travis-ci.org/andrewdavidmackenzie/flow)
 
 # Flow
-Flow is a library and cli for the creation and execution of parallel asynchronous, data-driven, programs.
+Flow is a library and cli for the creation and execution of parallel, asynchronous, data-driven programs.
 
 To learn more about the project, the ideas behind it, it's components, how to use it and see some 
 examples then jump to [The 'flow' Guide](./guide/src/SUMMARY.md)
