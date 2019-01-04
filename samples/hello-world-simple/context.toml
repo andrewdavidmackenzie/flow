@@ -8,6 +8,5 @@ alias = "print"
 source = "lib://flowstdlib/stdio/stdout.toml"
 
 [[connection]]
-name = "message"
 from = "value/message"
 to = "function/print"
