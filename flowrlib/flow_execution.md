@@ -1,6 +1,6 @@
-# Flow Execution
+## Flow Execution
 
-## Lazy Execution
+### Lazy Execution
 Execution should be as lazy as possible.
 
 The only thing that determines if a function is run is the availability at it's inputs of the data
@@ -11,12 +11,12 @@ the first function will be blocked and computing resources will be used on the f
 need it. When they complete and produce an output, that output may satisfy another functions's 
 inputs which in turn will run, and so on and so forth.
 
-## Execution States
+### Execution States
 Runnables (Values and Functions) can be in one of two states:
-- blocked (either pending an IO or output is full)
+- blocked (either pending an input or output is blocked)
 - runnable (inputs are satisfied, output is free and it can be run anytime)
 
-## Value Rules
+### Value Rules
 A Value has only one input, but that can be connected to and a value offered by multiple "writers".
 It has only one output, but that can be connected to and listened on by multiple "listeners"
 
@@ -34,7 +34,7 @@ It does not become empty until all listeners have consumed the value.
 
 You can think of Values as a FIFO of size 1 for each listener connected to it.
 
-## Function Rules
+### Function Rules
 The operation of a Function is similar to that of a value, except that it can have multiple inputs
 and it is not run until they are all satisfied.
 
@@ -52,7 +52,7 @@ When a function runs, it produces an output that is made available to all "liste
 
 Each of the listeners can read or "consume" the output value once.
 
-## Generalized Rules 
+### Generalized Rules 
 If we consider a value to be like a null function that does no calculation, but just passes the input 
 value to it's outputs - then we can state some general rules that apply to the "running" of both.
 
@@ -66,17 +66,33 @@ free to write to. Is blocked from running until these conditions are met.
 - Once the output has been consumed (once) by all the listeners, then the output is free to be
 written to again.
 
-# Executuion Process
-## Loading
-All functions and values are loaded, and initially placed in "blocked" state.
+## Executuion Process
+### Loading
+All functions and values are loaded.
 
-## Initialization
-Values are updated (ran) with initial values satisfied and hence they make their value available
-at their output.
+### Initialization
+Any values with initial values are initialized with them and hence make them available on their 
+output, and hence they are made available on the input of all connected objects (values and functions).
 
-## Execution Loop
-Outputs produced are made available to all connected inputs
-Status of Functions/Values are updated based on availability of data on all inputs
-Functions/Values with status "runnable" are run, producing outputs.
+Now, the execution loop can be started.
 
+### Execution Loop
+Next ready Runnable is run
+- Next runnable (function/value) on the read list is run
+    - this consumes all its inputs
+        - this may unblock another runnable which was blocked sending to this runnables as it's input was full
+- Any data produced is made available on the output
+- Outputs are made available to all connected inputs on other runnables
+    - The data on any ouput is made available to all connected inputs, copied if necessary to multiple.
+    - This may satisfy the inputs of the other runnable, causing it to be added to the ready list
 
+### Parallel Execution
+A core goal of 'flow' is to enable parallel execution of programs, with the parallelism being described
+inherently in the flow description, via data dependencies and functions with zero side effects.
+
+Currently, the runtime only executes one runnable at a time, but that is destined to change as soon
+as it can be implemented, both in multiple threads in the same process on one machine, then multiple
+processes on one machine and then across machines across a network.
+
+### Termination
+The execution of a flow terminates when there are no runnables left on the ready list

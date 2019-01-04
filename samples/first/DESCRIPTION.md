@@ -1,7 +1,15 @@
-First
+first
 ==
-Very simple first flow used to demonstrate a simple flow that actually does something, but can be followed.
-See [first flow](../../guide/src/first_flow/first_flow.md) section in the guide for a much more detailed description of this sample and a step-by-step walkthrough of it running.
+
+Description
+===
+Very simple first flow used to demonstrate a simple flow that actually does something, and who's execution can be followed
+step-by-step by a human.
+
+It generates a series of numbers and prints it out on `stdout`, as per diagram below:
+
+See the [Understanding it](../../guide/first_flow/understanding.md) section in the guide to understand
+what this flow does and a [step-by-step walkthrough](../../guide/first_flow/step-by-step.md) of its execution.
 
 Features Used
 ===
@@ -13,8 +21,3 @@ Features Used
 * Use of aliases to refer to functions with different names
 * Connections between functions and values
 * Referring to a function's input by name in connections
-
-Description
-===
-Generates a series of numbers and prints it out on `stdout`, as per diagram below:
-![First flow](first.png)

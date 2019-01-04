@@ -1,6 +1,6 @@
 # Real Implementation
 
-This first flow exists as a sample in the `samples/first` folder and is written to be as simple as possible,
+This  flow exists as a sample in the `samples/first` folder and is written to be as simple as possible,
 not using nested flows or similar.
 
 ### Running the corresponding sample

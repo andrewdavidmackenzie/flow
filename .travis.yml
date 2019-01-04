@@ -30,7 +30,7 @@ env:
 deploy:
   provider: pages
   skip-cleanup: true
-  github-token: GITHUB_PAGES_TOKEN
+  github-token: $GITHUB_PAGES_TOKEN
   local-dir: guide/book
   keep-history: false
   on:

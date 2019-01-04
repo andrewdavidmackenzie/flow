@@ -20,12 +20,12 @@ doc: build-guide
 	cargo doc
 
 build-guide:
-	cd guide && mdbook build
+	mdbook build || true
 
 #test: travis online-tests
 test: travis
 
-travis: local-tests test-web
+travis: local-tests test-web build-guide
 
 local-tests: test-flow test-samples
 

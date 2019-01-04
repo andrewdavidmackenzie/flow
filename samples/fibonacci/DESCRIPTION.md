@@ -1,5 +1,9 @@
-Fibonacci
+fibonacci
 ==
+
+Description
+===
+A flow that generates a Fibonacci series of numbers and prints it out on `stdout`.
 
 Features Used
 ===
@@ -12,7 +16,3 @@ Features Used
 * Library Functions used (`toString` and `add` from `flowstdlib`) to convert Number to String and to add numbers
 * Use of aliases to refer to functions with different names inside a flow
 * Connections between flows, functions and values
-
-Description
-===
-Generates a Fibonacci series of numbers and prints it out on `stdout` as Strings

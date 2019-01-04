@@ -1,5 +1,9 @@
-Reverse Echo
+reverse-echo
 ==
+
+Description
+===
+Trivial flow that takes a line on `stdin`, reverses it and then prints it on `stdout`
 
 Features Used
 ===
@@ -9,7 +13,3 @@ Features Used
 * Connections between functions
 * Connections from sub-elements of a function's output
 * Function with single input (stdout) not requiring input name
-
-Description
-===
-Trivial flow that takes a line on `stdin`, and reverses it and prints it on `stdout`

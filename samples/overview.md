@@ -9,8 +9,8 @@ They range from the extremely simple "hello-world" example to more complex ones 
 a fibonacci series, and others are in different stages of development and driving the needs for new
 primitive functions and flow semantics.
 
-They are contained in the [samples](https://github.com/andrewdavidmackenzie/flow/tree/master/samples) 
-folder in the code.
+They are contained in the samples folder in the code.
+[Github link](https://github.com/andrewdavidmackenzie/flow/tree/master/samples)
 
 ### Structure of each sample
 Each sample resides in it's own sub-folder of 'samples', and each one contains:

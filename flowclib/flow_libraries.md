@@ -1,4 +1,5 @@
-Functions and FLows can be defined as libraries and shared re-used by other flows.
+## Flow Libraries
+Functions and Flows can be defined as libraries and shared re-used by other flows.
 
 The runtime will include some basic ones in a flowstdlib standard library.
 

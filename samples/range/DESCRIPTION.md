@@ -1,5 +1,9 @@
-Constant
+range
 ==
+
+Description
+===
+A flow that generates a series of output numbers in a range between two input numbers
 
 Features Used
 ===
@@ -14,7 +18,3 @@ Features Used
     * `stdout` to print a String to standard output
     * `switch` function to stop or pass a data flow based on another one
     * `compare` function to produce outputs based on comparing two input values
-
-Description
-===
-A flow that generates a series of output numbers in a range between two input numbers

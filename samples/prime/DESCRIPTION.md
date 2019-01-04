@@ -1,5 +1,11 @@
-Constant
+prime
 ==
+
+WIP
+
+Description
+===
+A flow that finds prime numbers upto the maximum specified in the input arguments
 
 Features Used
 ===
@@ -18,7 +24,3 @@ Features Used
     * `switch` function to stop or pass a data flow based on another one
     * `ToString` to convert Numbers to Strings
     * `stdout` to print a String to standard output
-
-Description
-===
-A flow that finds prime numbers upto the maximum specified in the input arguments

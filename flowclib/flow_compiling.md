@@ -1,8 +1,8 @@
-# Flow Compiling
+## Flow Compiling
 
-From the hierarchical definition of a flow program as produced by the loading stage:
+From the hierarchical definition of a flow program produced by the loading stage:
 
-## Connection Reducing
+### Connection Reducing
 Build a flat table of connections.
 
 For every connection that ends at a flow:
@@ -13,7 +13,7 @@ For every connection that ends at a flow:
 When done there should be no connections ending at flows.
 Any connections left that starts at a flow, is unconnected and can be deleted.
 
-## Value and Function Tables
+### Value and Function Tables
 Build a table of values and functions.
   
 ### Pruning Value and Function Tables
