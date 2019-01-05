@@ -50,6 +50,11 @@
     - [reverse-echo sample](samples/reverse-echo/DESCRIPTION.md)
     - [router sample](samples/router/DESCRIPTION.md)
 
+- [The flow standard library](flowstdlib/flowstdlib.md)
+    - [Control functions](flowstdlib/src/control/control.md)
+        - [Tap function](flowstdlib/src/control/tap.md)
+        - [Compare function](flowstdlib/src/control/compare.md)
+
 - [Developing 'flow'](guide/developing/overview.md)
     - [Pre-requisites](guide/developing/prereqs.md)
     - [Makefile targets](guide/developing/make.md)
