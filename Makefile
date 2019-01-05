@@ -52,7 +52,9 @@ compiler:
 	@cargo build --manifest-path=flowc/Cargo.toml
 
 #################### SAMPLES ####################
-sample_flows := $(patsubst samples/%,samples/%/test_output.txt,$(wildcard samples/*))
+# Find all sub-directories under 'samples' and create a list of paths like 'sample/{directory}/test_output.txt' to use for
+# make paths - to compile all samples found in there. Avoid files using the filter.
+sample_flows := $(patsubst samples/%,samples/%test_output.txt,$(filter %/, $(wildcard samples/*/)))
 
 test-samples: $(sample_flows)
 
