@@ -29,6 +29,7 @@
     - [Connections](describing/connections.md)
     - [IO References](describing/io_references.md)
     - [Complete Feature List](describing/features.md)
+    - [Flow Libraries](describing/flow_libraries.md)
 
 - [Running flows](running/running.md)
     - [flowc Command Line Arguments](running/flowc.md)
@@ -70,7 +71,6 @@
         - [Continuous Integration Tests](developing/ci.md)
         
 - [Internals of 'flow](internals/overview.md)
-    - [Flow Loading](describing/flow_loading.md)
-    - [Flow Compiling](describing/flow_compiling.md)
+    - [Flow Loading](internals/flow_loading.md)
+    - [Flow Compiling](internals/flow_compiling.md)
     - [Flow Execution](internals/flow_execution.md)
-    - [Flow Libraries](describing/flow_libraries.md)
