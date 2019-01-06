@@ -22,7 +22,7 @@ doc: build-guide
 #################### Guide ####################
 build-guide: copy-md-files
 	@echo ""
-	@echo "------- Building book from Markdown into 'guide/home' -------------"
+	@echo "------- Building book from Markdown into 'guide/html' -------------"
 	@mdbook build guide
 
 ## Copy .md files (with same directory sturtcure) from samples and flowstdlib directories under guide 'src' directory
