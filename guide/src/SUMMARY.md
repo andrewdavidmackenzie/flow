@@ -28,6 +28,7 @@
     - [Types](describing/types.md)
     - [Connections](describing/connections.md)
     - [IO References](describing/io_references.md)
+    - [Complete Feature List](describing/features.md)
 
 - [Running flows](running/running.md)
     - [flowc Command Line Arguments](running/flowc.md)
