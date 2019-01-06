@@ -55,6 +55,9 @@
     - [Control functions](flowstdlib/src/control/control.md)
         - [Tap function](flowstdlib/src/control/tap.md)
         - [Compare function](flowstdlib/src/control/compare.md)
+    - [Formatting Functions](flowstdlib/src/fmt/fmt.md)
+        - [To Number](flowstdlib/src/fmt/to_number.md)
+        - [To String](flowstdlib/src/fmt/to_string.md)
 
 - [Developing 'flow'](developing/overview.md)
     - [Pre-requisites](developing/prereqs.md)
