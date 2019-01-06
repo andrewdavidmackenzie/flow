@@ -24,5 +24,5 @@ file and finally comparing that output to the expected correct output specified 
 That make target depends on the 'compiler' Makefile target, so it will recompile 'flowc' and any 
 dependencies before it compiles, generates, builds and tests the sample in question.
 
-You can debug the execution of a flow using the method described in
- [Debugging your first flow](../guide/first_flow/debugging.md).
+You can debug the execution of a flow using the method described in 'Debugging your first flow' section
+in the guide.

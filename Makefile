@@ -19,9 +19,22 @@ config:
 doc: build-guide
 	cargo doc
 
-build-guide:
-	mdbook build || true
+#################### Guide ####################
+build-guide: copy-md-files
+	@echo ""
+	@echo "------- Building book from Markdown into 'guide/home' -------------"
+	@mdbook build guide
 
+## Copy .md files (with same directory sturtcure) from samples and flowstdlib directories under guide 'src' directory
+copy-md-files:
+	@echo ""
+	@echo "------- Copying Markdown files from 'samples' and 'flowstdlib' to 'guide/src' -------------"
+	@find samples -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
+	@find samples -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
+	@find flowstdlib -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
+	@find flowstdlib -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
+
+#################### Tests ####################
 #test: travis online-tests
 test: travis
 
@@ -31,6 +44,7 @@ local-tests: test-flow test-samples
 
 online-tests: test-hello-simple-online
 
+#################### Raspberry Pi ####################
 #TODO map the cargo cache as a volume to avoid re-downloading and compiling every time.
 pi:
 	@echo "Building flowc for pi in $(PWD)"
@@ -49,7 +63,9 @@ test-flow:
 	@echo "------- Finished testing flow -------------"
 
 compiler:
+	@echo "------- Started  building flowc -------------"
 	@cargo build --manifest-path=flowc/Cargo.toml
+	@echo "------- Finished building flowc -------------"
 
 #################### SAMPLES ####################
 # Find all sub-directories under 'samples' and create a list of paths like 'sample/{directory}/test_output.txt' to use for

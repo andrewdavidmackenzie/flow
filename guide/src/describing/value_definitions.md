@@ -1,4 +1,4 @@
-### Value Definitions
+## Value Definitions
 A value of the specified type that is available as an input to something else, or which can
 be written to for storage:
 * `name` - the name of the value

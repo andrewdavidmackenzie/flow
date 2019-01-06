@@ -1,4 +1,4 @@
-### Types
+## Types
 By default flow supports JSON types:
 * `Boolean`
 * `Number`

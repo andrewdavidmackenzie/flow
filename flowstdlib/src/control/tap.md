@@ -1,4 +1,4 @@
-### Tap (//flowstdlib/control/tap.toml)
+## Tap (//flowstdlib/control/tap.toml)
 Control the flow of data (flow or disapear it) based on a boolean control value.
 
 #### Definition

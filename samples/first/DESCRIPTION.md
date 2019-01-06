@@ -8,8 +8,8 @@ step-by-step by a human.
 
 It generates a series of numbers and prints it out on `stdout`, as per diagram below:
 
-See the [Understanding it](../../guide/first_flow/understanding.md) section in the guide to understand
-what this flow does and a [step-by-step walkthrough](../../guide/first_flow/step-by-step.md) of its execution.
+See the 'Understanding it' section in the guide to understand
+what this flow does and a 'step-by-step walkthrough' of its execution.
 
 Features Used
 ===
