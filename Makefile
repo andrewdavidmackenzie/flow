@@ -22,7 +22,7 @@ doc: build-guide
 #################### Guide ####################
 build-guide: copy-md-files
 	@echo ""
-	@echo "------- Building book from Markdown into 'guide/html' -------------"
+	@echo "------- Building book from Markdown into 'guide/book/html' -------------"
 	@mdbook build guide
 
 ## Copy .md files (with same directory sturtcure) from samples and flowstdlib directories under guide 'src' directory
@@ -119,4 +119,5 @@ clean:
 	cargo clean
 	@find samples -name rust -type d -exec rm -rf {} + ; true
 	@find samples -name test_output.txt -exec rm -rf {} + ; true
+	@rm -rf guide/book
 	cd electron && make clean
