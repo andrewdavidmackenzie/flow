@@ -1,7 +1,7 @@
 # Args
 [[function]]
 alias = "args"
-source = "lib://flowstdlib/env/args.toml"
+source = "lib://flowrlib/env/args.toml"
 
 
 # Bounds

@@ -1,7 +1,7 @@
 # Generate a list of candidates from 1 up to the max specified in arg 1
 [[function]]
 alias = "args"
-source = "lib://flowstdlib/env/args.toml"
+source = "lib://flowrlib/env/args.toml"
 
 [[flow]]
 alias = "generate-candidates"
@@ -34,4 +34,4 @@ to = "function/print"
 
 [[function]]
 alias = "print"
-source = "lib://flowstdlib/stdio/stdout.toml"
+source = "lib://flowrlib/stdio/stdout.toml"

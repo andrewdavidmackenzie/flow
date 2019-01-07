@@ -1,9 +1,9 @@
 use serde_json::Value as JsonValue;
-use flowrlib::implementation::Implementation;
-use flowrlib::implementation::RunAgain;
-use flowrlib::implementation::RUN_AGAIN;
-use flowrlib::runnable::Runnable;
-use flowrlib::runlist::RunList;
+use implementation::Implementation;
+use implementation::RunAgain;
+use implementation::RUN_AGAIN;
+use runnable::Runnable;
+use runlist::RunList;
 
 pub struct Fifo;
 

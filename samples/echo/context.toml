@@ -1,10 +1,10 @@
 [[function]]
 alias = "stdin"
-source = "lib://flowstdlib/stdio/stdin.toml"
+source = "lib://flowrlib/stdio/stdin.toml"
 
 [[function]]
 alias = "print"
-source = "lib://flowstdlib/stdio/stdout.toml"
+source = "lib://flowrlib/stdio/stdout.toml"
 
 [[connection]]
 name = "echo"

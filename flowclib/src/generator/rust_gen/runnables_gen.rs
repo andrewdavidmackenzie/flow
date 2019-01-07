@@ -130,7 +130,7 @@ fn implementations(tables: &CodeGenTables) -> Result<(Vec<String>, Vec<String>)>
 
     // If Value is used then add a reference to an implementation of it from the std library
     if uses_value(&tables.runnables) {
-        implementations_used.push("use flowstdlib::zero_fifo::Fifo;".to_string());
+        implementations_used.push("use flowrlib::zero_fifo::Fifo;".to_string());
 
         implementation_instantiations.push(format!("static FIFO: &Implementation = &Fifo{{}} as &Implementation;\n"));
     }

@@ -17,7 +17,7 @@ name = \"{binary_name}\"
 path = \"src/{main_filename}\"
 
 [dependencies]
-flowrlib = {{path = \"../../../flowrlib\", version = \"~0.5.0\"}}
+flowrlib = {{path = \"../../../flowrlib\", version = \"~0.7.0\"}}
 {libraries}
 serde_json = \"1.0\"
 

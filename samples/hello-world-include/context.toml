@@ -1,6 +1,6 @@
 [[function]]
 alias = "print"
-source = "lib://flowstdlib/stdio/stdout.toml"
+source = "lib://flowrlib/stdio/stdout.toml"
 
 [[flow]]
 alias = "hello"

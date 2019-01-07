@@ -9,7 +9,7 @@ to = "flow/range/start"
 
 [[function]]
 alias = "args"
-source = "lib://flowstdlib/env/args.toml"
+source = "lib://flowrlib/env/args.toml"
 
 [[connection]]
 from = "function/args/1"
@@ -60,7 +60,7 @@ to = "function/print"
 # Output
 [[function]]
 alias = "print"
-source = "lib://flowstdlib/stdio/stdout.toml"
+source = "lib://flowrlib/stdio/stdout.toml"
 
 [[connection]]
 from = "function/to_string"

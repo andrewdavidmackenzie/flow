@@ -63,6 +63,7 @@ test-flow:
 	@echo "------- Finished testing flow -------------"
 
 compiler:
+	@echo ""
 	@echo "------- Started  building flowc -------------"
 	@cargo build --manifest-path=flowc/Cargo.toml
 	@echo "------- Finished building flowc -------------"

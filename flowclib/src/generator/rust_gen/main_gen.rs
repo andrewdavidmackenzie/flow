@@ -46,7 +46,11 @@ pub fn create(src_dir: &PathBuf, vars: &mut HashMap<String, &str>, tables: &Code
 fn crates(libs: &HashSet<String>) -> String {
     let mut crates_string = String::new();
     for lib in libs {
-        crates_string.push_str(&format!("extern crate {};\n", lib));
+        // We are already importing flowrlib - so avoid a double import when some of it's
+        // library functions are used by the flow being generated
+        if lib != "flowrlib" {
+            crates_string.push_str(&format!("extern crate {};\n", lib));
+        }
     }
     crates_string
 }
