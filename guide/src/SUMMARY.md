@@ -61,6 +61,17 @@
         - [To Number](flowstdlib/src/fmt/to_number.md)
         - [To String](flowstdlib/src/fmt/to_string.md)
 
+- [The flow runtime library](flowrlib/flowrlib.md)
+    - [Env functions](flowrlib/src/env/env.md)
+        - [Arg function](flowrlib/src/env/args.md)
+    - [File functions](flowrlib/src/file/file.md)
+        - [File Write function](flowrlib/src/file/file_write.md)
+    - [Standard IO functions](flowrlib/src/stdio/stdio.md)
+        - [Readlin function](flowrlib/src/stdio/readline.md)
+        - [Standard Input function](flowrlib/src/stdio/stdin.md)
+        - [Standard Output function](flowrlib/src/stdio/stdout.md)
+        - [Standard Error function](flowrlib/src/stdio/stderr.md)
+        
 - [Developing 'flow'](developing/overview.md)
     - [Pre-requisites](developing/prereqs.md)
     - [Makefile targets](developing/make.md)

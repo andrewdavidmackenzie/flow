@@ -22,27 +22,34 @@ config:
 	cargo install mdbook-linkcheck || true
 
 #################### Docs ####################
-doc: build-guide
+doc: guide
 	@echo ""
 	@echo "------- Started building docs with cargo -------------"
 	cargo doc
 	@echo "------- Ended   building docs with cargo -------------"
 
 ################### Guide ####################
-build-guide: copy-md-files
+guide: copy-md-files
 	@echo ""
 	@echo "------- Started building book from Markdown into 'guide/book/html' -------------"
 	@mdbook build guide
 	@echo "------- Done    building book from Markdown into 'guide/book/html' -------------"
 
-## Copy .md files (with same directory sturtcure) from samples and flowstdlib directories under guide 'src' directory
+## Copy .md files (with same directory sturtcure) from samples and lib directories under guide 'src' directory
 copy-md-files:
 	@echo ""
-	@echo "------- Started copying Markdown files from 'samples' and 'flowstdlib' to 'guide/src' -------------"
+	@echo "------- Started copying Markdown files from 'samples' to 'guide/src' -------------"
 	@find samples -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
 	@find samples -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
+
+	@echo "------- Started copying Markdown files from 'flowstdlib' to 'guide/src' -------------"
 	@find flowstdlib -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
 	@find flowstdlib -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
+
+	@echo "------- Started copying Markdown files from 'flowrlib' to 'guide/src' -------------"
+	@find flowrlib -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
+	@find flowrlib -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
+
 	@echo "------- Done    copying Markdown files from 'samples' and 'flowstdlib' to 'guide/src' -------------"
 
 #################### Tests ####################
@@ -51,7 +58,7 @@ test: local-tests test-web
 	@echo ""
 	@echo "------- Done    test: -------------"
 
-travis: test build-guide
+travis: test guide
 
 local-tests: test-flow test-samples
 
