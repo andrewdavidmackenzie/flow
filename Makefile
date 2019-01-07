@@ -125,7 +125,7 @@ package-electron: build-web
 	@cd electron && make package
 	@echo "------- Finished packaging electron -----------"
 
-################# Web version################
+################# Web version ################
 test-web:
 	@echo ""
 	@echo "------- Started test of 'web' -----------------"
@@ -138,7 +138,7 @@ build-web:
 	cd web && make
 	@echo "------- Ended   build of 'web' -----------------"
 
-############## Electron versio n#############
+############## Electron version #############
 run-electron:
 	@cd electron && make run-electron
 
