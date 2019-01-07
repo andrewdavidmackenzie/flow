@@ -12,6 +12,10 @@ You need [Git](https://git-scm.com) to clone the repo.
 
 You need 'make' and a rust toolchain (rustup, cargo, rustc) to build from source.
 
+Some crates depend on `open-ssl` and so you may need to install SSL Development libraries (to get header files) 
+to be able to compile them. This was fixed with `sudo apt install libssl-dev` on Linux boxes (Raspberry Pi)
+where I found the problem. Seems that `brew install openssl` should do it for Mac.
+
 The 'web' and 'electron' parts require:
 * [wasm-bindgen] [Node.js](https://nodejs.org/en/download/) (which comes with [npm](http://npmjs.com))
 * 'wasm-bindgen' install with `cargo install wasm-bindgen`
