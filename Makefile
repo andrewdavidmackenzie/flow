@@ -1,8 +1,10 @@
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 
 all: test doc
-	@echo "------- Done "all" -------------"
-
+	@echo ""
+	@echo "**************************************"
+	@echo "************* Done all: **************"
+	@echo "**************************************"
 
 online := false
 
@@ -12,16 +14,21 @@ else
 features :=
 endif
 
+########## Configure Dependencies ############
 config:
 	rustup target add wasm32-unknown-unknown
 	cargo install wasm-bindgen-cli || true
 	cargo install mdbook || true
 	cargo install mdbook-linkcheck || true
 
+#################### Docs ####################
 doc: build-guide
+	@echo ""
+	@echo "------- Started building docs with cargo -------------"
 	cargo doc
+	@echo "------- Ended   building docs with cargo -------------"
 
-#################### Guide ####################
+################### Guide ####################
 build-guide: copy-md-files
 	@echo ""
 	@echo "------- Started building book from Markdown into 'guide/book/html' -------------"
@@ -39,10 +46,12 @@ copy-md-files:
 	@echo "------- Done    copying Markdown files from 'samples' and 'flowstdlib' to 'guide/src' -------------"
 
 #################### Tests ####################
-#test: travis online-tests
-test: travis
+#test: online-tests
+test: local-tests test-web
+	@echo ""
+	@echo "------- Done    test: -------------"
 
-travis: local-tests test-web build-guide
+travis: test build-guide
 
 local-tests: test-flow test-samples
 
@@ -93,6 +102,7 @@ test-hello-simple-online: ./target/debug/flowc
 	@echo "Hello" | ./target/debug/flowc https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 	@echo "------- Finished testing generation of hello-world-simple-online ----"
 
+################# Packaging ################
 #package: package-electron package-flowc
 package: package-flowc
 
@@ -108,6 +118,7 @@ package-electron: build-web
 	@cd electron && make package
 	@echo "------- Finished packaging electron -----------"
 
+################# Web version################
 test-web:
 	@echo ""
 	@echo "------- Started test of 'web' -----------------"
@@ -115,11 +126,16 @@ test-web:
 	@echo "------- Ended   test of 'web' -----------------"
 
 build-web:
+	@echo ""
+	@echo "------- Started build of 'web' -----------------"
 	cd web && make
+	@echo "------- Ended   build of 'web' -----------------"
 
+############## Electron versio n#############
 run-electron:
 	@cd electron && make run-electron
 
+################# Clean ################
 clean:
 	cargo clean
 	@find samples -name rust -type d -exec rm -rf {} + ; true
