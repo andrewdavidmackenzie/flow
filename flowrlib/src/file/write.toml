@@ -1,9 +1,0 @@
-name = "Write"
-
-[[input]]
-name = "filename"
-type = "String"
-
-[[input]]
-name = "bytes"
-type = "Array"

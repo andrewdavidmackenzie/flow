@@ -37,13 +37,16 @@ make travis
 ```
 
 ## Run a 'flow'
-Run one of the supplied sample flows using:
+Run the [first flow](guide/src/first_flow/first_flow.md) sample flow using:
 
-```cargo run  -- samples/fibonacci```
+```cargo run  -- samples/first```
 
-You should get a fibonacci series output to the terminal, 
+You should get a series of numbers output to the terminal, 
 followed by an "ERROR" on a panic, that is caused by integer overflow 
-when the next number gets too big (don't worry, that's expected)
+when the next number gets too big (don't worry, that's expected).
+
+The [first flow](guide/src/first_flow/first_flow.md) section of the guide explains
+what that sample does and walks you through it.
 
 ## License
 

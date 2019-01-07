@@ -1,0 +1,11 @@
+name = "FormatPNG"
+
+[[input]]
+name = "bytes"
+
+[[input]]
+name = "bounds"
+type = "Json"
+
+[[output]]
+type = "Array"

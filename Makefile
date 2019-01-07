@@ -1,6 +1,8 @@
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 
 all: test doc
+	@echo "------- Done "all" -------------"
+
 
 online := false
 
@@ -22,17 +24,19 @@ doc: build-guide
 #################### Guide ####################
 build-guide: copy-md-files
 	@echo ""
-	@echo "------- Building book from Markdown into 'guide/book/html' -------------"
+	@echo "------- Started building book from Markdown into 'guide/book/html' -------------"
 	@mdbook build guide
+	@echo "------- Done    building book from Markdown into 'guide/book/html' -------------"
 
 ## Copy .md files (with same directory sturtcure) from samples and flowstdlib directories under guide 'src' directory
 copy-md-files:
 	@echo ""
-	@echo "------- Copying Markdown files from 'samples' and 'flowstdlib' to 'guide/src' -------------"
+	@echo "------- Started copying Markdown files from 'samples' and 'flowstdlib' to 'guide/src' -------------"
 	@find samples -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
 	@find samples -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
 	@find flowstdlib -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
 	@find flowstdlib -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
+	@echo "------- Done    copying Markdown files from 'samples' and 'flowstdlib' to 'guide/src' -------------"
 
 #################### Tests ####################
 #test: travis online-tests

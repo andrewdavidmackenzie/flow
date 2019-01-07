@@ -78,19 +78,29 @@ from = "function/parse_lower_right"
 to = "flow/render/lower_right"
 
 
-# Write Bitmap
+# Format Bitmap
 [[function]]
-alias = "write_bitmap"
-source = "lib://flowstdlib/img/write_bitmap.toml"
-
-[[connection]]
-from = "function/args/0"
-to = "function/write_bitmap/filename"
+alias = "format_bitmap"
+source = "lib://flowstdlib/img/format_png.toml"
 
 [[connection]]
 from = "flow/render/bitmap_bounds"
-to = "function/write_bitmap/bounds"
+to = "function/format_bitmap/bounds"
 
 [[connection]]
 from = "flow/render/bytes"
-to = "function/write_bitmap/bytes"
+to = "function/format_bitmap/bytes"
+
+
+# Write Bitmap to a file
+[[function]]
+alias = "write_file"
+source = "lib://flowrlib/file/file_write.toml"
+
+[[connection]]
+from = "function/args/0"
+to = "function/write_file/filename"
+
+[[connection]]
+from = "function/format_bitmap"
+to = "function/write_file/bytes"

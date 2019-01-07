@@ -1,1 +1,1 @@
-pub mod write_bitmap;
+pub mod format_png;

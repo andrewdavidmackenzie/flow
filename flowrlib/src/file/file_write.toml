@@ -1,4 +1,4 @@
-name = "WriteBitmap"
+name = "FileWrite"
 
 [[input]]
 name = "filename"
@@ -6,7 +6,4 @@ type = "String"
 
 [[input]]
 name = "bytes"
-
-[[input]]
-name = "bounds"
-type = "Json"
+type = "Array"
