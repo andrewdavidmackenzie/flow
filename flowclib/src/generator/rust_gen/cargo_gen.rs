@@ -18,6 +18,7 @@ path = \"src/{main_filename}\"
 
 [dependencies]
 flowrlib = {{path = \"../../../flowrlib\", version = \"~0.7.0\"}}
+flowclilib = {{path = \"../../../flowclilib\", version = \"~0.7.0\"}}
 {libraries}
 serde_json = \"1.0\"
 

@@ -12,8 +12,9 @@ use model::runnable::Runnable;
 const MAIN_PREFIX: &'static str = "
 #[macro_use]
 extern crate serde_json;
+extern crate flowclilib;
 extern crate flowrlib;
-use flowrlib::startup::start;
+use flowclilib::startup::start;
 use flowrlib::execution::execute;
 use std::process::exit;
 

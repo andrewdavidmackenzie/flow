@@ -52,9 +52,18 @@ copy-md-files:
 
 	@echo "------- Done    copying Markdown files from 'samples' and 'flowstdlib' to 'guide/src' -------------"
 
+#################### Build ####################
+build:
+	@echo ""
+	@echo "------- starting 'build:' target -------------"
+	cd flowstdlib && make
+	cd flowrlib && make
+	cd web && make
+	cargo build
+
 #################### Tests ####################
 #test: online-tests
-test: local-tests test-web
+test: build local-tests test-web
 	@echo ""
 	@echo "------- Done    test: -------------"
 

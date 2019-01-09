@@ -5,11 +5,9 @@ extern crate log;
 #[macro_use] extern crate serde_json;
 
 extern crate simplog;
-extern crate clap;
 
 pub mod info;
 pub mod execution;
-pub mod startup;
 pub mod runlist;
 pub mod value;
 pub mod implementation;
