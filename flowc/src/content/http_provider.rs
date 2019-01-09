@@ -1,5 +1,5 @@
 use url::Url;
-use content::provider::Provider;
+use flowclib::loader::provider::Provider;
 use curl::easy::{Easy2, Handler, WriteError};
 
 pub struct HttpProvider;
@@ -49,7 +49,7 @@ impl HttpProvider {
 mod test {
     use url::Url;
     use super::HttpProvider;
-    use content::provider::Provider;
+    use flowclib::loader::provider::Provider;
 
     #[test]
     #[cfg_attr(not(feature = "online_tests"), ignore)]

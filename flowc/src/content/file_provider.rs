@@ -5,7 +5,7 @@ use glob::glob;
 use std::io;
 use std::io::ErrorKind;
 use std::fs::metadata;
-use content::provider::Provider;
+use flowclib::loader::provider::Provider;
 
 pub struct FileProvider;
 
@@ -72,7 +72,7 @@ mod test {
     use std::path::PathBuf;
     use url::Url;
     use super::FileProvider;
-    use content::provider::Provider;
+    use flowclib::loader::provider::Provider;
 
     #[test]
     fn get_default_sample() {

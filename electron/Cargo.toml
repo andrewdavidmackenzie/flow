@@ -8,4 +8,4 @@ name = "ui"
 path = "src/ui.rs"
 
 [dependencies]
-flowclib = { path = "../flowclib", version = "*" }
+flowclib = { path = "../flowclib", version = "~0.7.0" }

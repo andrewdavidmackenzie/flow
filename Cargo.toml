@@ -48,6 +48,6 @@ debug-assertions = true
 codegen-units = 1
 
 [workspace]
-members = ["flowclib", "flowclilib", "flowc"]
-default-members = ["flowclib", "flowclilib", "flowc"]
-exclude = ["web", "flowstdlib", "flowrlib"]
+members = ["flowclilib", "flowc"]
+default-members = ["flowclilib", "flowc"]
+exclude = ["web", "flowstdlib", "flowrlib", "flowclib"]

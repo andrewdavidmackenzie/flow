@@ -57,13 +57,16 @@ build: flowc web
 	@echo ""
 	@echo "------- starting 'build:' target -------------"
 
-flowc:
+flowc: flowclib
 	@echo ""
 	@echo "------- Building 'flowc' -------------"
 	cargo build
 
 web: flowrlib flowstdlib
 	cd web && make
+
+flowclib:
+	cd flowclib && make
 
 flowstdlib: flowrlib
 	cd flowstdlib && make

@@ -9,16 +9,12 @@ extern crate serde_json;
 extern crate toml;
 #[macro_use]
 extern crate log;
-extern crate glob;
 extern crate strfmt;
 extern crate url;
 extern crate yaml_rust;
-extern crate curl;
-extern crate simpath;
 
 pub mod loader;
 pub mod dumper;
-pub mod content;
 pub mod info;
 pub mod compiler;
 pub mod generator;

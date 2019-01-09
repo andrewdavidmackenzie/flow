@@ -15,11 +15,14 @@ path = "src/flowc.rs"
 
 [dependencies]
 clap = "~2.27.1"
-flowclib = { path = "../flowclib", version = "^0.4" }
+flowclib = { path = "../flowclib", version = "~0.7.0" }
 simplog = "1.0.3"
 log = "0.3.8"
 url = "~1.6.0"
 tempdir = "~0.3.5"
+curl = "~0.4.11"
+simpath = "~1.2"
+glob = "~0.2.11"
 
 [package.metadata.bundle]
 identifier = "net.mackenzie-serres.flow.flowc"

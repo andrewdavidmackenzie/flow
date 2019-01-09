@@ -7,8 +7,8 @@ use model::name::HasName;
 use model::route::Route;
 use model::route::HasRoute;
 use model::route::SetRoute;
-use content::provider;
 use loader::loader_helper::get_loader;
+use super::provider::Provider;
 use std::mem::replace;
 
 use url::Url;
@@ -40,14 +40,14 @@ pub trait Validate {
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
 /// flowclib::loader::loader::load(&"root".to_string(), &url).unwrap();
 /// ```
-pub fn load(alias: &Name, url: &Url) -> Result<Flow, String> {
-    load_flow(&Route::from(""), alias, url)
+pub fn load(alias: &Name, url: &Url, provider: &Provider) -> Result<Flow, String> {
+    load_flow(&Route::from(""), alias, url, provider)
         .map_err(|e| format!("while loading flow from Url '{}'\n\t- {}", url, e.to_string()))
 }
 
-fn load_flow(parent_route: &Route, alias: &Name, url: &Url) -> Result<Flow, String> {
-    let mut flow = load_single_flow(parent_route, alias, url)?;
-    load_subflows(&mut flow)?;
+fn load_flow(parent_route: &Route, alias: &Name, url: &Url, provider: &Provider) -> Result<Flow, String> {
+    let mut flow = load_single_flow(parent_route, alias, url, provider)?;
+    load_subflows(&mut flow, provider)?;
     build_flow_connections(&mut flow)?;
     Ok(flow)
 }
@@ -73,11 +73,11 @@ fn load_flow(parent_route: &Route, alias: &Name, url: &Url) -> Result<Flow, Stri
 ///                                            &flowclib::model::name::Name::from("call-me-hello"),
 ///                                            &url).unwrap();
 /// ```
-pub fn load_single_flow(parent_route: &Route, alias: &Name, url: &Url) -> Result<Flow, String> {
-    let (resolved_url, lib_ref) = provider::resolve(url)?;
+pub fn load_single_flow(parent_route: &Route, alias: &Name, url: &Url, provider: &Provider) -> Result<Flow, String> {
+    let (resolved_url, lib_ref) = provider.resolve(url)?;
     let loader = get_loader(&resolved_url)?;
     info!("Loading flow from '{}'", resolved_url);
-    let contents = provider::get(&resolved_url)?;
+    let contents = provider.get(&resolved_url)?;
     let mut flow = loader.load_flow(&contents)
         .map_err(|e| format!("while loading flow - {}", e.to_string()))?;
     flow.alias = alias.clone();
@@ -87,7 +87,7 @@ pub fn load_single_flow(parent_route: &Route, alias: &Name, url: &Url) -> Result
         flow.lib_references.push(lr);
     };
     flow.validate()?;
-    load_functions(&mut flow)?;
+    load_functions(&mut flow, provider)?;
     load_values(&mut flow)?;
     Ok(flow)
 }
@@ -108,11 +108,11 @@ pub fn load_single_flow(parent_route: &Route, alias: &Name, url: &Url) -> Result
 ///                                         &flowclib::model::route::Route::from("/root_flow"),
 ///                                         &flowclib::model::name::Name::from("call-me-hello")).unwrap();
 /// ```
-pub fn load_function(url: &Url, parent_route: &Route, alias: &Name) -> Result<Function, String> {
+pub fn load_function(url: &Url, parent_route: &Route, alias: &Name, provider: &Provider) -> Result<Function, String> {
     debug!("Loading function from '{}'", url);
-    let (resolved_url, lib_ref) = provider::resolve(url)?;
+    let (resolved_url, lib_ref) = provider.resolve(url)?;
     let loader = get_loader(&resolved_url)?;
-    let contents = provider::get(&resolved_url)?;
+    let contents = provider.get(&resolved_url)?;
     let mut function = loader.load_function(&contents)?;
     function.set_alias(alias.to_string());
     function.set_source_url(resolved_url.clone());
@@ -125,14 +125,14 @@ pub fn load_function(url: &Url, parent_route: &Route, alias: &Name) -> Result<Fu
 /*
     Load all functions referenced from a flow
 */
-fn load_functions(flow: &mut Flow) -> Result<(), String> {
+fn load_functions(flow: &mut Flow, provider: &Provider) -> Result<(), String> {
     let parent_route = &flow.route().clone();
     if let Some(ref mut function_refs) = flow.function_refs {
         debug!("Loading functions for flow '{}'", flow.source_url);
         for ref mut function_ref in function_refs {
             let function_url = flow.source_url.join(&function_ref.source)
                 .map_err(|_e| "URL join error")?;
-            function_ref.function = load_function(&function_url, parent_route, &function_ref.alias())
+            function_ref.function = load_function(&function_url, parent_route, &function_ref.alias(), provider)
                 .map_err(|e| format!("while loading function from Url '{}' - {}",
                                      function_url, e.to_string()))?;
             if let Some(lib_ref) = function_ref.function.get_lib_reference() {
@@ -160,13 +160,13 @@ fn load_values(flow: &mut Flow) -> Result<(), String> {
 /*
     Load all sub-flows referenced from a flow via the flow_references
 */
-fn load_subflows(flow: &mut Flow) -> Result<(), String> {
+fn load_subflows(flow: &mut Flow, provider: &Provider) -> Result<(), String> {
     let parent_route = &flow.route().clone();
     if let Some(ref mut flow_refs) = flow.flow_refs {
         debug!("Loading sub-flows of flow '{}'", flow.source_url);
         for ref mut flow_ref in flow_refs {
             let subflow_url = flow.source_url.join(&flow_ref.source).expect("URL join error");
-            let subflow = load_flow(parent_route, &flow_ref.alias(), &subflow_url)?;
+            let subflow = load_flow(parent_route, &flow_ref.alias(), &subflow_url, provider)?;
             flow_ref.flow = subflow;
         }
     }

@@ -1,5 +1,5 @@
 use url::Url;
-use content::provider::Provider;
+use flowclib::loader::provider::Provider;
 use simpath::Simpath;
 
 pub struct LibProvider;
@@ -72,7 +72,7 @@ impl Provider for LibProvider {
 mod test {
     use url::Url;
     use super::LibProvider;
-    use content::provider::Provider;
+    use flowclib::loader::provider::Provider;
     use std::env;
 
     #[test]

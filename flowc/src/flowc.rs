@@ -4,6 +4,9 @@ extern crate url;
 extern crate tempdir;
 
 extern crate clap;
+extern crate glob;
+extern crate curl;
+extern crate simpath;
 
 use clap::{App, Arg, ArgMatches, AppSettings};
 
@@ -18,6 +21,7 @@ use std::process::Command;
 use std::process::Stdio;
 
 mod source_arg;
+mod content;
 
 extern crate simplog;
 
@@ -45,6 +49,8 @@ fn run() -> Result<String, String> {
 
     SimpleLogger::init(matches.value_of("log"));
 
+    let meta_provider = content::provider::MetaProvider {};
+
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     info!("'flowclib' version {}\n", info::version());
 
@@ -53,7 +59,7 @@ fn run() -> Result<String, String> {
     let skip_generation = matches.is_present("skip");
 
     info!("Attempting to load from url: '{}'", url);
-    let mut flow = loader::load(&"root".to_string(), &url)?;
+    let mut flow = loader::load(&"root".to_string(), &url, &meta_provider)?;
     info!("flow loaded with alias '{}'\n", flow.alias);
 
     let tables = compile::compile(&mut flow)?;
