@@ -1,3 +1,6 @@
+extern crate flowstdlib;
+extern crate flowrlib;
+
 use wasm_bindgen::prelude::*;
 
 // Called by our JS entry point to run the example
@@ -9,11 +12,17 @@ pub fn run() -> Result<(), JsValue> {
     let document = window.document().expect("should have a document on window");
     let body = document.body().expect("document should have a body");
 
-    // Manufacture the element we're gonna append
-    let val = document.create_element("p")?;
-    val.set_inner_html("Hello from flow web module!");
+    // Get versions of libraries we link with
+    let flowstdlib_version = flowstdlib::info::version();
+    let flowrlib_version = flowrlib::info::version();
 
-    body.append_child(&val)?;
+    let std = document.create_element("p")?;
+    std.set_inner_html(&format!("flowstdlib: version = {}", flowstdlib_version));
+    body.append_child(&std)?;
+
+    let runtime = document.create_element("p")?;
+    runtime.set_inner_html(&format!("flowrlib: version = {}", flowrlib_version));
+    body.append_child(&runtime)?;
 
     Ok(())
 }
