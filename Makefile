@@ -53,13 +53,23 @@ copy-md-files:
 	@echo "------- Done    copying Markdown files from 'samples' and 'flowstdlib' to 'guide/src' -------------"
 
 #################### Build ####################
-build:
+build: flowc web
 	@echo ""
 	@echo "------- starting 'build:' target -------------"
-	cd flowstdlib && make
-	cd flowrlib && make
-	cd web && make
+
+flowc:
+	@echo ""
+	@echo "------- Building 'flowc' -------------"
 	cargo build
+
+web: flowrlib flowstdlib
+	cd web && make
+
+flowstdlib: flowrlib
+	cd flowstdlib && make
+
+flowrlib:
+	cd flowrlib && make
 
 #################### Tests ####################
 #test: online-tests
@@ -128,7 +138,7 @@ package-flowc:
 	@cargo package --manifest-path flowc/Cargo.toml
 	@echo "------- Finished packaging flowc --------------"
 
-package-electron: build-web
+package-electron: web
 	@echo ""
 	@echo "------- Started  packaging electron -----------"
 	@cd electron && make package
@@ -140,12 +150,6 @@ test-web:
 	@echo "------- Started test of 'web' -----------------"
 	cd web && make test
 	@echo "------- Ended   test of 'web' -----------------"
-
-build-web:
-	@echo ""
-	@echo "------- Started build of 'web' -----------------"
-	cd web && make
-	@echo "------- Ended   build of 'web' -----------------"
 
 ############## Electron version #############
 run-electron:
