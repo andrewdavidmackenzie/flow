@@ -81,7 +81,7 @@ flowclilib:
 	cd flowclilib && make build
 
 ################## Travis CI ##################
-travis: test guide
+travis: clean test guide
 
 #################### Tests ####################
 test: test-flowc test-web test-flowclib test-flowstdlib test-flowrlib test-flowclilib local-samples
