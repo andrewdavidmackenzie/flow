@@ -46,7 +46,9 @@ impl FileProvider {
     If found, it opens the file and returns its contents as a String in the result
     */
     fn find_default_file(path: &mut PathBuf) -> io::Result<PathBuf> {
-        path.push("context.*");
+        // TODO pending more complex patterns based on implemented loaders
+        // Or iterate through the matches until a loader is found which understands that file extension
+        path.push("context.toml");
         let pattern = path.to_str().unwrap();
         info!("Looking for files matching: '{}'", pattern);
 

@@ -9,6 +9,7 @@ use model::route::HasRoute;
 use model::route::SetRoute;
 use loader::loader_helper::get_loader;
 use super::provider::Provider;
+use model::process_reference::Process::FlowProcess;
 use std::mem::replace;
 
 use url::Url;
@@ -208,12 +209,12 @@ fn load_values(flow: &mut Flow) -> Result<(), String> {
 */
 fn load_subflows(flow: &mut Flow, provider: &Provider) -> Result<(), String> {
     let parent_route = &flow.route().clone();
-    if let Some(ref mut flow_refs) = flow.flow_refs {
+    if let Some(ref mut flow_refs) = flow.process_refs {
         debug!("Loading sub-flows of flow '{}'", flow.source_url);
         for ref mut flow_ref in flow_refs {
             let subflow_url = flow.source_url.join(&flow_ref.source).expect("URL join error");
             let subflow = load_flow(parent_route, &flow_ref.alias(), &subflow_url, provider)?;
-            flow_ref.flow = subflow;
+            flow_ref.process = FlowProcess(subflow);
         }
     }
     Ok(())
@@ -280,7 +281,7 @@ fn build_flow_connections(flow: &mut Flow) -> Result<(), String> {
     replace(&mut flow.connections, Some(connections));
 
     if error_count == 0 {
-        debug!("All connections built inside flow '{}'", flow.source_url);
+        debug!("All connections inside flow '{}' successfully built", flow.source_url);
         Ok(())
     } else {
         Err(format!("{} connections errors found in flow '{}'", error_count, flow.source_url))

@@ -22,12 +22,11 @@ pub fn url_from_cl_arg(cl_arg: Option<&str>) -> Result<Url, String> {
 
     match cl_arg {
         None => {
-            info!("No url specified, so using parent: '{}'", parent);
+            info!("No url specified, so using: '{}'", parent);
             Ok(parent.clone())
         }
         Some(cl_url_string) => {
-            parent.join(cl_url_string).map_err(|e: ParseError|
-                e.to_string())
+            parent.join(cl_url_string).map_err(|e: ParseError| e.to_string())
         }
     }
 }

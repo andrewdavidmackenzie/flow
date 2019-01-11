@@ -6,6 +6,7 @@ use std::io;
 use std::io::prelude::*;
 use std::path::PathBuf;
 use ::dumper::dump_dot;
+use model::process_reference::Process::FlowProcess;
 
 /// dump a flow definition that has been loaded to a file in the specified output directory
 ///
@@ -59,9 +60,14 @@ fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<Str
     dump_dot::dump_flow_dot(flow, &mut writer)?;
 
     // Dump sub-flows
-    if let Some(ref flow_refs) = flow.flow_refs {
+    if let Some(ref flow_refs) = flow.process_refs {
         for flow_ref in flow_refs {
-            _dump_flow(&flow_ref.flow, level + 1, output_dir)?;
+            match flow_ref.process {
+                FlowProcess(ref subflow) => {
+                    _dump_flow(subflow, level + 1, output_dir)?;
+                },
+                _ => {}
+            }
         }
     }
 

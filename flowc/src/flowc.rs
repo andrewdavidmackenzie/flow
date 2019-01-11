@@ -55,11 +55,12 @@ fn run() -> Result<String, String> {
     info!("'flowclib' version {}\n", info::version());
 
     let url = source_arg::url_from_cl_arg(matches.value_of("FLOW"))?;
+
     let dump = matches.is_present("dump");
     let skip_generation = matches.is_present("skip");
 
     info!("Attempting to load from url: '{}'", url);
-    let mut flow = loader::load(&"root".to_string(), &url, &meta_provider)?;
+    let mut flow = loader::load(&"context".to_string(), &url, &meta_provider)?;
     info!("flow loaded with alias '{}'\n", flow.alias);
 
     let tables = compile::compile(&mut flow)?;
@@ -186,10 +187,11 @@ mod test {
     use flowclib::compiler::compile;
     use flowclib::model::name::Name;
     use content::provider::MetaProvider;
+    use source_arg::url_from_cl_arg;
 
     fn url_from_rel_path(path: &str) -> Url {
-        let parent = Url::from_file_path(env::current_dir().unwrap()).unwrap();
-        parent.join(path).unwrap()
+        let cwd = Url::from_file_path(env::current_dir().unwrap()).unwrap();
+        cwd.join(path).unwrap()
     }
 
     #[test]
@@ -282,8 +284,9 @@ mod test {
     #[test]
     fn load_fibonacci_from_directory() {
         let meta_provider = MetaProvider {};
+        let url = url_from_cl_arg(Some("../samples/fibonacci")).unwrap();
+        println!("url = {}", url);
         loader::load(&"fibonacci".to_string(),
-                     &url_from_rel_path("samples/fibonacci"),
-                     &meta_provider).unwrap();
+                     &url, &meta_provider).unwrap();
     }
 }

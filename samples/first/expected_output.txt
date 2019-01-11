@@ -91,6 +91,6 @@
 "4660046610375530309"
 ERROR	- panic occurred in file 'flowstdlib/src/math/add.rs' at line 22
 ERROR	- Process STDERR:
-     Running `samples/first/rust/target/debug/root`
+     Running `samples/first/rust/target/debug/context`
 
 ERROR	- Exited with status code: 101

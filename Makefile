@@ -56,44 +56,29 @@ copy-md-files:
 build: flowc web flowclib flowstdlib flowrlib flowclilib
 	@echo "------- Done 'build:' target -------------"
 
-./target/debug/flowc:
+./target/debug/flowc: flowc
 	cargo build
 
-flowc:
+flowc: flowclib
 	@echo ""
 	@echo "------- Starting build of 'flow' workspace project -------------"
 	cargo build
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
-web:
-	@echo ""
-	@echo "------- Starting build of 'web' project -------------"
+web: flowrlib flowstdlib
 	cd web && make build
-	@echo "------- Done     build of 'web' project -------------"
 
 flowclib:
-	@echo ""
-	@echo "------- Starting build of 'flowclib' project -------------"
 	cd flowclib && make build
-	@echo "------- Done     build of 'flowclib' project -------------"
 
-flowstdlib:
-	@echo ""
-	@echo "------- Starting build of 'flowstdlib' project -------------"
+flowstdlib: flowrlib
 	cd flowstdlib && make build
-	@echo "------- Done     build of 'flowstdlib' project -------------"
 
 flowrlib:
-	@echo ""
-	@echo "------- Starting build of 'flowrlib' project -------------"
 	cd flowrlib && make build
-	@echo "------- Done     build of 'flowrlib' project -------------"
 
 flowclilib:
-	@echo ""
-	@echo "------- Starting build of 'flowclilib' project -------------"
 	cd flowclilib && make build
-	@echo "------- Done     build of 'flowclilib' project -------------"
 
 ################## Travis CI ##################
 travis: test guide
@@ -106,39 +91,24 @@ test: test-flowc test-web test-flowclib test-flowstdlib test-flowrlib test-flowc
 
 test-flowc:
 	@echo ""
-	@echo "------- Starting test of 'flowc' -------------"
-	cd flowc && cargo test $(features)
-	@echo "------- Done     test of 'flowc' -------------"
+	@echo "------- Starting build of 'flow' workspace project -------------"
+	cargo test $(features)
+	@echo "------- Done     build of 'flow' workspace project -------------"
 
 test-web:
-	@echo ""
-	@echo "------- Starting build of 'web' project -------------"
 	cd web && make test
-	@echo "------- Done     build of 'web' project -------------"
 
 test-flowclib:
-	@echo ""
-	@echo "------- Starting build of 'flowclib' project -------------"
 	cd flowclib && make test
-	@echo "------- Done     build of 'flowclib' project -------------"
 
 test-flowstdlib:
-	@echo ""
-	@echo "------- Starting build of 'flowstdlib' project -------------"
 	cd flowstdlib && make test
-	@echo "------- Done     build of 'flowstdlib' project -------------"
 
 test-flowrlib:
-	@echo ""
-	@echo "------- Starting build of 'flowrlib' project -------------"
 	cd flowrlib && make test
-	@echo "------- Done     build of 'flowrlib' project -------------"
 
 test-flowclilib:
-	@echo ""
-	@echo "------- Starting build of 'flowclilib' project -------------"
 	cd flowclilib && make test
-	@echo "------- Done     build of 'flowclilib' project -------------"
 
 #################### Raspberry Pi ####################
 #TODO map the cargo cache as a volume to avoid re-downloading and compiling every time.

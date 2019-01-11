@@ -4,7 +4,7 @@ use model::connection::Connection;
 use model::io::IO;
 use model::io::IOSet;
 use model::value::Value;
-use model::flow_reference::FlowReference;
+use model::process_reference::ProcessReference;
 use model::route::Route;
 use model::route::HasRoute;
 use model::route::SetRoute;
@@ -13,6 +13,7 @@ use loader::loader::Validate;
 use model::function_reference::FunctionReference;
 use model::connection::Direction;
 use model::runnable::Runnable;
+use model::process_reference::Process::FlowProcess;
 use std::fmt;
 use url::Url;
 
@@ -21,7 +22,7 @@ pub struct Flow {
     #[serde(rename = "flow")]
     name: Name,
     #[serde(rename = "process")]
-    pub flow_refs: Option<Vec<FlowReference>>,
+    pub process_refs: Option<Vec<ProcessReference>>,
     #[serde(rename = "function")]
     pub function_refs: Option<Vec<FunctionReference>>,
     #[serde(rename = "value")]
@@ -46,7 +47,7 @@ pub struct Flow {
 impl Validate for Flow {
     // check the correctness of all the fields in this flow, prior to loading sub-elements
     fn validate(&self) -> Result<(), String> {
-        if let Some(ref flows_refs) = self.flow_refs {
+        if let Some(ref flows_refs) = self.process_refs {
             for flow_ref in flows_refs {
                 flow_ref.validate()?;
             }
@@ -115,7 +116,7 @@ impl fmt::Display for Flow {
         }
 
         write!(f, "\tsubflows:\n").unwrap();
-        if let Some(ref flow_refs) = self.flow_refs {
+        if let Some(ref flow_refs) = self.process_refs {
             for flow_ref in flow_refs {
                 write!(f, "\t{}\n", flow_ref).unwrap();
             }
@@ -147,7 +148,7 @@ impl Default for Flow {
             alias: "".to_string(),
             source_url: Flow::default_url(),
             route: "".to_string(),
-            flow_refs: None,
+            process_refs: None,
             function_refs: None,
             values: None,
             inputs: None,
@@ -177,7 +178,7 @@ impl Flow {
         Url::parse("file:///").unwrap()
     }
 
-    pub fn new(name: Name, alias: Name, source_url: Url, route: Route, flow_refs: Option<Vec<FlowReference>>,
+    pub fn new(name: Name, alias: Name, source_url: Url, route: Route, flow_refs: Option<Vec<ProcessReference>>,
                connections: Option<Vec<Connection>>, inputs: IOSet, outputs: IOSet, function_refs: Option<Vec<FunctionReference>>,
                values: Option<Vec<Value>>, lib_references: Vec<String>) -> Self {
         Flow {
@@ -185,7 +186,7 @@ impl Flow {
             alias,
             source_url,
             route,
-            flow_refs,
+            process_refs: flow_refs,
             connections,
             inputs,
             outputs,
@@ -195,14 +196,20 @@ impl Flow {
         }
     }
 
+    // TODO combine the next two functions
     fn get_io_subflow(&self, subflow_alias: &str, direction: Direction, io_name: &Name) -> Result<IO, String> {
-        if let Some(ref flow_refs) = self.flow_refs {
+        if let Some(ref flow_refs) = self.process_refs {
             for flow_ref in flow_refs {
-                if flow_ref.name() == subflow_alias {
-                    return match direction {
-                        Direction::TO => flow_ref.flow.inputs.find_by_name(io_name),
-                        Direction::FROM => flow_ref.flow.outputs.find_by_name(io_name)
-                    };
+                match flow_ref.process {
+                    FlowProcess(ref flow) => {
+                        if flow_ref.name() == subflow_alias {
+                            return match direction {
+                                Direction::TO => flow.inputs.find_by_name(io_name),
+                                Direction::FROM => flow.outputs.find_by_name(io_name)
+                            };
+                        }
+                    },
+                    _ => {}
                 }
             }
             return Err(format!("Could not find subflow named '{}'", subflow_alias));

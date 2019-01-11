@@ -1,6 +1,6 @@
 use model::flow::Flow;
 use model::runnable::Runnable;
-
+use model::process_reference::Process::FlowProcess;
 use generator::code_gen::CodeGenTables;
 
 /*
@@ -36,9 +36,14 @@ pub fn add_entries(flow: &Flow, tables: &mut CodeGenTables) {
     }
 
     // Do the same for all subflows referenced from this one
-    if let Some(ref flow_refs) = flow.flow_refs {
+    if let Some(ref flow_refs) = flow.process_refs {
         for flow_ref in flow_refs {
-            add_entries(&flow_ref.flow, tables);
+            match flow_ref.process {
+                FlowProcess(ref flow) => {
+                    add_entries(flow, tables);
+                },
+                _ => { }
+            }
         }
     }
 }

@@ -7,6 +7,7 @@ native:
 	@echo "------- Done     build of 'flowstdlib' native -------------"
 
 wasm:
+	@echo ""
 	@echo "------- Starting build of 'flowstdlib' wasm -------------"
 	cargo build --target=wasm32-unknown-unknown
 	@echo "------- Done     build of 'flowstdlib' wasm -------------"

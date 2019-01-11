@@ -3,7 +3,7 @@ use generator::code_gen::CodeGenTables;
 use std::io;
 use std::io::prelude::*;
 use model::runnable::Runnable;
-use model::flow_reference::FlowReference;
+use model::process_reference::ProcessReference;
 use model::io::IOSet;
 use model::route::Route;
 use model::route::Router;
@@ -11,6 +11,7 @@ use model::route::HasRoute;
 use model::route::FindRoute;
 use model::connection::Connection;
 use model::name::HasName;
+use model::process_reference::Process::FlowProcess;
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
 //static OUTPUT_PORTS: &[&str] = &["s", "se", "sw"];
@@ -40,7 +41,7 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
     }
 
     // Flow References
-    if let Some(flow_refs) = &flow.flow_refs {
+    if let Some(flow_refs) = &flow.process_refs {
         contents.push_str("\n\t// Sub-Flows\n");
         for flow_ref in flow_refs {
             contents.push_str(&flow_reference_to_dot(&flow_ref));
@@ -252,13 +253,16 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
     string
 }
 
-fn flow_reference_to_dot(flow_ref: &FlowReference) -> String {
+fn flow_reference_to_dot(flow_ref: &ProcessReference) -> String {
     let mut dot_string = String::new();
 
-    dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot\"];\n",
-                                 flow_ref.flow.route(),
-                                 flow_ref.alias(),
-                                 flow_ref.flow.alias));
+    match flow_ref.process {
+        FlowProcess(ref flow) => {
+            dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot\"];\n",
+                                         flow.route(), flow_ref.alias(), flow.source_url));
+        },
+        _ => {}
+    }
     dot_string
 }
 

@@ -9,6 +9,5 @@ alias = "print"
 source = "lib://flowrlib/stdio/stdout.toml"
 
 [[connection]]
-name = "echo"
 from = "function/stdin"
 to = "function/print"
