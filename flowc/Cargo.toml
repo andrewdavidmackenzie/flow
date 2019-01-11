@@ -13,6 +13,9 @@ readme = "https://github.com/andrewdavidmackenzie/flow/README.md"
 name = "flowc"
 path = "src/flowc.rs"
 
+[features]
+online_tests = []
+
 [dependencies]
 clap = "~2.27.1"
 flowclib = { path = "../flowclib", version = "~0.7.0" }

@@ -17,9 +17,6 @@ doctest = true
 bench = true
 doc = true
 
-[features]
-online_tests = []
-
 [dependencies]
 yaml-rust = "~0.3.5"
 toml = "0.4"

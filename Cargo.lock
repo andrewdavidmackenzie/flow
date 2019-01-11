@@ -106,15 +106,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "flowclilib"
-version = "0.7.0"
-dependencies = [
- "clap 2.27.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "simplog 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "fuchsia-zircon"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

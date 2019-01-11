@@ -35,10 +35,25 @@ pub trait Validate {
 /// extern crate url;
 /// extern crate flowclib;
 /// use std::env;
+/// use url::Url;
+/// use flowclib::loader::provider::Provider;
 ///
+/// struct DummyProvider {};
+///
+/// impl Provider for DummyProvider {
+///     fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
+///        Ok((url.clone(), None))
+///     }
+///
+///    fn get(&self, url: &Url) -> Result<String, String> {
+///        Ok("".to_string())
+///     }
+/// }
+///
+/// let dummy_provider = DummyProvider {};
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
-/// flowclib::loader::loader::load(&"root".to_string(), &url).unwrap();
+/// flowclib::loader::loader::load(&"root".to_string(), &url, &dummy_provider).unwrap();
 /// ```
 pub fn load(alias: &Name, url: &Url, provider: &Provider) -> Result<Flow, String> {
     load_flow(&Route::from(""), alias, url, provider)
@@ -64,14 +79,29 @@ fn load_flow(parent_route: &Route, alias: &Name, url: &Url, provider: &Provider)
 /// ```
 /// extern crate url;
 /// extern crate flowclib;
-///
 /// use std::env;
+/// use url::Url;
+/// use flowclib::loader::provider::Provider;
 ///
+/// struct DummyProvider {};
+///
+/// impl Provider for DummyProvider {
+///     fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
+///        Ok((url.clone(), None))
+///     }
+///
+///    fn get(&self, url: &Url) -> Result<String, String> {
+///        Ok("".to_string())
+///     }
+/// }
+///
+/// let dummy_provider = DummyProvider {};
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
 /// flowclib::loader::loader::load_single_flow(&flowclib::model::route::Route::from("root_flow"),
 ///                                            &flowclib::model::name::Name::from("call-me-hello"),
-///                                            &url).unwrap();
+///                                            &url,
+///                                            &dummy_provider).unwrap();
 /// ```
 pub fn load_single_flow(parent_route: &Route, alias: &Name, url: &Url, provider: &Provider) -> Result<Flow, String> {
     let (resolved_url, lib_ref) = provider.resolve(url)?;
@@ -101,12 +131,28 @@ pub fn load_single_flow(parent_route: &Route, alias: &Name, url: &Url, provider:
 /// extern crate url;
 /// extern crate flowclib;
 /// use std::env;
+/// use url::Url;
+/// use flowclib::loader::provider::Provider;
 ///
+/// struct DummyProvider {};
+///
+/// impl Provider for DummyProvider {
+///     fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
+///        Ok((url.clone(), None))
+///     }
+///
+///    fn get(&self, url: &Url) -> Result<String, String> {
+///        Ok("name = \"dummy\"\n[[input]]".to_string())
+///     }
+/// }
+///
+/// let dummy_provider = DummyProvider {};
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-/// url = url.join("samples/reverse-echo/reverse.toml").unwrap();
+/// url = url.join("samples/hello-world-simple/context.toml").unwrap();
 /// flowclib::loader::loader::load_function(&url,
 ///                                         &flowclib::model::route::Route::from("/root_flow"),
-///                                         &flowclib::model::name::Name::from("call-me-hello")).unwrap();
+///                                         &flowclib::model::name::Name::from("call-me-hello"),
+///                                         &dummy_provider).unwrap();
 /// ```
 pub fn load_function(url: &Url, parent_route: &Route, alias: &Name, provider: &Provider) -> Result<Function, String> {
     debug!("Loading function from '{}'", url);

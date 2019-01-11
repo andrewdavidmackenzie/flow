@@ -174,3 +174,116 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .multiple(true))
         .get_matches()
 }
+
+#[cfg(test)]
+mod test {
+    extern crate flowclib;
+    extern crate url;
+
+    use url::Url;
+    use std::env;
+    use flowclib::loader::loader;
+    use flowclib::compiler::compile;
+    use flowclib::model::name::Name;
+    use content::provider::MetaProvider;
+
+    fn url_from_rel_path(path: &str) -> Url {
+        let parent = Url::from_file_path(env::current_dir().unwrap()).unwrap();
+        parent.join(path).unwrap()
+    }
+
+    #[test]
+    fn compile_echo_ok() {
+        let meta_provider = MetaProvider {};
+        let mut flow = loader::load(&"competing".to_string(),
+                                    &url_from_rel_path("flowc/test-flows/echo.toml"),
+                                    &meta_provider).unwrap();
+        let _tables = compile::compile(&mut flow).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn compiled_detects_competing_inputs() {
+        let meta_provider = MetaProvider {};
+        let mut flow = loader::load(&"competing".to_string(),
+                                    &url_from_rel_path("flowc/test-flows/competing.toml"),
+                                    &meta_provider).unwrap();
+        let _tables = compile::compile(&mut flow).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn compiler_detects_loop() {
+        let meta_provider = MetaProvider {};
+        let mut flow = loader::load(&"loop".to_string(),
+                                    &url_from_rel_path("flowc/test-flows/loop.toml"),
+                                    &meta_provider).unwrap();
+        let _tables = compile::compile(&mut flow);
+    }
+
+    #[test]
+    #[should_panic]
+    fn compile_double_connection() {
+        let meta_provider = MetaProvider {};
+        let mut flow = loader::load(&Name::from("double"),
+                                    &url_from_rel_path("flowc/test-flows/double.toml"),
+                                    &meta_provider).unwrap();
+        let _tables = compile::compile(&mut flow).unwrap();
+    }
+
+    #[test]
+    fn load_hello_world_simple_from_context() {
+        let meta_provider = MetaProvider {};
+        loader::load(&"hello-world-simple".to_string(),
+                     &url_from_rel_path("samples/hello-world-simple/context.toml"),
+                     &meta_provider).unwrap();
+    }
+
+    #[test]
+    fn load_hello_world_from_context() {
+        let meta_provider = MetaProvider {};
+        loader::load(&"hello-world".to_string(),
+                     &url_from_rel_path("samples/hello-world/context.toml"),
+                     &meta_provider).unwrap();
+    }
+
+    #[test]
+    fn load_hello_world_include() {
+        let meta_provider = MetaProvider {};
+        loader::load(&"hello-world-include".to_string(),
+                     &url_from_rel_path("samples/hello-world-include/context.toml"),
+                     &meta_provider).unwrap();
+    }
+
+    #[test]
+    fn load_hello_world_flow1() {
+        let meta_provider = MetaProvider {};
+        loader::load(&"flow1".to_string(),
+                     &url_from_rel_path("samples/hello-world/flow1.toml"),
+                     &meta_provider).unwrap();
+    }
+
+    #[test]
+    fn load_reverse_echo_from_toml() {
+        let meta_provider = MetaProvider {};
+        loader::load(&"reverse-echo".to_string(),
+                     &url_from_rel_path("samples/reverse-echo/context.toml"),
+                     &meta_provider).unwrap();
+    }
+
+    #[test]
+    fn load_fibonacci_from_toml() {
+        let meta_provider = MetaProvider {};
+        loader::load(&"fibonacci".to_string(),
+                     &url_from_rel_path("samples/fibonacci/context.toml"),
+                     &meta_provider).unwrap();
+    }
+
+    #[test]
+    fn load_fibonacci_from_directory() {
+        let meta_provider = MetaProvider {};
+        loader::load(&"fibonacci".to_string(),
+                     &url_from_rel_path("samples/fibonacci"),
+                     &meta_provider).unwrap();
+    }
+}

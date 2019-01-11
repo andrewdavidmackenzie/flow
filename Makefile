@@ -1,6 +1,6 @@
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 
-all: test doc
+all: build test doc
 	@echo ""
 	@echo "**************************************"
 	@echo "************* Done all: **************"
@@ -53,38 +53,92 @@ copy-md-files:
 	@echo "------- Done    copying Markdown files from 'samples' and 'flowstdlib' to 'guide/src' -------------"
 
 #################### Build ####################
-build: flowc web
-	@echo ""
-	@echo "------- starting 'build:' target -------------"
+build: flowc web flowclib flowstdlib flowrlib flowclilib
+	@echo "------- Done 'build:' target -------------"
 
-flowc: flowclib
-	@echo ""
-	@echo "------- Building 'flowc' -------------"
+./target/debug/flowc:
 	cargo build
 
-web: flowrlib flowstdlib
-	cd web && make
+flowc:
+	@echo ""
+	@echo "------- Starting build of 'flow' workspace project -------------"
+	cargo build
+	@echo "------- Done     build of 'flow' workspace project -------------"
+
+web:
+	@echo ""
+	@echo "------- Starting build of 'web' project -------------"
+	cd web && make build
+	@echo "------- Done     build of 'web' project -------------"
 
 flowclib:
-	cd flowclib && make
+	@echo ""
+	@echo "------- Starting build of 'flowclib' project -------------"
+	cd flowclib && make build
+	@echo "------- Done     build of 'flowclib' project -------------"
 
-flowstdlib: flowrlib
-	cd flowstdlib && make
+flowstdlib:
+	@echo ""
+	@echo "------- Starting build of 'flowstdlib' project -------------"
+	cd flowstdlib && make build
+	@echo "------- Done     build of 'flowstdlib' project -------------"
 
 flowrlib:
-	cd flowrlib && make
+	@echo ""
+	@echo "------- Starting build of 'flowrlib' project -------------"
+	cd flowrlib && make build
+	@echo "------- Done     build of 'flowrlib' project -------------"
+
+flowclilib:
+	@echo ""
+	@echo "------- Starting build of 'flowclilib' project -------------"
+	cd flowclilib && make build
+	@echo "------- Done     build of 'flowclilib' project -------------"
+
+################## Travis CI ##################
+travis: test guide
 
 #################### Tests ####################
-#test: online-tests
-test: build local-tests test-web
+test: test-flowc test-web test-flowclib test-flowstdlib test-flowrlib test-flowclilib local-samples
+# TYODO add online-samples
 	@echo ""
 	@echo "------- Done    test: -------------"
 
-travis: test guide
+test-flowc:
+	@echo ""
+	@echo "------- Starting test of 'flowc' -------------"
+	cd flowc && cargo test $(features)
+	@echo "------- Done     test of 'flowc' -------------"
 
-local-tests: test-flow test-samples
+test-web:
+	@echo ""
+	@echo "------- Starting build of 'web' project -------------"
+	cd web && make test
+	@echo "------- Done     build of 'web' project -------------"
 
-online-tests: test-hello-simple-online
+test-flowclib:
+	@echo ""
+	@echo "------- Starting build of 'flowclib' project -------------"
+	cd flowclib && make test
+	@echo "------- Done     build of 'flowclib' project -------------"
+
+test-flowstdlib:
+	@echo ""
+	@echo "------- Starting build of 'flowstdlib' project -------------"
+	cd flowstdlib && make test
+	@echo "------- Done     build of 'flowstdlib' project -------------"
+
+test-flowrlib:
+	@echo ""
+	@echo "------- Starting build of 'flowrlib' project -------------"
+	cd flowrlib && make test
+	@echo "------- Done     build of 'flowrlib' project -------------"
+
+test-flowclilib:
+	@echo ""
+	@echo "------- Starting build of 'flowclilib' project -------------"
+	cd flowclilib && make test
+	@echo "------- Done     build of 'flowclilib' project -------------"
 
 #################### Raspberry Pi ####################
 #TODO map the cargo cache as a volume to avoid re-downloading and compiling every time.
@@ -97,38 +151,27 @@ pi:
 copy:
 	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/debug/flowc andrew@raspberrypi.local:
 
-#################### Flow ####################
-test-flow:
-	@echo ""
-	@echo "------- Started  testing flow -------------"
-	@cargo test $(features)
-	@echo "------- Finished testing flow -------------"
-
-compiler:
-	@echo ""
-	@echo "------- Started  building flowc -------------"
-	@cargo build --manifest-path=flowc/Cargo.toml
-	@echo "------- Finished building flowc -------------"
-
 #################### SAMPLES ####################
 # Find all sub-directories under 'samples' and create a list of paths like 'sample/{directory}/test_output.txt' to use for
 # make paths - to compile all samples found in there. Avoid files using the filter.
 sample_flows := $(patsubst samples/%,samples/%test_output.txt,$(filter %/, $(wildcard samples/*/)))
 
-test-samples: $(sample_flows)
+local-samples: $(sample_flows)  # This target must be below sample-flows in the Makefile
 
-samples/%/test_output.txt: samples/%/test_input.txt compiler
+samples/%/test_output.txt: samples/%/test_input.txt ./target/debug/flowc
 	@echo "\n------- Compiling and Running $(@D) ----"
-# remove local file path from output messages to make local failures match travis failures
+# remove local file path from output messages with sed to make local failures match travis failures
 	@cat $< | ./target/debug/flowc -d $(@D) -- `cat $(@D)/test_arguments.txt` | sed -e 's/\/.*\/flow\///' | grep -v "Finished dev" > $@; true
 	diff $@ $(@D)/expected_output.txt
-	@rm $@
+	@rm $@ #remove test_output.txt after successful diff
 
 ################# ONLINE SAMPLES ################
+online-samples: test-hello-simple-online
+
 test-hello-simple-online: ./target/debug/flowc
 	@echo ""
 	@echo "------- Started testing generation of hello-world-simple-online ----"
-	@echo "Hello" | ./target/debug/flowc https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
+	@echo "Hello" | cargo run flowc -- https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 	@echo "------- Finished testing generation of hello-world-simple-online ----"
 
 ################# Packaging ################
@@ -147,13 +190,6 @@ package-electron: web
 	@cd electron && make package
 	@echo "------- Finished packaging electron -----------"
 
-################# Web version ################
-test-web:
-	@echo ""
-	@echo "------- Started test of 'web' -----------------"
-	cd web && make test
-	@echo "------- Ended   test of 'web' -----------------"
-
 ############## Electron version #############
 run-electron:
 	@cd electron && make run-electron
@@ -165,3 +201,9 @@ clean:
 	@find samples -name test_output.txt -exec rm -rf {} + ; true
 	@rm -rf guide/book
 	cd electron && make clean
+	cd web && make clean
+	cd flowclib && make clean
+	cd flowstdlib && make clean
+	cd flowrlib && make clean
+	cd flowclilib && make clean
+

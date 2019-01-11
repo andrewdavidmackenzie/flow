@@ -2,6 +2,7 @@
 extern crate test;
 
 use test::Bencher;
+use flowclib::model::name::Name;
 
 #[bench]
 fn bench_validate(b: &mut Bencher) {

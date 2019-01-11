@@ -11,7 +11,8 @@ run: build
 	cd run && npm install
 	cd run && npm run serve
 
-test: clean build
+test:
+	cargo test
 
 clean:
 	cargo clean

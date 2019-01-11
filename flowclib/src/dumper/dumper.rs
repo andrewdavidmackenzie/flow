@@ -15,19 +15,35 @@ use ::dumper::dump_dot;
 /// extern crate url;
 /// extern crate flowclib;
 /// extern crate tempdir;
-///
 /// use std::env;
+/// use url::Url;
+/// use flowclib::loader::provider::Provider;
+///
+/// struct DummyProvider {}
+///
+/// impl Provider for DummyProvider {
+///     fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
+///         Ok((url.clone(), None))
+///     }
+///
+///     fn get(&self, url: &Url) -> Result<String, String> {
+///         Ok("name = \"dummy\"\n[[input]]".to_string())
+///     }
+/// }
 ///
 /// fn main() {
+///
+///     let dummy_provider = DummyProvider {};
 ///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 ///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
-///     let flow = flowclib::loader::loader::load(&"hello-world-simple".to_string(), &url).unwrap();
+///     let flow = flowclib::loader::loader::load(&"hello-world-simple".to_string(),
+///                                               &url,
+///                                               &dummy_provider).unwrap();
 ///     let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
 ///
 ///     flowclib::dumper::dumper::dump_flow(&flow, &output_dir).unwrap();
 /// }
 /// ```
-///
 pub fn dump_flow(flow: &Flow, output_dir: &PathBuf) -> io::Result<String> {
     _dump_flow(flow, 0, output_dir)
 }
@@ -60,14 +76,30 @@ fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<Str
 /// extern crate url;
 /// extern crate flowclib;
 /// extern crate tempdir;
-///
 /// use std::env;
+/// use url::Url;
+/// use flowclib::loader::provider::Provider;
+///
+/// struct DummyProvider {}
+///
+/// impl Provider for DummyProvider {
+///     fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
+///         Ok((url.clone(), None))
+///     }
+///
+///     fn get(&self, url: &Url) -> Result<String, String> {
+///         Ok("name = \"dummy\"\n[[input]]".to_string())
+///     }
+/// }
 ///
 /// fn main() {
+///     let dummy_provider = DummyProvider {};
 ///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 ///     println!("url = {:?}", url);
 ///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
-///     let mut flow = flowclib::loader::loader::load(&"hello-world-simple".to_string(), &url).unwrap();
+///     let mut flow = flowclib::loader::loader::load(&"hello-world-simple".to_string(),
+///                                                   &url,
+///                                                   &dummy_provider).unwrap();
 ///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///     let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
 ///
@@ -94,21 +126,36 @@ pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<S
 /// extern crate url;
 /// extern crate flowclib;
 /// extern crate tempdir;
-///
 /// use std::env;
+/// use url::Url;
+/// use flowclib::loader::provider::Provider;
+///
+/// struct DummyProvider {}
+///
+/// impl Provider for DummyProvider {
+///     fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
+///         Ok((url.clone(), None))
+///     }
+///
+///     fn get(&self, url: &Url) -> Result<String, String> {
+///         Ok("name = \"dummy\"\n[[input]]".to_string())
+///     }
+/// }
 ///
 /// fn main() {
+///     let dummy_provider = DummyProvider {};
 ///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 ///     println!("url = {:?}", url);
 ///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
-///     let mut flow = flowclib::loader::loader::load(&"hello-world-simple".to_string(), &url).unwrap();
+///     let mut flow = flowclib::loader::loader::load(&"hello-world-simple".to_string(),
+///                                                   &url,
+///                                                   &dummy_provider).unwrap();
 ///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///     let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///
 ///     flowclib::dumper::dumper::dump_runnables(&flow, &tables, &output_dir).unwrap();
 /// }
 /// ```
-///
 pub fn dump_runnables(flow: &Flow, tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<String> {
     let mut writer = create_output_file(&output_dir, "runnables", "dot")?;
     info!("Generating Runnables dot file {}, Use \"dotty\" to view it", output_dir.display());
