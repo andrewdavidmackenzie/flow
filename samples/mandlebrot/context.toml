@@ -1,4 +1,4 @@
-name = "mandlebrot"
+flow = "mandlebrot"
 
 # Args
 [[function]]
@@ -63,7 +63,7 @@ to = "function/parse_lower_right/input"
 
 
 # Subflow 'render'
-[[flow]]
+[[process]]
 alias = "render"
 source = "./render.toml"
 

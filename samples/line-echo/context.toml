@@ -1,4 +1,4 @@
-name = "line echo"
+flow = "line echo"
 
 [[function]]
 alias = "readline"

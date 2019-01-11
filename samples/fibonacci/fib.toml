@@ -1,4 +1,4 @@
-name = "fib"
+flow = "fib"
 
 [[value]]
 name = "HEAD-1"

@@ -1,4 +1,4 @@
-name = "router"
+flow = "router"
 
 [[function]]
 alias = "readline"

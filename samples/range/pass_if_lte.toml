@@ -1,4 +1,4 @@
-name = "pass if lte"
+flow = "pass if lte"
 
 [[input]]
 name = "in"

@@ -27,7 +27,7 @@ use ::dumper::dump_dot;
 ///     }
 ///
 ///     fn get(&self, url: &Url) -> Result<String, String> {
-///         Ok("name = \"dummy\"\n[[input]]".to_string())
+///         Ok("flow = \"dummy\"\n[[input]]".to_string())
 ///     }
 /// }
 ///
@@ -88,7 +88,7 @@ fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<Str
 ///     }
 ///
 ///     fn get(&self, url: &Url) -> Result<String, String> {
-///         Ok("name = \"dummy\"\n[[input]]".to_string())
+///         Ok("flow = \"dummy\"\n[[input]]".to_string())
 ///     }
 /// }
 ///
@@ -138,7 +138,7 @@ pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<S
 ///     }
 ///
 ///     fn get(&self, url: &Url) -> Result<String, String> {
-///         Ok("name = \"dummy\"\n[[input]]".to_string())
+///         Ok("flow = \"dummy\"\n[[input]]".to_string())
 ///     }
 /// }
 ///

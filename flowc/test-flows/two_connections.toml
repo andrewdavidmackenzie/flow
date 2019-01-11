@@ -1,4 +1,4 @@
-name = "two connections"
+flow = "two connections"
 
 [[function]]
 alias = "args"

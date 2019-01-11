@@ -1,4 +1,4 @@
-name = "Readline"
+function = "Readline"
 
 [[output]]
 type = "String"

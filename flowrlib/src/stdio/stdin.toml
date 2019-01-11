@@ -1,4 +1,4 @@
-name = "Stdin"
+function = "Stdin"
 
 [[output]]
 type = "String"

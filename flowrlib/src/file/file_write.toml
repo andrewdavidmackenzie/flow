@@ -1,4 +1,4 @@
-name = "FileWrite"
+function = "FileWrite"
 
 [[input]]
 name = "filename"

@@ -1,4 +1,4 @@
-name = "generate candidates"
+flow = "generate candidates"
 
 # Generate a list of candidates from 1 up to the max specified in arg 1
 [[input]]
@@ -30,7 +30,7 @@ init = 1
 from = "value/lowest-candidate"
 to = "flow/candidates-range/start"
 
-[[flow]]
+[[process]]
 alias = "candidates-range"
 source = "../range/range.toml"
 

@@ -1,4 +1,4 @@
-name = "Divide"
+function = "Divide"
 
 [[input]]
 name = "dividend"

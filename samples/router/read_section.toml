@@ -1,4 +1,4 @@
-name = "ReadSection"
+function = "ReadSection"
 
 [[input]]
 type = "String"

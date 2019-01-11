@@ -1,4 +1,4 @@
-name = "loop inputs"
+flow = "loop inputs"
 
 [[value]]
 name = "one"

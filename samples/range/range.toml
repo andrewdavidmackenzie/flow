@@ -1,4 +1,4 @@
-name = "range"
+flow = "range"
 
 # IO declarations
 [[input]]
@@ -71,7 +71,7 @@ from = "function/start-gate"
 to = "flow/pilte/in"
 
 # pass if less than or equal, add one and loop
-[[flow]]
+[[process]]
 alias = "pilte"
 source = "pass_if_lte.toml"
 

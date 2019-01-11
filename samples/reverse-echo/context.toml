@@ -1,4 +1,4 @@
-name = "reverse echo"
+flow = "reverse echo"
 
 [[function]]
 alias = "read"

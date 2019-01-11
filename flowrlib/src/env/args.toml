@@ -1,4 +1,4 @@
-name = "Args"
+function = "Args"
 
 [[output]]
 type = "Array/String"

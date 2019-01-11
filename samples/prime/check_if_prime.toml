@@ -1,4 +1,4 @@
-name = "check if prime"
+flow = "check if prime"
 
 # Inputs and Outputs
 [[input]]
@@ -28,7 +28,7 @@ to = "flow/divisor-range/start"
 from = "input/candidate"
 to = "flow/divisor-range/limit"
 
-[[flow]]
+[[process]]
 alias = "divisor-range"
 source = "../range/range.toml"
 

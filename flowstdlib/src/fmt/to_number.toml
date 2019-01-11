@@ -1,4 +1,4 @@
-name = "ToNumber"
+function = "ToNumber"
 
 [[input]]
 type = "String"

@@ -18,8 +18,9 @@ use url::Url;
 
 #[derive(Deserialize)]
 pub struct Flow {
-    name: Name,
     #[serde(rename = "flow")]
+    name: Name,
+    #[serde(rename = "process")]
     pub flow_refs: Option<Vec<FlowReference>>,
     #[serde(rename = "function")]
     pub function_refs: Option<Vec<FunctionReference>>,

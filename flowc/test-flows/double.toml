@@ -1,4 +1,4 @@
-name = "double inputs"
+flow = "double inputs"
 
 [[function]]
 alias = "args"

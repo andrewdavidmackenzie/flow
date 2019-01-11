@@ -12,7 +12,7 @@ The entities referenced in the top-level flow definition are connected to inputs
 connections.
 
 So, valid entries in a flow definition include:
-- name       - String naming this flow (obligatory)
+- flow       - a String naming this flow (obligatory)
 - io         - 0 or more input/outputs of this flow made available to any parent using it
 - flow       - 0 or more references to flows to include under the current flow
 - connection - 0 or more connections between entities, sub-flows and ios (e.g. to parent)
@@ -23,4 +23,4 @@ So, valid entries in a flow definition include:
 All flows start with a root flow call the `context`. This is the flow that defines the interactions
 of the overall flow hierarchy with the environment or "context" around the contained flows.
 
-Any flow can contain any number of nexted flows via [Flow References](flow_reference.md).
+Any flow can contain any number of nested flows via [Process References](process_references.md).

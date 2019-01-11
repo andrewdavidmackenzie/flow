@@ -1,10 +1,10 @@
-name = "hello world"
+flow = "hello world"
 
 [[function]]
 alias = "print"
 source = "lib://flowrlib/stdio/stdout.toml"
 
-[[flow]]
+[[process]]
 alias = "hello"
 source = "flow1.toml"
 

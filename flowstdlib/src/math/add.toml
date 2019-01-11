@@ -1,4 +1,4 @@
-name = "Add"
+function = "Add"
 
 [[input]]
 name = "i1"

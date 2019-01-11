@@ -1,4 +1,4 @@
-name = "first flow"
+flow = "first flow"
 
 # Two values are used:
 #     "HEAD" which the "rightmost" number in the series being produced

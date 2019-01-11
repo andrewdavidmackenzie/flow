@@ -1,4 +1,4 @@
-name = "Reverse"
+function = "Reverse"
 
 [[input]]
 type = "String"

@@ -1,4 +1,4 @@
-name = "Subtract"
+function = "Subtract"
 
 [[input]]
 name = "i1"

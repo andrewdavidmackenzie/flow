@@ -1,4 +1,4 @@
-name = "FormatPNG"
+function = "FormatPNG"
 
 [[input]]
 name = "bytes"

@@ -1,4 +1,4 @@
-name = "hello world simple"
+flow = "hello world simple"
 
 [[value]]
 name = "message"

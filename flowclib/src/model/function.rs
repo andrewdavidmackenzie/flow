@@ -14,6 +14,7 @@ use url::Url;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Function {
+    #[serde(rename = "function")]
     name: Name,
     #[serde(rename = "input")]
     inputs: IOSet,
@@ -250,7 +251,7 @@ mod test {
     #[test]
     fn deserialize_output_empty() {
         let function_str = "\
-        name = \"test_function\"
+        function = \"test_function\"
         [[output]]
         ";
 
@@ -262,7 +263,7 @@ mod test {
     #[test]
     fn deserialize_default_output() {
         let function_str = "\
-        name = \"test_function\"
+        function = \"test_function\"
         [[output]]
         type = \"String\"
         ";
@@ -278,7 +279,7 @@ mod test {
     #[test]
     fn deserialize_output_specified() {
         let function_str = "\
-        name = \"test_function\"
+        function = \"test_function\"
         [[output]]
         name = \"sub_output\"
         type = \"String\"
@@ -295,7 +296,7 @@ mod test {
     #[test]
     fn deserialize_two_outputs_specified() {
         let function_str = "\
-        name = \"test_function\"
+        function = \"test_function\"
         [[output]]
         name = \"sub_output\"
         type = \"String\"
@@ -320,7 +321,7 @@ mod test {
     #[test]
     fn set_routes() {
         let function_str = "\
-        name = \"test_function\"
+        function = \"test_function\"
         [[output]]
         name = \"sub_output\"
         type = \"String\"
@@ -351,7 +352,7 @@ mod test {
     fn get_array_element_of_root_output() {
         // Create a function where the output is an Array of String
         let function_str = "\
-        name = \"test_function\"
+        function = \"test_function\"
         [[output]]
         type = \"Array/String\"
         ";

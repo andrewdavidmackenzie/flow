@@ -1,6 +1,6 @@
-name = "fibonacci"
+flow = "fibonacci"
 
-[[flow]]
+[[process]]
 alias = "fib"
 source="fib.toml"
 

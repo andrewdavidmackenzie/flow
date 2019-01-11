@@ -1,4 +1,4 @@
-name = "range"
+flow = "range"
 
 [[value]]
 name = "start"
@@ -25,7 +25,7 @@ source = "lib://flowstdlib/fmt/to_number.toml"
 from = "function/to_number"
 to = "flow/range/limit"
 
-[[flow]]
+[[process]]
 alias = "range"
 source = "range.toml"
 

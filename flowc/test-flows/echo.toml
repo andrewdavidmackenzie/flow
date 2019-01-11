@@ -1,4 +1,4 @@
-name = "echo inputs"
+flow = "echo inputs"
 
 [[function]]
 alias = "stdin"

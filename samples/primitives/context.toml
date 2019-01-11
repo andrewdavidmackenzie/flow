@@ -1,4 +1,4 @@
-name = "primitives"
+flow = "primitives"
 
 [[value]]
 name = "a"

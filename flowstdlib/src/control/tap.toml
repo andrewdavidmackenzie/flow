@@ -1,4 +1,4 @@
-name = "Tap"
+function = "Tap"
 
 [[input]]
 name = "data"

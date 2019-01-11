@@ -18,7 +18,7 @@ impl Loader for FlowTomelLoader {
 #[test]
 fn simple_context_loads() {
     let flow_description = "\
-        name = 'hello-world-simple-toml'
+        flow = 'hello-world-simple-toml'
 
         [[value]]
         name = 'message'
@@ -41,7 +41,7 @@ fn simple_context_loads() {
 #[test]
 fn flow_with_function_from_lib() {
     let flow_description = "\
-        name = 'use-library-function'
+        flow = 'use-library-function'
 
         [[function]]
         alias = 'print'
@@ -98,7 +98,7 @@ fn load_fails_if_no_name() {
 #[test]
 fn function_parses() {
     let function_definition = "\
-name = 'stdout'
+function = 'stdout'
 
 [[input]]
 name = 'stdout'
