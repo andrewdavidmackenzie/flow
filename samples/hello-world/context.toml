@@ -1,3 +1,5 @@
+name = "hello world"
+
 [[function]]
 alias = "print"
 source = "lib://flowrlib/stdio/stdout.toml"

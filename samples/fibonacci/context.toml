@@ -1,3 +1,5 @@
+name = "fibonacci"
+
 [[flow]]
 alias = "fib"
 source="fib.toml"

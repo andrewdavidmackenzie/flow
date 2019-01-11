@@ -1,3 +1,5 @@
+name = "router"
+
 [[function]]
 alias = "readline"
 source = "lib://flowrlib/stdio/readline.toml"

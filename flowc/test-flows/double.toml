@@ -1,3 +1,5 @@
+name = "double inputs"
+
 [[function]]
 alias = "args"
 source = "lib://flowstdlib/env/args.toml"

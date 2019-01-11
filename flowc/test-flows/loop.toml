@@ -1,3 +1,5 @@
+name = "loop inputs"
+
 [[value]]
 name = "one"
 type = "Number"

@@ -1,3 +1,5 @@
+name = "two connections"
+
 [[function]]
 alias = "args"
 source = "lib://flowstdlib/env/args.toml"

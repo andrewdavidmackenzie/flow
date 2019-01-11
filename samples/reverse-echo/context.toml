@@ -1,3 +1,5 @@
+name = "reverse echo"
+
 [[function]]
 alias = "read"
 source = "lib://flowrlib/stdio/readline.toml"

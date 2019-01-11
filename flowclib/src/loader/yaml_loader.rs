@@ -11,7 +11,7 @@ impl Loader for FlowYamlLoader {
 //        let docs = YamlLoader::load_from_str(&contents).unwrap();
 //        let doc = &docs[0];
 
-        let flow = Flow::new("fake".to_string(), Url::parse("fake").unwrap(),
+        let flow = Flow::new("name".to_string(),"alias".to_string(), Url::parse("fake").unwrap(),
                              "fake/fake".to_string(),
                              None, None, None, None, None, None,
                              vec!());

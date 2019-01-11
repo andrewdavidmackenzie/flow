@@ -46,7 +46,7 @@ pub trait Validate {
 ///     }
 ///
 ///    fn get(&self, url: &Url) -> Result<String, String> {
-///        Ok("".to_string())
+///        Ok("name = \"test\"".to_string())
 ///     }
 /// }
 ///
@@ -91,7 +91,7 @@ fn load_flow(parent_route: &Route, alias: &Name, url: &Url, provider: &Provider)
 ///     }
 ///
 ///    fn get(&self, url: &Url) -> Result<String, String> {
-///        Ok("".to_string())
+///        Ok("name = \"name\"".to_string())
 ///     }
 /// }
 ///

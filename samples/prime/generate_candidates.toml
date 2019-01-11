@@ -1,3 +1,5 @@
+name = "generate candidates"
+
 # Generate a list of candidates from 1 up to the max specified in arg 1
 [[input]]
 name = "limit"

@@ -1,3 +1,5 @@
+name = "prime"
+
 # Generate a list of candidates from 1 up to the max specified in arg 1
 [[function]]
 alias = "args"

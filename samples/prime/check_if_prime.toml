@@ -1,3 +1,5 @@
+name = "check if prime"
+
 # Inputs and Outputs
 [[input]]
 name = "candidate"

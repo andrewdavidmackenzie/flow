@@ -1,3 +1,5 @@
+name = "echo inputs"
+
 [[function]]
 alias = "stdin"
 source = "lib://flowrlib/stdio/stdin.toml"

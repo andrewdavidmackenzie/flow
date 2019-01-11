@@ -18,6 +18,7 @@ use url::Url;
 
 #[derive(Deserialize)]
 pub struct Flow {
+    name: Name,
     #[serde(rename = "flow")]
     pub flow_refs: Option<Vec<FlowReference>>,
     #[serde(rename = "function")]
@@ -86,8 +87,8 @@ impl Validate for Flow {
 
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\talias: \t\t\t{}\n\tsource_url: \t{}\n\troute: \t\t\t{}\n",
-               self.alias, self.source_url, self.route).unwrap();
+        write!(f, "\tname: \t\t\t{}\n\talias: \t\t\t{}\n\tsource_url: \t{}\n\troute: \t\t\t{}\n",
+               self.name, self.alias, self.source_url, self.route).unwrap();
 
         // TODO dry this all up now it works.
 
@@ -141,6 +142,7 @@ impl fmt::Display for Flow {
 impl Default for Flow {
     fn default() -> Flow {
         Flow {
+            name: "".to_string(),
             alias: "".to_string(),
             source_url: Flow::default_url(),
             route: "".to_string(),
@@ -174,10 +176,11 @@ impl Flow {
         Url::parse("file:///").unwrap()
     }
 
-    pub fn new(alias: Name, source_url: Url, route: Route, flow_refs: Option<Vec<FlowReference>>,
+    pub fn new(name: Name, alias: Name, source_url: Url, route: Route, flow_refs: Option<Vec<FlowReference>>,
                connections: Option<Vec<Connection>>, inputs: IOSet, outputs: IOSet, function_refs: Option<Vec<FunctionReference>>,
                values: Option<Vec<Value>>, lib_references: Vec<String>) -> Self {
         Flow {
+            name,
             alias,
             source_url,
             route,

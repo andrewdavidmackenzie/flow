@@ -1,3 +1,5 @@
+name = "competing inputs"
+
 [[value]]
 name = "one"
 type = "Number"

@@ -1,3 +1,5 @@
+name = "line echo"
+
 [[function]]
 alias = "readline"
 source = "lib://flowrlib/stdio/readline.toml"

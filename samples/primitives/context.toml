@@ -1,3 +1,5 @@
+name = "primitives"
+
 [[value]]
 name = "a"
 type = "Number"
