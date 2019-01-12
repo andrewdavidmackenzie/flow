@@ -32,6 +32,13 @@ pub struct Flow {
     #[serde(rename = "connection")]
     pub connections: Option<Vec<Connection>>,
 
+    #[serde(default = "Flow::default_version")]
+    pub version: String,
+    #[serde(default = "Flow::default_author")]
+    pub author_name: String,
+    #[serde(default = "Flow::default_email")]
+    pub author_email: String,
+
     #[serde(skip_deserializing)]
     pub alias: Name,
     #[serde(skip_deserializing, default = "Flow::default_url")]
@@ -138,6 +145,9 @@ impl Default for Flow {
             outputs: None,
             connections: None,
             lib_references: vec!(),
+            version: Flow::default_version(),
+            author_name: Flow::default_author(),
+            author_email: Flow::default_email(),
         }
     }
 }
@@ -161,21 +171,16 @@ impl Flow {
         Url::parse("file:///").unwrap()
     }
 
-    pub fn new(name: Name, alias: Name, source_url: Url, route: Route, flow_refs: Option<Vec<ProcessReference>>,
-               connections: Option<Vec<Connection>>, inputs: IOSet, outputs: IOSet,
-               values: Option<Vec<Value>>, lib_references: Vec<String>) -> Self {
-        Flow {
-            name,
-            alias,
-            source_url,
-            route,
-            process_refs: flow_refs,
-            connections,
-            inputs,
-            outputs,
-            values,
-            lib_references,
-        }
+    pub fn default_version() -> String {
+        "0.0.0".to_string()
+    }
+
+    pub fn default_author() -> String {
+        "unknown".to_string()
+    }
+
+    pub fn default_email() -> String {
+        "unknown@unknown.com".to_string()
     }
 
     fn get_io_subprocess(&self, subprocess_alias: &str, direction: Direction, route: &Route) -> Result<IO, String> {

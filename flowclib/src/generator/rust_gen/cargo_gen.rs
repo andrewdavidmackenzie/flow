@@ -9,7 +9,7 @@ use std::path::PathBuf;
 const CARGO_TEMPLATE: &'static str = "
 [package]
 name = \"{package_name}\"
-version = \"{version}\"
+version = \"{package_version}\"
 authors = [\"{author_name} <{author_email}>\"]
 
 [[bin]]
@@ -53,7 +53,7 @@ fn contents(vars: &HashMap<String, &str>) -> FmtResult<String> {
 fn cargo_gen_works() {
     let mut vars = HashMap::new();
     vars.insert("package_name".to_string(), "test-gen");
-    vars.insert("version".to_string(), "0.0.0");
+    vars.insert("package_version".to_string(), "0.0.0");
     vars.insert("author_name".to_string(), "Andrew Mackenzie");
     vars.insert("author_email".to_string(), "andrew@mackenzie-serres.net");
     vars.insert("binary_name".to_string(), "test-gen");

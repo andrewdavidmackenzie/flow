@@ -1,5 +1,4 @@
 use loader::loader::Loader;
-use url::Url;
 use model::flow::Flow;
 use model::process::Process;
 
@@ -10,10 +9,7 @@ impl Loader for FlowYamlLoader {
 //        let docs = YamlLoader::load_from_str(&contents).unwrap();
 //        let doc = &docs[0];
 
-        let flow = Flow::new("name".to_string(),"alias".to_string(), Url::parse("fake").unwrap(),
-                             "fake/fake".to_string(),
-                             None, None, None, None, None,
-                             vec!());
+        let flow = Flow::default();
 
         Ok(Process::FlowProcess(flow))
     }

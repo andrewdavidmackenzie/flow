@@ -34,6 +34,47 @@ fn simple_context_loads() {
 }
 
 #[test]
+fn default_optional_values() {
+    use super::super::model::flow::Flow;
+    use super::super::model::process::Process::FlowProcess;
+    let flow_description = "\
+        flow = 'test'
+    ";
+
+    let toml = FlowTomelLoader {};
+    match toml.load_process(flow_description).unwrap() {
+        FlowProcess(flow) => {
+            assert_eq!(flow.version, Flow::default_version());
+            assert_eq!(flow.author_name, Flow::default_author());
+            assert_eq!(flow.author_email, Flow::default_email());
+        },
+        _ => assert!(false)
+    }
+}
+
+#[test]
+fn flow_has_optional_values() {
+    use super::super::model::flow::Flow;
+    use super::super::model::process::Process::FlowProcess;
+    let flow_description = "\
+        flow = 'test'
+        version = '1.1.1'
+        author_name = 'tester'
+        author_email = 'tester@test.com'
+    ";
+
+    let toml = FlowTomelLoader {};
+    match toml.load_process(flow_description).unwrap() {
+        FlowProcess(flow) => {
+            assert_eq!(flow.version, "1.1.1".to_string());
+            assert_eq!(flow.author_name, "tester".to_string());
+            assert_eq!(flow.author_email, "tester@test.com".to_string());
+        },
+        _ => assert!(false)
+    }
+}
+
+#[test]
 fn flow_with_function_from_lib() {
     let flow_description = "\
         flow = 'use-library-function'

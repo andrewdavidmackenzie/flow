@@ -1,4 +1,7 @@
 flow = "fibonacci"
+version = "0.7.0"
+author_name = "Andrew Mackenzie"
+author_email = "andrew@mackenzie-serres.net"
 
 [[process]]
 alias = "fib"

@@ -74,21 +74,11 @@ fn get_generator(extension: &str) -> Result<&'static CodeGenerator> {
 */
 fn vars_from_flow(flow: &Flow) -> HashMap<String, &str> {
     let mut vars = HashMap::<String, &str>::new();
-    let version = "0.0.0";
-    let author_name = "Andrew Mackenzie";  // TODO make a variable
-    let author_email = "andrew@mackenzie-serres.net"; // TODO make a variable
 
     vars.insert("package_name".to_string(), &flow.alias);
-    vars.insert("version".to_string(), version);
-
-    if !author_name.is_empty() { // TODO FIX
-        vars.insert("author_name".to_string(), author_name);
-    }
-
-    if !author_email.is_empty() {  // TODO FIX
-        vars.insert("author_email".to_string(), author_email);
-    }
-
+    vars.insert("package_version".to_string(), &flow.version);
+    vars.insert("author_name".to_string(), &flow.author_name);
+    vars.insert("author_email".to_string(), &flow.author_email);
     vars.insert("binary_name".to_string(), &flow.alias);
     vars.insert("main_filename".to_string(), "main.rs");
 
