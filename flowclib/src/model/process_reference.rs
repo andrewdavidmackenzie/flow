@@ -2,31 +2,19 @@ use model::name::Name;
 use model::name::HasName;
 use model::route::Route;
 use model::route::HasRoute;
-use model::flow::Flow;
-use model::function::Function;
+use model::process::Process;
 use loader::loader::Validate;
 use std::fmt;
 use url::Url;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct ProcessReference {
-    alias: Name,
+    pub alias: Name,
     pub source: String,
     #[serde(skip_deserializing, default = "ProcessReference::default_url")]
     pub source_url: Url,
     #[serde(skip_deserializing)]
     pub process: Process
-}
-
-pub enum Process {
-    FlowProcess(Flow),
-    FunctionProcess(Function)
-}
-
-impl Default for Process {
-    fn default() -> Process {
-        Process::FlowProcess(Flow::default())
-    }
 }
 
 impl HasName for ProcessReference {

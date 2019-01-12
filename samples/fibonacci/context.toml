@@ -4,18 +4,18 @@ flow = "fibonacci"
 alias = "fib"
 source="fib.toml"
 
-[[function]]
+[[process]]
 alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string.toml"
 
-[[function]]
+[[process]]
 alias = "print"
 source = "lib://flowrlib/stdio/stdout.toml"
 
 [[connection]]
-from = "flow/fib/series"
-to = "function/to_string"
+from = "process/fib/series"
+to = "process/to_string"
 
 [[connection]]
-from = "function/to_string"
-to = "function/print"
+from = "process/to_string"
+to = "process/print"

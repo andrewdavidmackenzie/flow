@@ -13,7 +13,7 @@ type = "String"
 
 #### Include using
 ```
-[[function]]
+[[process]]
 alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string.toml"
 ```

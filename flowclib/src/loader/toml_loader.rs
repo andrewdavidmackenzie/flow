@@ -1,16 +1,11 @@
 use toml;
 use loader::loader::Loader;
-use model::flow::Flow;
-use model::function::Function;
+use model::process::Process;
 
 pub struct FlowTomelLoader;
 
 impl Loader for FlowTomelLoader {
-    fn load_flow(&self, contents: &str) -> Result<Flow, String> {
-        toml::from_str(contents).map_err(|e| format!("{}", e))
-    }
-
-    fn load_function(&self, contents: &str) -> Result<Function, String> {
+    fn load_process(&self, contents: &str) -> Result<Process, String> {
         toml::from_str(contents).map_err(|e| format!("{}", e))
     }
 }
@@ -24,7 +19,7 @@ fn simple_context_loads() {
         name = 'message'
         type = 'String'
 
-        [[function]]
+        [[process]]
         alias = 'print'
         source = 'terminal.toml'
 
@@ -35,7 +30,7 @@ fn simple_context_loads() {
     ";
 
     let toml = FlowTomelLoader {};
-    toml.load_flow(flow_description).unwrap();
+    toml.load_process(flow_description).unwrap();
 }
 
 #[test]
@@ -43,13 +38,13 @@ fn flow_with_function_from_lib() {
     let flow_description = "\
         flow = 'use-library-function'
 
-        [[function]]
+        [[process]]
         alias = 'print'
         source = 'lib://flowstdlib/stdio/stdout.toml'
     ";
 
     let toml = FlowTomelLoader {};
-    toml.load_flow(flow_description).unwrap();
+    toml.load_process(flow_description).unwrap();
 }
 
 #[test]
@@ -58,13 +53,13 @@ fn flow_with_unknown_lib_key() {
     let flow_description = "\
         name = 'use-library-function'
 
-        [[function]]
+        [[process]]
         alias = 'print'
         lib = 'lib://fakelib/stdio/stdout.toml'
     ";
 
     let toml = FlowTomelLoader {};
-    toml.load_flow(flow_description).unwrap();
+    toml.load_process(flow_description).unwrap();
 }
 
 #[test]
@@ -73,12 +68,12 @@ fn flow_with_function_without_source() {
     let flow_description = "\
         name = 'use-library-function'
 
-        [[function]]
+        [[process]]
         alias = 'print'
     ";
 
     let toml = FlowTomelLoader {};
-    toml.load_flow(flow_description).unwrap();
+    toml.load_process(flow_description).unwrap();
 }
 
 #[test]
@@ -92,7 +87,7 @@ fn load_fails_if_no_name() {
     ";
 
     let toml = FlowTomelLoader {};
-    toml.load_flow(flow_description).unwrap();
+    toml.load_process(flow_description).unwrap();
 }
 
 #[test]
@@ -105,7 +100,7 @@ name = 'stdout'
 type = 'String'";
 
     let toml = FlowTomelLoader {};
-    toml.load_function(function_definition).unwrap();
+    toml.load_process(function_definition).unwrap();
 }
 
 #[test]
@@ -117,5 +112,5 @@ name = 'stdout'
 type = 'String'";
 
     let toml = FlowTomelLoader {};
-    toml.load_function(function_definition).unwrap();
+    toml.load_process(function_definition).unwrap();
 }

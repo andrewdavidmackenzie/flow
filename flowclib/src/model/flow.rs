@@ -10,28 +10,25 @@ use model::route::HasRoute;
 use model::route::SetRoute;
 use model::io::Find;
 use loader::loader::Validate;
-use model::function_reference::FunctionReference;
 use model::connection::Direction;
 use model::runnable::Runnable;
-use model::process_reference::Process::FlowProcess;
-use model::process_reference::Process::FunctionProcess;
+use model::process::Process::FlowProcess;
+use model::process::Process::FunctionProcess;
 use std::fmt;
 use url::Url;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct Flow {
     #[serde(rename = "flow")]
-    name: Name,
-    #[serde(rename = "process")]
-    pub process_refs: Option<Vec<ProcessReference>>,
-    #[serde(rename = "function")]
-    pub function_refs: Option<Vec<FunctionReference>>,
-    #[serde(rename = "value")]
-    pub values: Option<Vec<Value>>,
+    pub name: Name,
     #[serde(rename = "input")]
     pub inputs: IOSet,
     #[serde(rename = "output")]
     pub outputs: IOSet,
+    #[serde(rename = "process")]
+    pub process_refs: Option<Vec<ProcessReference>>,
+    #[serde(rename = "value")]
+    pub values: Option<Vec<Value>>,
     #[serde(rename = "connection")]
     pub connections: Option<Vec<Connection>>,
 
@@ -40,7 +37,7 @@ pub struct Flow {
     #[serde(skip_deserializing, default = "Flow::default_url")]
     pub source_url: Url,
     #[serde(skip_deserializing)]
-    route: Route,
+    pub route: Route,
     #[serde(skip_deserializing)]
     pub lib_references: Vec<String>,
 }
@@ -51,12 +48,6 @@ impl Validate for Flow {
         if let Some(ref process_refs) = self.process_refs {
             for process_ref in process_refs {
                 process_ref.validate()?;
-            }
-        }
-
-        if let Some(ref function_refs) = self.function_refs {
-            for function_ref in function_refs {
-                function_ref.validate()?;
             }
         }
 
@@ -116,17 +107,10 @@ impl fmt::Display for Flow {
             }
         }
 
-        write!(f, "\tsubflows:\n").unwrap();
-        if let Some(ref flow_refs) = self.process_refs {
-            for flow_ref in flow_refs {
+        write!(f, "\tprocesses:\n").unwrap();
+        if let Some(ref process_refs) = self.process_refs {
+            for flow_ref in process_refs {
                 write!(f, "\t{}\n", flow_ref).unwrap();
-            }
-        }
-
-        write!(f, "\tfunctions: \t\n").unwrap();
-        if let Some(ref function_refs) = self.function_refs {
-            for function_ref in function_refs {
-                write!(f, "\t{}", function_ref).unwrap();
             }
         }
 
@@ -149,7 +133,6 @@ impl Default for Flow {
             source_url: Flow::default_url(),
             route: "".to_string(),
             process_refs: None,
-            function_refs: None,
             values: None,
             inputs: None,
             outputs: None,
@@ -179,7 +162,7 @@ impl Flow {
     }
 
     pub fn new(name: Name, alias: Name, source_url: Url, route: Route, flow_refs: Option<Vec<ProcessReference>>,
-               connections: Option<Vec<Connection>>, inputs: IOSet, outputs: IOSet, function_refs: Option<Vec<FunctionReference>>,
+               connections: Option<Vec<Connection>>, inputs: IOSet, outputs: IOSet,
                values: Option<Vec<Value>>, lib_references: Vec<String>) -> Self {
         Flow {
             name,
@@ -190,56 +173,44 @@ impl Flow {
             connections,
             inputs,
             outputs,
-            function_refs,
             values,
             lib_references,
         }
     }
 
-    // TODO combine the next two functions
-    fn get_io_subflow(&self, subflow_alias: &str, direction: Direction, io_name: &Name) -> Result<IO, String> {
-        if let Some(ref flow_refs) = self.process_refs {
-            for flow_ref in flow_refs {
-                match flow_ref.process {
+    fn get_io_subprocess(&self, subprocess_alias: &str, direction: Direction, route: &Route) -> Result<IO, String> {
+        if let Some(ref process_refs) = self.process_refs {
+            for process_ref in process_refs {
+                debug!("\tLooking in process_ref with alias = '{}'", process_ref.alias);
+                match process_ref.process {
                     FlowProcess(ref flow) => {
-                        if flow_ref.name() == subflow_alias {
+                        if process_ref.name() == subprocess_alias {
+                            debug!("\tFlow sub-process with matching name found, name = '{}'", process_ref.alias);
                             return match direction {
-                                Direction::TO => flow.inputs.find_by_name(io_name),
-                                Direction::FROM => flow.outputs.find_by_name(io_name)
+                                Direction::TO => flow.inputs.find_by_name(route),
+                                Direction::FROM => flow.outputs.find_by_name(route)
                             };
                         }
                     },
-                    _ => {}
-                }
-            }
-            return Err(format!("Could not find subflow named '{}'", subflow_alias));
-        }
-
-        return Err("No subflows present".to_string());
-    }
-
-    fn get_io_from_function_ref(&self, function_alias: &str, direction: Direction, route: &Route) -> Result<IO, String> {
-        if let Some(ref function_refs) = self.function_refs {
-            for function_ref in function_refs {
-                match function_ref.process {
                     FunctionProcess(ref function) => {
-                        if function_ref.name() == function_alias {
+                        if process_ref.name() == subprocess_alias {
                             return match direction {
                                 Direction::TO => function.get_inputs().find_by_route(route),
                                 Direction::FROM => function.get_outputs().find_by_route(route)
                             };
                         }
                     },
-                    _ => {}}
+                }
             }
-            return Err(format!("Could not find function named '{}' in flow '{}'",
-                               function_alias, self.alias));
+            return Err(format!("Could not find sub-process named '{}'", subprocess_alias));
         }
 
-        return Err(format!("No functions present in flow '{}'. Could not find route '{}'",
-                           self.alias, route));
+        return Err("No sub-process present".to_string());
     }
 
+    /*
+        Find an IO of a value using the direction (TO/FROM) and the route to the IO
+    */
     fn get_io_from_value(&self, value_name: &str, direction: Direction, route: &Route) -> Result<IO, String> {
         if let Some(values) = &self.values {
             for value in values {
@@ -264,14 +235,13 @@ impl Flow {
         let object_name = &Name::from(segments.remove(0)); // second part is the name of it
         let route = segments.join("/");       // the rest is a sub-route
 
-        debug!("Looking for connection {:?} {} '{}' with route '{}'", direction, object_type, object_name, route);
+        debug!("Looking for connection {:?} '{}' called '{}' with route '{}'", direction, object_type, object_name, route);
 
         match (&direction, object_type) {
             (&Direction::TO, "output") => self.outputs.find_by_name(object_name), // an output from this flow
             (&Direction::FROM, "input") => self.inputs.find_by_name(object_name), // an input to this flow
-            (_, "flow") => self.get_io_subflow(object_name, direction, &route), // input or output of a subflow
+            (_, "process") => self.get_io_subprocess(object_name, direction, &route), // input or output of a sub-process
             (_, "value") => self.get_io_from_value(object_name, direction, &route), // input or output of a contained value
-            (_, "function") => self.get_io_from_function_ref(object_name, direction, &route), // input or output of a referenced function
             _ => Err(format!("Unknown type of object '{}' used in IO descriptor '{}'", object_type, conn_descriptor))
         }
     }

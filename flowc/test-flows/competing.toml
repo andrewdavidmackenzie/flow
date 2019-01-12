@@ -12,14 +12,14 @@ type = "Number"
 init = 2
 static = true
 
-[[function]]
+[[process]]
 alias = "sum"
 source = "lib://flowstdlib/math/add.toml"
 
 [[connection]]
 from = "value/one"
-to = "function/sum/i1"
+to = "process/sum/i1"
 
 [[connection]]
 from = "value/two"
-to = "function/sum/i1"
+to = "process/sum/i1"

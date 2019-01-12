@@ -14,7 +14,7 @@ type = "Number"
 
 #### Include using
 ```
-[[function]]
+[[process]]
 alias = "to_number"
 source = "lib://flowstdlib/fmt/to_number.toml"
 ```

@@ -1,14 +1,14 @@
 flow = "line echo"
 
-[[function]]
+[[process]]
 alias = "readline"
 source = "lib://flowrlib/stdio/readline.toml"
 
-[[function]]
+[[process]]
 alias = "print"
 source = "lib://flowrlib/stdio/stdout.toml"
 
 [[connection]]
 name = "echo"
-from = "function/readline"
-to = "function/print"
+from = "process/readline"
+to = "process/print"

@@ -6,7 +6,7 @@ use std::io;
 use std::io::prelude::*;
 use std::path::PathBuf;
 use ::dumper::dump_dot;
-use model::process_reference::Process::FlowProcess;
+use model::process::Process::FlowProcess;
 
 /// dump a flow definition that has been loaded to a file in the specified output directory
 ///
@@ -19,6 +19,7 @@ use model::process_reference::Process::FlowProcess;
 /// use std::env;
 /// use url::Url;
 /// use flowclib::loader::provider::Provider;
+/// use flowclib::model::process::Process::FlowProcess;
 ///
 /// struct DummyProvider {}
 ///
@@ -37,12 +38,18 @@ use model::process_reference::Process::FlowProcess;
 ///     let dummy_provider = DummyProvider {};
 ///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 ///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
-///     let flow = flowclib::loader::loader::load(&"hello-world-simple".to_string(),
-///                                               &url,
-///                                               &dummy_provider).unwrap();
-///     let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
 ///
-///     flowclib::dumper::dumper::dump_flow(&flow, &output_dir).unwrap();
+///     let parent_route = &"".to_string();
+///     let alias = &"hello-world-simple".to_string();
+///
+///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_process(parent_route,
+///                                                       alias,
+///                                                       &url,
+///                                                       &dummy_provider).unwrap() {
+///         let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
+///
+///         flowclib::dumper::dumper::dump_flow(&flow, &output_dir).unwrap();
+///     }
 /// }
 /// ```
 pub fn dump_flow(flow: &Flow, output_dir: &PathBuf) -> io::Result<String> {
@@ -85,6 +92,7 @@ fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<Str
 /// use std::env;
 /// use url::Url;
 /// use flowclib::loader::provider::Provider;
+/// use flowclib::model::process::Process::FlowProcess;
 ///
 /// struct DummyProvider {}
 ///
@@ -103,13 +111,21 @@ fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<Str
 ///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 ///     println!("url = {:?}", url);
 ///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
-///     let mut flow = flowclib::loader::loader::load(&"hello-world-simple".to_string(),
-///                                                   &url,
-///                                                   &dummy_provider).unwrap();
-///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
-///     let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
 ///
-///     flowclib::dumper::dumper::dump_tables(&tables, &output_dir).unwrap();
+///     let parent_route = "".to_string();
+///     let alias = "hello-world-simple".to_string();
+///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_process(&parent_route,
+///                                                           &alias,
+///                                                           &url,
+///                                                           &dummy_provider).unwrap() {
+///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
+///         let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
+///
+///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
+///         let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
+///
+///         flowclib::dumper::dumper::dump_tables(&tables, &output_dir).unwrap();
+///     }
 /// }
 /// ```
 ///
@@ -135,6 +151,7 @@ pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<S
 /// use std::env;
 /// use url::Url;
 /// use flowclib::loader::provider::Provider;
+/// use flowclib::model::process::Process::FlowProcess;
 ///
 /// struct DummyProvider {}
 ///
@@ -143,6 +160,7 @@ pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<S
 ///         Ok((url.clone(), None))
 ///     }
 ///
+///     // Return a flow definition for the content for the example
 ///     fn get(&self, url: &Url) -> Result<String, String> {
 ///         Ok("flow = \"dummy\"\n[[input]]".to_string())
 ///     }
@@ -153,13 +171,18 @@ pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<S
 ///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 ///     println!("url = {:?}", url);
 ///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
-///     let mut flow = flowclib::loader::loader::load(&"hello-world-simple".to_string(),
-///                                                   &url,
-///                                                   &dummy_provider).unwrap();
-///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
-///     let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///
-///     flowclib::dumper::dumper::dump_runnables(&flow, &tables, &output_dir).unwrap();
+///     let parent_route = "".to_string();
+///     let alias = "hello-world-simple".to_string();
+///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_process(&parent_route,
+///                                                           &alias,
+///                                                           &url,
+///                                                           &dummy_provider).unwrap() {
+///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
+///         let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
+///
+///         flowclib::dumper::dumper::dump_runnables(&flow, &tables, &output_dir).unwrap();
+///     }
 /// }
 /// ```
 pub fn dump_runnables(flow: &Flow, tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<String> {

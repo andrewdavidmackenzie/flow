@@ -15,19 +15,19 @@ type = "Number"
 init = 1
 
 # The function "add" from the standard library is used, but aliased to be able to reference it using "sum"
-[[function]]
+[[process]]
 alias = "sum"
 source = "lib://flowstdlib/math/add.toml"
 
 # The function "stdout" from the standard library is used, but aliased to be able to reference it using "print"
-[[function]]
+[[process]]
 alias = "print"
 source = "lib://flowrlib/stdio/stdout.toml"
 
 # All the required connections between functions and values to create the flow follow, as per diagram
 [[connection]]
 from = "value/HEAD-1"
-to = "function/sum/i1"
+to = "process/sum/i1"
 
 [[connection]]
 from = "value/HEAD"
@@ -35,12 +35,12 @@ to = "value/HEAD-1"
 
 [[connection]]
 from = "value/HEAD"
-to = "function/sum/i2"
+to = "process/sum/i2"
 
 [[connection]]
-from = "function/sum"
+from = "process/sum"
 to = "value/HEAD"
 
 [[connection]]
 from = "value/HEAD-1"
-to = "function/print"
+to = "process/print"

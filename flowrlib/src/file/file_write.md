@@ -16,7 +16,7 @@ type = "Array"
 
 #### Include using
 ```
-[[function]]
+[[process]]
 alias = "write"
 source = "lib://flowrlib/file/write.toml"
 ```

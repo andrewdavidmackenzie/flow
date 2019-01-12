@@ -1,5 +1,6 @@
 use model::flow::Flow;
 use model::function::Function;
+use model::process::Process;
 use model::connection::Direction::FROM;
 use model::connection::Direction::TO;
 use model::name::Name;
@@ -9,27 +10,24 @@ use model::route::HasRoute;
 use model::route::SetRoute;
 use loader::loader_helper::get_loader;
 use super::provider::Provider;
-use model::process_reference::Process::FlowProcess;
+use model::process::Process::FlowProcess;
+use model::process::Process::FunctionProcess;
 use std::mem::replace;
-use model::process_reference::Process::FunctionProcess;
 
 use url::Url;
 
 // Any loader has to implement these methods
 pub trait Loader {
-    fn load_flow(&self, contents: &str) -> Result<Flow, String>;
-    fn load_function(&self, contents: &str) -> Result<Function, String>;
+    fn load_process(&self, contents: &str) -> Result<Process, String>;
 }
 
 pub trait Validate {
     fn validate(&self) -> Result<(), String>;
 }
 
-/// load a flow definition from the `file_path` specified
+/// load a process definition from `url`, recursively loading all sub-processes referenced.
 ///
-/// It recursively loads all flows that are referenced.
-///
-/// The return value is a `Result` containing the hierarchical `Flow` in memory, or a `String`
+/// The return value is a `Result` containing the `Process`, or a `String`
 /// describing the error found while loading.
 ///
 /// # Example
@@ -40,177 +38,95 @@ pub trait Validate {
 /// use url::Url;
 /// use flowclib::loader::provider::Provider;
 ///
+/// // Clients need to provide a Provider of content for the loader
 /// struct DummyProvider {};
 ///
 /// impl Provider for DummyProvider {
 ///     fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
+///        // Just fake the url resolution in this example
 ///        Ok((url.clone(), None))
 ///     }
 ///
 ///    fn get(&self, url: &Url) -> Result<String, String> {
+///        // Return the simplest flow definition possible
 ///        Ok("flow = \"test\"".to_string())
 ///     }
 /// }
 ///
+/// let parent_route = "".to_string();
+/// let alias = "my process".to_string();
 /// let dummy_provider = DummyProvider {};
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
-/// flowclib::loader::loader::load(&"root".to_string(), &url, &dummy_provider).unwrap();
+/// flowclib::loader::loader::load_process(&parent_route, &alias, &url, &dummy_provider).unwrap();
 /// ```
-pub fn load(alias: &Name, url: &Url, provider: &Provider) -> Result<Flow, String> {
-    load_flow(&Route::from(""), alias, url, provider)
-        .map_err(|e| format!("while loading flow from Url '{}'\n\t- {}", url, e.to_string()))
-}
-
-fn load_flow(parent_route: &Route, alias: &Name, url: &Url, provider: &Provider) -> Result<Flow, String> {
-    let mut flow = load_single_flow(parent_route, alias, url, provider)?;
-    load_subflows(&mut flow, provider)?;
-    build_flow_connections(&mut flow)?;
-    Ok(flow)
-}
-
-/// load a flow definition from the `file_path` specified
-///
-/// It loads only the flow defined in the file specified and does not recursively loads all
-/// flows that are referenced.
-///
-/// The return value is a `Result` containing the hierarchical `Flow` in memory, or a `String`
-/// describing the error found while loading.
-///
-/// # Example
-/// ```
-/// extern crate url;
-/// extern crate flowclib;
-/// use std::env;
-/// use url::Url;
-/// use flowclib::loader::provider::Provider;
-///
-/// struct DummyProvider {};
-///
-/// impl Provider for DummyProvider {
-///     fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
-///        Ok((url.clone(), None))
-///     }
-///
-///    fn get(&self, url: &Url) -> Result<String, String> {
-///        Ok("flow = \"name\"".to_string())
-///     }
-/// }
-///
-/// let dummy_provider = DummyProvider {};
-/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-/// url = url.join("samples/hello-world-simple/context.toml").unwrap();
-/// flowclib::loader::loader::load_single_flow(&flowclib::model::route::Route::from("root_flow"),
-///                                            &flowclib::model::name::Name::from("call-me-hello"),
-///                                            &url,
-///                                            &dummy_provider).unwrap();
-/// ```
-pub fn load_single_flow(parent_route: &Route, alias: &Name, url: &Url, provider: &Provider) -> Result<Flow, String> {
+// TODO Make this more ergonomic for clients and tests using some form of Intro trait for routes and alias
+// https://hermanradtke.com/2015/05/06/creating-a-rust-function-that-accepts-string-or-str.html
+pub fn load_process(parent_route: &Route, alias: &Name, url: &Url, provider: &Provider) -> Result<Process, String> {
     let (resolved_url, lib_ref) = provider.resolve(url)?;
     let loader = get_loader(&resolved_url)?;
-    info!("Loading flow from '{}'", resolved_url);
+    info!("Loading process with alias = '{}' from url='{}' ", alias, resolved_url);
     let contents = provider.get(&resolved_url)?;
-    let mut flow = loader.load_flow(&contents)
-        .map_err(|e| format!("while loading flow - {}", e.to_string()))?;
-    flow.alias = alias.clone();
-    flow.source_url = resolved_url;
-    flow.set_routes_from_parent(parent_route, true);
-    if let Some(lr) = lib_ref {
-        flow.lib_references.push(lr);
-    };
-    flow.validate()?;
-    load_functions(&mut flow, provider)?;
-    load_values(&mut flow)?;
-    Ok(flow)
+
+    let mut process = loader.load_process(&contents)?;
+
+    match process {
+        FlowProcess(ref mut flow) => {
+            config_flow(flow, &resolved_url, parent_route, alias, lib_ref)?;
+            load_values(flow)?;
+            load_subprocesses(flow, provider)?;
+            build_flow_connections(flow)?;
+        }
+        FunctionProcess(ref mut function) => {
+            config_function(function, &resolved_url, parent_route, alias, lib_ref)?;
+        }
+    }
+
+    Ok(process)
 }
 
-
 /*
-    Load all functions referenced from a flow
+    Load all sub-processes referenced from a flow via the process_reference fields
 */
-fn load_functions(flow: &mut Flow, provider: &Provider) -> Result<(), String> {
-    let parent_route = &flow.route().clone();
-    if let Some(ref mut function_refs) = flow.function_refs {
-        debug!("Loading functions for flow '{}'", flow.source_url);
-        for ref mut function_ref in function_refs {
-            let function_url = flow.source_url.join(&function_ref.source)
+fn load_subprocesses(flow: &mut Flow, provider: &Provider) -> Result<(), String> {
+    if let Some(ref mut process_refs) = flow.process_refs {
+        for process_ref in process_refs {
+            let subprocess_url = flow.source_url.join(&process_ref.source)
                 .map_err(|_e| "URL join error")?;
-            let function = load_function(&function_url, parent_route, &function_ref.alias(), provider)
-                .map_err(|e| format!("while loading function from Url '{}' - {}",
-                                     function_url, e.to_string()))?;
-            if let Some(lib_ref) = function.get_lib_reference() {
-                flow.lib_references.push(format!("{}/{}", lib_ref, function.name()));
+            process_ref.process = load_process(&flow.route, &process_ref.alias(), &subprocess_url, provider)?;
+
+            if let FunctionProcess(ref function) = process_ref.process {
+                if let Some(lib_ref) = function.get_lib_reference() {
+                    flow.lib_references.push(format!("{}/{}", lib_ref, function.name()));
+                }
             }
-            function_ref.process = FunctionProcess(function);
         }
     }
     Ok(())
 }
 
-/// load a function definition from the `file_path` specified, the `parent_route` parameter
-/// specifies where in the flow hierarchiy this instance of the function is referenced, and is
-/// used to create routes to the functions inputs and outputs.
-///
-/// # Example
-/// ```
-/// extern crate url;
-/// extern crate flowclib;
-/// use std::env;
-/// use url::Url;
-/// use flowclib::loader::provider::Provider;
-///
-/// struct DummyProvider {};
-///
-/// impl Provider for DummyProvider {
-///     fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
-///        Ok((url.clone(), None))
-///     }
-///
-///    fn get(&self, url: &Url) -> Result<String, String> {
-///        Ok("function = \"dummy\"\n[[input]]".to_string())
-///     }
-/// }
-///
-/// let dummy_provider = DummyProvider {};
-/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-/// url = url.join("samples/hello-world-simple/context.toml").unwrap();
-/// flowclib::loader::loader::load_function(&url,
-///                                         &flowclib::model::route::Route::from("/root_flow"),
-///                                         &flowclib::model::name::Name::from("call-me-hello"),
-///                                         &dummy_provider).unwrap();
-/// ```
-pub fn load_function(url: &Url, parent_route: &Route, alias: &Name, provider: &Provider) -> Result<Function, String> {
-    debug!("Loading function from '{}'", url);
-    let (resolved_url, lib_ref) = provider.resolve(url)?;
-    let loader = get_loader(&resolved_url)?;
-    let contents = provider.get(&resolved_url)?;
-    let mut function = loader.load_function(&contents)?;
+fn config_function(function: &mut Function, source_url: &Url, parent_route: &Route, alias: &Name,
+                   lib_ref: Option<String>) -> Result<(), String> {
     function.set_alias(alias.to_string());
-    function.set_source_url(resolved_url.clone());
+    function.set_source_url(source_url.clone());
     function.set_lib_reference(lib_ref);
     function.set_routes_from_parent(parent_route, false);
-    function.validate()?;
-    Ok(function)
+    function.validate()
 }
 
-/*
-    Load all sub-flows referenced from a flow via the flow_references
-*/
-fn load_subflows(flow: &mut Flow, provider: &Provider) -> Result<(), String> {
-    let parent_route = &flow.route().clone();
-    if let Some(ref mut flow_refs) = flow.process_refs {
-        debug!("Loading sub-flows of flow '{}'", flow.source_url);
-        for ref mut flow_ref in flow_refs {
-            let subflow_url = flow.source_url.join(&flow_ref.source).expect("URL join error");
-            let subflow = load_flow(parent_route, &flow_ref.alias(), &subflow_url, provider)?;
-            flow_ref.process = FlowProcess(subflow);
-        }
+fn config_flow(flow: &mut Flow, source_url: &Url, parent_route: &Route, alias: &Name,
+               lib_ref: Option<String>) -> Result<(), String> {
+    flow.alias = alias.to_string();
+    flow.source_url = source_url.clone();
+    if let Some(lr) = lib_ref {
+        flow.lib_references.push(lr);
     }
-    Ok(())
+    flow.set_routes_from_parent(parent_route, true);
+    flow.validate()
 }
 
 /*
-    Load all values defined in a flow
+    Load all the values that are defined in a flow
 */
 fn load_values(flow: &mut Flow) -> Result<(), String> {
     let parent_route = &flow.route().clone();
@@ -232,8 +148,8 @@ fn load_values(flow: &mut Flow) -> Result<(), String> {
         "input/input_name"
         "output/output_name"
 
-        "flow/flow_name/io_name"
-        "function/function_name/io_name"
+        "process/flow_name/io_name"
+        "process/function_name/io_name"
 */
 fn build_flow_connections(flow: &mut Flow) -> Result<(), String> {
     if flow.connections.is_none() { return Ok(()); }
@@ -242,7 +158,7 @@ fn build_flow_connections(flow: &mut Flow) -> Result<(), String> {
 
     let mut error_count = 0;
 
-// get connections out of self - so we can use immutable references to self inside loop
+    // get connections out of self - so we can use immutable references to self inside loop
     let connections = replace(&mut flow.connections, None);
     let mut connections = connections.unwrap();
 
@@ -280,7 +196,7 @@ fn build_flow_connections(flow: &mut Flow) -> Result<(), String> {
         }
     }
 
-// put connections back into self
+    // put connections back into self
     replace(&mut flow.connections, Some(connections));
 
     if error_count == 0 {

@@ -8,7 +8,7 @@ that fetches these arguments, allowing them to then be processed in the flow lik
 
 Include the `args` function in your flow:
 ```
-[[function]]
+[[process]]
 alias = "args"
 source = "lib://flowstdlib/env/args.toml"
 ```

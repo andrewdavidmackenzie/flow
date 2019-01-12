@@ -11,7 +11,7 @@ type = "Array/String"
 
 #### Include using
 ```
-[[function]]
+[[process]]
 alias = "args"
 source = "lib://flowrlib/env/args.toml"
 ```

@@ -7,35 +7,35 @@ init = 1
 
 [[connection]]
 from = "value/start"
-to = "flow/range/start"
+to = "process/range/start"
 
-[[function]]
+[[process]]
 alias = "args"
 source = "lib://flowrlib/env/args.toml"
 
 [[connection]]
-from = "function/args/1"
-to = "function/to_number"
+from = "process/args/1"
+to = "process/to_number"
 
-[[function]]
+[[process]]
 alias = "to_number"
 source = "lib://flowstdlib/fmt/to_number.toml"
 
 [[connection]]
-from = "function/to_number"
-to = "flow/range/limit"
+from = "process/to_number"
+to = "process/range/limit"
 
 [[process]]
 alias = "range"
 source = "range.toml"
 
-[[function]]
+[[process]]
 alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string.toml"
 
 [[connection]]
-from = "flow/range/series"
-to = "function/to_string"
+from = "process/range/series"
+to = "process/to_string"
 
 # Output a string to show we're done when the series ends
 [[value]]
@@ -43,27 +43,27 @@ name = "done"
 type = "String"
 init = "Range done"
 
-[[function]]
+[[process]]
 alias = "tap"
 source = "lib://flowstdlib/control/tap.toml"
 
 [[connection]]
 from = "value/done"
-to = "function/tap/data"
+to = "process/tap/data"
 
 [[connection]]
-from = "flow/range/done"
-to = "function/tap/control"
+from = "process/range/done"
+to = "process/tap/control"
 
 [[connection]]
-from = "function/tap"
-to = "function/print"
+from = "process/tap"
+to = "process/print"
 
 # Output
-[[function]]
+[[process]]
 alias = "print"
 source = "lib://flowrlib/stdio/stdout.toml"
 
 [[connection]]
-from = "function/to_string"
-to = "function/print"
+from = "process/to_string"
+to = "process/print"

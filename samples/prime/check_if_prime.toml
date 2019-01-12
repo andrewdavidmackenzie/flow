@@ -22,18 +22,18 @@ init = 1
 
 [[connection]]
 from = "value/lowest-divisor"
-to = "flow/divisor-range/start"
+to = "process/divisor-range/start"
 
 [[connection]]
 from = "input/candidate"
-to = "flow/divisor-range/limit"
+to = "process/divisor-range/limit"
 
 [[process]]
 alias = "divisor-range"
 source = "../range/range.toml"
 
 [[connection]]
-from = "flow/divisor-range/done"
+from = "process/divisor-range/done"
 to = "output/done"
 
 ######################################
@@ -41,7 +41,7 @@ to = "output/done"
 
 # TODO ADM Debugging - shortcut and just output all the divisors generated
 [[connection]]
-from = "flow/divisor-range/series"
+from = "process/divisor-range/series"
 to = "output/prime"
 
 
@@ -49,17 +49,17 @@ to = "output/prime"
 
 
 # divide the candidate by the divisor
-#[[function]]
+#[[process]]
 #alias = "divide"
 #source = "lib://flowstdlib/math/divide.toml"
 
 #[[connection]]
-#from = "flow/divisor-range/max"
-#to = "function/divide/dividend"
+#from = "process/divisor-range/max"
+#to = "process/divide/dividend"
 
 #[[connection]]
-#from = "flow/divisor-range/series"
-# to = "function/divide/divisor"
+#from = "process/divisor-range/series"
+# to = "process/divide/divisor"
 
 
 #check if the remainder is equal to 0
@@ -69,33 +69,33 @@ to = "output/prime"
 #init = 0
 #static = true
 
-#[[function]]
+#[[process]]
 #alias = "zero_remainder"
 #source = "lib://flowstdlib/control/compare.toml"
 
 #[[connection]]
 #from = "value/zero"
-#to = "function/zero_remainder/left"
+#to = "process/zero_remainder/left"
 
 #[[connection]]
-#from = "function/divide/remainder"
-#to = "function/zero_remainder/right"
+#from = "process/divide/remainder"
+#to = "process/zero_remainder/right"
 
 
 # if the remainder was 0 then let the value pass to output
-#[[function]]
+#[[process]]
 #alias = "tap"
 #source = "lib://flowstdlib/control/tap.toml"
 
 #[[connection]]
-#from = "function/zero_remainder/equal"
-#to = "function/tap/control"
+#from = "process/zero_remainder/equal"
+#to = "process/tap/control"
 
 #[[connection]]
-#from = "function/divide/dividend"
-#to = "function/tap/data"
+#from = "process/divide/dividend"
+#to = "process/tap/data"
 
 # TODO AMD
 #[[connection]]
-#from = "function/tap"
-#to = "function/to_string"
+#from = "process/tap"
+#to = "process/to_string"

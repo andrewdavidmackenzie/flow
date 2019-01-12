@@ -31,29 +31,29 @@ name = "start-signal"
 type = "Bool"
 init = true
 
-[[function]]
+[[process]]
 alias = "limit-gate"
 source = "lib://flowstdlib/control/tap.toml"
 
-[[function]]
+[[process]]
 alias = "start-gate"
 source = "lib://flowstdlib/control/tap.toml"
 
 [[connection]]
 from = "value/start-signal"
-to = "function/limit-gate/control"
+to = "process/limit-gate/control"
 
 [[connection]]
 from = "input/limit"
-to = "function/limit-gate/data"
+to = "process/limit-gate/data"
 
 [[connection]]
 from = "value/start-signal"
-to = "function/start-gate/control"
+to = "process/start-gate/control"
 
 [[connection]]
 from = "input/start"
-to = "function/start-gate/data"
+to = "process/start-gate/data"
 
 
 # A store for the limit value that always refreshes itself, so it's value is always available
@@ -63,33 +63,33 @@ type = "Number"
 static = true
 
 [[connection]]
-from = "function/limit-gate"
+from = "process/limit-gate"
 to = "value/limit-store"
 
 [[connection]]
-from = "function/start-gate"
-to = "flow/pilte/in"
+from = "process/start-gate"
+to = "process/pilte/in"
 
 # pass if less than or equal, add one and loop
 [[process]]
 alias = "pilte"
 source = "pass_if_lte.toml"
 
-[[function]]
+[[process]]
 alias = "add"
 source = "lib://flowstdlib/math/add.toml"
 
 [[connection]]
 from = "value/limit-store"
-to = "flow/pilte/max"
+to = "process/pilte/max"
 
 [[connection]]
-from = "flow/pilte/passed"
+from = "process/pilte/passed"
 to = "output/series"
 
 [[connection]]
-from = "flow/pilte/passed"
-to = "function/add/i1"
+from = "process/pilte/passed"
+to = "process/add/i1"
 
 [[value]]
 name = "one"
@@ -99,11 +99,11 @@ static = true
 
 [[connection]]
 from = "value/one"
-to = "function/add/i2"
+to = "process/add/i2"
 
 [[connection]]
-from = "function/add"
-to = "flow/pilte/in"
+from = "process/add"
+to = "process/pilte/in"
 
 [[connection]]
 from = "input/start"
@@ -115,25 +115,25 @@ type = "Bool"
 init = true
 static = true
 
-[[function]]
+[[process]]
 alias = "when-done"
 source = "lib://flowstdlib/control/tap.toml"
 
 [[connection]]
 from = "value/range-done"
-to = "function/when-done/data"
+to = "process/when-done/data"
 
 [[connection]]
-from = "flow/pilte/blocked"
-to = "function/when-done/control"
+from = "process/pilte/blocked"
+to = "process/when-done/control"
 
 [[connection]]
-from = "function/when-done"
+from = "process/when-done"
 to = "output/done"
 
 # re-open the input gates for another value to loop on
 [[connection]]
-from = "function/when-done"
+from = "process/when-done"
 to = "value/start-signal"
 
 

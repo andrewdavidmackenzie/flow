@@ -1,7 +1,7 @@
 use model::flow::Flow;
 use model::runnable::Runnable;
-use model::process_reference::Process::FlowProcess;
-use model::process_reference::Process::FunctionProcess;
+use model::process::Process::FlowProcess;
+use model::process::Process::FunctionProcess;
 use generator::code_gen::CodeGenTables;
 
 /*
@@ -9,7 +9,7 @@ use generator::code_gen::CodeGenTables;
     flat tables that the compiler can use for code generation.
 */
 pub fn add_entries(flow: &Flow, tables: &mut CodeGenTables) {
-    // Add Connections from this flow to the table
+    // Add Connections from this flow to the connections table
     if let Some(ref connections) = flow.connections {
         let mut conns = connections.clone();
         tables.connections.append(&mut conns);
@@ -22,25 +22,10 @@ pub fn add_entries(flow: &Flow, tables: &mut CodeGenTables) {
         }
     }
 
-    // TODO merge these next two
-    // Add Functions referenced from this flow to the table
-    if let Some(ref function_refs) = flow.function_refs {
-        for function_ref in function_refs {
-            match function_ref.process {
-                FunctionProcess(ref function) => {
-                    tables.runnables.push(Box::new(function.clone()));
-                }
-                FlowProcess(ref flow) => {
-                    add_entries(flow, tables);
-                }
-            }
-        }
-    }
-
-    // Do the same for all subflows referenced from this one
-    if let Some(ref flow_refs) = flow.process_refs {
-        for flow_ref in flow_refs {
-            match flow_ref.process {
+    // Do the same for all subprocesses referenced from this one
+    if let Some(ref process_refs) = flow.process_refs {
+        for process_ref in process_refs {
+            match process_ref.process {
                 FlowProcess(ref flow) => {
                     add_entries(flow, tables);
                 }

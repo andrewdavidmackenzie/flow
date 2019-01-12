@@ -1,6 +1,6 @@
 flow = "hello world include"
 
-[[function]]
+[[process]]
 alias = "print"
 source = "lib://flowrlib/stdio/stdout.toml"
 
@@ -10,5 +10,5 @@ source = "../hello-world/flow1.toml"
 
 [[connection]]
 name = "message"
-from = "flow/hello/out"
-to = "function/print"
+from = "process/hello/out"
+to = "process/print"

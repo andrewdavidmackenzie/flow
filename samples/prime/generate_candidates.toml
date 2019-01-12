@@ -11,15 +11,15 @@ type = "Number"
 
 [[connection]]
 from = "input/limit"
-to = "function/to_number"
+to = "process/to_number"
 
-[[function]]
+[[process]]
 alias = "to_number"
 source = "lib://flowstdlib/fmt/to_number.toml"
 
 [[connection]]
-from = "function/to_number"
-to = "flow/candidates-range/limit"
+from = "process/to_number"
+to = "process/candidates-range/limit"
 
 [[value]]
 name = "lowest-candidate"
@@ -28,12 +28,12 @@ init = 1
 
 [[connection]]
 from = "value/lowest-candidate"
-to = "flow/candidates-range/start"
+to = "process/candidates-range/start"
 
 [[process]]
 alias = "candidates-range"
 source = "../range/range.toml"
 
 [[connection]]
-from = "flow/candidates-range/series"
+from = "process/candidates-range/series"
 to = "output/candidates"

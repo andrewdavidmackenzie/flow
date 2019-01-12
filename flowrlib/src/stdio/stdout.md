@@ -11,7 +11,7 @@ name = "Stdout"
 
 #### Include using
 ```
-[[function]]
+[[process]]
 alias = "stdout"
 source = "lib://flowrlib/stdio/stdout.toml"
 ```

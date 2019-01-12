@@ -1,29 +1,29 @@
 flow = "router"
 
-[[function]]
+[[process]]
 alias = "readline"
 source = "lib://flowrlib/stdio/readline.toml"
 
 [[connection]]
-from = "function/readline"
-to = "function/read_section"
+from = "process/readline"
+to = "process/read_section"
 
-[[function]]
+[[process]]
 alias = "read_section"
 source = "read_section.toml"
 
 [[connection]]
-from = "function/read_section"
-to = "function/to_string"
+from = "process/read_section"
+to = "process/to_string"
 
-[[function]]
+[[process]]
 alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string.toml"
 
 [[connection]]
-from = "function/to_string"
-to = "function/print"
+from = "process/to_string"
+to = "process/print"
 
-[[function]]
+[[process]]
 alias = "print"
 source = "lib://flowrlib/stdio/stdout.toml"

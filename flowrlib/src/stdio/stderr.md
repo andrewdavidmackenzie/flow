@@ -11,7 +11,7 @@ name = "Stderr"
 
 #### Include using
 ```
-[[function]]
+[[process]]
 alias = "stderr"
 source = "lib://flowrlib/stdio/stderr.toml"
 ```

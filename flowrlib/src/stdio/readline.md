@@ -15,7 +15,7 @@ type = "String"
 
 #### Include using
 ```
-[[function]]
+[[process]]
 alias = "readline"
 source = "lib://flowrlib/stdio/readline.toml"
 ```

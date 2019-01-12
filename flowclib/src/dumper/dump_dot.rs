@@ -11,8 +11,8 @@ use model::route::HasRoute;
 use model::route::FindRoute;
 use model::connection::Connection;
 use model::name::HasName;
-use model::process_reference::Process::FlowProcess;
-use model::process_reference::Process::FunctionProcess;
+use model::process::Process::FlowProcess;
+use model::process::Process::FunctionProcess;
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
 //static OUTPUT_PORTS: &[&str] = &["s", "se", "sw"];
@@ -34,29 +34,16 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
         }
     }
 
-    // TODO merge these next two
-    // Function References
-    if let Some(function_refs) = &flow.function_refs {
-        for function_ref in function_refs {
-            match function_ref.process {
-                FunctionProcess(ref function) => {
-                    contents.push_str(&run_to_dot(function as &Runnable));
-                }
-                _ => {}
-            }
-        }
-    }
-
     // Process References
-    if let Some(flow_refs) = &flow.process_refs {
-        contents.push_str("\n\t// Sub-Flows\n");
-        for flow_ref in flow_refs {
+    if let Some(process_refs) = &flow.process_refs {
+        for flow_ref in process_refs {
             match flow_ref.process {
                 FunctionProcess(ref function) => {
                     contents.push_str(&run_to_dot(function as &Runnable));
                 }
                 FlowProcess(ref _flow) => {
-                    contents.push_str(&flow_reference_to_dot(flow_ref));
+                    contents.push_str("\n\t// Sub-Flows\n");
+                    contents.push_str(&process_reference_to_dot(flow_ref));
                 }
             }
         }
@@ -267,15 +254,18 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
     string
 }
 
-fn flow_reference_to_dot(flow_ref: &ProcessReference) -> String {
+fn process_reference_to_dot(process_ref: &ProcessReference) -> String {
     let mut dot_string = String::new();
 
-    match flow_ref.process {
+    match process_ref.process {
         FlowProcess(ref flow) => {
             dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot\"];\n",
-                                         flow.route(), flow_ref.alias(), flow.source_url));
+                                         flow.route(), process_ref.alias, process_ref.source_url));
+        },
+        FunctionProcess(ref function) => {
+            dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot\"];\n",
+                                         function.route(), process_ref.alias, process_ref.source_url));
         }
-        _ => {}
     }
     dot_string
 }

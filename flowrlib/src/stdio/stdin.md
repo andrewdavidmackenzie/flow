@@ -12,7 +12,7 @@ type = "String"
 
 #### Include using
 ```
-[[function]]
+[[process]]
 alias = "stdin"
 source = "lib://flowrlib/stdio/stdin.toml"
 ```

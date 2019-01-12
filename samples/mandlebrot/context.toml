@@ -1,13 +1,13 @@
 flow = "mandlebrot"
 
 # Args
-[[function]]
+[[process]]
 alias = "args"
 source = "lib://flowrlib/env/args.toml"
 
 
 # Bounds
-[[function]]
+[[process]]
 alias = "parse_bounds"
 source = "src/parse_pair.toml"
 
@@ -18,12 +18,12 @@ init = "x"
 status = true
 
 [[connection]]
-from = "function/args/2"
-to = "function/parse_bounds/input"
+from = "process/args/2"
+to = "process/parse_bounds/input"
 
 [[connection]]
 from = "value/bounds_separator"
-to = "function/parse_bounds/separator"
+to = "process/parse_bounds/separator"
 
 
 # Points Separator
@@ -35,31 +35,31 @@ static = true
 
 
 # Upper Left Coordinate
-[[function]]
+[[process]]
 alias = "parse_upper_left"
 source = "src/parse_pair.toml"
 
 [[connection]]
 from = "value/point_separator"
-to = "function/parse_upper_left/separator"
+to = "process/parse_upper_left/separator"
 
 [[connection]]
-from = "function/args/3"
-to = "function/parse_upper_left/input"
+from = "process/args/3"
+to = "process/parse_upper_left/input"
 
 
 # Lower Right Coordinate
-[[function]]
+[[process]]
 alias = "parse_lower_right"
 source = "src/parse_pair.toml"
 
 [[connection]]
 from = "value/point_separator"
-to = "function/parse_lower_right/separator"
+to = "process/parse_lower_right/separator"
 
 [[connection]]
-from = "function/args/4"
-to = "function/parse_lower_right/input"
+from = "process/args/4"
+to = "process/parse_lower_right/input"
 
 
 # Subflow 'render'
@@ -68,41 +68,41 @@ alias = "render"
 source = "render.toml"
 
 [[connection]]
-from = "function/parse_bounds"
-to = "flow/render/bounds"
+from = "process/parse_bounds"
+to = "process/render/bounds"
 
 [[connection]]
-from = "function/parse_upper_left"
-to = "flow/render/upper_left"
+from = "process/parse_upper_left"
+to = "process/render/upper_left"
 
 [[connection]]
-from = "function/parse_lower_right"
-to = "flow/render/lower_right"
+from = "process/parse_lower_right"
+to = "process/render/lower_right"
 
 
 # Format Bitmap
-[[function]]
+[[process]]
 alias = "format_bitmap"
 source = "lib://flowstdlib/img/format_png.toml"
 
 [[connection]]
-from = "flow/render/bitmap_bounds"
-to = "function/format_bitmap/bounds"
+from = "process/render/bitmap_bounds"
+to = "process/format_bitmap/bounds"
 
 [[connection]]
-from = "flow/render/bytes"
-to = "function/format_bitmap/bytes"
+from = "process/render/bytes"
+to = "process/format_bitmap/bytes"
 
 
 # Write Bitmap to a file
-[[function]]
+[[process]]
 alias = "write_file"
 source = "lib://flowrlib/file/file_write.toml"
 
 [[connection]]
-from = "function/args/0"
-to = "function/write_file/filename"
+from = "process/args/0"
+to = "process/write_file/filename"
 
 [[connection]]
-from = "function/format_bitmap"
-to = "function/write_file/bytes"
+from = "process/format_bitmap"
+to = "process/write_file/bytes"

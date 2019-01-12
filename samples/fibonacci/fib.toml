@@ -10,7 +10,7 @@ name = "HEAD"
 type = "Number"
 init = 1
 
-[[function]]
+[[process]]
 alias = "sum"
 source = "lib://flowstdlib/math/add.toml"
 
@@ -20,7 +20,7 @@ type = "Number"
 
 [[connection]]
 from = "value/HEAD-1"
-to = "function/sum/i1"
+to = "process/sum/i1"
 
 [[connection]]
 from = "value/HEAD"
@@ -28,10 +28,10 @@ to = "value/HEAD-1"
 
 [[connection]]
 from = "value/HEAD"
-to = "function/sum/i2"
+to = "process/sum/i2"
 
 [[connection]]
-from = "function/sum"
+from = "process/sum"
 to = "value/HEAD"
 
 [[connection]]

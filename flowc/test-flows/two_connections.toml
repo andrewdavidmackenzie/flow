@@ -1,33 +1,33 @@
 flow = "two connections"
 
-[[function]]
+[[process]]
 alias = "args"
 source = "lib://flowstdlib/env/args.toml"
 
 [[connection]]
-from = "function/args/1"
-to = "function/to_number"
+from = "process/args/1"
+to = "process/to_number"
 
 [[connection]]
-from = "function/args/2"
-to = "function/to_number"
+from = "process/args/2"
+to = "process/to_number"
 
-[[function]]
+[[process]]
 alias = "to_number"
 source = "lib://flowstdlib/fmt/to_number.toml"
 
 [[connection]]
-from = "function/to_number"
-to = "function/to_string"
+from = "process/to_number"
+to = "process/to_string"
 
-[[function]]
+[[process]]
 alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string.toml"
 
 [[connection]]
-from = "function/to_string"
-to = "function/print"
+from = "process/to_string"
+to = "process/print"
 
-[[function]]
+[[process]]
 alias = "print"
 source = "lib://flowstdlib/stdio/stdout.toml"

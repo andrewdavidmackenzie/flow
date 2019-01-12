@@ -17,7 +17,7 @@ type = "Bool"
 
 #### Include using
 ```
-[[function]]
+[[process]]
 alias = "tap"
 source = "lib://flowstdlib/control/tap.toml"
 ```

@@ -18,7 +18,7 @@ type = "String"
 
 #### Include using
 ```
-[[function]]
+[[process]]
 alias = "format"
 source = "lib://flowstdlib/img/format_bitmap.toml"
 ```

@@ -1,13 +1,13 @@
 flow = "echo"
 
-[[function]]
+[[process]]
 alias = "stdin"
 source = "lib://flowrlib/stdio/stdin.toml"
 
-[[function]]
+[[process]]
 alias = "print"
 source = "lib://flowrlib/stdio/stdout.toml"
 
 [[connection]]
-from = "function/stdin"
-to = "function/print"
+from = "process/stdin"
+to = "process/print"

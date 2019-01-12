@@ -1,23 +1,23 @@
 flow = "reverse echo"
 
-[[function]]
+[[process]]
 alias = "read"
 source = "lib://flowrlib/stdio/readline.toml"
 
-[[function]]
+[[process]]
 alias = "reverse"
 source = "reverse.toml"
 
-[[function]]
+[[process]]
 alias = "print"
 source = "lib://flowrlib/stdio/stdout.toml"
 
 [[connection]]
 name = "normal"
-from = "function/read"
-to = "function/reverse"
+from = "process/read"
+to = "process/reverse"
 
 [[connection]]
 name = "reversed"
-from = "function/reverse/reversed"
-to = "function/print"
+from = "process/reverse/reversed"
+to = "process/print"

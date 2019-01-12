@@ -20,36 +20,36 @@ type = "Bool"
 name = "control"
 type = "Number"
 
-[[function]]
+[[process]]
 alias = "tap"
 source = "lib://flowstdlib/control/tap.toml"
 
-[[function]]
+[[process]]
 alias = "compare"
 source = "lib://flowstdlib/control/compare.toml"
 
 [[connection]]
 from = "input/in"
-to = "function/tap/data"
+to = "process/tap/data"
 
 [[connection]]
 from = "input/in"
-to = "function/compare/left"
+to = "process/compare/left"
 
 [[connection]]
 from = "input/max"
-to = "function/compare/right"
+to = "process/compare/right"
 
 [[connection]]
-from = "function/compare/lte"
-to = "function/tap/control"
+from = "process/compare/lte"
+to = "process/tap/control"
 
 [[connection]]
-from = "function/tap"
+from = "process/tap"
 to = "output/passed"
 
 [[connection]]
-from = "function/compare/gt"
+from = "process/compare/gt"
 to = "output/blocked"
 
 [[connection]]

@@ -5,10 +5,10 @@ name = "message"
 type = "String"
 init = "Hello World!"
 
-[[function]]
+[[process]]
 alias = "print"
 source = "lib://flowrlib/stdio/stdout.toml"
 
 [[connection]]
 from = "value/message"
-to = "function/print"
+to = "process/print"

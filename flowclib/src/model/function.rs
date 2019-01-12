@@ -12,7 +12,7 @@ use model::runnable::Runnable;
 use serde_json::Value as JsonValue;
 use url::Url;
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct Function {
     #[serde(rename = "function")]
     name: Name,
@@ -29,6 +29,7 @@ pub struct Function {
     route: Route,
     #[serde(skip_deserializing)]
     lib_reference: Option<String>,
+
     #[serde(skip_deserializing)]
     output_routes: Vec<(Route, usize, usize)>,
     #[serde(skip_deserializing)]

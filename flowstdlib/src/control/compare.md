@@ -35,7 +35,7 @@ type = "Bool"
 
 #### Include using
 ```
-[[function]]
+[[process]]
 alias = "compare"
 source = "lib://flowstdlib/control/compare.toml"
 ```

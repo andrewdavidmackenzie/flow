@@ -36,7 +36,7 @@ type = "Number"
 
 #### Include using
 ```
-[[function]]
+[[process]]
 alias = "divide"
 source = "lib://flowstdlib/math/divide.toml"
 ```

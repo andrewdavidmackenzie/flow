@@ -16,53 +16,53 @@ name = "false"
 type = "Bool"
 init = false
 
-[[function]]
+[[process]]
 alias = "sum"
 source = "lib://flowstdlib/math/add.toml"
 
 [[connection]]
 from = "value/a"
-to = "function/sum/i1"
+to = "process/sum/i1"
 
 [[connection]]
 from = "value/constant"
-to = "function/sum/i2"
+to = "process/sum/i2"
 
-[[function]]
+[[process]]
 alias = "add_again"
 source = "lib://flowstdlib/math/add.toml"
 
 [[connection]]
-from = "function/sum"
-to = "function/add_again/i1"
+from = "process/sum"
+to = "process/add_again/i1"
 
 [[connection]]
 from = "value/constant"
-to = "function/add_again/i2"
+to = "process/add_again/i2"
 
-[[function]]
+[[process]]
 alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string.toml"
 
 [[connection]]
-from = "function/add_again"
-to = "function/to_string"
+from = "process/add_again"
+to = "process/to_string"
 
-[[function]]
+[[process]]
 alias = "tap"
 source = "lib://flowstdlib/control/tap.toml"
 
-[[function]]
+[[process]]
 alias = "compare"
 source = "lib://flowstdlib/control/compare.toml"
 
 [[connection]]
-from = "function/add_again"
-to = "function/tap/data"
+from = "process/add_again"
+to = "process/tap/data"
 
 [[connection]]
-from = "function/add_again"
-to = "function/compare/left"
+from = "process/add_again"
+to = "process/compare/left"
 
 [[value]]
 name = "two"
@@ -71,24 +71,24 @@ init = 2
 
 [[connection]]
 from = "value/two"
-to = "function/compare/right"
+to = "process/compare/right"
 
 [[connection]]
 from = "value/false"
-to = "function/tap/control"
+to = "process/tap/control"
 
 [[connection]]
-from = "function/compare/gt"
-to = "function/to_string"
+from = "process/compare/gt"
+to = "process/to_string"
 
-[[function]]
+[[process]]
 alias = "print"
 source = "lib://flowrlib/stdio/stdout.toml"
 
 [[connection]]
-from = "function/tap"
-to = "function/to_string"
+from = "process/tap"
+to = "process/to_string"
 
 [[connection]]
-from = "function/to_string"
-to = "function/print"
+from = "process/to_string"
+to = "process/print"

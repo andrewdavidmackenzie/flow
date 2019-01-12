@@ -19,7 +19,7 @@ type = "Number"
 
 #### Include using
 ```
-[[function]]
+[[process]]
 alias = "add"
 source = "lib://flowstdlib/math/add.toml"
 ```
