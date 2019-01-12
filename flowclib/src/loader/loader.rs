@@ -124,6 +124,29 @@ pub fn load_single_flow(parent_route: &Route, alias: &Name, url: &Url, provider:
     Ok(flow)
 }
 
+
+/*
+    Load all functions referenced from a flow
+*/
+fn load_functions(flow: &mut Flow, provider: &Provider) -> Result<(), String> {
+    let parent_route = &flow.route().clone();
+    if let Some(ref mut function_refs) = flow.function_refs {
+        debug!("Loading functions for flow '{}'", flow.source_url);
+        for ref mut function_ref in function_refs {
+            let function_url = flow.source_url.join(&function_ref.source)
+                .map_err(|_e| "URL join error")?;
+            let function = load_function(&function_url, parent_route, &function_ref.alias(), provider)
+                .map_err(|e| format!("while loading function from Url '{}' - {}",
+                                     function_url, e.to_string()))?;
+            if let Some(lib_ref) = function.get_lib_reference() {
+                flow.lib_references.push(format!("{}/{}", lib_ref, function.name()));
+            }
+            function_ref.process = FunctionProcess(function);
+        }
+    }
+    Ok(())
+}
+
 /// load a function definition from the `file_path` specified, the `parent_route` parameter
 /// specifies where in the flow hierarchiy this instance of the function is referenced, and is
 /// used to create routes to the functions inputs and outputs.
@@ -181,28 +204,6 @@ fn load_subflows(flow: &mut Flow, provider: &Provider) -> Result<(), String> {
             let subflow_url = flow.source_url.join(&flow_ref.source).expect("URL join error");
             let subflow = load_flow(parent_route, &flow_ref.alias(), &subflow_url, provider)?;
             flow_ref.process = FlowProcess(subflow);
-        }
-    }
-    Ok(())
-}
-
-/*
-    Load all functions referenced from a flow
-*/
-fn load_functions(flow: &mut Flow, provider: &Provider) -> Result<(), String> {
-    let parent_route = &flow.route().clone();
-    if let Some(ref mut function_refs) = flow.function_refs {
-        debug!("Loading functions for flow '{}'", flow.source_url);
-        for ref mut function_ref in function_refs {
-            let function_url = flow.source_url.join(&function_ref.source)
-                .map_err(|_e| "URL join error")?;
-            let function = load_function(&function_url, parent_route, &function_ref.alias(), provider)
-                .map_err(|e| format!("while loading function from Url '{}' - {}",
-                                     function_url, e.to_string()))?;
-            if let Some(lib_ref) = function.get_lib_reference() {
-                flow.lib_references.push(format!("{}/{}", lib_ref, function.name()));
-            }
-            function_ref.process = FunctionProcess(function);
         }
     }
     Ok(())
