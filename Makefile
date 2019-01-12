@@ -133,10 +133,11 @@ clean-samples:
 	@find samples -name test_output.txt -exec rm -rf {} + ; true
 
 samples/%/test_output.txt: samples/%/test_input.txt
-	@echo "\n------- Compiling and Running $(@D) ----"
+	@echo "\n------- Compiling and Running '$(@D)' ----"
 # remove local file path from output messages with sed to make local failures match travis failures
 	@cat $< | ./target/debug/flowc -d $(@D) -- `cat $(@D)/test_arguments.txt` | sed -e 's/\/.*\/flow\///' | grep -v "Finished dev" > $@; true
-	diff $@ $(@D)/expected_output.txt
+	@diff $@ $(@D)/expected_output.txt
+	@echo "test output matches expected output"
 	@rm $@ #remove test_output.txt after successful diff
 
 ################# ONLINE SAMPLES ################
