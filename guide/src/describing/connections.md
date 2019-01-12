@@ -31,7 +31,6 @@ output to all connected destinations
 
 Loops are permitted from an output to an input, and are used as a feature to achieve certain behaviours.
 
-
 ### Type Match
 For a connection to be valid and used in execution of a flow, the data source must be found,
 the data sink must be found and the two must be of matching DataTypes.
