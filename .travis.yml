@@ -1,16 +1,11 @@
 language: rust
 
 rust:
-- nightly
 - stable
 
 os:
 - osx
 - linux
-
-matrix:
-  allow_failures:
-  - rust: stable
 
 before_install:
 - make config

@@ -2,7 +2,7 @@ build:
 	@echo ""
 	@echo "------- Started building 'web' module -------------"
 	@echo "------- Building for 'wasm32' target -------------"
-	cargo +nightly build --target wasm32-unknown-unknown
+	cargo build --target wasm32-unknown-unknown
 	@echo "------- Generating Javascript bindings using 'wasm-bindgen' -------------"
 	wasm-bindgen target/wasm32-unknown-unknown/debug/web.wasm --out-dir run
 	@echo "------- Finished building 'web' module -------------"
