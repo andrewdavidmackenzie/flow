@@ -72,7 +72,7 @@ pub fn load_process(parent_route: &Route, alias: &Name, url: &Url, provider: &Pr
 
     match process {
         FlowProcess(ref mut flow) => {
-            config_flow(flow, &resolved_url, parent_route, alias, lib_ref)?;
+            config_flow(flow, &resolved_url, parent_route, alias)?;
             load_values(flow)?;
             load_subprocesses(flow, provider)?;
             build_flow_connections(flow)?;
@@ -114,13 +114,10 @@ fn config_function(function: &mut Function, source_url: &Url, parent_route: &Rou
     function.validate()
 }
 
-fn config_flow(flow: &mut Flow, source_url: &Url, parent_route: &Route, alias: &Name,
-               lib_ref: Option<String>) -> Result<(), String> {
+fn config_flow(flow: &mut Flow, source_url: &Url, parent_route: &Route, alias: &Name)
+    -> Result<(), String> {
     flow.alias = alias.to_string();
     flow.source_url = source_url.clone();
-    if let Some(lr) = lib_ref {
-        flow.lib_references.push(lr);
-    }
     flow.set_routes_from_parent(parent_route, true);
     flow.validate()
 }

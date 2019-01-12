@@ -1,20 +1,6 @@
 ## Tap (//flowstdlib/control/tap.toml)
 Control the flow of data (flow or disapear it) based on a boolean control value.
 
-#### Definition
-```
-name = "Tap"
-
-[[input]]
-name = "data"
-
-[[input]]
-name = "control"
-type = "Bool"
-
-[[output]]
-```
-
 #### Include using
 ```
 [[process]]

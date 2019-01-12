@@ -1,39 +1,6 @@
 ## Divide (//flowstdlib/math/divide.toml)
 Divide one input by another, producing outputs for the dividend, divisor, result and the remainder
 
-#### Definition
-```
-name = "Divide"
-
-[[input]]
-name = "dividend"
-type = "Number"
-
-[[input]]
-name = "divisor"
-type = "Number"
-
-# resent the dividend input to be used downstream
-[[output]]
-name = "dividend"
-type = "Number"
-
-# resent the divisor input to be used downstream
-[[output]]
-name = "divisor"
-type = "Number"
-
-# The result of the division
-[[output]]
-name = "result"
-type = "Number"
-
-# The remainder of the division
-[[output]]
-name = "remainder"
-type = "Number"
-```
-
 #### Include using
 ```
 [[process]]

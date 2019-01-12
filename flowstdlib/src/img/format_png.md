@@ -1,21 +1,6 @@
 ## FormatBitmap (//flowstdlib/img/format_png.toml)
 Format a series of bytes into a PNG image, for use in display or writing to a file
 
-#### Definition
-```
-name = "FormatPNG"
-
-[[input]]
-name = "bytes"
-
-[[input]]
-name = "bounds"
-type = "Json"
-
-[[output]]
-type = "String"
-```
-
 #### Include using
 ```
 [[process]]

@@ -1,22 +1,6 @@
 ## Add (//flowstdlib/math/add.toml)
 Add two inputs to produce a new output
 
-#### Definition
-```
-name = "Add"
-
-[[input]]
-name = "i1"
-type = "Number"
-
-[[input]]
-name = "i2"
-type = "Number"
-
-[[output]]
-type = "Number"
-```
-
 #### Include using
 ```
 [[process]]

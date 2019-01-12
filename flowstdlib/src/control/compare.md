@@ -2,37 +2,6 @@
 Compare two input values and output different boolean values depending on if the comparison
 is equal, greater than, greater than or equal, less than or less than or equal.
 
-#### Definition
-``` 
-name = "Compare"
-
-[[input]]
-name = "left"
-
-[[input]]
-name = "right"
-
-[[output]]
-name = "equal"
-type = "Bool"
-
-[[output]]
-name = "lt"
-type = "Bool"
-
-[[output]]
-name = "lte"
-type = "Bool"
-
-[[output]]
-name = "gt"
-type = "Bool"
-
-[[output]]
-name = "gte"
-type = "Bool"
-```
-
 #### Include using
 ```
 [[process]]

@@ -1,22 +1,6 @@
 ## Subtract (//flowstdlib/math/subtract.toml)
 Subtract one input from another to produce a new output
 
-#### Definition
-```
-name = "Subtract"
-
-[[input]]
-name = "i1"
-type = "Number"
-
-[[input]]
-name = "i2"
-type = "Number"
-
-[[output]]
-type = "Number"
-```
-
 #### Include using
 ```
 [[process]]

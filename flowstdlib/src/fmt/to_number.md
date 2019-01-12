@@ -1,17 +1,6 @@
 ## To Number (//flowstdlib/fmt/to_number.toml)
 Convert a String to a number
 
-#### Definition
-```
-name = "ToNumber"
-
-[[input]]
-type = "String"
-
-[[output]]
-type = "Number"
-```
-
 #### Include using
 ```
 [[process]]

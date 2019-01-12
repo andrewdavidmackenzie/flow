@@ -73,7 +73,7 @@ to = "process/pilte/in"
 # pass if less than or equal, add one and loop
 [[process]]
 alias = "pilte"
-source = "pass_if_lte.toml"
+source = "lib://flowstdlib/control/pass_if_lte.toml"
 
 [[process]]
 alias = "add"
