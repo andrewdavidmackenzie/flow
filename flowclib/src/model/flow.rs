@@ -14,6 +14,7 @@ use model::function_reference::FunctionReference;
 use model::connection::Direction;
 use model::runnable::Runnable;
 use model::process_reference::Process::FlowProcess;
+use model::process_reference::Process::FunctionProcess;
 use std::fmt;
 use url::Url;
 
@@ -47,9 +48,9 @@ pub struct Flow {
 impl Validate for Flow {
     // check the correctness of all the fields in this flow, prior to loading sub-elements
     fn validate(&self) -> Result<(), String> {
-        if let Some(ref flows_refs) = self.process_refs {
-            for flow_ref in flows_refs {
-                flow_ref.validate()?;
+        if let Some(ref process_refs) = self.process_refs {
+            for process_ref in process_refs {
+                process_ref.validate()?;
             }
         }
 
@@ -126,7 +127,6 @@ impl fmt::Display for Flow {
         if let Some(ref function_refs) = self.function_refs {
             for function_ref in function_refs {
                 write!(f, "\t{}", function_ref).unwrap();
-                write!(f, "\t{}", function_ref.function).unwrap();
             }
         }
 
@@ -221,12 +221,16 @@ impl Flow {
     fn get_io_from_function_ref(&self, function_alias: &str, direction: Direction, route: &Route) -> Result<IO, String> {
         if let Some(ref function_refs) = self.function_refs {
             for function_ref in function_refs {
-                if function_ref.name() == function_alias {
-                    return match direction {
-                        Direction::TO => function_ref.function.get_inputs().find_by_route(route),
-                        Direction::FROM => function_ref.function.get_outputs().find_by_route(route)
-                    };
-                }
+                match function_ref.process {
+                    FunctionProcess(ref function) => {
+                        if function_ref.name() == function_alias {
+                            return match direction {
+                                Direction::TO => function.get_inputs().find_by_route(route),
+                                Direction::FROM => function.get_outputs().find_by_route(route)
+                            };
+                        }
+                    },
+                    _ => {}}
             }
             return Err(format!("Could not find function named '{}' in flow '{}'",
                                function_alias, self.alias));

@@ -1,6 +1,7 @@
 use model::flow::Flow;
 use model::runnable::Runnable;
 use model::process_reference::Process::FlowProcess;
+use model::process_reference::Process::FunctionProcess;
 use generator::code_gen::CodeGenTables;
 
 /*
@@ -21,18 +22,19 @@ pub fn add_entries(flow: &Flow, tables: &mut CodeGenTables) {
         }
     }
 
+    // TODO merge these next two
     // Add Functions referenced from this flow to the table
     if let Some(ref function_refs) = flow.function_refs {
         for function_ref in function_refs {
-            tables.runnables.push(Box::new(function_ref.function.clone()));
+            match function_ref.process {
+                FunctionProcess(ref function) => {
+                    tables.runnables.push(Box::new(function.clone()));
+                }
+                FlowProcess(ref flow) => {
+                    add_entries(flow, tables);
+                }
+            }
         }
-    }
-
-    for lib_ref in &flow.lib_references {
-        let lib_reference = lib_ref.clone();
-        let lib_name = lib_reference.split("/").next().unwrap().to_string();
-        tables.lib_references.insert(lib_reference);
-        tables.libs.insert(lib_name);
     }
 
     // Do the same for all subflows referenced from this one
@@ -41,10 +43,19 @@ pub fn add_entries(flow: &Flow, tables: &mut CodeGenTables) {
             match flow_ref.process {
                 FlowProcess(ref flow) => {
                     add_entries(flow, tables);
-                },
-                _ => { }
+                }
+                FunctionProcess(ref function) => {
+                    tables.runnables.push(Box::new(function.clone()));
+                }
             }
         }
+    }
+
+    for lib_ref in &flow.lib_references {
+        let lib_reference = lib_ref.clone();
+        let lib_name = lib_reference.split("/").next().unwrap().to_string();
+        tables.lib_references.insert(lib_reference);
+        tables.libs.insert(lib_name);
     }
 }
 

@@ -4,26 +4,33 @@ use model::name::Name;
 use model::name::HasName;
 use model::route::Route;
 use model::route::HasRoute;
-use model::function::Function;
 use loader::loader::Validate;
+use model::process_reference::Process;
 
 // This structure is (optionally) found as part of a flow file - inline in the description
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct FunctionReference {
     alias: Name,
     pub source: String,
     #[serde(skip_deserializing)]
-    pub function: Function,
+    pub process: Process,
 }
 
 impl HasName for FunctionReference {
-    fn name(&self) -> &Name {  &self.alias }
+    fn name(&self) -> &Name { &self.alias }
     fn alias(&self) -> &Name { &self.alias }
 }
 
 impl HasRoute for FunctionReference {
     fn route(&self) -> &Route {
-        &self.function.route()
+        match self.process {
+            Process::FlowProcess(ref flow) => {
+                flow.route()
+            }
+            Process::FunctionProcess(ref function) => {
+                function.route()
+            }
+        }
     }
 }
 

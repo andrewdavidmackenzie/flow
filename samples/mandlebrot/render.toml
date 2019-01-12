@@ -1,4 +1,4 @@
-function = "render"
+flow = "render"
 
 [[input]]
 name = "bounds"

@@ -12,6 +12,7 @@ use model::route::FindRoute;
 use model::connection::Connection;
 use model::name::HasName;
 use model::process_reference::Process::FlowProcess;
+use model::process_reference::Process::FunctionProcess;
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
 //static OUTPUT_PORTS: &[&str] = &["s", "se", "sw"];
@@ -33,18 +34,31 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
         }
     }
 
+    // TODO merge these next two
     // Function References
     if let Some(function_refs) = &flow.function_refs {
         for function_ref in function_refs {
-            contents.push_str(&run_to_dot(&function_ref.function as &Runnable));
+            match function_ref.process {
+                FunctionProcess(ref function) => {
+                    contents.push_str(&run_to_dot(function as &Runnable));
+                }
+                _ => {}
+            }
         }
     }
 
-    // Flow References
+    // Process References
     if let Some(flow_refs) = &flow.process_refs {
         contents.push_str("\n\t// Sub-Flows\n");
         for flow_ref in flow_refs {
-            contents.push_str(&flow_reference_to_dot(&flow_ref));
+            match flow_ref.process {
+                FunctionProcess(ref function) => {
+                    contents.push_str(&run_to_dot(function as &Runnable));
+                }
+                FlowProcess(ref _flow) => {
+                    contents.push_str(&flow_reference_to_dot(flow_ref));
+                }
+            }
         }
     }
 
@@ -260,7 +274,7 @@ fn flow_reference_to_dot(flow_ref: &ProcessReference) -> String {
         FlowProcess(ref flow) => {
             dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot\"];\n",
                                          flow.route(), flow_ref.alias(), flow.source_url));
-        },
+        }
         _ => {}
     }
     dot_string

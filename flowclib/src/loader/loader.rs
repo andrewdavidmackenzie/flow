@@ -11,6 +11,7 @@ use loader::loader_helper::get_loader;
 use super::provider::Provider;
 use model::process_reference::Process::FlowProcess;
 use std::mem::replace;
+use model::process_reference::Process::FunctionProcess;
 
 use url::Url;
 
@@ -170,6 +171,22 @@ pub fn load_function(url: &Url, parent_route: &Route, alias: &Name, provider: &P
 }
 
 /*
+    Load all sub-flows referenced from a flow via the flow_references
+*/
+fn load_subflows(flow: &mut Flow, provider: &Provider) -> Result<(), String> {
+    let parent_route = &flow.route().clone();
+    if let Some(ref mut flow_refs) = flow.process_refs {
+        debug!("Loading sub-flows of flow '{}'", flow.source_url);
+        for ref mut flow_ref in flow_refs {
+            let subflow_url = flow.source_url.join(&flow_ref.source).expect("URL join error");
+            let subflow = load_flow(parent_route, &flow_ref.alias(), &subflow_url, provider)?;
+            flow_ref.process = FlowProcess(subflow);
+        }
+    }
+    Ok(())
+}
+
+/*
     Load all functions referenced from a flow
 */
 fn load_functions(flow: &mut Flow, provider: &Provider) -> Result<(), String> {
@@ -179,12 +196,13 @@ fn load_functions(flow: &mut Flow, provider: &Provider) -> Result<(), String> {
         for ref mut function_ref in function_refs {
             let function_url = flow.source_url.join(&function_ref.source)
                 .map_err(|_e| "URL join error")?;
-            function_ref.function = load_function(&function_url, parent_route, &function_ref.alias(), provider)
+            let function = load_function(&function_url, parent_route, &function_ref.alias(), provider)
                 .map_err(|e| format!("while loading function from Url '{}' - {}",
                                      function_url, e.to_string()))?;
-            if let Some(lib_ref) = function_ref.function.get_lib_reference() {
-                flow.lib_references.push(format!("{}/{}", lib_ref, function_ref.function.name()));
+            if let Some(lib_ref) = function.get_lib_reference() {
+                flow.lib_references.push(format!("{}/{}", lib_ref, function.name()));
             }
+            function_ref.process = FunctionProcess(function);
         }
     }
     Ok(())
@@ -199,22 +217,6 @@ fn load_values(flow: &mut Flow) -> Result<(), String> {
         debug!("Loading values for flow '{}'", flow.source_url);
         for ref mut value in values {
             value.set_routes_from_parent(parent_route, false);
-        }
-    }
-    Ok(())
-}
-
-/*
-    Load all sub-flows referenced from a flow via the flow_references
-*/
-fn load_subflows(flow: &mut Flow, provider: &Provider) -> Result<(), String> {
-    let parent_route = &flow.route().clone();
-    if let Some(ref mut flow_refs) = flow.process_refs {
-        debug!("Loading sub-flows of flow '{}'", flow.source_url);
-        for ref mut flow_ref in flow_refs {
-            let subflow_url = flow.source_url.join(&flow_ref.source).expect("URL join error");
-            let subflow = load_flow(parent_route, &flow_ref.alias(), &subflow_url, provider)?;
-            flow_ref.process = FlowProcess(subflow);
         }
     }
     Ok(())
@@ -239,7 +241,7 @@ fn build_flow_connections(flow: &mut Flow) -> Result<(), String> {
 
     let mut error_count = 0;
 
-    // get connections out of self - so we can use immutable references to self inside loop
+// get connections out of self - so we can use immutable references to self inside loop
     let connections = replace(&mut flow.connections, None);
     let mut connections = connections.unwrap();
 
@@ -277,7 +279,7 @@ fn build_flow_connections(flow: &mut Flow) -> Result<(), String> {
         }
     }
 
-    // put connections back into self
+// put connections back into self
     replace(&mut flow.connections, Some(connections));
 
     if error_count == 0 {
