@@ -91,8 +91,6 @@ impl fmt::Display for Flow {
         write!(f, "\tname: \t\t\t{}\n\talias: \t\t\t{}\n\tsource_url: \t{}\n\troute: \t\t\t{}\n",
                self.name, self.alias, self.source_url, self.route).unwrap();
 
-        // TODO dry this all up now it works.
-
         write!(f, "\tvalues:\n").unwrap();
         if let Some(ref values) = self.values {
             for value in values {

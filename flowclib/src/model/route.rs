@@ -24,7 +24,7 @@ pub struct Router;
 impl Router {
     // TODO store the route with an indicator it has a trailing array index when created and
     // avoid all this guff
-    pub fn without_trailing_array_index<'a>(route: &'a Route) -> (Cow<'a, Route>, usize, bool) {
+    pub fn without_trailing_array_index(route: &Route) -> (Cow<Route>, usize, bool) {
         let mut parts: Vec<&str> = route.split('/').collect();
         if let Some(last_part) = parts.pop() {
             if let Ok(number) = last_part.parse::<usize>() {

@@ -54,7 +54,6 @@ fn default_optional_values() {
 
 #[test]
 fn flow_has_optional_values() {
-    use super::super::model::flow::Flow;
     use super::super::model::process::Process::FlowProcess;
     let flow_description = "\
         flow = 'test'
