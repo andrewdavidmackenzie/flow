@@ -20,6 +20,7 @@ use flowrlib::implementation::Implementation;
 use std::sync::{{Arc, Mutex}};\n";
 
 const GET_RUNNABLES: &'static str = "
+
 pub fn get_runnables() -> Vec<Arc<Mutex<Runnable>>> {{
     let mut runnables = Vec::<Arc<Mutex<Runnable>>>::with_capacity({num_runnables});\n\n";
 
@@ -75,11 +76,6 @@ fn contents(tables: &CodeGenTables, implementations: (Vec<String>, Vec<String>))
     content.push_str("\n// Implementations used\n");
     for implementation_use in implementations.0 {
         content.push_str(&implementation_use);
-    }
-
-    content.push_str("\n\n// Implementations\n");
-    for implementation_instantiation in implementations.1 {
-        content.push_str(&implementation_instantiation);
     }
 
     content.push_str(&runnables(tables));
@@ -172,8 +168,7 @@ fn runnable_to_code(runnable: &Box<Runnable>) -> String {
             code.push_str(&format!("), "));
         }
     }
-    code.push_str(&format!("{}, {}, ", runnable.get_id(),
-                           runnable.get_implementation().to_uppercase()));
+    code.push_str(&format!("{}, &{}{{}}, ", runnable.get_id(), runnable.get_implementation()));
 
     code.push_str(&format!("{},", match runnable.get_initial_value() {
         None => "None".to_string(),
