@@ -14,7 +14,11 @@ impl Input {
         }
     }
 
-    pub fn get(&mut self) -> Vec<JsonValue> {
+    pub fn read(&mut self) -> Vec<JsonValue> {
+        self.received.clone()
+    }
+
+    pub fn take(&mut self) -> Vec<JsonValue> {
         replace(&mut self.received, Vec::with_capacity(self.depth))
     }
 

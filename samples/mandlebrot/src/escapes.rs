@@ -1,9 +1,9 @@
-use serde_json::Value as JsonValue;
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RunAgain;
-use flowrlib::runnable::Runnable;
+use flowrlib::process::Process;
 use flowrlib::runlist::RunList;
 use num::Complex;
+use serde_json::Value as JsonValue;
 
 pub struct Escapes;
 
@@ -15,7 +15,7 @@ pub struct Escapes;
     able to prove that 'c' is not a member) return 'None'
 */
 impl Implementation for Escapes {
-    fn run(&self, runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
+    fn run(&self, process: &Process, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
         let point = inputs.remove(0).remove(0);
         // pixel_bounds: (usize, usize),
         let re = point["re"].as_f64().unwrap();
@@ -24,7 +24,7 @@ impl Implementation for Escapes {
 
         let limit = inputs.remove(0).remove(0).as_u64().unwrap();
 
-        run_list.send_output(runnable, json!(escapes(complex_point, limit)));
+        run_list.send_output(process, json!(escapes(complex_point, limit)));
 
         true
     }
@@ -54,14 +54,14 @@ pub fn escapes(c: Complex<f64>, limit: u64) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use flowrlib::runnable::Runnable;
+    use flowrlib::process::Process;
     use flowrlib::runlist::RunList;
-    use flowrlib::function::Function;
+    use num::Complex;
     use serde_json::Value as JsonValue;
+    use test::Bencher;
+
     use super::Escapes;
     use super::escapes;
-    use test::Bencher;
-    use num::Complex;
 
     #[test]
     fn test_escapes() {
@@ -71,7 +71,7 @@ mod tests {
         let inputs: Vec<Vec<JsonValue>> = vec!(vec!(point), vec!(limit));
 
         let mut run_list = RunList::new();
-        let escapes = &Function::new("escapes", 2, true, vec!(1,1), 0, Box::new(Escapes), None, vec!()) as &Runnable;
+        let escapes = &Function::new("escapes", 2, true, vec!(1,1), 0, Box::new(Escapes), None, vec!()) as &Process;
         let implementation = escapes.implementation();
 
         implementation.run(escapes, inputs, &mut run_list);

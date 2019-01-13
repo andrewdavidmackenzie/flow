@@ -1,9 +1,9 @@
-use serde_json::Value as JsonValue;
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RunAgain;
-use flowrlib::runnable::Runnable;
+use flowrlib::process::Process;
 use flowrlib::runlist::RunList;
 use num::Complex;
+use serde_json::Value as JsonValue;
 
 pub struct CreateComplex;
 
@@ -17,14 +17,14 @@ pub struct CreateComplex;
     plane designating the area our image covers.
 */
 impl Implementation for CreateComplex {
-    fn run(&self, runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
+    fn run(&self, process: &Process, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
         let arg1 = inputs.remove(0).remove(0);
         let arg2 = inputs.remove(0).remove(0);
 
         match (arg1, arg2) {
             (JsonValue::Number(re), JsonValue::Number(im)) => {
                 let output = json!({ "re" : re, "im": im });
-                run_list.send_output(runnable, output);
+                run_list.send_output(process, output);
             },
             _  => {}
         }
@@ -40,10 +40,10 @@ pub fn create_complex(re: f64, im: f64) -> Complex<f64> {
 
 #[cfg(test)]
 mod tests {
-    use flowrlib::runnable::Runnable;
+    use flowrlib::process::Process;
     use flowrlib::runlist::RunList;
-    use flowrlib::function::Function;
     use serde_json::Value as JsonValue;
+
     use super::CreateComplex;
 
     #[test]
@@ -55,7 +55,7 @@ mod tests {
         let inputs: Vec<Vec<JsonValue>> = vec!(vec!(arg1), vec!(arg2));
 
         let mut run_list = RunList::new();
-        let pc = &Function::new("pc", 2, true, vec!(1, 1, 1), 0, Box::new(CreateComplex), None, vec!()) as &Runnable;
+        let pc = &Function::new("pc", 2, true, vec!(1, 1, 1), 0, Box::new(CreateComplex), None, vec!()) as &Process;
         let implementation = pc.implementation();
 
         implementation.run(pc, inputs, &mut run_list);

@@ -1,13 +1,14 @@
 use serde_json::Value as JsonValue;
+
 use super::super::implementation::Implementation;
 use super::super::implementation::RunAgain;
-use super::super::runnable::Runnable;
+use super::super::process::Process;
 use super::super::runlist::RunList;
 
 pub struct Stderr;
 
 impl Implementation for Stderr {
-    fn run(&self, _runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList) -> RunAgain {
+    fn run(&self, _process: &Process, mut inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList) -> RunAgain {
         let input = inputs.remove(0).remove(0);
         match input {
             JsonValue::String(string) => {

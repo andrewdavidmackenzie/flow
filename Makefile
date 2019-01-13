@@ -188,3 +188,6 @@ clean-dumps:
 	@find . -name \*.dot -type f -exec rm -rf {} + ; true
 	@echo "All .dump and .dot files removed"
 
+################# Dot Graphs ################
+dot-graphs:
+	find . -name \*.dot -type f -exec dot -Tpng -O {} \;

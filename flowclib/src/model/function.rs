@@ -124,20 +124,21 @@ impl Validate for Function {
 
 impl fmt::Display for Function {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\t\t\t\t\t\t\t\tname: \t\t{}\n", self.name)?;
-        write!(f, "\t\t\t\t\t\t\t\talias: \t\t{}\n", self.alias)?;
+        write!(f, "name: \t\t{}\n", self.name)?;
+        write!(f, "alias: \t\t{}\n", self.alias)?;
+        write!(f, "id: \t\t{}\n", self.id)?;
 
-        write!(f, "\t\t\t\t\t\t\t\tinputs:\n")?;
+        write!(f, "inputs:\n")?;
         if let Some(ref inputs) = self.inputs {
             for input in inputs {
-                write!(f, "\t\t\t\t\t\t\t{:#?}\n", input)?;
+                write!(f, "\t{:#?}\n", input)?;
             }
         }
 
-        write!(f, "\t\t\t\t\t\t\t\toutput:\n")?;
+        write!(f, "outputs:\n")?;
         if let Some(ref outputs) = self.outputs {
             for output in outputs {
-                write!(f, "\t\t\t\t\t\t\t{:#?}\n", output)?;
+                write!(f, "\t{:#?}\n", output)?;
             }
         }
 

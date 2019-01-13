@@ -1,8 +1,8 @@
-use serde_json::Value as JsonValue;
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RunAgain;
-use flowrlib::runnable::Runnable;
+use flowrlib::process::Process;
 use flowrlib::runlist::RunList;
+use serde_json::Value as JsonValue;
 use std::str::FromStr;
 
 pub struct ParsePair;
@@ -17,7 +17,7 @@ pub struct ParsePair;
     plane designating the area our image covers.
 */
 impl Implementation for ParsePair {
-    fn run(&self, runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
+    fn run(&self, process: &Process, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
         let string = inputs.remove(0).remove(0);
         let separator = inputs.remove(0).remove(0);
 
@@ -29,7 +29,7 @@ impl Implementation for ParsePair {
                 // send output as Json
                 if let Some(pair) = split {
                     let output = json!({ "first" : pair.0, "second": pair.1 });
-                    run_list.send_output(runnable, output);
+                    run_list.send_output(process, output);
                 }
             }
             _ => {}
@@ -59,12 +59,12 @@ pub fn parse_pair<T: FromStr>(s: &str, separator: &str) -> Option<(T, T)> {
 
 #[cfg(test)]
 mod tests {
-    use flowrlib::runnable::Runnable;
+    use flowrlib::process::Process;
     use flowrlib::runlist::RunList;
-    use flowrlib::function::Function;
     use serde_json::Value as JsonValue;
-    use super::ParsePair;
+
     use super::parse_pair;
+    use super::ParsePair;
 
     #[test]
     fn parse_pair_bounds() {
@@ -75,11 +75,11 @@ mod tests {
         let inputs: Vec<Vec<JsonValue>> = vec!(vec!(string), vec!(separator));
 
         let mut run_list = RunList::new();
-        let pp = &Function::new("pp", 2, true, vec!(1, 1, 1),
+        let pp = &Process::new("pp", 2, true, vec!(1, 1, 1),
                                 0,
                                 Box::new(ParsePair),
                                 None,
-                                vec!()) as &Runnable;
+                                vec!()) as &Process;
         let implementation = pp.implementation();
 
         implementation.run(pp, inputs, &mut run_list);

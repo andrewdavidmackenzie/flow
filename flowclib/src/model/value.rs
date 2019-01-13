@@ -116,10 +116,13 @@ impl Validate for Value {
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\tname: \t\t{}\n\t\t\t\t\troute: \t\t{}\n\t\t\t\t\tdatatype: \t{}\n",
-               self.name, self.route, self.datatype).unwrap();
+        write!(f, "name: \t\t{}\nid: \t\t{}\nroute: \t\t{}\ndatatype: \t{}\n",
+               self.name, self.id, self.route, self.datatype).unwrap();
         if self.init.is_some() {
-            write!(f, "\t\t\t\t\tinit: \t\t{:?}", self.init).unwrap();
+            write!(f, "initial value: \t\t{:?}", self.init).unwrap();
+        }
+        if self.static_value {
+            write!(f, "static value: \t\t{:?}", true).unwrap();
         }
         Ok(())
     }
@@ -147,10 +150,15 @@ impl SetRoute for Value {
 }
 
 impl Value {
-    pub fn new(name: Name, datatype: DataType, init: Option<JsonValue>, static_value: bool, route: Route,
+    pub fn new(name: Name,
+               datatype: DataType,
+               initial_value: Option<JsonValue>,
+               static_value: bool,
+               route: Route,
     outputs: IOSet, output_connections: Vec<(Route, usize, usize)>, id: usize) -> Self {
         Value {
-            name, datatype, init, static_value, route, outputs,
+            name, datatype,
+            init: initial_value, static_value, route, outputs,
             output_routes: output_connections, id
         }
     }

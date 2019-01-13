@@ -132,11 +132,11 @@ fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<Str
 pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<String> {
     let mut writer = create_output_file(&output_dir, "tables", "dump")?;
     writer.write_all(format!("{}:\n{:#?}\n", "Original Connections", tables.connections).as_bytes())?;
-    writer.write_all(format!("{}:\n{:#?}\n", "Source Routes", tables.source_routes).as_bytes())?;
-    writer.write_all(format!("{}:\n{:#?}\n", "Destination Routes", tables.destination_routes).as_bytes())?;
-    writer.write_all(format!("{}:\n{:#?}\n", "Collapsed Connections", tables.collapsed_connections).as_bytes())?;
-    writer.write_all(format!("{}:\n{:#?}\n", "Libraries", tables.libs).as_bytes())?;
-    writer.write_all(format!("{}:\n{:#?}\n", "Library references", tables.lib_references).as_bytes())?;
+    writer.write_all(format!("{}:\n{:#?}\n", "\nSource Routes", tables.source_routes).as_bytes())?;
+    writer.write_all(format!("{}:\n{:#?}\n", "\nDestination Routes", tables.destination_routes).as_bytes())?;
+    writer.write_all(format!("{}:\n{:#?}\n", "\nCollapsed Connections", tables.collapsed_connections).as_bytes())?;
+    writer.write_all(format!("{}:\n{:#?}\n", "\nLibraries", tables.libs).as_bytes())?;
+    writer.write_all(format!("{}:\n{:#?}\n", "\nLibrary references", tables.lib_references).as_bytes())?;
     Ok("All tables dumped".to_string())
 }
 
@@ -197,10 +197,10 @@ pub fn dump_runnables(flow: &Flow, tables: &CodeGenTables, output_dir: &PathBuf)
 fn dump_table<C: Iterator>(table: C, writer: &mut Write) -> io::Result<String>
     where <C as Iterator>::Item: fmt::Display {
     for e in table.into_iter() {
-        writer.write_all(format!("\t{}\n", e).as_bytes())?;
+        writer.write_all(format!("{}\n", e).as_bytes())?;
     }
     writer.write_all(b"\n")?;
-    Ok("printed".to_string())
+    Ok("table dumped".to_string())
 }
 
 fn create_output_file(output_path: &PathBuf, filename: &str, extension: &str) -> io::Result<File> {

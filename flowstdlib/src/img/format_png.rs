@@ -1,16 +1,16 @@
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RunAgain;
+use flowrlib::process::Process;
 use flowrlib::runlist::RunList;
-use flowrlib::runnable::Runnable;
-use image::png::PNGEncoder;
 use image::ColorType;
+use image::png::PNGEncoder;
 use serde_json::Value as JsonValue;
 use std::io::Write;
 
 pub struct FormatPNG;
 
 impl Implementation for FormatPNG {
-    fn run(&self, _runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList) -> RunAgain {
+    fn run(&self, _process: &Process, mut inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList) -> RunAgain {
         let bytes = inputs.remove(0).remove(0);
 
         // bounds: (usize, usize),

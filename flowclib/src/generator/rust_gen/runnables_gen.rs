@@ -11,18 +11,15 @@ use model::runnable::Runnable;
 
 const RUNNABLES_PREFIX: &'static str = "
 // Flow Run-time library references
-use flowrlib::runnable::Runnable;
-use flowrlib::implementation::Implementation;
-{value_used}
-{function_used}
+{process_used}
 
 // Rust std library references
 use std::sync::{{Arc, Mutex}};\n";
 
 const GET_RUNNABLES: &'static str = "
 
-pub fn get_runnables() -> Vec<Arc<Mutex<Runnable>>> {{
-    let mut runnables = Vec::<Arc<Mutex<Runnable>>>::with_capacity({num_runnables});\n\n";
+pub fn get_runnables() -> Vec<Arc<Mutex<Process<'static>>>> {{
+    let mut runnables = Vec::<Arc<Mutex<Process<'static>>>>::with_capacity({num_runnables});\n\n";
 
 const RUNNABLES_SUFFIX: &'static str = "
     runnables
@@ -59,16 +56,10 @@ fn uses_function(runnables: &Vec<Box<Runnable>>) -> bool {
 fn contents(tables: &CodeGenTables, implementations: (Vec<String>, Vec<String>)) -> Result<String> {
     let mut vars = HashMap::new();
 
-    if uses_value(&tables.runnables) {
-        vars.insert("value_used".to_string(), "use flowrlib::value::Value;");
+    if uses_value(&tables.runnables) || uses_function(&tables.runnables) {
+        vars.insert("process_used".to_string(), "use flowrlib::process::Process;");
     } else {
-        vars.insert("value_used".to_string(), "");
-    }
-
-    if uses_function(&tables.runnables) {
-        vars.insert("function_used".to_string(), "use flowrlib::function::Function;");
-    } else {
-        vars.insert("function_used".to_string(), "");
+        vars.insert("process_used".to_string(), "");
     }
 
     let mut content = strfmt(RUNNABLES_PREFIX, &vars).unwrap();
@@ -154,7 +145,7 @@ fn implementations(tables: &CodeGenTables) -> Result<(Vec<String>, Vec<String>)>
 // Output a statement that instantiates an instance of the Runnable type used, that can be used
 // to build the list of runnables
 fn runnable_to_code(runnable: &Box<Runnable>) -> String {
-    let mut code = format!("{}::new(\"{}\", ", runnable.get_type(), runnable.alias());
+    let mut code = format!("Process::new(\"{}\", ", runnable.alias());
     match &runnable.get_inputs() {
         // No inputs, so put a '0' and an empty vector of input depths
         &None => code.push_str(&format!("{}, {}, vec!(), ", 0, runnable.is_static_value())),
@@ -215,7 +206,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\", 1, false, vec!(1, ), 1, FIFO, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Process::new(\"value\", 1, false, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
     }
 
     #[test]
@@ -232,7 +223,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\", 1, true, vec!(1, ), 1, FIFO, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Process::new(\"value\", 1, true, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
     }
 
     #[test]
@@ -251,7 +242,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Value::new(\"value\", 1, false, vec!(1, ), 1, FIFO, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+        assert_eq!(code, "Process::new(\"value\", 1, false, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
     }
 
     #[test]
@@ -272,7 +263,7 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Function::new(\"print\", 0, false, vec!(), 0, STDOUT, None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+        assert_eq!(code, "Process::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
     }
 
     #[test]
@@ -292,7 +283,7 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Function::new(\"print\", 0, false, vec!(), 0, STDOUT, None, vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Process::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"\", 1, 0),))")
     }
 
     #[test]
@@ -312,6 +303,6 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Function::new(\"print\", 0, false, vec!(), 0, STDOUT, None, vec!((\"/0\", 1, 0),))")
+        assert_eq!(code, "Process::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"/0\", 1, 0),))")
     }
 }

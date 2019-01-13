@@ -1,9 +1,9 @@
-use serde_json::Value as JsonValue;
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RunAgain;
-use flowrlib::runnable::Runnable;
+use flowrlib::process::Process;
 use flowrlib::runlist::RunList;
 use num::Complex;
+use serde_json::Value as JsonValue;
 
 pub struct PixelToPoint;
 
@@ -17,7 +17,7 @@ pub struct PixelToPoint;
     plane designating the area our image covers.
 */
 impl Implementation for PixelToPoint {
-    fn run(&self, runnable: &Runnable, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
+    fn run(&self, process: &Process, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
         let pixel_bounds = inputs.remove(0).remove(0);
         // pixel_bounds: (usize, usize),
         let pixel_bounds_x = pixel_bounds["x"].as_u64().unwrap() as usize;
@@ -49,7 +49,7 @@ impl Implementation for PixelToPoint {
 
         // output: Complex<f64>
         let output = json!({ "re" : complex_point.re, "im": complex_point.im });
-        run_list.send_output(runnable, output);
+        run_list.send_output(process, output);
 
         true
     }
@@ -80,13 +80,13 @@ pub fn pixel_to_point(bounds: (usize, usize), pixel: (usize, usize),
 
 #[cfg(test)]
 mod tests {
-    use flowrlib::runnable::Runnable;
+    use flowrlib::process::Process;
     use flowrlib::runlist::RunList;
-    use flowrlib::function::Function;
-    use serde_json::Value as JsonValue;
     use num::Complex;
-    use super::PixelToPoint;
+    use serde_json::Value as JsonValue;
+
     use super::pixel_to_point;
+    use super::PixelToPoint;
 
     #[test]
     fn test_pixel_to_point() {
@@ -107,7 +107,7 @@ mod tests {
         let inputs: Vec<Vec<JsonValue>> = vec!(vec!(pixel_bounds), vec!(complex_bounds), vec!(pixel));
 
         let mut run_list = RunList::new();
-        let p2p = &Function::new("p2p", 3, true, vec!(1, 1, 1), 0, Box::new(PixelToPoint), None, vec!()) as &Runnable;
+        let p2p = &Function::new("p2p", 3, true, vec!(1, 1, 1), 0, Box::new(PixelToPoint), None, vec!()) as &Process;
         let implementation = p2p.implementation();
 
         implementation.run(p2p, inputs, &mut run_list);
