@@ -1,36 +1,32 @@
+extern crate clap;
+extern crate curl;
+extern crate flowclib;
+extern crate glob;
 #[macro_use]
 extern crate log;
-extern crate url;
-extern crate tempdir;
-
-extern crate clap;
-extern crate glob;
-extern crate curl;
 extern crate simpath;
+extern crate simplog;
+extern crate tempdir;
+extern crate url;
 
-use clap::{App, Arg, ArgMatches, AppSettings};
-
-extern crate flowclib;
-
-use flowclib::info;
-use flowclib::loader::loader;
-use flowclib::dumper::dumper;
-use flowclib::compiler::compile;
-use flowclib::generator::code_gen;
-use flowclib::model::process::Process::FlowProcess;
-use flowclib::model::flow::Flow;
-
+use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
-use std::path::PathBuf;
+
+use clap::{App, AppSettings, Arg, ArgMatches};
+use flowclib::compiler::compile;
+use flowclib::dumper::dump_flow;
+use flowclib::generator::code_gen;
+use flowclib::info;
+use flowclib::loader::loader;
+use flowclib::model::flow::Flow;
+use flowclib::model::process::Process::FlowProcess;
+use simplog::simplog::SimpleLogger;
 use url::Url;
+
 
 mod source_arg;
 mod content;
-
-extern crate simplog;
-
-use simplog::simplog::SimpleLogger;
 
 fn main() {
     match run() {
@@ -128,9 +124,9 @@ fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, ou
         dump_dir.pop();
         info!("Dumping flow, compiler tables and runnable descriptions in '{}'", dump_dir.display());
 
-        dumper::dump_flow(&flow, &dump_dir).map_err(|e| e.to_string())?;
-        dumper::dump_tables(&tables, &dump_dir).map_err(|e| e.to_string())?;
-        dumper::dump_runnables(&flow, &tables, &dump_dir).map_err(|e| e.to_string())?;
+        dump_flow::dump_flow(&flow, &dump_dir).map_err(|e| e.to_string())?;
+        dump_flow::dump_tables(&tables, &dump_dir).map_err(|e| e.to_string())?;
+        dump_flow::dump_tables(&flow, &tables, &dump_dir).map_err(|e| e.to_string())?;
     }
 
     if skip_generation {
@@ -198,12 +194,14 @@ mod test {
     extern crate flowclib;
     extern crate url;
 
-    use url::Url;
     use std::env;
-    use flowclib::loader::loader;
+
     use flowclib::compiler::compile;
+    use flowclib::loader::loader;
     use flowclib::model::name::Name;
     use flowclib::model::process::Process::FlowProcess;
+    use url::Url;
+
     use content::provider::MetaProvider;
     use source_arg::url_from_cl_arg;
 

@@ -3,83 +3,9 @@ use std::fmt;
 use generator::code_gen::CodeGenTables;
 use std::fs::File;
 use std::io;
-use std::io::prelude::*;
+use std::io::Write;
 use std::path::PathBuf;
 use ::dumper::dump_dot;
-use model::process::Process::FlowProcess;
-
-/// dump a flow definition that has been loaded to a file in the specified output directory
-///
-///
-/// # Example
-/// ```
-/// extern crate url;
-/// extern crate flowclib;
-/// extern crate tempdir;
-/// use std::env;
-/// use url::Url;
-/// use flowclib::loader::provider::Provider;
-/// use flowclib::model::process::Process::FlowProcess;
-///
-/// struct DummyProvider {}
-///
-/// impl Provider for DummyProvider {
-///     fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
-///         Ok((url.clone(), None))
-///     }
-///
-///     fn get(&self, url: &Url) -> Result<String, String> {
-///         Ok("flow = \"dummy\"\n[[input]]".to_string())
-///     }
-/// }
-///
-/// fn main() {
-///
-///     let dummy_provider = DummyProvider {};
-///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
-///
-///     let parent_route = &"".to_string();
-///     let alias = &"hello-world-simple".to_string();
-///
-///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_process(parent_route,
-///                                                       alias,
-///                                                       &url,
-///                                                       &dummy_provider).unwrap() {
-///         let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
-///
-///         flowclib::dumper::dumper::dump_flow(&flow, &output_dir).unwrap();
-///     }
-/// }
-/// ```
-pub fn dump_flow(flow: &Flow, output_dir: &PathBuf) -> io::Result<String> {
-    _dump_flow(flow, 0, output_dir)
-}
-
-/*
-    dump the flow definition recursively, tracking what level we are at as we go down
-*/
-fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<String> {
-    let mut writer = create_output_file(&output_dir, &flow.alias, "dump")?;
-    writer.write_all(format!("\nLevel={}\n{}", level, flow).as_bytes())?;
-
-    writer = create_output_file(&output_dir, &flow.alias, "dot")?;
-    dump_dot::dump_flow_dot(flow, &mut writer)?;
-
-    // Dump sub-flows
-    if let Some(ref flow_refs) = flow.process_refs {
-        for flow_ref in flow_refs {
-            match flow_ref.process {
-                FlowProcess(ref subflow) => {
-                    _dump_flow(subflow, level + 1, output_dir)?;
-                }
-                _ => {}
-            }
-        }
-    }
-
-    Ok("All flows dumped".to_string())
-}
 
 /// dump a flow's compiled tables constructed for use in code generation
 ///
@@ -124,7 +50,7 @@ fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<Str
 ///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///         let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
 ///
-///         flowclib::dumper::dumper::dump_tables(&tables, &output_dir).unwrap();
+///         flowclib::dumper::dump_tables::dump_tables(&tables, &output_dir).unwrap();
 ///     }
 /// }
 /// ```
@@ -181,16 +107,14 @@ pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<S
 ///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///         let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///
-///         flowclib::dumper::dumper::dump_runnables(&flow, &tables, &output_dir).unwrap();
+///         flowclib::dumper::dump_tables::dump_runnables(&flow, &tables, &output_dir).unwrap();
 ///     }
 /// }
 /// ```
 pub fn dump_runnables(flow: &Flow, tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<String> {
-    let mut writer = create_output_file(&output_dir, "runnables", "dot")?;
-    info!("Generating Runnables dot file {}, Use \"dotty\" to view it", output_dir.display());
-    dump_dot::runnables_to_dot(&flow.alias, tables, &mut writer)?;
+    dump_dot::runnables_to_dot(&flow.alias, tables, output_dir)?;
 
-    writer = create_output_file(&output_dir, "runnables", "dump")?;
+    let mut writer = create_output_file(&output_dir, "runnables", "dump")?;
     dump_table(tables.runnables.iter(), &mut writer)
 }
 

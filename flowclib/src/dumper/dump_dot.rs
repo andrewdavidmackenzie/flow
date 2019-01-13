@@ -2,6 +2,7 @@ use model::flow::Flow;
 use generator::code_gen::CodeGenTables;
 use std::io;
 use std::io::prelude::*;
+use std::path::PathBuf;
 use model::runnable::Runnable;
 use model::process_reference::ProcessReference;
 use model::io::IOSet;
@@ -13,6 +14,7 @@ use model::connection::Connection;
 use model::name::HasName;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
+use ::dumper::helper;
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
 //static OUTPUT_PORTS: &[&str] = &["s", "se", "sw"];
@@ -270,7 +272,10 @@ fn process_reference_to_dot(process_ref: &ProcessReference) -> String {
     dot_string
 }
 
-pub fn runnables_to_dot(flow_alias: &str, tables: &CodeGenTables, dot_file: &mut Write) -> io::Result<String> {
+pub fn runnables_to_dot(flow_alias: &str, tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<String> {
+    let mut dot_file = helper::create_output_file(&output_dir, "runnables", "dot")?;
+    info!("Generating Runnables dot file {}, Use \"dotty\" to view it", output_dir.display());
+
     // Create a directed graph named after the flow
     dot_file.write_all(format!("digraph {} {{\nnodesep=1.5\n", str::replace(flow_alias, "-", "_")).as_bytes())?;
 
