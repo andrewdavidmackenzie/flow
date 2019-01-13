@@ -33,6 +33,23 @@ fn simple_context_loads() {
     toml.load_process(flow_description).unwrap();
 }
 
+// Test to see if #[serde(deny_unknown_fields)] causes deserialization failures in yaml
+#[test]
+#[should_panic]
+fn error_on_unknown_fields() {
+    let flow_description = "\
+        flow = 'hello-world-simple-toml'
+
+        foo = 'true'
+
+        [[bar]]
+        bar = 'true'
+    ";
+
+    let toml = FlowTomelLoader {};
+    toml.load_process(flow_description).unwrap();
+}
+
 #[test]
 fn default_optional_values() {
     use super::super::model::flow::Flow;
@@ -47,7 +64,7 @@ fn default_optional_values() {
             assert_eq!(flow.version, Flow::default_version());
             assert_eq!(flow.author_name, Flow::default_author());
             assert_eq!(flow.author_email, Flow::default_email());
-        },
+        }
         _ => assert!(false)
     }
 }
@@ -68,7 +85,7 @@ fn flow_has_optional_values() {
             assert_eq!(flow.version, "1.1.1".to_string());
             assert_eq!(flow.author_name, "tester".to_string());
             assert_eq!(flow.author_email, "tester@test.com".to_string());
-        },
+        }
         _ => assert!(false)
     }
 }
