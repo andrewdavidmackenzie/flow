@@ -36,9 +36,26 @@ fn simple_context_loads() {
 // Test to see if #[serde(deny_unknown_fields)] causes deserialization failures in yaml
 #[test]
 #[should_panic]
-fn error_on_unknown_fields() {
+fn flow_errors_on_unknown_fields() {
     let flow_description = "\
         flow = 'hello-world-simple-toml'
+
+        foo = 'true'
+
+        [[bar]]
+        bar = 'true'
+    ";
+
+    let toml = FlowTomelLoader {};
+    toml.load_process(flow_description).unwrap();
+}
+
+#[test]
+#[should_panic]
+fn function_errors_on_unknown_fields() {
+    let flow_description = "\
+        function = 'hello-world-simple-toml'
+        [[output]]
 
         foo = 'true'
 

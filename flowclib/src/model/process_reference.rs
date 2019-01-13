@@ -8,6 +8,7 @@ use std::fmt;
 use url::Url;
 
 #[derive(Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct ProcessReference {
     pub alias: Name,
     pub source: String,
@@ -51,5 +52,36 @@ impl fmt::Display for ProcessReference {
 impl ProcessReference {
     fn default_url() -> Url {
         Url::parse("file::///").unwrap()
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use model::route::Route;
+    use model::route::Router;
+    use super::ProcessReference;
+    use super::super::super::loader::loader::Validate;
+
+    #[test]
+    fn deserialize_simple() {
+        let input_str = "
+        alias = 'other'
+        source = 'other.toml'
+        ";
+
+        let reference: ProcessReference = toml::from_str(input_str).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn deserialize_extra_field_fails() {
+        let input_str = "
+        alias = 'other'
+        source = 'other.toml'
+        foo = 'extra token'
+        ";
+
+        let reference: ProcessReference = toml::from_str(input_str).unwrap();
     }
 }

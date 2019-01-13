@@ -6,6 +6,7 @@ use model::io::IO;
 use std::fmt;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct Connection {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<Name>,
@@ -61,6 +62,8 @@ impl Validate for Connection {
 mod test {
     use model::route::Route;
     use model::route::Router;
+    use super::Connection;
+    use super::super::super::loader::loader::Validate;
 
     #[test]
     fn no_path_no_change() {
@@ -102,5 +105,27 @@ mod test {
         assert_eq!(new_route.as_ref(), "/array_output");
         assert_eq!(num, 0);
         assert_eq!(trailing_number, true);
+    }
+
+    #[test]
+    fn deserialize_simple() {
+        let input_str = "
+        from = 'source'
+        to = 'dest'
+        ";
+
+        let connection: Connection = toml::from_str(input_str).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn deserialize_extra_field_fails() {
+        let input_str = "
+        name = 'input'
+        foo = 'extra token'
+        type = 'Json'
+        ";
+
+        let connection: Connection = toml::from_str(input_str).unwrap();
     }
 }

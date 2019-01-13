@@ -12,6 +12,7 @@ use std::collections::HashSet;
 use model::route::Router;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct IO {
     #[serde(default = "default_name")]
     #[serde(skip_serializing_if = "String::is_empty")]
@@ -235,8 +236,9 @@ mod test {
 
     #[test]
     fn deserialize_valid_type() {
-        let input_str = "\
-        type = \"String\"";
+        let input_str = "
+        type = 'String'
+        ";
 
         let output: IO = toml::from_str(input_str).unwrap();
         output.validate().unwrap();
@@ -245,8 +247,9 @@ mod test {
     #[test]
     #[should_panic]
     fn deserialize_invalid_type() {
-        let input_str = "\
-        type = \"Unknown\"";
+        let input_str = "
+        type = 'Unknown'
+        ";
 
         let output: IO = toml::from_str(input_str).unwrap();
         output.validate().unwrap();
@@ -254,9 +257,10 @@ mod test {
 
     #[test]
     fn deserialize_name() {
-        let input_str = "\
-        name = \"/sub_route\"
-        type = \"String\"";
+        let input_str = "
+        name = '/sub_route'
+        type = 'String'
+        ";
 
         let output: IO = toml::from_str(input_str).unwrap();
         output.validate().unwrap();
@@ -265,9 +269,10 @@ mod test {
 
     #[test]
     fn deserialize_valid_string_type() {
-        let input_str = "\
-        name = \"input\"
-        type = \"String\"";
+        let input_str = "
+        name = 'input'
+        type = 'String'
+        ";
 
         let input: IO = toml::from_str(input_str).unwrap();
         input.validate().unwrap();
@@ -275,9 +280,10 @@ mod test {
 
     #[test]
     fn methods_work() {
-        let input_str = "\
-        name = \"input\"
-        type = \"String\"";
+        let input_str = "
+        name = 'input'
+        type = 'String'
+        ";
 
         let input: IO = toml::from_str(input_str).unwrap();
         assert_eq!(input.name(), "input");
@@ -286,9 +292,10 @@ mod test {
 
     #[test]
     fn deserialize_valid_json_type() {
-        let input_str = "\
-        name = \"input\"
-        type = \"Json\"";
+        let input_str = "
+        name = 'input'
+        type = 'Json'
+        ";
 
         let input: IO = toml::from_str(input_str).unwrap();
         input.validate().unwrap();
@@ -296,11 +303,12 @@ mod test {
 
     #[test]
     #[should_panic]
-    fn deserialize_extra() {
-        let input_str = "\
-        name = \"input\"\
-        foo = \"extra token\"
-        type = \"Json\"";
+    fn deserialize_extra_field_fails() {
+        let input_str = "
+        name = 'input'
+        foo = 'extra token'
+        type = 'Json'
+        ";
 
         let input: IO = toml::from_str(input_str).unwrap();
         input.validate().unwrap();

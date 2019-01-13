@@ -15,7 +15,7 @@ source = "src/parse_pair.toml"
 name = "bounds_separator"
 type = "String"
 init = "x"
-status = true
+static = true
 
 [[connection]]
 from = "process/args/2"
@@ -25,6 +25,7 @@ to = "process/parse_bounds/input"
 from = "value/bounds_separator"
 to = "process/parse_bounds/separator"
 
+#
 
 # Points Separator
 [[value]]
@@ -47,6 +48,7 @@ to = "process/parse_upper_left/separator"
 from = "process/args/3"
 to = "process/parse_upper_left/input"
 
+#
 
 # Lower Right Coordinate
 [[process]]
@@ -79,6 +81,7 @@ to = "process/render/upper_left"
 from = "process/parse_lower_right"
 to = "process/render/lower_right"
 
+#
 
 # Format Bitmap
 [[process]]

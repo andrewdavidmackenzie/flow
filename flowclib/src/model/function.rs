@@ -13,6 +13,7 @@ use serde_json::Value as JsonValue;
 use url::Url;
 
 #[derive(Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct Function {
     #[serde(rename = "function")]
     name: Name,
@@ -232,8 +233,8 @@ mod test {
     #[test]
     #[should_panic]
     fn deserialize_missing_name() {
-        let function_str = "\
-        type = \"Json\"
+        let function_str = "
+        type = 'Json'
         ";
 
         let _function: Function = toml::from_str(function_str).unwrap();
@@ -242,8 +243,8 @@ mod test {
     #[test]
     #[should_panic]
     fn deserialize_invalid() {
-        let function_str = "\
-        name = \"test_function\"
+        let function_str = "
+        name = 'test_function'
         ";
 
         let function: Function = toml::from_str(function_str).unwrap();
@@ -252,8 +253,8 @@ mod test {
 
     #[test]
     fn deserialize_output_empty() {
-        let function_str = "\
-        function = \"test_function\"
+        let function_str = "
+        function = 'test_function'
         [[output]]
         ";
 
@@ -263,11 +264,24 @@ mod test {
     }
 
     #[test]
-    fn deserialize_default_output() {
-        let function_str = "\
-        function = \"test_function\"
+    #[should_panic]
+    fn deserialize_extra_field_fails() {
+        let function_str = "
+        function = 'test_function'
         [[output]]
-        type = \"String\"
+        foo = 'true'
+        ";
+
+        let function: Function = toml::from_str(function_str).unwrap();
+        function.validate().unwrap();
+    }
+
+    #[test]
+    fn deserialize_default_output() {
+        let function_str = "
+        function = 'test_function'
+        [[output]]
+        type = 'String'
         ";
 
         let function: Function = toml::from_str(function_str).unwrap();
@@ -280,11 +294,11 @@ mod test {
 
     #[test]
     fn deserialize_output_specified() {
-        let function_str = "\
-        function = \"test_function\"
+        let function_str = "
+        function = 'test_function'
         [[output]]
-        name = \"sub_output\"
-        type = \"String\"
+        name = 'sub_output'
+        type = 'String'
         ";
 
         let function: Function = toml::from_str(function_str).unwrap();
@@ -297,14 +311,14 @@ mod test {
 
     #[test]
     fn deserialize_two_outputs_specified() {
-        let function_str = "\
-        function = \"test_function\"
+        let function_str = "
+        function = 'test_function'
         [[output]]
-        name = \"sub_output\"
-        type = \"String\"
+        name = 'sub_output'
+        type = 'String'
         [[output]]
-        name = \"other_output\"
-        type = \"Number\"
+        name = 'other_output'
+        type = 'Number'
         ";
 
         let function: Function = toml::from_str(function_str).unwrap();
@@ -322,14 +336,14 @@ mod test {
 
     #[test]
     fn set_routes() {
-        let function_str = "\
-        function = \"test_function\"
+        let function_str = "
+        function = 'test_function'
         [[output]]
-        name = \"sub_output\"
-        type = \"String\"
+        name = 'sub_output'
+        type = 'String'
         [[output]]
-        name = \"other_output\"
-        type = \"Number\"
+        name = 'other_output'
+        type = 'Number'
         ";
 
         // Setup
@@ -353,10 +367,10 @@ mod test {
     #[test]
     fn get_array_element_of_root_output() {
         // Create a function where the output is an Array of String
-        let function_str = "\
-        function = \"test_function\"
+        let function_str = "
+        function = 'test_function'
         [[output]]
-        type = \"Array/String\"
+        type = 'Array/String'
         ";
 
         // Setup

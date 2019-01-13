@@ -15,6 +15,7 @@ use url::Url;
 use std::fmt;
 
 #[derive(Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct Value {
     name: Name,
     #[serde(rename = "type")]
@@ -218,6 +219,18 @@ mod test {
     }
 
     #[test]
+    #[should_panic]
+    fn deserialize_extra_field_fails() {
+        let value_str = "
+        name = 'test_value'
+        type = 'Json'
+        extra = 'foo'
+        ";
+
+        let value: Value = toml::from_str(value_str).unwrap();
+    }
+
+    #[test]
     fn deserialize_initial_number_value() {
         // no outputs specified
         let value_str = "\
@@ -264,9 +277,9 @@ mod test {
     #[test]
     fn deserialize_output_empty() {
         let value_str = "\
-        name = \"test_value\"
-        type = \"Json\"
-        value = \"Hello\"
+        name = 'test_value'
+        type = 'Json'
+        init = 'Hello'
         [[output]]
         ";
 
@@ -281,12 +294,12 @@ mod test {
     #[test]
     fn deserialize_output_specified() {
         let value_str = "\
-        name = \"test_value\"
-        type = \"Json\"
-        value = \"Hello\"
+        name = 'test_value'
+        type = 'Json'
+        init = 'Hello'
         [[output]]
-        name = \"sub_output\"
-        type = \"String\"
+        name = 'sub_output'
+        type = 'String'
         ";
 
         let value: Value = toml::from_str(value_str).unwrap();
@@ -302,7 +315,7 @@ mod test {
         let value_str = "\
         name = \"test_value\"
         type = \"Json\"
-        value = \"Hello\"
+        init = \"Hello\"
         [[output]]
         name = \"sub_output\"
         type = \"String\"
@@ -348,7 +361,7 @@ mod test {
         let value_str = "\
         name = \"test_value\"
         type = \"Json\"
-        value = \"Hello\"
+        init = \"Hello\"
         [[output]]
         name = \"sub_output\"
         type = \"String\"
