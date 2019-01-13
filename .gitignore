@@ -4,4 +4,5 @@ ui-target
 .idea
 *.iml
 *.dot
+*.dump
 dependencies.png

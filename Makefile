@@ -127,6 +127,9 @@ copy:
 sample_flows := $(patsubst samples/%,samples/%test_output.txt,$(filter %/, $(wildcard samples/*/)))
 
 local-samples: ./target/debug/flowc $(sample_flows)  # This target must be below sample-flows in the Makefile
+	@echo ""
+	@echo "All local samples executed and output as expected"
+	@echo "------- Finished 'local-samples:' ----"
 
 clean-samples:
 	@find samples -name rust -type d -exec rm -rf {} + ; true
@@ -137,8 +140,8 @@ samples/%/test_output.txt: samples/%/test_input.txt
 # remove local file path from output messages with sed to make local failures match travis failures
 	@cat $< | ./target/debug/flowc -d $(@D) -- `cat $(@D)/test_arguments.txt` | sed -e 's/\/.*\/flow\///' | grep -v "Finished dev" > $@; true
 	@diff $@ $(@D)/expected_output.txt
-	@echo "test output matches expected output"
-	@rm $@ #remove test_output.txt after successful diff
+	@echo "Sample output matches expected output"
+	@rm $@ #remove test_output.txt after successful diff so that dependency will cause it to run again next time
 
 ################# ONLINE SAMPLES ################
 online-samples: test-hello-simple-online
@@ -170,7 +173,7 @@ run-electron:
 	@cd electron && make run-electron
 
 ################# Clean ################
-clean: clean-samples
+clean: clean-samples clean-dumps
 	cargo clean
 	@rm -rf guide/book
 	cd electron && make clean
@@ -179,4 +182,9 @@ clean: clean-samples
 	cd flowstdlib && make clean
 	cd flowrlib && make clean
 	cd flowclilib && make clean
+
+clean-dumps:
+	@find . -name \*.dump -type f -exec rm -rf {} + ; true
+	@find . -name \*.dot -type f -exec rm -rf {} + ; true
+	@echo "All .dump and .dot files removed"
 

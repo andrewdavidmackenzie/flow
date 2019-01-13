@@ -57,10 +57,10 @@ pub fn dump_flow(flow: &Flow, output_dir: &PathBuf) -> io::Result<String> {
 }
 
 /*
-    dump the flow definition recursively, tracking what lever we are at as we go down
+    dump the flow definition recursively, tracking what level we are at as we go down
 */
 fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<String> {
-    let mut writer = create_output_file(&output_dir, &flow.alias, "txt")?;
+    let mut writer = create_output_file(&output_dir, &flow.alias, "dump")?;
     writer.write_all(format!("\nLevel={}\n{}", level, flow).as_bytes())?;
 
     writer = create_output_file(&output_dir, &flow.alias, "dot")?;
@@ -72,7 +72,7 @@ fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<Str
             match flow_ref.process {
                 FlowProcess(ref subflow) => {
                     _dump_flow(subflow, level + 1, output_dir)?;
-                },
+                }
                 _ => {}
             }
         }
@@ -130,7 +130,7 @@ fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<Str
 /// ```
 ///
 pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<String> {
-    let mut writer = create_output_file(&output_dir, "tables", "txt")?;
+    let mut writer = create_output_file(&output_dir, "tables", "dump")?;
     writer.write_all(format!("{}:\n{:#?}\n", "Original Connections", tables.connections).as_bytes())?;
     writer.write_all(format!("{}:\n{:#?}\n", "Source Routes", tables.source_routes).as_bytes())?;
     writer.write_all(format!("{}:\n{:#?}\n", "Destination Routes", tables.destination_routes).as_bytes())?;
@@ -190,13 +190,12 @@ pub fn dump_runnables(flow: &Flow, tables: &CodeGenTables, output_dir: &PathBuf)
     info!("Generating Runnables dot file {}, Use \"dotty\" to view it", output_dir.display());
     dump_dot::runnables_to_dot(&flow.alias, tables, &mut writer)?;
 
-    writer = create_output_file(&output_dir, "runnables", "txt")?;
-    dump_table(tables.runnables.iter(), "Runnables", &mut writer)
+    writer = create_output_file(&output_dir, "runnables", "dump")?;
+    dump_table(tables.runnables.iter(), &mut writer)
 }
 
-fn dump_table<C: Iterator>(table: C, title: &str, writer: &mut Write) -> io::Result<String>
+fn dump_table<C: Iterator>(table: C, writer: &mut Write) -> io::Result<String>
     where <C as Iterator>::Item: fmt::Display {
-    writer.write_all(format!("{}:\n", title).as_bytes())?;
     for e in table.into_iter() {
         writer.write_all(format!("\t{}\n", e).as_bytes())?;
     }
