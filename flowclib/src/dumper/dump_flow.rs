@@ -46,7 +46,7 @@ use model::process::Process::FlowProcess;
 ///                                                       &dummy_provider).unwrap() {
 ///         let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
 ///
-///         flowclib::dumper::dumper::dump_flow(&flow, &output_dir).unwrap();
+///         flowclib::dumper::dump_flow::dump_flow(&flow, &output_dir).unwrap();
 ///     }
 /// }
 /// ```

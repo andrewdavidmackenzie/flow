@@ -12,6 +12,7 @@ use model::route::Route;
 
 const RUST: &CodeGenerator = &RustGenerator as &CodeGenerator;
 
+#[derive(Serialize)]
 pub struct CodeGenTables {
     pub connections: Vec<Connection>,
     pub source_routes: HashMap<Route, (Route, usize)>,
@@ -21,6 +22,8 @@ pub struct CodeGenTables {
     pub libs: HashSet<String>,
     pub lib_references: HashSet<String>,
 }
+
+serialize_trait_object!(Runnable);
 
 impl CodeGenTables {
     pub fn new() -> Self {

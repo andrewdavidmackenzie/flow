@@ -5,8 +5,9 @@ use model::route::HasRoute;
 use model::io::IO;
 use std::fmt;
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Connection {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<Name>,
     pub from: Route,
     pub to: Route,
@@ -37,10 +38,10 @@ impl Connection {
 impl fmt::Display for Connection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match (self.from_io.flow_io(), self.to_io.flow_io()) {
-            (true, true) => write!(f, "(f){} --> (f){}", self.from_io.route(), self.to_io.route()),
-            (true, false) => write!(f, "(f){} --> {}", self.from_io.route(), self.to_io.route()),
-            (false, true) => write!(f, "{} --> (f){}", self.from_io.route(), self.to_io.route()),
-            (false, false) => write!(f, "{} --> {}", self.from_io.route(), self.to_io.route())
+            (true, true) => write!(f,   "(f){} --> {}(f)", self.from_io.route(), self.to_io.route()),
+            (true, false) => write!(f,  "(f){} --> {}", self.from_io.route(), self.to_io.route()),
+            (false, true) => write!(f,  "   {} --> {}(f)", self.from_io.route(), self.to_io.route()),
+            (false, false) => write!(f, "   {} --> {}", self.from_io.route(), self.to_io.route())
         }
     }
 }

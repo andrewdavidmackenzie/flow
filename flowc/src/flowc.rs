@@ -16,6 +16,7 @@ use std::process::Stdio;
 use clap::{App, AppSettings, Arg, ArgMatches};
 use flowclib::compiler::compile;
 use flowclib::dumper::dump_flow;
+use flowclib::dumper::dump_tables;
 use flowclib::generator::code_gen;
 use flowclib::info;
 use flowclib::loader::loader;
@@ -23,7 +24,6 @@ use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
 use simplog::simplog::SimpleLogger;
 use url::Url;
-
 
 mod source_arg;
 mod content;
@@ -125,8 +125,8 @@ fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, ou
         info!("Dumping flow, compiler tables and runnable descriptions in '{}'", dump_dir.display());
 
         dump_flow::dump_flow(&flow, &dump_dir).map_err(|e| e.to_string())?;
-        dump_flow::dump_tables(&tables, &dump_dir).map_err(|e| e.to_string())?;
-        dump_flow::dump_tables(&flow, &tables, &dump_dir).map_err(|e| e.to_string())?;
+        dump_tables::dump_tables(&tables, &dump_dir).map_err(|e| e.to_string())?;
+        dump_tables::dump_runnables(&flow, &tables, &dump_dir).map_err(|e| e.to_string())?;
     }
 
     if skip_generation {

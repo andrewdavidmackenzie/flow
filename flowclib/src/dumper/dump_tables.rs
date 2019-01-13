@@ -7,8 +7,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use ::dumper::dump_dot;
 
-/// dump a flow's compiled tables constructed for use in code generation
-///
+/// dump a flow's compiler tables that were constructed for use in code generation
 ///
 /// # Example
 /// ```
@@ -56,13 +55,35 @@ use ::dumper::dump_dot;
 /// ```
 ///
 pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<String> {
-    let mut writer = create_output_file(&output_dir, "tables", "dump")?;
-    writer.write_all(format!("{}:\n{:#?}\n", "Original Connections", tables.connections).as_bytes())?;
-    writer.write_all(format!("{}:\n{:#?}\n", "\nSource Routes", tables.source_routes).as_bytes())?;
-    writer.write_all(format!("{}:\n{:#?}\n", "\nDestination Routes", tables.destination_routes).as_bytes())?;
-    writer.write_all(format!("{}:\n{:#?}\n", "\nCollapsed Connections", tables.collapsed_connections).as_bytes())?;
-    writer.write_all(format!("{}:\n{:#?}\n", "\nLibraries", tables.libs).as_bytes())?;
-    writer.write_all(format!("{}:\n{:#?}\n", "\nLibrary references", tables.lib_references).as_bytes())?;
+    let mut writer = create_output_file(&output_dir, "flow_connections", "dump")?;
+    writer.write_all(format!("{}",
+                             serde_json::to_string_pretty(&tables.connections)
+                                 .unwrap()).as_bytes())?;
+
+    writer = create_output_file(&output_dir, "source_routes", "dump")?;
+    writer.write_all(format!("{}",
+                             serde_json::to_string_pretty(&tables.source_routes)
+                                 .unwrap()).as_bytes())?;
+
+    writer = create_output_file(&output_dir, "destination_routes", "dump")?;
+    writer.write_all(format!("{}",
+                             serde_json::to_string_pretty(&tables.destination_routes)
+                                 .unwrap()).as_bytes())?;
+
+    writer = create_output_file(&output_dir, "collapsed_connections", "dump")?;
+    writer.write_all(format!("{}",
+                             serde_json::to_string_pretty(&tables.collapsed_connections)
+                                 .unwrap()).as_bytes())?;
+
+    writer = create_output_file(&output_dir, "libs", "dump")?;
+    writer.write_all(format!("{}",
+                             serde_json::to_string_pretty(&tables.libs)
+                                 .unwrap()).as_bytes())?;
+
+    writer = create_output_file(&output_dir, "lib_references", "dump")?;
+    writer.write_all(format!("{}",
+                             serde_json::to_string_pretty(&tables.lib_references)
+                                 .unwrap()).as_bytes())?;
     Ok("All tables dumped".to_string())
 }
 

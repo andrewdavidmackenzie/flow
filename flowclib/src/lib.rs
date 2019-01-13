@@ -6,6 +6,8 @@ extern crate serde_derive;
 extern crate serde_json;
 #[cfg(not(test))]
 extern crate serde_json;
+#[macro_use]
+extern crate erased_serde;
 extern crate toml;
 #[macro_use]
 extern crate log;

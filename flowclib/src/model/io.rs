@@ -11,9 +11,10 @@ use model::route::SetRoute;
 use std::collections::HashSet;
 use model::route::Router;
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct IO {
     #[serde(default = "default_name")]
+    #[serde(skip_serializing_if = "String::is_empty")]
     name: Name,
     #[serde(rename = "type", default = "default_type")]
     datatype: DataType,
