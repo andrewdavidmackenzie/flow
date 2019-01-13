@@ -18,6 +18,9 @@ use flowclilib::startup::start;
 use flowrlib::execution::execute;
 use std::process::exit;
 
+use std::sync::{Arc, Mutex};
+use flowrlib::process::Process;
+
 mod runnables;
 use runnables::get_runnables;
 ";
@@ -25,7 +28,16 @@ use runnables::get_runnables;
 const MAIN_SUFFIX: &'static str = "
 fn main() {{
     start();
-    execute(get_runnables());
+
+    let processes = get_runnables();
+    let mut runnables = Vec::<Arc<Mutex<Process<'static>>>>::new();
+
+    for process in processes {{
+        runnables.push(Arc::new(Mutex::new(process)));
+    }}
+
+    execute(runnables);
+
     exit(0);
 }}
 ";
