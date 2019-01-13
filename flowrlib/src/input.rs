@@ -26,6 +26,10 @@ impl Input {
         self.received.push(value);
     }
 
+    pub fn overwrite(&mut self, value: JsonValue) {
+        self.received[0] = value;
+    }
+
     pub fn full(&self) -> bool {
         self.received.len() == self.depth
     }

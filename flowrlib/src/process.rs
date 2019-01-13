@@ -68,10 +68,15 @@ impl<'a> Process<'a> {
     }
 
     pub fn write_input(&mut self, input_number: usize, input_value: JsonValue) {
-        if self.inputs[input_number].full() {
-            error!("\t\t\tProcess #{} '{}' Input overflow on input number {}", self.id(), self.name(), input_number);
-        } else {
+        if !self.inputs[input_number].full() {
             self.inputs[input_number].push(input_value);
+        } else {
+            // a static value is never emptied when run, so allow it to be overwritten when full
+            if self.static_value {
+                self.inputs[input_number].overwrite(input_value);
+            } else {
+                error!("\t\t\tProcess #{} '{}' Input overflow on input number {}", self.id(), self.name(), input_number);
+            }
         }
     }
 
@@ -115,6 +120,20 @@ impl<'a> Process<'a> {
 mod test {
     use serde_json::value::Value as JsonValue;
 
+    use super::Process;
+    use super::super::implementation::Implementation;
+    use super::super::implementation::RunAgain;
+    use super::super::runlist::RunList;
+
+    struct TestImpl;
+
+    impl Implementation for TestImpl {
+        fn run(&self, process: &Process, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList)
+               -> RunAgain {
+            true
+        }
+    }
+
     #[test]
     fn destructure_output_base_route() {
         let json = json!("simple");
@@ -133,5 +152,50 @@ mod test {
         let json = json!(args);
         assert_eq!(json.pointer("/0").unwrap(), "arg0");
         assert_eq!(json.pointer("/1").unwrap(), "arg1");
+    }
+
+    #[test]
+    fn can_send_input_if_empty() {
+        let mut process = Process::new("test", 1, false, vec!(1), 0, &TestImpl {}, None, vec!());
+        process.init();
+        process.write_input(0, json!(1));
+        assert_eq!(process.get_input_values().remove(0).remove(0), json!(1));
+    }
+
+    #[test]
+    fn can_send_input_if_empty_and_static() {
+        let mut process = Process::new("test", 1, true, vec!(1), 0, &TestImpl {}, None, vec!());
+        process.init();
+        process.write_input(0, json!(1));
+        assert_eq!(process.get_input_values().remove(0).remove(0), json!(1));
+    }
+
+    #[test]
+    fn cannot_send_input_if_initialized() {
+        let mut process = Process::new("test", 1, false, vec!(1), 0, &TestImpl {},
+                                       Some(json!(0)), vec!());
+        process.init();
+        process.write_input(0, json!(1)); // error
+        assert_eq!(process.get_input_values().remove(0).remove(0), json!(0));
+    }
+
+    #[test]
+    fn can_send_input_if_full_and_static() {
+        let mut process = Process::new("test", 1, true, vec!(1), 0, &TestImpl {},
+                                       None, vec!());
+        process.init();
+        process.write_input(0, json!(1));
+        process.write_input(0, json!(2));
+        assert_eq!(process.get_input_values().remove(0).remove(0), json!(2));
+    }
+
+    #[test]
+    fn cannot_send_input_if_full_and_not_static() {
+        let mut process = Process::new("test", 1, false, vec!(1), 0, &TestImpl {},
+                                       None, vec!());
+        process.init();
+        process.write_input(0, json!(1)); // success
+        process.write_input(0, json!(2)); // fail
+        assert_eq!(process.get_input_values().remove(0).remove(0), json!(1));
     }
 }
