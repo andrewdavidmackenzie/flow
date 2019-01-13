@@ -16,7 +16,7 @@ const RUNNABLES_PREFIX: &'static str = "
 
 const GET_RUNNABLES: &'static str = "
 
-pub fn get_runnables() -> Vec<Process<'static>> {{
+pub fn get_runnables<'a>() -> Vec<Process<'a>> {{
     let mut runnables = Vec::<Process<'static>>::with_capacity({num_runnables});\n\n";
 
 const RUNNABLES_SUFFIX: &'static str = "
