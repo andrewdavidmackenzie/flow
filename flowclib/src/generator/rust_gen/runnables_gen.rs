@@ -17,19 +17,39 @@ const RUNNABLES_PREFIX: &'static str = "
 const GET_RUNNABLES: &'static str = "
 
 pub fn get_runnables<'a>() -> Vec<Process<'a>> {{
-    let mut runnables = Vec::<Process<'static>>::with_capacity({num_runnables});\n\n";
+    let mut runnables = Vec::<Process>::with_capacity({num_runnables});\n\n";
 
 const RUNNABLES_SUFFIX: &'static str = "
     runnables
 }";
 
 // Create the 'runnables.rs' file in the output project's source folder
-pub fn create(src_dir: &PathBuf, tables: &CodeGenTables) -> Result<()> {
+pub fn create_runnables_rs(src_dir: &PathBuf, tables: &CodeGenTables) -> Result<()> {
     let mut file = src_dir.clone();
     file.push("runnables.rs");
     let mut runnables_rs = File::create(&file)?;
-    let contents = contents(tables,implementations(&tables)?);
+    let contents = contents(tables, implementations(&tables)?);
     runnables_rs.write_all(contents.unwrap().as_bytes())
+}
+
+// Create the 'runnables.json' file in the output project's source folder
+pub fn create_runnables_json(src_dir: &PathBuf, tables: &CodeGenTables) -> Result<()> {
+    let mut file = src_dir.clone();
+    file.push("runnables.json");
+    let mut runnables_json = File::create(&file)?;
+
+    // Generate json struct for each of the runnables
+    let mut serializable_runnables =
+        Vec::<flowrlib::process::Process>::with_capacity(tables.runnables.len());
+    for runnable in &tables.runnables {
+        serializable_runnables.push(runnable_to_json(runnable));
+    }
+
+    let json = serde_json::to_string_pretty(&serializable_runnables)?;
+
+    runnables_json.write_all(json.as_bytes())?;
+
+    Ok(())
 }
 
 fn uses_value(runnables: &Vec<Box<Runnable>>) -> bool {
@@ -157,6 +177,7 @@ fn runnable_to_code(runnable: &Box<Runnable>) -> String {
             code.push_str(&format!("), "));
         }
     }
+
     code.push_str(&format!("{}, &{}{{}}, ", runnable.get_id(), runnable.get_implementation()));
 
     code.push_str(&format!("{},", match runnable.get_initial_value() {
@@ -169,9 +190,9 @@ fn runnable_to_code(runnable: &Box<Runnable>) -> String {
     debug!("Runnable '{}' output routes: {:?}", runnable.name(), runnable.get_output_routes());
     for ref route in runnable.get_output_routes() {
         if route.0.is_empty() {
-            code.push_str(&format!("(\"\", {}, {}),", route.1, route.2)); // no leading '/'
+            code.push_str(&format!("(\"\".to_string(), {}, {}),", route.1, route.2)); // no leading '/'
         } else {
-            code.push_str(&format!("(\"/{}\", {}, {}),", route.0, route.1, route.2));
+            code.push_str(&format!("(\"/{}\".to_string(), {}, {}),", route.0, route.1, route.2));
         }
     }
     code.push_str(")");
@@ -179,6 +200,40 @@ fn runnable_to_code(runnable: &Box<Runnable>) -> String {
     code.push_str(")");
 
     code
+}
+
+fn runnable_to_json(runnable: &Box<Runnable>) -> flowrlib::process::Process {
+    let name = runnable.alias();
+    let number_of_inputs = match &runnable.get_inputs() {
+        &None => 0,
+        Some(inputs) => inputs.len()
+    };
+    let is_static = runnable.is_static_value();
+    let impl_path = runnable.get_impl_path();
+    let input_depths = match &runnable.get_inputs() {
+        &None => vec!(),
+        Some(inputs) => {
+            let mut depths = vec!();
+            for input in inputs {
+                depths.push(input.depth());
+            }
+            depths
+        }
+    };
+    let id = runnable.get_id();
+    let initial_value = runnable.get_initial_value();
+    let output_routes = runnable.get_output_routes().clone();
+
+    flowrlib::process::Process::new2(
+        name,
+        number_of_inputs,
+        is_static,
+        impl_path,
+        input_depths,
+        id,
+        initial_value,
+        output_routes,
+    )
 }
 
 #[cfg(test)]
@@ -204,7 +259,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Process::new(\"value\", 1, false, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Process::new(\"value\", 1, false, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\".to_string(), 1, 0),))")
     }
 
     #[test]
@@ -221,7 +276,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Process::new(\"value\", 1, true, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Process::new(\"value\", 1, true, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\".to_string(), 1, 0),))")
     }
 
     #[test]
@@ -240,7 +295,7 @@ mod test {
 
         let br = Box::new(value) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Process::new(\"value\", 1, false, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+        assert_eq!(code, "Process::new(\"value\", 1, false, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\".to_string(), 1, 0),(\"/sub_route\".to_string(), 2, 0),))")
     }
 
     #[test]
@@ -261,7 +316,7 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Process::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"\", 1, 0),(\"/sub_route\", 2, 0),))")
+        assert_eq!(code, "Process::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"\".to_string(), 1, 0),(\"/sub_route\".to_string(), 2, 0),))")
     }
 
     #[test]
@@ -281,7 +336,7 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Process::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"\", 1, 0),))")
+        assert_eq!(code, "Process::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"\".to_string(), 1, 0),))")
     }
 
     #[test]
@@ -301,6 +356,6 @@ mod test {
 
         let br = Box::new(function) as Box<Runnable>;
         let code = runnable_to_code(&br);
-        assert_eq!(code, "Process::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"/0\", 1, 0),))")
+        assert_eq!(code, "Process::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"/0\".to_string(), 1, 0),))")
     }
 }

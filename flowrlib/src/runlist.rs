@@ -142,10 +142,10 @@ impl<'a> RunList<'a> {
         if those other processs have all their inputs, then mark them accordingly.
     */
     pub fn send_output(&mut self, process: &Process, output: JsonValue) {
-        for &(output_route, destination_id, io_number) in process.output_destinations() {
+        for &(ref output_route, destination_id, io_number) in process.output_destinations() {
             let destination_arc = Arc::clone(&self.processs[destination_id]);
             let mut destination = destination_arc.lock().unwrap();
-            let output_value = output.pointer(output_route).unwrap();
+            let output_value = output.pointer(&output_route).unwrap();
             debug!("\t\tProcess #{} '{}{}' sending output '{}' to Process #{} '{}' input #{}",
                    process.id(), process.name(), output_route, output_value, &destination_id,
                    destination.name(), &io_number);
@@ -214,47 +214,37 @@ impl<'a> RunList<'a> {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::Value as JsonValue;
     use std::sync::{Arc, Mutex};
 
     use super::Process;
     use super::RunList;
-    use super::super::implementation::Implementation;
-
-    struct TestImplementation;
-
-    impl Implementation for TestImplementation {
-        fn run(&self, process: &Process, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> bool {
-            run_list.send_output(process, inputs.get(0).unwrap().get(0).unwrap().clone());
-            true
-        }
-    }
 
     fn test_processs<'a>() -> Vec<Arc<Mutex<Process<'a>>>> {
-        let p0 = Arc::new(Mutex::new(Process::new("p0", // name
-                                                  0,    // number_of_inputs
-                                                  false,// static value
-                                                  vec!(), // input depths array
-                                                  0,    // id
-                                                  &TestImplementation {},
-                                                  None,
-                                                  vec!(("", 1, 0), ("", 1, 0)), // destinations
-        )));    // implementation
-        let p1 = Arc::new(Mutex::new(Process::new("p1",
+        let p0 = Arc::new(Mutex::new(
+            Process::new2("p0", // name
+                         0,    // number_of_inputs
+                         false,// static value
+                         "/test".to_string(),
+                         vec!(), // input depths array
+                         0,    // id
+                         None,
+                         vec!(("".to_string(), 1, 0), ("".to_string(), 1, 0)), // destinations
+            )));    // implementation
+        let p1 = Arc::new(Mutex::new(Process::new2("p1",
                                                   1,
                                                   false,// static value
+                                                  "/test".to_string(),
                                                   vec!(1), // input depths array
                                                   1,    // id
-                                                  &TestImplementation {},
                                                   None,
                                                   vec!(),
         )));
-        let p2 = Arc::new(Mutex::new(Process::new("p2",
+        let p2 = Arc::new(Mutex::new(Process::new2("p2",
                                                   1,
                                                   false,// static value
+                                                  "/test".to_string(),
                                                   vec!(1), // input depths array
                                                   2,    // id
-                                                  &TestImplementation {},
                                                   None,
                                                   vec!(),
         )));

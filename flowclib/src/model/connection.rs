@@ -63,7 +63,6 @@ mod test {
     use model::route::Route;
     use model::route::Router;
     use super::Connection;
-    use super::super::super::loader::loader::Validate;
 
     #[test]
     fn no_path_no_change() {
@@ -114,7 +113,7 @@ mod test {
         to = 'dest'
         ";
 
-        let connection: Connection = toml::from_str(input_str).unwrap();
+        let _connection: Connection = toml::from_str(input_str).unwrap();
     }
 
     #[test]
@@ -126,6 +125,6 @@ mod test {
         type = 'Json'
         ";
 
-        let connection: Connection = toml::from_str(input_str).unwrap();
+        let _connection: Connection = toml::from_str(input_str).unwrap();
     }
 }

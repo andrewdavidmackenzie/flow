@@ -30,7 +30,7 @@ fn main() {{
     start();
 
     let processes = get_runnables();
-    let mut runnables = Vec::<Arc<Mutex<Process<'static>>>>::new();
+    let mut runnables = Vec::<Arc<Mutex<Process>>>::new();
 
     for process in processes {{
         runnables.push(Arc::new(Mutex::new(process)));

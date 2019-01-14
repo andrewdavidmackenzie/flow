@@ -14,6 +14,7 @@ extern crate log;
 extern crate strfmt;
 extern crate url;
 extern crate yaml_rust;
+extern crate flowrlib;
 
 pub mod loader;
 pub mod dumper;

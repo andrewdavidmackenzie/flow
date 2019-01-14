@@ -107,6 +107,10 @@ impl Runnable for Value {
     fn get_implementation(&self) -> &str {
         "Fifo"
     }
+
+    fn get_impl_path(&self) -> String {
+        "//flowrlib/zero_fifo/Fifo".to_string()
+    }
 }
 
 impl Validate for Value {
@@ -227,7 +231,7 @@ mod test {
         extra = 'foo'
         ";
 
-        let value: Value = toml::from_str(value_str).unwrap();
+        let _value: Value = toml::from_str(value_str).unwrap();
     }
 
     #[test]

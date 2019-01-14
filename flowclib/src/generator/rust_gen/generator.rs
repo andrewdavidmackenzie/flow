@@ -19,7 +19,8 @@ impl CodeGenerator for RustGenerator {
         let src_dir = RustGenerator::create_src_dir(&output_dir)?;
         functions_gen::copy(&src_dir, &tables.runnables)?;
         main_gen::create(&src_dir, &mut vars, tables)?;
-        runnables_gen::create(&src_dir, tables)?;
+        runnables_gen::create_runnables_rs(&src_dir, tables)?;
+        runnables_gen::create_runnables_json(&src_dir, tables)?;
         Ok(((build, build_args), (run, run_args)))
     }
 }

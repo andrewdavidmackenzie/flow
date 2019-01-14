@@ -1,8 +1,10 @@
 use serde_json::Value as JsonValue;
 use std::mem::replace;
 
+#[derive(Deserialize, Serialize)]
 pub struct Input {
     depth: usize,
+    #[serde(skip_deserializing)]
     received: Vec<JsonValue>,
 }
 

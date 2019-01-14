@@ -15,7 +15,7 @@ pub fn add_entries(flow: &Flow, tables: &mut CodeGenTables) {
         tables.connections.append(&mut conns);
     }
 
-    // Add Values from this flow to the table
+    // Add Values from this flow to the table of runnables
     if let Some(ref values) = flow.values {
         for value in values {
             tables.runnables.push(Box::new(value.clone()));
@@ -27,15 +27,17 @@ pub fn add_entries(flow: &Flow, tables: &mut CodeGenTables) {
         for process_ref in process_refs {
             match process_ref.process {
                 FlowProcess(ref flow) => {
-                    add_entries(flow, tables);
+                    add_entries(flow, tables); // recurse
                 }
                 FunctionProcess(ref function) => {
+                    // Add Functions from this flow to the table of runnables
                     tables.runnables.push(Box::new(function.clone()));
                 }
             }
         }
     }
 
+    // TODO this could maybe be delayed until generation? or avoided if each runnable has it
     for lib_ref in &flow.lib_references {
         let lib_reference = lib_ref.clone();
         let lib_name = lib_reference.split("/").next().unwrap().to_string();

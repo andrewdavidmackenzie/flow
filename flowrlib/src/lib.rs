@@ -4,14 +4,16 @@
 extern crate log;
 #[macro_use] extern crate serde_json;
 extern crate simplog;
-
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 pub mod info;
 pub mod execution;
 pub mod runlist;
 pub mod implementation;
 pub mod process;
 pub mod zero_fifo;
-mod input;
+pub mod input;
 
 pub mod env;
 pub mod stdio;

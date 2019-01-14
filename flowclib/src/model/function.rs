@@ -92,6 +92,14 @@ impl Runnable for Function {
     fn get_implementation(&self) -> &str {
         &self.name
     }
+
+    fn get_impl_path(&self) -> String {
+        if let Some(ref reference) = self.lib_reference {
+            format!("//{}/{}", reference, self.get_implementation())
+        } else {
+            "path to supplied implementation".to_string()
+        }
+    }
 }
 
 impl Validate for Function {

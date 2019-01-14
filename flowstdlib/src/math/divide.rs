@@ -24,8 +24,6 @@ mod test {
     use flowrlib::runlist::RunList;
     use serde_json::Value as JsonValue;
 
-    use super::Divide;
-
     #[test]
     fn test_divide() {
         // Create input vector
@@ -34,7 +32,7 @@ mod test {
         let inputs: Vec<Vec<JsonValue>> = vec!(vec!(dividend), vec!(divisor));
 
         let mut run_list = RunList::new();
-        let d = &Process::new("d", 3, true, vec!(1, 1, 1), 0, &Divide, None, vec!()) as &Process;
+        let d = &Process::new2("d", 3, true, "".to_string(), vec!(1, 1, 1), 0, None, vec!()) as &Process;
         let implementation = d.implementation();
 
         implementation.run(d, inputs, &mut run_list);
