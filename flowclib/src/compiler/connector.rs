@@ -3,7 +3,7 @@ use model::route::Router;
 use model::route::HasRoute;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use generator::code_gen::CodeGenTables;
+use generator::generate::CodeGenTables;
 use model::connection::Connection;
 use model::name::HasName;
 

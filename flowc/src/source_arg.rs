@@ -1,8 +1,9 @@
-use url::{Url, ParseError};
 use std::env;
-use std::path::PathBuf;
-use tempdir::TempDir;
 use std::fs;
+use std::path::PathBuf;
+
+use tempdir::TempDir;
+use url::{ParseError, Url};
 
 /*
     Use the current working directory as the starting point ("parent") for parsing a command
@@ -57,7 +58,6 @@ pub fn get_output_dir(url: &Url, option: Option<&str>) -> Result<PathBuf, String
                 if output_dir.is_file() {
                     output_dir.pop(); // remove trailing filename
                 }
-                output_dir.push("rust"); // add rust directory alongside input file
             }
             // If not from a file, then create a dir with flow name under a temp dir
             _ => {
@@ -97,16 +97,17 @@ fn make_writeable(output_dir: PathBuf) -> Result<PathBuf, String> {
 mod test {
     extern crate url;
 
-    use url::Url;
-    use std::path;
-    use tempdir::TempDir;
     use std::fs;
     use std::io::Write;
+    use std::path;
 
-    use super::url_from_cl_arg;
+    use tempdir::TempDir;
+    use url::Url;
+
     use super::cwd_as_url;
+    use super::url_from_cl_arg;
 
-    // Tests for url_from_cl_arg
+// Tests for url_from_cl_arg
 
     #[test]
     fn no_arg_returns_parent() {

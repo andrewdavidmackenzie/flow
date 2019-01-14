@@ -1,5 +1,5 @@
 use model::flow::Flow;
-use generator::code_gen::CodeGenTables;
+use generator::generate::CodeGenTables;
 use std::io;
 use std::io::prelude::*;
 use std::path::PathBuf;

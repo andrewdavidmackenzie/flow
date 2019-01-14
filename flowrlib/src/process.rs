@@ -9,7 +9,7 @@ pub struct Process<'a> {
     name: String,
     number_of_inputs: usize,
     id: usize,
-    impl_path: String,
+    implementation_source: String,
     output_routes: Vec<(String, usize, usize)>,
     is_static: bool,
     initial_value: Option<JsonValue>,
@@ -18,6 +18,10 @@ pub struct Process<'a> {
     #[serde(skip_deserializing, skip_serializing)]
     #[serde(default = "default_implementation")]
     implementation: &'a Implementation,
+
+    #[serde(skip_deserializing, skip_serializing)]
+    #[serde(default = "default_wasm")]
+    _wasm_object: String
 }
 
 // Deserialization notes
@@ -42,6 +46,10 @@ fn default_implementation() -> &'static Implementation {
     NOT_FOUND
 }
 
+fn default_wasm() -> String {
+    "WASM.string".to_string()
+}
+
 impl<'a> Process<'a> {
     pub fn new(name: &str,
                number_of_inputs: usize,
@@ -56,12 +64,13 @@ impl<'a> Process<'a> {
             name: name.to_string(),
             number_of_inputs,
             id,
-            impl_path,
+            implementation_source: impl_path,
             implementation,
             output_routes,
             is_static,
             initial_value,
             inputs: Vec::with_capacity(number_of_inputs),
+            _wasm_object: "".to_string()
         };
 
         // Set the correct depths on each input
@@ -86,12 +95,13 @@ impl<'a> Process<'a> {
             name: name.to_string(),
             number_of_inputs,
             id,
-            impl_path,
+            implementation_source: impl_path,
             implementation,
             output_routes,
             is_static,
             initial_value,
             inputs: Vec::with_capacity(number_of_inputs),
+            _wasm_object: "".to_string()
         };
 
         // Set the correct depths on each input

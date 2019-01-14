@@ -2,7 +2,7 @@ use model::flow::Flow;
 use model::runnable::Runnable;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
-use generator::code_gen::CodeGenTables;
+use generator::generate::CodeGenTables;
 
 /*
     This module is responsible for parsing the flow tree and gathering information into a set of

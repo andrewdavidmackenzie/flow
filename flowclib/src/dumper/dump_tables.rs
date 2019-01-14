@@ -1,6 +1,6 @@
 use model::flow::Flow;
 use std::fmt;
-use generator::code_gen::CodeGenTables;
+use generator::generate::CodeGenTables;
 use std::fs::File;
 use std::io;
 use std::io::Write;

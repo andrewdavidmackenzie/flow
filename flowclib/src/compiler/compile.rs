@@ -1,7 +1,7 @@
 use model::flow::Flow;
 use super::gatherer;
 use super::connector;
-use generator::code_gen::CodeGenTables;
+use generator::generate::CodeGenTables;
 
 /// Take a hierarchical flow definition in memory and compile it, generating code that implements
 /// the flow, including links to the flowrlib runtime library and library functions used in the

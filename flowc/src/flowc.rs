@@ -17,7 +17,7 @@ use clap::{App, AppSettings, Arg, ArgMatches};
 use flowclib::compiler::compile;
 use flowclib::dumper::dump_flow;
 use flowclib::dumper::dump_tables;
-use flowclib::generator::code_gen;
+use flowclib::generator::generate;
 use flowclib::info;
 use flowclib::loader::loader;
 use flowclib::model::flow::Flow;
@@ -112,7 +112,7 @@ fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, Path
     Ok((url, args, dump, skip_generation, output_dir))
 }
 
-fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, out_dir: PathBuf)
+fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, mut out_dir: PathBuf)
     -> Result<String, String> {
     info!("flow loaded with alias '{}'\n", flow.alias);
 
@@ -133,48 +133,27 @@ fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, ou
         return Ok("Code Generation and Running skipped".to_string());
     }
 
-    let (build, run) =
-        code_gen::generate(&flow, &out_dir, "Warn",
-                           &tables, "rs").map_err(|e| e.to_string())?;
-
-    build_flow(build)?;
+    let filename = generate::create_json(&flow, &out_dir, &tables).map_err(|e| e.to_string())?;
+    out_dir.push(filename);
 
     // Append flow arguments at the end of the arguments so that are passed on it when it's run
-    execute_flow(run, args)
-}
-/*
-    Run the build command, capturing all stdout and stderr.
-    If everything executes fine, then return an Ok(), but don't produce any log or output
-    If build fails, return an Err() with message and output the stderr in an ERROR level log message
-*/
-fn build_flow(command: (String, Vec<String>)) -> Result<String, String> {
-    info!("Building generated code using '{} {:?}'", &command.0, &command.1);
-
-    let build_output = Command::new(&command.0).args(command.1).output().map_err(|e| e.to_string())?;
-    match build_output.status.code() {
-        Some(0) => Ok(format!("'{}' command succeeded", command.0)),
-        Some(code) => {
-            error!("Build STDERR: \n {}", String::from_utf8_lossy(&build_output.stderr));
-            return Err(format!("Exited with status code: {}", code));
-        }
-        None => {
-            return Err("Terminated by signal".to_string());
-        }
-    }
+    execute_flow(out_dir, args)
 }
 
 /*
-    Run flow that was previously built.
+    Run flow using 'flowr'
     Inherit standard output and input and just let the process run as normal.
     Capture standard error.
     If the process exits correctly then just return an Ok() with message and no log
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
-fn execute_flow(command: (String, Vec<String>), mut flow_args: Vec<String>) -> Result<String, String> {
-    let mut run_args = command.1.clone();
-    run_args.append(&mut flow_args);
-    info!("Running generated code using '{} {:?}'", &command.0, &run_args);
-    let output = Command::new(&command.0).args(run_args)
+fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String, String> {
+    let command = "cargo".to_string();
+    let mut command_args = vec!("run".to_string(), "--bin".to_string(), "flowr".to_string());
+    command_args.append(&mut args);
+    command_args.push(filepath.to_str().unwrap().to_string());
+    println!("Running flow using '{} {:?}'", &command, &command_args);
+    let output = Command::new(&command).args(command_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::piped())

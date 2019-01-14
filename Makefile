@@ -53,13 +53,17 @@ copy-md-files:
 	@echo "------- Done    copying Markdown files from 'samples' and 'flowstdlib' to 'guide/src' -------------"
 
 #################### Build ####################
-build: flowc web flowclib flowstdlib flowrlib flowclilib
+build: flowc flowr web flowclib flowstdlib flowrlib
 	@echo "------- Done 'build:' target -------------"
 
 ./target/debug/flowc: flowc
 	cargo build
 
-flowc: flowclib
+flowc: workspace flowclib
+
+flowr: workspace flowrlib flowstdlib
+
+workspace:
 	@echo ""
 	@echo "------- Starting build of 'flow' workspace project -------------"
 	cargo build
@@ -77,19 +81,20 @@ flowstdlib: flowrlib
 flowrlib:
 	cd flowrlib && make build
 
-flowclilib:
-	cd flowclilib && make build
-
 ################## Travis CI ##################
 travis: clean test guide
 
 #################### Tests ####################
-test: test-flowc test-web test-flowclib test-flowstdlib test-flowrlib test-flowclilib local-samples
+test: test-flowc test-flowr test-web test-flowclib test-flowstdlib test-flowrlib local-samples
 # TYODO add online-samples
 	@echo ""
 	@echo "------- Done    test: -------------"
 
-test-flowc:
+test-flowc: test-workspace
+
+test-flowr: test-workspace
+
+test-workspace:
 	@echo ""
 	@echo "------- Starting build of 'flow' workspace project -------------"
 	cargo test $(features)
@@ -106,9 +111,6 @@ test-flowstdlib:
 
 test-flowrlib:
 	cd flowrlib && make test
-
-test-flowclilib:
-	cd flowclilib && make test
 
 #################### Raspberry Pi ####################
 #TODO map the cargo cache as a volume to avoid re-downloading and compiling every time.
@@ -181,7 +183,6 @@ clean: clean-samples clean-dumps
 	cd flowclib && make clean
 	cd flowstdlib && make clean
 	cd flowrlib && make clean
-	cd flowclilib && make clean
 
 clean-dumps:
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true

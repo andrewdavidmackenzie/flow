@@ -1,0 +1,27 @@
+[package]
+name = "flowr"
+version = "0.4.0"
+authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
+description = "A runner for compiled 'flow' programs"
+license = "MIT"
+documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
+homepage = "https://github.com/andrewdavidmackenzie/flow/README.md"
+repository = "https://github.com/andrewdavidmackenzie/flow/"
+readme = "https://github.com/andrewdavidmackenzie/flow/README.md"
+
+[[bin]]
+name = "flowr"
+path = "src/flowr.rs"
+
+[dependencies]
+clap = "~2.27.1"
+flowrlib = { path = "../flowrlib", version = "~0.7.0" }
+simplog = "1.0.3"
+log = "0.3.8"
+url = "~1.6.0"
+tempdir = "~0.3.5"
+curl = "~0.4.11"
+simpath = "~1.2"
+serde_derive = "~1.0.27"
+serde = "~1.0.27"
+serde_json = "1.0"
