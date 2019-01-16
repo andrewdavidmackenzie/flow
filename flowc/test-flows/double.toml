@@ -2,7 +2,7 @@ flow = "double inputs"
 
 [[process]]
 alias = "args"
-source = "lib://flowstdlib/env/args.toml"
+source = "lib://flowr/args/get.toml"
 
 [[connection]]
 from = "process/args/1"

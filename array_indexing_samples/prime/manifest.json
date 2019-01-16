@@ -1,0 +1,635 @@
+[
+  {
+    "name": "args",
+    "number_of_inputs": 0,
+    "id": 0,
+    "implementation_source": "//flowr/args/get/Get",
+    "output_routes": [
+      [
+        "1",
+        2,
+        0
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": []
+  },
+  {
+    "name": "lowest-candidate",
+    "number_of_inputs": 1,
+    "id": 1,
+    "implementation_source": "//flowstdlib/zero_fifo/Fifo",
+    "output_routes": [
+      [
+        "",
+        8,
+        0
+      ]
+    ],
+    "is_static": false,
+    "initial_value": 1,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "to_number",
+    "number_of_inputs": 1,
+    "id": 2,
+    "implementation_source": "//flowstdlib/fmt/to_number/ToNumber",
+    "output_routes": [
+      [
+        "",
+        7,
+        0
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "start-signal",
+    "number_of_inputs": 1,
+    "id": 3,
+    "implementation_source": "//flowstdlib/zero_fifo/Fifo",
+    "output_routes": [
+      [
+        "",
+        7,
+        1
+      ],
+      [
+        "",
+        8,
+        1
+      ]
+    ],
+    "is_static": false,
+    "initial_value": true,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "limit-store",
+    "number_of_inputs": 1,
+    "id": 4,
+    "implementation_source": "//flowstdlib/zero_fifo/Fifo",
+    "output_routes": [
+      [
+        "",
+        10,
+        1
+      ]
+    ],
+    "is_static": true,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "one",
+    "number_of_inputs": 1,
+    "id": 5,
+    "implementation_source": "//flowstdlib/zero_fifo/Fifo",
+    "output_routes": [
+      [
+        "",
+        11,
+        1
+      ]
+    ],
+    "is_static": true,
+    "initial_value": 1,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "range-done",
+    "number_of_inputs": 1,
+    "id": 6,
+    "implementation_source": "//flowstdlib/zero_fifo/Fifo",
+    "output_routes": [
+      [
+        "",
+        12,
+        0
+      ]
+    ],
+    "is_static": true,
+    "initial_value": true,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "limit-gate",
+    "number_of_inputs": 2,
+    "id": 7,
+    "implementation_source": "//flowstdlib/control/tap/Tap",
+    "output_routes": [
+      [
+        "",
+        4,
+        0
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "start-gate",
+    "number_of_inputs": 2,
+    "id": 8,
+    "implementation_source": "//flowstdlib/control/tap/Tap",
+    "output_routes": [
+      [
+        "",
+        9,
+        0
+      ],
+      [
+        "",
+        10,
+        0
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "tap",
+    "number_of_inputs": 2,
+    "id": 9,
+    "implementation_source": "//flowstdlib/control/tap/Tap",
+    "output_routes": [
+      [
+        "",
+        18,
+        0
+      ],
+      [
+        "",
+        11,
+        0
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "compare",
+    "number_of_inputs": 2,
+    "id": 10,
+    "implementation_source": "//flowstdlib/control/compare/Compare",
+    "output_routes": [
+      [
+        "lte",
+        9,
+        1
+      ],
+      [
+        "gt",
+        12,
+        1
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "add",
+    "number_of_inputs": 2,
+    "id": 11,
+    "implementation_source": "//flowstdlib/math/add/Add",
+    "output_routes": [
+      [
+        "",
+        9,
+        0
+      ],
+      [
+        "",
+        10,
+        0
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "when-done",
+    "number_of_inputs": 2,
+    "id": 12,
+    "implementation_source": "//flowstdlib/control/tap/Tap",
+    "output_routes": [
+      [
+        "",
+        3,
+        0
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "lowest-divisor",
+    "number_of_inputs": 1,
+    "id": 13,
+    "implementation_source": "//flowstdlib/zero_fifo/Fifo",
+    "output_routes": [
+      [
+        "",
+        19,
+        0
+      ]
+    ],
+    "is_static": false,
+    "initial_value": 1,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "start-signal",
+    "number_of_inputs": 1,
+    "id": 14,
+    "implementation_source": "//flowstdlib/zero_fifo/Fifo",
+    "output_routes": [
+      [
+        "",
+        18,
+        1
+      ],
+      [
+        "",
+        19,
+        1
+      ]
+    ],
+    "is_static": false,
+    "initial_value": true,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "limit-store",
+    "number_of_inputs": 1,
+    "id": 15,
+    "implementation_source": "//flowstdlib/zero_fifo/Fifo",
+    "output_routes": [
+      [
+        "",
+        21,
+        1
+      ]
+    ],
+    "is_static": true,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "one",
+    "number_of_inputs": 1,
+    "id": 16,
+    "implementation_source": "//flowstdlib/zero_fifo/Fifo",
+    "output_routes": [
+      [
+        "",
+        22,
+        1
+      ]
+    ],
+    "is_static": true,
+    "initial_value": 1,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "range-done",
+    "number_of_inputs": 1,
+    "id": 17,
+    "implementation_source": "//flowstdlib/zero_fifo/Fifo",
+    "output_routes": [
+      [
+        "",
+        23,
+        0
+      ]
+    ],
+    "is_static": true,
+    "initial_value": true,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "limit-gate",
+    "number_of_inputs": 2,
+    "id": 18,
+    "implementation_source": "//flowstdlib/control/tap/Tap",
+    "output_routes": [
+      [
+        "",
+        15,
+        0
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "start-gate",
+    "number_of_inputs": 2,
+    "id": 19,
+    "implementation_source": "//flowstdlib/control/tap/Tap",
+    "output_routes": [
+      [
+        "",
+        20,
+        0
+      ],
+      [
+        "",
+        21,
+        0
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "tap",
+    "number_of_inputs": 2,
+    "id": 20,
+    "implementation_source": "//flowstdlib/control/tap/Tap",
+    "output_routes": [
+      [
+        "",
+        24,
+        0
+      ],
+      [
+        "",
+        22,
+        0
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "compare",
+    "number_of_inputs": 2,
+    "id": 21,
+    "implementation_source": "//flowstdlib/control/compare/Compare",
+    "output_routes": [
+      [
+        "lte",
+        20,
+        1
+      ],
+      [
+        "gt",
+        23,
+        1
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "add",
+    "number_of_inputs": 2,
+    "id": 22,
+    "implementation_source": "//flowstdlib/math/add/Add",
+    "output_routes": [
+      [
+        "",
+        20,
+        0
+      ],
+      [
+        "",
+        21,
+        0
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "when-done",
+    "number_of_inputs": 2,
+    "id": 23,
+    "implementation_source": "//flowstdlib/control/tap/Tap",
+    "output_routes": [
+      [
+        "",
+        14,
+        0
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "to_string",
+    "number_of_inputs": 1,
+    "id": 24,
+    "implementation_source": "//flowstdlib/fmt/to_string/ToString",
+    "output_routes": [
+      [
+        "",
+        25,
+        0
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "print",
+    "number_of_inputs": 1,
+    "id": 25,
+    "implementation_source": "//flowr/stdio/stdout/Stdout",
+    "output_routes": [],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  }
+]

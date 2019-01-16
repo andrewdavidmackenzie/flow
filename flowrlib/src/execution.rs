@@ -55,7 +55,7 @@ fn dispatch(run_list: &mut RunList, id: usize) {
     run_list.unblock_senders_to(id);
     debug!("\tProcess #{} '{}' running with inputs: {:?}", id, process.name(), input_values);
 
-    let implementation = process.implementation();
+    let implementation = process.get_implementation();
 
     // when a process ends, it can express whether it can run again or not
     let run_again = implementation.run(process, input_values, run_list);

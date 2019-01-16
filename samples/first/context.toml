@@ -22,7 +22,7 @@ source = "lib://flowstdlib/math/add.toml"
 # The function "stdout" from the standard library is used, but aliased to be able to reference it using "print"
 [[process]]
 alias = "print"
-source = "lib://flowrlib/stdio/stdout.toml"
+source = "lib://flowr/stdio/stdout.toml"
 
 # All the required connections between functions and values to create the flow follow, as per diagram
 [[connection]]

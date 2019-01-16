@@ -119,14 +119,11 @@ fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, mu
     let tables = compile::compile(&flow)?;
 
     if dump {
-        // Dump data describing flows and tables in the parent directory of the code generation
-        let mut dump_dir = out_dir.clone();
-        dump_dir.pop();
-        info!("Dumping flow, compiler tables and runnable descriptions in '{}'", dump_dir.display());
+        info!("Dumping flow, compiler tables and runnable descriptions in '{}'", out_dir.display());
 
-        dump_flow::dump_flow(&flow, &dump_dir).map_err(|e| e.to_string())?;
-        dump_tables::dump_tables(&tables, &dump_dir).map_err(|e| e.to_string())?;
-        dump_tables::dump_runnables(&flow, &tables, &dump_dir).map_err(|e| e.to_string())?;
+        dump_flow::dump_flow(&flow, &out_dir).map_err(|e| e.to_string())?;
+        dump_tables::dump_tables(&tables, &out_dir).map_err(|e| e.to_string())?;
+        dump_tables::dump_runnables(&flow, &tables, &out_dir).map_err(|e| e.to_string())?;
     }
 
     if skip_generation {
@@ -150,9 +147,9 @@ fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, mu
 fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String, String> {
     let command = "cargo".to_string();
     let mut command_args = vec!("run".to_string(), "--bin".to_string(), "flowr".to_string());
-    command_args.append(&mut args);
     command_args.push(filepath.to_str().unwrap().to_string());
-    println!("Running flow using '{} {:?}'", &command, &command_args);
+    command_args.append(&mut args);
+    info!("Running flow using '{} {:?}'", &command, &command_args);
     let output = Command::new(&command).args(command_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
@@ -285,6 +282,7 @@ mod test {
     }
 
     #[test]
+    #[ignore]
     fn load_reverse_echo_from_toml() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();

@@ -12,7 +12,7 @@ use model::runnable::Runnable;
 use serde_json::Value as JsonValue;
 use url::Url;
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Function {
     #[serde(rename = "function")]
@@ -69,6 +69,7 @@ impl Runnable for Function {
         self.output_routes.push(connection);
     }
 
+    // Could combine with get_impl_path() ????
     fn source_url(&self) -> Option<Url> {
         if self.lib_reference.is_none() {
             Some(self.source_url.clone())
@@ -89,15 +90,11 @@ impl Runnable for Function {
 
     fn get_initial_value(&self) -> Option<JsonValue> { None }
 
-    fn get_implementation(&self) -> &str {
-        &self.name
-    }
-
     fn get_impl_path(&self) -> String {
         if let Some(ref reference) = self.lib_reference {
-            format!("//{}/{}", reference, self.get_implementation())
+            format!("//{}/{}", reference, &self.name)
         } else {
-            "path to supplied implementation".to_string()
+            self.source_url.to_file_path().unwrap().to_str().unwrap().to_string().replace(".toml", ".wasm") // TODO
         }
     }
 }

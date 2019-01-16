@@ -17,25 +17,21 @@ pub struct Process<'a> {
 
     #[serde(skip_deserializing, skip_serializing)]
     #[serde(default = "default_implementation")]
-    implementation: &'a Implementation,
+    implementation: &'a dyn Implementation,
 
     #[serde(skip_deserializing, skip_serializing)]
     #[serde(default = "default_wasm")]
-    _wasm_object: String
+    _wasm_object: String // TODO
 }
-
-// Deserialization notes
-// initial_value should be deserialized as None or Some(json_value)
-// output_routes: output routes to other processes and the input number that it connects to
-// if route.0.is_empty() => "" - avoid the leading '/'
-// else add a leading '/' before route.0
 
 struct ImplementationNotFound {}
 
 impl Implementation for ImplementationNotFound {
-    fn run(&self, _process: &Process, _inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList)
+    fn run(&self, process: &Process, _inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList)
            -> RunAgain {
-        error!("{}", "Implementation called, but was not found at loading");
+        error!("Process '{}' called implementation '{}', but was not found",
+        process.name(),
+        process.implementation_source());
         false
     }
 }
@@ -46,6 +42,7 @@ fn default_implementation() -> &'static Implementation {
     NOT_FOUND
 }
 
+// TODO
 fn default_wasm() -> String {
     "WASM.string".to_string()
 }
@@ -54,37 +51,7 @@ impl<'a> Process<'a> {
     pub fn new(name: &str,
                number_of_inputs: usize,
                is_static: bool,
-               input_depths: Vec<usize>,
-               id: usize,
-               implementation: &'a Implementation,
-               initial_value: Option<JsonValue>,
-               output_routes: Vec<(String, usize, usize)>) -> Process<'a> {
-        let impl_path = "embedded".to_string();
-        let mut process = Process {
-            name: name.to_string(),
-            number_of_inputs,
-            id,
-            implementation_source: impl_path,
-            implementation,
-            output_routes,
-            is_static,
-            initial_value,
-            inputs: Vec::with_capacity(number_of_inputs),
-            _wasm_object: "".to_string()
-        };
-
-        // Set the correct depths on each input
-        for input_depth in input_depths {
-            process.inputs.push(Input::new(input_depth));
-        }
-
-        process
-    }
-
-    pub fn new2(name: &str,
-               number_of_inputs: usize,
-               is_static: bool,
-               impl_path: String,
+               implementation_source: String,
                input_depths: Vec<usize>,
                id: usize,
                initial_value: Option<JsonValue>,
@@ -95,7 +62,7 @@ impl<'a> Process<'a> {
             name: name.to_string(),
             number_of_inputs,
             id,
-            implementation_source: impl_path,
+            implementation_source,
             implementation,
             output_routes,
             is_static,
@@ -137,6 +104,10 @@ impl<'a> Process<'a> {
         self.can_run()
     }
 
+    pub fn implementation_source(&self) -> &str {
+        &self.implementation_source
+    }
+
     pub fn write_input(&mut self, input_number: usize, input_value: JsonValue) {
         if !self.inputs[input_number].full() {
             self.inputs[input_number].push(input_value);
@@ -154,8 +125,12 @@ impl<'a> Process<'a> {
         &self.output_routes
     }
 
-    pub fn implementation(&self) -> &Implementation {
+    pub fn get_implementation(&self) -> &Implementation {
         self.implementation
+    }
+
+    pub fn set_implementation(&mut self, implementation: &'a dyn Implementation) {
+        self.implementation = implementation;
     }
 
     pub fn input_full(&self, input_number: usize) -> bool {
@@ -213,7 +188,7 @@ mod test {
 
     #[test]
     fn can_send_input_if_empty() {
-        let mut process = Process::new2("test", 1, false, "/test".to_string(),vec!(1), 0,
+        let mut process = Process::new("test", 1, false, "/test".to_string(),vec!(1), 0,
                                          None, vec!());
         process.init();
         process.write_input(0, json!(1));
@@ -222,7 +197,7 @@ mod test {
 
     #[test]
     fn can_send_input_if_empty_and_static() {
-        let mut process = Process::new2("test", 1, true, "/test".to_string(),vec!(1), 0,
+        let mut process = Process::new("test", 1, true, "/test".to_string(),vec!(1), 0,
                                          None, vec!());
         process.init();
         process.write_input(0, json!(1));
@@ -231,7 +206,7 @@ mod test {
 
     #[test]
     fn cannot_send_input_if_initialized() {
-        let mut process = Process::new2("test", 1, false, "/test".to_string(), vec!(1), 0,
+        let mut process = Process::new("test", 1, false, "/test".to_string(), vec!(1), 0,
 
                                        Some(json!(0)), vec!());
         process.init();
@@ -241,7 +216,7 @@ mod test {
 
     #[test]
     fn can_send_input_if_full_and_static() {
-        let mut process = Process::new2("test", 1, true, "/test".to_string(), vec!(1), 0,
+        let mut process = Process::new("test", 1, true, "/test".to_string(), vec!(1), 0,
 
                                        None, vec!());
         process.init();
@@ -252,7 +227,7 @@ mod test {
 
     #[test]
     fn cannot_send_input_if_full_and_not_static() {
-        let mut process = Process::new2("test", 1, false, "/test".to_string(), vec!(1), 0,
+        let mut process = Process::new("test", 1, false, "/test".to_string(), vec!(1), 0,
 
                                        None, vec!());
         process.init();

@@ -16,8 +16,7 @@ pub struct CodeGenTables {
     pub destination_routes: HashMap<Route, (usize, usize)>,
     pub collapsed_connections: Vec<Connection>,
     pub runnables: Vec<Box<Runnable>>,
-    pub libs: HashSet<String>,
-    pub lib_references: HashSet<String>,
+    pub libs: HashSet<String>
 }
 
 serialize_trait_object!(Runnable);
@@ -37,15 +36,14 @@ impl CodeGenTables {
             destination_routes: HashMap::<Route, (usize, usize)>::new(),
             collapsed_connections: Vec::new(),
             runnables: Vec::new(),
-            libs: HashSet::new(),
-            lib_references: HashSet::new(),
+            libs: HashSet::new()
         }
     }
 }
 
 // Create the 'runnables.json' file in the output project's source folder
 pub fn create_json(_flow: &Flow, out_dir: &PathBuf, tables: &CodeGenTables) -> Result<String> {
-    let filename = "runnables.json".to_string();
+    let filename = "manifest.json".to_string();
     let mut file = out_dir.clone();
     file.push(&filename);
     let mut runnables_json = File::create(&file)?;
@@ -86,7 +84,7 @@ fn runnable_to_json(runnable: &Box<Runnable>) -> flowrlib::process::Process {
     let initial_value = runnable.get_initial_value();
     let output_routes = runnable.get_output_routes().clone();
 
-    flowrlib::process::Process::new2(
+    flowrlib::process::Process::new(
         name,
         number_of_inputs,
         is_static,
@@ -97,6 +95,8 @@ fn runnable_to_json(runnable: &Box<Runnable>) -> flowrlib::process::Process {
         output_routes,
     )
 }
+
+// TODO re-instate tests with new implementation
 
 /*
 #[cfg(test)]

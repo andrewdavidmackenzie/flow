@@ -7,7 +7,7 @@ use loader::loader::Validate;
 use std::fmt;
 use url::Url;
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct ProcessReference {
     pub alias: Name,

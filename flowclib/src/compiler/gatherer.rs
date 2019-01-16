@@ -36,14 +36,6 @@ pub fn add_entries(flow: &Flow, tables: &mut CodeGenTables) {
             }
         }
     }
-
-    // TODO this could maybe be delayed until generation? or avoided if each runnable has it
-    for lib_ref in &flow.lib_references {
-        let lib_reference = lib_ref.clone();
-        let lib_name = lib_reference.split("/").next().unwrap().to_string();
-        tables.lib_references.insert(lib_reference);
-        tables.libs.insert(lib_name);
-    }
 }
 
 /*

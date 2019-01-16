@@ -1,8 +1,8 @@
-out
-target
+**/out
+**/target
 ui-target
 .idea
 *.iml
 *.dot
-*.dump
+**.dump
 dependencies.png

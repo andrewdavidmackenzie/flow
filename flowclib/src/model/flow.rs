@@ -17,7 +17,7 @@ use model::process::Process::FunctionProcess;
 use std::fmt;
 use url::Url;
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Flow {
     #[serde(rename = "flow")]

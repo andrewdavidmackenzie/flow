@@ -1,0 +1,94 @@
+flow = "primitives"
+
+[[value]]
+name = "a"
+type = "Number"
+init = 1
+
+[[value]]
+name = "constant"
+type = "Number"
+init = 1
+static = true
+
+[[value]]
+name = "false"
+type = "Bool"
+init = false
+
+[[process]]
+alias = "sum"
+source = "lib://flowstdlib/math/add.toml"
+
+[[connection]]
+from = "value/a"
+to = "process/sum/i1"
+
+[[connection]]
+from = "value/constant"
+to = "process/sum/i2"
+
+[[process]]
+alias = "add_again"
+source = "lib://flowstdlib/math/add.toml"
+
+[[connection]]
+from = "process/sum"
+to = "process/add_again/i1"
+
+[[connection]]
+from = "value/constant"
+to = "process/add_again/i2"
+
+[[process]]
+alias = "to_string"
+source = "lib://flowstdlib/fmt/to_string.toml"
+
+[[connection]]
+from = "process/add_again"
+to = "process/to_string"
+
+[[process]]
+alias = "tap"
+source = "lib://flowstdlib/control/tap.toml"
+
+[[process]]
+alias = "compare"
+source = "lib://flowstdlib/control/compare.toml"
+
+[[connection]]
+from = "process/add_again"
+to = "process/tap/data"
+
+[[connection]]
+from = "process/add_again"
+to = "process/compare/left"
+
+[[value]]
+name = "two"
+type = "Number"
+init = 2
+
+[[connection]]
+from = "value/two"
+to = "process/compare/right"
+
+[[connection]]
+from = "value/false"
+to = "process/tap/control"
+
+[[connection]]
+from = "process/compare/gt"
+to = "process/to_string"
+
+[[process]]
+alias = "print"
+source = "lib://flowr/stdio/stdout.toml"
+
+[[connection]]
+from = "process/tap"
+to = "process/to_string"
+
+[[connection]]
+from = "process/to_string"
+to = "process/print"

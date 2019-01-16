@@ -1,0 +1,181 @@
+[
+  {
+    "name": "bounds_separator",
+    "number_of_inputs": 1,
+    "id": 0,
+    "implementation_source": "//flowstdlib/zero_fifo/Fifo",
+    "output_routes": [
+      [
+        "",
+        3,
+        1
+      ]
+    ],
+    "is_static": true,
+    "initial_value": "x",
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "point_separator",
+    "number_of_inputs": 1,
+    "id": 1,
+    "implementation_source": "//flowstdlib/zero_fifo/Fifo",
+    "output_routes": [
+      [
+        "",
+        4,
+        1
+      ],
+      [
+        "",
+        5,
+        1
+      ]
+    ],
+    "is_static": true,
+    "initial_value": ",",
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "args",
+    "number_of_inputs": 0,
+    "id": 2,
+    "implementation_source": "//flowr/args/get/Get",
+    "output_routes": [
+      [
+        "2",
+        3,
+        0
+      ],
+      [
+        "3",
+        4,
+        0
+      ],
+      [
+        "4",
+        5,
+        0
+      ],
+      [
+        "0",
+        7,
+        0
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": []
+  },
+  {
+    "name": "parse_bounds",
+    "number_of_inputs": 2,
+    "id": 3,
+    "implementation_source": "/Users/andrew/workspace/flow/samples/mandlebrot/src/parse_pair.wasm",
+    "output_routes": [],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "parse_upper_left",
+    "number_of_inputs": 2,
+    "id": 4,
+    "implementation_source": "/Users/andrew/workspace/flow/samples/mandlebrot/src/parse_pair.wasm",
+    "output_routes": [],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "parse_lower_right",
+    "number_of_inputs": 2,
+    "id": 5,
+    "implementation_source": "/Users/andrew/workspace/flow/samples/mandlebrot/src/parse_pair.wasm",
+    "output_routes": [],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "format_bitmap",
+    "number_of_inputs": 2,
+    "id": 6,
+    "implementation_source": "//flowstdlib/img/format_png/FormatPNG",
+    "output_routes": [
+      [
+        "",
+        7,
+        1
+      ]
+    ],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  },
+  {
+    "name": "write_file",
+    "number_of_inputs": 2,
+    "id": 7,
+    "implementation_source": "//flowr/file/file_write/FileWrite",
+    "output_routes": [],
+    "is_static": false,
+    "initial_value": null,
+    "inputs": [
+      {
+        "depth": 1,
+        "received": []
+      },
+      {
+        "depth": 1,
+        "received": []
+      }
+    ]
+  }
+]

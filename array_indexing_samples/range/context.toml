@@ -1,0 +1,69 @@
+flow = "range"
+
+[[value]]
+name = "start"
+type = "Number"
+init = 1
+
+[[connection]]
+from = "value/start"
+to = "process/range/start"
+
+[[process]]
+alias = "args"
+source = "lib://flowr/args/get.toml"
+
+[[connection]]
+from = "process/args/1"
+to = "process/to_number"
+
+[[process]]
+alias = "to_number"
+source = "lib://flowstdlib/fmt/to_number.toml"
+
+[[connection]]
+from = "process/to_number"
+to = "process/range/limit"
+
+[[process]]
+alias = "range"
+source = "range.toml"
+
+[[process]]
+alias = "to_string"
+source = "lib://flowstdlib/fmt/to_string.toml"
+
+[[connection]]
+from = "process/range/series"
+to = "process/to_string"
+
+# Output a string to show we're done when the series ends
+[[value]]
+name = "done"
+type = "String"
+init = "Range done"
+
+[[process]]
+alias = "tap"
+source = "lib://flowstdlib/control/tap.toml"
+
+[[connection]]
+from = "value/done"
+to = "process/tap/data"
+
+[[connection]]
+from = "process/range/done"
+to = "process/tap/control"
+
+[[connection]]
+from = "process/tap"
+to = "process/print"
+
+# Output
+[[process]]
+alias = "print"
+source = "lib://flowr/stdio/stdout.toml"
+
+[[connection]]
+from = "process/to_string"
+to = "process/print"

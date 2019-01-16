@@ -10,6 +10,8 @@ repository = "https://github.com/andrewdavidmackenzie/flow/"
 readme = "../README.md"
 include = ["src/**/*", "Cargo.toml"]
 
+build = "flow_lib_build.rs"
+
 [lib]
 name = "flowstdlib"
 path = "src/lib.rs"
@@ -19,3 +21,10 @@ flowrlib = { path = "../flowrlib", version = "~0.7.0" }
 serde_json = "1.0"
 image = "*"
 log = "0.3.8"
+
+[build-dependencies]
+flowclib = { path = "../flowclib", version = "~0.7.0" }
+flowrlib = { path = "../flowrlib", version = "~0.7.0" }
+glob = "*"
+toml = "0.4"
+phf_codegen = "*"

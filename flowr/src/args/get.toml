@@ -1,0 +1,4 @@
+function = "Get"
+
+[[output]]
+type = "Array/String"

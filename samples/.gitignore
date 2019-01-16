@@ -1,2 +1,3 @@
-runnables.json
+manifest.json
 *.png
+**/test.output

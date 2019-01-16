@@ -14,7 +14,7 @@ use url::Url;
 
 use std::fmt;
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Value {
     name: Name,
@@ -104,12 +104,8 @@ impl Runnable for Value {
         self.init.clone()
     }
 
-    fn get_implementation(&self) -> &str {
-        "Fifo"
-    }
-
     fn get_impl_path(&self) -> String {
-        "//flowrlib/zero_fifo/Fifo".to_string()
+        "//flowstdlib/zero_fifo/Fifo".to_string()
     }
 }
 

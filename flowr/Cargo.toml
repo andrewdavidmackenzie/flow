@@ -16,6 +16,7 @@ path = "src/flowr.rs"
 [dependencies]
 clap = "~2.27.1"
 flowrlib = { path = "../flowrlib", version = "~0.7.0" }
+flowstdlib = { path = "../flowstdlib", version = "~0.7.0" }
 simplog = "1.0.3"
 log = "0.3.8"
 url = "~1.6.0"

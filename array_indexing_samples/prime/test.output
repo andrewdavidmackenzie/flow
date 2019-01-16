@@ -1,0 +1,4 @@
+ERROR	- panic occurred in file 'libcore/option.rs' at line 355
+ERROR	- Process STDERR:
+
+ERROR	- Exited with status code: 101

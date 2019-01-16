@@ -221,7 +221,7 @@ mod tests {
 
     fn test_processs<'a>() -> Vec<Arc<Mutex<Process<'a>>>> {
         let p0 = Arc::new(Mutex::new(
-            Process::new2("p0", // name
+            Process::new("p0", // name
                          0,    // number_of_inputs
                          false,// static value
                          "/test".to_string(),
@@ -230,7 +230,7 @@ mod tests {
                          None,
                          vec!(("".to_string(), 1, 0), ("".to_string(), 1, 0)), // destinations
             )));    // implementation
-        let p1 = Arc::new(Mutex::new(Process::new2("p1",
+        let p1 = Arc::new(Mutex::new(Process::new("p1",
                                                   1,
                                                   false,// static value
                                                   "/test".to_string(),
@@ -239,7 +239,7 @@ mod tests {
                                                   None,
                                                   vec!(),
         )));
-        let p2 = Arc::new(Mutex::new(Process::new2("p2",
+        let p2 = Arc::new(Mutex::new(Process::new("p2",
                                                   1,
                                                   false,// static value
                                                   "/test".to_string(),

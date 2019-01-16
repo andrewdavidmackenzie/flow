@@ -1,10 +1,10 @@
 ## Step-by-Step
 
-Execution is in terms of "runnables". Functions and Values are both runnables, with slightly different implementations, 
-as values have to store values, unlike functions.
+Execution is in terms of Functions. Values are in fact a specific implementation of a
+Function, as Values have to store values, unlike functions.
 
 ### Init
-The list of runnables is loaded and all "runnables" are initialized. 
+The list of Functions is loaded and all are initialized. 
 This includes making the initial values available (just once) at 
 the inputs of any values that have initial values specified in the flow description.
 

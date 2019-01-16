@@ -38,7 +38,7 @@ guide: copy-md-files
 ## Copy .md files (with same directory sturtcure) from samples and lib directories under guide 'src' directory
 copy-md-files:
 	@echo ""
-	@echo "------- Started copying Markdown files from 'samples' to 'guide/src' -------------"
+	@echo "------- Started copying Markdown files from 'samples', 'flowstdlib' and 'flowr' to 'guide/src' -------------"
 	@find samples -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
 	@find samples -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
 
@@ -46,11 +46,11 @@ copy-md-files:
 	@find flowstdlib -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
 	@find flowstdlib -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
 
-	@echo "------- Started copying Markdown files from 'flowrlib' to 'guide/src' -------------"
-	@find flowrlib -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
-	@find flowrlib -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
+	@echo "------- Started copying Markdown files from 'flowr' to 'guide/src' -------------"
+	@find flowr -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
+	@find flowr -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
 
-	@echo "------- Done    copying Markdown files from 'samples' and 'flowstdlib' to 'guide/src' -------------"
+	@echo "------- Done    copying Markdown files from 'samples', 'flowstdlib' and 'flowr' to 'guide/src' -------------"
 
 #################### Build ####################
 build: flowc flowr web flowclib flowstdlib flowrlib
@@ -124,9 +124,9 @@ copy:
 	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/debug/flowc andrew@raspberrypi.local:
 
 #################### SAMPLES ####################
-# Find all sub-directories under 'samples' and create a list of paths like 'sample/{directory}/test_output.txt' to use for
+# Find all sub-directories under 'samples' and create a list of paths like 'sample/{directory}/test.output' to use for
 # make paths - to compile all samples found in there. Avoid files using the filter.
-sample_flows := $(patsubst samples/%,samples/%test_output.txt,$(filter %/, $(wildcard samples/*/)))
+sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
 local-samples: ./target/debug/flowc $(sample_flows)  # This target must be below sample-flows in the Makefile
 	@echo ""
@@ -135,15 +135,15 @@ local-samples: ./target/debug/flowc $(sample_flows)  # This target must be below
 
 clean-samples:
 	@find samples -name rust -type d -exec rm -rf {} + ; true
-	@find samples -name test_output.txt -exec rm -rf {} + ; true
+	@find samples -name test.output -exec rm -rf {} + ; true
 
-samples/%/test_output.txt: samples/%/test_input.txt
+samples/%/test.output: samples/%/test_input.txt
 	@echo "\n------- Compiling and Running '$(@D)' ----"
 # remove local file path from output messages with sed to make local failures match travis failures
-	@cat $< | ./target/debug/flowc -d $(@D) -- `cat $(@D)/test_arguments.txt` | sed -e 's/\/.*\/flow\///' | grep -v "Finished dev" > $@; true
+	@cat $< | ./target/debug/flowc -d $(@D) -- `cat $(@D)/test_arguments.txt` | grep -v "Running" | grep -v "Finished dev" > $@; true
 	@diff $@ $(@D)/expected_output.txt
 	@echo "Sample output matches expected output"
-	@rm $@ #remove test_output.txt after successful diff so that dependency will cause it to run again next time
+	@rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time
 
 ################# ONLINE SAMPLES ################
 online-samples: test-hello-simple-online

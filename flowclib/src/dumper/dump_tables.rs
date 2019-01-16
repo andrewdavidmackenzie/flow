@@ -79,11 +79,6 @@ pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<S
     writer.write_all(format!("{}",
                              serde_json::to_string_pretty(&tables.libs)
                                  .unwrap()).as_bytes())?;
-
-    writer = create_output_file(&output_dir, "lib_references", "dump")?;
-    writer.write_all(format!("{}",
-                             serde_json::to_string_pretty(&tables.lib_references)
-                                 .unwrap()).as_bytes())?;
     Ok("All tables dumped".to_string())
 }
 
@@ -136,13 +131,15 @@ pub fn dump_runnables(flow: &Flow, tables: &CodeGenTables, output_dir: &PathBuf)
     dump_dot::runnables_to_dot(&flow.alias, tables, output_dir)?;
 
     let mut writer = create_output_file(&output_dir, "runnables", "dump")?;
-    dump_table(tables.runnables.iter(), &mut writer)
+    dump_table(tables.runnables.iter(), &mut writer)?;
+    Ok("Runnables dumped".to_string())
 }
 
+// TODO I can't get output of runnables as JSON to work with serde
 fn dump_table<C: Iterator>(table: C, writer: &mut Write) -> io::Result<String>
     where <C as Iterator>::Item: fmt::Display {
-    for e in table.into_iter() {
-        writer.write_all(format!("{}\n", e).as_bytes())?;
+    for runnable in table.into_iter() {
+        writer.write_all(format!("{}\n", runnable).as_bytes())?;
     }
     writer.write_all(b"\n")?;
     Ok("table dumped".to_string())

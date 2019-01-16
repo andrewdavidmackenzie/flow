@@ -1,18 +1,25 @@
+use super::implementation::Implementation;
+use std::collections::HashMap;
 
+// Key = ImplementationSource, Value = ImplementationLocator
+pub type ImplementationTable<'a>  = HashMap<String, &'a dyn Implementation>;
 
 /*
     Implementations can be of two types - either a native and statically bound function referenced
     via a function reference, or WASM bytecode file that is interpreted at run-time that is
     referenced via a PathBuf pointing to the .wasm file
-    // TODO probably will change the wasm one to a function in memory wrapping the loaded was.
-    // maybe even be able to wrap it in Implementation as that's just a Trait
 */
+#[derive(Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum ImplementationLocator<'a> {
-    Native(&'a Implementation),
-    Wasm(PathBuf)
+    #[serde(skip_deserializing, skip_serializing)]
+    Native(&'a dyn Implementation),
+    Wasm(&'a str),
 }
 
 /*
     Provided by libraries to help load and/or find implementations of processes
 */
-pub type ImplementationLocatorTable<'a>  = HashMap<String, ImplementationLocator<'a>>;
+pub type ImplementationLocatorTable<'a> = HashMap<&'a str, ImplementationLocator<'a>>;
+
+
