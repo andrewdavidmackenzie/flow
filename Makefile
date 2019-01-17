@@ -1,6 +1,6 @@
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 
-all: build test doc
+all: clean-samples build test doc
 	@echo ""
 	@echo "**************************************"
 	@echo "************* Done all: **************"
@@ -56,16 +56,13 @@ copy-md-files:
 build: workspace web
 	@echo "------- Done 'build:' target -------------"
 
-./target/debug/flowc: workspace
-	cargo build
-
 workspace:
 	@echo ""
 	@echo "------- Starting build of 'flow' workspace project -------------"
 	cargo build
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
-web: flowrlib flowstdlib
+web:
 	cd web && make build
 
 flowclib:
@@ -124,7 +121,7 @@ copy:
 # make paths - to compile all samples found in there. Avoid files using the filter.
 sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
-local-samples: ./target/debug/flowc $(sample_flows)  # This target must be below sample-flows in the Makefile
+local-samples: $(sample_flows)  # This target must be below sample-flows in the Makefile
 	@echo ""
 	@echo "All local samples executed and output as expected"
 	@echo "------- Finished 'local-samples:' ----"
@@ -133,11 +130,11 @@ clean-samples:
 	@find samples -name rust -type d -exec rm -rf {} + ; true
 	@find samples -name test.output -exec rm -rf {} + ; true
 
-samples/%/test.output: samples/%/test_input.txt
+samples/%/test.output: samples/%/test_input.txt samples/%/test_arguments.txt
 	@echo "\n------- Compiling and Running '$(@D)' ----"
 # remove local file path from output messages with sed to make local failures match travis failures
-	@cat $< | ./target/debug/flowc -d $(@D) -- `cat $(@D)/test_arguments.txt` | grep -v "Running" | grep -v "Finished dev" > $@; true
-	@diff $@ $(@D)/expected_output.txt
+	@cat $< | cargo run --quiet --bin flowc -- -d $(@D) -- `cat $(@D)/test_arguments.txt` | grep -v "Running" | grep -v "Finished dev" > $@; true
+	@diff $@ $(@D)/expected_output.txt || (ret=$$?; rm -f $@ && exit $$ret)
 	@echo "Sample output matches expected output"
 	@rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time
 
@@ -147,7 +144,7 @@ online-samples: test-hello-simple-online
 test-hello-simple-online: ./target/debug/flowc
 	@echo ""
 	@echo "------- Started testing generation of hello-world-simple-online ----"
-	@echo "Hello" | cargo run flowc -- https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
+	@echo "Hello" | cargo run --bin flowc -- https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 	@echo "------- Finished testing generation of hello-world-simple-online ----"
 
 ################# Packaging ################
