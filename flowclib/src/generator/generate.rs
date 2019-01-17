@@ -8,6 +8,7 @@ use model::runnable::Runnable;
 use model::flow::Flow;
 use model::route::Route;
 use model::connection::Connection;
+use flowrlib::manifest::Manifest;
 
 #[derive(Serialize)]
 pub struct CodeGenTables {
@@ -41,28 +42,27 @@ impl CodeGenTables {
     }
 }
 
-// Create the 'runnables.json' file in the output project's source folder
-pub fn create_json(_flow: &Flow, out_dir: &PathBuf, tables: &CodeGenTables) -> Result<String> {
+// Create the 'manifest.json' file in the project folder
+pub fn create_manifest(_flow: &Flow, out_dir: &PathBuf, tables: &CodeGenTables) -> Result<String> {
     let filename = "manifest.json".to_string();
     let mut file = out_dir.clone();
     file.push(&filename);
     let mut runnables_json = File::create(&file)?;
 
-    // Generate json struct for each of the runnables
-    let mut serializable_runnables =
-        Vec::<flowrlib::process::Process>::with_capacity(tables.runnables.len());
+    let mut manifest = Manifest::new();
+
+    // Generate runtime Process struct for each of the runnables
     for runnable in &tables.runnables {
-        serializable_runnables.push(runnable_to_json(runnable));
+        manifest.processes.push(runnable_to_process(runnable));
     }
 
-    let json = serde_json::to_string_pretty(&serializable_runnables)?;
-
+    let json = serde_json::to_string_pretty(&manifest)?;
     runnables_json.write_all(json.as_bytes())?;
 
     Ok(filename)
 }
 
-fn runnable_to_json(runnable: &Box<Runnable>) -> flowrlib::process::Process {
+fn runnable_to_process(runnable: &Box<Runnable>) -> flowrlib::process::Process {
     let name = runnable.alias();
     let number_of_inputs = match &runnable.get_inputs() {
         &None => 0,

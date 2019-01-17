@@ -8,6 +8,7 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
+# flowclib = { path = "../flowclib", version = "~0.7.0" }
 flowrlib = { path = "../flowrlib", version = "~0.7.0" }
 flowstdlib = { path = "../flowstdlib", version = "~0.7.0" }
 wasm-bindgen = "0.2.29"

@@ -18,5 +18,6 @@ pub mod runlist;
 pub mod implementation;
 pub mod implementation_table;
 pub mod process;
+pub mod manifest;
 pub mod input;
 pub mod loader;

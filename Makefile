@@ -53,15 +53,11 @@ copy-md-files:
 	@echo "------- Done    copying Markdown files from 'samples', 'flowstdlib' and 'flowr' to 'guide/src' -------------"
 
 #################### Build ####################
-build: flowc flowr web flowclib flowstdlib flowrlib
+build: workspace web
 	@echo "------- Done 'build:' target -------------"
 
-./target/debug/flowc: flowc
+./target/debug/flowc: workspace
 	cargo build
-
-flowc: workspace flowclib
-
-flowr: workspace flowrlib flowstdlib
 
 workspace:
 	@echo ""

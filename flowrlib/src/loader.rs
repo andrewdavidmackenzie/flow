@@ -4,6 +4,7 @@ use super::implementation_table::ImplementationLocatorTable;
 use super::implementation_table::ImplementationLocator::Native;
 use super::implementation_table::ImplementationLocator::Wasm;
 use super::process::Process;
+use super::manifest::Manifest;
 
 pub trait Provider {
     // TODO change this to get from a url
@@ -12,20 +13,6 @@ pub trait Provider {
 
 pub struct Loader<'a> {
     global_lib_table: ImplementationLocatorTable<'a>
-}
-
-/*
-struct Manifest<'a> {
-    processes: Vec<Process<'a>>
-}
-*/
-
-fn load_manifest<'a>(provider: &Provider, path: &str) -> Result<Vec<Process<'a>>, String> {
-    let content = provider.get_content(path)?;
-
-    serde_json::from_str(&content)
-        .map_err(|e| format!("Could not deserialize json file '{}'\nError = '{}'",
-                             path, e))
 }
 
 impl<'a> Loader<'a> {
@@ -37,11 +24,11 @@ impl<'a> Loader<'a> {
 
     pub fn load_flow(&self, provider: &Provider, path: &str)
                      -> Result<Vec<Arc<Mutex<Process<'a>>>>, String> {
-        let processes = load_manifest(provider, path)?;
+        let manifest = Manifest::load(provider, path)?;
 
         let mut runnables = Vec::<Arc<Mutex<Process>>>::new();
 
-        for mut process in processes {
+        for mut process in manifest.processes {
             // find the implementation from the implementation_source in the process
             if let Some(ref source) = self.global_lib_table.get(process.implementation_source()) {
                 match source {

@@ -130,7 +130,7 @@ fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, mu
         return Ok("Code Generation and Running skipped".to_string());
     }
 
-    let filename = generate::create_json(&flow, &out_dir, &tables).map_err(|e| e.to_string())?;
+    let filename = generate::create_manifest(&flow, &out_dir, &tables).map_err(|e| e.to_string())?;
     out_dir.push(filename);
 
     // Append flow arguments at the end of the arguments so that are passed on it when it's run
