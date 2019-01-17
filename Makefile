@@ -82,7 +82,7 @@ flowrlib:
 	cd flowrlib && make build
 
 ################## Travis CI ##################
-travis: clean test guide
+travis: clean test # guide
 
 #################### Tests ####################
 test: test-flowc test-flowr test-web test-flowclib test-flowstdlib test-flowrlib local-samples
