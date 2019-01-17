@@ -45,12 +45,14 @@
     - [hello-world-simple sample](samples/hello-world-simple/DESCRIPTION.md)
     - [hello-world sample](samples/hello-world/DESCRIPTION.md)
     - [line-echo sample](samples/line-echo/DESCRIPTION.md)
+<!---
     - [mandlebrot sample](samples/mandlebrot/DESCRIPTION.md)
     - [prime sample](samples/prime/DESCRIPTION.md)
     - [primitives sample](samples/primitives/DESCRIPTION.md)
     - [range sample](samples/range/DESCRIPTION.md)
     - [reverse-echo sample](samples/reverse-echo/DESCRIPTION.md)
     - [router sample](samples/router/DESCRIPTION.md)
+-->
 
 - [The flow standard library](flowstdlib/flowstdlib.md)
     - [Control functions](flowstdlib/src/control/control.md)
