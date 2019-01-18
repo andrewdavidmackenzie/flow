@@ -200,8 +200,7 @@ impl Find for IOSet {
                     let mut found = io.clone();
                     found.set_datatype(&io.datatype(1)); // the type within the array
                     let mut new_route = found.route().clone();
-                    new_route.push_str("/");
-                    new_route.push_str(sub_route);
+                    new_route.push_str(&format!("/{}", sub_route));
                     found.set_route(new_route, false);
                     return Ok(found);
                 }

@@ -80,8 +80,8 @@ impl Runnable for Value {
         self.outputs.clone()
     }
 
-    fn add_output_connection(&mut self, connection: (Route, usize, usize)) {
-        self.output_routes.push(connection);
+    fn add_output_route(&mut self, output_route: (Route, usize, usize)) {
+        self.output_routes.push(output_route);
     }
 
     fn source_url(&self) -> Option<Url> {

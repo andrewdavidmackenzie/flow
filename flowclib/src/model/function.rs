@@ -65,8 +65,8 @@ impl Runnable for Function {
         self.outputs.clone()
     }
 
-    fn add_output_connection(&mut self, connection: (Route, usize, usize)) {
-        self.output_routes.push(connection);
+    fn add_output_route(&mut self, output_route: (Route, usize, usize)) {
+        self.output_routes.push(output_route);
     }
 
     // Could combine with get_impl_path() ????

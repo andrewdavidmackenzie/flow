@@ -1,0 +1,13 @@
+flow = "echo args"
+
+[[process]]
+alias = "args"
+source = "lib://flowr/args/get.toml"
+
+[[process]]
+alias = "print"
+source = "lib://flowr/stdio/stdout.toml"
+
+[[connection]]
+from = "process/args/1"
+to = "process/print"

@@ -187,6 +187,20 @@ mod test {
     }
 
     #[test]
+    fn compile_args_ok() {
+        let meta_provider = MetaProvider {};
+        let parent_route = &"".to_string();
+        let process = loader::load_process(parent_route, &"args".to_string(),
+                                           &url_from_rel_path("flowc/test-flows/args.toml"),
+                                           &meta_provider).unwrap();
+        if let FlowProcess(ref flow) = process {
+            let _tables = compile::compile(flow).unwrap();
+        } else {
+            assert!(false, "Process loaded was not a flow");
+        }
+    }
+
+    #[test]
     fn compile_echo_ok() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();

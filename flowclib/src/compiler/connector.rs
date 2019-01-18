@@ -8,7 +8,11 @@ use model::connection::Connection;
 use model::name::HasName;
 
 /*
-    Iterate through the values and function setting each one's output routes array
+    Go through all connections, finding:
+      - source process (process id and output route connection is from)
+      - destination process (process id and input number the connection is to)
+
+    Then add an output route to the source process's output routes vector
     (according to each runnable's output route in the original description plus each connection from
      that route, which could be to multiple destinations)
 */
@@ -19,7 +23,9 @@ pub fn set_runnable_outputs(tables: &mut CodeGenTables) -> Result<(), String> {
             if let Some(&(destination_id, destination_input_index)) = tables.destination_routes.get(connection.to_io.route()) {
                 let source_runnable = tables.runnables.get_mut(source_id).unwrap();
                 debug!("Connection built: from '{}' to '{}'", &connection.from_io.route(), &connection.to_io.route());
-                source_runnable.add_output_connection((output_route.to_string(), destination_id, destination_input_index));
+                debug!("Output Route: Route = '{}', destination_id = {}, destination_input_index = {})",
+                       output_route.to_string(), destination_id, destination_input_index);
+                source_runnable.add_output_route((output_route.to_string(), destination_id, destination_input_index));
             } else {
                 return Err(format!("Connection destination '{}' not found", connection.to_io.route()));
             }
@@ -36,14 +42,14 @@ pub fn set_runnable_outputs(tables: &mut CodeGenTables) -> Result<(), String> {
     find a runnable using the route to its output (removing the array index first to find outputs that are arrays)
     return a tuple of the sub-route to use (possibly with array index included), and the runnable index
 */
-fn get_source<'a>(source_routes: &'a HashMap<Route, (Route, usize)>, from_route: &Route) -> Option<(Route, usize)> {
+fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &Route) -> Option<(Route, usize)> {
     let (source_without_index, num, array) = Router::without_trailing_array_index(from_route);
     let source = source_routes.get(&source_without_index.to_string());
 
     if let Some(&(ref route, runnable_index)) = source {
         if array {
             if route.is_empty() {
-                return Some((format!("{}", num), runnable_index)); // avoid leading '/'
+                return Some((format!("/{}", num), runnable_index));
             } else {
                 return Some((format!("{}/{}", route, num), runnable_index));
             }
