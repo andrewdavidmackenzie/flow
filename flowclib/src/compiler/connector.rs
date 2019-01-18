@@ -43,18 +43,22 @@ pub fn set_runnable_outputs(tables: &mut CodeGenTables) -> Result<(), String> {
     return a tuple of the sub-route to use (possibly with array index included), and the runnable index
 */
 fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &Route) -> Option<(Route, usize)> {
-    let (source_without_index, num, array) = Router::without_trailing_array_index(from_route);
+    let (source_without_index, array_index, is_array_output) = Router::without_trailing_array_index(from_route);
     let source = source_routes.get(&source_without_index.to_string());
 
     if let Some(&(ref route, runnable_index)) = source {
-        if array {
+        if is_array_output {
             if route.is_empty() {
-                return Some((format!("/{}", num), runnable_index));
+                return Some((format!("/{}", array_index), runnable_index));
             } else {
-                return Some((format!("{}/{}", route, num), runnable_index));
+                return Some((format!("/{}/{}", route, array_index), runnable_index));
             }
         } else {
-            return Some((route.to_string(), runnable_index));
+            if route.is_empty() {
+                return Some((route.to_string(), runnable_index));
+            } else {
+                return Some((format!("/{}", route.to_string()), runnable_index));
+            }
         }
     } else {
         return None;

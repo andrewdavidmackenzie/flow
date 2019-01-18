@@ -134,7 +134,7 @@ samples/%/test.output: samples/%/test_input.txt samples/%/test_arguments.txt
 	@echo "\n------- Compiling and Running '$(@D)' ----"
 # remove local file path from output messages with sed to make local failures match travis failures
 	@cat $< | cargo run --quiet --bin flowc -- -d $(@D) -- `cat $(@D)/test_arguments.txt` | grep -v "Running" | grep -v "Finished dev" > $@; true
-	@diff $@ $(@D)/expected_output.txt || (ret=$$?; rm -f $@ && exit $$ret)
+	@diff $@ $(@D)/expected_output.txt || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && exit $$ret)
 	@echo "Sample output matches expected output"
 	@rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time
 
