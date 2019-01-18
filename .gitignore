@@ -6,3 +6,4 @@ ui-target
 *.dot
 **.dump
 dependencies.png
+failed.output
