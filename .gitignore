@@ -7,3 +7,4 @@ ui-target
 **.dump
 dependencies.png
 failed.output
+manifest.json
