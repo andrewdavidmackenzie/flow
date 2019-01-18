@@ -15,7 +15,7 @@ pub struct Process<'a> {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     initial_value: Option<JsonValue>,
 
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(rename = "input_depths", default, skip_serializing_if = "Vec::is_empty")]
     inputs: Vec<Input>,
 
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
