@@ -3,9 +3,18 @@ use std::mem::replace;
 
 #[derive(Deserialize, Serialize)]
 pub struct Input {
+    #[serde(default = "default_depth", skip_serializing_if = "is_default")]
     depth: usize,
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     received: Vec<JsonValue>,
+}
+
+fn is_default(depth: &usize) -> bool {
+    *depth == default_depth()
+}
+
+fn default_depth() -> usize {
+    1
 }
 
 impl Input {

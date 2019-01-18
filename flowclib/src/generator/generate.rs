@@ -62,12 +62,9 @@ pub fn create_manifest(_flow: &Flow, out_dir: &PathBuf, tables: &CodeGenTables) 
     Ok(filename)
 }
 
+// Do as an Into trait?
 fn runnable_to_process(runnable: &Box<Runnable>) -> flowrlib::process::Process {
     let name = runnable.alias();
-    let number_of_inputs = match &runnable.get_inputs() {
-        &None => 0,
-        Some(inputs) => inputs.len()
-    };
     let is_static = runnable.is_static_value();
     let impl_path = runnable.get_impl_path();
     let input_depths = match &runnable.get_inputs() {
@@ -86,7 +83,6 @@ fn runnable_to_process(runnable: &Box<Runnable>) -> flowrlib::process::Process {
 
     flowrlib::process::Process::new(
         name,
-        number_of_inputs,
         is_static,
         impl_path,
         input_depths,

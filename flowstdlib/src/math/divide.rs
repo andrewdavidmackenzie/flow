@@ -32,7 +32,7 @@ mod test {
         let inputs: Vec<Vec<JsonValue>> = vec!(vec!(dividend), vec!(divisor));
 
         let mut run_list = RunList::new();
-        let d = &Process::new("d", 3, true, "".to_string(), vec!(1, 1, 1), 0, None, vec!()) as &Process;
+        let d = &Process::new("d",true, "".to_string(), vec!(1, 1, 1), 0, None, vec!()) as &Process;
         let implementation = d.get_implementation();
 
         implementation.run(d, inputs, &mut run_list);

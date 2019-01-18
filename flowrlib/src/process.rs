@@ -6,32 +6,40 @@ use runlist::RunList;
 
 #[derive(Deserialize, Serialize)]
 pub struct Process<'a> {
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     name: String,
-    number_of_inputs: usize,
     id: usize,
     implementation_source: String,
-    output_routes: Vec<(String, usize, usize)>,
+    #[serde(default, skip_serializing_if = "not_static")]
     is_static: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     initial_value: Option<JsonValue>,
+
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     inputs: Vec<Input>,
 
-    #[serde(skip_deserializing, skip_serializing)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    output_routes: Vec<(String, usize, usize)>,
+
+    #[serde(skip)]
     #[serde(default = "default_implementation")]
     implementation: &'a dyn Implementation,
 
-    #[serde(skip_deserializing, skip_serializing)]
+    #[serde(skip)]
     #[serde(default = "default_wasm")]
-    _wasm_object: String // TODO
+    _wasm_object: String, // TODO
 }
 
 struct ImplementationNotFound {}
+
+fn not_static(is_static: &bool) -> bool { *is_static == false }
 
 impl Implementation for ImplementationNotFound {
     fn run(&self, process: &Process, _inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList)
            -> RunAgain {
         error!("Process '{}' called implementation '{}', but was not found",
-        process.name(),
-        process.implementation_source());
+               process.name(),
+               process.implementation_source());
         false
     }
 }
@@ -49,7 +57,6 @@ fn default_wasm() -> String {
 
 impl<'a> Process<'a> {
     pub fn new(name: &str,
-               number_of_inputs: usize,
                is_static: bool,
                implementation_source: String,
                input_depths: Vec<usize>,
@@ -60,31 +67,30 @@ impl<'a> Process<'a> {
 
         let mut process = Process {
             name: name.to_string(),
-            number_of_inputs,
             id,
             implementation_source,
             implementation,
             output_routes,
             is_static,
             initial_value,
-            inputs: Vec::with_capacity(number_of_inputs),
-            _wasm_object: "".to_string()
+            inputs: Vec::with_capacity(input_depths.len()),
+            _wasm_object: "".to_string(),
         };
 
-        // Set the correct depths on each input
-        for input_depth in input_depths {
-            process.inputs.push(Input::new(input_depth));
-        }
+        process.setup_inputs(input_depths);
 
         process
     }
 
-    pub fn name(&self) -> &str {
-        &self.name
+    // Create the set of inputs, each with appropriate depth
+    pub fn setup_inputs(&mut self, input_depths: Vec<usize>) {
+        for input_depth in input_depths {
+            self.inputs.push(Input::new(input_depth));
+        }
     }
 
-    pub fn number_of_inputs(&self) -> usize {
-        self.number_of_inputs
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub fn id(&self) -> usize {
@@ -188,8 +194,8 @@ mod test {
 
     #[test]
     fn can_send_input_if_empty() {
-        let mut process = Process::new("test", 1, false, "/test".to_string(),vec!(1), 0,
-                                         None, vec!());
+        let mut process = Process::new("test", false, "/test".to_string(), vec!(1), 0,
+                                       None, vec!());
         process.init();
         process.write_input(0, json!(1));
         assert_eq!(process.get_input_values().remove(0).remove(0), json!(1));
@@ -197,8 +203,8 @@ mod test {
 
     #[test]
     fn can_send_input_if_empty_and_static() {
-        let mut process = Process::new("test", 1, true, "/test".to_string(),vec!(1), 0,
-                                         None, vec!());
+        let mut process = Process::new("test", true, "/test".to_string(), vec!(1), 0,
+                                       None, vec!());
         process.init();
         process.write_input(0, json!(1));
         assert_eq!(process.get_input_values().remove(0).remove(0), json!(1));
@@ -206,8 +212,7 @@ mod test {
 
     #[test]
     fn cannot_send_input_if_initialized() {
-        let mut process = Process::new("test", 1, false, "/test".to_string(), vec!(1), 0,
-
+        let mut process = Process::new("test", false, "/test".to_string(), vec!(1), 0,
                                        Some(json!(0)), vec!());
         process.init();
         process.write_input(0, json!(1)); // error
@@ -216,8 +221,7 @@ mod test {
 
     #[test]
     fn can_send_input_if_full_and_static() {
-        let mut process = Process::new("test", 1, true, "/test".to_string(), vec!(1), 0,
-
+        let mut process = Process::new("test", true, "/test".to_string(), vec!(1), 0,
                                        None, vec!());
         process.init();
         process.write_input(0, json!(1));
@@ -227,8 +231,7 @@ mod test {
 
     #[test]
     fn cannot_send_input_if_full_and_not_static() {
-        let mut process = Process::new("test", 1, false, "/test".to_string(), vec!(1), 0,
-
+        let mut process = Process::new("test", false, "/test".to_string(), vec!(1), 0,
                                        None, vec!());
         process.init();
         process.write_input(0, json!(1)); // success
