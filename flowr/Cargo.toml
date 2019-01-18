@@ -11,7 +11,7 @@ readme = "https://github.com/andrewdavidmackenzie/flow/README.md"
 
 [[bin]]
 name = "flowr"
-path = "src/flowr.rs"
+path = "src/main.rs"
 
 [dependencies]
 clap = "~2.27.1"

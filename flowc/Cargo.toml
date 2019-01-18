@@ -11,7 +11,7 @@ readme = "https://github.com/andrewdavidmackenzie/flow/README.md"
 
 [[bin]]
 name = "flowc"
-path = "src/flowc.rs"
+path = "src/main.rs"
 
 [features]
 online_tests = []
