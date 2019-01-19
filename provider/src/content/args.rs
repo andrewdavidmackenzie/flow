@@ -29,7 +29,7 @@ pub fn url_from_string(string: Option<&str>) -> Result<Url, String> {
     }
 }
 
-fn cwd_as_url() -> Result<Url, String> {
+pub fn cwd_as_url() -> Result<Url, String> {
     Url::from_directory_path(env::current_dir().unwrap())
         .map_err(|_e| "Could not form a Url for the current working directory".to_string())
 }

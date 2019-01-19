@@ -19,7 +19,7 @@ use flowrlib::loader::Loader;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
-use provider::content::args::url_from_string;
+use provider::content::args::{cwd_as_url, url_from_string};
 use provider::content::provider::MetaProvider;
 
 pub mod args;
@@ -34,9 +34,11 @@ fn main() -> Result<(), String> {
     let mut loader = Loader::new();
     let provider = MetaProvider {};
 
+    // TODO pass in the root folder of the library, so wasm files in it can be found
+    let cwd = cwd_as_url()?;
     // Load standard library functions we always want - flowr (for environment) and flowstdlib
-    loader.add_lib(&provider, ::ilt::get_ilt())?;
-    loader.add_lib(&provider, flowstdlib::ilt::get_ilt())?;
+    loader.add_lib(&provider, ::ilt::get_ilt(), &cwd)?;
+    loader.add_lib(&provider, flowstdlib::ilt::get_ilt(), &cwd)?;
 
     let runnables = loader.load_flow(&provider, &url)?;
 

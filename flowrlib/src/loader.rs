@@ -37,11 +37,23 @@ impl<'a> Loader<'a> {
                         match locator {
                             Native(implementation) => process.set_implementation(*implementation),
                             _ => {
-                                return Err(format!("Tried to load a library Wasm implementation for '{}', but not loaded in library table",
+                                return Err(format!("Did not find Native wrapper for Wasm implementation '{}'",
                                                    process.implementation_source()));
                             }
                         }
                     }
+                }
+                "" => { // Assume file with a relative path to the route of the flow's manifest
+                    /*
+                    TODO get this to work for relative paths
+                    let relative_path = process.implementation_source();
+                    let full_path = &manifest_url.clone().join(relative_path).unwrap(); */
+                    let full_path = &Url::parse(process.implementation_source())
+                        .map_err(|_| format!("Could not convert the implementation path '{}' to a Url",
+                                 process.implementation_source()))?;
+                    // TODO optimize so we don't load the implementation multiple times?
+                    process.set_implementation(
+                        WasmImplementation::load(provider, full_path).unwrap());
                 }
                 "http" | "https" | "file" => {
                     // TODO optimize so we don't load the implementation multiple times?
@@ -61,7 +73,9 @@ impl<'a> Loader<'a> {
     // Add a library to the runtime by adding it's ImplementationLocatorTable to the global
     // table for this runtime, so that then when we try to load a flow that references functions
     // in the library, they can be found.
-    pub fn add_lib(&mut self, provider: &Provider, lib_manifest: ImplementationLocatorTable<'a>)
+    pub fn add_lib(&mut self, provider: &Provider,
+                   lib_manifest: ImplementationLocatorTable<'a>,
+                   ilt_url: &Url)
                    -> Result<(), String> {
         self.global_lib_table.locators.extend(lib_manifest.locators.into_iter()
             .map(|(route, locator)| {
@@ -69,7 +83,7 @@ impl<'a> Loader<'a> {
                     Wasm(ref source) => {
                         // Reference to a wasm implementation being added. Wrap it with the Wasm
                         // Native Implementation and return that for use later on execution.
-                        let wasm_url = Url::parse(source).unwrap();
+                        let wasm_url = ilt_url.clone().join(source).unwrap();
                         (route, Native(WasmImplementation::load(provider, &wasm_url).unwrap()))
                     }
                     _ => (route, locator), // Reference to Native implementation being added
