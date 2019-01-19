@@ -2,7 +2,7 @@
 This is a complete list of features implemented in the description of flows:
 
 * Context Flow
-    * Cannot have any outputs from this flow as there cannot be ay parent level
+    * Cannot have any outputs from this flow as there cannot be a parent level
 * All FLows (Context and Children)    
     * Can contain elements directly inside the context flow description
     * Child flow inclusion from description in its own flow file in current project or different project
@@ -31,4 +31,4 @@ This is a complete list of features implemented in the description of flows:
 * Runtime functions for
     * Retrieving arguments from the flow's invocation
     * STDIN/STDOUT/STDERR
-    * Retieving the value of Environment Variables
+    * Retrieving the value of Environment Variables

@@ -1,8 +1,8 @@
 ## Non-Inspirations
 
-There are a number of things that you might suspect were part o fmy set of inspirations
-fopr creating 'flow', or maybe you think I even copied the idea from them, but in fact
-(you'll have to trust me on this one) were in fact not.
+There are a number of things that you might suspect were part of my set of inspirations
+for creating 'flow', or maybe you think I even copied the idea from them, but that in fact
+(you'll have to trust me on this one) is not true.
 
 I didn't study Computer Science, and if I had I may well have been exposed to some of these
 subjects a long-time ago. That would probably have saved me a lot of time.
@@ -22,12 +22,12 @@ Inmos Transputer and Occam language), unbeknownst to me.
 But I decided to deliberately ignore them as I worked out my first thoughts, did
 the initial implementation and got some simple examples up and running!
 
-Later, I looped back and read some papers, and confirmed most of my suspicions. 
+Later, I looped back and read some papers, and confirmed most of my conjectures. 
 
 I got a bit bored with the algebra approach to it (and related papers) though and didn't
-read too much more or learn too much more.
+read or learn too much.
 
-One Hoare paper referes more to a practical implementation, and does hit on a number of the
+One Hoare paper refers more to a practical implementation, and does hit on a number of the
 very subjects I was struggling with, such as the buffering (or not) of data on "data flows"
 between functions (or processes in his terms).
 

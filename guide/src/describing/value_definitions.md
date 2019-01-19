@@ -9,7 +9,7 @@ be written to for storage:
 A value can have an initial value specified. It will be setup at flow initialization before execution
 begins and will immediately be available at it's output on the first iteration of the execution loop.
 
-If no initial value is provided, then initally a value will be empty and remain so until another 
+If no initial value is provided, then initially a value will be empty and remain so until another 
 value or function (connected to it by a connection) sends a value to it.
 
 When the output of a value is read (as the input to another value or function) it is emptied, unless the 

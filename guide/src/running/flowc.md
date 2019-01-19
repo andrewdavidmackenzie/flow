@@ -40,7 +40,7 @@ Where the first line prints the binary name and the version number.
 ### Options Described
 * `-l, --log <LOG_LEVEL>`- Set log level for output (LOG_LEVEL can be `trace`, `debug`, `info`, `warn` or `error` (the default))
 * `-o, --output <OUTPUT_DIR>`- Specify the output directory for generated code. By default this is in a "rust" 
-subdirectory of the the directory where the flow's context was loaded from
+subdirectory of the directory where the flow's context was loaded from
 
 ### Flow Directory or Filename
 After Flags and Options you can supply an optional field for where to load the context flow from.
@@ -52,5 +52,5 @@ It can also be a URL to a flow context specification somewhere on the web. Curre
 
 ### Arguments for the flow
 If a flow directory or filename is supplied, then any files after that are assumed to be command line arguments
-for the flow itself. WHen it starts executing it can retrieve the value of these paramters using functions
+for the flow itself. When it starts executing it can retrieve the value of these parameters using functions
 in the runtime.

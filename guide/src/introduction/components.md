@@ -5,4 +5,4 @@ Major components of the project and their status are:
 * 'flowrlib' - the flow "runtime" library that is currently compiled and linked with a generated flow and takes care of executing it.
 * 'flowstdlib' - the flow "standard library" which contains a set of pre-defined functions that can be used by flows being defined by the user
 * 'web' - the first steps for a project to provide a web ui to flow definition and execution built using rust and WebAssembly with wasm-bindgen - just a "hello world" skeleton that compiles and runs at the moment
-* 'electron' - intended as a standalone application, to be built wrapping the 'web' ui above, currentll stalled and about to be re-started around WebAssembly and new 'web' example
+* 'electron' - intended as a standalone application, to be built wrapping the 'web' ui above, currently stalled and about to be re-started around WebAssembly and new 'web' example
