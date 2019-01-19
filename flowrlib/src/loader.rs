@@ -5,11 +5,9 @@ use super::implementation_table::ImplementationLocator::Native;
 use super::implementation_table::ImplementationLocator::Wasm;
 use super::process::Process;
 use super::manifest::Manifest;
-
-pub trait Provider {
-    // TODO change this to get from a url
-    fn get_content<'a>(&self, path: &str) -> Result<String, String>;
-}
+use wasm_implementation::WasmImplementation;
+use provider::Provider;
+use url::Url;
 
 pub struct Loader<'a> {
     global_lib_table: ImplementationLocatorTable<'a>
@@ -22,9 +20,9 @@ impl<'a> Loader<'a> {
         }
     }
 
-    pub fn load_flow(&self, provider: &Provider, path: &str)
+    pub fn load_flow(&self, provider: &Provider, url: &Url)
                      -> Result<Vec<Arc<Mutex<Process<'a>>>>, String> {
-        let manifest = Manifest::load(provider, path)?;
+        let manifest = Manifest::load(provider, url)?;
 
         let mut runnables = Vec::<Arc<Mutex<Process>>>::new();
 
@@ -33,7 +31,8 @@ impl<'a> Loader<'a> {
             if let Some(ref source) = self.global_lib_table.get(process.implementation_source()) {
                 match source {
                     Native(impl_reference) => process.set_implementation(*impl_reference),
-                    Wasm(_) => error!("not implemented yet") // TODO load wasm and wrap it in an implementation
+                    Wasm(source_path) => process.set_implementation(
+                        WasmImplementation::load(provider, source_path)?)
                 }
             }
 

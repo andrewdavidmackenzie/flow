@@ -1,10 +1,8 @@
 extern crate clap;
-extern crate curl;
 extern crate flowclib;
-extern crate glob;
 #[macro_use]
 extern crate log;
-extern crate simpath;
+extern crate provider;
 extern crate simplog;
 extern crate tempdir;
 extern crate url;
@@ -25,8 +23,10 @@ use flowclib::model::process::Process::FlowProcess;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
+use provider::content::args::url_from_cl_arg;
+use provider::content::provider::MetaProvider;
+
 mod source_arg;
-mod content;
 
 fn main() {
     match run() {
@@ -42,7 +42,7 @@ fn main() {
 */
 fn run() -> Result<String, String> {
     let (url, args, dump, skip_generation, out_dir) = parse_args( get_matches())?;
-    let meta_provider = content::provider::MetaProvider {};
+    let meta_provider = MetaProvider {};
 
     let process = loader::load_process(&"".to_string(),
                                         &"context".to_string(), &url, &meta_provider)?;
@@ -102,7 +102,7 @@ fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, Path
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     info!("'flowclib' version {}\n", info::version());
 
-    let url = source_arg::url_from_cl_arg(matches.value_of("FLOW"))?;
+    let url = url_from_cl_arg(matches.value_of("FLOW"))?;
 
     let dump = matches.is_present("dump");
     let skip_generation = matches.is_present("skip");
@@ -169,6 +169,7 @@ fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String, Stri
 mod test {
     extern crate flowclib;
     extern crate url;
+    extern crate provider;
 
     use std::env;
 
@@ -178,8 +179,8 @@ mod test {
     use flowclib::model::process::Process::FlowProcess;
     use url::Url;
 
-    use content::provider::MetaProvider;
-    use source_arg::url_from_cl_arg;
+    use provider::content::args::url_from_cl_arg;
+    use provider::content::provider::MetaProvider;
 
     fn url_from_rel_path(path: &str) -> Url {
         let cwd = Url::from_file_path(env::current_dir().unwrap()).unwrap();

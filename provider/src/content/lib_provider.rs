@@ -1,6 +1,6 @@
-use url::Url;
-use flowclib::loader::provider::Provider;
+use flowrlib::provider::Provider;
 use simpath::Simpath;
+use url::Url;
 
 pub struct LibProvider;
 
@@ -70,10 +70,12 @@ impl Provider for LibProvider {
 
 #[cfg(test)]
 mod test {
-    use url::Url;
-    use super::LibProvider;
-    use flowclib::loader::provider::Provider;
     use std::env;
+
+    use flowrlib::provider::Provider;
+    use url::Url;
+
+    use super::LibProvider;
 
     #[test]
     fn resolve_path() {

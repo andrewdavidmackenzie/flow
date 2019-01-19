@@ -1,8 +1,9 @@
+use flowrlib::provider::Provider;
 use url::Url;
+
 use content::file_provider::FileProvider;
-use content::lib_provider::LibProvider;
 use content::http_provider::HttpProvider;
-use flowclib::loader::provider::Provider;
+use content::lib_provider::LibProvider;
 
 const FILE_PROVIDER: &Provider = &FileProvider as &Provider;
 const LIB_PROVIDER: &Provider = &LibProvider as &Provider;
@@ -11,9 +12,10 @@ const HTTP_PROVIDER: &Provider = &HttpProvider as &Provider;
 pub struct MetaProvider {}
 
 impl MetaProvider {
-    // Determine which provider should be used based on the scheme of the Url of the content
+    // Determine which specific provider should be used based on the scheme of the Url of the content
     fn get_provider(url: &Url) -> Result<&'static Provider, String> {
         match url.scheme() {
+            "" => Ok(FILE_PROVIDER),
             "file" => Ok(FILE_PROVIDER),
             "lib" => Ok(LIB_PROVIDER),
             "http" | "https" => Ok(HTTP_PROVIDER),

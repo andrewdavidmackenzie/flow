@@ -11,6 +11,8 @@ extern crate simplog;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate wasmi;
+extern crate url;
 
 pub mod info;
 pub mod execution;
@@ -21,3 +23,5 @@ pub mod process;
 pub mod manifest;
 pub mod input;
 pub mod loader;
+pub mod provider;
+mod wasm_implementation;

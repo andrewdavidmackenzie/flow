@@ -1,11 +1,12 @@
-use url::Url;
 use std::fs;
-use std::path::PathBuf;
-use glob::glob;
+use std::fs::metadata;
 use std::io;
 use std::io::ErrorKind;
-use std::fs::metadata;
-use flowclib::loader::provider::Provider;
+use std::path::PathBuf;
+
+use flowrlib::provider::Provider;
+use glob::glob;
+use url::Url;
 
 pub struct FileProvider;
 
@@ -72,9 +73,11 @@ impl FileProvider {
 #[cfg(test)]
 mod test {
     use std::path::PathBuf;
+
+    use flowrlib::provider::Provider;
     use url::Url;
+
     use super::FileProvider;
-    use flowclib::loader::provider::Provider;
 
     #[test]
     fn get_default_sample() {

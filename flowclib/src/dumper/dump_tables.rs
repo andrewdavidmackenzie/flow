@@ -14,9 +14,11 @@ use ::dumper::dump_dot;
 /// extern crate url;
 /// extern crate flowclib;
 /// extern crate tempdir;
+/// extern crate flowrlib;
+///
 /// use std::env;
 /// use url::Url;
-/// use flowclib::loader::provider::Provider;
+/// use flowrlib::provider::Provider;
 /// use flowclib::model::process::Process::FlowProcess;
 ///
 /// struct DummyProvider {}
@@ -90,9 +92,11 @@ pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<S
 /// extern crate url;
 /// extern crate flowclib;
 /// extern crate tempdir;
+/// extern crate flowrlib;
+///
 /// use std::env;
 /// use url::Url;
-/// use flowclib::loader::provider::Provider;
+/// use flowrlib::provider::Provider;
 /// use flowclib::model::process::Process::FlowProcess;
 ///
 /// struct DummyProvider {}

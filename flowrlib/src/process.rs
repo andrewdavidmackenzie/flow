@@ -30,14 +30,14 @@ pub struct Process<'a> {
     _wasm_object: String, // TODO
 }
 
-struct ImplementationNotFound {}
-
 fn not_static(is_static: &bool) -> bool { *is_static == false }
+
+struct ImplementationNotFound {}
 
 impl Implementation for ImplementationNotFound {
     fn run(&self, process: &Process, _inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList)
            -> RunAgain {
-        error!("Process '{}' called implementation '{}', but was not found",
+        error!("Process '{}' called the implementation '{}', but it was not found",
                process.name(),
                process.implementation_source());
         false

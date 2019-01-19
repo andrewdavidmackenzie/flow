@@ -9,7 +9,7 @@ use model::route::Route;
 use model::route::HasRoute;
 use model::route::SetRoute;
 use loader::loader_helper::get_loader;
-use super::provider::Provider;
+use flowrlib::provider::Provider;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
 use std::mem::replace;
@@ -34,9 +34,11 @@ pub trait Validate {
 /// ```
 /// extern crate url;
 /// extern crate flowclib;
+/// extern crate flowrlib;
+///
+/// use flowrlib::provider::Provider;
 /// use std::env;
 /// use url::Url;
-/// use flowclib::loader::provider::Provider;
 ///
 /// // Clients need to provide a Provider of content for the loader
 /// struct DummyProvider {};

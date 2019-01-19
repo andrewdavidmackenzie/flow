@@ -14,9 +14,11 @@ use model::process::Process::FlowProcess;
 /// extern crate url;
 /// extern crate flowclib;
 /// extern crate tempdir;
+/// extern crate flowrlib;
+///
 /// use std::env;
 /// use url::Url;
-/// use flowclib::loader::provider::Provider;
+/// use flowrlib::provider::Provider;
 /// use flowclib::model::process::Process::FlowProcess;
 ///
 /// struct DummyProvider {}

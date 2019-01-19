@@ -1,14 +1,12 @@
 extern crate clap;
-extern crate curl;
 extern crate flowrlib;
 extern crate flowstdlib;
 #[macro_use]
 extern crate log;
+extern crate provider;
 #[macro_use]
 extern crate serde_json;
-extern crate simpath;
 extern crate simplog;
-extern crate tempdir;
 extern crate url;
 
 use std::env;
@@ -19,8 +17,11 @@ use flowrlib::execution::execute;
 use flowrlib::info;
 use flowrlib::loader::Loader;
 use simplog::simplog::SimpleLogger;
+use url::Url;
 
-mod provider;
+use provider::content::args::url_from_cl_arg;
+use provider::content::provider::MetaProvider;
+
 pub mod args;
 pub mod stdio;
 pub mod file;
@@ -29,15 +30,15 @@ mod manifest;
 pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
 
 fn main() -> Result<(), String> {
-    let path = parse_args( get_matches())?;
+    let url = parse_args( get_matches())?;
     let mut loader = Loader::new();
-    let flowr_provider = provider::FlowrProvider{};
+    let flowr_provider = MetaProvider{};
 
+    // Load standard library functions we always want - flowr (for environment) and flowstdlib
     loader.load_lib(::manifest::get_manifest());
     loader.load_lib(flowstdlib::manifest::get_manifest());
 
-
-    let runnables = loader.load_flow(&flowr_provider, &path)?;
+    let runnables = loader.load_flow(&flowr_provider, &url)?;
 
     execute(runnables);
 
@@ -69,7 +70,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 /*
     Parse the command line arguments
 */
-fn parse_args(matches: ArgMatches) -> Result<String, String> {
+fn parse_args(matches: ArgMatches) -> Result<Url, String> {
     // Set anvironment variable with the args
     // this will not be unique, but it will be used very soon and removed
     if let Some(flow_args) = matches.values_of("flow-arguments") {
@@ -86,9 +87,6 @@ fn parse_args(matches: ArgMatches) -> Result<String, String> {
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     info!("'flowrlib' version {}\n", info::version());
 
-    match matches.value_of("flow-manifest") {
-        Some(path) => Ok(path.to_string()),
-        None => Err("No flow manifest filename specified".to_string())
-    }
+    url_from_cl_arg( matches.value_of("flow-manifest"))
 }
 
