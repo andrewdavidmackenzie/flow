@@ -23,24 +23,34 @@ impl<'a> Loader<'a> {
     pub fn load_flow(&self, provider: &Provider, manifest_url: &Url)
                      -> Result<Vec<Arc<Mutex<Process<'a>>>>, String> {
         let manifest = Manifest::load(provider, manifest_url)?;
-
         let mut runnables = Vec::<Arc<Mutex<Process>>>::new();
 
+        // find in the library, or load the implementation required - as specified by the source
         for mut process in manifest.processes {
-            // find the implementation from the implementation_source in the process
-            if let Some(ref source) = self.global_lib_table.locators.get(process.implementation_source()) {
-                match source {
-                    Native(impl_reference) => process.set_implementation(*impl_reference),
-                    Wasm(source) => {
-                        let wasm_url = manifest_url.join(source)
-                            .map_err(|_e| format!("URL join error when trying to fetch wasm from '{}'",
-                                                  source))?;
-
-                        process.set_implementation(
-                            WasmImplementation::load(provider, &wasm_url)?)
+            let source_url = Url::parse(process.implementation_source())
+                .map_err(|_| format!("Could not convert process implementation source '{}' to a valid Url",
+                                     process.implementation_source()))?;
+            match source_url.scheme() {
+                "lib" => {
+                    // Try and find the implementation referenced in the libraries already loaded
+                    if let Some(ref locator) = self.global_lib_table.locators.get(process.implementation_source()) {
+                        match locator {
+                            Native(implementation) => process.set_implementation(*implementation),
+                            _ => {
+                                return Err(format!("Tried to load a library Wasm implementation for '{}', but not loaded in library table",
+                                                   process.implementation_source()));
+                            }
+                        }
                     }
                 }
-            }
+                "http" | "https" | "file" => {
+                    // TODO optimize so we don't load the implementation multiple times?
+                    process.set_implementation(
+                        WasmImplementation::load(provider, &source_url).unwrap());
+                }
+                _ => return Err(format!("Unexpected Url scheme for implemenation source: '{}'",
+                                        process.implementation_source()))
+            };
 
             runnables.push(Arc::new(Mutex::new(process)));
         }
@@ -51,7 +61,21 @@ impl<'a> Loader<'a> {
     // Add a library to the runtime by adding it's ImplementationLocatorTable to the global
     // table for this runtime, so that then when we try to load a flow that references functions
     // in the library, they can be found.
-    pub fn add_lib(&mut self, lib_manifest: ImplementationLocatorTable<'a>) {
-        self.global_lib_table.locators.extend(lib_manifest.locators);
+    pub fn add_lib(&mut self, provider: &Provider, lib_manifest: ImplementationLocatorTable<'a>)
+                   -> Result<(), String> {
+        self.global_lib_table.locators.extend(lib_manifest.locators.into_iter()
+            .map(|(route, locator)| {
+                match locator {
+                    Wasm(ref source) => {
+                        // Reference to a wasm implementation being added. Wrap it with the Wasm
+                        // Native Implementation and return that for use later on execution.
+                        let wasm_url = Url::parse(source).unwrap();
+                        (route, Native(WasmImplementation::load(provider, &wasm_url).unwrap()))
+                    }
+                    _ => (route, locator), // Reference to Native implementation being added
+                }
+            }));
+
+        Ok(())
     }
 }

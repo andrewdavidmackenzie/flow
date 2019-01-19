@@ -32,13 +32,13 @@ pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
 fn main() -> Result<(), String> {
     let url = parse_args(get_matches())?;
     let mut loader = Loader::new();
-    let flowr_provider = MetaProvider {};
+    let provider = MetaProvider {};
 
     // Load standard library functions we always want - flowr (for environment) and flowstdlib
-    loader.add_lib(::ilt::get_ilt());
-    loader.add_lib(flowstdlib::ilt::get_ilt());
+    loader.add_lib(&provider, ::ilt::get_ilt())?;
+    loader.add_lib(&provider, flowstdlib::ilt::get_ilt())?;
 
-    let runnables = loader.load_flow(&flowr_provider, &url)?;
+    let runnables = loader.load_flow(&provider, &url)?;
 
     execute(runnables);
 

@@ -14,6 +14,7 @@ pub struct WasmImplementation {
 
 impl Implementation for WasmImplementation {
     fn run(&self, _process: &Process, _inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList) -> RunAgain {
+        println!("Wasm implementation wrapper called");
         true
     }
 }
