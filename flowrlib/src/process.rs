@@ -24,10 +24,6 @@ pub struct Process<'a> {
     #[serde(skip)]
     #[serde(default = "default_implementation")]
     implementation: &'a dyn Implementation,
-
-    #[serde(skip)]
-    #[serde(default = "default_wasm")]
-    _wasm_object: String, // TODO
 }
 
 fn not_static(is_static: &bool) -> bool { *is_static == false }
@@ -50,11 +46,6 @@ fn default_implementation() -> &'static Implementation {
     NOT_FOUND
 }
 
-// TODO
-fn default_wasm() -> String {
-    "WASM.string".to_string()
-}
-
 impl<'a> Process<'a> {
     pub fn new(name: &str,
                is_static: bool,
@@ -74,7 +65,6 @@ impl<'a> Process<'a> {
             is_static,
             initial_value,
             inputs: Vec::with_capacity(input_depths.len()),
-            _wasm_object: "".to_string(),
         };
 
         process.setup_inputs(input_depths);

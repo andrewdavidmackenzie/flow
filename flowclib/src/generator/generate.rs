@@ -23,10 +23,11 @@ pub struct CodeGenTables {
 serialize_trait_object!(Runnable);
 
 /*
-    vars.insert("package_name".to_string(), &flow.alias);
-    vars.insert("package_version".to_string(), &flow.version);
-    vars.insert("author_name".to_string(), &flow.author_name);
-    vars.insert("author_email".to_string(), &flow.author_email);
+Things to add to the manifest
+    - flow.alias
+    - flow.version
+    - flow.author_name
+    - flow.author_email
 */
 
 impl CodeGenTables {

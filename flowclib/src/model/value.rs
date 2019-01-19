@@ -105,7 +105,7 @@ impl Runnable for Value {
     }
 
     fn get_impl_path(&self) -> String {
-        "//flowstdlib/zero_fifo/Fifo".to_string()
+        "lib://flowstdlib/zero_fifo/Fifo".to_string()
     }
 }
 

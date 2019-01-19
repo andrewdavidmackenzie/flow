@@ -92,9 +92,9 @@ impl Runnable for Function {
 
     fn get_impl_path(&self) -> String {
         if let Some(ref reference) = self.lib_reference {
-            format!("//{}/{}", reference, &self.name)
+            format!("lib://{}/{}", reference, &self.name)
         } else {
-            self.source_url.to_file_path().unwrap().to_str().unwrap().to_string().replace(".toml", ".wasm") // TODO
+            self.source_url.as_str().replace(".toml", ".wasm") // TODO
         }
     }
 }
