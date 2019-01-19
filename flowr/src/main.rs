@@ -25,18 +25,18 @@ use provider::content::provider::MetaProvider;
 pub mod args;
 pub mod stdio;
 pub mod file;
-mod manifest;
+mod ilt;
 
 pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
 
 fn main() -> Result<(), String> {
-    let url = parse_args( get_matches())?;
+    let url = parse_args(get_matches())?;
     let mut loader = Loader::new();
-    let flowr_provider = MetaProvider{};
+    let flowr_provider = MetaProvider {};
 
     // Load standard library functions we always want - flowr (for environment) and flowstdlib
-    loader.load_lib(::manifest::get_manifest());
-    loader.load_lib(flowstdlib::manifest::get_manifest());
+    loader.add_lib(::ilt::get_ilt());
+    loader.add_lib(flowstdlib::ilt::get_ilt());
 
     let runnables = loader.load_flow(&flowr_provider, &url)?;
 
@@ -87,6 +87,5 @@ fn parse_args(matches: ArgMatches) -> Result<Url, String> {
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     info!("'flowrlib' version {}\n", info::version());
 
-    url_from_string( matches.value_of("flow-manifest"))
+    url_from_string(matches.value_of("flow-manifest"))
 }
-

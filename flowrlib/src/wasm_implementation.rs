@@ -3,6 +3,7 @@ use implementation::RunAgain;
 use process::Process;
 use runlist::RunList;
 use provider::Provider;
+use wasmi::{Module};
 //use wasmi::{Module, ImportsBuilder, ModuleInstance};
 use serde_json::Value as JsonValue;
 use url::Url;
@@ -20,10 +21,10 @@ impl Implementation for WasmImplementation {
 impl WasmImplementation {
     pub fn load<'a>(provider: &Provider, source_url: &Url) -> Result<&'a Implementation, String> {
         let (resolved_url, _) = provider.resolve(source_url)?;
-        let _contents = provider.get(&resolved_url)?;
+        let content = provider.get(&resolved_url)?;
 
-//        let module = Module::from_buffer(content)
-//            .map_err(|e| e.to_string())?;
+        let _module = Module::from_buffer(content)
+            .map_err(|e| e.to_string())?;
 
         Ok(&WasmImplementation {
 /*            module: ModuleInstance::new(&module,

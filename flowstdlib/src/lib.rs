@@ -9,7 +9,7 @@ pub mod info;
 pub mod control;
 pub mod img;
 pub mod zero_fifo;
-pub mod manifest;
+pub mod ilt;
 
 
 // TODO generate this from build script also!
