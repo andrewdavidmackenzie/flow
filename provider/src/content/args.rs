@@ -15,22 +15,23 @@ use url::{ParseError, Url};
         - if parameter passed then join to parent, which will inherit the scheme of none is
           specified, and will resolve relative path if passed
 */
-pub fn url_from_cl_arg(cl_arg: Option<&str>) -> Result<Url, String> {
-    let parent = cwd_as_url();
+pub fn url_from_string(string: Option<&str>) -> Result<Url, String> {
+    let parent = cwd_as_url()?;
 
-    match cl_arg {
+    match string {
         None => {
             info!("No url specified, so using: '{}'", parent);
             Ok(parent.clone())
         }
-        Some(cl_url_string) => {
-            parent.join(cl_url_string).map_err(|e: ParseError| e.to_string())
+        Some(url_string) => {
+            parent.join(url_string).map_err(|e: ParseError| e.to_string())
         }
     }
 }
 
-fn cwd_as_url() -> Url {
-    Url::from_directory_path(env::current_dir().unwrap()).unwrap()
+fn cwd_as_url() -> Result<Url, String> {
+    Url::from_directory_path(env::current_dir().unwrap())
+        .map_err(|_e| "Could not form a Url for the current working directory".to_string())
 }
 
 #[cfg(test)]
@@ -45,13 +46,13 @@ mod test {
     use url::Url;
 
     use super::cwd_as_url;
-    use super::url_from_cl_arg;
+    use super::url_from_string;
 
 // Tests for url_from_cl_arg
 
     #[test]
     fn no_arg_returns_parent() {
-        let url = url_from_cl_arg(None).unwrap();
+        let url = url_from_string(None).unwrap();
 
         let cwd = cwd_as_url();
         assert_eq!(url, cwd);
@@ -62,7 +63,7 @@ mod test {
         let path = "/some/file";
         let arg = format!("file:{}", path);
 
-        let url = url_from_cl_arg(Some(&arg)).unwrap();
+        let url = url_from_string(Some(&arg)).unwrap();
 
         assert_eq!(url.scheme(), "file");
         assert_eq!(url.path(), path);
@@ -73,7 +74,7 @@ mod test {
         let path = "/some/file";
         let arg = format!("http://test.com{}", path);
 
-        let url = url_from_cl_arg(Some(&arg)).unwrap();
+        let url = url_from_string(Some(&arg)).unwrap();
 
         assert_eq!(url.scheme(), "http");
         assert_eq!(url.path(), path);
@@ -83,7 +84,7 @@ mod test {
     fn no_scheme_in_arg_assumes_file() {
         let arg = "/some/file";
 
-        let url = url_from_cl_arg(Some(arg)).unwrap();
+        let url = url_from_string(Some(arg)).unwrap();
 
         assert_eq!(url.scheme(), "file");
         assert_eq!(url.path(), arg);
@@ -95,7 +96,7 @@ mod test {
         let relative_path_to_file = file!();
         let dir = path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
-        let url = url_from_cl_arg(Some(&relative_path_to_file)).unwrap();
+        let url = url_from_string(Some(&relative_path_to_file)).unwrap();
 
         let abs_path = format!("{}/{}", &dir.display(), relative_path_to_file);
         assert_eq!(url.scheme(), "file");

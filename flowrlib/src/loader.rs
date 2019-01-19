@@ -20,9 +20,9 @@ impl<'a> Loader<'a> {
         }
     }
 
-    pub fn load_flow(&self, provider: &Provider, url: &Url)
+    pub fn load_flow(&self, provider: &Provider, manifest_url: &Url)
                      -> Result<Vec<Arc<Mutex<Process<'a>>>>, String> {
-        let manifest = Manifest::load(provider, url)?;
+        let manifest = Manifest::load(provider, manifest_url)?;
 
         let mut runnables = Vec::<Arc<Mutex<Process>>>::new();
 
@@ -31,8 +31,14 @@ impl<'a> Loader<'a> {
             if let Some(ref source) = self.global_lib_table.get(process.implementation_source()) {
                 match source {
                     Native(impl_reference) => process.set_implementation(*impl_reference),
-                    Wasm(source_path) => process.set_implementation(
-                        WasmImplementation::load(provider, source_path)?)
+                    Wasm(source) => {
+                        let wasm_url = manifest_url.join(source)
+                            .map_err(|_e| format!("URL join error when trying to fetch wasm from '{}'",
+                            source))?;
+
+                        process.set_implementation(
+                            WasmImplementation::load(provider, &wasm_url)?)
+                    }
                 }
             }
 
@@ -43,8 +49,8 @@ impl<'a> Loader<'a> {
     }
 
     // Add a library to the runtime by adding it's ImplementationLocatorTable to the global
-    // table for this runtime, so that then when we try to load a flow that references functions
-    // in the library, they can be found.
+// table for this runtime, so that then when we try to load a flow that references functions
+// in the library, they can be found.
     pub fn load_lib(&mut self, lib_manifest: ImplementationLocatorTable<'a>) {
         self.global_lib_table.extend(lib_manifest);
     }

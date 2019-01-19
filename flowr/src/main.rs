@@ -19,7 +19,7 @@ use flowrlib::loader::Loader;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
-use provider::content::args::url_from_cl_arg;
+use provider::content::args::url_from_string;
 use provider::content::provider::MetaProvider;
 
 pub mod args;
@@ -87,6 +87,6 @@ fn parse_args(matches: ArgMatches) -> Result<Url, String> {
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     info!("'flowrlib' version {}\n", info::version());
 
-    url_from_cl_arg( matches.value_of("flow-manifest"))
+    url_from_string( matches.value_of("flow-manifest"))
 }
 

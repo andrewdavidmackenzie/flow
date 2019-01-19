@@ -5,6 +5,7 @@ use runlist::RunList;
 use provider::Provider;
 //use wasmi::{Module, ImportsBuilder, ModuleInstance};
 use serde_json::Value as JsonValue;
+use url::Url;
 
 pub struct WasmImplementation {
 //    module: ModuleInstance
@@ -17,8 +18,10 @@ impl Implementation for WasmImplementation {
 }
 
 impl WasmImplementation {
-    pub fn load<'a>(_provider: &Provider, _source_path: &str) -> Result<&'a Implementation, String> {
-//        let content = provider.get_content(source_path)?;
+    pub fn load<'a>(provider: &Provider, source_url: &Url) -> Result<&'a Implementation, String> {
+        let (resolved_url, _) = provider.resolve(source_url)?;
+        let _contents = provider.get(&resolved_url)?;
+
 //        let module = Module::from_buffer(content)
 //            .map_err(|e| e.to_string())?;
 

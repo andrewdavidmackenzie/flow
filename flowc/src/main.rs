@@ -23,7 +23,7 @@ use flowclib::model::process::Process::FlowProcess;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
-use provider::content::args::url_from_cl_arg;
+use provider::content::args::url_from_string;
 use provider::content::provider::MetaProvider;
 
 mod source_arg;
@@ -102,7 +102,7 @@ fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, Path
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     info!("'flowclib' version {}\n", info::version());
 
-    let url = url_from_cl_arg(matches.value_of("FLOW"))?;
+    let url = url_from_string(matches.value_of("FLOW"))?;
 
     let dump = matches.is_present("dump");
     let skip_generation = matches.is_present("skip");
@@ -179,7 +179,7 @@ mod test {
     use flowclib::model::process::Process::FlowProcess;
     use url::Url;
 
-    use provider::content::args::url_from_cl_arg;
+    use provider::content::args::url_from_string;
     use provider::content::provider::MetaProvider;
 
     fn url_from_rel_path(path: &str) -> Url {
@@ -319,7 +319,7 @@ mod test {
     fn load_fibonacci_from_directory() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
-        let url = url_from_cl_arg(Some("../samples/fibonacci")).unwrap();
+        let url = url_from_string(Some("../samples/fibonacci")).unwrap();
         println!("url = {}", url);
         loader::load_process(parent_route, &"fibonacci".to_string(),
                      &url, &meta_provider).unwrap();
