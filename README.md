@@ -39,7 +39,7 @@ make travis
 ## Run a 'flow'
 Run the [first flow](guide/src/first_flow/first_flow.md) sample flow using:
 
-```cargo run  -- samples/first```
+```cargo run --bin flowc -- samples/first```
 
 You should get a series of numbers output to the terminal, 
 followed by an "ERROR" on a panic, that is caused by integer overflow 
