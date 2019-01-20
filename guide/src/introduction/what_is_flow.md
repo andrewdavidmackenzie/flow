@@ -3,12 +3,12 @@
 `flow` is a system for defining and running parallel, data-dependency driven 'programs'.
  
 A 'flow' is a program created by a description of interconnected and communicating "processes" or functions,
-where functions have no side-effects except accepting (possibly) accespting inputs and (possible) producing outputs.
+where functions have no side-effects except (possibly) accepting inputs and (possible) producing outputs.
 
 The interconnections between functions are explicit declarations of data dependencies between them.
 i.e. what data is required for a function to be able to run, and what output it produces.
 
-Thus a 'flow' is inherently parallem, without any further need to express the parallelism of the described algorithm.
+Thus a 'flow' is inherently parallel, without any further need to express the parallelism of the described algorithm.
 
 As part of describing the interconnections, I would like 'flow' to be also visual, making the data dependencies visible
 and directly "authorable". Functions and flows are nestable, so that higher
@@ -21,13 +21,14 @@ be used as the description format for a visual GUI though.
 
 I don't consider it a "programming language" as the functionality of the program is created from the combination of many
 low-level functions, that could be very fine grained and implemented in many programming languages (or even assembly, 
-WebAssembly, LLVM-IR or something else). Most logic (control flow, loops) and comes from how the basic functions are 
-combined in 'flows'. I have chosen to implement my basic functions (in 'flowstdlib' in rust, but they could 
+WebAssembly, LLVM-IR or something else). Most logic (control flow, loops) comes from how the basic functions are 
+combined in 'flows'. I have chosen to implement my basic functions in 'flowstdlib' written in rust (but they could 
 be in other languages). I have made provisions for the code generation of "compiled" flows to be in multiple languages, with rust just
 the first one I have implemented.
 
-I don't consider it (or the flow description format) a DSL. The file format chosen for describing a flow in text files is
-not important providing it can capture the flow description. I chose TOML as there was good library support for parsing
+I don't consider it (or the flow description format) a DSL. The file format is chosen for describing a flow in text.
+File format is not important until it can capture the flow description.
+I chose TOML as there was good library support for parsing
 and generating it in rust. I have made provisions for the flow description to be able top be in other formats (and possibly 
 even) to mix and combine descriptions in multiple formats. I started a JSON one but haven't had the need to implement it as 
 TOML is working fine so far.

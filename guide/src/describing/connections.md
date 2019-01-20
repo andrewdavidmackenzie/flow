@@ -5,12 +5,12 @@ of a compatible [type](types.md):
 * `from` = [IO Reference](io_references.md) to the Data source that this connection comes from
 * `to` = [IO Reference](io_references.md) to a Data sink that this connection goes to
 
-The type of a data flow is inferred from the two IOs that it connects (after checking they coincide)
+The type of a data flow is inferred from the two IOs that it connects (after checking the types match)
 
 ### Runtime Semantics
 An input IO can receive data from (i.e. be connected to) multiple outputs. 
 
-The first to arrive is the one that will fullfill the input the connection connects to and the
+The first to arrive is the one that will fulfil the input the connection connects to and the
 destination will execute with that input value.
 
 An output IO can be connected to multiple inputs on other values/flows/functions via multiple 
@@ -27,7 +27,7 @@ A runnable maybe blocked on output by other "busy" inputs, thus inputs are not o
 but queued up with backpressure.
 
 A function or value will not be executed until all inputs are available and it can sent its 
-output to all connected destinations
+output to all connected destinations.
 
 Loops are permitted from an output to an input, and are used as a feature to achieve certain behaviours.
 

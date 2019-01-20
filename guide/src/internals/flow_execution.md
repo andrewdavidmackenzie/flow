@@ -3,33 +3,33 @@
 ### Lazy Execution
 Execution should be as lazy as possible.
 
-The only thing that determines if a function is run is the availability at it's inputs of the data
-it needs to run, and the ability to produce the result at it's output by having the output free.
+The only thing that determines if a function is run is the availability at its inputs of the data
+for the run, and the ability to produce the result at its output by having the output free.
 
-If the output is free because a second function is running and hasn't consumed it's input, then 
+If the output is free because a second function is running and hasn't consumed its input, then 
 the first function will be blocked and computing resources will be used on the functions that most 
-need it. When they complete and produce an output, that output may satisfy another functions's 
+need it. When they complete and produce an output, that output may satisfy another functions' 
 inputs which in turn will run, and so on and so forth.
 
 ### Execution States
 Runnables (Values and Functions) can be in one of two states:
-- blocked (either pending an input or output is blocked)
+- blocked (either input is pending or output is blocked)
 - runnable (inputs are satisfied, output is free and it can be run anytime)
 
 ### Value Rules
-A Value has only one input, but that can be connected to and a value offered by multiple "writers".
+A Value has only one input, but that can be connected to a value offered by multiple "writers".
 It has only one output, but that can be connected to and listened on by multiple "listeners"
 
 It stores a value, that can be initialized when the program is loaded to an initial value.
 
 When the value is empty it can be updated.
-When it is updated, the value is made available to all "listeners" at it's output.
+When it is updated, the value is made available to all "listeners" at its output.
 While it stores a value, it cannot be updated, and any writer will be blocked until the value is 
 consumed and can be updated again.
 
 Each of the listeners can read or "consume" the value once.
 
-When it has been consumed by all listeners, the value becomes empty (None) and can be updated again.
+When it has been consumed by all listeners, the value becomes empty (`None`) and can be updated again.
 It does not become empty until all listeners have consumed the value.
 
 You can think of Values as a FIFO of size 1 for each listener connected to it.
@@ -61,12 +61,12 @@ value to it's outputs - then we can state some general rules that apply to the "
 - Has one output, that can be listened on by multiple "listeners".
 - Can only be run (updated) when a value is available at each of the inputs and the output is 
 free to write to. Is blocked from running until these conditions are met.
-- When ran, it produces an output that is made available to all "listeners" at it's output.
+- When ran, it produces an output that is made available to all "listeners" at its output.
 - Each of the listeners can read or "consume" the output value only once.
-- Once the output has been consumed (once) by all the listeners, then the output is free to be
-written to again.
+- Once the output has been consumed (once) by all of the listeners, then the output is free to be
+written again.
 
-## Executuion Process
+## Execution Process
 ### Loading
 All functions and values are loaded.
 
@@ -83,7 +83,7 @@ Next ready Runnable is run
         - this may unblock another runnable which was blocked sending to this runnables as it's input was full
 - Any data produced is made available on the output
 - Outputs are made available to all connected inputs on other runnables
-    - The data on any ouput is made available to all connected inputs, copied if necessary to multiple.
+    - The data on any output is made available to all connected inputs, copied if necessary to multiple.
     - This may satisfy the inputs of the other runnable, causing it to be added to the ready list
 
 ### Parallel Execution

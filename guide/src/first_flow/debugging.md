@@ -3,7 +3,7 @@ When the flow is compiled by flowc, the current implementation is to generate a 
 runtime and together it is built and run, with the runtime library executing the flow according to the generated 
 tables of runnables.
 
-NOTE: in the future this implementation will change to generate the runnables table in a data file that is loaded and
+NOTE: in the future this implementation will change for being able to generate the runnables table in a data file that is loaded and
 run by a single runtime, removing the need to compile and build each time.
 
 ### Running the generated project

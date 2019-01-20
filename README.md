@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/andrewdavidmackenzie/flow.svg?branch=master)](https://travis-ci.org/andrewdavidmackenzie/flow)
+[![Build Status](https://travis-ci.org/andrewdavidmackenzie/flow.svg?branch=master)](https://travis-ci.org/andrewdavidmackenzie/flow) [![Waffle.io - Issues in progress](https://badge.waffle.io/andrewdavidmackenzie/flow.png?label=in%20progress&title=In%20Progress)](http://waffle.io/andrewdavidmackenzie/flow)
 
 # Flow
 Flow is a library and cli for the creation and execution of parallel, asynchronous, data-driven programs.
@@ -39,7 +39,7 @@ make travis
 ## Run a 'flow'
 Run the [first flow](guide/src/first_flow/first_flow.md) sample flow using:
 
-```cargo run  -- samples/first```
+```cargo run --bin flowc -- samples/first```
 
 You should get a series of numbers output to the terminal, 
 followed by an "ERROR" on a panic, that is caused by integer overflow 
