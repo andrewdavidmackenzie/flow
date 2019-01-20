@@ -5,7 +5,7 @@ of a compatible [type](types.md):
 * `from` = [IO Reference](io_references.md) to the Data source that this connection comes from
 * `to` = [IO Reference](io_references.md) to a Data sink that this connection goes to
 
-The type of a data flow is inferred from the two IOs that it connects (after checking they coincide to each other)
+The type of a data flow is inferred from the two IOs that it connects (after checking the types match)
 
 ### Runtime Semantics
 An input IO can receive data from (i.e. be connected to) multiple outputs. 
