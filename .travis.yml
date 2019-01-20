@@ -11,8 +11,7 @@ before_install:
 - make config
 - export PATH="$PATH:~/.cargo/bin"
 
-cache:
-- cargo
+cache: cargo
 
 script: make travis
 

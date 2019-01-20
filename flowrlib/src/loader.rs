@@ -1,11 +1,12 @@
 use std::sync::{Arc, Mutex};
 
 use super::implementation_table::ImplementationLocatorTable;
+use super::implementation::Implementation;
 use super::implementation_table::ImplementationLocator::Native;
 use super::implementation_table::ImplementationLocator::Wasm;
 use super::process::Process;
 use super::manifest::Manifest;
-use wasm_implementation::WasmImplementation;
+use wasm_executor::WasmExecutor;
 use provider::Provider;
 use url::Url;
 
@@ -36,10 +37,8 @@ impl<'a> Loader<'a> {
                     if let Some(ref locator) = self.global_lib_table.locators.get(process.implementation_source()) {
                         match locator {
                             Native(implementation) => process.set_implementation(*implementation),
-                            _ => {
-                                return Err(format!("Did not find Native wrapper for Wasm implementation '{}'",
-                                                   process.implementation_source()));
-                            }
+                            _ => return Err(format!("Did not find Native wrapper for Wasm implementation '{}'",
+                                                   process.implementation_source()))
                         }
                     }
                 }
@@ -52,13 +51,13 @@ impl<'a> Loader<'a> {
                         .map_err(|_| format!("Could not convert the implementation path '{}' to a Url",
                                  process.implementation_source()))?;
                     // TODO optimize so we don't load the implementation multiple times?
-                    process.set_implementation(
-                        WasmImplementation::load(provider, full_path).unwrap());
+                    let implementation = WasmExecutor::wrap_wasm(provider, full_path).unwrap();
+                    process.set_implementation(implementation);
                 }
                 "http" | "https" | "file" => {
                     // TODO optimize so we don't load the implementation multiple times?
-                    process.set_implementation(
-                        WasmImplementation::load(provider, &source_url).unwrap());
+                    let implementation = WasmExecutor::wrap_wasm(provider, &source_url).unwrap();
+                    process.set_implementation(implementation);
                 }
                 _ => return Err(format!("Unexpected Url scheme for implemenation source: '{}'",
                                         process.implementation_source()))
@@ -84,7 +83,8 @@ impl<'a> Loader<'a> {
                         // Reference to a wasm implementation being added. Wrap it with the Wasm
                         // Native Implementation and return that for use later on execution.
                         let wasm_url = ilt_url.clone().join(source).unwrap();
-                        (route, Native(WasmImplementation::load(provider, &wasm_url).unwrap()))
+                        (route, Native(WasmExecutor::wrap_wasm(provider, &wasm_url).unwrap()
+                        as &Implementation))
                     }
                     _ => (route, locator), // Reference to Native implementation being added
                 }

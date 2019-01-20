@@ -24,4 +24,4 @@ pub mod manifest;
 pub mod input;
 pub mod loader;
 pub mod provider;
-mod wasm_implementation;
+mod wasm_executor;
