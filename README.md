@@ -48,6 +48,9 @@ when the next number gets too big (don't worry, that's expected).
 The [first flow](guide/src/first_flow/first_flow.md) section of the guide explains
 what that sample does and walks you through it.
 
+## Make docs or guide changes
+As all "guide" content must be under the `guide/src` folder, I currently have a make target to copy markdown files across from other folder (preserving directory structure and relative links between them) under `guide/src`. So, if you make changes to markdown docs, or the guide's `Summary.md` index file, then best to run `make guide` (`make travis` depends on this target so it is done for you) before pushing and sending your PR. I need to fix the Github Pages deploy of the guide that is built with `mdbook`.
+
 ## License
 
 MIT
