@@ -5,6 +5,6 @@ using ```make travis```.
 These tests include unit and integration tests, rust doc-tests and it also compiles, generates, runs and checks the 
 output of all the samples found in the ./samples folder.
 
-This will also rebuild the guide in local.
+This will also rebuild the guide locally.
 
-I recommend making sure this runs fine and passes before pushing to GitHub.
+I recommend to make sure this runs without errors and passes before pushing to GitHub.

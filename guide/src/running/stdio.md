@@ -3,7 +3,7 @@ The flow runtime provides functions to read from STDIN. You can pipe input to th
 it to the `cargo run` or `flowc` command line used to execute the flow.
 
 If not piped in, then the runtime will attempt to read STDIN, blocking that function until input 
-(or EOF) is provided. If input is read then it will be passed on by that function at it's output.
+(or EOF) is provided. If input is read then it will be passed on by that function at its output.
 The function will indicate to the runtime that it should be run again (to read more lines of STDIN)
 and it will be re-added to the ready list and executed again later.
 

@@ -54,7 +54,7 @@ find the process definition file.
 For example, if I define `FLOW_LIB_PATH` thus:
 * `FLOW_LIB_PATH=/Users/me/workspace/flow`
 
-And my flow refererences a process thus:
+And my flow references a process thus:
 ```
 [[process]]
 alias = "stdin"
