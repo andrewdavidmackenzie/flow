@@ -3,9 +3,10 @@ use implementation::RunAgain;
 use input::Input;
 use serde_json::Value as JsonValue;
 use runlist::RunList;
+use std::rc::Rc;
 
 #[derive(Deserialize, Serialize)]
-pub struct Process<'a> {
+pub struct Process {
     #[serde(default, skip_serializing_if = "String::is_empty")]
     name: String,
     id: usize,
@@ -22,13 +23,13 @@ pub struct Process<'a> {
     output_routes: Vec<(String, usize, usize)>,
 
     #[serde(skip)]
-    #[serde(default = "default_implementation")]
-    implementation: &'a dyn Implementation,
+    #[serde(default = "Process::default_implementation")]
+    implementation: Rc<Implementation>,
 }
 
 fn not_static(is_static: &bool) -> bool { *is_static == false }
 
-struct ImplementationNotFound {}
+struct ImplementationNotFound;
 
 impl Implementation for ImplementationNotFound {
     fn run(&self, process: &Process, _inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList)
@@ -40,21 +41,15 @@ impl Implementation for ImplementationNotFound {
     }
 }
 
-const NOT_FOUND: &Implementation = &ImplementationNotFound {};
-
-fn default_implementation() -> &'static Implementation {
-    NOT_FOUND
-}
-
-impl<'a> Process<'a> {
+impl Process {
     pub fn new(name: &str,
                is_static: bool,
                implementation_source: String,
                input_depths: Vec<usize>,
                id: usize,
                initial_value: Option<JsonValue>,
-               output_routes: Vec<(String, usize, usize)>) -> Process<'a> {
-        let implementation = default_implementation();
+               output_routes: Vec<(String, usize, usize)>) -> Process {
+        let implementation = Process::default_implementation();
 
         let mut process = Process {
             name: name.to_string(),
@@ -70,6 +65,10 @@ impl<'a> Process<'a> {
         process.setup_inputs(input_depths);
 
         process
+    }
+
+    pub fn default_implementation() -> Rc<Implementation> {
+        Rc::new(super::process::ImplementationNotFound{})
     }
 
     // Create the set of inputs, each with appropriate depth
@@ -121,11 +120,11 @@ impl<'a> Process<'a> {
         &self.output_routes
     }
 
-    pub fn get_implementation(&self) -> &Implementation {
-        self.implementation
+    pub fn get_implementation(&self) -> Rc<Implementation> {
+        self.implementation.clone()
     }
 
-    pub fn set_implementation(&mut self, implementation: &'a dyn Implementation) {
+    pub fn set_implementation(&mut self, implementation: Rc<Implementation>) {
         self.implementation = implementation;
     }
 

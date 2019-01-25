@@ -40,9 +40,9 @@ fn main() -> Result<(), String> {
     loader.add_lib(&provider, ::ilt::get_ilt(), &cwd)?;
     loader.add_lib(&provider, flowstdlib::ilt::get_ilt(), &cwd)?;
 
-    let runnables = loader.load_flow(&provider, &url)?;
+    loader.load_flow(&provider, &url)?;
 
-    execute(runnables);
+    execute(loader.processes);
 
     exit(0);
 }

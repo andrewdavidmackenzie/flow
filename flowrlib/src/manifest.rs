@@ -3,20 +3,20 @@ use provider::Provider;
 use url::Url;
 
 #[derive(Deserialize, Serialize)]
-pub struct Manifest<'a> {
-    pub processes: Vec<Process<'a>>
+pub struct Manifest {
+    pub processes: Vec<Process>
 }
 
-impl<'a> Manifest<'a> {
+impl Manifest {
     pub fn new() -> Self {
-        let processes=  Vec::<Process<'a>>::new();
+        let processes=  Vec::<Process>::new();
 
         Manifest {
             processes
         }
     }
 
-    pub fn load(provider: &Provider, url: &Url) -> Result<Manifest<'a>, String> {
+    pub fn load(provider: &Provider, url: &Url) -> Result<Manifest, String> {
         let (resolved_url, _) = provider.resolve(url)?;
         let content = provider.get(&resolved_url)?;
 

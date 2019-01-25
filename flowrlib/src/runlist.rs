@@ -57,8 +57,8 @@ impl fmt::Display for Metrics {
     A list of Processs who are ready to be run, they have their inputs satisfied and they are not
     blocked on the output (so their output can be produced).
 */
-pub struct RunList<'a> {
-    processs: Vec<Arc<Mutex<Process<'a>>>>,
+pub struct RunList {
+    processs: Vec<Arc<Mutex<Process>>>,
     can_run: HashSet<usize>,
     // process_id
     blocking: Vec<(usize, usize)>,
@@ -68,11 +68,11 @@ pub struct RunList<'a> {
     metrics: Metrics,
 }
 
-impl<'a> RefUnwindSafe for RunList<'a> {}
+impl RefUnwindSafe for RunList {}
 
-impl<'a> UnwindSafe for RunList<'a> {}
+impl UnwindSafe for RunList {}
 
-impl<'a> RunList<'a> {
+impl RunList {
     pub fn new() -> Self {
         RunList {
             processs: Vec::<Arc<Mutex<Process>>>::new(),
@@ -95,12 +95,12 @@ impl<'a> RunList<'a> {
         debug!("Metrics: \n {}", self.metrics);
     }
 
-    pub fn set_processs(&mut self, processs: Vec<Arc<Mutex<Process<'a>>>>) {
+    pub fn set_processs(&mut self, processs: Vec<Arc<Mutex<Process>>>) {
         self.processs = processs;
         self.metrics.num_processs = self.processs.len();
     }
 
-    pub fn get(&self, id: usize) -> Arc<Mutex<Process<'a>>> {
+    pub fn get(&self, id: usize) -> Arc<Mutex<Process>> {
         self.processs[id].clone()
     }
 
@@ -219,7 +219,7 @@ mod tests {
     use super::Process;
     use super::RunList;
 
-    fn test_processs<'a>() -> Vec<Arc<Mutex<Process<'a>>>> {
+    fn test_processs<'a>() -> Vec<Arc<Mutex<Process>>> {
         let p0 = Arc::new(Mutex::new(
             Process::new("p0", // name
                          false,// static value

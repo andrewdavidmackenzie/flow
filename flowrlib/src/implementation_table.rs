@@ -2,6 +2,7 @@ use implementation::Implementation;
 use std::collections::HashMap;
 use provider::Provider;
 use url::Url;
+use std::rc::Rc;
 
 /*
     Implementations can be of two types - either a native and statically bound function referenced
@@ -10,9 +11,9 @@ use url::Url;
 */
 #[derive(Deserialize, Serialize)]
 #[serde(untagged)]
-pub enum ImplementationLocator<'a> {
+pub enum ImplementationLocator {
     #[serde(skip_deserializing, skip_serializing)]
-    Native(&'a dyn Implementation),
+    Native(Rc<Implementation>),
     Wasm(String),
 }
 
@@ -20,18 +21,18 @@ pub enum ImplementationLocator<'a> {
     Provided by libraries to help load and/or find implementations of processes
 */
 #[derive(Deserialize, Serialize)]
-pub struct ImplementationLocatorTable<'a> {
-    pub locators: HashMap<String, ImplementationLocator<'a>>
+pub struct ImplementationLocatorTable {
+    pub locators: HashMap<String, ImplementationLocator>
 }
 
-impl<'a> ImplementationLocatorTable<'a> {
+impl ImplementationLocatorTable {
     pub fn new() -> Self {
         ImplementationLocatorTable {
-            locators: HashMap::<String, ImplementationLocator<'a>>::new()
+            locators: HashMap::<String, ImplementationLocator>::new()
         }
     }
 
-    pub fn load(provider: &Provider, url: &Url) -> Result<ImplementationLocatorTable<'a>, String> {
+    pub fn load(provider: &Provider, url: &Url) -> Result<ImplementationLocatorTable, String> {
         let (resolved_url, _) = provider.resolve(url)?;
         let content = provider.get(&resolved_url)?;
 
