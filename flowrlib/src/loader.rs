@@ -55,26 +55,25 @@ impl Loader {
                         Some(implementation) => process.set_implementation(implementation.clone()),
                         None => return Err(format!("Did not find implementation for '{}'", source_url))
                     }
-                },
-                /*
-                                "" => { // If no scheme, assume a relative path to the route of the flow's manifest
-                                    /*
-                                    TODO get this to work for relative paths
-                                    let relative_path = process.implementation_source();
-                                    let full_path = &manifest_url.clone().join(relative_path).unwrap(); */
-                                    let full_path = Url::parse(process.implementation_source())
-                                        .map_err(|_| format!("Could not convert the implementation path '{}' to a Url",
-                                                             process.implementation_source()))?;
+                }
 
-                                    let wasm_executor = Self::load_wasm(&mut modules, provider, full_path)?;
-                                    process.set_implementation(wasm_executor as Box<Implementation>);
-                                }
+                "" => { // If no scheme, assume a relative path to the route of the flow's manifest
+                    /*
+                    TODO get this to work for relative paths
+                    let relative_path = process.implementation_source();
+                    let full_path = &manifest_url.clone().join(relative_path).unwrap(); */
+                    let full_path = Url::parse(process.implementation_source())
+                        .map_err(|_| format!("Could not convert the implementation path '{}' to a Url",
+                                             process.implementation_source()))?;
 
-                                "http" | "https" | "file" => {
-                                    let wasm_executor = Self::load_wasm(&mut modules, provider, source_url)?;
-                                    process.set_implementation(wasm_executor as Box<Implementation>);
-                                }
-                */
+                    let wasm_executor = Self::load_wasm(provider, full_path)?;
+                    process.set_implementation(wasm_executor as Rc<Implementation>);
+                }
+
+                "http" | "https" | "file" => {
+                    let wasm_executor = Self::load_wasm(provider, source_url)?;
+                    process.set_implementation(wasm_executor as Rc<Implementation>);
+                }
 
                 _ => return Err(format!("Unexpected Url scheme for implemenation source: '{}'",
                                         process.implementation_source()))
