@@ -1,7 +1,6 @@
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RunAgain;
-use flowrlib::process::Process;
-use flowrlib::runlist::RunList;
+use flowrlib::implementation::RUN_AGAIN;
 use image::ColorType;
 use image::png::PNGEncoder;
 use serde_json::Value as JsonValue;
@@ -10,7 +9,7 @@ use std::io::Write;
 pub struct FormatPNG;
 
 impl Implementation for FormatPNG {
-    fn run(&self, _process: &Process, mut inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList)
+    fn run(&self, mut inputs: Vec<Vec<JsonValue>>)
         -> (Option<JsonValue>, RunAgain) {
         let bytes = inputs.remove(0).remove(0);
 
@@ -30,6 +29,6 @@ impl Implementation for FormatPNG {
         // TODO
 //        let string = String::from_utf8_lossy(&png_buffer).to_string();
 //        run_list.send_output(runnable, JsonValue::String(string));
-        (None, true)
+        (None, RUN_AGAIN)
     }
 }

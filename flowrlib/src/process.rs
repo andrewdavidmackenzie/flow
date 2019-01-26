@@ -2,7 +2,6 @@ use implementation::Implementation;
 use implementation::RunAgain;
 use input::Input;
 use serde_json::Value as JsonValue;
-use runlist::RunList;
 use std::rc::Rc;
 
 #[derive(Deserialize, Serialize)]
@@ -32,11 +31,8 @@ fn not_static(is_static: &bool) -> bool { *is_static == false }
 struct ImplementationNotFound;
 
 impl Implementation for ImplementationNotFound {
-    fn run(&self, process: &Process, _inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList)
-           -> (Option<JsonValue>, RunAgain) {
-        error!("Process '{}' called the implementation '{}', but it was not found",
-               process.name(),
-               process.implementation_source());
+    fn run(&self, _inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
+        error!("Implementation not found");
         (None, false)
     }
 }

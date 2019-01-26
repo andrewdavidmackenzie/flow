@@ -1,5 +1,3 @@
-use process::Process;
-use runlist::RunList;
 use serde_json::Value as JsonValue;
 use std::panic::RefUnwindSafe;
 use std::panic::UnwindSafe;
@@ -12,6 +10,5 @@ pub trait Implementation : RefUnwindSafe + UnwindSafe + Sync {
     // An implementation can be run, with an array of inputs, it can use methods of run_list
     // to send output values and then it eventually returns and indicates with return value whether
     // it should be ran again
-    fn run(&self, process: &Process, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList)
-        -> (Option<JsonValue>, RunAgain);
+    fn run(&self, inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain);
 }

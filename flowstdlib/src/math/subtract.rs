@@ -1,7 +1,5 @@
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RunAgain;
-use flowrlib::process::Process;
-use flowrlib::runlist::RunList;
 use serde_json;
 use serde_json::Value as JsonValue;
 use serde_json::Value::Number;
@@ -11,8 +9,7 @@ pub struct Subtract;
 // TODO implementation of `std::ops::Add` might be missing for `&serde_json::Number`
 
 impl Implementation for Subtract {
-    fn run(&self, process: &Process, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList)
-        -> (Option<JsonValue>, RunAgain) {
+    fn run(&self, inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
         let input_a = inputs.get(0).unwrap();
         let input_b = inputs.get(1).unwrap();
         let mut value = None;

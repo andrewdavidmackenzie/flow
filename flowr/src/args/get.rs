@@ -1,9 +1,8 @@
 use std::env;
 
+use flowrlib::implementation::DONT_RUN_AGAIN;
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RunAgain;
-use flowrlib::process::Process;
-use flowrlib::runlist::RunList;
 use serde_json::Value as JsonValue;
 
 use super::super::FLOW_ARGS_NAME;
@@ -11,8 +10,7 @@ use super::super::FLOW_ARGS_NAME;
 pub struct Get;
 
 impl Implementation for Get {
-    fn run(&self, process: &Process, mut _inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList)
-        -> (Option<JsonValue>, RunAgain) {
+    fn run(&self, mut _inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
         let mut value = None;
 
         if let Ok(args) = env::var(FLOW_ARGS_NAME) {
@@ -21,6 +19,6 @@ impl Implementation for Get {
             value = Some(json!(flow_args));
         }
 
-        (value, false)
+        (value, DONT_RUN_AGAIN)
     }
 }

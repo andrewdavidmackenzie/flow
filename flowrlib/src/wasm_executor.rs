@@ -2,8 +2,6 @@ use std::sync::{Arc, Mutex};
 
 use implementation::Implementation;
 use implementation::RunAgain;
-use process::Process;
-use runlist::RunList;
 use wasmi::ModuleRef;
 use serde_json::Value as JsonValue;
 
@@ -12,10 +10,8 @@ pub struct WasmExecutor {
 }
 
 impl Implementation for WasmExecutor {
-    fn run(&self, _process: &Process, _inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList)
-        -> (Option<JsonValue>, RunAgain) {
+    fn run(&self, _inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
         println!("Wasm implementation wrapper called");
-
         (None, true)
     }
 }

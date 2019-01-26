@@ -1,16 +1,14 @@
 use std::io::{self, Read};
 
+use flowrlib::implementation::DONT_RUN_AGAIN;
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RunAgain;
-use flowrlib::process::Process;
-use flowrlib::runlist::RunList;
 use serde_json::Value as JsonValue;
 
 pub struct Stdin;
 
 impl Implementation for Stdin {
-    fn run(&self, process: &Process, mut _inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList)
-        -> (Option<JsonValue>, RunAgain) {
+    fn run(&self, mut _inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
         let mut value = None;
 
         let mut buffer = String::new();
@@ -21,6 +19,6 @@ impl Implementation for Stdin {
             }
         }
 
-        (value, false)
+        (value, DONT_RUN_AGAIN)
     }
 }

@@ -1,7 +1,6 @@
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RunAgain;
-use flowrlib::process::Process;
-use flowrlib::runlist::RunList;
+use flowrlib::implementation::RUN_AGAIN;
 use serde_json::Value as JsonValue;
 
 pub struct Tap;
@@ -11,8 +10,7 @@ pub struct Tap;
     otherwise it does not produce any output
 */
 impl Implementation for Tap {
-    fn run(&self, process: &Process, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList)
-        -> (Option<JsonValue>, RunAgain) {
+    fn run(&self, mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
         let mut value = None;
         let data = inputs[0].remove(0);
         let control = inputs[1].remove(0).as_bool().unwrap();
@@ -20,6 +18,6 @@ impl Implementation for Tap {
             value = Some(data);
         }
 
-        (value, true)
+        (value, RUN_AGAIN)
     }
 }

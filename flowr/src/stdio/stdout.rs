@@ -1,14 +1,12 @@
 use flowrlib::implementation::Implementation;
+use flowrlib::implementation::RUN_AGAIN;
 use flowrlib::implementation::RunAgain;
-use flowrlib::process::Process;
-use flowrlib::runlist::RunList;
 use serde_json::Value as JsonValue;
 
 pub struct Stdout;
 
 impl Implementation for Stdout {
-    fn run(&self, _process: &Process, mut inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList)
-        -> (Option<JsonValue>, RunAgain) {
+    fn run(&self, mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
         let input = inputs.remove(0).remove(0);
         match input {
             JsonValue::String(string) => {
@@ -28,6 +26,6 @@ impl Implementation for Stdout {
             _ => {}
         };
 
-    (None, true)
+    (None, RUN_AGAIN)
     }
 }

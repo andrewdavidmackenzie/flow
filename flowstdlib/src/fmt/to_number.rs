@@ -1,15 +1,12 @@
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RunAgain;
-use flowrlib::process::Process;
-use flowrlib::runlist::RunList;
 use serde_json;
 use serde_json::Value as JsonValue;
 
 pub struct ToNumber;
 
 impl Implementation for ToNumber {
-    fn run(&self, process: &Process, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList)
-        -> (Option<JsonValue>, RunAgain) {
+    fn run(&self, mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
         let mut value = None;
         let input = inputs.remove(0).remove(0);
 
