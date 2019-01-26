@@ -17,7 +17,6 @@ impl Implementation for Readline {
             Ok(n) => {
                 if n > 0 {
                     let value = JsonValue::String(input.trim().to_string());
-                    run_list.send_output(process, value.clone());
                     return (Some(value), true);
                 }
             }

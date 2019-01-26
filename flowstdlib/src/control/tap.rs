@@ -17,7 +17,6 @@ impl Implementation for Tap {
         let data = inputs[0].remove(0);
         let control = inputs[1].remove(0).as_bool().unwrap();
         if control {
-            run_list.send_output(process, data.clone());
             value = Some(data);
         }
 

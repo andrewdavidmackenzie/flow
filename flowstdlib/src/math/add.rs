@@ -20,30 +20,20 @@ impl Implementation for Add {
         let input_b = inputs.get(1).unwrap();
         match (&input_a[0], &input_b[0]) {
             (&Number(ref a), &Number(ref b)) => {
-                let mut n = JsonValue::Null;
                 // TODO mixed signed and unsigned integers
                 if a.is_i64() && b.is_i64() {
-                    n = JsonValue::Number(serde_json::Number::from(a.as_i64().unwrap() + b.as_i64().unwrap()));
-                    run_list.send_output(process, n.clone());
+                    value = Some(JsonValue::Number(serde_json::Number::from(a.as_i64().unwrap() + b.as_i64().unwrap())));
                 } else if a.is_u64() && b.is_u64() {
-                    n = JsonValue::Number(serde_json::Number::from(a.as_u64().unwrap() + b.as_u64().unwrap()));
-                    run_list.send_output(process, n.clone());
+                    value = Some(JsonValue::Number(serde_json::Number::from(a.as_u64().unwrap() + b.as_u64().unwrap())));
                 } else if a.is_f64() && b.is_f64() {
-                    n = JsonValue::Number(serde_json::Number::from_f64(a.as_f64().unwrap() + b.as_f64().unwrap()).unwrap());
-                    run_list.send_output(process, n.clone());
-                }
-
-                if n != JsonValue::Null {
-                    value = Some(n);
+                    value = Some(JsonValue::Number(serde_json::Number::from_f64(a.as_f64().unwrap() + b.as_f64().unwrap()).unwrap()));
                 }
             }
             (&String(ref a), &String(ref b)) => {
                 let i1 = a.parse::<i32>().unwrap();
                 let i2 = b.parse::<i32>().unwrap();
                 let o1 = i1 + i2;
-                let val = JsonValue::String(o1.to_string());
-                run_list.send_output(process, val.clone());
-                value = Some(val);
+                value = Some(JsonValue::String(o1.to_string()));
             }
             (_, _) => {}
         }

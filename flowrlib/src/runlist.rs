@@ -141,7 +141,7 @@ impl RunList {
         sent to, marking the source process as blocked because those others must consume the output
         if those other processs have all their inputs, then mark them accordingly.
     */
-    pub fn send_output(&mut self, process: &Process, output: JsonValue) {
+    pub fn process_output(&mut self, process: &Process, output: JsonValue) {
         for &(ref output_route, destination_id, io_number) in process.output_destinations() {
             let destination_arc = Arc::clone(&self.processs[destination_id]);
             let mut destination = destination_arc.lock().unwrap();

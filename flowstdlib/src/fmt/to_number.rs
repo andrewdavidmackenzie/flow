@@ -17,7 +17,6 @@ impl Implementation for ToNumber {
             JsonValue::String(string) => {
                 if let Ok(number) = string.parse::<i64>() {
                     let number = JsonValue::Number(serde_json::Number::from(number));
-                    run_list.send_output(process, number.clone());
                     value = Some(number);
                 }
             },

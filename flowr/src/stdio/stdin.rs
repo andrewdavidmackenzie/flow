@@ -17,7 +17,6 @@ impl Implementation for Stdin {
         if let Ok(size) = io::stdin().read_to_string(&mut buffer) {
             if size > 0 {
                 let input = JsonValue::String(buffer.trim().to_string());
-                run_list.send_output(process, input.clone());
                 value = Some(input);
             }
         }

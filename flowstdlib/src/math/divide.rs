@@ -13,7 +13,6 @@ impl Implementation for Divide {
         let divisor = inputs.get(1).unwrap()[0].as_f64().unwrap();
 
         let output = json!({"dividend:": dividend, "divisor": divisor, "result": dividend/divisor, "remainder": dividend % divisor});
-        run_list.send_output(process, output.clone());
 
         (Some(output), true)
     }

@@ -22,7 +22,6 @@ impl Implementation for Compare {
                     "lte" : left <= right,
                     "gte" : left >= right,
                 });
-        run_list.send_output(process, output.clone());
 
         (Some(output), true)
     }

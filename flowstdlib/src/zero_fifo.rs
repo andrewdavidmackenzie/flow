@@ -10,9 +10,7 @@ pub struct Fifo;
 impl Implementation for Fifo {
     fn run(&self, process: &Process, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList)
         -> (Option<JsonValue>, RunAgain) {
-        let val = inputs.remove(0).remove(0);
-        run_list.send_output(process, val.clone());
-
-        (Some(val), RUN_AGAIN)
+        let value = Some(inputs.remove(0).remove(0));
+        (value, RUN_AGAIN)
     }
 }

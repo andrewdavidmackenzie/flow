@@ -14,17 +14,14 @@ impl Implementation for ToString {
         let input = inputs.remove(0).remove(0);
         match input {
             JsonValue::String(_) => {
-                run_list.send_output(process, input.clone());
                 value = Some(input);
             },
             JsonValue::Bool(boolean) => {
                 let val = JsonValue::String(boolean.to_string());
-                run_list.send_output(process, val.clone());
                 value = Some(val);
             },
             JsonValue::Number(number) => {
                 let val = JsonValue::String(number.to_string());
-                run_list.send_output(process, val.clone());
                 value = Some(val);
             },
             _ => {}
