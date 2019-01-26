@@ -78,14 +78,10 @@ flowrlib:
 travis: clean test guide
 
 #################### Tests ####################
-test: test-flowc test-flowr test-web test-flowclib test-flowstdlib test-flowrlib local-samples
+test: test-workspace test-web test-flowclib test-flowstdlib test-flowrlib local-samples
 # TYODO add online-samples
 	@echo ""
 	@echo "------- Done    test: -------------"
-
-test-flowc: test-workspace
-
-test-flowr: test-workspace
 
 test-workspace:
 	@echo ""
