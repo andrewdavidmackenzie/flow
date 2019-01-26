@@ -1,26 +1,29 @@
+extern crate flowrlib;
+extern crate serde_json;
+
 use flowrlib::implementation::Implementation;
+use flowrlib::implementation::RUN_AGAIN;
 use flowrlib::implementation::RunAgain;
-use flowrlib::process::Process;
-use flowrlib::runlist::RunList;
 use serde_json::Value as JsonValue;
 use serde_json::Value::String as JsonString;
 
 pub struct Reverse;
 
 impl Implementation for Reverse {
-    fn run(&self, process: &Process, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
+    fn run(&self, mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
+        let mut value = None;
+
         let input = inputs.remove(0).remove(0);
         match input {
             JsonString(ref s) => {
-                let output = json!({
+                value = Some(json!({
                     "reversed" : s.chars().rev().collect::<String>(),
                     "original": s
-                });
-                run_list.send_output(process, output);
+                }));
             }
             _ => {}
         }
 
-        true
+        (value, RUN_AGAIN)
     }
 }

@@ -37,10 +37,10 @@ fn main() -> Result<(), String> {
     // TODO pass in the root folder of the library, so wasm files in it can be found
     let cwd = cwd_as_url()?;
     // Load standard library functions we always want - flowr (for environment) and flowstdlib
-    loader.add_lib(&provider, ::ilt::get_ilt(), &cwd)?;
-    loader.add_lib(&provider, flowstdlib::ilt::get_ilt(), &cwd)?;
+    loader.add_lib(&provider, ::ilt::get_ilt(), &cwd.to_string())?;
+    loader.add_lib(&provider, flowstdlib::ilt::get_ilt(), &cwd.to_string())?;
 
-    loader.load_flow(&provider, &url)?;
+    loader.load_flow(&provider, &url.to_string())?;
 
     execute(loader.processes);
 

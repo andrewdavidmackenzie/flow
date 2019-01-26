@@ -6,7 +6,7 @@ source = "lib://flowr/stdio/readline.toml"
 
 [[process]]
 alias = "reverse"
-source = "reverse.toml"
+source = "src/reverse.toml"
 
 [[process]]
 alias = "print"

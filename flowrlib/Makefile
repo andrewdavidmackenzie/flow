@@ -12,13 +12,13 @@ wasm:
 	cargo build --target=wasm32-unknown-unknown
 	@echo "------- Done     build of 'flowrlib' wasm -------------"
 
-test: test-native # test-wasm
+test: test-native wasm
 
 test-native:
 	cargo test
 
 test-wasm:
-	cargo test --target=wasm32-unknown-unknown
+	cargo build --target=wasm32-unknown-unknown
 
 clean:
 	cargo clean

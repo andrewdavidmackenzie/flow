@@ -7,11 +7,10 @@ use implementation_table::ImplementationLocator::Wasm;
 use process::Process;
 use manifest::Manifest;
 use provider::Provider;
-use wasm_executor::WasmExecutor;
-use wasmi::{Module, ModuleInstance, ImportsBuilder};
-use url::Url;
 use std::collections::HashMap;
 use std::rc::Rc;
+use wasm;
+use url;
 
 pub struct Loader {
     global_lib_implementations: HashMap<String, Rc<Implementation>>,
@@ -39,33 +38,32 @@ impl Loader {
         have been wrapped in a Native "WasmExecutor" implementation to make it appear native.
         Thus, all library implementations found will be Native.
     */
-    pub fn load_flow(&mut self, provider: &Provider, manifest_url: &Url)
-                     -> Result<(), String> {
+    pub fn load_flow(&mut self, provider: &Provider, manifest_url: &str) -> Result<(), String> {
         let manifest = Manifest::load(provider, manifest_url)?;
 
         // find in the library, or load the implementation required - as specified by the source
         for mut process in manifest.processes {
-            let source_url = Url::parse(process.implementation_source())
-                .map_err(|_| format!("Could not convert process implementation source '{}' to a valid Url",
-                                     process.implementation_source()))?;
-
-            match source_url.scheme() {
+            let source_url = process.implementation_source().to_string();
+            let parts: Vec<_> = source_url.split(":").collect();
+            match parts[0] {
                 "lib" => { // Try and find the implementation in the libraries already loaded
                     match self.global_lib_implementations.get(process.implementation_source()) {
                         Some(implementation) => process.set_implementation(implementation.clone()),
-                        None => return Err(format!("Did not find implementation for '{}'", source_url))
+                        None => return Err(format!("Did not find implementation for '{}'",
+                                                   source_url))
                     }
                 }
 
+                /*** These below are not 'lib:' references - hence are supplied implementations ***/
                 "" | "http" | "https" | "file" => {
-                    // If source path is absolute, it will replace manifest url. If relative, it will extend
-                    let full_path = manifest_url.join(process.implementation_source()).unwrap();
-                    let wasm_executor = Self::load_wasm(provider, full_path)?;
+                    let full_url = url::join(manifest_url,
+                                                  process.implementation_source());
+                    let wasm_executor = wasm::load(provider, &full_url)?;
                     process.set_implementation(wasm_executor as Rc<Implementation>);
                 }
 
                 _ => return Err(format!("Unexpected Url scheme for implemenation source: '{}'",
-                                        process.implementation_source()))
+                                        source_url))
             }
 
             self.processes.push(Arc::new(Mutex::new(process)));
@@ -75,35 +73,13 @@ impl Loader {
     }
 
     /*
-        load a Wasm module from the specified Url.
-    */
-    pub fn load_wasm(provider: &Provider, source_url: Url)
-                     -> Result<Rc<WasmExecutor>, String> {
-        let (resolved_url, _) = provider.resolve(&source_url)?;
-        let content = provider.get(&resolved_url)?;
-
-        let module = Module::from_buffer(content)
-            .map_err(|e| e.to_string())?;
-
-        let module_ref = Arc::new(ModuleInstance::new(&module,
-                                                      &ImportsBuilder::default())
-            .map_err(|e| e.to_string())?
-            .assert_no_start());
-
-        let executor = WasmExecutor { module: Arc::new(Mutex::new(module_ref.clone())) };
-
-        Ok(Rc::new(executor))
-    }
-
-
-    /*
         Add a library to the runtime by adding it's ImplementationLocatorTable to the global
         table for this runtime, so that then when we try to load a flow that references functions
         in the library, they can be found.
     */
     pub fn add_lib(&mut self, provider: &Provider,
                    lib_manifest: ImplementationLocatorTable,
-                   ilt_url: &Url)
+                   ilt_url: &str)
                    -> Result<(), String> {
         for (route, locator) in lib_manifest.locators {
             // if we don't already have an implementation loaded for that route
@@ -112,9 +88,9 @@ impl Loader {
                 let implementation = match locator {
                     Wasm(wasm_source) => {
                         // Path to the wasm source could be relative to the URL where we loaded the ILT from
-                        let wasm_url = ilt_url.clone().join(&wasm_source).unwrap();
+                        let wasm_url = url::join(ilt_url, &wasm_source);
                         // Wasm implementation being added. Wrap it with the Wasm Native Implementation
-                        let wasm_executor = Self::load_wasm(provider, wasm_url)?;
+                        let wasm_executor = wasm::load(provider, &wasm_url)?;
                         wasm_executor as Rc<Implementation>
                     }
 

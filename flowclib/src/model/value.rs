@@ -10,7 +10,6 @@ use model::route::SetRoute;
 use model::io::IO;
 use model::io::IOSet;
 use model::runnable::Runnable;
-use url::Url;
 
 use std::fmt;
 
@@ -84,7 +83,7 @@ impl Runnable for Value {
         self.output_routes.push(output_route);
     }
 
-    fn source_url(&self) -> Option<Url> {
+    fn source_url(&self) -> Option<String> {
         None
     }
 

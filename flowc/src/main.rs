@@ -41,11 +41,11 @@ fn main() {
     a message to display to the user if all went OK
 */
 fn run() -> Result<String, String> {
-    let (url, args, dump, skip_generation, out_dir) = parse_args( get_matches())?;
+    let (url, args, dump, skip_generation, out_dir) = parse_args(get_matches())?;
     let meta_provider = MetaProvider {};
 
     let process = loader::load_process(&"".to_string(),
-                                        &"context".to_string(), &url, &meta_provider)?;
+                                       &"context".to_string(), &url.to_string(), &meta_provider)?;
     match process {
         FlowProcess(flow) => run_flow(flow, args, dump, skip_generation, out_dir),
         _ => Err(format!("Process loaded was not of type 'Flow' and cannot be executed"))
@@ -113,7 +113,7 @@ fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, Path
 }
 
 fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, mut out_dir: PathBuf)
-    -> Result<String, String> {
+            -> Result<String, String> {
     info!("flow loaded with alias '{}'\n", flow.alias);
 
     let tables = compile::compile(&flow)?;
@@ -182,18 +182,18 @@ mod test {
     use provider::content::args::url_from_string;
     use provider::content::provider::MetaProvider;
 
-    fn url_from_rel_path(path: &str) -> Url {
+    fn url_from_rel_path(path: &str) -> String {
         let cwd = Url::from_file_path(env::current_dir().unwrap()).unwrap();
-        cwd.join(path).unwrap()
+        cwd.join(path).unwrap().to_string()
     }
 
     #[test]
     fn compile_args_ok() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
+        let path = url_from_rel_path("flowc/test-flows/args.toml");
         let process = loader::load_process(parent_route, &"args".to_string(),
-                                           &url_from_rel_path("flowc/test-flows/args.toml"),
-                                           &meta_provider).unwrap();
+                                           &path, &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();
         } else {
@@ -206,8 +206,8 @@ mod test {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         let process = loader::load_process(parent_route, &"echo".to_string(),
-                                    &url_from_rel_path("flowc/test-flows/echo.toml"),
-                                    &meta_provider).unwrap();
+                                           &url_from_rel_path("flowc/test-flows/echo.toml"),
+                                           &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();
         } else {
@@ -221,8 +221,8 @@ mod test {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         let process = loader::load_process(parent_route, &"competing".to_string(),
-                                    &url_from_rel_path("flowc/test-flows/competing.toml"),
-                                    &meta_provider).unwrap();
+                                           &url_from_rel_path("flowc/test-flows/competing.toml"),
+                                           &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();
         } else {
@@ -236,8 +236,8 @@ mod test {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         let process = loader::load_process(parent_route, &"loop".to_string(),
-                                    &url_from_rel_path("flowc/test-flows/loop.toml"),
-                                    &meta_provider).unwrap();
+                                           &url_from_rel_path("flowc/test-flows/loop.toml"),
+                                           &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();
         } else {
@@ -251,8 +251,8 @@ mod test {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         let process = loader::load_process(parent_route, &Name::from("double"),
-                                    &url_from_rel_path("flowc/test-flows/double.toml"),
-                                    &meta_provider).unwrap();
+                                           &url_from_rel_path("flowc/test-flows/double.toml"),
+                                           &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();
         } else {
@@ -265,8 +265,8 @@ mod test {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         loader::load_process(parent_route, &"hello-world-simple".to_string(),
-                     &url_from_rel_path("samples/hello-world-simple/context.toml"),
-                     &meta_provider).unwrap();
+                             &url_from_rel_path("samples/hello-world-simple/context.toml"),
+                             &meta_provider).unwrap();
     }
 
     #[test]
@@ -274,8 +274,8 @@ mod test {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         loader::load_process(parent_route, &"hello-world".to_string(),
-                     &url_from_rel_path("samples/hello-world/context.toml"),
-                     &meta_provider).unwrap();
+                             &url_from_rel_path("samples/hello-world/context.toml"),
+                             &meta_provider).unwrap();
     }
 
     #[test]
@@ -283,8 +283,8 @@ mod test {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         loader::load_process(parent_route, &"hello-world-include".to_string(),
-                     &url_from_rel_path("samples/hello-world-include/context.toml"),
-                     &meta_provider).unwrap();
+                             &url_from_rel_path("samples/hello-world-include/context.toml"),
+                             &meta_provider).unwrap();
     }
 
     #[test]
@@ -292,8 +292,8 @@ mod test {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         loader::load_process(parent_route, &"flow1".to_string(),
-                     &url_from_rel_path("samples/hello-world/flow1.toml"),
-                     &meta_provider).unwrap();
+                             &url_from_rel_path("samples/hello-world/flow1.toml"),
+                             &meta_provider).unwrap();
     }
 
     #[test]
@@ -302,8 +302,8 @@ mod test {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         loader::load_process(parent_route, &"reverse-echo".to_string(),
-                     &url_from_rel_path("samples/reverse-echo/context.toml"),
-                     &meta_provider).unwrap();
+                             &url_from_rel_path("samples/reverse-echo/context.toml"),
+                             &meta_provider).unwrap();
     }
 
     #[test]
@@ -311,8 +311,8 @@ mod test {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         loader::load_process(parent_route, &"fibonacci".to_string(),
-                     &url_from_rel_path("samples/fibonacci/context.toml"),
-                     &meta_provider).unwrap();
+                             &url_from_rel_path("samples/fibonacci/context.toml"),
+                             &meta_provider).unwrap();
     }
 
     #[test]
@@ -320,8 +320,7 @@ mod test {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         let url = url_from_string(Some("../samples/fibonacci")).unwrap();
-        println!("url = {}", url);
         loader::load_process(parent_route, &"fibonacci".to_string(),
-                     &url, &meta_provider).unwrap();
+                     &url.into_string(), &meta_provider).unwrap();
     }
 }

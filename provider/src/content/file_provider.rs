@@ -11,7 +11,9 @@ use url::Url;
 pub struct FileProvider;
 
 impl Provider for FileProvider {
-    fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
+    fn resolve(&self, url_str: &str) -> Result<(String, Option<String>), String> {
+        let url = Url::parse(url_str)
+            .map_err(|_| format!("Could not convert '{}' to Url", url_str))?;
         let mut path = url.to_file_path().unwrap();
         match metadata(&path) {
             Ok(md) => {
@@ -23,9 +25,9 @@ impl Provider for FileProvider {
                     let resolved_url = Url::from_file_path(&file)
                         .map_err(|_| format!("Could not create url from file path '{}'",
                                               file.to_str().unwrap()))?;
-                    Ok((resolved_url, None))
+                    Ok((resolved_url.into_string(), None))
                 } else {
-                    Ok((url.clone(), None))
+                    Ok((url.to_string(), None))
                 }
             }
             Err(e) => {
@@ -34,7 +36,9 @@ impl Provider for FileProvider {
         }
     }
 
-    fn get(&self, url: &Url) -> Result<String, String> {
+    fn get(&self, url_str: &str) -> Result<String, String> {
+        let url = Url::parse(url_str)
+            .map_err(|_| format!("Could not convert '{}' to Url", url_str))?;
         let file_path = url.to_file_path().unwrap();
         fs::read_to_string(file_path).map_err(
             |e| format!("Could not load content from '{}' ({}", url, e))
@@ -43,8 +47,8 @@ impl Provider for FileProvider {
 
 impl FileProvider {
     /*
-    Passed a path to a directory, it searches for a file in the directory matching the pattern "context.*"
-    If found, it opens the file and returns its contents as a String in the result
+        Passed a path to a directory, it searches for a file in the directory matching the pattern "context.*"
+        If found, it opens the file and returns its contents as a String in the result
     */
     fn find_default_file(path: &mut PathBuf) -> io::Result<PathBuf> {
         // TODO pending more complex patterns based on implemented loaders
@@ -96,6 +100,6 @@ mod test {
     #[should_panic]
     fn get_contents_file_not_found() {
         let provider: &Provider = &FileProvider;
-        provider.get(&Url::parse("file:///no-such-file").unwrap()).unwrap();
+        provider.get("file:///no-such-file").unwrap();
     }
 }

@@ -15,7 +15,6 @@ use model::runnable::Runnable;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
 use std::fmt;
-use url::Url;
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -43,7 +42,7 @@ pub struct Flow {
     #[serde(skip_deserializing)]
     pub alias: Name,
     #[serde(skip_deserializing, default = "Flow::default_url")]
-    pub source_url: Url,
+    pub source_url: String,
     #[serde(skip_deserializing)]
     pub route: Route,
     #[serde(skip_deserializing)]
@@ -166,8 +165,8 @@ impl SetRoute for Flow {
 }
 
 impl Flow {
-    fn default_url() -> Url {
-        Url::parse("file:///").unwrap()
+    fn default_url() -> String {
+        "file:///".to_string()
     }
 
     pub fn default_version() -> String {

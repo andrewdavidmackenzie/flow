@@ -1,7 +1,6 @@
 use implementation::Implementation;
 use std::collections::HashMap;
 use provider::Provider;
-use url::Url;
 use std::rc::Rc;
 
 /*
@@ -32,22 +31,18 @@ impl ImplementationLocatorTable {
         }
     }
 
-    pub fn load(provider: &Provider, url: &Url) -> Result<ImplementationLocatorTable, String> {
-        let (resolved_url, _) = provider.resolve(url)?;
+    pub fn load(provider: &Provider, source: &str) -> Result<ImplementationLocatorTable, String> {
+        let (resolved_url, _) = provider.resolve(source)?;
         let content = provider.get(&resolved_url)?;
 
         serde_json::from_str(&content)
             .map_err(|e| format!("Could not read ILT from '{}'\nError = '{}'",
-                                 url, e))
+                                 source, e))
     }
 }
 
 #[cfg(test)]
 mod test {
-    extern crate url;
-
-    use url::Url;
-
     use implementation_table::ImplementationLocatorTable;
     use implementation_table::ImplementationLocator;
     use implementation_table::ImplementationLocator::Wasm;
@@ -58,11 +53,11 @@ mod test {
     }
 
     impl Provider for TestProvider {
-        fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
-            Ok((url.clone(), None))
+        fn resolve(&self, source: &str) -> Result<(String, Option<String>), String> {
+            Ok((source.to_string(), None))
         }
 
-        fn get(&self, _url: &Url) -> Result<String, String> {
+        fn get(&self, _url: &str) -> Result<String, String> {
             Ok(self.test_content.to_string())
         }
     }
@@ -91,7 +86,7 @@ mod test {
         let provider = TestProvider {
             test_content
         };
-        let url = &Url::parse("file:://test/fake").unwrap();
+        let url = "file:://test/fake";
         let ilt = ImplementationLocatorTable::load(&provider, url).unwrap();
         assert_eq!(ilt.locators.len(), 1);
         assert!(ilt.locators.get("//flowrlib/test-dyn-lib/add2").is_some());

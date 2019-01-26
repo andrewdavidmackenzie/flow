@@ -10,7 +10,6 @@ use model::route::SetRoute;
 use loader::loader::Validate;
 use model::runnable::Runnable;
 use serde_json::Value as JsonValue;
-use url::Url;
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -25,7 +24,7 @@ pub struct Function {
     #[serde(skip_deserializing)]
     alias: Name,
     #[serde(skip_deserializing, default = "Function::default_url")]
-    source_url: Url,
+    source_url: String,
     #[serde(skip_deserializing)]
     route: Route,
     #[serde(skip_deserializing)]
@@ -70,7 +69,7 @@ impl Runnable for Function {
     }
 
     // Could combine with get_impl_path() ????
-    fn source_url(&self) -> Option<Url> {
+    fn source_url(&self) -> Option<String> {
         if self.lib_reference.is_none() {
             Some(self.source_url.clone())
         } else {
@@ -177,11 +176,11 @@ impl SetRoute for Function {
 }
 
 impl Function {
-    fn default_url() -> Url {
-        Url::parse("file:///").unwrap()
+    fn default_url() -> String {
+        "file:///".to_string()
     }
 
-    pub fn new(name: Name, alias: Name, inputs: IOSet, outputs: IOSet, source_url: Url,
+    pub fn new(name: Name, alias: Name, inputs: IOSet, outputs: IOSet, source_url: String,
     route: Route, lib_reference: Option<String>, output_connections: Vec<(Route, usize, usize)>,
     id: usize) -> Self {
         Function {
@@ -194,8 +193,8 @@ impl Function {
         self.alias = alias
     }
 
-    pub fn set_source_url(&mut self, source: Url) {
-        self.source_url = source
+    pub fn set_source_url(&mut self, source: &str) {
+        self.source_url = source.to_string()
     }
 
     pub fn set_lib_reference(&mut self, lib_reference: Option<String>) {

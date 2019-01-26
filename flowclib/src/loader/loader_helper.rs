@@ -1,12 +1,11 @@
 use loader::yaml_loader::FlowYamlLoader;
 use loader::toml_loader::FlowTomelLoader;
 use loader::loader::Loader;
-use url::Url;
 
 const TOML: &Loader = &FlowTomelLoader as &Loader;
 const YAML: &Loader = &FlowYamlLoader as &Loader;
 
-pub fn get_loader(url: &Url) -> Result<&'static Loader, String> {
+pub fn get_loader(url: &str) -> Result<&'static Loader, String> {
     match get_file_extension(url) {
         Ok(ext) => {
             match ext.as_ref() {
@@ -21,8 +20,8 @@ pub fn get_loader(url: &Url) -> Result<&'static Loader, String> {
     }
 }
 
-fn get_file_extension(url: &Url) -> Result<String, String> {
-    let segments = url.path_segments().ok_or_else(|| "cannot be base")?;
+fn get_file_extension(url: &str) -> Result<String, String> {
+    let segments = url.split("/");
     let last_segment = segments.last().ok_or_else(|| "no segments")?;
     let splits: Vec<&str> = last_segment.split('.').collect();
     if splits.len() < 2 {
@@ -34,39 +33,38 @@ fn get_file_extension(url: &Url) -> Result<String, String> {
 
 #[cfg(test)]
 mod test {
-    use url::Url;
     use super::get_file_extension;
     use super::get_loader;
 
     #[test]
     #[should_panic]
     fn no_extension() {
-        get_file_extension(&Url::parse("file:///no_extension").unwrap()).unwrap();
+        get_file_extension("file:///no_extension").unwrap();
     }
 
     #[test]
     fn valid_file_extension() {
-        get_file_extension(&Url::parse("file::///OK.toml").unwrap()).unwrap();
+        get_file_extension("file::///OK.toml").unwrap();
     }
 
     #[test]
     fn valid_http_extension() {
-        get_file_extension(&Url::parse("http://test.com/OK.toml").unwrap()).unwrap();
+        get_file_extension("http://test.com/OK.toml").unwrap();
     }
 
     #[test]
     #[should_panic]
     fn invalid_extension() {
-        get_loader(&Url::parse("file:///extension.wrong").unwrap()).unwrap();
+        get_loader("file:///extension.wrong").unwrap();
     }
 
     #[test]
     fn toml_extension_loader() {
-        get_loader(&Url::parse("file:///extension.toml").unwrap()).unwrap();
+        get_loader("file:///extension.toml").unwrap();
     }
 
     #[test]
     fn yaml_extension_loader() {
-        get_loader(&Url::parse("file:///extension.yaml").unwrap()).unwrap();
+        get_loader("file:///extension.yaml").unwrap();
     }
 }

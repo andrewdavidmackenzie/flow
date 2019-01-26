@@ -12,6 +12,7 @@ extern crate toml;
 #[macro_use]
 extern crate log;
 extern crate strfmt;
+#[cfg(test)]
 extern crate url;
 extern crate yaml_rust;
 extern crate flowrlib;

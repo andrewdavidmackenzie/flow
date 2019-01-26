@@ -5,7 +5,6 @@ use model::route::HasRoute;
 use model::process::Process;
 use loader::loader::Validate;
 use std::fmt;
-use url::Url;
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -13,7 +12,7 @@ pub struct ProcessReference {
     pub alias: Name,
     pub source: String,
     #[serde(skip_deserializing, default = "ProcessReference::default_url")]
-    pub source_url: Url,
+    pub source_url: String,
     #[serde(skip_deserializing)]
     pub process: Process
 }
@@ -50,8 +49,8 @@ impl fmt::Display for ProcessReference {
 }
 
 impl ProcessReference {
-    fn default_url() -> Url {
-        Url::parse("file::///").unwrap()
+    fn default_url() -> String {
+        "file::///".to_string()
     }
 }
 

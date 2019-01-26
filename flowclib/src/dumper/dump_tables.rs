@@ -24,11 +24,11 @@ use ::dumper::dump_dot;
 /// struct DummyProvider {}
 ///
 /// impl Provider for DummyProvider {
-///     fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
-///         Ok((url.clone(), None))
+///     fn resolve(&self, url: &str) -> Result<(String, Option<String>), String> {
+///         Ok((url.to_string(), None))
 ///     }
 ///
-///     fn get(&self, url: &Url) -> Result<String, String> {
+///     fn get(&self, url: &str) -> Result<String, String> {
 ///         Ok("flow = \"dummy\"\n[[input]]".to_string())
 ///     }
 /// }
@@ -43,7 +43,7 @@ use ::dumper::dump_dot;
 ///     let alias = "hello-world-simple".to_string();
 ///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_process(&parent_route,
 ///                                                           &alias,
-///                                                           &url,
+///                                                           &url.to_string(),
 ///                                                           &dummy_provider).unwrap() {
 ///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///         let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
@@ -102,12 +102,12 @@ pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<S
 /// struct DummyProvider {}
 ///
 /// impl Provider for DummyProvider {
-///     fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
-///         Ok((url.clone(), None))
+///     fn resolve(&self, url: &str) -> Result<(String, Option<String>), String> {
+///         Ok((url.to_string(), None))
 ///     }
 ///
 ///     // Return a flow definition for the content for the example
-///     fn get(&self, url: &Url) -> Result<String, String> {
+///     fn get(&self, url: &str) -> Result<String, String> {
 ///         Ok("flow = \"dummy\"\n[[input]]".to_string())
 ///     }
 /// }
@@ -122,7 +122,7 @@ pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<S
 ///     let alias = "hello-world-simple".to_string();
 ///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_process(&parent_route,
 ///                                                           &alias,
-///                                                           &url,
+///                                                           &url.to_string(),
 ///                                                           &dummy_provider).unwrap() {
 ///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///         let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();

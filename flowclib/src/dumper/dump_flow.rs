@@ -24,11 +24,11 @@ use model::process::Process::FlowProcess;
 /// struct DummyProvider {}
 ///
 /// impl Provider for DummyProvider {
-///     fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
-///         Ok((url.clone(), None))
+///     fn resolve(&self, url: &str) -> Result<(String, Option<String>), String> {
+///         Ok((url.to_string(), None))
 ///     }
 ///
-///     fn get(&self, url: &Url) -> Result<String, String> {
+///     fn get(&self, url: &str) -> Result<String, String> {
 ///         Ok("flow = \"dummy\"\n[[input]]".to_string())
 ///     }
 /// }
@@ -44,7 +44,7 @@ use model::process::Process::FlowProcess;
 ///
 ///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_process(parent_route,
 ///                                                       alias,
-///                                                       &url,
+///                                                       &url.to_string(),
 ///                                                       &dummy_provider).unwrap() {
 ///         let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
 ///

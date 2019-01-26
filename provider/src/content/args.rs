@@ -1,6 +1,6 @@
 use std::env;
 
-use url::{ParseError, Url};
+use url::Url;
 
 /*
     Use the current working directory as the starting point ("parent") for parsing a command
@@ -24,7 +24,8 @@ pub fn url_from_string(string: Option<&str>) -> Result<Url, String> {
             Ok(parent.clone())
         }
         Some(url_string) => {
-            parent.join(url_string).map_err(|e: ParseError| e.to_string())
+            parent.join(url_string).map_err(|_|
+                format!("Problem joining url '{}' with '{}'", parent, url_string))
         }
     }
 }

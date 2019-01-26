@@ -11,10 +11,11 @@ extern crate simplog;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+#[cfg(not(target_arg = "wasm32"))]
 extern crate wasmi;
-extern crate url;
 
 pub mod info;
+pub mod url;
 pub mod execution;
 pub mod runlist;
 pub mod implementation;
@@ -24,4 +25,4 @@ pub mod manifest;
 pub mod input;
 pub mod loader;
 pub mod provider;
-mod wasm_executor;
+mod wasm;

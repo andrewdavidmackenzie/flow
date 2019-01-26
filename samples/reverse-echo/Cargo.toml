@@ -1,0 +1,17 @@
+[package]
+name = "reverse"
+version = "0.1.0"
+authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
+
+[lib]
+name = "reverse"
+
+# This field points at where the crate is located, relative to the `Cargo.toml`.
+path = "src/reverse.rs"
+
+[dependencies]
+flowrlib = { path = "../../flowrlib", version = "~0.7.0" }
+serde_json = "1.0"
+
+[workspace]
+exclude = [".."]

@@ -13,8 +13,7 @@ use flowrlib::provider::Provider;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
 use std::mem::replace;
-
-use url::Url;
+use flowrlib::url;
 
 // Any loader has to implement these methods
 pub trait Loader {
@@ -44,12 +43,12 @@ pub trait Validate {
 /// struct DummyProvider {};
 ///
 /// impl Provider for DummyProvider {
-///     fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
+///     fn resolve(&self, url: &str) -> Result<(String, Option<String>), String> {
 ///        // Just fake the url resolution in this example
-///        Ok((url.clone(), None))
+///        Ok((url.to_string(), None))
 ///     }
 ///
-///    fn get(&self, url: &Url) -> Result<String, String> {
+///    fn get(&self, url: &str) -> Result<String, String> {
 ///        // Return the simplest flow definition possible
 ///        Ok("flow = \"test\"".to_string())
 ///     }
@@ -60,11 +59,9 @@ pub trait Validate {
 /// let dummy_provider = DummyProvider {};
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
-/// flowclib::loader::loader::load_process(&parent_route, &alias, &url, &dummy_provider).unwrap();
+/// flowclib::loader::loader::load_process(&parent_route, &alias, &url.to_string(), &dummy_provider).unwrap();
 /// ```
-// TODO Make this more ergonomic for clients and tests using some form of Intro trait for routes and alias
-// https://hermanradtke.com/2015/05/06/creating-a-rust-function-that-accepts-string-or-str.html
-pub fn load_process(parent_route: &Route, alias: &Name, url: &Url, provider: &Provider) -> Result<Process, String> {
+pub fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provider) -> Result<Process, String> {
     let (resolved_url, lib_ref) = provider.resolve(url)?;
     let loader = get_loader(&resolved_url)?;
     info!("Loading process with alias = '{}' from url='{}' ", alias, resolved_url);
@@ -93,8 +90,7 @@ pub fn load_process(parent_route: &Route, alias: &Name, url: &Url, provider: &Pr
 fn load_subprocesses(flow: &mut Flow, provider: &Provider) -> Result<(), String> {
     if let Some(ref mut process_refs) = flow.process_refs {
         for process_ref in process_refs {
-            let subprocess_url = flow.source_url.join(&process_ref.source)
-                .map_err(|_e| "URL join error")?;
+            let subprocess_url = url::join(&flow.source_url, &process_ref.source);
             process_ref.process = load_process(&flow.route, &process_ref.alias(), &subprocess_url, provider)?;
 
             if let FunctionProcess(ref function) = process_ref.process {
@@ -107,7 +103,7 @@ fn load_subprocesses(flow: &mut Flow, provider: &Provider) -> Result<(), String>
     Ok(())
 }
 
-fn config_function(function: &mut Function, source_url: &Url, parent_route: &Route, alias: &Name,
+fn config_function(function: &mut Function, source_url: &str, parent_route: &Route, alias: &Name,
                    lib_ref: Option<String>) -> Result<(), String> {
     function.set_alias(alias.to_string());
     function.set_source_url(source_url.clone());
@@ -116,10 +112,10 @@ fn config_function(function: &mut Function, source_url: &Url, parent_route: &Rou
     function.validate()
 }
 
-fn config_flow(flow: &mut Flow, source_url: &Url, parent_route: &Route, alias: &Name)
+fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &Name)
     -> Result<(), String> {
     flow.alias = alias.to_string();
-    flow.source_url = source_url.clone();
+    flow.source_url = source_url.to_string();
     flow.set_routes_from_parent(parent_route, true);
     flow.validate()
 }

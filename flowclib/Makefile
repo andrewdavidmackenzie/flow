@@ -1,5 +1,4 @@
-build: native
-#build: native wasm
+build: native wasm
 
 native:
 	@echo ""
@@ -12,7 +11,7 @@ wasm:
 	cargo build --target=wasm32-unknown-unknown
 	@echo "------- Done     build of 'flowclib' wasm -------------"
 
-test: test-native # test-wasm
+test: test-native wasm
 
 test-native:
 	@echo "------- Starting test of 'flowclib' native -------------"

@@ -39,7 +39,9 @@ impl Provider for LibProvider {
         Also, construct a string that is a reference to that module in the library, such as:
             "flowstdlib/stdio/stdout" and return that also.
     */
-    fn resolve(&self, url: &Url) -> Result<(Url, Option<String>), String> {
+    fn resolve(&self, url_str: &str) -> Result<(String, Option<String>), String> {
+        let url = Url::parse(url_str)
+            .map_err(|_| format!("Could not convert '{}' to valid Url", url_str))?;
         let lib_name = url.host_str().unwrap();
         let flow_lib_search_path = Simpath::new("FLOW_LIB_PATH");
         let mut lib_path = flow_lib_search_path.find(lib_name)
@@ -53,9 +55,9 @@ impl Provider for LibProvider {
         let lib_ref = format!("{}{}", lib_name, module.unwrap().path());
 
         if lib_path.exists() {
-            let resolved_url = Url::from_file_path(lib_path)
-                .map_err(|_e| "Could not convert file path to Url".to_string())?;
-            Ok((resolved_url, Some(lib_ref.to_string())))
+            let lib_path_url = Url::from_file_path(&lib_path)
+                .map_err(|_|format!("Could not create Url from '{:?}'", &lib_path))?;
+            Ok((lib_path_url.to_string(), Some(lib_ref.to_string())))
         } else {
             Err(format!("Could not locate url '{}' in libraries in 'FLOW_LIB_PATH'", url))
         }
@@ -63,7 +65,7 @@ impl Provider for LibProvider {
 
     // All Urls that start with "lib://" should resource to a different Url with "http(s)" or "file"
     // and so we should never get a request to get content from a Url with such a scheme
-    fn get(&self, _url: &Url) -> Result<String, String> {
+    fn get(&self, _url: &str) -> Result<String, String> {
         unimplemented!();
     }
 }
@@ -84,7 +86,7 @@ mod test {
         root.pop();
         let root_str: String = root.as_os_str().to_str().unwrap().to_string();
         env::set_var("FLOW_LIB_PATH", &root_str);
-        let lib_url = Url::parse("lib://flowstdlib/control/tap.toml").unwrap();
+        let lib_url = "lib://flowstdlib/control/tap.toml";
         match provider.resolve(&lib_url) {
             Ok((url, lib_ref)) => {
                 assert_eq!(url,
