@@ -7,14 +7,15 @@ use serde_json::Value as JsonValue;
 pub struct Divide;
 
 impl Implementation for Divide {
-    fn run(&self, process: &Process, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
+    fn run(&self, process: &Process, inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList)
+        -> (Option<JsonValue>, RunAgain) {
         let dividend = inputs.get(0).unwrap()[0].as_f64().unwrap();
         let divisor = inputs.get(1).unwrap()[0].as_f64().unwrap();
 
         let output = json!({"dividend:": dividend, "divisor": divisor, "result": dividend/divisor, "remainder": dividend % divisor});
-        run_list.send_output(process, output);
+        run_list.send_output(process, output.clone());
 
-        true
+        (Some(output), true)
     }
 }
 

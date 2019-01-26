@@ -7,7 +7,8 @@ use serde_json::Value as JsonValue;
 pub struct Stdout;
 
 impl Implementation for Stdout {
-    fn run(&self, _process: &Process, mut inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList) -> RunAgain {
+    fn run(&self, _process: &Process, mut inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList)
+        -> (Option<JsonValue>, RunAgain) {
         let input = inputs.remove(0).remove(0);
         match input {
             JsonValue::String(string) => {
@@ -27,6 +28,6 @@ impl Implementation for Stdout {
             _ => {}
         };
 
-        true
+    (None, true)
     }
 }

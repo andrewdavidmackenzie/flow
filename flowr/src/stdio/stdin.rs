@@ -9,14 +9,19 @@ use serde_json::Value as JsonValue;
 pub struct Stdin;
 
 impl Implementation for Stdin {
-    fn run(&self, process: &Process, mut _inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
+    fn run(&self, process: &Process, mut _inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList)
+        -> (Option<JsonValue>, RunAgain) {
+        let mut value = None;
+
         let mut buffer = String::new();
         if let Ok(size) = io::stdin().read_to_string(&mut buffer) {
             if size > 0 {
-                run_list.send_output(process, JsonValue::String(buffer.trim().to_string()));
+                let input = JsonValue::String(buffer.trim().to_string());
+                run_list.send_output(process, input.clone());
+                value = Some(input);
             }
         }
 
-        false
+        (value, false)
     }
 }

@@ -58,7 +58,7 @@ fn dispatch(run_list: &mut RunList, id: usize) {
     let implementation = process.get_implementation();
 
     // when a process ends, it can express whether it can run again or not
-    let run_again = implementation.run(process, input_values, run_list);
+    let (_val, run_again) = implementation.run(process, input_values, run_list);
 
     // if it wants to run again and it can (inputs ready) then add back to the Can Run list
     if run_again && process.can_run() {

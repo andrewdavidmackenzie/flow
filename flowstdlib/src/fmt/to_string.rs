@@ -7,26 +7,29 @@ use serde_json::Value as JsonValue;
 pub struct ToString;
 
 impl Implementation for ToString {
-    fn run(&self, process: &Process, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
+    fn run(&self, process: &Process, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList)
+        -> (Option<JsonValue>, RunAgain) {
+        let mut value = None;
+
         let input = inputs.remove(0).remove(0);
         match input {
             JsonValue::String(_) => {
-                run_list.send_output(process, input);
+                run_list.send_output(process, input.clone());
+                value = Some(input);
             },
             JsonValue::Bool(boolean) => {
-                run_list.send_output(process, JsonValue::String(boolean.to_string()));
+                let val = JsonValue::String(boolean.to_string());
+                run_list.send_output(process, val.clone());
+                value = Some(val);
             },
             JsonValue::Number(number) => {
-                run_list.send_output(process, JsonValue::String(number.to_string()));
-            },
-            JsonValue::Array(array) => {
-                for entry in array {
-                    run_list.send_output(process,entry);
-                }
+                let val = JsonValue::String(number.to_string());
+                run_list.send_output(process, val.clone());
+                value = Some(val);
             },
             _ => {}
         };
 
-        true
+        (value, true)
     }
 }

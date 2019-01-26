@@ -33,11 +33,11 @@ struct ImplementationNotFound;
 
 impl Implementation for ImplementationNotFound {
     fn run(&self, process: &Process, _inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList)
-           -> RunAgain {
+           -> (Option<JsonValue>, RunAgain) {
         error!("Process '{}' called the implementation '{}', but it was not found",
                process.name(),
                process.implementation_source());
-        false
+        (None, false)
     }
 }
 

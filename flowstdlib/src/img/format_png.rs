@@ -10,7 +10,8 @@ use std::io::Write;
 pub struct FormatPNG;
 
 impl Implementation for FormatPNG {
-    fn run(&self, _process: &Process, mut inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList) -> RunAgain {
+    fn run(&self, _process: &Process, mut inputs: Vec<Vec<JsonValue>>, _run_list: &mut RunList)
+        -> (Option<JsonValue>, RunAgain) {
         let bytes = inputs.remove(0).remove(0);
 
         // bounds: (usize, usize),
@@ -29,7 +30,6 @@ impl Implementation for FormatPNG {
         // TODO
 //        let string = String::from_utf8_lossy(&png_buffer).to_string();
 //        run_list.send_output(runnable, JsonValue::String(string));
-
-        true
+        (None, true)
     }
 }
