@@ -57,21 +57,10 @@ impl Loader {
                     }
                 }
 
-                "" => { // If no scheme, assume a relative path to the route of the flow's manifest
-                    /*
-                    TODO get this to work for relative paths
-                    let relative_path = process.implementation_source();
-                    let full_path = &manifest_url.clone().join(relative_path).unwrap(); */
-                    let full_path = Url::parse(process.implementation_source())
-                        .map_err(|_| format!("Could not convert the implementation path '{}' to a Url",
-                                             process.implementation_source()))?;
-
+                "" | "http" | "https" | "file" => {
+                    // If source path is absolute, it will replace manifest url. If relative, it will extend
+                    let full_path = manifest_url.join(process.implementation_source()).unwrap();
                     let wasm_executor = Self::load_wasm(provider, full_path)?;
-                    process.set_implementation(wasm_executor as Rc<Implementation>);
-                }
-
-                "http" | "https" | "file" => {
-                    let wasm_executor = Self::load_wasm(provider, source_url)?;
                     process.set_implementation(wasm_executor as Rc<Implementation>);
                 }
 
