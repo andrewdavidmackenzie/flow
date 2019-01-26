@@ -200,7 +200,7 @@ dependencies = [
  "serde_json 1.0.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "simplog 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "wasmi 0.4.3",
+ "wasmi 0.4.3 (git+https://github.com/andrewdavidmackenzie/wasmi)",
 ]
 
 [[package]]
@@ -915,6 +915,7 @@ dependencies = [
 [[package]]
 name = "wasmi"
 version = "0.4.3"
+source = "git+https://github.com/andrewdavidmackenzie/wasmi#af974ceaf38a3369c65c9d0c8f6ee65231ece0e9"
 dependencies = [
  "byteorder 1.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "memory_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1104,6 +1105,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum wasm-bindgen-macro-support 0.2.29 (registry+https://github.com/rust-lang/crates.io-index)" = "3cc90b65fe69c3dd5a09684517dc79f42b847baa2d479c234d125e0a629d9b0a"
 "checksum wasm-bindgen-shared 0.2.29 (registry+https://github.com/rust-lang/crates.io-index)" = "a71a37df4f5845025f96f279d20bbe5b19cbcb77f5410a3a90c6c544d889a162"
 "checksum wasm-bindgen-webidl 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)" = "b064b8b2336b5a6bf5f31bc95fc1310842395df29877d910cb6f8f791070f319"
+"checksum wasmi 0.4.3 (git+https://github.com/andrewdavidmackenzie/wasmi)" = "<none>"
 "checksum web-sys 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)" = "7d7c588c2e5a091bc4532c5a87032955f9133b644e868b54d08ead0185dcc5b9"
 "checksum weedle 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "26a4c67f132386d965390b8a734d5d10adbcd30eb5cc74bd9229af8b83f10044"
 "checksum winapi 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)" = "92c1eb33641e276cfa214a0522acad57be5c56b10cb348b3c5117db75f3ac4b0"
