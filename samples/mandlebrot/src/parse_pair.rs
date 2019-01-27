@@ -1,8 +1,6 @@
 use serde_json::Value as JsonValue;
 use std::str::FromStr;
 
-pub struct ParsePair;
-
 /*
     Given the row and column of a pixel in the output image, return the
     corresponding point on the complex plane.
@@ -12,8 +10,10 @@ pub struct ParsePair;
     The `upper_left` and `lower_right` parameters are points on the complex
     plane designating the area our image covers.
 */
-fn run(&self, process: &Process, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList)
-    -> (JsonValue, bool) {
+#[no_mangle]
+pub extern "C" fn run(mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, bool) {
+    let mut value = None;
+
     let string = inputs.remove(0).remove(0);
     let separator = inputs.remove(0).remove(0);
 
@@ -24,14 +24,13 @@ fn run(&self, process: &Process, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut
 
             // send output as Json
             if let Some(pair) = split {
-                let output = json!({ "first" : pair.0, "second": pair.1 });
-                run_list.send_output(process, output);
+                value = Some(json!({ "first" : pair.0, "second": pair.1 }));
             }
         }
         _ => {}
     }
 
-    true
+    (value, true)
 }
 
 /// Parse the string 's' as a coordinate pair, like "400x600" or "1.0,0.5"
