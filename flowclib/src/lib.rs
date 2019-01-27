@@ -22,5 +22,4 @@ pub mod dumper;
 pub mod info;
 pub mod compiler;
 pub mod generator;
-pub mod builder;
 pub mod model;

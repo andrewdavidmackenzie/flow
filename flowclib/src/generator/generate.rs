@@ -40,16 +40,17 @@ impl GenerationTables {
     }
 }
 
-// Create the 'manifest.json' file in the project folder
-pub fn create_manifest(_flow: &Flow, out_dir_path: &str, tables: &GenerationTables) -> Result<String> {
+pub fn create_manifest(_flow: &Flow, out_dir_path: &str, tables: &GenerationTables) -> Result<Manifest> {
     let mut manifest = Manifest::new();
+    let mut base_path = out_dir_path.to_string();
+    base_path.push('/');
 
     // Generate runtime Process struct for each of the runnables
     for runnable in &tables.runnables {
-        manifest.processes.push(runnable_to_process(out_dir_path, runnable));
+        manifest.processes.push(runnable_to_process(&base_path, runnable));
     }
 
-    Ok(serde_json::to_string_pretty(&manifest)?)
+    Ok(manifest)
 }
 
 // Do as an Into trait?

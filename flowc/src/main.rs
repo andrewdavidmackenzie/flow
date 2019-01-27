@@ -1,8 +1,10 @@
 extern crate clap;
 extern crate flowclib;
+extern crate flowrlib;
 #[macro_use]
 extern crate log;
 extern crate provider;
+extern crate serde_json;
 extern crate simplog;
 extern crate tempdir;
 extern crate url;
@@ -14,7 +16,6 @@ use std::process::Command;
 use std::process::Stdio;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
-use flowclib::builder::builder;
 use flowclib::compiler::compile;
 use flowclib::dumper::dump_flow;
 use flowclib::dumper::dump_tables;
@@ -24,6 +25,7 @@ use flowclib::info;
 use flowclib::loader::loader;
 use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
+use flowrlib::manifest::Manifest;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
@@ -31,6 +33,7 @@ use provider::content::args::url_from_string;
 use provider::content::provider::MetaProvider;
 
 mod source_arg;
+mod builder;
 
 fn main() {
     match run() {
@@ -116,7 +119,7 @@ fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, Path
     Ok((url, args, dump, skip_generation, output_dir))
 }
 
-fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, mut out_dir: PathBuf)
+fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, out_dir: PathBuf)
             -> Result<String, String> {
     info!("flow loaded with alias '{}'\n", flow.alias);
 
@@ -133,14 +136,12 @@ fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, mu
         return Ok("Manifest generation and flow running skipped".to_string());
     }
 
-    let out_dir_path = Url::from_file_path(&out_dir).unwrap().to_string();
-    builder::build_functions(&out_dir_path, &tables)?;
+    let (manifest_path, manifest) = write_manifest(&flow, &out_dir, &tables).map_err(|e| e.to_string())?;
 
-    let filename = write_manifest(&flow, &out_dir, &tables).map_err(|e| e.to_string())?;
-    out_dir.push(filename);
+    builder::build_implementations(&out_dir, &manifest)?;
 
-    // Append flow arguments at the end of the arguments so that are passed on it when it's run
-    execute_flow(out_dir, args)
+    // Append flow arguments at the end of the arguments so that they are passed on it when it's run
+    execute_flow(manifest_path, args)
 }
 
 /*
@@ -149,19 +150,18 @@ fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, mu
     let mut output_dir = dir.into_path();
 */
 
-fn write_manifest(flow: &Flow, out_dir: &PathBuf, tables: &GenerationTables) -> Result<String, std::io::Error> {
-    let filename = "manifest.json".to_string();
-    let mut file = out_dir.clone();
-    file.push(&filename);
-    let mut manifest = File::create(&file)?;
-    let mut out_dir_path = Url::from_file_path(out_dir).unwrap().to_string();
-    out_dir_path.push('/');
+fn write_manifest(flow: &Flow, out_dir: &PathBuf, tables: &GenerationTables)
+                  -> Result<(PathBuf, Manifest), std::io::Error> {
+    let mut filename = out_dir.clone();
+    filename.push("manifest.json".to_string());
+    let mut manifest_file = File::create(&filename)?;
+    let out_dir_path = Url::from_file_path(out_dir).unwrap().to_string();
 
-    let json = generate::create_manifest(flow, &out_dir_path, tables)?;
+    let manifest = generate::create_manifest(flow, &out_dir_path, tables)?;
 
-    manifest.write_all(json.as_bytes())?;
+    manifest_file.write_all(serde_json::to_string_pretty(&manifest)?.as_bytes())?;
 
-    Ok(filename)
+    Ok((filename, manifest))
 }
 
 /*
@@ -348,6 +348,6 @@ mod test {
         let parent_route = &"".to_string();
         let url = url_from_string(Some("../samples/fibonacci")).unwrap();
         loader::load_process(parent_route, &"fibonacci".to_string(),
-                     &url.into_string(), &meta_provider).unwrap();
+                             &url.into_string(), &meta_provider).unwrap();
     }
 }

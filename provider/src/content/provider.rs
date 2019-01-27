@@ -41,7 +41,7 @@ impl Provider for MetaProvider {
 
     /// Takes a Url with a scheme of "http", "https" or "file". Read and return the contents of the
     /// resource at that Url.
-    fn get(&self, url: &str) -> Result<String, String> {
+    fn get(&self, url: &str) -> Result<Vec<u8>, String> {
         let provider = Self::get_provider(&url)?;
         let content = provider.get(&url)?;
         Ok(content)

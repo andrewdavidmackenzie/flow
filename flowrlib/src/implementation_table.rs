@@ -35,7 +35,7 @@ impl ImplementationLocatorTable {
         let (resolved_url, _) = provider.resolve(source)?;
         let content = provider.get(&resolved_url)?;
 
-        serde_json::from_str(&content)
+        serde_json::from_str(&String::from_utf8(content).unwrap())
             .map_err(|e| format!("Could not read ILT from '{}'\nError = '{}'",
                                  source, e))
     }
@@ -57,8 +57,8 @@ mod test {
             Ok((source.to_string(), None))
         }
 
-        fn get(&self, _url: &str) -> Result<String, String> {
-            Ok(self.test_content.to_string())
+        fn get(&self, _url: &str) -> Result<Vec<u8>, String> {
+            Ok(self.test_content.as_bytes().to_owned())
         }
     }
 

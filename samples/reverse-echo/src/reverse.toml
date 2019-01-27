@@ -1,4 +1,5 @@
 function = "Reverse"
+implementation = "reverse.wasm"
 
 [[input]]
 type = "String"

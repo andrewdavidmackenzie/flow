@@ -28,8 +28,8 @@ use model::process::Process::FlowProcess;
 ///         Ok((url.to_string(), None))
 ///     }
 ///
-///     fn get(&self, url: &str) -> Result<String, String> {
-///         Ok("flow = \"dummy\"\n[[input]]".to_string())
+///     fn get(&self, url: &str) -> Result<Vec<u8>, String> {
+///         Ok("flow = \"dummy\"\n[[input]]".as_bytes().to_owned())
 ///     }
 /// }
 ///

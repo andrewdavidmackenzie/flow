@@ -25,15 +25,16 @@ impl Provider for HttpProvider {
         }
     }
 
-    fn get(&self, url: &str) -> Result<String, String> {
+    fn get(&self, url: &str) -> Result<Vec<u8>, String> {
         let mut easy = Easy2::new(Collector(Vec::new()));
         easy.get(true).unwrap();
         easy.url(url).unwrap();
         easy.perform().unwrap();
 
+        // TODO catch and return error string with details
         assert_eq!(easy.response_code().unwrap(), 200);
         let contents = easy.get_ref();
-        Ok(String::from_utf8_lossy(&contents.0).to_string())
+        Ok(contents.0.clone())
     }
 }
 

@@ -1,7 +1,3 @@
-use flowrlib::implementation::Implementation;
-use flowrlib::implementation::RunAgain;
-use flowrlib::process::Process;
-use flowrlib::runlist::RunList;
 use serde_json::Value as JsonValue;
 use std::str::FromStr;
 
@@ -16,27 +12,26 @@ pub struct ParsePair;
     The `upper_left` and `lower_right` parameters are points on the complex
     plane designating the area our image covers.
 */
-impl Implementation for ParsePair {
-    fn run(&self, process: &Process, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
-        let string = inputs.remove(0).remove(0);
-        let separator = inputs.remove(0).remove(0);
+fn run(&self, process: &Process, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList)
+    -> (JsonValue, bool) {
+    let string = inputs.remove(0).remove(0);
+    let separator = inputs.remove(0).remove(0);
 
-        match (string, separator) {
-            (JsonValue::String(string_value), JsonValue::String(seperator_value)) => {
-                let split: Option<(f64, f64)> = parse_pair(string_value.as_str(),
-                                       seperator_value.as_str());
+    match (string, separator) {
+        (JsonValue::String(string_value), JsonValue::String(seperator_value)) => {
+            let split: Option<(f64, f64)> = parse_pair(string_value.as_str(),
+                                                       seperator_value.as_str());
 
-                // send output as Json
-                if let Some(pair) = split {
-                    let output = json!({ "first" : pair.0, "second": pair.1 });
-                    run_list.send_output(process, output);
-                }
+            // send output as Json
+            if let Some(pair) = split {
+                let output = json!({ "first" : pair.0, "second": pair.1 });
+                run_list.send_output(process, output);
             }
-            _ => {}
         }
-
-        true
+        _ => {}
     }
+
+    true
 }
 
 /// Parse the string 's' as a coordinate pair, like "400x600" or "1.0,0.5"
@@ -76,10 +71,10 @@ mod tests {
 
         let mut run_list = RunList::new();
         let pp = &Process::new("pp", 2, true, vec!(1, 1, 1),
-                                0,
-                                Box::new(ParsePair),
-                                None,
-                                vec!()) as &Process;
+                               0,
+                               Box::new(ParsePair),
+                               None,
+                               vec!()) as &Process;
         let implementation = pp.implementation();
 
         implementation.run(pp, inputs, &mut run_list);

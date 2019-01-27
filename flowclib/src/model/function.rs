@@ -10,12 +10,14 @@ use model::route::SetRoute;
 use loader::loader::Validate;
 use model::runnable::Runnable;
 use serde_json::Value as JsonValue;
+use flowrlib::url;
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Function {
     #[serde(rename = "function")]
     name: Name,
+    implementation: Option<String>,
     #[serde(rename = "input")]
     inputs: IOSet,
     #[serde(rename = "output")]
@@ -93,7 +95,16 @@ impl Runnable for Function {
         if let Some(ref reference) = self.lib_reference {
             format!("lib://{}/{}", reference, &self.name)
         } else {
-            self.source_url.as_str().replace(".toml", ".wasm") // TODO
+            match &self.implementation {
+                Some(path) => {
+                    url::join(&self.source_url, path)
+                }
+                None => {
+                    let path = format!("No implementation found for provided function '{}'", self.name);
+                    error!("{}", path);
+                    path
+                }
+            }
         }
     }
 }
@@ -155,6 +166,7 @@ impl Default for Function {
     fn default() -> Function {
         Function {
             name: "".to_string(),
+            implementation: None,
             alias: "".to_string(),
             inputs: None,
             outputs: Some(vec!(IO::new(&"Json".to_string(), &"".to_string()))),
@@ -180,12 +192,20 @@ impl Function {
         "file:///".to_string()
     }
 
-    pub fn new(name: Name, alias: Name, inputs: IOSet, outputs: IOSet, source_url: String,
-    route: Route, lib_reference: Option<String>, output_connections: Vec<(Route, usize, usize)>,
-    id: usize) -> Self {
+    pub fn new(name: Name, implementation: Option<String>, alias: Name, inputs: IOSet, outputs: IOSet, source_url: String,
+               route: Route, lib_reference: Option<String>, output_connections: Vec<(Route, usize, usize)>,
+               id: usize) -> Self {
         Function {
-            name, alias, inputs, outputs, source_url, route, lib_reference,
-            output_routes: output_connections,  id
+            name,
+            implementation,
+            alias,
+            inputs,
+            outputs,
+            source_url,
+            route,
+            lib_reference,
+            output_routes: output_connections,
+            id,
         }
     }
 
@@ -221,6 +241,7 @@ mod test {
     fn function_with_no_io_not_valid() {
         let fun = Function {
             name: "test_function".to_string(),
+            implementation: None,
             alias: "test_function".to_string(),
             source_url: Function::default_url(),
             inputs: Some(vec!()), // No inputs!

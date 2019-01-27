@@ -11,7 +11,6 @@ crate-type = ["cdylib"]
 path = "src/reverse.rs"
 
 [dependencies]
-flowrlib = { path = "../../flowrlib", version = "~0.7.0" }
 serde_json = "1.0"
 
 [workspace]

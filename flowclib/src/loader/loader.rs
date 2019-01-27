@@ -48,9 +48,9 @@ pub trait Validate {
 ///        Ok((url.to_string(), None))
 ///     }
 ///
-///    fn get(&self, url: &str) -> Result<String, String> {
+///    fn get(&self, url: &str) -> Result<Vec<u8>, String> {
 ///        // Return the simplest flow definition possible
-///        Ok("flow = \"test\"".to_string())
+///        Ok("flow = \"test\"".as_bytes().to_owned())
 ///     }
 /// }
 ///
@@ -67,7 +67,7 @@ pub fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Pr
     info!("Loading process with alias = '{}' from url='{}' ", alias, resolved_url);
     let contents = provider.get(&resolved_url)?;
 
-    let mut process = loader.load_process(&contents)?;
+    let mut process = loader.load_process(&String::from_utf8(contents).unwrap())?;
 
     match process {
         FlowProcess(ref mut flow) => {

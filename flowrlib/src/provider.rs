@@ -8,5 +8,5 @@ pub trait Provider {
 
     /// 'get' fetches content from a url. It resolves the url internally before attempting to
     /// fetch actual content
-    fn get(&self, url: &str) -> Result<String, String>;
+    fn get(&self, url: &str) -> Result<Vec<u8>, String>;
 }

@@ -1,4 +1,5 @@
 function = "ReadSection"
+implementation = "read_section.wasm"
 
 [[input]]
 type = "String"

@@ -1,7 +1,8 @@
-use std::fs;
+use std::fs::File;
 use std::fs::metadata;
 use std::io;
 use std::io::ErrorKind;
+use std::io::prelude::*;
 use std::path::PathBuf;
 
 use flowrlib::provider::Provider;
@@ -24,7 +25,7 @@ impl Provider for FileProvider {
                         map_err(|e| e.to_string())?;
                     let resolved_url = Url::from_file_path(&file)
                         .map_err(|_| format!("Could not create url from file path '{}'",
-                                              file.to_str().unwrap()))?;
+                                             file.to_str().unwrap()))?;
                     Ok((resolved_url.into_string(), None))
                 } else {
                     Ok((url.to_string(), None))
@@ -36,12 +37,16 @@ impl Provider for FileProvider {
         }
     }
 
-    fn get(&self, url_str: &str) -> Result<String, String> {
+    fn get(&self, url_str: &str) -> Result<Vec<u8>, String> {
         let url = Url::parse(url_str)
             .map_err(|_| format!("Could not convert '{}' to Url", url_str))?;
         let file_path = url.to_file_path().unwrap();
-        fs::read_to_string(file_path).map_err(
-            |e| format!("Could not load content from '{}' ({}", url, e))
+        let mut f = File::open(&file_path)
+            .map_err(|e| format!("Could not open file '{:?}' ({}", file_path, e))?;
+        let mut buffer = Vec::new();
+        f.read_to_end(&mut buffer)
+            .map_err(|e| format!("Could not read content from '{:?}' ({}", file_path, e))?;
+        Ok(buffer)
     }
 }
 
@@ -63,8 +68,8 @@ impl FileProvider {
             match entry {
                 Ok(context_file) => return Ok(context_file),
                 Err(_) => return Err(io::Error::new(ErrorKind::NotFound,
-                                             format!("No context file found matching '{}'",
-                                                     path.display())))
+                                                    format!("No context file found matching '{}'",
+                                                            path.display())))
             }
         }
 

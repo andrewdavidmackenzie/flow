@@ -19,7 +19,7 @@ impl Manifest {
         let (resolved_url, _) = provider.resolve(source)?;
         let content = provider.get(&resolved_url)?;
 
-        serde_json::from_str(&content)
+        serde_json::from_str(&String::from_utf8(content).unwrap())
             .map_err(|e| format!("Could not read manifest from '{}'\nError = '{}'",
                                  source, e))
     }
