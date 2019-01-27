@@ -25,7 +25,6 @@ use flowclib::info;
 use flowclib::loader::loader;
 use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
-use flowrlib::manifest::Manifest;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
@@ -33,7 +32,6 @@ use provider::content::args::url_from_string;
 use provider::content::provider::MetaProvider;
 
 mod source_arg;
-mod builder;
 
 fn main() {
     match run() {
@@ -136,9 +134,7 @@ fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, ou
         return Ok("Manifest generation and flow running skipped".to_string());
     }
 
-    let (manifest_path, manifest) = write_manifest(&flow, &out_dir, &tables).map_err(|e| e.to_string())?;
-
-    builder::build_implementations(&out_dir, &manifest)?;
+    let manifest_path= write_manifest(&flow, &out_dir, &tables).map_err(|e| e.to_string())?;
 
     // Append flow arguments at the end of the arguments so that they are passed on it when it's run
     execute_flow(manifest_path, args)
@@ -151,7 +147,7 @@ fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, ou
 */
 
 fn write_manifest(flow: &Flow, out_dir: &PathBuf, tables: &GenerationTables)
-                  -> Result<(PathBuf, Manifest), std::io::Error> {
+                  -> Result<PathBuf, std::io::Error> {
     let mut filename = out_dir.clone();
     filename.push("manifest.json".to_string());
     let mut manifest_file = File::create(&filename)?;
@@ -161,7 +157,7 @@ fn write_manifest(flow: &Flow, out_dir: &PathBuf, tables: &GenerationTables)
 
     manifest_file.write_all(serde_json::to_string_pretty(&manifest)?.as_bytes())?;
 
-    Ok((filename, manifest))
+    Ok(filename)
 }
 
 /*
