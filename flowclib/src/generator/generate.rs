@@ -1,8 +1,5 @@
 use std::io::Result;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::prelude::*;
-use std::path::PathBuf;
 use std::collections::HashSet;
 use model::runnable::Runnable;
 use model::flow::Flow;
@@ -11,7 +8,7 @@ use model::connection::Connection;
 use flowrlib::manifest::Manifest;
 
 #[derive(Serialize)]
-pub struct CodeGenTables {
+pub struct GenerationTables {
     pub connections: Vec<Connection>,
     pub source_routes: HashMap<Route, (Route, usize)>,
     pub destination_routes: HashMap<Route, (usize, usize)>,
@@ -30,9 +27,9 @@ Things to add to the manifest
     - flow.author_email
 */
 
-impl CodeGenTables {
+impl GenerationTables {
     pub fn new() -> Self {
-        CodeGenTables {
+        GenerationTables {
             connections: Vec::new(),
             source_routes: HashMap::<Route, (String, usize)>::new(),
             destination_routes: HashMap::<Route, (usize, usize)>::new(),
@@ -44,30 +41,26 @@ impl CodeGenTables {
 }
 
 // Create the 'manifest.json' file in the project folder
-pub fn create_manifest(_flow: &Flow, out_dir: &PathBuf, tables: &CodeGenTables) -> Result<String> {
-    let filename = "manifest.json".to_string();
-    let mut file = out_dir.clone();
-    file.push(&filename);
-    let mut runnables_json = File::create(&file)?;
-
+pub fn create_manifest(_flow: &Flow, out_dir_path: &str, tables: &GenerationTables) -> Result<String> {
     let mut manifest = Manifest::new();
 
     // Generate runtime Process struct for each of the runnables
     for runnable in &tables.runnables {
-        manifest.processes.push(runnable_to_process(runnable));
+        manifest.processes.push(runnable_to_process(out_dir_path, runnable));
     }
 
-    let json = serde_json::to_string_pretty(&manifest)?;
-    runnables_json.write_all(json.as_bytes())?;
-
-    Ok(filename)
+    Ok(serde_json::to_string_pretty(&manifest)?)
 }
 
 // Do as an Into trait?
-fn runnable_to_process(runnable: &Box<Runnable>) -> flowrlib::process::Process {
+fn runnable_to_process(out_dir_path: &str, runnable: &Box<Runnable>) -> flowrlib::process::Process {
     let name = runnable.alias();
     let is_static = runnable.is_static_value();
-    let impl_path = runnable.get_impl_path();
+    let mut impl_path = runnable.get_impl_path();
+
+    // make path to implementation relative to the output directory if under it
+    impl_path = impl_path.replace(out_dir_path, "");
+
     let input_depths = match &runnable.get_inputs() {
         &None => vec!(),
         Some(inputs) => {

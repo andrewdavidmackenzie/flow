@@ -55,15 +55,12 @@ impl Loader {
                 }
 
                 /*** These below are not 'lib:' references - hence are supplied implementations ***/
-                "" | "http" | "https" | "file" => {
+                _ => {
                     let full_url = url::join(manifest_url,
                                                   process.implementation_source());
                     let wasm_executor = wasm::load(provider, &full_url)?;
                     process.set_implementation(wasm_executor as Rc<Implementation>);
                 }
-
-                _ => return Err(format!("Unexpected Url scheme for implemenation source: '{}'",
-                                        source_url))
             }
 
             self.processes.push(Arc::new(Mutex::new(process)));

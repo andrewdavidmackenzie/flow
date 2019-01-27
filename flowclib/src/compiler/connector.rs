@@ -3,7 +3,7 @@ use model::route::Router;
 use model::route::HasRoute;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use generator::generate::CodeGenTables;
+use generator::generate::GenerationTables;
 use model::connection::Connection;
 use model::name::HasName;
 
@@ -16,7 +16,7 @@ use model::name::HasName;
     (according to each runnable's output route in the original description plus each connection from
      that route, which could be to multiple destinations)
 */
-pub fn set_runnable_outputs(tables: &mut CodeGenTables) -> Result<(), String> {
+pub fn set_runnable_outputs(tables: &mut GenerationTables) -> Result<(), String> {
     debug!("Building connections");
     for connection in &tables.collapsed_connections {
         if let Some((output_route, source_id)) = get_source(&tables.source_routes, &connection.from_io.route()) {
@@ -69,7 +69,7 @@ fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &Route
     Construct a look-up table that can be used to find the index of a runnable in the runnables table,
     and the index of it's input - using the input route
 */
-pub fn routes_table(tables: &mut CodeGenTables) {
+pub fn routes_table(tables: &mut GenerationTables) {
     for mut runnable in &mut tables.runnables {
         // Add any output routes it has to the source routes table
         if let Some(ref outputs) = runnable.get_outputs() {
@@ -146,7 +146,7 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
 /*
     Check for a series of potential problems in connections
 */
-pub fn check_connections(tables: &mut CodeGenTables) -> Result<(), String> {
+pub fn check_connections(tables: &mut GenerationTables) -> Result<(), String> {
     for connection in &tables.collapsed_connections {
         connection.check_for_loops("Collapsed Connections list")?;
     }
@@ -176,7 +176,7 @@ pub fn remove_duplicates(connections: &mut Vec<Connection>) -> Result<(), String
     1) Two runnables have output connections to the same input, and one of them is a static value
     2) A single runnable has two output connections to the same destination route.
 */
-fn check_for_competing_inputs(tables: &CodeGenTables) -> Result<(), String> {
+fn check_for_competing_inputs(tables: &GenerationTables) -> Result<(), String> {
     // HashMap where key is the Route of the input being sent to
     //               value is  a tuple of (sender_id, static_sender)
     // Use to determine when sending to a route if the same runnable is already sending to it

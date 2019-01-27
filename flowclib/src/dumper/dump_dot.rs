@@ -1,5 +1,5 @@
 use model::flow::Flow;
-use generator::generate::CodeGenTables;
+use generator::generate::GenerationTables;
 use std::io;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -272,7 +272,7 @@ fn process_reference_to_dot(process_ref: &ProcessReference) -> String {
     dot_string
 }
 
-pub fn runnables_to_dot(flow_alias: &str, tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<String> {
+pub fn runnables_to_dot(flow_alias: &str, tables: &GenerationTables, output_dir: &PathBuf) -> io::Result<String> {
     let mut dot_file = helper::create_output_file(&output_dir, "runnables", "dot")?;
     info!("Generating Runnables dot file {}, Use \"dotty\" to view it", output_dir.display());
 

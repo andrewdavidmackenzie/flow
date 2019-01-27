@@ -1,6 +1,6 @@
 use model::flow::Flow;
 use std::fmt;
-use generator::generate::CodeGenTables;
+use generator::generate::GenerationTables;
 use std::fs::File;
 use std::io;
 use std::io::Write;
@@ -56,7 +56,7 @@ use ::dumper::dump_dot;
 /// }
 /// ```
 ///
-pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<String> {
+pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Result<String> {
     let mut writer = create_output_file(&output_dir, "flow_connections", "dump")?;
     writer.write_all(format!("{}",
                              serde_json::to_string_pretty(&tables.connections)
@@ -131,7 +131,7 @@ pub fn dump_tables(tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<S
 ///     }
 /// }
 /// ```
-pub fn dump_runnables(flow: &Flow, tables: &CodeGenTables, output_dir: &PathBuf) -> io::Result<String> {
+pub fn dump_runnables(flow: &Flow, tables: &GenerationTables, output_dir: &PathBuf) -> io::Result<String> {
     dump_dot::runnables_to_dot(&flow.alias, tables, output_dir)?;
 
     let mut writer = create_output_file(&output_dir, "runnables", "dump")?;

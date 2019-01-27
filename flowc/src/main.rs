@@ -7,15 +7,19 @@ extern crate simplog;
 extern crate tempdir;
 extern crate url;
 
+use std::fs::File;
+use std::io::prelude::*;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
+use flowclib::builder::builder;
 use flowclib::compiler::compile;
 use flowclib::dumper::dump_flow;
 use flowclib::dumper::dump_tables;
 use flowclib::generator::generate;
+use flowclib::generator::generate::GenerationTables;
 use flowclib::info;
 use flowclib::loader::loader;
 use flowclib::model::flow::Flow;
@@ -120,21 +124,44 @@ fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, mu
 
     if dump {
         info!("Dumping flow, compiler tables and runnable descriptions in '{}'", out_dir.display());
-
         dump_flow::dump_flow(&flow, &out_dir).map_err(|e| e.to_string())?;
         dump_tables::dump_tables(&tables, &out_dir).map_err(|e| e.to_string())?;
         dump_tables::dump_runnables(&flow, &tables, &out_dir).map_err(|e| e.to_string())?;
     }
 
     if skip_generation {
-        return Ok("Code Generation and Running skipped".to_string());
+        return Ok("Manifest generation and flow running skipped".to_string());
     }
 
-    let filename = generate::create_manifest(&flow, &out_dir, &tables).map_err(|e| e.to_string())?;
+    let out_dir_path = Url::from_file_path(&out_dir).unwrap().to_string();
+    builder::build_functions(&out_dir_path, &tables)?;
+
+    let filename = write_manifest(&flow, &out_dir, &tables).map_err(|e| e.to_string())?;
     out_dir.push(filename);
 
     // Append flow arguments at the end of the arguments so that are passed on it when it's run
     execute_flow(out_dir, args)
+}
+
+/*
+    let dir = TempDir::new("flow")
+        .map_err(|e| format!("Error creating new TempDir, \n'{}'", e.to_string()))?;
+    let mut output_dir = dir.into_path();
+*/
+
+fn write_manifest(flow: &Flow, out_dir: &PathBuf, tables: &GenerationTables) -> Result<String, std::io::Error> {
+    let filename = "manifest.json".to_string();
+    let mut file = out_dir.clone();
+    file.push(&filename);
+    let mut manifest = File::create(&file)?;
+    let mut out_dir_path = Url::from_file_path(out_dir).unwrap().to_string();
+    out_dir_path.push('/');
+
+    let json = generate::create_manifest(flow, &out_dir_path, tables)?;
+
+    manifest.write_all(json.as_bytes())?;
+
+    Ok(filename)
 }
 
 /*

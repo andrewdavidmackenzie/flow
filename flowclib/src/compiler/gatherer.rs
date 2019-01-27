@@ -2,13 +2,13 @@ use model::flow::Flow;
 use model::runnable::Runnable;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
-use generator::generate::CodeGenTables;
+use generator::generate::GenerationTables;
 
 /*
     This module is responsible for parsing the flow tree and gathering information into a set of
     flat tables that the compiler can use for code generation.
 */
-pub fn add_entries(flow: &Flow, tables: &mut CodeGenTables) {
+pub fn add_entries(flow: &Flow, tables: &mut GenerationTables) {
     // Add Connections from this flow to the connections table
     if let Some(ref connections) = flow.connections {
         let mut conns = connections.clone();

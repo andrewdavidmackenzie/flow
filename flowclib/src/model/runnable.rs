@@ -11,7 +11,7 @@ pub trait Runnable: fmt::Display + HasName + HasRoute {
     fn get_inputs(&self) -> IOSet;
     fn get_outputs(&self) -> IOSet;
     fn add_output_route(&mut self, output_route: (Route, usize, usize)); // Route is the output subroute
-    fn source_url(&self) -> Option<String>;
+    fn get_source_url(&self) -> Option<String>;
     fn get_type(&self) -> &str;
     fn is_static_value(&self) -> bool;
     fn get_output_routes(&self) -> &Vec<(Route, usize, usize)>;

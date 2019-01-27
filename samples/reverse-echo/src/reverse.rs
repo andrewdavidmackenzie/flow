@@ -1,5 +1,5 @@
 extern crate flowrlib;
-extern crate serde_json;
+#[macro_use] extern crate serde_json;
 
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RUN_AGAIN;

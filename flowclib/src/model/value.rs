@@ -83,7 +83,7 @@ impl Runnable for Value {
         self.output_routes.push(output_route);
     }
 
-    fn source_url(&self) -> Option<String> {
+    fn get_source_url(&self) -> Option<String> {
         None
     }
 

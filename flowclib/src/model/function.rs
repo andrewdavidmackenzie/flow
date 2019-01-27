@@ -69,7 +69,7 @@ impl Runnable for Function {
     }
 
     // Could combine with get_impl_path() ????
-    fn source_url(&self) -> Option<String> {
+    fn get_source_url(&self) -> Option<String> {
         if self.lib_reference.is_none() {
             Some(self.source_url.clone())
         } else {
