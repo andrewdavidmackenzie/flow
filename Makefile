@@ -129,7 +129,7 @@ clean-samples:
 samples/%/test.output: samples/%/test_input.txt samples/%/test_arguments.txt
 	@echo "\n------- Compiling and Running '$(@D)' ----"
 # build any samples that provide their own implementations
-	@test -f $(@D)/Makefile && cd $(@D) && make;true
+	@test -f $(@D)/Makefile && cd $(@D) && make wasm;true
 # remove local file path from output messages with sed to make local failures match travis failures
 	@cat $< | cargo run --quiet --bin flowc -- -d $(@D) -- `cat $(@D)/test_arguments.txt` | grep -v "Running" | grep -v "Finished dev" > $@; true
 	@diff $@ $(@D)/expected_output.txt || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && exit $$ret)
