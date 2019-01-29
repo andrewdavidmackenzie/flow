@@ -1,5 +1,6 @@
-extern crate flowstdlib;
+extern crate flowclib;
 extern crate flowrlib;
+extern crate flowstdlib;
 
 use wasm_bindgen::prelude::*;
 
@@ -15,6 +16,7 @@ pub fn run() -> Result<(), JsValue> {
     // Get versions of libraries we link with
     let flowstdlib_version = flowstdlib::info::version();
     let flowrlib_version = flowrlib::info::version();
+    let flowclib_version = flowclib::info::version();
 
     let std = document.create_element("p")?;
     std.set_inner_html(&format!("flowstdlib: version = {}", flowstdlib_version));
@@ -23,6 +25,10 @@ pub fn run() -> Result<(), JsValue> {
     let runtime = document.create_element("p")?;
     runtime.set_inner_html(&format!("flowrlib: version = {}", flowrlib_version));
     body.append_child(&runtime)?;
+
+    let compiler = document.create_element("p")?;
+    compiler.set_inner_html(&format!("flowclib: version = {}", flowclib_version));
+    body.append_child(&compiler)?;
 
     Ok(())
 }
