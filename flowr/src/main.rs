@@ -34,11 +34,14 @@ fn main() -> Result<(), String> {
     let mut loader = Loader::new();
     let provider = MetaProvider {};
 
-    // TODO pass in the root folder of the library, so wasm files in it can be found
     let cwd = cwd_as_url()?;
-    // Load standard library functions we always want - flowr (for environment) and flowstdlib
+    // Load standard library functions we always want - flowr
     loader.add_lib(&provider, ::ilt::get_ilt(), &cwd.to_string())?;
-    loader.add_lib(&provider, flowstdlib::ilt::get_ilt(), &cwd.to_string())?;
+
+    // Load standard library functions we always want - flowstdlib
+    // For now we are passing in a fake ilt.json file so the basepath for finding wasm files works.
+    loader.add_lib(&provider, flowstdlib::ilt::get_ilt(),
+                   &format!("{}flowstdlib/ilt.json", cwd.to_string()))?;
 
     loader.load_flow(&provider, &url.to_string())?;
 

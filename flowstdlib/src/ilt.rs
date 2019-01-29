@@ -1,4 +1,5 @@
 use flowrlib::implementation_table::ImplementationLocator::Native;
+use flowrlib::implementation_table::ImplementationLocator::Wasm;
 use flowrlib::implementation_table::ImplementationLocatorTable;
 use std::rc::Rc;
 
@@ -12,6 +13,9 @@ pub fn get_ilt() -> ImplementationLocatorTable {
     ilt.locators.insert("lib://flowstdlib/fmt/to_number/ToNumber".to_string(), Native(Rc::new(::fmt::to_number::ToNumber{})));
     ilt.locators.insert("lib://flowstdlib/zero_fifo/Fifo".to_string(), Native(Rc::new(::zero_fifo::Fifo{})));
     ilt.locators.insert("lib://flowstdlib/img/format_png/FormatPNG".to_string(), Native(Rc::new(::img::format_png::FormatPNG{})));
+
+    // TODO remove this fake added wasm function with a real one, with a Makefile to build it when wasm execution is ready
+    ilt.locators.insert("lib://flowstdlib/fmt/reverse/Reverse".to_string(), Wasm("src/fmt/reverse.wasm".to_string()));
 
     ilt
 }

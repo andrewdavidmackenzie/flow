@@ -10,6 +10,11 @@ crate-type = ["cdylib"]
 # This field points at where the crate is located, relative to the `Cargo.toml`.
 path = "src/reverse.rs"
 
+[profile.release]
+debug = false
+lto = true
+opt-level = 's'
+
 [dependencies]
 serde_json = "1.0"
 
