@@ -1,11 +1,5 @@
-use flowrlib::implementation::Implementation;
-use flowrlib::implementation::RunAgain;
-use flowrlib::process::Process;
-use flowrlib::runlist::RunList;
 use num::Complex;
 use serde_json::Value as JsonValue;
-
-pub struct Escapes;
 
 /*
     Try to determine if 'c' is in the Mandlebrot set, using at most 'limit' iterations to decide
@@ -14,20 +8,19 @@ pub struct Escapes;
     If 'c' seems to be a member (more precisely, if we reached the iteration limit without being
     able to prove that 'c' is not a member) return 'None'
 */
-impl Implementation for Escapes {
-    fn run(&self, process: &Process, mut inputs: Vec<Vec<JsonValue>>, run_list: &mut RunList) -> RunAgain {
-        let point = inputs.remove(0).remove(0);
-        // pixel_bounds: (usize, usize),
-        let re = point["re"].as_f64().unwrap();
-        let im = point["im"].as_f64().unwrap();
-        let complex_point = Complex { re, im };
+#[no_mangle]
+pub extern "C" fn escapes(mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, bool) {
+    let point = inputs.remove(0).remove(0);
+    // pixel_bounds: (usize, usize),
+    let re = point["re"].as_f64().unwrap();
+    let im = point["im"].as_f64().unwrap();
+    let complex_point = Complex { re, im };
 
-        let limit = inputs.remove(0).remove(0).as_u64().unwrap();
+    let limit = inputs.remove(0).remove(0).as_u64().unwrap();
 
-        run_list.send_output(process, json!(escapes(complex_point, limit)));
+    let value = Some(json!(_escapes(complex_point, limit)));
 
-        true
-    }
+    (value, true)
 }
 
 /// Try to determine if 'c' is in the Mandlebrot set, using at most 'limit' iterations to decide
@@ -35,7 +28,7 @@ impl Implementation for Escapes {
 /// to leave the circle of radius two centered on the origin.
 /// If 'c' seems to be a member (more precisely, if we reached the iteration limit without being
 /// able to prove that 'c' is not a member) return 'None'
-pub fn escapes(c: Complex<f64>, limit: u64) -> u64 {
+pub fn _escapes(c: Complex<f64>, limit: u64) -> u64 {
     if c.norm_sqr() > 4.0 {
         return 0;
     }
@@ -54,14 +47,11 @@ pub fn escapes(c: Complex<f64>, limit: u64) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use flowrlib::process::Process;
-    use flowrlib::runlist::RunList;
     use num::Complex;
     use serde_json::Value as JsonValue;
     use test::Bencher;
 
-    use super::Escapes;
-    use super::escapes;
+    use super::_escapes;
 
     #[test]
     fn test_escapes() {
@@ -70,17 +60,13 @@ mod tests {
         let limit = json!(100);
         let inputs: Vec<Vec<JsonValue>> = vec!(vec!(point), vec!(limit));
 
-        let mut run_list = RunList::new();
-        let escapes = &Function::new("escapes", 2, true, vec!(1,1), 0, Box::new(Escapes), None, vec!()) as &Process;
-        let implementation = escapes.implementation();
-
-        implementation.run(escapes, inputs, &mut run_list);
+        let _escapes = super::escapes(inputs);
     }
 
     #[bench]
     fn bench_escapes(b: &mut Bencher) {
         let upper_left = Complex { re: -1.20, im: 0.35 };
 
-        b.iter(|| escapes(upper_left, 255));
+        b.iter(|| _escapes(upper_left, 255));
     }
 }

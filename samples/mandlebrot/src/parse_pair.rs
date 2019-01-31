@@ -11,7 +11,7 @@ use std::str::FromStr;
     plane designating the area our image covers.
 */
 #[no_mangle]
-pub extern "C" fn run(mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, bool) {
+pub extern "C" fn parse_pair(mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, bool) {
     let mut value = None;
 
     let string = inputs.remove(0).remove(0);
@@ -19,8 +19,8 @@ pub extern "C" fn run(mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, bo
 
     match (string, separator) {
         (JsonValue::String(string_value), JsonValue::String(seperator_value)) => {
-            let split: Option<(f64, f64)> = parse_pair(string_value.as_str(),
-                                                       seperator_value.as_str());
+            let split: Option<(f64, f64)> = _parse_pair(string_value.as_str(),
+                                                        seperator_value.as_str());
 
             // send output as Json
             if let Some(pair) = split {
@@ -39,7 +39,7 @@ pub extern "C" fn run(mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, bo
 /// by 'T::from_str'.
 /// If 's' has the proper form, return 'Some<(x,y)>'.
 /// If 's' doesn't parse correctly, return None.
-pub fn parse_pair<T: FromStr>(s: &str, separator: &str) -> Option<(T, T)> {
+pub fn _parse_pair<T: FromStr>(s: &str, separator: &str) -> Option<(T, T)> {
     match s.find(separator) {
         None => None,
         Some(index) => {
@@ -53,12 +53,9 @@ pub fn parse_pair<T: FromStr>(s: &str, separator: &str) -> Option<(T, T)> {
 
 #[cfg(test)]
 mod tests {
-    use flowrlib::process::Process;
-    use flowrlib::runlist::RunList;
     use serde_json::Value as JsonValue;
 
-    use super::parse_pair;
-    use super::ParsePair;
+    use super::_parse_pair;
 
     #[test]
     fn parse_pair_bounds() {
@@ -68,26 +65,18 @@ mod tests {
 
         let inputs: Vec<Vec<JsonValue>> = vec!(vec!(string), vec!(separator));
 
-        let mut run_list = RunList::new();
-        let pp = &Process::new("pp", 2, true, vec!(1, 1, 1),
-                               0,
-                               Box::new(ParsePair),
-                               None,
-                               vec!()) as &Process;
-        let implementation = pp.implementation();
-
-        implementation.run(pp, inputs, &mut run_list);
+        let _pair = super::parse_pair(inputs);
     }
 
     #[test]
     fn test_parse_pair() {
-        assert_eq!(parse_pair::<i32>("", ","), None);
-        assert_eq!(parse_pair::<i32>("10,", ","), None);
-        assert_eq!(parse_pair::<i32>(",10", ","), None);
-        assert_eq!(parse_pair::<i32>("10,20", ","), Some((10, 20)));
-        assert_eq!(parse_pair::<i32>("10,20xy", ","), None);
-        assert_eq!(parse_pair::<f64>("0.5x", ","), None);
-        assert_eq!(parse_pair::<f64>("0.5x1.5", "x"), Some((0.5, 1.5)));
+        assert_eq!(_parse_pair::<i32>("", ","), None);
+        assert_eq!(_parse_pair::<i32>("10,", ","), None);
+        assert_eq!(_parse_pair::<i32>(",10", ","), None);
+        assert_eq!(_parse_pair::<i32>("10,20", ","), Some((10, 20)));
+        assert_eq!(_parse_pair::<i32>("10,20xy", ","), None);
+        assert_eq!(_parse_pair::<f64>("0.5x", ","), None);
+        assert_eq!(_parse_pair::<f64>("0.5x1.5", "x"), Some((0.5, 1.5)));
     }
 }
 

@@ -7,11 +7,13 @@ use provider::Provider;
 use std::rc::Rc;
 
 #[cfg(not(target_arg = "wasm32"))]
-use wasmi::{Module, ModuleRef, ModuleInstance, ImportsBuilder, RuntimeValue, NopExternals};
+use wasmi::{Module, ModuleRef, ModuleInstance, ImportsBuilder};
+//use wasmi::{Module, ModuleRef, ModuleInstance, ImportsBuilder, RuntimeValue, NopExternals};
 
 #[cfg(not(target_arg = "wasm32"))]
 pub struct WasmExecutor {
-    pub module: Arc<Mutex<ModuleRef>>
+    pub module: Arc<Mutex<ModuleRef>>,
+    _function_name: String,
 }
 
 #[cfg(target_arg = "wasm32")]
@@ -23,13 +25,13 @@ pub struct WasmExecutor {}
             externals: &mut E) -> Result<Option<RuntimeValue>, Error>
 */
 impl Implementation for WasmExecutor {
-    fn run(&self, inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
+    fn run(&self, _inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
         let _module: &mut ModuleRef = &mut *self.module.lock().unwrap();
 
         println!("Wasm implementation wrapper called");
 
         /*
-        let res = module.invoke_export("run", &[RuntimeValue::from(inputs)],
+        let res = module.invoke_export(self.function_name, &[RuntimeValue::from(inputs)],
                                   &mut NopExternals).unwrap().unwrap();
         res
         */
@@ -40,7 +42,7 @@ impl Implementation for WasmExecutor {
 /*
     load a Wasm module from the specified Url.
 */
-pub fn load(provider: &Provider, source_url: &str)
+pub fn load(provider: &Provider, name: &str, source_url: &str)
             -> Result<Rc<WasmExecutor>, String> {
     let (resolved_url, _) = provider.resolve(&source_url)?;
     let content = provider.get(&resolved_url)?;
@@ -53,7 +55,10 @@ pub fn load(provider: &Provider, source_url: &str)
         .map_err(|e| e.to_string())?
         .assert_no_start();
 
-    let executor = WasmExecutor { module: Arc::new(Mutex::new(module_ref.clone())) };
+    let executor = WasmExecutor {
+        module: Arc::new(Mutex::new(module_ref.clone())),
+        _function_name: name.to_string()
+    };
 
     Ok(Rc::new(executor))
 }

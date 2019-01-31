@@ -13,7 +13,7 @@ use std::rc::Rc;
 pub enum ImplementationLocator {
     #[serde(skip_deserializing, skip_serializing)]
     Native(Rc<Implementation>),
-    Wasm(String),
+    Wasm((String, String))
 }
 
 /*
@@ -64,13 +64,16 @@ mod test {
 
     #[test]
     fn serialize() {
-        let locator: ImplementationLocator = Wasm("add2.wasm".to_string());
+        let locator: ImplementationLocator = Wasm(("add2.wasm".to_string(), "add".to_string()));
         let mut ilt = ImplementationLocatorTable::new();
         ilt.locators.insert("//flowrlib/test-dyn-lib/add2".to_string(), locator);
         let serialized = serde_json::to_string_pretty(&ilt).unwrap();
         let expected = "{
   \"locators\": {
-    \"//flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
+    \"//flowrlib/test-dyn-lib/add2\": [
+      \"add2.wasm\",
+      \"add\"
+    ]
   }
 }";
         assert_eq!(expected, serialized);
@@ -80,7 +83,9 @@ mod test {
     fn load_dyn_library() {
         let test_content = "{
   \"locators\": {
-    \"//flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
+    \"//flowrlib/test-dyn-lib/add2\": [\
+        \"add2.wasm\",\
+        \"add\"]
   }
 }";
         let provider = TestProvider {
@@ -92,7 +97,7 @@ mod test {
         assert!(ilt.locators.get("//flowrlib/test-dyn-lib/add2").is_some());
         let locator = ilt.locators.get("//flowrlib/test-dyn-lib/add2").unwrap();
         match locator {
-            Wasm(source) => assert_eq!(source, "add2.wasm"),
+            Wasm(source) => assert_eq!(source.0, "add2.wasm"),
             _ => assert!(false, "Expected type 'Wasm' but found another type")
         }
     }

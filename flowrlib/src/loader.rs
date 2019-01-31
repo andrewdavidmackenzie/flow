@@ -57,8 +57,10 @@ impl Loader {
                 /*** These below are not 'lib:' references - hence are supplied implementations ***/
                 _ => {
                     let full_url = url::join(manifest_url,
-                                                  process.implementation_source());
-                    let wasm_executor = wasm::load(provider, &full_url)?;
+                                             process.implementation_source());
+                    let wasm_executor = wasm::load(provider,
+                                                   &process.name().to_lowercase(),
+                                                   &full_url)?;
                     process.set_implementation(wasm_executor as Rc<Implementation>);
                 }
             }
@@ -85,9 +87,10 @@ impl Loader {
                 let implementation = match locator {
                     Wasm(wasm_source) => {
                         // Path to the wasm source could be relative to the URL where we loaded the ILT from
-                        let wasm_url = url::join(ilt_url, &wasm_source);
+                        let wasm_url = url::join(ilt_url, &wasm_source.0);
                         // Wasm implementation being added. Wrap it with the Wasm Native Implementation
-                        let wasm_executor = wasm::load(provider, &wasm_url)?;
+                        let wasm_executor = wasm::load(provider, &wasm_source.1,
+                                                       &wasm_url)?;
                         wasm_executor as Rc<Implementation>
                     }
 
