@@ -182,4 +182,5 @@ clean-dumps:
 
 ################# Dot Graphs ################
 dot-graphs:
-	find . -name \*.dot -type f -exec dot -Tpng -O {} \;
+	@find . -name \*.dot -type f -exec dot -Tpng -O {} \;
+	@echo "Generated .png files for all dot graphs found"
