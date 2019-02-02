@@ -128,7 +128,7 @@ impl RunList {
 
     // when a process consumes it's inputs, then take if off the list of processs with inputs ready
     pub fn inputs_consumed(&mut self, id: usize) {
-        debug!("\tProcess #{} consumed its inputs, removing from the 'Can Run' list", id);
+        debug!("\tProcess #{} consumed its inputs, so removed from 'Can Run' list", id);
         self.can_run.remove(&id);
     }
 
@@ -165,7 +165,8 @@ impl RunList {
     pub fn blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
         // avoid deadlocks by a process blocking itself
         if blocked_id != blocking_id {
-            debug!("\t\t\tProcess #{} is now blocked on output by Process #{}", &blocked_id, &blocking_id);
+            debug!("\t\t\tProcess #{} <-- Process #{} blocked",
+                   &blocking_id, &blocked_id);
             self.blocking.push((blocking_id, blocked_id));
         }
     }
@@ -180,7 +181,7 @@ impl RunList {
 
             for &(blocking_id, blocked_id) in &self.blocking {
                 if blocking_id == blocker_id {
-                    debug!("\t\tProcess #{} <-- #{} - block removed", blocking_id, blocked_id);
+                    debug!("\t\tProcess #{} <-- #{} - unblocked", blocking_id, blocked_id);
                     unblocked_list.push(blocked_id);
                 }
             }
@@ -192,7 +193,7 @@ impl RunList {
             // one that unblocked.
             for unblocked in unblocked_list {
                 if self.can_run.contains(&unblocked) && !self.is_blocked(unblocked) {
-                    debug!("\t\t\tProcess #{} was unblocked and it inputs are ready, so added to end of 'Will Run' list", unblocked);
+                    debug!("\t\t\tProcess #{} has inputs ready, so added to end of 'Will Run' list", unblocked);
                     self.will_run.push(unblocked);
                 }
             }
