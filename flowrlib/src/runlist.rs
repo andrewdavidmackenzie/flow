@@ -146,8 +146,8 @@ impl RunList {
             let destination_arc = Arc::clone(&self.processs[destination_id]);
             let mut destination = destination_arc.lock().unwrap();
             let output_value = output.pointer(&output_route).unwrap();
-            debug!("\t\tProcess #{} '{}{}' sending output '{}' to Process #{} '{}' input #{}",
-                   process.id(), process.name(), output_route, output_value, &destination_id,
+            debug!("\t\tProcess #{} '{}' sent value '{}' via output '{}' to Process #{} '{}' input #{}",
+                   process.id(), process.name(), output_value, output_route, &destination_id,
                    destination.name(), &io_number);
             destination.write_input(io_number, output_value.clone());
             self.metrics.outputs_sent += 1;

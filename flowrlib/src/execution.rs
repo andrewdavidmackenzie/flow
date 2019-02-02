@@ -61,14 +61,15 @@ fn dispatch(run_list: &mut RunList, id: usize) {
     let (value, run_again) = implementation.run(input_values);
 
     if let Some(val) = value {
+        debug!("\tProcess #{} '{}' completed, send output '{}'", id, process.name(), &val);
         run_list.process_output(process, val);
+    } else {
+        debug!("\tProcess #{} '{}' completed, no output", id, process.name());
     }
-
     // if it wants to run again and it can (inputs ready) then add back to the Can Run list
     if run_again && process.can_run() {
         run_list.can_run(process.id());
     }
-    debug!("\tProcess #{} '{}' completed", id, process.name());
 }
 
 /*
