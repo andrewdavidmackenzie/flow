@@ -26,3 +26,4 @@ pub mod input;
 pub mod loader;
 pub mod provider;
 mod wasm;
+pub mod debugger;

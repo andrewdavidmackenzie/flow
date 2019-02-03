@@ -13,6 +13,10 @@ readme = "https://github.com/andrewdavidmackenzie/flow/README.md"
 name = "flowr"
 path = "src/main.rs"
 
+[features]
+default = ["debugger"]
+debugger = []
+
 [dependencies]
 clap = "~2.27.1"
 flowrlib = { path = "../flowrlib", version = "~0.7.0" }

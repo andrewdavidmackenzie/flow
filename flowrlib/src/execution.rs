@@ -22,17 +22,23 @@ use std::sync::{Arc, Mutex};
 ///
 /// let mut processs = Vec::<Arc<Mutex<Process>>>::new();
 ///
-/// execute(processs);
+/// execute(processs, false /* use_debugger */);
 ///
 /// exit(0);
 /// ```
-pub fn execute(processs: Vec<Arc<Mutex<Process>>>) {
+pub fn execute(processs: Vec<Arc<Mutex<Process>>>, use_debugger: bool) {
     set_panic_hook();
     let mut run_list = init(processs);
 
     debug!("Starting execution loop");
     debug!("-----------------------------------------------------------------");
     run_list.debug();
+
+    if use_debugger {
+        #[cfg(debugger)]
+        run_list.debugger.enter();
+    }
+
     while let Some(id) = run_list.next() {
         dispatch(&mut run_list, id);
         run_list.debug();
@@ -108,5 +114,6 @@ fn init(processs: Vec<Arc<Mutex<Process>>>) -> RunList {
     }
 
     run_list.set_processs(processs);
+
     run_list
 }

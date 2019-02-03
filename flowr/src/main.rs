@@ -30,7 +30,8 @@ mod ilt;
 pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
 
 fn main() -> Result<(), String> {
-    let url = parse_args(get_matches())?;
+    let matches = get_matches();
+    let url = parse_args(&matches)?;
     let mut loader = Loader::new();
     let provider = MetaProvider {};
 
@@ -45,7 +46,8 @@ fn main() -> Result<(), String> {
 
     loader.load_flow(&provider, &url.to_string())?;
 
-    execute(loader.processes);
+    let debugger = matches.is_present("debugger");
+    execute(loader.processes, debugger);
 
     exit(0);
 }
@@ -61,6 +63,10 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .help("the name of the 'flow' manifest file")
             .required(true)
             .index(1))
+        .arg(Arg::with_name("debugger")
+            .short("d")
+            .long("debugger")
+            .help("Enable the debugger when running a flow"))
         .arg(Arg::with_name("log")
             .short("l")
             .long("log")
@@ -75,7 +81,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 /*
     Parse the command line arguments
 */
-fn parse_args(matches: ArgMatches) -> Result<Url, String> {
+fn parse_args(matches: &ArgMatches) -> Result<Url, String> {
     // Set anvironment variable with the args
     // this will not be unique, but it will be used very soon and removed
     if let Some(flow_args) = matches.values_of("flow-arguments") {

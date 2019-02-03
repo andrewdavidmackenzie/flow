@@ -1,12 +1,17 @@
 use process::Process;
 use serde_json::Value as JsonValue;
 use std::collections::HashSet;
-use std::fmt;
 use std::panic::RefUnwindSafe;
 use std::panic::UnwindSafe;
 use std::sync::{Arc, Mutex};
+#[cfg(feature = "debugger")]
+use debugger::Debugger;
+#[cfg(feature = "metrics")]
+use std::fmt;
+#[cfg(feature = "metrics")]
 use std::time::Instant;
 
+#[cfg(feature = "metrics")]
 pub struct Metrics {
     num_processs: usize,
     invocations: u32,
@@ -14,6 +19,7 @@ pub struct Metrics {
     start_time: Instant,
 }
 
+#[cfg(feature = "metrics")]
 impl Metrics {
     fn new() -> Self {
         let now = Instant::now();
@@ -26,6 +32,7 @@ impl Metrics {
     }
 }
 
+#[cfg(feature = "metrics")]
 impl fmt::Display for Metrics {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let elapsed = self.start_time.elapsed();
@@ -60,12 +67,15 @@ impl fmt::Display for Metrics {
 pub struct RunList {
     processs: Vec<Arc<Mutex<Process>>>,
     can_run: HashSet<usize>,
-    // process_id
+    // can_run: HashSet<process_id>
     blocking: Vec<(usize, usize)>,
-    // blocking_id, blocked_id
+    // locking: Vec<(blocking_id, blocked_id)>
     will_run: Vec<usize>,
-    // process_id
+    // will_run: Vec<process_id>
+    #[cfg(feature = "metrics")]
     metrics: Metrics,
+    #[cfg(feature = "debugger")]
+    pub debugger: Debugger,
 }
 
 impl RefUnwindSafe for RunList {}
@@ -74,17 +84,24 @@ impl UnwindSafe for RunList {}
 
 impl RunList {
     pub fn new() -> Self {
-        RunList {
+        let runlist = RunList {
             processs: Vec::<Arc<Mutex<Process>>>::new(),
             can_run: HashSet::<usize>::new(),
             blocking: Vec::<(usize, usize)>::new(),
             will_run: Vec::<usize>::new(),
+            #[cfg(feature = "metrics")]
             metrics: Metrics::new(),
-        }
+            #[cfg(feature = "debugger")]
+            debugger: Debugger::new(),
+        };
+
+        runlist
     }
 
     pub fn debug(&self) {
+        #[cfg(feature = "metrics")]
         debug!("Dispatch count: {}", self.metrics.invocations);
+
         debug!("       Can Run: {:?}", self.can_run);
         debug!("      Blocking: {:?}", self.blocking);
         debug!("      Will Run: {:?}", self.will_run);
@@ -92,12 +109,19 @@ impl RunList {
     }
 
     pub fn end(&self) {
+        #[cfg(feature = "metrics")]
         debug!("Metrics: \n {}", self.metrics);
     }
 
     pub fn set_processs(&mut self, processs: Vec<Arc<Mutex<Process>>>) {
         self.processs = processs;
-        self.metrics.num_processs = self.processs.len();
+        #[cfg(metrics)]
+            set_num_processes();
+    }
+
+    #[cfg(metrics)]
+    fn set_num_processes(&mut self, num: usize) {
+        self.metrics.num_processs = num;
     }
 
     pub fn get(&self, id: usize) -> Arc<Mutex<Process>> {
@@ -110,8 +134,15 @@ impl RunList {
             return None;
         }
 
-        self.metrics.invocations += 1;
+        #[cfg(metrics)]
+        increment_invocations();
+
         Some(self.will_run.remove(0))
+    }
+
+    #[cfg(metrics)]
+    fn increment_invocations(&mut self) {
+        self.metrics.invocations += 1;
     }
 
     // save the fact that a particular Process's inputs are now satisfied and so it maybe ready
@@ -150,7 +181,10 @@ impl RunList {
                    process.id(), process.name(), output_value, output_route, &destination_id,
                    destination.name(), &io_number);
             destination.write_input(io_number, output_value.clone());
-            self.metrics.outputs_sent += 1;
+
+            #[cfg(metrics)]
+            increment_outputs_sent();
+
             if destination.input_full(io_number) {
                 self.blocked_by(destination_id, process.id());
             }
@@ -159,6 +193,11 @@ impl RunList {
                 self.can_run(destination_id);
             }
         }
+    }
+
+    #[cfg(metrics)]
+    fn increment_outputs_sent(&mut self) {
+        self.metrics.outputs_sent += 1;
     }
 
     // Save the fact that the process 'blocked_id' is blocked on it's output by 'blocking_id'
