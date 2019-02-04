@@ -84,6 +84,9 @@ impl UnwindSafe for RunList {}
 
 impl RunList {
     pub fn new() -> Self {
+        #[cfg(feature = "debugger")]
+        let debugger = Debugger::new();
+
         let runlist = RunList {
             processs: Vec::<Arc<Mutex<Process>>>::new(),
             can_run: HashSet::<usize>::new(),
@@ -92,25 +95,31 @@ impl RunList {
             #[cfg(feature = "metrics")]
             metrics: Metrics::new(),
             #[cfg(feature = "debugger")]
-            debugger: Debugger::new(),
+            debugger
         };
 
         runlist
     }
 
-    pub fn debug(&self) {
+    #[cfg(any(feature = "logging", feature = "debugger"))]
+    pub fn print_state(&self) {
+        println!("-------------------------------------");
         #[cfg(feature = "metrics")]
-        debug!("Dispatch count: {}", self.metrics.invocations);
+        println!("Dispatch count: {}", self.metrics.invocations);
 
-        debug!("       Can Run: {:?}", self.can_run);
-        debug!("      Blocking: {:?}", self.blocking);
-        debug!("      Will Run: {:?}", self.will_run);
-        debug!("-------------------------------------");
+        println!("       Can Run: {:?}", self.can_run);
+        println!("      Blocking: {:?}", self.blocking);
+        println!("      Will Run: {:?}", self.will_run);
+        println!("-------------------------------------");
     }
 
     pub fn end(&self) {
         #[cfg(feature = "metrics")]
         debug!("Metrics: \n {}", self.metrics);
+    }
+
+    pub fn debug(&mut self) {
+        self.debugger.enter(&self);
     }
 
     pub fn set_processs(&mut self, processs: Vec<Arc<Mutex<Process>>>) {

@@ -2,6 +2,7 @@ use process::Process;
 use runlist::RunList;
 use std::panic;
 use std::sync::{Arc, Mutex};
+use log::LogLevel::Debug;
 
 /// The generated code for a flow consists of values and functions formed into a list of Processs.
 ///
@@ -32,16 +33,20 @@ pub fn execute(processs: Vec<Arc<Mutex<Process>>>, use_debugger: bool) {
 
     debug!("Starting execution loop");
     debug!("-----------------------------------------------------------------");
-    run_list.debug();
+    if log_enabled!(Debug) {
+        run_list.print_state();
+    }
 
     if use_debugger {
-        #[cfg(debugger)]
-        run_list.debugger.enter();
+        #[cfg(feature = "debugger")]
+        run_list.debug();
     }
 
     while let Some(id) = run_list.next() {
         dispatch(&mut run_list, id);
-        run_list.debug();
+        if log_enabled!(Debug) {
+            run_list.print_state();
+        }
     }
     debug!("Ended execution loop");
 

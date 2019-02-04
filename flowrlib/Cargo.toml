@@ -15,9 +15,10 @@ bench = true
 doc = true
 
 [features]
-default = ["debugger"]
+default = ["debugger", "metrics", "logging"]
 debugger = []
 metrics = []
+logging = []
 
 [dependencies]
 log = "0.3.8"
