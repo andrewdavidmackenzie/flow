@@ -10,6 +10,7 @@ use debugger::Debugger;
 use std::fmt;
 #[cfg(feature = "metrics")]
 use std::time::Instant;
+use debug_client::DebugClient;
 
 #[cfg(feature = "metrics")]
 pub struct Metrics {
@@ -83,9 +84,9 @@ impl RefUnwindSafe for RunList {}
 impl UnwindSafe for RunList {}
 
 impl RunList {
-    pub fn new() -> Self {
+    pub fn new(client: &'static DebugClient) -> Self {
         #[cfg(feature = "debugger")]
-        let debugger = Debugger::new();
+        let debugger = Debugger::new(client);
 
         let runlist = RunList {
             processs: Vec::<Arc<Mutex<Process>>>::new(),
@@ -264,9 +265,27 @@ impl RunList {
 #[cfg(test)]
 mod tests {
     use std::sync::{Arc, Mutex};
+    use std::io;
+    use std::io::Write;
 
     use super::Process;
     use super::RunList;
+    use debug_client::DebugClient;
+
+    struct CLIDebugClient {}
+
+    impl DebugClient for CLIDebugClient {
+        fn display(&self, output: &str) {
+            print!("{}", output);
+            io::stdout().flush().unwrap();
+        }
+
+        fn read_input(&self, input: &mut String) -> io::Result<usize> {
+            io::stdin().read_line(input)
+        }
+    }
+
+    const CLI_DEBUG_CLIENT: &DebugClient = &CLIDebugClient{};
 
     fn test_processs<'a>() -> Vec<Arc<Mutex<Process>>> {
         let p0 = Arc::new(Mutex::new(
@@ -300,7 +319,7 @@ mod tests {
     #[test]
     fn blocked_works() {
         let processs = test_processs();
-        let mut runs = RunList::new();
+        let mut runs = RunList::new(CLI_DEBUG_CLIENT);
         runs.set_processs(processs);
 
         // Indicate that 0 is blocked by 1
@@ -311,7 +330,7 @@ mod tests {
     #[test]
     fn get_works() {
         let processs = test_processs();
-        let mut runs = RunList::new();
+        let mut runs = RunList::new(CLI_DEBUG_CLIENT);
         runs.set_processs(processs);
         let got_arc = runs.get(1);
         let got = got_arc.lock().unwrap();
@@ -321,7 +340,7 @@ mod tests {
     #[test]
     fn no_next_if_none_ready() {
         let processs = test_processs();
-        let mut runs = RunList::new();
+        let mut runs = RunList::new(CLI_DEBUG_CLIENT);
         runs.set_processs(processs);
 
         assert!(runs.next().is_none());
@@ -330,7 +349,7 @@ mod tests {
     #[test]
     fn inputs_ready_makes_ready() {
         let processs = test_processs();
-        let mut runs = RunList::new();
+        let mut runs = RunList::new(CLI_DEBUG_CLIENT);
         runs.set_processs(processs);
 
         // Indicate that 0 has all it's inputs read
@@ -342,7 +361,7 @@ mod tests {
     #[test]
     fn blocked_is_not_ready() {
         let processs = test_processs();
-        let mut runs = RunList::new();
+        let mut runs = RunList::new(CLI_DEBUG_CLIENT);
         runs.set_processs(processs);
 
         // Indicate that 0 is blocked by 1
@@ -360,7 +379,7 @@ mod tests {
     #[test]
     fn unblocking_makes_ready() {
         let processs = test_processs();
-        let mut runs = RunList::new();
+        let mut runs = RunList::new(CLI_DEBUG_CLIENT);
         runs.set_processs(processs);
 
         // Indicate that 0 is blocked by 1
@@ -381,7 +400,7 @@ mod tests {
     #[test]
     fn unblocking_doubly_blocked_process_not_ready() {
         let processs = test_processs();
-        let mut runs = RunList::new();
+        let mut runs = RunList::new(CLI_DEBUG_CLIENT);
         runs.set_processs(processs);
 
         // Indicate that 0 is blocked by 1 and 2

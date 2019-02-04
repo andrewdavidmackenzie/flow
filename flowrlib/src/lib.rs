@@ -28,3 +28,5 @@ pub mod provider;
 mod wasm;
 #[cfg(feature = "debugger")]
 pub mod debugger;
+#[cfg(feature = "debugger")]
+pub mod debug_client;

@@ -10,9 +10,12 @@ extern crate simplog;
 extern crate url;
 
 use std::env;
+use std::io;
+use std::io::Write;
 use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
+use flowrlib::debug_client::DebugClient;
 use flowrlib::execution::execute;
 use flowrlib::info;
 use flowrlib::loader::Loader;
@@ -28,6 +31,24 @@ pub mod file;
 mod ilt;
 
 pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
+
+struct CLIDebugClient {}
+
+/*
+    Implement a client for the debugger that reads and writes to standard input and output
+*/
+impl DebugClient for CLIDebugClient {
+    fn display(&self, output: &str) {
+        print!("{}", output);
+        io::stdout().flush().unwrap();
+    }
+
+    fn read_input(&self, input: &mut String) -> io::Result<usize> {
+        io::stdin().read_line(input)
+    }
+}
+
+const CLI_DEBUG_CLIENT: &DebugClient = &CLIDebugClient{};
 
 fn main() -> Result<(), String> {
     let matches = get_matches();
@@ -46,8 +67,9 @@ fn main() -> Result<(), String> {
 
     loader.load_flow(&provider, &url.to_string())?;
 
+
     let debugger = matches.is_present("debugger");
-    execute(loader.processes, debugger);
+    execute(loader.processes, CLI_DEBUG_CLIENT, debugger);
 
     exit(0);
 }

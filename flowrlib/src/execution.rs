@@ -3,6 +3,7 @@ use runlist::RunList;
 use std::panic;
 use std::sync::{Arc, Mutex};
 use log::LogLevel::Debug;
+use debug_client::DebugClient;
 
 /// The generated code for a flow consists of values and functions formed into a list of Processs.
 ///
@@ -17,19 +18,37 @@ use log::LogLevel::Debug;
 /// # Example
 /// ```
 /// use std::sync::{Arc, Mutex};
+/// use std::io;
+/// use std::io::Write;
 /// use flowrlib::process::Process;
 /// use flowrlib::execution::execute;
 /// use std::process::exit;
+/// use flowrlib::debug_client::DebugClient;
+///
+/// struct CLIDebugClient {}
+///
+/// impl DebugClient for CLIDebugClient {
+///    fn display(&self, output: &str) {
+///        print!("{}", output);
+///        io::stdout().flush().unwrap();
+///    }
+///
+///    fn read_input(&self, input: &mut String) -> io::Result<usize> {
+///        io::stdin().read_line(input)
+///    }
+/// }
+///
+/// const CLI_DEBUG_CLIENT: &DebugClient = &CLIDebugClient{};
 ///
 /// let mut processs = Vec::<Arc<Mutex<Process>>>::new();
 ///
-/// execute(processs, false /* use_debugger */);
+/// execute(processs, CLI_DEBUG_CLIENT, false /* use_debugger */);
 ///
 /// exit(0);
 /// ```
-pub fn execute(processs: Vec<Arc<Mutex<Process>>>, use_debugger: bool) {
+pub fn execute(processs: Vec<Arc<Mutex<Process>>>, client: &'static DebugClient, use_debugger: bool) {
     set_panic_hook();
-    let mut run_list = init(processs);
+    let mut run_list = init(processs, client);
 
     debug!("Starting execution loop");
     debug!("-----------------------------------------------------------------");
@@ -37,13 +56,14 @@ pub fn execute(processs: Vec<Arc<Mutex<Process>>>, use_debugger: bool) {
         run_list.print_state();
     }
 
-    if use_debugger {
-        #[cfg(feature = "debugger")]
-        run_list.debug();
-    }
-
     while let Some(id) = run_list.next() {
+        if use_debugger {
+            #[cfg(feature = "debugger")]
+            run_list.debug();
+        }
+
         dispatch(&mut run_list, id);
+
         if log_enabled!(Debug) {
             run_list.print_state();
         }
@@ -106,8 +126,8 @@ fn set_panic_hook() {
 
     Once all processs have been initialized, the list of processs is stored in the RunList
 */
-fn init(processs: Vec<Arc<Mutex<Process>>>) -> RunList {
-    let mut run_list = RunList::new();
+fn init(processs: Vec<Arc<Mutex<Process>>>, client: &'static DebugClient) -> RunList {
+    let mut run_list = RunList::new(client);
 
     debug!("Initializing all processs");
     for process_arc in &processs {
