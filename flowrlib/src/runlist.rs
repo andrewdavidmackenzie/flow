@@ -122,7 +122,7 @@ impl RunList {
     #[cfg(feature = "debugger")]
     pub fn debug(&mut self) {
         // TODO - check if we should enter the debugger
-        if false {
+        if true {
             self.debugger.enter(&self);
         }
     }

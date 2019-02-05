@@ -13,14 +13,18 @@ impl Debugger {
     }
 
     pub fn enter(&self, _run_list: &RunList) {
-        let mut input = String::new();
         loop {
             self.client.display("Debug> ");
+            let mut input = String::new();
             match self.client.read_input(&mut input) {
                 Ok(_n) => {
-                    // parse command
-                    // if continue, then return
-                    return;
+                    let parts : Vec<&str>= input.trim().split(' ').collect();
+                    match parts[0] {
+                        "c" | "continue" => {
+                            return;
+                        },
+                        _ => {self.client.display(&format!("Unknown debugger command '{}'\n", parts[0]))}
+                    }
                 }
                 Err(_) => {}
             };
