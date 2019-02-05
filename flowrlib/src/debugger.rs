@@ -20,7 +20,7 @@ impl Debugger {
                 Ok(_n) => {
                     let parts : Vec<&str>= input.trim().split(' ').collect();
                     match parts[0] {
-                        "c" | "continue" => {
+                        "" | "c" | "continue" => {
                             return;
                         },
                         _ => {self.client.display(&format!("Unknown debugger command '{}'\n", parts[0]))}

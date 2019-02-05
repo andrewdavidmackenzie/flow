@@ -52,20 +52,7 @@ pub fn execute(processs: Vec<Arc<Mutex<Process>>>, metrics: bool,
     let mut run_list = init(processs, client);
 
     debug!("Starting flow execution");
-
-    while let Some(id) = run_list.next() {
-        if log_enabled!(Debug) {
-            run_list.print_state();
-        }
-
-        if use_debugger {
-            #[cfg(feature = "debugger")]
-            run_list.debug();
-        }
-
-        dispatch(&mut run_list, id);
-
-    }
+    run_list.run(use_debugger);
     debug!("Flow execution ended, no remaining processes ready to run");
 
     if log_enabled!(Debug) {
@@ -75,36 +62,6 @@ pub fn execute(processs: Vec<Arc<Mutex<Process>>>, metrics: bool,
     if metrics {
         #[cfg(feature = "metrics")]
         run_list.print_metrics();
-    }
-}
-
-/*
-    Given a process id, start running it
-*/
-fn dispatch(run_list: &mut RunList, id: usize) {
-    let process_arc = run_list.get(id);
-    let process: &mut Process = &mut *process_arc.lock().unwrap();
-    debug!("Process #{} '{}' dispatched", id, process.name());
-
-    let input_values = process.get_input_values();
-    run_list.inputs_consumed(id);
-    run_list.unblock_senders_to(id);
-    debug!("\tProcess #{} '{}' running with inputs: {:?}", id, process.name(), input_values);
-
-    let implementation = process.get_implementation();
-
-    // when a process ends, it can express whether it can run again or not
-    let (value, run_again) = implementation.run(input_values);
-
-    if let Some(val) = value {
-        debug!("\tProcess #{} '{}' completed, send output '{}'", id, process.name(), &val);
-        run_list.process_output(process, val);
-    } else {
-        debug!("\tProcess #{} '{}' completed, no output", id, process.name());
-    }
-    // if it wants to run again and it can (inputs ready) then add back to the Can Run list
-    if run_again && process.can_run() {
-        run_list.can_run(process.id());
     }
 }
 

@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use std::panic::RefUnwindSafe;
 use std::panic::UnwindSafe;
 use std::sync::{Arc, Mutex};
+use log::LogLevel::Debug;
 #[cfg(feature = "debugger")]
 use debugger::Debugger;
 #[cfg(feature = "metrics")]
@@ -100,6 +101,51 @@ impl RunList {
         };
 
         runlist
+    }
+
+    pub fn run(&mut self, use_debugger: bool) {
+        while let Some(id) = self.next() {
+            if log_enabled!(Debug) {
+                self.print_state();
+            }
+
+            if use_debugger {
+                #[cfg(feature = "debugger")]
+                self.debug();
+            }
+
+            self.dispatch(id);
+        }
+    }
+
+    /*
+        Given a process id, start running it
+    */
+    fn dispatch(&mut self, id: usize) {
+        let process_arc = self.get(id);
+        let process: &mut Process = &mut *process_arc.lock().unwrap();
+        debug!("Process #{} '{}' dispatched", id, process.name());
+
+        let input_values = process.get_input_values();
+        self.inputs_consumed(id);
+        self.unblock_senders_to(id);
+        debug!("\tProcess #{} '{}' running with inputs: {:?}", id, process.name(), input_values);
+
+        let implementation = process.get_implementation();
+
+        // when a process ends, it can express whether it can run again or not
+        let (value, run_again) = implementation.run(input_values);
+
+        if let Some(val) = value {
+            debug!("\tProcess #{} '{}' completed, send output '{}'", id, process.name(), &val);
+            self.process_output(process, val);
+        } else {
+            debug!("\tProcess #{} '{}' completed, no output", id, process.name());
+        }
+        // if it wants to run again and it can (inputs ready) then add back to the Can Run list
+        if run_again && process.can_run() {
+            self.can_run(process.id());
+        }
     }
 
     #[cfg(any(feature = "logging", feature = "debugger"))]
