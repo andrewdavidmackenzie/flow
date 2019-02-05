@@ -2,7 +2,6 @@ use process::Process;
 use runlist::RunList;
 use std::panic;
 use std::sync::{Arc, Mutex};
-use log::LogLevel::Debug;
 use debug_client::DebugClient;
 
 /// The generated code for a flow consists of values and functions formed into a list of Processs.
@@ -53,13 +52,9 @@ pub fn execute(processs: Vec<Arc<Mutex<Process>>>, metrics: bool,
 
     run_list.run();
 
-    if log_enabled!(Debug) {
-        run_list.print_state();
-    }
-
     if metrics {
         #[cfg(feature = "metrics")]
-            run_list.print_metrics();
+        run_list.print_metrics();
     }
 }
 

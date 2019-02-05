@@ -16,7 +16,7 @@ use debug_client::DebugClient;
 #[cfg(feature = "metrics")]
 pub struct Metrics {
     num_processs: usize,
-    invocations: u32,
+    dispatches: u32,
     outputs_sent: u32,
     start_time: Instant,
 }
@@ -27,7 +27,7 @@ impl Metrics {
         let now = Instant::now();
         Metrics {
             num_processs: 0,
-            invocations: 0,
+            dispatches: 0,
             outputs_sent: 0,
             start_time: now,
         }
@@ -39,7 +39,7 @@ impl fmt::Display for Metrics {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let elapsed = self.start_time.elapsed();
         write!(f, "\t\tNumber of Processs: \t{}\n", self.num_processs)?;
-        write!(f, "\t\tProcess invocations: \t{}\n", self.invocations)?;
+        write!(f, "\t\tProcess invocations: \t{}\n", self.dispatches)?;
         write!(f, "\t\tOutputs sent: \t\t{}\n", self.outputs_sent)?;
         write!(f, "\t\tElapsed time(s): \t{:.*}\n", 9, elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9)
     }
@@ -121,6 +121,10 @@ impl RunList {
             self.dispatch(id);
         }
 
+        if log_enabled!(Debug) {
+            self.print_state();
+        }
+
         debug!("Flow execution ended, no remaining processes ready to run");
     }
 
@@ -142,6 +146,9 @@ impl RunList {
         // when a process ends, it can express whether it can run again or not
         let (value, run_again) = implementation.run(input_values);
 
+        #[cfg(feature = "metrics")]
+        self.increment_dispatches();
+
         if let Some(val) = value {
             debug!("\tProcess #{} '{}' completed, send output '{}'", id, process.name(), &val);
             self.process_output(process, val);
@@ -155,10 +162,10 @@ impl RunList {
     }
 
     #[cfg(any(feature = "logging", feature = "debugger"))]
-    pub fn print_state(&self) {
+    fn print_state(&self) {
         println!("-------------------------------------");
         #[cfg(feature = "metrics")]
-        println!("Dispatch count: {}", self.metrics.invocations);
+        println!("Dispatch count: {}", self.metrics.dispatches);
 
         println!("       Can Run: {:?}", self.can_run);
         println!("      Blocking: {:?}", self.blocking);
@@ -173,8 +180,7 @@ impl RunList {
 
     #[cfg(feature = "debugger")]
     pub fn debug(&mut self) {
-        // TODO - check if we should enter the debugger
-        if true {
+        if self.debugger.stop_at == self.metrics.dispatches {
             self.debugger.enter(&self);
         }
     }
@@ -201,15 +207,12 @@ impl RunList {
             return None;
         }
 
-        #[cfg(feature = "metrics")]
-        self.increment_invocations();
-
         Some(self.will_run.remove(0))
     }
 
     #[cfg(feature = "metrics")]
-    fn increment_invocations(&mut self) {
-        self.metrics.invocations += 1;
+    fn increment_dispatches(&mut self) {
+        self.metrics.dispatches += 1;
     }
 
     // save the fact that a particular Process's inputs are now satisfied and so it maybe ready

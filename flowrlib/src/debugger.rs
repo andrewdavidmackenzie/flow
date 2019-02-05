@@ -1,18 +1,20 @@
 use runlist::RunList;
 use debug_client::DebugClient;
+use std::process::exit;
 
 pub struct Debugger {
-    client: &'static DebugClient
+    client: &'static DebugClient,
+    pub stop_at: u32
 }
 
 impl Debugger {
     pub fn new(client: &'static DebugClient) -> Self {
         Debugger {
-            client
+            client, stop_at:0
         }
     }
 
-    pub fn enter(&self, _run_list: &RunList) {
+    pub fn enter(&self, run_list: &RunList) {
         loop {
             self.client.display("Debug> ");
             let mut input = String::new();
@@ -20,6 +22,7 @@ impl Debugger {
                 Ok(_n) => {
                     let parts : Vec<&str>= input.trim().split(' ').collect();
                     match parts[0] {
+                        "e" | "exit" => exit(1),
                         "" | "c" | "continue" => {
                             return;
                         },

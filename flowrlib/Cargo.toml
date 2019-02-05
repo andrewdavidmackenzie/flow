@@ -16,8 +16,8 @@ doc = true
 
 [features]
 default = ["debugger", "metrics", "logging"]
-debugger = []
 metrics = []
+debugger = ["metrics"]
 logging = []
 
 [dependencies]
