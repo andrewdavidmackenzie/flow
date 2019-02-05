@@ -49,11 +49,9 @@ use debug_client::DebugClient;
 pub fn execute(processs: Vec<Arc<Mutex<Process>>>, metrics: bool,
                client: &'static DebugClient, use_debugger: bool) {
     set_panic_hook();
-    let mut run_list = init(processs, client);
+    let mut run_list = init(processs, client, use_debugger);
 
-    debug!("Starting flow execution");
-    run_list.run(use_debugger);
-    debug!("Flow execution ended, no remaining processes ready to run");
+    run_list.run();
 
     if log_enabled!(Debug) {
         run_list.print_state();
@@ -61,7 +59,7 @@ pub fn execute(processs: Vec<Arc<Mutex<Process>>>, metrics: bool,
 
     if metrics {
         #[cfg(feature = "metrics")]
-        run_list.print_metrics();
+            run_list.print_metrics();
     }
 }
 
@@ -88,10 +86,11 @@ fn set_panic_hook() {
 
     Once all processs have been initialized, the list of processs is stored in the RunList
 */
-fn init(processs: Vec<Arc<Mutex<Process>>>, client: &'static DebugClient) -> RunList {
-    let mut run_list = RunList::new(client);
+fn init(processs: Vec<Arc<Mutex<Process>>>, client: &'static DebugClient, use_debugger: bool)
+        -> RunList {
+    let mut run_list = RunList::new(client, use_debugger);
 
-    debug!("Initializing all processs");
+    debug!("Initializing all processes");
     for process_arc in &processs {
         let mut process = process_arc.lock().unwrap();
         debug!("\tInitializing process #{} '{}'", &process.id(), process.name());
@@ -100,7 +99,7 @@ fn init(processs: Vec<Arc<Mutex<Process>>>, client: &'static DebugClient) -> Run
         }
     }
 
-    run_list.set_processs(processs);
+    run_list.set_processes(processs);
 
     run_list
 }

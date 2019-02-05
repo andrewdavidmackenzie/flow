@@ -76,6 +76,7 @@ pub struct RunList {
     // will_run: Vec<process_id>
     #[cfg(feature = "metrics")]
     metrics: Metrics,
+    debugging: bool,
     #[cfg(feature = "debugger")]
     pub debugger: Debugger,
 }
@@ -85,7 +86,7 @@ impl RefUnwindSafe for RunList {}
 impl UnwindSafe for RunList {}
 
 impl RunList {
-    pub fn new(client: &'static DebugClient) -> Self {
+    pub fn new(client: &'static DebugClient, debugging: bool) -> Self {
         #[cfg(feature = "debugger")]
         let debugger = Debugger::new(client);
 
@@ -96,6 +97,7 @@ impl RunList {
             will_run: Vec::<usize>::new(),
             #[cfg(feature = "metrics")]
             metrics: Metrics::new(),
+            debugging,
             #[cfg(feature = "debugger")]
             debugger
         };
@@ -103,19 +105,23 @@ impl RunList {
         runlist
     }
 
-    pub fn run(&mut self, use_debugger: bool) {
+    pub fn run(&mut self) {
+        debug!("Starting flow execution");
+
         while let Some(id) = self.next() {
             if log_enabled!(Debug) {
                 self.print_state();
             }
 
-            if use_debugger {
+            if self.debugging {
                 #[cfg(feature = "debugger")]
                 self.debug();
             }
 
             self.dispatch(id);
         }
+
+        debug!("Flow execution ended, no remaining processes ready to run");
     }
 
     /*
@@ -173,7 +179,7 @@ impl RunList {
         }
     }
 
-    pub fn set_processs(&mut self, processs: Vec<Arc<Mutex<Process>>>) {
+    pub fn set_processes(&mut self, processs: Vec<Arc<Mutex<Process>>>) {
         #[cfg(feature = "metrics")]
         self.set_num_processes(processs.len());
 
@@ -371,7 +377,7 @@ mod tests {
     fn blocked_works() {
         let processs = test_processs();
         let mut runs = RunList::new(CLI_DEBUG_CLIENT);
-        runs.set_processs(processs);
+        runs.set_processes(processs);
 
         // Indicate that 0 is blocked by 1
         runs.blocked_by(1, 0);
@@ -382,7 +388,7 @@ mod tests {
     fn get_works() {
         let processs = test_processs();
         let mut runs = RunList::new(CLI_DEBUG_CLIENT);
-        runs.set_processs(processs);
+        runs.set_processes(processs);
         let got_arc = runs.get(1);
         let got = got_arc.lock().unwrap();
         assert_eq!(got.id(), 1)
@@ -392,7 +398,7 @@ mod tests {
     fn no_next_if_none_ready() {
         let processs = test_processs();
         let mut runs = RunList::new(CLI_DEBUG_CLIENT);
-        runs.set_processs(processs);
+        runs.set_processes(processs);
 
         assert!(runs.next().is_none());
     }
@@ -401,7 +407,7 @@ mod tests {
     fn inputs_ready_makes_ready() {
         let processs = test_processs();
         let mut runs = RunList::new(CLI_DEBUG_CLIENT);
-        runs.set_processs(processs);
+        runs.set_processes(processs);
 
         // Indicate that 0 has all it's inputs read
         runs.can_run(0);
@@ -413,7 +419,7 @@ mod tests {
     fn blocked_is_not_ready() {
         let processs = test_processs();
         let mut runs = RunList::new(CLI_DEBUG_CLIENT);
-        runs.set_processs(processs);
+        runs.set_processes(processs);
 
         // Indicate that 0 is blocked by 1
         runs.blocked_by(1, 0);
@@ -431,7 +437,7 @@ mod tests {
     fn unblocking_makes_ready() {
         let processs = test_processs();
         let mut runs = RunList::new(CLI_DEBUG_CLIENT);
-        runs.set_processs(processs);
+        runs.set_processes(processs);
 
         // Indicate that 0 is blocked by 1
         runs.blocked_by(1, 0);
@@ -452,7 +458,7 @@ mod tests {
     fn unblocking_doubly_blocked_process_not_ready() {
         let processs = test_processs();
         let mut runs = RunList::new(CLI_DEBUG_CLIENT);
-        runs.set_processs(processs);
+        runs.set_processes(processs);
 
         // Indicate that 0 is blocked by 1 and 2
         runs.blocked_by(1, 0);
