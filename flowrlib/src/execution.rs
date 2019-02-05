@@ -45,16 +45,17 @@ use debug_client::DebugClient;
 ///
 /// exit(0);
 /// ```
-pub fn execute(processs: Vec<Arc<Mutex<Process>>>, metrics: bool,
+pub fn execute(processs: Vec<Arc<Mutex<Process>>>, display_metrics: bool,
                client: &'static DebugClient, use_debugger: bool) {
     set_panic_hook();
     let mut run_list = init(processs, client, use_debugger);
 
     run_list.run();
 
-    if metrics {
+    if display_metrics {
         #[cfg(feature = "metrics")]
         run_list.print_metrics();
+        println!("\t\tProcess dispatches: \t{}\n", run_list.state.dispatches());
     }
 }
 
@@ -90,7 +91,7 @@ fn init(processs: Vec<Arc<Mutex<Process>>>, client: &'static DebugClient, use_de
         let mut process = process_arc.lock().unwrap();
         debug!("\tInitializing process #{} '{}'", &process.id(), process.name());
         if process.init() {
-            run_list.can_run(process.id());
+            run_list.state.can_run(process.id());
         }
     }
 

@@ -1,11 +1,19 @@
-use runlist::RunList;
 use debug_client::DebugClient;
 use std::process::exit;
+use runlist::State;
 
 pub struct Debugger {
     client: &'static DebugClient,
     pub stop_at: u32
 }
+
+const HELP_STRING: &str = "Debugger commands:
+ENTER | 'c' | 'continue' - Continue execution until next breakpoint
+'e' | 'exit'             - Stop flow execution and exit
+'d' | 'display' [n]      - Display the overall state, or that or process number 'n'
+'h' | 'help'             - Display this help message
+'s' | 'step' [n]         - Step over the next 'n' process executions (default = 1) then break
+";
 
 impl Debugger {
     pub fn new(client: &'static DebugClient) -> Self {
@@ -14,7 +22,13 @@ impl Debugger {
         }
     }
 
-    pub fn enter(&self, run_list: &RunList) {
+    pub fn check(&mut self, state: &State) {
+        if self.stop_at == state.dispatches() {
+            self.enter(state);
+        }
+    }
+
+    fn enter(&mut self, state: &State) {
         loop {
             self.client.display("Debug> ");
             let mut input = String::new();
@@ -23,15 +37,21 @@ impl Debugger {
                     let parts : Vec<&str>= input.trim().split(' ').collect();
                     match parts[0] {
                         "e" | "exit" => exit(1),
-                        "d" | "display" => run_list.print_state(),
-                        "" | "c" | "continue" => {
-                            return;
-                        },
-                        _ => {self.client.display(&format!("Unknown debugger command '{}'\n", parts[0]))}
+                        "d" | "display" => state.print(),
+                        "" | "c" | "continue" => return,
+                        "s" | "step" => {
+                            self.stop_at = state.dispatches();
+                        }
+                        "h" | "help" => self.help(),
+                        _ => self.client.display(&format!("Unknown debugger command '{}'\n", parts[0]))
                     }
                 }
-                Err(_) => {}
+                Err(_) => self.client.display(&format!("Error reading debugger command\n"))
             };
         }
+    }
+
+    fn help(&self) {
+        self.client.display(HELP_STRING);
     }
 }
