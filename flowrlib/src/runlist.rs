@@ -65,6 +65,11 @@ impl State {
         println!("----------------------------------------------------");
     }
 
+    #[cfg(any(feature = "metrics", feature = "debugger"))]
+    fn increment_dispatches(&mut self) {
+        self.dispatches += 1;
+    }
+
     fn get(&self, id: usize) -> Arc<Mutex<Process>> {
         self.processs[id].clone()
     }
@@ -254,7 +259,7 @@ impl RunList {
         let (value, run_again) = implementation.run(input_values);
 
         #[cfg(any(feature = "metrics", feature = "debugger"))]
-            self.increment_dispatches();
+        self.state.increment_dispatches();
 
         if let Some(val) = value {
             debug!("\tProcess #{} '{}' completed, send output '{}'", id, process.name(), &val);
@@ -284,9 +289,6 @@ impl RunList {
     fn set_num_processes(&mut self, num: usize) {
         self.metrics.num_processs = num;
     }
-
-    #[cfg(any(feature = "metrics", feature = "debugger"))]
-    fn increment_dispatches(&mut self) {}
 
     /*
         Take an output produced by a process and modify the runlist accordingly

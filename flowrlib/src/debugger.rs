@@ -38,9 +38,13 @@ impl Debugger {
                     match parts[0] {
                         "e" | "exit" => exit(1),
                         "d" | "display" => state.print(),
-                        "" | "c" | "continue" => return,
+                        "" | "c" | "continue" => {
+                            println!("stop at = {}, dispatches = {}", self.stop_at, state.dispatches());
+                            return;
+                        },
                         "s" | "step" => {
-                            self.stop_at = state.dispatches();
+                            self.stop_at = state.dispatches() + 1;
+                            return;
                         }
                         "h" | "help" => self.help(),
                         _ => self.client.display(&format!("Unknown debugger command '{}'\n", parts[0]))
