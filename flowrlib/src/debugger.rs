@@ -23,6 +23,7 @@ impl Debugger {
                     let parts : Vec<&str>= input.trim().split(' ').collect();
                     match parts[0] {
                         "e" | "exit" => exit(1),
+                        "d" | "display" => run_list.print_state(),
                         "" | "c" | "continue" => {
                             return;
                         },

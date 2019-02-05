@@ -162,7 +162,7 @@ impl RunList {
     }
 
     #[cfg(any(feature = "logging", feature = "debugger"))]
-    fn print_state(&self) {
+    pub fn print_state(&self) {
         println!("-------------------------------------");
         #[cfg(feature = "metrics")]
         println!("Dispatch count: {}", self.metrics.dispatches);
