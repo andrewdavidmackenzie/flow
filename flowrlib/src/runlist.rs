@@ -376,7 +376,7 @@ mod tests {
     #[test]
     fn blocked_works() {
         let processs = test_processs();
-        let mut runs = RunList::new(CLI_DEBUG_CLIENT);
+        let mut runs = RunList::new(CLI_DEBUG_CLIENT, false);
         runs.set_processes(processs);
 
         // Indicate that 0 is blocked by 1
@@ -387,7 +387,7 @@ mod tests {
     #[test]
     fn get_works() {
         let processs = test_processs();
-        let mut runs = RunList::new(CLI_DEBUG_CLIENT);
+        let mut runs = RunList::new(CLI_DEBUG_CLIENT, false);
         runs.set_processes(processs);
         let got_arc = runs.get(1);
         let got = got_arc.lock().unwrap();
@@ -397,7 +397,7 @@ mod tests {
     #[test]
     fn no_next_if_none_ready() {
         let processs = test_processs();
-        let mut runs = RunList::new(CLI_DEBUG_CLIENT);
+        let mut runs = RunList::new(CLI_DEBUG_CLIENT, false);
         runs.set_processes(processs);
 
         assert!(runs.next().is_none());
@@ -406,7 +406,7 @@ mod tests {
     #[test]
     fn inputs_ready_makes_ready() {
         let processs = test_processs();
-        let mut runs = RunList::new(CLI_DEBUG_CLIENT);
+        let mut runs = RunList::new(CLI_DEBUG_CLIENT, false);
         runs.set_processes(processs);
 
         // Indicate that 0 has all it's inputs read
@@ -418,7 +418,7 @@ mod tests {
     #[test]
     fn blocked_is_not_ready() {
         let processs = test_processs();
-        let mut runs = RunList::new(CLI_DEBUG_CLIENT);
+        let mut runs = RunList::new(CLI_DEBUG_CLIENT, false);
         runs.set_processes(processs);
 
         // Indicate that 0 is blocked by 1
@@ -436,7 +436,7 @@ mod tests {
     #[test]
     fn unblocking_makes_ready() {
         let processs = test_processs();
-        let mut runs = RunList::new(CLI_DEBUG_CLIENT);
+        let mut runs = RunList::new(CLI_DEBUG_CLIENT, false);
         runs.set_processes(processs);
 
         // Indicate that 0 is blocked by 1
@@ -457,7 +457,7 @@ mod tests {
     #[test]
     fn unblocking_doubly_blocked_process_not_ready() {
         let processs = test_processs();
-        let mut runs = RunList::new(CLI_DEBUG_CLIENT);
+        let mut runs = RunList::new(CLI_DEBUG_CLIENT, false);
         runs.set_processes(processs);
 
         // Indicate that 0 is blocked by 1 and 2
