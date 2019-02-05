@@ -42,21 +42,22 @@ use debug_client::DebugClient;
 ///
 /// let mut processs = Vec::<Arc<Mutex<Process>>>::new();
 ///
-/// execute(processs, CLI_DEBUG_CLIENT, false /* use_debugger */);
+/// execute(processs, false /* print_metrics */, CLI_DEBUG_CLIENT, false /* use_debugger */);
 ///
 /// exit(0);
 /// ```
-pub fn execute(processs: Vec<Arc<Mutex<Process>>>, client: &'static DebugClient, use_debugger: bool) {
+pub fn execute(processs: Vec<Arc<Mutex<Process>>>, metrics: bool,
+               client: &'static DebugClient, use_debugger: bool) {
     set_panic_hook();
     let mut run_list = init(processs, client);
 
-    debug!("Starting execution loop");
-    debug!("-----------------------------------------------------------------");
-    if log_enabled!(Debug) {
-        run_list.print_state();
-    }
+    debug!("Starting flow execution");
 
     while let Some(id) = run_list.next() {
+        if log_enabled!(Debug) {
+            run_list.print_state();
+        }
+
         if use_debugger {
             #[cfg(feature = "debugger")]
             run_list.debug();
@@ -64,14 +65,17 @@ pub fn execute(processs: Vec<Arc<Mutex<Process>>>, client: &'static DebugClient,
 
         dispatch(&mut run_list, id);
 
-        if log_enabled!(Debug) {
-            run_list.print_state();
-        }
     }
     debug!("Flow execution ended, no remaining processes ready to run");
 
-    #[cfg(feature = "metrics")]
-    run_list.print_metrics();
+    if log_enabled!(Debug) {
+        run_list.print_state();
+    }
+
+    if metrics {
+        #[cfg(feature = "metrics")]
+        run_list.print_metrics();
+    }
 }
 
 /*

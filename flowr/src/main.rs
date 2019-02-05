@@ -69,7 +69,8 @@ fn main() -> Result<(), String> {
 
 
     let debugger = matches.is_present("debugger");
-    execute(loader.processes, CLI_DEBUG_CLIENT, debugger);
+    let metrics = matches.is_present("metrics");
+    execute(loader.processes, metrics, CLI_DEBUG_CLIENT, debugger);
 
     exit(0);
 }
@@ -89,6 +90,10 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .short("d")
             .long("debugger")
             .help("Enable the debugger when running a flow"))
+        .arg(Arg::with_name("metrics")
+            .short("m")
+            .long("metrics")
+            .help("Calculate metrics during flow execution and print them out when done"))
         .arg(Arg::with_name("log")
             .short("l")
             .long("log")
