@@ -9,16 +9,15 @@ type = "Number"
 name = "prime"
 type = "Number"
 
-[[output]]
-name = "done"
-type = "Bool"
-
-
 # Generate a series of possible divisors of the candidate, from 1 up to the candidate
 [[value]]
 name = "lowest-divisor"
 type = "Number"
 init = 1
+
+[[process]]
+alias = "divisor-range"
+source = "../range/range.toml"
 
 [[connection]]
 from = "value/lowest-divisor"
@@ -28,25 +27,7 @@ to = "process/divisor-range/start"
 from = "input/candidate"
 to = "process/divisor-range/limit"
 
-[[process]]
-alias = "divisor-range"
-source = "../range/range.toml"
-
-[[connection]]
-from = "process/divisor-range/done"
-to = "output/done"
-
 ######################################
-
-
-# TODO ADM Debugging - shortcut and just output all the divisors generated
-[[connection]]
-from = "process/divisor-range/series"
-to = "output/prime"
-
-
-######################################
-
 
 # divide the candidate by the divisor
 #[[process]]

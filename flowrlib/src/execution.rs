@@ -68,9 +68,10 @@ pub fn execute(processs: Vec<Arc<Mutex<Process>>>, client: &'static DebugClient,
             run_list.print_state();
         }
     }
-    debug!("Ended execution loop");
+    debug!("Flow execution ended, no remaining processes ready to run");
 
-    run_list.end();
+    #[cfg(feature = "metrics")]
+    run_list.print_metrics();
 }
 
 /*

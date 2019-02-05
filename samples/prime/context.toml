@@ -17,6 +17,11 @@ to = "process/generate-candidates/limit"
 from = "process/generate-candidates/candidates"
 to = "process/check-if-prime/candidate"
 
+#### debug
+[[connection]]
+from = "process/generate-candidates/candidates"
+to = "process/print"
+
 [[process]]
 alias = "check-if-prime"
 source = "check_if_prime.toml"
@@ -30,9 +35,9 @@ to = "process/to_string"
 alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string.toml"
 
-[[connection]]
-from = "process/to_string"
-to = "process/print"
+#[[connection]]
+#from = "process/to_string"
+#to = "process/print"
 
 [[process]]
 alias = "print"

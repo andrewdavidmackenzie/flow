@@ -114,22 +114,27 @@ impl RunList {
         println!("-------------------------------------");
     }
 
-    pub fn end(&self) {
-        #[cfg(feature = "metrics")]
-        debug!("Metrics: \n {}", self.metrics);
+    #[cfg(feature = "metrics")]
+    pub fn print_metrics(&self) {
+        println!("\nMetrics: \n {}", self.metrics);
     }
 
+    #[cfg(feature = "debugger")]
     pub fn debug(&mut self) {
-        self.debugger.enter(&self);
+        // TODO - check if we should enter the debugger
+        if false {
+            self.debugger.enter(&self);
+        }
     }
 
     pub fn set_processs(&mut self, processs: Vec<Arc<Mutex<Process>>>) {
+        #[cfg(feature = "metrics")]
+        self.set_num_processes(processs.len());
+
         self.processs = processs;
-        #[cfg(metrics)]
-            set_num_processes();
     }
 
-    #[cfg(metrics)]
+    #[cfg(feature = "metrics")]
     fn set_num_processes(&mut self, num: usize) {
         self.metrics.num_processs = num;
     }
@@ -144,13 +149,13 @@ impl RunList {
             return None;
         }
 
-        #[cfg(metrics)]
-        increment_invocations();
+        #[cfg(feature = "metrics")]
+        self.increment_invocations();
 
         Some(self.will_run.remove(0))
     }
 
-    #[cfg(metrics)]
+    #[cfg(feature = "metrics")]
     fn increment_invocations(&mut self) {
         self.metrics.invocations += 1;
     }
@@ -192,8 +197,8 @@ impl RunList {
                    destination.name(), &io_number);
             destination.write_input(io_number, output_value.clone());
 
-            #[cfg(metrics)]
-            increment_outputs_sent();
+            #[cfg(feature = "metrics")]
+            self.increment_outputs_sent();
 
             if destination.input_full(io_number) {
                 self.blocked_by(destination_id, process.id());
@@ -205,7 +210,7 @@ impl RunList {
         }
     }
 
-    #[cfg(metrics)]
+    #[cfg(feature = "metrics")]
     fn increment_outputs_sent(&mut self) {
         self.metrics.outputs_sent += 1;
     }
