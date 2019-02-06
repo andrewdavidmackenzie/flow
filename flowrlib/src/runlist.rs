@@ -38,7 +38,7 @@ impl fmt::Display for Metrics {
         let elapsed = self.start_time.elapsed();
         write!(f, "\t\tNumber of Processs: \t{}\n", self.num_processs)?;
         write!(f, "\t\tOutputs sent: \t\t{}\n", self.outputs_sent)?;
-        write!(f, "\t\tElapsed time(s): \t{:.*}\n", 9, elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9)
+        write!(f, "\t\tElapsed time(s): \t{:.*}", 9, elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9)
     }
 }
 
@@ -133,7 +133,7 @@ impl RunList {
 
         let implementation = process.get_implementation();
 
-        // when a process ends, it can express whether it can run again or not
+        // when a process ends, it can express whether it can be run again or not
         let (value, run_again) = implementation.run(input_values);
 
         #[cfg(any(feature = "metrics", feature = "debugger"))]
@@ -158,7 +158,7 @@ impl RunList {
 
     pub fn set_processes(&mut self, processs: Vec<Arc<Mutex<Process>>>) {
         #[cfg(feature = "metrics")]
-        self.set_num_processes(processs.len());
+            self.set_num_processes(processs.len());
 
         self.state.set_processes(processs);
     }
@@ -190,6 +190,11 @@ impl RunList {
             debug!("\t\tProcess #{} '{}' sent value '{}' via output '{}' to Process #{} '{}' input #{}",
                    process.id(), process.name(), output_value, output_route, &destination_id,
                    destination.name(), &io_number);
+
+            #[cfg(feature = "debugger")]
+                self.debugger.watch_data(&self.state, process.id(), output_route,
+                                         &output_value, destination_id, io_number);
+
             destination.write_input(io_number, output_value.clone());
 
             #[cfg(feature = "metrics")]

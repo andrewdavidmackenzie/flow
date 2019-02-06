@@ -3,15 +3,21 @@ use std::process::exit;
 use run_state::RunState;
 use process::Process;
 use std::collections::HashSet;
+use serde_json::Value as JsonValue;
 
 pub struct Debugger {
     pub client: &'static DebugClient,
-    stop_at: usize,
-    breakpoints: HashSet<usize>
+    input_breakpoints: HashSet<(usize, usize)>,
+    output_breakpoints: HashSet<(usize, String)>,
+    break_at_invocation: usize,
+    process_breakpoints: HashSet<usize>,
 }
 
 const HELP_STRING: &str = "Debugger commands:
-'b' | 'breakpoint' n     - Set a breakpoint on process with id 'n'
+'b' | 'breakpoint' {spec} - Set a breakpoint on a process, an output or an input using spec:
+                             - process_id
+                             - source_id/output_route ('source_id/' for default output route)
+                             - destination_id:input_number
 ENTER | 'c' | 'continue' - Continue execution until next breakpoint
 'd' | 'delete' n         - Delete the breakpoint on process number 'n'
 'e' | 'exit'             - Stop flow execution and exit
@@ -21,12 +27,21 @@ ENTER | 'c' | 'continue' - Continue execution until next breakpoint
 's' | 'step' [n]         - Step over the next 'n' process executions (default = 1) then break
 ";
 
+enum Param {
+    Wildcard,
+    Numeric(usize),
+    Output((usize, String)),
+    Input((usize, usize)),
+}
+
 impl Debugger {
     pub fn new(client: &'static DebugClient) -> Self {
         Debugger {
             client,
-            stop_at: 0,
-            breakpoints: HashSet::<usize>::new()
+            input_breakpoints: HashSet::<(usize, usize)>::new(),
+            output_breakpoints: HashSet::<(usize, String)>::new(),
+            break_at_invocation: 0,
+            process_breakpoints: HashSet::<usize>::new(),
         }
     }
 
@@ -34,32 +49,40 @@ impl Debugger {
         return true if the debugger requests that we display the output of the next dispatch
     */
     pub fn check(&mut self, state: &RunState, next_process_id: usize) -> bool {
-        if self.stop_at == state.dispatches()  {
-            return self.enter(state, next_process_id, false);
+        if self.break_at_invocation == state.dispatches() {
+            return self.command_loop(state);
         }
 
-        if self.breakpoints.contains(&next_process_id) {
-            return self.enter(state, next_process_id, true);
+        if self.process_breakpoints.contains(&next_process_id) {
+            self.print(state, Some(Param::Numeric(next_process_id)));
+            return self.command_loop(state);
         }
 
         false
     }
 
-    fn enter(&mut self, state: &RunState, next_process_id: usize, print_next: bool) -> bool {
-        if print_next {
-            self.print(state, Some(next_process_id));
+    pub fn watch_data(&mut self, state: &RunState, source_process_id: usize, output_route: &String,
+                      value: &JsonValue, destination_id: usize, input_number: usize) {
+        if self.output_breakpoints.contains(&(source_process_id, output_route.to_string())) ||
+            self.input_breakpoints.contains(&(destination_id, input_number)) {
+            self.client.display(&format!("Data breakpoint: Process #{}/{}    ----- {} ----> Process #{}:{}\n",
+                                         source_process_id, output_route, value,
+                                         destination_id, input_number));
+            self.command_loop(state);
         }
+    }
 
+    fn command_loop(&mut self, state: &RunState) -> bool {
         loop {
-            self.client.display(&format!("Debug #{}> ", self.stop_at));
+            self.client.display(&format!("Debug #{}> ", self.break_at_invocation));
             let mut input = String::new();
             match self.client.read_input(&mut input) {
                 Ok(_n) => {
                     let (command, param) = Self::parse_command(&input);
                     match command {
-                        "b" | "breakpoint" => self.breakpoint(state, param),
+                        "b" | "breakpoint" => self.add_breakpoint(state, param),
                         "" | "c" | "continue" => return false,
-                        "d" | "delete" => self.delete(param),
+                        "d" | "delete" => self.delete_breakpoint(param),
                         "e" | "exit" => exit(1),
                         "h" | "help" => self.help(),
                         "lb" | "breakpoints" => self.list_breakpoints(),
@@ -76,84 +99,138 @@ impl Debugger {
         }
     }
 
-    fn delete(&mut self, param: Option<usize>) {
+    fn delete_breakpoint(&mut self, param: Option<Param>) {
         match param {
-            None =>  self.client.display("No process id specified\n"),
-            Some(process_number) => {
-                if self.breakpoints.remove(&process_number) {
+            None => self.client.display("No process id specified\n"),
+            Some(Param::Numeric(process_number)) => {
+                if self.process_breakpoints.remove(&process_number) {
                     self.client.display(
                         &format!("Breakpoint on process #{} was deleted\n", process_number));
                 } else {
                     self.client.display("No breakpoint number '{}' exists\n");
                 }
             }
+            Some(Param::Input((dest_id, input_number))) => {
+                self.input_breakpoints.remove(&(dest_id, input_number));
+            }
+            Some(Param::Output((source_id, source_output_route))) => {
+                self.output_breakpoints.remove(&(source_id, source_output_route));
+            }
+            Some(Param::Wildcard) => {
+                self.output_breakpoints.clear();
+                self.input_breakpoints.clear();
+                self.process_breakpoints.clear();
+                self.client.display("Deleted all breakpoints\n");
+            }
         }
     }
 
     fn list_breakpoints(&self) {
-        if self.breakpoints.is_empty() {
-            self.client.display("No breakpoints set\n");
-            return;
+        if !self.process_breakpoints.is_empty() {
+            self.client.display("Process Breakpoints: \n");
+            for process_id in &self.process_breakpoints {
+                self.client.display(&format!("\tProcess #{}\n", process_id));
+            }
         }
 
-        self.client.display("Breakpoints: \n");
-        for process_id in &self.breakpoints {
-            self.client.display(&format!("\tProcess #{}\n", process_id));
+        if !self.output_breakpoints.is_empty() {
+            self.client.display("Output Breakpoints: \n");
+            for (process_id, route) in &self.output_breakpoints {
+                self.client.display(&format!("\tOutput #{}/{}\n", process_id, route));
+            }
+        }
+
+        if !self.input_breakpoints.is_empty() {
+            self.client.display("Input Breakpoints: \n");
+            for (process_id, input_number) in &self.input_breakpoints {
+                self.client.display(&format!("\tInput #{}:{}\n", process_id, input_number));
+            }
         }
     }
 
-    fn print(&self, state: &RunState, param: Option<usize>) {
+    fn print(&self, state: &RunState, param: Option<Param>) {
         match param {
-            None => state.print(),
-            Some(process_number) => {
-                let process_arc = state.get(process_number);
+            None | Some(Param::Wildcard) => state.print(),
+            Some(Param::Numeric(process_id)) |
+            Some(Param::Input((process_id, _))) => {
+                let process_arc = state.get(process_id);
                 let process: &mut Process = &mut *process_arc.lock().unwrap();
                 self.client.display(&format!("{}", process));
                 // TODO print out information about what state it is in etc
             }
+            Some(Param::Output(_)) => self.client.display(
+                "Cannot display the output of a process until it is executed. \
+                Set a breakpoint on the process by id and then step over it")
         }
     }
 
-    fn step(&mut self, state: &RunState, steps: Option<usize>) {
+    fn step(&mut self, state: &RunState, steps: Option<Param>) {
         match steps {
-            None => {
-                self.stop_at = state.dispatches() + 1;
-            },
-            Some(steps) => {
-                self.stop_at = state.dispatches() + steps;
-            }
+            None => self.break_at_invocation = state.dispatches() + 1,
+            Some(Param::Numeric(steps)) => self.break_at_invocation = state.dispatches() + steps,
+            _ => self.client.display("Did not understand step command parameter\n")
         }
     }
 
-    fn breakpoint(&mut self, state: &RunState, param: Option<usize>) {
+    fn add_breakpoint(&mut self, state: &RunState, param: Option<Param>) {
         match param {
             None => self.client.display("'break' command must specify a process id to break on"),
-            Some(process_id) => {
+            Some(Param::Numeric(process_id)) => {
                 if process_id > state.num_processes() {
                     self.client.display(
                         &format!("There is no process with id '{}' to set a breakpoint on\n", process_id));
                 } else {
-                    self.breakpoints.insert(process_id);
+                    self.process_breakpoints.insert(process_id);
                     self.client.display(
-                        &format!("Breakpoint set on process with id '{}'\n", process_id));
+                        &format!("Set process breakpoint on Process #{}\n", process_id));
                 }
             }
+            Some(Param::Input((dest_id, input_number))) => {
+                self.client.display(
+                    &format!("Set data breakpoint on process #{} receiving data on input: {}\n", dest_id, input_number));
+                self.input_breakpoints.insert((dest_id, input_number));
+            }
+            Some(Param::Output((source_id, source_output_route))) => {
+                self.client.display(
+                    &format!("Set data breakpoint on process #{} sending data via output/{}\n", source_id, source_output_route));
+                self.output_breakpoints.insert((source_id, source_output_route));
+            }
+            Some(Param::Wildcard) => self.client.display("To break on every process, you can just single step using 's' command\n")
         }
     }
 
-    fn parse_command(input: &String) -> (&str, Option<usize>) {
+    fn parse_command(input: &String) -> (&str, Option<Param>) {
         let parts: Vec<&str> = input.trim().split(' ').collect();
         let command = parts[0];
-        let mut parameter = None;
 
         if parts.len() > 1 {
+            if parts[1] == "*" {
+                return (command, Some(Param::Wildcard));
+            }
+
             match parts[1].parse::<usize>() {
-                Ok(integer) => parameter = Some(integer),
-                Err(_) => {}
+                Ok(integer) => return (command, Some(Param::Numeric(integer))),
+                Err(_) => { /* not an integer - fall through */ }
+            }
+
+            if parts[1].contains("/") { // is an output specified
+                let sub_parts: Vec<&str> = parts[1].split('/').collect();
+                match sub_parts[0].parse::<usize>() {
+                    Ok(source_process_id) =>
+                        return (command, Some(Param::Output((source_process_id, sub_parts[1].to_string())))),
+                    Err(_) => { /* couldn't parse source process id */ }
+                }
+            } else if parts[1].contains(":") { // is an input specifier
+                let sub_parts: Vec<&str> = parts[1].split(':').collect();
+                match (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
+                    (Ok(dest_process_id), Ok(dest_input_number)) =>
+                        return (command, Some(Param::Input((dest_process_id, dest_input_number)))),
+                    (_, _) => { /* couldn't parse the process and input n umbers*/ }
+                }
             }
         }
 
-        (command, parameter)
+        (command, None)
     }
 
     fn help(&self) {
