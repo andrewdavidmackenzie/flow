@@ -74,7 +74,7 @@ impl Debugger {
 
     fn command_loop(&mut self, state: &RunState) -> bool {
         loop {
-            self.client.display(&format!("Debug #{}> ", self.break_at_invocation));
+            self.client.display(&format!("Debug #{}> ", state.dispatches()));
             let mut input = String::new();
             match self.client.read_input(&mut input) {
                 Ok(_n) => {

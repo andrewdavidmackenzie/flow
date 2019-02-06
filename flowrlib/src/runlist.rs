@@ -95,7 +95,30 @@ impl RunList {
         runlist
     }
 
-    pub fn run(&mut self) {
+    /*
+        The ìnit' function is responsible for initializing all processs.
+        The `init` method on each process is called, which returns a boolean to indicate that it's
+        inputs are fulfilled - and this information is added to the RunList to control the readyness of
+        the Process to be executed.
+
+        Once all processs have been initialized, the list of processs is stored in the RunList
+    */
+    pub fn init(&mut self, processs: Vec<Arc<Mutex<Process>>>) {
+        debug!("Initializing all processes");
+        for process_arc in &processs {
+            let mut process = process_arc.lock().unwrap();
+            debug!("\tInitializing process #{} '{}'", &process.id(), process.name());
+            if process.init() {
+                self.state.can_run(process.id());
+            }
+        }
+
+        self.set_processes(processs);
+    }
+
+    pub fn run(&mut self, processes: Vec<Arc<Mutex<Process>>>) {
+        self.init(processes);
+
         debug!("Starting flow execution");
         let mut display_output = false;
 

@@ -45,12 +45,11 @@ use debug_client::DebugClient;
 ///
 /// exit(0);
 /// ```
-pub fn execute(processs: Vec<Arc<Mutex<Process>>>, display_metrics: bool,
+pub fn execute(processes: Vec<Arc<Mutex<Process>>>, display_metrics: bool,
                client: &'static DebugClient, use_debugger: bool) {
     set_panic_hook();
-    let mut run_list = init(processs, client, use_debugger);
-
-    run_list.run();
+    let mut run_list = RunList::new(client, use_debugger);
+    run_list.run(processes);
 
     if display_metrics {
         #[cfg(feature = "metrics")]
@@ -72,30 +71,4 @@ fn set_panic_hook() {
         }
     }));
     debug!("Panic hook set to catch panics in processs");
-}
-
-/*
-    The ìnit' function is responsible for initializing all processs.
-    The `init` method on each process is called, which returns a boolean to indicate that it's
-    inputs are fulfilled - and this information is added to the RunList to control the readyness of
-    the Process to be executed.
-
-    Once all processs have been initialized, the list of processs is stored in the RunList
-*/
-fn init(processs: Vec<Arc<Mutex<Process>>>, client: &'static DebugClient, use_debugger: bool)
-        -> RunList {
-    let mut run_list = RunList::new(client, use_debugger);
-
-    debug!("Initializing all processes");
-    for process_arc in &processs {
-        let mut process = process_arc.lock().unwrap();
-        debug!("\tInitializing process #{} '{}'", &process.id(), process.name());
-        if process.init() {
-            run_list.state.can_run(process.id());
-        }
-    }
-
-    run_list.set_processes(processs);
-
-    run_list
 }

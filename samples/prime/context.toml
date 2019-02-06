@@ -35,10 +35,10 @@ to = "process/to_string"
 alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string.toml"
 
-#[[connection]]
-#from = "process/to_string"
-#to = "process/print"
-
 [[process]]
 alias = "print"
 source = "lib://flowr/stdio/stdout.toml"
+
+[[connection]]
+from = "process/to_string"
+to = "process/print"

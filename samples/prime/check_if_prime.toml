@@ -27,6 +27,14 @@ to = "process/divisor-range/start"
 from = "input/candidate"
 to = "process/divisor-range/limit"
 
+[[process]]
+alias = "print"
+source = "lib://flowr/stdio/stdout.toml"
+
+[[connection]]
+from = "process/divisor-range/series"
+to = "process/print"
+
 ######################################
 
 # divide the candidate by the divisor
