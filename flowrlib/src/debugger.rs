@@ -1,6 +1,6 @@
 use debug_client::DebugClient;
 use std::process::exit;
-use runlist::State;
+use run_state::RunState;
 use process::Process;
 use std::collections::HashSet;
 
@@ -17,7 +17,7 @@ ENTER | 'c' | 'continue' - Continue execution until next breakpoint
 'e' | 'exit'             - Stop flow execution and exit
 'h' | 'help'             - Display this help message
 'lb'| 'breakpoints'      - List all the currently set breakpoints
-'p' | 'print' [n]        - Print the overall state, or that or process number 'n'
+'p' | 'print' [n]        - Print the overall state, or state of process number 'n'
 's' | 'step' [n]         - Step over the next 'n' process executions (default = 1) then break
 ";
 
@@ -33,7 +33,7 @@ impl Debugger {
     /*
         return true if the debugger requests that we display the output of the next dispatch
     */
-    pub fn check(&mut self, state: &State, next_process_id: usize) -> bool {
+    pub fn check(&mut self, state: &RunState, next_process_id: usize) -> bool {
         if self.stop_at == state.dispatches()  {
             return self.enter(state, next_process_id, false);
         }
@@ -45,7 +45,7 @@ impl Debugger {
         false
     }
 
-    fn enter(&mut self, state: &State, next_process_id: usize, print_next: bool) -> bool {
+    fn enter(&mut self, state: &RunState, next_process_id: usize, print_next: bool) -> bool {
         if print_next {
             self.print(state, Some(next_process_id));
         }
@@ -102,18 +102,19 @@ impl Debugger {
         }
     }
 
-    fn print(&self, state: &State, param: Option<usize>) {
+    fn print(&self, state: &RunState, param: Option<usize>) {
         match param {
             None => state.print(),
             Some(process_number) => {
                 let process_arc = state.get(process_number);
                 let process: &mut Process = &mut *process_arc.lock().unwrap();
                 self.client.display(&format!("{}", process));
+                // TODO print out information about what state it is in etc
             }
         }
     }
 
-    fn step(&mut self, state: &State, steps: Option<usize>) {
+    fn step(&mut self, state: &RunState, steps: Option<usize>) {
         match steps {
             None => {
                 self.stop_at = state.dispatches() + 1;
@@ -124,7 +125,7 @@ impl Debugger {
         }
     }
 
-    fn breakpoint(&mut self, state: &State, param: Option<usize>) {
+    fn breakpoint(&mut self, state: &RunState, param: Option<usize>) {
         match param {
             None => self.client.display("'break' command must specify a process id to break on"),
             Some(process_id) => {
