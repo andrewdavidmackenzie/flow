@@ -4,7 +4,7 @@ use runlist::State;
 
 pub struct Debugger {
     client: &'static DebugClient,
-    pub stop_at: u32
+    pub stop_at: u32,
 }
 
 const HELP_STRING: &str = "Debugger commands:
@@ -19,7 +19,8 @@ ENTER | 'c' | 'continue' - Continue execution until next breakpoint
 impl Debugger {
     pub fn new(client: &'static DebugClient) -> Self {
         Debugger {
-            client, stop_at:0
+            client,
+            stop_at: 0,
         }
     }
 
@@ -38,26 +39,14 @@ impl Debugger {
                 Ok(_n) => {
                     let (command, param) = Self::parse_command(&input);
                     match command {
-                        "b" | "break" => {
-                            match param {
-                                None => self.client.display("'break' command must specify a dispatch to break on"),
-                                Some(dispatch) => {
-                                    if state.dispatches() >= dispatch {
-                                        self.client.display("Dispatch '{}' has already occurred, cannot set breakpoint there\n")
-                                    } else {
-                                        self.stop_at = dispatch;
-                                        self.client.display(&format!("Breakpoint set on dispatch '{}'\n", dispatch));
-                                    }
-                                }
-                            }
-                        },
+                        "b" | "break" => self.breakpoint(state, param),
                         "e" | "exit" => exit(1),
                         "d" | "display" => state.print(),
                         "" | "c" | "continue" => {
                             return;
-                        },
+                        }
                         "s" | "step" => {
-                            self.stop_at = state.dispatches() + 1;
+                            self.step(state, param);
                             return;
                         }
                         "h" | "help" => self.help(),
@@ -69,8 +58,35 @@ impl Debugger {
         }
     }
 
+    fn step(&mut self, state: &State, steps: Option<u32>) {
+        match steps {
+            None => {
+                self.stop_at = state.dispatches() + 1;
+                self.client.display("Stepping 1 dispatch\n");
+            },
+            Some(steps) => {
+                self.stop_at = state.dispatches() + steps;
+                self.client.display(&format!("Stepping {} dispatches\n", steps));
+            }
+        }
+    }
+
+    fn breakpoint(&mut self, state: &State, dispatch: Option<u32>) {
+        match dispatch {
+            None => self.client.display("'break' command must specify a dispatch to break on"),
+            Some(dispatch) => {
+                if state.dispatches() >= dispatch {
+                    self.client.display("Dispatch '{}' has already occurred, cannot set breakpoint there\n")
+                } else {
+                    self.stop_at = dispatch;
+                    self.client.display(&format!("Breakpoint set on dispatch '{}'\n", dispatch));
+                }
+            }
+        }
+    }
+
     fn parse_command(input: &String) -> (&str, Option<u32>) {
-        let parts : Vec<&str>= input.trim().split(' ').collect();
+        let parts: Vec<&str> = input.trim().split(' ').collect();
         let command = parts[0];
         let mut parameter = None;
 
