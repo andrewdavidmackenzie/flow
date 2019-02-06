@@ -4,7 +4,7 @@ use runlist::State;
 use process::Process;
 
 pub struct Debugger {
-    client: &'static DebugClient,
+    pub client: &'static DebugClient,
     pub stop_at: u32,
 }
 
@@ -25,16 +25,19 @@ impl Debugger {
         }
     }
 
-    pub fn check(&mut self, state: &State) {
+    /*
+        return true if the debugger requests that we display the output of the next dispatch
+    */
+    pub fn check(&mut self, state: &State) -> bool {
         if self.stop_at == state.dispatches() {
-            self.client.display(&format!("Break on dispatch '{}'\n", self.stop_at));
-            self.enter(state);
+            return self.enter(state);
         }
+        false
     }
 
-    fn enter(&mut self, state: &State) {
+    fn enter(&mut self, state: &State) -> bool {
         loop {
-            self.client.display("Debug> ");
+            self.client.display(&format!("Debug #{}> ", self.stop_at));
             let mut input = String::new();
             match self.client.read_input(&mut input) {
                 Ok(_n) => {
@@ -43,10 +46,10 @@ impl Debugger {
                         "b" | "break" => self.breakpoint(state, param),
                         "e" | "exit" => exit(1),
                         "d" | "display" => self.display(state, param),
-                        "" | "c" | "continue" => return,
+                        "" | "c" | "continue" => return false,
                         "s" | "step" => {
                             self.step(state, param);
-                            return;
+                            return true;
                         }
                         "h" | "help" => self.help(),
                         _ => self.client.display(&format!("Unknown debugger command '{}'\n", command))

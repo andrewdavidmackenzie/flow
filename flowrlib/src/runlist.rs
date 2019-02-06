@@ -219,6 +219,7 @@ impl RunList {
 
     pub fn run(&mut self) {
         debug!("Starting flow execution");
+        let mut display_output = false;
 
         while let Some(id) = self.state.next() {
             if log_enabled!(Debug) {
@@ -226,11 +227,10 @@ impl RunList {
             }
 
             if cfg!(feature = "debugger") && self.debugging {
-                #[cfg(feature = "debugger")]
-                self.debugger.check(&self.state);
+                display_output = self.debugger.check(&self.state);
             }
 
-            self.dispatch(id);
+            self.dispatch(id, display_output);
         }
 
         if cfg!(feature = "logging") && log_enabled!(Debug) {
@@ -243,7 +243,7 @@ impl RunList {
     /*
         Given a process id, start running it
     */
-    fn dispatch(&mut self, id: usize) {
+    fn dispatch(&mut self, id: usize, display_output: bool) {
         let process_arc = self.state.get(id);
         let process: &mut Process = &mut *process_arc.lock().unwrap();
         debug!("Process #{} '{}' dispatched", id, process.name());
@@ -259,14 +259,19 @@ impl RunList {
         let (value, run_again) = implementation.run(input_values);
 
         #[cfg(any(feature = "metrics", feature = "debugger"))]
-        self.state.increment_dispatches();
+            self.state.increment_dispatches();
 
         if let Some(val) = value {
             debug!("\tProcess #{} '{}' completed, send output '{}'", id, process.name(), &val);
+            if cfg!(feature="debugger") && display_output {
+                self.debugger.client.display(
+                    &format!("Process #{} '{}' output '{}'\n", id, process.name(), &val));
+            }
             self.process_output(process, val);
         } else {
             debug!("\tProcess #{} '{}' completed, no output", id, process.name());
         }
+
         // if it wants to run again and it can (inputs ready) then add back to the Can Run list
         if run_again && process.can_run() {
             self.state.can_run(process.id());
@@ -275,7 +280,7 @@ impl RunList {
 
     pub fn set_processes(&mut self, processs: Vec<Arc<Mutex<Process>>>) {
         #[cfg(feature = "metrics")]
-        self.set_num_processes(processs.len());
+            self.set_num_processes(processs.len());
 
         self.state.processs = processs;
     }
