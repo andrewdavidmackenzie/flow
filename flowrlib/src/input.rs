@@ -16,7 +16,7 @@ impl fmt::Display for Input {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.received.len() > 0 {
             for input_value in &self.received {
-                write!(f, "'{}', ", input_value)?;
+                write!(f, "{}, ", input_value)?;
             }
         }
         write!(f, "")

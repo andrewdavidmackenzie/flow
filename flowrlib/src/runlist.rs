@@ -43,21 +43,21 @@ impl fmt::Display for Metrics {
 }
 
 pub struct State {
-    processs: Vec<Arc<Mutex<Process>>>,
+    processes: Vec<Arc<Mutex<Process>>>,
     can_run: HashSet<usize>,
     // can_run: HashSet<process_id>
     blocking: Vec<(usize, usize)>,
     // locking: Vec<(blocking_id, blocked_id)>
     will_run: Vec<usize>,
     // will_run: Vec<process_id>
-    dispatches: u32,
+    dispatches: usize,
 }
 
 impl State {
     #[cfg(any(feature = "logging", feature = "debugger"))]
     pub fn print(&self) {
         println!("----------------- Current State --------------------");
-        println!("Number of processes: {}", self.processs.len());
+        println!("Number of processes: {}", self.processes.len());
         println!("     Dispatch count: {}", self.dispatches);
         println!("            Can Run: {:?}", self.can_run);
         println!("           Blocking: {:?}", self.blocking);
@@ -71,7 +71,7 @@ impl State {
     }
 
     pub fn get(&self, id: usize) -> Arc<Mutex<Process>> {
-        self.processs[id].clone()
+        self.processes[id].clone()
     }
 
     // Return the id of the next process ready to be run, if there is one
@@ -107,8 +107,12 @@ impl State {
         }
     }
 
-    pub fn dispatches(&self) -> u32 {
+    pub fn dispatches(&self) -> usize {
         self.dispatches
+    }
+
+    pub fn num_processes(&self) -> usize {
+        self.processes.len()
     }
 
     // unblock all processs that were blocked trying to send to blocker_id by removing all entries
@@ -200,7 +204,7 @@ impl RunList {
 
         let runlist = RunList {
             state: State {
-                processs: Vec::<Arc<Mutex<Process>>>::new(),
+                processes: Vec::<Arc<Mutex<Process>>>::new(),
                 can_run: HashSet::<usize>::new(),
                 blocking: Vec::<(usize, usize)>::new(),
                 will_run: Vec::<usize>::new(),
@@ -227,7 +231,7 @@ impl RunList {
             }
 
             if cfg!(feature = "debugger") && self.debugging {
-                display_output = self.debugger.check(&self.state);
+                display_output = self.debugger.check(&self.state, id);
             }
 
             self.dispatch(id, display_output);
@@ -265,7 +269,7 @@ impl RunList {
             debug!("\tProcess #{} '{}' completed, send output '{}'", id, process.name(), &val);
             if cfg!(feature="debugger") && display_output {
                 self.debugger.client.display(
-                    &format!("Process #{} '{}' output '{}'\n", id, process.name(), &val));
+                    &format!("Process #{} '{}' output {}\n", id, process.name(), &val));
             }
             self.process_output(process, val);
         } else {
@@ -282,7 +286,7 @@ impl RunList {
         #[cfg(feature = "metrics")]
             self.set_num_processes(processs.len());
 
-        self.state.processs = processs;
+        self.state.processes = processs;
     }
 
     #[cfg(feature = "metrics")]
@@ -306,7 +310,7 @@ impl RunList {
     */
     pub fn process_output(&mut self, process: &Process, output: JsonValue) {
         for &(ref output_route, destination_id, io_number) in process.output_destinations() {
-            let destination_arc = Arc::clone(&self.state.processs[destination_id]);
+            let destination_arc = Arc::clone(&self.state.processes[destination_id]);
             let mut destination = destination_arc.lock().unwrap();
             let output_value = output.pointer(&output_route).unwrap();
             debug!("\t\tProcess #{} '{}' sent value '{}' via output '{}' to Process #{} '{}' input #{}",
