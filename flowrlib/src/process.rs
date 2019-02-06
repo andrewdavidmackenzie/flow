@@ -3,6 +3,8 @@ use implementation::RunAgain;
 use input::Input;
 use serde_json::Value as JsonValue;
 use std::rc::Rc;
+#[cfg(feature = "debugger")]
+use std::fmt;
 
 #[derive(Deserialize, Serialize)]
 pub struct Process {
@@ -34,6 +36,19 @@ impl Implementation for ImplementationNotFound {
     fn run(&self, _inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
         error!("Implementation not found");
         (None, false)
+    }
+}
+
+#[cfg(feature = "debugger")]
+impl fmt::Display for Process {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Process #{} '{}'\n", self.id, self.name)?;
+        if self.inputs.len() > 0 {
+            for (number, input) in self.inputs.iter().enumerate() {
+                write!(f, "\tInput #{}: {}\n", number, input)?;
+            }
+        }
+        write!(f, "")
     }
 }
 

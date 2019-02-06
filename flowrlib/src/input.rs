@@ -1,5 +1,7 @@
 use serde_json::Value as JsonValue;
 use std::mem::replace;
+#[cfg(feature = "debugger")]
+use std::fmt;
 
 #[derive(Deserialize, Serialize)]
 pub struct Input {
@@ -7,6 +9,18 @@ pub struct Input {
     depth: usize,
     #[serde(skip)]
     received: Vec<JsonValue>,
+}
+
+#[cfg(feature = "debugger")]
+impl fmt::Display for Input {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.received.len() > 0 {
+            for input_value in &self.received {
+                write!(f, "'{}', ", input_value)?;
+            }
+        }
+        write!(f, "")
+    }
 }
 
 fn is_default(depth: &usize) -> bool {

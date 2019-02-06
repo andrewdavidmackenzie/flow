@@ -70,7 +70,7 @@ impl State {
         self.dispatches += 1;
     }
 
-    fn get(&self, id: usize) -> Arc<Mutex<Process>> {
+    pub fn get(&self, id: usize) -> Arc<Mutex<Process>> {
         self.processs[id].clone()
     }
 

@@ -1,6 +1,7 @@
 use debug_client::DebugClient;
 use std::process::exit;
 use runlist::State;
+use process::Process;
 
 pub struct Debugger {
     client: &'static DebugClient,
@@ -41,7 +42,7 @@ impl Debugger {
                     match command {
                         "b" | "break" => self.breakpoint(state, param),
                         "e" | "exit" => exit(1),
-                        "d" | "display" => state.print(),
+                        "d" | "display" => self.display(state, param),
                         "" | "c" | "continue" => {
                             return;
                         }
@@ -55,6 +56,17 @@ impl Debugger {
                 }
                 Err(_) => self.client.display(&format!("Error reading debugger command\n"))
             };
+        }
+    }
+
+    fn display(&self, state: &State, param: Option<u32>) {
+        match param {
+            None => state.print(),
+            Some(process_number) => {
+                let process_arc = state.get(process_number as usize);
+                let process: &mut Process = &mut *process_arc.lock().unwrap();
+                self.client.display(&format!("{}", process));
+            }
         }
     }
 
