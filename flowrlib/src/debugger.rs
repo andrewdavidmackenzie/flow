@@ -43,9 +43,7 @@ impl Debugger {
                         "b" | "break" => self.breakpoint(state, param),
                         "e" | "exit" => exit(1),
                         "d" | "display" => self.display(state, param),
-                        "" | "c" | "continue" => {
-                            return;
-                        }
+                        "" | "c" | "continue" => return,
                         "s" | "step" => {
                             self.step(state, param);
                             return;
