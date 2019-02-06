@@ -8,6 +8,7 @@ pub struct Debugger {
 }
 
 const HELP_STRING: &str = "Debugger commands:
+'b' | 'break' n          - Set a breakpoint before dispatch 'n'
 ENTER | 'c' | 'continue' - Continue execution until next breakpoint
 'e' | 'exit'             - Stop flow execution and exit
 'd' | 'display' [n]      - Display the overall state, or that or process number 'n'
@@ -24,6 +25,7 @@ impl Debugger {
 
     pub fn check(&mut self, state: &State) {
         if self.stop_at == state.dispatches() {
+            self.client.display(&format!("Break on dispatch '{}'\n", self.stop_at));
             self.enter(state);
         }
     }
@@ -34,12 +36,24 @@ impl Debugger {
             let mut input = String::new();
             match self.client.read_input(&mut input) {
                 Ok(_n) => {
-                    let parts : Vec<&str>= input.trim().split(' ').collect();
-                    match parts[0] {
+                    let (command, param) = Self::parse_command(&input);
+                    match command {
+                        "b" | "break" => {
+                            match param {
+                                None => self.client.display("'break' command must specify a dispatch to break on"),
+                                Some(dispatch) => {
+                                    if state.dispatches() >= dispatch {
+                                        self.client.display("Dispatch '{}' has already occurred, cannot set breakpoint there\n")
+                                    } else {
+                                        self.stop_at = dispatch;
+                                        self.client.display(&format!("Breakpoint set on dispatch '{}'\n", dispatch));
+                                    }
+                                }
+                            }
+                        },
                         "e" | "exit" => exit(1),
                         "d" | "display" => state.print(),
                         "" | "c" | "continue" => {
-                            println!("stop at = {}, dispatches = {}", self.stop_at, state.dispatches());
                             return;
                         },
                         "s" | "step" => {
@@ -47,12 +61,27 @@ impl Debugger {
                             return;
                         }
                         "h" | "help" => self.help(),
-                        _ => self.client.display(&format!("Unknown debugger command '{}'\n", parts[0]))
+                        _ => self.client.display(&format!("Unknown debugger command '{}'\n", command))
                     }
                 }
                 Err(_) => self.client.display(&format!("Error reading debugger command\n"))
             };
         }
+    }
+
+    fn parse_command(input: &String) -> (&str, Option<u32>) {
+        let parts : Vec<&str>= input.trim().split(' ').collect();
+        let command = parts[0];
+        let mut parameter = None;
+
+        if parts.len() > 1 {
+            match parts[1].parse::<u32>() {
+                Ok(integer) => parameter = Some(integer),
+                Err(_) => {}
+            }
+        }
+
+        (command, parameter)
     }
 
     fn help(&self) {

@@ -227,7 +227,7 @@ impl RunList {
 
             if cfg!(feature = "debugger") && self.debugging {
                 #[cfg(feature = "debugger")]
-                    self.debugger.check(&self.state);
+                self.debugger.check(&self.state);
             }
 
             self.dispatch(id);
