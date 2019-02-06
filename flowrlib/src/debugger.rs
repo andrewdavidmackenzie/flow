@@ -14,17 +14,17 @@ pub struct Debugger {
 }
 
 const HELP_STRING: &str = "Debugger commands:
-'b' | 'breakpoint' {spec} - Set a breakpoint on a process, an output or an input using spec:
-                             - process_id
-                             - source_id/output_route ('source_id/' for default output route)
-                             - destination_id:input_number
-ENTER | 'c' | 'continue' - Continue execution until next breakpoint
-'d' | 'delete' n         - Delete the breakpoint on process number 'n'
-'e' | 'exit'             - Stop flow execution and exit
-'h' | 'help'             - Display this help message
-'lb'| 'breakpoints'      - List all the currently set breakpoints
-'p' | 'print' [n]        - Print the overall state, or state of process number 'n'
-'s' | 'step' [n]         - Step over the next 'n' process executions (default = 1) then break
+'b' | 'breakpoint' {spec}    - Set a breakpoint on a process, an output or an input using spec:
+                                - process_id
+                                - source_id/output_route ('source_id/' for default output route)
+                                - destination_id:input_number
+ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
+'d' | 'delete' {spec} or '*' - Delete the breakpoint matching {spec} or all with '*'
+'e' | 'exit'                 - Stop flow execution and exit
+'h' | 'help'                 - Display this help message
+'lb'| 'breakpoints'          - List all the currently set breakpoints
+'p' | 'print' [n]            - Print the overall state, or state of process number 'n'
+'s' | 'step' [n]             - Step over the next 'n' process executions (default = 1) then break
 ";
 
 enum Param {
@@ -148,16 +148,25 @@ impl Debugger {
         }
     }
 
+    fn print_process(&self, state: &RunState, process_id: usize) {
+        let process_arc = state.get(process_id);
+        let process: &mut Process = &mut *process_arc.lock().unwrap();
+        self.client.display(&format!("{}", process));
+        // TODO print out information about what state it is in etc
+    }
+
+    fn print_all_processes(&self, state: &RunState) {
+        for id in 0..state.num_processes() {
+            self.print_process(state, id);
+        }
+    }
+
     fn print(&self, state: &RunState, param: Option<Param>) {
         match param {
-            None | Some(Param::Wildcard) => state.print(),
+            None => state.print(),
             Some(Param::Numeric(process_id)) |
-            Some(Param::Input((process_id, _))) => {
-                let process_arc = state.get(process_id);
-                let process: &mut Process = &mut *process_arc.lock().unwrap();
-                self.client.display(&format!("{}", process));
-                // TODO print out information about what state it is in etc
-            }
+            Some(Param::Input((process_id, _))) => self.print_process(state, process_id),
+            Some(Param::Wildcard) => self.print_all_processes(state),
             Some(Param::Output(_)) => self.client.display(
                 "Cannot display the output of a process until it is executed. \
                 Set a breakpoint on the process by id and then step over it")
