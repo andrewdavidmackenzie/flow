@@ -45,7 +45,9 @@ impl fmt::Display for Process {
         write!(f, "Process #{} '{}'\n", self.id, self.name)?;
         if self.inputs.len() > 0 {
             for (number, input) in self.inputs.iter().enumerate() {
-                write!(f, "\tInput #{}: {}\n", number, input)?;
+                if !input.empty() {
+                    write!(f, "\tInput #{}: {}\n", number, input)?;
+                }
             }
         }
         write!(f, "")

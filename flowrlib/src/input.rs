@@ -14,10 +14,8 @@ pub struct Input {
 #[cfg(feature = "debugger")]
 impl fmt::Display for Input {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.received.len() > 0 {
-            for input_value in &self.received {
-                write!(f, "{}, ", input_value)?;
-            }
+        for input_value in &self.received {
+            write!(f, "{}, ", input_value)?;
         }
         write!(f, "")
     }
@@ -35,7 +33,7 @@ impl Input {
     pub fn new(depth: usize) -> Self {
         Input {
             depth,
-            received: Vec::with_capacity(depth)
+            received: Vec::with_capacity(depth),
         }
     }
 
@@ -54,6 +52,8 @@ impl Input {
     pub fn overwrite(&mut self, value: JsonValue) {
         self.received[0] = value;
     }
+
+    pub fn empty(&self) -> bool { self.received.is_empty() }
 
     pub fn full(&self) -> bool {
         self.received.len() == self.depth

@@ -9,11 +9,12 @@ type = "Number"
 name = "prime"
 type = "Number"
 
-# Generate a series of possible divisors of the candidate, from 1 up to the candidate
+# Generate a series of possible divisors of the candidate, from 2 up to
+ candidate
 [[value]]
 name = "lowest-divisor"
 type = "Number"
-init = 1
+init = 2
 
 [[process]]
 alias = "divisor-range"
