@@ -113,8 +113,9 @@ impl RunList {
             }
         }
 
-        #[cfg(feature = "metrics")]
-        self.set_num_processes(processs.len());
+        if cfg!(feature = "metrics") {
+            self.metrics.num_processs = processs.len();
+        }
 
         self.state.set_processes(processs);
     }
@@ -145,7 +146,7 @@ impl RunList {
     }
 
     /*
-        Given a process id, start running it
+        Given a process id, dispatch it
     */
     fn dispatch(&mut self, id: usize, display_output: bool) {
         let process_arc = self.state.get(id);
@@ -185,11 +186,6 @@ impl RunList {
     #[cfg(feature = "metrics")]
     pub fn print_metrics(&self) {
         println!("\nMetrics: \n {}", self.metrics);
-    }
-
-    #[cfg(feature = "metrics")]
-    fn set_num_processes(&mut self, num: usize) {
-        self.metrics.num_processs = num;
     }
 
     /*
