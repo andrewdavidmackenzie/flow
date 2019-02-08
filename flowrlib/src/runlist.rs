@@ -113,7 +113,10 @@ impl RunList {
             }
         }
 
-        self.set_processes(processs);
+        #[cfg(feature = "metrics")]
+        self.set_num_processes(processs.len());
+
+        self.state.set_processes(processs);
     }
 
     pub fn run(&mut self, processes: Vec<Arc<Mutex<Process>>>) {
@@ -177,13 +180,6 @@ impl RunList {
         if run_again && process.can_run() {
             self.state.can_run(process.id());
         }
-    }
-
-    pub fn set_processes(&mut self, processs: Vec<Arc<Mutex<Process>>>) {
-        #[cfg(feature = "metrics")]
-            self.set_num_processes(processs.len());
-
-        self.state.set_processes(processs);
     }
 
     #[cfg(feature = "metrics")]
