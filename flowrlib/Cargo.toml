@@ -14,6 +14,12 @@ doctest = true
 bench = true
 doc = true
 
+[profile.debug]
+panic = "unwind"
+
+[profile.release]
+panic = "unwind"
+
 [features]
 default = ["debugger", "metrics", "logging"]
 metrics = []

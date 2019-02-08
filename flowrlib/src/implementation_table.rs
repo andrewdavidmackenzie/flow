@@ -1,7 +1,7 @@
 use implementation::Implementation;
 use std::collections::HashMap;
 use provider::Provider;
-use std::rc::Rc;
+use std::sync::Arc;
 
 /*
     Implementations can be of two types - either a native and statically bound function referenced
@@ -12,7 +12,7 @@ use std::rc::Rc;
 #[serde(untagged)]
 pub enum ImplementationLocator {
     #[serde(skip_deserializing, skip_serializing)]
-    Native(Rc<Implementation>),
+    Native(Arc<Implementation>),
     Wasm((String, String))
 }
 

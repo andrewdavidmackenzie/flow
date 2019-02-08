@@ -12,6 +12,7 @@ use std::fmt;
 use std::time::Instant;
 use debug_client::DebugClient;
 use run_state::RunState;
+use std::panic;
 
 #[cfg(feature = "metrics")]
 pub struct Metrics {
@@ -92,6 +93,7 @@ impl RunList {
             debugger,
         };
 
+
         runlist
     }
 
@@ -154,32 +156,52 @@ impl RunList {
         debug!("Process #{} '{}' dispatched", id, process.name());
 
         let input_values = process.get_input_values();
+        #[cfg(feature="debugger")]
+        let debug_values = input_values.clone();
+
         self.state.inputs_consumed(id);
         self.state.unblock_senders_to(id);
         debug!("\tProcess #{} '{}' running with inputs: {:?}", id, process.name(), input_values);
 
         let implementation = process.get_implementation();
 
-        // when a process ends, it can express whether it can be run again or not
-        let (value, run_again) = implementation.run(input_values);
-
         #[cfg(any(feature = "metrics", feature = "debugger"))]
             self.state.increment_dispatches();
 
-        if let Some(val) = value {
-            debug!("\tProcess #{} '{}' completed, send output '{}'", id, process.name(), &val);
-            if cfg!(feature="debugger") && display_output {
-                self.debugger.client.display(
-                    &format!("Process #{} '{}' output {}\n", id, process.name(), &val));
-            }
-            self.process_output(process, val);
-        } else {
-            debug!("\tProcess #{} '{}' completed, no output", id, process.name());
-        }
+        // when a process ends, it can express whether it can be run again or not
+        let result = panic::catch_unwind(|| {
+            implementation.run(input_values)
+        });
 
-        // if it wants to run again and it can (inputs ready) then add back to the Can Run list
-        if run_again && process.can_run() {
-            self.state.can_run(process.id());
+        match result {
+            Ok((value, run_again)) => {
+                debug!("\tProcess #{} '{}' completed", id, process.name());
+                if cfg!(feature="debugger") && display_output {
+                    self.debugger.client.display(
+                        &format!("Process #{} '{}' completed\n", id, process.name()));
+                }
+
+                if let Some(val) = value {
+                    debug!("\t\tProduced output '{}'", &val);
+                    if cfg!(feature="debugger") && display_output {
+                        self.debugger.client.display(
+                            &format!("\tProduced output {}\n", &val));
+                    }
+
+                    self.process_output(process, val);
+                }
+
+                // if it wants to run again and it can (inputs ready) then add back to the Can Run list
+                if run_again & &process.can_run() {
+                    self.state.can_run(process.id());
+                }
+            }
+            Err(cause) => {
+                if cfg!(feature = "debugger") && self.debugging {
+                    #[cfg(feature = "debugger")]
+                        self.debugger.panic(&self.state, cause, id, process.name(), debug_values);
+                }
+            }
         }
     }
 

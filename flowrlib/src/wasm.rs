@@ -4,7 +4,6 @@ use implementation::Implementation;
 use implementation::RunAgain;
 use serde_json::Value as JsonValue;
 use provider::Provider;
-use std::rc::Rc;
 
 #[cfg(not(target_arg = "wasm32"))]
 use wasmi::{Module, ModuleRef, ModuleInstance, ImportsBuilder};
@@ -43,7 +42,7 @@ impl Implementation for WasmExecutor {
     load a Wasm module from the specified Url.
 */
 pub fn load(provider: &Provider, name: &str, source_url: &str)
-            -> Result<Rc<WasmExecutor>, String> {
+            -> Result<Arc<WasmExecutor>, String> {
     let (resolved_url, _) = provider.resolve(&source_url)?;
     let content = provider.get(&resolved_url)?;
 
@@ -60,5 +59,5 @@ pub fn load(provider: &Provider, name: &str, source_url: &str)
         _function_name: name.to_string()
     };
 
-    Ok(Rc::new(executor))
+    Ok(Arc::new(executor))
 }

@@ -2,7 +2,7 @@ use implementation::Implementation;
 use implementation::RunAgain;
 use input::Input;
 use serde_json::Value as JsonValue;
-use std::rc::Rc;
+use std::sync::Arc;
 #[cfg(feature = "debugger")]
 use std::fmt;
 
@@ -25,7 +25,7 @@ pub struct Process {
 
     #[serde(skip)]
     #[serde(default = "Process::default_implementation")]
-    implementation: Rc<Implementation>,
+    implementation: Arc<Implementation>,
 }
 
 fn not_static(is_static: &bool) -> bool { *is_static == false }
@@ -80,8 +80,8 @@ impl Process {
         process
     }
 
-    pub fn default_implementation() -> Rc<Implementation> {
-        Rc::new(super::process::ImplementationNotFound{})
+    pub fn default_implementation() -> Arc<Implementation> {
+        Arc::new(super::process::ImplementationNotFound{})
     }
 
     // Create the set of inputs, each with appropriate depth
@@ -133,11 +133,11 @@ impl Process {
         &self.output_routes
     }
 
-    pub fn get_implementation(&self) -> Rc<Implementation> {
+    pub fn get_implementation(&self) -> Arc<Implementation> {
         self.implementation.clone()
     }
 
-    pub fn set_implementation(&mut self, implementation: Rc<Implementation>) {
+    pub fn set_implementation(&mut self, implementation: Arc<Implementation>) {
         self.implementation = implementation;
     }
 

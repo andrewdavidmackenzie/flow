@@ -27,13 +27,12 @@ impl RunState {
 
     #[cfg(any(feature = "logging", feature = "debugger"))]
     pub fn print(&self) {
-        println!("----------------- Current State --------------------");
-        println!("Number of processes: {}", self.processes.len());
-        println!("     Dispatch count: {}", self.dispatches);
-        println!("            Can Run: {:?}", self.can_run);
-        println!("           Blocking: {:?}", self.blocking);
-        println!("           Will Run: {:?}", self.will_run);
-        println!("----------------------------------------------------");
+        println!("RunState:");
+        println!("   Processes: {}", self.processes.len());
+        println!("  Dispatches: {}", self.dispatches);
+        println!("     Can Run: {:?}", self.can_run);
+        println!("    Blocking: {:?}", self.blocking);
+        println!("    Will Run: {:?}", self.will_run);
     }
 
     #[cfg(any(feature = "metrics", feature = "debugger"))]

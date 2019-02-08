@@ -8,19 +8,18 @@ use process::Process;
 use manifest::Manifest;
 use provider::Provider;
 use std::collections::HashMap;
-use std::rc::Rc;
 use wasm;
 use url;
 
 pub struct Loader {
-    global_lib_implementations: HashMap<String, Rc<Implementation>>,
+    global_lib_implementations: HashMap<String, Arc<Implementation>>,
     pub processes: Vec<Arc<Mutex<Process>>>,
 }
 
 impl Loader {
     pub fn new() -> Self {
         Loader {
-            global_lib_implementations: HashMap::<String, Rc<Implementation>>::new(),
+            global_lib_implementations: HashMap::<String, Arc<Implementation>>::new(),
             processes: Vec::<Arc<Mutex<Process>>>::new(),
         }
     }
@@ -61,7 +60,7 @@ impl Loader {
                     let wasm_executor = wasm::load(provider,
                                                    &process.name().to_lowercase(),
                                                    &full_url)?;
-                    process.set_implementation(wasm_executor as Rc<Implementation>);
+                    process.set_implementation(wasm_executor as Arc<Implementation>);
                 }
             }
 
@@ -91,7 +90,7 @@ impl Loader {
                         // Wasm implementation being added. Wrap it with the Wasm Native Implementation
                         let wasm_executor = wasm::load(provider, &wasm_source.1,
                                                        &wasm_url)?;
-                        wasm_executor as Rc<Implementation>
+                        wasm_executor as Arc<Implementation>
                     }
 
                     // Native implementation from Lib
