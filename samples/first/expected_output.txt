@@ -90,6 +90,4 @@
 "2880067194370816120"
 "4660046610375530309"
 ERROR	- panic occurred in file 'flowstdlib/src/math/add.rs' at line 22
-ERROR	- Process STDERR:
-
-ERROR	- Exited with status code: 101
+"7540113804746346429"

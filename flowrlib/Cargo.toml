@@ -14,7 +14,7 @@ doctest = true
 bench = true
 doc = true
 
-[profile.debug]
+[profile.dev]
 panic = "unwind"
 
 [profile.release]

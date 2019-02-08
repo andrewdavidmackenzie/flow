@@ -71,7 +71,7 @@ impl Debugger {
         }
     }
 
-    pub fn panic(&mut self, state: &RunState, cause: Box<std::any::Any + std::marker::Send>,
+    pub fn panic(&mut self, state: &RunState, _cause: Box<std::any::Any + std::marker::Send>,
                  id: usize, name: &str, inputs: Vec<Vec<JsonValue>>) {
         self.client.display(
             &format!("Panic occurred in implementation. Entering debugger\nProcess #{} '{}' with inputs: {:?}\n",
