@@ -1,7 +1,6 @@
 use debug_client::DebugClient;
 use std::process::exit;
 use run_state::RunState;
-use process::Process;
 use std::collections::HashSet;
 use serde_json::Value as JsonValue;
 
@@ -158,9 +157,14 @@ impl Debugger {
 
     fn print_process(&self, state: &RunState, process_id: usize) {
         let process_arc = state.get(process_id);
-        let process: &mut Process = &mut *process_arc.lock().unwrap();
-        self.client.display(&format!("{}", process));
-        // TODO print out information about what state it is in etc
+        let mut process_lock = process_arc.try_lock();
+
+        if let Ok(ref mut process) = process_lock {
+            self.client.display(&format!("{}", process))
+            // TODO print out information about what state it is in etc
+        } else {
+            self.client.display(&format!("Process #{} locked, skipping\n", process_id))
+        }
     }
 
     fn print_all_processes(&self, state: &RunState) {
