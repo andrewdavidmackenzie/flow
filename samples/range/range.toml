@@ -138,5 +138,5 @@ to = "value/start-signal"
 
 
 [[connection]]
-from = "input/limit"
+from = "value/limit-store"
 to = "output/max"
