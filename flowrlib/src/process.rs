@@ -80,6 +80,15 @@ impl Process {
         process
     }
 
+    /*
+        Reset to initial state
+    */
+    pub fn reset(&mut self) {
+        for input in &mut self.inputs {
+            input.reset();
+        }
+    }
+
     pub fn default_implementation() -> Arc<Implementation> {
         Arc::new(super::process::ImplementationNotFound{})
     }

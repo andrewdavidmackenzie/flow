@@ -48,8 +48,9 @@ use debug_client::DebugClient;
 pub fn execute(processes: Vec<Arc<Mutex<Process>>>, display_metrics: bool,
                client: &'static DebugClient, use_debugger: bool) {
     set_panic_hook();
-    let mut run_list = RunList::new(client, use_debugger);
-    run_list.run(processes);
+    let mut run_list = RunList::new(client, processes, use_debugger);
+
+    run_list.run();
 
     if display_metrics {
         #[cfg(feature = "metrics")]

@@ -37,6 +37,10 @@ impl Input {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.received.clear();
+    }
+
     pub fn read(&mut self) -> Vec<JsonValue> {
         self.received.clone()
     }

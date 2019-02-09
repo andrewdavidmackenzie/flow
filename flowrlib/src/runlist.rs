@@ -24,12 +24,17 @@ pub struct Metrics {
 #[cfg(feature = "metrics")]
 impl Metrics {
     fn new() -> Self {
-        let now = Instant::now();
         Metrics {
             num_processs: 0,
             outputs_sent: 0,
-            start_time: now,
+            start_time: Instant::now(),
         }
+    }
+
+    fn reset(&mut self, num_processes: usize) {
+        self.num_processs = num_processes;
+        self.outputs_sent = 0;
+        self.start_time = Instant::now();
     }
 }
 
@@ -80,68 +85,58 @@ impl RefUnwindSafe for RunList {}
 impl UnwindSafe for RunList {}
 
 impl RunList {
-    pub fn new(client: &'static DebugClient, debugging: bool) -> Self {
-        #[cfg(feature = "debugger")]
-            let debugger = Debugger::new(client);
-
-        let runlist = RunList {
-            state: RunState::new(),
+    pub fn new(client: &'static DebugClient, processes: Vec<Arc<Mutex<Process>>>, debugging: bool) -> Self {
+        RunList {
+            state: RunState::new(processes),
             #[cfg(feature = "metrics")]
             metrics: Metrics::new(),
             debugging,
             #[cfg(feature = "debugger")]
-            debugger,
-        };
-
-
-        runlist
+            debugger: Debugger::new(client),
+        }
     }
 
-    /*
-        The ìnit' function is responsible for initializing all processs.
-        The `init` method on each process is called, which returns a boolean to indicate that it's
-        inputs are fulfilled - and this information is added to the RunList to control the readyness of
-        the Process to be executed.
+    pub fn run(&mut self) {
+        let mut display_restart;
 
-        Once all processs have been initialized, the list of processs is stored in the RunList
-    */
-    pub fn init(&mut self, processs: Vec<Arc<Mutex<Process>>>) {
-        debug!("Initializing all processes");
-        for process_arc in &processs {
-            let mut process = process_arc.lock().unwrap();
-            debug!("\tInitializing process #{} '{}'", &process.id(), process.name());
-            if process.init() {
-                self.state.can_run(process.id());
+        loop { // loop while restart = true
+            debug!("Initializing all processes");
+            let num_processes = self.state.init();
+
+            if cfg!(feature = "metrics") {
+                self.metrics.reset(num_processes);
             }
-        }
 
-        if cfg!(feature = "metrics") {
-            self.metrics.num_processs = processs.len();
-        }
+            debug!("Starting flow execution");
+            display_restart = (false, false);
 
-        self.state.set_processes(processs);
-    }
+            while let Some(id) = self.state.next() {
+                if log_enabled!(Debug) {
+                    self.state.print();
+                }
 
-    pub fn run(&mut self, processes: Vec<Arc<Mutex<Process>>>) {
-        self.init(processes);
+                if cfg!(feature = "debugger") && self.debugging {
+                    display_restart = self.debugger.check(&mut self.state, id);
 
-        debug!("Starting flow execution");
-        let mut display_output = false;
+                    if display_restart.1 {
+                        break;
+                    }
+                }
 
-        while let Some(id) = self.state.next() {
-            if log_enabled!(Debug) {
+                self.dispatch(id, display_restart.0);
+            }
+
+            if cfg!(feature = "logging") && log_enabled!(Debug) {
                 self.state.print();
             }
 
             if cfg!(feature = "debugger") && self.debugging {
-                display_output = self.debugger.check(&self.state, id);
+                display_restart = self.debugger.end(&mut self.state);
             }
 
-            self.dispatch(id, display_output);
-        }
-
-        if cfg!(feature = "logging") && log_enabled!(Debug) {
-            self.state.print();
+            if !display_restart.1 {
+                break; // We're done!
+            }
         }
 
         debug!("Flow execution ended, no remaining processes ready to run");
@@ -156,8 +151,8 @@ impl RunList {
         debug!("Process #{} '{}' dispatched", id, process.name());
 
         let input_values = process.get_input_values();
-        #[cfg(feature="debugger")]
-        let debug_values = input_values.clone();
+        #[cfg(feature = "debugger")]
+            let debug_values = input_values.clone();
 
         self.state.inputs_consumed(id);
         self.state.unblock_senders_to(id);
@@ -199,7 +194,7 @@ impl RunList {
             Err(cause) => {
                 if cfg!(feature = "debugger") && self.debugging {
                     #[cfg(feature = "debugger")]
-                        self.debugger.panic(&self.state, cause, id, process.name(), debug_values);
+                        self.debugger.panic(&mut self.state, cause, id, process.name(), debug_values);
                 }
             }
         }
@@ -229,7 +224,7 @@ impl RunList {
                    destination.name(), &io_number);
 
             #[cfg(feature = "debugger")]
-                self.debugger.watch_data(&self.state, process.id(), output_route,
+                self.debugger.watch_data(&mut self.state, process.id(), output_route,
                                          &output_value, destination_id, io_number);
 
             destination.write_input(io_number, output_value.clone());

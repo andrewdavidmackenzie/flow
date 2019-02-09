@@ -14,15 +14,57 @@ pub struct RunState {
 }
 
 impl RunState {
-    pub fn new() -> Self {
+    pub fn new(processes: Vec<Arc<Mutex<Process>>>) -> Self {
         RunState {
-            processes: Vec::<Arc<Mutex<Process>>>::new(),
+            processes,
             can_run: HashSet::<usize>::new(),
             blocking: Vec::<(usize, usize)>::new(),
             will_run: Vec::<usize>::new(),
             #[cfg(feature = "debugger")]
             dispatches: 0,
         }
+    }
+
+    /*
+        Reset all values back to inital ones to enable debugging from scracth
+    */
+    pub fn reset(&mut self) {
+        for process_arc in &self.processes {
+            let mut process = process_arc.lock().unwrap();
+            process.reset()
+        };
+        self.can_run.clear();
+        self.blocking.clear();
+        self.will_run.clear();
+        if cfg!(feature = "debugger") {
+            self.dispatches = 0;
+        }
+    }
+
+    /*
+        The ìnit' function is responsible for initializing all processs.
+        The `init` method on each process is called, which returns a boolean to indicate that it's
+        inputs are fulfilled - and this information is added to the RunList to control the readyness of
+        the Process to be executed.
+
+        Once all processs have been initialized, the list of processs is stored in the RunList
+    */
+    pub fn init(&mut self) -> usize {
+        let mut can_run_list = Vec::<usize>::new();
+
+        for process_arc in &self.processes {
+            let mut process = process_arc.lock().unwrap();
+            debug!("\tInitializing process #{} '{}'", process.id(), process.name());
+            if process.init() {
+                can_run_list.push(process.id());
+            }
+        }
+
+        for id in can_run_list {
+            self.can_run(id);
+        }
+
+        self.processes.len()
     }
 
     #[cfg(any(feature = "logging", feature = "debugger"))]
@@ -42,10 +84,6 @@ impl RunState {
 
     pub fn get(&self, id: usize) -> Arc<Mutex<Process>> {
         self.processes[id].clone()
-    }
-
-    pub fn set_processes(&mut self, processs: Vec<Arc<Mutex<Process>>>) {
-        self.processes = processs;
     }
 
     // Return the id of the next process ready to be run, if there is one
@@ -76,7 +114,7 @@ impl RunState {
         self.can_run.insert(id);
 
         if !self.is_blocked(id) {
-            debug!("\t\t\tProcess #{} not blocked on output, so added to end of 'Will Run' list", id);
+            debug!("\t\t\tProcess #{} not blocked on output, so added to 'Will Run' list", id);
             self.will_run.push(id);
         }
     }
@@ -141,7 +179,7 @@ mod tests {
     use process::Process;
     use super::RunState;
 
-    fn test_processs<'a>() -> Vec<Arc<Mutex<Process>>> {
+    fn test_processes<'a>() -> Vec<Arc<Mutex<Process>>> {
         let p0 = Arc::new(Mutex::new(
             Process::new("p0", // name
                          false,// static value
@@ -172,9 +210,7 @@ mod tests {
 
     #[test]
     fn blocked_works() {
-        let processs = test_processs();
-        let mut state = RunState::new();
-        state.set_processes(processs);
+        let mut state = RunState::new(test_processes());
 
         // Indicate that 0 is blocked by 1
         state.blocked_by(1, 0);
@@ -184,9 +220,7 @@ mod tests {
 
     #[test]
     fn get_works() {
-        let processs = test_processs();
-        let mut state = RunState::new();
-        state.set_processes(processs);
+        let state = RunState::new(test_processes());
         let got_arc = state.get(1);
         let got = got_arc.lock().unwrap();
         assert_eq!(got.id(), 1)
@@ -194,18 +228,14 @@ mod tests {
 
     #[test]
     fn no_next_if_none_ready() {
-        let processs = test_processs();
-        let mut state = RunState::new();
-        state.set_processes(processs);
+        let mut state = RunState::new(test_processes());
 
         assert!(state.next().is_none());
     }
 
     #[test]
     fn inputs_ready_makes_ready() {
-        let processs = test_processs();
-        let mut state = RunState::new();
-        state.set_processes(processs);
+        let mut state = RunState::new(test_processes());
 
         // Indicate that 0 has all it's inputs read
         state.can_run(0);
@@ -215,9 +245,7 @@ mod tests {
 
     #[test]
     fn blocked_is_not_ready() {
-        let processs = test_processs();
-        let mut state = RunState::new();
-        state.set_processes(processs);
+        let mut state = RunState::new(test_processes());
 
         // Indicate that 0 is blocked by 1
         state.blocked_by(1, 0);
@@ -233,9 +261,7 @@ mod tests {
 
     #[test]
     fn unblocking_makes_ready() {
-        let processs = test_processs();
-        let mut state = RunState::new();
-        state.set_processes(processs);
+        let mut state = RunState::new(test_processes());
 
         // Indicate that 0 is blocked by 1
         state.blocked_by(1, 0);
@@ -254,9 +280,7 @@ mod tests {
 
     #[test]
     fn unblocking_doubly_blocked_process_not_ready() {
-        let processs = test_processs();
-        let mut state = RunState::new();
-        state.set_processes(processs);
+        let mut state = RunState::new(test_processes());
 
         // Indicate that 0 is blocked by 1 and 2
         state.blocked_by(1, 0);

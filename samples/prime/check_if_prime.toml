@@ -14,6 +14,7 @@ type = "Number"
 name = "lowest-divisor"
 type = "Number"
 init = 2
+static = true
 
 [[process]]
 alias = "divisor-range"
@@ -27,13 +28,9 @@ to = "process/divisor-range/start"
 from = "input/candidate"
 to = "process/divisor-range/limit"
 
-[[process]]
-alias = "print"
-source = "lib://flowr/stdio/stdout.toml"
-
 [[connection]]
 from = "process/divisor-range/series"
-to = "process/print"
+to = "output/prime"
 
 ######################################
 

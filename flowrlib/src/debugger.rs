@@ -23,6 +23,7 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
 'h' | 'help'                 - Display this help message
 'lb'| 'breakpoints'          - List all the currently set breakpoints
 'p' | 'print' [n]            - Print the overall state, or state of process number 'n'
+'r' | 'reset'                - reset the state back to initial state after loading
 's' | 'step' [n]             - Step over the next 'n' process executions (default = 1) then break
 ";
 
@@ -47,7 +48,7 @@ impl Debugger {
     /*
         return true if the debugger requests that we display the output of the next dispatch
     */
-    pub fn check(&mut self, state: &RunState, next_process_id: usize) -> bool {
+    pub fn check(&mut self, state: &mut RunState, next_process_id: usize) -> (bool, bool) {
         if self.break_at_invocation == state.dispatches() {
             return self.command_loop(state);
         }
@@ -57,10 +58,10 @@ impl Debugger {
             return self.command_loop(state);
         }
 
-        false
+        (false, false)
     }
 
-    pub fn watch_data(&mut self, state: &RunState, source_process_id: usize, output_route: &String,
+    pub fn watch_data(&mut self, state: &mut RunState, source_process_id: usize, output_route: &String,
                       value: &JsonValue, destination_id: usize, input_number: usize) {
         if self.output_breakpoints.contains(&(source_process_id, output_route.to_string())) ||
             self.input_breakpoints.contains(&(destination_id, input_number)) {
@@ -71,7 +72,7 @@ impl Debugger {
         }
     }
 
-    pub fn panic(&mut self, state: &RunState, _cause: Box<std::any::Any + std::marker::Send>,
+    pub fn panic(&mut self, state: &mut RunState, _cause: Box<std::any::Any + std::marker::Send>,
                  id: usize, name: &str, inputs: Vec<Vec<JsonValue>>) {
         self.client.display(
             &format!("Panic occurred in implementation. Entering debugger\nProcess #{} '{}' with inputs: {:?}\n",
@@ -79,7 +80,15 @@ impl Debugger {
         self.command_loop(state);
     }
 
-    fn command_loop(&mut self, state: &RunState) -> bool {
+    pub fn end(&mut self, state: &mut RunState,) -> (bool, bool) {
+        self.client.display("Execution has ended\n");
+        self.command_loop(state)
+    }
+
+    /*
+        Return values are (display_output of next invocation, reset execution)
+    */
+    pub fn command_loop(&mut self, state: &mut RunState) -> (bool, bool) {
         loop {
             self.client.display(&format!("Debug #{}> ", state.dispatches()));
             let mut input = String::new();
@@ -88,15 +97,20 @@ impl Debugger {
                     let (command, param) = Self::parse_command(&input);
                     match command {
                         "b" | "breakpoint" => self.add_breakpoint(state, param),
-                        "" | "c" | "continue" => return false,
+                        "" | "c" | "continue" => return (false, false),
                         "d" | "delete" => self.delete_breakpoint(param),
                         "e" | "exit" => exit(1),
                         "h" | "help" => self.help(),
                         "lb" | "breakpoints" => self.list_breakpoints(),
                         "p" | "print" => self.print(state, param),
+                        "r" | "reset" => {
+                            self.client.display("Resetting state\n");
+                            state.reset();
+                            return (false, true);
+                        },
                         "s" | "step" => {
                             self.step(state, param);
-                            return true;
+                            return (true, false);
                         }
                         _ => self.client.display(&format!("Unknown debugger command '{}'\n", command))
                     }
