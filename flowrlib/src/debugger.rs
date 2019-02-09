@@ -104,6 +104,7 @@ impl Debugger {
                         "lb" | "breakpoints" => self.list_breakpoints(),
                         "p" | "print" => self.print(state, param),
                         "r" | "reset" => {
+                            self.break_at_invocation = 0;
                             self.client.display("Resetting state\n");
                             state.reset();
                             return (false, true);

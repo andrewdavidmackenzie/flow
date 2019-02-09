@@ -99,7 +99,7 @@ impl RunList {
     pub fn run(&mut self) {
         let mut display_restart;
 
-        loop { // loop while restart = true
+        'outer: loop { // loop while restart = true
             debug!("Initializing all processes");
             let num_processes = self.state.init();
 
@@ -110,7 +110,7 @@ impl RunList {
             debug!("Starting flow execution");
             display_restart = (false, false);
 
-            while let Some(id) = self.state.next() {
+            'inner: while let Some(id) = self.state.next() {
                 if log_enabled!(Debug) {
                     self.state.print();
                 }
@@ -119,23 +119,25 @@ impl RunList {
                     display_restart = self.debugger.check(&mut self.state, id);
 
                     if display_restart.1 {
-                        break;
+                        break 'inner;
                     }
                 }
 
                 self.dispatch(id, display_restart.0);
             }
 
-            if cfg!(feature = "logging") && log_enabled!(Debug) {
-                self.state.print();
-            }
-
-            if cfg!(feature = "debugger") && self.debugging {
-                display_restart = self.debugger.end(&mut self.state);
-            }
-
             if !display_restart.1 {
-                break; // We're done!
+                if cfg!(feature = "logging") && log_enabled!(Debug) {
+                    self.state.print();
+                }
+
+                if cfg!(feature = "debugger") && self.debugging {
+                    display_restart = self.debugger.end(&mut self.state);
+                }
+
+                if !display_restart.1 {
+                    break 'outer; // We're done!
+                }
             }
         }
 
