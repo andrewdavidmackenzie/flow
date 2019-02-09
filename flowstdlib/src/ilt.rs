@@ -6,12 +6,17 @@ use std::sync::Arc;
 pub fn get_ilt() -> ImplementationLocatorTable {
     let mut ilt = ImplementationLocatorTable::new();
 
+    ilt.locators.insert("lib://flowstdlib/math/add/Add".to_string(),
+                        Native(Arc::new(::math::add::Add {})));
+    ilt.locators.insert("lib://flowstdlib/math/divide/Divide".to_string(),
+                        Native(Arc::new(::math::divide::Divide {})));
+    ilt.locators.insert("lib://flowstdlib/math/subtract/Subtract".to_string(),
+                        Native(Arc::new(::math::subtract::Subtract{})));
+
     ilt.locators.insert("lib://flowstdlib/control/tap/Tap".to_string(),
                         Native(Arc::new(::control::tap::Tap)));
     ilt.locators.insert("lib://flowstdlib/control/compare/Compare".to_string(),
                         Native(Arc::new(::control::compare::Compare {})));
-    ilt.locators.insert("lib://flowstdlib/math/add/Add".to_string(),
-                        Native(Arc::new(::math::add::Add {})));
     ilt.locators.insert("lib://flowstdlib/fmt/to_string/ToString".to_string(),
                         Native(Arc::new(::fmt::to_string::ToString {})));
     ilt.locators.insert("lib://flowstdlib/fmt/to_number/ToNumber".to_string(),
