@@ -299,7 +299,7 @@ mod test {
             from: "/r1".to_string(),
             to: "/r2".to_string(),
             from_io: IO::new(&DataType::from("String"), &Route::from("/r1")),
-            to_io: IO::new(&DataType::from("String"), &Route::from("r2")),
+            to_io: IO::new(&DataType::from("String"), &Route::from("/r2")),
         };
 
         let mut connections = vec!(first, second);

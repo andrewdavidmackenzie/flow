@@ -28,24 +28,24 @@ to = "process/divisor-range/start"
 from = "input/candidate"
 to = "process/divisor-range/limit"
 
-[[connection]]
-from = "process/divisor-range/series"
-to = "output/prime"
-
-######################################
 
 # divide the candidate by the divisor
-#[[process]]
-#alias = "divide"
-#source = "lib://flowstdlib/math/divide.toml"
+[[process]]
+alias = "divide"
+source = "lib://flowstdlib/math/divide.toml"
 
-#[[connection]]
-#from = "process/divisor-range/max"
-#to = "process/divide/dividend"
+[[connection]]
+from = "process/divisor-range/max"
+to = "process/divide/dividend"
 
-#[[connection]]
-#from = "process/divisor-range/series"
-# to = "process/divide/divisor"
+[[connection]]
+from = "process/divisor-range/series"
+to = "process/divide/divisor"
+
+# debug
+[[connection]]
+from = "process/divide/remainder"
+to = "output/prime"
 
 
 #check if the remainder is equal to 0
