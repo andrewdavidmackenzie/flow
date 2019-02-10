@@ -164,7 +164,7 @@ pub fn remove_duplicates(connections: &mut Vec<Connection>) -> Result<(), String
 
     // keep unique connections - dump duplicates
     connections.retain(|conn| {
-        let unique_key = format!("{}->{}", conn.from, conn.to);
+        let unique_key = format!("{}->{}", conn.from_io.route(), conn.to_io.route());
         uniques.insert(unique_key)
     });
 
