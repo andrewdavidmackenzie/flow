@@ -131,7 +131,7 @@ samples/%/test.output: samples/%/test_input.txt samples/%/test_arguments.txt
 # build any samples that provide their own implementations
 	@test -f $(@D)/Makefile && cd $(@D) && make --quiet wasm;true
 # remove local file path from output messages with sed to make local failures match travis failures
-	@cat $< | cargo run --quiet --bin flowc -- -d $(@D) -- `cat $(@D)/test_arguments.txt` | grep -v "Running" | grep -v "Finished dev" > $@; true
+	@cat $< | cargo run --quiet --bin flowc -- -g -d $(@D) -- `cat $(@D)/test_arguments.txt` | grep -v "Running" | grep -v "Finished dev" > $@; true
 	@diff $@ $(@D)/expected_output.txt || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && exit $$ret)
 	@echo "Sample output matches expected output"
 	@rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time

@@ -46,13 +46,14 @@ fn main() {
     a message to display to the user if all went OK
 */
 fn run() -> Result<String, String> {
-    let (url, args, dump, skip_generation, out_dir) = parse_args(get_matches())?;
+    let (url, args, dump, skip_generation, debug_symbols, out_dir)
+        = parse_args(get_matches())?;
     let meta_provider = MetaProvider {};
 
     let process = loader::load_process(&"".to_string(),
                                        &"context".to_string(), &url.to_string(), &meta_provider)?;
     match process {
-        FlowProcess(flow) => run_flow(flow, args, dump, skip_generation, out_dir),
+        FlowProcess(flow) => run_flow(flow, args, dump, skip_generation, debug_symbols, out_dir),
         _ => Err(format!("Process loaded was not of type 'Flow' and cannot be executed"))
     }
 }
@@ -72,6 +73,10 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .short("d")
             .long("dump")
             .help("Dump the flow to standard output after loading it"))
+        .arg(Arg::with_name("symbols")
+            .short("g")
+            .long("symbols")
+            .help("Generate debug symbols (like process names and full routes)"))
         .arg(Arg::with_name("output")
             .short("o")
             .long("output")
@@ -96,7 +101,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 /*
     Parse the command line arguments
 */
-fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, PathBuf), String> {
+fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, bool, PathBuf), String> {
     let mut args: Vec<String> = vec!();
     if let Some(flow_args) = matches.values_of("flow_args") {
         args = flow_args.map(|a| a.to_string()).collect();
@@ -111,13 +116,14 @@ fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, Path
 
     let dump = matches.is_present("dump");
     let skip_generation = matches.is_present("skip");
+    let debug_symbols = matches.is_present("symbols");
     let out_dir_option = matches.value_of("OUTPUT_DIR");
     let output_dir = source_arg::get_output_dir(&url, out_dir_option)?;
 
-    Ok((url, args, dump, skip_generation, output_dir))
+    Ok((url, args, dump, skip_generation, debug_symbols, output_dir))
 }
 
-fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, out_dir: PathBuf)
+fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool, out_dir: PathBuf)
             -> Result<String, String> {
     info!("flow loaded with alias '{}'\n", flow.alias);
 
@@ -134,7 +140,7 @@ fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, ou
         return Ok("Manifest generation and flow running skipped".to_string());
     }
 
-    let manifest_path= write_manifest(&flow, &out_dir, &tables).map_err(|e| e.to_string())?;
+    let manifest_path= write_manifest(&flow, debug_symbols, &out_dir, &tables).map_err(|e| e.to_string())?;
 
     // Append flow arguments at the end of the arguments so that they are passed on it when it's run
     execute_flow(manifest_path, args)
@@ -146,14 +152,14 @@ fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, ou
     let mut output_dir = dir.into_path();
 */
 
-fn write_manifest(flow: &Flow, out_dir: &PathBuf, tables: &GenerationTables)
+fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: &PathBuf, tables: &GenerationTables)
                   -> Result<PathBuf, std::io::Error> {
     let mut filename = out_dir.clone();
     filename.push("manifest.json".to_string());
     let mut manifest_file = File::create(&filename)?;
     let out_dir_path = Url::from_file_path(out_dir).unwrap().to_string();
 
-    let manifest = generate::create_manifest(flow, &out_dir_path, tables)?;
+    let manifest = generate::create_manifest(flow, debug_symbols, &out_dir_path, tables)?;
 
     manifest_file.write_all(serde_json::to_string_pretty(&manifest)?.as_bytes())?;
 

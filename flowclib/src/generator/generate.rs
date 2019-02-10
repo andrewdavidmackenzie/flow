@@ -6,6 +6,7 @@ use model::flow::Flow;
 use model::route::Route;
 use model::connection::Connection;
 use flowrlib::manifest::Manifest;
+use flowrlib::process::Process;
 
 #[derive(Serialize)]
 pub struct GenerationTables {
@@ -14,7 +15,7 @@ pub struct GenerationTables {
     pub destination_routes: HashMap<Route, (usize, usize)>,
     pub collapsed_connections: Vec<Connection>,
     pub runnables: Vec<Box<Runnable>>,
-    pub libs: HashSet<String>
+    pub libs: HashSet<String>,
 }
 
 serialize_trait_object!(Runnable);
@@ -35,27 +36,36 @@ impl GenerationTables {
             destination_routes: HashMap::<Route, (usize, usize)>::new(),
             collapsed_connections: Vec::new(),
             runnables: Vec::new(),
-            libs: HashSet::new()
+            libs: HashSet::new(),
         }
     }
 }
 
-pub fn create_manifest(_flow: &Flow, out_dir_path: &str, tables: &GenerationTables) -> Result<Manifest> {
+pub fn create_manifest(_flow: &Flow, debug_symbols: bool, out_dir_path: &str, tables: &GenerationTables)
+                       -> Result<Manifest> {
     let mut manifest = Manifest::new();
     let mut base_path = out_dir_path.to_string();
     base_path.push('/');
 
     // Generate runtime Process struct for each of the runnables
     for runnable in &tables.runnables {
-        manifest.processes.push(runnable_to_process(&base_path, runnable));
+        manifest.processes.push(runnable_to_process(&base_path, runnable, debug_symbols));
     }
 
     Ok(manifest)
 }
 
 // Do as an Into trait?
-fn runnable_to_process(out_dir_path: &str, runnable: &Box<Runnable>) -> flowrlib::process::Process {
-    let name = runnable.alias();
+fn runnable_to_process(out_dir_path: &str, runnable: &Box<Runnable>, debug_symbols: bool)
+                       -> flowrlib::process::Process {
+    let mut name= "".to_string();
+    let mut route= "".to_string();
+
+    if debug_symbols {
+        name = runnable.alias().to_string();
+        route = runnable.route().to_string();
+    }
+
     let is_static = runnable.is_static_value();
     let mut impl_path = runnable.get_impl_path();
 
@@ -76,15 +86,14 @@ fn runnable_to_process(out_dir_path: &str, runnable: &Box<Runnable>) -> flowrlib
     let initial_value = runnable.get_initial_value();
     let output_routes = runnable.get_output_routes().clone();
 
-    flowrlib::process::Process::new(
-        name,
-        is_static,
-        impl_path,
-        input_depths,
-        id,
-        initial_value,
-        output_routes,
-    )
+    Process::new(name,
+                 route,
+                 is_static,
+                 impl_path,
+                 input_depths,
+                 id,
+                 initial_value,
+                 output_routes)
 }
 
 // TODO re-instate tests with new implementation

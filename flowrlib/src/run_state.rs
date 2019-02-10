@@ -181,7 +181,8 @@ mod tests {
 
     fn test_processes<'a>() -> Vec<Arc<Mutex<Process>>> {
         let p0 = Arc::new(Mutex::new(
-            Process::new("p0", // name
+            Process::new("p0".to_string(), // name
+                         "/context/p0".to_string(),
                          false,// static value
                          "/test".to_string(),
                          vec!(), // input depths array
@@ -189,7 +190,8 @@ mod tests {
                          None,
                          vec!(("".to_string(), 1, 0), ("".to_string(), 1, 0)), // destinations
             )));    // implementation
-        let p1 = Arc::new(Mutex::new(Process::new("p1",
+        let p1 = Arc::new(Mutex::new(Process::new("p1".to_string(),
+                                                  "/context/p1".to_string(),
                                                   false,// static value
                                                   "/test".to_string(),
                                                   vec!(1), // input depths array
@@ -197,7 +199,8 @@ mod tests {
                                                   None,
                                                   vec!(),
         )));
-        let p2 = Arc::new(Mutex::new(Process::new("p2",
+        let p2 = Arc::new(Mutex::new(Process::new("p2".to_string(),
+                                                  "/context/p2".to_string(),
                                                   false,// static value
                                                   "/test".to_string(),
                                                   vec!(1), // input depths array

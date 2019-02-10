@@ -10,10 +10,17 @@ use std::fmt;
 pub struct Process {
     #[serde(default, skip_serializing_if = "String::is_empty")]
     name: String,
+
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    route: String,
+
     id: usize,
+
     implementation_source: String,
+
     #[serde(default, skip_serializing_if = "not_static")]
     is_static: bool,
+
     #[serde(default, skip_serializing_if = "Option::is_none")]
     initial_value: Option<JsonValue>,
 
@@ -55,7 +62,8 @@ impl fmt::Display for Process {
 }
 
 impl Process {
-    pub fn new(name: &str,
+    pub fn new(name: String,
+               route: String,
                is_static: bool,
                implementation_source: String,
                input_depths: Vec<usize>,
@@ -65,7 +73,8 @@ impl Process {
         let implementation = Process::default_implementation();
 
         let mut process = Process {
-            name: name.to_string(),
+            name,
+            route,
             id,
             implementation_source,
             implementation,
@@ -205,7 +214,9 @@ mod test {
 
     #[test]
     fn can_send_input_if_empty() {
-        let mut process = Process::new("test", false, "/test".to_string(), vec!(1), 0,
+        let mut process = Process::new("test".to_string(),
+                                       "/context/test".to_string(), false,
+                                       "/test".to_string(), vec!(1), 0,
                                        None, vec!());
         process.init();
         process.write_input(0, json!(1));
@@ -214,7 +225,9 @@ mod test {
 
     #[test]
     fn can_send_input_if_empty_and_static() {
-        let mut process = Process::new("test", true, "/test".to_string(), vec!(1), 0,
+        let mut process = Process::new("test".to_string(),
+                                       "/context/test".to_string(), true,
+                                       "/test".to_string(), vec!(1), 0,
                                        None, vec!());
         process.init();
         process.write_input(0, json!(1));
@@ -223,7 +236,9 @@ mod test {
 
     #[test]
     fn cannot_send_input_if_initialized() {
-        let mut process = Process::new("test", false, "/test".to_string(), vec!(1), 0,
+        let mut process = Process::new("test".to_string(),
+                                       "/context/test".to_string(), false,
+                                       "/test".to_string(), vec!(1), 0,
                                        Some(json!(0)), vec!());
         process.init();
         process.write_input(0, json!(1)); // error
@@ -232,7 +247,9 @@ mod test {
 
     #[test]
     fn can_send_input_if_full_and_static() {
-        let mut process = Process::new("test", true, "/test".to_string(), vec!(1), 0,
+        let mut process = Process::new("test".to_string(),
+                                       "/context/test".to_string(), true,
+                                       "/test".to_string(), vec!(1), 0,
                                        None, vec!());
         process.init();
         process.write_input(0, json!(1));
@@ -242,7 +259,9 @@ mod test {
 
     #[test]
     fn cannot_send_input_if_full_and_not_static() {
-        let mut process = Process::new("test", false, "/test".to_string(), vec!(1), 0,
+        let mut process = Process::new("test".to_string(),
+                                       "/context/test".to_string(), false,
+                                       "/test".to_string(), vec!(1), 0,
                                        None, vec!());
         process.init();
         process.write_input(0, json!(1)); // success

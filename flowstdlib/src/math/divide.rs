@@ -17,19 +17,19 @@ impl Implementation for Divide {
 
 #[cfg(test)]
 mod test {
-    use flowrlib::process::Process;
+    use flowrlib::implementation::Implementation;
     use serde_json::Value as JsonValue;
+    use super::Divide;
 
     #[test]
     fn test_divide() {
+        let divide: &Implementation = &Divide{} as &Implementation;
+
         // Create input vector
         let dividend = json!(99);
         let divisor = json!(3);
         let inputs: Vec<Vec<JsonValue>> = vec!(vec!(dividend), vec!(divisor));
 
-        let d = &Process::new("d",true, "".to_string(), vec!(1, 1, 1), 0, None, vec!()) as &Process;
-        let implementation = d.get_implementation();
-
-        implementation.run(inputs);
+        divide.run(inputs);
     }
 }
