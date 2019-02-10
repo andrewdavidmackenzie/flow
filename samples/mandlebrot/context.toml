@@ -84,28 +84,28 @@ to = "process/render/lower_right"
 #
 
 # Format Bitmap
-[[process]]
-alias = "format_bitmap"
-source = "lib://flowstdlib/img/format_png.toml"
+#[[process]]
+#alias = "format_bitmap"
+#source = "lib://flowstdlib/img/format_png.toml"
 
-[[connection]]
-from = "process/render/bitmap_bounds"
-to = "process/format_bitmap/bounds"
+#[[connection]]
+#from = "process/render/bitmap_bounds"
+#to = "process/format_bitmap/bounds"
 
-[[connection]]
-from = "process/render/bytes"
-to = "process/format_bitmap/bytes"
+#[[connection]]
+#from = "process/render/bytes"
+#to = "process/format_bitmap/bytes"
 
 
 # Write Bitmap to a file
-[[process]]
-alias = "write_file"
-source = "lib://flowr/file/file_write.toml"
+#[[process]]
+#alias = "write_file"
+#source = "lib://flowr/file/file_write.toml"
 
-[[connection]]
-from = "process/args/0"
-to = "process/write_file/filename"
+#[[connection]]
+#from = "process/args/0"
+#to = "process/write_file/filename"
 
-[[connection]]
-from = "process/format_bitmap"
-to = "process/write_file/bytes"
+#[[connection]]
+#from = "process/format_bitmap"
+#to = "process/write_file/bytes"

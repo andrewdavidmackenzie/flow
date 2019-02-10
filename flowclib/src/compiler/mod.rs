@@ -2,3 +2,4 @@
 pub mod compile;
 mod connector;
 mod gatherer;
+mod checker;

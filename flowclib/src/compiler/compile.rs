@@ -2,6 +2,7 @@ use model::flow::Flow;
 use super::gatherer;
 use super::connector;
 use generator::generate::GenerationTables;
+use super::checker;
 
 /// Take a hierarchical flow definition in memory and compile it, generating code that implements
 /// the flow, including links to the flowrlib runtime library and library functions used in the
@@ -16,6 +17,7 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables, String> {
     connector::routes_table(&mut tables);
     connector::set_runnable_outputs(&mut tables)?;
     connector::check_connections(&mut tables)?;
+    checker::check_process_inputs(&mut tables)?;
 
     Ok(tables)
 }

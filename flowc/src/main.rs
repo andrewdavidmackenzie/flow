@@ -215,7 +215,7 @@ mod test {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         let path = url_from_rel_path("flowc/test-flows/args.toml");
-        let process = loader::load_process(parent_route, &"args".to_string(),
+        let process = loader::load_process(parent_route, &"context".to_string(),
                                            &path, &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();
@@ -240,11 +240,26 @@ mod test {
 
     #[test]
     #[should_panic]
-    fn compiled_detects_competing_inputs() {
+    fn compiler_detects_competing_inputs() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         let process = loader::load_process(parent_route, &"competing".to_string(),
                                            &url_from_rel_path("flowc/test-flows/competing.toml"),
+                                           &meta_provider).unwrap();
+        if let FlowProcess(ref flow) = process {
+            let _tables = compile::compile(flow).unwrap();
+        } else {
+            assert!(false, "Process loaded was not a flow");
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn compiler_detects_unused_input() {
+        let meta_provider = MetaProvider {};
+        let parent_route = &"".to_string();
+        let process = loader::load_process(parent_route, &"unused_input".to_string(),
+                                           &url_from_rel_path("flowc/test-flows/unused_input.toml"),
                                            &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();
