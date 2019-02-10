@@ -192,7 +192,7 @@ fn runnable_to_dot(runnable: &Runnable, runnables: &Vec<Box<Runnable>>) -> Strin
 fn runnable_style(runnable: &Runnable) -> &'static str {
     if runnable.get_type() == "Value" {
         if runnable.is_static_value() {
-            return "shape=cylinder, style=filled, fillcolor=gray40,"; // static value
+            return "shape=cylinder, style=filled, fillcolor=gray60,"; // static value
         } else {
             return "shape=cylinder, style=filled, fillcolor=dodgerblue,"; // normal value
         }
