@@ -14,6 +14,8 @@ name = "flowc"
 path = "src/main.rs"
 
 [features]
+default = ["debugger"]
+debugger = []
 online_tests = []
 
 [dependencies]

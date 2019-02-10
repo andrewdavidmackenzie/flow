@@ -8,9 +8,11 @@ use std::fmt;
 
 #[derive(Deserialize, Serialize)]
 pub struct Process {
+    #[cfg(feature = "debugger")]
     #[serde(default, skip_serializing_if = "String::is_empty")]
     name: String,
 
+    #[cfg(feature = "debugger")]
     #[serde(default, skip_serializing_if = "String::is_empty")]
     route: String,
 

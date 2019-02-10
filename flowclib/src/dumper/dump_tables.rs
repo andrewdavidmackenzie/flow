@@ -132,7 +132,7 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Resul
 /// }
 /// ```
 pub fn dump_runnables(flow: &Flow, tables: &GenerationTables, output_dir: &PathBuf) -> io::Result<String> {
-    dump_dot::runnables_to_dot(&flow.alias, tables, output_dir)?;
+    dump_dot::runnables_to_dot(flow, tables, output_dir)?;
 
     let mut writer = create_output_file(&output_dir, "runnables", "dump")?;
     dump_table(tables.runnables.iter(), &mut writer)?;

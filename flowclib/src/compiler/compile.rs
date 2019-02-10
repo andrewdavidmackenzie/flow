@@ -11,7 +11,7 @@ use super::checker;
 pub fn compile(flow: &Flow) -> Result<GenerationTables, String> {
     let mut tables = GenerationTables::new();
 
-    gatherer::add_entries(flow, &mut tables);
+    gatherer::gather_runnables_and_connections(flow, &mut tables);
     gatherer::index_runnables(&mut tables.runnables);
     tables.collapsed_connections = connector::collapse_connections(&tables.connections);
     connector::routes_table(&mut tables);

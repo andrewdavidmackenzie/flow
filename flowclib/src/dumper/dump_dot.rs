@@ -151,10 +151,10 @@ fn run_to_dot(runnable: &Runnable) -> String {
 
 
 // Given a Runnable as used in the code generation - generate a "dot" format string to draw it
-fn runnable_to_dot(runnable: &Box<Runnable>, runnables: &Vec<Box<Runnable>>) -> String {
+fn runnable_to_dot(runnable: &Runnable, runnables: &Vec<Box<Runnable>>) -> String {
     let mut runnable_string = String::new();
 
-    let style = runnable_style(&**runnable);
+    let style = runnable_style(runnable);
 
     runnable_string.push_str(&format!("r{}[{} label=\"{} (#{})\"];\n",
                                       runnable.get_id(),
@@ -263,7 +263,7 @@ fn process_reference_to_dot(process_ref: &ProcessReference) -> String {
         FlowProcess(ref flow) => {
             dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot\"];\n",
                                          flow.route(), process_ref.alias, process_ref.source_url));
-        },
+        }
         FunctionProcess(ref function) => {
             dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot\"];\n",
                                          function.route(), process_ref.alias, process_ref.source_url));
@@ -272,20 +272,64 @@ fn process_reference_to_dot(process_ref: &ProcessReference) -> String {
     dot_string
 }
 
-pub fn runnables_to_dot(flow_alias: &str, tables: &GenerationTables, output_dir: &PathBuf) -> io::Result<String> {
+/*
+    Create a directed graph named after the flow, adding runnables grouped in sub-clusters
+*/
+pub fn runnables_to_dot(flow: &Flow, tables: &GenerationTables, output_dir: &PathBuf)
+                        -> io::Result<String> {
     let mut dot_file = helper::create_output_file(&output_dir, "runnables", "dot")?;
     info!("Generating Runnables dot file {}, Use \"dotty\" to view it", output_dir.display());
+    dot_file.write_all(format!("digraph {} {{\nnodesep=1.5\n", str::replace(&flow.alias, "-", "_")).as_bytes())?;
+    dot_file.write_all(&format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
 
-    // Create a directed graph named after the flow
-    dot_file.write_all(format!("digraph {} {{\nnodesep=1.5\n", str::replace(flow_alias, "-", "_")).as_bytes())?;
 
-    let mut runnables = String::new();
-    for runnable in &tables.runnables {
-        runnables.push_str(&runnable_to_dot(runnable, &tables.runnables));
-    }
+    let runnables = flow_runnable_to_dot(flow, tables)?;
+
     dot_file.write_all(runnables.as_bytes())?;
 
     dot_file.write_all("}".as_bytes())?;
 
     Ok("Dot file written".to_string())
+}
+
+fn output_compiled_runnable(route: &Route, tables: &GenerationTables, output: &mut String) {
+    for runnable in &tables.runnables {
+        if runnable.route() == route {
+            output.push_str(&runnable_to_dot(&**runnable, &tables.runnables));
+        }
+    }
+}
+
+fn flow_runnable_to_dot(flow: &Flow, tables: &GenerationTables) -> io::Result<String> {
+    let mut output = String::new();
+
+    // Add Values from this flow to the dot output
+    if let Some(ref values) = flow.values {
+        for value in values {
+            output_compiled_runnable(value.route(), tables, &mut output);
+        }
+    }
+
+    // Do the same for all subprocesses referenced from this one
+    if let Some(ref process_refs) = flow.process_refs {
+        for process_ref in process_refs {
+            match process_ref.process {
+                FlowProcess(ref subflow) => {
+                    // create cluster sub graph
+                    output.push_str(&format!("\nsubgraph cluster_{} {{\n", str::replace(&subflow.alias, "-", "_")));
+                    output.push_str(&format!("label = \"{}\";", subflow.route()));
+
+                    output.push_str(&flow_runnable_to_dot(subflow, tables)?); // recurse
+
+                    // close cluster
+                    output.push_str("}\n");
+                }
+                FunctionProcess(ref function) => {
+                    output_compiled_runnable(function.route(), tables, &mut output);
+                }
+            }
+        }
+    }
+
+    Ok(output)
 }
