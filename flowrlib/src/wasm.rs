@@ -9,6 +9,8 @@ use provider::Provider;
 use wasmi::{Module, ModuleRef, ModuleInstance, ImportsBuilder};
 //use wasmi::{Module, ModuleRef, ModuleInstance, ImportsBuilder, RuntimeValue, NopExternals};
 
+const DEFAULT_WASM_FILENAME: &str = "module.wasm";
+
 #[cfg(not(target_arg = "wasm32"))]
 pub struct WasmExecutor {
     pub module: Arc<Mutex<ModuleRef>>,
@@ -43,7 +45,7 @@ impl Implementation for WasmExecutor {
 */
 pub fn load(provider: &Provider, name: &str, source_url: &str)
             -> Result<Arc<WasmExecutor>, String> {
-    let (resolved_url, _) = provider.resolve(&source_url)?;
+    let (resolved_url, _) = provider.resolve(&source_url, DEFAULT_WASM_FILENAME)?;
     let content = provider.get(&resolved_url)?;
 
     let module = Module::from_buffer(content)

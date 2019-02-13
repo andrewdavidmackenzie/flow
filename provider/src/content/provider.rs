@@ -34,9 +34,9 @@ impl Provider for MetaProvider {
     ///     -  a specific file or flow (that may or may not exist)
     ///     -  a directory - if exists then look for a provider specific default file
     ///     -  a file in a library, transform the reference into a Url where the content can be found
-    fn resolve(&self, url: &str) -> Result<(String, Option<String>), String> {
+    fn resolve(&self, url: &str, default_filename: &str) -> Result<(String, Option<String>), String> {
         let provider = Self::get_provider(url)?;
-        provider.resolve(url)
+        provider.resolve(url, default_filename)
     }
 
     /// Takes a Url with a scheme of "http", "https" or "file". Read and return the contents of the

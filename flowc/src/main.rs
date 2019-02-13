@@ -25,6 +25,7 @@ use flowclib::info;
 use flowclib::loader::loader;
 use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
+use flowrlib::manifest::DEFAULT_MANIFEST_FILENAME;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
@@ -155,7 +156,7 @@ fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, de
 fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: &PathBuf, tables: &GenerationTables)
                   -> Result<PathBuf, std::io::Error> {
     let mut filename = out_dir.clone();
-    filename.push("manifest.json".to_string());
+    filename.push(DEFAULT_MANIFEST_FILENAME.to_string());
     let mut manifest_file = File::create(&filename)?;
     let out_dir_path = Url::from_file_path(out_dir).unwrap().to_string();
 

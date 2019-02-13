@@ -39,7 +39,7 @@ impl Provider for LibProvider {
         Also, construct a string that is a reference to that module in the library, such as:
             "flowstdlib/stdio/stdout" and return that also.
     */
-    fn resolve(&self, url_str: &str) -> Result<(String, Option<String>), String> {
+    fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>), String> {
         let url = Url::parse(url_str)
             .map_err(|_| format!("Could not convert '{}' to valid Url", url_str))?;
         let lib_name = url.host_str().unwrap();

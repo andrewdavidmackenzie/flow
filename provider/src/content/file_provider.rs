@@ -12,7 +12,7 @@ use url::Url;
 pub struct FileProvider;
 
 impl Provider for FileProvider {
-    fn resolve(&self, url_str: &str) -> Result<(String, Option<String>), String> {
+    fn resolve(&self, url_str: &str, default_filename: &str) -> Result<(String, Option<String>), String> {
         let url = Url::parse(url_str)
             .map_err(|_| format!("Could not convert '{}' to Url", url_str))?;
         let mut path = url.to_file_path().unwrap();
@@ -21,7 +21,7 @@ impl Provider for FileProvider {
                 if md.is_dir() {
                     info!("'{}' is a directory, so attempting to find context file in it",
                           path.display());
-                    let file = FileProvider::find_default_file(&mut path).
+                    let file = FileProvider::find_default_file(&mut path, default_filename).
                         map_err(|e| e.to_string())?;
                     let resolved_url = Url::from_file_path(&file)
                         .map_err(|_| format!("Could not create url from file path '{}'",
@@ -52,13 +52,13 @@ impl Provider for FileProvider {
 
 impl FileProvider {
     /*
-        Passed a path to a directory, it searches for a file in the directory matching the pattern "context.*"
+        Passed a path to a directory, it searches for a file in the directory called 'default_filename'
         If found, it opens the file and returns its contents as a String in the result
     */
-    fn find_default_file(path: &mut PathBuf) -> io::Result<PathBuf> {
+    fn find_default_file(path: &mut PathBuf, default_filename: &str) -> io::Result<PathBuf> {
         // TODO pending more complex patterns based on implemented loaders
         // Or iterate through the matches until a loader is found which understands that file extension
-        path.push("context.toml");
+        path.push(default_filename);
         let pattern = path.to_str().unwrap();
         info!("Looking for files matching: '{}'", pattern);
 
@@ -91,7 +91,7 @@ mod test {
     #[test]
     fn get_default_sample() {
         let mut path = PathBuf::from("../samples/hello-world");
-        match FileProvider::find_default_file(&mut path) {
+        match FileProvider::find_default_file(&mut path, "context.toml") {
             Ok(path) => {
                 if path.file_name().unwrap() != "context.toml" {
                     assert!(false);

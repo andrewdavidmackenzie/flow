@@ -16,6 +16,8 @@ pub enum ImplementationLocator {
     Wasm((String, String))
 }
 
+const DEFAULT_ILT_FILENAME: &str = "ilt.json";
+
 /*
     Provided by libraries to help load and/or find implementations of processes
 */
@@ -32,7 +34,7 @@ impl ImplementationLocatorTable {
     }
 
     pub fn load(provider: &Provider, source: &str) -> Result<ImplementationLocatorTable, String> {
-        let (resolved_url, _) = provider.resolve(source)?;
+        let (resolved_url, _) = provider.resolve(source, DEFAULT_ILT_FILENAME)?;
         let content = provider.get(&resolved_url)?;
 
         serde_json::from_str(&String::from_utf8(content).unwrap())

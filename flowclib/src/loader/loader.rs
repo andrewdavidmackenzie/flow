@@ -62,7 +62,7 @@ pub trait Validate {
 /// flowclib::loader::loader::load_process(&parent_route, &alias, &url.to_string(), &dummy_provider).unwrap();
 /// ```
 pub fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provider) -> Result<Process, String> {
-    let (resolved_url, lib_ref) = provider.resolve(url)?;
+    let (resolved_url, lib_ref) = provider.resolve(url, "context.toml")?;
     let loader = get_loader(&resolved_url)?;
     info!("Loading process with alias = '{}' from url='{}' ", alias, resolved_url);
     let contents = provider.get(&resolved_url)?;

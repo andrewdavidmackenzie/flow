@@ -57,6 +57,7 @@ fn main() -> Result<(), String> {
     let provider = MetaProvider {};
 
     let cwd = cwd_as_url()?;
+
     // Load standard library functions we always want - flowr
     loader.add_lib(&provider, ::ilt::get_ilt(), &cwd.to_string())?;
 
@@ -66,7 +67,6 @@ fn main() -> Result<(), String> {
                    &format!("{}flowstdlib/ilt.json", cwd.to_string()))?;
 
     loader.load_flow(&provider, &url.to_string())?;
-
 
     let debugger = matches.is_present("debugger");
     let metrics = matches.is_present("metrics");

@@ -14,7 +14,7 @@ impl Handler for Collector {
 }
 
 impl Provider for HttpProvider {
-    fn resolve(&self, url_str: &str) -> Result<(String, Option<String>), String> {
+    fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>), String> {
         let url = Url::parse(url_str)
             .map_err(|_| format!("COuld not convert '{}' to valid Url", url_str))?;
         if url.path().ends_with('/') {
