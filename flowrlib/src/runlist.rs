@@ -179,13 +179,7 @@ impl RunList {
                 }
 
                 if let Some(val) = value {
-                    debug!("\t\tProduced output '{}'", &val);
-                    if cfg!(feature="debugger") && display_output {
-                        self.debugger.client.display(
-                            &format!("\tProduced output {}\n", &val));
-                    }
-
-                    self.process_output(process, val);
+                    self.process_output(process, val, display_output);
                 }
 
                 // if it wants to run again and it can (inputs ready) then add back to the Can Run list
@@ -216,7 +210,13 @@ impl RunList {
         sent to, marking the source process as blocked because those others must consume the output
         if those other processs have all their inputs, then mark them accordingly.
     */
-    pub fn process_output(&mut self, process: &Process, output: JsonValue) {
+    pub fn process_output(&mut self, process: &Process, output: JsonValue, display_output: bool) {
+        debug!("\t\tProduced output '{}'", output);
+        if cfg!(feature="debugger") && display_output {
+            self.debugger.client.display(
+                &format!("\tProduced output {}\n", &output));
+        }
+
         for &(ref output_route, destination_id, io_number) in process.output_destinations() {
             let destination_arc = self.state.get(destination_id);
             let mut destination = destination_arc.lock().unwrap();
@@ -224,6 +224,10 @@ impl RunList {
             debug!("\t\tProcess #{} '{}' sent value '{}' via output '{}' to Process #{} '{}' input #{}",
                    process.id(), process.name(), output_value, output_route, &destination_id,
                    destination.name(), &io_number);
+            if cfg!(feature="debugger") && display_output {
+                self.debugger.client.display(
+                    &format!("\t\tSending to Process #{}\n", destination_id));
+            }
 
             #[cfg(feature = "debugger")]
                 self.debugger.watch_data(&mut self.state, process.id(), output_route,
