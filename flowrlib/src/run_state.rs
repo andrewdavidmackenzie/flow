@@ -134,10 +134,10 @@ impl RunState {
     // save the fact that a particular Process's inputs are now satisfied and so it maybe ready
     // to run (if not blocked sending on it's output)
     pub fn can_run(&mut self, id: usize) {
-        debug!("\t\t\tProcess #{} inputs are ready", id);
-        self.can_run.insert(id);
-
-        if !self.is_blocked(id) {
+        if self.is_blocked(id) {
+            debug!("\t\t\tProcess #{} inputs are ready, but blocked on output", id);
+            self.can_run.insert(id);
+        } else {
             debug!("\t\t\tProcess #{} not blocked on output, so added to 'Will Run' list", id);
             self.will_run.push(id);
         }
