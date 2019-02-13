@@ -7,7 +7,7 @@ pub struct RunState {
     can_run: HashSet<usize>,
     // can_run: HashSet<process_id>
     blocking: Vec<(usize, usize)>,
-    // locking: Vec<(blocking_id, blocked_id)>
+    // blocking: Vec<(blocking_id, blocked_id)>
     will_run: Vec<usize>,
     // will_run: Vec<process_id>
     dispatches: usize,
@@ -65,6 +65,30 @@ impl RunState {
         }
 
         self.processes.len()
+    }
+
+    #[cfg(feature = "debugger")]
+    pub fn display_state(&self, process_id: usize) -> String {
+        let mut state;
+        if self.will_run.contains(&process_id) {
+            state = "\tWill Run (Inputs ready and Output not blocked)\n".to_string();
+        } else {
+            if self.can_run.contains(&process_id) {
+                state = "\tCan Run (Inputs ready)\n".to_string();
+            } else {
+                state = "\tInputs not ready\n".to_string()
+            }
+        }
+
+        for (blocking, blocked) in &self.blocking {
+            if *blocked == process_id {
+                state.push_str(&format!("\t\tBlocked #{} --> Blocking #{}\n", blocked, blocking));
+            } else if *blocking == process_id {
+                state.push_str(&format!("\t\tBlocking #{} <-- Blocked #{}\n", blocking, blocked));
+            }
+        }
+
+        state
     }
 
     #[cfg(any(feature = "logging", feature = "debugger"))]

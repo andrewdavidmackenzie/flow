@@ -175,8 +175,8 @@ impl Debugger {
         let mut process_lock = process_arc.try_lock();
 
         if let Ok(ref mut process) = process_lock {
-            self.client.display(&format!("{}", process))
-            // TODO print out information about what state it is in etc
+            self.client.display(&format!("{}", process));
+            self.client.display(&state.display_state(process_id));
         } else {
             self.client.display(&format!("Process #{} locked, skipping\n", process_id))
         }
