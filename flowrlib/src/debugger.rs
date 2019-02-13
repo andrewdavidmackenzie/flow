@@ -7,6 +7,8 @@ use serde_json::Value as JsonValue;
 pub struct Debugger {
     pub client: &'static DebugClient,
     input_breakpoints: HashSet<(usize, usize)>,
+    block_breakpoints: HashSet<(usize, usize)>,
+    /* blocked_id -> blocking_id */
     output_breakpoints: HashSet<(usize, String)>,
     break_at_invocation: usize,
     process_breakpoints: HashSet<usize>,
@@ -17,6 +19,7 @@ const HELP_STRING: &str = "Debugger commands:
                                 - process_id
                                 - source_id/output_route ('source_id/' for default output route)
                                 - destination_id:input_number
+                                - blocked_process_id->blocking_process_id
 ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
 'd' | 'delete' {spec} or '*' - Delete the breakpoint matching {spec} or all with '*'
 'e' | 'exit'                 - Stop flow execution and exit
@@ -32,6 +35,7 @@ enum Param {
     Numeric(usize),
     Output((usize, String)),
     Input((usize, usize)),
+    Block((usize, usize)),
 }
 
 impl Debugger {
@@ -39,6 +43,7 @@ impl Debugger {
         Debugger {
             client,
             input_breakpoints: HashSet::<(usize, usize)>::new(),
+            block_breakpoints: HashSet::<(usize, usize)>::new(),
             output_breakpoints: HashSet::<(usize, String)>::new(),
             break_at_invocation: 0,
             process_breakpoints: HashSet::<usize>::new(),
@@ -61,6 +66,15 @@ impl Debugger {
         (false, false)
     }
 
+    pub fn check_block(&mut self, state: &mut RunState, blocking_id: usize, blocked_id: usize) {
+        if self.block_breakpoints.contains(&(blocked_id, blocking_id)) {
+            self.client.display(&format!("Block breakpoint: Process #{} ----- blocked by ----> Process #{}\n",
+                                         blocked_id, blocking_id));
+            self.command_loop(state);
+
+        }
+    }
+
     pub fn watch_data(&mut self, state: &mut RunState, source_process_id: usize, output_route: &String,
                       value: &JsonValue, destination_id: usize, input_number: usize) {
         if self.output_breakpoints.contains(&(source_process_id, output_route.to_string())) ||
@@ -76,11 +90,11 @@ impl Debugger {
                  id: usize, name: &str, inputs: Vec<Vec<JsonValue>>) {
         self.client.display(
             &format!("Panic occurred in implementation. Entering debugger\nProcess #{} '{}' with inputs: {:?}\n",
-        id, name, inputs));
+                     id, name, inputs));
         self.command_loop(state);
     }
 
-    pub fn end(&mut self, state: &mut RunState,) -> (bool, bool) {
+    pub fn end(&mut self, state: &mut RunState) -> (bool, bool) {
         self.client.display("Execution has ended\n");
         self.command_loop(state)
     }
@@ -108,7 +122,7 @@ impl Debugger {
                             self.client.display("Resetting state\n");
                             state.reset();
                             return (false, true);
-                        },
+                        }
                         "s" | "step" => {
                             self.step(state, param);
                             return (true, false);
@@ -134,6 +148,9 @@ impl Debugger {
             }
             Some(Param::Input((dest_id, input_number))) => {
                 self.input_breakpoints.remove(&(dest_id, input_number));
+            }
+            Some(Param::Block((blocked_id, blocking_id))) => {
+                self.input_breakpoints.remove(&(blocked_id, blocking_id));
             }
             Some(Param::Output((source_id, source_output_route))) => {
                 self.output_breakpoints.remove(&(source_id, source_output_route));
@@ -192,6 +209,7 @@ impl Debugger {
         match param {
             None => state.print(),
             Some(Param::Numeric(process_id)) |
+            Some(Param::Block((process_id, _))) => self.print_process(state, process_id),
             Some(Param::Input((process_id, _))) => self.print_process(state, process_id),
             Some(Param::Wildcard) => self.print_all_processes(state),
             Some(Param::Output(_)) => self.client.display(
@@ -225,6 +243,11 @@ impl Debugger {
                 self.client.display(
                     &format!("Set data breakpoint on process #{} receiving data on input: {}\n", dest_id, input_number));
                 self.input_breakpoints.insert((dest_id, input_number));
+            }
+            Some(Param::Block((blocked_id, blocking_id))) => {
+                self.client.display(
+                    &format!("Set block breakpoint for Process #{} being blocked by Process #{}\n", blocked_id, blocking_id));
+                self.block_breakpoints.insert((blocked_id, blocking_id));
             }
             Some(Param::Output((source_id, source_output_route))) => {
                 self.client.display(
@@ -261,10 +284,18 @@ impl Debugger {
                 match (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
                     (Ok(dest_process_id), Ok(dest_input_number)) =>
                         return (command, Some(Param::Input((dest_process_id, dest_input_number)))),
-                    (_, _) => { /* couldn't parse the process and input n umbers*/ }
+                    (_, _) => { /* couldn't parse the process and input numbers */ }
                 }
+            } else if parts[1].contains("->") { // is a block specifier
+            let sub_parts: Vec<&str> = parts[1].split("->").collect();
+            match (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
+                (Ok(blocked_process_id), Ok(blocking_process_id)) =>
+                    return (command, Some(Param::Block((blocked_process_id, blocking_process_id)))),
+                (_, _) => { /* couldn't parse the process ids */ }
             }
         }
+
+    }
 
         (command, None)
     }

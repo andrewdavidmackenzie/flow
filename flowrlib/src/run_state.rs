@@ -169,8 +169,8 @@ impl RunState {
             // when done remove all entries from the blocking list where it was this blocker_id
             self.blocking.retain(|&(blocking_id, _blocked_id)| blocking_id != blocker_id);
 
-            // see if the ones unblocked should be made ready. Note, they could be blocked on others not the
-            // one that unblocked.
+            // see if the ones unblocked should be made ready. Note, they could be blocked on other
+            // processes apart from the the one that just unblocked it.
             for unblocked in unblocked_list {
                 if self.can_run.contains(&unblocked) && !self.is_blocked(unblocked) {
                     debug!("\t\t\tProcess #{} has inputs ready, so added to end of 'Will Run' list", unblocked);
@@ -184,8 +184,7 @@ impl RunState {
     pub fn blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
         // avoid deadlocks by a process blocking itself
         if blocked_id != blocking_id {
-            debug!("\t\t\tProcess #{} <-- Process #{} blocked",
-                   &blocking_id, &blocked_id);
+            debug!("\t\t\tProcess #{} <-- Process #{} blocked", &blocking_id, &blocked_id);
             self.blocking.push((blocking_id, blocked_id));
         }
     }

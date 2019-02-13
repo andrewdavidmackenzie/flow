@@ -236,6 +236,8 @@ impl RunList {
 
             if destination.input_full(io_number) {
                 self.state.blocked_by(destination_id, process.id());
+                #[cfg(feature = "debugger")]
+                self.debugger.check_block(&mut self.state, destination_id, process.id());
             }
 
             if destination.can_run() {
