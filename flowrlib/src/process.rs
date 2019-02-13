@@ -52,12 +52,15 @@ impl Implementation for ImplementationNotFound {
 impl fmt::Display for Process {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Process #{} '{}'\n", self.id, self.name)?;
-        if self.inputs.len() > 0 {
-            for (number, input) in self.inputs.iter().enumerate() {
-                if !input.empty() {
-                    write!(f, "\tInput #{}: {}\n", number, input)?;
-                }
+        for (number, input) in self.inputs.iter().enumerate() {
+            if input.empty() {
+                write!(f, "\tInput #{}: empty\n", number)?;
+            } else {
+                write!(f, "\tInput #{}: {}\n", number, input)?;
             }
+        }
+        for output_route in &self.output_routes {
+            write!(f, "\tOutput route '{}' -> {}:{}\n", output_route.0, output_route.1, output_route.2)?;
         }
         write!(f, "")
     }
@@ -101,7 +104,7 @@ impl Process {
     }
 
     pub fn default_implementation() -> Arc<Implementation> {
-        Arc::new(super::process::ImplementationNotFound{})
+        Arc::new(super::process::ImplementationNotFound {})
     }
 
     // Create the set of inputs, each with appropriate depth
