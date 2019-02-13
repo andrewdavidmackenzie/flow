@@ -112,7 +112,7 @@ fn digraph_wrapper_start(flow: &Flow) -> String {
     wrapper.push_str("\tmargin=0.4;\n");
     wrapper.push_str("\tcompound=true;\n");
     wrapper.push_str("\tmodel=mds;\n");
-    wrapper.push_str("\tnodesep=1.5;\n");
+    wrapper.push_str("\tnodesep=1.0;\n");
 
     wrapper
 }
@@ -279,7 +279,7 @@ pub fn runnables_to_dot(flow: &Flow, tables: &GenerationTables, output_dir: &Pat
                         -> io::Result<String> {
     let mut dot_file = helper::create_output_file(&output_dir, "runnables", "dot")?;
     info!("Generating Runnables dot file {}, Use \"dotty\" to view it", output_dir.display());
-    dot_file.write_all(format!("digraph {} {{\nnodesep=1.5\n", str::replace(&flow.alias, "-", "_")).as_bytes())?;
+    dot_file.write_all(format!("digraph {} {{\nnodesep=1.0\n", str::replace(&flow.alias, "-", "_")).as_bytes())?;
     dot_file.write_all(&format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
 
 
@@ -292,6 +292,7 @@ pub fn runnables_to_dot(flow: &Flow, tables: &GenerationTables, output_dir: &Pat
     Ok("Dot file written".to_string())
 }
 
+// TODO use a map as runnables list to avoid lookup each time
 fn output_compiled_runnable(route: &Route, tables: &GenerationTables, output: &mut String) {
     for runnable in &tables.runnables {
         if runnable.route() == route {
