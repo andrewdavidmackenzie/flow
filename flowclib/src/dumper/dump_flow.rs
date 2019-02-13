@@ -24,7 +24,7 @@ use model::process::Process::FlowProcess;
 /// struct DummyProvider {}
 ///
 /// impl Provider for DummyProvider {
-///     fn resolve(&self, url: &str) -> Result<(String, Option<String>), String> {
+///     fn resolve(&self, url: &str, default_filename: &str) -> Result<(String, Option<String>), String> {
 ///         Ok((url.to_string(), None))
 ///     }
 ///

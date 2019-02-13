@@ -55,7 +55,7 @@ mod test {
     }
 
     impl Provider for TestProvider {
-        fn resolve(&self, source: &str) -> Result<(String, Option<String>), String> {
+        fn resolve(&self, source: &str, _default_filename: &str) -> Result<(String, Option<String>), String> {
             Ok((source.to_string(), None))
         }
 
