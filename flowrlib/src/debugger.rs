@@ -185,6 +185,13 @@ impl Debugger {
                 self.client.display(&format!("\tInput #{}:{}\n", process_id, input_number));
             }
         }
+
+        if !self.block_breakpoints.is_empty() {
+            self.client.display("Block Breakpoints: \n");
+            for (blocked_id, blocking_id) in &self.block_breakpoints {
+                self.client.display(&format!("\tBlock #{}->#{}\n", blocked_id, blocking_id));
+            }
+        }
     }
 
     fn print_process(&self, state: &RunState, process_id: usize) {
