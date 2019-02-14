@@ -54,11 +54,9 @@ impl Debugger {
         return true if the debugger requests that we display the output of the next dispatch
     */
     pub fn check(&mut self, state: &mut RunState, next_process_id: usize) -> (bool, bool) {
-        if self.break_at_invocation == state.dispatches() {
-            return self.command_loop(state);
-        }
-
-        if self.process_breakpoints.contains(&next_process_id) {
+        if self.break_at_invocation == state.dispatches() ||
+            self.process_breakpoints.contains(&next_process_id) {
+            self.client.display("Dispatching process:\n");
             self.print(state, Some(Param::Numeric(next_process_id)));
             return self.command_loop(state);
         }

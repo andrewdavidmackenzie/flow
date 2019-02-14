@@ -172,10 +172,10 @@ impl RunList {
 
         match result {
             Ok((value, run_again)) => {
-                debug!("\tProcess #{} '{}' completed", id, process.name());
+                debug!("\tCompleted process:\nProcess #{} '{}'", id, process.name());
                 if cfg!(feature="debugger") && display_output {
                     self.debugger.client.display(
-                        &format!("Process #{} '{}' completed\n", id, process.name()));
+                        &format!("Completed process:\nProcess #{} '{}'\n", id, process.name()));
                 }
 
                 if let Some(val) = value {
