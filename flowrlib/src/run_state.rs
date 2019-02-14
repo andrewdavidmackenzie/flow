@@ -241,7 +241,7 @@ mod tests {
         let mut state = RunState::new(test_processes());
 
         // Indicate that 0 is blocked by 1
-        state.blocked_by(1, 0);
+        state.set_blocked_by(1, 0);
         assert!(state.is_blocked(0));
     }
 
@@ -276,7 +276,7 @@ mod tests {
         let mut state = RunState::new(test_processes());
 
         // Indicate that 0 is blocked by 1
-        state.blocked_by(1, 0);
+        state.set_blocked_by(1, 0);
 
         // Indicate that 0 has all it's inputs read
         state.inputs_ready(0);
@@ -292,7 +292,7 @@ mod tests {
         let mut state = RunState::new(test_processes());
 
         // Indicate that 0 is blocked by 1
-        state.blocked_by(1, 0);
+        state.set_blocked_by(1, 0);
 
         // Indicate that 0 has all it's inputs read
         state.inputs_ready(0);
@@ -311,8 +311,8 @@ mod tests {
         let mut state = RunState::new(test_processes());
 
         // Indicate that 0 is blocked by 1 and 2
-        state.blocked_by(1, 0);
-        state.blocked_by(2, 0);
+        state.set_blocked_by(1, 0);
+        state.set_blocked_by(2, 0);
 
         // Indicate that 0 has all it's inputs read
         state.inputs_ready(0);
