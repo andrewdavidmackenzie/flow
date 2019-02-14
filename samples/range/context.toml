@@ -7,7 +7,7 @@ init = 1
 
 [[connection]]
 from = "value/start"
-to = "process/range/start"
+to = "process/sequence/start"
 
 [[process]]
 alias = "args"
@@ -23,18 +23,18 @@ source = "lib://flowstdlib/fmt/to_number.toml"
 
 [[connection]]
 from = "process/to_number"
-to = "process/range/limit"
+to = "process/sequence/end"
 
 [[process]]
-alias = "range"
-source = "range.toml"
+alias = "sequence"
+source = "lib://flowstdlib/math/sequence.toml"
 
 [[process]]
 alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string.toml"
 
 [[connection]]
-from = "process/range/series"
+from = "process/sequence/sequence"
 to = "process/to_string"
 
 # Output a string to show we're done when the series ends
@@ -52,7 +52,7 @@ from = "value/done"
 to = "process/tap/data"
 
 [[connection]]
-from = "process/range/done"
+from = "process/sequence/done"
 to = "process/tap/control"
 
 [[connection]]
