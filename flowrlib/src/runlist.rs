@@ -99,7 +99,7 @@ impl RunList {
     pub fn run(&mut self) {
         let mut display_restart;
 
-        'outer: loop { // loop while restart = true
+        'outer: loop {
             debug!("Initializing all processes");
             let num_processes = self.state.init();
 
@@ -226,7 +226,7 @@ impl RunList {
                    destination.name(), &io_number);
             if cfg!(feature="debugger") && display_output {
                 self.debugger.client.display(
-                    &format!("\t\tSending to Process #{}\n", destination_id));
+                    &format!("\t\tSending to {}:{}\n", destination_id, io_number));
             }
 
             #[cfg(feature = "debugger")]

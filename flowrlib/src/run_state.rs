@@ -82,7 +82,7 @@ impl RunState {
 
         for (blocking, blocked) in &self.blocking {
             if *blocked == process_id {
-                state.push_str(&format!("\t\tBlocked #{} --> Blocking #{}\n", blocked, blocking));
+                state.push_str(&format!("\t\tBlocked #{} --> Blocked by #{}\n", blocked, blocking));
             } else if *blocking == process_id {
                 state.push_str(&format!("\t\tBlocking #{} <-- Blocked #{}\n", blocking, blocked));
             }
