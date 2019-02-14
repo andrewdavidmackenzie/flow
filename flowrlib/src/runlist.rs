@@ -184,7 +184,7 @@ impl RunList {
 
                 // if it wants to run again and it can (inputs ready) then add back to the Can Run list
                 if run_again & &process.can_run() {
-                    self.state.can_run(process.id());
+                    self.state.inputs_ready(process.id());
                 }
             }
             Err(cause) => {
@@ -245,7 +245,7 @@ impl RunList {
             }
 
             if destination.can_run() {
-                self.state.can_run(destination_id);
+                self.state.inputs_ready(destination_id);
             }
         }
     }

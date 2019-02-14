@@ -4,8 +4,8 @@ use process::Process;
 
 pub struct RunState {
     processes: Vec<Arc<Mutex<Process>>>,
-    can_run: HashSet<usize>,
-    // can_run: HashSet<process_id>
+    blocked: HashSet<usize>,
+    // blocked: HashSet<process_id>
     blocking: Vec<(usize, usize)>,
     // blocking: Vec<(blocking_id, blocked_id)>
     will_run: Vec<usize>,
@@ -17,7 +17,7 @@ impl RunState {
     pub fn new(processes: Vec<Arc<Mutex<Process>>>) -> Self {
         RunState {
             processes,
-            can_run: HashSet::<usize>::new(),
+            blocked: HashSet::<usize>::new(),
             blocking: Vec::<(usize, usize)>::new(),
             will_run: Vec::<usize>::new(),
             #[cfg(feature = "debugger")]
@@ -33,7 +33,7 @@ impl RunState {
             let mut process = process_arc.lock().unwrap();
             process.reset()
         };
-        self.can_run.clear();
+        self.blocked.clear();
         self.blocking.clear();
         self.will_run.clear();
         if cfg!(feature = "debugger") {
@@ -50,18 +50,18 @@ impl RunState {
         Once all processs have been initialized, the list of processs is stored in the RunList
     */
     pub fn init(&mut self) -> usize {
-        let mut can_run_list = Vec::<usize>::new();
+        let mut inputs_ready_list = Vec::<usize>::new();
 
         for process_arc in &self.processes {
             let mut process = process_arc.lock().unwrap();
             debug!("\tInitializing process #{} '{}'", process.id(), process.name());
             if process.init() {
-                can_run_list.push(process.id());
+                inputs_ready_list.push(process.id());
             }
         }
 
-        for id in can_run_list {
-            self.can_run(id);
+        for id in inputs_ready_list {
+            self.inputs_ready(id);
         }
 
         self.processes.len()
@@ -71,10 +71,10 @@ impl RunState {
     pub fn display_state(&self, process_id: usize) -> String {
         let mut state;
         if self.will_run.contains(&process_id) {
-            state = "\tWill Run (Inputs ready and Output not blocked)\n".to_string();
+            state = "\tWill Run (Inputs ready and not blocked on output)\n".to_string();
         } else {
-            if self.can_run.contains(&process_id) {
-                state = "\tCan Run (Inputs ready)\n".to_string();
+            if self.blocked.contains(&process_id) {
+                state = "\tBlocked on output\n".to_string();
             } else {
                 state = "\tInputs not ready\n".to_string()
             }
@@ -96,7 +96,7 @@ impl RunState {
         println!("RunState:");
         println!("   Processes: {}", self.processes.len());
         println!("  Dispatches: {}", self.dispatches);
-        println!("     Can Run: {:?}", self.can_run);
+        println!("     Blocked: {:?}", self.blocked);
         println!("    Blocking: {:?}", self.blocking);
         println!("    Will Run: {:?}", self.will_run);
     }
@@ -131,12 +131,14 @@ impl RunState {
         false
     }
 
-    // save the fact that a particular Process's inputs are now satisfied and so it maybe ready
-    // to run (if not blocked sending on it's output)
-    pub fn can_run(&mut self, id: usize) {
+    /*
+        Save the fact that a particular Process's inputs are now satisfied and so it maybe ready
+        to run (if not blocked sending on it's output)
+    */
+    pub fn inputs_ready(&mut self, id: usize) {
         if self.is_blocked(id) {
             debug!("\t\t\tProcess #{} inputs are ready, but blocked on output", id);
-            self.can_run.insert(id);
+            self.blocked.insert(id);
         } else {
             debug!("\t\t\tProcess #{} not blocked on output, so added to 'Will Run' list", id);
             self.will_run.push(id);
@@ -172,7 +174,7 @@ impl RunState {
             // see if the ones unblocked should be made ready. Note, they could be blocked on other
             // processes apart from the the one that just unblocked it.
             for unblocked in unblocked_list {
-                if self.can_run.contains(&unblocked) && !self.is_blocked(unblocked) {
+                if self.blocked.contains(&unblocked) && !self.is_blocked(unblocked) {
                     debug!("\t\t\tProcess #{} has inputs ready, so added to end of 'Will Run' list", unblocked);
                     self.will_run.push(unblocked);
                 }
@@ -192,7 +194,7 @@ impl RunState {
     // when a process consumes it's inputs, then take if off the list of processs with inputs ready
     pub fn inputs_consumed(&mut self, id: usize) {
         debug!("\tProcess #{} consumed its inputs, so removed from 'Can Run' list", id);
-        self.can_run.remove(&id);
+        self.blocked.remove(&id);
     }
 }
 
@@ -264,7 +266,7 @@ mod tests {
         let mut state = RunState::new(test_processes());
 
         // Indicate that 0 has all it's inputs read
-        state.can_run(0);
+        state.inputs_ready(0);
 
         assert_eq!(state.next().unwrap(), 0);
     }
@@ -277,7 +279,7 @@ mod tests {
         state.blocked_by(1, 0);
 
         // Indicate that 0 has all it's inputs read
-        state.can_run(0);
+        state.inputs_ready(0);
 
         match state.next() {
             None => assert!(true),
@@ -293,7 +295,7 @@ mod tests {
         state.blocked_by(1, 0);
 
         // Indicate that 0 has all it's inputs read
-        state.can_run(0);
+        state.inputs_ready(0);
 
         assert_eq!(state.next(), None);
 
@@ -313,7 +315,7 @@ mod tests {
         state.blocked_by(2, 0);
 
         // Indicate that 0 has all it's inputs read
-        state.can_run(0);
+        state.inputs_ready(0);
 
         assert_eq!(state.next(), None);
 
