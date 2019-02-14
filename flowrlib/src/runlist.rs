@@ -183,8 +183,12 @@ impl RunList {
                 }
 
                 // if it wants to run again and it can (inputs ready) then add back to the Can Run list
-                if run_again & &process.can_run() {
-                    self.state.inputs_ready(process.id());
+                if run_again {
+                    // TODO refill any inputs coming from a static value?
+
+                    if process.can_run() {
+                        self.state.inputs_ready(process.id());
+                    }
                 }
             }
             Err(cause) => {
@@ -239,9 +243,9 @@ impl RunList {
                 self.increment_outputs_sent();
 
             if destination.input_full(io_number) {
-                self.state.blocked_by(destination_id, process.id());
+                self.state.set_blocked_by(destination_id, process.id());
                 #[cfg(feature = "debugger")]
-                self.debugger.check_block(&mut self.state, destination_id, process.id());
+                    self.debugger.check_block(&mut self.state, destination_id, process.id());
             }
 
             if destination.can_run() {

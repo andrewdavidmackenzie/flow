@@ -183,7 +183,7 @@ impl RunState {
     }
 
     // Save the fact that the process 'blocked_id' is blocked on it's output by 'blocking_id'
-    pub fn blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
+    pub fn set_blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
         // avoid deadlocks by a process blocking itself
         if blocked_id != blocking_id {
             debug!("\t\t\tProcess #{} <-- Process #{} blocked", &blocking_id, &blocked_id);
