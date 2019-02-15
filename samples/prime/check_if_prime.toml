@@ -18,7 +18,7 @@ static = true
 
 [[process]]
 alias = "divisor-range"
-source = "../range/range.toml"
+source = "lib://flowstdlib/math/sequence.toml"
 
 [[connection]]
 from = "value/lowest-divisor"
@@ -26,7 +26,7 @@ to = "process/divisor-range/start"
 
 [[connection]]
 from = "input/candidate"
-to = "process/divisor-range/limit"
+to = "process/divisor-range/end"
 
 
 # divide the candidate by the divisor
@@ -35,12 +35,12 @@ alias = "divide"
 source = "lib://flowstdlib/math/divide.toml"
 
 [[connection]]
-from = "process/divisor-range/max"
-to = "process/divide/dividend"
+from = "process/divisor-range/sequence"
+to = "process/divide/divisor"
 
 [[connection]]
-from = "process/divisor-range/series"
-to = "process/divide/divisor"
+from = "process/divisor-range/max"
+to = "process/divide/dividend"
 
 # debug
 [[connection]]

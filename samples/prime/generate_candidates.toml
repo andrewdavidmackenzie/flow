@@ -19,7 +19,7 @@ source = "lib://flowstdlib/fmt/to_number.toml"
 
 [[connection]]
 from = "process/to_number"
-to = "process/candidates-range/limit"
+to = "process/candidates-range/end"
 
 [[value]]
 name = "lowest-candidate"
@@ -32,8 +32,8 @@ to = "process/candidates-range/start"
 
 [[process]]
 alias = "candidates-range"
-source = "../range/range.toml"
+source = "lib://flowstdlib/math/sequence.toml"
 
 [[connection]]
-from = "process/candidates-range/series"
+from = "process/candidates-range/sequence"
 to = "output/candidates"

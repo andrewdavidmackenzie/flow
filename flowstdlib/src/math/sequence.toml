@@ -136,7 +136,6 @@ to = "output/done"
 from = "process/when-done"
 to = "value/start-signal"
 
-
 [[connection]]
 from = "value/limit-store"
 to = "output/max"

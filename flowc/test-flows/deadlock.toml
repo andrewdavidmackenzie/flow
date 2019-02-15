@@ -1,0 +1,69 @@
+flow = "deadlock"
+
+# Generate a sequence of two numbers 1, 2
+[[process]]
+alias = "first-sequence"
+source = "lib://flowstdlib/math/sequence.toml"
+
+[[value]]
+name = "first-start"
+type = "Number"
+init = 1
+
+[[value]]
+name = "first-end"
+type = "Number"
+init = 9
+
+[[connection]]
+from = "value/first-start"
+to = "process/first-sequence/start"
+
+[[connection]]
+from = "value/first-end"
+to = "process/first-sequence/end"
+
+
+# Generate a sequence of numbers from 2 upto the value from sequence above
+[[process]]
+alias = "second-sequence"
+source = "lib://flowstdlib/math/sequence.toml"
+
+[[value]]
+name = "second-start"
+type = "Number"
+init = 2
+static = true
+
+[[connection]]
+from = "value/second-start"
+to = "process/second-sequence/start"
+
+[[connection]]
+from = "process/first-sequence/sequence"
+to = "process/second-sequence/end"
+
+
+
+[[process]]
+alias = "sum"
+source = "lib://flowstdlib/math/add.toml"
+
+# send the max value directly to sum, and via a less-than comparison
+# both should arrive
+[[connection]]
+from = "process/second-sequence/max"
+to = "process/sum/i1"
+
+[[connection]]
+from = "process/second-sequence/sequence"
+to = "process/sum/i2"
+
+
+[[process]]
+alias = "print"
+source = "lib://flowr/stdio/stdout.toml"
+
+[[connection]]
+from = "process/sum"
+to = "process/print"
