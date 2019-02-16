@@ -63,3 +63,73 @@ impl Input {
         self.received.len() == self.depth
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::Input;
+    use serde_json::Value as JsonValue;
+
+    #[test]
+    fn no_inputs_initially() {
+        let input = Input::new(1);
+        assert!(input.empty());
+    }
+
+    #[test]
+    fn accepts_value() {
+        let mut input = Input::new(1);
+        input.push(JsonValue::Null);
+        assert!(!input.empty());
+    }
+
+    #[test]
+    fn gets_full() {
+        let mut input = Input::new(1);
+        input.push(JsonValue::Null);
+        assert!(input.full());
+    }
+
+    #[test]
+    fn can_overwrite() {
+        let mut input = Input::new(1);
+        input.push(JsonValue::Null);
+        input.overwrite(json!(10));
+        assert_eq!(input.read(), vec!(json!(10)));
+    }
+
+    #[test]
+    fn read_works() {
+        let mut input = Input::new(1);
+        input.push(json!(10));
+        assert!(!input.empty());
+        assert_eq!(input.read(), vec!(json!(10)));
+    }
+
+    #[test]
+    fn take_empties() {
+        let mut input = Input::new(1);
+        input.push(json!(10));
+        assert!(!input.empty());
+        input.take();
+        assert!(input.empty());
+    }
+
+    #[test]
+    fn reset_empties() {
+        let mut input = Input::new(1);
+        input.push(json!(10));
+        assert!(!input.empty());
+        input.reset();
+        assert!(input.empty());
+    }
+
+    #[test]
+    fn depth_works() {
+        let mut input = Input::new(2);
+        input.push(json!(10));
+        assert!(!input.full());
+        input.push(json!(15));
+        assert!(input.full());
+        assert_eq!(input.take().len(), 2);
+    }
+}
