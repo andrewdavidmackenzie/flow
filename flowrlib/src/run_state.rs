@@ -240,7 +240,6 @@ mod tests {
         assert!(state.is_blocked(0));
     }
 
-
     #[test]
     fn get_works() {
         let state = RunState::new(test_processes());
