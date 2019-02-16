@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate serde_json;
+
 use serde_json::Value as JsonValue;
 use std::str::FromStr;
 
@@ -33,13 +36,7 @@ pub extern "C" fn parse_pair(mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonVal
     (value, true)
 }
 
-/// Parse the string 's' as a coordinate pair, like "400x600" or "1.0,0.5"
-/// Specifically, 's' should have the form <left><sep><right> where <sep> is the character given by
-/// the 'separator' argument, and <left> and <right> are both strings that can be parsed
-/// by 'T::from_str'.
-/// If 's' has the proper form, return 'Some<(x,y)>'.
-/// If 's' doesn't parse correctly, return None.
-pub fn _parse_pair<T: FromStr>(s: &str, separator: &str) -> Option<(T, T)> {
+fn _parse_pair<T: FromStr>(s: &str, separator: &str) -> Option<(T, T)> {
     match s.find(separator) {
         None => None,
         Some(index) => {
@@ -66,17 +63,6 @@ mod tests {
         let inputs: Vec<Vec<JsonValue>> = vec!(vec!(string), vec!(separator));
 
         let _pair = super::parse_pair(inputs);
-    }
-
-    #[test]
-    fn test_parse_pair() {
-        assert_eq!(_parse_pair::<i32>("", ","), None);
-        assert_eq!(_parse_pair::<i32>("10,", ","), None);
-        assert_eq!(_parse_pair::<i32>(",10", ","), None);
-        assert_eq!(_parse_pair::<i32>("10,20", ","), Some((10, 20)));
-        assert_eq!(_parse_pair::<i32>("10,20xy", ","), None);
-        assert_eq!(_parse_pair::<f64>("0.5x", ","), None);
-        assert_eq!(_parse_pair::<f64>("0.5x1.5", "x"), Some((0.5, 1.5)));
     }
 }
 

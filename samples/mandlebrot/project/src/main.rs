@@ -4,7 +4,6 @@ extern crate dir_diff;
 extern crate image;
 extern crate num;
 extern crate rayon;
-#[macro_use] extern crate serde_json;
 extern crate tempdir;
 extern crate test;
 
@@ -21,7 +20,6 @@ use std::path::PathBuf;
 
 mod escapes;
 mod pixel_to_point;
-mod create_complex;
 mod parse_pair;
 
 fn main() {
