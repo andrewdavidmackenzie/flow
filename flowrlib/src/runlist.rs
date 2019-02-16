@@ -259,3 +259,13 @@ impl RunList {
         self.metrics.outputs_sent += 1;
     }
 }
+
+#[test]
+fn test_metrics_reset() {
+    let mut metrics = Metrics::new();
+    metrics.outputs_sent = 10;
+    metrics.reset(10);
+    assert_eq!(metrics.outputs_sent, 0);
+    assert_eq!(metrics.num_processs, 10);
+}
+
