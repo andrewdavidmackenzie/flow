@@ -1,0 +1,21 @@
+[package]
+name = "parse_pair"
+version = "0.1.0"
+authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
+
+[lib]
+name = "parse_pair"
+crate-type = ["cdylib"]
+
+path = "src/parse_pair.rs"
+
+[profile.release]
+debug = false
+lto = true
+opt-level = 's'
+
+[dependencies]
+serde_json = "1.0"
+
+[workspace]
+exclude = [".."]
