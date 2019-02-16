@@ -156,7 +156,6 @@ impl RunList {
         #[cfg(feature = "debugger")]
             let debug_values = input_values.clone();
 
-        self.state.inputs_consumed(id);
         self.state.unblock_senders_to(id);
         debug!("\tProcess #{} '{}' running with inputs: {:?}", id, process.name(), input_values);
 

@@ -175,7 +175,8 @@ impl RunState {
             // processes apart from the the one that just unblocked it.
             for unblocked in unblocked_list {
                 if self.blocked.contains(&unblocked) && !self.is_blocked(unblocked) {
-                    debug!("\t\t\tProcess #{} has inputs ready, so added to end of 'Will Run' list", unblocked);
+                    debug!("\t\t\tProcess #{} has inputs ready, so removed from 'blocked' and added to 'will_run'", unblocked);
+                    self.blocked.remove(&unblocked);
                     self.will_run.push(unblocked);
                 }
             }
@@ -189,12 +190,6 @@ impl RunState {
             debug!("\t\t\tProcess #{} <-- Process #{} blocked", &blocking_id, &blocked_id);
             self.blocking.push((blocking_id, blocked_id));
         }
-    }
-
-    // when a process consumes it's inputs, then take if off the list of processs with inputs ready
-    pub fn inputs_consumed(&mut self, id: usize) {
-        debug!("\tProcess #{} consumed its inputs, so removed from 'Can Run' list", id);
-        self.blocked.remove(&id);
     }
 }
 
