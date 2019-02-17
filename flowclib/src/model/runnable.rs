@@ -16,5 +16,5 @@ pub trait Runnable: fmt::Display + HasName + HasRoute {
     fn is_static_value(&self) -> bool;
     fn get_output_routes(&self) -> &Vec<(Route, usize, usize)>;
     fn get_initial_value(&self) -> Option<JsonValue>;
-    fn get_impl_path(&self) -> String;
+    fn get_implementation_source(&self) -> String;
 }

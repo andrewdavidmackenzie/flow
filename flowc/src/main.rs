@@ -342,7 +342,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn load_reverse_echo_from_toml() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();

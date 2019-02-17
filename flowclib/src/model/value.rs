@@ -103,7 +103,7 @@ impl Runnable for Value {
         self.init.clone()
     }
 
-    fn get_impl_path(&self) -> String {
+    fn get_implementation_source(&self) -> String {
         "lib://flowstdlib/zero_fifo/Fifo".to_string()
     }
 }

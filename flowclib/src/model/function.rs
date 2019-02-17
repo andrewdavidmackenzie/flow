@@ -91,7 +91,7 @@ impl Runnable for Function {
 
     fn get_initial_value(&self) -> Option<JsonValue> { None }
 
-    fn get_impl_path(&self) -> String {
+    fn get_implementation_source(&self) -> String {
         if let Some(ref reference) = self.lib_reference {
             format!("lib://{}/{}", reference, &self.name)
         } else {

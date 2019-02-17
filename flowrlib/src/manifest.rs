@@ -3,6 +3,14 @@ use provider::Provider;
 
 pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest.json";
 
+/*
+Things to add to the manifest
+    - flow.alias
+    - flow.version
+    - flow.author_name
+    - flow.author_email
+*/
+
 #[derive(Deserialize, Serialize)]
 pub struct Manifest {
     pub processes: Vec<Process>

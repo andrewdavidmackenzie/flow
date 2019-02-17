@@ -20,14 +20,6 @@ pub struct GenerationTables {
 
 serialize_trait_object!(Runnable);
 
-/*
-Things to add to the manifest
-    - flow.alias
-    - flow.version
-    - flow.author_name
-    - flow.author_email
-*/
-
 impl GenerationTables {
     pub fn new() -> Self {
         GenerationTables {
@@ -56,10 +48,9 @@ pub fn create_manifest(_flow: &Flow, debug_symbols: bool, out_dir_path: &str, ta
 }
 
 // Do as an Into trait?
-fn runnable_to_process(out_dir_path: &str, runnable: &Box<Runnable>, debug_symbols: bool)
-                       -> flowrlib::process::Process {
-    let mut name= "".to_string();
-    let mut route= "".to_string();
+fn runnable_to_process(out_dir_path: &str, runnable: &Box<Runnable>, debug_symbols: bool) -> Process {
+    let mut name = "".to_string();
+    let mut route = "".to_string();
 
     if debug_symbols {
         name = runnable.alias().to_string();
@@ -67,10 +58,10 @@ fn runnable_to_process(out_dir_path: &str, runnable: &Box<Runnable>, debug_symbo
     }
 
     let is_static = runnable.is_static_value();
-    let mut impl_path = runnable.get_impl_path();
+    let mut implementation_source = runnable.get_implementation_source();
 
     // make path to implementation relative to the output directory if under it
-    impl_path = impl_path.replace(out_dir_path, "");
+    implementation_source = implementation_source.replace(out_dir_path, "");
 
     let input_depths = match &runnable.get_inputs() {
         &None => vec!(),
@@ -89,16 +80,13 @@ fn runnable_to_process(out_dir_path: &str, runnable: &Box<Runnable>, debug_symbo
     Process::new(name,
                  route,
                  is_static,
-                 impl_path,
+                 implementation_source,
                  input_depths,
                  id,
                  initial_value,
                  output_routes)
 }
 
-// TODO re-instate tests with new implementation
-
-/*
 #[cfg(test)]
 mod test {
     use serde_json::Value as JsonValue;
@@ -106,10 +94,9 @@ mod test {
     use model::io::IO;
     use model::function::Function;
     use model::runnable::Runnable;
-    use url::Url;
+    use super::runnable_to_process;
 
     #[test]
-    #[ignore]
     fn test_value_to_code() {
         let value = Value::new("value".to_string(),
                                "String".to_string(),
@@ -119,14 +106,65 @@ mod test {
                                Some(vec!(IO::new(&"Json".to_string(), &"".to_string()))),
                                vec!(("".to_string(), 1, 0)),
                                1);
-
+        let expected = "{
+  'id': 1,
+  'implementation_source': 'lib://flowstdlib/zero_fifo/Fifo',
+  'initial_value': 'Hello-World',
+  'input_depths': [
+    {}
+  ],
+  'output_routes': [
+    [
+      '',
+      1,
+      0
+    ]
+  ]
+}";
         let br = Box::new(value) as Box<Runnable>;
-        let code = runnable_to_code(&br);
-        assert_eq!(code, "Process::new(\"value\", 1, false, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\".to_string(), 1, 0),))")
+        let process = runnable_to_process("/test", &br, false);
+
+        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+
+        assert_eq!(serialized_process, expected.replace("'","\""));
     }
 
     #[test]
-    #[ignore]
+    fn test_value_to_code_with_debug() {
+        let value = Value::new("value".to_string(),
+                               "String".to_string(),
+                               Some(JsonValue::String("Hello-World".to_string())),
+                               false,
+                               "/flow0/value".to_string(),
+                               Some(vec!(IO::new(&"Json".to_string(), &"".to_string()))),
+                               vec!(("".to_string(), 1, 0)),
+                               1);
+        let expected = "{
+  'name': 'value',
+  'route': '/flow0/value',
+  'id': 1,
+  'implementation_source': 'lib://flowstdlib/zero_fifo/Fifo',
+  'initial_value': 'Hello-World',
+  'input_depths': [
+    {}
+  ],
+  'output_routes': [
+    [
+      '',
+      1,
+      0
+    ]
+  ]
+}";
+        let br = Box::new(value) as Box<Runnable>;
+        let process = runnable_to_process("/test", &br, true);
+
+        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+
+        assert_eq!(serialized_process, expected.replace("'","\""));
+    }
+
+    #[test]
     fn test_constant_value_to_code() {
         let value = Value::new(
             "value".to_string(),
@@ -138,13 +176,31 @@ mod test {
             vec!(("".to_string(), 1, 0)),
             1);
 
+        let expected = "{
+  'id': 1,
+  'implementation_source': 'lib://flowstdlib/zero_fifo/Fifo',
+  'is_static': true,
+  'initial_value': 'Hello-World',
+  'input_depths': [
+    {}
+  ],
+  'output_routes': [
+    [
+      '',
+      1,
+      0
+    ]
+  ]
+}";
+
         let br = Box::new(value) as Box<Runnable>;
-        let code = runnable_to_code(&br);
-        assert_eq!(code, "Process::new(\"value\", 1, true, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\".to_string(), 1, 0),))")
+        let process = runnable_to_process("/test", &br, false);
+
+        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        assert_eq!(serialized_process, expected.replace("'","\""));
     }
 
     #[test]
-    #[ignore]
     fn value_with_sub_route_output_to_code() {
         let value = Value::new(
             "value".to_string(),
@@ -158,73 +214,184 @@ mod test {
             vec!(("".to_string(), 1, 0), ("sub_route".to_string(), 2, 0)),
             1);
 
+        let expected = "{
+  'id': 1,
+  'implementation_source': 'lib://flowstdlib/zero_fifo/Fifo',
+  'initial_value': 'Hello-World',
+  'input_depths': [
+    {}
+  ],
+  'output_routes': [
+    [
+      '',
+      1,
+      0
+    ],
+    [
+      'sub_route',
+      2,
+      0
+    ]
+  ]
+}";
+
         let br = Box::new(value) as Box<Runnable>;
-        let code = runnable_to_code(&br);
-        assert_eq!(code, "Process::new(\"value\", 1, false, vec!(1, ), 1, &Fifo{}, Some(json!(\"Hello-World\")), vec!((\"\".to_string(), 1, 0),(\"/sub_route\".to_string(), 2, 0),))")
+        let process = runnable_to_process("/test", &br, false);
+
+        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        assert_eq!(serialized_process, expected.replace("'","\""));
     }
 
     #[test]
-    #[ignore]
     fn function_with_sub_route_output_to_code() {
         let function = Function::new(
             "Stdout".to_string(),
+            Some("lib://flowr/stdio/stdout".to_string()),
             "print".to_string(),
             Some(vec!()),
             Some(vec!(
                 IO::new(&"Json".to_string(), &"".to_string()),
                 IO::new(&"String".to_string(), &"".to_string())
             )),
-            Url::parse("file:///fake/file").unwrap(),
+            "file:///fake/file".to_string(),
             "/flow0/stdout".to_string(),
             None,
             vec!(("".to_string(), 1, 0), ("sub_route".to_string(), 2, 0)),
             0);
 
+        let expected = "{
+  'id': 0,
+  'implementation_source': 'lib://flowr/stdio/stdout',
+  'output_routes': [
+    [
+      '',
+      1,
+      0
+    ],
+    [
+      'sub_route',
+      2,
+      0
+    ]
+  ]
+}";
+
         let br = Box::new(function) as Box<Runnable>;
-        let code = runnable_to_code(&br);
-        assert_eq!(code, "Process::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"\".to_string(), 1, 0),(\"/sub_route\".to_string(), 2, 0),))")
+
+        let process = runnable_to_process("/test", &br, false);
+
+        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        assert_eq!(serialized_process, expected.replace("'","\""));
     }
 
     #[test]
-    #[ignore]
     fn function_to_code() {
         let function = Function::new(
             "Stdout".to_string(),
+            Some("lib://flowr/stdio/stdout".to_string()),
             "print".to_string(),
             Some(vec!()),
             Some(vec!(
                 IO::new(&"String".to_string(), &"".to_string())
             )),
-            Url::parse("file:///fake/file").unwrap(),
+            "file:///fake/file".to_string(),
             "/flow0/stdout".to_string(),
             None,
             vec!(("".to_string(), 1, 0)),
             0);
 
+        let expected = "{
+  'id': 0,
+  'implementation_source': 'lib://flowr/stdio/stdout',
+  'output_routes': [
+    [
+      '',
+      1,
+      0
+    ]
+  ]
+}";
+
         let br = Box::new(function) as Box<Runnable>;
-        let code = runnable_to_code(&br);
-        assert_eq!(code, "Process::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"\".to_string(), 1, 0),))")
+
+        let process = runnable_to_process("/test", &br, false);
+
+        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        assert_eq!(serialized_process, expected.replace("'","\""));
+    }
+
+
+    #[test]
+    fn function_to_code_with_debug() {
+        let function = Function::new(
+            "Stdout".to_string(),
+            Some("lib://flowr/stdio/stdout".to_string()),
+            "print".to_string(),
+            Some(vec!()),
+            Some(vec!(
+                IO::new(&"String".to_string(), &"".to_string())
+            )),
+            "file:///fake/file".to_string(),
+            "/flow0/stdout".to_string(),
+            None,
+            vec!(("".to_string(), 1, 0)),
+            0);
+
+        let expected = "{
+  'name': 'print',
+  'route': '/flow0/stdout',
+  'id': 0,
+  'implementation_source': 'lib://flowr/stdio/stdout',
+  'output_routes': [
+    [
+      '',
+      1,
+      0
+    ]
+  ]
+}";
+
+        let br = Box::new(function) as Box<Runnable>;
+
+        let process = runnable_to_process("/test", &br, true);
+
+        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        assert_eq!(serialized_process, expected.replace("'","\""));
     }
 
     #[test]
-    #[ignore]
     fn function_with_array_element_output() {
         let function = Function::new(
             "Stdout".to_string(),
+            Some("lib://flowr/stdio/stdout".to_string()),
             "print".to_string(),
             Some(vec!()),
             Some(vec!(
                 IO::new(&"Array".to_string(), &"".to_string())
             )),
-            Url::parse("file:///fake/file").unwrap(),
+            "file:///fake/file".to_string(),
             "/flow0/stdout".to_string(),
             None,
             vec!(("0".to_string(), 1, 0)),
             0);
 
+        let expected = "{
+  'id': 0,
+  'implementation_source': 'lib://flowr/stdio/stdout',
+  'output_routes': [
+    [
+      '0',
+      1,
+      0
+    ]
+  ]
+}";
+
         let br = Box::new(function) as Box<Runnable>;
-        let code = runnable_to_code(&br);
-        assert_eq!(code, "Process::new(\"print\", 0, false, vec!(), 0, &Stdout{}, None, vec!((\"/0\".to_string(), 1, 0),))")
+
+        let process = runnable_to_process("/test", &br, false);
+
+        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        assert_eq!(serialized_process, expected.replace("'","\""));
     }
 }
-*/

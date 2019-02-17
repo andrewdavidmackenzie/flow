@@ -9,7 +9,7 @@ use generator::generate::GenerationTables;
     flat tables that the compiler can use for code generation.
 */
 pub fn gather_runnables_and_connections(flow: &Flow, tables: &mut GenerationTables) {
-    // Add Connections from this flow to the connections table
+    // Add Connections from this flow hierarchy to the connections table
     if let Some(ref connections) = flow.connections {
         let mut conns = connections.clone();
         tables.connections.append(&mut conns);
