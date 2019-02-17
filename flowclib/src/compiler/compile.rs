@@ -28,6 +28,13 @@ mod test {
     use flowrlib::provider::Provider;
     use super::compile;
     use ::model::process::Process::FlowProcess;
+    use ::model::flow::Flow;
+    use ::model::function::Function;
+    use ::model::io::IO;
+    use ::model::process::Process::FunctionProcess;
+    use ::model::process_reference::ProcessReference;
+    use ::model::name::HasName;
+    use ::model::runnable::Runnable;
 
     struct TestProvider {
         test_content: &'static str
@@ -35,7 +42,7 @@ mod test {
 
     impl Provider for TestProvider {
         fn resolve(&self, url: &str, _default_filename: &str)
-            -> Result<(String, Option<String>), String> {
+                   -> Result<(String, Option<String>), String> {
             Ok((url.to_string(), None))
         }
 
@@ -50,12 +57,14 @@ mod test {
         The value should be removed, and there should be no connections to it.
     */
     #[test]
+    #[should_panic]
     fn dead_value() {
         let parent_route = &"".to_string();
 
-        let alias = &"my process".to_string();
-        let test_provider = TestProvider { test_content:
-        "flow = 'test'
+        let alias = &"context".to_string();
+        let test_provider = TestProvider {
+            test_content:
+            "flow = 'test'
         [[value]]
         name = 'test-value'
         type = 'Number'
@@ -65,10 +74,44 @@ mod test {
 
         match loader::load_process(parent_route, alias, url, &test_provider) {
             Ok(FlowProcess(flow)) => {
-                let tables = compile(&flow);
-            },
+                let _tables = compile(&flow).unwrap();
+            }
             Ok(_) => panic!("Didn't load test flow"),
             Err(e) => panic!(e.to_string())
         }
+    }
+
+    /*
+        Test for a function that is dead code. It has no connections to it or from it so will never run
+    */
+    #[test]
+    #[should_panic]
+    fn dead_function() {
+        let mut function = Function::new("Stdout".to_string(),
+                                         Some("lib://flowr/stdio/stdout.toml".to_string()),
+                                         "test-function".to_string(),
+                                         Some(vec!(IO::new(&"String".to_string(),
+                                                           &"/context/print".to_string()))),
+                                         Some(vec!()),
+                                         "lib://flowr/stdio/stdout.toml".to_string(),
+                                         "/context/print".to_string(),
+                                         Some("lib://flowr/stdio/stdout.toml".to_string()),
+                                         vec!(),
+                                         0,
+        );
+
+        let function_ref = ProcessReference {
+            alias: function.alias().to_string(),
+            source: "lib://flowr/stdio/stdout.toml".to_string(),
+            source_url: function.get_implementation_source(),
+            process: FunctionProcess(function),
+        };
+
+        let mut flow = Flow::default();
+        flow.alias = "context".to_string();
+        flow.name = "test-flow".to_string();
+        flow.process_refs = Some(vec!(function_ref));
+
+        let _tables = compile(&flow).unwrap();
     }
 }
