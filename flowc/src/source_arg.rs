@@ -109,20 +109,17 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn file_url_no_output_dir_arg() {
         let temp_dir = TempDir::new("flow").unwrap().into_path();
         let flow_dir = temp_dir.to_str().unwrap();
         let flow_path = format!("{}/fake.toml", flow_dir);
         let mut file = fs::File::create(&flow_path).unwrap();
         file.write_all(b"flow = 'test'").unwrap();
-        let url = Url::parse(&format!("file:/{}", flow_path)).unwrap();
-        println!("flow_url = {}", url);
+        let url = Url::parse(&format!("file://{}", flow_path)).unwrap();
 
-        let dir = super::get_output_dir(&url, None)
-            .unwrap();
+        let dir = super::get_output_dir(&url, None).unwrap();
 
-        assert_eq!(dir.to_str().unwrap(), format!("file:/{}/rust", flow_dir));
+        assert_eq!(dir.to_str().unwrap(), flow_dir);
         assert!(dir.exists());
     }
 
