@@ -10,7 +10,7 @@ repository = "https://github.com/andrewdavidmackenzie/flow/"
 readme = "../README.md"
 include = ["src/**/*", "Cargo.toml"]
 
-build = "flow_lib_build.rs"
+#build = "flow_lib_build.rs"
 
 [target.wasm32-unknown-unknown]
 linker = ""
