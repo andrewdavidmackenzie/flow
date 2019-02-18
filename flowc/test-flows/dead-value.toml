@@ -1,0 +1,14 @@
+flow = "dead-value"
+
+[[process]]
+alias = "args"
+source = "lib://flowr/args/get.toml"
+
+[[value]]
+name = "dead-value"
+type = "String"
+static = true
+
+[[connection]]
+from = "process/args/1"
+to = "value/dead-value"
