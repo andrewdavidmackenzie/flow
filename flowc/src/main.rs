@@ -232,6 +232,24 @@ mod test {
     }
 
     #[test]
+    fn dead_value_removed() {
+        let meta_provider = MetaProvider {};
+        let parent_route = &"".to_string();
+        let path = url_from_rel_path("flowc/test-flows/dead-value.toml");
+        let process = loader::load_process(parent_route, &"context".to_string(),
+                                           &path, &meta_provider).unwrap();
+        if let FlowProcess(ref flow) = process {
+            let tables = compile::compile(flow).unwrap();
+            // Dead value should be removed
+            assert_eq!(tables.runnables.len(), 2);
+            // And connection to it also
+            assert_eq!(tables.collapsed_connections.len(), 1);
+        } else {
+            assert!(false, "Process loaded was not a flow");
+        }
+    }
+
+    #[test]
     fn compile_echo_ok() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
