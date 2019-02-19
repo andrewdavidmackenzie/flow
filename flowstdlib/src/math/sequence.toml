@@ -62,6 +62,17 @@ name = "limit-store"
 type = "Number"
 static = true
 
+# A store for the limit value that always refreshes itself, so it's value is always available
+[[value]]
+name = "start-store"
+type = "Number"
+static = true
+
+[[connection]]
+from = "value/start-store"
+to = "output/min"
+
+
 [[connection]]
 from = "process/limit-gate"
 to = "value/limit-store"
@@ -69,6 +80,12 @@ to = "value/limit-store"
 [[connection]]
 from = "process/start-gate"
 to = "process/pilte/in"
+
+
+[[connection]]
+from = "process/start-gate"
+to = "value/start-store"
+
 
 # pass if less than or equal, add one and loop
 [[process]]
@@ -104,10 +121,6 @@ to = "process/add/i2"
 [[connection]]
 from = "process/add"
 to = "process/pilte/in"
-
-[[connection]]
-from = "input/start"
-to = "output/min"
 
 [[value]]
 name = "range-done"

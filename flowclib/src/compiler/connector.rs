@@ -18,24 +18,24 @@ use model::runnable::Runnable;
      that route, which could be to multiple destinations)
 */
 pub fn set_runnable_outputs(tables: &mut GenerationTables) -> Result<(), String> {
-    debug!("Building connections");
+    debug!("Setting output routes on processes");
     for connection in &tables.collapsed_connections {
         if let Some((output_route, source_id)) = get_source(&tables.source_routes, &connection.from_io.route()) {
-            if let Some(&(destination_id, destination_input_index)) = tables.destination_routes.get(connection.to_io.route()) {
+            if let Some(&(destination_process_id, destination_input_index)) = tables.destination_routes.get(connection.to_io.route()) {
                 if let Some(source_runnable) = tables.runnables.get_mut(source_id) {
-                    debug!("Connection built: from '{}' to '{}'", &connection.from_io.route(), &connection.to_io.route());
-                    debug!("Output Route: Route = '{}', destination_id = {}, destination_input_index = {})",
-                           output_route.to_string(), destination_id, destination_input_index);
-                    source_runnable.add_output_route((output_route.to_string(), destination_id, destination_input_index));
+                    debug!("Connection: from '{}' to '{}'", &connection.from_io.route(), &connection.to_io.route());
+                    debug!("Output: Route = '{}', destination_process_id = {}, destination_input_index = {})",
+                           output_route.to_string(), destination_process_id, destination_input_index);
+                    source_runnable.add_output_route((output_route.to_string(), destination_process_id, destination_input_index));
                 }
             } else {
-                return Err(format!("Connection destination '{}' not found", connection.to_io.route()));
+                return Err(format!("Connection destination process for route '{}' not found", connection.to_io.route()));
             }
         } else {
-            return Err(format!("Connection source '{}' not found", connection.from_io.route()));
+            return Err(format!("Connection source process for route '{}' not found", connection.from_io.route()));
         }
     }
-    debug!("All connections built");
+    debug!("All output routes set on processes");
 
     Ok(())
 }
@@ -68,10 +68,16 @@ pub fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &R
 }
 
 pub fn connection_from_runnable(connections: &Vec<Connection>, runnable: &Box<Runnable>) -> bool {
-    let route = runnable.route();
-    for connection in connections {
-        if connection.from_io.route() == route {
-            return true
+    if let Some(outputs) = runnable.get_outputs() {
+        for output in outputs {
+            let route = output.route();
+            for connection in connections {
+                let connection_route = Router::without_trailing_array_index(connection.from_io.route());
+                // connection route without any trailing array index
+                if connection_route.0.to_string() == *route {
+                    return true;
+                }
+            }
         }
     }
 
@@ -79,10 +85,14 @@ pub fn connection_from_runnable(connections: &Vec<Connection>, runnable: &Box<Ru
 }
 
 pub fn connection_to_runnable(connections: &Vec<Connection>, runnable: &Box<Runnable>) -> bool {
-    let route = runnable.route();
-    for connection in connections {
-        if connection.to_io.route() == route {
-            return true
+    if let Some(inputs) = runnable.get_inputs() {
+        for input in inputs {
+            let route = input.route();
+            for connection in connections {
+                if connection.to_io.route() == route {
+                    return true;
+                }
+            }
         }
     }
 

@@ -1,4 +1,4 @@
-flow = "dead-value"
+flow = "dead-value-and-connected_value"
 
 [[value]]
 name = "source-value"

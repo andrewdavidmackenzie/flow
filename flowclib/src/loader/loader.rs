@@ -174,7 +174,8 @@ TODO when loading a flow we need to do this check for connections within the flo
                         debug!("Found destination of connection:\n{:#?}", to);
                         if (from.datatype(0) == to.datatype(0)) ||
                             from.datatype(0) == "Json" || to.datatype(0) == "Json" {
-                            debug!("Connection source and destination types match, connection built");
+                            debug!("Connection source and destination types match");
+                            info!("Connection built from '{}' to '{}'", from.route(), to.route());
                             connection.from_io = from;
                             connection.to_io = to;
                         } else {

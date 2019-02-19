@@ -257,7 +257,7 @@ mod test {
     fn dead_value_and_function_removed() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
-        let path = url_from_rel_path("flowc/test-flows/dead-value-and-function.toml");
+        let path = url_from_rel_path("flowc/test-flows/dead-value-and-connected_value.toml");
         let process = loader::load_process(parent_route, &"context".to_string(),
                                            &path, &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
