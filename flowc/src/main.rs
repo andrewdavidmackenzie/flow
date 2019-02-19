@@ -141,7 +141,7 @@ fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, de
         return Ok("Manifest generation and flow running skipped".to_string());
     }
 
-    let manifest_path= write_manifest(&flow, debug_symbols, &out_dir, &tables).map_err(|e| e.to_string())?;
+    let manifest_path = write_manifest(&flow, debug_symbols, &out_dir, &tables).map_err(|e| e.to_string())?;
 
     // Append flow arguments at the end of the arguments so that they are passed on it when it's run
     execute_flow(manifest_path, args)
@@ -240,10 +240,12 @@ mod test {
                                            &path, &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let tables = compile::compile(flow).unwrap();
-            // Dead value should be removed
-            assert_eq!(tables.runnables.len(), 2);
-            // And connection to it also
-            assert_eq!(tables.collapsed_connections.len(), 1);
+            // Dead value should be removed - currently can't assume that args function can be removed
+            assert_eq!(tables.runnables.len(), 1, "Incorrect number of runnables after optimization");
+            assert_eq!(tables.runnables.get(0).unwrap().get_id(), 0,
+                       "Runnables indexes do not start at 0");
+            // And the connection to it also
+            assert_eq!(tables.collapsed_connections.len(), 0, "Incorrect number of connections after optimization");
         } else {
             assert!(false, "Process loaded was not a flow");
         }

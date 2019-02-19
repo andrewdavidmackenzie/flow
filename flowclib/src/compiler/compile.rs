@@ -3,6 +3,7 @@ use super::gatherer;
 use super::connector;
 use generator::generate::GenerationTables;
 use super::checker;
+use super::optimizer;
 
 /// Take a hierarchical flow definition in memory and compile it, generating code that implements
 /// the flow, including links to the flowrlib runtime library and library functions used in the
@@ -12,8 +13,9 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables, String> {
     let mut tables = GenerationTables::new();
 
     gatherer::gather_runnables_and_connections(flow, &mut tables);
-    gatherer::index_runnables(&mut tables.runnables);
     tables.collapsed_connections = connector::collapse_connections(&tables.connections);
+    optimizer::optimize(&mut tables);
+    gatherer::index_runnables(&mut tables.runnables);
     connector::routes_table(&mut tables);
     connector::set_runnable_outputs(&mut tables)?;
     connector::check_connections(&mut tables)?;

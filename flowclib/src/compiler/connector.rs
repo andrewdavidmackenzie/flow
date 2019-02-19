@@ -21,11 +21,12 @@ pub fn set_runnable_outputs(tables: &mut GenerationTables) -> Result<(), String>
     for connection in &tables.collapsed_connections {
         if let Some((output_route, source_id)) = get_source(&tables.source_routes, &connection.from_io.route()) {
             if let Some(&(destination_id, destination_input_index)) = tables.destination_routes.get(connection.to_io.route()) {
-                let source_runnable = tables.runnables.get_mut(source_id).unwrap();
-                debug!("Connection built: from '{}' to '{}'", &connection.from_io.route(), &connection.to_io.route());
-                debug!("Output Route: Route = '{}', destination_id = {}, destination_input_index = {})",
-                       output_route.to_string(), destination_id, destination_input_index);
-                source_runnable.add_output_route((output_route.to_string(), destination_id, destination_input_index));
+                if let Some(source_runnable) = tables.runnables.get_mut(source_id) {
+                    debug!("Connection built: from '{}' to '{}'", &connection.from_io.route(), &connection.to_io.route());
+                    debug!("Output Route: Route = '{}', destination_id = {}, destination_input_index = {})",
+                           output_route.to_string(), destination_id, destination_input_index);
+                    source_runnable.add_output_route((output_route.to_string(), destination_id, destination_input_index));
+                }
             } else {
                 return Err(format!("Connection destination '{}' not found", connection.to_io.route()));
             }
@@ -42,7 +43,7 @@ pub fn set_runnable_outputs(tables: &mut GenerationTables) -> Result<(), String>
     find a runnable using the route to its output (removing the array index first to find outputs that are arrays)
     return a tuple of the sub-route to use (possibly with array index included), and the runnable index
 */
-fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &Route) -> Option<(Route, usize)> {
+pub fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &Route) -> Option<(Route, usize)> {
     let (source_without_index, array_index, is_array_output) = Router::without_trailing_array_index(from_route);
     let source = source_routes.get(&source_without_index.to_string());
 
@@ -66,8 +67,8 @@ fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &Route
 }
 
 /*
-    Construct a look-up table that can be used to find the index of a runnable in the runnables table,
-    and the index of it's input - using the input route
+    Construct two look-up tables that can be used to find the index of a runnable in the runnables table,
+    and the index of it's input - using the input route or it's output route
 */
 pub fn routes_table(tables: &mut GenerationTables) {
     for mut runnable in &mut tables.runnables {
@@ -137,9 +138,6 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
         }
     }
 
-    // Remove connections starting or ending at flow boundaries as they don't go anywhere useful
-    collapsed_connections.retain(|conn| !conn.from_io.flow_io() && !conn.to_io.flow_io());
-
     collapsed_connections
 }
 
@@ -185,23 +183,24 @@ fn check_for_competing_inputs(tables: &GenerationTables) -> Result<(), String> {
 
     for connection in &tables.collapsed_connections {
         if let Some((_output_route, sender_id)) = get_source(&tables.source_routes, &connection.from_io.route()) {
-            let sender = tables.runnables.get(sender_id).unwrap();
-            match used_destinations.insert(connection.to_io.route().clone(), (sender_id, sender.is_static_value())) {
-                Some((other_sender_id, other_sender_is_static_value)) => {
-                    // this destination is being sent to already - if the existing sender or this sender are
-                    // static then it's being used by two senders, at least one of which is static :-(
-                    if other_sender_is_static_value || sender.is_static_value() {
-                        return Err(format!("The route '{}' is being sent to by a static value as well as other outputs, causing competition that will fail at run-time",
-                                           connection.to_io.route()));
-                    }
+            if let Some(sender) = tables.runnables.get(sender_id) {
+                match used_destinations.insert(connection.to_io.route().clone(), (sender_id, sender.is_static_value())) {
+                    Some((other_sender_id, other_sender_is_static_value)) => {
+                        // this destination is being sent to already - if the existing sender or this sender are
+                        // static then it's being used by two senders, at least one of which is static :-(
+                        if other_sender_is_static_value || sender.is_static_value() {
+                            return Err(format!("The route '{}' is being sent to by a static value as well as other outputs, causing competition that will fail at run-time",
+                                               connection.to_io.route()));
+                        }
 
-                    // The same runnable is already sending to this route!
-                    if other_sender_id == sender_id {
-                        return Err(format!("The runnable #'{}' has multiple outputs sending to the route '{}'",
-                                           sender_id, connection.to_io.route()));
+                        // The same runnable is already sending to this route!
+                        if other_sender_id == sender_id {
+                            return Err(format!("The runnable #'{}' has multiple outputs sending to the route '{}'",
+                                               sender_id, connection.to_io.route()));
+                        }
                     }
-                },
-                _ => {}
+                    _ => {}
+                }
             }
         }
     }
