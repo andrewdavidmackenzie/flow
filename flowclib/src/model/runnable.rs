@@ -8,6 +8,7 @@ use std::fmt;
 pub trait Runnable: fmt::Display + HasName + HasRoute {
     fn set_id(&mut self, id: usize);
     fn get_id(&self) -> usize;
+    fn is_impure(&self) -> bool;
     fn get_inputs(&self) -> IOSet;
     fn get_outputs(&self) -> IOSet;
     fn add_output_route(&mut self, output_route: (Route, usize, usize)); // Route is the output subroute

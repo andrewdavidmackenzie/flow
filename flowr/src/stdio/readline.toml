@@ -1,4 +1,5 @@
 function = "Readline"
+impure = true
 
 [[output]]
 type = "String"

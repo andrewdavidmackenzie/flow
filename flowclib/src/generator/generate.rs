@@ -35,6 +35,7 @@ impl GenerationTables {
 
 pub fn create_manifest(_flow: &Flow, debug_symbols: bool, out_dir_path: &str, tables: &GenerationTables)
                        -> Result<Manifest> {
+    info!("==== Generator: Writing manifest to '{}'", out_dir_path);
     let mut manifest = Manifest::new();
     let mut base_path = out_dir_path.to_string();
     base_path.push('/');
@@ -126,7 +127,7 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
 
-        assert_eq!(serialized_process, expected.replace("'","\""));
+        assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 
     #[test]
@@ -161,7 +162,7 @@ mod test {
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
 
-        assert_eq!(serialized_process, expected.replace("'","\""));
+        assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 
     #[test]
@@ -197,7 +198,7 @@ mod test {
         let process = runnable_to_process("/test", &br, false);
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
-        assert_eq!(serialized_process, expected.replace("'","\""));
+        assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 
     #[test]
@@ -239,13 +240,14 @@ mod test {
         let process = runnable_to_process("/test", &br, false);
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
-        assert_eq!(serialized_process, expected.replace("'","\""));
+        assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 
     #[test]
     fn function_with_sub_route_output_to_code() {
         let function = Function::new(
             "Stdout".to_string(),
+            false,
             Some("lib://flowr/stdio/stdout".to_string()),
             "print".to_string(),
             Some(vec!()),
@@ -281,13 +283,14 @@ mod test {
         let process = runnable_to_process("/test", &br, false);
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
-        assert_eq!(serialized_process, expected.replace("'","\""));
+        assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 
     #[test]
     fn function_to_code() {
         let function = Function::new(
             "Stdout".to_string(),
+            false,
             Some("lib://flowr/stdio/stdout".to_string()),
             "print".to_string(),
             Some(vec!()),
@@ -317,7 +320,7 @@ mod test {
         let process = runnable_to_process("/test", &br, false);
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
-        assert_eq!(serialized_process, expected.replace("'","\""));
+        assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 
 
@@ -325,6 +328,7 @@ mod test {
     fn function_to_code_with_debug() {
         let function = Function::new(
             "Stdout".to_string(),
+            false,
             Some("lib://flowr/stdio/stdout".to_string()),
             "print".to_string(),
             Some(vec!()),
@@ -356,13 +360,14 @@ mod test {
         let process = runnable_to_process("/test", &br, true);
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
-        assert_eq!(serialized_process, expected.replace("'","\""));
+        assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 
     #[test]
     fn function_with_array_element_output() {
         let function = Function::new(
             "Stdout".to_string(),
+            false,
             Some("lib://flowr/stdio/stdout".to_string()),
             "print".to_string(),
             Some(vec!()),
@@ -392,6 +397,6 @@ mod test {
         let process = runnable_to_process("/test", &br, false);
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
-        assert_eq!(serialized_process, expected.replace("'","\""));
+        assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 }

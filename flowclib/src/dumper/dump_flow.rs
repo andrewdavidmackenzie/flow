@@ -53,6 +53,7 @@ use model::process::Process::FlowProcess;
 /// }
 /// ```
 pub fn dump_flow(flow: &Flow, output_dir: &PathBuf) -> io::Result<String> {
+    info!("==== Dumper: Dumping flow hierarchy to '{}'", output_dir.display());
     _dump_flow(flow, 0, output_dir)
 }
 

@@ -69,6 +69,10 @@ impl Runnable for Value {
         self.id
     }
 
+    fn is_impure(&self) -> bool {
+        false
+    }
+
     // TODO have this return a reference
     fn get_inputs(&self) -> IOSet {
         Some(vec!(IO::new(&self.datatype, &self.route)))

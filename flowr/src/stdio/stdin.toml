@@ -1,4 +1,5 @@
 function = "Stdin"
+impure = true
 
 [[output]]
 type = "String"

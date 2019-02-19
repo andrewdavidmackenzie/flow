@@ -1,4 +1,5 @@
 function = "FileWrite"
+impure = true
 
 [[input]]
 name = "filename"

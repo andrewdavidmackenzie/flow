@@ -1,0 +1,15 @@
+flow = "dead-value"
+
+[[value]]
+name = "source-value"
+type = "String"
+static = true
+
+[[value]]
+name = "dead-value"
+type = "String"
+static = true
+
+[[connection]]
+from = "value/source-value"
+to = "value/dead-value"

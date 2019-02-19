@@ -6,6 +6,7 @@ use std::collections::HashSet;
 use generator::generate::GenerationTables;
 use model::connection::Connection;
 use model::name::HasName;
+use model::runnable::Runnable;
 
 /*
     Go through all connections, finding:
@@ -66,11 +67,33 @@ pub fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &R
     }
 }
 
+pub fn connection_from_runnable(connections: &Vec<Connection>, runnable: &Box<Runnable>) -> bool {
+    let route = runnable.route();
+    for connection in connections {
+        if connection.from_io.route() == route {
+            return true
+        }
+    }
+
+    false
+}
+
+pub fn connection_to_runnable(connections: &Vec<Connection>, runnable: &Box<Runnable>) -> bool {
+    let route = runnable.route();
+    for connection in connections {
+        if connection.to_io.route() == route {
+            return true
+        }
+    }
+
+    false
+}
+
 /*
     Construct two look-up tables that can be used to find the index of a runnable in the runnables table,
     and the index of it's input - using the input route or it's output route
 */
-pub fn routes_table(tables: &mut GenerationTables) {
+pub fn create_routes_table(tables: &mut GenerationTables) {
     for mut runnable in &mut tables.runnables {
         // Add any output routes it has to the source routes table
         if let Some(ref outputs) = runnable.get_outputs() {
@@ -137,6 +160,9 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
             collapsed_connections.push(left.clone());
         }
     }
+
+    // Remove connections starting or ending at flow boundaries as they don't go anywhere useful
+    collapsed_connections.retain(|conn| !conn.from_io.flow_io() && !conn.to_io.flow_io());
 
     collapsed_connections
 }
@@ -274,7 +300,6 @@ mod test {
                                extra_one, right_side);
 
         let collapsed = collapse_connections(&connections);
-        println!("collapsed: {:?}", collapsed);
         assert_eq!(collapsed.len(), 1);
         assert_eq!(collapsed[0].from_io.route(), "/f1/a");
         assert_eq!(collapsed[0].to_io.route(), "/f3/a");
@@ -350,7 +375,6 @@ mod test {
         assert_eq!(connections.len(), 3);
 
         let collapsed = collapse_connections(&connections);
-        println!("Connections \n{:?}", collapsed);
         assert_eq!(collapsed.len(), 2);
         assert_eq!(collapsed[0].from_io.route(), "/f1/a");
         assert_eq!(collapsed[0].to_io.route(), "/f2/value1");

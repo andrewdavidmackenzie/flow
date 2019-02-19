@@ -51,10 +51,11 @@ fn run() -> Result<String, String> {
         = parse_args(get_matches())?;
     let meta_provider = MetaProvider {};
 
+    info!("==== Loader");
     let process = loader::load_process(&"".to_string(),
                                        &"context".to_string(), &url.to_string(), &meta_provider)?;
     match process {
-        FlowProcess(flow) => run_flow(flow, args, dump, skip_generation, debug_symbols, out_dir),
+        FlowProcess(flow) => compile_and_execute(flow, args, dump, skip_generation, debug_symbols, out_dir),
         _ => Err(format!("Process loaded was not of type 'Flow' and cannot be executed"))
     }
 }
@@ -124,14 +125,13 @@ fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, bool
     Ok((url, args, dump, skip_generation, debug_symbols, output_dir))
 }
 
-fn run_flow(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool, out_dir: PathBuf)
-            -> Result<String, String> {
+fn compile_and_execute(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool, out_dir: PathBuf)
+                       -> Result<String, String> {
     info!("flow loaded with alias '{}'\n", flow.alias);
 
     let tables = compile::compile(&flow)?;
 
     if dump {
-        info!("Dumping flow, compiler tables and runnable descriptions in '{}'", out_dir.display());
         dump_flow::dump_flow(&flow, &out_dir).map_err(|e| e.to_string())?;
         dump_tables::dump_tables(&tables, &out_dir).map_err(|e| e.to_string())?;
         dump_tables::dump_runnables(&flow, &tables, &out_dir).map_err(|e| e.to_string())?;
@@ -175,6 +175,8 @@ fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: &PathBuf, tables: &
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
 fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String, String> {
+    info!("==== Flowc: Executing flow from manifest in '{}'", filepath.display());
+
     let command = "cargo".to_string();
     let mut command_args = vec!("run".to_string(), "--bin".to_string(), "flowr".to_string());
     command_args.push(filepath.to_str().unwrap().to_string());
@@ -245,6 +247,23 @@ mod test {
             assert_eq!(tables.runnables.get(0).unwrap().get_id(), 0,
                        "Runnables indexes do not start at 0");
             // And the connection to it also
+            assert_eq!(tables.collapsed_connections.len(), 0, "Incorrect number of connections after optimization");
+        } else {
+            assert!(false, "Process loaded was not a flow");
+        }
+    }
+
+    #[test]
+    fn dead_value_and_function_removed() {
+        let meta_provider = MetaProvider {};
+        let parent_route = &"".to_string();
+        let path = url_from_rel_path("flowc/test-flows/dead-value-and-function.toml");
+        let process = loader::load_process(parent_route, &"context".to_string(),
+                                           &path, &meta_provider).unwrap();
+        if let FlowProcess(ref flow) = process {
+            let tables = compile::compile(flow).unwrap();
+            assert!(tables.runnables.is_empty(), "Incorrect number of runnables after optimization");
+            // And the connection are all gone also
             assert_eq!(tables.collapsed_connections.len(), 0, "Incorrect number of connections after optimization");
         } else {
             assert!(false, "Process loaded was not a flow");

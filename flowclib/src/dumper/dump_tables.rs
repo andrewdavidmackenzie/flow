@@ -57,6 +57,8 @@ use ::dumper::dump_dot;
 /// ```
 ///
 pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Result<String> {
+    info!("==== Dumper: Dumping tables to '{}'", output_dir.display());
+
     let mut writer = create_output_file(&output_dir, "flow_connections", "dump")?;
     writer.write_all(format!("{}",
                              serde_json::to_string_pretty(&tables.connections)
@@ -135,6 +137,7 @@ pub fn dump_runnables(flow: &Flow, tables: &GenerationTables, output_dir: &PathB
     dump_dot::runnables_to_dot(flow, tables, output_dir)?;
 
     let mut writer = create_output_file(&output_dir, "runnables", "dump")?;
+    info!("==== Dumper: Dumping runnables to runnables.dump file in '{}'", output_dir.display());
     dump_table(tables.runnables.iter(), &mut writer)?;
     Ok("Runnables dumped".to_string())
 }

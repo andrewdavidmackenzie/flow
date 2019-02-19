@@ -157,6 +157,13 @@ fn build_flow_connections(flow: &mut Flow) -> Result<(), String> {
     let connections = replace(&mut flow.connections, None);
     let mut connections = connections.unwrap();
 
+/*
+TODO when loading a flow we need to do this check for connections within the flow
+- needs connections to all inputs or can't run
+- output should be connected also
+*/
+
+
     for connection in connections.iter_mut() {
         connection.check_for_loops(flow.source_url.as_str())?;
         match flow.get_route_and_type(FROM, &connection.from) {

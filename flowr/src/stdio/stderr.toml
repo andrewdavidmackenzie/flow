@@ -1,3 +1,4 @@
 function = "Stderr"
+impure = true
 
 [[input]]

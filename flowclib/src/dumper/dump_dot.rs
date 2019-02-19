@@ -277,6 +277,7 @@ fn process_reference_to_dot(process_ref: &ProcessReference) -> String {
 */
 pub fn runnables_to_dot(flow: &Flow, tables: &GenerationTables, output_dir: &PathBuf)
                         -> io::Result<String> {
+    info!("==== Dumper: Dumping runnables to runnables.dot file in '{}'", output_dir.display());
     let mut dot_file = helper::create_output_file(&output_dir, "runnables", "dot")?;
     info!("Generating Runnables dot file {}, Use \"dotty\" to view it", output_dir.display());
     dot_file.write_all(format!("digraph {} {{\nnodesep=1.0\n", str::replace(&flow.alias, "-", "_")).as_bytes())?;

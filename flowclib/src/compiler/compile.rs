@@ -12,13 +12,21 @@ use super::optimizer;
 pub fn compile(flow: &Flow) -> Result<GenerationTables, String> {
     let mut tables = GenerationTables::new();
 
+    info!("==== Compiler phase: Gathering");
     gatherer::gather_runnables_and_connections(flow, &mut tables);
+    info!("==== Compiler phase: Collapsing connections");
     tables.collapsed_connections = connector::collapse_connections(&tables.connections);
+    info!("==== Compiler phase: Optimizing");
     optimizer::optimize(&mut tables);
+    info!("==== Compiler phase: Indexing");
     gatherer::index_runnables(&mut tables.runnables);
-    connector::routes_table(&mut tables);
+    info!("==== Compiler phase: Calculating routes tables");
+    connector::create_routes_table(&mut tables);
+    info!("==== Compiler phase: Setting output routes");
     connector::set_runnable_outputs(&mut tables)?;
+    info!("==== Compiler phase: Checking connections");
     connector::check_connections(&mut tables)?;
+    info!("==== Compiler phase: Checking processes");
     checker::check_process_inputs(&mut tables)?;
 
     Ok(tables)
@@ -59,7 +67,6 @@ mod test {
         The value should be removed, and there should be no connections to it.
     */
     #[test]
-    #[should_panic]
     fn dead_value() {
         let parent_route = &"".to_string();
 
@@ -76,7 +83,9 @@ mod test {
 
         match loader::load_process(parent_route, alias, url, &test_provider) {
             Ok(FlowProcess(flow)) => {
-                let _tables = compile(&flow).unwrap();
+                let tables = compile(&flow).unwrap();
+                // Dead value should be removed - currently can't assume that args function can be removed
+                assert_eq!(tables.runnables.len(), 0, "Incorrect number of runnables after optimization");
             }
             Ok(_) => panic!("Didn't load test flow"),
             Err(e) => panic!(e.to_string())
@@ -84,12 +93,13 @@ mod test {
     }
 
     /*
-        Test for a function that is dead code. It has no connections to it or from it so will never run
+        Test for a function that is dead code. It has no connections to it or from it so will
+        never run. So it should be removed by the optimizer and not fail at check stage.
     */
     #[test]
-    #[should_panic]
     fn dead_function() {
-        let mut function = Function::new("Stdout".to_string(),
+        let function = Function::new("Stdout".to_string(),
+                                         false,
                                          Some("lib://flowr/stdio/stdout.toml".to_string()),
                                          "test-function".to_string(),
                                          Some(vec!(IO::new(&"String".to_string(),

@@ -17,6 +17,8 @@ use flowrlib::url;
 pub struct Function {
     #[serde(rename = "function")]
     name: Name,
+    #[serde(default = "Function::default_impure")]
+    impure: bool,
     implementation: Option<String>,
     #[serde(rename = "input")]
     inputs: IOSet,
@@ -56,6 +58,10 @@ impl Runnable for Function {
 
     fn get_id(&self) -> usize {
         self.id
+    }
+
+    fn is_impure(&self) -> bool {
+        self.impure
     }
 
     fn get_inputs(&self) -> IOSet {
@@ -166,6 +172,7 @@ impl Default for Function {
     fn default() -> Function {
         Function {
             name: "".to_string(),
+            impure: false,
             implementation: None,
             alias: "".to_string(),
             inputs: None,
@@ -192,11 +199,16 @@ impl Function {
         "file:///".to_string()
     }
 
-    pub fn new(name: Name, implementation: Option<String>, alias: Name, inputs: IOSet, outputs: IOSet, source_url: String,
+    fn default_impure() -> bool {
+        false
+    }
+
+    pub fn new(name: Name, impure: bool, implementation: Option<String>, alias: Name, inputs: IOSet, outputs: IOSet, source_url: String,
                route: Route, lib_reference: Option<String>, output_connections: Vec<(Route, usize, usize)>,
                id: usize) -> Self {
         Function {
             name,
+            impure,
             implementation,
             alias,
             inputs,
@@ -241,6 +253,7 @@ mod test {
     fn function_with_no_io_not_valid() {
         let fun = Function {
             name: "test_function".to_string(),
+            impure: false,
             implementation: None,
             alias: "test_function".to_string(),
             source_url: Function::default_url(),
