@@ -183,10 +183,8 @@ impl RunList {
 
                 // if it wants to run again and it can (inputs ready) then add back to the Can Run list
                 if run_again {
-                    // TODO refill any inputs coming from a static value?
-
                     if process.can_run() {
-                        self.state.inputs_ready(process.id());
+                        self.state.inputs_ready(id);
                     }
                 }
             }
@@ -197,6 +195,8 @@ impl RunList {
                 }
             }
         }
+
+        self.state.done(id);
     }
 
     #[cfg(feature = "metrics")]

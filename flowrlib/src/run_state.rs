@@ -2,6 +2,17 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashSet;
 use process::Process;
 
+#[derive(Debug)]
+enum State {
+    Ready,
+    // ready to run
+    Blocked,
+    // cannot run as output is blocked by another process
+    Waiting,
+    // waiting for inputs to arrive
+    Running,     //is being run somewhere
+}
+
 pub struct RunState {
     processes: Vec<Arc<Mutex<Process>>>,
     blocked: HashSet<usize>,
@@ -10,6 +21,8 @@ pub struct RunState {
     // blocking: Vec<(blocking_id, blocked_id)>
     will_run: Vec<usize>,
     // will_run: Vec<process_id>
+    running: HashSet<usize>,
+    // dispatched: HashSet<process_id>
     dispatches: usize,
 }
 
@@ -20,6 +33,7 @@ impl RunState {
             blocked: HashSet::<usize>::new(),
             blocking: Vec::<(usize, usize)>::new(),
             will_run: Vec::<usize>::new(),
+            running: HashSet::<usize>::new(),
             #[cfg(feature = "debugger")]
             dispatches: 0,
         }
@@ -36,6 +50,7 @@ impl RunState {
         self.blocked.clear();
         self.blocking.clear();
         self.will_run.clear();
+        self.running.clear();
         if cfg!(feature = "debugger") {
             self.dispatches = 0;
         }
@@ -67,28 +82,33 @@ impl RunState {
         self.processes.len()
     }
 
-    #[cfg(feature = "debugger")]
-    pub fn display_state(&self, process_id: usize) -> String {
-        let mut state;
+    fn get_state(&self, process_id: usize) -> State {
         if self.will_run.contains(&process_id) {
-            state = "\tWill Run (Inputs ready and not blocked on output)\n".to_string();
+            State::Ready
         } else {
             if self.blocked.contains(&process_id) {
-                state = "\tBlocked on output\n".to_string();
+                State::Blocked
+            } else if self.running.contains(&process_id) {
+                State::Running
             } else {
-                state = "\tInputs not ready\n".to_string()
+                State::Waiting
             }
         }
+    }
+
+    #[cfg(feature = "debugger")]
+    pub fn display_state(&self, process_id: usize) -> String {
+        let mut output = format!("State: {:?}\n", self.get_state(process_id));
 
         for (blocking, blocked) in &self.blocking {
             if *blocked == process_id {
-                state.push_str(&format!("\t\tBlocked #{} --> Blocked by #{}\n", blocked, blocking));
+                output.push_str(&format!("\t\tBlocked #{} --> Blocked by #{}\n", blocked, blocking));
             } else if *blocking == process_id {
-                state.push_str(&format!("\t\tBlocking #{} <-- Blocked #{}\n", blocking, blocked));
+                output.push_str(&format!("\t\tBlocking #{} <-- Blocked #{}\n", blocking, blocked));
             }
         }
 
-        state
+        output
     }
 
     #[cfg(any(feature = "logging", feature = "debugger"))]
@@ -99,6 +119,7 @@ impl RunState {
         println!("     Blocked: {:?}", self.blocked);
         println!("    Blocking: {:?}", self.blocking);
         println!("    Will Run: {:?}", self.will_run);
+        println!("  Dispatched: {:?}", self.running);
     }
 
     #[cfg(any(feature = "metrics", feature = "debugger"))]
@@ -116,7 +137,14 @@ impl RunState {
             return None;
         }
 
-        Some(self.will_run.remove(0))
+        // Take the process_id at the head of the will_run list
+        let dispatched_id = self.will_run.remove(0);
+        self.running.insert(dispatched_id);
+        Some(dispatched_id)
+    }
+
+    pub fn done(&mut self, id: usize) {
+        self.running.remove(&id);
     }
 
     // TODO ADM optimize this by also having a flag in the process?
