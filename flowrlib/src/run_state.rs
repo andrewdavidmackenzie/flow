@@ -98,7 +98,7 @@ impl RunState {
 
     #[cfg(feature = "debugger")]
     pub fn display_state(&self, process_id: usize) -> String {
-        let mut output = format!("State: {:?}\n", self.get_state(process_id));
+        let mut output = format!("\tState: {:?}\n", self.get_state(process_id));
 
         for (blocking, blocked) in &self.blocking {
             if *blocked == process_id {
@@ -119,7 +119,7 @@ impl RunState {
         println!("     Blocked: {:?}", self.blocked);
         println!("    Blocking: {:?}", self.blocking);
         println!("    Will Run: {:?}", self.will_run);
-        println!("  Dispatched: {:?}", self.running);
+        println!("     Running: {:?}", self.running);
     }
 
     #[cfg(any(feature = "metrics", feature = "debugger"))]
