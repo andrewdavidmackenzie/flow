@@ -24,7 +24,8 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
 'd' | 'delete' {spec} or '*' - Delete the breakpoint matching {spec} or all with '*'
 'e' | 'exit'                 - Stop flow execution and exit
 'h' | 'help'                 - Display this help message
-'lb'| 'breakpoints'          - List all the currently set breakpoints
+'i' | 'inspect'              - Run a series of defined 'inspections' to check status of flow
+'l' | 'list'                 - List all breakpoints
 'p' | 'print' [n]            - Print the overall state, or state of process number 'n'
 'r' | 'reset'                - reset the state back to initial state after loading
 's' | 'step' [n]             - Step over the next 'n' process executions (default = 1) then break
@@ -113,7 +114,8 @@ impl Debugger {
                         "d" | "delete" => self.delete_breakpoint(param),
                         "e" | "exit" => exit(1),
                         "h" | "help" => self.help(),
-                        "lb" | "breakpoints" => self.list_breakpoints(),
+                        "i" | "inspect" => self.inspect(state),
+                        "l" | "list" => self.list_breakpoints(),
                         "p" | "print" => self.print(state, param),
                         "r" | "reset" => {
                             self.break_at_invocation = 0;
@@ -130,6 +132,38 @@ impl Debugger {
                 }
                 Err(_) => self.client.display(&format!("Error reading debugger command\n"))
             };
+        }
+    }
+
+    fn add_breakpoint(&mut self, state: &RunState, param: Option<Param>) {
+        match param {
+            None => self.client.display("'break' command must specify a process id to break on"),
+            Some(Param::Numeric(process_id)) => {
+                if process_id > state.num_processes() {
+                    self.client.display(
+                        &format!("There is no process with id '{}' to set a breakpoint on\n", process_id));
+                } else {
+                    self.process_breakpoints.insert(process_id);
+                    self.client.display(
+                        &format!("Set process breakpoint on Process #{}\n", process_id));
+                }
+            }
+            Some(Param::Input((dest_id, input_number))) => {
+                self.client.display(
+                    &format!("Set data breakpoint on process #{} receiving data on input: {}\n", dest_id, input_number));
+                self.input_breakpoints.insert((dest_id, input_number));
+            }
+            Some(Param::Block((blocked_id, blocking_id))) => {
+                self.client.display(
+                    &format!("Set block breakpoint for Process #{} being blocked by Process #{}\n", blocked_id, blocking_id));
+                self.block_breakpoints.insert((blocked_id, blocking_id));
+            }
+            Some(Param::Output((source_id, source_output_route))) => {
+                self.client.display(
+                    &format!("Set data breakpoint on process #{} sending data via output/{}\n", source_id, source_output_route));
+                self.output_breakpoints.insert((source_id, source_output_route));
+            }
+            Some(Param::Wildcard) => self.client.display("To break on every process, you can just single step using 's' command\n")
         }
     }
 
@@ -192,6 +226,14 @@ impl Debugger {
         }
     }
 
+    fn help(&self) {
+        self.client.display(HELP_STRING);
+    }
+
+    fn inspect(&self, _state: &RunState) {
+        self.client.display("Running inspections\n");
+    }
+
     fn print_process(&self, state: &RunState, process_id: usize) {
         let process_arc = state.get(process_id);
         let mut process_lock = process_arc.try_lock();
@@ -228,38 +270,6 @@ impl Debugger {
             None => self.break_at_invocation = state.dispatches() + 1,
             Some(Param::Numeric(steps)) => self.break_at_invocation = state.dispatches() + steps,
             _ => self.client.display("Did not understand step command parameter\n")
-        }
-    }
-
-    fn add_breakpoint(&mut self, state: &RunState, param: Option<Param>) {
-        match param {
-            None => self.client.display("'break' command must specify a process id to break on"),
-            Some(Param::Numeric(process_id)) => {
-                if process_id > state.num_processes() {
-                    self.client.display(
-                        &format!("There is no process with id '{}' to set a breakpoint on\n", process_id));
-                } else {
-                    self.process_breakpoints.insert(process_id);
-                    self.client.display(
-                        &format!("Set process breakpoint on Process #{}\n", process_id));
-                }
-            }
-            Some(Param::Input((dest_id, input_number))) => {
-                self.client.display(
-                    &format!("Set data breakpoint on process #{} receiving data on input: {}\n", dest_id, input_number));
-                self.input_breakpoints.insert((dest_id, input_number));
-            }
-            Some(Param::Block((blocked_id, blocking_id))) => {
-                self.client.display(
-                    &format!("Set block breakpoint for Process #{} being blocked by Process #{}\n", blocked_id, blocking_id));
-                self.block_breakpoints.insert((blocked_id, blocking_id));
-            }
-            Some(Param::Output((source_id, source_output_route))) => {
-                self.client.display(
-                    &format!("Set data breakpoint on process #{} sending data via output/{}\n", source_id, source_output_route));
-                self.output_breakpoints.insert((source_id, source_output_route));
-            }
-            Some(Param::Wildcard) => self.client.display("To break on every process, you can just single step using 's' command\n")
         }
     }
 
@@ -303,9 +313,5 @@ impl Debugger {
     }
 
         (command, None)
-    }
-
-    fn help(&self) {
-        self.client.display(HELP_STRING);
     }
 }
