@@ -9,3 +9,4 @@ dependencies.png
 failed.output
 manifest.json
 target
+cov
