@@ -97,6 +97,11 @@ impl RunState {
     }
 
     #[cfg(feature = "debugger")]
+    pub fn get_blocked(&self) -> &HashSet<usize> {
+        &self.blocked
+    }
+
+    #[cfg(feature = "debugger")]
     pub fn display_state(&self, process_id: usize) -> String {
         let mut output = format!("\tState: {:?}\n", self.get_state(process_id));
 
@@ -159,6 +164,63 @@ impl RunState {
         false
     }
 
+    #[cfg(feature = "debugger")]
+    pub fn get_output_blockers(&self, id: usize) -> Vec<usize> {
+        let mut blockers = vec!();
+
+        for &(blocking_id, blocked_id) in &self.blocking {
+            if blocked_id == id {
+                blockers.push(blocking_id);
+            }
+        }
+
+        blockers
+    }
+
+    /*
+        An input blocker is another process that is the only process connected to an empty input
+        of target process, and which is not ready to run, hence target process cannot run.
+    */
+    #[cfg(feature = "debugger")]
+    pub fn get_input_blockers(&self, target_id: usize) -> Vec<usize> {
+        let mut input_blockers = vec!();
+        let target_process_arc = self.get(target_id);
+        let mut target_process_lock = target_process_arc.try_lock();
+
+        if let Ok(ref mut target_process) = target_process_lock {
+            // for each empty input of the target process
+            for (target_io, input) in target_process.get_inputs().iter().enumerate() {
+                if input.is_empty() {
+                    let mut senders = Vec::<usize>::new();
+
+                    // go through all processes to see if sends to the target process on input
+                    for sender_process_arc in &self.processes {
+                        let mut sender_process_lock = sender_process_arc.try_lock();
+                        if let Ok(ref mut sender_process) = sender_process_lock {
+                            // if the sender process is not ready to run
+                            if !self.will_run.contains(&sender_process.id()) {
+
+                                // for each output route of sending process, see if it is sending to the target process and input
+                                for &(ref _output_route, destination_id, io_number) in sender_process.output_destinations() {
+                                    if (destination_id == target_id) && (io_number == target_io) {
+                                        senders.push(sender_process.id());
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // If unique sender to this Input, then target process is blocked waiting for that value
+                    if senders.len() == 1 {
+                        input_blockers.extend(senders);
+                    }
+                }
+            }
+        }
+
+        input_blockers
+    }
+
     /*
         Save the fact that a particular Process's inputs are now satisfied and so it maybe ready
         to run (if not blocked sending on it's output)
@@ -182,9 +244,9 @@ impl RunState {
     }
 
     // unblock all processs that were blocked trying to send to blocker_id by removing all entries
-    // in the list where the first value (blocking_id) matches the destination_id
-    // when each is unblocked on output, if it's inputs are satisfied, then it is ready to be run
-    // again, so put it on the ready queue
+// in the list where the first value (blocking_id) matches the destination_id
+// when each is unblocked on output, if it's inputs are satisfied, then it is ready to be run
+// again, so put it on the ready queue
     pub fn unblock_senders_to(&mut self, blocker_id: usize) {
         if !self.blocking.is_empty() {
             let mut unblocked_list = vec!();
@@ -263,7 +325,7 @@ mod tests {
     fn blocked_works() {
         let mut state = RunState::new(test_processes());
 
-        // Indicate that 0 is blocked by 1
+// Indicate that 0 is blocked by 1
         state.set_blocked_by(1, 0);
         assert!(state.is_blocked(0));
     }
@@ -287,7 +349,7 @@ mod tests {
     fn inputs_ready_makes_ready() {
         let mut state = RunState::new(test_processes());
 
-        // Indicate that 0 has all it's inputs read
+// Indicate that 0 has all it's inputs read
         state.inputs_ready(0);
 
         assert_eq!(state.next().unwrap(), 0);
@@ -297,10 +359,10 @@ mod tests {
     fn blocked_is_not_ready() {
         let mut state = RunState::new(test_processes());
 
-        // Indicate that 0 is blocked by 1
+// Indicate that 0 is blocked by 1
         state.set_blocked_by(1, 0);
 
-        // Indicate that 0 has all it's inputs read
+// Indicate that 0 has all it's inputs read
         state.inputs_ready(0);
 
         match state.next() {
@@ -313,18 +375,18 @@ mod tests {
     fn unblocking_makes_ready() {
         let mut state = RunState::new(test_processes());
 
-        // Indicate that 0 is blocked by 1
+// Indicate that 0 is blocked by 1
         state.set_blocked_by(1, 0);
 
-        // Indicate that 0 has all it's inputs read
+// Indicate that 0 has all it's inputs read
         state.inputs_ready(0);
 
         assert_eq!(state.next(), None);
 
-        // now unblock 0 by 1
+// now unblock 0 by 1
         state.unblock_senders_to(1);
 
-        // Now process with id 0 should be ready and served up by next
+// Now process with id 0 should be ready and served up by next
         assert_eq!(state.next(), Some(0));
     }
 
@@ -332,19 +394,19 @@ mod tests {
     fn unblocking_doubly_blocked_process_not_ready() {
         let mut state = RunState::new(test_processes());
 
-        // Indicate that 0 is blocked by 1 and 2
+// Indicate that 0 is blocked by 1 and 2
         state.set_blocked_by(1, 0);
         state.set_blocked_by(2, 0);
 
-        // Indicate that 0 has all it's inputs read
+// Indicate that 0 has all it's inputs read
         state.inputs_ready(0);
 
         assert_eq!(state.next(), None);
 
-        // now unblock 0 by 1
+// now unblock 0 by 1
         state.unblock_senders_to(1);
 
-        // Now process with id 0 should still not be ready as still blocked on 2
+// Now process with id 0 should still not be ready as still blocked on 2
         assert_eq!(state.next(), None);
     }
 }

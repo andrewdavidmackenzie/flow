@@ -53,7 +53,7 @@ impl fmt::Display for Process {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Process #{} '{}'\n", self.id, self.name)?;
         for (number, input) in self.inputs.iter().enumerate() {
-            if input.empty() {
+            if input.is_empty() {
                 write!(f, "\tInput #{}: empty\n", number)?;
             } else {
                 write!(f, "\tInput #{}: {}\n", number, input)?;
@@ -177,6 +177,10 @@ impl Process {
         }
 
         return true;
+    }
+
+    pub fn get_inputs(&self) -> &Vec<Input> {
+        &self.inputs
     }
 
     pub fn get_input_values(&mut self) -> Vec<Vec<JsonValue>> {

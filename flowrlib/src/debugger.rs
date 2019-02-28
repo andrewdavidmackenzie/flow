@@ -39,6 +39,21 @@ enum Param {
     Block((usize, usize)),
 }
 
+#[derive(Debug, Clone)]
+struct Node {
+    process_id: usize,
+    blockers: Vec<Node>,
+}
+
+impl Node {
+    fn new(id: usize) -> Self {
+        Node {
+            process_id: id,
+            blockers: vec!(),
+        }
+    }
+}
+
 impl Debugger {
     pub fn new(client: &'static DebugClient) -> Self {
         Debugger {
@@ -70,7 +85,6 @@ impl Debugger {
             self.client.display(&format!("Block breakpoint: Process #{} ----- blocked by ----> Process #{}\n",
                                          blocked_id, blocking_id));
             self.command_loop(state);
-
         }
     }
 
@@ -230,8 +244,84 @@ impl Debugger {
         self.client.display(HELP_STRING);
     }
 
-    fn inspect(&self, _state: &RunState) {
+    fn inspect(&self, state: &RunState) {
         self.client.display("Running inspections\n");
+        self.deadlock_inspection(state);
+    }
+
+    /*
+        Return a vector of all the processes preventing process_id from running, which can be:
+        - other process has input full and hence is blocking running of this process
+        - other process is the only process that sends to an empty input of this process
+    */
+    fn find_blockers(&self, state: &RunState, process_id: usize) -> Vec<usize> {
+        let mut blockers: Vec<usize> = state.get_output_blockers(process_id);
+
+        let input_blockers: Vec<usize> = state.get_input_blockers(process_id);
+
+        blockers.extend(input_blockers);
+
+        blockers
+    }
+
+    /*
+        Traverse the tree of processes blocking this process from running, either because:
+        - this process wants to send to the other, but the input it full
+        - this process needs an input from the other
+
+        Return true if a loop was detected, false if done without detecting a loop
+    */
+    fn traverse_blocker_tree(&self, state: &RunState, visited_nodes: &mut Vec<usize>,
+                             root_node_id: usize, node: &mut Node) -> Vec<Node> {
+        visited_nodes.push(node.process_id);
+        node.blockers = self.find_blockers(state, node.process_id).iter().map(|id|
+            Node::new(*id)).collect();
+
+        for mut blocker in &mut node.blockers {
+            if blocker.process_id == root_node_id {
+                return vec!(blocker.clone()); // add the last node in the loop to end of trail
+            }
+
+            // if we've visited this blocking node before, then we've detected a loop
+            if !visited_nodes.contains(&blocker.process_id) {
+
+                let mut blocker_subtree = self.traverse_blocker_tree(state, visited_nodes,
+                                                                     root_node_id, blocker);
+                if blocker_subtree.len() > 0 {
+                    // insert this node at the head of the list of blocking nodes
+                    blocker_subtree.insert(0, blocker.clone());
+                    return blocker_subtree;
+                }
+            }
+        }
+
+        // no loop found
+        vec!()
+    }
+
+    fn display_set(root_node: &Node, node_set: Vec<Node>) -> String {
+        let mut display_string = String::new();
+        display_string.push_str(&format!("#{}", root_node.process_id));
+        for node in node_set {
+            display_string.push_str(&format!(" -> #{}", node.process_id));
+        }
+        display_string
+    }
+
+    fn deadlock_inspection(&self, state: &RunState) {
+        self.client.display("Running deadlock inspection\n");
+        for blocked_process_id in state.get_blocked() {
+            // start a clean tree with a new root node for each blocked process
+            let mut root_node = Node::new(*blocked_process_id);
+            let mut visited_nodes = vec!();
+
+            let mut deadlock_set = self.traverse_blocker_tree(state, &mut visited_nodes,
+                                                              *blocked_process_id, &mut root_node);
+            if deadlock_set.len() > 0 {
+                self.client.display(&format!("Deadlock detected\n"));
+                self.client.display(&format!("{}\n", Self::display_set(&root_node, deadlock_set)));
+            }
+        }
     }
 
     fn print_process(&self, state: &RunState, process_id: usize) {
@@ -302,15 +392,14 @@ impl Debugger {
                     (_, _) => { /* couldn't parse the process and input numbers */ }
                 }
             } else if parts[1].contains("->") { // is a block specifier
-            let sub_parts: Vec<&str> = parts[1].split("->").collect();
-            match (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
-                (Ok(blocked_process_id), Ok(blocking_process_id)) =>
-                    return (command, Some(Param::Block((blocked_process_id, blocking_process_id)))),
-                (_, _) => { /* couldn't parse the process ids */ }
+                let sub_parts: Vec<&str> = parts[1].split("->").collect();
+                match (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
+                    (Ok(blocked_process_id), Ok(blocking_process_id)) =>
+                        return (command, Some(Param::Block((blocked_process_id, blocking_process_id)))),
+                    (_, _) => { /* couldn't parse the process ids */ }
+                }
             }
         }
-
-    }
 
         (command, None)
     }

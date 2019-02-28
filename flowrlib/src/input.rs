@@ -57,7 +57,7 @@ impl Input {
         self.received[0] = value;
     }
 
-    pub fn empty(&self) -> bool { self.received.is_empty() }
+    pub fn is_empty(&self) -> bool { self.received.is_empty() }
 
     pub fn full(&self) -> bool {
         self.received.len() == self.depth
@@ -72,14 +72,14 @@ mod test {
     #[test]
     fn no_inputs_initially() {
         let input = Input::new(1);
-        assert!(input.empty());
+        assert!(input.is_empty());
     }
 
     #[test]
     fn accepts_value() {
         let mut input = Input::new(1);
         input.push(JsonValue::Null);
-        assert!(!input.empty());
+        assert!(!input.is_empty());
     }
 
     #[test]
@@ -101,7 +101,7 @@ mod test {
     fn read_works() {
         let mut input = Input::new(1);
         input.push(json!(10));
-        assert!(!input.empty());
+        assert!(!input.is_empty());
         assert_eq!(input.read(), vec!(json!(10)));
     }
 
@@ -109,18 +109,18 @@ mod test {
     fn take_empties() {
         let mut input = Input::new(1);
         input.push(json!(10));
-        assert!(!input.empty());
+        assert!(!input.is_empty());
         input.take();
-        assert!(input.empty());
+        assert!(input.is_empty());
     }
 
     #[test]
     fn reset_empties() {
         let mut input = Input::new(1);
         input.push(json!(10));
-        assert!(!input.empty());
+        assert!(!input.is_empty());
         input.reset();
-        assert!(input.empty());
+        assert!(input.is_empty());
     }
 
     #[test]
