@@ -3,6 +3,7 @@ use std::process::exit;
 use run_state::RunState;
 use std::collections::HashSet;
 use serde_json::Value as JsonValue;
+use std::fmt;
 
 pub struct Debugger {
     pub client: &'static DebugClient,
@@ -40,16 +41,33 @@ enum Param {
 }
 
 #[derive(Debug, Clone)]
-struct Node {
-    process_id: usize,
-    blockers: Vec<Node>,
+enum BlockType {
+    OutputBlocked, // Cannot run and send it's Output as a destination Input is full
+    UnreadySender  // Has to send output to an empty Input for other process to be able to run
 }
 
-impl Node {
-    fn new(id: usize) -> Self {
-        Node {
-            process_id: id,
+#[derive(Debug, Clone)]
+struct BlockerNode {
+    process_id: usize,
+    blocktype: BlockType,
+    blockers: Vec<BlockerNode>,
+}
+
+impl BlockerNode {
+    fn new(process_id: usize, blocktype: BlockType) -> Self {
+        BlockerNode {
+            process_id,
+            blocktype,
             blockers: vec!(),
+        }
+    }
+}
+
+impl fmt::Display for BlockerNode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.blocktype {
+            BlockType::OutputBlocked => write!(f, " -> #{}", self.process_id),
+            BlockType::UnreadySender => write!(f, " <- #{}", self.process_id)
         }
     }
 }
@@ -256,10 +274,12 @@ impl Debugger {
         - other process has input full and hence is blocking running of this process
         - other process is the only process that sends to an empty input of this process
     */
-    fn find_blockers(&self, state: &RunState, process_id: usize) -> Vec<usize> {
-        let mut blockers: Vec<usize> = state.get_output_blockers(process_id);
+    fn find_blockers(&self, state: &RunState, process_id: usize) -> Vec<BlockerNode> {
+        let mut blockers: Vec<BlockerNode> = state.get_output_blockers(process_id).iter().map(|id|
+            BlockerNode::new(*id, BlockType::OutputBlocked)).collect();
 
-        let input_blockers: Vec<usize> = state.get_input_blockers(process_id);
+        let input_blockers: Vec<BlockerNode> = state.get_input_blockers(process_id).iter().map(|id|
+            BlockerNode::new(*id, BlockType::UnreadySender)).collect();
 
         blockers.extend(input_blockers);
 
@@ -274,10 +294,9 @@ impl Debugger {
         Return true if a loop was detected, false if done without detecting a loop
     */
     fn traverse_blocker_tree(&self, state: &RunState, visited_nodes: &mut Vec<usize>,
-                             root_node_id: usize, node: &mut Node) -> Vec<Node> {
+                             root_node_id: usize, node: &mut BlockerNode) -> Vec<BlockerNode> {
         visited_nodes.push(node.process_id);
-        node.blockers = self.find_blockers(state, node.process_id).iter().map(|id|
-            Node::new(*id)).collect();
+        node.blockers = self.find_blockers(state, node.process_id);
 
         for mut blocker in &mut node.blockers {
             if blocker.process_id == root_node_id {
@@ -301,11 +320,11 @@ impl Debugger {
         vec!()
     }
 
-    fn display_set(root_node: &Node, node_set: Vec<Node>) -> String {
+    fn display_set(root_node: &BlockerNode, node_set: Vec<BlockerNode>) -> String {
         let mut display_string = String::new();
         display_string.push_str(&format!("#{}", root_node.process_id));
         for node in node_set {
-            display_string.push_str(&format!(" -> #{}", node.process_id));
+            display_string.push_str(&format!("{}", node));
         }
         display_string
     }
@@ -313,7 +332,7 @@ impl Debugger {
     fn deadlock_inspection(&self, state: &RunState) {
         for blocked_process_id in state.get_blocked() {
             // start a clean tree with a new root node for each blocked process
-            let mut root_node = Node::new(*blocked_process_id);
+            let mut root_node = BlockerNode::new(*blocked_process_id, BlockType::OutputBlocked);
             let mut visited_nodes = vec!();
 
             let mut deadlock_set = self.traverse_blocker_tree(state, &mut visited_nodes,
