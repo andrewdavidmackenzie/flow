@@ -109,6 +109,7 @@ impl Debugger {
 
     pub fn end(&mut self, state: &mut RunState) -> (bool, bool) {
         self.client.display("Execution has ended\n");
+        self.deadlock_inspection(state);
         self.command_loop(state)
     }
 
@@ -246,6 +247,7 @@ impl Debugger {
 
     fn inspect(&self, state: &RunState) {
         self.client.display("Running inspections\n");
+        self.client.display("Running deadlock inspection\n");
         self.deadlock_inspection(state);
     }
 
@@ -309,7 +311,6 @@ impl Debugger {
     }
 
     fn deadlock_inspection(&self, state: &RunState) {
-        self.client.display("Running deadlock inspection\n");
         for blocked_process_id in state.get_blocked() {
             // start a clean tree with a new root node for each blocked process
             let mut root_node = Node::new(*blocked_process_id);
