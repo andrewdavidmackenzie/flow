@@ -1,12 +1,12 @@
 # Welcome!
 
-Welcome to the guide to my pet project called 'flow'
+Welcome to the guide to my pet project called `flow`
 
-`flow` is a system for defining and running parallel, data-dependency driven 'programs'.
+`flow` is a system for defining and running parallel, data-dependency-driven 'programs'.
  
- The project is in early stages and the current implementation is being used by me as a way
- to clarify my ideas and to continue to learn rust and other modern programming languages and tools.
+ The project is in its early stages and the current implementation is being used by me as a way
+ to clarify my ideas and also as a way to continue to learn rust.
  
- Learn more about what it is and why I created it by reading the introduction section, 
- or dive right in and see if you can understand your first 'flow' with zero previous knowledge
- and just your programmer's intuition.
+ Learn more about what it is and why I created it by reading the next (Introduction) section, 
+ or dive right in and see if you can understand [Your First Flow](first_flow/first_flow.md)
+ with zero previous knowledge and just your programmer's intuition.

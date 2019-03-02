@@ -6,7 +6,8 @@
 
 - [Introduction](introduction/introduction.md)
     - [What is flow](introduction/what_is_flow.md)
-    - [Components](introduction/components.md)
+    - [Tenets of flow](introduction/tenets.md)
+    - [Project Components](introduction/components.md)
     - [The Inspirations for flow](introduction/inspirations.md)
     - [Non-Inspirations](introduction/non_inspirations.md)
     - [Status](introduction/status.md)
