@@ -1,11 +1,11 @@
 use toml;
-use loader::loader::Loader;
+use loader::loader::Deserializer;
 use model::process::Process;
 
 pub struct FlowTomelLoader;
 
-impl Loader for FlowTomelLoader {
-    fn load_process(&self, contents: &str) -> Result<Process, String> {
+impl Deserializer for FlowTomelLoader {
+    fn deserialize(&self, contents: &str) -> Result<Process, String> {
         toml::from_str(contents).map_err(|e| format!("{}", e))
     }
 }
@@ -30,7 +30,7 @@ fn simple_context_loads() {
     ";
 
     let toml = FlowTomelLoader {};
-    toml.load_process(flow_description).unwrap();
+    toml.deserialize(flow_description).unwrap();
 }
 
 // Test to see if #[serde(deny_unknown_fields)] causes deserialization failures in yaml
@@ -47,7 +47,7 @@ fn flow_errors_on_unknown_fields() {
     ";
 
     let toml = FlowTomelLoader {};
-    toml.load_process(flow_description).unwrap();
+    toml.deserialize(flow_description).unwrap();
 }
 
 #[test]
@@ -64,7 +64,7 @@ fn function_errors_on_unknown_fields() {
     ";
 
     let toml = FlowTomelLoader {};
-    toml.load_process(flow_description).unwrap();
+    toml.deserialize(flow_description).unwrap();
 }
 
 #[test]
@@ -76,7 +76,7 @@ fn default_optional_values() {
     ";
 
     let toml = FlowTomelLoader {};
-    match toml.load_process(flow_description).unwrap() {
+    match toml.deserialize(flow_description).unwrap() {
         FlowProcess(flow) => {
             assert_eq!(flow.version, Flow::default_version());
             assert_eq!(flow.author_name, Flow::default_author());
@@ -97,7 +97,7 @@ fn flow_has_optional_values() {
     ";
 
     let toml = FlowTomelLoader {};
-    match toml.load_process(flow_description).unwrap() {
+    match toml.deserialize(flow_description).unwrap() {
         FlowProcess(flow) => {
             assert_eq!(flow.version, "1.1.1".to_string());
             assert_eq!(flow.author_name, "tester".to_string());
@@ -118,7 +118,7 @@ fn flow_with_function_from_lib() {
     ";
 
     let toml = FlowTomelLoader {};
-    toml.load_process(flow_description).unwrap();
+    toml.deserialize(flow_description).unwrap();
 }
 
 #[test]
@@ -133,7 +133,7 @@ fn flow_with_unknown_lib_key() {
     ";
 
     let toml = FlowTomelLoader {};
-    toml.load_process(flow_description).unwrap();
+    toml.deserialize(flow_description).unwrap();
 }
 
 #[test]
@@ -147,7 +147,7 @@ fn flow_with_function_without_source() {
     ";
 
     let toml = FlowTomelLoader {};
-    toml.load_process(flow_description).unwrap();
+    toml.deserialize(flow_description).unwrap();
 }
 
 #[test]
@@ -161,7 +161,7 @@ fn load_fails_if_no_name() {
     ";
 
     let toml = FlowTomelLoader {};
-    toml.load_process(flow_description).unwrap();
+    toml.deserialize(flow_description).unwrap();
 }
 
 #[test]
@@ -174,7 +174,7 @@ name = 'stdout'
 type = 'String'";
 
     let toml = FlowTomelLoader {};
-    toml.load_process(function_definition).unwrap();
+    toml.deserialize(function_definition).unwrap();
 }
 
 #[test]
@@ -186,5 +186,5 @@ name = 'stdout'
 type = 'String'";
 
     let toml = FlowTomelLoader {};
-    toml.load_process(function_definition).unwrap();
+    toml.deserialize(function_definition).unwrap();
 }

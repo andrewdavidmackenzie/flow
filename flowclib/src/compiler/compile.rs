@@ -81,7 +81,7 @@ mod test {
         };
         let url = "file://fake.toml";
 
-        match loader::load_process(parent_route, alias, url, &test_provider) {
+        match loader::deserialize(parent_route, alias, url, &test_provider) {
             Ok(FlowProcess(flow)) => {
                 let tables = compile(&flow).unwrap();
                 // Dead value should be removed - currently can't assume that args function can be removed

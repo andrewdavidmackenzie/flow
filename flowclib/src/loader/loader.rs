@@ -8,16 +8,16 @@ use model::name::HasName;
 use model::route::Route;
 use model::route::HasRoute;
 use model::route::SetRoute;
-use loader::loader_helper::get_loader;
+use deserializers::deserializer_helper::get_deserializer;
 use flowrlib::provider::Provider;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
 use std::mem::replace;
 use flowrlib::url;
 
-// Any loader has to implement these methods
-pub trait Loader {
-    fn load_process(&self, contents: &str) -> Result<Process, String>;
+// Any deserializer has to implement this method
+pub trait Deserializer {
+    fn deserialize(&self, contents: &str) -> Result<Process, String>;
 }
 
 pub trait Validate {
@@ -59,15 +59,15 @@ pub trait Validate {
 /// let dummy_provider = DummyProvider {};
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
-/// flowclib::loader::loader::load_process(&parent_route, &alias, &url.to_string(), &dummy_provider).unwrap();
+/// flowclib::loader::loader::deserialize(&parent_route, &alias, &url.to_string(), &dummy_provider).unwrap();
 /// ```
-pub fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provider) -> Result<Process, String> {
+pub fn deserialize(parent_route: &Route, alias: &Name, url: &str, provider: &Provider) -> Result<Process, String> {
     let (resolved_url, lib_ref) = provider.resolve(url, "context.toml")?;
-    let loader = get_loader(&resolved_url)?;
-    info!("Loading process with alias = '{}' from url = '{}' ", alias, resolved_url);
+    let deserializer = get_deserializer(&resolved_url)?;
+    info!("Deserializing process with alias = '{}' from url = '{}' ", alias, resolved_url);
     let contents = provider.get(&resolved_url)?;
 
-    let mut process = loader.load_process(&String::from_utf8(contents).unwrap())?;
+    let mut process = deserializer.deserialize(&String::from_utf8(contents).unwrap())?;
 
     match process {
         FlowProcess(ref mut flow) => {
@@ -91,7 +91,7 @@ fn load_subprocesses(flow: &mut Flow, provider: &Provider) -> Result<(), String>
     if let Some(ref mut process_refs) = flow.process_refs {
         for process_ref in process_refs {
             let subprocess_url = url::join(&flow.source_url, &process_ref.source);
-            process_ref.process = load_process(&flow.route, &process_ref.alias(), &subprocess_url, provider)?;
+            process_ref.process = deserialize(&flow.route, &process_ref.alias(), &subprocess_url, provider)?;
 
             if let FunctionProcess(ref function) = process_ref.process {
                 if let Some(lib_ref) = function.get_lib_reference() {
@@ -157,12 +157,11 @@ fn build_flow_connections(flow: &mut Flow) -> Result<(), String> {
     let connections = replace(&mut flow.connections, None);
     let mut connections = connections.unwrap();
 
-/*
-TODO when loading a flow we need to do this check for connections within the flow
-- needs connections to all inputs or can't run
-- output should be connected also
-*/
-
+    /*
+    TODO when loading a flow we need to do this check for connections within the flow
+    - needs connections to all inputs or can't run
+    - output should be connected also
+    */
 
     for connection in connections.iter_mut() {
         connection.check_for_loops(flow.source_url.as_str())?;

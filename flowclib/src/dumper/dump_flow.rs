@@ -42,7 +42,7 @@ use model::process::Process::FlowProcess;
 ///     let parent_route = &"".to_string();
 ///     let alias = &"hello-world-simple".to_string();
 ///
-///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_process(parent_route,
+///     if let FlowProcess(mut flow) = flowclib::loader::loader::deserialize(parent_route,
 ///                                                       alias,
 ///                                                       &url.to_string(),
 ///                                                       &dummy_provider).unwrap() {

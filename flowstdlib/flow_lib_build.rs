@@ -33,7 +33,7 @@ fn build_manifest(lib_name: &str, out_dir: &str) -> HashMap<String, String>{
     for entry in glob(search_pattern).expect("Failed to read glob pattern") {
         match entry {
             Ok(ref path) => {
-                match load_process(path) {
+                match deserialize(path) {
                     Ok(process) => {
                         match process {
                             FunctionProcess(function) => {
@@ -61,7 +61,7 @@ fn build_manifest(lib_name: &str, out_dir: &str) -> HashMap<String, String>{
     manifest
 }
 
-fn load_process(path: &PathBuf) -> Result<Process, String> {
+fn deserialize(path: &PathBuf) -> Result<Process, String> {
     let content = fs::read_to_string(&path).map_err(
         |e| format!("Could not load content from '{}', {}",
                     path.to_str().unwrap(), e))?;

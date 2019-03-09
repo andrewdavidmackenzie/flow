@@ -41,7 +41,7 @@ use ::dumper::dump_dot;
 ///
 ///     let parent_route = "".to_string();
 ///     let alias = "hello-world-simple".to_string();
-///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_process(&parent_route,
+///     if let FlowProcess(mut flow) = flowclib::loader::loader::deserialize(&parent_route,
 ///                                                           &alias,
 ///                                                           &url.to_string(),
 ///                                                           &dummy_provider).unwrap() {
@@ -122,7 +122,7 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Resul
 ///
 ///     let parent_route = "".to_string();
 ///     let alias = "hello-world-simple".to_string();
-///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_process(&parent_route,
+///     if let FlowProcess(mut flow) = flowclib::loader::loader::deserialize(&parent_route,
 ///                                                           &alias,
 ///                                                           &url.to_string(),
 ///                                                           &dummy_provider).unwrap() {
