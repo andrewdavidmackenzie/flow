@@ -42,7 +42,8 @@ impl Provider for LibProvider {
     fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>), String> {
         let url = Url::parse(url_str)
             .map_err(|_| format!("Could not convert '{}' to valid Url", url_str))?;
-        let lib_name = url.host_str().unwrap();
+        let lib_name = url.host_str().expect(
+            &format!("'lib_name' could not be extracted from host part of url '{}'", url));
         let flow_lib_search_path = Simpath::new("FLOW_LIB_PATH");
         let mut lib_path = flow_lib_search_path.find(lib_name)
             .map_err(|e| e.to_string())?;
@@ -56,7 +57,7 @@ impl Provider for LibProvider {
 
         if lib_path.exists() {
             let lib_path_url = Url::from_file_path(&lib_path)
-                .map_err(|_|format!("Could not create Url from '{:?}'", &lib_path))?;
+                .map_err(|_| format!("Could not create Url from '{:?}'", &lib_path))?;
             Ok((lib_path_url.to_string(), Some(lib_ref.to_string())))
         } else {
             Err(format!("Could not locate url '{}' in libraries in 'FLOW_LIB_PATH'", url))
