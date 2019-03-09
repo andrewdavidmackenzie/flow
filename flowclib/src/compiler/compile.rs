@@ -115,6 +115,7 @@ mod test {
         let function_ref = ProcessReference {
             alias: function.alias().to_string(),
             source: "lib://flowr/stdio/stdout.toml".to_string(),
+            initializations: None,
             source_url: function.get_implementation_source(),
             process: FunctionProcess(function),
         };
