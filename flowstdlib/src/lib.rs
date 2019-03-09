@@ -7,6 +7,7 @@ pub mod math;
 pub mod fmt;
 pub mod info;
 pub mod control;
+pub mod data;
 pub mod img;
 pub mod zero_fifo;
 pub mod ilt;
