@@ -59,9 +59,9 @@ pub trait Validate {
 /// let dummy_provider = DummyProvider {};
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
-/// flowclib::loader::loader::deserialize(&parent_route, &alias, &url.to_string(), &dummy_provider).unwrap();
+/// flowclib::loader::loader::load_process(&parent_route, &alias, &url.to_string(), &dummy_provider).unwrap();
 /// ```
-pub fn deserialize(parent_route: &Route, alias: &Name, url: &str, provider: &Provider) -> Result<Process, String> {
+pub fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provider) -> Result<Process, String> {
     let (resolved_url, lib_ref) = provider.resolve(url, "context.toml")?;
     let deserializer = get_deserializer(&resolved_url)?;
     info!("Deserializing process with alias = '{}' from url = '{}' ", alias, resolved_url);
@@ -91,7 +91,7 @@ fn load_subprocesses(flow: &mut Flow, provider: &Provider) -> Result<(), String>
     if let Some(ref mut process_refs) = flow.process_refs {
         for process_ref in process_refs {
             let subprocess_url = url::join(&flow.source_url, &process_ref.source);
-            process_ref.process = deserialize(&flow.route, &process_ref.alias(), &subprocess_url, provider)?;
+            process_ref.process = load_process(&flow.route, &process_ref.alias(), &subprocess_url, provider)?;
 
             if let FunctionProcess(ref function) = process_ref.process {
                 if let Some(lib_ref) = function.get_lib_reference() {

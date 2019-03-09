@@ -52,7 +52,7 @@ fn run() -> Result<String, String> {
     let meta_provider = MetaProvider {};
 
     info!("==== Loader");
-    let process = loader::deserialize(&"".to_string(),
+    let process = loader::load_process(&"".to_string(),
                                        &"context".to_string(), &url.to_string(), &meta_provider)?;
     match process {
         FlowProcess(flow) => compile_and_execute(flow, args, dump, skip_generation, debug_symbols, out_dir),
@@ -224,7 +224,7 @@ mod test {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         let path = url_from_rel_path("flowc/test-flows/args.toml");
-        let process = loader::deserialize(parent_route, &"context".to_string(),
+        let process = loader::load_process(parent_route, &"context".to_string(),
                                            &path, &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();
@@ -238,7 +238,7 @@ mod test {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         let path = url_from_rel_path("flowc/test-flows/dead-value.toml");
-        let process = loader::deserialize(parent_route, &"context".to_string(),
+        let process = loader::load_process(parent_route, &"context".to_string(),
                                            &path, &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let tables = compile::compile(flow).unwrap();
@@ -258,7 +258,7 @@ mod test {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         let path = url_from_rel_path("flowc/test-flows/dead-value-and-connected_value.toml");
-        let process = loader::deserialize(parent_route, &"context".to_string(),
+        let process = loader::load_process(parent_route, &"context".to_string(),
                                            &path, &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let tables = compile::compile(flow).unwrap();
@@ -274,7 +274,7 @@ mod test {
     fn compile_echo_ok() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
-        let process = loader::deserialize(parent_route, &"echo".to_string(),
+        let process = loader::load_process(parent_route, &"echo".to_string(),
                                            &url_from_rel_path("flowc/test-flows/echo.toml"),
                                            &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
@@ -289,7 +289,7 @@ mod test {
     fn compiler_detects_competing_inputs() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
-        let process = loader::deserialize(parent_route, &"competing".to_string(),
+        let process = loader::load_process(parent_route, &"competing".to_string(),
                                            &url_from_rel_path("flowc/test-flows/competing.toml"),
                                            &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
@@ -304,7 +304,7 @@ mod test {
     fn compiler_detects_unused_input() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
-        let process = loader::deserialize(parent_route, &"unused_input".to_string(),
+        let process = loader::load_process(parent_route, &"unused_input".to_string(),
                                            &url_from_rel_path("flowc/test-flows/unused_input.toml"),
                                            &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
@@ -319,7 +319,7 @@ mod test {
     fn compiler_detects_loop() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
-        let process = loader::deserialize(parent_route, &"loop".to_string(),
+        let process = loader::load_process(parent_route, &"loop".to_string(),
                                            &url_from_rel_path("flowc/test-flows/loop.toml"),
                                            &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
@@ -334,7 +334,7 @@ mod test {
     fn compile_double_connection() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
-        let process = loader::deserialize(parent_route, &Name::from("double"),
+        let process = loader::load_process(parent_route, &Name::from("double"),
                                            &url_from_rel_path("flowc/test-flows/double.toml"),
                                            &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
@@ -348,7 +348,7 @@ mod test {
     fn load_hello_world_simple_from_context() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
-        loader::deserialize(parent_route, &"hello-world-simple".to_string(),
+        loader::load_process(parent_route, &"hello-world-simple".to_string(),
                              &url_from_rel_path("samples/hello-world-simple/context.toml"),
                              &meta_provider).unwrap();
     }
@@ -357,7 +357,7 @@ mod test {
     fn load_hello_world_from_context() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
-        loader::deserialize(parent_route, &"hello-world".to_string(),
+        loader::load_process(parent_route, &"hello-world".to_string(),
                              &url_from_rel_path("samples/hello-world/context.toml"),
                              &meta_provider).unwrap();
     }
@@ -366,7 +366,7 @@ mod test {
     fn load_hello_world_include() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
-        loader::deserialize(parent_route, &"hello-world-include".to_string(),
+        loader::load_process(parent_route, &"hello-world-include".to_string(),
                              &url_from_rel_path("samples/hello-world-include/context.toml"),
                              &meta_provider).unwrap();
     }
@@ -375,7 +375,7 @@ mod test {
     fn load_hello_world_flow1() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
-        loader::deserialize(parent_route, &"flow1".to_string(),
+        loader::load_process(parent_route, &"flow1".to_string(),
                              &url_from_rel_path("samples/hello-world/flow1.toml"),
                              &meta_provider).unwrap();
     }
@@ -384,7 +384,7 @@ mod test {
     fn load_reverse_echo_from_toml() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
-        loader::deserialize(parent_route, &"reverse-echo".to_string(),
+        loader::load_process(parent_route, &"reverse-echo".to_string(),
                              &url_from_rel_path("samples/reverse-echo/context.toml"),
                              &meta_provider).unwrap();
     }
@@ -393,7 +393,7 @@ mod test {
     fn load_fibonacci_from_toml() {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
-        loader::deserialize(parent_route, &"fibonacci".to_string(),
+        loader::load_process(parent_route, &"fibonacci".to_string(),
                              &url_from_rel_path("samples/fibonacci/context.toml"),
                              &meta_provider).unwrap();
     }
@@ -403,7 +403,7 @@ mod test {
         let meta_provider = MetaProvider {};
         let parent_route = &"".to_string();
         let url = url_from_string(Some("../samples/fibonacci")).unwrap();
-        loader::deserialize(parent_route, &"fibonacci".to_string(),
+        loader::load_process(parent_route, &"fibonacci".to_string(),
                              &url.into_string(), &meta_provider).unwrap();
     }
 }
