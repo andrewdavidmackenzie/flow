@@ -10,6 +10,8 @@ use model::route::SetRoute;
 use loader::loader::Validate;
 use model::runnable::Runnable;
 use serde_json::Value as JsonValue;
+use std::collections::HashMap;
+
 use flowrlib::url;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -38,6 +40,8 @@ pub struct Function {
     output_routes: Vec<(Route, usize, usize)>,
     #[serde(skip_deserializing)]
     id: usize,
+    #[serde(skip_deserializing)]
+    pub initializations: Option<HashMap<String, JsonValue>>
 }
 
 impl HasName for Function {
@@ -180,8 +184,9 @@ impl Default for Function {
             source_url: Function::default_url(),
             route: "".to_string(),
             lib_reference: None,
-            id: 0,
             output_routes: vec!(("".to_string(), 0, 0)),
+            id: 0,
+            initializations: None
         }
     }
 }
@@ -218,6 +223,7 @@ impl Function {
             lib_reference,
             output_routes: output_connections,
             id,
+            initializations: None
         }
     }
 
@@ -261,8 +267,9 @@ mod test {
             outputs: None,         // No output!
             route: "".to_string(),
             lib_reference: None,
-            id: 0,
             output_routes: vec!(("test_function".to_string(), 0, 0)),
+            id: 0,
+            initializations: None
         };
 
         assert_eq!(fun.validate().is_err(), true);

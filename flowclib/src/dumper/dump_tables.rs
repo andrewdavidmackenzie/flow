@@ -44,7 +44,8 @@ use ::dumper::dump_dot;
 ///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_process(&parent_route,
 ///                                                           &alias,
 ///                                                           &url.to_string(),
-///                                                           &dummy_provider).unwrap() {
+///                                                           &dummy_provider,
+///                                                           None).unwrap() {
 ///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///         let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///
@@ -125,7 +126,8 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Resul
 ///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_process(&parent_route,
 ///                                                           &alias,
 ///                                                           &url.to_string(),
-///                                                           &dummy_provider).unwrap() {
+///                                                           &dummy_provider,
+///                                                           None).unwrap() {
 ///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///         let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///

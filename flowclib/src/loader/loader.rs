@@ -13,6 +13,9 @@ use flowrlib::provider::Provider;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
 use std::mem::replace;
+use serde_json::Value as JsonValue;
+use std::collections::HashMap;
+
 use flowrlib::url;
 
 // Any deserializer has to implement this method
@@ -59,9 +62,11 @@ pub trait Validate {
 /// let dummy_provider = DummyProvider {};
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
-/// flowclib::loader::loader::load_process(&parent_route, &alias, &url.to_string(), &dummy_provider).unwrap();
+/// flowclib::loader::loader::load_process(&parent_route, &alias, &url.to_string(),
+///                                        &dummy_provider, None).unwrap();
 /// ```
-pub fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provider) -> Result<Process, String> {
+pub fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provider,
+                    initializations: Option<HashMap<String, JsonValue>>) -> Result<Process, String> {
     let (resolved_url, lib_ref) = provider.resolve(url, "context.toml")?;
     let deserializer = get_deserializer(&resolved_url)?;
     info!("Deserializing process with alias = '{}' from url = '{}' ", alias, resolved_url);
@@ -71,13 +76,14 @@ pub fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Pr
 
     match process {
         FlowProcess(ref mut flow) => {
-            config_flow(flow, &resolved_url, parent_route, alias)?;
+            config_flow(flow, &resolved_url, parent_route, alias, initializations)?;
             load_values(flow)?;
             load_subprocesses(flow, provider)?;
             build_flow_connections(flow)?;
         }
         FunctionProcess(ref mut function) => {
-            config_function(function, &resolved_url, parent_route, alias, lib_ref)?;
+            config_function(function, &resolved_url, parent_route, alias, lib_ref,
+                            initializations)?;
         }
     }
 
@@ -91,7 +97,9 @@ fn load_subprocesses(flow: &mut Flow, provider: &Provider) -> Result<(), String>
     if let Some(ref mut process_refs) = flow.process_refs {
         for process_ref in process_refs {
             let subprocess_url = url::join(&flow.source_url, &process_ref.source);
-            process_ref.process = load_process(&flow.route, &process_ref.alias(), &subprocess_url, provider)?;
+            let initializations = replace(&mut process_ref.initializations, None);
+            process_ref.process = load_process(&flow.route, &process_ref.alias(),
+                                               &subprocess_url, provider, initializations)?;
 
             if let FunctionProcess(ref function) = process_ref.process {
                 if let Some(lib_ref) = function.get_lib_reference() {
@@ -104,19 +112,23 @@ fn load_subprocesses(flow: &mut Flow, provider: &Provider) -> Result<(), String>
 }
 
 fn config_function(function: &mut Function, source_url: &str, parent_route: &Route, alias: &Name,
-                   lib_ref: Option<String>) -> Result<(), String> {
+                   lib_ref: Option<String>, initializations: Option<HashMap<String, JsonValue>>)
+                   -> Result<(), String> {
     function.set_alias(alias.to_string());
     function.set_source_url(source_url.clone());
     function.set_lib_reference(lib_ref);
     function.set_routes_from_parent(parent_route, false);
+    function.initializations = initializations;
     function.validate()
 }
 
-fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &Name)
-    -> Result<(), String> {
+fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &Name,
+               initializations: Option<HashMap<String, JsonValue>>)
+               -> Result<(), String> {
     flow.alias = alias.to_string();
     flow.source_url = source_url.to_string();
     flow.set_routes_from_parent(parent_route, true);
+    flow.initializations = initializations;
     flow.validate()
 }
 

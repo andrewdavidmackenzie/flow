@@ -14,7 +14,9 @@ use model::connection::Direction;
 use model::runnable::Runnable;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
+use serde_json::Value as JsonValue;
 use std::fmt;
+use std::collections::HashMap;
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -47,6 +49,8 @@ pub struct Flow {
     pub route: Route,
     #[serde(skip_deserializing)]
     pub lib_references: Vec<String>,
+    #[serde(skip_deserializing)]
+    pub initializations: Option<HashMap<String, JsonValue>>
 }
 
 impl Validate for Flow {
@@ -146,6 +150,7 @@ impl Default for Flow {
             version: Flow::default_version(),
             author_name: Flow::default_author(),
             author_email: Flow::default_email(),
+            initializations: None
         }
     }
 }

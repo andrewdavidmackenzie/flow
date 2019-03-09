@@ -45,7 +45,8 @@ use model::process::Process::FlowProcess;
 ///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_process(parent_route,
 ///                                                       alias,
 ///                                                       &url.to_string(),
-///                                                       &dummy_provider).unwrap() {
+///                                                       &dummy_provider,
+///                                                       None).unwrap() {
 ///         let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
 ///
 ///         flowclib::dumper::dump_flow::dump_flow(&flow, &output_dir).unwrap();
