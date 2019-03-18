@@ -8,7 +8,7 @@ pub struct Input {
     #[serde(default = "default_depth", skip_serializing_if = "is_default_depth")]
     depth: usize,
     #[serde(default = "default_initial_value", skip_serializing_if = "Option::is_none")]
-    initial_value: Option<JsonValue>,
+    pub initial_value: Option<JsonValue>,
     #[serde(skip)]
     received: Vec<JsonValue>,
 }
@@ -36,10 +36,10 @@ fn default_initial_value() -> Option<JsonValue> {
 }
 
 impl Input {
-    pub fn new(depth: usize) -> Self {
+    pub fn new(depth: usize, initial_value: Option<JsonValue>) -> Self {
         Input {
             depth,
-            initial_value: None,
+            initial_value,
             received: Vec::with_capacity(depth),
         }
     }

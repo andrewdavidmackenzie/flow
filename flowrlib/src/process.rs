@@ -71,7 +71,7 @@ impl Process {
                route: String,
                is_static: bool,
                implementation_source: String,
-               input_depths: Vec<usize>,
+               process_inputs: Vec<(usize, Option<JsonValue>)>,
                id: usize,
                initial_value: Option<JsonValue>,
                output_routes: Vec<(String, usize, usize)>) -> Process {
@@ -86,10 +86,10 @@ impl Process {
             output_routes,
             is_static,
             initial_value,
-            inputs: Vec::with_capacity(input_depths.len()),
+            inputs: Vec::with_capacity(process_inputs.len()),
         };
 
-        process.setup_inputs(input_depths);
+        process.setup_inputs(process_inputs);
 
         process
     }
@@ -108,9 +108,9 @@ impl Process {
     }
 
     // Create the set of inputs, each with appropriate depth
-    pub fn setup_inputs(&mut self, input_depths: Vec<usize>) {
-        for input_depth in input_depths {
-            self.inputs.push(Input::new(input_depth));
+    pub fn setup_inputs(&mut self, inputs: Vec<(usize, Option<JsonValue>)>) {
+        for input in inputs {
+            self.inputs.push(Input::new(input.0, input.1));
         }
     }
 

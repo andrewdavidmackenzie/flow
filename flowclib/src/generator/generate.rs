@@ -64,14 +64,13 @@ fn runnable_to_process(out_dir_path: &str, runnable: &Box<Runnable>, debug_symbo
     // make path to implementation relative to the output directory if under it
     implementation_source = implementation_source.replace(out_dir_path, "");
 
-    let input_depths = match &runnable.get_inputs() {
-        &None => vec!(),
+    let mut process_inputs = vec!();
+    match &runnable.get_inputs() {
+        &None => {},
         Some(inputs) => {
-            let mut depths = vec!();
             for input in inputs {
-                depths.push(input.depth());
+                process_inputs.push((input.depth(), input.get_initial_value().clone()));
             }
-            depths
         }
     };
     let id = runnable.get_id();
@@ -82,7 +81,7 @@ fn runnable_to_process(out_dir_path: &str, runnable: &Box<Runnable>, debug_symbo
                  route,
                  is_static,
                  implementation_source,
-                 input_depths,
+                 process_inputs,
                  id,
                  initial_value,
                  output_routes)
@@ -323,6 +322,42 @@ mod test {
         assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 
+    #[test]
+    fn function_with_initialized_input() {
+        let mut io = IO::new(&"String".to_string(), &"".to_string());
+        io.set_initial_value(&Some(json!(1)));
+
+        let function = Function::new(
+            "Stdout".to_string(),
+            false,
+            Some("lib://flowr/stdio/stdout".to_string()),
+            "print".to_string(),
+            Some(vec!(io)),
+            None,
+            "file:///fake/file".to_string(),
+            "/flow0/stdout".to_string(),
+            None,
+            vec!(),
+            0);
+
+        let expected = "{
+  'id': 0,
+  'implementation_source': 'lib://flowr/stdio/stdout',
+  'inputs': [
+    {
+      'initial_value': 1
+    }
+  ]
+}";
+
+        let br = Box::new(function) as Box<Runnable>;
+        let process = runnable_to_process("/test", &br, false);
+
+        println!("process {}", process);
+
+        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        assert_eq!(expected.replace("'", "\""), serialized_process);
+    }
 
     #[test]
     fn function_to_code_with_debug() {

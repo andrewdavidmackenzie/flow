@@ -108,7 +108,7 @@ impl IO {
         &self.initial_value
     }
 
-    fn set_initial_value(&mut self, initial_value: &Option<JsonValue>) {
+    pub fn set_initial_value(&mut self, initial_value: &Option<JsonValue>) {
         // Avoid overwriting a possibly Some() value with a None value
         if initial_value.is_some() {
             self.initial_value = initial_value.clone();
