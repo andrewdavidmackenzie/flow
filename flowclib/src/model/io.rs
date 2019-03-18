@@ -10,6 +10,8 @@ use model::route::Route;
 use model::route::SetRoute;
 use std::collections::HashSet;
 use model::route::Router;
+use serde_json::Value as JsonValue;
+use std::collections::HashMap;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -26,6 +28,8 @@ pub struct IO {
     route: Route,
     #[serde(skip_deserializing)]
     flow_io: bool,
+    #[serde(skip_deserializing)]
+    initial_value: Option<JsonValue>,
 }
 
 impl Default for IO {
@@ -36,6 +40,7 @@ impl Default for IO {
             depth: default_depth(),
             route: "".to_string(),
             flow_io: false,
+            initial_value: None,
         }
     }
 }
@@ -97,6 +102,17 @@ impl IO {
 
     pub fn set_datatype(&mut self, datatype: &DataType) {
         self.datatype = datatype.clone()
+    }
+
+    pub fn get_initial_value(&self) -> &Option<JsonValue> {
+        &self.initial_value
+    }
+
+    fn set_initial_value(&mut self, initial_value: &Option<JsonValue>) {
+        // Avoid overwriting a possibly Some() value with a None value
+        if initial_value.is_some() {
+            self.initial_value = initial_value.clone();
+        }
     }
 }
 
@@ -173,30 +189,33 @@ impl SetRoute for IOSet {
 }
 
 pub trait Find {
-    fn find_by_name(&self, name: &Name) -> Result<IO, String>;
-    fn find_by_route(&self, route: &Route) -> Result<IO, String>;
+    fn find_by_name(&mut self, name: &Name, initial_value: &Option<JsonValue>) -> Result<IO, String>;
+    fn find_by_route(&mut self, route: &Route, initial_value: &Option<JsonValue>) -> Result<IO, String>;
 }
 
 impl Find for IOSet {
-    fn find_by_name(&self, name: &Name) -> Result<IO, String> {
-        if let Some(ios) = self {
-            for io in ios {
+    fn find_by_name(&mut self, name: &Name, initial_value: &Option<JsonValue>) -> Result<IO, String> {
+        if let Some(ref mut ios) = self {
+            for mut io in ios {
                 if io.name() == name {
+                    io.set_initial_value(initial_value);
                     return Ok(io.clone());
                 }
             }
             return Err(format!("No input or output with name '{}' was found", name));
         }
-        Err(format!("No inputs or outputs found when looking for input/output '{}'", name))
+        Err(format!("No inputs or outputs found when looking for input/output named '{}'", name))
     }
 
     // TODO improve the Route handling of this - maybe moving into Router
     // TODO return a reference to the IO, with same lifetime as IOSet?
-    fn find_by_route(&self, sub_route: &Route) -> Result<IO, String> {
-        if let Some(ios) = self {
-            for io in ios {
+    fn find_by_route(&mut self, sub_route: &Route, initial_value: &Option<JsonValue>) -> Result<IO, String> {
+        if let Some(ref mut ios) = self {
+            for mut io in ios {
                 let (array_route, _num, array_index) = Router::without_trailing_array_index(sub_route);
                 if array_index && (io.datatype(0).is_array()) && (io.name() == array_route.as_ref()) {
+                    io.set_initial_value(initial_value);
+
                     let mut found = io.clone();
                     found.set_datatype(&io.datatype(1)); // the type within the array
                     let mut new_route = found.route().clone();
@@ -206,6 +225,7 @@ impl Find for IOSet {
                 }
 
                 if io.name() == sub_route {
+                    io.set_initial_value(initial_value);
                     return Ok(io.clone());
                 }
             }
@@ -213,6 +233,24 @@ impl Find for IOSet {
         }
 
         Err(format!("No inputs or outputs found when looking for input/output with sub-route '{}'", sub_route))
+    }
+}
+
+impl IO {
+    pub fn set_initial_values(ios: &mut IOSet, initializers: &Option<HashMap<String, JsonValue>>) {
+        if let Some(inits) = initializers {
+            if let Some(inputs) = ios {
+                for initializer in inits {
+                    // initializer.0 is io name, initializer.1 is the initial value to set it to
+                    for (index, input) in inputs.iter_mut().enumerate() {
+                        if input.name() == initializer.0.as_str() ||
+                            (initializer.0.as_str() == "default" && index == 0) {
+                            input.initial_value = Some(initializer.1.clone());
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -321,6 +359,7 @@ mod test {
             route: "".to_string(),
             depth: 1,
             flow_io: false,
+            initial_value: None,
         };
         let io1 = IO {
             name: "different_name".to_string(),
@@ -328,6 +367,7 @@ mod test {
             route: "".to_string(),
             depth: 1,
             flow_io: false,
+            initial_value: None,
         };
         let ioset = Some(vec!(io0, io1));
         ioset.validate().unwrap()
@@ -342,6 +382,7 @@ mod test {
             route: "".to_string(),
             depth: 1,
             flow_io: false,
+            initial_value: None,
         };
         let io1 = io0.clone();
         let ioset = Some(vec!(io0, io1));
@@ -357,6 +398,7 @@ mod test {
             route: "".to_string(),
             depth: 1,
             flow_io: false,
+            initial_value: None,
         };
         let io1 = IO {
             name: "".to_string(),
@@ -364,6 +406,7 @@ mod test {
             route: "".to_string(),
             depth: 1,
             flow_io: false,
+            initial_value: None,
         };
         let ioset = Some(vec!(io0, io1));
         ioset.validate().unwrap()

@@ -39,13 +39,8 @@ use ::dumper::dump_dot;
 ///     println!("url = {:?}", url);
 ///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
 ///
-///     let parent_route = "".to_string();
-///     let alias = "hello-world-simple".to_string();
-///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_process(&parent_route,
-///                                                           &alias,
-///                                                           &url.to_string(),
-///                                                           &dummy_provider,
-///                                                           None).unwrap() {
+///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_context(&url.to_string(),
+///                                                           &dummy_provider).unwrap() {
 ///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///         let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///
@@ -121,13 +116,8 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Resul
 ///     println!("url = {:?}", url);
 ///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
 ///
-///     let parent_route = "".to_string();
-///     let alias = "hello-world-simple".to_string();
-///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_process(&parent_route,
-///                                                           &alias,
-///                                                           &url.to_string(),
-///                                                           &dummy_provider,
-///                                                           None).unwrap() {
+///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_context(&url.to_string(),
+///                                                           &dummy_provider).unwrap() {
 ///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///         let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///

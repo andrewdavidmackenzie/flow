@@ -180,10 +180,12 @@ fn runnable_to_dot(runnable: &Runnable, runnables: &Vec<Box<Runnable>>) -> Strin
     for &(ref output_route, destination_index, destination_input_index) in runnable.get_output_routes() {
         let input_port = INPUT_PORTS[destination_input_index % INPUT_PORTS.len()];
         let destination_runnable = &runnables[destination_index];
-        let input_name = destination_runnable.get_inputs().unwrap()[destination_input_index].name().to_string();
-        runnable_string.push_str(&format!("r{}:s -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];\n",
-                                          runnable.get_id(), destination_index, input_port,
-                                          output_route, input_name));
+        if let Some(inputs) = destination_runnable.get_inputs() {
+            let input_name = inputs.get(destination_input_index).unwrap().name().to_string();
+            runnable_string.push_str(&format!("r{}:s -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];\n",
+                                              runnable.get_id(), destination_index, input_port,
+                                              output_route, input_name));
+        }
     }
 
     runnable_string

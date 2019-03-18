@@ -23,6 +23,9 @@ pub struct Value {
     #[serde(rename = "static", default = "default_static")]
     static_value: bool,
 
+    #[serde(skip)]
+    inputs: IOSet, // TODO remove
+
     // Input to a value is assumed, at the route of the value itself and always possible
     // Output from a value is assumed, at the route of the value itself and always possible
     // Additional outputs that are parts of the default Output structure are possible at subpaths
@@ -73,9 +76,8 @@ impl Runnable for Value {
         false
     }
 
-    // TODO have this return a reference
-    fn get_inputs(&self) -> IOSet {
-        Some(vec!(IO::new(&self.datatype, &self.route)))
+    fn get_inputs(&self) -> &IOSet {
+        &self.inputs
     }
 
     // TODO have this return a reference
@@ -150,6 +152,8 @@ impl SetRoute for Value {
         }
 
         self.outputs.set_routes_from_parent(&self.route, flow_io);
+
+        self.inputs = Some(vec!(IO::new(&self.datatype, &self.route)));
     }
 }
 
@@ -159,11 +163,17 @@ impl Value {
                initial_value: Option<JsonValue>,
                static_value: bool,
                route: Route,
-    outputs: IOSet, output_connections: Vec<(Route, usize, usize)>, id: usize) -> Self {
+               outputs: IOSet, output_connections: Vec<(Route, usize, usize)>, id: usize) -> Self {
         Value {
-            name, datatype,
-            init: initial_value, static_value, route, outputs,
-            output_routes: output_connections, id
+            inputs: Some(vec!(IO::new(&datatype, &route))),
+            name,
+            datatype,
+            init: initial_value,
+            static_value,
+            route,
+            outputs,
+            output_routes: output_connections,
+            id,
         }
     }
 
@@ -400,7 +410,7 @@ mod test {
         let mut value: Value = toml::from_str(value_str).unwrap();
         value.set_routes_from_parent(&Route::from("/flow"), false);
 
-        let output = value.outputs.find_by_route(&Route::from("")).unwrap();
+        let output = value.outputs.find_by_route(&Route::from(""), &None).unwrap();
         assert_eq!(output.route(), &Route::from("/flow/test_value"));
         assert_eq!(output.datatype(0), DataType::from("Json"));
         assert_eq!(output.flow_io(), false);
@@ -423,7 +433,7 @@ mod test {
         let mut value: Value = toml::from_str(value_str).unwrap();
         value.set_routes_from_parent(&Route::from("/flow"), false);
 
-        let output = value.outputs.find_by_route(&Route::from("sub_output")).unwrap();
+        let output = value.outputs.find_by_route(&Route::from("sub_output"), &None).unwrap();
         assert_eq!(output.route(), &Route::from("/flow/test_value/sub_output"));
         assert_eq!(output.datatype(0), DataType::from("String"));
         assert_eq!(output.flow_io(), false);

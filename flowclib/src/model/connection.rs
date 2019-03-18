@@ -13,6 +13,7 @@ pub struct Connection {
     pub from: Route,
     pub to: Route,
 
+    // TODO make these references, not clones
     #[serde(skip_deserializing)]
     pub from_io: IO,
     #[serde(skip_deserializing)]

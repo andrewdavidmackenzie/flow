@@ -68,9 +68,6 @@ mod test {
     */
     #[test]
     fn dead_value() {
-        let parent_route = &"".to_string();
-
-        let alias = &"context".to_string();
         let test_provider = TestProvider {
             test_content:
             "flow = 'test'
@@ -81,7 +78,7 @@ mod test {
         };
         let url = "file://fake.toml";
 
-        match loader::load_process(parent_route, alias, url, &test_provider, None) {
+        match loader::load_context(url, &test_provider) {
             Ok(FlowProcess(flow)) => {
                 let tables = compile(&flow).unwrap();
                 // Dead value should be removed - currently can't assume that args function can be removed
