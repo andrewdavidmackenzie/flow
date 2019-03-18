@@ -304,7 +304,7 @@ mod tests {
                                                   "/context/p1".to_string(),
                                                   false,// static value
                                                   "/test".to_string(),
-                                                  vec!(1), // input depths array
+                                                  vec!((1, None)), // inputs array
                                                   1,    // id
                                                   None,
                                                   vec!(),
@@ -313,7 +313,7 @@ mod tests {
                                                   "/context/p2".to_string(),
                                                   false,// static value
                                                   "/test".to_string(),
-                                                  vec!(1), // input depths array
+                                                  vec!((1, None)), // inputs array
                                                   2,    // id
                                                   None,
                                                   vec!(),

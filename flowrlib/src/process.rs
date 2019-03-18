@@ -127,11 +127,16 @@ impl Process {
         Return true if ready to run as all inputs (single in this case) are satisfied.
     */
     pub fn init(&mut self) -> bool {
-        let value = self.initial_value.clone();
-        if let Some(v) = value {
+        if let Some(v) = self.initial_value.clone() {
             debug!("\t\tValue initialized by writing '{:?}' to input #0", &v);
             self.write_input(0, v);
         }
+
+        // initialize any inputs that have initial values
+        for mut input in &mut self.inputs {
+            input.init();
+        }
+
         self.can_run()
     }
 
@@ -225,7 +230,7 @@ mod test {
     fn can_send_input_if_empty() {
         let mut process = Process::new("test".to_string(),
                                        "/context/test".to_string(), false,
-                                       "/test".to_string(), vec!(1), 0,
+                                       "/test".to_string(), vec!((1, None)), 0,
                                        None, vec!());
         process.init();
         process.write_input(0, json!(1));
@@ -236,7 +241,7 @@ mod test {
     fn can_send_input_if_empty_and_static() {
         let mut process = Process::new("test".to_string(),
                                        "/context/test".to_string(), true,
-                                       "/test".to_string(), vec!(1), 0,
+                                       "/test".to_string(), vec!((1, None)), 0,
                                        None, vec!());
         process.init();
         process.write_input(0, json!(1));
@@ -247,7 +252,7 @@ mod test {
     fn cannot_send_input_if_initialized() {
         let mut process = Process::new("test".to_string(),
                                        "/context/test".to_string(), false,
-                                       "/test".to_string(), vec!(1), 0,
+                                       "/test".to_string(), vec!((1, None)), 0,
                                        Some(json!(0)), vec!());
         process.init();
         process.write_input(0, json!(1)); // error
@@ -258,7 +263,7 @@ mod test {
     fn can_send_input_if_full_and_static() {
         let mut process = Process::new("test".to_string(),
                                        "/context/test".to_string(), true,
-                                       "/test".to_string(), vec!(1), 0,
+                                       "/test".to_string(), vec!((1, None)), 0,
                                        None, vec!());
         process.init();
         process.write_input(0, json!(1));
@@ -270,7 +275,7 @@ mod test {
     fn cannot_send_input_if_full_and_not_static() {
         let mut process = Process::new("test".to_string(),
                                        "/context/test".to_string(), false,
-                                       "/test".to_string(), vec!(1), 0,
+                                       "/test".to_string(), vec!((1, None)), 0,
                                        None, vec!());
         process.init();
         process.write_input(0, json!(1)); // success
