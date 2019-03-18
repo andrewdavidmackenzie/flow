@@ -111,7 +111,7 @@ mod test {
   'id': 1,
   'implementation_source': 'lib://flowstdlib/zero_fifo/Fifo',
   'initial_value': 'Hello-World',
-  'input_depths': [
+  'inputs': [
     {}
   ],
   'output_routes': [
@@ -146,7 +146,7 @@ mod test {
   'id': 1,
   'implementation_source': 'lib://flowstdlib/zero_fifo/Fifo',
   'initial_value': 'Hello-World',
-  'input_depths': [
+  'inputs': [
     {}
   ],
   'output_routes': [
@@ -182,7 +182,7 @@ mod test {
   'implementation_source': 'lib://flowstdlib/zero_fifo/Fifo',
   'is_static': true,
   'initial_value': 'Hello-World',
-  'input_depths': [
+  'inputs': [
     {}
   ],
   'output_routes': [
@@ -198,7 +198,7 @@ mod test {
         let process = runnable_to_process("/test", &br, false);
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
-        assert_eq!(serialized_process, expected.replace("'", "\""));
+        assert_eq!(expected.replace("'", "\""), serialized_process);
     }
 
     #[test]
@@ -219,7 +219,7 @@ mod test {
   'id': 1,
   'implementation_source': 'lib://flowstdlib/zero_fifo/Fifo',
   'initial_value': 'Hello-World',
-  'input_depths': [
+  'inputs': [
     {}
   ],
   'output_routes': [

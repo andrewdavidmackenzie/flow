@@ -5,8 +5,10 @@ use std::fmt;
 
 #[derive(Deserialize, Serialize)]
 pub struct Input {
-    #[serde(default = "default_depth", skip_serializing_if = "is_default")]
+    #[serde(default = "default_depth", skip_serializing_if = "is_default_depth")]
     depth: usize,
+    #[serde(default = "default_initial_value", skip_serializing_if = "Option::is_none")]
+    initial_value: Option<JsonValue>,
     #[serde(skip)]
     received: Vec<JsonValue>,
 }
@@ -21,7 +23,7 @@ impl fmt::Display for Input {
     }
 }
 
-fn is_default(depth: &usize) -> bool {
+fn is_default_depth(depth: &usize) -> bool {
     *depth == default_depth()
 }
 
@@ -29,10 +31,15 @@ fn default_depth() -> usize {
     1
 }
 
+fn default_initial_value() -> Option<JsonValue> {
+    None
+}
+
 impl Input {
     pub fn new(depth: usize) -> Self {
         Input {
             depth,
+            initial_value: None,
             received: Vec::with_capacity(depth),
         }
     }
