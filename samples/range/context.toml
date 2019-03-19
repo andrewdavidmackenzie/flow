@@ -1,14 +1,5 @@
 flow = "range"
 
-[[value]]
-name = "start"
-type = "Number"
-init = 1
-
-[[connection]]
-from = "value/start"
-to = "process/sequence/start"
-
 [[process]]
 alias = "args"
 source = "lib://flowr/args/get.toml"
@@ -28,6 +19,7 @@ to = "process/sequence/end"
 [[process]]
 alias = "sequence"
 source = "lib://flowstdlib/math/sequence.toml"
+input.start = 1
 
 [[process]]
 alias = "to_string"
