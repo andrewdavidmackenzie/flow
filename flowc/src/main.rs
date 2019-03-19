@@ -52,8 +52,7 @@ fn run() -> Result<String, String> {
     let meta_provider = MetaProvider {};
 
     info!("==== Loader");
-    let process = loader::load_process(&"".to_string(),
-                                       &"context".to_string(), &url.to_string(), &meta_provider)?;
+    let process = loader::load_context(&url.to_string(), &meta_provider)?;
     match process {
         FlowProcess(flow) => compile_and_execute(flow, args, dump, skip_generation, debug_symbols, out_dir),
         _ => Err(format!("Process loaded was not of type 'Flow' and cannot be executed"))
@@ -207,8 +206,13 @@ mod test {
 
     use flowclib::compiler::compile;
     use flowclib::loader::loader;
-    use flowclib::model::name::Name;
+    use flowclib::model::io::IO;
+    use flowclib::model::name::HasName;
     use flowclib::model::process::Process::FlowProcess;
+    use flowclib::model::process::Process::FunctionProcess;
+    use flowclib::model::route::HasRoute;
+    use flowclib::model::runnable::Runnable;
+    use serde_json::Value as JsonValue;
     use url::Url;
 
     use provider::content::args::url_from_string;
@@ -222,10 +226,8 @@ mod test {
     #[test]
     fn compile_args_ok() {
         let meta_provider = MetaProvider {};
-        let parent_route = &"".to_string();
         let path = url_from_rel_path("flowc/test-flows/args.toml");
-        let process = loader::load_process(parent_route, &"context".to_string(),
-                                           &path, &meta_provider).unwrap();
+        let process = loader::load_context(&path, &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();
         } else {
@@ -236,10 +238,8 @@ mod test {
     #[test]
     fn dead_value_removed() {
         let meta_provider = MetaProvider {};
-        let parent_route = &"".to_string();
         let path = url_from_rel_path("flowc/test-flows/dead-value.toml");
-        let process = loader::load_process(parent_route, &"context".to_string(),
-                                           &path, &meta_provider).unwrap();
+        let process = loader::load_context(&path, &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let tables = compile::compile(flow).unwrap();
             // Dead value should be removed - currently can't assume that args function can be removed
@@ -256,10 +256,8 @@ mod test {
     #[test]
     fn dead_value_and_function_removed() {
         let meta_provider = MetaProvider {};
-        let parent_route = &"".to_string();
         let path = url_from_rel_path("flowc/test-flows/dead-value-and-connected_value.toml");
-        let process = loader::load_process(parent_route, &"context".to_string(),
-                                           &path, &meta_provider).unwrap();
+        let process = loader::load_context(&path, &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let tables = compile::compile(flow).unwrap();
             assert!(tables.runnables.is_empty(), "Incorrect number of runnables after optimization");
@@ -273,9 +271,7 @@ mod test {
     #[test]
     fn compile_echo_ok() {
         let meta_provider = MetaProvider {};
-        let parent_route = &"".to_string();
-        let process = loader::load_process(parent_route, &"echo".to_string(),
-                                           &url_from_rel_path("flowc/test-flows/echo.toml"),
+        let process = loader::load_context(&url_from_rel_path("flowc/test-flows/echo.toml"),
                                            &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();
@@ -288,9 +284,7 @@ mod test {
     #[should_panic]
     fn compiler_detects_competing_inputs() {
         let meta_provider = MetaProvider {};
-        let parent_route = &"".to_string();
-        let process = loader::load_process(parent_route, &"competing".to_string(),
-                                           &url_from_rel_path("flowc/test-flows/competing.toml"),
+        let process = loader::load_context(&url_from_rel_path("flowc/test-flows/competing.toml"),
                                            &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();
@@ -303,9 +297,7 @@ mod test {
     #[should_panic]
     fn compiler_detects_unused_input() {
         let meta_provider = MetaProvider {};
-        let parent_route = &"".to_string();
-        let process = loader::load_process(parent_route, &"unused_input".to_string(),
-                                           &url_from_rel_path("flowc/test-flows/unused_input.toml"),
+        let process = loader::load_context(&url_from_rel_path("flowc/test-flows/unused_input.toml"),
                                            &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();
@@ -318,9 +310,7 @@ mod test {
     #[should_panic]
     fn compiler_detects_loop() {
         let meta_provider = MetaProvider {};
-        let parent_route = &"".to_string();
-        let process = loader::load_process(parent_route, &"loop".to_string(),
-                                           &url_from_rel_path("flowc/test-flows/loop.toml"),
+        let process = loader::load_context(&url_from_rel_path("flowc/test-flows/loop.toml"),
                                            &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();
@@ -333,9 +323,7 @@ mod test {
     #[should_panic]
     fn compile_double_connection() {
         let meta_provider = MetaProvider {};
-        let parent_route = &"".to_string();
-        let process = loader::load_process(parent_route, &Name::from("double"),
-                                           &url_from_rel_path("flowc/test-flows/double.toml"),
+        let process = loader::load_context(&url_from_rel_path("flowc/test-flows/double.toml"),
                                            &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();
@@ -347,63 +335,116 @@ mod test {
     #[test]
     fn load_hello_world_simple_from_context() {
         let meta_provider = MetaProvider {};
-        let parent_route = &"".to_string();
-        loader::load_process(parent_route, &"hello-world-simple".to_string(),
-                             &url_from_rel_path("samples/hello-world-simple/context.toml"),
+        loader::load_context(&url_from_rel_path("samples/hello-world-simple/context.toml"),
                              &meta_provider).unwrap();
     }
 
     #[test]
     fn load_hello_world_from_context() {
         let meta_provider = MetaProvider {};
-        let parent_route = &"".to_string();
-        loader::load_process(parent_route, &"hello-world".to_string(),
-                             &url_from_rel_path("samples/hello-world/context.toml"),
+        loader::load_context(&url_from_rel_path("samples/hello-world/context.toml"),
                              &meta_provider).unwrap();
     }
 
     #[test]
     fn load_hello_world_include() {
         let meta_provider = MetaProvider {};
-        let parent_route = &"".to_string();
-        loader::load_process(parent_route, &"hello-world-include".to_string(),
-                             &url_from_rel_path("samples/hello-world-include/context.toml"),
+        loader::load_context(&url_from_rel_path("samples/hello-world-include/context.toml"),
                              &meta_provider).unwrap();
     }
 
     #[test]
     fn load_hello_world_flow1() {
         let meta_provider = MetaProvider {};
-        let parent_route = &"".to_string();
-        loader::load_process(parent_route, &"flow1".to_string(),
-                             &url_from_rel_path("samples/hello-world/flow1.toml"),
+        loader::load_context(&url_from_rel_path("samples/hello-world/flow1.toml"),
                              &meta_provider).unwrap();
     }
 
     #[test]
     fn load_reverse_echo_from_toml() {
         let meta_provider = MetaProvider {};
-        let parent_route = &"".to_string();
-        loader::load_process(parent_route, &"reverse-echo".to_string(),
-                             &url_from_rel_path("samples/reverse-echo/context.toml"),
+        loader::load_context(&url_from_rel_path("samples/reverse-echo/context.toml"),
                              &meta_provider).unwrap();
     }
 
     #[test]
     fn load_fibonacci_from_toml() {
         let meta_provider = MetaProvider {};
-        let parent_route = &"".to_string();
-        loader::load_process(parent_route, &"fibonacci".to_string(),
-                             &url_from_rel_path("samples/fibonacci/context.toml"),
+        loader::load_context(&url_from_rel_path("samples/fibonacci/context.toml"),
                              &meta_provider).unwrap();
     }
 
     #[test]
     fn load_fibonacci_from_directory() {
         let meta_provider = MetaProvider {};
-        let parent_route = &"".to_string();
         let url = url_from_string(Some("../samples/fibonacci")).unwrap();
-        loader::load_process(parent_route, &"fibonacci".to_string(),
-                             &url.into_string(), &meta_provider).unwrap();
+        loader::load_context(&url.into_string(), &meta_provider).unwrap();
+    }
+
+    #[test]
+    fn function_input_initialized() {
+        let meta_provider = MetaProvider {};
+        let url = url_from_rel_path("flowc/test-flows/function_input_init.toml");
+
+        match loader::load_context(&url, &meta_provider) {
+            Ok(FlowProcess(flow)) => {
+                if let FunctionProcess(ref print_function) = flow.process_refs.unwrap()[0].process {
+                    assert_eq!(print_function.alias(), "print", "Function alias does not match");
+                    if let Some(inputs) = print_function.get_inputs() {
+                        let default_input: &IO = inputs.get(0).unwrap();
+                        let initial_value = default_input.get_initial_value().clone().unwrap();
+                        assert_eq!(initial_value, "hello");
+                    } else {
+                        panic!("Could not find any inputs");
+                    }
+                } else {
+                    panic!("First sub-process was not a function as expected")
+                }
+            }
+            Ok(_) => panic!("Didn't load a flow"),
+            Err(e) => panic!(e.to_string())
+        }
+    }
+
+    /*
+        This tests that an initalizer on an input to a flow process is passed onto function processes
+        inside the flow, via a connection from the flow input to the function input
+    */
+    #[test]
+    fn flow_input_initialized_and_propogated() {
+        let meta_provider = MetaProvider {};
+        // Relative path from project root to the test file
+        let url = url_from_rel_path("flowc/test-flows/flow_input_init.toml");
+
+        match loader::load_context(&url, &meta_provider) {
+            Ok(FlowProcess(flow)) => {
+                if let FlowProcess(ref pilte_sub_flow) = flow.process_refs.unwrap()[0].process {
+                    assert_eq!("pass-if-lte", pilte_sub_flow.alias(), "Flow alias is not 'pass-if-lte' as expected");
+
+                    if let Some(ref process_refs) = pilte_sub_flow.process_refs {
+                        if let FunctionProcess(ref tap_function) = process_refs.get(0).unwrap().process {
+                            assert_eq!("tap", tap_function.alias(), "Function alias is not 'tap' as expected");
+                            if let Some(inputs) = tap_function.get_inputs() {
+                                let in_input = inputs.get(0).unwrap();
+                                assert_eq!("data", in_input.alias(), "Input's name is not 'data' as expected");
+                                assert_eq!("/context/pass-if-lte/tap/data", in_input.route(), "Input's route is not as expected");
+                                let initial_value = in_input.get_initial_value();
+                                assert_eq!(Some(JsonValue::Number(serde_json::Number::from(1))), *initial_value);
+                            } else {
+                                panic!("Could not find any inputs");
+                            }
+                        } else {
+                            panic!("First sub-process of 'pass-if-lte' sub-flow was not a function as expected");
+                        }
+                    } else {
+                        panic!("Could not get process_refs of sub_flow");
+                    }
+                } else {
+                    panic!("First sub-process of context flow was not a sub-flow as expected")
+                }
+            }
+            Ok(_) => panic!("Didn't load a flow"),
+            Err(e) => panic!(e.to_string())
+        }
     }
 }

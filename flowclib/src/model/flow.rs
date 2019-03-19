@@ -14,7 +14,11 @@ use model::connection::Direction;
 use model::runnable::Runnable;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
+use model::connection::Direction::FROM;
+use model::connection::Direction::TO;
+use serde_json::Value as JsonValue;
 use std::fmt;
+use std::mem::replace;
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -150,6 +154,16 @@ impl Default for Flow {
     }
 }
 
+impl HasName for Flow {
+    fn name(&self) -> &Name {
+        &self.name
+    }
+
+    fn alias(&self) -> &Name {
+        &self.alias
+    }
+}
+
 impl HasRoute for Flow {
     fn route(&self) -> &Route {
         &self.route
@@ -181,34 +195,35 @@ impl Flow {
         "unknown@unknown.com".to_string()
     }
 
-    fn get_io_subprocess(&self, subprocess_alias: &str, direction: Direction, route: &Route) -> Result<IO, String> {
-        if let Some(ref process_refs) = self.process_refs {
-            for process_ref in process_refs {
+    // TODO create a trait HasInputs and HasOutputs and implement it for function and flow
+    // and process so this below can avoid the match
+    fn get_io_subprocess(&mut self, subprocess_alias: &str, direction: Direction, route: &Route,
+                         initial_value: &Option<JsonValue>) -> Result<IO, String> {
+        if let Some(ref mut process_refs) = self.process_refs {
+            for mut process_ref in process_refs {
                 debug!("\tLooking in process_ref with alias = '{}'", process_ref.alias);
-                match process_ref.process {
-                    FlowProcess(ref flow) => {
-                        if process_ref.name() == subprocess_alias {
+                if subprocess_alias == process_ref.alias().clone() {
+                    match process_ref.process {
+                        FlowProcess(ref mut sub_flow) => {
                             debug!("\tFlow sub-process with matching name found, name = '{}'", process_ref.alias);
                             return match direction {
-                                Direction::TO => flow.inputs.find_by_name(route),
-                                Direction::FROM => flow.outputs.find_by_name(route)
+                                Direction::TO => sub_flow.inputs.find_by_name(route, initial_value),
+                                Direction::FROM => sub_flow.outputs.find_by_name(route, &None)
                             };
                         }
-                    },
-                    FunctionProcess(ref function) => {
-                        if process_ref.name() == subprocess_alias {
+                        FunctionProcess(ref mut function) => {
                             return match direction {
-                                Direction::TO => function.get_inputs().find_by_route(route),
-                                Direction::FROM => function.get_outputs().find_by_route(route)
+                                Direction::TO => function.inputs.find_by_route(route, initial_value),
+                                Direction::FROM => function.get_outputs().find_by_route(route, &None)
                             };
                         }
-                    },
+                    }
                 }
             }
             return Err(format!("Could not find sub-process named '{}'", subprocess_alias));
         }
 
-        return Err("No sub-process present".to_string());
+        return Err("No sub-processes present".to_string());
     }
 
     /*
@@ -220,7 +235,7 @@ impl Flow {
                 if value.name() == value_name {
                     return match direction {
                         Direction::TO => value.get_input(),
-                        Direction::FROM => value.get_outputs().find_by_route(route)
+                        Direction::FROM => value.get_outputs().find_by_route(route, &None)
                     };
                 }
             }
@@ -232,7 +247,8 @@ impl Flow {
 
     // TODO consider finding the object first using it's type and name (flow, subflow, value, function)
     // Then from the object find the IO (by name or route, probably route) in common code, maybe using IOSet directly?
-    pub fn get_route_and_type(&mut self, direction: Direction, conn_descriptor: &str) -> Result<IO, String> {
+    pub fn get_route_and_type(&mut self, direction: Direction, conn_descriptor: &str,
+                              initial_value: &Option<JsonValue>) -> Result<IO, String> {
         let mut segments: Vec<&str> = conn_descriptor.split('/').collect();
         let object_type = segments.remove(0); // first part is type of object
         let object_name = &Name::from(segments.remove(0)); // second part is the name of it
@@ -241,11 +257,84 @@ impl Flow {
         debug!("Looking for connection {:?} '{}' called '{}' with route '{}'", direction, object_type, object_name, route);
 
         match (&direction, object_type) {
-            (&Direction::TO, "output") => self.outputs.find_by_name(object_name), // an output from this flow
-            (&Direction::FROM, "input") => self.inputs.find_by_name(object_name), // an input to this flow
-            (_, "process") => self.get_io_subprocess(object_name, direction, &route), // input or output of a sub-process
+            (&Direction::TO, "output") => self.outputs.find_by_name(object_name, &None), // an output from this flow
+            (&Direction::FROM, "input") => self.inputs.find_by_name(object_name, &None), // an input to this flow
+            (_, "process") => self.get_io_subprocess(object_name, direction, &route, initial_value), // input or output of a sub-process
             (_, "value") => self.get_io_from_value(object_name, direction, &route), // input or output of a contained value
-            _ => Err(format!("Unknown type of object '{}' used in IO descriptor '{}'", object_type, conn_descriptor))
+            _ => Err(format!("Invalid combination of direction '{:?}' and type '{}' used in connection '{}'",
+                             direction, object_type, conn_descriptor))
+        }
+    }
+
+
+    /*
+        Change the names of connections to be routes to the alias used in this flow,
+        in the process ensuring they exist, that direction is correct and types match
+
+        Connection to/from Formats:
+            "value/message"
+            "input/input_name"
+            "output/output_name"
+
+            "process/flow_name/io_name"
+            "process/function_name/io_name"
+
+        Propogate any initializers on a flow input into the input (subflow or funcion) it is connected to
+    */
+    pub fn build_connections(&mut self) -> Result<(), String> {
+        if self.connections.is_none() { return Ok(()); }
+
+        debug!("Building connections for flow '{}'", self.source_url);
+
+        let mut error_count = 0;
+
+        // get connections out of self - so we can use immutable references to self inside loop
+        let connections = replace(&mut self.connections, None);
+        let mut connections = connections.unwrap();
+
+        for connection in connections.iter_mut() {
+            connection.check_for_loops(self.source_url.as_str())?;
+            match self.get_route_and_type(FROM, &connection.from, &None) {
+                Ok(from_io) => {
+                    debug!("Found connection source:\n{:#?}", from_io);
+                    match self.get_route_and_type(TO, &connection.to, from_io.get_initial_value()) {
+                        Ok(to_io) => {
+                            debug!("Found connection destination:\n{:#?}", to_io);
+                            if (from_io.datatype(0) == to_io.datatype(0)) ||
+                                from_io.datatype(0) == "Json" || to_io.datatype(0) == "Json" {
+                                debug!("Connection source and destination types match");
+                                info!("Connection built from '{}' to '{}'", from_io.route(), to_io.route());
+                                connection.from_io = from_io;
+                                connection.to_io = to_io;
+                            } else {
+                                error!("Type mismatch in flow '{}' connection:\n\nfrom\n\n{:#?}\n\nto\n\n{:#?}",
+                                       self.source_url, from_io, to_io);
+                                error_count += 1;
+                            }
+                        }
+                        Err(error) => {
+                            error!("Did not find connection destination: '{}' specified in flow '{}'\n\t\t{}",
+                                   connection.to, self.source_url, error);
+                            error_count += 1;
+                        }
+                    }
+                }
+                Err(error) => {
+                    error!("Did not find connection source: '{}' specified in flow '{}'\n\t\t{}",
+                           connection.from, self.source_url, error);
+                    error_count += 1;
+                }
+            }
+        }
+
+        // put connections back into self
+        replace(&mut self.connections, Some(connections));
+
+        if error_count == 0 {
+            debug!("All connections inside flow '{}' successfully built", self.source_url);
+            Ok(())
+        } else {
+            Err(format!("{} connections errors found in flow '{}'", error_count, self.source_url))
         }
     }
 }

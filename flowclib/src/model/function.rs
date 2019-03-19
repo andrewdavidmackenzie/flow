@@ -10,6 +10,7 @@ use model::route::SetRoute;
 use loader::loader::Validate;
 use model::runnable::Runnable;
 use serde_json::Value as JsonValue;
+
 use flowrlib::url;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -21,7 +22,7 @@ pub struct Function {
     impure: bool,
     implementation: Option<String>,
     #[serde(rename = "input")]
-    inputs: IOSet,
+    pub inputs: IOSet, // TODO
     #[serde(rename = "output")]
     outputs: IOSet,
 
@@ -64,8 +65,8 @@ impl Runnable for Function {
         self.impure
     }
 
-    fn get_inputs(&self) -> IOSet {
-        self.inputs.clone()
+    fn get_inputs(&self) -> &IOSet {
+        &self.inputs
     }
 
     fn get_outputs(&self) -> IOSet {
@@ -180,8 +181,8 @@ impl Default for Function {
             source_url: Function::default_url(),
             route: "".to_string(),
             lib_reference: None,
-            id: 0,
             output_routes: vec!(("".to_string(), 0, 0)),
+            id: 0,
         }
     }
 }
@@ -261,8 +262,8 @@ mod test {
             outputs: None,         // No output!
             route: "".to_string(),
             lib_reference: None,
-            id: 0,
             output_routes: vec!(("test_function".to_string(), 0, 0)),
+            id: 0,
         };
 
         assert_eq!(fun.validate().is_err(), true);
@@ -418,7 +419,7 @@ mod test {
 
         // Test
         // Try and get the output using a route to a specific element of the output
-        let output = function.outputs.find_by_route(&Route::from("/0")).unwrap();
+        let output = function.outputs.find_by_route(&Route::from("/0"), &None).unwrap();
         assert_eq!(output.name(), "");
     }
 }

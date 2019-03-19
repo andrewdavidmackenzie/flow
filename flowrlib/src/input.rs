@@ -5,8 +5,10 @@ use std::fmt;
 
 #[derive(Deserialize, Serialize)]
 pub struct Input {
-    #[serde(default = "default_depth", skip_serializing_if = "is_default")]
+    #[serde(default = "default_depth", skip_serializing_if = "is_default_depth")]
     depth: usize,
+    #[serde(default = "default_initial_value", skip_serializing_if = "Option::is_none")]
+    pub initial_value: Option<JsonValue>,
     #[serde(skip)]
     received: Vec<JsonValue>,
 }
@@ -21,7 +23,7 @@ impl fmt::Display for Input {
     }
 }
 
-fn is_default(depth: &usize) -> bool {
+fn is_default_depth(depth: &usize) -> bool {
     *depth == default_depth()
 }
 
@@ -29,10 +31,15 @@ fn default_depth() -> usize {
     1
 }
 
+fn default_initial_value() -> Option<JsonValue> {
+    None
+}
+
 impl Input {
-    pub fn new(depth: usize) -> Self {
+    pub fn new(depth: usize, initial_value: Option<JsonValue>) -> Self {
         Input {
             depth,
+            initial_value,
             received: Vec::with_capacity(depth),
         }
     }
@@ -47,6 +54,12 @@ impl Input {
 
     pub fn take(&mut self) -> Vec<JsonValue> {
         replace(&mut self.received, Vec::with_capacity(self.depth))
+    }
+
+    pub fn init(&mut self) {
+        if let Some(initial_value) = replace(&mut self.initial_value, None) {
+            self.push(initial_value.clone());
+        }
     }
 
     pub fn push(&mut self, value: JsonValue) {
@@ -71,27 +84,27 @@ mod test {
 
     #[test]
     fn no_inputs_initially() {
-        let input = Input::new(1);
+        let input = Input::new(1, None);
         assert!(input.is_empty());
     }
 
     #[test]
     fn accepts_value() {
-        let mut input = Input::new(1);
+        let mut input = Input::new(1, None);
         input.push(JsonValue::Null);
         assert!(!input.is_empty());
     }
 
     #[test]
     fn gets_full() {
-        let mut input = Input::new(1);
+        let mut input = Input::new(1, None);
         input.push(JsonValue::Null);
         assert!(input.full());
     }
 
     #[test]
     fn can_overwrite() {
-        let mut input = Input::new(1);
+        let mut input = Input::new(1, None);
         input.push(JsonValue::Null);
         input.overwrite(json!(10));
         assert_eq!(input.read(), vec!(json!(10)));
@@ -99,7 +112,7 @@ mod test {
 
     #[test]
     fn read_works() {
-        let mut input = Input::new(1);
+        let mut input = Input::new(1, None);
         input.push(json!(10));
         assert!(!input.is_empty());
         assert_eq!(input.read(), vec!(json!(10)));
@@ -107,7 +120,7 @@ mod test {
 
     #[test]
     fn take_empties() {
-        let mut input = Input::new(1);
+        let mut input = Input::new(1, None);
         input.push(json!(10));
         assert!(!input.is_empty());
         input.take();
@@ -116,7 +129,7 @@ mod test {
 
     #[test]
     fn reset_empties() {
-        let mut input = Input::new(1);
+        let mut input = Input::new(1, None);
         input.push(json!(10));
         assert!(!input.is_empty());
         input.reset();
@@ -125,7 +138,7 @@ mod test {
 
     #[test]
     fn depth_works() {
-        let mut input = Input::new(2);
+        let mut input = Input::new(2, None);
         input.push(json!(10));
         assert!(!input.full());
         input.push(json!(15));

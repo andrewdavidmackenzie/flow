@@ -1,11 +1,11 @@
-use loader::yaml_loader::FlowYamlLoader;
-use loader::toml_loader::FlowTomelLoader;
-use loader::loader::Loader;
+use super::yaml_deserializer::FlowYamlLoader;
+use super::toml_deserializer::FlowTomelLoader;
+use loader::loader::Deserializer;
 
-const TOML: &Loader = &FlowTomelLoader as &Loader;
-const YAML: &Loader = &FlowYamlLoader as &Loader;
+const TOML: &Deserializer = &FlowTomelLoader as &Deserializer;
+const YAML: &Deserializer = &FlowYamlLoader as &Deserializer;
 
-pub fn get_loader(url: &str) -> Result<&'static Loader, String> {
+pub fn get_deserializer(url: &str) -> Result<&'static Deserializer, String> {
     match get_file_extension(url) {
         Ok(ext) => {
             match ext.as_ref() {
@@ -34,7 +34,7 @@ fn get_file_extension(url: &str) -> Result<String, String> {
 #[cfg(test)]
 mod test {
     use super::get_file_extension;
-    use super::get_loader;
+    use super::get_deserializer;
 
     #[test]
     #[should_panic]
@@ -55,16 +55,16 @@ mod test {
     #[test]
     #[should_panic]
     fn invalid_extension() {
-        get_loader("file:///extension.wrong").unwrap();
+        get_deserializer("file:///extension.wrong").unwrap();
     }
 
     #[test]
     fn toml_extension_loader() {
-        get_loader("file:///extension.toml").unwrap();
+        get_deserializer("file:///extension.toml").unwrap();
     }
 
     #[test]
     fn yaml_extension_loader() {
-        get_loader("file:///extension.yaml").unwrap();
+        get_deserializer("file:///extension.yaml").unwrap();
     }
 }

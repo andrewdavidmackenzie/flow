@@ -1,5 +1,0 @@
-{
-  "locators": {
-    "//flowrlib/test-dyn-lib/add2": "add2.wasm"
-  }
-}

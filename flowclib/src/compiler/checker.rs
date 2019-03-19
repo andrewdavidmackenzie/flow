@@ -10,7 +10,8 @@ pub fn check_process_inputs(tables: &mut GenerationTables) -> Result<(), String>
         if runnable.get_initial_value().is_none() {
             if let Some(inputs) = runnable.get_inputs() {
                 for input in inputs {
-                    let mut found = false;
+                    let mut found = input.get_initial_value().is_some();
+
                     for connection in &tables.collapsed_connections {
                         if connection.to_io.route() == input.route() {
                             found = true;

@@ -19,7 +19,7 @@ debugger = []
 online_tests = []
 
 [dependencies]
-clap = "~2.27.1"
+clap = "~2"
 flowclib = { path = "../flowclib", version = "~0.7.0" }
 flowrlib = { path = "../flowrlib", version = "~0.7.0" }
 provider = { path = "../provider", version = "~0.4.0" }

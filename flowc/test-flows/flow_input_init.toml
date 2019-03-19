@@ -1,0 +1,15 @@
+flow = "flow_input_init"
+
+[[process]]
+alias = "pass-if-lte"
+source = "lib://flowstdlib/control/pass_if_lte.toml"
+input.in = 1
+input.max = 10
+
+[[process]]
+alias = "print"
+source = "lib://flowr/stdio/stdout.toml"
+
+[[connection]]
+from = "process/pass-if-lte/passed"
+to = "process/print"
