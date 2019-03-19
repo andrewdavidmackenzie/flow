@@ -1,14 +1,6 @@
 flow = "unused input"
 
-[[value]]
-name = "one"
-type = "Number"
-init = 1
-
 [[process]]
 alias = "sum"
 source = "lib://flowstdlib/math/add.toml"
-
-[[connection]]
-from = "value/one"
-to = "process/sum/i1"
+input.i1 = 1
