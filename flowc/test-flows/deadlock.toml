@@ -4,25 +4,8 @@ flow = "deadlock"
 [[process]]
 alias = "first-sequence"
 source = "lib://flowstdlib/math/sequence.toml"
-
-[[value]]
-name = "first-start"
-type = "Number"
-init = 1
-
-[[value]]
-name = "first-end"
-type = "Number"
-init = 9
-
-[[connection]]
-from = "value/first-start"
-to = "process/first-sequence/start"
-
-[[connection]]
-from = "value/first-end"
-to = "process/first-sequence/end"
-
+input.start = 1
+input.end = 9
 
 # Generate a sequence of numbers from 2 upto the value from sequence above
 [[process]]
