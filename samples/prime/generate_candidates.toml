@@ -21,18 +21,10 @@ source = "lib://flowstdlib/fmt/to_number.toml"
 from = "process/to_number"
 to = "process/candidates-range/end"
 
-[[value]]
-name = "lowest-candidate"
-type = "Number"
-init = 1
-
-[[connection]]
-from = "value/lowest-candidate"
-to = "process/candidates-range/start"
-
 [[process]]
 alias = "candidates-range"
 source = "lib://flowstdlib/math/sequence.toml"
+input.start = 1
 
 [[connection]]
 from = "process/candidates-range/sequence"
