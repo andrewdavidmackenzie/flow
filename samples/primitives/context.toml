@@ -1,44 +1,19 @@
 flow = "primitives"
 
-[[value]]
-name = "a"
-type = "Number"
-init = 1
-
-[[value]]
-name = "constant"
-type = "Number"
-init = 1
-static = true
-
-[[value]]
-name = "false"
-type = "Bool"
-init = false
-
 [[process]]
 alias = "sum"
 source = "lib://flowstdlib/math/add.toml"
-
-[[connection]]
-from = "value/a"
-to = "process/sum/i1"
-
-[[connection]]
-from = "value/constant"
-to = "process/sum/i2"
+input.i1 = 1
+input.i2 = 1
 
 [[process]]
 alias = "add_again"
 source = "lib://flowstdlib/math/add.toml"
+input.i2 = 1
 
 [[connection]]
 from = "process/sum"
 to = "process/add_again/i1"
-
-[[connection]]
-from = "value/constant"
-to = "process/add_again/i2"
 
 [[process]]
 alias = "to_string"
@@ -51,6 +26,7 @@ to = "process/to_string"
 [[process]]
 alias = "tap"
 source = "lib://flowstdlib/control/tap.toml"
+input.control = false
 
 [[process]]
 alias = "compare"
@@ -64,10 +40,6 @@ to = "process/tap/data"
 [[connection]]
 from = "process/add_again"
 to = "process/compare/left"
-
-[[connection]]
-from = "value/false"
-to = "process/tap/control"
 
 [[connection]]
 from = "process/compare/gt"
