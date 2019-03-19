@@ -26,6 +26,9 @@ pub fn get_ilt() -> ImplementationLocatorTable {
     ilt.locators.insert("lib://flowstdlib/img/format_png/FormatPNG".to_string(),
                         Native(Arc::new(::img::format_png::FormatPNG {})));
 
+    ilt.locators.insert("lib://flowstdlib/data/buffer/Buffer".to_string(),
+                        Native(Arc::new(::data::buffer::Buffer {})));
+
     // TODO remove this fake added wasm function with a real one, with a Makefile to build it when wasm execution is ready
     ilt.locators.insert("lib://flowstdlib/fmt/reverse/Reverse".to_string(),
                         Wasm(("src/fmt/reverse.wasm".to_string(), "reverse".to_string())));

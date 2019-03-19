@@ -1,10 +1,10 @@
 flow = "loop inputs"
 
-[[value]]
-name = "one"
-type = "Number"
-init = 1
+[[process]]
+alias = "one"
+source = "lib://flowstdlib/data/buffer.toml"
+input.default = 1
 
 [[connection]]
-from = "value/one"
-to = "value/one"
+from = "process/one"
+to = "process/one"

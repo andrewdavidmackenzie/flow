@@ -58,6 +58,7 @@ impl Input {
 
     pub fn init(&mut self) {
         if let Some(initial_value) = replace(&mut self.initial_value, None) {
+            debug!("\t\tInput initialized '{:?}'", &initial_value);
             self.push(initial_value.clone());
         }
     }

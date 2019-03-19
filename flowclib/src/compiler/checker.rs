@@ -9,18 +9,27 @@ pub fn check_process_inputs(tables: &mut GenerationTables) -> Result<(), String>
     for runnable in &tables.runnables {
         if runnable.get_initial_value().is_none() {
             if let Some(inputs) = runnable.get_inputs() {
-                for input in inputs {
-                    let mut found = input.get_initial_value().is_some();
 
-                    for connection in &tables.collapsed_connections {
-                        if connection.to_io.route() == input.route() {
-                            found = true;
+                let mut connected_input_count = 0;
+                for input in inputs {
+                    if input.get_initial_value().is_some() {
+                        connected_input_count += 1;
+                    } else {
+                        let mut found = false;
+                        for connection in &tables.collapsed_connections {
+                            if connection.to_io.route() == input.route() {
+                                found = true;
+                            }
+                        }
+                        if found {
+                            connected_input_count += 1;;
                         }
                     }
-                    if !found {
-                        return Err(format!("Could not find any connection to process '{}' input with route '{}', so it can never run.",
-                                           runnable.route(), input.route()));
-                    }
+                }
+
+                if connected_input_count != inputs.len() {
+                    return Err(format!("Process at route '{}' has at least one unused and uninitialized input",
+                                       runnable.route()));
                 }
             }
         }

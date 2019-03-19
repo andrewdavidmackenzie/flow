@@ -201,7 +201,7 @@ impl RunState {
                             if !self.will_run.contains(&sender_process.id()) {
 
                                 // for each output route of sending process, see if it is sending to the target process and input
-                                for &(ref _output_route, destination_id, io_number) in sender_process.output_destinations() {
+                                for (ref _output_route, destination_id, io_number) in sender_process.output_destinations() {
                                     if (destination_id == target_id) && (io_number == target_io) {
                                         senders.push(sender_process.id());
                                     }

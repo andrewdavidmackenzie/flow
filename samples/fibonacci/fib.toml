@@ -1,14 +1,14 @@
 flow = "fib"
 
-[[value]]
-name = "HEAD-1"
-type = "Number"
-init = 1
+[[process]]
+alias = "HEAD-1"
+source = "lib://flowstdlib/data/buffer.toml"
+input.default = 1
 
-[[value]]
-name = "HEAD"
-type = "Number"
-init = 1
+[[process]]
+alias = "HEAD"
+source = "lib://flowstdlib/data/buffer.toml"
+input.default = 1
 
 [[process]]
 alias = "sum"
@@ -19,21 +19,21 @@ name = "series"
 type = "Number"
 
 [[connection]]
-from = "value/HEAD-1"
+from = "process/HEAD-1"
 to = "process/sum/i1"
 
 [[connection]]
-from = "value/HEAD"
-to = "value/HEAD-1"
+from = "process/HEAD"
+to = "process/HEAD-1"
 
 [[connection]]
-from = "value/HEAD"
+from = "process/HEAD"
 to = "process/sum/i2"
 
 [[connection]]
 from = "process/sum"
-to = "value/HEAD"
+to = "process/HEAD"
 
 [[connection]]
-from = "value/HEAD-1"
+from = "process/HEAD-1"
 to = "output/series"

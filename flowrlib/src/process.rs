@@ -157,10 +157,11 @@ impl Process {
         }
     }
 
-    pub fn output_destinations(&self) -> &Vec<(String, usize, usize)> {
-        &self.output_routes
+    pub fn output_destinations(&self) -> Vec<(String, usize, usize)> {
+        self.output_routes.clone()
     }
 
+    // TODO change to just return a reference to Implementation, doesn't need to be ref counted?
     pub fn get_implementation(&self) -> Arc<Implementation> {
         self.implementation.clone()
     }

@@ -87,6 +87,9 @@ pub fn connection_from_runnable(connections: &Vec<Connection>, runnable: &Box<Ru
 pub fn connection_to_runnable(connections: &Vec<Connection>, runnable: &Box<Runnable>) -> bool {
     if let Some(inputs) = runnable.get_inputs() {
         for input in inputs {
+            if input.get_initial_value().is_some() {
+                return true;
+            }
             let route = input.route();
             for connection in connections {
                 if connection.to_io.route() == route {

@@ -25,31 +25,19 @@ type = "Number"
 name = "done"
 type = "Bool"
 
-# IO taps
-[[value]]
-name = "start-signal"
-type = "Bool"
-init = true
-
 [[process]]
 alias = "limit-gate"
 source = "lib://flowstdlib/control/tap.toml"
+input.control = true
 
 [[process]]
 alias = "start-gate"
 source = "lib://flowstdlib/control/tap.toml"
-
-[[connection]]
-from = "value/start-signal"
-to = "process/limit-gate/control"
+input.control = true
 
 [[connection]]
 from = "input/end"
 to = "process/limit-gate/data"
-
-[[connection]]
-from = "value/start-signal"
-to = "process/start-gate/control"
 
 [[connection]]
 from = "input/start"
@@ -81,11 +69,9 @@ to = "value/limit-store"
 from = "process/start-gate"
 to = "process/pilte/in"
 
-
 [[connection]]
 from = "process/start-gate"
 to = "value/start-store"
-
 
 # pass if less than or equal, add one and loop
 [[process]]
@@ -147,7 +133,11 @@ to = "output/done"
 # re-open the input gates for another value to loop on
 [[connection]]
 from = "process/when-done"
-to = "value/start-signal"
+to = "process/limit-gate/control"
+
+[[connection]]
+from = "process/when-done"
+to = "process/start-gate/control"
 
 [[connection]]
 from = "value/limit-store"
