@@ -30,18 +30,10 @@ from = "process/sequence/sequence"
 to = "process/to_string"
 
 # Output a string to show we're done when the series ends
-[[value]]
-name = "done"
-type = "String"
-init = "Range done"
-
 [[process]]
 alias = "tap"
 source = "lib://flowstdlib/control/tap.toml"
-
-[[connection]]
-from = "value/done"
-to = "process/tap/data"
+input.data = "Range done"
 
 [[connection]]
 from = "process/sequence/done"
