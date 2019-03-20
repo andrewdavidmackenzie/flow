@@ -1,4 +1,4 @@
-use loader::loader::Deserializer;
+use compiler::loader::Deserializer;
 use model::flow::Flow;
 use model::process::Process;
 

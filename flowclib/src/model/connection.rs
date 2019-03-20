@@ -1,5 +1,5 @@
 use model::name::Name;
-use loader::loader::Validate;
+use compiler::loader::Validate;
 use model::route::Route;
 use model::route::HasRoute;
 use model::io::IO;

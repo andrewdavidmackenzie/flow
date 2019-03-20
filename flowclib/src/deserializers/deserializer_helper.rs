@@ -1,6 +1,6 @@
 use super::yaml_deserializer::FlowYamlLoader;
 use super::toml_deserializer::FlowTomelLoader;
-use loader::loader::Deserializer;
+use compiler::loader::Deserializer;
 
 const TOML: &Deserializer = &FlowTomelLoader as &Deserializer;
 const YAML: &Deserializer = &FlowYamlLoader as &Deserializer;

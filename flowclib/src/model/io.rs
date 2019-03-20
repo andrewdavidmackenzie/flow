@@ -5,7 +5,7 @@ use model::route::FindRoute;
 use model::datatype::HasDataType;
 use model::datatype::DataType;
 use model::datatype::TypeCheck;
-use loader::loader::Validate;
+use compiler::loader::Validate;
 use model::route::Route;
 use model::route::SetRoute;
 use std::collections::HashSet;
@@ -258,7 +258,7 @@ impl IO {
 mod test {
     use toml;
     use super::IO;
-    use loader::loader::Validate;
+    use compiler::loader::Validate;
     use model::name::HasName;
 
     #[test]

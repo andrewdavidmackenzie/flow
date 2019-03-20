@@ -4,7 +4,7 @@ use model::name::HasName;
 use model::route::Route;
 use model::route::HasRoute;
 use model::process::Process;
-use loader::loader::Validate;
+use compiler::loader::Validate;
 use std::fmt;
 use std::collections::HashMap;
 

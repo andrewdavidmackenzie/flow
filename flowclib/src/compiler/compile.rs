@@ -34,7 +34,7 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables, String> {
 
 #[cfg(test)]
 mod test {
-    use ::loader::loader;
+    use ::compiler::loader;
     use flowrlib::provider::Provider;
     use super::compile;
     use ::model::process::Process::FlowProcess;

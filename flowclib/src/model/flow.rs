@@ -9,7 +9,7 @@ use model::route::Route;
 use model::route::HasRoute;
 use model::route::SetRoute;
 use model::io::Find;
-use loader::loader::Validate;
+use compiler::loader::Validate;
 use model::connection::Direction;
 use model::runnable::Runnable;
 use model::process::Process::FlowProcess;

@@ -1,4 +1,4 @@
-use loader::loader::Validate;
+use compiler::loader::Validate;
 
 pub type Name = String;
 
@@ -25,7 +25,7 @@ pub trait HasName {
 #[cfg(test)]
 mod test {
     use super::Name;
-    use loader::loader::Validate;
+    use compiler::loader::Validate;
 
     #[test]
     fn does_not_validate_when_empty() {

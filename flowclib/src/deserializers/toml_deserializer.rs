@@ -1,5 +1,5 @@
 use toml;
-use loader::loader::Deserializer;
+use compiler::loader::Deserializer;
 use model::process::Process;
 
 pub struct FlowTomelLoader;

@@ -18,7 +18,6 @@ extern crate yaml_rust;
 extern crate flowrlib;
 
 pub mod deserializers;
-pub mod loader;
 pub mod dumper;
 pub mod info;
 pub mod compiler;
