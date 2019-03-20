@@ -3,7 +3,7 @@ use model::name::Name;
 use model::name::HasName;
 use model::datatype::DataType;
 use model::datatype::HasDataType;
-use loader::loader::Validate;
+use compiler::loader::Validate;
 use model::route::Route;
 use model::route::HasRoute;
 use model::route::SetRoute;
@@ -13,7 +13,7 @@ use model::runnable::Runnable;
 
 use std::fmt;
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Value {
     name: Name,
@@ -186,7 +186,7 @@ impl Value {
 mod test {
     use toml;
     use super::Value;
-    use loader::loader::Validate;
+    use compiler::loader::Validate;
     use model::name::HasName;
     use model::route::Route;
     use model::route::HasRoute;

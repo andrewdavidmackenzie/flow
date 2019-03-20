@@ -7,13 +7,13 @@ use model::io::IOSet;
 use model::route::Route;
 use model::route::HasRoute;
 use model::route::SetRoute;
-use loader::loader::Validate;
+use compiler::loader::Validate;
 use model::runnable::Runnable;
 use serde_json::Value as JsonValue;
 
 use flowrlib::url;
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Function {
     #[serde(rename = "function")]
@@ -242,7 +242,7 @@ impl Function {
 #[cfg(test)]
 mod test {
     use super::Function;
-    use loader::loader::Validate;
+    use compiler::loader::Validate;
     use toml;
     use model::name::HasName;
     use model::route::Route;

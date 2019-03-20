@@ -7,12 +7,12 @@ flow = "first flow"
 [[process]]
 alias = "HEAD-1"
 source = "lib://flowstdlib/data/buffer.toml"
-input.default = 1
+input.default = {once = 1}
 
 [[process]]
 alias = "HEAD"
 source = "lib://flowstdlib/data/buffer.toml"
-input.default = 1
+input.default = {once = 1}
 
 # The function "add" from the standard library is used, but aliased to be able to reference it using "sum"
 [[process]]

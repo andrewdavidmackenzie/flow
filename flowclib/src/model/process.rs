@@ -1,7 +1,7 @@
 use model::flow::Flow;
 use model::function::Function;
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum Process {
     FlowProcess(Flow),

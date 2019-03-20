@@ -39,7 +39,7 @@ use model::process::Process::FlowProcess;
 ///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 ///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
 ///
-///     if let FlowProcess(mut flow) = flowclib::loader::loader::load_context(&url.to_string(),
+///     if let FlowProcess(mut flow) = flowclib::compiler::loader::load_context(&url.to_string(),
 ///                                                       &dummy_provider).unwrap() {
 ///         let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
 ///

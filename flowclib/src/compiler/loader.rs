@@ -10,10 +10,10 @@ use deserializers::deserializer_helper::get_deserializer;
 use flowrlib::provider::Provider;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
-use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use model::io::IO;
 use flowrlib::url;
+use flowrlib::input::InputInitializer;
 
 // Any deserializer has to implement this method
 pub trait Deserializer {
@@ -61,14 +61,14 @@ pub trait Validate {
 /// let dummy_provider = DummyProvider{};
 ///
 /// // load the flow from `url = file:///example.toml` using the `dummy_provider`
-/// flowclib::loader::loader::load_context("file:///example.toml", &dummy_provider).unwrap();
+/// flowclib::compiler::loader::load_context("file:///example.toml", &dummy_provider).unwrap();
 /// ```
 pub fn load_context(url: &str, provider: &Provider) -> Result<Process, String> {
     load_process(&"".to_string(), &"context".to_string(), url, provider, &None)
 }
 
 fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provider,
-                initializations: &Option<HashMap<String, JsonValue>>) -> Result<Process, String> {
+                initializations: &Option<HashMap<String, InputInitializer>>) -> Result<Process, String> {
     let (resolved_url, lib_ref) = provider.resolve(url, "context.toml")?;
     let deserializer = get_deserializer(&resolved_url)?;
     info!("Deserializing process with alias = '{}' from url = '{}' ", alias, resolved_url);
@@ -113,7 +113,7 @@ fn load_subprocesses(flow: &mut Flow, provider: &Provider) -> Result<(), String>
 }
 
 fn config_function(function: &mut Function, source_url: &str, parent_route: &Route, alias: &Name,
-                   lib_ref: Option<String>, initializations: &Option<HashMap<String, JsonValue>>)
+                   lib_ref: Option<String>, initializations: &Option<HashMap<String, InputInitializer>>)
                    -> Result<(), String> {
     function.set_alias(alias.to_string());
     function.set_source_url(source_url.clone());
@@ -124,7 +124,7 @@ fn config_function(function: &mut Function, source_url: &str, parent_route: &Rou
 }
 
 fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &Name,
-               initializations: &Option<HashMap<String, JsonValue>>)
+               initializations: &Option<HashMap<String, InputInitializer>>)
                -> Result<(), String> {
     flow.alias = alias.to_string();
     flow.source_url = source_url.to_string();

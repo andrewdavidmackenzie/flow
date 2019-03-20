@@ -17,12 +17,12 @@ use std::process::Stdio;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
 use flowclib::compiler::compile;
+use flowclib::compiler::loader;
 use flowclib::dumper::dump_flow;
 use flowclib::dumper::dump_tables;
 use flowclib::generator::generate;
 use flowclib::generator::generate::GenerationTables;
 use flowclib::info;
-use flowclib::loader::loader;
 use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
 use flowrlib::manifest::DEFAULT_MANIFEST_FILENAME;
@@ -205,14 +205,14 @@ mod test {
     use std::env;
 
     use flowclib::compiler::compile;
-    use flowclib::loader::loader;
+    use flowclib::compiler::loader;
     use flowclib::model::io::IO;
     use flowclib::model::name::HasName;
     use flowclib::model::process::Process::FlowProcess;
     use flowclib::model::process::Process::FunctionProcess;
     use flowclib::model::route::HasRoute;
     use flowclib::model::runnable::Runnable;
-    use serde_json::Value as JsonValue;
+    use flowrlib::input::InputInitializer::OneTime;
     use url::Url;
 
     use provider::content::args::url_from_string;
@@ -393,7 +393,10 @@ mod test {
                     if let Some(inputs) = print_function.get_inputs() {
                         let default_input: &IO = inputs.get(0).unwrap();
                         let initial_value = default_input.get_initial_value().clone().unwrap();
-                        assert_eq!(initial_value, "hello");
+                        match initial_value {
+                            OneTime(one_time) => assert_eq!(one_time.once, "hello"),
+                            _ => panic!("Initializer should have been a OneTime initializer")
+                        }
                     } else {
                         panic!("Could not find any inputs");
                     }
@@ -429,7 +432,10 @@ mod test {
                                 assert_eq!("data", in_input.alias(), "Input's name is not 'data' as expected");
                                 assert_eq!("/context/pass-if-lte/tap/data", in_input.route(), "Input's route is not as expected");
                                 let initial_value = in_input.get_initial_value();
-                                assert_eq!(Some(JsonValue::Number(serde_json::Number::from(1))), *initial_value);
+                                match initial_value {
+                                    Some(OneTime(one_time)) => assert_eq!(one_time.once, 1),
+                                    _ => panic!("Initializer should have been a OneTime initializer")
+                                }
                             } else {
                                 panic!("Could not find any inputs");
                             }
