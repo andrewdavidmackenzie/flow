@@ -13,7 +13,7 @@ use serde_json::Value as JsonValue;
 
 use flowrlib::url;
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Function {
     #[serde(rename = "function")]

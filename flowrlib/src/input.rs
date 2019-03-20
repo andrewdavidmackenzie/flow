@@ -3,12 +3,29 @@ use std::mem::replace;
 #[cfg(feature = "debugger")]
 use std::fmt;
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum InputInitializer {
+    Constant(ConstantInputInitializer),
+    OneTime(OneTimeInputInitializer),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct OneTimeInputInitializer {
+    pub once: JsonValue,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ConstantInputInitializer {
+    pub constant: JsonValue,
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct Input {
     #[serde(default = "default_depth", skip_serializing_if = "is_default_depth")]
     depth: usize,
     #[serde(default = "default_initial_value", skip_serializing_if = "Option::is_none")]
-    pub initial_value: Option<JsonValue>,
+    pub initial_value: Option<InputInitializer>,
     #[serde(skip)]
     received: Vec<JsonValue>,
 }
@@ -31,12 +48,12 @@ fn default_depth() -> usize {
     1
 }
 
-fn default_initial_value() -> Option<JsonValue> {
+fn default_initial_value() -> Option<InputInitializer> {
     None
 }
 
 impl Input {
-    pub fn new(depth: usize, initial_value: Option<JsonValue>) -> Self {
+    pub fn new(depth: usize, initial_value: Option<InputInitializer>) -> Self {
         Input {
             depth,
             initial_value,
@@ -59,7 +76,10 @@ impl Input {
     pub fn init(&mut self) {
         if let Some(initial_value) = replace(&mut self.initial_value, None) {
             debug!("\t\tInput initialized '{:?}'", &initial_value);
-            self.push(initial_value.clone());
+            match &initial_value {
+                InputInitializer::OneTime(one_time)  => self.push(one_time.once.clone()),
+                InputInitializer::Constant(constant) => self.push(constant.constant.clone())
+            }
         }
     }
 

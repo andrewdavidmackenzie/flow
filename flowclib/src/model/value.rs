@@ -13,7 +13,7 @@ use model::runnable::Runnable;
 
 use std::fmt;
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Value {
     name: Name,

@@ -19,7 +19,7 @@ to = "process/sequence/end"
 [[process]]
 alias = "sequence"
 source = "lib://flowstdlib/math/sequence.toml"
-input.start = 1
+input.start = {once = 1}
 
 [[process]]
 alias = "to_string"
@@ -33,7 +33,7 @@ to = "process/to_string"
 [[process]]
 alias = "tap"
 source = "lib://flowstdlib/control/tap.toml"
-input.data = "Range done"
+input.data = {once = "Range done"}
 
 [[connection]]
 from = "process/sequence/done"

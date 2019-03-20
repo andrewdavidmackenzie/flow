@@ -3,4 +3,4 @@ flow = "hello world simple"
 [[process]]
 alias = "print"
 source = "lib://flowr/stdio/stdout.toml"
-input.default = "Hello World!"
+input.default = {once = "Hello World!"}

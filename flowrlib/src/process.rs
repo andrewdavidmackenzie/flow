@@ -1,6 +1,6 @@
 use implementation::Implementation;
 use implementation::RunAgain;
-use input::Input;
+use input::{Input, InputInitializer};
 use serde_json::Value as JsonValue;
 use std::sync::Arc;
 #[cfg(feature = "debugger")]
@@ -71,7 +71,7 @@ impl Process {
                route: String,
                is_static: bool,
                implementation_source: String,
-               process_inputs: Vec<(usize, Option<JsonValue>)>,
+               process_inputs: Vec<(usize, Option<InputInitializer>)>,
                id: usize,
                initial_value: Option<JsonValue>,
                output_routes: Vec<(String, usize, usize)>) -> Process {
@@ -108,7 +108,7 @@ impl Process {
     }
 
     // Create the set of inputs, each with appropriate depth
-    pub fn setup_inputs(&mut self, inputs: Vec<(usize, Option<JsonValue>)>) {
+    pub fn setup_inputs(&mut self, inputs: Vec<(usize, Option<InputInitializer>)>) {
         for input in inputs {
             self.inputs.push(Input::new(input.0, input.1));
         }

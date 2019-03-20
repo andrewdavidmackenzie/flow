@@ -10,8 +10,8 @@ use model::route::Route;
 use model::route::SetRoute;
 use std::collections::HashSet;
 use model::route::Router;
-use serde_json::Value as JsonValue;
 use std::collections::HashMap;
+use flowrlib::input::InputInitializer;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -29,7 +29,7 @@ pub struct IO {
     #[serde(skip_deserializing)]
     flow_io: bool,
     #[serde(skip_deserializing)]
-    initial_value: Option<JsonValue>,
+    initial_value: Option<InputInitializer>,
 }
 
 impl Default for IO {
@@ -104,11 +104,11 @@ impl IO {
         self.datatype = datatype.clone()
     }
 
-    pub fn get_initial_value(&self) -> &Option<JsonValue> {
+    pub fn get_initial_value(&self) -> &Option<InputInitializer> {
         &self.initial_value
     }
 
-    pub fn set_initial_value(&mut self, initial_value: &Option<JsonValue>) {
+    pub fn set_initial_value(&mut self, initial_value: &Option<InputInitializer>) {
         // Avoid overwriting a possibly Some() value with a None value
         if initial_value.is_some() {
             self.initial_value = initial_value.clone();
@@ -189,12 +189,12 @@ impl SetRoute for IOSet {
 }
 
 pub trait Find {
-    fn find_by_name(&mut self, name: &Name, initial_value: &Option<JsonValue>) -> Result<IO, String>;
-    fn find_by_route(&mut self, route: &Route, initial_value: &Option<JsonValue>) -> Result<IO, String>;
+    fn find_by_name(&mut self, name: &Name, initial_value: &Option<InputInitializer>) -> Result<IO, String>;
+    fn find_by_route(&mut self, route: &Route, initial_value: &Option<InputInitializer>) -> Result<IO, String>;
 }
 
 impl Find for IOSet {
-    fn find_by_name(&mut self, name: &Name, initial_value: &Option<JsonValue>) -> Result<IO, String> {
+    fn find_by_name(&mut self, name: &Name, initial_value: &Option<InputInitializer>) -> Result<IO, String> {
         if let Some(ref mut ios) = self {
             for mut io in ios {
                 if io.name() == name {
@@ -209,7 +209,7 @@ impl Find for IOSet {
 
     // TODO improve the Route handling of this - maybe moving into Router
     // TODO return a reference to the IO, with same lifetime as IOSet?
-    fn find_by_route(&mut self, sub_route: &Route, initial_value: &Option<JsonValue>) -> Result<IO, String> {
+    fn find_by_route(&mut self, sub_route: &Route, initial_value: &Option<InputInitializer>) -> Result<IO, String> {
         if let Some(ref mut ios) = self {
             for mut io in ios {
                 let (array_route, _num, array_index) = Router::without_trailing_array_index(sub_route);
@@ -237,7 +237,7 @@ impl Find for IOSet {
 }
 
 impl IO {
-    pub fn set_initial_values(ios: &mut IOSet, initializers: &Option<HashMap<String, JsonValue>>) {
+    pub fn set_initial_values(ios: &mut IOSet, initializers: &Option<HashMap<String, InputInitializer>>) {
         if let Some(inits) = initializers {
             if let Some(inputs) = ios {
                 for initializer in inits {

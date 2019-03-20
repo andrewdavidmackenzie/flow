@@ -16,11 +16,11 @@ use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
 use model::connection::Direction::FROM;
 use model::connection::Direction::TO;
-use serde_json::Value as JsonValue;
 use std::fmt;
 use std::mem::replace;
+use flowrlib::input::InputInitializer;
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Flow {
     #[serde(rename = "flow")]
@@ -198,7 +198,7 @@ impl Flow {
     // TODO create a trait HasInputs and HasOutputs and implement it for function and flow
     // and process so this below can avoid the match
     fn get_io_subprocess(&mut self, subprocess_alias: &str, direction: Direction, route: &Route,
-                         initial_value: &Option<JsonValue>) -> Result<IO, String> {
+                         initial_value: &Option<InputInitializer>) -> Result<IO, String> {
         if let Some(ref mut process_refs) = self.process_refs {
             for mut process_ref in process_refs {
                 debug!("\tLooking in process_ref with alias = '{}'", process_ref.alias);
@@ -248,7 +248,7 @@ impl Flow {
     // TODO consider finding the object first using it's type and name (flow, subflow, value, function)
     // Then from the object find the IO (by name or route, probably route) in common code, maybe using IOSet directly?
     pub fn get_route_and_type(&mut self, direction: Direction, conn_descriptor: &str,
-                              initial_value: &Option<JsonValue>) -> Result<IO, String> {
+                              initial_value: &Option<InputInitializer>) -> Result<IO, String> {
         let mut segments: Vec<&str> = conn_descriptor.split('/').collect();
         let object_type = segments.remove(0); // first part is type of object
         let object_name = &Name::from(segments.remove(0)); // second part is the name of it

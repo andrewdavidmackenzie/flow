@@ -95,6 +95,8 @@ mod test {
     use model::function::Function;
     use model::runnable::Runnable;
     use super::runnable_to_process;
+    use flowrlib::input::{InputInitializer, ConstantInputInitializer};
+    use flowrlib::input::OneTimeInputInitializer;
 
     #[test]
     fn test_value_to_code() {
@@ -325,7 +327,9 @@ mod test {
     #[test]
     fn function_with_initialized_input() {
         let mut io = IO::new(&"String".to_string(), &"".to_string());
-        io.set_initial_value(&Some(json!(1)));
+        io.set_initial_value(&Some(InputInitializer::OneTime(
+            OneTimeInputInitializer{ once: json!(1)}
+        )));
 
         let function = Function::new(
             "Stdout".to_string(),
@@ -345,7 +349,51 @@ mod test {
   'implementation_source': 'lib://flowr/stdio/stdout',
   'inputs': [
     {
-      'initial_value': 1
+      'initial_value': {
+        'once': 1
+      }
+    }
+  ]
+}";
+
+        let br = Box::new(function) as Box<Runnable>;
+        let process = runnable_to_process("/test", &br, false);
+
+        println!("process {}", process);
+
+        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        assert_eq!(expected.replace("'", "\""), serialized_process);
+    }
+
+
+    #[test]
+    fn function_with_constant_input() {
+        let mut io = IO::new(&"String".to_string(), &"".to_string());
+        io.set_initial_value(&Some(InputInitializer::Constant(
+            ConstantInputInitializer{ constant: json!(1)}
+        )));
+
+        let function = Function::new(
+            "Stdout".to_string(),
+            false,
+            Some("lib://flowr/stdio/stdout".to_string()),
+            "print".to_string(),
+            Some(vec!(io)),
+            None,
+            "file:///fake/file".to_string(),
+            "/flow0/stdout".to_string(),
+            None,
+            vec!(),
+            0);
+
+        let expected = "{
+  'id': 0,
+  'implementation_source': 'lib://flowr/stdio/stdout',
+  'inputs': [
+    {
+      'initial_value': {
+        'constant': 1
+      }
     }
   ]
 }";

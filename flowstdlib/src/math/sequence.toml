@@ -28,12 +28,12 @@ type = "Bool"
 [[process]]
 alias = "limit-gate"
 source = "lib://flowstdlib/control/tap.toml"
-input.control = true
+input.control = {once = true}
 
 [[process]]
 alias = "start-gate"
 source = "lib://flowstdlib/control/tap.toml"
-input.control = true
+input.control = {once = true}
 
 [[connection]]
 from = "input/end"
