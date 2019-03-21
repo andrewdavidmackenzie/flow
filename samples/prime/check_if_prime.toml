@@ -48,11 +48,10 @@ to = "output/prime"
 
 
 #check if the remainder is equal to 0
-#[[value]]
-#name = "zero"
-#type = "Number"
-#init = 0
-#static = true
+#[[process]]
+#alias = "zero"
+#source = "lib://flowstdlib/data/buffer.toml"
+#input.default = {constant = 0}
 
 #[[process]]
 #alias = "zero_remainder"
