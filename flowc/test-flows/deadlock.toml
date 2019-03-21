@@ -12,21 +12,18 @@ input.end = 9
 alias = "second-sequence"
 source = "lib://flowstdlib/math/sequence.toml"
 
-[[value]]
-name = "second-start"
-type = "Number"
-init = 2
-static = true
+[[process]]
+alias = "second-start"
+source = "lib://flowstdlib/data/buffer.toml"
+input.default = {constant = 2}
 
 [[connection]]
-from = "value/second-start"
+from = "process/second-start"
 to = "process/second-sequence/start"
 
 [[connection]]
 from = "process/first-sequence/sequence"
 to = "process/second-sequence/end"
-
-
 
 [[process]]
 alias = "sum"
@@ -41,7 +38,6 @@ to = "process/sum/i1"
 [[connection]]
 from = "process/second-sequence/sequence"
 to = "process/sum/i2"
-
 
 [[process]]
 alias = "print"
