@@ -10,18 +10,17 @@ name = "prime"
 type = "Number"
 
 # Generate a series of possible divisors of the candidate, from 2 up to candidate
-[[value]]
-name = "lowest-divisor"
-type = "Number"
-init = 2
-static = true
+[[process]]
+alias = "lowest-divisor"
+source = "lib://flowstdlib/data/buffer.toml"
+input.default = {constant = 2}
 
 [[process]]
 alias = "divisor-sequence"
 source = "lib://flowstdlib/math/sequence.toml"
 
 [[connection]]
-from = "value/lowest-divisor"
+from = "process/lowest-divisor"
 to = "process/divisor-sequence/start"
 
 [[connection]]

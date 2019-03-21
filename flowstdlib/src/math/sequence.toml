@@ -60,7 +60,6 @@ static = true
 from = "value/start-store"
 to = "output/min"
 
-
 [[connection]]
 from = "process/limit-gate"
 to = "value/limit-store"
