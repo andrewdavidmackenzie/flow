@@ -73,13 +73,32 @@ impl Input {
         replace(&mut self.received, Vec::with_capacity(self.depth))
     }
 
+    /*
+        Initialize an input with the InputInitializer if it has one. This is called at start-up
+        and so should initialize it if it's a OneTime initializer or a Constant initializer
+    */
     pub fn init(&mut self) {
-        if let Some(initial_value) = replace(&mut self.initial_value, None) {
-            debug!("\t\tInput initialized '{:?}'", &initial_value);
-            match &initial_value {
-                InputInitializer::OneTime(one_time)  => self.push(one_time.once.clone()),
-                InputInitializer::Constant(constant) => self.push(constant.constant.clone())
-            }
+        let initial_value = match &self.initial_value {
+            Some(InputInitializer::OneTime(one_time)) => Some(one_time.once.clone()),
+            Some(InputInitializer::Constant(constant)) => Some(constant.constant.clone()),
+            _ => None
+        };
+
+        if initial_value.is_some() {
+            self.push(initial_value.unwrap());
+            debug!("\t\tInput initialized with '{:?}'", &self.initial_value);
+        }
+    }
+
+    pub fn refresh_constant(&mut self) {
+        let refresh_value = match &self.initial_value {
+            Some(InputInitializer::Constant(constant)) => Some(constant.constant.clone()),
+            _ => None
+        };
+
+        if refresh_value.is_some() {
+            self.push(refresh_value.unwrap());
+            debug!("\t\tRefreshed Constant input with '{:?}'", &self.initial_value);
         }
     }
 

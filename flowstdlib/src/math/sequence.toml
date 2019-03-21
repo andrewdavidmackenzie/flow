@@ -60,7 +60,6 @@ static = true
 from = "value/start-store"
 to = "output/min"
 
-
 [[connection]]
 from = "process/limit-gate"
 to = "value/limit-store"
@@ -94,32 +93,30 @@ to = "output/sequence"
 from = "process/pilte/passed"
 to = "process/add/i1"
 
-[[value]]
-name = "one"
-type = "Number"
-init = 1
-static = true
+[[process]]
+alias = "one"
+source = "lib://flowstdlib/data/buffer.toml"
+input.default = {constant = 1}
 
 [[connection]]
-from = "value/one"
+from = "process/one"
 to = "process/add/i2"
 
 [[connection]]
 from = "process/add"
 to = "process/pilte/in"
 
-[[value]]
-name = "range-done"
-type = "Bool"
-init = true
-static = true
+[[process]]
+alias = "range-done"
+source = "lib://flowstdlib/data/buffer.toml"
+input.default = {constant = true}
 
 [[process]]
 alias = "when-done"
 source = "lib://flowstdlib/control/tap.toml"
 
 [[connection]]
-from = "value/range-done"
+from = "process/range-done"
 to = "process/when-done/data"
 
 [[connection]]
