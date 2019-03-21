@@ -53,7 +53,7 @@ alias = "parse_lower_right"
 source = "src/parse_pair.toml"
 
 [[connection]]
-from = "value/point_separator"
+from = "process/point_separator"
 to = "process/parse_lower_right/separator"
 
 [[connection]]
