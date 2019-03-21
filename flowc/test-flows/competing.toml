@@ -1,25 +1,23 @@
 flow = "competing inputs"
 
-[[value]]
-name = "one"
-type = "Number"
-init = 1
-static = true
+[[process]]
+alias = "one"
+source = "lib://flowstdlib/data/buffer.toml"
+input.default = {once = 1}
 
-[[value]]
-name = "two"
-type = "Number"
-init = 2
-static = true
+[[process]]
+alias = "two"
+source = "lib://flowstdlib/data/buffer.toml"
+input.default = {once = 2}
 
 [[process]]
 alias = "sum"
 source = "lib://flowstdlib/math/add.toml"
 
 [[connection]]
-from = "value/one"
+from = "process/one"
 to = "process/sum/i1"
 
 [[connection]]
-from = "value/two"
+from = "process/two"
 to = "process/sum/i1"

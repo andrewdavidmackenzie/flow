@@ -4,16 +4,15 @@
 
 flow = "runaway"
 
-[[value]]
-name = "store"
-type = "Number"
-init = 2
-static = true
+[[process]]
+alias = "store"
+source = "lib://flowstdlib/data/buffer.toml"
+input.default = {constant = 2}
 
 [[process]]
 alias = "print"
 source = "lib://flowr/stdio/stdout.toml"
 
 [[connection]]
-from = "value/store"
+from = "process/store"
 to = "process/print"

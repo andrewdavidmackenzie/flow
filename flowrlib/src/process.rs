@@ -140,6 +140,16 @@ impl Process {
         self.can_run()
     }
 
+    /*
+        If any input of the process is initialized as a Constant, then refresh the input from the
+        Constant Initializer
+    */
+    pub fn refresh_constant_inputs(&mut self) {
+        for mut input in &mut self.inputs {
+            input.refresh_constant();
+        }
+    }
+
     pub fn implementation_source(&self) -> &str {
         &self.implementation_source
     }
