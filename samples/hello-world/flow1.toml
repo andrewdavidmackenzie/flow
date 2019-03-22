@@ -1,9 +1,10 @@
 flow = "flow1"
 
-[[value]]
-name = "message"
-type = "String"
-init = "Hello World!"
+# TODO this could be removed when we are able to initialize an output with a value
+[[process]]
+alias = "message"
+source = "lib://flowstdlib/data/buffer.toml"
+input.default = {once = "Hello World!"}
 
 [[output]]
 name = "out"
@@ -11,5 +12,5 @@ type = "String"
 
 [[connection]]
 name = "message"
-from = "value/message"
+from = "process/message"
 to = "output/out"
