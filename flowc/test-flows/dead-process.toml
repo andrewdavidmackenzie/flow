@@ -1,0 +1,13 @@
+flow = "dead-process"
+
+[[process]]
+alias = "args"
+source = "lib://flowr/args/get.toml"
+
+[[process]]
+alias = "dead-process"
+source = "lib://flowstdlib/data/buffer.toml"
+
+[[connection]]
+from = "process/args/1"
+to = "process/dead-process"

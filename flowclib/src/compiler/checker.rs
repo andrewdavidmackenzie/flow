@@ -3,7 +3,6 @@ use generator::generate::GenerationTables;
 
 /*
     Check that all processes have connections to all their inputs or return an error
-    - with execption of a value that has an initial value
 */
 pub fn check_process_inputs(tables: &mut GenerationTables) -> Result<(), String> {
     for runnable in &tables.runnables {
@@ -28,7 +27,7 @@ pub fn check_process_inputs(tables: &mut GenerationTables) -> Result<(), String>
                 }
 
                 if connected_input_count != inputs.len() {
-                    return Err(format!("Process at route '{}' has at least one unused and uninitialized input",
+                    return Err(format!("Process at route '{}' has at least one unused input",
                                        runnable.route()));
                 }
             }

@@ -236,9 +236,9 @@ mod test {
     }
 
     #[test]
-    fn dead_value_removed() {
+    fn dead_process_removed() {
         let meta_provider = MetaProvider {};
-        let path = url_from_rel_path("flowc/test-flows/dead-value.toml");
+        let path = url_from_rel_path("flowc/test-flows/dead-process.toml");
         let process = loader::load_context(&path, &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let tables = compile::compile(flow).unwrap();
@@ -254,9 +254,9 @@ mod test {
     }
 
     #[test]
-    fn dead_value_and_function_removed() {
+    fn dead_process_and_connected_process_removed() {
         let meta_provider = MetaProvider {};
-        let path = url_from_rel_path("flowc/test-flows/dead-value-and-connected_value.toml");
+        let path = url_from_rel_path("flowc/test-flows/dead-process-and-connected-process.toml");
         let process = loader::load_context(&path, &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let tables = compile::compile(flow).unwrap();
@@ -272,19 +272,6 @@ mod test {
     fn compile_echo_ok() {
         let meta_provider = MetaProvider {};
         let process = loader::load_context(&url_from_rel_path("flowc/test-flows/echo.toml"),
-                                           &meta_provider).unwrap();
-        if let FlowProcess(ref flow) = process {
-            let _tables = compile::compile(flow).unwrap();
-        } else {
-            assert!(false, "Process loaded was not a flow");
-        }
-    }
-
-    #[test]
-    #[should_panic]
-    fn compiler_detects_competing_inputs() {
-        let meta_provider = MetaProvider {};
-        let process = loader::load_context(&url_from_rel_path("flowc/test-flows/competing.toml"),
                                            &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();

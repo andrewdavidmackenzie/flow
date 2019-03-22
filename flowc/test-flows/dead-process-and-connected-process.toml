@@ -1,0 +1,13 @@
+flow = "dead-process-and-connected-process"
+
+[[process]]
+alias = "source-process"
+source = "lib://flowstdlib/data/buffer.toml"
+
+[[process]]
+alias = "dead-process"
+source = "lib://flowstdlib/data/buffer.toml"
+
+[[connection]]
+from = "process/source-process"
+to = "process/dead-process"

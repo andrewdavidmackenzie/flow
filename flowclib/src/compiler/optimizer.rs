@@ -5,8 +5,8 @@ use model::connection::Connection;
 use model::runnable::Runnable;
 
 /*
-    Keep removing dead-code (functions or values that have no effect) and any connection that goes
-    no-where or comes from nowhere, iteratively until there are none left to remove.
+    Keep removing dead processes (that have no effect) and any connection that goes
+    no-where or comes from nowhere, iteratively until no more can be removed
 */
 pub fn optimize(tables: &mut GenerationTables) {
     while remove_dead_processes(tables) {}
@@ -33,8 +33,6 @@ fn remove_dead_processes(tables: &mut GenerationTables) -> bool {
                 }
             }
         }
-
-        // TODO remove uninitialized value with no input?
 
         if runnable.get_type() == "Function" && dead_function(&tables.collapsed_connections, runnable) {
             debug!("Process #{} '{}' @ '{}' is a Function with no connection, so will be removed",
@@ -75,8 +73,9 @@ fn remove_dead_processes(tables: &mut GenerationTables) -> bool {
     (process_remove_count + connection_remove_count) > 0
 }
 
+/*
+    A function is "dead" or has no effect if it is pure and has no connection to the output
+*/
 fn dead_function(connections: &Vec<Connection>, runnable: &Box<Runnable>) -> bool {
-    !runnable.is_impure() &&
-        !connector::connection_from_runnable(connections, runnable) &&
-        !connector::connection_to_runnable(connections, runnable)
+    !runnable.is_impure() && !connector::connection_from_runnable(connections, runnable)
 }
