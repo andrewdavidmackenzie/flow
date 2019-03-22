@@ -27,7 +27,7 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables, String> {
     info!("==== Compiler phase: Checking connections");
     connector::check_connections(&mut tables)?;
     info!("==== Compiler phase: Checking processes");
-    checker::check_process_inputs(&mut tables)?;
+    checker::check_runnable_inputs(&mut tables)?;
 
     Ok(tables)
 }
