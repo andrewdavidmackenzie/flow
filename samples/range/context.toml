@@ -33,7 +33,7 @@ to = "process/to_string"
 [[process]]
 alias = "tap"
 source = "lib://flowstdlib/control/tap.toml"
-input.data = {once = "Range done"}
+input.data = {constant = "Range done"}
 
 [[connection]]
 from = "process/sequence/done"
