@@ -35,7 +35,7 @@ fn remove_dead_processes(tables: &mut GenerationTables) -> bool {
         }
 
         if runnable.get_type() == "Function" && dead_function(&tables.collapsed_connections, runnable) {
-            debug!("Process #{} '{}' @ '{}' is a Function with no connection, so will be removed",
+            debug!("Function #{} '{}' @ '{}' has no connection from it, so it will be removed",
                    index, runnable.alias(), runnable.route());
             processes_to_remove.push(index);
 
