@@ -214,9 +214,9 @@ impl RunList {
                    display_output: bool) {
         match result {
             Ok((_value, _run_again)) => {
-                debug!("\tCompleted process:\nProcess #{}", id);
+                debug!("\tCompleted process: Process #{}", id);
                 if cfg!(feature = "debugger") & &display_output {
-                    self.debugger.client.display(&format!("Completed process:\nProcess #{}\n", id));
+                    self.debugger.client.display(&format!("Completed process: Process #{}\n", id));
                 }
             }
             Err(cause) => {
@@ -251,7 +251,7 @@ impl RunList {
                 let destination_arc = self.state.get(destination_id);
                 let mut destination = destination_arc.lock().unwrap();
                 let output_value = output.pointer(&output_route).unwrap();
-                debug!("\t\tProcess #{} sent value '{}' via output '{}' to Process #{} '{}' input #{}",
+                debug!("\t\tProcess #{} sent value '{}' via output route '{}' to Process #{} '{}' input :{}",
                        source_id, output_value, output_route, &destination_id, destination.name(), &io_number);
                 if cfg!(feature="debugger") && display_output {
                     self.debugger.client.display(
