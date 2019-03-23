@@ -134,7 +134,7 @@ impl Process {
 
         // initialize any inputs that have initial values
         for mut input in &mut self.inputs {
-            input.init();
+            input.init(true);
         }
 
         self.can_run()
@@ -143,10 +143,12 @@ impl Process {
     /*
         If any input of the process is initialized as a Constant, then refresh the input from the
         Constant Initializer
+
+        // TODO look at this by instead never "taking" the input value away when dispatching
     */
     pub fn refresh_constant_inputs(&mut self) {
         for mut input in &mut self.inputs {
-            input.refresh_constant();
+            input.init(false);
         }
     }
 

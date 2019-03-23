@@ -349,7 +349,7 @@ mod test {
   'implementation_source': 'lib://flowr/stdio/stdout',
   'inputs': [
     {
-      'initial_value': {
+      'initializer': {
         'once': 1
       }
     }
@@ -391,7 +391,7 @@ mod test {
   'implementation_source': 'lib://flowr/stdio/stdout',
   'inputs': [
     {
-      'initial_value': {
+      'initializer': {
         'constant': 1
       }
     }

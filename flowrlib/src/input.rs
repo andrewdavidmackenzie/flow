@@ -25,7 +25,7 @@ pub struct Input {
     #[serde(default = "default_depth", skip_serializing_if = "is_default_depth")]
     depth: usize,
     #[serde(default = "default_initial_value", skip_serializing_if = "Option::is_none")]
-    pub initial_value: Option<InputInitializer>,
+    pub initializer: Option<InputInitializer>,
     #[serde(skip)]
     received: Vec<JsonValue>,
 }
@@ -56,7 +56,7 @@ impl Input {
     pub fn new(depth: usize, initial_value: Option<InputInitializer>) -> Self {
         Input {
             depth,
-            initial_value,
+            initializer: initial_value,
             received: Vec::with_capacity(depth),
         }
     }
@@ -74,31 +74,23 @@ impl Input {
     }
 
     /*
-        Initialize an input with the InputInitializer if it has one. This is called at start-up
-        and so should initialize it if it's a OneTime initializer or a Constant initializer
+        Initialize an input with the InputInitializer if it has one.
+        When called at start-up    it will initialize      if it's a OneTime or Constant initializer
+        When called after start-up it will initialize only if it's a            Constant initializer
     */
-    pub fn init(&mut self) {
-        let initial_value = match &self.initial_value {
-            Some(InputInitializer::OneTime(one_time)) => Some(one_time.once.clone()),
-            Some(InputInitializer::Constant(constant)) => Some(constant.constant.clone()),
-            _ => None
+    pub fn init(&mut self, first_time: bool) {
+        let input_value = match (first_time, &self.initializer) {
+            (true, Some(InputInitializer::OneTime(one_time))) => Some(one_time.once.clone()),
+            (_, Some(InputInitializer::Constant(constant))) => Some(constant.constant.clone()),
+            (_, None) | (false, Some(InputInitializer::OneTime(_))) => None
         };
 
-        if initial_value.is_some() {
-            self.push(initial_value.unwrap());
-            debug!("\t\tInput initialized with '{:?}'", &self.initial_value);
-        }
-    }
-
-    pub fn refresh_constant(&mut self) {
-        let refresh_value = match &self.initial_value {
-            Some(InputInitializer::Constant(constant)) => Some(constant.constant.clone()),
-            _ => None
-        };
-
-        if refresh_value.is_some() {
-            self.push(refresh_value.unwrap());
-            debug!("\t\tRefreshed Constant input with '{:?}'", &self.initial_value);
+        match input_value {
+            Some(value) => {
+                debug!("\t\tInput initialized with '{:?}'", value);
+                self.push(value);
+            }
+            _ => {}
         }
     }
 
