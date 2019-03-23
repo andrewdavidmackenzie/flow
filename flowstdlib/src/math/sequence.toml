@@ -50,16 +50,6 @@ name = "limit-store"
 type = "Number"
 static = true
 
-# A store for the limit value that always refreshes itself, so it's value is always available
-[[value]]
-name = "start-store"
-type = "Number"
-static = true
-
-[[connection]]
-from = "value/start-store"
-to = "output/min"
-
 [[connection]]
 from = "process/limit-gate"
 to = "value/limit-store"
@@ -70,7 +60,7 @@ to = "process/pilte/in"
 
 [[connection]]
 from = "process/start-gate"
-to = "value/start-store"
+to = "output/min"
 
 # pass if less than or equal, add one and loop
 [[process]]

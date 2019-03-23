@@ -1,6 +1,6 @@
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 
-all: clean-samples build test doc
+all: clean-samples build test doc dot-graphs
 	@echo ""
 	@echo "**************************************"
 	@echo "************* Done all: **************"
