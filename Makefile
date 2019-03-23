@@ -1,6 +1,6 @@
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 
-all: clean-samples build dot-graphs test doc
+all: clean-samples build test doc
 	@echo ""
 	@echo "**************************************"
 	@echo "************* Done all: **************"
@@ -22,7 +22,7 @@ config:
 	cargo install mdbook-linkcheck || true
 
 #################### Docs ####################
-doc: guide
+doc: dot-graphs guide
 	@echo ""
 	@echo "------- Started building docs with cargo -------------"
 	cargo doc
