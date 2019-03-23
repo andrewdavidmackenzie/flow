@@ -70,6 +70,7 @@ source = "lib://flowstdlib/control/pass_if_lte.toml"
 [[process]]
 alias = "add"
 source = "lib://flowstdlib/math/add.toml"
+input.i2 = {constant = 1}
 
 [[connection]]
 from = "value/limit-store"
@@ -83,31 +84,14 @@ to = "output/sequence"
 from = "process/pilte/passed"
 to = "process/add/i1"
 
-[[process]]
-alias = "one"
-source = "lib://flowstdlib/data/buffer.toml"
-input.default = {constant = 1}
-
-[[connection]]
-from = "process/one"
-to = "process/add/i2"
-
 [[connection]]
 from = "process/add"
 to = "process/pilte/in"
 
 [[process]]
-alias = "range-done"
-source = "lib://flowstdlib/data/buffer.toml"
-input.default = {constant = true}
-
-[[process]]
 alias = "when-done"
 source = "lib://flowstdlib/control/tap.toml"
-
-[[connection]]
-from = "process/range-done"
-to = "process/when-done/data"
+input.data = {constant = true}
 
 [[connection]]
 from = "process/pilte/blocked"
