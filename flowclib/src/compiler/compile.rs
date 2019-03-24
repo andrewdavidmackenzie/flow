@@ -34,10 +34,7 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables, String> {
 
 #[cfg(test)]
 mod test {
-    use ::compiler::loader;
-    use flowrlib::provider::Provider;
     use super::compile;
-    use ::model::process::Process::FlowProcess;
     use ::model::flow::Flow;
     use ::model::function::Function;
     use ::model::io::IO;
@@ -45,49 +42,6 @@ mod test {
     use ::model::process_reference::ProcessReference;
     use ::model::name::HasName;
     use ::model::runnable::Runnable;
-
-    struct TestProvider {
-        test_content: &'static str
-    }
-
-    impl Provider for TestProvider {
-        fn resolve(&self, url: &str, _default_filename: &str)
-                   -> Result<(String, Option<String>), String> {
-            Ok((url.to_string(), None))
-        }
-
-        fn get(&self, _url: &str) -> Result<Vec<u8>, String> {
-            Ok(self.test_content.as_bytes().to_owned())
-        }
-    }
-
-    /*
-        Test for a value that is dead code. It is NOT initialized to a value, and so if no
-        connection reads from it then it is dead-code and has no effect.
-        The value should be removed, and there should be no connections to it.
-    */
-    #[test]
-    fn dead_value() {
-        let test_provider = TestProvider {
-            test_content:
-            "flow = 'test'
-        [[value]]
-        name = 'test-value'
-        type = 'Number'
-        "
-        };
-        let url = "file://fake.toml";
-
-        match loader::load_context(url, &test_provider) {
-            Ok(FlowProcess(flow)) => {
-                let tables = compile(&flow).unwrap();
-                // Dead value should be removed - currently can't assume that args function can be removed
-                assert_eq!(tables.runnables.len(), 0, "Incorrect number of runnables after optimization");
-            }
-            Ok(_) => panic!("Didn't load test flow"),
-            Err(e) => panic!(e.to_string())
-        }
-    }
 
     /*
         Test for a function that is dead code. It has no connections to it or from it so will

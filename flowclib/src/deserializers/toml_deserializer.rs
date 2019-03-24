@@ -15,9 +15,10 @@ fn simple_context_loads() {
     let flow_description = "\
         flow = 'hello-world-simple-toml'
 
-        [[value]]
-        name = 'message'
-        type = 'String'
+        [[process]]
+        alias = 'message'
+        source = 'lib://flowstdlib/data/buffer.toml'
+        input.default = {once = 'hello'}
 
         [[process]]
         alias = 'print'
@@ -152,12 +153,10 @@ fn flow_with_function_without_source() {
 
 #[test]
 #[should_panic]
-fn load_fails_if_no_name() {
+fn load_fails_if_no_alias() {
     let flow_description = "\
-        [[value]]
-        name = 'message'
-        type = 'String'
-        init = Hello World!'
+        [[process]]
+        source = 'lib://flowstdlib/stdio/stdout.toml'
     ";
 
     let toml = FlowTomelLoader {};
