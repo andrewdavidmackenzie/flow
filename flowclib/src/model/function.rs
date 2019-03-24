@@ -69,6 +69,10 @@ impl Runnable for Function {
         &self.inputs
     }
 
+    fn get_mut_inputs(&mut self) -> &mut IOSet {
+        &mut self.inputs
+    }
+
     fn get_outputs(&self) -> IOSet {
         self.outputs.clone()
     }

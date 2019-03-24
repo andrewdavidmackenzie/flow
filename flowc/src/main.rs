@@ -401,7 +401,7 @@ mod test {
         inside the flow, via a connection from the flow input to the function input
     */
     #[test]
-    fn flow_input_initialized_and_propogated() {
+    fn flow_input_initialized_and_propogated_to_function() {
         let meta_provider = MetaProvider {};
         // Relative path from project root to the test file
         let url = url_from_rel_path("flowc/test-flows/flow_input_init.toml");
@@ -436,6 +436,63 @@ mod test {
                     panic!("First sub-process of context flow was not a sub-flow as expected")
                 }
             }
+            Ok(_) => panic!("Didn't load a flow"),
+            Err(e) => panic!(e.to_string())
+        }
+    }
+
+
+    /*
+        This tests that an initalizer on an input to a flow process is passed onto a function in
+        a sub-flow of that via a connection from the flow input to the function input
+    */
+    #[test]
+    #[should_panic]
+    fn flow_input_initialized_and_propogated_to_function_in_subflow() {
+        let meta_provider = MetaProvider {};
+        // Relative path from project root to the test file
+        let url = url_from_rel_path("flowc/test-flows/subflow_function_input_init.toml");
+
+        match loader::load_context(&url, &meta_provider) {
+            Ok(FlowProcess(context)) => {
+                if let FlowProcess(ref sequence_sub_flow) = context.process_refs.unwrap()[0].process {
+                    assert_eq!("sequence", sequence_sub_flow.alias(), "First sub-flow alias is not 'sequence' as expected");
+
+                    if let Some(ref sequence_process_refs) = sequence_sub_flow.process_refs {
+                        if let FlowProcess(ref pilte_sub_flow) = sequence_process_refs.get(0).unwrap().process {
+                            assert_eq!("pilte", pilte_sub_flow.alias(), "Sub-flow alias is not 'pilte' as expected");
+
+                            if let Some(ref process_refs) = pilte_sub_flow.process_refs {
+                                if let FunctionProcess(ref tap_function) = process_refs.get(0).unwrap().process {
+                                    assert_eq!("tap", tap_function.alias(), "Function alias is not 'tap' as expected");
+                                    if let Some(inputs) = tap_function.get_inputs() {
+                                        let in_input = inputs.get(0).unwrap();
+                                        assert_eq!("data", in_input.alias(), "Input's name is not 'data' as expected");
+                                        assert_eq!("/context/sequence/pilte/tap/data", in_input.route(), "Input's route is not as expected");
+                                        let initial_value = in_input.get_initial_value();
+                                        match initial_value {
+                                            Some(OneTime(one_time)) => assert_eq!(one_time.once, 1),
+                                            _ => panic!("Initializer should have been a OneTime initializer")
+                                        }
+                                    } else {
+                                        panic!("Could not find any inputs");
+                                    }
+                                } else {
+                                    panic!("First sub-process of 'pass-if-lte' sub-flow was not a function as expected");
+                                }
+                            } else {
+                                panic!("Could not get process_refs of pilte_sub_flow");
+                            }
+                        } else {
+                            panic!("Second sub-process of sequence sub-flow was not another sub-flow as expected");
+                        }
+                    } else {
+                        panic!("Could not get process_refs of sequence sub_flow");
+                    }
+                } else {
+                    panic!("First sub-process of flow was not a sub-flow as expected");
+                }
+            },
             Ok(_) => panic!("Didn't load a flow"),
             Err(e) => panic!(e.to_string())
         }

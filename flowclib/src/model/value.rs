@@ -80,6 +80,10 @@ impl Runnable for Value {
         &self.inputs
     }
 
+    fn get_mut_inputs(&mut self) -> &mut IOSet {
+        &mut self.inputs
+    }
+
     // TODO have this return a reference
     fn get_outputs(&self) -> IOSet {
         self.outputs.clone()

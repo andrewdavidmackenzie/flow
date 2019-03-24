@@ -22,12 +22,12 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables, String> {
     gatherer::index_runnables(&mut tables.runnables);
     info!("==== Compiler phase: Calculating routes tables");
     connector::create_routes_table(&mut tables);
-    info!("==== Compiler phase: Setting output routes");
-    connector::set_runnable_outputs(&mut tables)?;
     info!("==== Compiler phase: Checking connections");
     connector::check_connections(&mut tables)?;
     info!("==== Compiler phase: Checking processes");
     checker::check_runnable_inputs(&mut tables)?;
+    info!("==== Compiler phase: Preparing runnables connections");
+    connector::prepare_runnable_connections(&mut tables)?;
 
     Ok(tables)
 }

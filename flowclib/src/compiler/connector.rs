@@ -17,7 +17,7 @@ use model::runnable::Runnable;
     (according to each runnable's output route in the original description plus each connection from
      that route, which could be to multiple destinations)
 */
-pub fn set_runnable_outputs(tables: &mut GenerationTables) -> Result<(), String> {
+pub fn prepare_runnable_connections(tables: &mut GenerationTables) -> Result<(), String> {
     debug!("Setting output routes on processes");
     for connection in &tables.collapsed_connections {
         if let Some((output_route, source_id)) = get_source(&tables.source_routes, &connection.from_io.route()) {
@@ -28,6 +28,20 @@ pub fn set_runnable_outputs(tables: &mut GenerationTables) -> Result<(), String>
                            output_route.to_string(), destination_process_id, destination_input_index);
                     source_runnable.add_output_route((output_route.to_string(), destination_process_id, destination_input_index));
                 }
+
+                // TODO when connection uses references to real IOs then we maybe able to remove this
+                if connection.to_io.get_initial_value().is_some() {
+                    if let Some(destination_runnable) = tables.runnables.get_mut(destination_process_id) {
+                        if let Some(ref mut inputs) = destination_runnable.get_mut_inputs() {
+                            let mut destination_input = inputs.get_mut(destination_input_index).unwrap();
+                            if destination_input.get_initial_value().is_none() {
+                                destination_input.set_initial_value(connection.to_io.get_initial_value());
+                                debug!("Set initializer on destination runnable input at '{}' from connection",
+                                       connection.to_io.route());
+                            }
+                        }
+                    }
+                }
             } else {
                 return Err(format!("Connection destination process for route '{}' not found", connection.to_io.route()));
             }
@@ -35,6 +49,7 @@ pub fn set_runnable_outputs(tables: &mut GenerationTables) -> Result<(), String>
             return Err(format!("Connection source process for route '{}' not found", connection.from_io.route()));
         }
     }
+
     debug!("All output routes set on processes");
 
     Ok(())
@@ -144,20 +159,30 @@ fn find_destinations(from_route: &Route, connections: &Vec<Connection>) -> Vec<R
 pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Connection> {
     let mut collapsed_connections: Vec<Connection> = Vec::new();
 
+    debug!("Working on {} flow hierarchy connections", original_connections.len());
     for left in original_connections {
         if left.to_io.flow_io() {
             for final_destination in find_destinations(&left.to_io.route(), original_connections) {
                 let mut joined_connection = left.clone();
                 joined_connection.to_io.set_route(final_destination, false);
+                debug!("Collapsed connection {}", joined_connection);
                 collapsed_connections.push(joined_connection);
             }
         } else {
             collapsed_connections.push(left.clone());
+            debug!("Preserved connection {}", left);
         }
     }
 
+    let connections_before = collapsed_connections.len();
+    debug!("Connections resulting: {}", connections_before);
+
     // Remove connections starting or ending at flow boundaries as they don't go anywhere useful
     collapsed_connections.retain(|conn| !conn.from_io.flow_io() && !conn.to_io.flow_io());
+    let connections_after = collapsed_connections.len();
+    let dropped_connections = connections_before - connections_after;
+    debug!("Dropped {} unused connections to or from flow boundaries", dropped_connections);
+    debug!("Connections between functions: {}", connections_after);
 
     collapsed_connections
 }

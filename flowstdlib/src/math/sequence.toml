@@ -14,10 +14,6 @@ name = "sequence"
 type = "Number"
 
 [[output]]
-name = "min"
-type = "Number"
-
-[[output]]
 name = "max"
 type = "Number"
 
@@ -25,24 +21,9 @@ type = "Number"
 name = "done"
 type = "Bool"
 
-[[process]]
-alias = "limit-gate"
-source = "lib://flowstdlib/control/tap.toml"
-input.control = {once = true}
-
-[[process]]
-alias = "start-gate"
-source = "lib://flowstdlib/control/tap.toml"
-input.control = {once = true}
-
-[[connection]]
-from = "input/end"
-to = "process/limit-gate/data"
-
 [[connection]]
 from = "input/start"
-to = "process/start-gate/data"
-
+to = "process/pilte/in"
 
 # A store for the limit value that always refreshes itself, so it's value is always available
 [[value]]
@@ -51,16 +32,8 @@ type = "Number"
 static = true
 
 [[connection]]
-from = "process/limit-gate"
+from = "input/end"
 to = "value/limit-store"
-
-[[connection]]
-from = "process/start-gate"
-to = "process/pilte/in"
-
-[[connection]]
-from = "process/start-gate"
-to = "output/min"
 
 # pass if less than or equal, add one and loop
 [[process]]
@@ -88,27 +61,9 @@ to = "process/add/i1"
 from = "process/add"
 to = "process/pilte/in"
 
-[[process]]
-alias = "when-done"
-source = "lib://flowstdlib/control/tap.toml"
-input.data = {constant = true}
-
 [[connection]]
 from = "process/pilte/blocked"
-to = "process/when-done/control"
-
-[[connection]]
-from = "process/when-done"
 to = "output/done"
-
-# re-open the input gates for another value to loop on
-[[connection]]
-from = "process/when-done"
-to = "process/limit-gate/control"
-
-[[connection]]
-from = "process/when-done"
-to = "process/start-gate/control"
 
 [[connection]]
 from = "value/limit-store"

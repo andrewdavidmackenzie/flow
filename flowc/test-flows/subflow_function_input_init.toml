@@ -1,0 +1,15 @@
+flow = "subflow_function_input_init"
+
+[[process]]
+alias = "sequence"
+source = "lib://flowstdlib/math/sequence.toml"
+input.start = {once = 1}
+input.end = {once = 10}
+
+[[process]]
+alias = "print"
+source = "lib://flowr/stdio/stdout.toml"
+
+[[connection]]
+from = "process/sequence/sequence"
+to = "process/print"
