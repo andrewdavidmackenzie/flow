@@ -3,7 +3,6 @@ use model::name::HasName;
 use model::connection::Connection;
 use model::io::IO;
 use model::io::IOSet;
-use model::value::Value;
 use model::process_reference::ProcessReference;
 use model::route::Route;
 use model::route::HasRoute;
@@ -11,7 +10,6 @@ use model::route::SetRoute;
 use model::io::Find;
 use compiler::loader::Validate;
 use model::connection::Direction;
-use model::runnable::Runnable;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
 use model::connection::Direction::FROM;
@@ -31,8 +29,6 @@ pub struct Flow {
     pub outputs: IOSet,
     #[serde(rename = "process")]
     pub process_refs: Option<Vec<ProcessReference>>,
-    #[serde(rename = "value")]
-    pub values: Option<Vec<Value>>,
     #[serde(rename = "connection")]
     pub connections: Option<Vec<Connection>>,
 
@@ -74,12 +70,6 @@ impl Validate for Flow {
             }
         }
 
-        if let Some(ref values) = self.values {
-            for value in values {
-                value.validate()?;
-            }
-        }
-
         if let Some(ref connections) = self.connections {
             for connection in connections {
                 connection.validate()?;
@@ -94,13 +84,6 @@ impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "\tname: \t\t\t{}\n\talias: \t\t\t{}\n\tsource_url: \t{}\n\troute: \t\t\t{}\n",
                self.name, self.alias, self.source_url, self.route).unwrap();
-
-        write!(f, "\tvalues:\n").unwrap();
-        if let Some(ref values) = self.values {
-            for value in values {
-                write!(f, "\t\t\t\t{}\n", value).unwrap();
-            }
-        }
 
         write!(f, "\tinputs:\n").unwrap();
         if let Some(ref inputs) = self.inputs {
@@ -142,7 +125,6 @@ impl Default for Flow {
             source_url: Flow::default_url(),
             route: "".to_string(),
             process_refs: None,
-            values: None,
             inputs: None,
             outputs: None,
             connections: None,
@@ -226,25 +208,6 @@ impl Flow {
         return Err("No sub-processes present".to_string());
     }
 
-    /*
-        Find an IO of a value using the direction (TO/FROM) and the route to the IO
-    */
-    fn get_io_from_value(&self, value_name: &str, direction: Direction, route: &Route) -> Result<IO, String> {
-        if let Some(values) = &self.values {
-            for value in values {
-                if value.name() == value_name {
-                    return match direction {
-                        Direction::TO => value.get_input(),
-                        Direction::FROM => value.get_outputs().find_by_route(route, &None)
-                    };
-                }
-            }
-            return Err(format!("Could not find value named '{}'", value_name));
-        }
-
-        return Err("No values present".to_string());
-    }
-
     // TODO consider finding the object first using it's type and name (flow, subflow, value, function)
     // Then from the object find the IO (by name or route, probably route) in common code, maybe using IOSet directly?
     pub fn get_route_and_type(&mut self, direction: Direction, conn_descriptor: &str,
@@ -260,7 +223,6 @@ impl Flow {
             (&Direction::TO, "output") => self.outputs.find_by_name(object_name, &None), // an output from this flow
             (&Direction::FROM, "input") => self.inputs.find_by_name(object_name, &None), // an input to this flow
             (_, "process") => self.get_io_subprocess(object_name, direction, &route, initial_value), // input or output of a sub-process
-            (_, "value") => self.get_io_from_value(object_name, direction, &route), // input or output of a contained value
             _ => Err(format!("Invalid combination of direction '{:?}' and type '{}' used in connection '{}'",
                              direction, object_type, conn_descriptor))
         }

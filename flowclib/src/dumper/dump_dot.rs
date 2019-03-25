@@ -3,7 +3,6 @@ use generator::generate::GenerationTables;
 use std::io;
 use std::io::prelude::*;
 use std::path::PathBuf;
-use model::runnable::Runnable;
 use model::process_reference::ProcessReference;
 use model::io::IOSet;
 use model::route::Route;
@@ -12,6 +11,7 @@ use model::route::HasRoute;
 use model::route::FindRoute;
 use model::connection::Connection;
 use model::name::HasName;
+use model::function::Function;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
 use ::dumper::helper;
@@ -29,19 +29,12 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
     // Outputs
     contents.push_str(&add_output_set(&flow.outputs, flow.route(), false));
 
-    // Values
-    if let Some(values) = &flow.values {
-        for value in values {
-            contents.push_str(&run_to_dot(value));
-        }
-    }
-
     // Process References
     if let Some(process_refs) = &flow.process_refs {
         for flow_ref in process_refs {
             match flow_ref.process {
                 FunctionProcess(ref function) => {
-                    contents.push_str(&run_to_dot(function as &Runnable));
+                    contents.push_str(&fn_to_dot(function));
                 }
                 FlowProcess(ref _flow) => {
                     contents.push_str("\n\t// Sub-Flows\n");
@@ -122,46 +115,34 @@ fn digraph_wrapper_end() -> String {
 } // close digraph\n".to_string()
 }
 
-fn run_to_dot(runnable: &Runnable) -> String {
+fn fn_to_dot(function: &Function) -> String {
     let mut dot_string = String::new();
 
-    let name = if runnable.name() == runnable.alias() {
+    let name = if function.name() == function.alias() {
         "".to_string()
     } else {
-        format!("\\n({})", runnable.name()).to_string()
+        format!("\\n({})", function.name()).to_string()
     };
 
-    let mut initial_value = if let Some(iv) = runnable.get_initial_value() {
-        format!("\\ninit={}", iv).to_string()
-    } else {
-        "".to_string()
-    };
-
-    // Escape any quotes in intial value - as it might be a string value
-    initial_value = str::replace(&initial_value, "\"", "\\\"");
-
-
-    dot_string.push_str(&format!("\t\"{}\" [{} label=\"{}{}{}\"]; // runnable @ route, label = runnable name \n",
-                                 runnable.route(),
-                                 runnable_style(runnable),
-                                 runnable.alias(), name, initial_value));
+    dot_string.push_str(&format!("\t\"{}\" [style=filled, fillcolor=coral, label=\"{}{}\"]; // runnable @ route, label = runnable name \n",
+                                 function.route(),
+                                 function.alias(), name));
 
     dot_string
 }
 
 
-// Given a Runnable as used in the code generation - generate a "dot" format string to draw it
-fn runnable_to_dot(runnable: &Runnable, runnables: &Vec<Box<Runnable>>) -> String {
+// Given a Function as used in the code generation - generate a "dot" format string to draw it
+fn function_to_dot(function: &Function, runnables: &Vec<Box<Function>>) -> String {
     let mut runnable_string = String::new();
 
-    let style = runnable_style(runnable);
+    runnable_string.push_str(&format!("r{}[style=filled, fillcolor=coral, label=\"{} (#{})\"];\n",
+                                      function.get_id(),
+                                      function.alias(),
+                                      function.get_id()));
 
-    runnable_string.push_str(&format!("r{}[{} label=\"{} (#{})\"];\n",
-                                      runnable.get_id(),
-                                      style,
-                                      runnable.alias(),
-                                      runnable.get_id()));
-
+    /*
+    TODO use for initialized input
     if let Some(iv) = runnable.get_initial_value() {
         // Add an extra graph entry for the initial value
         runnable_string.push_str(&format!("iv{}[style=invis];\n", runnable.get_id()));
@@ -175,32 +156,21 @@ fn runnable_to_dot(runnable: &Runnable, runnables: &Vec<Box<Runnable>>) -> Strin
                                               runnable.get_id(), runnable.get_id(), iv));
         }
     }
+    */
 
     // Add edges for each of the outputs of this runnable to other ones
-    for &(ref output_route, destination_index, destination_input_index) in runnable.get_output_routes() {
+    for &(ref output_route, destination_index, destination_input_index) in function.get_output_routes() {
         let input_port = INPUT_PORTS[destination_input_index % INPUT_PORTS.len()];
         let destination_runnable = &runnables[destination_index];
         if let Some(inputs) = destination_runnable.get_inputs() {
             let input_name = inputs.get(destination_input_index).unwrap().name().to_string();
             runnable_string.push_str(&format!("r{}:s -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];\n",
-                                              runnable.get_id(), destination_index, input_port,
+                                              function.get_id(), destination_index, input_port,
                                               output_route, input_name));
         }
     }
 
     runnable_string
-}
-
-fn runnable_style(runnable: &Runnable) -> &'static str {
-    if runnable.get_type() == "Value" {
-        if runnable.is_static_value() {
-            return "shape=cylinder, style=filled, fillcolor=gray60,"; // static value
-        } else {
-            return "shape=cylinder, style=filled, fillcolor=dodgerblue,"; // normal value
-        }
-    } else {
-        return "style=filled, fillcolor=coral,";
-    }
 }
 
 /*
@@ -297,22 +267,15 @@ pub fn runnables_to_dot(flow: &Flow, tables: &GenerationTables, output_dir: &Pat
 
 // TODO use a map as runnables list to avoid lookup each time
 fn output_compiled_runnable(route: &Route, tables: &GenerationTables, output: &mut String) {
-    for runnable in &tables.runnables {
+    for runnable in &tables.functions {
         if runnable.route() == route {
-            output.push_str(&runnable_to_dot(&**runnable, &tables.runnables));
+            output.push_str(&function_to_dot(&**runnable, &tables.functions));
         }
     }
 }
 
 fn flow_runnable_to_dot(flow: &Flow, tables: &GenerationTables) -> io::Result<String> {
     let mut output = String::new();
-
-    // Add Values from this flow to the dot output
-    if let Some(ref values) = flow.values {
-        for value in values {
-            output_compiled_runnable(value.route(), tables, &mut output);
-        }
-    }
 
     // Do the same for all subprocesses referenced from this one
     if let Some(ref process_refs) = flow.process_refs {

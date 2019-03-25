@@ -130,7 +130,7 @@ pub fn dump_runnables(flow: &Flow, tables: &GenerationTables, output_dir: &PathB
 
     let mut writer = create_output_file(&output_dir, "runnables", "dump")?;
     info!("==== Dumper: Dumping runnables to runnables.dump file in '{}'", output_dir.display());
-    dump_table(tables.runnables.iter(), &mut writer)?;
+    dump_table(tables.functions.iter(), &mut writer)?;
     Ok("Runnables dumped".to_string())
 }
 

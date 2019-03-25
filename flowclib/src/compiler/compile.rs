@@ -19,7 +19,7 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables, String> {
     info!("==== Compiler phase: Optimizing");
     optimizer::optimize(&mut tables);
     info!("==== Compiler phase: Indexing");
-    gatherer::index_runnables(&mut tables.runnables);
+    gatherer::index_functions(&mut tables.functions);
     info!("==== Compiler phase: Calculating routes tables");
     connector::create_routes_table(&mut tables);
     info!("==== Compiler phase: Checking connections");
@@ -41,7 +41,6 @@ mod test {
     use ::model::process::Process::FunctionProcess;
     use ::model::process_reference::ProcessReference;
     use ::model::name::HasName;
-    use ::model::runnable::Runnable;
 
     /*
         Test for a function that is dead code. It has no connections to it or from it so will

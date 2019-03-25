@@ -211,7 +211,6 @@ mod test {
     use flowclib::model::process::Process::FlowProcess;
     use flowclib::model::process::Process::FunctionProcess;
     use flowclib::model::route::HasRoute;
-    use flowclib::model::runnable::Runnable;
     use flowrlib::input::InputInitializer::OneTime;
     use url::Url;
 
@@ -243,8 +242,8 @@ mod test {
         if let FlowProcess(ref flow) = process {
             let tables = compile::compile(flow).unwrap();
             // Dead value should be removed - currently can't assume that args function can be removed
-            assert_eq!(tables.runnables.len(), 1, "Incorrect number of runnables after optimization");
-            assert_eq!(tables.runnables.get(0).unwrap().get_id(), 0,
+            assert_eq!(tables.functions.len(), 1, "Incorrect number of runnables after optimization");
+            assert_eq!(tables.functions.get(0).unwrap().get_id(), 0,
                        "Runnables indexes do not start at 0");
             // And the connection to it also
             assert_eq!(tables.collapsed_connections.len(), 0, "Incorrect number of connections after optimization");
@@ -260,7 +259,7 @@ mod test {
         let process = loader::load_context(&path, &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let tables = compile::compile(flow).unwrap();
-            assert!(tables.runnables.is_empty(), "Incorrect number of runnables after optimization");
+            assert!(tables.functions.is_empty(), "Incorrect number of runnables after optimization");
             // And the connection are all gone also
             assert_eq!(tables.collapsed_connections.len(), 0, "Incorrect number of connections after optimization");
         } else {

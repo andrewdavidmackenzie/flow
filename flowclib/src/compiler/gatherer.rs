@@ -1,8 +1,8 @@
 use model::flow::Flow;
-use model::runnable::Runnable;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
 use generator::generate::GenerationTables;
+use model::function::Function;
 
 /*
     This module is responsible for parsing the flow tree and gathering information into a set of
@@ -15,13 +15,6 @@ pub fn gather_runnables_and_connections(flow: &Flow, tables: &mut GenerationTabl
         tables.connections.append(&mut conns);
     }
 
-    // Add Values from this flow to the table of runnables
-    if let Some(ref values) = flow.values {
-        for value in values {
-            tables.runnables.push(Box::new(value.clone()));
-        }
-    }
-
     // Do the same for all subprocesses referenced from this one
     if let Some(ref process_refs) = flow.process_refs {
         for process_ref in process_refs {
@@ -31,7 +24,7 @@ pub fn gather_runnables_and_connections(flow: &Flow, tables: &mut GenerationTabl
                 }
                 FunctionProcess(ref function) => {
                     // Add Functions from this flow to the table of runnables
-                    tables.runnables.push(Box::new(function.clone()));
+                    tables.functions.push(Box::new(function.clone()));
                 }
             }
         }
@@ -39,11 +32,11 @@ pub fn gather_runnables_and_connections(flow: &Flow, tables: &mut GenerationTabl
 }
 
 /*
-    Give each runnable a unique index that will later be used to indicate where outputs get sent
+    Give each function a unique index that will later be used to indicate where outputs get sent
     to, and used in code generation.
 */
-pub fn index_runnables(runnables: &mut Vec<Box<Runnable>>) {
-    for (index, mut runnable) in runnables.into_iter().enumerate() {
-        runnable.set_id(index);
+pub fn index_functions(functions: &mut Vec<Box<Function>>) {
+    for (index, mut function) in functions.into_iter().enumerate() {
+        function.set_id(index);
     }
 }

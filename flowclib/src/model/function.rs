@@ -8,8 +8,6 @@ use model::route::Route;
 use model::route::HasRoute;
 use model::route::SetRoute;
 use compiler::loader::Validate;
-use model::runnable::Runnable;
-use serde_json::Value as JsonValue;
 
 use flowrlib::url;
 
@@ -52,57 +50,40 @@ impl HasRoute for Function {
     }
 }
 
-impl Runnable for Function {
-    fn set_id(&mut self, id: usize) {
+impl Function {
+    pub fn set_id(&mut self, id: usize) {
         self.id = id;
     }
 
-    fn get_id(&self) -> usize {
+    pub fn get_id(&self) -> usize {
         self.id
     }
 
-    fn is_impure(&self) -> bool {
+    pub fn is_impure(&self) -> bool {
         self.impure
     }
 
-    fn get_inputs(&self) -> &IOSet {
+    pub fn get_inputs(&self) -> &IOSet {
         &self.inputs
     }
 
-    fn get_mut_inputs(&mut self) -> &mut IOSet {
+    pub fn get_mut_inputs(&mut self) -> &mut IOSet {
         &mut self.inputs
     }
 
-    fn get_outputs(&self) -> IOSet {
+    pub fn get_outputs(&self) -> IOSet {
         self.outputs.clone()
     }
 
-    fn add_output_route(&mut self, output_route: (Route, usize, usize)) {
+    pub fn add_output_route(&mut self, output_route: (Route, usize, usize)) {
         self.output_routes.push(output_route);
     }
 
-    // Could combine with get_impl_path() ????
-    fn get_source_url(&self) -> Option<String> {
-        if self.lib_reference.is_none() {
-            Some(self.source_url.clone())
-        } else {
-            None
-        }
-    }
-
-    fn get_type(&self) -> &str {
-        "Function"
-    }
-
-    fn is_static_value(&self) -> bool { false }
-
-    fn get_output_routes(&self) -> &Vec<(Route, usize, usize)> {
+    pub fn get_output_routes(&self) -> &Vec<(Route, usize, usize)> {
         &self.output_routes
     }
 
-    fn get_initial_value(&self) -> Option<JsonValue> { None }
-
-    fn get_implementation_source(&self) -> String {
+    pub fn get_implementation_source(&self) -> String {
         if let Some(ref reference) = self.lib_reference {
             format!("lib://{}/{}", reference, &self.name)
         } else {

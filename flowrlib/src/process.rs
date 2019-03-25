@@ -20,12 +20,6 @@ pub struct Process {
 
     implementation_source: String,
 
-    #[serde(default, skip_serializing_if = "not_static")]
-    is_static: bool,
-
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    initial_value: Option<JsonValue>,
-
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     inputs: Vec<Input>,
 
@@ -36,8 +30,6 @@ pub struct Process {
     #[serde(default = "Process::default_implementation")]
     implementation: Arc<Implementation>,
 }
-
-fn not_static(is_static: &bool) -> bool { *is_static == false }
 
 struct ImplementationNotFound;
 
@@ -69,11 +61,9 @@ impl fmt::Display for Process {
 impl Process {
     pub fn new(name: String,
                route: String,
-               is_static: bool,
                implementation_source: String,
                process_inputs: Vec<(usize, Option<InputInitializer>)>,
                id: usize,
-               initial_value: Option<JsonValue>,
                output_routes: Vec<(String, usize, usize)>) -> Process {
         let implementation = Process::default_implementation();
 
@@ -84,8 +74,6 @@ impl Process {
             implementation_source,
             implementation,
             output_routes,
-            is_static,
-            initial_value,
             inputs: Vec::with_capacity(process_inputs.len()),
         };
 
@@ -127,11 +115,6 @@ impl Process {
         Return true if ready to run as all inputs (single in this case) are satisfied.
     */
     pub fn init(&mut self) -> bool {
-        if let Some(v) = self.initial_value.clone() {
-            debug!("\t\tValue initialized by writing '{:?}' to input #0", &v);
-            self.write_input(0, v);
-        }
-
         // initialize any inputs that have initial values
         for mut input in &mut self.inputs {
             input.init(true);
@@ -160,12 +143,7 @@ impl Process {
         if !self.inputs[input_number].full() {
             self.inputs[input_number].push(input_value);
         } else {
-            // a static value is never emptied when run, so allow it to be overwritten when full
-            if self.is_static {
-                self.inputs[input_number].overwrite(input_value);
-            } else {
-                error!("\t\t\tProcess #{} '{}' Input overflow on input number {}", self.id(), self.name(), input_number);
-            }
+            error!("\t\t\tProcess #{} '{}' Input overflow on input number {}", self.id(), self.name(), input_number);
         }
     }
 
@@ -204,11 +182,7 @@ impl Process {
     pub fn get_input_values(&mut self) -> Vec<Vec<JsonValue>> {
         let mut input_values: Vec<Vec<JsonValue>> = Vec::new();
         for input_value in &mut self.inputs {
-            if self.is_static {
-                input_values.push(input_value.read());
-            } else {
-                input_values.push(input_value.take());
-            }
+            input_values.push(input_value.take());
         }
         input_values
     }
@@ -242,54 +216,20 @@ mod test {
     #[test]
     fn can_send_input_if_empty() {
         let mut process = Process::new("test".to_string(),
-                                       "/context/test".to_string(), false,
+                                       "/context/test".to_string(),
                                        "/test".to_string(), vec!((1, None)), 0,
-                                       None, vec!());
+                                       vec!());
         process.init();
         process.write_input(0, json!(1));
         assert_eq!(process.get_input_values().remove(0).remove(0), json!(1));
     }
 
     #[test]
-    fn can_send_input_if_empty_and_static() {
+    fn cannot_send_input_if_full() {
         let mut process = Process::new("test".to_string(),
-                                       "/context/test".to_string(), true,
+                                       "/context/test".to_string(),
                                        "/test".to_string(), vec!((1, None)), 0,
-                                       None, vec!());
-        process.init();
-        process.write_input(0, json!(1));
-        assert_eq!(process.get_input_values().remove(0).remove(0), json!(1));
-    }
-
-    #[test]
-    fn cannot_send_input_if_initialized() {
-        let mut process = Process::new("test".to_string(),
-                                       "/context/test".to_string(), false,
-                                       "/test".to_string(), vec!((1, None)), 0,
-                                       Some(json!(0)), vec!());
-        process.init();
-        process.write_input(0, json!(1)); // error
-        assert_eq!(process.get_input_values().remove(0).remove(0), json!(0));
-    }
-
-    #[test]
-    fn can_send_input_if_full_and_static() {
-        let mut process = Process::new("test".to_string(),
-                                       "/context/test".to_string(), true,
-                                       "/test".to_string(), vec!((1, None)), 0,
-                                       None, vec!());
-        process.init();
-        process.write_input(0, json!(1));
-        process.write_input(0, json!(2));
-        assert_eq!(process.get_input_values().remove(0).remove(0), json!(2));
-    }
-
-    #[test]
-    fn cannot_send_input_if_full_and_not_static() {
-        let mut process = Process::new("test".to_string(),
-                                       "/context/test".to_string(), false,
-                                       "/test".to_string(), vec!((1, None)), 0,
-                                       None, vec!());
+                                       vec!());
         process.init();
         process.write_input(0, json!(1)); // success
         process.write_input(0, json!(2)); // fail

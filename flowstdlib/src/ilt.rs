@@ -21,8 +21,6 @@ pub fn get_ilt() -> ImplementationLocatorTable {
                         Native(Arc::new(::fmt::to_string::ToString {})));
     ilt.locators.insert("lib://flowstdlib/fmt/to_number/ToNumber".to_string(),
                         Native(Arc::new(::fmt::to_number::ToNumber {})));
-    ilt.locators.insert("lib://flowstdlib/zero_fifo/Fifo".to_string(),
-                        Native(Arc::new(::zero_fifo::Fifo {})));
     ilt.locators.insert("lib://flowstdlib/img/format_png/FormatPNG".to_string(),
                         Native(Arc::new(::img::format_png::FormatPNG {})));
 

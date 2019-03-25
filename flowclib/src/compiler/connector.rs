@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use generator::generate::GenerationTables;
 use model::connection::Connection;
 use model::name::HasName;
-use model::runnable::Runnable;
+use model::function::Function;
 
 /*
     Go through all connections, finding:
@@ -22,7 +22,7 @@ pub fn prepare_runnable_connections(tables: &mut GenerationTables) -> Result<(),
     for connection in &tables.collapsed_connections {
         if let Some((output_route, source_id)) = get_source(&tables.source_routes, &connection.from_io.route()) {
             if let Some(&(destination_process_id, destination_input_index)) = tables.destination_routes.get(connection.to_io.route()) {
-                if let Some(source_runnable) = tables.runnables.get_mut(source_id) {
+                if let Some(source_runnable) = tables.functions.get_mut(source_id) {
                     debug!("Connection: from '{}' to '{}'", &connection.from_io.route(), &connection.to_io.route());
                     debug!("Output: Route = '{}', destination_process_id = {}, destination_input_index = {})",
                            output_route.to_string(), destination_process_id, destination_input_index);
@@ -31,7 +31,7 @@ pub fn prepare_runnable_connections(tables: &mut GenerationTables) -> Result<(),
 
                 // TODO when connection uses references to real IOs then we maybe able to remove this
                 if connection.to_io.get_initial_value().is_some() {
-                    if let Some(destination_runnable) = tables.runnables.get_mut(destination_process_id) {
+                    if let Some(destination_runnable) = tables.functions.get_mut(destination_process_id) {
                         if let Some(ref mut inputs) = destination_runnable.get_mut_inputs() {
                             let mut destination_input = inputs.get_mut(destination_input_index).unwrap();
                             if destination_input.get_initial_value().is_none() {
@@ -82,8 +82,8 @@ pub fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &R
     }
 }
 
-pub fn connection_from_runnable(connections: &Vec<Connection>, runnable: &Box<Runnable>) -> bool {
-    if let Some(outputs) = runnable.get_outputs() {
+pub fn connection_from_function(connections: &Vec<Connection>, function: &Box<Function>) -> bool {
+    if let Some(outputs) = function.get_outputs() {
         for output in outputs {
             let route = output.route();
             for connection in connections {
@@ -104,7 +104,7 @@ pub fn connection_from_runnable(connections: &Vec<Connection>, runnable: &Box<Ru
     and the index of it's input - using the input route or it's output route
 */
 pub fn create_routes_table(tables: &mut GenerationTables) {
-    for mut runnable in &mut tables.runnables {
+    for mut runnable in &mut tables.functions {
         // Add any output routes it has to the source routes table
         if let Some(ref outputs) = runnable.get_outputs() {
             for output in outputs {
@@ -221,28 +221,19 @@ fn check_for_competing_inputs(tables: &GenerationTables) -> Result<(), String> {
     //               value is  a tuple of (sender_id, static_sender)
     // Use to determine when sending to a route if the same runnable is already sending to it
     // or if there is a different static sender sending to it
-    let mut used_destinations = HashMap::<Route, (usize, bool)>::new();
+    let mut used_destinations = HashMap::<Route, usize>::new();
 
     for connection in &tables.collapsed_connections {
         if let Some((_output_route, sender_id)) = get_source(&tables.source_routes, &connection.from_io.route()) {
-            if let Some(sender) = tables.runnables.get(sender_id) {
-                match used_destinations.insert(connection.to_io.route().clone(), (sender_id, sender.is_static_value())) {
-                    Some((other_sender_id, other_sender_is_static_value)) => {
-                        // this destination is being sent to already - if the existing sender or this sender are
-                        // static then it's being used by two senders, at least one of which is static :-(
-                        if other_sender_is_static_value || sender.is_static_value() {
-                            return Err(format!("The route '{}' is being sent to by a static value as well as other outputs, causing competition that will fail at run-time",
-                                               connection.to_io.route()));
-                        }
-
-                        // The same runnable is already sending to this route!
-                        if other_sender_id == sender_id {
-                            return Err(format!("The runnable #'{}' has multiple outputs sending to the route '{}'",
-                                               sender_id, connection.to_io.route()));
-                        }
+            match used_destinations.insert(connection.to_io.route().clone(), sender_id) {
+                Some(other_sender_id) => {
+                    // The same runnable is already sending to this route!
+                    if other_sender_id == sender_id {
+                        return Err(format!("The runnable #'{}' has multiple outputs sending to the route '{}'",
+                                           sender_id, connection.to_io.route()));
                     }
-                    _ => {}
                 }
+                _ => {}
             }
         }
     }
