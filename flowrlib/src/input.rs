@@ -1,4 +1,4 @@
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 use std::mem::replace;
 #[cfg(feature = "debugger")]
 use std::fmt;
@@ -12,12 +12,12 @@ pub enum InputInitializer {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct OneTimeInputInitializer {
-    pub once: JsonValue,
+    pub once: Value,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ConstantInputInitializer {
-    pub constant: JsonValue,
+    pub constant: Value,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -27,7 +27,7 @@ pub struct Input {
     #[serde(default = "default_initial_value", skip_serializing_if = "Option::is_none")]
     pub initializer: Option<InputInitializer>,
     #[serde(skip)]
-    received: Vec<JsonValue>,
+    received: Vec<Value>,
 }
 
 #[cfg(feature = "debugger")]
@@ -65,11 +65,11 @@ impl Input {
         self.received.clear();
     }
 
-    pub fn read(&mut self) -> Vec<JsonValue> {
+    pub fn read(&mut self) -> Vec<Value> {
         self.received.clone()
     }
 
-    pub fn take(&mut self) -> Vec<JsonValue> {
+    pub fn take(&mut self) -> Vec<Value> {
         replace(&mut self.received, Vec::with_capacity(self.depth))
     }
 
@@ -94,11 +94,11 @@ impl Input {
         }
     }
 
-    pub fn push(&mut self, value: JsonValue) {
+    pub fn push(&mut self, value: Value) {
         self.received.push(value);
     }
 
-    pub fn overwrite(&mut self, value: JsonValue) {
+    pub fn overwrite(&mut self, value: Value) {
         self.received[0] = value;
     }
 
@@ -112,7 +112,7 @@ impl Input {
 #[cfg(test)]
 mod test {
     use super::Input;
-    use serde_json::Value as JsonValue;
+    use serde_json::Value;
 
     #[test]
     fn no_inputs_initially() {
@@ -123,21 +123,21 @@ mod test {
     #[test]
     fn accepts_value() {
         let mut input = Input::new(1, None);
-        input.push(JsonValue::Null);
+        input.push(Value::Null);
         assert!(!input.is_empty());
     }
 
     #[test]
     fn gets_full() {
         let mut input = Input::new(1, None);
-        input.push(JsonValue::Null);
+        input.push(Value::Null);
         assert!(input.full());
     }
 
     #[test]
     fn can_overwrite() {
         let mut input = Input::new(1, None);
-        input.push(JsonValue::Null);
+        input.push(Value::Null);
         input.overwrite(json!(10));
         assert_eq!(input.read(), vec!(json!(10)));
     }

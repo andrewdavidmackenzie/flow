@@ -1,12 +1,12 @@
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RUN_AGAIN;
 use flowrlib::implementation::RunAgain;
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 
 pub struct Buffer;
 
 impl Implementation for Buffer {
-    fn run(&self, mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
+    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let buffered_value = Some(inputs.remove(0).remove(0));
         (buffered_value, RUN_AGAIN)
     }

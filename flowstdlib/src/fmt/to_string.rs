@@ -1,24 +1,24 @@
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RunAgain;
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 
 pub struct ToString;
 
 impl Implementation for ToString {
-    fn run(&self, mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
+    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let mut value = None;
 
         let input = inputs.remove(0).remove(0);
         match input {
-            JsonValue::String(_) => {
+            Value::String(_) => {
                 value = Some(input);
             },
-            JsonValue::Bool(boolean) => {
-                let val = JsonValue::String(boolean.to_string());
+            Value::Bool(boolean) => {
+                let val = Value::String(boolean.to_string());
                 value = Some(val);
             },
-            JsonValue::Number(number) => {
-                let val = JsonValue::String(number.to_string());
+            Value::Number(number) => {
+                let val = Value::String(number.to_string());
                 value = Some(val);
             },
             _ => {}

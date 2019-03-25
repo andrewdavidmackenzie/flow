@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use implementation::Implementation;
 use implementation::RunAgain;
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 use provider::Provider;
 
 #[cfg(not(target_arg = "wasm32"))]
@@ -26,7 +26,7 @@ pub struct WasmExecutor {}
             externals: &mut E) -> Result<Option<RuntimeValue>, Error>
 */
 impl Implementation for WasmExecutor {
-    fn run(&self, _inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
+    fn run(&self, _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let _module: &mut ModuleRef = &mut *self.module.lock().unwrap();
 
         println!("Wasm implementation wrapper called");

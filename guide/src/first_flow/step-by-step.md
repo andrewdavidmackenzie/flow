@@ -8,17 +8,17 @@ The list of Functions is loaded and all are initialized.
 This includes making the initial values available (just once) at 
 the inputs of any values that have initial values specified in the flow description.
 
-Status (ready to run, pending inputs, blocked etc) of all runnables is set based on availability of their inputs and 
+Status (ready to run, pending inputs, blocked etc) of all functions is set based on availability of their inputs and 
 not being blocked from sending its output.
 
 ### Execution Loop
-In general, the execution loop takes the next "runnable" (function or value) that is in the ready state 
-(has all its input values available, and is not blocked from sending its output by other runnables) and runs it.
+In general, the execution loop takes the next function that is in the ready state 
+(has all its input values available, and is not blocked from sending its output by other functions) and runs it.
 
-That consumed the inputs and sends the output value to all runnables connected to the output. That makes that input
-available to the other runnable connected to the output, and it may make that other runnable ready to run.
+That consumed the inputs and sends the output value to all functions connected to the output. That makes that input
+available to the other function connected to the output, and it may make that other function ready to run.
 
-When there are no more runnables in the ready to run state, then execution has terminated and the flow ends.
+When there are no more functions in the ready to run state, then execution has terminated and the flow ends.
 
 ### Specific Sequence for this example
 #### Init:
@@ -31,7 +31,7 @@ When there are no more runnables in the ready to run state, then execution has t
 #### Loop Starts
 ReadyList = HEAD-1(1), HEAD(1)
 
-Next runnable with status "ready" is run:
+Next function with status "ready" is run:
 
 - HEAD-1 is run with input 1
     - HEAD-1 makes the value 1 available on its output (to STDOUT and SUM)
@@ -41,24 +41,24 @@ Next runnable with status "ready" is run:
 
 ReadyList = HEAD(1), STDOUT(1)
 
-Next runnable with status "ready" is run:
+Next function with status "ready" is run:
 
 - "HEAD" is run with input 1
     - This updates its value and makes the value 1 available on its outputs (to HEAD-1 and SUM)
-        - SUM(1,1) now has both inputs available (from HEAD and HEAD-1) so it is made "runnable"
+        - SUM(1,1) now has both inputs available (from HEAD and HEAD-1) so it is made "function"
         - HEAD-1(1) has an input value available (from HEAD, but it cannot run as its output is blocked by SUM, 
     so it is "blocked on output" and not "ready".
 
 ReadyList = STDOUT(1), SUM(1,1)
 
-Next runnable with status "ready" is run:
+Next function with status "ready" is run:
 
 - "STDOUT" runs with input 1. It prints "1" on the stdout of the runtime.
 > 1
 
 ReadyList = SUM(1,1)
 
-Next runnable with status "ready" is run:
+Next function with status "ready" is run:
 
 - "SUM" runs with inputs 1 and 1. It produces the value 2 on its output (to HEAD)
     - SUM running consumes its input and unblocks HEAD-1(1) from running
@@ -66,7 +66,7 @@ Next runnable with status "ready" is run:
 
 ReadyList = HEAD-1(1), HEAD(2)
 
-Next runnable with status "ready" is run:
+Next function with status "ready" is run:
 
 - HEAD-1 is run with input 1. It produces 1 on its output (to STDOUT and SUM)
     - STDOUT(1) has its input available so is made "ready"
@@ -74,7 +74,7 @@ Next runnable with status "ready" is run:
 
 ReadyList = HEAD(2), STDOUT(1)
 
-Next runnable with status "ready" is run:
+Next function with status "ready" is run:
 
 - "HEAD" is run with input 2. It produces 2 on its output (to HEAD-1 and SUM)
     - SUM(1,2) is made "ready"
@@ -82,14 +82,14 @@ Next runnable with status "ready" is run:
 
 ReadyList = STDOUT(1), SUM(1,2)
 
-Next runnable with status "ready" is run:
+Next function with status "ready" is run:
 
 - "STDOUT" runs with input 1. It prints "1" on the stdout of the runtime.
 > 1
 
 ReadyList = SUM(1,2)
 
-Next runnable with status "ready" is run:
+Next function with status "ready" is run:
 
 - SUM runs with inputs 1 and 2. It produces the value 3 on its output (to HEAD)
     - HEAD-1(2) has its output unblocked by SUM and so is made "ready"
@@ -109,14 +109,14 @@ ReadyList = HEAD(3), STDOUT(2)
 
 ReadyList = STDOUT(2), SUM(2,3), HEAD-1(3)
 
-Next runnable with status "ready" is run:
+Next function with status "ready" is run:
 
 - STDOUT(2)) runs. It prints "2" on the stdout of the runtime.
 > 2
 
 ReadyList = SUM(2,3)
 
-Next runnable with status "ready" is run:
+Next function with status "ready" is run:
 
 - SUM(2,3) is run. It produces the value 5 on its output (to HEAD)
     - HEAD-1(3) has its output unblocked by SUM and so is made "ready"
@@ -124,7 +124,7 @@ Next runnable with status "ready" is run:
 
 ReadyList = HEAD-1(3), HEAD(5)
 
-Next runnable with status "ready" is run:
+Next function with status "ready" is run:
 
 - HEAD-1(3) is run. It produces 3 on its output (to STDOUT and SUM)
     - STDOUT(3) has its input avaialble so is made "ready"
@@ -132,7 +132,7 @@ Next runnable with status "ready" is run:
 
 ReadyList = HEAD(5), STDOUT(3)
 
-Next runnable with status "ready" is run:
+Next function with status "ready" is run:
 
 - HEAD(5) is run. It produces 5 on its output (to HEAD-1 and SUM)
     - SUM(3, 5) is made "ready"
@@ -140,7 +140,7 @@ Next runnable with status "ready" is run:
 
 ReadyList = STDOUT(3), SUM(3,5)
 
-Next runnable with status "ready" is run:
+Next function with status "ready" is run:
 
 - STDOUT(3)) runs. It prints "3" on the stdout of the runtime.
 > 3

@@ -2,7 +2,7 @@ use debug_client::DebugClient;
 use std::process::exit;
 use run_state::RunState;
 use std::collections::HashSet;
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 use std::fmt;
 use std::any::Any;
 
@@ -108,7 +108,7 @@ impl Debugger {
     }
 
     pub fn watch_data(&mut self, state: &mut RunState, source_process_id: usize, output_route: &String,
-                      value: &JsonValue, destination_id: usize, input_number: usize) {
+                      value: &Value, destination_id: usize, input_number: usize) {
         if self.output_breakpoints.contains(&(source_process_id, output_route.to_string())) ||
             self.input_breakpoints.contains(&(destination_id, input_number)) {
             self.client.display(&format!("Data breakpoint: Process #{}/{}    ----- {} ----> Process #{}:{}\n",
@@ -119,7 +119,7 @@ impl Debugger {
     }
 
     pub fn panic(&mut self, state: &mut RunState, _cause: &Box<Any + std::marker::Send>,
-                 id: usize, inputs: Vec<Vec<JsonValue>>) {
+                 id: usize, inputs: Vec<Vec<Value>>) {
         self.client.display(
             &format!("Panic occurred in implementation. Entering debugger\nProcess #{} with inputs: {:?}\n",
                      id, inputs));

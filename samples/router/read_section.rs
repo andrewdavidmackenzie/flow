@@ -1,7 +1,7 @@
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 
 #[no_mangle]
-pub extern "C" fn run(mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, bool) {
+pub extern "C" fn run(mut inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
     let mut value = None;
 
     let input_stream = inputs.remove(0);

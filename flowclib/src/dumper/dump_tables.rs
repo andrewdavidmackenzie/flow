@@ -82,7 +82,7 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Resul
     Ok("All tables dumped".to_string())
 }
 
-/// dump a flow's runnables graph as a .dot file to visualize dependencies
+/// dump a flow's functions graph as a .dot file to visualize dependencies
 ///
 ///
 /// # Example
@@ -121,24 +121,24 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Resul
 ///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///         let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///
-///         flowclib::dumper::dump_tables::dump_runnables(&flow, &tables, &output_dir).unwrap();
+///         flowclib::dumper::dump_tables::dump_functions(&flow, &tables, &output_dir).unwrap();
 ///     }
 /// }
 /// ```
-pub fn dump_runnables(flow: &Flow, tables: &GenerationTables, output_dir: &PathBuf) -> io::Result<String> {
-    dump_dot::runnables_to_dot(flow, tables, output_dir)?;
+pub fn dump_functions(flow: &Flow, tables: &GenerationTables, output_dir: &PathBuf) -> io::Result<String> {
+    dump_dot::functions_to_dot(flow, tables, output_dir)?;
 
-    let mut writer = create_output_file(&output_dir, "runnables", "dump")?;
-    info!("==== Dumper: Dumping runnables to runnables.dump file in '{}'", output_dir.display());
-    dump_table(tables.runnables.iter(), &mut writer)?;
-    Ok("Runnables dumped".to_string())
+    let mut writer = create_output_file(&output_dir, "functions", "dump")?;
+    info!("==== Dumper: Dumping functions to functions.dump file in '{}'", output_dir.display());
+    dump_table(tables.functions.iter(), &mut writer)?;
+    Ok("Functions dumped".to_string())
 }
 
-// TODO I can't get output of runnables as JSON to work with serde
+// TODO I can't get output of functions as JSON to work with serde
 fn dump_table<C: Iterator>(table: C, writer: &mut Write) -> io::Result<String>
     where <C as Iterator>::Item: fmt::Display {
-    for runnable in table.into_iter() {
-        writer.write_all(format!("{}\n", runnable).as_bytes())?;
+    for function in table.into_iter() {
+        writer.write_all(format!("{}\n", function).as_bytes())?;
     }
     writer.write_all(b"\n")?;
     Ok("table dumped".to_string())

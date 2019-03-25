@@ -1,19 +1,19 @@
+use std::collections::HashMap;
+
+use deserializers::deserializer_helper::get_deserializer;
+use flowrlib::input::InputInitializer;
+use flowrlib::provider::Provider;
+use flowrlib::url;
 use model::flow::Flow;
 use model::function::Function;
-use model::process::Process;
-use model::name::Name;
+use model::io::IO;
 use model::name::HasName;
-use model::route::Route;
-use model::route::HasRoute;
-use model::route::SetRoute;
-use deserializers::deserializer_helper::get_deserializer;
-use flowrlib::provider::Provider;
+use model::name::Name;
+use model::process::Process;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
-use std::collections::HashMap;
-use model::io::IO;
-use flowrlib::url;
-use flowrlib::input::InputInitializer;
+use model::route::Route;
+use model::route::SetRoute;
 
 // Any deserializer has to implement this method
 pub trait Deserializer {
@@ -79,7 +79,6 @@ fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provid
     match process {
         FlowProcess(ref mut flow) => {
             config_flow(flow, &resolved_url, parent_route, alias, initializations)?;
-            load_values(flow)?;
             load_subprocesses(flow, provider)?;
             flow.build_connections()?;
         }
@@ -131,19 +130,4 @@ fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &
     IO::set_initial_values(&mut flow.inputs, initializations);
     flow.set_routes_from_parent(parent_route, true);
     flow.validate()
-}
-
-/*
-    Load all the values that are defined in a flow
-*/
-// TODO delete when deleting Value
-fn load_values(flow: &mut Flow) -> Result<(), String> {
-    let parent_route = &flow.route().clone();
-    if let Some(ref mut values) = flow.values {
-        debug!("Loading values for flow '{}'", flow.source_url);
-        for ref mut value in values {
-            value.set_routes_from_parent(parent_route, false);
-        }
-    }
-    Ok(())
 }

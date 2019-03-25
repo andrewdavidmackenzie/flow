@@ -1,5 +1,5 @@
 use num::Complex;
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 
 /*
     Given the row and column of a pixel in the output image, return the
@@ -11,7 +11,7 @@ use serde_json::Value as JsonValue;
     plane designating the area our image covers.
 */
 #[no_mangle]
-pub extern "C" fn pixel_to_point(mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, bool) {
+pub extern "C" fn pixel_to_point(mut inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
     let pixel_bounds = inputs.remove(0).remove(0);
     // pixel_bounds: (usize, usize),
     let pixel_bounds_x = pixel_bounds["x"].as_u64().unwrap() as usize;
@@ -50,7 +50,7 @@ pub extern "C" fn pixel_to_point(mut inputs: Vec<Vec<JsonValue>>) -> (Option<Jso
 #[cfg(test)]
 mod tests {
     use num::Complex;
-    use serde_json::Value as JsonValue;
+    use serde_json::Value;
 
     #[test]
     fn pixel() {
@@ -58,7 +58,7 @@ mod tests {
         let pixel_bounds = json!({"x": 100, "y": 100 });
         let complex_bounds = json!({ "ul" : {"re": 0.0, "im": 0.0 }, "lr": {"re": 1.0, "im": 1.0 }});
         let pixel = json!({"x": 50, "y": 50 });
-        let inputs: Vec<Vec<JsonValue>> = vec!(vec!(pixel_bounds), vec!(complex_bounds), vec!(pixel));
+        let inputs: Vec<Vec<Value>> = vec!(vec!(pixel_bounds), vec!(complex_bounds), vec!(pixel));
 
         let _point = super::pixel_to_point(inputs);
     }

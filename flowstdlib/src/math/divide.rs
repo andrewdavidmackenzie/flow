@@ -1,11 +1,11 @@
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RunAgain;
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 
 pub struct Divide;
 
 impl Implementation for Divide {
-    fn run(&self, inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
+    fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let dividend = inputs.get(0).unwrap()[0].as_f64().unwrap();
         let divisor = inputs.get(1).unwrap()[0].as_f64().unwrap();
 
@@ -18,7 +18,7 @@ impl Implementation for Divide {
 #[cfg(test)]
 mod test {
     use flowrlib::implementation::Implementation;
-    use serde_json::Value as JsonValue;
+    use serde_json::Value;
     use super::Divide;
 
     #[test]
@@ -28,7 +28,7 @@ mod test {
         // Create input vector
         let dividend = json!(99);
         let divisor = json!(3);
-        let inputs: Vec<Vec<JsonValue>> = vec!(vec!(dividend), vec!(divisor));
+        let inputs: Vec<Vec<Value>> = vec!(vec!(dividend), vec!(divisor));
 
         divide.run(inputs);
     }

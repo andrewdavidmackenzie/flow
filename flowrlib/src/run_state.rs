@@ -294,29 +294,23 @@ mod tests {
         let p0 = Arc::new(Mutex::new(
             Process::new("p0".to_string(), // name
                          "/context/p0".to_string(),
-                         false,// static value
                          "/test".to_string(),
                          vec!(), // input depths array
                          0,    // id
-                         None,
                          vec!(("".to_string(), 1, 0), ("".to_string(), 1, 0)), // destinations
             )));    // implementation
         let p1 = Arc::new(Mutex::new(Process::new("p1".to_string(),
                                                   "/context/p1".to_string(),
-                                                  false,// static value
                                                   "/test".to_string(),
                                                   vec!((1, None)), // inputs array
                                                   1,    // id
-                                                  None,
                                                   vec!(),
         )));
         let p2 = Arc::new(Mutex::new(Process::new("p2".to_string(),
                                                   "/context/p2".to_string(),
-                                                  false,// static value
                                                   "/test".to_string(),
                                                   vec!((1, None)), // inputs array
                                                   2,    // id
-                                                  None,
                                                   vec!(),
         )));
         vec!(p0, p1, p2)

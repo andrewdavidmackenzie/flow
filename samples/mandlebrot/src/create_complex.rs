@@ -1,4 +1,4 @@
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 
 /*
     Given the row and column of a pixel in the output image, return the
@@ -10,14 +10,14 @@ use serde_json::Value as JsonValue;
     plane designating the area our image covers.
 */
 #[no_mangle]
-pub extern "C" fn create_complex(mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, bool) {
+pub extern "C" fn create_complex(mut inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
     let mut value = None;
 
     let arg1 = inputs.remove(0).remove(0);
     let arg2 = inputs.remove(0).remove(0);
 
     match (arg1, arg2) {
-        (JsonValue::Number(re), JsonValue::Number(im)) => {
+        (Value::Number(re), Value::Number(im)) => {
             value = Some(json!({ "re" : re, "im": im }));
         }
         _ => {}
@@ -28,7 +28,7 @@ pub extern "C" fn create_complex(mut inputs: Vec<Vec<JsonValue>>) -> (Option<Jso
 
 #[cfg(test)]
 mod tests {
-    use serde_json::Value as JsonValue;
+    use serde_json::Value;
 
     #[test]
     fn parse_complex_ok() {
@@ -36,7 +36,7 @@ mod tests {
         let arg1 = json!(1.5);
         let arg2 = json!(1.6);
 
-        let inputs: Vec<Vec<JsonValue>> = vec!(vec!(arg1), vec!(arg2));
+        let inputs: Vec<Vec<Value>> = vec!(vec!(arg1), vec!(arg2));
 
         let _complex = super::create_complex(inputs);
     }

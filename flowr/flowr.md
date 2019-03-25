@@ -2,7 +2,7 @@
 
 This is the runtime library of flow.
 
-It handles the execution of runnables according to the semantics defined.
+It handles the execution of functions according to the semantics defined.
 
 ### Runtime functions
 Additionally, it provides a number of standard, impure (have side effects or do IO), functions to 
