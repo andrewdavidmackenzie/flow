@@ -9,42 +9,47 @@ type = "Number"
 name = "prime"
 type = "Number"
 
-# Generate a series of possible divisors of the candidate, from 2 up to candidate
-[[process]]
-alias = "lowest-divisor"
-source = "lib://flowstdlib/data/buffer.toml"
-input.default = {constant = 2}
-
-[[process]]
-alias = "divisor-sequence"
-source = "lib://flowstdlib/math/sequence.toml"
-
-[[connection]]
-from = "process/lowest-divisor"
-to = "process/divisor-sequence/start"
-
+# disable
 [[connection]]
 from = "input/candidate"
-to = "process/divisor-sequence/end"
+to = "output/prime"
 
+
+# Generate a series of possible divisors of the candidate, from 2 up to candidate
+#[[process]]
+#alias = "lowest-divisor"
+#source = "lib://flowstdlib/data/buffer.toml"
+#input.default = {constant = 2}
+
+#[[process]]
+#alias = "divisor-sequence"
+#source = "lib://flowstdlib/math/sequence.toml"
+
+#[[connection]]
+#from = "process/lowest-divisor"
+#to = "process/divisor-sequence/start"
+
+#[[connection]]
+#from = "input/candidate"
+#to = "process/divisor-sequence/end"
 
 # divide the candidate by the divisor
-[[process]]
-alias = "divide"
-source = "lib://flowstdlib/math/divide.toml"
+#[[process]]
+#alias = "divide"
+#source = "lib://flowstdlib/math/divide.toml"
 
-[[connection]]
-from = "process/divisor-sequence/sequence"
-to = "process/divide/divisor"
+#[[connection]]
+#from = "process/divisor-sequence/sequence"
+#to = "process/divide/divisor"
 
-[[connection]]
-from = "process/divisor-sequence/max"
-to = "process/divide/dividend"
+#[[connection]]
+#from = "process/divisor-sequence/max"
+#to = "process/divide/dividend"
 
 # debug
-[[connection]]
-from = "process/divide/remainder"
-to = "output/prime"
+#[[connection]]
+#from = "process/divide/remainder"
+#to = "output/prime"
 
 
 #check if the remainder is equal to 0

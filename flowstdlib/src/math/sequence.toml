@@ -25,15 +25,17 @@ type = "Bool"
 from = "input/start"
 to = "process/pilte/in"
 
-# A store for the limit value that always refreshes itself, so it's value is always available
-[[value]]
-name = "limit-store"
-type = "Number"
-static = true
+[[process]]
+alias = "limit-store"
+source = "lib://flowstdlib/data/buffer.toml"
+
+[[connection]]
+from = "process/limit-store"
+to = "process/limit-store"
 
 [[connection]]
 from = "input/end"
-to = "value/limit-store"
+to = "process/limit-store"
 
 # pass if less than or equal, add one and loop
 [[process]]
@@ -46,7 +48,7 @@ source = "lib://flowstdlib/math/add.toml"
 input.i2 = {constant = 1}
 
 [[connection]]
-from = "value/limit-store"
+from = "process/limit-store"
 to = "process/pilte/max"
 
 [[connection]]
@@ -66,5 +68,5 @@ from = "process/pilte/blocked"
 to = "output/done"
 
 [[connection]]
-from = "value/limit-store"
+from = "process/limit-store"
 to = "output/max"

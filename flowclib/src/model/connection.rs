@@ -26,17 +26,6 @@ pub enum Direction {
     TO,
 }
 
-impl Connection {
-    pub fn check_for_loops(&self, source: &str) -> Result<(), String> {
-        if self.from == self.to {
-            return Err(format!("Connection loop detected in flow '{}' from '{}' to '{}'",
-                               source, self.from, self.to));
-        }
-
-        Ok(())
-    }
-}
-
 impl fmt::Display for Connection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match (self.from_io.flow_io(), self.to_io.flow_io()) {

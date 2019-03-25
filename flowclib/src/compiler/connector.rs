@@ -191,10 +191,6 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
     Check for a series of potential problems in connections
 */
 pub fn check_connections(tables: &mut GenerationTables) -> Result<(), String> {
-    for connection in &tables.collapsed_connections {
-        connection.check_for_loops("Collapsed Connections list")?;
-    }
-
     check_for_competing_inputs(tables)?;
 
     remove_duplicates(&mut tables.collapsed_connections)

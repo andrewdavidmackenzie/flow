@@ -293,7 +293,6 @@ impl Flow {
         let mut connections = connections.unwrap();
 
         for connection in connections.iter_mut() {
-            connection.check_for_loops(self.source_url.as_str())?;
             match self.get_route_and_type(FROM, &connection.from, &None) {
                 Ok(from_io) => {
                     debug!("Found connection source:\n{:#?}", from_io);

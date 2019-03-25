@@ -240,11 +240,10 @@ impl RunList {
     pub fn process_output(&mut self, source_id: usize, destinations: Vec<(String, usize, usize)>,
                           output_value: Option<JsonValue>, display_output: bool, source_can_run_again: bool) {
         if let Some(output) = output_value {
-            debug!("\t\tProcessing output '{}' from process #{}", output, source_id);
+            debug!("\tProcessing output '{}' from process #{}", output, source_id);
 
             if cfg!(feature="debugger") && display_output {
-                self.debugger.client.display(
-                    &format!("\tProduced output {}\n", &output));
+                self.debugger.client.display(&format!("\tProduced output {}\n", &output));
             }
 
             for (ref output_route, destination_id, io_number) in destinations {
@@ -273,13 +272,18 @@ impl RunList {
                         self.debugger.check_block(&mut self.state, destination_id, source_id);
                 }
 
-                if destination.can_run() {
+                // for the case when a process is sending to itself, delay determining else if
+                // it should be in the blocked or will_run lists until it has sent all it's other outputs
+                // as it might be blocked by another process - if not it will be fixed lower down in
+                // "if source_can_run_again {" blocked
+                if destination.can_run() && (source_id != destination_id) {
                     self.state.inputs_ready(destination_id);
                 }
             }
         }
 
-        // if it wants to run again and it can (inputs ready) then add back to the Can Run list
+        // if it wants to run again, and after possibly refreshing any constant inputs, it can
+        // (it's inputs are ready) then add back to the Will Run list
         if source_can_run_again {
             let source_arc = self.state.get(source_id);
             let mut source = source_arc.lock().unwrap();

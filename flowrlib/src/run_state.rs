@@ -75,6 +75,7 @@ impl RunState {
             }
         }
 
+        // For all the processes that are have  their inputs ready - put on the appropriate list
         for id in inputs_ready_list {
             self.inputs_ready(id);
         }
@@ -349,7 +350,7 @@ mod tests {
     fn inputs_ready_makes_ready() {
         let mut state = RunState::new(test_processes());
 
-// Indicate that 0 has all it's inputs read
+        // Put 0 on the blocked/will_run list depending on blocked status
         state.inputs_ready(0);
 
         assert_eq!(state.next().unwrap(), 0);
@@ -362,7 +363,7 @@ mod tests {
 // Indicate that 0 is blocked by 1
         state.set_blocked_by(1, 0);
 
-// Indicate that 0 has all it's inputs read
+        // Put 0 on the blocked/will_run list depending on blocked status
         state.inputs_ready(0);
 
         match state.next() {
@@ -378,7 +379,7 @@ mod tests {
 // Indicate that 0 is blocked by 1
         state.set_blocked_by(1, 0);
 
-// Indicate that 0 has all it's inputs read
+        // Put 0 on the blocked/will_run list depending on blocked status
         state.inputs_ready(0);
 
         assert_eq!(state.next(), None);
@@ -398,7 +399,7 @@ mod tests {
         state.set_blocked_by(1, 0);
         state.set_blocked_by(2, 0);
 
-// Indicate that 0 has all it's inputs read
+        // Put 0 on the blocked/will_run list depending on blocked status
         state.inputs_ready(0);
 
         assert_eq!(state.next(), None);
