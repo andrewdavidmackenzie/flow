@@ -40,16 +40,16 @@ pub fn create_manifest(_flow: &Flow, debug_symbols: bool, out_dir_path: &str, ta
     let mut base_path = out_dir_path.to_string();
     base_path.push('/');
 
-    // Generate runtime Process struct for each of the runnables
-    for runnable in &tables.functions {
-        manifest.processes.push(runnable_to_process(&base_path, runnable, debug_symbols));
+    // Generate runtime Process struct for each of the functions
+    for function in &tables.functions {
+        manifest.processes.push(function_to_process(&base_path, function, debug_symbols));
     }
 
     Ok(manifest)
 }
 
 // Do as an Into trait?
-fn runnable_to_process(out_dir_path: &str, function: &Box<Function>, debug_symbols: bool) -> Process {
+fn function_to_process(out_dir_path: &str, function: &Box<Function>, debug_symbols: bool) -> Process {
     let mut name = "".to_string();
     let mut route = "".to_string();
 
@@ -87,7 +87,7 @@ fn runnable_to_process(out_dir_path: &str, function: &Box<Function>, debug_symbo
 mod test {
     use model::io::IO;
     use model::function::Function;
-    use super::runnable_to_process;
+    use super::function_to_process;
     use flowrlib::input::{InputInitializer, ConstantInputInitializer};
     use flowrlib::input::OneTimeInputInitializer;
 
@@ -128,7 +128,7 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = runnable_to_process("/test", &br, false);
+        let process = function_to_process("/test", &br, false);
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
         assert_eq!(serialized_process, expected.replace("'", "\""));
@@ -165,7 +165,7 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = runnable_to_process("/test", &br, false);
+        let process = function_to_process("/test", &br, false);
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
         assert_eq!(serialized_process, expected.replace("'", "\""));
@@ -204,7 +204,7 @@ mod test {
 }";
 
         let br = Box::new(function) as Box<Function>;
-        let process = runnable_to_process("/test", &br, false);
+        let process = function_to_process("/test", &br, false);
 
         println!("process {}", process);
 
@@ -246,7 +246,7 @@ mod test {
 }";
 
         let br = Box::new(function) as Box<Function>;
-        let process = runnable_to_process("/test", &br, false);
+        let process = function_to_process("/test", &br, false);
 
         println!("process {}", process);
 
@@ -287,7 +287,7 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = runnable_to_process("/test", &br, true);
+        let process = function_to_process("/test", &br, true);
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
         assert_eq!(serialized_process, expected.replace("'", "\""));
@@ -324,7 +324,7 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = runnable_to_process("/test", &br, false);
+        let process = function_to_process("/test", &br, false);
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
         assert_eq!(serialized_process, expected.replace("'", "\""));

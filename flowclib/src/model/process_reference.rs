@@ -15,7 +15,7 @@ pub struct ProcessReference {
     pub source: String,
     #[serde(rename = "input")]
     pub initializations: Option<HashMap<String, InputInitializer>>,
-    // Map of initialized inputs for this reference: input_name (String) = initial_value (JsonValue)
+    // Map of initializers of inputs for this reference
     #[serde(skip, default = "ProcessReference::default_url")]
     pub source_url: String,
     #[serde(skip)]

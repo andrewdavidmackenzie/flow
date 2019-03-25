@@ -1,24 +1,24 @@
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RUN_AGAIN;
 use flowrlib::implementation::RunAgain;
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 
 pub struct Stdout;
 
 impl Implementation for Stdout {
-    fn run(&self, mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
+    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let input = inputs.remove(0).remove(0);
         match input {
-            JsonValue::String(string) => {
+            Value::String(string) => {
                 println!("{}", string);
             },
-            JsonValue::Bool(boolean) => {
-                println!("{}", JsonValue::String(boolean.to_string()));
+            Value::Bool(boolean) => {
+                println!("{}", Value::String(boolean.to_string()));
             },
-            JsonValue::Number(number) => {
-                println!("{}", JsonValue::String(number.to_string()));
+            Value::Number(number) => {
+                println!("{}", Value::String(number.to_string()));
             },
-            JsonValue::Array(array) => {
+            Value::Array(array) => {
                 for entry in array {
                     println!("{}", entry);
                 }

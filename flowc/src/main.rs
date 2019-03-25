@@ -133,7 +133,7 @@ fn compile_and_execute(flow: Flow, args: Vec<String>, dump: bool, skip_generatio
     if dump {
         dump_flow::dump_flow(&flow, &out_dir).map_err(|e| e.to_string())?;
         dump_tables::dump_tables(&tables, &out_dir).map_err(|e| e.to_string())?;
-        dump_tables::dump_runnables(&flow, &tables, &out_dir).map_err(|e| e.to_string())?;
+        dump_tables::dump_functions(&flow, &tables, &out_dir).map_err(|e| e.to_string())?;
     }
 
     if skip_generation {
@@ -242,9 +242,8 @@ mod test {
         if let FlowProcess(ref flow) = process {
             let tables = compile::compile(flow).unwrap();
             // Dead value should be removed - currently can't assume that args function can be removed
-            assert_eq!(tables.functions.len(), 1, "Incorrect number of runnables after optimization");
-            assert_eq!(tables.functions.get(0).unwrap().get_id(), 0,
-                       "Runnables indexes do not start at 0");
+            assert_eq!(tables.functions.len(), 1, "Incorrect number of functions after optimization");
+            assert_eq!(tables.functions.get(0).unwrap().get_id(), 0, "Function indexes do not start at 0");
             // And the connection to it also
             assert_eq!(tables.collapsed_connections.len(), 0, "Incorrect number of connections after optimization");
         } else {
@@ -259,7 +258,7 @@ mod test {
         let process = loader::load_context(&path, &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let tables = compile::compile(flow).unwrap();
-            assert!(tables.functions.is_empty(), "Incorrect number of runnables after optimization");
+            assert!(tables.functions.is_empty(), "Incorrect number of functions after optimization");
             // And the connection are all gone also
             assert_eq!(tables.collapsed_connections.len(), 0, "Incorrect number of connections after optimization");
         } else {

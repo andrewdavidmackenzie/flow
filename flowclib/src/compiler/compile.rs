@@ -13,7 +13,7 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables, String> {
     let mut tables = GenerationTables::new();
 
     info!("==== Compiler phase: Gathering");
-    gatherer::gather_runnables_and_connections(flow, &mut tables);
+    gatherer::gather_functions_and_connections(flow, &mut tables);
     info!("==== Compiler phase: Collapsing connections");
     tables.collapsed_connections = connector::collapse_connections(&tables.connections);
     info!("==== Compiler phase: Optimizing");
@@ -25,9 +25,9 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables, String> {
     info!("==== Compiler phase: Checking connections");
     connector::check_connections(&mut tables)?;
     info!("==== Compiler phase: Checking processes");
-    checker::check_runnable_inputs(&mut tables)?;
-    info!("==== Compiler phase: Preparing runnables connections");
-    connector::prepare_runnable_connections(&mut tables)?;
+    checker::check_function_inputs(&mut tables)?;
+    info!("==== Compiler phase: Preparing functions connections");
+    connector::prepare_function_connections(&mut tables)?;
 
     Ok(tables)
 }

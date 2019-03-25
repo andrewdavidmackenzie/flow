@@ -1,5 +1,5 @@
 use process::Process;
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 use std::panic::RefUnwindSafe;
 use std::panic::UnwindSafe;
 use std::sync::{Arc, Mutex};
@@ -45,7 +45,7 @@ impl Metrics {
 impl fmt::Display for Metrics {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let elapsed = self.start_time.elapsed();
-        write!(f, "\t\tNumber of Processs: \t{}\n", self.num_processs)?;
+        write!(f, "\t\tNumber of Functions: \t{}\n", self.num_processs)?;
         write!(f, "\t\tOutputs sent: \t\t{}\n", self.outputs_sent)?;
         write!(f, "\t\tElapsed time(s): \t{:.*}", 9, elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9)
     }
@@ -104,7 +104,7 @@ impl RunList {
         let mut restart;
 
         'outer: loop {
-            debug!("Initializing all processes");
+            debug!("Initializing all functions");
             let num_processes = self.state.init();
 
             if cfg!(feature = "metrics") {
@@ -161,7 +161,7 @@ impl RunList {
             }
         }
 
-        debug!("Flow execution ended, no remaining processes ready to run");
+        debug!("Flow execution ended, no remaining function ready to run");
     }
 
     /*
@@ -169,15 +169,15 @@ impl RunList {
         Return a tuple with all the information needed to execute it.
     */
     fn dispatch(&mut self, id: usize)
-                -> (Arc<Implementation>, Vec<Vec<JsonValue>>, Vec<(String, usize, usize)>) {
+                -> (Arc<Implementation>, Vec<Vec<Value>>, Vec<(String, usize, usize)>) {
         let process_arc = self.state.get(id);
         let process: &mut Process = &mut *process_arc.lock().unwrap();
-        debug!("Process #{} '{}' dispatched", id, process.name());
+        debug!("Function #{} '{}' dispatched", id, process.name());
 
         let input_values = process.get_input_values();
 
         self.state.unblock_senders_to(id);
-        debug!("\tProcess #{} '{}' running with inputs: {:?}", id, process.name(), input_values);
+        debug!("\tFunction #{} '{}' running with inputs: {:?}", id, process.name(), input_values);
 
         let implementation = process.get_implementation();
 
@@ -193,9 +193,9 @@ impl RunList {
     // TODO this part would go into the executor thread on the other end of a channel
     fn execute(id: usize,
                implementation: Arc<Implementation>,
-               input_values: Vec<Vec<JsonValue>>,
+               input_values: Vec<Vec<Value>>,
                destinations: Vec<(String, usize, usize)>)
-               -> (usize, Vec<Vec<JsonValue>>, Result<(Option<JsonValue>, bool), Box<Any + Send>>, Vec<(String, usize, usize)>) {
+               -> (usize, Vec<Vec<Value>>, Result<(Option<Value>, bool), Box<Any + Send>>, Vec<(String, usize, usize)>) {
         let result = panic::catch_unwind(|| { implementation.run(input_values.clone()) });
 
         // TODO return via a channel, even if there is no output value, so coordinator knows it completed
@@ -209,14 +209,14 @@ impl RunList {
     */
     fn debug_check(&mut self,
                    id: usize,
-                   input_values: &Vec<Vec<JsonValue>>,
-                   result: &Result<(Option<JsonValue>, bool), Box<Any + std::marker::Send>>,
+                   input_values: &Vec<Vec<Value>>,
+                   result: &Result<(Option<Value>, bool), Box<Any + std::marker::Send>>,
                    display_output: bool) {
         match result {
             Ok((_value, _run_again)) => {
-                debug!("\tCompleted process: Process #{}", id);
+                debug!("\tCompleted Function #{}", id);
                 if cfg!(feature = "debugger") & &display_output {
-                    self.debugger.client.display(&format!("Completed process: Process #{}\n", id));
+                    self.debugger.client.display(&format!("Completed Function #{}\n", id));
                 }
             }
             Err(cause) => {
@@ -238,9 +238,9 @@ impl RunList {
         if those other processs have all their inputs, then mark them accordingly.
     */
     pub fn process_output(&mut self, source_id: usize, destinations: Vec<(String, usize, usize)>,
-                          output_value: Option<JsonValue>, display_output: bool, source_can_run_again: bool) {
+                          output_value: Option<Value>, display_output: bool, source_can_run_again: bool) {
         if let Some(output) = output_value {
-            debug!("\tProcessing output '{}' from process #{}", output, source_id);
+            debug!("\tProcessing output '{}' from Function #{}", output, source_id);
 
             if cfg!(feature="debugger") && display_output {
                 self.debugger.client.display(&format!("\tProduced output {}\n", &output));
@@ -250,7 +250,7 @@ impl RunList {
                 let destination_arc = self.state.get(destination_id);
                 let mut destination = destination_arc.lock().unwrap();
                 let output_value = output.pointer(&output_route).unwrap();
-                debug!("\t\tProcess #{} sent value '{}' via output route '{}' to Process #{} '{}' input :{}",
+                debug!("\t\tFunction #{} sent value '{}' via output route '{}' to Function #{} '{}' input :{}",
                        source_id, output_value, output_route, &destination_id, destination.name(), &io_number);
                 if cfg!(feature="debugger") && display_output {
                     self.debugger.client.display(

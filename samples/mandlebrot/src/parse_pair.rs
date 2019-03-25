@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate serde_json;
 
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 use std::str::FromStr;
 
 /*
@@ -14,14 +14,14 @@ use std::str::FromStr;
     plane designating the area our image covers.
 */
 #[no_mangle]
-pub extern "C" fn parse_pair(mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, bool) {
+pub extern "C" fn parse_pair(mut inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
     let mut value = None;
 
     let string = inputs.remove(0).remove(0);
     let separator = inputs.remove(0).remove(0);
 
     match (string, separator) {
-        (JsonValue::String(string_value), JsonValue::String(seperator_value)) => {
+        (Value::String(string_value), Value::String(seperator_value)) => {
             let split: Option<(f64, f64)> = _parse_pair(string_value.as_str(),
                                                         seperator_value.as_str());
 
@@ -50,7 +50,7 @@ fn _parse_pair<T: FromStr>(s: &str, separator: &str) -> Option<(T, T)> {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::Value as JsonValue;
+    use serde_json::Value;
 
     use super::_parse_pair;
 
@@ -60,7 +60,7 @@ mod tests {
         let string = json!("100x200");
         let separator = json!("x");
 
-        let inputs: Vec<Vec<JsonValue>> = vec!(vec!(string), vec!(separator));
+        let inputs: Vec<Vec<Value>> = vec!(vec!(string), vec!(separator));
 
         let _pair = super::parse_pair(inputs);
     }

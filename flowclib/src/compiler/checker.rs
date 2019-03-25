@@ -5,9 +5,9 @@ use model::name::HasName;
 /*
     Check that all Functions have connections to all their inputs or return an error
 */
-pub fn check_runnable_inputs(tables: &mut GenerationTables) -> Result<(), String> {
-    for runnable in &tables.functions {
-        if let Some(inputs) = runnable.get_inputs() {
+pub fn check_function_inputs(tables: &mut GenerationTables) -> Result<(), String> {
+    for function in &tables.functions {
+        if let Some(inputs) = function.get_inputs() {
             let mut unused_input_count = 0;
             for input in inputs {
                 if input.get_initial_value().is_none() {
@@ -21,14 +21,14 @@ pub fn check_runnable_inputs(tables: &mut GenerationTables) -> Result<(), String
                         unused_input_count += 1;
                         ;
                         error!("Input '{}' at route '{}' of Function '{}' at route '{}' is not used",
-                               input.name(), input.route(), runnable.alias(), runnable.route());
+                               input.name(), input.route(), function.alias(), function.route());
                     }
                 }
             }
 
             if unused_input_count > 0 {
                 return Err(format!("Function at route '{}' has {} unused inputs",
-                                   runnable.route(), unused_input_count));
+                                   function.route(), unused_input_count));
             }
         }
     }

@@ -1,5 +1,5 @@
 use num::Complex;
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 
 /*
     Try to determine if 'c' is in the Mandlebrot set, using at most 'limit' iterations to decide
@@ -9,7 +9,7 @@ use serde_json::Value as JsonValue;
     able to prove that 'c' is not a member) return 'None'
 */
 #[no_mangle]
-pub extern "C" fn escapes(mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, bool) {
+pub extern "C" fn escapes(mut inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
     let point = inputs.remove(0).remove(0);
     // pixel_bounds: (usize, usize),
     let re = point["re"].as_f64().unwrap();
@@ -26,7 +26,7 @@ pub extern "C" fn escapes(mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>
 #[cfg(test)]
 mod tests {
     use num::Complex;
-    use serde_json::Value as JsonValue;
+    use serde_json::Value;
     use test::Bencher;
 
     use super::_escapes;
@@ -36,7 +36,7 @@ mod tests {
         // Create input vector
         let point = json!({"re": 0.5, "im": 0.5 });
         let limit = json!(100);
-        let inputs: Vec<Vec<JsonValue>> = vec!(vec!(point), vec!(limit));
+        let inputs: Vec<Vec<Value>> = vec!(vec!(point), vec!(limit));
 
         let _escapes = super::escapes(inputs);
     }

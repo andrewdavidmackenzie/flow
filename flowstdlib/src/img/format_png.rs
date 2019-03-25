@@ -3,14 +3,14 @@ use flowrlib::implementation::RunAgain;
 use flowrlib::implementation::RUN_AGAIN;
 use image::ColorType;
 use image::png::PNGEncoder;
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 use std::io::Write;
 
 pub struct FormatPNG;
 
 impl Implementation for FormatPNG {
-    fn run(&self, mut inputs: Vec<Vec<JsonValue>>)
-        -> (Option<JsonValue>, RunAgain) {
+    fn run(&self, mut inputs: Vec<Vec<Value>>)
+        -> (Option<Value>, RunAgain) {
         let bytes = inputs.remove(0).remove(0);
 
         // bounds: (usize, usize),
@@ -28,7 +28,7 @@ impl Implementation for FormatPNG {
 
         // TODO
 //        let string = String::from_utf8_lossy(&png_buffer).to_string();
-//        run_list.send_output(runnable, JsonValue::String(string));
+//        run_list.send_output(function, Value::String(string));
         (None, RUN_AGAIN)
     }
 }

@@ -1,11 +1,11 @@
 #[macro_use]
 extern crate serde_json;
 
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 use serde_json::Value::String as JsonString;
 
 #[no_mangle]
-pub extern "C" fn reverse(mut inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, bool) {
+pub extern "C" fn reverse(mut inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
     let mut value = None;
 
     let input = inputs.remove(0).remove(0);

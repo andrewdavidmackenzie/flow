@@ -27,7 +27,7 @@ integer overflow panic when the next number becomes too big to hold in a rust in
 ...... lines deleted ......
 "4660046610375530309"
 ERROR	- panic occurred in file '/Users/andrew/workspace/flow/flowstdlib/src/math/add.rs' at line 22
-ERROR	- Process STDERR:
+ERROR	- Function STDERR:
     Finished dev [unoptimized + debuginfo] target(s) in 0.12s
      Running `samples/first/rust/target/debug/context`
 

@@ -1,7 +1,7 @@
 use implementation::Implementation;
 use implementation::RunAgain;
 use input::{Input, InputInitializer};
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 use std::sync::Arc;
 #[cfg(feature = "debugger")]
 use std::fmt;
@@ -34,7 +34,7 @@ pub struct Process {
 struct ImplementationNotFound;
 
 impl Implementation for ImplementationNotFound {
-    fn run(&self, _inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
+    fn run(&self, _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         error!("Implementation not found");
         (None, false)
     }
@@ -139,7 +139,7 @@ impl Process {
         &self.implementation_source
     }
 
-    pub fn write_input(&mut self, input_number: usize, input_value: JsonValue) {
+    pub fn write_input(&mut self, input_number: usize, input_value: Value) {
         if !self.inputs[input_number].full() {
             self.inputs[input_number].push(input_value);
         } else {
@@ -179,8 +179,8 @@ impl Process {
         &self.inputs
     }
 
-    pub fn get_input_values(&mut self) -> Vec<Vec<JsonValue>> {
-        let mut input_values: Vec<Vec<JsonValue>> = Vec::new();
+    pub fn get_input_values(&mut self) -> Vec<Vec<Value>> {
+        let mut input_values: Vec<Vec<Value>> = Vec::new();
         for input_value in &mut self.inputs {
             input_values.push(input_value.take());
         }
@@ -190,7 +190,7 @@ impl Process {
 
 #[cfg(test)]
 mod test {
-    use serde_json::value::Value as JsonValue;
+    use serde_json::value::Value as Value;
     use super::Process;
 
     #[test]
@@ -201,7 +201,7 @@ mod test {
 
     #[test]
     fn destructure_json_value() {
-        let json: JsonValue = json!({ "sub_route": "sub_output" });
+        let json: Value = json!({ "sub_route": "sub_output" });
         assert_eq!(json.pointer("/sub_route").unwrap(), "sub_output");
     }
 

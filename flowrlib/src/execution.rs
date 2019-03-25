@@ -4,7 +4,7 @@ use std::panic;
 use std::sync::{Arc, Mutex};
 use debug_client::DebugClient;
 
-/// The generated code for a flow consists of values and functions formed into a list of Processs.
+/// The generated code for a flow consists of a list of Functions.
 ///
 /// This list is built program start-up in `main` which then starts execution of the flow by calling
 /// this `execute` method.
@@ -55,7 +55,7 @@ pub fn execute(processes: Vec<Arc<Mutex<Process>>>, display_metrics: bool,
     if display_metrics {
         #[cfg(feature = "metrics")]
         run_list.print_metrics();
-        println!("\t\tProcess dispatches: \t{}\n", run_list.state.dispatches());
+        println!("\t\tFunction dispatches: \t{}\n", run_list.state.dispatches());
     }
 }
 

@@ -12,9 +12,9 @@ need it. When they complete and produce an output, that output may satisfy anoth
 inputs which in turn will run, and so on and so forth.
 
 ### Execution States
-Runnables (Values and Functions) can be in one of two states:
+Functions can be in one of two states:
 - blocked (either input is pending or output is blocked)
-- runnable (inputs are satisfied, output is free and it can be run anytime)
+- ready (inputs are satisfied, output is free and it can be run anytime)
 
 ### Value Rules
 A Value has only one input, but that can be connected to a value offered by multiple "writers".
@@ -77,22 +77,22 @@ output, and hence they are made available on the input of all connected objects 
 Now, the execution loop can be started.
 
 ### Execution Loop
-Next ready Runnable is run
-- Next runnable (function/value) on the read list is run
+Next ready Function is run
+- Next function on the read list is run
     - this consumes all its inputs
-        - this may unblock another runnable which was blocked sending to this runnables as it's input was full
+        - this may unblock another function which was blocked sending to this functions as it's input was full
 - Any data produced is made available on the output
-- Outputs are made available to all connected inputs on other runnables
+- Outputs are made available to all connected inputs on other functions
     - The data on any output is made available to all connected inputs, copied if necessary to multiple.
-    - This may satisfy the inputs of the other runnable, causing it to be added to the ready list
+    - This may satisfy the inputs of the other function, causing it to be added to the ready list
 
 ### Parallel Execution
 A core goal of 'flow' is to enable parallel execution of programs, with the parallelism being described
 inherently in the flow description, via data dependencies and functions with zero side effects.
 
-Currently, the runtime only executes one runnable at a time, but that is destined to change as soon
+Currently, the runtime only executes one function at a time, but that is destined to change as soon
 as it can be implemented, both in multiple threads in the same process on one machine, then multiple
 processes on one machine and then across machines across a network.
 
 ### Termination
-The execution of a flow terminates when there are no runnables left on the ready list
+The execution of a flow terminates when there are no functions left on the ready list

@@ -3,14 +3,14 @@ use std::env;
 use flowrlib::implementation::DONT_RUN_AGAIN;
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RunAgain;
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 
 use super::super::FLOW_ARGS_NAME;
 
 pub struct Get;
 
 impl Implementation for Get {
-    fn run(&self, mut _inputs: Vec<Vec<JsonValue>>) -> (Option<JsonValue>, RunAgain) {
+    fn run(&self, mut _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let mut value = None;
 
         if let Ok(args) = env::var(FLOW_ARGS_NAME) {

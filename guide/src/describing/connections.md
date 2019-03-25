@@ -23,7 +23,7 @@ An output can only be produced when the data can be sent to *all* connected dest
 avoiding any data loss or need for buffering. The sender is blocked until all destinations are
 available.
 
-A runnable maybe blocked on output by other "busy" inputs, thus inputs are not overwritten 
+A function maybe blocked on output by other "busy" inputs, thus inputs are not overwritten 
 but queued up with backpressure.
 
 A function or value will not be executed until all inputs are available and it can sent its 
