@@ -1,20 +1,22 @@
+//! Help take file/url strings from a command line and convert them
+//! into URLs (as Strings) with schemes for use with flowlibc and flowlibr.
 use std::env;
 
 use url::Url;
 
-/*
-    Use the current working directory as the starting point ("parent") for parsing a command
-    line specified url where to load the flow from. This allows specifiying of full Urls
-    (http, file etc) as well as file paths relative to the working directory.
-
-    Returns a full url with appropriate scheme, and an absolute path.
-
-    From the (optional) Command Line argument for url or filename of a flow, create an
-    absolute path url with scheme to try and load the flow from:
-        - if no parameter was passed --> use parent
-        - if parameter passed then join to parent, which will inherit the scheme of none is
-          specified, and will resolve relative path if passed
-*/
+/// Accept an optional string (URL or filename) and from it create an absolute path URL with correct
+/// scheme. This allows specifiying of full URL (http, file etc) as well as file paths relative
+/// to the working directory.
+///
+/// Depending on the parameter passed in:
+/// - no parameter passed     --> Return the Current Working Directory (CWD)
+/// - absolute path passed in --> Return the absolute path passed in
+/// - relative path passed in --> Join the CWD with the relative path and return the resulting
+///                               absolute path.
+///
+/// Returns a full URL with appropriate scheme (depending on the original scheme passed in),
+/// and an absolute path.
+///
 pub fn url_from_string(string: Option<&str>) -> Result<Url, String> {
     let parent = cwd_as_url()?;
 
@@ -30,6 +32,10 @@ pub fn url_from_string(string: Option<&str>) -> Result<Url, String> {
     }
 }
 
+///
+/// Provide the Current Working Directory (CWD) as a URL (with 'file:' scheme) or an error message
+/// String if it cannot be found.
+///
 pub fn cwd_as_url() -> Result<Url, String> {
     Url::from_directory_path(env::current_dir().unwrap())
         .map_err(|_e| "Could not form a Url for the current working directory".to_string())

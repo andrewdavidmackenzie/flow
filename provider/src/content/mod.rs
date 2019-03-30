@@ -1,7 +1,6 @@
-// Only the meta-provider is exposed outside this module.
+//! Content provider for getting content of flows from files, http or library references.
 pub mod provider;
-pub mod args;
-
 mod file_provider;
 mod lib_provider;
 mod http_provider;
+

@@ -22,7 +22,7 @@ use flowrlib::loader::Loader;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
-use provider::content::args::{cwd_as_url, url_from_string};
+use provider::args::{cwd_as_url, url_from_string};
 use provider::content::provider::MetaProvider;
 
 pub mod args;

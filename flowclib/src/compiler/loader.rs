@@ -70,10 +70,10 @@ pub fn load_context(url: &str, provider: &Provider) -> Result<Process, String> {
 fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provider,
                 initializations: &Option<HashMap<String, InputInitializer>>) -> Result<Process, String> {
     let (resolved_url, lib_ref) = provider.resolve(url, "context.toml")?;
-    let deserializer = get_deserializer(&resolved_url)?;
-    info!("Deserializing process with alias = '{}' from url = '{}' ", alias, resolved_url);
     let contents = provider.get(&resolved_url)?;
 
+    let deserializer = get_deserializer(&resolved_url)?;
+    info!("Deserializing process with alias = '{}' from url = '{}' ", alias, resolved_url);
     let mut process = deserializer.deserialize(&String::from_utf8(contents).unwrap())?;
 
     match process {

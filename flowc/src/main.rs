@@ -29,7 +29,7 @@ use flowrlib::manifest::DEFAULT_MANIFEST_FILENAME;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
-use provider::content::args::url_from_string;
+use provider::args::url_from_string;
 use provider::content::provider::MetaProvider;
 
 mod source_arg;
@@ -214,7 +214,7 @@ mod test {
     use flowrlib::input::InputInitializer::OneTime;
     use url::Url;
 
-    use provider::content::args::url_from_string;
+    use provider::args::url_from_string;
     use provider::content::provider::MetaProvider;
 
     fn url_from_rel_path(path: &str) -> String {

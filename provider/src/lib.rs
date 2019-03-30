@@ -1,3 +1,4 @@
+//! A module to help parse command line arguments for flow URLs and fetch the associated content
 extern crate curl;
 extern crate flowrlib;
 extern crate glob;
@@ -9,3 +10,4 @@ extern crate tempdir;
 extern crate url;
 
 pub mod content;
+pub mod args;

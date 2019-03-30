@@ -1,3 +1,5 @@
+//! MetaProvider is an overall provider that determines which internal content provider to use
+//! based on the URL scheme provided (http, file or lib).
 use flowrlib::provider::Provider;
 use url::Url;
 
@@ -11,6 +13,14 @@ const HTTP_PROVIDER: &Provider = &HttpProvider as &Provider;
 
 pub struct MetaProvider {}
 
+///
+/// // Instantiate MetaProvider and then use the Provider trait methods on it to resolve and fetch
+/// // content depending on the URL scheme.
+/// let meta_provider = MetaProvider{};
+/// let url = "file://directory";
+/// let (resolved_url, lib_ref) = meta_provider.resolve(url, "default.toml")?;
+/// let contents = meta_provider.get(&resolved_url)?;
+///
 impl MetaProvider {
     // Determine which specific provider should be used based on the scheme of the Url of the content
     fn get_provider(url_str: &str) -> Result<&'static Provider, String> {
