@@ -134,15 +134,8 @@ impl RunList {
 
                 // TODO these next two would be done sending and receiving on a channel to an executor
                 let (source_id, source_input_values, result, destinations) = Self::execute(id, implementation, input_values, destinations);
-                self.debug_check(source_id, &source_input_values, &result, display_output);
 
-                self.state.done(id);
-
-                // If it ran to completion and didn't crash - then process the output and update state
-                if let Ok((value, run_again)) = result {
-                    self.process_output(source_id, destinations, value,
-                                        display_output, run_again);
-                }
+                self.update_states(source_id, source_input_values, destinations, result, display_output);
             }
 
             if !restart {
@@ -203,32 +196,6 @@ impl RunList {
     }
 
     /*
-        Using the result of an execution of an implementation, check if we should invoke the
-        debugger, either because we need to display the results (e.g. after a step) or because
-        the execution panicked.
-    */
-    fn debug_check(&mut self,
-                   id: usize,
-                   input_values: &Vec<Vec<Value>>,
-                   result: &Result<(Option<Value>, bool), Box<Any + std::marker::Send>>,
-                   display_output: bool) {
-        match result {
-            Ok((_value, _run_again)) => {
-                debug!("\tCompleted Function #{}", id);
-                if cfg!(feature = "debugger") & &display_output {
-                    self.debugger.client.display(&format!("Completed Function #{}\n", id));
-                }
-            }
-            Err(cause) => {
-                if cfg!(feature = "debugger") & &self.debugging {
-                    #[cfg(feature = "debugger")]
-                        self.debugger.panic(&mut self.state, cause, id, input_values.clone());
-                }
-            }
-        }
-    }
-
-    /*
         Take an output produced by a process and modify the runlist accordingly
         If other processs were blocked trying to send to this one - we can now unblock them
         as it has consumed it's inputs and they are free to be sent to again.
@@ -237,62 +204,85 @@ impl RunList {
         sent to, marking the source process as blocked because those others must consume the output
         if those other processs have all their inputs, then mark them accordingly.
     */
-    pub fn process_output(&mut self, source_id: usize, destinations: Vec<(String, usize, usize)>,
-                          output_value: Option<Value>, display_output: bool, source_can_run_again: bool) {
-        if let Some(output) = output_value {
-            debug!("\tProcessing output '{}' from Function #{}", output, source_id);
-
-            if cfg!(feature="debugger") && display_output {
-                self.debugger.client.display(&format!("\tProduced output {}\n", &output));
-            }
-
-            for (ref output_route, destination_id, io_number) in destinations {
-                let destination_arc = self.state.get(destination_id);
-                let mut destination = destination_arc.lock().unwrap();
-                let output_value = output.pointer(&output_route).unwrap();
-                debug!("\t\tFunction #{} sent value '{}' via output route '{}' to Function #{} '{}' input :{}",
-                       source_id, output_value, output_route, &destination_id, destination.name(), &io_number);
-                if cfg!(feature="debugger") && display_output {
-                    self.debugger.client.display(
-                        &format!("\t\tSending to {}:{}\n", destination_id, io_number));
-                }
-
-                #[cfg(feature = "debugger")]
-                    self.debugger.watch_data(&mut self.state, source_id, output_route,
-                                             &output_value, destination_id, io_number);
-
-                destination.write_input(io_number, output_value.clone());
-
-                #[cfg(feature = "metrics")]
-                    self.increment_outputs_sent();
-
-                if destination.input_full(io_number) {
-                    self.state.set_blocked_by(destination_id, source_id);
+    pub fn update_states(&mut self,
+                         source_id: usize,
+                         input_values: Vec<Vec<Value>>,
+                         destinations: Vec<(String, usize, usize)>,
+                         result: Result<(Option<Value>, bool), Box<Any + std::marker::Send>>,
+                         display_output: bool) {
+        match result {
+            Err(cause) => {
+                if cfg!(feature = "debugger") & &self.debugging {
                     #[cfg(feature = "debugger")]
-                        self.debugger.check_block(&mut self.state, destination_id, source_id);
-                }
-
-                // for the case when a process is sending to itself, delay determining if it should
-                // be in the blocked or will_run lists until it has sent all it's other outputs
-                // as it might be blocked by another process.
-                // Iif not, this will be fixed in the "if source_can_run_again {" block below
-                if destination.can_run() && (source_id != destination_id) {
-                    self.state.inputs_ready(destination_id);
+                        self.debugger.panic(&mut self.state, cause, source_id, input_values.clone());
                 }
             }
-        }
 
-        // if it wants to run again, and after possibly refreshing any constant inputs, it can
-        // (it's inputs are ready) then add back to the Will Run list
-        if source_can_run_again {
-            let source_arc = self.state.get(source_id);
-            let mut source = source_arc.lock().unwrap();
+            // If it ran to completion and didn't crash - then process the output and update state
+            Ok((output_value, source_can_run_again)) => {
+                debug!("\tCompleted Function #{}", source_id);
+                if cfg!(feature = "debugger") & &display_output {
+                    self.debugger.client.display(&format!("Completed Function #{}\n", source_id));
+                }
 
-            // refresh any constant inputs it may have
-            source.refresh_constant_inputs();
+                if let Some(output) = output_value {
+                    debug!("\tProcessing output '{}' from Function #{}", output, source_id);
 
-            if source.can_run() {
-                self.state.inputs_ready(source_id);
+                    if cfg!(feature="debugger") && display_output {
+                        self.debugger.client.display(&format!("\tProduced output {}\n", &output));
+                    }
+
+                    for (ref output_route, destination_id, io_number) in destinations {
+                        let destination_arc = self.state.get(destination_id);
+                        let mut destination = destination_arc.lock().unwrap();
+                        let output_value = output.pointer(&output_route).unwrap();
+                        debug!("\t\tFunction #{} sent value '{}' via output route '{}' to Function #{} '{}' input :{}",
+                               source_id, output_value, output_route, &destination_id, destination.name(), &io_number);
+                        if cfg!(feature="debugger") && display_output {
+                            self.debugger.client.display(
+                                &format!("\t\tSending to {}:{}\n", destination_id, io_number));
+                        }
+
+                        #[cfg(feature = "debugger")]
+                            self.debugger.watch_data(&mut self.state, source_id, output_route,
+                                                     &output_value, destination_id, io_number);
+
+                        destination.write_input(io_number, output_value.clone());
+
+                        #[cfg(feature = "metrics")]
+                            self.increment_outputs_sent();
+
+                        if destination.input_full(io_number) {
+                            self.state.set_blocked_by(destination_id, source_id);
+                            #[cfg(feature = "debugger")]
+                                self.debugger.check_block(&mut self.state, destination_id, source_id);
+                        }
+
+                        // for the case when a process is sending to itself, delay determining if it should
+                        // be in the blocked or will_run lists until it has sent all it's other outputs
+                        // as it might be blocked by another process.
+                        // Iif not, this will be fixed in the "if source_can_run_again {" block below
+                        if destination.can_run() && (source_id != destination_id) {
+                            self.state.inputs_ready(destination_id);
+                        }
+                    }
+                }
+
+                // if it wants to run again, and after possibly refreshing any constant inputs, it can
+                // (it's inputs are ready) then add back to the Will Run list
+                if source_can_run_again {
+                    let source_arc = self.state.get(source_id);
+                    let mut source = source_arc.lock().unwrap();
+
+                    // refresh any constant inputs it may have
+                    source.refresh_constant_inputs();
+
+                    if source.can_run() {
+                        self.state.inputs_ready(source_id);
+                    }
+                }
+
+                self.state.done(source_id);
             }
         }
     }
