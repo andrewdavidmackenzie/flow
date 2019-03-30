@@ -151,7 +151,6 @@ impl RunList {
 
                 if cfg!(feature = "debugger") && self.debugging {
                     let check = self.debugger.end(&mut self.state);
-                    display_output = check.0;
                     restart = check.1;
                 }
 
