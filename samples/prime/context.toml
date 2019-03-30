@@ -15,11 +15,11 @@ to = "process/generate-candidates/limit"
 
 [[connection]]
 from = "process/generate-candidates/candidates"
-to = "process/check-if-prime/candidate"
+to = "process/pass-if-prime/candidate"
 
 [[process]]
-alias = "check-if-prime"
-source = "check_if_prime.toml"
+alias = "pass-if-prime"
+source = "pass_if_prime.toml"
 
 # Convert any prime that was output to a string and print it
 [[process]]
@@ -27,7 +27,7 @@ alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string.toml"
 
 [[connection]]
-from = "process/check-if-prime/prime"
+from = "process/pass-if-prime/prime"
 to = "process/to_string"
 
 [[process]]
