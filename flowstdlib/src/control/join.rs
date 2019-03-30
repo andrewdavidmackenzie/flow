@@ -12,7 +12,6 @@ pub struct Join;
 impl Implementation for Join {
     fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let data = Some(inputs[0].remove(0));
-        let control = inputs[1].remove(0);
 
         (data, RUN_AGAIN)
     }
