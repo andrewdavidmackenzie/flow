@@ -1,0 +1,9 @@
+function = "Join"
+
+[[input]]
+name = "data"
+
+[[input]]
+name = "control"
+
+[[output]]

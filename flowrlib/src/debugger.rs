@@ -118,11 +118,10 @@ impl Debugger {
         }
     }
 
-    pub fn panic(&mut self, state: &mut RunState, _cause: &Box<Any + std::marker::Send>,
+    pub fn panic(&mut self, state: &mut RunState, cause: Box<Any + std::marker::Send>,
                  id: usize, inputs: Vec<Vec<Value>>) {
-        self.client.display(
-            &format!("Panic occurred in implementation. Entering debugger\nProcess #{} with inputs: {:?}\n",
-                     id, inputs));
+        self.client.display(&format!("Panic occurred in implementation. \nCause = {:?}", cause));
+        self.client.display(&format!("Entering debugger\nProcess #{} with inputs: {:?}\n", id, inputs));
         self.command_loop(state);
     }
 
