@@ -138,6 +138,7 @@ impl RunList {
 
                 self.state.done(id);
 
+                // If it ran to completion and didn't crash - then process the output and update state
                 if let Ok((value, run_again)) = result {
                     self.process_output(source_id, destinations, value,
                                         display_output, run_again);
@@ -271,10 +272,10 @@ impl RunList {
                         self.debugger.check_block(&mut self.state, destination_id, source_id);
                 }
 
-                // for the case when a process is sending to itself, delay determining else if
-                // it should be in the blocked or will_run lists until it has sent all it's other outputs
-                // as it might be blocked by another process - if not it will be fixed lower down in
-                // "if source_can_run_again {" blocked
+                // for the case when a process is sending to itself, delay determining if it should
+                // be in the blocked or will_run lists until it has sent all it's other outputs
+                // as it might be blocked by another process.
+                // Iif not, this will be fixed in the "if source_can_run_again {" block below
                 if destination.can_run() && (source_id != destination_id) {
                     self.state.inputs_ready(destination_id);
                 }
