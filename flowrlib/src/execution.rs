@@ -22,6 +22,8 @@ pub fn looper(job_rx: Receiver<Job>, output_tx: Sender<Output>) {
 
 pub fn execute(dispatch: Job, output_tx: &Sender<Output>) {
     // Run the implementation with the input values and catch the execution result
+    // TODO run inside a catch and send something if the execution fails
+    // TODO avoid crashing the executor thread
     let result = dispatch.implementation.run(dispatch.input_values.clone());
 
     let output = Output {
