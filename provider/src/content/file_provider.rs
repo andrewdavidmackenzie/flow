@@ -84,7 +84,6 @@ mod test {
     use std::path::PathBuf;
 
     use flowrlib::provider::Provider;
-    use url::Url;
 
     use super::FileProvider;
 

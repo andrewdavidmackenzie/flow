@@ -1,7 +1,5 @@
 use function::Function;
 use serde_json::Value;
-use std::panic::RefUnwindSafe;
-use std::panic::UnwindSafe;
 use std::sync::{Arc, Mutex};
 use log::LogLevel::Debug;
 #[cfg(feature = "debugger")]
@@ -19,7 +17,7 @@ use std::sync::mpsc;
 
 #[cfg(feature = "metrics")]
 struct Metrics {
-    num_processs: usize,
+    num_functions: usize,
     outputs_sent: u32,
     start_time: Instant,
 }
@@ -28,14 +26,14 @@ struct Metrics {
 impl Metrics {
     fn new() -> Self {
         Metrics {
-            num_processs: 0,
+            num_functions: 0,
             outputs_sent: 0,
             start_time: Instant::now(),
         }
     }
 
-    fn reset(&mut self, num_processes: usize) {
-        self.num_processs = num_processes;
+    fn reset(&mut self, num_functions: usize) {
+        self.num_functions = num_functions;
         self.outputs_sent = 0;
         self.start_time = Instant::now();
     }
@@ -45,7 +43,7 @@ impl Metrics {
 impl fmt::Display for Metrics {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let elapsed = self.start_time.elapsed();
-        write!(f, "\t\tNumber of Functions: \t{}\n", self.num_processs)?;
+        write!(f, "\t\tNumber of Functions: \t{}\n", self.num_functions)?;
         write!(f, "\t\tOutputs sent: \t\t{}\n", self.outputs_sent)?;
         write!(f, "\t\tElapsed time(s): \t{:.*}", 9, elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9)
     }
@@ -67,7 +65,7 @@ impl fmt::Display for Metrics {
 /// use std::io;
 /// use std::io::Write;
 /// use flowrlib::function::Function;
-/// use flowrlib::runlist::run;
+/// use flowrlib::coordinator::run;
 /// use std::process::exit;
 /// use flowrlib::debug_client::DebugClient;
 ///
@@ -86,27 +84,27 @@ impl fmt::Display for Metrics {
 ///
 /// const CLI_DEBUG_CLIENT: &DebugClient = &CLIDebugClient{};
 ///
-/// let mut processes = Vec::<Arc<Mutex<Function>>>::new();
+/// let mut functions = Vec::<Arc<Mutex<Function>>>::new();
 ///
-/// run(processes, false /* print_metrics */, CLI_DEBUG_CLIENT, false /* use_debugger */);
+/// run(functions, false /* print_metrics */, CLI_DEBUG_CLIENT, false /* use_debugger */);
 ///
 /// exit(0);
 /// ```
-pub fn run(processes: Vec<Arc<Mutex<Function>>>, display_metrics: bool,
+pub fn run(functions: Vec<Arc<Mutex<Function>>>, display_metrics: bool,
            client: &'static DebugClient, use_debugger: bool) {
-    let mut run_list = RunList::new(client, processes, use_debugger);
+    let mut run_list = Coordinator::new(client, functions, use_debugger);
 
     run_list.run();
 
     if display_metrics {
         #[cfg(feature = "metrics")]
             run_list.print_metrics();
-        println!("\t\tFunction dispatches: \t{}\n", run_list.state.dispatches());
+        println!("\t\tJobs sent: \t{}\n", run_list.state.jobs());
     }
 }
 
-pub struct Dispatch {
-    pub id: usize,
+pub struct Job {
+    pub function_id: usize,
     pub implementation: Arc<Implementation>,
     pub input_values: Vec<Vec<Value>>,
     pub destinations: Vec<(String, usize, usize)>,
@@ -114,34 +112,34 @@ pub struct Dispatch {
 }
 
 pub struct Output {
-    pub id: usize,
+    pub function_id: usize,
     pub input_values: Vec<Vec<Value>>,
     pub result: (Option<Value>, bool),
     pub destinations: Vec<(String, usize, usize)>,
 }
 
 /*
-    RunList is a structure that maintains the state of all the processs in the currently
+    RunList is a structure that maintains the state of all the functions in the currently
     executing flow.
 
-    A process maybe blocking multiple others trying to send data to it.
-    Those others maybe blocked trying to send to multiple different processs.
+    A function maybe blocking multiple others trying to send data to it.
+    Those others maybe blocked trying to send to multiple different function.
 
-    processs:
-    A list of all the processs that could be executed at some point.
+    function:
+    A list of all the functions that could be executed at some point.
 
     inputs_satisfied:
-    A list of processs who's inputs are satisfied.
+    A list of functions who's inputs are satisfied.
 
     blocking:
-    A list of tuples of process ids where first id is id of the process data is trying to be sent
-    to, and the second id is the id of the process trying to send data.
+    A list of tuples of function ids where first id is id of the function data is trying to be sent
+    to, and the second id is the id of the function trying to send data.
 
     ready:
     A list of Processs who are ready to be run, they have their inputs satisfied and they are not
     blocked on the output (so their output can be produced).
 */
-struct RunList {
+struct Coordinator {
     pub state: RunState,
 
     #[cfg(feature = "metrics")]
@@ -151,29 +149,25 @@ struct RunList {
     #[cfg(feature = "debugger")]
     pub debugger: Debugger,
 
-    dispatch_tx: SyncSender<Dispatch>,
+    job_tx: SyncSender<Job>,
     output_rx: Receiver<Output>,
 }
 
-impl RefUnwindSafe for RunList {}
-
-impl UnwindSafe for RunList {}
-
-impl RunList {
-    fn new(client: &'static DebugClient, processes: Vec<Arc<Mutex<Function>>>, debugging: bool) -> Self {
-        let (dispatch_tx, dispatch_rx, ) = mpsc::sync_channel(1);
+impl Coordinator {
+    fn new(client: &'static DebugClient, functions: Vec<Arc<Mutex<Function>>>, debugging: bool) -> Self {
+        let (job_tx, job_rx, ) = mpsc::sync_channel(1);
         let (output_tx, output_rx) = mpsc::channel();
 
-        execution::looper(dispatch_rx, output_tx);
+        execution::looper(job_rx, output_tx);
 
-        RunList {
-            state: RunState::new(processes),
+        Coordinator {
+            state: RunState::new(functions),
             #[cfg(feature = "metrics")]
             metrics: Metrics::new(),
             debugging,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(client),
-            dispatch_tx,
+            job_tx,
             output_rx,
         }
     }
@@ -184,10 +178,10 @@ impl RunList {
 
         'outer: loop {
             debug!("Initializing all functions");
-            let num_processes = self.state.init();
+            let num_functions = self.state.init();
 
             if cfg!(feature = "metrics") {
-                self.metrics.reset(num_processes);
+                self.metrics.reset(num_functions);
             }
 
             debug!("Starting flow execution");
@@ -209,15 +203,15 @@ impl RunList {
                     }
                 }
 
-                let dispatch = self.dispatch(id);
+                let job = self.create_job(id);
 
-                let out = if dispatch.impure {
+                let out = if job.impure {
                     debug!("Dispatched on main thread");
-                    Ok(execution::execute(dispatch))
+                    Ok(execution::execute(job))
                 } else {
-                    match self.dispatch_tx.send(dispatch) {
+                    match self.job_tx.send(job) {
                         Ok(_) => debug!("Dispatched on executor thread"),
-                        Err(err) => error!("Error dispatching: {}", err)
+                        Err(err) => error!("Error sending: {}", err)
                     }
 
                     self.output_rx.recv()
@@ -248,49 +242,48 @@ impl RunList {
     }
 
     /*
-        Given a process id, dispatch it, preparing it for execution.
-        Return a tuple with all the information needed to execute it.
+        Given a function id, prepare a job for execution
     */
-    fn dispatch(&mut self, id: usize) -> Dispatch {
-        let process_arc = self.state.get(id);
-        let process: &mut Function = &mut *process_arc.lock().unwrap();
+    fn create_job(&mut self, id: usize) -> Job {
+        let function_arc = self.state.get(id);
+        let function: &mut Function = &mut *function_arc.lock().unwrap();
 
-        let input_values = process.get_input_values();
+        let input_values = function.get_input_values();
 
         self.state.unblock_senders_to(id);
-        debug!("Preparing function #{} '{}' for dispatch with inputs: {:?}", id, process.name(), input_values);
+        debug!("Preparing Job with function #{} '{}' with inputs: {:?}", id, function.name(), input_values);
 
-        let implementation = process.get_implementation();
+        let implementation = function.get_implementation();
 
         #[cfg(any(feature = "metrics", feature = "debugger"))]
-            self.state.increment_dispatches();
+            self.state.increment_jobs();
 
-        let destinations = process.output_destinations().clone();
+        let destinations = function.output_destinations().clone();
 
-        Dispatch { id, implementation, input_values, destinations, impure: process.is_impure() }
+        Job { function_id: id, implementation, input_values, destinations, impure: function.is_impure() }
     }
 
     /*
-        Take an output produced by a process and modify the runlist accordingly
-        If other processs were blocked trying to send to this one - we can now unblock them
+        Take an output produced by a function and modify the runlist accordingly
+        If other functions were blocked trying to send to this one - we can now unblock them
         as it has consumed it's inputs and they are free to be sent to again.
 
-        Then take the output and send it to all destination IOs on different processs it should be
-        sent to, marking the source process as blocked because those others must consume the output
-        if those other processs have all their inputs, then mark them accordingly.
+        Then take the output and send it to all destination IOs on different function it should be
+        sent to, marking the source function as blocked because those others must consume the output
+        if those other function have all their inputs, then mark them accordingly.
     */
     fn update_states(&mut self, output: Output, display_output: bool) {
         let output_value = output.result.0;
         let source_can_run_again = output.result.1;
 
-        debug!("\tCompleted Function #{}", output.id);
+        debug!("\tCompleted Function #{}", output.function_id);
         if cfg!(feature = "debugger") & &display_output {
-            self.debugger.client.display(&format!("Completed Function #{}\n", output.id));
+            self.debugger.client.display(&format!("Completed Function #{}\n", output.function_id));
         }
 
         // did it produce any output value
         if let Some(output_v) = output_value {
-            debug!("\tProcessing output '{}' from Function #{}", output_v, output.id);
+            debug!("\tProcessing output '{}' from Function #{}", output_v, output.function_id);
 
             if cfg!(feature="debugger") && display_output {
                 self.debugger.client.display(&format!("\tProduced output {}\n", &output_v));
@@ -301,14 +294,14 @@ impl RunList {
                 let mut destination = destination_arc.lock().unwrap();
                 let output_value = output_v.pointer(&output_route).unwrap();
                 debug!("\t\tFunction #{} sent value '{}' via output route '{}' to Function #{} '{}' input :{}",
-                       output.id, output_value, output_route, &destination_id, destination.name(), &io_number);
+                       output.function_id, output_value, output_route, &destination_id, destination.name(), &io_number);
                 if cfg!(feature="debugger") && display_output {
                     self.debugger.client.display(
                         &format!("\t\tSending to {}:{}\n", destination_id, io_number));
                 }
 
                 #[cfg(feature = "debugger")]
-                    self.debugger.watch_data(&mut self.state, output.id, output_route,
+                    self.debugger.watch_data(&mut self.state, output.function_id, output_route,
                                              &output_value, destination_id, io_number);
 
                 destination.write_input(io_number, output_value.clone());
@@ -317,16 +310,16 @@ impl RunList {
                     self.increment_outputs_sent();
 
                 if destination.input_full(io_number) {
-                    self.state.set_blocked_by(destination_id, output.id);
+                    self.state.set_blocked_by(destination_id, output.function_id);
                     #[cfg(feature = "debugger")]
-                        self.debugger.check_block(&mut self.state, destination_id, output.id);
+                        self.debugger.check_block(&mut self.state, destination_id, output.function_id);
                 }
 
-                // for the case when a process is sending to itself, delay determining if it should
+                // for the case when a function is sending to itself, delay determining if it should
                 // be in the blocked or will_run lists until it has sent all it's other outputs
-                // as it might be blocked by another process.
+                // as it might be blocked by another function.
                 // Iif not, this will be fixed in the "if source_can_run_again {" block below
-                if destination.can_run() && (output.id != destination_id) {
+                if destination.can_run() && (output.function_id != destination_id) {
                     self.state.inputs_ready(destination_id);
                 }
             }
@@ -335,19 +328,19 @@ impl RunList {
         // if it wants to run again, and after possibly refreshing any constant inputs, it can
         // (it's inputs are ready) then add back to the Will Run list
         if source_can_run_again {
-            let source_arc = self.state.get(output.id);
+            let source_arc = self.state.get(output.function_id);
             let mut source = source_arc.lock().unwrap();
 
             // refresh any constant inputs it may have
             source.refresh_constant_inputs();
 
             if source.can_run() {
-                self.state.inputs_ready(output.id);
+                self.state.inputs_ready(output.function_id);
             }
         }
 
         // remove from the running list
-        self.state.done(output.id);
+        self.state.done(output.function_id);
     }
 
     #[cfg(feature = "metrics")]
@@ -367,6 +360,6 @@ fn test_metrics_reset() {
     metrics.outputs_sent = 10;
     metrics.reset(10);
     assert_eq!(metrics.outputs_sent, 0);
-    assert_eq!(metrics.num_processs, 10);
+    assert_eq!(metrics.num_functions, 10);
 }
 

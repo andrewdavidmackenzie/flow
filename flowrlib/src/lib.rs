@@ -16,7 +16,7 @@ extern crate wasmi;
 
 pub mod info;
 pub mod url;
-pub mod runlist;
+pub mod coordinator;
 pub mod implementation;
 pub mod implementation_table;
 pub mod function;

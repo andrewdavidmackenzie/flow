@@ -78,7 +78,7 @@ flowrlib:
 travis: clean test guide
 
 #################### Tests ####################
-test: test-workspace test-web test-flowclib test-flowstdlib test-flowrlib samples
+test: test-workspace test-web test-flowclib test-flowstdlib test-flowrlib test-provider samples
 # TYODO add online-samples
 	@echo ""
 	@echo "------- Done    test: -------------"
@@ -100,6 +100,9 @@ test-flowstdlib:
 
 test-flowrlib:
 	cd flowrlib && make test
+
+test-provider:
+	cd flowrlib && cargo test
 
 #################### Raspberry Pi ####################
 #TODO map the cargo cache as a volume to avoid re-downloading and compiling every time.

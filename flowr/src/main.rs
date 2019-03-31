@@ -15,10 +15,10 @@ use std::io::Write;
 use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
+use flowrlib::coordinator::run;
 use flowrlib::debug_client::DebugClient;
 use flowrlib::info;
 use flowrlib::loader::Loader;
-use flowrlib::runlist::run;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 

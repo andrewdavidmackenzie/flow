@@ -1,10 +1,10 @@
 use std::panic;
-use runlist::Dispatch;
-use runlist::Output;
+use coordinator::Job;
+use coordinator::Output;
 use std::sync::mpsc::{Sender, Receiver};
 use std::thread;
 
-pub fn looper(dispatch_rx: Receiver<Dispatch>, output_tx: Sender<Output>) {
+pub fn looper(dispatch_rx: Receiver<Job>, output_tx: Sender<Output>) {
     thread::spawn(move || {
         set_panic_hook();
 
@@ -23,12 +23,12 @@ pub fn looper(dispatch_rx: Receiver<Dispatch>, output_tx: Sender<Output>) {
     });
 }
 
-pub fn execute(dispatch: Dispatch) -> Output {
+pub fn execute(dispatch: Job) -> Output {
     // Run the implementation with the input values and catch the execution result
     let result = dispatch.implementation.run(dispatch.input_values.clone());
 
     return Output {
-        id: dispatch.id,
+        function_id: dispatch.function_id,
         input_values: dispatch.input_values,
         result,
         destinations: dispatch.destinations,
@@ -41,7 +41,6 @@ pub fn execute(dispatch: Dispatch) -> Output {
 */
 fn set_panic_hook() {
     panic::set_hook(Box::new(|panic_info| {
-        error!("{:?}", panic_info.payload());
         if let Some(location) = panic_info.location() {
             error!("panic occurred in file '{}' at line {}", location.file(), location.line());
         } else {

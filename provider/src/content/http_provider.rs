@@ -51,7 +51,6 @@ impl HttpProvider {
 #[cfg(test)]
 mod test {
     use flowrlib::provider::Provider;
-    use url::Url;
 
     use super::HttpProvider;
 

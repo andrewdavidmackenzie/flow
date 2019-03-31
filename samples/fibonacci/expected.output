@@ -88,7 +88,6 @@
 1100087778366101931
 1779979416004714189
 2880067194370816120
-ERROR	- Any
 ERROR	- panic occurred in file 'flowstdlib/src/math/add.rs' at line 22
 4660046610375530309
-ERROR	- Error dispatching: sending on a closed channel
+ERROR	- Error sending: sending on a closed channel
