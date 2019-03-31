@@ -16,18 +16,19 @@ extern crate wasmi;
 
 pub mod info;
 pub mod url;
-pub mod execution;
-mod runlist;
-mod run_state;
+pub mod runlist;
 pub mod implementation;
 pub mod implementation_table;
-pub mod process;
+pub mod function;
 pub mod manifest;
 pub mod input;
 pub mod loader;
 pub mod provider;
-mod wasm;
 #[cfg(feature = "debugger")]
 pub mod debugger;
 #[cfg(feature = "debugger")]
 pub mod debug_client;
+
+mod execution;
+mod wasm;
+mod run_state;

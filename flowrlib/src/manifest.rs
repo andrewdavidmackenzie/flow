@@ -1,4 +1,4 @@
-use process::Process;
+use function::Function;
 use provider::Provider;
 
 pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest.json";
@@ -13,15 +13,15 @@ Things to add to the manifest
 
 #[derive(Deserialize, Serialize)]
 pub struct Manifest {
-    pub processes: Vec<Process>
+    pub functions: Vec<Function>
 }
 
 impl Manifest {
     pub fn new() -> Self {
-        let processes=  Vec::<Process>::new();
+        let processes=  Vec::<Function>::new();
 
         Manifest {
-            processes
+            functions: processes
         }
     }
 

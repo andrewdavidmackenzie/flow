@@ -1,4 +1,4 @@
-use process::Process;
+use function::Function;
 use serde_json::Value;
 use std::panic::RefUnwindSafe;
 use std::panic::UnwindSafe;
@@ -12,13 +12,13 @@ use std::fmt;
 use std::time::Instant;
 use debug_client::DebugClient;
 use run_state::RunState;
-use std::panic;
-use std::any::Any;
-use std::marker::Send;
 use implementation::Implementation;
+use execution;
+use std::sync::mpsc::{SyncSender, Receiver};
+use std::sync::mpsc;
 
 #[cfg(feature = "metrics")]
-pub struct Metrics {
+struct Metrics {
     num_processs: usize,
     outputs_sent: u32,
     start_time: Instant,
@@ -51,6 +51,75 @@ impl fmt::Display for Metrics {
     }
 }
 
+/// The generated code for a flow consists of a list of Functions.
+///
+/// This list is built program start-up in `main` which then starts execution of the flow by calling
+/// this `execute` method.
+///
+/// You should not have to write code to call `execute` yourself, it will be called from the
+/// generated code in the `main` method.
+///
+/// On completion of the execution of the flow it will return and `main` will call `exit`
+///
+/// # Example
+/// ```
+/// use std::sync::{Arc, Mutex};
+/// use std::io;
+/// use std::io::Write;
+/// use flowrlib::function::Function;
+/// use flowrlib::runlist::run;
+/// use std::process::exit;
+/// use flowrlib::debug_client::DebugClient;
+///
+/// struct CLIDebugClient {}
+///
+/// impl DebugClient for CLIDebugClient {
+///    fn display(&self, output: &str) {
+///        print!("{}", output);
+///        io::stdout().flush().unwrap();
+///    }
+///
+///    fn read_input(&self, input: &mut String) -> io::Result<usize> {
+///        io::stdin().read_line(input)
+///    }
+/// }
+///
+/// const CLI_DEBUG_CLIENT: &DebugClient = &CLIDebugClient{};
+///
+/// let mut processes = Vec::<Arc<Mutex<Function>>>::new();
+///
+/// run(processes, false /* print_metrics */, CLI_DEBUG_CLIENT, false /* use_debugger */);
+///
+/// exit(0);
+/// ```
+pub fn run(processes: Vec<Arc<Mutex<Function>>>, display_metrics: bool,
+           client: &'static DebugClient, use_debugger: bool) {
+    let mut run_list = RunList::new(client, processes, use_debugger);
+
+    run_list.run();
+
+    if display_metrics {
+        #[cfg(feature = "metrics")]
+            run_list.print_metrics();
+        println!("\t\tFunction dispatches: \t{}\n", run_list.state.dispatches());
+    }
+}
+
+pub struct Dispatch {
+    pub id: usize,
+    pub implementation: Arc<Implementation>,
+    pub input_values: Vec<Vec<Value>>,
+    pub destinations: Vec<(String, usize, usize)>,
+    pub impure: bool,
+}
+
+pub struct Output {
+    pub id: usize,
+    pub input_values: Vec<Vec<Value>>,
+    pub result: (Option<Value>, bool),
+    pub destinations: Vec<(String, usize, usize)>,
+}
+
 /*
     RunList is a structure that maintains the state of all the processs in the currently
     executing flow.
@@ -72,7 +141,7 @@ impl fmt::Display for Metrics {
     A list of Processs who are ready to be run, they have their inputs satisfied and they are not
     blocked on the output (so their output can be produced).
 */
-pub struct RunList {
+struct RunList {
     pub state: RunState,
 
     #[cfg(feature = "metrics")]
@@ -81,6 +150,9 @@ pub struct RunList {
     debugging: bool,
     #[cfg(feature = "debugger")]
     pub debugger: Debugger,
+
+    dispatch_tx: SyncSender<Dispatch>,
+    output_rx: Receiver<Output>,
 }
 
 impl RefUnwindSafe for RunList {}
@@ -88,7 +160,12 @@ impl RefUnwindSafe for RunList {}
 impl UnwindSafe for RunList {}
 
 impl RunList {
-    pub fn new(client: &'static DebugClient, processes: Vec<Arc<Mutex<Process>>>, debugging: bool) -> Self {
+    fn new(client: &'static DebugClient, processes: Vec<Arc<Mutex<Function>>>, debugging: bool) -> Self {
+        let (dispatch_tx, dispatch_rx, ) = mpsc::sync_channel(1);
+        let (output_tx, output_rx) = mpsc::channel();
+
+        execution::looper(dispatch_rx, output_tx);
+
         RunList {
             state: RunState::new(processes),
             #[cfg(feature = "metrics")]
@@ -96,10 +173,12 @@ impl RunList {
             debugging,
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(client),
+            dispatch_tx,
+            output_rx,
         }
     }
 
-    pub fn run(&mut self) {
+    fn run(&mut self) {
         let mut display_output;
         let mut restart;
 
@@ -130,12 +209,23 @@ impl RunList {
                     }
                 }
 
-                let (implementation, input_values, destinations) = self.dispatch(id);
+                let dispatch = self.dispatch(id);
 
-                // TODO these next two would be done sending and receiving on a channel to an executor
-                let (source_id, source_input_values, result, destinations) = Self::execute(id, implementation, input_values, destinations);
+                let out = if dispatch.impure {
+                    debug!("Dispatched on main thread");
+                    Ok(execution::execute(dispatch))
+                } else {
+                    match self.dispatch_tx.send(dispatch) {
+                        Ok(_) => debug!("Dispatched on executor thread"),
+                        Err(err) => error!("Error dispatching: {}", err)
+                    }
 
-                self.update_states(source_id, source_input_values, destinations, result, display_output);
+                    self.output_rx.recv()
+                };
+
+                if let Ok(output) = out {
+                    self.update_states(output, display_output);
+                }
             }
 
             if !restart {
@@ -161,16 +251,14 @@ impl RunList {
         Given a process id, dispatch it, preparing it for execution.
         Return a tuple with all the information needed to execute it.
     */
-    fn dispatch(&mut self, id: usize)
-                -> (Arc<Implementation>, Vec<Vec<Value>>, Vec<(String, usize, usize)>) {
+    fn dispatch(&mut self, id: usize) -> Dispatch {
         let process_arc = self.state.get(id);
-        let process: &mut Process = &mut *process_arc.lock().unwrap();
-        debug!("Function #{} '{}' dispatched", id, process.name());
+        let process: &mut Function = &mut *process_arc.lock().unwrap();
 
         let input_values = process.get_input_values();
 
         self.state.unblock_senders_to(id);
-        debug!("\tFunction #{} '{}' running with inputs: {:?}", id, process.name(), input_values);
+        debug!("Preparing function #{} '{}' for dispatch with inputs: {:?}", id, process.name(), input_values);
 
         let implementation = process.get_implementation();
 
@@ -179,20 +267,7 @@ impl RunList {
 
         let destinations = process.output_destinations().clone();
 
-        (implementation, input_values, destinations)
-    }
-
-    // TODO send everything to be executed through a channel to the executor
-    // TODO this part would go into the executor thread on the other end of a channel
-    fn execute(id: usize,
-               implementation: Arc<Implementation>,
-               input_values: Vec<Vec<Value>>,
-               destinations: Vec<(String, usize, usize)>)
-               -> (usize, Vec<Vec<Value>>, Result<(Option<Value>, bool), Box<Any + Send>>, Vec<(String, usize, usize)>) {
-        let result = panic::catch_unwind(|| { implementation.run(input_values.clone()) });
-
-        // TODO return via a channel, even if there is no output value, so coordinator knows it completed
-        return (id, input_values, result, destinations);
+        Dispatch { id, implementation, input_values, destinations, impure: process.is_impure() }
     }
 
     /*
@@ -204,91 +279,79 @@ impl RunList {
         sent to, marking the source process as blocked because those others must consume the output
         if those other processs have all their inputs, then mark them accordingly.
     */
-    pub fn update_states(&mut self,
-                         source_id: usize,
-                         input_values: Vec<Vec<Value>>,
-                         destinations: Vec<(String, usize, usize)>,
-                         result: Result<(Option<Value>, bool), Box<Any + std::marker::Send>>,
-                         display_output: bool) {
-        match result {
-            Err(cause) => {
-                if cfg!(feature = "debugger") & &self.debugging {
-                    #[cfg(feature = "debugger")]
-                        self.debugger.panic(&mut self.state, cause, source_id, input_values.clone());
-                }
+    fn update_states(&mut self, output: Output, display_output: bool) {
+        let output_value = output.result.0;
+        let source_can_run_again = output.result.1;
+
+        debug!("\tCompleted Function #{}", output.id);
+        if cfg!(feature = "debugger") & &display_output {
+            self.debugger.client.display(&format!("Completed Function #{}\n", output.id));
+        }
+
+        // did it produce any output value
+        if let Some(output_v) = output_value {
+            debug!("\tProcessing output '{}' from Function #{}", output_v, output.id);
+
+            if cfg!(feature="debugger") && display_output {
+                self.debugger.client.display(&format!("\tProduced output {}\n", &output_v));
             }
 
-            // If it ran to completion and didn't crash - then process the output and update state
-            Ok((output_value, source_can_run_again)) => {
-                debug!("\tCompleted Function #{}", source_id);
-                if cfg!(feature = "debugger") & &display_output {
-                    self.debugger.client.display(&format!("Completed Function #{}\n", source_id));
+            for (ref output_route, destination_id, io_number) in output.destinations {
+                let destination_arc = self.state.get(destination_id);
+                let mut destination = destination_arc.lock().unwrap();
+                let output_value = output_v.pointer(&output_route).unwrap();
+                debug!("\t\tFunction #{} sent value '{}' via output route '{}' to Function #{} '{}' input :{}",
+                       output.id, output_value, output_route, &destination_id, destination.name(), &io_number);
+                if cfg!(feature="debugger") && display_output {
+                    self.debugger.client.display(
+                        &format!("\t\tSending to {}:{}\n", destination_id, io_number));
                 }
 
-                if let Some(output) = output_value {
-                    debug!("\tProcessing output '{}' from Function #{}", output, source_id);
+                #[cfg(feature = "debugger")]
+                    self.debugger.watch_data(&mut self.state, output.id, output_route,
+                                             &output_value, destination_id, io_number);
 
-                    if cfg!(feature="debugger") && display_output {
-                        self.debugger.client.display(&format!("\tProduced output {}\n", &output));
-                    }
+                destination.write_input(io_number, output_value.clone());
 
-                    for (ref output_route, destination_id, io_number) in destinations {
-                        let destination_arc = self.state.get(destination_id);
-                        let mut destination = destination_arc.lock().unwrap();
-                        let output_value = output.pointer(&output_route).unwrap();
-                        debug!("\t\tFunction #{} sent value '{}' via output route '{}' to Function #{} '{}' input :{}",
-                               source_id, output_value, output_route, &destination_id, destination.name(), &io_number);
-                        if cfg!(feature="debugger") && display_output {
-                            self.debugger.client.display(
-                                &format!("\t\tSending to {}:{}\n", destination_id, io_number));
-                        }
+                #[cfg(feature = "metrics")]
+                    self.increment_outputs_sent();
 
-                        #[cfg(feature = "debugger")]
-                            self.debugger.watch_data(&mut self.state, source_id, output_route,
-                                                     &output_value, destination_id, io_number);
-
-                        destination.write_input(io_number, output_value.clone());
-
-                        #[cfg(feature = "metrics")]
-                            self.increment_outputs_sent();
-
-                        if destination.input_full(io_number) {
-                            self.state.set_blocked_by(destination_id, source_id);
-                            #[cfg(feature = "debugger")]
-                                self.debugger.check_block(&mut self.state, destination_id, source_id);
-                        }
-
-                        // for the case when a process is sending to itself, delay determining if it should
-                        // be in the blocked or will_run lists until it has sent all it's other outputs
-                        // as it might be blocked by another process.
-                        // Iif not, this will be fixed in the "if source_can_run_again {" block below
-                        if destination.can_run() && (source_id != destination_id) {
-                            self.state.inputs_ready(destination_id);
-                        }
-                    }
+                if destination.input_full(io_number) {
+                    self.state.set_blocked_by(destination_id, output.id);
+                    #[cfg(feature = "debugger")]
+                        self.debugger.check_block(&mut self.state, destination_id, output.id);
                 }
 
-                // if it wants to run again, and after possibly refreshing any constant inputs, it can
-                // (it's inputs are ready) then add back to the Will Run list
-                if source_can_run_again {
-                    let source_arc = self.state.get(source_id);
-                    let mut source = source_arc.lock().unwrap();
-
-                    // refresh any constant inputs it may have
-                    source.refresh_constant_inputs();
-
-                    if source.can_run() {
-                        self.state.inputs_ready(source_id);
-                    }
+                // for the case when a process is sending to itself, delay determining if it should
+                // be in the blocked or will_run lists until it has sent all it's other outputs
+                // as it might be blocked by another process.
+                // Iif not, this will be fixed in the "if source_can_run_again {" block below
+                if destination.can_run() && (output.id != destination_id) {
+                    self.state.inputs_ready(destination_id);
                 }
-
-                self.state.done(source_id);
             }
         }
+
+        // if it wants to run again, and after possibly refreshing any constant inputs, it can
+        // (it's inputs are ready) then add back to the Will Run list
+        if source_can_run_again {
+            let source_arc = self.state.get(output.id);
+            let mut source = source_arc.lock().unwrap();
+
+            // refresh any constant inputs it may have
+            source.refresh_constant_inputs();
+
+            if source.can_run() {
+                self.state.inputs_ready(output.id);
+            }
+        }
+
+        // remove from the running list
+        self.state.done(output.id);
     }
 
     #[cfg(feature = "metrics")]
-    pub fn print_metrics(&self) {
+    fn print_metrics(&self) {
         println!("\nMetrics: \n {}", self.metrics);
     }
 

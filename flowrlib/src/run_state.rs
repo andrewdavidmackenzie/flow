@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use std::collections::HashSet;
-use process::Process;
+use function::Function;
 
 #[derive(Debug)]
 enum State {
@@ -14,7 +14,7 @@ enum State {
 }
 
 pub struct RunState {
-    processes: Vec<Arc<Mutex<Process>>>,
+    processes: Vec<Arc<Mutex<Function>>>,
     blocked: HashSet<usize>,
     // blocked: HashSet<process_id>
     blocking: Vec<(usize, usize)>,
@@ -27,7 +27,7 @@ pub struct RunState {
 }
 
 impl RunState {
-    pub fn new(processes: Vec<Arc<Mutex<Process>>>) -> Self {
+    pub fn new(processes: Vec<Arc<Mutex<Function>>>) -> Self {
         RunState {
             processes,
             blocked: HashSet::<usize>::new(),
@@ -133,7 +133,7 @@ impl RunState {
         self.dispatches += 1;
     }
 
-    pub fn get(&self, id: usize) -> Arc<Mutex<Process>> {
+    pub fn get(&self, id: usize) -> Arc<Mutex<Function>> {
         self.processes[id].clone()
     }
 
@@ -287,29 +287,29 @@ impl RunState {
 #[cfg(test)]
 mod tests {
     use std::sync::{Arc, Mutex};
-    use process::Process;
+    use function::Function;
     use super::RunState;
 
-    fn test_processes<'a>() -> Vec<Arc<Mutex<Process>>> {
+    fn test_processes<'a>() -> Vec<Arc<Mutex<Function>>> {
         let p0 = Arc::new(Mutex::new(
-            Process::new("p0".to_string(), // name
+            Function::new("p0".to_string(), // name
                          "/context/p0".to_string(),
-                         "/test".to_string(),
-                         vec!(), // input depths array
+                          "/test".to_string(),
+                          false, vec!(), // input depths array
                          0,    // id
                          vec!(("".to_string(), 1, 0), ("".to_string(), 1, 0)), // destinations
             )));    // implementation
-        let p1 = Arc::new(Mutex::new(Process::new("p1".to_string(),
-                                                  "/context/p1".to_string(),
-                                                  "/test".to_string(),
-                                                  vec!((1, None)), // inputs array
+        let p1 = Arc::new(Mutex::new(Function::new("p1".to_string(),
+                                                   "/context/p1".to_string(),
+                                                   "/test".to_string(),
+                                                   false, vec!((1, None)), // inputs array
                                                   1,    // id
                                                   vec!(),
         )));
-        let p2 = Arc::new(Mutex::new(Process::new("p2".to_string(),
-                                                  "/context/p2".to_string(),
-                                                  "/test".to_string(),
-                                                  vec!((1, None)), // inputs array
+        let p2 = Arc::new(Mutex::new(Function::new("p2".to_string(),
+                                                   "/context/p2".to_string(),
+                                                   "/test".to_string(),
+                                                   false, vec!((1, None)), // inputs array
                                                   2,    // id
                                                   vec!(),
         )));

@@ -78,7 +78,7 @@ flowrlib:
 travis: clean test guide
 
 #################### Tests ####################
-test: test-workspace test-web test-flowclib test-flowstdlib test-flowrlib local-samples
+test: test-workspace test-web test-flowclib test-flowstdlib test-flowrlib samples
 # TYODO add online-samples
 	@echo ""
 	@echo "------- Done    test: -------------"
@@ -117,10 +117,10 @@ copy:
 # make paths - to compile all samples found in there. Avoid files using the filter.
 sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
-local-samples: $(sample_flows)  # This target must be below sample-flows in the Makefile
+samples: $(sample_flows)  # This target must be below sample-flows in the Makefile
 	@echo ""
 	@echo "All local samples executed and output as expected"
-	@echo "------- Finished 'local-samples:' ----"
+	@echo "------- Finished 'samples:' ----"
 
 samples/%/test.output: samples/%/test.input samples/%/test.arguments
 	@echo "\n------- Compiling and Running '$(@D)' ----"

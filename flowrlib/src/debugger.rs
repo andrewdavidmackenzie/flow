@@ -4,7 +4,6 @@ use run_state::RunState;
 use std::collections::HashSet;
 use serde_json::Value;
 use std::fmt;
-use std::any::Any;
 
 pub struct Debugger {
     pub client: &'static DebugClient,
@@ -118,10 +117,9 @@ impl Debugger {
         }
     }
 
-    pub fn panic(&mut self, state: &mut RunState, cause: Box<Any + std::marker::Send>,
-                 id: usize, inputs: Vec<Vec<Value>>) {
-        self.client.display(&format!("Panic occurred in implementation. \nCause = {:?}", cause));
-        self.client.display(&format!("Entering debugger\nProcess #{} with inputs: {:?}\n", id, inputs));
+    pub fn panic(&mut self, state: &mut RunState, id: usize, inputs: &Vec<Vec<Value>>) {
+        self.client.display("Entering debugger\n");
+        self.client.display(&format!("Process #{} ran with inputs: {:?}\n", id, inputs.clone()));
         self.command_loop(state);
     }
 

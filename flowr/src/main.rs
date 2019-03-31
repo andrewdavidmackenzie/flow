@@ -16,9 +16,9 @@ use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
 use flowrlib::debug_client::DebugClient;
-use flowrlib::execution::execute;
 use flowrlib::info;
 use flowrlib::loader::Loader;
+use flowrlib::runlist::run;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
@@ -58,19 +58,22 @@ fn main() -> Result<(), String> {
 
     let cwd = cwd_as_url()?;
 
-    // Load standard library functions we always want - flowr
+    // Load library functions from 'flowr'
     loader.add_lib(&provider, ::ilt::get_ilt(), &cwd.to_string())?;
 
-    // Load standard library functions we always want - flowstdlib
+    // Load standard library functions from flowstdlib
     // For now we are passing in a fake ilt.json file so the basepath for finding wasm files works.
     loader.add_lib(&provider, flowstdlib::ilt::get_ilt(),
                    &format!("{}flowstdlib/ilt.json", cwd.to_string()))?;
 
-    loader.load_flow(&provider, &url.to_string())?;
+    // Load the list of processes to be run from the manifest
+    loader.load_manifest(&provider, &url.to_string())?;
 
     let debugger = matches.is_present("debugger");
     let metrics = matches.is_present("metrics");
-    execute(loader.processes, metrics, CLI_DEBUG_CLIENT, debugger);
+
+    // run the set of flow processes
+    run(loader.processes, metrics, CLI_DEBUG_CLIENT, debugger);
 
     exit(0);
 }
