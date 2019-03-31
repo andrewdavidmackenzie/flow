@@ -45,12 +45,7 @@ pub fn cwd_as_url() -> Result<Url, String> {
 mod test {
     extern crate url;
 
-    use std::fs;
-    use std::io::Write;
     use std::path;
-
-    use tempdir::TempDir;
-    use url::Url;
 
     use super::cwd_as_url;
     use super::url_from_string;
@@ -61,7 +56,7 @@ mod test {
     fn no_arg_returns_parent() {
         let url = url_from_string(None).unwrap();
 
-        let cwd = cwd_as_url();
+        let cwd = cwd_as_url().unwrap();
         assert_eq!(url, cwd);
     }
 

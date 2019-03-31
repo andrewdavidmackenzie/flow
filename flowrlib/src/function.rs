@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::fmt;
 
 #[derive(Deserialize, Serialize)]
-pub struct Process {
+pub struct Function {
     #[cfg(feature = "debugger")]
     #[serde(default, skip_serializing_if = "String::is_empty")]
     name: String,
@@ -27,8 +27,11 @@ pub struct Process {
     output_routes: Vec<(String, usize, usize)>,
 
     #[serde(skip)]
-    #[serde(default = "Process::default_implementation")]
+    #[serde(default = "Function::default_implementation")]
     implementation: Arc<Implementation>,
+
+    #[serde(default, skip_serializing_if = "Self::is_pure")]
+    impure: bool
 }
 
 struct ImplementationNotFound;
@@ -41,9 +44,9 @@ impl Implementation for ImplementationNotFound {
 }
 
 #[cfg(feature = "debugger")]
-impl fmt::Display for Process {
+impl fmt::Display for Function {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Process #{} '{}'\n", self.id, self.name)?;
+        write!(f, "Function #{} '{}'\n", self.id, self.name)?;
         for (number, input) in self.inputs.iter().enumerate() {
             if input.is_empty() {
                 write!(f, "\tInput #{}: empty\n", number)?;
@@ -58,28 +61,30 @@ impl fmt::Display for Process {
     }
 }
 
-impl Process {
+impl Function {
     pub fn new(name: String,
                route: String,
                implementation_source: String,
-               process_inputs: Vec<(usize, Option<InputInitializer>)>,
+               impure: bool,
+               inputs: Vec<(usize, Option<InputInitializer>)>,
                id: usize,
-               output_routes: Vec<(String, usize, usize)>) -> Process {
-        let implementation = Process::default_implementation();
+               output_routes: Vec<(String, usize, usize)>) -> Function {
+        let implementation = Function::default_implementation();
 
-        let mut process = Process {
+        let mut function = Function {
             name,
             route,
             id,
             implementation_source,
             implementation,
             output_routes,
-            inputs: Vec::with_capacity(process_inputs.len()),
+            inputs: Vec::with_capacity(inputs.len()),
+            impure,
         };
 
-        process.setup_inputs(process_inputs);
+        function.setup_inputs(inputs);
 
-        process
+        function
     }
 
     /*
@@ -92,7 +97,7 @@ impl Process {
     }
 
     pub fn default_implementation() -> Arc<Implementation> {
-        Arc::new(super::process::ImplementationNotFound {})
+        Arc::new(super::function::ImplementationNotFound {})
     }
 
     // Create the set of inputs, each with appropriate depth
@@ -139,11 +144,15 @@ impl Process {
         &self.implementation_source
     }
 
+    pub fn is_impure(&self) -> bool { self.impure }
+
+    pub fn is_pure(field: &bool) -> bool { !*field }
+
     pub fn write_input(&mut self, input_number: usize, input_value: Value) {
         if !self.inputs[input_number].full() {
             self.inputs[input_number].push(input_value);
         } else {
-            error!("\t\t\tProcess #{} '{}' Input overflow on input number {}", self.id(), self.name(), input_number);
+            error!("\t\t\tFunction #{} '{}' Input overflow on input number {}", self.id(), self.name(), input_number);
         }
     }
 
@@ -151,7 +160,6 @@ impl Process {
         self.output_routes.clone()
     }
 
-    // TODO change to just return a reference to Implementation, doesn't need to be ref counted?
     pub fn get_implementation(&self) -> Arc<Implementation> {
         self.implementation.clone()
     }
@@ -191,7 +199,7 @@ impl Process {
 #[cfg(test)]
 mod test {
     use serde_json::value::Value as Value;
-    use super::Process;
+    use super::Function;
 
     #[test]
     fn destructure_output_base_route() {
@@ -215,10 +223,11 @@ mod test {
 
     #[test]
     fn can_send_input_if_empty() {
-        let mut process = Process::new("test".to_string(),
-                                       "/context/test".to_string(),
-                                       "/test".to_string(), vec!((1, None)), 0,
-                                       vec!());
+        let mut process = Function::new("test".to_string(),
+                                        "/context/test".to_string(),
+                                        "/test".to_string(), false,
+                                        vec!((1, None)), 0,
+                                        vec!());
         process.init();
         process.write_input(0, json!(1));
         assert_eq!(process.get_input_values().remove(0).remove(0), json!(1));
@@ -226,10 +235,11 @@ mod test {
 
     #[test]
     fn cannot_send_input_if_full() {
-        let mut process = Process::new("test".to_string(),
-                                       "/context/test".to_string(),
-                                       "/test".to_string(), vec!((1, None)), 0,
-                                       vec!());
+        let mut process = Function::new("test".to_string(),
+                                        "/context/test".to_string(),
+                                        "/test".to_string(), false,
+                                        vec!((1, None)), 0,
+                                        vec!());
         process.init();
         process.write_input(0, json!(1)); // success
         process.write_input(0, json!(2)); // fail

@@ -4,7 +4,6 @@ use run_state::RunState;
 use std::collections::HashSet;
 use serde_json::Value;
 use std::fmt;
-use std::any::Any;
 
 pub struct Debugger {
     pub client: &'static DebugClient,
@@ -89,7 +88,7 @@ impl Debugger {
         return true if the debugger requests that we display the output of the next dispatch
     */
     pub fn check(&mut self, state: &mut RunState, next_process_id: usize) -> (bool, bool) {
-        if self.break_at_invocation == state.dispatches() ||
+        if self.break_at_invocation == state.jobs() ||
             self.process_breakpoints.contains(&next_process_id) {
             self.client.display("Dispatching process:\n");
             self.print(state, Some(Param::Numeric(next_process_id)));
@@ -118,10 +117,9 @@ impl Debugger {
         }
     }
 
-    pub fn panic(&mut self, state: &mut RunState, cause: Box<Any + std::marker::Send>,
-                 id: usize, inputs: Vec<Vec<Value>>) {
-        self.client.display(&format!("Panic occurred in implementation. \nCause = {:?}", cause));
-        self.client.display(&format!("Entering debugger\nProcess #{} with inputs: {:?}\n", id, inputs));
+    pub fn panic(&mut self, state: &mut RunState, id: usize, inputs: &Vec<Vec<Value>>) {
+        self.client.display("Entering debugger\n");
+        self.client.display(&format!("Process #{} ran with inputs: {:?}\n", id, inputs.clone()));
         self.command_loop(state);
     }
 
@@ -136,7 +134,7 @@ impl Debugger {
     */
     pub fn command_loop(&mut self, state: &mut RunState) -> (bool, bool) {
         loop {
-            self.client.display(&format!("Debug #{}> ", state.dispatches()));
+            self.client.display(&format!("Debug #{}> ", state.jobs()));
             let mut input = String::new();
             match self.client.read_input(&mut input) {
                 Ok(_n) => {
@@ -172,7 +170,7 @@ impl Debugger {
         match param {
             None => self.client.display("'break' command must specify a process id to break on"),
             Some(Param::Numeric(process_id)) => {
-                if process_id > state.num_processes() {
+                if process_id > state.num_functions() {
                     self.client.display(
                         &format!("There is no process with id '{}' to set a breakpoint on\n", process_id));
                 } else {
@@ -357,7 +355,7 @@ impl Debugger {
     }
 
     fn print_all_processes(&self, state: &RunState) {
-        for id in 0..state.num_processes() {
+        for id in 0..state.num_functions() {
             self.print_process(state, id);
         }
     }
@@ -377,8 +375,8 @@ impl Debugger {
 
     fn step(&mut self, state: &RunState, steps: Option<Param>) {
         match steps {
-            None => self.break_at_invocation = state.dispatches() + 1,
-            Some(Param::Numeric(steps)) => self.break_at_invocation = state.dispatches() + steps,
+            None => self.break_at_invocation = state.jobs() + 1,
+            Some(Param::Numeric(steps)) => self.break_at_invocation = state.jobs() + steps,
             _ => self.client.display("Did not understand step command parameter\n")
         }
     }

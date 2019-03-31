@@ -1,41 +1,41 @@
 use std::sync::{Arc, Mutex};
 use std::collections::HashSet;
-use process::Process;
+use function::Function;
 
 #[derive(Debug)]
 enum State {
     Ready,
     // ready to run
     Blocked,
-    // cannot run as output is blocked by another process
+    // cannot run as output is blocked by another function
     Waiting,
     // waiting for inputs to arrive
     Running,     //is being run somewhere
 }
 
 pub struct RunState {
-    processes: Vec<Arc<Mutex<Process>>>,
+    functions: Vec<Arc<Mutex<Function>>>,
     blocked: HashSet<usize>,
-    // blocked: HashSet<process_id>
+    // blocked: HashSet<function_id>
     blocking: Vec<(usize, usize)>,
     // blocking: Vec<(blocking_id, blocked_id)>
     will_run: Vec<usize>,
-    // will_run: Vec<process_id>
+    // will_run: Vec<function_id>
     running: HashSet<usize>,
-    // dispatched: HashSet<process_id>
-    dispatches: usize,
+    // running: HashSet<function_id>
+    jobs: usize,
 }
 
 impl RunState {
-    pub fn new(processes: Vec<Arc<Mutex<Process>>>) -> Self {
+    pub fn new(functions: Vec<Arc<Mutex<Function>>>) -> Self {
         RunState {
-            processes,
+            functions: functions,
             blocked: HashSet::<usize>::new(),
             blocking: Vec::<(usize, usize)>::new(),
             will_run: Vec::<usize>::new(),
             running: HashSet::<usize>::new(),
             #[cfg(feature = "debugger")]
-            dispatches: 0,
+            jobs: 0,
         }
     }
 
@@ -43,53 +43,53 @@ impl RunState {
         Reset all values back to inital ones to enable debugging from scracth
     */
     pub fn reset(&mut self) {
-        for process_arc in &self.processes {
-            let mut process = process_arc.lock().unwrap();
-            process.reset()
+        for function_arc in &self.functions {
+            let mut function = function_arc.lock().unwrap();
+            function.reset()
         };
         self.blocked.clear();
         self.blocking.clear();
         self.will_run.clear();
         self.running.clear();
         if cfg!(feature = "debugger") {
-            self.dispatches = 0;
+            self.jobs = 0;
         }
     }
 
     /*
-        The ìnit' function is responsible for initializing all processs.
-        The `init` method on each process is called, which returns a boolean to indicate that it's
+        The ìnit' function is responsible for initializing all functions.
+        The `init` method on each function is called, which returns a boolean to indicate that it's
         inputs are fulfilled - and this information is added to the RunList to control the readyness of
         the Process to be executed.
 
-        Once all processs have been initialized, the list of processs is stored in the RunList
+        Once all functions have been initialized, the list of functions is stored in the RunList
     */
     pub fn init(&mut self) -> usize {
         let mut inputs_ready_list = Vec::<usize>::new();
 
-        for process_arc in &self.processes {
-            let mut process = process_arc.lock().unwrap();
-            debug!("\tInitializing process #{} '{}'", process.id(), process.name());
-            if process.init() {
-                inputs_ready_list.push(process.id());
+        for function_arc in &self.functions {
+            let mut function = function_arc.lock().unwrap();
+            debug!("\tInitializing Function #{} '{}'", function.id(), function.name());
+            if function.init() {
+                inputs_ready_list.push(function.id());
             }
         }
 
-        // For all the processes that are have  their inputs ready - put on the appropriate list
+        // For all the functions that are have  their inputs ready - put on the appropriate list
         for id in inputs_ready_list {
             self.inputs_ready(id);
         }
 
-        self.processes.len()
+        self.functions.len()
     }
 
-    fn get_state(&self, process_id: usize) -> State {
-        if self.will_run.contains(&process_id) {
+    fn get_state(&self, function_id: usize) -> State {
+        if self.will_run.contains(&function_id) {
             State::Ready
         } else {
-            if self.blocked.contains(&process_id) {
+            if self.blocked.contains(&function_id) {
                 State::Blocked
-            } else if self.running.contains(&process_id) {
+            } else if self.running.contains(&function_id) {
                 State::Running
             } else {
                 State::Waiting
@@ -103,13 +103,13 @@ impl RunState {
     }
 
     #[cfg(feature = "debugger")]
-    pub fn display_state(&self, process_id: usize) -> String {
-        let mut output = format!("\tState: {:?}\n", self.get_state(process_id));
+    pub fn display_state(&self, function_id: usize) -> String {
+        let mut output = format!("\tState: {:?}\n", self.get_state(function_id));
 
         for (blocking, blocked) in &self.blocking {
-            if *blocked == process_id {
+            if *blocked == function_id {
                 output.push_str(&format!("\t\tBlocked #{} --> Blocked by #{}\n", blocked, blocking));
-            } else if *blocking == process_id {
+            } else if *blocking == function_id {
                 output.push_str(&format!("\t\tBlocking #{} <-- Blocked #{}\n", blocking, blocked));
             }
         }
@@ -120,8 +120,8 @@ impl RunState {
     #[cfg(any(feature = "logging", feature = "debugger"))]
     pub fn print(&self) {
         println!("RunState:");
-        println!("   Processes: {}", self.processes.len());
-        println!("  Dispatches: {}", self.dispatches);
+        println!("   Processes: {}", self.functions.len());
+        println!("        Jobs: {}", self.jobs);
         println!("     Blocked: {:?}", self.blocked);
         println!("    Blocking: {:?}", self.blocking);
         println!("    Will Run: {:?}", self.will_run);
@@ -129,31 +129,30 @@ impl RunState {
     }
 
     #[cfg(any(feature = "metrics", feature = "debugger"))]
-    pub fn increment_dispatches(&mut self) {
-        self.dispatches += 1;
+    pub fn increment_jobs(&mut self) {
+        self.jobs += 1;
     }
 
-    pub fn get(&self, id: usize) -> Arc<Mutex<Process>> {
-        self.processes[id].clone()
+    pub fn get(&self, id: usize) -> Arc<Mutex<Function>> {
+        self.functions[id].clone()
     }
 
-    // Return the id of the next process ready to be run, if there is one
+    // Return the id of the next function ready to be run, if there is one
     pub fn next(&mut self) -> Option<usize> {
         if self.will_run.is_empty() {
             return None;
         }
 
-        // Take the process_id at the head of the will_run list
-        let dispatched_id = self.will_run.remove(0);
-        self.running.insert(dispatched_id);
-        Some(dispatched_id)
+        // Take the function_id at the head of the will_run list
+        let function_id = self.will_run.remove(0);
+        self.running.insert(function_id);
+        Some(function_id)
     }
 
     pub fn done(&mut self, id: usize) {
         self.running.remove(&id);
     }
 
-    // TODO ADM optimize this by also having a flag in the process?
     // Or use the blocked_id as a key to a HashSet?
     // See if there is any tuple in the vector where the second (blocked_id) is the one we're after
     fn is_blocked(&self, id: usize) -> bool {
@@ -179,39 +178,39 @@ impl RunState {
     }
 
     /*
-        An input blocker is another process that is the only process connected to an empty input
-        of target process, and which is not ready to run, hence target process cannot run.
+        An input blocker is another function that is the only function connected to an empty input
+        of target function, and which is not ready to run, hence target function cannot run.
     */
     #[cfg(feature = "debugger")]
     pub fn get_input_blockers(&self, target_id: usize) -> Vec<usize> {
         let mut input_blockers = vec!();
-        let target_process_arc = self.get(target_id);
-        let mut target_process_lock = target_process_arc.try_lock();
+        let target_function_arc = self.get(target_id);
+        let mut target_function_lock = target_function_arc.try_lock();
 
-        if let Ok(ref mut target_process) = target_process_lock {
-            // for each empty input of the target process
-            for (target_io, input) in target_process.get_inputs().iter().enumerate() {
+        if let Ok(ref mut target_functions) = target_function_lock {
+            // for each empty input of the target function
+            for (target_io, input) in target_functions.get_inputs().iter().enumerate() {
                 if input.is_empty() {
                     let mut senders = Vec::<usize>::new();
 
-                    // go through all processes to see if sends to the target process on input
-                    for sender_process_arc in &self.processes {
-                        let mut sender_process_lock = sender_process_arc.try_lock();
-                        if let Ok(ref mut sender_process) = sender_process_lock {
-                            // if the sender process is not ready to run
-                            if !self.will_run.contains(&sender_process.id()) {
+                    // go through all functions to see if sends to the target function on input
+                    for sender_function_arc in &self.functions {
+                        let mut sender_function_lock = sender_function_arc.try_lock();
+                        if let Ok(ref mut sender_function) = sender_function_lock {
+                            // if the sender function is not ready to run
+                            if !self.will_run.contains(&sender_function.id()) {
 
-                                // for each output route of sending process, see if it is sending to the target process and input
-                                for (ref _output_route, destination_id, io_number) in sender_process.output_destinations() {
+                                // for each output route of sending function, see if it is sending to the target function and input
+                                for (ref _output_route, destination_id, io_number) in sender_function.output_destinations() {
                                     if (destination_id == target_id) && (io_number == target_io) {
-                                        senders.push(sender_process.id());
+                                        senders.push(sender_function.id());
                                     }
                                 }
                             }
                         }
                     }
 
-                    // If unique sender to this Input, then target process is blocked waiting for that value
+                    // If unique sender to this Input, then target function is blocked waiting for that value
                     if senders.len() == 1 {
                         input_blockers.extend(senders);
                     }
@@ -236,18 +235,20 @@ impl RunState {
         }
     }
 
-    pub fn dispatches(&self) -> usize {
-        self.dispatches
+    pub fn jobs(&self) -> usize {
+        self.jobs
     }
 
-    pub fn num_processes(&self) -> usize {
-        self.processes.len()
+    pub fn num_functions(&self) -> usize {
+        self.functions.len()
     }
 
-    // unblock all processs that were blocked trying to send to blocker_id by removing all entries
-// in the list where the first value (blocking_id) matches the destination_id
-// when each is unblocked on output, if it's inputs are satisfied, then it is ready to be run
-// again, so put it on the ready queue
+    /*
+        unblock all functions that were blocked trying to send to blocker_id by removing all entries
+        in the list where the first value (blocking_id) matches the destination_id
+        when each is unblocked on output, if it's inputs are satisfied, then it is ready to be run
+        again, so put it on the ready queue
+    */
     pub fn unblock_senders_to(&mut self, blocker_id: usize) {
         if !self.blocking.is_empty() {
             let mut unblocked_list = vec!();
@@ -263,7 +264,7 @@ impl RunState {
             self.blocking.retain(|&(blocking_id, _blocked_id)| blocking_id != blocker_id);
 
             // see if the ones unblocked should be made ready. Note, they could be blocked on other
-            // processes apart from the the one that just unblocked it.
+            // functions apart from the the one that just unblocked it.
             for unblocked in unblocked_list {
                 if self.blocked.contains(&unblocked) && !self.is_blocked(unblocked) {
                     debug!("\t\t\tProcess #{} has inputs ready, so removed from 'blocked' and added to 'will_run'", unblocked);
@@ -274,9 +275,9 @@ impl RunState {
         }
     }
 
-    // Save the fact that the process 'blocked_id' is blocked on it's output by 'blocking_id'
+    // Save the fact that the function 'blocked_id' is blocked on it's output by 'blocking_id'
     pub fn set_blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
-        // avoid deadlocks by a process blocking itself
+        // avoid deadlocks by a function blocking itself
         if blocked_id != blocking_id {
             debug!("\t\t\tProcess #{} <-- Process #{} blocked", &blocking_id, &blocked_id);
             self.blocking.push((blocking_id, blocked_id));
@@ -287,38 +288,38 @@ impl RunState {
 #[cfg(test)]
 mod tests {
     use std::sync::{Arc, Mutex};
-    use process::Process;
+    use function::Function;
     use super::RunState;
 
-    fn test_processes<'a>() -> Vec<Arc<Mutex<Process>>> {
+    fn test_functions<'a>() -> Vec<Arc<Mutex<Function>>> {
         let p0 = Arc::new(Mutex::new(
-            Process::new("p0".to_string(), // name
-                         "/context/p0".to_string(),
-                         "/test".to_string(),
-                         vec!(), // input depths array
-                         0,    // id
-                         vec!(("".to_string(), 1, 0), ("".to_string(), 1, 0)), // destinations
+            Function::new("p0".to_string(), // name
+                          "/context/p0".to_string(),
+                          "/test".to_string(),
+                          false, vec!(), // input depths array
+                          0,    // id
+                          vec!(("".to_string(), 1, 0), ("".to_string(), 1, 0)), // destinations
             )));    // implementation
-        let p1 = Arc::new(Mutex::new(Process::new("p1".to_string(),
-                                                  "/context/p1".to_string(),
-                                                  "/test".to_string(),
-                                                  vec!((1, None)), // inputs array
-                                                  1,    // id
-                                                  vec!(),
+        let p1 = Arc::new(Mutex::new(Function::new("p1".to_string(),
+                                                   "/context/p1".to_string(),
+                                                   "/test".to_string(),
+                                                   false, vec!((1, None)), // inputs array
+                                                   1,    // id
+                                                   vec!(),
         )));
-        let p2 = Arc::new(Mutex::new(Process::new("p2".to_string(),
-                                                  "/context/p2".to_string(),
-                                                  "/test".to_string(),
-                                                  vec!((1, None)), // inputs array
-                                                  2,    // id
-                                                  vec!(),
+        let p2 = Arc::new(Mutex::new(Function::new("p2".to_string(),
+                                                   "/context/p2".to_string(),
+                                                   "/test".to_string(),
+                                                   false, vec!((1, None)), // inputs array
+                                                   2,    // id
+                                                   vec!(),
         )));
         vec!(p0, p1, p2)
     }
 
     #[test]
     fn blocked_works() {
-        let mut state = RunState::new(test_processes());
+        let mut state = RunState::new(test_functions());
 
 // Indicate that 0 is blocked by 1
         state.set_blocked_by(1, 0);
@@ -327,7 +328,7 @@ mod tests {
 
     #[test]
     fn get_works() {
-        let state = RunState::new(test_processes());
+        let state = RunState::new(test_functions());
         let got_arc = state.get(1);
         let got = got_arc.lock().unwrap();
         assert_eq!(got.id(), 1)
@@ -335,14 +336,14 @@ mod tests {
 
     #[test]
     fn no_next_if_none_ready() {
-        let mut state = RunState::new(test_processes());
+        let mut state = RunState::new(test_functions());
 
         assert!(state.next().is_none());
     }
 
     #[test]
     fn inputs_ready_makes_ready() {
-        let mut state = RunState::new(test_processes());
+        let mut state = RunState::new(test_functions());
 
         // Put 0 on the blocked/will_run list depending on blocked status
         state.inputs_ready(0);
@@ -352,7 +353,7 @@ mod tests {
 
     #[test]
     fn blocked_is_not_ready() {
-        let mut state = RunState::new(test_processes());
+        let mut state = RunState::new(test_functions());
 
 // Indicate that 0 is blocked by 1
         state.set_blocked_by(1, 0);
@@ -368,9 +369,9 @@ mod tests {
 
     #[test]
     fn unblocking_makes_ready() {
-        let mut state = RunState::new(test_processes());
+        let mut state = RunState::new(test_functions());
 
-// Indicate that 0 is blocked by 1
+        // Indicate that 0 is blocked by 1
         state.set_blocked_by(1, 0);
 
         // Put 0 on the blocked/will_run list depending on blocked status
@@ -378,18 +379,18 @@ mod tests {
 
         assert_eq!(state.next(), None);
 
-// now unblock 0 by 1
+        // now unblock 0 by 1
         state.unblock_senders_to(1);
 
-// Now process with id 0 should be ready and served up by next
+        // Now function with id 0 should be ready and served up by next
         assert_eq!(state.next(), Some(0));
     }
 
     #[test]
-    fn unblocking_doubly_blocked_process_not_ready() {
-        let mut state = RunState::new(test_processes());
+    fn unblocking_doubly_blocked_functions_not_ready() {
+        let mut state = RunState::new(test_functions());
 
-// Indicate that 0 is blocked by 1 and 2
+        // Indicate that 0 is blocked by 1 and 2
         state.set_blocked_by(1, 0);
         state.set_blocked_by(2, 0);
 
@@ -398,10 +399,10 @@ mod tests {
 
         assert_eq!(state.next(), None);
 
-// now unblock 0 by 1
+        // now unblock 0 by 1
         state.unblock_senders_to(1);
 
-// Now process with id 0 should still not be ready as still blocked on 2
+        // Now function with id 0 should still not be ready as still blocked on 2
         assert_eq!(state.next(), None);
     }
 }
