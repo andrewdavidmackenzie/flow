@@ -12,8 +12,9 @@ use debug_client::DebugClient;
 use run_state::RunState;
 use implementation::Implementation;
 use execution;
-use std::sync::mpsc::{SyncSender, Receiver};
+use std::sync::mpsc::{SyncSender, Receiver, Sender};
 use std::sync::mpsc;
+use std::time::Duration;
 
 #[cfg(feature = "metrics")]
 struct Metrics {
@@ -151,6 +152,7 @@ struct Coordinator {
 
     job_tx: SyncSender<Job>,
     output_rx: Receiver<Output>,
+    output_tx: Sender<Output>
 }
 
 impl Coordinator {
@@ -158,7 +160,7 @@ impl Coordinator {
         let (job_tx, job_rx, ) = mpsc::sync_channel(1);
         let (output_tx, output_rx) = mpsc::channel();
 
-        execution::looper(job_rx, output_tx);
+        execution::looper(job_rx, output_tx.clone());
 
         Coordinator {
             state: RunState::new(functions),
@@ -169,10 +171,12 @@ impl Coordinator {
             debugger: Debugger::new(client),
             job_tx,
             output_rx,
+            output_tx
         }
     }
 
     fn run(&mut self) {
+        let output_timeout = Duration::new(1, 0);
         let mut display_output;
         let mut restart;
 
@@ -205,19 +209,10 @@ impl Coordinator {
 
                 let job = self.create_job(id);
 
-                let out = if job.impure {
-                    debug!("Dispatched on main thread");
-                    Ok(execution::execute(job))
-                } else {
-                    match self.job_tx.send(job) {
-                        Ok(_) => debug!("Dispatched on executor thread"),
-                        Err(err) => error!("Error sending: {}", err)
-                    }
+                self.send_job(job);
 
-                    self.output_rx.recv()
-                };
-
-                if let Ok(output) = out {
+                // TODO move the reception onto another thread?
+                if let Ok(output) = self.output_rx.recv_timeout(output_timeout) {
                     self.update_states(output, display_output);
                 }
             }
@@ -239,6 +234,18 @@ impl Coordinator {
         }
 
         debug!("Flow execution ended, no remaining function ready to run");
+    }
+
+    fn send_job(&self, job: Job) {
+        if job.impure {
+            debug!("Dispatched on main thread");
+            execution::execute(job, &self.output_tx);
+        } else {
+            match self.job_tx.send(job) {
+                Ok(_) => debug!("Dispatched on executor thread"),
+                Err(err) => error!("Error sending: {}", err)
+            }
+        };
     }
 
     /*

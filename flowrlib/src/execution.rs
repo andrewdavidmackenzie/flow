@@ -4,34 +4,36 @@ use coordinator::Output;
 use std::sync::mpsc::{Sender, Receiver};
 use std::thread;
 
-pub fn looper(dispatch_rx: Receiver<Job>, output_tx: Sender<Output>) {
+pub fn looper(job_rx: Receiver<Job>, output_tx: Sender<Output>) {
     thread::spawn(move || {
         set_panic_hook();
 
         loop {
-            match dispatch_rx.recv() {
-                Ok(dispatch) => {
+            match job_rx.recv() {
+                Ok(job) => {
                     debug!("Received dispatch over channel");
-                    match output_tx.send(execute(dispatch)) {
-                        Err(_) => break,
-                        _ => debug!("Returned Function Output over channel")
-                    }
-                },
+                    execute(job, &output_tx);
+                }
                 _ => break
             }
         }
     });
 }
 
-pub fn execute(dispatch: Job) -> Output {
+pub fn execute(dispatch: Job, output_tx: &Sender<Output>) {
     // Run the implementation with the input values and catch the execution result
     let result = dispatch.implementation.run(dispatch.input_values.clone());
 
-    return Output {
+    let output = Output {
         function_id: dispatch.function_id,
         input_values: dispatch.input_values,
         result,
         destinations: dispatch.destinations,
+    };
+
+    match output_tx.send(output) {
+        Err(_) => error!("Error sending output on 'output_tx' channel"),
+        _ => debug!("Returned Function Output over channel")
     };
 }
 
