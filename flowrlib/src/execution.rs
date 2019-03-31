@@ -5,6 +5,7 @@ use std::sync::mpsc::{Sender, Receiver};
 use std::thread;
 
 pub fn looper(job_rx: Receiver<Job>, output_tx: Sender<Output>) {
+    // TODO spawn thread with unique name
     thread::spawn(move || {
         set_panic_hook();
 
