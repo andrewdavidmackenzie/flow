@@ -1,5 +1,6 @@
-flow = "pass if prime"
+flow = "check if prime"
 
+# Inputs and Outputs
 [[input]]
 name = "candidate"
 type = "Number"
@@ -8,25 +9,38 @@ type = "Number"
 name = "prime"
 type = "Number"
 
-# Generate a series of possible divisors of the candidate, from 2 up to candidate itself
-[[process]]
-alias = "divisor-sequence"
-source = "lib://flowstdlib/math/sequence.toml"
-input.start = {constant = 2}
-
+# disable
 [[connection]]
 from = "input/candidate"
-to = "process/divisor-sequence/end"
+to = "output/prime"
+
+
+# Generate a series of possible divisors of the candidate, from 2 up to candidate
+#[[process]]
+#alias = "lowest-divisor"
+#source = "lib://flowstdlib/data/buffer.toml"
+#input.default = {constant = 2}
+
+#[[process]]
+#alias = "divisor-sequence"
+#source = "lib://flowstdlib/math/sequence.toml"
+
+#[[connection]]
+#from = "process/lowest-divisor"
+#to = "process/divisor-sequence/start"
+
+#[[connection]]
+#from = "input/candidate"
+#to = "process/divisor-sequence/end"
 
 # divide the candidate by the divisor
 #[[process]]
 #alias = "divide"
 #source = "lib://flowstdlib/math/divide.toml"
 
-[[connection]]
-from = "process/divisor-sequence/sequence"
+#[[connection]]
+#from = "process/divisor-sequence/sequence"
 #to = "process/divide/divisor"
-to = "output/prime"
 
 #[[connection]]
 #from = "process/divisor-sequence/max"
