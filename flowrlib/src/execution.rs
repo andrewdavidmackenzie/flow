@@ -4,40 +4,41 @@ use coordinator::Output;
 use std::sync::mpsc::{Sender, Receiver};
 use std::thread;
 
-pub fn looper(job_rx: Receiver<Job>, output_tx: Sender<Output>) {
+pub fn looper(name: String, job_rx: Receiver<Job>, output_tx: Sender<Output>) {
     // TODO spawn thread with unique name
-    thread::spawn(move || {
+    let builder = thread::Builder::new().name(name);
+    builder.spawn(move || {
         set_panic_hook();
 
         loop {
             match job_rx.recv() {
                 Ok(job) => {
-                    debug!("Received dispatch over channel");
                     execute(job, &output_tx);
                 }
                 _ => break
             }
         }
-    });
+    }).unwrap();
 }
 
 pub fn execute(dispatch: Job, output_tx: &Sender<Output>) {
     // Run the implementation with the input values and catch the execution result
-    // TODO run inside a catch and send something if the execution fails
-    // TODO avoid crashing the executor thread
-    let result = dispatch.implementation.run(dispatch.input_values.clone());
+    let (result, error) = match panic::catch_unwind(|| {
+        dispatch.implementation.run(dispatch.input_values.clone())
+    }) {
+        Ok(result) => (result, None),
+        Err(_   ) => ((None, false), Some("Execution panicked".into())),
+    };
 
     let output = Output {
         function_id: dispatch.function_id,
         input_values: dispatch.input_values,
         result,
         destinations: dispatch.destinations,
+        error
     };
 
-    match output_tx.send(output) {
-        Err(_) => error!("Error sending output on 'output_tx' channel"),
-        _ => debug!("Returned Function Output over channel")
-    };
+    let _sent = output_tx.send(output);
 }
 
 /*
@@ -48,9 +49,6 @@ fn set_panic_hook() {
     panic::set_hook(Box::new(|panic_info| {
         if let Some(location) = panic_info.location() {
             error!("panic occurred in file '{}' at line {}", location.file(), location.line());
-        } else {
-            error!("panic occurred but can't get location information");
         }
     }));
-    debug!("Panic hook set to catch panics in process execution");
 }

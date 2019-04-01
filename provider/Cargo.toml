@@ -11,7 +11,7 @@ readme = "https://github.com/andrewdavidmackenzie/flow/README.md"
 
 [dependencies]
 flowrlib = { path = "../flowrlib", version = "~0.7.0" }
-simplog = "1.0.3"
+simplog = "~1.1"
 log = "0.3.8"
 url = "~1.6.0"
 tempdir = "~0.3.5"

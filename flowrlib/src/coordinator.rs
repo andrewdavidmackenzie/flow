@@ -112,11 +112,13 @@ pub struct Job {
     pub impure: bool,
 }
 
+#[derive(Debug)]
 pub struct Output {
     pub function_id: usize,
     pub input_values: Vec<Vec<Value>>,
     pub result: (Option<Value>, bool),
     pub destinations: Vec<(String, usize, usize)>,
+    pub error: Option<String>,
 }
 
 /*
@@ -152,7 +154,7 @@ struct Coordinator {
 
     job_tx: SyncSender<Job>,
     output_rx: Receiver<Output>,
-    output_tx: Sender<Output>
+    output_tx: Sender<Output>,
 }
 
 impl Coordinator {
@@ -160,7 +162,7 @@ impl Coordinator {
         let (job_tx, job_rx, ) = mpsc::sync_channel(1);
         let (output_tx, output_rx) = mpsc::channel();
 
-        execution::looper(job_rx, output_tx.clone());
+        execution::looper("Executor #1".into(), job_rx, output_tx.clone());
 
         Coordinator {
             state: RunState::new(functions),
@@ -171,7 +173,7 @@ impl Coordinator {
             debugger: Debugger::new(client),
             job_tx,
             output_rx,
-            output_tx
+            output_tx,
         }
     }
 
@@ -212,8 +214,9 @@ impl Coordinator {
                 self.send_job(job);
 
                 // TODO move the reception onto another thread?
-                if let Ok(output) = self.output_rx.recv_timeout(output_timeout) {
-                    self.update_states(output, display_output);
+                match self.output_rx.recv_timeout(output_timeout) {
+                    Ok(output) => self.update_states(output, display_output),
+                    Err(err) => error!("Error receiving execution result: {}", err)
                 }
             }
 
@@ -280,70 +283,75 @@ impl Coordinator {
         if those other function have all their inputs, then mark them accordingly.
     */
     fn update_states(&mut self, output: Output, display_output: bool) {
-        let output_value = output.result.0;
-        let source_can_run_again = output.result.1;
+        match output.error {
+            None => {
+                let output_value = output.result.0;
+                let source_can_run_again = output.result.1;
 
-        debug!("\tCompleted Function #{}", output.function_id);
-        if cfg!(feature = "debugger") & &display_output {
-            self.debugger.client.display(&format!("Completed Function #{}\n", output.function_id));
-        }
-
-        // did it produce any output value
-        if let Some(output_v) = output_value {
-            debug!("\tProcessing output '{}' from Function #{}", output_v, output.function_id);
-
-            if cfg!(feature="debugger") && display_output {
-                self.debugger.client.display(&format!("\tProduced output {}\n", &output_v));
-            }
-
-            for (ref output_route, destination_id, io_number) in output.destinations {
-                let destination_arc = self.state.get(destination_id);
-                let mut destination = destination_arc.lock().unwrap();
-                let output_value = output_v.pointer(&output_route).unwrap();
-                debug!("\t\tFunction #{} sent value '{}' via output route '{}' to Function #{} '{}' input :{}",
-                       output.function_id, output_value, output_route, &destination_id, destination.name(), &io_number);
-                if cfg!(feature="debugger") && display_output {
-                    self.debugger.client.display(
-                        &format!("\t\tSending to {}:{}\n", destination_id, io_number));
+                debug!("\tCompleted Function #{}", output.function_id);
+                if cfg!(feature = "debugger") & &display_output {
+                    self.debugger.client.display(&format!("Completed Function #{}\n", output.function_id));
                 }
 
-                #[cfg(feature = "debugger")]
-                    self.debugger.watch_data(&mut self.state, output.function_id, output_route,
-                                             &output_value, destination_id, io_number);
+                // did it produce any output value
+                if let Some(output_v) = output_value {
+                    debug!("\tProcessing output '{}' from Function #{}", output_v, output.function_id);
 
-                destination.write_input(io_number, output_value.clone());
+                    if cfg!(feature = "debugger") & &display_output {
+                        self.debugger.client.display(&format!("\tProduced output {}\n", &output_v));
+                    }
 
-                #[cfg(feature = "metrics")]
-                    self.increment_outputs_sent();
+                    for (ref output_route, destination_id, io_number) in output.destinations {
+                        let destination_arc = self.state.get(destination_id);
+                        let mut destination = destination_arc.lock().unwrap();
+                        let output_value = output_v.pointer(&output_route).unwrap();
+                        debug!("\t\tFunction #{} sent value '{}' via output route '{}' to Function #{} '{}' input :{}",
+                               output.function_id, output_value, output_route, &destination_id, destination.name(), &io_number);
+                        if cfg!(feature = "debugger") & &display_output {
+                            self.debugger.client.display(
+                                &format!("\t\tSending to {}:{}\n", destination_id, io_number));
+                        }
 
-                if destination.input_full(io_number) {
-                    self.state.set_blocked_by(destination_id, output.function_id);
-                    #[cfg(feature = "debugger")]
-                        self.debugger.check_block(&mut self.state, destination_id, output.function_id);
+                        #[cfg(feature = "debugger")]
+                            self.debugger.watch_data(&mut self.state, output.function_id, output_route,
+                                                     &output_value, destination_id, io_number);
+
+                        destination.write_input(io_number, output_value.clone());
+
+                        #[cfg(feature = "metrics")]
+                            self.increment_outputs_sent();
+
+                        if destination.input_full(io_number) {
+                            self.state.set_blocked_by(destination_id, output.function_id);
+                            #[cfg(feature = "debugger")]
+                                self.debugger.check_block(&mut self.state, destination_id, output.function_id);
+                        }
+
+                        // for the case when a function is sending to itself, delay determining if it should
+                        // be in the blocked or will_run lists until it has sent all it's other outputs
+                        // as it might be blocked by another function.
+                        // Iif not, this will be fixed in the "if source_can_run_again {" block below
+                        if destination.can_run() & &(output.function_id != destination_id) {
+                            self.state.inputs_ready(destination_id);
+                        }
+                    }
                 }
 
-                // for the case when a function is sending to itself, delay determining if it should
-                // be in the blocked or will_run lists until it has sent all it's other outputs
-                // as it might be blocked by another function.
-                // Iif not, this will be fixed in the "if source_can_run_again {" block below
-                if destination.can_run() && (output.function_id != destination_id) {
-                    self.state.inputs_ready(destination_id);
+                // if it wants to run again, and after possibly refreshing any constant inputs, it can
+                // (it's inputs are ready) then add back to the Will Run list
+                if source_can_run_again {
+                    let source_arc = self.state.get(output.function_id);
+                    let mut source = source_arc.lock().unwrap();
+
+                    // refresh any constant inputs it may have
+                    source.refresh_constant_inputs();
+
+                    if source.can_run() {
+                        self.state.inputs_ready(output.function_id);
+                    }
                 }
             }
-        }
-
-        // if it wants to run again, and after possibly refreshing any constant inputs, it can
-        // (it's inputs are ready) then add back to the Will Run list
-        if source_can_run_again {
-            let source_arc = self.state.get(output.function_id);
-            let mut source = source_arc.lock().unwrap();
-
-            // refresh any constant inputs it may have
-            source.refresh_constant_inputs();
-
-            if source.can_run() {
-                self.state.inputs_ready(output.function_id);
-            }
+            Some(_) => error!("Error in Job execution:\n{:?}", output)
         }
 
         // remove from the running list
