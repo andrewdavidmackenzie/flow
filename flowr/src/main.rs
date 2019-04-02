@@ -3,6 +3,7 @@ extern crate flowrlib;
 extern crate flowstdlib;
 #[macro_use]
 extern crate log;
+extern crate num_cpus;
 extern crate provider;
 #[macro_use]
 extern crate serde_json;
@@ -48,7 +49,7 @@ impl DebugClient for CLIDebugClient {
     }
 }
 
-const CLI_DEBUG_CLIENT: &DebugClient = &CLIDebugClient{};
+const CLI_DEBUG_CLIENT: &DebugClient = &CLIDebugClient {};
 
 fn main() -> Result<(), String> {
     let matches = get_matches();
@@ -73,7 +74,8 @@ fn main() -> Result<(), String> {
     let metrics = matches.is_present("metrics");
 
     // run the set of flow processes
-    run(loader.processes, metrics, CLI_DEBUG_CLIENT, debugger);
+    run(loader.processes, metrics, CLI_DEBUG_CLIENT,
+        debugger, num_cpus::get());
 
     exit(0);
 }

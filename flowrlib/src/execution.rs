@@ -2,6 +2,7 @@ use std::panic;
 use coordinator::Job;
 use coordinator::Output;
 use std::sync::mpsc::{Sender, Receiver};
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 /*
@@ -11,16 +12,21 @@ use std::thread;
 pub fn start_executors(number_of_executors: usize,
                        job_rx: Receiver<Job>,
                        output_tx: Sender<Output>) {
-    looper("Executor #1".into(), job_rx, output_tx);
+    let shared_job_receiver = Arc::new(Mutex::new(job_rx));
+    for executor_number in 0..number_of_executors {
+        create_executor(format!("Executor #{}", executor_number),
+                        Arc::clone(&shared_job_receiver), output_tx.clone());
+    }
 }
 
-fn looper(name: String, job_rx: Receiver<Job>, output_tx: Sender<Output>) {
+fn create_executor(name: String, job_rx: Arc<Mutex<Receiver<Job>>>, output_tx: Sender<Output>) {
     let builder = thread::Builder::new().name(name);
     builder.spawn(move || {
         set_panic_hook();
 
         loop {
-            match job_rx.recv() {
+            let job = job_rx.lock().unwrap().recv();
+            match job {
                 Ok(job) => {
                     execute(job, &output_tx);
                 }
@@ -36,7 +42,7 @@ pub fn execute(dispatch: Job, output_tx: &Sender<Output>) {
         dispatch.implementation.run(dispatch.input_values.clone())
     }) {
         Ok(result) => (result, None),
-        Err(_   ) => ((None, false), Some("Execution panicked".into())),
+        Err(_) => ((None, false), Some("Execution panicked".into())),
     };
 
     let output = Output {
@@ -44,10 +50,10 @@ pub fn execute(dispatch: Job, output_tx: &Sender<Output>) {
         input_values: dispatch.input_values,
         result,
         destinations: dispatch.destinations,
-        error
+        error,
     };
 
-    let _sent = output_tx.send(output);
+    output_tx.send(output).unwrap();
 }
 
 /*

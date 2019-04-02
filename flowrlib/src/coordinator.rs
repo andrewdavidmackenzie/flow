@@ -87,13 +87,14 @@ impl fmt::Display for Metrics {
 ///
 /// let mut functions = Vec::<Arc<Mutex<Function>>>::new();
 ///
-/// run(functions, false /* print_metrics */, CLI_DEBUG_CLIENT, false /* use_debugger */);
+/// run(functions, false /* print_metrics */, CLI_DEBUG_CLIENT,
+///     false /* use_debugger */, 1 /* threads */);
 ///
 /// exit(0);
 /// ```
 pub fn run(functions: Vec<Arc<Mutex<Function>>>, display_metrics: bool,
-           client: &'static DebugClient, use_debugger: bool) {
-    let mut run_list = Coordinator::new(client, functions, use_debugger);
+           client: &'static DebugClient, use_debugger: bool, num_threads: usize) {
+    let mut run_list = Coordinator::new(client, functions, use_debugger, num_threads);
 
     run_list.run();
 
@@ -158,12 +159,12 @@ struct Coordinator {
 }
 
 impl Coordinator {
-    fn new(client: &'static DebugClient, functions: Vec<Arc<Mutex<Function>>>, debugging: bool) -> Self {
-        let number_of_executors = 1;
-        let (job_tx, job_rx, ) = mpsc::sync_channel(2 * number_of_executors);
+    fn new(client: &'static DebugClient, functions: Vec<Arc<Mutex<Function>>>,
+           debugging: bool, num_threads: usize) -> Self {
+        let (job_tx, job_rx, ) = mpsc::sync_channel(2 * num_threads);
         let (output_tx, output_rx) = mpsc::channel();
 
-        execution::start_executors(number_of_executors, job_rx, output_tx.clone());
+        execution::start_executors(num_threads, job_rx, output_tx.clone());
 
         Coordinator {
             state: RunState::new(functions),
@@ -240,6 +241,11 @@ impl Coordinator {
         debug!("Flow execution ended, no remaining function ready to run");
     }
 
+    /*
+        Send a job for execution:
+        - if impure, then needs to be run on the main thread which has stdio (stdin in particular)
+        - if pure send it on the 'job_tx' channel where executors will pick it up by an executor
+    */
     fn send_job(&self, job: Job) {
         if job.impure {
             debug!("Dispatched on main thread");
@@ -247,13 +253,14 @@ impl Coordinator {
         } else {
             match self.job_tx.send(job) {
                 Ok(_) => debug!("Dispatched on executor thread"),
-                Err(err) => error!("Error sending: {}", err)
+                Err(err) => error!("Error sending on 'job_tx': {}", err)
             }
         };
     }
 
     /*
-        Given a function id, prepare a job for execution
+        Given a function id, prepare a job for execution that contains the input values, the
+        implementation and the destination functions the output should be sent to when done
     */
     fn create_job(&mut self, id: usize) -> Job {
         let function_arc = self.state.get(id);
