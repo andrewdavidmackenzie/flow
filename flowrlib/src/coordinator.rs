@@ -164,6 +164,7 @@ impl Coordinator {
         let (job_tx, job_rx, ) = mpsc::sync_channel(2 * num_threads);
         let (output_tx, output_rx) = mpsc::channel();
 
+        debug!("Starting Coordinator and {} executor threads", num_threads);
         execution::start_executors(num_threads, job_rx, output_tx.clone());
 
         Coordinator {
