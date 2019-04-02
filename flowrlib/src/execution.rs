@@ -4,8 +4,17 @@ use coordinator::Output;
 use std::sync::mpsc::{Sender, Receiver};
 use std::thread;
 
-pub fn looper(name: String, job_rx: Receiver<Job>, output_tx: Sender<Output>) {
-    // TODO spawn thread with unique name
+/*
+    Start a number of executor threads that all listen on the 'job_rx' channel for
+    Jobs to execute and return the Outputs on the 'output_tx' channel
+*/
+pub fn start_executors(number_of_executors: usize,
+                       job_rx: Receiver<Job>,
+                       output_tx: Sender<Output>) {
+    looper("Executor #1".into(), job_rx, output_tx);
+}
+
+fn looper(name: String, job_rx: Receiver<Job>, output_tx: Sender<Output>) {
     let builder = thread::Builder::new().name(name);
     builder.spawn(move || {
         set_panic_hook();

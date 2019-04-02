@@ -159,10 +159,11 @@ struct Coordinator {
 
 impl Coordinator {
     fn new(client: &'static DebugClient, functions: Vec<Arc<Mutex<Function>>>, debugging: bool) -> Self {
-        let (job_tx, job_rx, ) = mpsc::sync_channel(1);
+        let number_of_executors = 1;
+        let (job_tx, job_rx, ) = mpsc::sync_channel(2 * number_of_executors);
         let (output_tx, output_rx) = mpsc::channel();
 
-        execution::looper("Executor #1".into(), job_rx, output_tx.clone());
+        execution::start_executors(number_of_executors, job_rx, output_tx.clone());
 
         Coordinator {
             state: RunState::new(functions),
