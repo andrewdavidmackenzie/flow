@@ -28,7 +28,7 @@ toml = "0.4"
 serde_derive = "~1.0.27"
 serde = "~1.0.27"
 erased-serde = "*"
-log = "0.3.8"
+log = "0.4.6"
 strfmt = "0.1.5"
 serde_json = "1.0"
 

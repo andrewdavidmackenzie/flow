@@ -23,7 +23,7 @@ path = "src/lib.rs"
 flowrlib = { path = "../flowrlib", version = "~0.7.0" }
 serde_json = "1.0"
 image = "*"
-log = "0.3.8"
+log = "0.4.6"
 
 [build-dependencies]
 flowclib = { path = "../flowclib", version = "~0.7.0" }

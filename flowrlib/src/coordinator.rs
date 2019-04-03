@@ -1,7 +1,7 @@
 use function::Function;
 use serde_json::Value;
 use std::sync::{Arc, Mutex};
-use log::LogLevel::Debug;
+use log::Level::Debug;
 #[cfg(feature = "debugger")]
 use debugger::Debugger;
 #[cfg(feature = "metrics")]
