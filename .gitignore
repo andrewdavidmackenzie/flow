@@ -10,3 +10,4 @@ failed.output
 manifest.json
 target
 cov
+Cargo.lock
