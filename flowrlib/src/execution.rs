@@ -60,7 +60,7 @@ pub fn execute(dispatch: Job, output_tx: &Sender<Output>) {
     Replace the standard panic hook with one that just outputs the file and line of any process's
     runtime panic.
 */
-fn set_panic_hook() {
+pub fn set_panic_hook() {
     panic::set_hook(Box::new(|panic_info| {
         if let Some(location) = panic_info.location() {
             error!("panic occurred in file '{}' at line {}", location.file(), location.line());

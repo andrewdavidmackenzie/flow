@@ -146,6 +146,7 @@ impl RunState {
         // Take the function_id at the head of the will_run list
         let function_id = self.will_run.remove(0);
         self.running.insert(function_id);
+        println!("Running {:?}", self.running);
         Some(function_id)
     }
 
@@ -175,6 +176,11 @@ impl RunState {
         }
 
         blockers
+    }
+
+    #[cfg(feature = "metrics")]
+    pub fn number_jobs_running(&self) -> usize {
+        self.running.len()
     }
 
     /*

@@ -15,12 +15,14 @@ use execution;
 use std::sync::mpsc::{SyncSender, Receiver, Sender};
 use std::sync::mpsc;
 use std::time::Duration;
+use std::cmp::max;
 
 #[cfg(feature = "metrics")]
 struct Metrics {
     num_functions: usize,
     outputs_sent: u32,
     start_time: Instant,
+    max_simultaneous_jobs: usize
 }
 
 #[cfg(feature = "metrics")]
@@ -30,6 +32,7 @@ impl Metrics {
             num_functions: 0,
             outputs_sent: 0,
             start_time: Instant::now(),
+            max_simultaneous_jobs: 0
         }
     }
 
@@ -37,6 +40,7 @@ impl Metrics {
         self.num_functions = num_functions;
         self.outputs_sent = 0;
         self.start_time = Instant::now();
+        self.max_simultaneous_jobs = 0;
     }
 }
 
@@ -44,9 +48,10 @@ impl Metrics {
 impl fmt::Display for Metrics {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let elapsed = self.start_time.elapsed();
-        write!(f, "\t\tNumber of Functions: \t{}\n", self.num_functions)?;
-        write!(f, "\t\tOutputs sent: \t\t{}\n", self.outputs_sent)?;
-        write!(f, "\t\tElapsed time(s): \t{:.*}", 9, elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9)
+        write!(f, "\t Number of Functions: \t{}\n", self.num_functions)?;
+        write!(f, "\t        Outputs sent: \t\t{}\n", self.outputs_sent)?;
+        write!(f, "\t     Elapsed time(s): \t{:.*}\n", 9, elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9)?;
+        write!(f, "\tMax Jobs in Parallel: \t{}", self.max_simultaneous_jobs)
     }
 }
 
@@ -185,6 +190,8 @@ impl Coordinator {
         let mut display_output;
         let mut restart;
 
+        execution::set_panic_hook();
+
         'outer: loop {
             debug!("Initializing all functions");
             let num_functions = self.state.init();
@@ -198,6 +205,9 @@ impl Coordinator {
             restart = false;
 
             'inner: while let Some(id) = self.state.next() {
+                #[cfg(feature = "metrics")]
+                self.track_max_jobs();
+
                 if log_enabled!(Debug) {
                     self.state.print();
                 }
@@ -249,11 +259,11 @@ impl Coordinator {
     */
     fn send_job(&self, job: Job) {
         if job.impure {
-            debug!("Dispatched on main thread");
+            debug!("Job executed on main thread");
             execution::execute(job, &self.output_tx);
         } else {
             match self.job_tx.send(job) {
-                Ok(_) => debug!("Dispatched on executor thread"),
+                Ok(_) => debug!("Job sent to Executors"),
                 Err(err) => error!("Error sending on 'job_tx': {}", err)
             }
         };
@@ -375,6 +385,12 @@ impl Coordinator {
     #[cfg(feature = "metrics")]
     fn increment_outputs_sent(&mut self) {
         self.metrics.outputs_sent += 1;
+    }
+
+    #[cfg(feature = "metrics")]
+    fn track_max_jobs(&mut self) {
+        let jobs_running = self.state.number_jobs_running();
+        self.metrics.max_simultaneous_jobs = max(self.metrics.max_simultaneous_jobs, jobs_running);
     }
 }
 
