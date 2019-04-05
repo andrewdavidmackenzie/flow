@@ -280,7 +280,7 @@ impl Coordinator {
         let input_values = function.get_input_values();
 
         self.state.unblock_senders_to(id);
-        debug!("Preparing Job with function #{} '{}' with inputs: {:?}", id, function.name(), input_values);
+        debug!("Preparing Job for Function #{} '{}' with inputs: {:?}", id, function.name(), input_values);
 
         let implementation = function.get_implementation();
 

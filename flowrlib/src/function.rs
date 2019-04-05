@@ -31,7 +31,7 @@ pub struct Function {
     implementation: Arc<Implementation>,
 
     #[serde(default, skip_serializing_if = "Self::is_pure")]
-    impure: bool
+    impure: bool,
 }
 
 struct ImplementationNotFound;
@@ -49,13 +49,17 @@ impl fmt::Display for Function {
         write!(f, "Function #{} '{}'\n", self.id, self.name)?;
         for (number, input) in self.inputs.iter().enumerate() {
             if input.is_empty() {
-                write!(f, "\tInput #{}: empty\n", number)?;
+                write!(f, "\tInput :{} empty\n", number)?;
             } else {
-                write!(f, "\tInput #{}: {}\n", number, input)?;
+                write!(f, "\tInput :{} {}\n", number, input)?;
             }
         }
         for output_route in &self.output_routes {
-            write!(f, "\tOutput route '{}' -> {}:{}\n", output_route.0, output_route.1, output_route.2)?;
+            if output_route.0.is_empty() {
+                write!(f, "\tOutput route '/{}' -> {}:{}\n", output_route.0, output_route.1, output_route.2)?;
+            } else {
+                write!(f, "\tOutput route '{}' -> {}:{}\n", output_route.0, output_route.1, output_route.2)?;
+            }
         }
         write!(f, "")
     }
