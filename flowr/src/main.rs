@@ -86,8 +86,6 @@ fn main() -> Result<(), String> {
         None => 2 * num_cpus::get()
     };
 
-    println!("num jobs: {}", num_parallel_jobs);
-
     // run the set of flow processes
     run(loader.processes, metrics, CLI_DEBUG_CLIENT,
         debugger, num_parallel_jobs);
