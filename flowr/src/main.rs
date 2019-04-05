@@ -73,9 +73,22 @@ fn main() -> Result<(), String> {
     let debugger = matches.is_present("debugger");
     let metrics = matches.is_present("metrics");
 
+    let num_parallel_jobs = match matches.value_of("jobs") {
+        Some(value) => {
+            match value.parse::<i32>() {
+                Ok(jobs) => jobs as usize,
+                Err(_) => {
+                    error!("Error parsing the value for number of parallel jobs '{}'", value);
+                    2 * num_cpus::get()
+                }
+            }
+        },
+        None => 2 * num_cpus::get()
+    };
+
     // run the set of flow processes
     run(loader.processes, metrics, CLI_DEBUG_CLIENT,
-        debugger, num_cpus::get());
+        debugger, num_parallel_jobs);
 
     exit(0);
 }
@@ -99,6 +112,12 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .short("m")
             .long("metrics")
             .help("Calculate metrics during flow execution and print them out when done"))
+        .arg(Arg::with_name("jobs")
+            .short("j")
+            .long("jobs")
+            .takes_value(true)
+            .value_name("MAX_JOBS")
+            .help("Set maximum number of jobs that can be running in parallel)"))
         .arg(Arg::with_name("log")
             .short("l")
             .long("log")

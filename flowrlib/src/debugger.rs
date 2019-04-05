@@ -23,13 +23,14 @@ const HELP_STRING: &str = "Debugger commands:
                                 - blocked_process_id->blocking_process_id
 ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
 'd' | 'delete' {spec} or '*' - Delete the breakpoint matching {spec} or all with '*'
-'e' | 'exit'                 - Stop flow execution and exit
+'e' | 'exit'                 - Stop flow execution and exit debugger
 'h' | 'help'                 - Display this help message
 'i' | 'inspect'              - Run a series of defined 'inspections' to check status of flow
 'l' | 'list'                 - List all breakpoints
 'p' | 'print' [n]            - Print the overall state, or state of process number 'n'
 'r' | 'reset'                - reset the state back to initial state after loading
 's' | 'step' [n]             - Step over the next 'n' process executions (default = 1) then break
+'q' | 'quit'                 - Stop flow execution and exit debugger
 ";
 
 enum Param {
@@ -90,7 +91,7 @@ impl Debugger {
     pub fn check(&mut self, state: &mut RunState, next_process_id: usize) -> (bool, bool) {
         if self.break_at_invocation == state.jobs() ||
             self.process_breakpoints.contains(&next_process_id) {
-            self.client.display("Dispatching process:\n");
+            self.client.display("Sending Job:\n");
             self.print(state, Some(Param::Numeric(next_process_id)));
             return self.command_loop(state);
         }
@@ -100,7 +101,7 @@ impl Debugger {
 
     pub fn check_block(&mut self, state: &mut RunState, blocking_id: usize, blocked_id: usize) {
         if self.block_breakpoints.contains(&(blocked_id, blocking_id)) {
-            self.client.display(&format!("Block breakpoint: Process #{} ----- blocked by ----> Process #{}\n",
+            self.client.display(&format!("Block breakpoint: Function #{} ----- blocked by ----> Function #{}\n",
                                          blocked_id, blocking_id));
             self.command_loop(state);
         }
@@ -110,7 +111,7 @@ impl Debugger {
                       value: &Value, destination_id: usize, input_number: usize) {
         if self.output_breakpoints.contains(&(source_process_id, output_route.to_string())) ||
             self.input_breakpoints.contains(&(destination_id, input_number)) {
-            self.client.display(&format!("Data breakpoint: Process #{}/{}    ----- {} ----> Process #{}:{}\n",
+            self.client.display(&format!("Data breakpoint: Function #{}{}    ----- {} ----> Function #{}:{}\n",
                                          source_process_id, output_route, value,
                                          destination_id, input_number));
             self.command_loop(state);
@@ -119,7 +120,7 @@ impl Debugger {
 
     pub fn panic(&mut self, state: &mut RunState, id: usize, inputs: &Vec<Vec<Value>>) {
         self.client.display("Entering debugger\n");
-        self.client.display(&format!("Process #{} ran with inputs: {:?}\n", id, inputs.clone()));
+        self.client.display(&format!("Function #{} ran with inputs: {:?}\n", id, inputs.clone()));
         self.command_loop(state);
     }
 
@@ -158,6 +159,7 @@ impl Debugger {
                             self.step(state, param);
                             return (true, false);
                         }
+                        "q" | "quit" => exit(1),
                         _ => self.client.display(&format!("Unknown debugger command '{}'\n", command))
                     }
                 }
@@ -176,7 +178,7 @@ impl Debugger {
                 } else {
                     self.process_breakpoints.insert(process_id);
                     self.client.display(
-                        &format!("Set process breakpoint on Process #{}\n", process_id));
+                        &format!("Set process breakpoint on Function #{}\n", process_id));
                 }
             }
             Some(Param::Input((dest_id, input_number))) => {
@@ -186,12 +188,12 @@ impl Debugger {
             }
             Some(Param::Block((blocked_id, blocking_id))) => {
                 self.client.display(
-                    &format!("Set block breakpoint for Process #{} being blocked by Process #{}\n", blocked_id, blocking_id));
+                    &format!("Set block breakpoint for Function #{} being blocked by Function #{}\n", blocked_id, blocking_id));
                 self.block_breakpoints.insert((blocked_id, blocking_id));
             }
             Some(Param::Output((source_id, source_output_route))) => {
                 self.client.display(
-                    &format!("Set data breakpoint on process #{} sending data via output/{}\n", source_id, source_output_route));
+                    &format!("Set data breakpoint on process #{} sending data via output: '/{}'\n", source_id, source_output_route));
                 self.output_breakpoints.insert((source_id, source_output_route));
             }
             Some(Param::Wildcard) => self.client.display("To break on every process, you can just single step using 's' command\n")
@@ -228,14 +230,17 @@ impl Debugger {
     }
 
     fn list_breakpoints(&self) {
+        let mut breakpoints = false;
         if !self.process_breakpoints.is_empty() {
-            self.client.display("Process Breakpoints: \n");
+            breakpoints = true;
+            self.client.display("Function Breakpoints: \n");
             for process_id in &self.process_breakpoints {
-                self.client.display(&format!("\tProcess #{}\n", process_id));
+                self.client.display(&format!("\tFunction #{}\n", process_id));
             }
         }
 
         if !self.output_breakpoints.is_empty() {
+            breakpoints = true;
             self.client.display("Output Breakpoints: \n");
             for (process_id, route) in &self.output_breakpoints {
                 self.client.display(&format!("\tOutput #{}/{}\n", process_id, route));
@@ -243,6 +248,7 @@ impl Debugger {
         }
 
         if !self.input_breakpoints.is_empty() {
+            breakpoints = true;
             self.client.display("Input Breakpoints: \n");
             for (process_id, input_number) in &self.input_breakpoints {
                 self.client.display(&format!("\tInput #{}:{}\n", process_id, input_number));
@@ -250,10 +256,15 @@ impl Debugger {
         }
 
         if !self.block_breakpoints.is_empty() {
+            breakpoints = true;
             self.client.display("Block Breakpoints: \n");
             for (blocked_id, blocking_id) in &self.block_breakpoints {
                 self.client.display(&format!("\tBlock #{}->#{}\n", blocked_id, blocking_id));
             }
+        }
+
+        if !breakpoints {
+            self.client.display("No Breakpoints set. Use the 'b' command to set a breakpoint. Use 'h' for help.\n");
         }
     }
 
@@ -350,7 +361,7 @@ impl Debugger {
             self.client.display(&format!("{}", process));
             self.client.display(&state.display_state(process_id));
         } else {
-            self.client.display(&format!("Process #{} locked, skipping\n", process_id))
+            self.client.display(&format!("Function #{} locked, skipping\n", process_id))
         }
     }
 

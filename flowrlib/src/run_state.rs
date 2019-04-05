@@ -24,18 +24,22 @@ pub struct RunState {
     running: HashSet<usize>,
     // running: HashSet<function_id>
     jobs: usize,
+    // number of jobs created to date
+    max_jobs: usize
+    // limit on the number of jobs to allow to run in parallel
 }
 
 impl RunState {
-    pub fn new(functions: Vec<Arc<Mutex<Function>>>) -> Self {
+    pub fn new(functions: Vec<Arc<Mutex<Function>>>, max_jobs: usize) -> Self {
         RunState {
-            functions: functions,
+            functions,
             blocked: HashSet::<usize>::new(),
             blocking: Vec::<(usize, usize)>::new(),
             will_run: Vec::<usize>::new(),
             running: HashSet::<usize>::new(),
             #[cfg(feature = "debugger")]
             jobs: 0,
+            max_jobs
         }
     }
 
@@ -137,16 +141,18 @@ impl RunState {
         self.functions[id].clone()
     }
 
-    // Return the id of the next function ready to be run, if there is one
+    /*
+        Return the id of the next function ready to be run, if there is one and there are not
+        too many jobs already running
+    */
     pub fn next(&mut self) -> Option<usize> {
-        if self.will_run.is_empty() {
+        if self.will_run.is_empty() || self.running.len() >= self.max_jobs {
             return None;
         }
 
         // Take the function_id at the head of the will_run list
         let function_id = self.will_run.remove(0);
         self.running.insert(function_id);
-        println!("Running {:?}", self.running);
         Some(function_id)
     }
 
@@ -178,9 +184,12 @@ impl RunState {
         blockers
     }
 
-    #[cfg(feature = "metrics")]
     pub fn number_jobs_running(&self) -> usize {
         self.running.len()
+    }
+
+    pub fn number_jobs_ready(&self) -> usize {
+        self.will_run.len()
     }
 
     /*
@@ -325,16 +334,16 @@ mod tests {
 
     #[test]
     fn blocked_works() {
-        let mut state = RunState::new(test_functions());
+        let mut state = RunState::new(test_functions(), 1);
 
-// Indicate that 0 is blocked by 1
+        // Indicate that 0 is blocked by 1
         state.set_blocked_by(1, 0);
         assert!(state.is_blocked(0));
     }
 
     #[test]
     fn get_works() {
-        let state = RunState::new(test_functions());
+        let state = RunState::new(test_functions(), 1);
         let got_arc = state.get(1);
         let got = got_arc.lock().unwrap();
         assert_eq!(got.id(), 1)
@@ -342,14 +351,24 @@ mod tests {
 
     #[test]
     fn no_next_if_none_ready() {
-        let mut state = RunState::new(test_functions());
+        let mut state = RunState::new(test_functions(), 1);
 
         assert!(state.next().is_none());
     }
 
     #[test]
+    fn next_works() {
+        let mut state = RunState::new(test_functions(), 1);
+
+        // Put 0 on the blocked/will_run
+        state.inputs_ready(0);
+
+        assert_eq!(state.next().unwrap(), 0);
+    }
+
+    #[test]
     fn inputs_ready_makes_ready() {
-        let mut state = RunState::new(test_functions());
+        let mut state = RunState::new(test_functions(), 1);
 
         // Put 0 on the blocked/will_run list depending on blocked status
         state.inputs_ready(0);
@@ -359,9 +378,9 @@ mod tests {
 
     #[test]
     fn blocked_is_not_ready() {
-        let mut state = RunState::new(test_functions());
+        let mut state = RunState::new(test_functions(), 1);
 
-// Indicate that 0 is blocked by 1
+        // Indicate that 0 is blocked by 1
         state.set_blocked_by(1, 0);
 
         // Put 0 on the blocked/will_run list depending on blocked status
@@ -375,7 +394,7 @@ mod tests {
 
     #[test]
     fn unblocking_makes_ready() {
-        let mut state = RunState::new(test_functions());
+        let mut state = RunState::new(test_functions(), 1);
 
         // Indicate that 0 is blocked by 1
         state.set_blocked_by(1, 0);
@@ -394,7 +413,7 @@ mod tests {
 
     #[test]
     fn unblocking_doubly_blocked_functions_not_ready() {
-        let mut state = RunState::new(test_functions());
+        let mut state = RunState::new(test_functions(), 1);
 
         // Indicate that 0 is blocked by 1 and 2
         state.set_blocked_by(1, 0);
@@ -409,6 +428,19 @@ mod tests {
         state.unblock_senders_to(1);
 
         // Now function with id 0 should still not be ready as still blocked on 2
+        assert_eq!(state.next(), None);
+    }
+
+    #[test]
+    fn wont_return_too_many_jobs() {
+        let mut state = RunState::new(test_functions(), 1);
+
+        // Put 0 on the blocked/will_run
+        state.inputs_ready(0);
+        // Put 1 on the blocked/will_run
+        state.inputs_ready(1);
+
+        assert_eq!(state.next().unwrap(), 0);
         assert_eq!(state.next(), None);
     }
 }
