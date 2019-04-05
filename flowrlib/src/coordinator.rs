@@ -106,7 +106,7 @@ pub fn run(functions: Vec<Arc<Mutex<Function>>>, display_metrics: bool,
     if display_metrics {
         #[cfg(feature = "metrics")]
             run_list.print_metrics();
-        println!("\t\tJobs sent: \t{}\n", run_list.state.jobs());
+        println!("\t\t   Jobs sent: \t{}\n", run_list.state.jobs());
     }
 }
 
