@@ -165,15 +165,15 @@ struct Coordinator {
 
 impl Coordinator {
     fn new(client: &'static DebugClient, functions: Vec<Arc<Mutex<Function>>>,
-           debugging: bool, num_threads: usize) -> Self {
+           debugging: bool, num_parallel_jobs: usize) -> Self {
         let (job_tx, job_rx, ) = mpsc::channel();
         let (output_tx, output_rx) = mpsc::channel();
 
-        debug!("Starting Coordinator and {} executor threads", num_threads);
-        execution::start_executors(num_threads, job_rx, output_tx.clone());
+        debug!("Starting Coordinator and {} executor threads", num_parallel_jobs);
+        execution::start_executors(num_parallel_jobs, job_rx, output_tx.clone());
 
         Coordinator {
-            state: RunState::new(functions, 2 * num_threads),
+            state: RunState::new(functions, num_parallel_jobs),
             #[cfg(feature = "metrics")]
             metrics: Metrics::new(),
             debugging,
