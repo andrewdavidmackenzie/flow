@@ -12,7 +12,7 @@ use debug_client::DebugClient;
 use run_state::RunState;
 use implementation::Implementation;
 use execution;
-use std::sync::mpsc::{SyncSender, Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender};
 use std::sync::mpsc;
 use std::time::Duration;
 use std::cmp::max;
@@ -22,7 +22,7 @@ struct Metrics {
     num_functions: usize,
     outputs_sent: u32,
     start_time: Instant,
-    max_simultaneous_jobs: usize
+    max_simultaneous_jobs: usize,
 }
 
 #[cfg(feature = "metrics")]
@@ -32,7 +32,7 @@ impl Metrics {
             num_functions: 0,
             outputs_sent: 0,
             start_time: Instant::now(),
-            max_simultaneous_jobs: 0
+            max_simultaneous_jobs: 0,
         }
     }
 
@@ -99,14 +99,14 @@ impl fmt::Display for Metrics {
 /// ```
 pub fn run(functions: Vec<Arc<Mutex<Function>>>, display_metrics: bool,
            client: &'static DebugClient, use_debugger: bool, num_threads: usize) {
-    let mut run_list = Coordinator::new(client, functions, use_debugger, num_threads);
+    let mut coordinator = Coordinator::new(client, functions, use_debugger, num_threads);
 
-    run_list.run();
+    coordinator.run();
 
     if display_metrics {
         #[cfg(feature = "metrics")]
-            run_list.print_metrics();
-        println!("\t\t   Jobs sent: \t{}\n", run_list.state.jobs());
+            coordinator.print_metrics();
+        println!("\t\t   Jobs sent: \t{}\n", coordinator.state.jobs());
     }
 }
 
@@ -158,7 +158,7 @@ struct Coordinator {
     #[cfg(feature = "debugger")]
     pub debugger: Debugger,
 
-    job_tx: SyncSender<Job>,
+    job_tx: Sender<Job>,
     output_rx: Receiver<Output>,
     output_tx: Sender<Output>,
 }
@@ -166,14 +166,14 @@ struct Coordinator {
 impl Coordinator {
     fn new(client: &'static DebugClient, functions: Vec<Arc<Mutex<Function>>>,
            debugging: bool, num_threads: usize) -> Self {
-        let (job_tx, job_rx, ) = mpsc::sync_channel(2 * num_threads);
+        let (job_tx, job_rx, ) = mpsc::channel();
         let (output_tx, output_rx) = mpsc::channel();
 
         debug!("Starting Coordinator and {} executor threads", num_threads);
         execution::start_executors(num_threads, job_rx, output_tx.clone());
 
         Coordinator {
-            state: RunState::new(functions),
+            state: RunState::new(functions, 2 * num_threads),
             #[cfg(feature = "metrics")]
             metrics: Metrics::new(),
             debugging,
@@ -187,12 +187,10 @@ impl Coordinator {
 
     fn run(&mut self) {
         let output_timeout = Duration::new(1, 0);
-        let mut display_output;
-        let mut restart;
 
         execution::set_panic_hook();
 
-        'outer: loop {
+        loop {
             debug!("Initializing all functions");
             let num_functions = self.state.init();
 
@@ -201,35 +199,28 @@ impl Coordinator {
             }
 
             debug!("Starting flow execution");
-            display_output = false;
-            restart = false;
+            let mut display_output;
+            let mut restart;
 
-            'inner: while let Some(id) = self.state.next() {
-                #[cfg(feature = "metrics")]
-                self.track_max_jobs();
+            'inner: loop {
+                let debug_check = self.send_jobs();
+                display_output = debug_check.0;
+                restart = debug_check.1;
 
-                if log_enabled!(Debug) {
-                    self.state.print();
+                if restart {
+                    break 'inner;
                 }
 
-                if cfg!(feature = "debugger") && self.debugging {
-                    let check = self.debugger.check(&mut self.state, id);
-                    display_output = check.0;
-                    restart = check.1;
-
-                    if restart {
-                        break 'inner;
+                if self.state.number_jobs_running() > 0 {
+                    match self.output_rx.recv_timeout(output_timeout) {
+                        Ok(output) => self.update_states(output, display_output),
+                        Err(err) => error!("Error receiving execution result: {}", err)
                     }
                 }
 
-                let job = self.create_job(id);
-
-                self.send_job(job);
-
-                // TODO move the reception onto another thread?
-                match self.output_rx.recv_timeout(output_timeout) {
-                    Ok(output) => self.update_states(output, display_output),
-                    Err(err) => error!("Error receiving execution result: {}", err)
+                if self.state.number_jobs_running() == 0 &&
+                    self.state.number_jobs_ready() == 0 { // we're done
+                    break 'inner;
                 }
             }
 
@@ -244,12 +235,47 @@ impl Coordinator {
                 }
 
                 if !restart {
-                    break 'outer; // We're done!
+                    debug!("Flow execution ended, no remaining function ready to run");
+                    return;
                 }
             }
         }
+    }
 
-        debug!("Flow execution ended, no remaining function ready to run");
+    /*
+        Send as many jobs as possible for parallel execution.
+        Return 'true' if the debugger is requesting a restart
+    */
+    fn send_jobs(&mut self) -> (bool, bool) {
+        let mut display_output = false;
+        let mut restart = false;
+
+        while let Some(id) = self.state.next() {
+            display_output = false;
+            restart = false;
+
+            #[cfg(feature = "metrics")]
+                self.track_max_jobs();
+
+            if log_enabled!(Debug) {
+                self.state.print();
+            }
+
+            if cfg!(feature = "debugger") && self.debugging {
+                let check = self.debugger.check(&mut self.state, id);
+                display_output = check.0;
+                restart = check.1;
+
+                if restart {
+                    return (display_output, restart);
+                }
+            }
+
+            let job = self.create_job(id);
+            self.send_job(job);
+        }
+
+        (display_output, restart)
     }
 
     /*
