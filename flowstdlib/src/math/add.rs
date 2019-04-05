@@ -22,7 +22,7 @@ impl Implementation for Add {
                     value = Some(Value::Number(serde_json::Number::from(a.as_i64().unwrap() + b.as_i64().unwrap())));
                 } else if a.is_u64() && b.is_u64() {
                     value = Some(Value::Number(serde_json::Number::from(a.as_u64().unwrap() + b.as_u64().unwrap())));
-                } else if a.is_f64() && b.is_f64() {
+                } else if a.is_f64() || b.is_f64() {
                     value = Some(Value::Number(serde_json::Number::from_f64(a.as_f64().unwrap() + b.as_f64().unwrap()).unwrap()));
                 }
             }
