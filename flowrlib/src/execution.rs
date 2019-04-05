@@ -36,20 +36,20 @@ fn create_executor(name: String, job_rx: Arc<Mutex<Receiver<Job>>>, output_tx: S
     }).unwrap();
 }
 
-pub fn execute(dispatch: Job, output_tx: &Sender<Output>) {
+pub fn execute(job: Job, output_tx: &Sender<Output>) {
     // Run the implementation with the input values and catch the execution result
     let (result, error) = match panic::catch_unwind(|| {
-        dispatch.implementation.run(dispatch.input_values.clone())
+        job.implementation.run(job.input_values.clone())
     }) {
         Ok(result) => (result, None),
         Err(_) => ((None, false), Some("Execution panicked".into())),
     };
 
     let output = Output {
-        function_id: dispatch.function_id,
-        input_values: dispatch.input_values,
+        function_id: job.function_id,
+        input_values: job.input_values,
         result,
-        destinations: dispatch.destinations,
+        destinations: job.destinations,
         error,
     };
 
