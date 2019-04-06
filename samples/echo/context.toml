@@ -2,7 +2,7 @@ flow = "echo"
 
 [[process]]
 alias = "stdin"
-source = "lib://flowr/stdio/stdin.toml"
+source = "lib://flowr/stdio/readline.toml"
 
 [[process]]
 alias = "print"
