@@ -90,7 +90,14 @@ fn num_parallel_jobs(matches: &ArgMatches) -> usize {
     match matches.value_of("jobs") {
         Some(value) => {
             match value.parse::<i32>() {
-                Ok(jobs) => jobs as usize,
+                Ok(mut jobs) => {
+                    if jobs < 1 {
+                        error!("Minimum number of parallel jobs is '1', so option of '{}' has been overridded to be '1'",
+                        jobs);
+                        jobs = 1;
+                    }
+                    jobs as usize
+                },
                 Err(_) => {
                     error!("Error parsing the value for number of parallel jobs '{}'", value);
                     2 * num_cpus::get()
