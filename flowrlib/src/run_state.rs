@@ -413,7 +413,30 @@ mod tests {
     fn init_to_ready_1() {}
 
     #[test]
-    fn init_to_ready_2() {}
+    fn init_to_ready_2() {
+        let f_a = Arc::new(Mutex::new(
+            Function::new("fA".to_string(), // name
+                          "/context/fA".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          0,
+                          vec!(("".to_string(), 1, 0)), // outputs to fB:0
+            )));
+        let f_b = Arc::new(Mutex::new(
+            Function::new("fB".to_string(), // name
+                          "/context/fB".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, None)),
+                          1,
+                          vec!(),
+            )));
+        let functions = vec!(f_a, f_b);
+        let mut state = RunState::new(functions, 1);
+        state.init();
+        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+    }
 
     #[test]
     fn init_to_ready_3() {}
