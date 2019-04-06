@@ -5,9 +5,7 @@ use log::Level::Debug;
 #[cfg(feature = "debugger")]
 use debugger::Debugger;
 #[cfg(feature = "metrics")]
-use std::fmt;
-#[cfg(feature = "metrics")]
-use std::time::Instant;
+use metrics::Metrics;
 use debug_client::DebugClient;
 use flow::Flow;
 use run_state::RunState;
@@ -16,53 +14,6 @@ use execution;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::mpsc;
 use std::time::Duration;
-use std::cmp::max;
-
-#[cfg(feature = "metrics")]
-struct Metrics {
-    num_functions: usize,
-    outputs_sent: u32,
-    start_time: Instant,
-    max_simultaneous_jobs: usize,
-}
-
-#[cfg(feature = "metrics")]
-impl Metrics {
-    fn new() -> Self {
-        Metrics {
-            num_functions: 0,
-            outputs_sent: 0,
-            start_time: Instant::now(),
-            max_simultaneous_jobs: 0,
-        }
-    }
-
-    fn reset(&mut self, num_functions: usize) {
-        self.num_functions = num_functions;
-        self.outputs_sent = 0;
-        self.start_time = Instant::now();
-        self.max_simultaneous_jobs = 0;
-    }
-
-    fn increment_outputs_sent(&mut self) {
-        self.outputs_sent += 1;
-    }
-
-    fn track_max_jobs(&mut self, jobs_running: usize) {
-        self.max_simultaneous_jobs = max(self.max_simultaneous_jobs, jobs_running);
-    }
-}
-
-#[cfg(feature = "metrics")]
-impl fmt::Display for Metrics {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let elapsed = self.start_time.elapsed();
-        write!(f, "\t Number of Functions: \t{}\n", self.num_functions)?;
-        write!(f, "\t        Outputs sent: \t{}\n", self.outputs_sent)?;
-        write!(f, "\t     Elapsed time(s): \t{:.*}\n", 9, elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9)?;
-        write!(f, "\tMax Jobs in Parallel: \t{}", self.max_simultaneous_jobs)
-    }
-}
 
 pub struct Job {
     pub function_id: usize,
@@ -191,7 +142,7 @@ impl Coordinator {
         let output_timeout = Duration::new(1, 0);
         let mut state = RunState::new(flow.functions, num_parallel_jobs);
         #[cfg(feature = "metrics")]
-            let mut metrics = Metrics::new();
+            let mut metrics = Metrics::new(state.num_functions());
 
         /*
             This outer loop is just a way of restarting execution from scratch if the debugger
@@ -199,10 +150,10 @@ impl Coordinator {
         */
         loop {
             debug!("Initializing all functions");
-            let num_functions = state.init();
+            state.init_functions();
 
             if cfg!(feature = "metrics") {
-                metrics.reset(num_functions);
+                metrics.reset();
             }
 
             debug!("Starting flow execution");
@@ -388,11 +339,11 @@ impl Coordinator {
                         }
 
                         // for the case when a function is sending to itself, delay determining if it should
-                        // be in the blocked or will_run lists until it has sent all it's other outputs
+                        // be in the blocked or ready lists until it has sent all it's other outputs
                         // as it might be blocked by another function.
                         // Iif not, this will be fixed in the "if source_can_run_again {" block below
                         if destination.can_run() & &(output.function_id != destination_id) {
-                            state.inputs_ready(destination_id);
+                            state.inputs_are_ready(destination_id);
                         }
                     }
                 }
@@ -407,7 +358,7 @@ impl Coordinator {
                     source.refresh_constant_inputs();
 
                     if source.can_run() {
-                        state.inputs_ready(output.function_id);
+                        state.inputs_are_ready(output.function_id);
                     }
                 }
             }
@@ -418,13 +369,3 @@ impl Coordinator {
         state.done(output.function_id);
     }
 }
-
-#[test]
-fn test_metrics_reset() {
-    let mut metrics = Metrics::new();
-    metrics.outputs_sent = 10;
-    metrics.reset(10);
-    assert_eq!(metrics.outputs_sent, 0);
-    assert_eq!(metrics.num_functions, 10);
-}
-

@@ -24,6 +24,9 @@ pub mod input;
 pub mod loader;
 pub mod flow;
 pub mod provider;
+#[cfg(feature = "metrics")]
+pub mod metrics;
+
 #[cfg(feature = "debugger")]
 pub mod debugger;
 #[cfg(feature = "debugger")]

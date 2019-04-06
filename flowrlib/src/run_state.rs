@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use function::Function;
 
 #[derive(Debug)]
-enum State {
+pub enum State {
     Ready,
     // ready to run
     Blocked,
@@ -19,13 +19,13 @@ pub struct RunState {
     // blocked: HashSet<function_id>
     blocking: Vec<(usize, usize)>,
     // blocking: Vec<(blocking_id, blocked_id)>
-    will_run: Vec<usize>,
-    // will_run: Vec<function_id>
+    ready: Vec<usize>,
+    // ready: Vec<function_id>
     running: HashSet<usize>,
     // running: HashSet<function_id>
     jobs: usize,
     // number of jobs created to date
-    max_jobs: usize
+    max_jobs: usize,
     // limit on the number of jobs to allow to run in parallel
 }
 
@@ -35,11 +35,11 @@ impl RunState {
             functions,
             blocked: HashSet::<usize>::new(),
             blocking: Vec::<(usize, usize)>::new(),
-            will_run: Vec::<usize>::new(),
+            ready: Vec::<usize>::new(),
             running: HashSet::<usize>::new(),
             #[cfg(feature = "debugger")]
             jobs: 0,
-            max_jobs
+            max_jobs,
         }
     }
 
@@ -53,7 +53,7 @@ impl RunState {
         };
         self.blocked.clear();
         self.blocking.clear();
-        self.will_run.clear();
+        self.ready.clear();
         self.running.clear();
         if cfg!(feature = "debugger") {
             self.jobs = 0;
@@ -65,10 +65,8 @@ impl RunState {
         The `init` method on each function is called, which returns a boolean to indicate that it's
         inputs are fulfilled - and this information is added to the RunList to control the readyness of
         the Process to be executed.
-
-        Once all functions have been initialized, the list of functions is stored in the RunList
     */
-    pub fn init(&mut self) -> usize {
+    pub fn init_functions(&mut self) {
         let mut inputs_ready_list = Vec::<usize>::new();
 
         for function_arc in &self.functions {
@@ -79,16 +77,14 @@ impl RunState {
             }
         }
 
-        // For all the functions that are have  their inputs ready - put on the appropriate list
+        // Put all functions that have their inputs ready on the appropriate list
         for id in inputs_ready_list {
-            self.inputs_ready(id);
+            self.inputs_are_ready(id);
         }
-
-        self.functions.len()
     }
 
-    fn get_state(&self, function_id: usize) -> State {
-        if self.will_run.contains(&function_id) {
+    pub fn get_state(&self, function_id: usize) -> State {
+        if self.ready.contains(&function_id) {
             State::Ready
         } else {
             if self.blocked.contains(&function_id) {
@@ -128,7 +124,7 @@ impl RunState {
         println!("        Jobs: {}", self.jobs);
         println!("     Blocked: {:?}", self.blocked);
         println!("    Blocking: {:?}", self.blocking);
-        println!("    Will Run: {:?}", self.will_run);
+        println!("    Will Run: {:?}", self.ready);
         println!("     Running: {:?}", self.running);
     }
 
@@ -146,12 +142,12 @@ impl RunState {
         too many jobs already running
     */
     pub fn next(&mut self) -> Option<usize> {
-        if self.will_run.is_empty() || self.running.len() >= self.max_jobs {
+        if self.ready.is_empty() || self.running.len() >= self.max_jobs {
             return None;
         }
 
-        // Take the function_id at the head of the will_run list
-        let function_id = self.will_run.remove(0);
+        // Take the function_id at the head of the ready list
+        let function_id = self.ready.remove(0);
         self.running.insert(function_id);
         Some(function_id)
     }
@@ -162,7 +158,7 @@ impl RunState {
 
     // Or use the blocked_id as a key to a HashSet?
     // See if there is any tuple in the vector where the second (blocked_id) is the one we're after
-    fn is_blocked(&self, id: usize) -> bool {
+    pub fn is_blocked(&self, id: usize) -> bool {
         for &(_blocking_id, blocked_id) in &self.blocking {
             if blocked_id == id {
                 return true;
@@ -189,7 +185,7 @@ impl RunState {
     }
 
     pub fn number_jobs_ready(&self) -> usize {
-        self.will_run.len()
+        self.ready.len()
     }
 
     /*
@@ -213,7 +209,7 @@ impl RunState {
                         let mut sender_function_lock = sender_function_arc.try_lock();
                         if let Ok(ref mut sender_function) = sender_function_lock {
                             // if the sender function is not ready to run
-                            if !self.will_run.contains(&sender_function.id()) {
+                            if !self.ready.contains(&sender_function.id()) {
 
                                 // for each output route of sending function, see if it is sending to the target function and input
                                 for (ref _output_route, destination_id, io_number) in sender_function.output_destinations() {
@@ -240,13 +236,13 @@ impl RunState {
         Save the fact that a particular Process's inputs are now satisfied and so it maybe ready
         to run (if not blocked sending on it's output)
     */
-    pub fn inputs_ready(&mut self, id: usize) {
+    pub fn inputs_are_ready(&mut self, id: usize) {
         if self.is_blocked(id) {
             debug!("\t\t\tProcess #{} inputs are ready, but blocked on output", id);
             self.blocked.insert(id);
         } else {
             debug!("\t\t\tProcess #{} not blocked on output, so added to 'Will Run' list", id);
-            self.will_run.push(id);
+            self.ready.push(id);
         }
     }
 
@@ -282,9 +278,9 @@ impl RunState {
             // functions apart from the the one that just unblocked it.
             for unblocked in unblocked_list {
                 if self.blocked.contains(&unblocked) && !self.is_blocked(unblocked) {
-                    debug!("\t\t\tProcess #{} has inputs ready, so removed from 'blocked' and added to 'will_run'", unblocked);
+                    debug!("\t\t\tProcess #{} has inputs ready, so removed from 'blocked' and added to 'ready'", unblocked);
                     self.blocked.remove(&unblocked);
-                    self.will_run.push(unblocked);
+                    self.ready.push(unblocked);
                 }
             }
         }
@@ -360,8 +356,8 @@ mod tests {
     fn next_works() {
         let mut state = RunState::new(test_functions(), 1);
 
-        // Put 0 on the blocked/will_run
-        state.inputs_ready(0);
+        // Put 0 on the blocked/ready
+        state.inputs_are_ready(0);
 
         assert_eq!(state.next().unwrap(), 0);
     }
@@ -370,8 +366,8 @@ mod tests {
     fn inputs_ready_makes_ready() {
         let mut state = RunState::new(test_functions(), 1);
 
-        // Put 0 on the blocked/will_run list depending on blocked status
-        state.inputs_ready(0);
+        // Put 0 on the blocked/ready list depending on blocked status
+        state.inputs_are_ready(0);
 
         assert_eq!(state.next().unwrap(), 0);
     }
@@ -383,8 +379,8 @@ mod tests {
         // Indicate that 0 is blocked by 1
         state.set_blocked_by(1, 0);
 
-        // Put 0 on the blocked/will_run list depending on blocked status
-        state.inputs_ready(0);
+        // Put 0 on the blocked/ready list depending on blocked status
+        state.inputs_are_ready(0);
 
         match state.next() {
             None => assert!(true),
@@ -399,8 +395,8 @@ mod tests {
         // Indicate that 0 is blocked by 1
         state.set_blocked_by(1, 0);
 
-        // Put 0 on the blocked/will_run list depending on blocked status
-        state.inputs_ready(0);
+        // Put 0 on the blocked/ready list depending on blocked status
+        state.inputs_are_ready(0);
 
         assert_eq!(state.next(), None);
 
@@ -419,8 +415,8 @@ mod tests {
         state.set_blocked_by(1, 0);
         state.set_blocked_by(2, 0);
 
-        // Put 0 on the blocked/will_run list depending on blocked status
-        state.inputs_ready(0);
+        // Put 0 on the blocked/ready list depending on blocked status
+        state.inputs_are_ready(0);
 
         assert_eq!(state.next(), None);
 
@@ -435,10 +431,10 @@ mod tests {
     fn wont_return_too_many_jobs() {
         let mut state = RunState::new(test_functions(), 1);
 
-        // Put 0 on the blocked/will_run
-        state.inputs_ready(0);
-        // Put 1 on the blocked/will_run
-        state.inputs_ready(1);
+        // Put 0 on the blocked/ready
+        state.inputs_are_ready(0);
+        // Put 1 on the blocked/ready
+        state.inputs_are_ready(1);
 
         assert_eq!(state.next().unwrap(), 0);
         assert_eq!(state.next(), None);
