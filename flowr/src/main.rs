@@ -1,6 +1,5 @@
 extern crate clap;
 extern crate flowrlib;
-extern crate flowstdlib;
 #[macro_use]
 extern crate log;
 extern crate num_cpus;
@@ -14,7 +13,7 @@ use std::env;
 use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
-use flowrlib::coordinator;
+use flowrlib::coordinator::Coordinator;
 use flowrlib::debug_client::DebugClient;
 use flowrlib::info;
 use flowrlib::loader::Loader;
@@ -46,27 +45,54 @@ fn main() -> Result<(), String> {
     // TODO these shoudl come in as library references in the flow and they can be loaded
     // on demand, or reused if already loaded.
 
-    // Load library functions from 'flowr'
+    // Load library functions provided by this program
     loader.add_lib(&provider, ::ilt::get_ilt(), &cwd.to_string())?;
 
     // Load standard library functions from flowstdlib
     // For now we are passing in a fake ilt.json file so the basepath for finding wasm files works.
     loader.add_lib(&provider, flowstdlib::ilt::get_ilt(),
-                   &format!("{}flowstdlib/ilt.json", cwd.to_string()))?;
+                 &format!("{}flowstdlib/ilt.json", &cwd.to_string()))?;
 
     let debugger = matches.is_present("debugger");
     let metrics = matches.is_present("metrics");
-
-    let num_parallel_jobs = num_parallel_jobs(&matches);
+    let mut coordinator = Coordinator::new(CLI_DEBUG_CLIENT,
+                                       num_threads(&matches), debugger, metrics);
 
     // Load the flow to run from the manifest
-    let flow = loader.load_manifest(&provider, &url.to_string())?;
+    let flow = loader.load_from_manifest(&provider, &url.to_string())?;
 
     // run the flow
-    coordinator::run(flow, metrics, CLI_DEBUG_CLIENT,
-                     debugger, num_parallel_jobs);
+    let num_parallel_jobs = num_parallel_jobs(&matches);
+    coordinator.run(flow, num_parallel_jobs);
 
     exit(0);
+}
+
+
+/*
+    Determine the number of threads to use to execute flows, with a default of the number of cores
+    in the device, or any override from the command line.
+*/
+fn num_threads(matches: &ArgMatches) -> usize {
+    match matches.value_of("threads") {
+        Some(value) => {
+            match value.parse::<i32>() {
+                Ok(mut threads) => {
+                    if threads < 1 {
+                        error!("Minimum number of threads is '1', so option of '{}' has been overridded to be '1'",
+                               threads);
+                        threads = 1;
+                    }
+                    threads as usize
+                }
+                Err(_) => {
+                    error!("Error parsing the value for number of threads '{}'", value);
+                    num_cpus::get()
+                }
+            }
+        }
+        None => num_cpus::get()
+    }
 }
 
 /*
@@ -80,17 +106,17 @@ fn num_parallel_jobs(matches: &ArgMatches) -> usize {
                 Ok(mut jobs) => {
                     if jobs < 1 {
                         error!("Minimum number of parallel jobs is '1', so option of '{}' has been overridded to be '1'",
-                        jobs);
+                               jobs);
                         jobs = 1;
                     }
                     jobs as usize
-                },
+                }
                 Err(_) => {
                     error!("Error parsing the value for number of parallel jobs '{}'", value);
                     2 * num_cpus::get()
                 }
             }
-        },
+        }
         None => 2 * num_cpus::get()
     }
 }
@@ -120,6 +146,12 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .takes_value(true)
             .value_name("MAX_JOBS")
             .help("Set maximum number of jobs that can be running in parallel)"))
+        .arg(Arg::with_name("threads")
+            .short("t")
+            .long("threads")
+            .takes_value(true)
+            .value_name("THREADS")
+            .help("Set number of threads to use to execute jobs)"))
         .arg(Arg::with_name("log")
             .short("l")
             .long("log")

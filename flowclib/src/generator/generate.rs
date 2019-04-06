@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use model::flow::Flow;
 use model::route::Route;
 use model::connection::Connection;
-use flowrlib::manifest::Manifest;
+use flowrlib::manifest::{Manifest, MetaData};
 use flowrlib::function::Function as RuntimeFunction;
 use model::function::Function;
 use model::name::HasName;
@@ -33,16 +33,23 @@ impl GenerationTables {
     }
 }
 
-pub fn create_manifest(_flow: &Flow, debug_symbols: bool, out_dir_path: &str, tables: &GenerationTables)
+pub fn create_manifest(flow: &Flow, debug_symbols: bool, out_dir_path: &str, tables: &GenerationTables)
                        -> Result<Manifest> {
     info!("==== Generator: Writing manifest to '{}'", out_dir_path);
-    let mut manifest = Manifest::new();
+    let metadata = MetaData {
+        alias: flow.alias.clone(),
+        version: flow.version.clone(),
+        author_name: flow.author_name.clone(),
+        author_email: flow.author_email.clone()
+    };
+
+    let mut manifest = Manifest::new(metadata);
     let mut base_path = out_dir_path.to_string();
     base_path.push('/');
 
     // Generate runtime Process struct for each of the functions
     for function in &tables.functions {
-        manifest.functions.push(function_to_runtimefunction(&base_path, function, debug_symbols));
+        manifest.add_function(function_to_runtimefunction(&base_path, function, debug_symbols));
     }
 
     Ok(manifest)

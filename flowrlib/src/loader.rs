@@ -34,9 +34,9 @@ impl Loader {
         have been wrapped in a Native "WasmExecutor" implementation to make it appear native.
         Thus, all library implementations found will be Native.
     */
-    pub fn load_manifest(&mut self, provider: &Provider, manifest_url: &str) -> Result<Flow, String> {
+    pub fn load_from_manifest(&mut self, provider: &Provider, manifest_url: &str) -> Result<Flow, String> {
         let manifest = Manifest::load(provider, manifest_url)?;
-        let mut flow = Flow::new();
+        let mut flow = Flow::new(&manifest);
 
         // find in a library, or load the implementation required - as specified by the source
         for mut function in manifest.functions {
