@@ -160,7 +160,6 @@ struct Coordinator {
 
     job_tx: Sender<Job>,
     output_rx: Receiver<Output>,
-    output_tx: Sender<Output>,
 }
 
 impl Coordinator {
@@ -181,7 +180,6 @@ impl Coordinator {
             debugger: Debugger::new(client),
             job_tx,
             output_rx,
-            output_tx,
         }
     }
 
@@ -288,15 +286,10 @@ impl Coordinator {
         - if pure send it on the 'job_tx' channel where executors will pick it up by an executor
     */
     fn send_job(&self, job: Job) {
-        if job.impure {
-            debug!("Job executed on main thread");
-            execution::execute(job, &self.output_tx);
-        } else {
-            match self.job_tx.send(job) {
-                Ok(_) => debug!("Job sent to Executors"),
-                Err(err) => error!("Error sending on 'job_tx': {}", err)
-            }
-        };
+        match self.job_tx.send(job) {
+            Ok(_) => debug!("Job sent to Executors"),
+            Err(err) => error!("Error sending on 'job_tx': {}", err)
+        }
     }
 
     /*
