@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::collections::HashSet;
 use function::Function;
+use std::fmt;
 
 #[derive(Debug)]
 pub enum State {
@@ -115,17 +116,6 @@ impl RunState {
         }
 
         output
-    }
-
-    #[cfg(any(feature = "logging", feature = "debugger"))]
-    pub fn print(&self) {
-        println!("RunState:");
-        println!("   Processes: {}", self.functions.len());
-        println!("        Jobs: {}", self.jobs);
-        println!("     Blocked: {:?}", self.blocked);
-        println!("    Blocking: {:?}", self.blocking);
-        println!("    Will Run: {:?}", self.ready);
-        println!("     Running: {:?}", self.running);
     }
 
     #[cfg(any(feature = "metrics", feature = "debugger"))]
@@ -293,6 +283,19 @@ impl RunState {
             debug!("\t\t\tProcess #{} <-- Process #{} blocked", &blocking_id, &blocked_id);
             self.blocking.push((blocking_id, blocked_id));
         }
+    }
+}
+
+#[cfg(any(feature = "logging", feature = "debugger"))]
+impl fmt::Display for RunState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "RunState:")?;
+        write!(f, "   Processes: {}", self.functions.len())?;
+        write!(f, "        Jobs: {}", self.jobs)?;
+        write!(f, "     Blocked: {:?}", self.blocked)?;
+        write!(f, "    Blocking: {:?}", self.blocking)?;
+        write!(f, "    Will Run: {:?}", self.ready)?;
+        write!(f, "     Running: {:?}", self.running)
     }
 }
 

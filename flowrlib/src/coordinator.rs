@@ -187,7 +187,7 @@ impl Coordinator {
 
             if !restart {
                 if cfg!(feature = "logging") && log_enabled!(Debug) {
-                    state.print();
+                    debug!("{}", state);
                 }
 
                 if cfg!(feature = "debugger") && self.debugging {
@@ -227,8 +227,8 @@ impl Coordinator {
             #[cfg(feature = "metrics")]
                 metrics.track_max_jobs(state.number_jobs_running());
 
-            if log_enabled!(Debug) {
-                state.print();
+            if cfg!(feature = "logging") && log_enabled!(Debug) {
+                debug!("{}", state);
             }
 
             if cfg!(feature = "debugger") && self.debugging {

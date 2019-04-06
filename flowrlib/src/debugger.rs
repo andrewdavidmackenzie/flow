@@ -377,7 +377,7 @@ impl Debugger {
 
     fn print(&self, state: &RunState, param: Option<Param>) {
         match param {
-            None => state.print(),
+            None => self.client.display(&format!("{}\n", state)),
             Some(Param::Numeric(process_id)) |
             Some(Param::Block((process_id, _))) => self.print_process(state, process_id),
             Some(Param::Input((process_id, _))) => self.print_process(state, process_id),
