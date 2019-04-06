@@ -73,7 +73,21 @@ fn main() -> Result<(), String> {
     let debugger = matches.is_present("debugger");
     let metrics = matches.is_present("metrics");
 
-    let num_parallel_jobs = match matches.value_of("jobs") {
+    let num_parallel_jobs = num_parallel_jobs(&matches);
+
+    // run the set of flow processes
+    run(loader.processes, metrics, CLI_DEBUG_CLIENT,
+        debugger, num_parallel_jobs);
+
+    exit(0);
+}
+
+/*
+    Determine the number of parallel jobs to be run in parallel based on a default of 2 times
+    the number of cores in the device, or any override from the command line.
+*/
+fn num_parallel_jobs(matches: &ArgMatches) -> usize {
+    match matches.value_of("jobs") {
         Some(value) => {
             match value.parse::<i32>() {
                 Ok(jobs) => jobs as usize,
@@ -84,13 +98,7 @@ fn main() -> Result<(), String> {
             }
         },
         None => 2 * num_cpus::get()
-    };
-
-    // run the set of flow processes
-    run(loader.processes, metrics, CLI_DEBUG_CLIENT,
-        debugger, num_parallel_jobs);
-
-    exit(0);
+    }
 }
 
 /*
