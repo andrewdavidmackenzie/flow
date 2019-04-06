@@ -169,7 +169,7 @@ impl Coordinator {
         let (job_tx, job_rx, ) = mpsc::channel();
         let (output_tx, output_rx) = mpsc::channel();
 
-        debug!("Starting Coordinator and {} executor threads", num_parallel_jobs);
+        debug!("Starting {} executor threads", num_parallel_jobs);
         execution::start_executors(num_parallel_jobs, job_rx, output_tx.clone());
 
         Coordinator {
@@ -190,6 +190,10 @@ impl Coordinator {
 
         execution::set_panic_hook();
 
+        /*
+            This outer loop is just a way of restarting execution from scratch if the debugger
+            requests it.
+        */
         loop {
             debug!("Initializing all functions");
             let num_functions = self.state.init();
@@ -334,7 +338,7 @@ impl Coordinator {
                 let source_can_run_again = output.result.1;
 
                 debug!("\tCompleted Function #{}", output.function_id);
-                if cfg!(feature = "debugger") & &display_output {
+                if cfg!(feature = "debugger") && display_output {
                     self.debugger.client.display(&format!("Completed Function #{}\n", output.function_id));
                 }
 
@@ -342,7 +346,7 @@ impl Coordinator {
                 if let Some(output_v) = output_value {
                     debug!("\tProcessing output '{}' from Function #{}", output_v, output.function_id);
 
-                    if cfg!(feature = "debugger") & &display_output {
+                    if cfg!(feature = "debugger") && display_output {
                         self.debugger.client.display(&format!("\tProduced output {}\n", &output_v));
                     }
 
@@ -352,7 +356,7 @@ impl Coordinator {
                         let output_value = output_v.pointer(&output_route).unwrap();
                         debug!("\t\tFunction #{} sent value '{}' via output route '{}' to Function #{} '{}' input :{}",
                                output.function_id, output_value, output_route, &destination_id, destination.name(), &io_number);
-                        if cfg!(feature = "debugger") & &display_output {
+                        if cfg!(feature = "debugger") && display_output {
                             self.debugger.client.display(
                                 &format!("\t\tSending to {}:{}\n", destination_id, io_number));
                         }
