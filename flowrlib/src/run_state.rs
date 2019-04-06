@@ -439,7 +439,21 @@ mod tests {
     }
 
     #[test]
-    fn init_to_ready_3() {}
+    fn init_to_ready_3() {
+        let f_a = Arc::new(Mutex::new(
+            Function::new("fA".to_string(), // name
+                          "/context/fA".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          0,
+                          vec!(),
+            )));
+        let functions = vec!(f_a);
+        let mut state = RunState::new(functions, 1);
+        state.init();
+        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+    }
 
     /*
         FunctionA -> FunctionB
