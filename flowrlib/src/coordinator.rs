@@ -268,7 +268,7 @@ impl Coordinator {
         let function_arc = state.get(id);
         let function: &mut Function = &mut *function_arc.lock().unwrap();
 
-        let input_values = function.get_input_values();
+        let input_values = function.take_input_values();
 
         state.unblock_senders_to(id);
         debug!("Preparing Job for Function #{} '{}' with inputs: {:?}", id, function.name(), input_values);
@@ -342,7 +342,7 @@ impl Coordinator {
                         // be in the blocked or ready lists until it has sent all it's other outputs
                         // as it might be blocked by another function.
                         // Iif not, this will be fixed in the "if source_can_run_again {" block below
-                        if destination.can_run() & &(output.function_id != destination_id) {
+                        if destination.inputs_full() & &(output.function_id != destination_id) {
                             state.inputs_are_ready(destination_id);
                         }
                     }
@@ -355,9 +355,9 @@ impl Coordinator {
                     let mut source = source_arc.lock().unwrap();
 
                     // refresh any constant inputs it may have
-                    source.refresh_constant_inputs();
+                    source.init_inputs(false);
 
-                    if source.can_run() {
+                    if source.inputs_full() {
                         state.inputs_are_ready(output.function_id);
                     }
                 }

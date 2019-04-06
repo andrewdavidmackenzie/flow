@@ -120,27 +120,11 @@ impl Function {
     }
 
     /*
-        If an initial value is defined then write it to the current value.
-        Return true if ready to run as all inputs (single in this case) are satisfied.
+        Initialize all inputs - as they may have initializers
     */
-    pub fn init(&mut self) -> bool {
-        // initialize any inputs that have initial values
+    pub fn init_inputs(&mut self, first_time: bool) {
         for mut input in &mut self.inputs {
-            input.init(true);
-        }
-
-        self.can_run()
-    }
-
-    /*
-        If any input of the process is initialized as a Constant, then refresh the input from the
-        Constant Initializer
-
-        // TODO look at this by instead never "taking" the input value away when dispatching
-    */
-    pub fn refresh_constant_inputs(&mut self) {
-        for mut input in &mut self.inputs {
-            input.init(false);
+            input.init(first_time);
         }
     }
 
@@ -160,8 +144,8 @@ impl Function {
         }
     }
 
-    pub fn output_destinations(&self) -> Vec<(String, usize, usize)> {
-        self.output_routes.clone()
+    pub fn output_destinations(&self) -> &Vec<(String, usize, usize)> {
+        &self.output_routes
     }
 
     pub fn get_implementation(&self) -> Arc<Implementation> {
@@ -177,7 +161,7 @@ impl Function {
     }
 
     // responds true if all inputs have been satisfied and this process can be run - false otherwise
-    pub fn can_run(&self) -> bool {
+    pub fn inputs_full(&self) -> bool {
         for input in &self.inputs {
             if !input.full() {
                 return false;
@@ -187,11 +171,15 @@ impl Function {
         return true;
     }
 
-    pub fn get_inputs(&self) -> &Vec<Input> {
+    #[cfg(feature = "debugger")]
+    pub fn inputs(&self) -> &Vec<Input> {
         &self.inputs
     }
 
-    pub fn get_input_values(&mut self) -> Vec<Vec<Value>> {
+    /*
+        Read the values from the inputs and return them for use in executing the function
+    */
+    pub fn take_input_values(&mut self) -> Vec<Vec<Value>> {
         let mut input_values: Vec<Vec<Value>> = Vec::new();
         for input_value in &mut self.inputs {
             input_values.push(input_value.take());
@@ -232,9 +220,9 @@ mod test {
                                         "/test".to_string(), false,
                                         vec!((1, None)), 0,
                                         vec!());
-        process.init();
+        process.init_inputs(true);
         process.write_input(0, json!(1));
-        assert_eq!(process.get_input_values().remove(0).remove(0), json!(1));
+        assert_eq!(process.take_input_values().remove(0).remove(0), json!(1));
     }
 
     #[test]
@@ -244,9 +232,9 @@ mod test {
                                         "/test".to_string(), false,
                                         vec!((1, None)), 0,
                                         vec!());
-        process.init();
+        process.init_inputs(true);
         process.write_input(0, json!(1)); // success
         process.write_input(0, json!(2)); // fail
-        assert_eq!(process.get_input_values().remove(0).remove(0), json!(1));
+        assert_eq!(process.take_input_values().remove(0).remove(0), json!(1));
     }
 }

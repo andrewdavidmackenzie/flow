@@ -14,6 +14,24 @@ pub enum State {
     Running,     //is being run somewhere
 }
 
+/// The Semantics of a Flow's RunState
+/// The semantics of the state of each function in a flow and the flow over are described here
+/// and the tests of the struct attempt to reproduce and confirm as many of them as is possible
+///
+/// Initialization
+/// ==============
+/// Upon initialization all functions are initialized by calling their init() function. This may
+/// initialize one or more inputs with values. This may cause all inputs to be full and hence
+/// the Function maybe able to run (pending blocks on other functions).
+///
+/// States
+/// ======
+/// Ready   - Function will be in Ready state when all of it's inputs are full and there are no inputs
+///           it sends to that are full
+/// Blocked - Function is in Blocked state when there is at least one input it sends to that is full
+/// Waiting - Function is in Blocked state when at least one of it's inputs is not full
+/// Running - Function is in Running state when it has been picked from the Ready list for execution
+///           using the next() funcion
 pub struct RunState {
     functions: Vec<Arc<Mutex<Function>>>,
     blocked: HashSet<usize>,
@@ -73,7 +91,8 @@ impl RunState {
         for function_arc in &self.functions {
             let mut function = function_arc.lock().unwrap();
             debug!("\tInitializing Function #{} '{}'", function.id(), function.name());
-            if function.init() {
+            function.init_inputs(true);
+            if function.inputs_full() {
                 inputs_ready_list.push(function.id());
             }
         }
@@ -190,7 +209,7 @@ impl RunState {
 
         if let Ok(ref mut target_functions) = target_function_lock {
             // for each empty input of the target function
-            for (target_io, input) in target_functions.get_inputs().iter().enumerate() {
+            for (target_io, input) in target_functions.inputs().iter().enumerate() {
                 if input.is_empty() {
                     let mut senders = Vec::<usize>::new();
 
@@ -203,7 +222,7 @@ impl RunState {
 
                                 // for each output route of sending function, see if it is sending to the target function and input
                                 for (ref _output_route, destination_id, io_number) in sender_function.output_destinations() {
-                                    if (destination_id == target_id) && (io_number == target_io) {
+                                    if (*destination_id == target_id) && (*io_number == target_io) {
                                         senders.push(sender_function.id());
                                     }
                                 }
