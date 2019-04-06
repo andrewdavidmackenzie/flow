@@ -11,18 +11,17 @@ extern crate simplog;
 extern crate url;
 
 use std::env;
-use std::io;
-use std::io::Write;
 use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
-use flowrlib::coordinator::run;
+use flowrlib::coordinator;
 use flowrlib::debug_client::DebugClient;
 use flowrlib::info;
 use flowrlib::loader::Loader;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
+use cli_debug_client::CLIDebugClient;
 use provider::args::{cwd_as_url, url_from_string};
 use provider::content::provider::MetaProvider;
 
@@ -30,24 +29,9 @@ pub mod args;
 pub mod stdio;
 pub mod file;
 mod ilt;
+mod cli_debug_client;
 
 pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
-
-struct CLIDebugClient {}
-
-/*
-    Implement a client for the debugger that reads and writes to standard input and output
-*/
-impl DebugClient for CLIDebugClient {
-    fn display(&self, output: &str) {
-        print!("{}", output);
-        io::stdout().flush().unwrap();
-    }
-
-    fn read_input(&self, input: &mut String) -> io::Result<usize> {
-        io::stdin().read_line(input)
-    }
-}
 
 const CLI_DEBUG_CLIENT: &DebugClient = &CLIDebugClient {};
 
@@ -59,6 +43,9 @@ fn main() -> Result<(), String> {
 
     let cwd = cwd_as_url()?;
 
+    // TODO these shoudl come in as library references in the flow and they can be loaded
+    // on demand, or reused if already loaded.
+
     // Load library functions from 'flowr'
     loader.add_lib(&provider, ::ilt::get_ilt(), &cwd.to_string())?;
 
@@ -67,17 +54,17 @@ fn main() -> Result<(), String> {
     loader.add_lib(&provider, flowstdlib::ilt::get_ilt(),
                    &format!("{}flowstdlib/ilt.json", cwd.to_string()))?;
 
-    // Load the list of processes to be run from the manifest
-    loader.load_manifest(&provider, &url.to_string())?;
-
     let debugger = matches.is_present("debugger");
     let metrics = matches.is_present("metrics");
 
     let num_parallel_jobs = num_parallel_jobs(&matches);
 
-    // run the set of flow processes
-    run(loader.processes, metrics, CLI_DEBUG_CLIENT,
-        debugger, num_parallel_jobs);
+    // Load the flow to run from the manifest
+    let flow = loader.load_manifest(&provider, &url.to_string())?;
+
+    // run the flow
+    coordinator::run(flow, metrics, CLI_DEBUG_CLIENT,
+                     debugger, num_parallel_jobs);
 
     exit(0);
 }

@@ -1,10 +1,9 @@
-use std::sync::{Arc, Mutex};
-
+use std::sync::Arc;
 use implementation::Implementation;
 use implementation_table::ImplementationLocatorTable;
 use implementation_table::ImplementationLocator::Native;
 use implementation_table::ImplementationLocator::Wasm;
-use function::Function;
+use flow::Flow;
 use manifest::Manifest;
 use provider::Provider;
 use std::collections::HashMap;
@@ -13,14 +12,12 @@ use url;
 
 pub struct Loader {
     global_lib_implementations: HashMap<String, Arc<Implementation>>,
-    pub processes: Vec<Arc<Mutex<Function>>>,
 }
 
 impl Loader {
     pub fn new() -> Self {
         Loader {
             global_lib_implementations: HashMap::<String, Arc<Implementation>>::new(),
-            processes: Vec::<Arc<Mutex<Function>>>::new(),
         }
     }
 
@@ -37,17 +34,18 @@ impl Loader {
         have been wrapped in a Native "WasmExecutor" implementation to make it appear native.
         Thus, all library implementations found will be Native.
     */
-    pub fn load_manifest(&mut self, provider: &Provider, manifest_url: &str) -> Result<(), String> {
+    pub fn load_manifest(&mut self, provider: &Provider, manifest_url: &str) -> Result<Flow, String> {
         let manifest = Manifest::load(provider, manifest_url)?;
+        let mut flow = Flow::new();
 
-        // find in the library, or load the implementation required - as specified by the source
-        for mut process in manifest.functions {
-            let source_url = process.implementation_source().to_string();
+        // find in a library, or load the implementation required - as specified by the source
+        for mut function in manifest.functions {
+            let source_url = function.implementation_source().to_string();
             let parts: Vec<_> = source_url.split(":").collect();
             match parts[0] {
                 "lib" => { // Try and find the implementation in the libraries already loaded
-                    match self.global_lib_implementations.get(process.implementation_source()) {
-                        Some(implementation) => process.set_implementation(implementation.clone()),
+                    match self.global_lib_implementations.get(function.implementation_source()) {
+                        Some(implementation) => function.set_implementation(implementation.clone()),
                         None => return Err(format!("Did not find implementation for '{}'",
                                                    source_url))
                     }
@@ -56,18 +54,18 @@ impl Loader {
                 /*** These below are not 'lib:' references - hence are supplied implementations ***/
                 _ => {
                     let full_url = url::join(manifest_url,
-                                             process.implementation_source());
+                                             function.implementation_source());
                     let wasm_executor = wasm::load(provider,
-                                                   &process.name().to_lowercase(),
+                                                   &function.name().to_lowercase(),
                                                    &full_url)?;
-                    process.set_implementation(wasm_executor as Arc<Implementation>);
+                    function.set_implementation(wasm_executor as Arc<Implementation>);
                 }
             }
 
-            self.processes.push(Arc::new(Mutex::new(process)));
+            flow.add(function);
         }
 
-        Ok(())
+        Ok(flow)
     }
 
     /*

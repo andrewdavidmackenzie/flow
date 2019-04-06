@@ -22,6 +22,7 @@ pub mod function;
 pub mod manifest;
 pub mod input;
 pub mod loader;
+pub mod flow;
 pub mod provider;
 #[cfg(feature = "debugger")]
 pub mod debugger;

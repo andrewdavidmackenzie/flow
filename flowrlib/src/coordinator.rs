@@ -1,6 +1,6 @@
 use function::Function;
 use serde_json::Value;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use log::Level::Debug;
 #[cfg(feature = "debugger")]
 use debugger::Debugger;
@@ -9,6 +9,7 @@ use std::fmt;
 #[cfg(feature = "metrics")]
 use std::time::Instant;
 use debug_client::DebugClient;
+use flow::Flow;
 use run_state::RunState;
 use implementation::Implementation;
 use execution;
@@ -70,14 +71,16 @@ impl fmt::Display for Metrics {
 /// use std::sync::{Arc, Mutex};
 /// use std::io;
 /// use std::io::Write;
-/// use flowrlib::function::Function;
-/// use flowrlib::coordinator::run;
+/// use flowrlib::flow::Flow;
+/// use flowrlib::coordinator;
 /// use std::process::exit;
 /// use flowrlib::debug_client::DebugClient;
 ///
-/// struct CLIDebugClient {}
+/// struct SampleDebugClient {}
 ///
-/// impl DebugClient for CLIDebugClient {
+/// impl DebugClient for SampleDebugClient {
+///    fn init(&self) {}
+///
 ///    fn display(&self, output: &str) {
 ///        print!("{}", output);
 ///        io::stdout().flush().unwrap();
@@ -88,18 +91,16 @@ impl fmt::Display for Metrics {
 ///    }
 /// }
 ///
-/// const CLI_DEBUG_CLIENT: &DebugClient = &CLIDebugClient{};
+/// let mut flow = Flow::new();
 ///
-/// let mut functions = Vec::<Arc<Mutex<Function>>>::new();
-///
-/// run(functions, false /* print_metrics */, CLI_DEBUG_CLIENT,
+/// coordinator::run(flow, false /* print_metrics */, &SampleDebugClient{},
 ///     false /* use_debugger */, 1 /* threads */);
 ///
 /// exit(0);
 /// ```
-pub fn run(functions: Vec<Arc<Mutex<Function>>>, display_metrics: bool,
+pub fn run(flow: Flow, display_metrics: bool,
            client: &'static DebugClient, use_debugger: bool, num_threads: usize) {
-    let mut coordinator = Coordinator::new(client, functions, use_debugger, num_threads);
+    let mut coordinator = Coordinator::new(client, flow, use_debugger, num_threads);
 
     coordinator.run();
 
@@ -163,7 +164,7 @@ struct Coordinator {
 }
 
 impl Coordinator {
-    fn new(client: &'static DebugClient, functions: Vec<Arc<Mutex<Function>>>,
+    fn new(client: &'static DebugClient, flow: Flow,
            debugging: bool, num_parallel_jobs: usize) -> Self {
         let (job_tx, job_rx, ) = mpsc::channel();
         let (output_tx, output_rx) = mpsc::channel();
@@ -172,7 +173,7 @@ impl Coordinator {
         execution::start_executors(num_parallel_jobs, job_rx, output_tx.clone());
 
         Coordinator {
-            state: RunState::new(functions, num_parallel_jobs),
+            state: RunState::new(flow.functions, num_parallel_jobs),
             #[cfg(feature = "metrics")]
             metrics: Metrics::new(),
             debugging,
