@@ -38,13 +38,13 @@ pub enum State {
 /// State Transitions
 /// =================
 ///
-/// From     To State  Event causing transition
-/// ----     --------  ------------------------
-/// Init     Ready     Init: No inputs and no input it sends to is full
-///                    Init: All inputs initialized and no destination is blocked
-///                    Init: All inputs initialized and no destinations
-/// Init     Blocked   Init: Some destination input is full                         - init_to_blocked
-/// Init     Waiting   Init: At least one input is not full
+/// From     To State  Event causing transition                                     Test
+/// ----     --------  ------------------------                                     ----
+/// Init     Ready     Init: No inputs and no destination input full                init_to_ready_1
+///                    Init: All inputs initialized and no destination input full   init_to_ready_2
+///                    Init: All inputs initialized and no destinations             init_to_ready_3
+/// Init     Blocked   Init: Some destination input is full                         init_to_blocked
+/// Init     Waiting   Init: At least one input is not full                         init_to_waiting
 ///
 /// Ready
 ///
@@ -447,12 +447,26 @@ mod tests {
         let functions = vec!(f_b, f_a);
         let mut state = RunState::new(functions, 1);
         state.init();
-        assert_eq!(State::Ready, state.get_state(1), "fA should be Ready");
-        assert_eq!(State::Blocked, state.get_state(0), "fA should be in Blocked state, by fB");
+        assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+        assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state, by fB");
     }
 
     #[test]
-    fn init_to_waiting() {}
+    fn init_to_waiting() {
+        let f_a = Arc::new(Mutex::new(
+            Function::new("fA".to_string(), // name
+                          "/context/fA".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, None)),
+                          0,
+                          vec!(),
+            )));
+        let functions = vec!(f_a);
+        let mut state = RunState::new(functions, 1);
+        state.init();
+        assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
+    }
 
     #[test]
     fn blocked_works() {
