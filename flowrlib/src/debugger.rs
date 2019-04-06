@@ -127,7 +127,11 @@ impl Debugger {
     pub fn end(&mut self, state: &mut RunState) -> (bool, bool) {
         self.client.display("Execution has ended\n");
         self.deadlock_inspection(state);
-        self.command_loop(state)
+        let (display, restart) = self.command_loop(state);
+        if !restart {
+            self.client.display("Exiting debugger\n");
+        }
+        (display, restart)
     }
 
     /*
