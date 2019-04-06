@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use function::Function;
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum State {
     Ready,
     // ready to run
@@ -20,23 +20,45 @@ pub enum State {
 ///
 /// Initialization
 /// ==============
-/// Upon initialization all functions are initialized by calling their init() function. This may
-/// initialize one or more inputs with values. This may cause all inputs to be full and hence
-/// the Function maybe able to run (pending blocks on other functions).
+/// Upon initialization all function's inputs are initialized by calling their init_inputs() function.
+/// This may initialize one or more inputs with values.
+/// This may cause all inputs to be full and hence the Function maybe able to run (pending blocks on other functions).
 ///
 /// States
 /// ======
+/// Init    - Prior to the initialization process Functions will be in the init state
 /// Ready   - Function will be in Ready state when all of it's inputs are full and there are no inputs
-///           it sends to that are full
+///           it sends to that are full (unless that input is it's own)
 /// Blocked - Function is in Blocked state when there is at least one input it sends to that is full
+///           (unless that input is it's own, as then it will be emptied when the function runs)
 /// Waiting - Function is in Blocked state when at least one of it's inputs is not full
 /// Running - Function is in Running state when it has been picked from the Ready list for execution
 ///           using the next() funcion
+///
+/// State Transitions
+/// =================
+///
+/// From     To State  Event causing transition
+/// ----     --------  ------------------------
+/// Init     Ready     Init: No inputs and no input it sends to is full
+///                    Init: All inputs initialized and no destination is blocked
+///                    Init: All inputs initialized and no destinations
+/// Init     Blocked   Init: Some destination input is full                         - init_to_blocked
+/// Init     Waiting   Init: At least one input is not full
+///
+/// Ready
+///
+/// Blocked
+///
+/// Waiting
+///
+/// Running
+///
 pub struct RunState {
     functions: Vec<Arc<Mutex<Function>>>,
     blocked: HashSet<usize>,
     // blocked: HashSet<function_id>
-    blocking: Vec<(usize, usize)>,
+    blocks: Vec<(usize, usize)>,
     // blocking: Vec<(blocking_id, blocked_id)>
     ready: Vec<usize>,
     // ready: Vec<function_id>
@@ -53,7 +75,7 @@ impl RunState {
         RunState {
             functions,
             blocked: HashSet::<usize>::new(),
-            blocking: Vec::<(usize, usize)>::new(),
+            blocks: Vec::<(usize, usize)>::new(),
             ready: Vec::<usize>::new(),
             running: HashSet::<usize>::new(),
             #[cfg(feature = "debugger")]
@@ -71,7 +93,7 @@ impl RunState {
             function.reset()
         };
         self.blocked.clear();
-        self.blocking.clear();
+        self.blocks.clear();
         self.ready.clear();
         self.running.clear();
         if cfg!(feature = "debugger") {
@@ -85,7 +107,7 @@ impl RunState {
         inputs are fulfilled - and this information is added to the RunList to control the readyness of
         the Process to be executed.
     */
-    pub fn init_functions(&mut self) {
+    pub fn init(&mut self) {
         let mut inputs_ready_list = Vec::<usize>::new();
 
         for function_arc in &self.functions {
@@ -95,12 +117,46 @@ impl RunState {
             if function.inputs_full() {
                 inputs_ready_list.push(function.id());
             }
+            drop(function);
         }
+
+        // Due to initialization of some inputs other functions attempting to send to it should block
+        self.create_init_blocks();
 
         // Put all functions that have their inputs ready on the appropriate list
         for id in inputs_ready_list {
-            self.inputs_are_ready(id);
+            self.inputs_now_full(id);
         }
+    }
+
+    /*
+        Scan thru all functions and output routes for each, if the destination input is already
+        full due to the init process, then create a block for the sender
+    */
+    fn create_init_blocks(&mut self) {
+        let mut blocks = Vec::<(usize, usize)>::new();
+
+        for source_function_arc in &self.functions {
+            let source_id;
+            let destinations;
+            {
+                let source_function = source_function_arc.lock().unwrap();
+                source_id = source_function.id();
+                destinations = source_function.output_destinations().clone();
+                drop(&source_function);
+            }
+            for (_, destination_id, io_number) in destinations {
+                if destination_id != source_id { // don't block yourself!
+                    let destination_function_arc = self.get(destination_id);
+                    let destination_function = destination_function_arc.try_lock().unwrap();
+                    if destination_function.input_full(io_number) {
+                        blocks.push((destination_id, source_id));
+                    }
+                }
+            }
+        }
+
+        self.blocks = blocks;
     }
 
     pub fn get_state(&self, function_id: usize) -> State {
@@ -126,7 +182,7 @@ impl RunState {
     pub fn display_state(&self, function_id: usize) -> String {
         let mut output = format!("\tState: {:?}\n", self.get_state(function_id));
 
-        for (blocking, blocked) in &self.blocking {
+        for (blocking, blocked) in &self.blocks {
             if *blocked == function_id {
                 output.push_str(&format!("\t\tBlocked #{} --> Blocked by #{}\n", blocked, blocking));
             } else if *blocking == function_id {
@@ -165,10 +221,10 @@ impl RunState {
         self.running.remove(&id);
     }
 
-    // Or use the blocked_id as a key to a HashSet?
+    // TODO use the blocked_id as a key to a HashSet?
     // See if there is any tuple in the vector where the second (blocked_id) is the one we're after
     pub fn is_blocked(&self, id: usize) -> bool {
-        for &(_blocking_id, blocked_id) in &self.blocking {
+        for &(_blocking_id, blocked_id) in &self.blocks {
             if blocked_id == id {
                 return true;
             }
@@ -180,7 +236,7 @@ impl RunState {
     pub fn get_output_blockers(&self, id: usize) -> Vec<usize> {
         let mut blockers = vec!();
 
-        for &(blocking_id, blocked_id) in &self.blocking {
+        for &(blocking_id, blocked_id) in &self.blocks {
             if blocked_id == id {
                 blockers.push(blocking_id);
             }
@@ -242,10 +298,10 @@ impl RunState {
     }
 
     /*
-        Save the fact that a particular Process's inputs are now satisfied and so it maybe ready
+        Save the fact that a particular Function's inputs are now full and so it maybe ready
         to run (if not blocked sending on it's output)
     */
-    pub fn inputs_are_ready(&mut self, id: usize) {
+    pub fn inputs_now_full(&mut self, id: usize) {
         if self.is_blocked(id) {
             debug!("\t\t\tProcess #{} inputs are ready, but blocked on output", id);
             self.blocked.insert(id);
@@ -270,21 +326,21 @@ impl RunState {
         again, so put it on the ready queue
     */
     pub fn unblock_senders_to(&mut self, blocker_id: usize) {
-        if !self.blocking.is_empty() {
+        if !self.blocks.is_empty() {
             let mut unblocked_list = vec!();
 
-            for &(blocking_id, blocked_id) in &self.blocking {
+            for &(blocking_id, blocked_id) in &self.blocks {
                 if blocking_id == blocker_id {
-                    debug!("\t\tProcess #{} <-- #{} - unblocked", blocking_id, blocked_id);
+                    debug!("\t\tProcess #{} <-- #{} - blocked removed", blocking_id, blocked_id);
                     unblocked_list.push(blocked_id);
                 }
             }
 
-            // when done remove all entries from the blocking list where it was this blocker_id
-            self.blocking.retain(|&(blocking_id, _blocked_id)| blocking_id != blocker_id);
+            // remove all blocks from the blocking list where the blocker was blocker_id
+            self.blocks.retain(|&(blocking_id, _blocked_id)| blocking_id != blocker_id);
 
-            // see if the ones unblocked should be made ready. Note, they could be blocked on other
-            // functions apart from the the one that just unblocked it.
+            // see if the functions unblocked should no be made ready.
+            // Note, they could be blocked on other functions apart from the the one that just unblocked
             for unblocked in unblocked_list {
                 if self.blocked.contains(&unblocked) && !self.is_blocked(unblocked) {
                     debug!("\t\t\tProcess #{} has inputs ready, so removed from 'blocked' and added to 'ready'", unblocked);
@@ -300,7 +356,7 @@ impl RunState {
         // avoid deadlocks by a function blocking itself
         if blocked_id != blocking_id {
             debug!("\t\t\tProcess #{} <-- Process #{} blocked", &blocking_id, &blocked_id);
-            self.blocking.push((blocking_id, blocked_id));
+            self.blocks.push((blocking_id, blocked_id));
         }
     }
 }
@@ -312,7 +368,7 @@ impl fmt::Display for RunState {
         write!(f, "   Processes: {}", self.functions.len())?;
         write!(f, "        Jobs: {}", self.jobs)?;
         write!(f, "     Blocked: {:?}", self.blocked)?;
-        write!(f, "    Blocking: {:?}", self.blocking)?;
+        write!(f, "    Blocking: {:?}", self.blocks)?;
         write!(f, "    Will Run: {:?}", self.ready)?;
         write!(f, "     Running: {:?}", self.running)
     }
@@ -323,6 +379,9 @@ mod tests {
     use std::sync::{Arc, Mutex};
     use function::Function;
     use super::RunState;
+    use super::State;
+    use input::InputInitializer::OneTime;
+    use input::OneTimeInputInitializer;
 
     fn test_functions<'a>() -> Vec<Arc<Mutex<Function>>> {
         let p0 = Arc::new(Mutex::new(
@@ -349,6 +408,51 @@ mod tests {
         )));
         vec!(p0, p1, p2)
     }
+
+    #[test]
+    fn init_to_ready_1() {}
+
+    #[test]
+    fn init_to_ready_2() {}
+
+    #[test]
+    fn init_to_ready_3() {}
+
+    /*
+        FunctionA -> FunctionB
+        But FunctionB has an initializer on that same input and FunctionB is initialized before
+        FunctionA, so the input should be full and when FunctionA initializes it should go to blocked
+        status
+    */
+    #[test]
+    fn init_to_blocked() {
+        let f_a = Arc::new(Mutex::new(
+            Function::new("fA".to_string(), // name
+                          "/context/fA".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          0,
+                          vec!(("".to_string(), 1, 0)), // outputs to fB:0
+            )));
+        let f_b = Arc::new(Mutex::new(
+            Function::new("fB".to_string(), // name
+                          "/context/fB".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          1,
+                          vec!(),
+            )));
+        let functions = vec!(f_b, f_a);
+        let mut state = RunState::new(functions, 1);
+        state.init();
+        assert_eq!(State::Ready, state.get_state(1), "fA should be Ready");
+        assert_eq!(State::Blocked, state.get_state(0), "fA should be in Blocked state, by fB");
+    }
+
+    #[test]
+    fn init_to_waiting() {}
 
     #[test]
     fn blocked_works() {
@@ -379,7 +483,7 @@ mod tests {
         let mut state = RunState::new(test_functions(), 1);
 
         // Put 0 on the blocked/ready
-        state.inputs_are_ready(0);
+        state.inputs_now_full(0);
 
         assert_eq!(state.next().unwrap(), 0);
     }
@@ -389,7 +493,7 @@ mod tests {
         let mut state = RunState::new(test_functions(), 1);
 
         // Put 0 on the blocked/ready list depending on blocked status
-        state.inputs_are_ready(0);
+        state.inputs_now_full(0);
 
         assert_eq!(state.next().unwrap(), 0);
     }
@@ -402,7 +506,7 @@ mod tests {
         state.set_blocked_by(1, 0);
 
         // Put 0 on the blocked/ready list depending on blocked status
-        state.inputs_are_ready(0);
+        state.inputs_now_full(0);
 
         match state.next() {
             None => assert!(true),
@@ -418,7 +522,7 @@ mod tests {
         state.set_blocked_by(1, 0);
 
         // Put 0 on the blocked/ready list depending on blocked status
-        state.inputs_are_ready(0);
+        state.inputs_now_full(0);
 
         assert_eq!(state.next(), None);
 
@@ -438,7 +542,7 @@ mod tests {
         state.set_blocked_by(2, 0);
 
         // Put 0 on the blocked/ready list depending on blocked status
-        state.inputs_are_ready(0);
+        state.inputs_now_full(0);
 
         assert_eq!(state.next(), None);
 
@@ -454,9 +558,9 @@ mod tests {
         let mut state = RunState::new(test_functions(), 1);
 
         // Put 0 on the blocked/ready
-        state.inputs_are_ready(0);
+        state.inputs_now_full(0);
         // Put 1 on the blocked/ready
-        state.inputs_are_ready(1);
+        state.inputs_now_full(1);
 
         assert_eq!(state.next().unwrap(), 0);
         assert_eq!(state.next(), None);

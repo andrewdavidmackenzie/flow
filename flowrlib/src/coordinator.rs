@@ -150,7 +150,7 @@ impl Coordinator {
         */
         loop {
             debug!("Initializing all functions");
-            state.init_functions();
+            state.init();
 
             if cfg!(feature = "metrics") {
                 metrics.reset();
@@ -342,8 +342,8 @@ impl Coordinator {
                         // be in the blocked or ready lists until it has sent all it's other outputs
                         // as it might be blocked by another function.
                         // Iif not, this will be fixed in the "if source_can_run_again {" block below
-                        if destination.inputs_full() & &(output.function_id != destination_id) {
-                            state.inputs_are_ready(destination_id);
+                        if destination.inputs_full() && (output.function_id != destination_id) {
+                            state.inputs_now_full(destination_id);
                         }
                     }
                 }
@@ -358,7 +358,7 @@ impl Coordinator {
                     source.init_inputs(false);
 
                     if source.inputs_full() {
-                        state.inputs_are_ready(output.function_id);
+                        state.inputs_now_full(output.function_id);
                     }
                 }
             }

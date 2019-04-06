@@ -357,12 +357,12 @@ impl Debugger {
         }
     }
 
-    fn print_process(&self, state: &RunState, process_id: usize) {
-        let process_arc = state.get(process_id);
-        let mut process_lock = process_arc.try_lock();
+    fn print_function(&self, state: &RunState, process_id: usize) {
+        let function_arc = state.get(process_id);
+        let mut function_lock = function_arc.try_lock();
 
-        if let Ok(ref mut process) = process_lock {
-            self.client.display(&format!("{}", process));
+        if let Ok(ref mut function) = function_lock {
+            self.client.display(&format!("{}", function));
             self.client.display(&state.display_state(process_id));
         } else {
             self.client.display(&format!("Function #{} locked, skipping\n", process_id))
@@ -371,7 +371,7 @@ impl Debugger {
 
     fn print_all_processes(&self, state: &RunState) {
         for id in 0..state.num_functions() {
-            self.print_process(state, id);
+            self.print_function(state, id);
         }
     }
 
@@ -379,8 +379,8 @@ impl Debugger {
         match param {
             None => self.client.display(&format!("{}\n", state)),
             Some(Param::Numeric(process_id)) |
-            Some(Param::Block((process_id, _))) => self.print_process(state, process_id),
-            Some(Param::Input((process_id, _))) => self.print_process(state, process_id),
+            Some(Param::Block((process_id, _))) => self.print_function(state, process_id),
+            Some(Param::Input((process_id, _))) => self.print_function(state, process_id),
             Some(Param::Wildcard) => self.print_all_processes(state),
             Some(Param::Output(_)) => self.client.display(
                 "Cannot display the output of a process until it is executed. \

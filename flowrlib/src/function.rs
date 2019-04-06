@@ -160,7 +160,7 @@ impl Function {
         self.inputs[input_number].full()
     }
 
-    // responds true if all inputs have been satisfied and this process can be run - false otherwise
+    // responds true if all inputs have been satisfied and this function can be run - false otherwise
     pub fn inputs_full(&self) -> bool {
         for input in &self.inputs {
             if !input.full() {
@@ -190,7 +190,7 @@ impl Function {
 
 #[cfg(test)]
 mod test {
-    use serde_json::value::Value as Value;
+    use serde_json::value::Value;
     use super::Function;
 
     #[test]
@@ -215,26 +215,26 @@ mod test {
 
     #[test]
     fn can_send_input_if_empty() {
-        let mut process = Function::new("test".to_string(),
+        let mut function = Function::new("test".to_string(),
                                         "/context/test".to_string(),
                                         "/test".to_string(), false,
                                         vec!((1, None)), 0,
                                         vec!());
-        process.init_inputs(true);
-        process.write_input(0, json!(1));
-        assert_eq!(process.take_input_values().remove(0).remove(0), json!(1));
+        function.init_inputs(true);
+        function.write_input(0, json!(1));
+        assert_eq!(function.take_input_values().remove(0).remove(0), json!(1));
     }
 
     #[test]
     fn cannot_send_input_if_full() {
-        let mut process = Function::new("test".to_string(),
+        let mut function = Function::new("test".to_string(),
                                         "/context/test".to_string(),
                                         "/test".to_string(), false,
                                         vec!((1, None)), 0,
                                         vec!());
-        process.init_inputs(true);
-        process.write_input(0, json!(1)); // success
-        process.write_input(0, json!(2)); // fail
-        assert_eq!(process.take_input_values().remove(0).remove(0), json!(1));
+        function.init_inputs(true);
+        function.write_input(0, json!(1)); // success
+        function.write_input(0, json!(2)); // fail
+        assert_eq!(function.take_input_values().remove(0).remove(0), json!(1));
     }
 }
