@@ -201,12 +201,12 @@ impl Coordinator {
             }
 
             debug!("Starting flow execution");
-            let mut display_output;
+            let mut display_next_output;
             let mut restart;
 
             'inner: loop {
                 let debug_check = self.send_jobs();
-                display_output = debug_check.0;
+                display_next_output = debug_check.0;
                 restart = debug_check.1;
 
                 if restart {
@@ -215,13 +215,15 @@ impl Coordinator {
 
                 if self.state.number_jobs_running() > 0 {
                     match self.output_rx.recv_timeout(output_timeout) {
-                        Ok(output) => self.update_states(output, display_output),
+                        Ok(output) => self.update_states(output, display_next_output),
                         Err(err) => error!("Error receiving execution result: {}", err)
                     }
                 }
 
                 if self.state.number_jobs_running() == 0 &&
-                    self.state.number_jobs_ready() == 0 { // we're done
+                    self.state.number_jobs_ready() == 0 {
+                    // execution is done - but not returning here allows us to go into debugger
+                    // at the end of exeution, inspect state and possibly reset and rerun
                     break 'inner;
                 }
             }
