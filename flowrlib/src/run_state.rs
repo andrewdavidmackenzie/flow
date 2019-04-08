@@ -38,15 +38,15 @@ pub enum State {
 /// State Transitions
 /// =================
 ///
-/// From     To State  Event causing transition                                     Test
-/// ----     --------  ------------------------                                     ----
-/// Init     Ready     Init: No inputs and no destination input full                init_to_ready_1
-///                    Init: All inputs initialized and no destination input full   init_to_ready_2
-///                    Init: All inputs initialized and no destinations             init_to_ready_3
-/// Init     Blocked   Init: Some destination input is full                         init_to_blocked
-/// Init     Waiting   Init: At least one input is not full                         init_to_waiting
+/// From    To State  Event causing transition                                    Test
+/// ----    --------  ------------------------                                    ----
+/// Init    Ready     Init: No inputs and no destination input full               init_to_ready_1
+///                   Init: All inputs initialized and no destination input full  init_to_ready_2
+///                   Init: All inputs initialized and no destinations            init_to_ready_3
+/// Init    Blocked   Init: Some destination input is full                        init_to_blocked
+/// Init    Waiting   Init: At least one input is not full                        init_to_waiting
 ///
-/// Ready
+/// Ready   Running   Next() called to fetch the function_id for execution        ready_to_running
 ///
 /// Blocked
 ///
@@ -525,6 +525,44 @@ mod tests {
         let functions = vec!(f_a);
         let mut state = RunState::new(functions, 1);
         state.init();
+        assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
+    }
+
+    #[test]
+    fn ready_to_running() {
+        let f_a = Arc::new(Mutex::new(
+            Function::new("fA".to_string(), // name
+                          "/context/fA".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          0,
+                          vec!(),
+            )));
+        let functions = vec!(f_a);
+        let mut state = RunState::new(functions, 1);
+        state.init();
+        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+        assert_eq!(0, state.next().unwrap(), "next() should return function_id = 0");
+        assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
+    }
+
+    #[test]
+    fn unready_not_to_running() {
+        let f_a = Arc::new(Mutex::new(
+            Function::new("fA".to_string(), // name
+                          "/context/fA".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, None)),
+                          0,
+                          vec!(),
+            )));
+        let functions = vec!(f_a);
+        let mut state = RunState::new(functions, 1);
+        state.init();
+        assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
+        assert_eq!(None, state.next(), "next() should return None");
         assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
     }
 
