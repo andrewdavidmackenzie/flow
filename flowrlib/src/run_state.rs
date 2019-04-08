@@ -48,7 +48,7 @@ pub enum State {
 ///
 /// Ready   Running   Next() called to fetch the function_id for execution        ready_to_running
 ///
-/// Blocked
+/// Blocked Ready     The function(s) blocking some output ran and block removed  blocked_to_ready
 ///
 /// Waiting
 ///
@@ -383,32 +383,7 @@ mod tests {
     use input::InputInitializer::OneTime;
     use input::OneTimeInputInitializer;
 
-    fn test_functions<'a>() -> Vec<Arc<Mutex<Function>>> {
-        let p0 = Arc::new(Mutex::new(
-            Function::new("p0".to_string(), // name
-                          "/context/p0".to_string(),
-                          "/test".to_string(),
-                          false, vec!(), // input depths array
-                          0,    // id
-                          vec!(("".to_string(), 1, 0), ("".to_string(), 1, 0)), // destinations
-            )));    // implementation
-        let p1 = Arc::new(Mutex::new(Function::new("p1".to_string(),
-                                                   "/context/p1".to_string(),
-                                                   "/test".to_string(),
-                                                   false, vec!((1, None)), // inputs array
-                                                   1,    // id
-                                                   vec!(),
-        )));
-        let p2 = Arc::new(Mutex::new(Function::new("p2".to_string(),
-                                                   "/context/p2".to_string(),
-                                                   "/test".to_string(),
-                                                   false, vec!((1, None)), // inputs array
-                                                   2,    // id
-                                                   vec!(),
-        )));
-        vec!(p0, p1, p2)
-    }
-
+    /********************************* State Transition Tests *********************************/
     #[test]
     fn init_to_ready_1() {
         let f_a = Arc::new(Mutex::new(
@@ -565,6 +540,66 @@ mod tests {
         assert_eq!(None, state.next(), "next() should return None");
         assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
     }
+
+    #[test]
+    fn blocked_to_ready() {
+        let f_a = Arc::new(Mutex::new(
+            Function::new("fA".to_string(), // name
+                          "/context/fA".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          0,
+                          vec!(("".to_string(), 1, 0)), // outputs to fB:0
+            )));
+        let f_b = Arc::new(Mutex::new(
+            Function::new("fB".to_string(), // name
+                          "/context/fB".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          1,
+                          vec!(),
+            )));
+        let functions = vec!(f_b, f_a); // NOTE the order!
+        let mut state = RunState::new(functions, 1);
+        state.init();
+        assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+        assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state, by fB");
+        assert_eq!(1, state.next().unwrap(), "next() should return function_id=1 (f_b) for running");
+        state.unblock_senders_to(1);
+        state.done(1); // Mark function_id=1 (f_b) as having ran
+        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+    }
+
+    // Miscelaneous tests
+
+    fn test_functions<'a>() -> Vec<Arc<Mutex<Function>>> {
+        let p0 = Arc::new(Mutex::new(
+            Function::new("p0".to_string(), // name
+                          "/context/p0".to_string(),
+                          "/test".to_string(),
+                          false, vec!(), // input depths array
+                          0,    // id
+                          vec!(("".to_string(), 1, 0), ("".to_string(), 1, 0)), // destinations
+            )));    // implementation
+        let p1 = Arc::new(Mutex::new(Function::new("p1".to_string(),
+                                                   "/context/p1".to_string(),
+                                                   "/test".to_string(),
+                                                   false, vec!((1, None)), // inputs array
+                                                   1,    // id
+                                                   vec!(),
+        )));
+        let p2 = Arc::new(Mutex::new(Function::new("p2".to_string(),
+                                                   "/context/p2".to_string(),
+                                                   "/test".to_string(),
+                                                   false, vec!((1, None)), // inputs array
+                                                   2,    // id
+                                                   vec!(),
+        )));
+        vec!(p0, p1, p2)
+    }
+
 
     #[test]
     fn blocked_works() {
