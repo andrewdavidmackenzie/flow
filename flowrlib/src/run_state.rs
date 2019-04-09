@@ -40,19 +40,21 @@ pub enum State {
 ///
 /// From    To State  Event causing transition                                    Test
 /// ----    --------  ------------------------                                    ----
-/// Init    Ready     Init: No inputs and no destination input full               init_to_ready_1
-///                   Init: All inputs initialized and no destination input full  init_to_ready_2
-///                   Init: All inputs initialized and no destinations            init_to_ready_3
-/// Init    Blocked   Init: Some destination input is full                        init_to_blocked
-/// Init    Waiting   Init: At least one input is not full                        init_to_waiting
+/// Init    Ready     Init: No inputs and no destination input full               to_ready_1_on_init
+///                   Init: All inputs initialized and no destination input full  to_ready_2_on_init
+///                   Init: All inputs initialized and no destinations            to_ready_3_on_init
+/// Init    Blocked   Init: Some destination input is full                        to_blocked_on_init
+/// Init    Waiting   Init: At least one input is not full                        to_waiting_on_init
 ///
-/// Ready   Running   Next() called to fetch the function_id for execution        ready_to_running
+/// Ready   Running   Next() called to fetch the function_id for execution        ready_to_running_on_next
 ///
-/// Blocked Ready     The function(s) blocking some output ran and block removed  blocked_to_ready
+/// Blocked Ready     Done() function(s) blocking some output done                blocked_to_ready_on_done
 ///
 /// Waiting
 ///
-/// Running
+/// Running Ready     Done: it's inputs are all full, so it can run again         running_to_ready_on_done
+/// Running Waiting   Done: it has one input or more empty, to it can't run       running_to_waiting
+/// Running Blocked   Done: at least one destination input is full, so can't run  running_to_blocked
 ///
 pub struct RunState {
     functions: Vec<Arc<Mutex<Function>>>,
@@ -351,9 +353,13 @@ impl RunState {
         }
     }
 
-    // Save the fact that the function 'blocked_id' is blocked on it's output by 'blocking_id'
+    /*
+        Create a 'block" indicating that function 'blocked_id' cannot run as it has an output
+        destination to an input on function 'blocking_id' that is already full.
+
+        Avoid deadlocks caused by a function blocking itself
+    */
     pub fn set_blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
-        // avoid deadlocks by a function blocking itself
         if blocked_id != blocking_id {
             debug!("\t\t\tProcess #{} <-- Process #{} blocked", &blocking_id, &blocked_id);
             self.blocks.push((blocking_id, blocked_id));
@@ -385,7 +391,7 @@ mod tests {
 
     /********************************* State Transition Tests *********************************/
     #[test]
-    fn init_to_ready_1() {
+    fn to_ready_1_on_init() {
         let f_a = Arc::new(Mutex::new(
             Function::new("fA".to_string(), // name
                           "/context/fA".to_string(),
@@ -411,7 +417,7 @@ mod tests {
     }
 
     #[test]
-    fn init_to_ready_2() {
+    fn to_ready_2_on_init() {
         let f_a = Arc::new(Mutex::new(
             Function::new("fA".to_string(), // name
                           "/context/fA".to_string(),
@@ -437,7 +443,7 @@ mod tests {
     }
 
     #[test]
-    fn init_to_ready_3() {
+    fn to_ready_3_on_init() {
         let f_a = Arc::new(Mutex::new(
             Function::new("fA".to_string(), // name
                           "/context/fA".to_string(),
@@ -460,7 +466,7 @@ mod tests {
         status
     */
     #[test]
-    fn init_to_blocked() {
+    fn to_blocked_on_init() {
         let f_a = Arc::new(Mutex::new(
             Function::new("fA".to_string(), // name
                           "/context/fA".to_string(),
@@ -487,7 +493,7 @@ mod tests {
     }
 
     #[test]
-    fn init_to_waiting() {
+    fn to_waiting_on_init() {
         let f_a = Arc::new(Mutex::new(
             Function::new("fA".to_string(), // name
                           "/context/fA".to_string(),
@@ -504,7 +510,7 @@ mod tests {
     }
 
     #[test]
-    fn ready_to_running() {
+    fn ready_to_running_on_next() {
         let f_a = Arc::new(Mutex::new(
             Function::new("fA".to_string(), // name
                           "/context/fA".to_string(),
@@ -523,7 +529,7 @@ mod tests {
     }
 
     #[test]
-    fn unready_not_to_running() {
+    fn unready_not_to_running_on_next() {
         let f_a = Arc::new(Mutex::new(
             Function::new("fA".to_string(), // name
                           "/context/fA".to_string(),
@@ -542,7 +548,7 @@ mod tests {
     }
 
     #[test]
-    fn blocked_to_ready() {
+    fn blocked_to_ready_on_done() {
         let f_a = Arc::new(Mutex::new(
             Function::new("fA".to_string(), // name
                           "/context/fA".to_string(),
@@ -570,6 +576,35 @@ mod tests {
         state.unblock_senders_to(1);
         state.done(1); // Mark function_id=1 (f_b) as having ran
         assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+    }
+
+    #[test]
+    fn running_to_ready_on_done() {
+        let f_a = Arc::new(Mutex::new(
+            Function::new("fA".to_string(), // name
+                          "/context/fA".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          0,
+                          vec!(),
+            )));
+        let functions = vec!(f_a);
+        let mut state = RunState::new(functions, 1);
+        state.init();
+        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+        assert_eq!(0, state.next().unwrap(), "next() should return function_id = 0");
+        assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
+
+        let source_arc = state.get(0);
+        let mut f_a = source_arc.lock().unwrap();
+        f_a.init_inputs(false);
+        if f_a.inputs_full() {
+            state.inputs_now_full(0);
+        }
+
+        state.done(0); // Mark function_id=0 (f_a) as having ran
+        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready again");
     }
 
     // Miscelaneous tests

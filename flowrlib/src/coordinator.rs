@@ -341,7 +341,7 @@ impl Coordinator {
                         // for the case when a function is sending to itself, delay determining if it should
                         // be in the blocked or ready lists until it has sent all it's other outputs
                         // as it might be blocked by another function.
-                        // Iif not, this will be fixed in the "if source_can_run_again {" block below
+                        // If not, this will be fixed in the "if source_can_run_again" block below
                         if destination.inputs_full() && (output.function_id != destination_id) {
                             state.inputs_now_full(destination_id);
                         }
