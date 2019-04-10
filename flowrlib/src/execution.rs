@@ -1,6 +1,5 @@
 use std::panic;
-use coordinator::Job;
-use coordinator::Output;
+use run_state::{Job, Output};
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::{Arc, Mutex};
 use std::thread;
