@@ -1040,7 +1040,6 @@ mod tests {
         vec!(p0, p1, p2)
     }
 
-
     #[test]
     fn blocked_works() {
         let mut state = RunState::new(test_functions(), 1);
