@@ -955,7 +955,6 @@ mod tests {
         assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
 
         // Event run f_b which will send to f_a
-        // Event
         let output = Output {
             function_id: 1,
             input_values: vec!(vec!(json!(1))),
@@ -985,22 +984,30 @@ mod tests {
                           "/context/fB".to_string(),
                           "/test".to_string(),
                           false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                          vec!((1, Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
                           1,
-                          vec!(),
-            )));
+                          vec!(("".into(), 0, 0),
+            ))));
         let functions = vec!(f_a, f_b);
         let mut state = RunState::new(functions, 1);
+        let mut metrics = Metrics::new(1);
+        let mut debugger = Debugger::new(test_debug_client());
         state.init();
 
         assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
         assert_eq!(State::Waiting, state.get_state(0), "f_a should be in Waiting");
 
-        // This is done by coordinator in update_states()...
-        state.inputs_now_full(0);
+        // Event run f_b which will send to f_a, but will block f_a due to initialize
+        let output = Output {
+            function_id: 1,
+            input_values: vec!(vec!(json!(1))),
+            result: (Some(json!(1)), true),
+            destinations: vec!(("".to_string(), 0, 0)),
+            error: None,
+        };
+        state.process_output(&mut metrics, output, false, &mut debugger);
 
-        // Then Coordinator marks it as "done"
-        state.done(0); // Mark function_id=0 (f_a) as having ran
+        // Test
         assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked");
     }
 
