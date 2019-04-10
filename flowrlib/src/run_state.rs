@@ -54,7 +54,7 @@ pub enum State {
 ///
 /// Running Ready     Done: it's inputs are all full, so it can run again         running_to_ready_on_done
 /// Running Waiting   Done: it has one input or more empty, to it can't run       running_to_waiting_on_done
-/// Running Blocked   Done: at least one destination input is full, so can't run  running_to_blocked
+/// Running Blocked   Done: at least one destination input is full, so can't run  running_to_blocked_on_done
 ///
 pub struct RunState {
     functions: Vec<Arc<Mutex<Function>>>,
@@ -423,7 +423,7 @@ mod tests {
                           "/context/fA".to_string(),
                           "/test".to_string(),
                           false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                           0,
                           vec!(("".to_string(), 1, 0)), // outputs to fB:0
             )));
@@ -449,7 +449,7 @@ mod tests {
                           "/context/fA".to_string(),
                           "/test".to_string(),
                           false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                           0,
                           vec!(),
             )));
@@ -472,7 +472,7 @@ mod tests {
                           "/context/fA".to_string(),
                           "/test".to_string(),
                           false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                           0,
                           vec!(("".to_string(), 1, 0)), // outputs to fB:0
             )));
@@ -481,7 +481,7 @@ mod tests {
                           "/context/fB".to_string(),
                           "/test".to_string(),
                           false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                           1,
                           vec!(),
             )));
@@ -516,7 +516,7 @@ mod tests {
                           "/context/fA".to_string(),
                           "/test".to_string(),
                           false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                           0,
                           vec!(),
             )));
@@ -554,7 +554,7 @@ mod tests {
                           "/context/fA".to_string(),
                           "/test".to_string(),
                           false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                           0,
                           vec!(("".to_string(), 1, 0)), // outputs to fB:0
             )));
@@ -563,7 +563,7 @@ mod tests {
                           "/context/fB".to_string(),
                           "/test".to_string(),
                           false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                           1,
                           vec!(),
             )));
@@ -585,7 +585,7 @@ mod tests {
                           "/context/fA".to_string(),
                           "/test".to_string(),
                           false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                           0,
                           vec!(),
             )));
@@ -609,7 +609,6 @@ mod tests {
         assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready again");
     }
 
-
     // Done: it has one input or more empty, to it can't run
     #[test]
     fn running_to_waiting_on_done() {
@@ -618,7 +617,7 @@ mod tests {
                           "/context/fA".to_string(),
                           "/test".to_string(),
                           false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                           0,
                           vec!(),
             )));
@@ -632,6 +631,50 @@ mod tests {
         // Then Coordinator marks it as "done"
         state.done(0); // Mark function_id=0 (f_a) as having ran
         assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting again");
+    }
+
+    // Done: at least one destination input is full, so can't run  running_to_blocked_on_done
+    #[test]
+    fn running_to_blocked_on_done() {
+        let f_a = Arc::new(Mutex::new(
+            Function::new("fA".to_string(), // name
+                          "/context/fA".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                          0,
+                          vec!(("".to_string(), 1, 0)), // outputs to fB:0
+            )));
+        let f_b = Arc::new(Mutex::new(
+            Function::new("fB".to_string(), // name
+                          "/context/fB".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, None)),
+                          1,
+                          vec!(),
+            )));
+        let functions = vec!(f_a, f_b);
+        let mut state = RunState::new(functions, 1);
+        state.init();
+
+        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+
+        assert_eq!(0, state.next().unwrap(), "next() should return function_id=0 (f_a) for running");
+        assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
+
+        // f_a runs and sends to f_b
+        state.inputs_now_full(1);
+        state.set_blocked_by(1, 0);
+
+        // While running, someone else sends to f_a's input
+        state.inputs_now_full(0);
+
+        // Mark function_id=0 (f_a) as having ran
+        state.done(0);
+
+        // f_a should transition to Blocked on f_b
+        assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked");
     }
 
 
