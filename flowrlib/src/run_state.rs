@@ -860,13 +860,24 @@ mod tests {
             )));
         let functions = vec!(f_a);
         let mut state = RunState::new(functions, 1);
+        let mut metrics = Metrics::new(1);
+        let mut debugger = Debugger::new(test_debug_client());
         state.init();
         assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
         assert_eq!(0, state.next_job().unwrap().function_id, "next() should return function_id = 0");
         assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
 
-        // Then Coordinator marks it as "done"
-        state.done(0); // Mark function_id=0 (f_a) as having ran
+        // Event
+        let output = Output {
+            function_id: 0,
+            input_values: vec!(vec!(json!(1))),
+            result: (None, true),
+            destinations: vec!(),
+            error: None,
+        };
+        state.process_output(&mut metrics, output, false, &mut debugger);
+
+        // Test
         assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting again");
     }
 
@@ -878,7 +889,7 @@ mod tests {
                           "/context/fA".to_string(),
                           "/test".to_string(),
                           false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                          vec!((1, Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
                           0,
                           vec!(("".to_string(), 1, 0)), // outputs to fB:0
             )));
@@ -893,6 +904,8 @@ mod tests {
             )));
         let functions = vec!(f_a, f_b);
         let mut state = RunState::new(functions, 1);
+        let mut metrics = Metrics::new(1);
+        let mut debugger = Debugger::new(test_debug_client());
         state.init();
 
         assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
@@ -900,18 +913,17 @@ mod tests {
         assert_eq!(0, state.next_job().unwrap().function_id, "next() should return function_id=0 (f_a) for running");
         assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
 
-        // f_a runs and sends to f_b
-        state.inputs_now_full(1);
-        state.set_blocked_by(1, 0);
+        // Event
+        let output = Output {
+            function_id: 0,
+            input_values: vec!(vec!(json!(1))),
+            result: (Some(json!(1)), true),
+            destinations: vec!(("".to_string(), 1, 0)),
+            error: None,
+        };
+        state.process_output(&mut metrics, output, false, &mut debugger);
 
-        // While running, someone else sends to f_a's input - having to call this is not idea...
-        // done() should just figure it all out at the end?
-        state.inputs_now_full(0);
-
-        // Mark function_id=0 (f_a) as having ran
-        state.done(0);
-
-        // f_a should transition to Blocked on f_b
+        // Test f_a should transition to Blocked on f_b
         assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked");
     }
 
@@ -926,16 +938,34 @@ mod tests {
                           0,
                           vec!(),
             )));
-        let functions = vec!(f_a);
+        let f_b = Arc::new(Mutex::new(
+            Function::new("fB".to_string(), // name
+                          "/context/fB".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, None)),
+                          1,
+                          vec!(("".into(), 0, 0)),
+            )));
+        let functions = vec!(f_a, f_b);
         let mut state = RunState::new(functions, 1);
+        let mut metrics = Metrics::new(1);
+        let mut debugger = Debugger::new(test_debug_client());
         state.init();
         assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
 
-        // This is done by coordinator in update_states()...
-        state.inputs_now_full(0);
+        // Event run f_b which will send to f_a
+        // Event
+        let output = Output {
+            function_id: 1,
+            input_values: vec!(vec!(json!(1))),
+            result: (Some(json!(1)), true),
+            destinations: vec!(("".to_string(), 0, 0)),
+            error: None,
+        };
+        state.process_output(&mut metrics, output, false, &mut debugger);
 
-        // Then Coordinator marks it as "done"
-        state.done(0); // Mark function_id=0 (f_a) as having ran
+        // Test
         assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
     }
 
