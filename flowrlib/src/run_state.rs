@@ -50,8 +50,8 @@ pub enum State {
 ///
 /// Blocked Ready     Done: function(s) blocking some output done                 blocked_to_ready_on_done
 ///
-/// Waiting Ready     Input: a last empty input on a function is filled           waiting_to_ready_on_input
-/// Waiting Blocked
+/// Waiting Ready     Input: last empty input on a function is filled             waiting_to_ready_on_input
+/// Waiting Blocked   Input: last empty input on a function is filled, blocked    waiting_to_blocked_on_input
 ///
 /// Running Ready     Done: it's inputs are all full, so it can run again         running_to_ready_on_done
 /// Running Waiting   Done: it has one input or more empty, to it can't run       running_to_waiting_on_done
@@ -108,7 +108,19 @@ impl RunState {
         The ìnit' function is responsible for initializing all functions.
         The `init` method on each function is called, which returns a boolean to indicate that it's
         inputs are fulfilled - and this information is added to the RunList to control the readyness of
-        the Process to be executed.
+        the Fucntion to be executed.
+
+        After init() Functions will either be:
+           - Ready:   an entry will be added to the `ready` list with this function's id
+           - Blocked: the function has all it's inputs ready and could run but a Function it sends to
+                      has an input full already (due to being initialized during the init process)
+                      - an entry will be added to the `blocks` list with this function's id as source_id
+                      - an entry will be added to the `blocked` list with this function's id
+           - Waiting: function has at least one empty input so it cannot run. It will not added to
+                      `ready` nor `blocked` lists, so by omission it is in the `Waiting` state.
+                      But the `block` will be created so when later it's inputs become full the fact
+                      it is blocked will be detected and it can move to the `blocked` state
+
     */
     pub fn init(&mut self) {
         let mut inputs_ready_list = Vec::<usize>::new();
@@ -126,7 +138,7 @@ impl RunState {
         // Due to initialization of some inputs other functions attempting to send to it should block
         self.create_init_blocks();
 
-        // Put all functions that have their inputs ready on the appropriate list
+        // Put all functions that have their inputs ready and are not blocked on the `ready` list
         for id in inputs_ready_list {
             self.inputs_now_full(id);
         }
@@ -134,17 +146,23 @@ impl RunState {
 
     /*
         Scan thru all functions and output routes for each, if the destination input is already
-        full due to the init process, then create a block for the sender
+        full due to the init process, then create a block for the sender and added sender to blocked
+        list.
     */
     fn create_init_blocks(&mut self) {
         let mut blocks = Vec::<(usize, usize)>::new();
+        let mut blocked = HashSet::<usize>::new();
+
+        debug!("Creating any initial block entries that are needed");
 
         for source_function_arc in &self.functions {
             let source_id;
             let destinations;
+            let source_has_inputs_full;
             {
                 let source_function = source_function_arc.lock().unwrap();
                 source_id = source_function.id();
+                source_has_inputs_full = source_function.inputs_full();
                 destinations = source_function.output_destinations().clone();
                 drop(&source_function);
             }
@@ -153,13 +171,19 @@ impl RunState {
                     let destination_function_arc = self.get(destination_id);
                     let destination_function = destination_function_arc.try_lock().unwrap();
                     if destination_function.input_full(io_number) {
+                        debug!("\tAdded block between #{} <-- #{}", destination_id, source_id);
                         blocks.push((destination_id, source_id));
+                        // only put source on the blocked list if it already has it's inputs full
+                        if source_has_inputs_full {
+                            blocked.insert(source_id);
+                        }
                     }
                 }
             }
         }
 
         self.blocks = blocks;
+        self.blocked = blocked;
     }
 
     pub fn get_state(&self, function_id: usize) -> State {
@@ -306,10 +330,10 @@ impl RunState {
     */
     pub fn inputs_now_full(&mut self, id: usize) {
         if self.is_blocked(id) {
-            debug!("\t\t\tProcess #{} inputs are ready, but blocked on output", id);
+            debug!("\t\t\tFunction #{} inputs are ready, but blocked on output", id);
             self.blocked.insert(id);
         } else {
-            debug!("\t\t\tProcess #{} not blocked on output, so added to 'Will Run' list", id);
+            debug!("\t\t\tFunction #{} not blocked on output, so added to 'Will Run' list", id);
             self.ready.push(id);
         }
     }
@@ -707,6 +731,47 @@ mod tests {
         state.done(0); // Mark function_id=0 (f_a) as having ran
         assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
     }
+
+    #[test]
+    fn waiting_to_blocked_on_input() {
+        let f_a = Arc::new(Mutex::new(
+            Function::new("fA".to_string(), // name
+                          "/context/fA".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, None)),
+                          0,
+                          vec!(("".to_string(), 1, 0)), // outputs to fB:0
+            )));
+        let f_b = Arc::new(Mutex::new(
+            Function::new("fB".to_string(), // name
+                          "/context/fB".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                          1,
+                          vec!(),
+            )));
+        let functions = vec!(f_a, f_b);
+        let mut state = RunState::new(functions, 1);
+        state.init();
+
+        assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+        assert_eq!(State::Waiting, state.get_state(0), "f_a should be in Waiting");
+
+        // This is done by coordinator in update_states()...
+        let function_arc = state.get(0);
+        let mut f_a = function_arc.lock().unwrap();
+        f_a.write_input(0, json!(1));
+        if f_a.inputs_full() {
+            state.inputs_now_full(0);
+        }
+
+        // Then Coordinator marks it as "done"
+        state.done(0); // Mark function_id=0 (f_a) as having ran
+        assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked");
+    }
+
 
     /****************************** Miscelaneous tests **************************/
 

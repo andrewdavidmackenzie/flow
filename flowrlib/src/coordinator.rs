@@ -327,6 +327,8 @@ impl Coordinator {
                             self.debugger.watch_data(state, output.function_id, output_route,
                                                      &output_value, destination_id, io_number);
 
+                        // TODO move this logic into RunState, with a function  you send from one id
+                        // to another, and it sets the correct state on both.
                         destination.write_input(io_number, output_value.clone());
 
                         #[cfg(feature = "metrics")]
