@@ -53,7 +53,7 @@ pub enum State {
 /// Waiting
 ///
 /// Running Ready     Done: it's inputs are all full, so it can run again         running_to_ready_on_done
-/// Running Waiting   Done: it has one input or more empty, to it can't run       running_to_waiting
+/// Running Waiting   Done: it has one input or more empty, to it can't run       running_to_waiting_on_done
 /// Running Blocked   Done: at least one destination input is full, so can't run  running_to_blocked
 ///
 pub struct RunState {
@@ -596,6 +596,7 @@ mod tests {
         assert_eq!(0, state.next().unwrap(), "next() should return function_id = 0");
         assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
 
+        // This is done by coordinator in update_states()...
         let source_arc = state.get(0);
         let mut f_a = source_arc.lock().unwrap();
         f_a.init_inputs(false);
@@ -603,11 +604,38 @@ mod tests {
             state.inputs_now_full(0);
         }
 
+        // Then Coordinator marks it as "done"
         state.done(0); // Mark function_id=0 (f_a) as having ran
         assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready again");
     }
 
-    // Miscelaneous tests
+
+    // Done: it has one input or more empty, to it can't run
+    #[test]
+    fn running_to_waiting_on_done() {
+        let f_a = Arc::new(Mutex::new(
+            Function::new("fA".to_string(), // name
+                          "/context/fA".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, Some(OneTime(OneTimeInputInitializer{once: json!(1)})))),
+                          0,
+                          vec!(),
+            )));
+        let functions = vec!(f_a);
+        let mut state = RunState::new(functions, 1);
+        state.init();
+        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+        assert_eq!(0, state.next().unwrap(), "next() should return function_id = 0");
+        assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
+
+        // Then Coordinator marks it as "done"
+        state.done(0); // Mark function_id=0 (f_a) as having ran
+        assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting again");
+    }
+
+
+    /****************************** Miscelaneous tests **************************/
 
     fn test_functions<'a>() -> Vec<Arc<Mutex<Function>>> {
         let p0 = Arc::new(Mutex::new(
