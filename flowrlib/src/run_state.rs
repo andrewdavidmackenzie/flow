@@ -622,12 +622,7 @@ mod tests {
         assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
 
         // This is done by coordinator in update_states()...
-        let source_arc = state.get(0);
-        let mut f_a = source_arc.lock().unwrap();
-        f_a.init_inputs(false);
-        if f_a.inputs_full() {
-            state.inputs_now_full(0);
-        }
+        state.inputs_now_full(0);
 
         // Then Coordinator marks it as "done"
         state.done(0); // Mark function_id=0 (f_a) as having ran
@@ -720,12 +715,7 @@ mod tests {
         assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
 
         // This is done by coordinator in update_states()...
-        let function_arc = state.get(0);
-        let mut f_a = function_arc.lock().unwrap();
-        f_a.write_input(0, json!(1));
-        if f_a.inputs_full() {
-            state.inputs_now_full(0);
-        }
+        state.inputs_now_full(0);
 
         // Then Coordinator marks it as "done"
         state.done(0); // Mark function_id=0 (f_a) as having ran
@@ -760,12 +750,7 @@ mod tests {
         assert_eq!(State::Waiting, state.get_state(0), "f_a should be in Waiting");
 
         // This is done by coordinator in update_states()...
-        let function_arc = state.get(0);
-        let mut f_a = function_arc.lock().unwrap();
-        f_a.write_input(0, json!(1));
-        if f_a.inputs_full() {
-            state.inputs_now_full(0);
-        }
+        state.inputs_now_full(0);
 
         // Then Coordinator marks it as "done"
         state.done(0); // Mark function_id=0 (f_a) as having ran
