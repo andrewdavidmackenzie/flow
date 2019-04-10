@@ -38,19 +38,20 @@ pub enum State {
 /// State Transitions
 /// =================
 ///
-/// From    To State  Event causing transition                                    Test
-/// ----    --------  ------------------------                                    ----
+/// From    To State  Event causing transition and additional conditions          Test
+/// ----    --------  --------------------------------------------------          ----
 /// Init    Ready     Init: No inputs and no destination input full               to_ready_1_on_init
 ///                   Init: All inputs initialized and no destination input full  to_ready_2_on_init
 ///                   Init: All inputs initialized and no destinations            to_ready_3_on_init
 /// Init    Blocked   Init: Some destination input is full                        to_blocked_on_init
 /// Init    Waiting   Init: At least one input is not full                        to_waiting_on_init
 ///
-/// Ready   Running   Next() called to fetch the function_id for execution        ready_to_running_on_next
+/// Ready   Running   Next: called to fetch the function_id for execution         ready_to_running_on_next
 ///
-/// Blocked Ready     Done() function(s) blocking some output done                blocked_to_ready_on_done
+/// Blocked Ready     Done: function(s) blocking some output done                 blocked_to_ready_on_done
 ///
-/// Waiting
+/// Waiting Ready     Input: a last empty input on a function is filled           waiting_to_ready_on_input
+/// Waiting Blocked
 ///
 /// Running Ready     Done: it's inputs are all full, so it can run again         running_to_ready_on_done
 /// Running Waiting   Done: it has one input or more empty, to it can't run       running_to_waiting_on_done
@@ -667,7 +668,8 @@ mod tests {
         state.inputs_now_full(1);
         state.set_blocked_by(1, 0);
 
-        // While running, someone else sends to f_a's input
+        // While running, someone else sends to f_a's input - having to call this is not idea...
+        // done() should just figure it all out at the end?
         state.inputs_now_full(0);
 
         // Mark function_id=0 (f_a) as having ran
@@ -677,6 +679,34 @@ mod tests {
         assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked");
     }
 
+    #[test]
+    fn waiting_to_ready_on_input() {
+        let f_a = Arc::new(Mutex::new(
+            Function::new("fA".to_string(), // name
+                          "/context/fA".to_string(),
+                          "/test".to_string(),
+                          false,
+                          vec!((1, None)),
+                          0,
+                          vec!(),
+            )));
+        let functions = vec!(f_a);
+        let mut state = RunState::new(functions, 1);
+        state.init();
+        assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
+
+        // This is done by coordinator in update_states()...
+        let function_arc = state.get(0);
+        let mut f_a = function_arc.lock().unwrap();
+        f_a.write_input(0, json!(1));
+        if f_a.inputs_full() {
+            state.inputs_now_full(0);
+        }
+
+        // Then Coordinator marks it as "done"
+        state.done(0); // Mark function_id=0 (f_a) as having ran
+        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+    }
 
     /****************************** Miscelaneous tests **************************/
 
