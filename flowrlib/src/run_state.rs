@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::collections::HashSet;
 use function::Function;
 use std::fmt;
@@ -79,7 +79,7 @@ pub struct Output {
 /// Running Blocked   Output: a destination input is full, so can't run           running_to_blocked_on_done
 ///
 pub struct RunState {
-    functions: Vec<Arc<Mutex<Function>>>,
+    functions: Vec<Function>,
     blocked: HashSet<usize>,
     // blocked: HashSet<function_id>
     blocks: Vec<(usize, usize)>,
@@ -95,7 +95,7 @@ pub struct RunState {
 }
 
 impl RunState {
-    pub fn new(functions: Vec<Arc<Mutex<Function>>>, max_jobs: usize) -> Self {
+    pub fn new(functions: Vec<Function>, max_jobs: usize) -> Self {
         RunState {
             functions,
             blocked: HashSet::<usize>::new(),
@@ -112,8 +112,7 @@ impl RunState {
         Reset all values back to inital ones to enable debugging from scracth
     */
     pub fn reset(&mut self) {
-        for function_arc in &self.functions {
-            let mut function = function_arc.lock().unwrap();
+        for mut function in &mut self.functions {
             function.reset()
         };
         self.blocked.clear();
@@ -146,14 +145,12 @@ impl RunState {
     pub fn init(&mut self) {
         let mut inputs_ready_list = Vec::<usize>::new();
 
-        for function_arc in &self.functions {
-            let mut function = function_arc.lock().unwrap();
+        for mut function in &mut self.functions {
             debug!("\tInitializing Function #{} '{}'", function.id(), function.name());
             function.init_inputs(true);
             if function.inputs_full() {
                 inputs_ready_list.push(function.id());
             }
-            drop(function);
         }
 
         // Due to initialization of some inputs other functions attempting to send to it should block
@@ -176,21 +173,18 @@ impl RunState {
 
         debug!("Creating any initial block entries that are needed");
 
-        for source_function_arc in &self.functions {
+        for mut source_function in &self.functions {
             let source_id;
             let destinations;
             let source_has_inputs_full;
             {
-                let source_function = source_function_arc.lock().unwrap();
                 source_id = source_function.id();
                 source_has_inputs_full = source_function.inputs_full();
                 destinations = source_function.output_destinations().clone();
-                drop(&source_function);
             }
             for (_, destination_id, io_number) in destinations {
                 if destination_id != source_id { // don't block yourself!
-                    let destination_function_arc = self.get(destination_id);
-                    let destination_function = destination_function_arc.try_lock().unwrap();
+                    let destination_function = self.get(destination_id);
                     if destination_function.input_full(io_number) {
                         debug!("\tAdded block between #{} <-- #{}", destination_id, source_id);
                         blocks.push((destination_id, source_id));
@@ -246,8 +240,12 @@ impl RunState {
         self.jobs += 1;
     }
 
-    pub fn get(&self, id: usize) -> Arc<Mutex<Function>> {
-        self.functions[id].clone()
+    pub fn get(&self, id: usize) -> &Function {
+        &self.functions[id]
+    }
+
+    pub fn get_mut(&mut self, id: usize) -> &mut Function {
+        &mut self.functions[id]
     }
 
     /*
@@ -271,20 +269,22 @@ impl RunState {
         implementation and the destination functions the output should be sent to when done
     */
     fn create_job(&mut self, id: usize) -> Job {
-        let function_arc = self.get(id);
-        let function: &mut Function = &mut *function_arc.lock().unwrap();
+        {
+            self.unblock_senders_to(id);
+            #[cfg(any(feature = "metrics", feature = "debugger"))]
+                self.increment_jobs();
+        }
+
+        let function = self.get_mut(id);
 
         let input_values = function.take_input_values();
 
-        self.unblock_senders_to(id);
         debug!("Preparing Job for Function #{} '{}' with inputs: {:?}", id, function.name(), input_values);
 
         let implementation = function.get_implementation();
 
-        #[cfg(any(feature = "metrics", feature = "debugger"))]
-            self.increment_jobs();
-
         let destinations = function.output_destinations().clone();
+
 
         Job { function_id: id, implementation, input_values, destinations, impure: function.is_impure() }
     }
@@ -329,17 +329,21 @@ impl RunState {
 
                         #[cfg(feature = "debugger")]
                             debugger.watch_data(self, output.function_id, output_route,
-                                                     &output_value, destination_id, io_number);
+                                                &output_value, destination_id, io_number);
 
-                        self.send_value(output.function_id, destination_id,
-                                         io_number, output_value.clone(), metrics, debugger);
+                        if self.send_value(output.function_id, destination_id,
+                                           io_number, output_value.clone(), metrics, debugger) {
+                            self.inputs_now_full(destination_id);
+                        }
                     }
                 }
 
                 // if it wants to run again, and after possibly refreshing any constant inputs, it can
                 // (it's inputs are ready) then add back to the Will Run list
                 if source_can_run_again {
-                    self.refresh_inputs(output.function_id);
+                    if self.refill_inputs(output.function_id) {
+                        self.inputs_now_full(output.function_id);
+                    }
                 }
             }
             Some(_) => error!("Error in Job execution:\n{:?}", output)
@@ -349,49 +353,55 @@ impl RunState {
         self.done(output.function_id);
     }
 
+    /*
+        Send a value produced as part of an output of running a job to a destination function on
+        a specific input, update the metrics and potentially enter the debugger
+    */
     fn send_value(&mut self, source_id: usize, destination_id: usize, io_number: usize,
-                      output_value: Value, metrics: &mut Metrics, debugger: &mut Debugger) {
-        let destination_arc = self.get(destination_id);
-        let mut destination = destination_arc.lock().unwrap();
+                  output_value: Value, metrics: &mut Metrics, debugger: &mut Debugger) -> bool {
+        let block;
+        let full;
 
-        // to another, and it sets the correct state on both.
-        destination.write_input(io_number, output_value);
+        {
+            let destination = self.get_mut(destination_id);
 
-        #[cfg(feature = "metrics")]
-            metrics.increment_outputs_sent();
+            // to another, and it sets the correct state on both.
+            destination.write_input(io_number, output_value);
 
-        if destination.input_full(io_number) {
-            self.set_blocked_by(destination_id, source_id);
-            #[cfg(feature = "debugger")]
-                debugger.check_block(self, destination_id, source_id);
+            #[cfg(feature = "metrics")]
+                metrics.increment_outputs_sent();
+
+            block = destination.input_full(io_number);
+
+            // for the case when a function is sending to itself, delay determining if it should
+            // be in the blocked or ready lists until it has sent all it's other outputs
+            // as it might be blocked by another function.
+            full = destination.inputs_full() && (source_id != destination_id);
         }
 
-        // for the case when a function is sending to itself, delay determining if it should
-        // be in the blocked or ready lists until it has sent all it's other outputs
-        // as it might be blocked by another function.
-        // If not, this will be fixed in the "if source_can_run_again" block below
-        if destination.inputs_full() && (source_id != destination_id) {
-            self.inputs_now_full(destination_id);
+        if block {
+            self.create_block(destination_id, source_id, debugger);
         }
+
+        full
     }
 
-    fn refresh_inputs(&mut self, id: usize) {
-        let source_arc = self.get(id);
-        let mut source = source_arc.lock().unwrap();
+    /*
+        Refresh any inputs that have initializers on them
+    */
+    fn refill_inputs(&mut self, id: usize) -> bool {
+        let source = self.get_mut(id);
 
         // refresh any constant inputs it may have
         source.init_inputs(false);
 
-        if source.inputs_full() {
-            self.inputs_now_full(id);
-        }
+        source.inputs_full()
     }
 
     fn done(&mut self, id: usize) {
         self.running.remove(&id);
     }
 
-    // TODO use the blocked_id as a key to a HashSet?
     // See if there is any tuple in the vector where the second (blocked_id) is the one we're after
     fn is_blocked(&self, id: usize) -> bool {
         for &(_blocking_id, blocked_id) in &self.blocks {
@@ -430,36 +440,30 @@ impl RunState {
     #[cfg(feature = "debugger")]
     pub fn get_input_blockers(&self, target_id: usize) -> Vec<usize> {
         let mut input_blockers = vec!();
-        let target_function_arc = self.get(target_id);
-        let mut target_function_lock = target_function_arc.try_lock();
+        let target_function = self.get(target_id);
 
-        if let Ok(ref mut target_functions) = target_function_lock {
-            // for each empty input of the target function
-            for (target_io, input) in target_functions.inputs().iter().enumerate() {
-                if input.is_empty() {
-                    let mut senders = Vec::<usize>::new();
+        // for each empty input of the target function
+        for (target_io, input) in target_function.inputs().iter().enumerate() {
+            if input.is_empty() {
+                let mut senders = Vec::<usize>::new();
 
-                    // go through all functions to see if sends to the target function on input
-                    for sender_function_arc in &self.functions {
-                        let mut sender_function_lock = sender_function_arc.try_lock();
-                        if let Ok(ref mut sender_function) = sender_function_lock {
-                            // if the sender function is not ready to run
-                            if !self.ready.contains(&sender_function.id()) {
+                // go through all functions to see if sends to the target function on input
+                for sender_function in &self.functions {
+                    // if the sender function is not ready to run
+                    if !self.ready.contains(&sender_function.id()) {
 
-                                // for each output route of sending function, see if it is sending to the target function and input
-                                for (ref _output_route, destination_id, io_number) in sender_function.output_destinations() {
-                                    if (*destination_id == target_id) && (*io_number == target_io) {
-                                        senders.push(sender_function.id());
-                                    }
-                                }
+                        // for each output route of sending function, see if it is sending to the target function and input
+                        for (ref _output_route, destination_id, io_number) in sender_function.output_destinations() {
+                            if (*destination_id == target_id) && (*io_number == target_io) {
+                                senders.push(sender_function.id());
                             }
                         }
                     }
+                }
 
-                    // If unique sender to this Input, then target function is blocked waiting for that value
-                    if senders.len() == 1 {
-                        input_blockers.extend(senders);
-                    }
+                // If unique sender to this Input, then target function is blocked waiting for that value
+                if senders.len() == 1 {
+                    input_blockers.extend(senders);
                 }
             }
         }
@@ -527,10 +531,12 @@ impl RunState {
 
         Avoid deadlocks caused by a function blocking itself
     */
-    fn set_blocked_by(&mut self, blocking_id: usize, blocked_id: usize) {
+    fn create_block(&mut self, blocking_id: usize, blocked_id: usize, debugger: &mut Debugger) {
         if blocked_id != blocking_id {
             debug!("\t\t\tProcess #{} <-- Process #{} blocked", &blocking_id, &blocked_id);
             self.blocks.push((blocking_id, blocked_id));
+            #[cfg(feature = "debugger")]
+                debugger.check_block(self, blocking_id, blocked_id);
         }
     }
 }
@@ -550,7 +556,6 @@ impl fmt::Display for RunState {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
     use function::Function;
     use super::RunState;
     use super::State;
@@ -579,30 +584,26 @@ mod tests {
     }
 
     fn test_debug_client() -> &'static DebugClient {
-        &TestDebugClient{}
+        &TestDebugClient {}
     }
 
     /********************************* State Transition Tests *********************************/
     #[test]
     fn to_ready_1_on_init() {
-        let f_a = Arc::new(Mutex::new(
-            Function::new("fA".to_string(), // name
-                          "/context/fA".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!(),
-                          0,
-                          vec!(("".to_string(), 1, 0)), // outputs to f_b:0
-            )));
-        let f_b = Arc::new(Mutex::new(
-            Function::new("fB".to_string(), // name
-                          "/context/fB".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, None)),
-                          1,
-                          vec!(),
-            )));
+        let f_a = Function::new("fA".to_string(), // name
+                                "/context/fA".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!(),
+                                0,
+                                vec!(("".to_string(), 1, 0)));  // outputs to f_b:0
+        let f_b = Function::new("fB".to_string(), // name
+                                "/context/fB".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, None)),
+                                1,
+                                vec!());
         let functions = vec!(f_a, f_b);
         let mut state = RunState::new(functions, 1);
 
@@ -615,24 +616,20 @@ mod tests {
 
     #[test]
     fn to_ready_2_on_init() {
-        let f_a = Arc::new(Mutex::new(
-            Function::new("fA".to_string(), // name
-                          "/context/fA".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                          0,
-                          vec!(("".to_string(), 1, 0)), // outputs to fB:0
-            )));
-        let f_b = Arc::new(Mutex::new(
-            Function::new("fB".to_string(), // name
-                          "/context/fB".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, None)),
-                          1,
-                          vec!(),
-            )));
+        let f_a = Function::new("fA".to_string(), // name
+                                "/context/fA".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                0,
+                                vec!(("".to_string(), 1, 0))); // outputs to fB:0
+        let f_b = Function::new("fB".to_string(), // name
+                                "/context/fB".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, None)),
+                                1,
+                                vec!());
         let functions = vec!(f_a, f_b);
         let mut state = RunState::new(functions, 1);
 
@@ -645,15 +642,13 @@ mod tests {
 
     #[test]
     fn to_ready_3_on_init() {
-        let f_a = Arc::new(Mutex::new(
-            Function::new("fA".to_string(), // name
-                          "/context/fA".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                          0,
-                          vec!(),
-            )));
+        let f_a = Function::new("fA".to_string(), // name
+                                "/context/fA".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                0,
+                                vec!());
         let functions = vec!(f_a);
         let mut state = RunState::new(functions, 1);
 
@@ -672,24 +667,20 @@ mod tests {
     */
     #[test]
     fn to_blocked_on_init() {
-        let f_a = Arc::new(Mutex::new(
-            Function::new("fA".to_string(), // name
-                          "/context/fA".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                          0,
-                          vec!(("".to_string(), 1, 0)), // outputs to fB:0
-            )));
-        let f_b = Arc::new(Mutex::new(
-            Function::new("fB".to_string(), // name
-                          "/context/fB".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                          1,
-                          vec!(),
-            )));
+        let f_a = Function::new("fA".to_string(), // name
+                                "/context/fA".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                0,
+                                vec!(("".to_string(), 1, 0))); // outputs to fB:0
+        let f_b = Function::new("fB".to_string(), // name
+                                "/context/fB".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                1,
+                                vec!());
         let functions = vec!(f_b, f_a);
         let mut state = RunState::new(functions, 1);
 
@@ -703,15 +694,13 @@ mod tests {
 
     #[test]
     fn to_waiting_on_init() {
-        let f_a = Arc::new(Mutex::new(
-            Function::new("fA".to_string(), // name
-                          "/context/fA".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, None)),
-                          0,
-                          vec!(),
-            )));
+        let f_a = Function::new("fA".to_string(), // name
+                                "/context/fA".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, None)),
+                                0,
+                                vec!());
         let functions = vec!(f_a);
         let mut state = RunState::new(functions, 1);
 
@@ -724,15 +713,13 @@ mod tests {
 
     #[test]
     fn ready_to_running_on_next() {
-        let f_a = Arc::new(Mutex::new(
-            Function::new("fA".to_string(), // name
-                          "/context/fA".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                          0,
-                          vec!(),
-            )));
+        let f_a = Function::new("fA".to_string(), // name
+                                "/context/fA".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                0,
+                                vec!());
         let functions = vec!(f_a);
         let mut state = RunState::new(functions, 1);
         state.init();
@@ -747,15 +734,13 @@ mod tests {
 
     #[test]
     fn unready_not_to_running_on_next() {
-        let f_a = Arc::new(Mutex::new(
-            Function::new("fA".to_string(), // name
-                          "/context/fA".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, None)),
-                          0,
-                          vec!(),
-            )));
+        let f_a = Function::new("fA".to_string(), // name
+                                "/context/fA".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, None)),
+                                0,
+                                vec!());
         let functions = vec!(f_a);
         let mut state = RunState::new(functions, 1);
         state.init();
@@ -770,24 +755,20 @@ mod tests {
 
     #[test]
     fn blocked_to_ready_on_done() {
-        let f_a = Arc::new(Mutex::new(
-            Function::new("fA".to_string(), // name
-                          "/context/fA".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                          0,
-                          vec!(("".to_string(), 1, 0)), // outputs to fB:0
-            )));
-        let f_b = Arc::new(Mutex::new(
-            Function::new("fB".to_string(), // name
-                          "/context/fB".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                          1,
-                          vec!(),
-            )));
+        let f_a = Function::new("fA".to_string(), // name
+                                "/context/fA".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                0,
+                                vec!(("".to_string(), 1, 0))); // outputs to fB:0
+        let f_b = Function::new("fB".to_string(), // name
+                                "/context/fB".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                1,
+                                vec!());
         let functions = vec!(f_b, f_a); // NOTE the order!
         let mut state = RunState::new(functions, 1);
         let mut metrics = Metrics::new(2);
@@ -814,15 +795,13 @@ mod tests {
 
     #[test]
     fn running_to_ready_on_done() {
-        let f_a = Arc::new(Mutex::new(
-            Function::new("fA".to_string(), // name
-                          "/context/fA".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
-                          0,
-                          vec!(),
-            )));
+        let f_a = Function::new("fA".to_string(), // name
+                                "/context/fA".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
+                                0,
+                                vec!());
         let functions = vec!(f_a);
         let mut state = RunState::new(functions, 1);
         let mut metrics = Metrics::new(1);
@@ -849,15 +828,13 @@ mod tests {
     // Done: it has one input or more empty, to it can't run
     #[test]
     fn running_to_waiting_on_done() {
-        let f_a = Arc::new(Mutex::new(
-            Function::new("fA".to_string(), // name
-                          "/context/fA".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                          0,
-                          vec!(),
-            )));
+        let f_a = Function::new("fA".to_string(), // name
+                                "/context/fA".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                0,
+                                vec!());
         let functions = vec!(f_a);
         let mut state = RunState::new(functions, 1);
         let mut metrics = Metrics::new(1);
@@ -884,24 +861,20 @@ mod tests {
     // Done: at least one destination input is full, so can't run  running_to_blocked_on_done
     #[test]
     fn running_to_blocked_on_done() {
-        let f_a = Arc::new(Mutex::new(
-            Function::new("fA".to_string(), // name
-                          "/context/fA".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
-                          0,
-                          vec!(("".to_string(), 1, 0)), // outputs to fB:0
-            )));
-        let f_b = Arc::new(Mutex::new(
-            Function::new("fB".to_string(), // name
-                          "/context/fB".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, None)),
-                          1,
-                          vec!(),
-            )));
+        let f_a = Function::new("fA".to_string(), // name
+                                "/context/fA".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
+                                0,
+                                vec!(("".to_string(), 1, 0))); // outputs to fB:0
+        let f_b = Function::new("fB".to_string(), // name
+                                "/context/fB".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, None)),
+                                1,
+                                vec!());
         let functions = vec!(f_a, f_b);
         let mut state = RunState::new(functions, 1);
         let mut metrics = Metrics::new(1);
@@ -929,24 +902,20 @@ mod tests {
 
     #[test]
     fn waiting_to_ready_on_input() {
-        let f_a = Arc::new(Mutex::new(
-            Function::new("fA".to_string(), // name
-                          "/context/fA".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, None)),
-                          0,
-                          vec!(),
-            )));
-        let f_b = Arc::new(Mutex::new(
-            Function::new("fB".to_string(), // name
-                          "/context/fB".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, None)),
-                          1,
-                          vec!(("".into(), 0, 0)),
-            )));
+        let f_a = Function::new("fA".to_string(), // name
+                                "/context/fA".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, None)),
+                                0,
+                                vec!());
+        let f_b = Function::new("fB".to_string(), // name
+                                "/context/fB".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, None)),
+                                1,
+                                vec!(("".into(), 0, 0)));
         let functions = vec!(f_a, f_b);
         let mut state = RunState::new(functions, 1);
         let mut metrics = Metrics::new(1);
@@ -970,24 +939,20 @@ mod tests {
 
     #[test]
     fn waiting_to_blocked_on_input() {
-        let f_a = Arc::new(Mutex::new(
-            Function::new("fA".to_string(), // name
-                          "/context/fA".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, None)),
-                          0,
-                          vec!(("".to_string(), 1, 0)), // outputs to fB:0
-            )));
-        let f_b = Arc::new(Mutex::new(
-            Function::new("fB".to_string(), // name
-                          "/context/fB".to_string(),
-                          "/test".to_string(),
-                          false,
-                          vec!((1, Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
-                          1,
-                          vec!(("".into(), 0, 0),
-            ))));
+        let f_a = Function::new("fA".to_string(), // name
+                                "/context/fA".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, None)),
+                                0,
+                                vec!(("".to_string(), 1, 0))); // outputs to fB:0
+        let f_b = Function::new("fB".to_string(), // name
+                                "/context/fB".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
+                                1,
+                                vec!(("".into(), 0, 0)));
         let functions = vec!(f_a, f_b);
         let mut state = RunState::new(functions, 1);
         let mut metrics = Metrics::new(1);
@@ -1014,46 +979,43 @@ mod tests {
 
     /****************************** Miscelaneous tests **************************/
 
-    fn test_functions<'a>() -> Vec<Arc<Mutex<Function>>> {
-        let p0 = Arc::new(Mutex::new(
-            Function::new("p0".to_string(), // name
-                          "/context/p0".to_string(),
-                          "/test".to_string(),
-                          false, vec!(), // input depths array
-                          0,    // id
-                          vec!(("".to_string(), 1, 0), ("".to_string(), 1, 0)), // destinations
-            )));    // implementation
-        let p1 = Arc::new(Mutex::new(Function::new("p1".to_string(),
-                                                   "/context/p1".to_string(),
-                                                   "/test".to_string(),
-                                                   false, vec!((1, None)), // inputs array
-                                                   1,    // id
-                                                   vec!(),
-        )));
-        let p2 = Arc::new(Mutex::new(Function::new("p2".to_string(),
-                                                   "/context/p2".to_string(),
-                                                   "/test".to_string(),
-                                                   false, vec!((1, None)), // inputs array
-                                                   2,    // id
-                                                   vec!(),
-        )));
+    fn test_functions<'a>() -> Vec<Function> {
+        let p0 = Function::new("p0".to_string(), // name
+                               "/context/p0".to_string(),
+                               "/test".to_string(),
+                               false, vec!(), // input depths array
+                               0,    // id
+                               vec!(("".to_string(), 1, 0), ("".to_string(), 1, 0)), // destinations
+        );    // implementation
+        let p1 = Function::new("p1".to_string(),
+                               "/context/p1".to_string(),
+                               "/test".to_string(),
+                               false, vec!((1, None)), // inputs array
+                               1,    // id
+                               vec!());
+        let p2 = Function::new("p2".to_string(),
+                               "/context/p2".to_string(),
+                               "/test".to_string(),
+                               false, vec!((1, None)), // inputs array
+                               2,    // id
+                               vec!());
         vec!(p0, p1, p2)
     }
 
     #[test]
     fn blocked_works() {
         let mut state = RunState::new(test_functions(), 1);
+        let mut debugger = Debugger::new(test_debug_client());
 
         // Indicate that 0 is blocked by 1
-        state.set_blocked_by(1, 0);
+        state.create_block(1, 0, &mut debugger);
         assert!(state.is_blocked(0));
     }
 
     #[test]
     fn get_works() {
         let state = RunState::new(test_functions(), 1);
-        let got_arc = state.get(1);
-        let got = got_arc.lock().unwrap();
+        let got = state.get(1);
         assert_eq!(got.id(), 1)
     }
 
@@ -1087,9 +1049,10 @@ mod tests {
     #[test]
     fn blocked_is_not_ready() {
         let mut state = RunState::new(test_functions(), 1);
+        let mut debugger = Debugger::new(test_debug_client());
 
         // Indicate that 0 is blocked by 1
-        state.set_blocked_by(1, 0);
+        state.create_block(1, 0, &mut debugger);
 
         // Put 0 on the blocked/ready list depending on blocked status
         state.inputs_now_full(0);
@@ -1100,9 +1063,10 @@ mod tests {
     #[test]
     fn unblocking_makes_ready() {
         let mut state = RunState::new(test_functions(), 1);
+        let mut debugger = Debugger::new(test_debug_client());
 
         // Indicate that 0 is blocked by 1
-        state.set_blocked_by(1, 0);
+        state.create_block(1, 0, &mut debugger);
 
         // Put 0 on the blocked/ready list depending on blocked status
         state.inputs_now_full(0);
@@ -1119,10 +1083,11 @@ mod tests {
     #[test]
     fn unblocking_doubly_blocked_functions_not_ready() {
         let mut state = RunState::new(test_functions(), 1);
+        let mut debugger = Debugger::new(test_debug_client());
 
         // Indicate that 0 is blocked by 1 and 2
-        state.set_blocked_by(1, 0);
-        state.set_blocked_by(2, 0);
+        state.create_block(1, 0, &mut debugger);
+        state.create_block(2, 0, &mut debugger);
 
         // Put 0 on the blocked/ready list depending on blocked status
         state.inputs_now_full(0);
