@@ -3,7 +3,6 @@ use implementation::Implementation;
 use implementation_table::ImplementationLocatorTable;
 use implementation_table::ImplementationLocator::Native;
 use implementation_table::ImplementationLocator::Wasm;
-use flow::Flow;
 use manifest::Manifest;
 use provider::Provider;
 use std::collections::HashMap;
@@ -34,12 +33,11 @@ impl Loader {
         have been wrapped in a Native "WasmExecutor" implementation to make it appear native.
         Thus, all library implementations found will be Native.
     */
-    pub fn load_from_manifest(&mut self, provider: &Provider, manifest_url: &str) -> Result<Flow, String> {
-        let manifest = Manifest::load(provider, manifest_url)?;
-        let mut flow = Flow::new(&manifest);
+    pub fn load_manifest(&mut self, provider: &Provider, manifest_url: &str) -> Result<Manifest, String> {
+        let mut manifest = Manifest::load(provider, manifest_url)?;
 
         // find in a library, or load the implementation required - as specified by the source
-        for mut function in manifest.functions {
+        for mut function in &mut manifest.functions {
             let source_url = function.implementation_source().to_string();
             let parts: Vec<_> = source_url.split(":").collect();
             match parts[0] {
@@ -61,11 +59,9 @@ impl Loader {
                     function.set_implementation(wasm_executor as Arc<Implementation>);
                 }
             }
-
-            flow.add(function);
         }
 
-        Ok(flow)
+        Ok(manifest)
     }
 
     /*

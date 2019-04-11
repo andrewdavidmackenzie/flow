@@ -59,11 +59,11 @@ fn main() -> Result<(), String> {
                                        num_threads(&matches), debugger, metrics);
 
     // Load the flow to run from the manifest
-    let flow = loader.load_from_manifest(&provider, &url.to_string())?;
+    let manifest = loader.load_manifest(&provider, &url.to_string())?;
 
     // run the flow
     let num_parallel_jobs = num_parallel_jobs(&matches);
-    coordinator.run(flow, num_parallel_jobs);
+    coordinator.run(manifest, num_parallel_jobs);
 
     exit(0);
 }

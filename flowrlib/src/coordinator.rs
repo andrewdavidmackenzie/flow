@@ -4,13 +4,13 @@ use debugger::Debugger;
 #[cfg(feature = "metrics")]
 use metrics::Metrics;
 use debug_client::DebugClient;
-use flow::Flow;
 use run_state::RunState;
 use execution;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::mpsc;
 use std::time::Duration;
 use run_state::{Job, Output};
+use manifest::Manifest;
 
 /*
     RunList is a structure that maintains the state of all the functions in the currently
@@ -59,7 +59,6 @@ pub struct Coordinator {
 /// use std::sync::{Arc, Mutex};
 /// use std::io;
 /// use std::io::Write;
-/// use flowrlib::flow::Flow;
 /// use flowrlib::coordinator::Coordinator;
 /// use std::process::exit;
 /// use flowrlib::debug_client::DebugClient;
@@ -87,14 +86,13 @@ pub struct Coordinator {
 ///                     author_email: "me@acme.com".into()
 ///                 };
 /// let manifest = Manifest::new(meta_data);
-/// let mut flow = Flow::new(&manifest);
 ///
 /// let mut coordinator = Coordinator::new(&SampleDebugClient{},
 ///                                    1 /* num_threads */,
 ///                                    false /* use_debugger */,
 ///                                    false /* display_metrics */);
 ///
-/// coordinator.run(flow, 1 /* num_parallel_jobs */);
+/// coordinator.run(manifest, 1 /* num_parallel_jobs */);
 ///
 /// exit(0);
 /// ```
@@ -118,9 +116,9 @@ impl Coordinator {
         }
     }
 
-    pub fn run(&mut self, flow: Flow, num_parallel_jobs: usize) {
+    pub fn run(&mut self, manifest: Manifest, num_parallel_jobs: usize) {
         let output_timeout = Duration::new(1, 0);
-        let mut state = RunState::new(flow.functions, num_parallel_jobs);
+        let mut state = RunState::new(manifest.functions, num_parallel_jobs);
         #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(state.num_functions());
 
