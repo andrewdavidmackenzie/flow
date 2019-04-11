@@ -43,8 +43,9 @@ enum Param {
 
 #[derive(Debug, Clone)]
 enum BlockType {
-    OutputBlocked, // Cannot run and send it's Output as a destination Input is full
-    UnreadySender  // Has to send output to an empty Input for other process to be able to run
+    OutputBlocked,
+    // Cannot run and send it's Output as a destination Input is full
+    UnreadySender,  // Has to send output to an empty Input for other process to be able to run
 }
 
 #[derive(Debug, Clone)]
@@ -318,7 +319,6 @@ impl Debugger {
 
             // if we've visited this blocking node before, then we've detected a loop
             if !visited_nodes.contains(&blocker.process_id) {
-
                 let mut blocker_subtree = self.traverse_blocker_tree(state, visited_nodes,
                                                                      root_node_id, blocker);
                 if blocker_subtree.len() > 0 {
@@ -358,15 +358,9 @@ impl Debugger {
     }
 
     fn print_function(&self, state: &RunState, process_id: usize) {
-        let function_arc = state.get(process_id);
-        let mut function_lock = function_arc.try_lock();
-
-        if let Ok(ref mut function) = function_lock {
-            self.client.display(&format!("{}", function));
-            self.client.display(&state.display_state(process_id));
-        } else {
-            self.client.display(&format!("Function #{} locked, skipping\n", process_id))
-        }
+        let function = state.get(process_id);
+        self.client.display(&format!("{}", function));
+        self.client.display(&state.display_state(process_id));
     }
 
     fn print_all_processes(&self, state: &RunState) {
