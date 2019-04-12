@@ -29,7 +29,7 @@ pub struct IO {
     #[serde(skip_deserializing)]
     flow_io: bool,
     #[serde(skip_deserializing)]
-    initial_value: Option<InputInitializer>,
+    initializer: Option<InputInitializer>,
 }
 
 impl Default for IO {
@@ -40,7 +40,7 @@ impl Default for IO {
             depth: default_depth(),
             route: "".to_string(),
             flow_io: false,
-            initial_value: None,
+            initializer: None,
         }
     }
 }
@@ -104,14 +104,14 @@ impl IO {
         self.datatype = datatype.clone()
     }
 
-    pub fn get_initial_value(&self) -> &Option<InputInitializer> {
-        &self.initial_value
+    pub fn get_initializer(&self) -> &Option<InputInitializer> {
+        &self.initializer
     }
 
     pub fn set_initial_value(&mut self, initial_value: &Option<InputInitializer>) {
         // Avoid overwriting a possibly Some() value with a None value
         if initial_value.is_some() {
-            self.initial_value = initial_value.clone();
+            self.initializer = initial_value.clone();
         }
     }
 }
@@ -245,7 +245,7 @@ impl IO {
                     for (index, input) in inputs.iter_mut().enumerate() {
                         if input.name() == initializer.0.as_str() ||
                             (initializer.0.as_str() == "default" && index == 0) {
-                            input.initial_value = Some(initializer.1.clone());
+                            input.initializer = Some(initializer.1.clone());
                         }
                     }
                 }
@@ -359,7 +359,7 @@ mod test {
             route: "".to_string(),
             depth: 1,
             flow_io: false,
-            initial_value: None,
+            initializer: None,
         };
         let io1 = IO {
             name: "different_name".to_string(),
@@ -367,7 +367,7 @@ mod test {
             route: "".to_string(),
             depth: 1,
             flow_io: false,
-            initial_value: None,
+            initializer: None,
         };
         let ioset = Some(vec!(io0, io1));
         ioset.validate().unwrap()
@@ -382,7 +382,7 @@ mod test {
             route: "".to_string(),
             depth: 1,
             flow_io: false,
-            initial_value: None,
+            initializer: None,
         };
         let io1 = io0.clone();
         let ioset = Some(vec!(io0, io1));
@@ -398,7 +398,7 @@ mod test {
             route: "".to_string(),
             depth: 1,
             flow_io: false,
-            initial_value: None,
+            initializer: None,
         };
         let io1 = IO {
             name: "".to_string(),
@@ -406,7 +406,7 @@ mod test {
             route: "".to_string(),
             depth: 1,
             flow_io: false,
-            initial_value: None,
+            initializer: None,
         };
         let ioset = Some(vec!(io0, io1));
         ioset.validate().unwrap()

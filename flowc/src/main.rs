@@ -293,9 +293,9 @@ mod test {
 
     #[test]
     #[should_panic]
-    fn compiler_detects_loop() {
+    fn compile_double_connection() {
         let meta_provider = MetaProvider {};
-        let process = loader::load_context(&url_from_rel_path("flowc/test-flows/loop.toml"),
+        let process = loader::load_context(&url_from_rel_path("flowc/test-flows/double.toml"),
                                            &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();
@@ -306,9 +306,9 @@ mod test {
 
     #[test]
     #[should_panic]
-    fn compile_double_connection() {
+    fn compile_detects_connection_to_initialized_input() {
         let meta_provider = MetaProvider {};
-        let process = loader::load_context(&url_from_rel_path("flowc/test-flows/double.toml"),
+        let process = loader::load_context(&url_from_rel_path("flowc/test-flows/connect_to_constant.toml"),
                                            &meta_provider).unwrap();
         if let FlowProcess(ref flow) = process {
             let _tables = compile::compile(flow).unwrap();
@@ -377,7 +377,7 @@ mod test {
                     assert_eq!(print_function.alias(), "print", "Function alias does not match");
                     if let Some(inputs) = print_function.get_inputs() {
                         let default_input: &IO = inputs.get(0).unwrap();
-                        let initial_value = default_input.get_initial_value().clone().unwrap();
+                        let initial_value = default_input.get_initializer().clone().unwrap();
                         match initial_value {
                             OneTime(one_time) => assert_eq!(one_time.once, "hello"),
                             _ => panic!("Initializer should have been a OneTime initializer")
@@ -416,7 +416,7 @@ mod test {
                                 let in_input = inputs.get(0).unwrap();
                                 assert_eq!("data", in_input.alias(), "Input's name is not 'data' as expected");
                                 assert_eq!("/context/pass-if-lte/tap/data", in_input.route(), "Input's route is not as expected");
-                                let initial_value = in_input.get_initial_value();
+                                let initial_value = in_input.get_initializer();
                                 match initial_value {
                                     Some(OneTime(one_time)) => assert_eq!(one_time.once, 1),
                                     _ => panic!("Initializer should have been a OneTime initializer")
@@ -467,7 +467,7 @@ mod test {
                                         let in_input = inputs.get(0).unwrap();
                                         assert_eq!("data", in_input.alias(), "Input's name is not 'data' as expected");
                                         assert_eq!("/context/sequence/pilte/tap/data", in_input.route(), "Input's route is not as expected");
-                                        let initial_value = in_input.get_initial_value();
+                                        let initial_value = in_input.get_initializer();
                                         match initial_value {
                                             Some(OneTime(one_time)) => assert_eq!(one_time.once, 1),
                                             _ => panic!("Initializer should have been a OneTime initializer")

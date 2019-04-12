@@ -258,7 +258,7 @@ impl Flow {
             match self.get_route_and_type(FROM, &connection.from, &None) {
                 Ok(from_io) => {
                     debug!("Found connection source:\n{:#?}", from_io);
-                    match self.get_route_and_type(TO, &connection.to, from_io.get_initial_value()) {
+                    match self.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {
                         Ok(to_io) => {
                             debug!("Found connection destination:\n{:#?}", to_io);
                             if (from_io.datatype(0) == to_io.datatype(0)) ||

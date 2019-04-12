@@ -74,7 +74,7 @@ fn function_to_runtimefunction(out_dir_path: &str, function: &Box<Function>, deb
         &None => {}
         Some(inputs) => {
             for input in inputs {
-                process_inputs.push((input.depth(), input.get_initial_value().clone()));
+                process_inputs.push((input.depth(), input.get_initializer().clone()));
             }
         }
     };

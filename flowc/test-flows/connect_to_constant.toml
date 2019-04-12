@@ -8,13 +8,10 @@ source = "lib://flowr/args/get.toml"
 from = "process/args/1"
 to = "process/to_number"
 
-[[connection]]
-from = "process/args/2"
-to = "process/to_number"
-
 [[process]]
 alias = "to_number"
 source = "lib://flowstdlib/fmt/to_number.toml"
+input.default = { constant = 1}
 
 [[connection]]
 from = "process/to_number"

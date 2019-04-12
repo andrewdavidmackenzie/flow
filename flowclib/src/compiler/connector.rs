@@ -30,12 +30,12 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<(),
                 }
 
                 // TODO when connection uses references to real IOs then we maybe able to remove this
-                if connection.to_io.get_initial_value().is_some() {
+                if connection.to_io.get_initializer().is_some() {
                     if let Some(destination_function) = tables.functions.get_mut(destination_process_id) {
                         if let Some(ref mut inputs) = destination_function.get_mut_inputs() {
                             let mut destination_input = inputs.get_mut(destination_input_index).unwrap();
-                            if destination_input.get_initial_value().is_none() {
-                                destination_input.set_initial_value(connection.to_io.get_initial_value());
+                            if destination_input.get_initializer().is_none() {
+                                destination_input.set_initial_value(connection.to_io.get_initializer());
                                 debug!("Set initializer on destination function input at '{}' from connection",
                                        connection.to_io.route());
                             }

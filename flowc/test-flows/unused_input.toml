@@ -3,4 +3,12 @@ flow = "unused input"
 [[process]]
 alias = "sum"
 source = "lib://flowstdlib/math/add.toml"
-input.i1 = 1
+input.i1 = { once = 1 }
+
+[[connection]]
+from = "process/sum"
+to = "process/print"
+
+[[process]]
+alias = "print"
+source = "lib://flowr/stdio/stdout.toml"
