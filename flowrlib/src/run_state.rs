@@ -976,6 +976,71 @@ mod tests {
         assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked");
     }
 
+    /*
+        This tests that if a function that has a loop back sending to itself, runs the firts time
+        due to a OnceInitializer, that after running it sends output back to itself and is ready
+        (not waiting for an input from elsewhere and no deadlock due to blocking itself occurs
+    */
+    #[test]
+    fn not_block_on_self() {
+        let f_a = Function::new("fA".to_string(), // name
+                                "/context/fA".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                0,
+                                vec!(
+                                    ("".to_string(), 0, 0), // outputs to self:0
+                                    ("".to_string(), 1, 0) // outputs to f_b:0
+                                ));
+        let f_b = Function::new("fB".to_string(), // name
+                                "/context/fB".to_string(),
+                                "/test".to_string(),
+                                false,
+                                vec!((1, None)),
+                                1,
+                                vec!());
+        let functions = vec!(f_a, f_b); // NOTE the order!
+        let mut state = RunState::new(functions, 1);
+        let mut metrics = Metrics::new(2);
+        let mut debugger = Debugger::new(test_debug_client());
+        state.init();
+        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+        assert_eq!(State::Waiting, state.get_state(1), "f_b should be in Waiting");
+
+        assert_eq!(0, state.next_job().unwrap().function_id, "next() should return function_id=0 (f_a) for running");
+
+        // Event: run f_a
+        let output = Output {
+            function_id: 0,
+            input_values: vec!(vec!(json!(1))),
+            result: (Some(json!(1)), true),
+            destinations: vec!(("".into(), 0, 0), ("".into(), 1, 0)),
+            error: None,
+
+        };
+        state.process_output(&mut metrics, output, false, &mut debugger);
+
+        // Test
+        assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+        assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked on f_b");
+
+        assert_eq!(1, state.next_job().unwrap().function_id, "next() should return function_id=1 (f_b) for running");
+
+        // Event: Run f_b
+        let output = Output {
+            function_id: 1,
+            input_values: vec!(vec!(json!(1))),
+            result: (None, true),
+            destinations: vec!(),
+            error: None,
+
+        };
+        state.process_output(&mut metrics, output, false, &mut debugger);
+
+        // Test
+        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+    }
 
     /****************************** Miscelaneous tests **************************/
 
