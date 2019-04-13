@@ -122,10 +122,14 @@ impl Function {
     /*
         Initialize all inputs - as they may have initializers
     */
-    pub fn init_inputs(&mut self, first_time: bool) {
-        for mut input in &mut self.inputs {
-            input.init(first_time);
+    pub fn init_inputs(&mut self, first_time: bool) -> Vec<usize> {
+        let mut refilled = vec!();
+        for (io_number, mut input) in &mut self.inputs.iter_mut().enumerate() {
+            if input.init(first_time) {
+                refilled.push(io_number);
+            }
         }
+        refilled
     }
 
     pub fn implementation_source(&self) -> &str {

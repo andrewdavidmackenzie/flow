@@ -138,6 +138,10 @@ impl Coordinator {
             let mut display_next_output;
             let mut restart;
 
+            if cfg!(feature = "debugger") && self.debugging {
+                self.debugger.start(&mut state);
+            }
+
             'inner: loop {
                 let debug_check = self.send_jobs(&mut state, &mut metrics);
                 display_next_output = debug_check.0;

@@ -51,14 +51,16 @@ enum BlockType {
 #[derive(Debug, Clone)]
 struct BlockerNode {
     process_id: usize,
+    io_number: usize,
     blocktype: BlockType,
     blockers: Vec<BlockerNode>,
 }
 
 impl BlockerNode {
-    fn new(process_id: usize, blocktype: BlockType) -> Self {
+    fn new(process_id: usize, io_number: usize, blocktype: BlockType) -> Self {
         BlockerNode {
             process_id,
+            io_number,
             blocktype,
             blockers: vec!(),
         }
@@ -86,6 +88,11 @@ impl Debugger {
         }
     }
 
+    pub fn start(&mut self, state: &mut RunState) -> (bool, bool) {
+        self.client.display("Entering Debugger:\n");
+        return self.command_loop(state);
+    }
+
     /*
         return true if the debugger requests that we display the output of the next dispatch
     */
@@ -100,10 +107,11 @@ impl Debugger {
         (false, false)
     }
 
-    pub fn check_block(&mut self, state: &mut RunState, blocking_id: usize, blocked_id: usize) {
+    pub fn check_block(&mut self, state: &mut RunState, blocking_id: usize,
+                       blocking_io_number: usize, blocked_id: usize) {
         if self.block_breakpoints.contains(&(blocked_id, blocking_id)) {
-            self.client.display(&format!("Block breakpoint: Function #{} ----- blocked by ----> Function #{}\n",
-                                         blocked_id, blocking_id));
+            self.client.display(&format!("Block breakpoint: Function #{} ----- blocked by ----> Function #{}:{}\n",
+                                         blocked_id, blocking_id, blocking_io_number));
             self.command_loop(state);
         }
     }
@@ -289,11 +297,11 @@ impl Debugger {
         - other process is the only process that sends to an empty input of this process
     */
     fn find_blockers(&self, state: &RunState, process_id: usize) -> Vec<BlockerNode> {
-        let mut blockers: Vec<BlockerNode> = state.get_output_blockers(process_id).iter().map(|id|
-            BlockerNode::new(*id, BlockType::OutputBlocked)).collect();
+        let mut blockers: Vec<BlockerNode> = state.get_output_blockers(process_id).iter().map(|(id, io)|
+            BlockerNode::new(*id, *io, BlockType::OutputBlocked)).collect();
 
-        let input_blockers: Vec<BlockerNode> = state.get_input_blockers(process_id).iter().map(|id|
-            BlockerNode::new(*id, BlockType::UnreadySender)).collect();
+        let input_blockers: Vec<BlockerNode> = state.get_input_blockers(process_id).iter().map(|(id, io)|
+            BlockerNode::new(*id, *io, BlockType::UnreadySender)).collect();
 
         blockers.extend(input_blockers);
 
@@ -345,7 +353,7 @@ impl Debugger {
     fn deadlock_inspection(&self, state: &RunState) {
         for blocked_process_id in state.get_blocked() {
             // start a clean tree with a new root node for each blocked process
-            let mut root_node = BlockerNode::new(*blocked_process_id, BlockType::OutputBlocked);
+            let mut root_node = BlockerNode::new(*blocked_process_id, 0, BlockType::OutputBlocked);
             let mut visited_nodes = vec!();
 
             let mut deadlock_set = self.traverse_blocker_tree(state, &mut visited_nodes,
