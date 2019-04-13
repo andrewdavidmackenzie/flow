@@ -1,11 +1,13 @@
-use std::sync::Arc;
 use std::collections::HashSet;
-use function::Function;
 use std::fmt;
-use implementation::Implementation;
-use serde_json::Value;
-use metrics::Metrics;
+use std::sync::Arc;
+
 use debugger::Debugger;
+use function::Function;
+use implementation::Implementation;
+use metrics::Metrics;
+
+use serde_json::Value;
 
 #[derive(Debug, PartialEq)]
 pub enum State {
@@ -108,7 +110,7 @@ pub struct Output {
 /// it will be run (when it received inputs) and it's output discarded.
 /// That is sub-optimal execution but no errors should result. Hence the role of the optimizer at
 /// compile time.
-/// TODO TEST
+/// Tests: pure_function_no_destinations()
 ///
 /// Unconnected inputs
 /// ==================
@@ -174,6 +176,7 @@ pub struct Output {
 ///
 /// Parallel Execution of Jobs
 /// ==========================
+/// TODO
 ///
 pub struct RunState {
     functions: Vec<Function>,
@@ -653,17 +656,10 @@ impl fmt::Display for RunState {
 
 #[cfg(test)]
 mod tests {
-    use function::Function;
-    use super::RunState;
-    use super::State;
-    use super::Output;
-    use input::InputInitializer::{OneTime, Constant};
-    use input::{OneTimeInputInitializer, ConstantInputInitializer};
-    use metrics::Metrics;
-    use debugger::Debugger;
-    use debug_client::DebugClient;
     use std::io;
     use std::io::Write;
+
+    use debug_client::DebugClient;
 
     // Helpers
     struct TestDebugClient {}
@@ -685,594 +681,657 @@ mod tests {
     }
 
     /********************************* State Transition Tests *********************************/
-    #[test]
-    fn to_ready_1_on_init() {
-        let f_a = Function::new("fA".to_string(), // name
-                                "/context/fA".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!(),
-                                0,
-                                vec!(("".to_string(), 1, 0)));  // outputs to f_b:0
-        let f_b = Function::new("fB".to_string(), // name
-                                "/context/fB".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, None)),
-                                1,
-                                vec!());
-        let functions = vec!(f_a, f_b);
-        let mut state = RunState::new(functions, 1);
+    mod state_transitions {
+        use debugger::Debugger;
+        use function::Function;
+        use input::{ConstantInputInitializer, OneTimeInputInitializer};
+        use input::InputInitializer::{Constant, OneTime};
+        use metrics::Metrics;
 
-        // Event
-        state.init();
+        use super::super::Output;
+        use super::super::RunState;
+        use super::super::State;
+        use super::test_debug_client;
 
-        // Test
-        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
-    }
+        #[test]
+        fn to_ready_1_on_init() {
+            let f_a = Function::new("fA".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!(),
+                                    0,
+                                    vec!(("".to_string(), 1, 0)));  // outputs to f_b:0
+            let f_b = Function::new("fB".to_string(), // name
+                                    "/context/fB".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, None)),
+                                    1,
+                                    vec!());
+            let functions = vec!(f_a, f_b);
+            let mut state = RunState::new(functions, 1);
 
-    #[test]
-    fn to_ready_2_on_init() {
-        let f_a = Function::new("fA".to_string(), // name
-                                "/context/fA".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                                0,
-                                vec!(("".to_string(), 1, 0))); // outputs to fB:0
-        let f_b = Function::new("fB".to_string(), // name
-                                "/context/fB".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, None)),
-                                1,
-                                vec!());
-        let functions = vec!(f_a, f_b);
-        let mut state = RunState::new(functions, 1);
+            // Event
+            state.init();
 
-        // Event
-        state.init();
+            // Test
+            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+        }
 
-        // Test
-        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
-    }
+        #[test]
+        fn to_ready_2_on_init() {
+            let f_a = Function::new("fA".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    0,
+                                    vec!(("".to_string(), 1, 0))); // outputs to fB:0
+            let f_b = Function::new("fB".to_string(), // name
+                                    "/context/fB".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, None)),
+                                    1,
+                                    vec!());
+            let functions = vec!(f_a, f_b);
+            let mut state = RunState::new(functions, 1);
 
-    #[test]
-    fn to_ready_3_on_init() {
-        let f_a = Function::new("fA".to_string(), // name
-                                "/context/fA".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                                0,
-                                vec!());
-        let functions = vec!(f_a);
-        let mut state = RunState::new(functions, 1);
+            // Event
+            state.init();
 
-        // Event
-        state.init();
+            // Test
+            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+        }
 
-        // Test
-        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
-    }
+        #[test]
+        fn to_ready_3_on_init() {
+            let f_a = Function::new("fA".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    0,
+                                    vec!());
+            let functions = vec!(f_a);
+            let mut state = RunState::new(functions, 1);
 
-    /*
-        FunctionA -> FunctionB
-        But FunctionB has an initializer on that same input and FunctionB is initialized before
-        FunctionA, so the input should be full and when FunctionA initializes it should go to blocked
-        status
-    */
-    #[test]
-    fn to_blocked_on_init() {
-        let f_a = Function::new("fA".to_string(), // name
-                                "/context/fA".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                                0,
-                                vec!(("".to_string(), 1, 0))); // outputs to fB:0
-        let f_b = Function::new("fB".to_string(), // name
-                                "/context/fB".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                                1,
-                                vec!());
-        let functions = vec!(f_b, f_a);
-        let mut state = RunState::new(functions, 1);
+            // Event
+            state.init();
 
-        // Event
-        state.init();
+            // Test
+            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+        }
 
-        // Test
-        assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
-        assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state, by fB");
-    }
+        /*
+            FunctionA -> FunctionB
+            But FunctionB has an initializer on that same input and FunctionB is initialized before
+            FunctionA, so the input should be full and when FunctionA initializes it should go to blocked
+            status
+        */
+        #[test]
+        fn to_blocked_on_init() {
+            let f_a = Function::new("fA".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    0,
+                                    vec!(("".to_string(), 1, 0))); // outputs to fB:0
+            let f_b = Function::new("fB".to_string(), // name
+                                    "/context/fB".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    1,
+                                    vec!());
+            let functions = vec!(f_b, f_a);
+            let mut state = RunState::new(functions, 1);
 
-    #[test]
-    fn to_waiting_on_init() {
-        let f_a = Function::new("fA".to_string(), // name
-                                "/context/fA".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, None)),
-                                0,
-                                vec!());
-        let functions = vec!(f_a);
-        let mut state = RunState::new(functions, 1);
+            // Event
+            state.init();
 
-        // Event
-        state.init();
+            // Test
+            assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+            assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state, by fB");
+        }
 
-        // Test
-        assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
-    }
+        #[test]
+        fn to_waiting_on_init() {
+            let f_a = Function::new("fA".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, None)),
+                                    0,
+                                    vec!());
+            let functions = vec!(f_a);
+            let mut state = RunState::new(functions, 1);
 
-    #[test]
-    fn ready_to_running_on_next() {
-        let f_a = Function::new("fA".to_string(), // name
-                                "/context/fA".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                                0,
-                                vec!());
-        let functions = vec!(f_a);
-        let mut state = RunState::new(functions, 1);
-        state.init();
-        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            // Event
+            state.init();
 
-        // Event
-        assert_eq!(0, state.next_job().unwrap().function_id, "next_job() should return function_id = 0");
+            // Test
+            assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
+        }
 
-        // Test
-        assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
-    }
+        #[test]
+        fn ready_to_running_on_next() {
+            let f_a = Function::new("fA".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    0,
+                                    vec!());
+            let functions = vec!(f_a);
+            let mut state = RunState::new(functions, 1);
+            state.init();
+            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
 
-    #[test]
-    fn unready_not_to_running_on_next() {
-        let f_a = Function::new("fA".to_string(), // name
-                                "/context/fA".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, None)),
-                                0,
-                                vec!());
-        let functions = vec!(f_a);
-        let mut state = RunState::new(functions, 1);
-        state.init();
-        assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
+            // Event
+            assert_eq!(0, state.next_job().unwrap().function_id, "next_job() should return function_id = 0");
 
-        // Event
-        assert!(state.next_job().is_none(), "next_job() should return None");
+            // Test
+            assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
+        }
 
-        // Test
-        assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
-    }
+        #[test]
+        fn unready_not_to_running_on_next() {
+            let f_a = Function::new("fA".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, None)),
+                                    0,
+                                    vec!());
+            let functions = vec!(f_a);
+            let mut state = RunState::new(functions, 1);
+            state.init();
+            assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
 
-    #[test]
-    fn blocked_to_ready_on_done() {
-        let f_a = Function::new("fA".to_string(), // name
-                                "/context/fA".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                                0,
-                                vec!(("".to_string(), 1, 0))); // outputs to fB:0
-        let f_b = Function::new("fB".to_string(), // name
-                                "/context/fB".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                                1,
-                                vec!());
-        let functions = vec!(f_b, f_a); // NOTE the order!
-        let mut state = RunState::new(functions, 1);
-        let mut metrics = Metrics::new(2);
-        let mut debugger = Debugger::new(test_debug_client());
-        state.init();
-        assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
-        assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state, by fB");
-        assert_eq!(1, state.next_job().unwrap().function_id, "next() should return function_id=1 (f_b) for running");
+            // Event
+            assert!(state.next_job().is_none(), "next_job() should return None");
 
-        // Event
-        let output = Output {
-            function_id: 1,
-            input_values: vec!(vec!(json!(1))),
-            result: (Some(json!(1)), true),
-            destinations: vec!(("".into(), 1, 0)),
-            error: None,
+            // Test
+            assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
+        }
 
-        };
-        state.process_output(&mut metrics, output, false, &mut debugger);
+        #[test]
+        fn blocked_to_ready_on_done() {
+            let f_a = Function::new("fA".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    0,
+                                    vec!(("".to_string(), 1, 0))); // outputs to fB:0
+            let f_b = Function::new("fB".to_string(), // name
+                                    "/context/fB".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    1,
+                                    vec!());
+            let functions = vec!(f_b, f_a); // NOTE the order!
+            let mut state = RunState::new(functions, 1);
+            let mut metrics = Metrics::new(2);
+            let mut debugger = Debugger::new(test_debug_client());
+            state.init();
+            assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+            assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state, by fB");
+            assert_eq!(1, state.next_job().unwrap().function_id, "next() should return function_id=1 (f_b) for running");
 
-        // Test
-        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
-    }
+            // Event
+            let output = Output {
+                function_id: 1,
+                input_values: vec!(vec!(json!(1))),
+                result: (Some(json!(1)), true),
+                destinations: vec!(("".into(), 1, 0)),
+                error: None,
 
-    #[test]
-    fn running_to_ready_on_done() {
-        let f_a = Function::new("fA".to_string(), // name
-                                "/context/fA".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
-                                0,
-                                vec!());
-        let functions = vec!(f_a);
-        let mut state = RunState::new(functions, 1);
-        let mut metrics = Metrics::new(1);
-        let mut debugger = Debugger::new(test_debug_client());
-        state.init();
-        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
-        assert_eq!(0, state.next_job().unwrap().function_id, "next() should return function_id = 0");
-        assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
+            };
+            state.process_output(&mut metrics, output, false, &mut debugger);
 
-        // Event
-        let output = Output {
-            function_id: 0,
-            input_values: vec!(vec!(json!(1))),
-            result: (None, true),
-            destinations: vec!(),
-            error: None,
-        };
-        state.process_output(&mut metrics, output, false, &mut debugger);
+            // Test
+            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+        }
 
-        // Test
-        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready again");
-    }
+        #[test]
+        fn running_to_ready_on_done() {
+            let f_a = Function::new("fA".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
+                                    0,
+                                    vec!());
+            let functions = vec!(f_a);
+            let mut state = RunState::new(functions, 1);
+            let mut metrics = Metrics::new(1);
+            let mut debugger = Debugger::new(test_debug_client());
+            state.init();
+            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return function_id = 0");
+            assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
 
-    // Done: it has one input or more empty, to it can't run
-    #[test]
-    fn running_to_waiting_on_done() {
-        let f_a = Function::new("fA".to_string(), // name
-                                "/context/fA".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                                0,
-                                vec!());
-        let functions = vec!(f_a);
-        let mut state = RunState::new(functions, 1);
-        let mut metrics = Metrics::new(1);
-        let mut debugger = Debugger::new(test_debug_client());
-        state.init();
-        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
-        assert_eq!(0, state.next_job().unwrap().function_id, "next() should return function_id = 0");
-        assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
+            // Event
+            let output = Output {
+                function_id: 0,
+                input_values: vec!(vec!(json!(1))),
+                result: (None, true),
+                destinations: vec!(),
+                error: None,
+            };
+            state.process_output(&mut metrics, output, false, &mut debugger);
 
-        // Event
-        let output = Output {
-            function_id: 0,
-            input_values: vec!(vec!(json!(1))),
-            result: (None, true),
-            destinations: vec!(),
-            error: None,
-        };
-        state.process_output(&mut metrics, output, false, &mut debugger);
+            // Test
+            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready again");
+        }
 
-        // Test
-        assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting again");
-    }
+        // Done: it has one input or more empty, to it can't run
+        #[test]
+        fn running_to_waiting_on_done() {
+            let f_a = Function::new("fA".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    0,
+                                    vec!());
+            let functions = vec!(f_a);
+            let mut state = RunState::new(functions, 1);
+            let mut metrics = Metrics::new(1);
+            let mut debugger = Debugger::new(test_debug_client());
+            state.init();
+            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return function_id = 0");
+            assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
 
-    // Done: at least one destination input is full, so can't run  running_to_blocked_on_done
-    #[test]
-    fn running_to_blocked_on_done() {
-        let f_a = Function::new("fA".to_string(), // name
-                                "/context/fA".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
-                                0,
-                                vec!(("".to_string(), 1, 0))); // outputs to fB:0
-        let f_b = Function::new("fB".to_string(), // name
-                                "/context/fB".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, None)),
-                                1,
-                                vec!());
-        let functions = vec!(f_a, f_b);
-        let mut state = RunState::new(functions, 1);
-        let mut metrics = Metrics::new(1);
-        let mut debugger = Debugger::new(test_debug_client());
-        state.init();
+            // Event
+            let output = Output {
+                function_id: 0,
+                input_values: vec!(vec!(json!(1))),
+                result: (None, true),
+                destinations: vec!(),
+                error: None,
+            };
+            state.process_output(&mut metrics, output, false, &mut debugger);
 
-        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            // Test
+            assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting again");
+        }
 
-        assert_eq!(0, state.next_job().unwrap().function_id, "next() should return function_id=0 (f_a) for running");
-        assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
+        // Done: at least one destination input is full, so can't run  running_to_blocked_on_done
+        #[test]
+        fn running_to_blocked_on_done() {
+            let f_a = Function::new("fA".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
+                                    0,
+                                    vec!(("".to_string(), 1, 0))); // outputs to fB:0
+            let f_b = Function::new("fB".to_string(), // name
+                                    "/context/fB".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, None)),
+                                    1,
+                                    vec!());
+            let functions = vec!(f_a, f_b);
+            let mut state = RunState::new(functions, 1);
+            let mut metrics = Metrics::new(1);
+            let mut debugger = Debugger::new(test_debug_client());
+            state.init();
 
-        // Event
-        let output = Output {
-            function_id: 0,
-            input_values: vec!(vec!(json!(1))),
-            result: (Some(json!(1)), true),
-            destinations: vec!(("".to_string(), 1, 0)),
-            error: None,
-        };
-        state.process_output(&mut metrics, output, false, &mut debugger);
+            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
 
-        // Test f_a should transition to Blocked on f_b
-        assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked");
-    }
+            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return function_id=0 (f_a) for running");
+            assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
 
-    #[test]
-    fn waiting_to_ready_on_input() {
-        let f_a = Function::new("fA".to_string(), // name
-                                "/context/fA".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, None)),
-                                0,
-                                vec!());
-        let f_b = Function::new("fB".to_string(), // name
-                                "/context/fB".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, None)),
-                                1,
-                                vec!(("".into(), 0, 0)));
-        let functions = vec!(f_a, f_b);
-        let mut state = RunState::new(functions, 1);
-        let mut metrics = Metrics::new(1);
-        let mut debugger = Debugger::new(test_debug_client());
-        state.init();
-        assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
+            // Event
+            let output = Output {
+                function_id: 0,
+                input_values: vec!(vec!(json!(1))),
+                result: (Some(json!(1)), true),
+                destinations: vec!(("".to_string(), 1, 0)),
+                error: None,
+            };
+            state.process_output(&mut metrics, output, false, &mut debugger);
 
-        // Event run f_b which will send to f_a
-        let output = Output {
-            function_id: 1,
-            input_values: vec!(vec!(json!(1))),
-            result: (Some(json!(1)), true),
-            destinations: vec!(("".to_string(), 0, 0)),
-            error: None,
-        };
-        state.process_output(&mut metrics, output, false, &mut debugger);
+            // Test f_a should transition to Blocked on f_b
+            assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked");
+        }
 
-        // Test
-        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
-    }
+        #[test]
+        fn waiting_to_ready_on_input() {
+            let f_a = Function::new("fA".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, None)),
+                                    0,
+                                    vec!());
+            let f_b = Function::new("fB".to_string(), // name
+                                    "/context/fB".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, None)),
+                                    1,
+                                    vec!(("".into(), 0, 0)));
+            let functions = vec!(f_a, f_b);
+            let mut state = RunState::new(functions, 1);
+            let mut metrics = Metrics::new(1);
+            let mut debugger = Debugger::new(test_debug_client());
+            state.init();
+            assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
 
-    #[test]
-    fn waiting_to_blocked_on_input() {
-        let f_a = Function::new("fA".to_string(), // name
-                                "/context/fA".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, None)),
-                                0,
-                                vec!(("".to_string(), 1, 0))); // outputs to fB:0
-        let f_b = Function::new("fB".to_string(), // name
-                                "/context/fB".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
-                                1,
-                                vec!(("".into(), 0, 0)));
-        let functions = vec!(f_a, f_b);
-        let mut state = RunState::new(functions, 1);
-        let mut metrics = Metrics::new(1);
-        let mut debugger = Debugger::new(test_debug_client());
-        state.init();
+            // Event run f_b which will send to f_a
+            let output = Output {
+                function_id: 1,
+                input_values: vec!(vec!(json!(1))),
+                result: (Some(json!(1)), true),
+                destinations: vec!(("".to_string(), 0, 0)),
+                error: None,
+            };
+            state.process_output(&mut metrics, output, false, &mut debugger);
 
-        assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
-        assert_eq!(State::Waiting, state.get_state(0), "f_a should be in Waiting");
+            // Test
+            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+        }
 
-        // Event run f_b which will send to f_a, but will block f_a due to initialize
-        let output = Output {
-            function_id: 1,
-            input_values: vec!(vec!(json!(1))),
-            result: (Some(json!(1)), true),
-            destinations: vec!(("".to_string(), 0, 0)),
-            error: None,
-        };
-        state.process_output(&mut metrics, output, false, &mut debugger);
+        #[test]
+        fn waiting_to_blocked_on_input() {
+            let f_a = Function::new("fA".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, None)),
+                                    0,
+                                    vec!(("".to_string(), 1, 0))); // outputs to fB:0
+            let f_b = Function::new("fB".to_string(), // name
+                                    "/context/fB".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
+                                    1,
+                                    vec!(("".into(), 0, 0)));
+            let functions = vec!(f_a, f_b);
+            let mut state = RunState::new(functions, 1);
+            let mut metrics = Metrics::new(1);
+            let mut debugger = Debugger::new(test_debug_client());
+            state.init();
 
-        // Test
-        assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked");
-    }
+            assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+            assert_eq!(State::Waiting, state.get_state(0), "f_a should be in Waiting");
 
-    /*
-        This tests that if a function that has a loop back sending to itself, runs the firts time
-        due to a OnceInitializer, that after running it sends output back to itself and is ready
-        (not waiting for an input from elsewhere and no deadlock due to blocking itself occurs
-    */
-    #[test]
-    fn not_block_on_self() {
-        let f_a = Function::new("fA".to_string(), // name
-                                "/context/fA".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
-                                0,
-                                vec!(
-                                    ("".to_string(), 0, 0), // outputs to self:0
-                                    ("".to_string(), 1, 0) // outputs to f_b:0
-                                ));
-        let f_b = Function::new("fB".to_string(), // name
-                                "/context/fB".to_string(),
-                                "/test".to_string(),
-                                false,
-                                vec!((1, None)),
-                                1,
-                                vec!());
-        let functions = vec!(f_a, f_b); // NOTE the order!
-        let mut state = RunState::new(functions, 1);
-        let mut metrics = Metrics::new(2);
-        let mut debugger = Debugger::new(test_debug_client());
-        state.init();
-        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
-        assert_eq!(State::Waiting, state.get_state(1), "f_b should be in Waiting");
+            // Event run f_b which will send to f_a, but will block f_a due to initialize
+            let output = Output {
+                function_id: 1,
+                input_values: vec!(vec!(json!(1))),
+                result: (Some(json!(1)), true),
+                destinations: vec!(("".to_string(), 0, 0)),
+                error: None,
+            };
+            state.process_output(&mut metrics, output, false, &mut debugger);
 
-        assert_eq!(0, state.next_job().unwrap().function_id, "next() should return function_id=0 (f_a) for running");
+            // Test
+            assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked");
+        }
 
-        // Event: run f_a
-        let output = Output {
-            function_id: 0,
-            input_values: vec!(vec!(json!(1))),
-            result: (Some(json!(1)), true),
-            destinations: vec!(("".into(), 0, 0), ("".into(), 1, 0)),
-            error: None,
+        /*
+            This tests that if a function that has a loop back sending to itself, runs the firts time
+            due to a OnceInitializer, that after running it sends output back to itself and is ready
+            (not waiting for an input from elsewhere and no deadlock due to blocking itself occurs
+        */
+        #[test]
+        fn not_block_on_self() {
+            let f_a = Function::new("fA".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    0,
+                                    vec!(
+                                        ("".to_string(), 0, 0), // outputs to self:0
+                                        ("".to_string(), 1, 0) // outputs to f_b:0
+                                    ));
+            let f_b = Function::new("fB".to_string(), // name
+                                    "/context/fB".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, None)),
+                                    1,
+                                    vec!());
+            let functions = vec!(f_a, f_b); // NOTE the order!
+            let mut state = RunState::new(functions, 1);
+            let mut metrics = Metrics::new(2);
+            let mut debugger = Debugger::new(test_debug_client());
+            state.init();
+            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(State::Waiting, state.get_state(1), "f_b should be in Waiting");
 
-        };
-        state.process_output(&mut metrics, output, false, &mut debugger);
+            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return function_id=0 (f_a) for running");
 
-        // Test
-        assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
-        assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked on f_b");
+            // Event: run f_a
+            let output = Output {
+                function_id: 0,
+                input_values: vec!(vec!(json!(1))),
+                result: (Some(json!(1)), true),
+                destinations: vec!(("".into(), 0, 0), ("".into(), 1, 0)),
+                error: None,
 
-        assert_eq!(1, state.next_job().unwrap().function_id, "next() should return function_id=1 (f_b) for running");
+            };
+            state.process_output(&mut metrics, output, false, &mut debugger);
 
-        // Event: Run f_b
-        let output = Output {
-            function_id: 1,
-            input_values: vec!(vec!(json!(1))),
-            result: (None, true),
-            destinations: vec!(),
-            error: None,
+            // Test
+            assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+            assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked on f_b");
 
-        };
-        state.process_output(&mut metrics, output, false, &mut debugger);
+            assert_eq!(1, state.next_job().unwrap().function_id, "next() should return function_id=1 (f_b) for running");
 
-        // Test
-        assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            // Event: Run f_b
+            let output = Output {
+                function_id: 1,
+                input_values: vec!(vec!(json!(1))),
+                result: (None, true),
+                destinations: vec!(),
+                error: None,
+
+            };
+            state.process_output(&mut metrics, output, false, &mut debugger);
+
+            // Test
+            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+        }
     }
 
     /****************************** Miscelaneous tests **************************/
+    mod functional_tests {
+        use debugger::Debugger;
+        use function::Function;
+        use metrics::Metrics;
 
-    fn test_functions<'a>() -> Vec<Function> {
-        let p0 = Function::new("p0".to_string(), // name
-                               "/context/p0".to_string(),
-                               "/test".to_string(),
-                               false, vec!(), // input depths array
-                               0,    // id
-                               vec!(("".to_string(), 1, 0), ("".to_string(), 1, 0)), // destinations
-        );    // implementation
-        let p1 = Function::new("p1".to_string(),
-                               "/context/p1".to_string(),
-                               "/test".to_string(),
-                               false, vec!((1, None)), // inputs array
-                               1,    // id
-                               vec!());
-        let p2 = Function::new("p2".to_string(),
-                               "/context/p2".to_string(),
-                               "/test".to_string(),
-                               false, vec!((1, None)), // inputs array
-                               2,    // id
-                               vec!());
-        vec!(p0, p1, p2)
-    }
+        use super::super::Output;
+        use super::super::RunState;
+        use super::super::State;
+        use super::test_debug_client;
+        use input::OneTimeInputInitializer;
+        use input::InputInitializer::OneTime;
 
-    #[test]
-    fn blocked_works() {
-        let mut state = RunState::new(test_functions(), 1);
-        let mut debugger = Debugger::new(test_debug_client());
 
-        // Indicate that 0 is blocked by 1
-        state.create_block(1, 0, &mut debugger);
-        assert!(state.is_blocked(0));
-    }
+        fn test_functions<'a>() -> Vec<Function> {
+            let p0 = Function::new("p0".to_string(), // name
+                                   "/context/p0".to_string(),
+                                   "/test".to_string(),
+                                   false, vec!(), // input depths array
+                                   0,    // id
+                                   vec!(("".to_string(), 1, 0), ("".to_string(), 1, 0)), // destinations
+            );    // implementation
+            let p1 = Function::new("p1".to_string(),
+                                   "/context/p1".to_string(),
+                                   "/test".to_string(),
+                                   false, vec!((1, None)), // inputs array
+                                   1,    // id
+                                   vec!());
+            let p2 = Function::new("p2".to_string(),
+                                   "/context/p2".to_string(),
+                                   "/test".to_string(),
+                                   false, vec!((1, None)), // inputs array
+                                   2,    // id
+                                   vec!());
+            vec!(p0, p1, p2)
+        }
 
-    #[test]
-    fn get_works() {
-        let state = RunState::new(test_functions(), 1);
-        let got = state.get(1);
-        assert_eq!(got.id(), 1)
-    }
+        #[test]
+        fn blocked_works() {
+            let mut state = RunState::new(test_functions(), 1);
+            let mut debugger = Debugger::new(test_debug_client());
 
-    #[test]
-    fn no_next_if_none_ready() {
-        let mut state = RunState::new(test_functions(), 1);
+            // Indicate that 0 is blocked by 1
+            state.create_block(1, 0, &mut debugger);
+            assert!(state.is_blocked(0));
+        }
 
-        assert!(state.next_job().is_none());
-    }
+        #[test]
+        fn get_works() {
+            let state = RunState::new(test_functions(), 1);
+            let got = state.get(1);
+            assert_eq!(got.id(), 1)
+        }
 
-    #[test]
-    fn next_works() {
-        let mut state = RunState::new(test_functions(), 1);
+        #[test]
+        fn no_next_if_none_ready() {
+            let mut state = RunState::new(test_functions(), 1);
 
-        // Put 0 on the blocked/ready
-        state.inputs_now_full(0);
+            assert!(state.next_job().is_none());
+        }
 
-        assert_eq!(state.next_job().unwrap().function_id, 0);
-    }
+        #[test]
+        fn next_works() {
+            let mut state = RunState::new(test_functions(), 1);
 
-    #[test]
-    fn inputs_ready_makes_ready() {
-        let mut state = RunState::new(test_functions(), 1);
+            // Put 0 on the blocked/ready
+            state.inputs_now_full(0);
 
-        // Put 0 on the blocked/ready list depending on blocked status
-        state.inputs_now_full(0);
+            assert_eq!(state.next_job().unwrap().function_id, 0);
+        }
 
-        assert_eq!(state.next_job().unwrap().function_id, 0);
-    }
+        #[test]
+        fn inputs_ready_makes_ready() {
+            let mut state = RunState::new(test_functions(), 1);
 
-    #[test]
-    fn blocked_is_not_ready() {
-        let mut state = RunState::new(test_functions(), 1);
-        let mut debugger = Debugger::new(test_debug_client());
+            // Put 0 on the blocked/ready list depending on blocked status
+            state.inputs_now_full(0);
 
-        // Indicate that 0 is blocked by 1
-        state.create_block(1, 0, &mut debugger);
+            assert_eq!(state.next_job().unwrap().function_id, 0);
+        }
 
-        // Put 0 on the blocked/ready list depending on blocked status
-        state.inputs_now_full(0);
+        #[test]
+        fn blocked_is_not_ready() {
+            let mut state = RunState::new(test_functions(), 1);
+            let mut debugger = Debugger::new(test_debug_client());
 
-        assert!(state.next_job().is_none());
-    }
+            // Indicate that 0 is blocked by 1
+            state.create_block(1, 0, &mut debugger);
 
-    #[test]
-    fn unblocking_makes_ready() {
-        let mut state = RunState::new(test_functions(), 1);
-        let mut debugger = Debugger::new(test_debug_client());
+            // Put 0 on the blocked/ready list depending on blocked status
+            state.inputs_now_full(0);
 
-        // Indicate that 0 is blocked by 1
-        state.create_block(1, 0, &mut debugger);
+            assert!(state.next_job().is_none());
+        }
 
-        // Put 0 on the blocked/ready list depending on blocked status
-        state.inputs_now_full(0);
+        #[test]
+        fn unblocking_makes_ready() {
+            let mut state = RunState::new(test_functions(), 1);
+            let mut debugger = Debugger::new(test_debug_client());
 
-        assert!(state.next_job().is_none());
+            // Indicate that 0 is blocked by 1
+            state.create_block(1, 0, &mut debugger);
 
-        // now unblock 0 by 1
-        state.unblock_senders_to(1);
+            // Put 0 on the blocked/ready list depending on blocked status
+            state.inputs_now_full(0);
 
-        // Now function with id 0 should be ready and served up by next
-        assert_eq!(state.next_job().unwrap().function_id, 0);
-    }
+            assert!(state.next_job().is_none());
 
-    #[test]
-    fn unblocking_doubly_blocked_functions_not_ready() {
-        let mut state = RunState::new(test_functions(), 1);
-        let mut debugger = Debugger::new(test_debug_client());
+            // now unblock 0 by 1
+            state.unblock_senders_to(1);
 
-        // Indicate that 0 is blocked by 1 and 2
-        state.create_block(1, 0, &mut debugger);
-        state.create_block(2, 0, &mut debugger);
+            // Now function with id 0 should be ready and served up by next
+            assert_eq!(state.next_job().unwrap().function_id, 0);
+        }
 
-        // Put 0 on the blocked/ready list depending on blocked status
-        state.inputs_now_full(0);
+        #[test]
+        fn unblocking_doubly_blocked_functions_not_ready() {
+            let mut state = RunState::new(test_functions(), 1);
+            let mut debugger = Debugger::new(test_debug_client());
 
-        assert!(state.next_job().is_none());
+            // Indicate that 0 is blocked by 1 and 2
+            state.create_block(1, 0, &mut debugger);
+            state.create_block(2, 0, &mut debugger);
 
-        // now unblock 0 by 1
-        state.unblock_senders_to(1);
+            // Put 0 on the blocked/ready list depending on blocked status
+            state.inputs_now_full(0);
 
-        // Now function with id 0 should still not be ready as still blocked on 2
-        assert!(state.next_job().is_none());
-    }
+            assert!(state.next_job().is_none());
 
-    #[test]
-    fn wont_return_too_many_jobs() {
-        let mut state = RunState::new(test_functions(), 1);
+            // now unblock 0 by 1
+            state.unblock_senders_to(1);
 
-        // Put 0 on the blocked/ready
-        state.inputs_now_full(0);
-        // Put 1 on the blocked/ready
-        state.inputs_now_full(1);
+            // Now function with id 0 should still not be ready as still blocked on 2
+            assert!(state.next_job().is_none());
+        }
 
-        assert_eq!(state.next_job().unwrap().function_id, 0);
-        assert!(state.next_job().is_none());
+        #[test]
+        fn wont_return_too_many_jobs() {
+            let mut state = RunState::new(test_functions(), 1);
+
+            // Put 0 on the blocked/ready
+            state.inputs_now_full(0);
+            // Put 1 on the blocked/ready
+            state.inputs_now_full(1);
+
+            assert_eq!(state.next_job().unwrap().function_id, 0);
+            assert!(state.next_job().is_none());
+        }
+
+        /*
+            This test checks that a function with no output destinations (even if pure and produces
+            someoutput) can be executed and nothing crashes
+        */
+        #[test]
+        fn pure_function_no_destinations() {
+
+            let f_a = Function::new("fA".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!((1, Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    0,
+                                    vec!());
+
+            let functions = vec!(f_a);
+            let mut state = RunState::new(functions, 1);
+            let mut metrics = Metrics::new(1);
+            let mut debugger = Debugger::new(test_debug_client());
+            state.init();
+
+            assert_eq!(state.next_job().unwrap().function_id, 0);
+
+            // Event run f_a
+            let output = Output {
+                function_id: 0,
+                input_values: vec!(vec!(json!(1))),
+                result: (Some(json!(1)), true),
+                destinations: vec!(),
+                error: None,
+            };
+
+            // Test there is no problem producing an Output when no destinations to send it to
+            state.process_output(&mut metrics, output, false, &mut debugger);
+            assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
+        }
     }
 }
