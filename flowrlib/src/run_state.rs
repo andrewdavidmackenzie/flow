@@ -36,14 +36,55 @@ pub struct Output {
 }
 
 /// The Semantics of a Flow's RunState
+/// ==================================
 /// The semantics of the state of each function in a flow and the flow over are described here
 /// and the tests of the struct attempt to reproduce and confirm as many of them as is possible
 ///
-/// Initialization
+/// Terminology
+/// ===========
+/// * function        - an entry in the manifest and the flow graph that may take inputs, will execute an
+///                     implementation on a job and may produce an output
+/// * input           - a function may have 0 or more inputs that accept values required for it's execution
+/// * implementation  - the code that is run, accepting 0 or more input values performing some calculations
+///                     and possibly producing an output value. One implementation can be used by multiple
+///                     functions in a flow
+/// * destinations    - a set of other functions and their specific inputs that a function is connected
+///                     to and hence where the output value is sent when execution is completed
+/// * job             - a job is the bundle of information necessary to execute. It consists of the
+///                     function's id, the input values, the implementation to run, and the destinations
+///                     to send the output value to
+/// * execution       - the act of running an implementation on the input values to produce an output
+/// * output          - a function when ran produces an output. The output contains the id of the function
+///                     that was ran, the input values (for debugging), the result (optional value plus
+///                     an indicator if the function wishes to be ran again when ready), the destinations
+///                     to send any value to and an optional error string.
+///
+/// Start-up
 /// ==============
-/// Upon initialization all function's inputs are initialized by calling their init_inputs() function.
-/// This may initialize one or more inputs with values.
-/// This may cause all inputs to be full and hence the Function maybe able to run (pending blocks on other functions).
+/// At start-up all functions are initialized. For each of the functions inputs their
+/// init_inputs() function will be called, meaning that some inputs may be initialized (filled):
+///    - Other functions that send to these initialized inputs will be blocked initially
+/// If all inputs are full then the Function maybe able to run, depending on existence of blocks on
+/// other functions it sends to.
+///
+/// Pure and Impure Functions
+/// =========================
+/// If a function is "pure" then it has no side-effects and for it to be useful in a flow it must
+/// have at least one input and an output.
+///
+/// An "impure" function may produce an output without input, for example by reading from the environment
+/// or standard input, etc. Or it may accept an input and produce no output, instead interacting with
+/// the environment such as writing to a file or standard output.
+///
+/// One-time Execution or Stopping repetitive execution
+/// ===================================================
+/// It may make sense for some functions to only be ran once, or to stop being executed repeatedly
+/// as some point, so each implementation when run returns a "run again" flag to indicate this.
+/// An example of functions that may decide to stop running are:
+/// - args: produces arguments from the command line execution of a flow once at start-up
+/// - readline: read a line of input from standard input, until End-of-file (EOF) is detected.
+///   If this was not done, then the flow would never stop running as the readline function would
+///   always be re-run and waiting for more input, but none would ever be received after EOF.
 ///
 /// States
 /// ======
@@ -55,6 +96,40 @@ pub struct Output {
 /// Waiting - Function is in Blocked state when at least one of it's inputs is not full
 /// Running - Function is in Running state when it has been picked from the Ready list for execution
 ///           using the next() funcion
+///
+/// Unused Functions
+/// ================
+/// If a pure function has an output but it is not used (not connected to any input) then the function
+/// should have no affect on the execution of the flow and the optimizer may remove it and all
+/// connections to its input. That in turn may affect other functions which can be removed, until
+/// there are no more left to remove.
+/// Thus at runtime, a pure function with it's output unused is not expected and no special handling
+/// of that case is taken. If a manifest is read where a pure function has no destinations, then
+/// it will be run (when it received inputs) and it's output discarded.
+/// That is sub-optimal execution but no errors should result. Hence the role of the optimizer at
+/// compile time.
+/// TODO TEST
+///
+/// Unconnected inputs
+/// ==================
+/// If a function's output is used but one or more of it's inputs is unconnected, then the compiler
+/// should throw an error. If for some reason an alternative compiler did not reject this and
+/// generated a manifest with no other function sending to that input, then at runtime that functions
+/// inputs will never be full and the function will never run. This could produce some form of deadlock
+/// or incomplete execution, but it should not produce any runtime error.
+/// A runtime is within it's rights to discard this function, and then potentially other functions
+/// connected to it's output and other inputs until no more can be removed.
+/// This runtime does not do that, in order to keep things simple and start-up time to a minimum.
+///
+/// Runtime Rules
+/// =============
+/// * A function won't be run until all of its inputs are ready and all of the inputs on other
+///   functions it sends to are empty and able to receive its output. (See 'Loops' below)
+/// * An input maybe initialized at start-up once by a "Once" input initializer
+/// * An input maybe initialized after each run by a "Constant" input initializer that ensures that
+///   the same value always re-fills the input
+/// * When one or more inputs on other functions that a function sends to are full, then the sending
+///   function will be in the blocked state
 ///
 /// State Transitions
 /// =================
@@ -77,6 +152,28 @@ pub struct Output {
 /// Running Ready     Output: it's inputs are all full, so it can run again       running_to_ready_on_done
 /// Running Waiting   Output: it has one input or more empty, to it can't run     running_to_waiting_on_done
 /// Running Blocked   Output: a destination input is full, so can't run           running_to_blocked_on_done
+///
+/// Constant Initializers
+/// =====================
+/// A function input may have a "ConstantInitializer" on it to continually re-fill the input.
+/// After the functions runs this is run and the input refilled.
+///
+/// Loops
+/// =====
+/// A function may send to itself.
+/// A function sending to itself will not create any blocks, and will not be marked as blocked
+/// due to the loop, and thus such deadlocks avoided.
+///
+/// Blocks on other senders due to Constant Initializers and Loops
+/// ==============================================================
+/// After a funtion runs, its ConstantInitializers are ran, and outputs (possibly to itself) are
+/// sent, before determining that other functions sending to it should unblocked.
+/// This, the initializers and loops to it's inputs have priority and the input(s) will be refilled
+/// but another function wishing to send to it, and blocked, is NOT yet unblocked.
+/// TODO TEST
+///
+/// Parallel Execution of Jobs
+/// ==========================
 ///
 pub struct RunState {
     functions: Vec<Function>,
