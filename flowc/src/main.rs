@@ -5,10 +5,12 @@ extern crate flowrlib;
 extern crate log;
 extern crate provider;
 extern crate serde_json;
+extern crate simpath;
 extern crate simplog;
 extern crate tempdir;
 extern crate url;
 
+use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -26,6 +28,8 @@ use flowclib::info;
 use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
 use flowrlib::manifest::DEFAULT_MANIFEST_FILENAME;
+use simpath::FileType;
+use simpath::Simpath;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
@@ -65,7 +69,7 @@ fn run() -> Result<String, String> {
 
             // Append flow arguments at the end of the arguments so that they are passed on it when it's run
             execute_flow(manifest_path, args)
-        },
+        }
         _ => Err(format!("Process loaded was not of type 'Flow' and cannot be executed"))
     }
 }
@@ -163,6 +167,39 @@ fn write_manifest(flow: Flow, debug_symbols: bool, out_dir: PathBuf, tables: &Ge
     Ok(filename)
 }
 
+#[cfg(not(target_os = "windows"))]
+fn get_executable_name() -> String {
+    "flowr".to_string()
+}
+
+#[cfg(target_os = "windows")]
+fn get_executable_name() -> String {
+    "flowr.exe".to_string()
+}
+
+/*
+    Find the absolute path to the executable to be used to run the flow.
+        - First looking for development directories under the Current Working Directory
+          to facilitate development.
+        - If not found there, then look in the PATH env variable
+*/
+fn find_executable_path(name: &str) -> Result<String, String> {
+    // See if debug version in development is available
+    let cwd = env::current_dir().map_err(|e| e.to_string())?;
+    let file = cwd.join(&format!("./target/debug/{}", name));
+    let abs_path = file.canonicalize();
+    if let Ok(file_exists) = abs_path {
+        return Ok(file_exists.to_string_lossy().to_string());
+    }
+
+    // Couldn't find the development version under CWD where running, so look in path
+    let bin_search_path = Simpath::new("PATH");
+    match bin_search_path.find_type(name, FileType::File) {
+        Ok(bin_path) => Ok(bin_path.to_string_lossy().to_string()),
+        Err(e) => Err(e.to_string())
+    }
+}
+
 /*
     Run flow using 'flowr'
     Inherit standard output and input and just let the process run as normal.
@@ -173,9 +210,8 @@ fn write_manifest(flow: Flow, debug_symbols: bool, out_dir: PathBuf, tables: &Ge
 fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String, String> {
     info!("==== Flowc: Executing flow from manifest in '{}'", filepath.display());
 
-    let command = "cargo".to_string();
-    let mut command_args = vec!("run".to_string(), "--bin".to_string(), "flowr".to_string());
-    command_args.push(filepath.to_str().unwrap().to_string());
+    let command = find_executable_path(&get_executable_name())?;
+    let mut command_args = vec!(filepath.to_str().unwrap().to_string());
     command_args.append(&mut args);
     info!("Running flow using '{} {:?}'", &command, &command_args);
     let output = Command::new(&command).args(command_args)

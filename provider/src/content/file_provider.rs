@@ -75,7 +75,7 @@ impl FileProvider {
 
         // No matches
         Err(io::Error::new(ErrorKind::NotFound,
-                           format!("No default context file found in directory '{}'", path.display())))
+                           format!("No default context file found. Tried '{}'", path.display())))
     }
 }
 
