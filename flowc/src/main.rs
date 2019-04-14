@@ -52,9 +52,20 @@ fn run() -> Result<String, String> {
     let meta_provider = MetaProvider {};
 
     info!("==== Loader");
-    let process = loader::load_context(&url.to_string(), &meta_provider)?;
-    match process {
-        FlowProcess(flow) => compile_and_execute(flow, args, dump, skip_generation, debug_symbols, out_dir),
+    match loader::load_context(&url.to_string(), &meta_provider)? {
+        FlowProcess(flow) => {
+            let tables = compile(&flow, dump, &out_dir).
+                map_err(|e| e.to_string())?;
+            if skip_generation {
+                return Ok("Manifest generation and flow running skipped".to_string());
+            }
+
+            let manifest_path = write_manifest(flow, debug_symbols, out_dir, &tables).map_err(|e| e.to_string()).
+                map_err(|e| e.to_string())?;
+
+            // Append flow arguments at the end of the arguments so that they are passed on it when it's run
+            execute_flow(manifest_path, args)
+        },
         _ => Err(format!("Process loaded was not of type 'Flow' and cannot be executed"))
     }
 }
@@ -124,8 +135,7 @@ fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, bool
     Ok((url, args, dump, skip_generation, debug_symbols, output_dir))
 }
 
-fn compile_and_execute(flow: Flow, args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool, out_dir: PathBuf)
-                       -> Result<String, String> {
+fn compile(flow: &Flow, dump: bool, out_dir: &PathBuf) -> Result<GenerationTables, String> {
     info!("flow loaded with alias '{}'\n", flow.alias);
 
     let tables = compile::compile(&flow)?;
@@ -136,30 +146,17 @@ fn compile_and_execute(flow: Flow, args: Vec<String>, dump: bool, skip_generatio
         dump_tables::dump_functions(&flow, &tables, &out_dir).map_err(|e| e.to_string())?;
     }
 
-    if skip_generation {
-        return Ok("Manifest generation and flow running skipped".to_string());
-    }
-
-    let manifest_path = write_manifest(&flow, debug_symbols, &out_dir, &tables).map_err(|e| e.to_string())?;
-
-    // Append flow arguments at the end of the arguments so that they are passed on it when it's run
-    execute_flow(manifest_path, args)
+    Ok(tables)
 }
 
-/*
-    let dir = TempDir::new("flow")
-        .map_err(|e| format!("Error creating new TempDir, \n'{}'", e.to_string()))?;
-    let mut output_dir = dir.into_path();
-*/
-
-fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: &PathBuf, tables: &GenerationTables)
+fn write_manifest(flow: Flow, debug_symbols: bool, out_dir: PathBuf, tables: &GenerationTables)
                   -> Result<PathBuf, std::io::Error> {
     let mut filename = out_dir.clone();
     filename.push(DEFAULT_MANIFEST_FILENAME.to_string());
     let mut manifest_file = File::create(&filename)?;
     let out_dir_path = Url::from_file_path(out_dir).unwrap().to_string();
 
-    let manifest = generate::create_manifest(flow, debug_symbols, &out_dir_path, tables)?;
+    let manifest = generate::create_manifest(&flow, debug_symbols, &out_dir_path, tables)?;
 
     manifest_file.write_all(serde_json::to_string_pretty(&manifest)?.as_bytes())?;
 
@@ -193,306 +190,5 @@ fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String, Stri
             Err(format!("Exited with status code: {}", code))
         }
         None => Err("Process terminated by signal".to_string())
-    }
-}
-
-#[cfg(test)]
-mod test {
-    extern crate flowclib;
-    extern crate url;
-    extern crate provider;
-
-    use std::env;
-
-    use flowclib::compiler::compile;
-    use flowclib::compiler::loader;
-    use flowclib::model::io::IO;
-    use flowclib::model::name::HasName;
-    use flowclib::model::process::Process::FlowProcess;
-    use flowclib::model::process::Process::FunctionProcess;
-    use flowclib::model::route::HasRoute;
-    use flowrlib::input::InputInitializer::OneTime;
-    use url::Url;
-
-    use provider::args::url_from_string;
-    use provider::content::provider::MetaProvider;
-
-    fn url_from_rel_path(path: &str) -> String {
-        let cwd = Url::from_file_path(env::current_dir().unwrap()).unwrap();
-        cwd.join(path).unwrap().to_string()
-    }
-
-    #[test]
-    fn compile_args_ok() {
-        let meta_provider = MetaProvider {};
-        let path = url_from_rel_path("flowc/test-flows/args.toml");
-        let process = loader::load_context(&path, &meta_provider).unwrap();
-        if let FlowProcess(ref flow) = process {
-            let _tables = compile::compile(flow).unwrap();
-        } else {
-            assert!(false, "Process loaded was not a flow");
-        }
-    }
-
-    #[test]
-    fn dead_process_removed() {
-        let meta_provider = MetaProvider {};
-        let path = url_from_rel_path("flowc/test-flows/dead-process.toml");
-        let process = loader::load_context(&path, &meta_provider).unwrap();
-        if let FlowProcess(ref flow) = process {
-            let tables = compile::compile(flow).unwrap();
-            // Dead value should be removed - currently can't assume that args function can be removed
-            assert_eq!(tables.functions.len(), 1, "Incorrect number of functions after optimization");
-            assert_eq!(tables.functions.get(0).unwrap().get_id(), 0, "Function indexes do not start at 0");
-            // And the connection to it also
-            assert_eq!(tables.collapsed_connections.len(), 0, "Incorrect number of connections after optimization");
-        } else {
-            assert!(false, "Process loaded was not a flow");
-        }
-    }
-
-    #[test]
-    fn dead_process_and_connected_process_removed() {
-        let meta_provider = MetaProvider {};
-        let path = url_from_rel_path("flowc/test-flows/dead-process-and-connected-process.toml");
-        let process = loader::load_context(&path, &meta_provider).unwrap();
-        if let FlowProcess(ref flow) = process {
-            let tables = compile::compile(flow).unwrap();
-            assert!(tables.functions.is_empty(), "Incorrect number of functions after optimization");
-            // And the connection are all gone also
-            assert_eq!(tables.collapsed_connections.len(), 0, "Incorrect number of connections after optimization");
-        } else {
-            assert!(false, "Process loaded was not a flow");
-        }
-    }
-
-    #[test]
-    fn compile_echo_ok() {
-        let meta_provider = MetaProvider {};
-        let process = loader::load_context(&url_from_rel_path("flowc/test-flows/echo.toml"),
-                                           &meta_provider).unwrap();
-        if let FlowProcess(ref flow) = process {
-            let _tables = compile::compile(flow).unwrap();
-        } else {
-            assert!(false, "Process loaded was not a flow");
-        }
-    }
-
-    #[test]
-    #[should_panic]
-    fn compiler_detects_unused_input() {
-        let meta_provider = MetaProvider {};
-        let process = loader::load_context(&url_from_rel_path("flowc/test-flows/unused_input.toml"),
-                                           &meta_provider).unwrap();
-        if let FlowProcess(ref flow) = process {
-            let _tables = compile::compile(flow).unwrap();
-        } else {
-            assert!(false, "Process loaded was not a flow");
-        }
-    }
-
-    #[test]
-    #[should_panic]
-    fn compile_double_connection() {
-        let meta_provider = MetaProvider {};
-        let process = loader::load_context(&url_from_rel_path("flowc/test-flows/double.toml"),
-                                           &meta_provider).unwrap();
-        if let FlowProcess(ref flow) = process {
-            let _tables = compile::compile(flow).unwrap();
-        } else {
-            assert!(false, "Process loaded was not a flow");
-        }
-    }
-
-    #[test]
-    #[should_panic]
-    fn compile_detects_connection_to_initialized_input() {
-        let meta_provider = MetaProvider {};
-        let process = loader::load_context(&url_from_rel_path("flowc/test-flows/connect_to_constant.toml"),
-                                           &meta_provider).unwrap();
-        if let FlowProcess(ref flow) = process {
-            let _tables = compile::compile(flow).unwrap();
-        } else {
-            assert!(false, "Process loaded was not a flow");
-        }
-    }
-
-    #[test]
-    fn load_hello_world_simple_from_context() {
-        let meta_provider = MetaProvider {};
-        loader::load_context(&url_from_rel_path("samples/hello-world-simple/context.toml"),
-                             &meta_provider).unwrap();
-    }
-
-    #[test]
-    fn load_hello_world_from_context() {
-        let meta_provider = MetaProvider {};
-        loader::load_context(&url_from_rel_path("samples/hello-world/context.toml"),
-                             &meta_provider).unwrap();
-    }
-
-    #[test]
-    fn load_hello_world_include() {
-        let meta_provider = MetaProvider {};
-        loader::load_context(&url_from_rel_path("samples/hello-world-include/context.toml"),
-                             &meta_provider).unwrap();
-    }
-
-    #[test]
-    fn load_hello_world_flow1() {
-        let meta_provider = MetaProvider {};
-        loader::load_context(&url_from_rel_path("samples/hello-world/flow1.toml"),
-                             &meta_provider).unwrap();
-    }
-
-    #[test]
-    fn load_reverse_echo_from_toml() {
-        let meta_provider = MetaProvider {};
-        loader::load_context(&url_from_rel_path("samples/reverse-echo/context.toml"),
-                             &meta_provider).unwrap();
-    }
-
-    #[test]
-    fn load_fibonacci_from_toml() {
-        let meta_provider = MetaProvider {};
-        loader::load_context(&url_from_rel_path("samples/fibonacci/context.toml"),
-                             &meta_provider).unwrap();
-    }
-
-    #[test]
-    fn load_fibonacci_from_directory() {
-        let meta_provider = MetaProvider {};
-        let url = url_from_string(Some("../samples/fibonacci")).unwrap();
-        loader::load_context(&url.into_string(), &meta_provider).unwrap();
-    }
-
-    #[test]
-    fn function_input_initialized() {
-        let meta_provider = MetaProvider {};
-        let url = url_from_rel_path("flowc/test-flows/function_input_init.toml");
-
-        match loader::load_context(&url, &meta_provider) {
-            Ok(FlowProcess(flow)) => {
-                if let FunctionProcess(ref print_function) = flow.process_refs.unwrap()[0].process {
-                    assert_eq!(print_function.alias(), "print", "Function alias does not match");
-                    if let Some(inputs) = print_function.get_inputs() {
-                        let default_input: &IO = inputs.get(0).unwrap();
-                        let initial_value = default_input.get_initializer().clone().unwrap();
-                        match initial_value {
-                            OneTime(one_time) => assert_eq!(one_time.once, "hello"),
-                            _ => panic!("Initializer should have been a OneTime initializer")
-                        }
-                    } else {
-                        panic!("Could not find any inputs");
-                    }
-                } else {
-                    panic!("First sub-process was not a function as expected")
-                }
-            }
-            Ok(_) => panic!("Didn't load a flow"),
-            Err(e) => panic!(e.to_string())
-        }
-    }
-
-    /*
-        This tests that an initalizer on an input to a flow process is passed onto function processes
-        inside the flow, via a connection from the flow input to the function input
-    */
-    #[test]
-    fn flow_input_initialized_and_propogated_to_function() {
-        let meta_provider = MetaProvider {};
-        // Relative path from project root to the test file
-        let url = url_from_rel_path("flowc/test-flows/flow_input_init.toml");
-
-        match loader::load_context(&url, &meta_provider) {
-            Ok(FlowProcess(flow)) => {
-                if let FlowProcess(ref pilte_sub_flow) = flow.process_refs.unwrap()[0].process {
-                    assert_eq!("pass-if-lte", pilte_sub_flow.alias(), "Flow alias is not 'pass-if-lte' as expected");
-
-                    if let Some(ref process_refs) = pilte_sub_flow.process_refs {
-                        if let FunctionProcess(ref tap_function) = process_refs.get(0).unwrap().process {
-                            assert_eq!("tap", tap_function.alias(), "Function alias is not 'tap' as expected");
-                            if let Some(inputs) = tap_function.get_inputs() {
-                                let in_input = inputs.get(0).unwrap();
-                                assert_eq!("data", in_input.alias(), "Input's name is not 'data' as expected");
-                                assert_eq!("/context/pass-if-lte/tap/data", in_input.route(), "Input's route is not as expected");
-                                let initial_value = in_input.get_initializer();
-                                match initial_value {
-                                    Some(OneTime(one_time)) => assert_eq!(one_time.once, 1),
-                                    _ => panic!("Initializer should have been a OneTime initializer")
-                                }
-                            } else {
-                                panic!("Could not find any inputs");
-                            }
-                        } else {
-                            panic!("First sub-process of 'pass-if-lte' sub-flow was not a function as expected");
-                        }
-                    } else {
-                        panic!("Could not get process_refs of sub_flow");
-                    }
-                } else {
-                    panic!("First sub-process of context flow was not a sub-flow as expected")
-                }
-            }
-            Ok(_) => panic!("Didn't load a flow"),
-            Err(e) => panic!(e.to_string())
-        }
-    }
-
-
-    /*
-        This tests that an initalizer on an input to a flow process is passed onto a function in
-        a sub-flow of that via a connection from the flow input to the function input
-    */
-    #[test]
-    #[should_panic]
-    fn flow_input_initialized_and_propogated_to_function_in_subflow() {
-        let meta_provider = MetaProvider {};
-        // Relative path from project root to the test file
-        let url = url_from_rel_path("flowc/test-flows/subflow_function_input_init.toml");
-
-        match loader::load_context(&url, &meta_provider) {
-            Ok(FlowProcess(context)) => {
-                if let FlowProcess(ref sequence_sub_flow) = context.process_refs.unwrap()[0].process {
-                    assert_eq!("sequence", sequence_sub_flow.alias(), "First sub-flow alias is not 'sequence' as expected");
-
-                    if let Some(ref sequence_process_refs) = sequence_sub_flow.process_refs {
-                        if let FlowProcess(ref pilte_sub_flow) = sequence_process_refs.get(0).unwrap().process {
-                            assert_eq!("pilte", pilte_sub_flow.alias(), "Sub-flow alias is not 'pilte' as expected");
-
-                            if let Some(ref process_refs) = pilte_sub_flow.process_refs {
-                                if let FunctionProcess(ref tap_function) = process_refs.get(0).unwrap().process {
-                                    assert_eq!("tap", tap_function.alias(), "Function alias is not 'tap' as expected");
-                                    if let Some(inputs) = tap_function.get_inputs() {
-                                        let in_input = inputs.get(0).unwrap();
-                                        assert_eq!("data", in_input.alias(), "Input's name is not 'data' as expected");
-                                        assert_eq!("/context/sequence/pilte/tap/data", in_input.route(), "Input's route is not as expected");
-                                        let initial_value = in_input.get_initializer();
-                                        match initial_value {
-                                            Some(OneTime(one_time)) => assert_eq!(one_time.once, 1),
-                                            _ => panic!("Initializer should have been a OneTime initializer")
-                                        }
-                                    } else {
-                                        panic!("Could not find any inputs");
-                                    }
-                                } else {
-                                    panic!("First sub-process of 'pass-if-lte' sub-flow was not a function as expected");
-                                }
-                            } else {
-                                panic!("Could not get process_refs of pilte_sub_flow");
-                            }
-                        } else {
-                            panic!("Second sub-process of sequence sub-flow was not another sub-flow as expected");
-                        }
-                    } else {
-                        panic!("Could not get process_refs of sequence sub_flow");
-                    }
-                } else {
-                    panic!("First sub-process of flow was not a sub-flow as expected");
-                }
-            },
-            Ok(_) => panic!("Didn't load a flow"),
-            Err(e) => panic!(e.to_string())
-        }
     }
 }
