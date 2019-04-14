@@ -7,7 +7,6 @@ ui-target
 **.dump
 dependencies.png
 failed.output
-manifest.json
 target
 cov
 Cargo.lock

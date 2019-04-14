@@ -47,7 +47,7 @@
     - [hello-world sample](samples/hello-world/DESCRIPTION.md)
     - [line-echo sample](samples/line-echo/DESCRIPTION.md)
 
-- [The flow standard library](flowstdlib/flowstdlib.md)
+- [The flow standard library](flowstdlib/src/flowstdlib.md)
     - [Control functions](flowstdlib/src/control/control.md)
         - [Tap function](flowstdlib/src/control/tap.md)
         - [Compare function](flowstdlib/src/control/compare.md)
