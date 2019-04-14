@@ -1,0 +1,12 @@
+{
+  "functions": [
+    {
+      "implementation_source": "lib://flowstdlib/data/buffer/Buffer",
+      "implementation_file": "src/data/buffer.wasm"
+    },
+    {
+      "implementation_source": "lib://flowstdlib/fmt/reverse/Reverse",
+      "implementation_file": "src/fmt/reverse.wasm"
+    }
+  ]
+}
