@@ -52,6 +52,8 @@ pub fn create_manifest(flow: &Flow, debug_symbols: bool, out_dir_path: &str, tab
         manifest.add_function(function_to_runtimefunction(&base_path, function, debug_symbols));
     }
 
+    manifest.lib_references = tables.libs.clone();
+
     Ok(manifest)
 }
 

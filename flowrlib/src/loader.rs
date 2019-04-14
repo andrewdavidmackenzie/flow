@@ -36,6 +36,15 @@ impl Loader {
     pub fn load_manifest(&mut self, provider: &Provider, manifest_url: &str) -> Result<Manifest, String> {
         let mut manifest = Manifest::load(provider, manifest_url)?;
 
+        // Load libraries references from by this flow, as specified in manifest
+        for library_references in &manifest.lib_references {
+            let lib_manifest_url = format!("{}/manifest.json", library_references);
+            let (resolved_url, _) = provider.resolve(&lib_manifest_url, "")?;
+            let _contents = provider.get(&resolved_url)?;
+            // TODO load the library from it's manifest - loading the WASM implementations
+        }
+
+        // Find the implementations for all functions in this flow
         self.resolve_implementations(&mut manifest, provider, manifest_url)?;
 
         Ok(manifest)

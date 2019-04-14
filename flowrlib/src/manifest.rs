@@ -1,5 +1,6 @@
 use function::Function;
 use provider::Provider;
+use std::collections::HashSet;
 
 pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest.json";
 
@@ -14,6 +15,7 @@ pub struct MetaData {
 #[derive(Deserialize, Serialize)]
 pub struct Manifest {
     pub metadata: MetaData,
+    pub lib_references: HashSet<String>,
     pub functions: Vec<Function>
 }
 
@@ -24,6 +26,7 @@ impl Manifest {
     pub fn new(metadata: MetaData) -> Self {
         Manifest {
             metadata,
+            lib_references: HashSet::<String>::new(),
             functions: Vec::<Function>::new()
         }
     }

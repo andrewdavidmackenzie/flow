@@ -29,6 +29,14 @@ pub fn gather_functions_and_connections(flow: &Flow, tables: &mut GenerationTabl
             }
         }
     }
+
+    // Add libraries referenced from this flow to the overall list
+    for lib_reference in &flow.lib_references {
+        let lib_name = lib_reference.split('/').collect::<Vec<&str>>()[0].to_string();
+        if lib_name != "runtime" {
+            tables.libs.insert(format!("lib://{}", lib_name));
+        }
+    }
 }
 
 /*
