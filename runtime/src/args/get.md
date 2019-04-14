@@ -1,11 +1,11 @@
-## Args (//flowr/args/get.toml)
+## Args (//runtime/args/get.toml)
 Get the arguments the flow was executed with
 
 #### Include using
 ```
 [[process]]
 alias = "get"
-source = "lib://flowr/args/get.toml"
+source = "lib://runtime/args/get.toml"
 ```
 
 #### Inputs

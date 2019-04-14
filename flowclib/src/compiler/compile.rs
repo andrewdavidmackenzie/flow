@@ -50,21 +50,21 @@ mod test {
     fn dead_function() {
         let function = Function::new("Stdout".to_string(),
                                          false,
-                                         Some("lib://flowr/stdio/stdout.toml".to_string()),
+                                         Some("lib://runtime/stdio/stdout.toml".to_string()),
                                          "test-function".to_string(),
                                          Some(vec!(IO::new(&"String".to_string(),
                                                            &"/context/print".to_string()))),
                                          Some(vec!()),
-                                         "lib://flowr/stdio/stdout.toml".to_string(),
+                                         "lib://runtime/stdio/stdout.toml".to_string(),
                                          "/context/print".to_string(),
-                                         Some("lib://flowr/stdio/stdout.toml".to_string()),
+                                         Some("lib://runtime/stdio/stdout.toml".to_string()),
                                          vec!(),
                                          0,
         );
 
         let function_ref = ProcessReference {
             alias: function.alias().to_string(),
-            source: "lib://flowr/stdio/stdout.toml".to_string(),
+            source: "lib://runtime/stdio/stdout.toml".to_string(),
             initializations: None,
             source_url: function.get_implementation_source(),
             process: FunctionProcess(function),

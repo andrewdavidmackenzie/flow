@@ -41,7 +41,6 @@ fn url_from_rel_path(path: &str) -> String {
 fn args() {
     let meta_provider = MetaProvider {};
     let path = url_from_rel_path("test-flows/args.toml");
-    eprintln!("path {}", path);
     let process = loader::load_context(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let _tables = compile::compile(flow).unwrap();

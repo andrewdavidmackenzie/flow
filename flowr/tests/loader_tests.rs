@@ -90,12 +90,12 @@ impl Implementation for Fake {
 pub fn get_ilt() -> ImplementationLocatorTable {
     let mut ilt = ImplementationLocatorTable::new();
 
-    ilt.locators.insert("lib://flowr/args/get/Get".to_string(), Native(Arc::new(Fake{})));
-    ilt.locators.insert("lib://flowr/file/file_write/FileWrite".to_string(), Native(Arc::new(Fake{})));
-    ilt.locators.insert("lib://flowr/stdio/readline/Readline".to_string(), Native(Arc::new(Fake{})));
-    ilt.locators.insert("lib://flowr/stdio/stdin/Stdin".to_string(), Native(Arc::new(Fake{})));
-    ilt.locators.insert("lib://flowr/stdio/stdout/Stdout".to_string(), Native(Arc::new(Fake{})));
-    ilt.locators.insert("lib://flowr/stdio/stderr/Stderr".to_string(), Native(Arc::new(Fake{})));
+    ilt.locators.insert("lib://runtime/args/get/Get".to_string(), Native(Arc::new(Fake{})));
+    ilt.locators.insert("lib://runtime/file/file_write/FileWrite".to_string(), Native(Arc::new(Fake{})));
+    ilt.locators.insert("lib://runtime/stdio/readline/Readline".to_string(), Native(Arc::new(Fake{})));
+    ilt.locators.insert("lib://runtime/stdio/stdin/Stdin".to_string(), Native(Arc::new(Fake{})));
+    ilt.locators.insert("lib://runtime/stdio/stdout/Stdout".to_string(), Native(Arc::new(Fake{})));
+    ilt.locators.insert("lib://runtime/stdio/stderr/Stderr".to_string(), Native(Arc::new(Fake{})));
 
     ilt
 }
@@ -104,7 +104,7 @@ pub fn get_ilt() -> ImplementationLocatorTable {
 fn resolve_lib_implementation_test() {
     let f_a = Function::new("fA".to_string(), // name
                             "/context/fA".to_string(),
-                            "lib://flowr/stdio/stdin/Stdin".to_string(),
+                            "lib://runtime/stdio/stdin/Stdin".to_string(),
                             false,
                             vec!(),
                             0,
@@ -125,7 +125,7 @@ fn resolve_lib_implementation_test() {
 fn unresolved_lib_functions_test() {
     let f_a = Function::new("fA".to_string(), // name
                             "/context/fA".to_string(),
-                            "lib://flowr/stdio/stdin/Foo".to_string(),
+                            "lib://runtime/stdio/stdin/Foo".to_string(),
                             false,
                             vec!(),
                             0,

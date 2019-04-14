@@ -1,4 +1,4 @@
-## Readline (//flowr/stdio/readline.toml)
+## Readline (//runtime/stdio/readline.toml)
 Read a line of text from the STDIN of the process invoking the flow. The line is terminated by EOL
 but leading and trailing whitespace are trimmed before being output.
 
@@ -9,7 +9,7 @@ again.
 ```
 [[process]]
 alias = "readline"
-source = "lib://flowr/stdio/readline.toml"
+source = "lib://runtime/stdio/readline.toml"
 ```
 
 #### Inputs

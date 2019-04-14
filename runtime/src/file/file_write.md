@@ -1,11 +1,11 @@
-## Write (//flowr/file/write.toml)
+## Write (//runtime/file/write.toml)
 Writes `bytes` of data supplied to the file named `filename`, creating it if necessary.
 
 #### Include using
 ```
 [[process]]
 alias = "write"
-source = "lib://flowr/file/write.toml"
+source = "lib://runtime/file/write.toml"
 ```
 
 #### Inputs

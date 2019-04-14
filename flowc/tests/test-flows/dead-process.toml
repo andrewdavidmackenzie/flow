@@ -2,7 +2,7 @@ flow = "dead-process"
 
 [[process]]
 alias = "args"
-source = "lib://flowr/args/get.toml"
+source = "lib://runtime/args/get.toml"
 
 [[process]]
 alias = "dead-process"

@@ -103,7 +103,7 @@ mod test {
         let function = Function::new(
             "Stdout".to_string(),
             false,
-            Some("lib://flowr/stdio/stdout".to_string()),
+            Some("lib://runtime/stdio/stdout".to_string()),
             "print".to_string(),
             Some(vec!()),
             Some(vec!(
@@ -118,7 +118,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://flowr/stdio/stdout',
+  'implementation_source': 'lib://runtime/stdio/stdout',
   'output_routes': [
     [
       '',
@@ -146,7 +146,7 @@ mod test {
         let function = Function::new(
             "Stdout".to_string(),
             false,
-            Some("lib://flowr/stdio/stdout".to_string()),
+            Some("lib://runtime/stdio/stdout".to_string()),
             "print".to_string(),
             Some(vec!()),
             Some(vec!(
@@ -160,7 +160,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://flowr/stdio/stdout',
+  'implementation_source': 'lib://runtime/stdio/stdout',
   'output_routes': [
     [
       '',
@@ -183,7 +183,7 @@ mod test {
         let function = Function::new(
             "Stdout".to_string(),
             true,
-            Some("lib://flowr/stdio/stdout".to_string()),
+            Some("lib://runtime/stdio/stdout".to_string()),
             "print".to_string(),
             Some(vec!()),
             Some(vec!(
@@ -197,7 +197,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://flowr/stdio/stdout',
+  'implementation_source': 'lib://runtime/stdio/stdout',
   'output_routes': [
     [
       '',
@@ -226,7 +226,7 @@ mod test {
         let function = Function::new(
             "Stdout".to_string(),
             false,
-            Some("lib://flowr/stdio/stdout".to_string()),
+            Some("lib://runtime/stdio/stdout".to_string()),
             "print".to_string(),
             Some(vec!(io)),
             None,
@@ -238,7 +238,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://flowr/stdio/stdout',
+  'implementation_source': 'lib://runtime/stdio/stdout',
   'inputs': [
     {
       'initializer': {
@@ -268,7 +268,7 @@ mod test {
         let function = Function::new(
             "Stdout".to_string(),
             false,
-            Some("lib://flowr/stdio/stdout".to_string()),
+            Some("lib://runtime/stdio/stdout".to_string()),
             "print".to_string(),
             Some(vec!(io)),
             None,
@@ -280,7 +280,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://flowr/stdio/stdout',
+  'implementation_source': 'lib://runtime/stdio/stdout',
   'inputs': [
     {
       'initializer': {
@@ -304,7 +304,7 @@ mod test {
         let function = Function::new(
             "Stdout".to_string(),
             false,
-            Some("lib://flowr/stdio/stdout".to_string()),
+            Some("lib://runtime/stdio/stdout".to_string()),
             "print".to_string(),
             Some(vec!()),
             Some(vec!(
@@ -320,7 +320,7 @@ mod test {
   'name': 'print',
   'route': '/flow0/stdout',
   'id': 0,
-  'implementation_source': 'lib://flowr/stdio/stdout',
+  'implementation_source': 'lib://runtime/stdio/stdout',
   'output_routes': [
     [
       '',
@@ -343,7 +343,7 @@ mod test {
         let function = Function::new(
             "Stdout".to_string(),
             false,
-            Some("lib://flowr/stdio/stdout".to_string()),
+            Some("lib://runtime/stdio/stdout".to_string()),
             "print".to_string(),
             Some(vec!()),
             Some(vec!(
@@ -357,7 +357,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://flowr/stdio/stdout',
+  'implementation_source': 'lib://runtime/stdio/stdout',
   'output_routes': [
     [
       '0',

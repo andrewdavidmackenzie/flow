@@ -2,11 +2,11 @@ flow = "echo"
 
 [[process]]
 alias = "stdin"
-source = "lib://flowr/stdio/readline.toml"
+source = "lib://runtime/stdio/readline.toml"
 
 [[process]]
 alias = "print"
-source = "lib://flowr/stdio/stdout.toml"
+source = "lib://runtime/stdio/stdout.toml"
 
 [[connection]]
 from = "process/stdin"

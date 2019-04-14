@@ -2,7 +2,7 @@ flow = "two connections"
 
 [[process]]
 alias = "args"
-source = "lib://flowr/args/get.toml"
+source = "lib://runtime/args/get.toml"
 
 [[connection]]
 from = "process/args/1"

@@ -3,7 +3,7 @@ flow = "mandlebrot"
 # Args
 [[process]]
 alias = "args"
-source = "lib://flowr/args/get.toml"
+source = "lib://runtime/args/get.toml"
 
 
 # Bounds
@@ -97,7 +97,7 @@ to = "process/render/lower_right"
 # Write Bitmap to a file
 #[[process]]
 #alias = "write_file"
-#source = "lib://flowr/file/file_write.toml"
+#source = "lib://runtime/file/file_write.toml"
 
 #[[connection]]
 #from = "process/args/0"

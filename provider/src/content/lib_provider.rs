@@ -6,9 +6,9 @@ pub struct LibProvider;
 
 /*
     Urls for library flows and functions and values will be of the form:
-        "lib://flowstdlib/src/stdio/stdout.toml"
+        "lib://flowstdlib/stdio/stdout.toml"
 
-    Where 'flowstdlib' is the library name and 'src/stdio/stdout.toml' the path of the definition
+    Where 'flowstdlib' is the library name and 'stdio/stdout.toml' the path of the definition
     file within the library.
 
     For the lib provider, libraries maybe installed in multiple places in the file system.
