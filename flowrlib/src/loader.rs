@@ -36,6 +36,13 @@ impl Loader {
     pub fn load_manifest(&mut self, provider: &Provider, manifest_url: &str) -> Result<Manifest, String> {
         let mut manifest = Manifest::load(provider, manifest_url)?;
 
+        self.resolve_implementations(&mut manifest, provider, manifest_url)?;
+
+        Ok(manifest)
+    }
+
+    pub fn resolve_implementations(&mut self, manifest: &mut Manifest, provider: &Provider,
+                                   manifest_url: &str) -> Result<String, String>{
         // find in a library, or load the implementation required - as specified by the source
         for mut function in &mut manifest.functions {
             let source_url = function.implementation_source().to_string();
@@ -61,7 +68,7 @@ impl Loader {
             }
         }
 
-        Ok(manifest)
+        Ok("All implementations found".into())
     }
 
     /*

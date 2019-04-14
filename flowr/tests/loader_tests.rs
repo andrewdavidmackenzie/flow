@@ -1,3 +1,24 @@
+extern crate flowrlib;
+extern crate provider;
+extern crate serde_json;
+extern crate url;
+
+use std::env;
+use std::io::{self, Read};
+use std::sync::Arc;
+
+use flowrlib::function::Function;
+use flowrlib::implementation::DONT_RUN_AGAIN;
+use flowrlib::implementation::Implementation;
+use flowrlib::implementation::RunAgain;
+use flowrlib::implementation_table::ImplementationLocator::Native;
+use flowrlib::implementation_table::ImplementationLocatorTable;
+use flowrlib::loader::Loader;
+use flowrlib::manifest::{Manifest, MetaData};
+use serde_json::Value;
+use url::Url;
+
+use provider::content::provider::MetaProvider;
 
 /// flowrlib integration tests
 ///
@@ -16,7 +37,107 @@
 /// An interim solution could be so have the files in the code as Strings and parse from there.
 ///
 
-#[test]
-fn load_manifest_test() {
+// Helper function for tests
+fn url_from_rel_path(path: &str) -> String {
+    let cwd = Url::from_file_path(env::current_dir().unwrap()).unwrap();
+    let source_file = cwd.join(file!()).unwrap();
+    let file = source_file.join(path).unwrap();
+    file.to_string()
+}
 
+fn cwd_as_url() -> Result<Url, String> {
+    Url::from_directory_path(env::current_dir().unwrap())
+        .map_err(|_e| "Could not form a Url for the current working directory".to_string())
+}
+
+fn create_manifest(functions: Vec<Function>) -> Manifest {
+    let metadata = MetaData {
+        alias: "test manifest".into(),
+        version: "0.0".into(),
+        author_name: "me".into(),
+        author_email: "me@a.com".into(),
+    };
+
+    let mut manifest = Manifest::new(metadata);
+
+    for function in functions {
+        manifest.add_function(function);
+    }
+
+    manifest
+}
+
+struct Fake;
+
+impl Implementation for Fake {
+    fn run(&self, mut _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+        let mut value = None;
+
+        let mut buffer = String::new();
+        let stdin = io::stdin();
+        let mut handle = stdin.lock();
+        if let Ok(size) = handle.read_to_string(&mut buffer) {
+            if size > 0 {
+                let input = Value::String(buffer.trim().to_string());
+                value = Some(input);
+            }
+        }
+
+        (value, DONT_RUN_AGAIN)
+    }
+}
+
+pub fn get_ilt() -> ImplementationLocatorTable {
+    let mut ilt = ImplementationLocatorTable::new();
+
+    ilt.locators.insert("lib://flowr/args/get/Get".to_string(), Native(Arc::new(Fake{})));
+    ilt.locators.insert("lib://flowr/file/file_write/FileWrite".to_string(), Native(Arc::new(Fake{})));
+    ilt.locators.insert("lib://flowr/stdio/readline/Readline".to_string(), Native(Arc::new(Fake{})));
+    ilt.locators.insert("lib://flowr/stdio/stdin/Stdin".to_string(), Native(Arc::new(Fake{})));
+    ilt.locators.insert("lib://flowr/stdio/stdout/Stdout".to_string(), Native(Arc::new(Fake{})));
+    ilt.locators.insert("lib://flowr/stdio/stderr/Stderr".to_string(), Native(Arc::new(Fake{})));
+
+    ilt
+}
+
+#[test]
+fn resolve_lib_implementation_test() {
+    let f_a = Function::new("fA".to_string(), // name
+                            "/context/fA".to_string(),
+                            "lib://flowr/stdio/stdin/Stdin".to_string(),
+                            false,
+                            vec!(),
+                            0,
+                            vec!());
+    let functions = vec!(f_a);
+    let mut manifest = create_manifest(functions);
+    let provider = MetaProvider {};
+    let mut loader = Loader::new();
+    let manifest_url = url_from_rel_path("manifest.json");
+
+    // Load library functions provided
+    loader.add_lib(&provider, get_ilt(), &cwd_as_url().unwrap().to_string()).unwrap();
+
+    loader.resolve_implementations(&mut manifest, &provider, &manifest_url).unwrap();
+}
+
+#[test]
+fn unresolved_lib_functions_test() {
+    let f_a = Function::new("fA".to_string(), // name
+                            "/context/fA".to_string(),
+                            "lib://flowr/stdio/stdin/Foo".to_string(),
+                            false,
+                            vec!(),
+                            0,
+                            vec!());
+    let functions = vec!(f_a);
+    let mut manifest = create_manifest(functions);
+    let provider = MetaProvider {};
+    let mut loader = Loader::new();
+    let manifest_url = url_from_rel_path("manifest.json");
+
+    // Load library functions provided
+    loader.add_lib(&provider, get_ilt(), &cwd_as_url().unwrap().to_string()).unwrap();
+
+    assert!(loader.resolve_implementations(&mut manifest, &provider, &manifest_url).is_err());
 }

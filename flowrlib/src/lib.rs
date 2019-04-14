@@ -24,10 +24,10 @@ pub mod input;
 pub mod loader;
 pub mod provider;
 #[cfg(feature = "metrics")]
-pub mod metrics;
+mod metrics;
 
 #[cfg(feature = "debugger")]
-pub mod debugger;
+mod debugger;
 #[cfg(feature = "debugger")]
 pub mod debug_client;
 

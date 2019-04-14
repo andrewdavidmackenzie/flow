@@ -27,7 +27,7 @@ use provider::content::provider::MetaProvider;
 pub mod args;
 pub mod stdio;
 pub mod file;
-mod ilt;
+pub mod ilt;
 mod cli_debug_client;
 
 pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
