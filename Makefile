@@ -1,4 +1,5 @@
 RUSTUP := $(shell command -v rustup 2> /dev/null)
+DOT := $(shell command -v dot 2> /dev/null)
 
 all: clean-samples build test doc
 	@echo ""
@@ -188,5 +189,8 @@ clean-dumps:
 
 ################# Dot Graphs ################
 dot-graphs:
+ifndef DOT
+    $(error "dot is not available please install graphviz")
+endif
 	@find . -name \*.dot -type f -exec dot -Tpng -O {} \;
 	@echo "Generated .png files for all dot graphs found"
