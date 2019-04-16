@@ -37,8 +37,16 @@ fn url_from_rel_path(path: &str) -> String {
     file.to_string()
 }
 
+fn set_flow_lib_path() {
+    let mut parent_dir = std::env::current_dir().unwrap();
+    parent_dir.pop();
+    println!("Set 'FLOW_LIB_PATH' to '{}'", parent_dir.to_string_lossy().to_string());
+    env::set_var("FLOW_LIB_PATH", parent_dir.to_string_lossy().to_string());
+}
+
 #[test]
 fn args() {
+    set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let path = url_from_rel_path("test-flows/args.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
@@ -51,6 +59,7 @@ fn args() {
 
 #[test]
 fn dead_process_removed() {
+    set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let path = url_from_rel_path("test-flows/dead-process.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
@@ -68,6 +77,7 @@ fn dead_process_removed() {
 
 #[test]
 fn dead_process_and_connected_process_removed() {
+    set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let path = url_from_rel_path("test-flows/dead-process-and-connected-process.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
@@ -83,6 +93,7 @@ fn dead_process_and_connected_process_removed() {
 
 #[test]
 fn compile_echo_ok() {
+    set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let process = loader::load_context(&url_from_rel_path("test-flows/echo.toml"),
                                        &meta_provider).unwrap();
@@ -95,6 +106,7 @@ fn compile_echo_ok() {
 
 #[test]
 fn compiler_detects_unused_input() {
+    set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let process = loader::load_context(&url_from_rel_path("test-flows/unused_input.toml"),
                                        &meta_provider).unwrap();
@@ -107,6 +119,7 @@ fn compiler_detects_unused_input() {
 
 #[test]
 fn compile_double_connection() {
+    set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let process = loader::load_context(&url_from_rel_path("test-flows/double.toml"),
                                        &meta_provider).unwrap();
@@ -119,6 +132,7 @@ fn compile_double_connection() {
 
 #[test]
 fn compile_detects_connection_to_initialized_input() {
+    set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let process = loader::load_context(&url_from_rel_path("test-flows/connect_to_constant.toml"),
                                        &meta_provider).unwrap();

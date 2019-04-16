@@ -33,6 +33,13 @@ use provider::content::provider::MetaProvider;
 /// An interim solution could be so have the files in the code as Strings and parse from there.
 ///
 
+fn set_flow_lib_path() {
+    let mut parent_dir = std::env::current_dir().unwrap();
+    parent_dir.pop();
+    println!("Set 'FLOW_LIB_PATH' to '{}'", parent_dir.to_string_lossy().to_string());
+    env::set_var("FLOW_LIB_PATH", parent_dir.to_string_lossy().to_string());
+}
+
 // Helper function for tests
 fn url_from_rel_path(path: &str) -> String {
     let cwd = Url::from_file_path(env::current_dir().unwrap()).unwrap();
@@ -43,6 +50,7 @@ fn url_from_rel_path(path: &str) -> String {
 
 #[test]
 fn function_input_initialized() {
+    set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let url = url_from_rel_path("test-flows/function_input_init.toml");
 
@@ -75,6 +83,7 @@ fn function_input_initialized() {
 */
 #[test]
 fn flow_input_initialized_and_propogated_to_function() {
+    set_flow_lib_path();
     let meta_provider = MetaProvider {};
     // Relative path from project root to the test file
     let url = url_from_rel_path("test-flows/flow_input_init.toml");
@@ -122,6 +131,7 @@ fn flow_input_initialized_and_propogated_to_function() {
 #[test]
 #[should_panic]
 fn flow_input_initialized_and_propogated_to_function_in_subflow() {
+    set_flow_lib_path();
     let meta_provider = MetaProvider {};
     // Relative path from project root to the test file
     let url = url_from_rel_path("test-flows/subflow_function_input_init.toml");

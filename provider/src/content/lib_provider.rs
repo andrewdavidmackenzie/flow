@@ -1,3 +1,5 @@
+use std::env;
+
 use flowrlib::provider::Provider;
 use simpath::Simpath;
 use url::Url;
@@ -44,7 +46,15 @@ impl Provider for LibProvider {
             .map_err(|_| format!("Could not convert '{}' to valid Url", url_str))?;
         let lib_name = url.host_str().expect(
             &format!("'lib_name' could not be extracted from host part of url '{}'", url));
-        let flow_lib_search_path = Simpath::new("FLOW_LIB_PATH");
+
+        if let Err(_) = env::var("FLOW_LIB_PATH") {
+            let mut parent_dir = std::env::current_dir().unwrap();
+//            parent_dir.pop();
+            debug!("Setting 'FLOW_LIB_PATH' to '{}'", parent_dir.to_string_lossy().to_string());
+            env::set_var("FLOW_LIB_PATH", parent_dir.to_string_lossy().to_string());
+        }
+
+        let flow_lib_search_path= Simpath::new("FLOW_LIB_PATH");
         let mut lib_path = flow_lib_search_path.find(lib_name)
             .map_err(|e| e.to_string())?;
         lib_path.push("src");
