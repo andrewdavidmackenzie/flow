@@ -60,7 +60,7 @@ fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<Str
     writer.write_all(format!("\nLevel={}\n{}", level, flow).as_bytes())?;
 
     writer = helper::create_output_file(&output_dir, &flow.alias, "dot")?;
-    dump_dot::dump_flow_dot(flow, &mut writer)?;
+    dump_dot::flow_to_dot(flow, &mut writer)?;
 
     // Dump sub-flows
     if let Some(ref flow_refs) = flow.process_refs {
