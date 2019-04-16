@@ -84,7 +84,7 @@ travis: clean test guide
 
 #################### Tests ####################
 test: test-workspace test-web test-flowclib test-flowstdlib test-flowrlib test-provider samples
-# TYODO add online-samples
+# TODO add online-samples
 	@echo ""
 	@echo "------- Done    test: -------------"
 
@@ -189,8 +189,9 @@ clean-dumps:
 
 ################# Dot Graphs ################
 dot-graphs:
-ifndef DOT
-    $(error "dot is not available please install graphviz")
-endif
+ifeq ($(DOT),)
+	@echo "'dot' not available, skipping 'dot-graphs'. Install 'graphviz' to use."
+else
 	@find . -name \*.dot -type f -exec dot -Tpng -O {} \;
 	@echo "Generated .png files for all dot graphs found"
+endif
