@@ -110,15 +110,16 @@ test-provider:
 	cd flowrlib && cargo test
 
 #################### Raspberry Pi ####################
-#TODO map the cargo cache as a volume to avoid re-downloading and compiling every time.
 pi:
 	@echo "Building flowc for pi in $(PWD)"
-	docker run -e "PKG_CONFIG_ALLOW_CROSS=1" --volume $(PWD):/home/cross/project rust-nightly-pi-cross build
-	@./target/debug/flowc samples/fibonacci
-	docker run -e "PKG_CONFIG_ALLOW_CROSS=1" --volume $(PWD):/home/cross/project rust-nightly-pi-cross build --manifest-path samples/fibonacci/Cargo.toml
+# https://hub.docker.com/r/dlecan/rust-crosscompiler-arm
+	docker run -it --rm -v $(PWD):/source -v ~/.cargo/git:/root/.cargo/git -v ~/.cargo/registry:/root/.cargo/registry dlecan/rust-crosscompiler-arm:stable
+# In case of permissions problems for cargo cache on local machine:
+# sudo chown -R `stat -c %u:%g $HOME` $(pwd) ~/.cargo
 
 copy:
-	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/debug/flowc andrew@raspberrypi.local:
+	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/release/flowc andrew@zero-w:
+	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/release/flowr andrew@zero-w:
 
 #################### SAMPLES ####################
 # Find all sub-directories under 'samples' and create a list of paths like 'sample/{directory}/test.output' to use for

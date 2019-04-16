@@ -15,6 +15,7 @@ use model::function::Function;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
 use ::dumper::helper;
+use flowrlib::input::InputInitializer::{OneTime, Constant};
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
 //static OUTPUT_PORTS: &[&str] = &["s", "se", "sw"];
@@ -141,22 +142,34 @@ fn function_to_dot(function: &Function, functions: &Vec<Box<Function>>) -> Strin
                                       function.alias(),
                                       function.get_id()));
 
-    /*
-    TODO use for initialized input
-    if let Some(iv) = function.get_initial_value() {
-        // Add an extra graph entry for the initial value
-        function_string.push_str(&format!("iv{}[style=invis];\n", function.get_id()));
-        // with a connection to the function
-        if iv.is_string() {
-            // escape the quotes in the value when converted to string
-            function_string.push_str(&format!("iv{} -> r{} [style=dotted] [color=blue] [label=\"'{}'\"];\n",
-                                              function.get_id(), function.get_id(), iv.as_str().unwrap()));
-        } else {
-            function_string.push_str(&format!("iv{} -> r{} [style=dotted] [color=blue] [label=\"{}\"];\n",
-                                              function.get_id(), function.get_id(), iv));
+    if let Some(inputs) = function.get_inputs() {
+        for input in inputs {
+            if let Some(initializer) = input.get_initializer() {
+                // Add an extra (hidden) graph entry for the initializer
+                function_string.push_str(&format!("iv{}[style=invis];\n", function.get_id()));
+                let (value, is_constant) = match initializer {
+                    Constant(constant) => (constant.constant.clone(), true),
+                    OneTime(one_time) => (one_time.once.clone(), false)
+                };
+
+                let value_string = if value.is_string() {
+                    format!("\\\"{}\\\"", value.as_str().unwrap())
+                } else {
+                    format!("{}", value)
+                };
+
+                let line_style = if is_constant {
+                    "solid"
+                } else {
+                    "dotted"
+                };
+
+                // escape the quotes in the value when converted to string
+                function_string.push_str(&format!("iv{} -> r{} [style={}] [color=blue] [label=\"{}\"];\n",
+                                                  function.get_id(), function.get_id(), line_style, value_string));
+            }
         }
     }
-    */
 
     // Add edges for each of the outputs of this function to other ones
     for &(ref output_route, destination_index, destination_input_index) in function.get_output_routes() {
@@ -183,7 +196,7 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
     if let Some(inputs) = input_set {
         string.push_str("\n\t// Inputs\n\t{ rank=source\n");
         for input in inputs {
-            // Avoid creating extra points to connect to for default input (e.g. on a value)
+            // Avoid creating extra points to connect to for default input
             if input.route() != to {
                 // Add an entry for each input using it's route
                 string.push_str(&format!("\t\"{}\" [label=\"{}\", shape=house, style=filled, fillcolor=white];\n",
@@ -256,7 +269,7 @@ pub fn functions_to_dot(flow: &Flow, tables: &GenerationTables, output_dir: &Pat
     dot_file.write_all(&format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
 
 
-    let functions = flow_to_dot(flow, tables)?;
+    let functions = process_refs_to_dot(flow, tables)?;
 
     dot_file.write_all(functions.as_bytes())?;
 
@@ -274,7 +287,7 @@ fn output_compiled_function(route: &Route, tables: &GenerationTables, output: &m
     }
 }
 
-fn flow_to_dot(flow: &Flow, tables: &GenerationTables) -> io::Result<String> {
+fn process_refs_to_dot(flow: &Flow, tables: &GenerationTables) -> io::Result<String> {
     let mut output = String::new();
 
     // Do the same for all subprocesses referenced from this one
@@ -286,7 +299,7 @@ fn flow_to_dot(flow: &Flow, tables: &GenerationTables) -> io::Result<String> {
                     output.push_str(&format!("\nsubgraph cluster_{} {{\n", str::replace(&subflow.alias, "-", "_")));
                     output.push_str(&format!("label = \"{}\";", subflow.route()));
 
-                    output.push_str(&flow_to_dot(subflow, tables)?); // recurse
+                    output.push_str(&process_refs_to_dot(subflow, tables)?); // recurse
 
                     // close cluster
                     output.push_str("}\n");
