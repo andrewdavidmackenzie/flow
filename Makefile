@@ -146,9 +146,8 @@ online-samples: test-hello-simple-online
 
 test-hello-simple-online: ./target/debug/flowc
 	@echo ""
-	@echo "------- Started testing generation of hello-world-simple-online ----"
+	@echo "------- Testing hello-world-simple-online ----"
 	@echo "Hello" | cargo run --bin flowc -- https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
-	@echo "------- Finished testing generation of hello-world-simple-online ----"
 
 ################# Packaging ################
 #package: package-electron package-flowc
