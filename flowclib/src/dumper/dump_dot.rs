@@ -15,14 +15,16 @@ use model::function::Function;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
 use ::dumper::helper;
+use flowrlib::input::InputInitializer::{OneTime, Constant};
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
 //static OUTPUT_PORTS: &[&str] = &["s", "se", "sw"];
 
-pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
+pub fn flow_to_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
     dot_file.write_all(digraph_wrapper_start(flow).as_bytes())?;
 
     let mut contents = String::new();
+
     // Inputs
     contents.push_str(&add_input_set(&flow.inputs, flow.route(), false));
 
@@ -55,6 +57,27 @@ pub fn dump_flow_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
     dot_file.write_all(contents.as_bytes())?;
 
     dot_file.write_all(&digraph_wrapper_end().as_bytes())?;
+
+    Ok("Dot file written".to_string())
+}
+
+/*
+    Create a directed graph named after the flow, adding functions grouped in sub-clusters
+*/
+pub fn functions_to_dot(flow: &Flow, tables: &GenerationTables, output_dir: &PathBuf)
+                        -> io::Result<String> {
+    info!("==== Dumper: Dumping functions to functions.dot file in '{}'", output_dir.display());
+    let mut dot_file = helper::create_output_file(&output_dir, "functions", "dot")?;
+    info!("Generating Functions dot file {}, Use \"dotty\" to view it", output_dir.display());
+    dot_file.write_all(format!("digraph {} {{\nnodesep=1.0\n", str::replace(&flow.alias, "-", "_")).as_bytes())?;
+    dot_file.write_all(&format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
+
+
+    let functions = process_refs_to_dot(flow, tables)?;
+
+    dot_file.write_all(functions.as_bytes())?;
+
+    dot_file.write_all("}".as_bytes())?;
 
     Ok("Dot file written".to_string())
 }
@@ -128,6 +151,8 @@ fn fn_to_dot(function: &Function) -> String {
                                  function.route(),
                                  function.alias(), name));
 
+    dot_string.push_str(&input_initializers(function, function.route()));
+
     dot_string
 }
 
@@ -141,22 +166,7 @@ fn function_to_dot(function: &Function, functions: &Vec<Box<Function>>) -> Strin
                                       function.alias(),
                                       function.get_id()));
 
-    /*
-    TODO use for initialized input
-    if let Some(iv) = function.get_initial_value() {
-        // Add an extra graph entry for the initial value
-        function_string.push_str(&format!("iv{}[style=invis];\n", function.get_id()));
-        // with a connection to the function
-        if iv.is_string() {
-            // escape the quotes in the value when converted to string
-            function_string.push_str(&format!("iv{} -> r{} [style=dotted] [color=blue] [label=\"'{}'\"];\n",
-                                              function.get_id(), function.get_id(), iv.as_str().unwrap()));
-        } else {
-            function_string.push_str(&format!("iv{} -> r{} [style=dotted] [color=blue] [label=\"{}\"];\n",
-                                              function.get_id(), function.get_id(), iv));
-        }
-    }
-    */
+    function_string.push_str(&input_initializers(function, &format!("r{}", function.get_id())));
 
     // Add edges for each of the outputs of this function to other ones
     for &(ref output_route, destination_index, destination_input_index) in function.get_output_routes() {
@@ -173,6 +183,41 @@ fn function_to_dot(function: &Function, functions: &Vec<Box<Function>>) -> Strin
     function_string
 }
 
+fn input_initializers(function: &Function, function_identifier: &str) -> String {
+    let mut initializers = String::new();
+
+    if let Some(inputs) = function.get_inputs() {
+        for (input_number, input) in inputs.iter().enumerate() {
+            if let Some(initializer) = input.get_initializer() {
+                // Add an extra (hidden) graph entry for the initializer
+                initializers.push_str(&format!("\"initializer{}_{}\"[style=invis];\n", function_identifier, input_number));
+                let (value, is_constant) = match initializer {
+                    Constant(constant) => (constant.constant.clone(), true),
+                    OneTime(one_time) => (one_time.once.clone(), false)
+                };
+
+                let value_string = if value.is_string() {
+                    format!("\\\"{}\\\"", value.as_str().unwrap())
+                } else {
+                    format!("{}", value)
+                };
+
+                let line_style = if is_constant {
+                    "solid"
+                } else {
+                    "dotted"
+                };
+
+                // escape the quotes in the value when converted to string
+                initializers.push_str(&format!("\"initializer{}_{}\" -> \"{}\" [style={}] [len=0.1] [color=blue] [label=\"{}\"];\n",
+                                               function_identifier, input_number, function_identifier, line_style, value_string));
+            }
+        }
+    }
+
+    initializers
+}
+
 /*
     Rotate through the 3 top 'ports' on the sub-flow bubble to try and make inputs separate out
     visually - but this breaks down if we have more than 3 inputs
@@ -183,7 +228,7 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
     if let Some(inputs) = input_set {
         string.push_str("\n\t// Inputs\n\t{ rank=source\n");
         for input in inputs {
-            // Avoid creating extra points to connect to for default input (e.g. on a value)
+            // Avoid creating extra points to connect to for default input
             if input.route() != to {
                 // Add an entry for each input using it's route
                 string.push_str(&format!("\t\"{}\" [label=\"{}\", shape=house, style=filled, fillcolor=white];\n",
@@ -244,27 +289,6 @@ fn process_reference_to_dot(process_ref: &ProcessReference) -> String {
     dot_string
 }
 
-/*
-    Create a directed graph named after the flow, adding functions grouped in sub-clusters
-*/
-pub fn functions_to_dot(flow: &Flow, tables: &GenerationTables, output_dir: &PathBuf)
-                        -> io::Result<String> {
-    info!("==== Dumper: Dumping functions to functions.dot file in '{}'", output_dir.display());
-    let mut dot_file = helper::create_output_file(&output_dir, "functions", "dot")?;
-    info!("Generating Functions dot file {}, Use \"dotty\" to view it", output_dir.display());
-    dot_file.write_all(format!("digraph {} {{\nnodesep=1.0\n", str::replace(&flow.alias, "-", "_")).as_bytes())?;
-    dot_file.write_all(&format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
-
-
-    let functions = flow_to_dot(flow, tables)?;
-
-    dot_file.write_all(functions.as_bytes())?;
-
-    dot_file.write_all("}".as_bytes())?;
-
-    Ok("Dot file written".to_string())
-}
-
 // TODO use a map as functions list to avoid lookup each time
 fn output_compiled_function(route: &Route, tables: &GenerationTables, output: &mut String) {
     for function in &tables.functions {
@@ -274,7 +298,7 @@ fn output_compiled_function(route: &Route, tables: &GenerationTables, output: &m
     }
 }
 
-fn flow_to_dot(flow: &Flow, tables: &GenerationTables) -> io::Result<String> {
+fn process_refs_to_dot(flow: &Flow, tables: &GenerationTables) -> io::Result<String> {
     let mut output = String::new();
 
     // Do the same for all subprocesses referenced from this one
@@ -286,7 +310,7 @@ fn flow_to_dot(flow: &Flow, tables: &GenerationTables) -> io::Result<String> {
                     output.push_str(&format!("\nsubgraph cluster_{} {{\n", str::replace(&subflow.alias, "-", "_")));
                     output.push_str(&format!("label = \"{}\";", subflow.route()));
 
-                    output.push_str(&flow_to_dot(subflow, tables)?); // recurse
+                    output.push_str(&process_refs_to_dot(subflow, tables)?); // recurse
 
                     // close cluster
                     output.push_str("}\n");
