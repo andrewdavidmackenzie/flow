@@ -1,10 +1,12 @@
 use model::flow::Flow;
 use generator::generate::GenerationTables;
+use std::collections::hash_map::DefaultHasher;
 use std::io;
 use std::io::prelude::*;
 use std::path::PathBuf;
 use model::process_reference::ProcessReference;
 use model::io::IOSet;
+use model::name::Name;
 use model::route::Route;
 use model::route::Router;
 use model::route::HasRoute;
@@ -16,9 +18,10 @@ use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
 use ::dumper::helper;
 use flowrlib::input::InputInitializer::{OneTime, Constant};
+use std::hash::{Hash, Hasher};
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
-//static OUTPUT_PORTS: &[&str] = &["s", "se", "sw"];
+static OUTPUT_PORTS: &[&str] = &["s", "se", "sw"];
 
 pub fn flow_to_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
     dot_file.write_all(digraph_wrapper_start(flow).as_bytes())?;
@@ -82,17 +85,35 @@ pub fn functions_to_dot(flow: &Flow, tables: &GenerationTables, output_dir: &Pat
     Ok("Dot file written".to_string())
 }
 
+fn index_from_name<T: Hash>(t: &T, length: usize) -> usize {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    let index = s.finish() % length as u64;
+    index as usize
+}
+
+fn input_name_to_port(name: &Name) -> &str {
+    INPUT_PORTS[index_from_name(name, INPUT_PORTS.len())]
+}
+
+fn output_name_to_port(name: &Name) -> &str {
+    OUTPUT_PORTS[index_from_name(name, OUTPUT_PORTS.len())]
+}
+
 fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IOSet) -> String {
     let (from_route, number, array_index) = Router::without_trailing_array_index(&connection.from_io.route());
 
     let (from_node, from_label) = node_from_io_route(&from_route.to_string(), &connection.from_io.name(), input_set);
     let (to_node, to_label) = node_from_io_route(&connection.to_io.route(), &connection.to_io.name(), output_set);
+    let from_port = output_name_to_port(&connection.from_io.name());
+    let to_port = input_name_to_port(&connection.to_io.name());
+
     if array_index {
-        format!("\n\t\"{}\" -> \"{}\" [labeldistance=\"3\", taillabel=\"{}[{}]\", headlabel=\"{}\"];",
-                from_node, to_node, from_label, number, to_label)
+        format!("\n\t\"{}\":{} -> \"{}\":{} [labeldistance=\"3\", taillabel=\"{}[{}]\", headlabel=\"{}\"];",
+                from_node, from_port, to_node, to_port, from_label, number, to_label)
     } else {
-        format!("\n\t\"{}\" -> \"{}\" [labeldistance=\"3\", taillabel=\"{}\", headlabel=\"{}\"];",
-                from_node, to_node, from_label, to_label)
+        format!("\n\t\"{}\":{} -> \"{}\":{} [labeldistance=\"3\", taillabel=\"{}\", headlabel=\"{}\"];",
+                from_node, from_port, to_node, to_port, from_label, to_label)
     }
 }
 
@@ -172,10 +193,11 @@ fn function_to_dot(function: &Function, functions: &Vec<Box<Function>>) -> Strin
     for &(ref output_route, destination_index, destination_input_index) in function.get_output_routes() {
         let input_port = INPUT_PORTS[destination_input_index % INPUT_PORTS.len()];
         let destination_function = &functions[destination_index];
+        let output_port = output_name_to_port(output_route);
         if let Some(inputs) = destination_function.get_inputs() {
             let input_name = inputs.get(destination_input_index).unwrap().name().to_string();
-            function_string.push_str(&format!("r{}:s -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];\n",
-                                              function.get_id(), destination_index, input_port,
+            function_string.push_str(&format!("r{}:{} -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];\n",
+                                              function.get_id(), output_port, destination_index, input_port,
                                               output_route, input_name));
         }
     }
@@ -208,9 +230,10 @@ fn input_initializers(function: &Function, function_identifier: &str) -> String 
                     "dotted"
                 };
 
+                let input_port = input_name_to_port(input.name());
                 // escape the quotes in the value when converted to string
-                initializers.push_str(&format!("\"initializer{}_{}\" -> \"{}\" [style={}] [len=0.1] [color=blue] [label=\"{}\"];\n",
-                                               function_identifier, input_number, function_identifier, line_style, value_string));
+                initializers.push_str(&format!("\"initializer{}_{}\" -> \"{}\":{} [style={}] [len=0.1] [color=blue] [label=\"{}\"];\n",
+                                               function_identifier, input_number, function_identifier, input_port, line_style, value_string));
             }
         }
     }
@@ -263,8 +286,9 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
 
                 if connect_subflow {
                     // and connect the output to the sub-flow
-                    string.push_str(&format!("\t\"{}\":s -> \"{}\"[style=invis, headtooltip=\"{}\"];\n",
-                                             from, output.route(), output.name()));
+                    let output_port = output_name_to_port(output.name());
+                    string.push_str(&format!("\t\"{}\":{} -> \"{}\"[style=invis, headtooltip=\"{}\"];\n",
+                                             from, output_port, output.route(), output.name()));
                 }
             }
         }
