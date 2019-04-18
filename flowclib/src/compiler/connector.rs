@@ -189,12 +189,9 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
 #[cfg(test)]
 mod test {
     use model::connection::Connection;
-    use model::datatype::DataType;
-    use model::route::Route;
-    use model::route::HasRoute;
     use model::io::IO;
     use super::collapse_connections;
-    use super::remove_duplicates;
+    use model::route::HasRoute;
 
     #[test]
     fn drop_useless_connections() {
@@ -255,34 +252,6 @@ mod test {
         assert_eq!(collapsed.len(), 1);
         assert_eq!(collapsed[0].from_io.route(), "/f1/a");
         assert_eq!(collapsed[0].to_io.route(), "/f3/a");
-    }
-
-    /*
-        Test that when two functions are connected doubly, the connection gets reduced to a single one
-    */
-    #[test]
-    fn collapse_double_connection() {
-        let first = Connection {
-            name: Some("first".to_string()),
-            from: "/r1".to_string(),
-            to: "/r2".to_string(),
-            from_io: IO::new(&DataType::from("String"), &Route::from("/r1")),
-            to_io: IO::new(&DataType::from("String"), &Route::from("/r2")),
-        };
-
-        let second = Connection {
-            name: Some("second".to_string()),
-            from: "/r1".to_string(),
-            to: "/r2".to_string(),
-            from_io: IO::new(&DataType::from("String"), &Route::from("/r1")),
-            to_io: IO::new(&DataType::from("String"), &Route::from("/r2")),
-        };
-
-        let mut connections = vec!(first, second);
-
-        assert_eq!(connections.len(), 2);
-        remove_duplicates(&mut connections).unwrap();
-        assert_eq!(connections.len(), 1);
     }
 
     /*
