@@ -51,7 +51,7 @@ fn check_for_competing_inputs(tables: &GenerationTables) -> Result<(), String> {
                 Some(other_sender_id) => {
                     // The same function is already sending to this route!
                     if other_sender_id == sender_id {
-                        return Err(format!("The function #'{}' has multiple outputs sending to the route '{}'",
+                        return Err(format!("The function #{} has multiple outputs sending to the route '{}'",
                                            sender_id, connection.to_io.route()));
                     }
                 }

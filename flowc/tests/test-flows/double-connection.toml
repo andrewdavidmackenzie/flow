@@ -1,0 +1,17 @@
+flow = "echo args"
+
+[[process]]
+alias = "args"
+source = "lib://runtime/args/get.toml"
+
+[[process]]
+alias = "print"
+source = "lib://runtime/stdio/stdout.toml"
+
+[[connection]]
+from = "process/args/1"
+to = "process/print"
+
+[[connection]]
+from = "process/args/2"
+to = "process/print"

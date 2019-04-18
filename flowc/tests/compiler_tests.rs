@@ -58,6 +58,23 @@ fn args() {
 }
 
 #[test]
+fn double_connection() {
+    set_flow_lib_path();
+    let meta_provider = MetaProvider {};
+    let path = url_from_rel_path("test-flows/double-connection.toml");
+    let process = loader::load_context(&path, &meta_provider).unwrap();
+    if let FlowProcess(ref flow) = process {
+        let tables = compile::compile(flow);
+        match tables {
+            Ok(_) => assert!(false, "Process should not have loaded due to double connection"),
+            Err(_) => { /* Error was detected and reported correctly and didn't crash */ }
+        }
+    } else {
+        assert!(false, "Process loaded was not a flow");
+    }
+}
+
+#[test]
 fn dead_process_removed() {
     set_flow_lib_path();
     let meta_provider = MetaProvider {};
