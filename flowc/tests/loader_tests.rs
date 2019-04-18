@@ -49,6 +49,18 @@ fn url_from_rel_path(path: &str) -> String {
 }
 
 #[test]
+fn malformed_connection() {
+    set_flow_lib_path();
+    let meta_provider = MetaProvider {};
+    let path = url_from_rel_path("test-flows/malformed-connection.toml");
+    let result = loader::load_context(&path, &meta_provider);
+    match result {
+        Ok(_) => assert!(false, "malformed-connection.toml should not load successfully"),
+        Err(_) => { /* error was correctly detected but didn't cause a crash */ }
+    }
+}
+
+#[test]
 fn function_input_initialized() {
     set_flow_lib_path();
     let meta_provider = MetaProvider {};

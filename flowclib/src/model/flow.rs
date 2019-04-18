@@ -213,6 +213,10 @@ impl Flow {
     pub fn get_route_and_type(&mut self, direction: Direction, conn_descriptor: &str,
                               initial_value: &Option<InputInitializer>) -> Result<IO, String> {
         let mut segments: Vec<&str> = conn_descriptor.split('/').collect();
+        if segments.len() < 2 {
+            return Err(format!("Invalid route '{}'", conn_descriptor));
+        }
+
         let object_type = segments.remove(0); // first part is type of object
         let object_name = &Name::from(segments.remove(0)); // second part is the name of it
         let route = segments.join("/");       // the rest is a sub-route
