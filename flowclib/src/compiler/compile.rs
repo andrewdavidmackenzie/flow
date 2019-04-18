@@ -23,7 +23,7 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables, String> {
     info!("==== Compiler phase: Calculating routes tables");
     connector::create_routes_table(&mut tables);
     info!("==== Compiler phase: Checking connections");
-    connector::check_connections(&mut tables)?;
+    checker::check_connections(&mut tables)?;
     info!("==== Compiler phase: Checking processes");
     checker::check_function_inputs(&mut tables)?;
     info!("==== Compiler phase: Preparing functions connections");
