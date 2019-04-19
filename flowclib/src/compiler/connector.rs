@@ -114,17 +114,21 @@ pub fn create_routes_table(tables: &mut GenerationTables) {
     As a connection at a flow boundary can connect to multiple destinations, one
     original connection can branch to connect to multiple destinations.
 */
-fn find_destinations(from_route: &Route, connections: &Vec<Connection>) -> Vec<Route> {
+fn find_function_destinations(from_route: &Route, connections: &Vec<Connection>) -> Vec<Route> {
     let mut destinations = vec!();
+
+    debug!("Looking for function destinations from route '{}'", from_route);
 
     for connection in connections {
         if connection.from_io.route() == from_route {
-            if connection.to_io.flow_io() {
-                // Keep following connections until you get to one that doesn't end at a flow
-                destinations.append(&mut find_destinations(&connection.to_io.route(), connections));
-            } else {
-                // Found a destination that is not a flow boundary, add it to the list
+            if *connection.to_io.io_type() == IOType::FunctionIO {
+                debug!("\tFound destination: '{}'", connection.to_io.route());
+                // Found a destination that is a function, add it to the list
                 destinations.push(connection.to_io.route().clone());
+            } else {
+                debug!("\tFollowing connection into Flow at '{}'", connection.to_io.route());
+                // Keep following connections across flow boundaries until you we find a function
+                destinations.append(&mut find_function_destinations(&connection.to_io.route(), connections));
             }
         }
     }
@@ -144,16 +148,23 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
 
     debug!("Working on {} flow hierarchy connections", original_connections.len());
     for left in original_connections {
-        if left.to_io.flow_io() {
-            for final_destination in find_destinations(&left.to_io.route(), original_connections) {
-                let mut collapsed_connection = left.clone();
-                collapsed_connection.to_io.set_route(&final_destination, &IOType::FunctionIO);
-                collapsed_connection.to = final_destination;
-                debug!("Collapsed connection {}", collapsed_connection);
-                collapsed_connections.push(collapsed_connection);
+        if *left.from_io.io_type() == IOType::FunctionIO {
+            debug!("Trying to create connection from function at '{}'", left.from_io.route());
+            // If the connection goes into a flow, then follow it to function destinations
+            if *left.to_io.io_type() == IOType::FlowInput || *left.to_io.io_type() == IOType::FlowOutput {
+                for final_destination in find_function_destinations(&left.to_io.route(), original_connections) {
+                    let mut collapsed_connection = left.clone();
+                    collapsed_connection.to_io.set_route(&final_destination, &IOType::FunctionIO);
+                    collapsed_connection.to = final_destination;
+                    debug!("Collapsed connection {}", collapsed_connection);
+                    collapsed_connections.push(collapsed_connection);
+                }
+            } else {
+                debug!("\tFound direct connection to function at '{}'", left.to_io.route());
+                collapsed_connections.push(left.clone());
             }
         } else {
-            collapsed_connections.push(left.clone());
+            debug!("Skipping connection from flow at '{}'", left.from_io.route());
         }
     }
 

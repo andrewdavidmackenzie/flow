@@ -79,6 +79,10 @@ impl IO {
         self.io_type != IOType::FunctionIO
     }
 
+    pub fn io_type(&self) -> &IOType {
+        &self.io_type
+    }
+
     pub fn set_flow_io(&mut self, io_type: IOType) {
         self.io_type = io_type;
     }
