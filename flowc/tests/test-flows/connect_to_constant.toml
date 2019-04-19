@@ -1,4 +1,4 @@
-flow = "double inputs"
+flow = "connect-to-constant"
 
 [[process]]
 alias = "args"

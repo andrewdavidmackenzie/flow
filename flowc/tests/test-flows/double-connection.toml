@@ -1,4 +1,4 @@
-flow = "echo args"
+flow = "double-connection"
 
 [[process]]
 alias = "args"

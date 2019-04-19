@@ -1,0 +1,19 @@
+flow = "child"
+
+[[input]]
+name = "message"
+
+[[output]]
+name = "message"
+
+[[process]]
+alias = "buffer"
+source = "lib://flowstdlib/data/buffer.toml"
+
+[[connection]]
+from = "input/message"
+to = "process/buffer"
+
+[[connection]]
+from = "process/buffer"
+to = "output/message"
