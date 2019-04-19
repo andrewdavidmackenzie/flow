@@ -58,6 +58,7 @@ fn args() {
 }
 
 #[test]
+#[ignore]
 fn same_name_input_and_output() {
     set_flow_lib_path();
     let meta_provider = MetaProvider {};

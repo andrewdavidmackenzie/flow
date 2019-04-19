@@ -7,6 +7,12 @@ use model::connection::Connection;
 use model::name::HasName;
 use model::io::IOType;
 
+#[derive(PartialEq, Debug)]
+enum Direction {
+    Into,
+    Outof,
+}
+
 /*
     Go through all connections, finding:
       - source process (process id and output route connection is from)
@@ -113,20 +119,34 @@ pub fn create_routes_table(tables: &mut GenerationTables) {
     As a connection at a flow boundary can connect to multiple destinations, one
     original connection can branch to connect to multiple destinations.
 */
-fn find_function_destinations(from_route: &Route, connections: &Vec<Connection>) -> Vec<Route> {
+fn find_function_destinations(from_route: &Route, connections: &Vec<Connection>, direction: &Direction) -> Vec<Route> {
     let mut destinations = vec!();
 
-    debug!("\tFollowing connection into flow via '{}'", from_route);
+    debug!("\tFollowing connection {:?} flow via '{}'", direction, from_route);
 
     for connection in connections {
         if connection.from_io.route() == from_route {
-            if *connection.to_io.io_type() == IOType::FunctionIO {
-                debug!("\t\tFound destination function input at '{}'", connection.to_io.route());
-                // Found a destination that is a function, add it to the list
-                destinations.push(connection.to_io.route().clone());
-            } else {
-                // Keep following connections across flow boundaries until you we find a function
-                destinations.append(&mut find_function_destinations(&connection.to_io.route(), connections));
+            match *connection.to_io.io_type() {
+                IOType::FunctionIO => {
+                    debug!("\t\tFound destination function input at '{}'", connection.to_io.route());
+                    // Found a destination that is a function, add it to the list
+                    destinations.push(connection.to_io.route().clone());
+                }
+                IOType::FlowInput if *direction == Direction::Into => {
+                    // Keep following connections into sub flows until you we find a function
+                    destinations.append(
+                        &mut find_function_destinations(&connection.to_io.route(),
+                                                        connections,
+                                                        direction));
+                }
+                IOType::FlowOutput if *direction == Direction::Outof => {
+                    // Keep following connections out to parent flows until you we find a function
+                    destinations.append(
+                        &mut find_function_destinations(&connection.to_io.route(),
+                                                        connections,
+                                                        direction));
+                }
+                _ => {}
             }
         }
     }
@@ -149,18 +169,26 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
     for left in original_connections {
         if *left.from_io.io_type() == IOType::FunctionIO {
             debug!("Trying to create connection from function ouput at '{}'", left.from_io.route());
-            // If the connection goes into a flow, then follow it to function destinations
-            if *left.to_io.io_type() == IOType::FlowInput || *left.to_io.io_type() == IOType::FlowOutput {
-                for final_destination in find_function_destinations(&left.to_io.route(), original_connections) {
+            if *left.to_io.io_type() == IOType::FunctionIO {
+                debug!("\tFound direct connection to function input at '{}'", left.to_io.route());
+                collapsed_connections.push(left.clone());
+            } else {
+                let direction = if *left.to_io.io_type() == IOType::FlowInput {
+                    Direction::Into
+                } else {
+                    Direction::Outof
+                };
+
+                // If the connection goes into a flow, then follow it to function destinations
+                for final_destination in find_function_destinations(&left.to_io.route(),
+                                                                    original_connections,
+                                                                    &direction) {
                     let mut collapsed_connection = left.clone();
                     collapsed_connection.to_io.set_route(&final_destination, &IOType::FunctionIO);
                     collapsed_connection.to = final_destination;
                     debug!("\tIndirect connection {}", collapsed_connection);
                     collapsed_connections.push(collapsed_connection);
                 }
-            } else {
-                debug!("\tFound direct connection to function input at '{}'", left.to_io.route());
-                collapsed_connections.push(left.clone());
             }
         } else {
             debug!("Skipping connection from flow at '{}'", left.from_io.route());
