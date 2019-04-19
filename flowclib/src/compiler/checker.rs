@@ -4,7 +4,6 @@ use std::collections::HashSet;
 use flowrlib::input::InputInitializer::Constant;
 use generator::generate::GenerationTables;
 use model::connection::Connection;
-use model::name::HasName;
 use model::route::HasRoute;
 use model::route::Route;
 use compiler::connector;
@@ -73,16 +72,16 @@ pub fn check_function_inputs(tables: &mut GenerationTables) -> Result<(), String
                 match input.get_initializer() {
                     None => {
                         if !connection_to(tables, &input.route()) {
-                            return Err(format!("Input '{}' at route '{}' of Function '{}' at route '{}' is not used",
-                                               input.name(), input.route(), function.alias(), function.route()));
+                            return Err(format!("Input at route '{}' of Function at route '{}' is not used",
+                                               input.route(), function.route()));
                         }
                     }
                     Some(Constant(_)) => {
                         // Has a constant initializer and there is another
                         // connections to this input then flag that as an error
                         if connection_to(tables, &input.route()) {
-                            return Err(format!("Input '{}' at route '{}' of Function '{}' at route '{}' has a 'constant' initializer and a connection to it",
-                                               input.name(), input.route(), function.alias(), function.route()));
+                            return Err(format!("Input at route '{}' of Function at route '{}' has a 'constant' initializer and a connection to it",
+                                               input.route(), function.route()));
                         }
                     }
                     _ => {}
@@ -121,6 +120,7 @@ mod test {
             to: "/r2".to_string(),
             from_io: IO::new(&DataType::from("String"), &Route::from("/r1")),
             to_io: IO::new(&DataType::from("String"), &Route::from("/r2")),
+            level: 0,
         };
 
         let second = Connection {
@@ -129,6 +129,7 @@ mod test {
             to: "/r2".to_string(),
             from_io: IO::new(&DataType::from("String"), &Route::from("/r1")),
             to_io: IO::new(&DataType::from("String"), &Route::from("/r2")),
+            level: 0,
         };
 
         let mut connections = vec!(first, second);

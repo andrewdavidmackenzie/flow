@@ -18,6 +18,8 @@ pub struct Connection {
     pub from_io: IO,
     #[serde(skip_deserializing)]
     pub to_io: IO,
+    #[serde(skip_deserializing)]
+    pub level: usize,
 }
 
 #[derive(Debug)]

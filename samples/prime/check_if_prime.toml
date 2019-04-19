@@ -9,16 +9,9 @@ type = "Number"
 name = "prime"
 type = "Number"
 
-[[process]]
-alias = "buffer"
-source = "lib://flowstdlib/data/buffer.toml"
-
+# Disable via a short-curcuit for now
 [[connection]]
 from = "input/candidate"
-to = "process/buffer"
-
-[[connection]]
-from = "process/buffer"
 to = "output/prime"
 
 
