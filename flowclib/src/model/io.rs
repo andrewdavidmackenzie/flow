@@ -85,8 +85,8 @@ impl IO {
         DataType::from(type_levels[level])
     }
 
-    pub fn set_route(&mut self, route: Route, flow_io: bool) {
-        self.route = route;
+    pub fn set_route(&mut self, route: &Route, flow_io: bool) {
+        self.route = route.clone();
         self.flow_io = flow_io;
     }
 
@@ -94,9 +94,9 @@ impl IO {
         let name = self.name().clone();
 
         if name.is_empty() {
-            self.set_route(parent.clone(), flow_io);
+            self.set_route(&parent, flow_io);
         } else {
-            self.set_route(format!("{}/{}", parent, name), flow_io);
+            self.set_route(&format!("{}/{}", parent, name), flow_io);
         }
     }
 
@@ -220,7 +220,7 @@ impl Find for IOSet {
                     found.set_datatype(&io.datatype(1)); // the type within the array
                     let mut new_route = found.route().clone();
                     new_route.push_str(&format!("/{}", sub_route));
-                    found.set_route(new_route, false);
+                    found.set_route(&new_route, false);
                     return Ok(found);
                 }
 

@@ -1,9 +1,9 @@
 use generator::generate::GenerationTables;
 use model::route::HasRoute;
-use compiler::connector;
 use model::connection::Connection;
 use model::function::Function;
 use model::name::HasName;
+use model::route::Router;
 
 /*
     Keep removing dead processes (that have no effect) and any connection that goes
@@ -61,5 +61,22 @@ fn remove_dead_processes(tables: &mut GenerationTables) -> bool {
     A function is "dead" or has no effect if it is pure and has no connection to the output
 */
 fn dead_function(connections: &Vec<Connection>, function: &Box<Function>) -> bool {
-    !function.is_impure() && !connector::connection_from_function(connections, function)
+    !function.is_impure() && !connection_from_function(connections, function)
+}
+
+fn connection_from_function(connections: &Vec<Connection>, function: &Box<Function>) -> bool {
+    if let Some(outputs) = function.get_outputs() {
+        for output in outputs {
+            let route = output.route();
+            for connection in connections {
+                let connection_route = Router::without_trailing_array_index(connection.from_io.route());
+                // connection route without any trailing array index
+                if connection_route.0.to_string() == *route {
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
 }

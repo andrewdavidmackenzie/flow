@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use generator::generate::GenerationTables;
 use model::connection::Connection;
 use model::name::HasName;
-use model::function::Function;
 
 /*
     Go through all connections, finding:
@@ -81,23 +80,6 @@ pub fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &R
     }
 }
 
-pub fn connection_from_function(connections: &Vec<Connection>, function: &Box<Function>) -> bool {
-    if let Some(outputs) = function.get_outputs() {
-        for output in outputs {
-            let route = output.route();
-            for connection in connections {
-                let connection_route = Router::without_trailing_array_index(connection.from_io.route());
-                // connection route without any trailing array index
-                if connection_route.0.to_string() == *route {
-                    return true;
-                }
-            }
-        }
-    }
-
-    false
-}
-
 /*
     Construct two look-up tables that can be used to find the index of a function in the functions table,
     and the index of it's input - using the input route or it's output route
@@ -162,10 +144,11 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
     for left in original_connections {
         if left.to_io.flow_io() {
             for final_destination in find_destinations(&left.to_io.route(), original_connections) {
-                let mut joined_connection = left.clone();
-                joined_connection.to_io.set_route(final_destination, false);
-                debug!("Collapsed connection {}", joined_connection);
-                collapsed_connections.push(joined_connection);
+                let mut collapsed_connection = left.clone();
+                collapsed_connection.to_io.set_route(&final_destination, false);
+                collapsed_connection.to = final_destination;
+                debug!("Collapsed connection {}", collapsed_connection);
+                collapsed_connections.push(collapsed_connection);
             }
         } else {
             collapsed_connections.push(left.clone());
