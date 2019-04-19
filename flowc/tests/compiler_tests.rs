@@ -58,6 +58,22 @@ fn args() {
 }
 
 #[test]
+fn same_name_input_and_output() {
+    set_flow_lib_path();
+    let meta_provider = MetaProvider {};
+    let path = url_from_rel_path("test-flows/same-name-parent.toml");
+    let process = loader::load_context(&path, &meta_provider).unwrap();
+    if let FlowProcess(ref flow) = process {
+        let tables = compile::compile(flow).unwrap();
+        // If done correctly there should only be two connections
+        // args -> buffer, and buffer -> print
+        assert_eq!(2, tables.collapsed_connections.len());
+    } else {
+        assert!(false, "Process loaded was not a flow");
+    }
+}
+
+#[test]
 fn double_connection() {
     set_flow_lib_path();
     let meta_provider = MetaProvider {};

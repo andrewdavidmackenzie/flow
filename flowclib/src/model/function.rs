@@ -2,11 +2,12 @@ use std::fmt;
 
 use model::name::Name;
 use model::name::HasName;
-use model::io::IO;
+use model::io::{IO, IOType};
 use model::io::IOSet;
 use model::route::Route;
 use model::route::HasRoute;
 use model::route::SetRoute;
+use model::route::SetIORoutes;
 use compiler::loader::Validate;
 
 use flowrlib::url;
@@ -173,10 +174,10 @@ impl Default for Function {
 }
 
 impl SetRoute for Function {
-    fn set_routes_from_parent(&mut self, parent_route: &Route, flow_io: bool) {
+    fn set_routes_from_parent(&mut self, parent_route: &Route) {
         self.route = format!("{}/{}", parent_route, self.alias);
-        self.inputs.set_routes_from_parent(&self.route, flow_io);
-        self.outputs.set_routes_from_parent(&self.route, flow_io);
+        self.inputs.set_io_routes_from_parent(&self.route, IOType::FunctionIO);
+        self.outputs.set_io_routes_from_parent(&self.route, IOType::FunctionIO);
     }
 }
 
@@ -375,7 +376,7 @@ mod test {
         function.alias = "test_alias".to_string();
 
         // Test
-        function.set_routes_from_parent(&Route::from("/flow"), false);
+        function.set_routes_from_parent(&Route::from("/flow"));
 
         assert_eq!(function.route, "/flow/test_alias");
 
@@ -400,7 +401,7 @@ mod test {
         // Setup
         let mut function: Function = toml::from_str(function_str).unwrap();
         function.alias = "test_alias".to_string();
-        function.set_routes_from_parent(&Route::from("/flow"), false);
+        function.set_routes_from_parent(&Route::from("/flow"));
 
         // Test
         // Try and get the output using a route to a specific element of the output

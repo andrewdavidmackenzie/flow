@@ -9,7 +9,7 @@ type = "Number"
 name = "prime"
 type = "Number"
 
-# disable
+# Disable via a short-curcuit for now
 [[connection]]
 from = "input/candidate"
 to = "output/prime"

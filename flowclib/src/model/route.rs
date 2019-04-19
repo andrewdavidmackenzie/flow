@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use model::io::IOType;
 
 pub type Route = String;
 
@@ -11,7 +12,11 @@ pub trait FindRoute {
 }
 
 pub trait SetRoute {
-    fn set_routes_from_parent(&mut self, parent: &Route, flow_io: bool);
+    fn set_routes_from_parent(&mut self, parent: &Route);
+}
+
+pub trait SetIORoutes {
+    fn set_io_routes_from_parent(&mut self, parent: &Route, io_type: IOType);
 }
 
 pub struct Router;

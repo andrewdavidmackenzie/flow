@@ -2,16 +2,23 @@ use model::name::Name;
 use model::name::HasName;
 use model::route::HasRoute;
 use model::route::FindRoute;
+use model::route::SetIORoutes;
 use model::datatype::HasDataType;
 use model::datatype::DataType;
 use model::datatype::TypeCheck;
 use compiler::loader::Validate;
 use model::route::Route;
-use model::route::SetRoute;
 use std::collections::HashSet;
 use model::route::Router;
 use std::collections::HashMap;
 use flowrlib::input::InputInitializer;
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+pub enum IOType {
+    FunctionIO,
+    FlowInput,
+    FlowOutput
+}
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -26,8 +33,8 @@ pub struct IO {
 
     #[serde(skip_deserializing)]
     route: Route,
-    #[serde(skip_deserializing)]
-    flow_io: bool,
+    #[serde(skip_deserializing, default = "default_io_type")]
+    io_type: IOType,
     #[serde(skip_deserializing)]
     initializer: Option<InputInitializer>,
 }
@@ -39,7 +46,7 @@ impl Default for IO {
             datatype: default_type(),
             depth: default_depth(),
             route: "".to_string(),
-            flow_io: false,
+            io_type: IOType::FunctionIO,
             initializer: None,
         }
     }
@@ -69,11 +76,15 @@ impl IO {
     }
 
     pub fn flow_io(&self) -> bool {
-        self.flow_io
+        self.io_type != IOType::FunctionIO
     }
 
-    pub fn set_flow_io(&mut self, flow_io: bool) {
-        self.flow_io = flow_io;
+    pub fn io_type(&self) -> &IOType {
+        &self.io_type
+    }
+
+    pub fn set_flow_io(&mut self, io_type: IOType) {
+        self.io_type = io_type;
     }
 
     pub fn set_name(&mut self, name: String) {
@@ -85,18 +96,18 @@ impl IO {
         DataType::from(type_levels[level])
     }
 
-    pub fn set_route(&mut self, route: Route, flow_io: bool) {
-        self.route = route;
-        self.flow_io = flow_io;
+    pub fn set_route(&mut self, route: &Route, io_type: &IOType) {
+        self.route = route.clone();
+        self.io_type = io_type.clone();
     }
 
-    pub fn set_route_from_parent(&mut self, parent: &Route, flow_io: bool) {
+    pub fn set_route_from_parent(&mut self, parent: &Route, io_type: &IOType) {
         let name = self.name().clone();
 
         if name.is_empty() {
-            self.set_route(parent.clone(), flow_io);
+            self.set_route(&parent, &io_type);
         } else {
-            self.set_route(format!("{}/{}", parent, name), flow_io);
+            self.set_route(&format!("{}/{}", parent, name), &io_type);
         }
     }
 
@@ -133,6 +144,8 @@ fn default_type() -> String {
 fn default_depth() -> usize {
     1
 }
+
+fn default_io_type() -> IOType { IOType::FunctionIO }
 
 impl Validate for IO {
     fn validate(&self) -> Result<(), String> {
@@ -178,11 +191,11 @@ impl FindRoute for IOSet {
     }
 }
 
-impl SetRoute for IOSet {
-    fn set_routes_from_parent(&mut self, parent: &Route, flow_io: bool) {
+impl SetIORoutes for IOSet {
+    fn set_io_routes_from_parent(&mut self, parent: &Route, io_type: IOType) {
         if let &mut Some(ref mut ios) = self {
             for ref mut io in ios {
-                io.set_route_from_parent(parent, flow_io)
+                io.set_route_from_parent(parent, &io_type)
             }
         }
     }
@@ -220,7 +233,7 @@ impl Find for IOSet {
                     found.set_datatype(&io.datatype(1)); // the type within the array
                     let mut new_route = found.route().clone();
                     new_route.push_str(&format!("/{}", sub_route));
-                    found.set_route(new_route, false);
+                    found.set_route(&new_route, &io.io_type);
                     return Ok(found);
                 }
 
@@ -260,6 +273,7 @@ mod test {
     use super::IO;
     use compiler::loader::Validate;
     use model::name::HasName;
+    use model::io::IOType;
 
     #[test]
     fn deserialize_empty_string() {
@@ -358,7 +372,7 @@ mod test {
             datatype: "String".to_string(),
             route: "".to_string(),
             depth: 1,
-            flow_io: false,
+            io_type: IOType::FunctionIO,
             initializer: None,
         };
         let io1 = IO {
@@ -366,7 +380,7 @@ mod test {
             datatype: "String".to_string(),
             route: "".to_string(),
             depth: 1,
-            flow_io: false,
+            io_type: IOType::FunctionIO,
             initializer: None,
         };
         let ioset = Some(vec!(io0, io1));
@@ -381,7 +395,7 @@ mod test {
             datatype: "String".to_string(),
             route: "".to_string(),
             depth: 1,
-            flow_io: false,
+            io_type: IOType::FunctionIO,
             initializer: None,
         };
         let io1 = io0.clone();
@@ -397,7 +411,7 @@ mod test {
             datatype: "String".to_string(),
             route: "".to_string(),
             depth: 1,
-            flow_io: false,
+            io_type: IOType::FunctionIO,
             initializer: None,
         };
         let io1 = IO {
@@ -405,7 +419,7 @@ mod test {
             datatype: "String".to_string(),
             route: "".to_string(),
             depth: 1,
-            flow_io: false,
+            io_type: IOType::FunctionIO,
             initializer: None,
         };
         let ioset = Some(vec!(io0, io1));

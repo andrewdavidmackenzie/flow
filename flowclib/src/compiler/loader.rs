@@ -117,7 +117,7 @@ fn config_function(function: &mut Function, source_url: &str, parent_route: &Rou
     function.set_alias(alias.to_string());
     function.set_source_url(source_url.clone());
     function.set_lib_reference(lib_ref);
-    function.set_routes_from_parent(parent_route, false);
+    function.set_routes_from_parent(parent_route);
     IO::set_initial_values(&mut function.inputs, initializations);
     function.validate()
 }
@@ -128,6 +128,6 @@ fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &
     flow.alias = alias.to_string();
     flow.source_url = source_url.to_string();
     IO::set_initial_values(&mut flow.inputs, initializations);
-    flow.set_routes_from_parent(parent_route, true);
+    flow.set_routes_from_parent(parent_route);
     flow.validate()
 }

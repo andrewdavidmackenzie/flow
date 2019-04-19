@@ -55,7 +55,7 @@ use ::dumper::dump_dot;
 pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Result<String> {
     info!("==== Dumper: Dumping tables to '{}'", output_dir.display());
 
-    let mut writer = create_output_file(&output_dir, "flow_connections", "dump")?;
+    let mut writer = create_output_file(&output_dir, "connections", "dump")?;
     writer.write_all(format!("{}",
                              serde_json::to_string_pretty(&tables.connections)
                                  .unwrap()).as_bytes())?;
