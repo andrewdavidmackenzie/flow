@@ -5,13 +5,13 @@ use generator::generate::GenerationTables;
 use super::checker;
 use super::optimizer;
 
-/// Take a hierarchical flow definition in memory and compile it, generating code that implements
-/// the flow, including links to the flowrlib runtime library and library functions used in the
-/// flowstdlib standard library. It takes an optional bool dump option to dump to standard output
-/// some of the intermediate values and operations during the compilation process.
+/// Take a hierarchical flow definition in memory and compile it, generating a manifest for execution
+/// of the flow, including references to libraries required.
 pub fn compile(flow: &Flow) -> Result<GenerationTables, String> {
     let mut tables = GenerationTables::new();
 
+    info!("==== Compiler phase: Checking Context");
+    checker::check_context(flow)?;
     info!("==== Compiler phase: Gathering");
     gatherer::gather_functions_and_connections(flow, &mut tables, 0);
     info!("==== Compiler phase: Collapsing connections");

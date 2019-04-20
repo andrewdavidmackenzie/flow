@@ -24,8 +24,9 @@ pub trait HasName {
 
 #[cfg(test)]
 mod test {
-    use super::Name;
     use compiler::loader::Validate;
+
+    use super::Name;
 
     #[test]
     fn does_not_validate_when_empty() {

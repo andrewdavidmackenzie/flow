@@ -58,8 +58,8 @@ fn run() -> Result<String, String> {
     info!("==== Loader");
     match loader::load_context(&url.to_string(), &meta_provider)? {
         FlowProcess(flow) => {
-            let tables = compile(&flow, dump, &out_dir).
-                map_err(|e| e.to_string())?;
+            let tables = compile(&flow, dump, &out_dir).map_err(|e| e.to_string())?;
+
             if skip_generation {
                 return Ok("Manifest generation and flow running skipped".to_string());
             }
