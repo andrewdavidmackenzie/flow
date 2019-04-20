@@ -63,10 +63,10 @@ pub trait Validate {
 /// flowclib::compiler::loader::load_context("file:///example.toml", &dummy_provider).unwrap();
 /// ```
 pub fn load_context(url: &str, provider: &Provider) -> Result<Process, String> {
-    load_process(&"".to_string(), "context", url, provider, &None)
+    load_process("", "context", url, provider, &None)
 }
 
-fn load_process(parent_route: &Route, alias: &str, url: &str, provider: &Provider,
+fn load_process(parent_route: &str, alias: &str, url: &str, provider: &Provider,
                 initializations: &Option<HashMap<String, InputInitializer>>) -> Result<Process, String> {
     let (resolved_url, lib_ref) = provider.resolve(url, "context.toml")?;
     let contents = provider.get(&resolved_url)?;
@@ -77,12 +77,12 @@ fn load_process(parent_route: &Route, alias: &str, url: &str, provider: &Provide
 
     match process {
         FlowProcess(ref mut flow) => {
-            config_flow(flow, &resolved_url, parent_route, alias, initializations)?;
+            config_flow(flow, &resolved_url, &String::from(parent_route), alias, initializations)?;
             load_subprocesses(flow, provider)?;
             flow.build_connections()?;
         }
         FunctionProcess(ref mut function) => {
-            config_function(function, &resolved_url, parent_route, alias, lib_ref,
+            config_function(function, &resolved_url, &String::from(parent_route), alias, lib_ref,
                             initializations)?;
         }
     }
