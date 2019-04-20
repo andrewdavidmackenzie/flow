@@ -108,7 +108,7 @@ fn resolve_lib_implementation_test() {
                             false,
                             vec!(),
                             0,
-                            vec!());
+                            &vec!());
     let functions = vec!(f_a);
     let mut manifest = create_manifest(functions);
     let provider = MetaProvider {};
@@ -129,7 +129,7 @@ fn unresolved_lib_functions_test() {
                             false,
                             vec!(),
                             0,
-                            vec!());
+                            &vec!());
     let functions = vec!(f_a);
     let mut manifest = create_manifest(functions);
     let provider = MetaProvider {};

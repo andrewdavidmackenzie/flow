@@ -6,9 +6,11 @@ use model::route::Route;
 use model::connection::Connection;
 use flowrlib::manifest::{Manifest, MetaData};
 use flowrlib::function::Function as RuntimeFunction;
+use flowrlib::input::Input;
 use model::function::Function;
 use model::name::HasName;
 use model::route::HasRoute;
+use model::io::IO;
 
 #[derive(Serialize)]
 pub struct GenerationTables {
@@ -33,17 +35,28 @@ impl GenerationTables {
     }
 }
 
+impl From<&Flow> for MetaData {
+    fn from(flow: &Flow) -> Self {
+        MetaData {
+            alias: flow.alias.clone(),
+            version: flow.version.clone(),
+            author_name: flow.author_name.clone(),
+            author_email: flow.author_email.clone(),
+        }
+    }
+}
+
+impl From<&IO> for Input {
+    fn from(io: &IO) -> Self {
+        Input::new(io.depth(), io.get_initializer())
+    }
+}
+
 pub fn create_manifest(flow: &Flow, debug_symbols: bool, out_dir_path: &str, tables: &GenerationTables)
                        -> Result<Manifest> {
     info!("==== Generator: Writing manifest to '{}'", out_dir_path);
-    let metadata = MetaData {
-        alias: flow.alias.clone(),
-        version: flow.version.clone(),
-        author_name: flow.author_name.clone(),
-        author_email: flow.author_email.clone()
-    };
 
-    let mut manifest = Manifest::new(metadata);
+    let mut manifest = Manifest::new(MetaData::from(flow));
     let mut base_path = out_dir_path.to_string();
     base_path.push('/');
 
@@ -58,12 +71,12 @@ pub fn create_manifest(flow: &Flow, debug_symbols: bool, out_dir_path: &str, tab
 }
 
 fn function_to_runtimefunction(out_dir_path: &str, function: &Box<Function>, debug_symbols: bool) -> RuntimeFunction {
-    let mut name = "".to_string();
-    let mut route = "".to_string();
+    let mut name = function.alias().to_string();
+    let mut route = function.route().to_string();
 
-    if debug_symbols {
-        name = function.alias().to_string();
-        route = function.route().to_string();
+    if !debug_symbols {
+        name = "".to_string();
+        route = "".to_string();
     }
 
     let mut implementation_source = function.get_implementation_source();
@@ -71,25 +84,23 @@ fn function_to_runtimefunction(out_dir_path: &str, function: &Box<Function>, deb
     // make path to implementation relative to the output directory if under it
     implementation_source = implementation_source.replace(out_dir_path, "");
 
-    let mut process_inputs = vec!();
+    let mut runtime_inputs = vec!();
     match &function.get_inputs() {
         &None => {}
         Some(inputs) => {
             for input in inputs {
-                process_inputs.push((input.depth(), input.get_initializer().clone()));
+                runtime_inputs.push(Input::from(input));
             }
         }
     };
-    let id = function.get_id();
-    let output_routes = function.get_output_routes().clone();
 
     RuntimeFunction::new(name,
-                  route,
-                  implementation_source,
-                  function.is_impure(),
-                  process_inputs,
-                  id,
-                  output_routes)
+                         route,
+                         implementation_source,
+                         function.is_impure(),
+                         runtime_inputs,
+                         function.get_id(),
+                         function.get_output_routes())
 }
 
 #[cfg(test)]
@@ -101,7 +112,7 @@ mod test {
     use flowrlib::input::OneTimeInputInitializer;
 
     #[test]
-    fn function_with_sub_route_output_to_code() {
+    fn function_with_sub_route_output_generation() {
         let function = Function::new(
             "Stdout".to_string(),
             false,
@@ -144,7 +155,7 @@ mod test {
     }
 
     #[test]
-    fn function_to_code() {
+    fn function_generation() {
         let function = Function::new(
             "Stdout".to_string(),
             false,
@@ -181,7 +192,7 @@ mod test {
     }
 
     #[test]
-    fn impure_function_to_code() {
+    fn impure_function_generation() {
         let function = Function::new(
             "Stdout".to_string(),
             true,
@@ -219,7 +230,7 @@ mod test {
     }
 
     #[test]
-    fn function_with_initialized_input() {
+    fn function_with_initialized_input_generation() {
         let mut io = IO::new(&"String".to_string(), &"".to_string());
         io.set_initial_value(&Some(InputInitializer::OneTime(
             OneTimeInputInitializer { once: json!(1) }
@@ -259,9 +270,8 @@ mod test {
         assert_eq!(expected.replace("'", "\""), serialized_process);
     }
 
-
     #[test]
-    fn function_with_constant_input() {
+    fn function_with_constant_input_generation() {
         let mut io = IO::new(&"String".to_string(), &"".to_string());
         io.set_initial_value(&Some(InputInitializer::Constant(
             ConstantInputInitializer { constant: json!(1) }
@@ -302,7 +312,7 @@ mod test {
     }
 
     #[test]
-    fn function_to_code_with_debug() {
+    fn function_to_code_with_debug_generation() {
         let function = Function::new(
             "Stdout".to_string(),
             false,
@@ -341,7 +351,7 @@ mod test {
     }
 
     #[test]
-    fn function_with_array_element_output() {
+    fn function_with_array_element_output_generation() {
         let function = Function::new(
             "Stdout".to_string(),
             false,

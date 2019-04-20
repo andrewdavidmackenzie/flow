@@ -53,10 +53,10 @@ fn default_initial_value() -> Option<InputInitializer> {
 }
 
 impl Input {
-    pub fn new(depth: usize, initial_value: Option<InputInitializer>) -> Self {
+    pub fn new(depth: usize, initial_value: &Option<InputInitializer>) -> Self {
         Input {
             depth,
-            initializer: initial_value,
+            initializer: initial_value.clone(),
             received: Vec::with_capacity(depth),
         }
     }
@@ -117,27 +117,27 @@ mod test {
 
     #[test]
     fn no_inputs_initially() {
-        let input = Input::new(1, None);
+        let input = Input::new(1, &None);
         assert!(input.is_empty());
     }
 
     #[test]
     fn accepts_value() {
-        let mut input = Input::new(1, None);
+        let mut input = Input::new(1, &None);
         input.push(Value::Null);
         assert!(!input.is_empty());
     }
 
     #[test]
     fn gets_full() {
-        let mut input = Input::new(1, None);
+        let mut input = Input::new(1, &None);
         input.push(Value::Null);
         assert!(input.full());
     }
 
     #[test]
     fn can_overwrite() {
-        let mut input = Input::new(1, None);
+        let mut input = Input::new(1, &None);
         input.push(Value::Null);
         input.overwrite(json!(10));
         assert_eq!(input.read(), vec!(json!(10)));
@@ -145,7 +145,7 @@ mod test {
 
     #[test]
     fn read_works() {
-        let mut input = Input::new(1, None);
+        let mut input = Input::new(1, &None);
         input.push(json!(10));
         assert!(!input.is_empty());
         assert_eq!(input.read(), vec!(json!(10)));
@@ -153,7 +153,7 @@ mod test {
 
     #[test]
     fn take_empties() {
-        let mut input = Input::new(1, None);
+        let mut input = Input::new(1, &None);
         input.push(json!(10));
         assert!(!input.is_empty());
         input.take();
@@ -162,7 +162,7 @@ mod test {
 
     #[test]
     fn reset_empties() {
-        let mut input = Input::new(1, None);
+        let mut input = Input::new(1, &None);
         input.push(json!(10));
         assert!(!input.is_empty());
         input.reset();
@@ -171,7 +171,7 @@ mod test {
 
     #[test]
     fn depth_works() {
-        let mut input = Input::new(2, None);
+        let mut input = Input::new(2, &None);
         input.push(json!(10));
         assert!(!input.full());
         input.push(json!(15));

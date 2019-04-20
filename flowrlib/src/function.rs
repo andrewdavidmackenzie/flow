@@ -1,6 +1,6 @@
 use implementation::Implementation;
 use implementation::RunAgain;
-use input::{Input, InputInitializer};
+use input::Input;
 use serde_json::Value;
 use std::sync::Arc;
 #[cfg(feature = "debugger")]
@@ -70,25 +70,19 @@ impl Function {
                route: String,
                implementation_source: String,
                impure: bool,
-               inputs: Vec<(usize, Option<InputInitializer>)>,
+               inputs: Vec<Input>,
                id: usize,
-               output_routes: Vec<(String, usize, usize)>) -> Function {
-        let implementation = Function::default_implementation();
-
-        let mut function = Function {
+               output_routes: &Vec<(String, usize, usize)>) -> Function {
+        Function {
             name,
             route,
             id,
             implementation_source,
-            implementation,
-            output_routes,
-            inputs: Vec::with_capacity(inputs.len()),
+            implementation: Function::default_implementation(),
+            output_routes: (*output_routes).clone(),
+            inputs,
             impure,
-        };
-
-        function.setup_inputs(inputs);
-
-        function
+        }
     }
 
     /*
@@ -102,13 +96,6 @@ impl Function {
 
     pub fn default_implementation() -> Arc<Implementation> {
         Arc::new(super::function::ImplementationNotFound {})
-    }
-
-    // Create the set of inputs, each with appropriate depth
-    pub fn setup_inputs(&mut self, inputs: Vec<(usize, Option<InputInitializer>)>) {
-        for input in inputs {
-            self.inputs.push(Input::new(input.0, input.1));
-        }
     }
 
     pub fn name(&self) -> &str {
@@ -196,6 +183,7 @@ impl Function {
 mod test {
     use serde_json::value::Value;
     use super::Function;
+    use input::Input;
 
     #[test]
     fn destructure_output_base_route() {
@@ -222,8 +210,9 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                         "/context/test".to_string(),
                                         "/test".to_string(), false,
-                                        vec!((1, None)), 0,
-                                        vec!());
+                                        vec!(Input::new(1, &None)),
+                                         0,
+                                        &vec!());
         function.init_inputs(true);
         function.write_input(0, json!(1));
         assert_eq!(function.take_input_values().remove(0).remove(0), json!(1));
@@ -234,8 +223,9 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                         "/context/test".to_string(),
                                         "/test".to_string(), false,
-                                        vec!((1, None)), 0,
-                                        vec!());
+                                        vec!(Input::new(1, &None)),
+                                         0,
+                                        &vec!());
         function.init_inputs(true);
         function.write_input(0, json!(1)); // success
         function.write_input(0, json!(2)); // fail

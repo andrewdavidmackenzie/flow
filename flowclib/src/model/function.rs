@@ -1,16 +1,17 @@
 use std::fmt;
 
-use model::name::Name;
-use model::name::HasName;
+use compiler::loader::Validate;
+use flowrlib::function::Function as RuntimeFunction;
+use flowrlib::url;
 use model::io::{IO, IOType};
 use model::io::IOSet;
-use model::route::Route;
+use model::name::HasName;
+use model::name::Name;
 use model::route::HasRoute;
-use model::route::SetRoute;
+use model::route::Route;
 use model::route::SetIORoutes;
-use compiler::loader::Validate;
-
-use flowrlib::url;
+use model::route::SetRoute;
+use flowrlib::input::Input;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -99,6 +100,28 @@ impl Function {
                 }
             }
         }
+    }
+}
+
+impl From<Function> for RuntimeFunction {
+    fn from(function: Function) -> Self {
+        let mut process_inputs = vec!();
+        match &function.get_inputs() {
+            &None => {}
+            Some(inputs) => {
+                for input in inputs {
+                    process_inputs.push(Input::from(input));
+                }
+            }
+        };
+
+        RuntimeFunction::new(function.alias().to_string(),
+                             function.route().to_string(),
+                             function.get_implementation_source(),
+                             function.is_impure(),
+                             process_inputs,
+                             function.get_id(),
+                             function.get_output_routes())
     }
 }
 
@@ -227,14 +250,15 @@ impl Function {
 
 #[cfg(test)]
 mod test {
-    use super::Function;
     use compiler::loader::Validate;
-    use toml;
-    use model::name::HasName;
-    use model::route::Route;
-    use model::route::HasRoute;
-    use model::route::SetRoute;
     use model::io::Find;
+    use model::name::HasName;
+    use model::route::HasRoute;
+    use model::route::Route;
+    use model::route::SetRoute;
+    use toml;
+
+    use super::Function;
 
     #[test]
     fn function_with_no_io_not_valid() {
