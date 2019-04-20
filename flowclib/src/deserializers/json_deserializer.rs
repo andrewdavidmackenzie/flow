@@ -64,4 +64,35 @@ mod test {
         println!("{:?}", flow);
         assert!(flow.is_ok());
     }
+
+
+    #[test]
+    fn invalid_context_fails() {
+        let flow_description = "{
+    'flow': 'hello-world-simple-toml',
+    'process': [
+        {
+            'alias': 'message',
+            'source': 'lib://flowstdlib/data/buffer.toml',
+            'input': {
+                'default': {
+                    'once': 'hello'
+                }
+            }
+        },
+        {
+            'alias': 'print',
+            'source': 'lib://runtime/stdio/stdout.toml'
+        }
+    ],
+    'connection': [
+        {\
+            'from': 'process/message'
+        }
+    ]
+}";
+        let toml = FlowJsonLoader {};
+        let flow = toml.deserialize(&flow_description.replace("'", "\""), None);
+        assert!(flow.is_err());
+    }
 }
