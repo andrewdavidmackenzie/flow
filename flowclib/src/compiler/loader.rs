@@ -8,7 +8,6 @@ use model::flow::Flow;
 use model::function::Function;
 use model::io::IO;
 use model::name::HasName;
-use model::name::Name;
 use model::process::Process;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
@@ -64,10 +63,10 @@ pub trait Validate {
 /// flowclib::compiler::loader::load_context("file:///example.toml", &dummy_provider).unwrap();
 /// ```
 pub fn load_context(url: &str, provider: &Provider) -> Result<Process, String> {
-    load_process(&"".to_string(), &"context".to_string(), url, provider, &None)
+    load_process(&"".to_string(), "context", url, provider, &None)
 }
 
-fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provider,
+fn load_process(parent_route: &Route, alias: &str, url: &str, provider: &Provider,
                 initializations: &Option<HashMap<String, InputInitializer>>) -> Result<Process, String> {
     let (resolved_url, lib_ref) = provider.resolve(url, "context.toml")?;
     let contents = provider.get(&resolved_url)?;
@@ -111,7 +110,7 @@ fn load_subprocesses(flow: &mut Flow, provider: &Provider) -> Result<(), String>
     Ok(())
 }
 
-fn config_function(function: &mut Function, source_url: &str, parent_route: &Route, alias: &Name,
+fn config_function(function: &mut Function, source_url: &str, parent_route: &Route, alias: &str,
                    lib_ref: Option<String>, initializations: &Option<HashMap<String, InputInitializer>>)
                    -> Result<(), String> {
     function.set_alias(alias.to_string());
@@ -122,7 +121,7 @@ fn config_function(function: &mut Function, source_url: &str, parent_route: &Rou
     function.validate()
 }
 
-fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &Name,
+fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &str,
                initializations: &Option<HashMap<String, InputInitializer>>)
                -> Result<(), String> {
     flow.alias = alias.to_string();
