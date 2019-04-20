@@ -126,7 +126,7 @@ fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &
                -> Result<(), String> {
     flow.alias = alias.to_string();
     flow.source_url = source_url.to_string();
-    IO::set_initial_values(&mut flow.inputs, initializations);
+    IO::set_initial_values(flow.inputs_mut(), initializations);
     flow.set_routes_from_parent(parent_route);
     flow.validate()
 }

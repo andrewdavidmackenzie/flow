@@ -29,10 +29,10 @@ pub fn flow_to_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
     let mut contents = String::new();
 
     // Inputs
-    contents.push_str(&add_input_set(&flow.inputs, flow.route(), false));
+    contents.push_str(&add_input_set(&flow.inputs(), flow.route(), false));
 
     // Outputs
-    contents.push_str(&add_output_set(&flow.outputs, flow.route(), false));
+    contents.push_str(&add_output_set(&flow.outputs(), flow.route(), false));
 
     // Process References
     if let Some(process_refs) = &flow.process_refs {
@@ -53,7 +53,7 @@ pub fn flow_to_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
     if let Some(connections) = &flow.connections {
         contents.push_str("\n\t// Connections");
         for connection in connections {
-            contents.push_str(&connection_to_dot(&connection, &flow.inputs, &flow.outputs));
+            contents.push_str(&connection_to_dot(&connection, &flow.inputs(), &flow.outputs()));
         }
     }
 

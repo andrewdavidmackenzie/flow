@@ -29,7 +29,7 @@ use ::dumper::dump_dot;
 ///     }
 ///
 ///     fn get(&self, url: &str) -> Result<Vec<u8>, String> {
-///         Ok("flow = \"dummy\"\n[[input]]".as_bytes().to_owned())
+///         Ok("flow = \"dummy\"".as_bytes().to_owned())
 ///     }
 /// }
 ///
@@ -106,7 +106,7 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Resul
 ///
 ///     // Return a flow definition for the content for the example
 ///     fn get(&self, url: &str) -> Result<Vec<u8>, String> {
-///         Ok("flow = \"dummy\"\n[[input]]".as_bytes().to_owned())
+///         Ok("flow = \"dummy\"".as_bytes().to_owned())
 ///     }
 /// }
 ///

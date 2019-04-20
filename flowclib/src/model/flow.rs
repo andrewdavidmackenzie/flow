@@ -25,9 +25,9 @@ pub struct Flow {
     #[serde(rename = "flow")]
     pub name: Name,
     #[serde(rename = "input")]
-    pub inputs: IOSet,
+    inputs: IOSet,
     #[serde(rename = "output")]
-    pub outputs: IOSet,
+    outputs: IOSet,
     #[serde(rename = "process")]
     pub process_refs: Option<Vec<ProcessReference>>,
     #[serde(rename = "connection")]
@@ -176,6 +176,18 @@ impl Flow {
 
     pub fn default_email() -> String {
         "unknown@unknown.com".to_string()
+    }
+
+    pub fn inputs(&self) -> &IOSet {
+        &self.inputs
+    }
+
+    pub fn inputs_mut(&mut self) -> &mut IOSet {
+        &mut self.inputs
+    }
+
+    pub fn outputs(&self) -> &IOSet {
+        &self.outputs
     }
 
     // TODO create a trait HasInputs and HasOutputs and implement it for function and flow
