@@ -61,6 +61,30 @@ fn malformed_connection() {
 }
 
 #[test]
+fn invalid_toml() {
+    set_flow_lib_path();
+    let meta_provider = MetaProvider {};
+    let path = url_from_rel_path("test-flows/invalid.toml");
+    let result = loader::load_context(&path, &meta_provider);
+    match result {
+        Ok(_) => assert!(false, "invalid.toml should not load successfully"),
+        Err(_) => { /* error was correctly detected but didn't cause a crash */ }
+    }
+}
+
+#[test]
+fn invalid_process() {
+    set_flow_lib_path();
+    let meta_provider = MetaProvider {};
+    let path = url_from_rel_path("test-flows/invalid-process.toml");
+    let result = loader::load_context(&path, &meta_provider);
+    match result {
+        Ok(_) => assert!(false, "invalid.toml should not load successfully"),
+        Err(_) => { /* error was correctly detected but didn't cause a crash */ }
+    }
+}
+
+#[test]
 fn function_input_initialized() {
     set_flow_lib_path();
     let meta_provider = MetaProvider {};

@@ -1,18 +1,42 @@
-use toml;
-use compiler::loader::Deserializer;
+extern crate serde_json;
+
+use std::error::Error;
+
+use compiler::loader::{DeserializeError, Deserializer};
 use model::process::Process;
+use toml;
 
 pub struct FlowTomelLoader;
 
 impl Deserializer for FlowTomelLoader {
-    fn deserialize(&self, contents: &str) -> Result<Process, String> {
-        toml::from_str(contents).map_err(|e| format!("{}", e))
+    fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process, DeserializeError> {
+        toml::from_str(contents).map_err(|e| {
+            DeserializeError::new(e.description(), e.line_col(), url)
+        })
     }
 }
 
-#[test]
-fn simple_context_loads() {
-    let flow_description = "\
+#[cfg(test)]
+mod test {
+    use compiler::loader::Deserializer;
+    use model::flow::Flow;
+    use model::process::Process::FlowProcess;
+
+    use super::FlowTomelLoader;
+
+    #[test]
+    fn invalid_toml() {
+        let deserializer = FlowTomelLoader {};
+
+        match deserializer.deserialize("{}}}}f dsdsadsa ", None) {
+            Ok(_) => assert!(false, "Should not have parsed correctly as is invalid TOML"),
+            Err(e) => assert_eq!(e.line_col(), Some((0, 0)), "Should produce syntax error at (0,0)")
+        };
+    }
+
+    #[test]
+    fn simple_context_loads() {
+        let flow_description = "\
         flow = 'hello-world-simple-toml'
 
         [[process]]
@@ -22,23 +46,21 @@ fn simple_context_loads() {
 
         [[process]]
         alias = 'print'
-        source = 'terminal.toml'
+        source = 'lib://runtime/stdio/stdout.toml'
 
         [[connection]]
-        name = 'message'
-        from = 'value/message'
-        to = 'function/print/stdout'
+        from = 'process/message'
+        to = 'process/print'
     ";
 
-    let toml = FlowTomelLoader {};
-    toml.deserialize(flow_description).unwrap();
-}
+        let toml = FlowTomelLoader {};
+        let flow = toml.deserialize(flow_description, None);
+        assert!(flow.is_ok());
+    }
 
-// Test to see if #[serde(deny_unknown_fields)] causes deserialization failures in yaml
-#[test]
-#[should_panic]
-fn flow_errors_on_unknown_fields() {
-    let flow_description = "\
+    #[test]
+    fn flow_errors_on_unknown_fields() {
+        let flow_description = "\
         flow = 'hello-world-simple-toml'
 
         foo = 'true'
@@ -47,14 +69,13 @@ fn flow_errors_on_unknown_fields() {
         bar = 'true'
     ";
 
-    let toml = FlowTomelLoader {};
-    toml.deserialize(flow_description).unwrap();
-}
+        let toml = FlowTomelLoader {};
+        assert!(toml.deserialize(flow_description, None).is_err());
+    }
 
-#[test]
-#[should_panic]
-fn function_errors_on_unknown_fields() {
-    let flow_description = "\
+    #[test]
+    fn function_errors_on_unknown_fields() {
+        let flow_description = "\
         function = 'hello-world-simple-toml'
         [[output]]
 
@@ -64,53 +85,50 @@ fn function_errors_on_unknown_fields() {
         bar = 'true'
     ";
 
-    let toml = FlowTomelLoader {};
-    toml.deserialize(flow_description).unwrap();
-}
+        let toml = FlowTomelLoader {};
+        assert!(toml.deserialize(flow_description, None).is_err());
+    }
 
-#[test]
-fn default_optional_values() {
-    use super::super::model::flow::Flow;
-    use super::super::model::process::Process::FlowProcess;
-    let flow_description = "\
+    #[test]
+    fn default_optional_values() {
+        let flow_description = "\
         flow = 'test'
     ";
 
-    let toml = FlowTomelLoader {};
-    match toml.deserialize(flow_description).unwrap() {
-        FlowProcess(flow) => {
-            assert_eq!(flow.version, Flow::default_version());
-            assert_eq!(flow.author_name, Flow::default_author());
-            assert_eq!(flow.author_email, Flow::default_email());
+        let toml = FlowTomelLoader {};
+        match toml.deserialize(flow_description, None) {
+            Ok(FlowProcess(flow)) => {
+                assert_eq!(flow.version, Flow::default_version());
+                assert_eq!(flow.author_name, Flow::default_author());
+                assert_eq!(flow.author_email, Flow::default_email());
+            }
+            _ => assert!(false)
         }
-        _ => assert!(false)
     }
-}
 
-#[test]
-fn flow_has_optional_values() {
-    use super::super::model::process::Process::FlowProcess;
-    let flow_description = "\
+    #[test]
+    fn flow_has_optional_values() {
+        let flow_description = "\
         flow = 'test'
         version = '1.1.1'
         author_name = 'tester'
         author_email = 'tester@test.com'
     ";
 
-    let toml = FlowTomelLoader {};
-    match toml.deserialize(flow_description).unwrap() {
-        FlowProcess(flow) => {
-            assert_eq!(flow.version, "1.1.1".to_string());
-            assert_eq!(flow.author_name, "tester".to_string());
-            assert_eq!(flow.author_email, "tester@test.com".to_string());
+        let toml = FlowTomelLoader {};
+        match toml.deserialize(flow_description, None) {
+            Ok(FlowProcess(flow)) => {
+                assert_eq!(flow.version, "1.1.1".to_string());
+                assert_eq!(flow.author_name, "tester".to_string());
+                assert_eq!(flow.author_email, "tester@test.com".to_string());
+            }
+            _ => assert!(false)
         }
-        _ => assert!(false)
     }
-}
 
-#[test]
-fn flow_with_function_from_lib() {
-    let flow_description = "\
+    #[test]
+    fn flow_with_function_from_lib() {
+        let flow_description = "\
         flow = 'use-library-function'
 
         [[process]]
@@ -118,14 +136,13 @@ fn flow_with_function_from_lib() {
         source = 'lib://flowstdlib/stdio/stdout.toml'
     ";
 
-    let toml = FlowTomelLoader {};
-    toml.deserialize(flow_description).unwrap();
-}
+        let toml = FlowTomelLoader {};
+        assert!(toml.deserialize(flow_description, None).is_ok());
+    }
 
-#[test]
-#[should_panic]
-fn flow_with_unknown_lib_key() {
-    let flow_description = "\
+    #[test]
+    fn flow_with_unknown_lib_key() {
+        let flow_description = "\
         name = 'use-library-function'
 
         [[process]]
@@ -133,57 +150,55 @@ fn flow_with_unknown_lib_key() {
         lib = 'lib://fakelib/stdio/stdout.toml'
     ";
 
-    let toml = FlowTomelLoader {};
-    toml.deserialize(flow_description).unwrap();
-}
+        let toml = FlowTomelLoader {};
+        assert!(toml.deserialize(flow_description, None).is_err());
+    }
 
-#[test]
-#[should_panic]
-fn flow_with_function_without_source() {
-    let flow_description = "\
+    #[test]
+    fn flow_with_function_without_source() {
+        let flow_description = "\
         name = 'use-library-function'
 
         [[process]]
         alias = 'print'
     ";
 
-    let toml = FlowTomelLoader {};
-    toml.deserialize(flow_description).unwrap();
-}
+        let toml = FlowTomelLoader {};
+        assert!(toml.deserialize(flow_description, None).is_err());
+    }
 
-#[test]
-#[should_panic]
-fn load_fails_if_no_alias() {
-    let flow_description = "\
+    #[test]
+    fn load_fails_if_no_alias() {
+        let flow_description = "\
         [[process]]
         source = 'lib://flowstdlib/stdio/stdout.toml'
     ";
 
-    let toml = FlowTomelLoader {};
-    toml.deserialize(flow_description).unwrap();
-}
+        let toml = FlowTomelLoader {};
+        assert!(toml.deserialize(flow_description, None).is_err());
+    }
 
-#[test]
-fn function_parses() {
-    let function_definition = "\
+    #[test]
+    fn function_parses() {
+        let function_definition = "\
 function = 'stdout'
 
 [[input]]
 name = 'stdout'
 type = 'String'";
 
-    let toml = FlowTomelLoader {};
-    toml.deserialize(function_definition).unwrap();
-}
+        let toml = FlowTomelLoader {};
+        assert!(toml.deserialize(function_definition, None).is_ok());
+    }
 
-#[test]
-#[should_panic]
-fn function_lacks_name() {
-    let function_definition = "\
+    #[test]
+    fn function_lacks_name() {
+        let function_definition = "\
 [[input]]
 name = 'stdout'
 type = 'String'";
 
-    let toml = FlowTomelLoader {};
-    toml.deserialize(function_definition).unwrap();
+        let toml = FlowTomelLoader {};
+        assert!(toml.deserialize(function_definition, None).is_err());
+    }
 }

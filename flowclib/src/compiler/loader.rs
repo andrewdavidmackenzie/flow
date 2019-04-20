@@ -13,10 +13,57 @@ use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
 use model::route::Route;
 use model::route::SetRoute;
+use std::fmt;
+
+#[derive(Debug)]
+pub struct DeserializeError {
+    description: String,
+    line_col: Option<(usize, usize)>,
+    url: Option<String>,
+}
+
+impl DeserializeError {
+    pub fn new(description: &str, line_col: Option<(usize, usize)>, url: Option<&str>) -> Self {
+        let source_url = match url {
+            None => None,
+            Some(url_str) => Some(url_str.into())
+        };
+        DeserializeError {
+            description: description.into(),
+            line_col,
+            url: source_url,
+        }
+    }
+
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+
+    pub fn line_col(&self) -> Option<(usize, usize)> {
+        self.line_col
+    }
+
+    pub fn url(&self) -> &Option<String> {
+        &self.url
+    }
+}
+
+impl fmt::Display for DeserializeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Deserializing error: {}\n", self.description)?;
+        if let Some(url) = &self.url {
+            write!(f, "\tUrl: {}\n", url)?;
+        }
+        if let Some((line, col)) = self.line_col {
+            write!(f, "\tLine: {}, Column: {}", line, col)?;
+        }
+        Ok(())
+    }
+}
 
 // Any deserializer has to implement this method
 pub trait Deserializer {
-    fn deserialize(&self, contents: &str) -> Result<Process, String>;
+    fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process, DeserializeError>;
 }
 
 pub trait Validate {
@@ -73,7 +120,9 @@ fn load_process(parent_route: &str, alias: &str, url: &str, provider: &Provider,
 
     let deserializer = get_deserializer(&resolved_url)?;
     info!("Deserializing process with alias = '{}' from url = '{}' ", alias, resolved_url);
-    let mut process = deserializer.deserialize(&String::from_utf8(contents).unwrap())?;
+    let mut process = deserializer.deserialize(&String::from_utf8(contents).unwrap(),
+                                               Some(url))
+        .map_err(|e| e.to_string() )?;
 
     match process {
         FlowProcess(ref mut flow) => {

@@ -40,13 +40,13 @@ pub struct Flow {
     #[serde(default = "Flow::default_email")]
     pub author_email: String,
 
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub alias: Name,
-    #[serde(skip_deserializing, default = "Flow::default_url")]
+    #[serde(skip, default = "Flow::default_url")]
     pub source_url: String,
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub route: Route,
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub lib_references: Vec<String>,
 }
 
