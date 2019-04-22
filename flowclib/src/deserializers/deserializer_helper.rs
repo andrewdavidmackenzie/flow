@@ -39,9 +39,9 @@ mod test {
     use super::get_deserializer;
 
     #[test]
-    #[should_panic]
     fn no_extension() {
-        get_file_extension("file:///no_extension").unwrap();
+        assert!(get_file_extension("file:///no_extension").is_err(),
+                "No file extension should not find a deserializer");
     }
 
     #[test]
@@ -55,9 +55,9 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn invalid_extension() {
-        get_deserializer("file:///extension.wrong").unwrap();
+        assert!(get_deserializer("file:///extension.wrong").is_err(),
+                "Unknown file extension should not find a deserializer");
     }
 
     #[test]

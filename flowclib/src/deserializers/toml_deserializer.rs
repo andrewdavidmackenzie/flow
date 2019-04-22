@@ -8,10 +8,15 @@ use toml;
 
 pub struct FlowTomelLoader;
 
+// NOTE: Add one to make indexes one-based
 impl Deserializer for FlowTomelLoader {
     fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process, DeserializeError> {
         toml::from_str(contents).map_err(|e| {
-            DeserializeError::new(e.description(), e.line_col(), url)
+            let line_col = match e.line_col() {
+                Some(lc) => Some((lc.0 +1, lc.1 +1)),
+                None => None
+            };
+            DeserializeError::new(e.description(), line_col, url)
         })
     }
 }
@@ -30,7 +35,7 @@ mod test {
 
         match deserializer.deserialize("{}}}}f dsdsadsa ", None) {
             Ok(_) => assert!(false, "Should not have parsed correctly as is invalid TOML"),
-            Err(e) => assert_eq!(e.line_col(), Some((0, 0)), "Should produce syntax error at (0,0)")
+            Err(e) => assert_eq!(e.line_col(), Some((1, 1)), "Should produce syntax error at (1,1)")
         };
     }
 

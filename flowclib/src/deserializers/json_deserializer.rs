@@ -7,7 +7,7 @@ use model::process::Process;
 
 pub struct FlowJsonLoader;
 
-// NOTE That the json deserializer has row and column indexes starting at 1, not 0
+// NOTE: Indexes are one-based
 impl Deserializer for FlowJsonLoader {
     fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process, DeserializeError> {
         serde_json::from_str(contents).map_err(|e| {
@@ -15,7 +15,6 @@ impl Deserializer for FlowJsonLoader {
         })
     }
 }
-
 
 #[cfg(test)]
 mod test {
@@ -29,7 +28,7 @@ mod test {
 
         match deserializer.deserialize("=", None) {
             Ok(_) => assert!(false, "Should not have parsed correctly as is invalid JSON"),
-            Err(e) => assert_eq!(Some((1, 1)), e.line_col(), "Should produce syntax error at (0,0)")
+            Err(e) => assert_eq!(Some((1, 1)), e.line_col(), "Should produce syntax error at (1,1)")
         };
     }
 
@@ -64,7 +63,6 @@ mod test {
         println!("{:?}", flow);
         assert!(flow.is_ok());
     }
-
 
     #[test]
     fn invalid_context_fails() {
