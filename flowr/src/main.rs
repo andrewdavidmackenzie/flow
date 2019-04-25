@@ -42,7 +42,7 @@ fn main() -> Result<(), String> {
 
     let cwd = cwd_as_url()?;
 
-    // Load this program's implementations of the runtime functions
+    // Load this runtime's native implementations
     loader.add_lib(&provider, ::ilt::get_ilt(), &cwd.to_string())?;
 
     // TODO - when loader can load a library from a reference in the manifest via it's WASM

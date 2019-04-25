@@ -22,11 +22,15 @@ impl Loader {
 
     /*
         Load all the processes defined in a manifest, and then find all the
-        implementations required for each one to run.
+        implementations required for function execution later.
 
         A flow is dynamically loaded, so none of the implementations it brings can be static,
         they must all be dynamically loaded from WASM. Each one will be wrapped in a
-        Native "WasmExecutor" implementation to make it appear native.
+        Native "WasmExecutor" implementation to make it present the same interface as a native
+        implementation.
+
+        The runtime that (statically) links this library may provide some native implementations
+        already, before this is called.
 
         It may have processes that use Implementations in libraries. Those must have been
         loaded previously. They maybe Native or Wasm implementations, but the Wasm ones will

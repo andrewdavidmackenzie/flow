@@ -43,16 +43,13 @@ impl Implementation for WasmExecutor {
 /*
     load a Wasm module from the specified Url.
 */
-pub fn load(provider: &Provider, name: &str, source_url: &str)
-            -> Result<Arc<WasmExecutor>, String> {
+pub fn load(provider: &Provider, name: &str, source_url: &str) -> Result<Arc<WasmExecutor>, String> {
     let (resolved_url, _) = provider.resolve(&source_url, DEFAULT_WASM_FILENAME)?;
     let content = provider.get(&resolved_url)?;
 
-    let module = Module::from_buffer(content)
-        .map_err(|e| e.to_string())?;
+    let module = Module::from_buffer(content).map_err(|e| e.to_string())?;
 
-    let module_ref = ModuleInstance::new(&module,
-                                         &ImportsBuilder::default())
+    let module_ref = ModuleInstance::new(&module, &ImportsBuilder::default())
         .map_err(|e| e.to_string())?
         .assert_no_start();
 
