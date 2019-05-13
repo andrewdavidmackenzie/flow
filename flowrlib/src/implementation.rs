@@ -1,6 +1,5 @@
 use serde_json::Value;
 use std::panic::{RefUnwindSafe, UnwindSafe};
-use std::marker::{Sync, Send};
 
 pub type RunAgain = bool;
 pub const RUN_AGAIN: RunAgain = true;

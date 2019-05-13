@@ -23,6 +23,11 @@ pub mod manifest;
 pub mod input;
 pub mod loader;
 pub mod provider;
+
+mod execution;
+mod wasm;
+mod run_state;
+
 #[cfg(feature = "metrics")]
 mod metrics;
 
@@ -30,7 +35,3 @@ mod metrics;
 mod debugger;
 #[cfg(feature = "debugger")]
 pub mod debug_client;
-
-mod execution;
-mod wasm;
-mod run_state;
