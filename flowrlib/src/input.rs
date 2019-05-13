@@ -1,5 +1,4 @@
 use serde_json::Value;
-use std::mem::replace;
 #[cfg(feature = "debugger")]
 use std::fmt;
 
@@ -65,12 +64,11 @@ impl Input {
         self.received.clear();
     }
 
-    pub fn read(&mut self) -> Vec<Value> {
-        self.received.clone()
-    }
-
+    /*
+        Take 'depth' elements from the Input and leave the rest for the next time
+    */
     pub fn take(&mut self) -> Vec<Value> {
-        replace(&mut self.received, Vec::with_capacity(self.depth))
+        self.received.drain(0..self.depth).collect()
     }
 
     /*
@@ -132,14 +130,6 @@ mod test {
     }
 
     #[test]
-    fn read_works() {
-        let mut input = Input::new(1, &None);
-        input.push(json!(10));
-        assert!(!input.is_empty());
-        assert_eq!(input.read(), vec!(json!(10)));
-    }
-
-    #[test]
     fn take_empties() {
         let mut input = Input::new(1, &None);
         input.push(json!(10));
@@ -160,9 +150,9 @@ mod test {
     #[test]
     fn depth_works() {
         let mut input = Input::new(2, &None);
-        input.push(json!(10));
+        input.push(json!(5));
         assert!(!input.full());
-        input.push(json!(15));
+        input.push(json!(10));
         assert!(input.full());
         assert_eq!(input.take().len(), 2);
     }
@@ -176,5 +166,22 @@ mod test {
         input.push(json!(20));
         input.push(json!(25));
         assert!(input.full());
+    }
+
+    #[test]
+    fn can_take_from_more_than_depth() {
+        let mut input = Input::new(2, &None);
+        input.push(json!(5));
+        input.push(json!(10));
+        input.push(json!(15));
+        input.push(json!(20));
+        input.push(json!(25));
+        assert!(input.full());
+        let mut next_set = input.take();
+        assert_eq!(vec!(json!(5), json!(10)), next_set);
+        assert!(input.full());
+        next_set = input.take();
+        assert_eq!(vec!(json!(15), json!(20)), next_set);
+        assert!(!input.full());
     }
 }
