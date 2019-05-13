@@ -99,14 +99,10 @@ impl Input {
         self.received.push(value);
     }
 
-    pub fn overwrite(&mut self, value: Value) {
-        self.received[0] = value;
-    }
-
     pub fn is_empty(&self) -> bool { self.received.is_empty() }
 
     pub fn full(&self) -> bool {
-        self.received.len() == self.depth
+        self.received.len() >= self.depth
     }
 }
 
@@ -133,14 +129,6 @@ mod test {
         let mut input = Input::new(1, &None);
         input.push(Value::Null);
         assert!(input.full());
-    }
-
-    #[test]
-    fn can_overwrite() {
-        let mut input = Input::new(1, &None);
-        input.push(Value::Null);
-        input.overwrite(json!(10));
-        assert_eq!(input.read(), vec!(json!(10)));
     }
 
     #[test]
@@ -177,5 +165,16 @@ mod test {
         input.push(json!(15));
         assert!(input.full());
         assert_eq!(input.take().len(), 2);
+    }
+
+    #[test]
+    fn can_hold_more_than_depth() {
+        let mut input = Input::new(2, &None);
+        input.push(json!(5));
+        input.push(json!(10));
+        input.push(json!(15));
+        input.push(json!(20));
+        input.push(json!(25));
+        assert!(input.full());
     }
 }
