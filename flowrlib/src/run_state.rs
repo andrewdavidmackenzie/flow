@@ -6,7 +6,7 @@ use debugger::Debugger;
 use function::Function;
 use implementation::Implementation;
 use metrics::Metrics;
-
+use multimap::MultiMap;
 use serde_json::Value;
 
 #[derive(Debug, PartialEq)]
@@ -194,7 +194,7 @@ pub struct RunState {
     // blocking: Vec<(blocking_id, blocking_io_number, blocked_id)>
     ready: Vec<usize>,
     // ready: Vec<function_id>
-    running: HashSet<usize>,
+    running: MultiMap<usize, usize>,
     // running: HashSet<function_id>
     jobs: usize,
     // number of jobs created to date
@@ -209,7 +209,7 @@ impl RunState {
             blocked: HashSet::<usize>::new(),
             blocks: Vec::<(usize, usize, usize)>::new(),
             ready: Vec::<usize>::new(),
-            running: HashSet::<usize>::new(),
+            running: MultiMap::<usize, usize>::new(),
             #[cfg(feature = "debugger")]
             jobs: 0,
             max_jobs,
@@ -315,7 +315,7 @@ impl RunState {
         } else {
             if self.blocked.contains(&function_id) {
                 State::Blocked
-            } else if self.running.contains(&function_id) {
+            } else if self.running.contains_key(&function_id) {
                 State::Running
             } else {
                 State::Waiting
@@ -364,9 +364,12 @@ impl RunState {
 
         // Take the function_id at the head of the ready list
         let function_id = self.ready.remove(0);
-        self.running.insert(function_id);
+        // create a job from it
+        let job = self.create_job(function_id);
+        // mark it as started
+        self.start(function_id, job.job_id);
 
-        Some(self.create_job(function_id))
+        Some(job)
     }
 
     /*
@@ -457,7 +460,7 @@ impl RunState {
         }
 
         // remove from the running list error or not
-        self.done(output.function_id);
+        self.done(output.function_id, output.job_id);
     }
 
     /*
@@ -505,9 +508,19 @@ impl RunState {
         (refilled, source.inputs_full())
     }
 
-    fn done(&mut self, id: usize) {
-        self.running.remove(&id);
+    /*
+        Removes the entry from the running MultiMap where k=function_id and v=job_id
+        It assumes that the function has already been marked as running and there is an
+        entry in the Map with k=function_id and v=job_id
+    */
+    fn done(&mut self, function_id: usize, job_id: usize) {
+        self.running.retain(|&k, &v| k != function_id || v != job_id);
     }
+
+    fn start(&mut self, function_id: usize, job_id: usize) {
+        self.running.insert(function_id, job_id);
+    }
+
 
     // See if there is any tuple in the vector where the second (blocked_id) is the one we're after
     fn is_blocked(&self, id: usize) -> bool {
@@ -965,7 +978,7 @@ mod tests {
 
             // Event
             let output = Output {
-                job_id: 1,
+                job_id: 0,
                 function_id: 0,
                 input_values: vec!(vec!(json!(1))),
                 result: (None, true),
@@ -1135,7 +1148,7 @@ mod tests {
 
             // Event: run f_a
             let output = Output {
-                job_id: 1,
+                job_id: 0,
                 function_id: 0,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
@@ -1345,7 +1358,7 @@ mod tests {
 
             // Event run f_a
             let output = Output {
-                job_id: 1,
+                job_id: 0,
                 function_id: 0,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
