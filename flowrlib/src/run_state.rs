@@ -21,6 +21,7 @@ pub enum State {
 }
 
 pub struct Job {
+    pub job_id: usize,
     pub function_id: usize,
     pub implementation: Arc<Implementation>,
     pub input_values: Vec<Vec<Value>>,
@@ -343,11 +344,6 @@ impl RunState {
         output
     }
 
-    #[cfg(any(feature = "metrics", feature = "debugger"))]
-    pub fn increment_jobs(&mut self) {
-        self.jobs += 1;
-    }
-
     pub fn get(&self, id: usize) -> &Function {
         &self.functions[id]
     }
@@ -376,23 +372,21 @@ impl RunState {
         Given a function id, prepare a job for execution that contains the input values, the
         implementation and the destination functions the output should be sent to when done
     */
-    fn create_job(&mut self, id: usize) -> Job {
-        {
-            #[cfg(any(feature = "metrics", feature = "debugger"))]
-                self.increment_jobs();
-        }
+    fn create_job(&mut self, function_id: usize) -> Job {
+        let job_id = self.jobs;
+        self.jobs += 1;
 
-        let function = self.get_mut(id);
+        let function = self.get_mut(function_id);
 
         let input_values = function.take_input_values();
 
-        debug!("Preparing Job for Function #{} '{}' with inputs: {:?}", id, function.name(), input_values);
+        debug!("Preparing Job for Function #{} '{}' with inputs: {:?}", function_id, function.name(), input_values);
 
         let implementation = function.get_implementation();
 
         let destinations = function.output_destinations().clone();
 
-        Job { function_id: id, implementation, input_values, destinations, impure: function.is_impure() }
+        Job { job_id, function_id, implementation, input_values, destinations, impure: function.is_impure() }
     }
 
     /*
@@ -1254,7 +1248,7 @@ mod tests {
             let mut debugger = Debugger::new(test_debug_client());
 
             // Indicate that 0 is blocked by 1 on input 0
-            state.create_block(1, 0, 0,  &mut debugger);
+            state.create_block(1, 0, 0, &mut debugger);
 
             // Put 0 on the blocked/ready list depending on blocked status
             state.inputs_now_full(0);
@@ -1288,8 +1282,8 @@ mod tests {
             let mut debugger = Debugger::new(test_debug_client());
 
             // Indicate that 0 is blocked by 1 and 2
-            state.create_block(1, 0, 0,  &mut debugger);
-            state.create_block(2, 0, 0,  &mut debugger);
+            state.create_block(1, 0, 0, &mut debugger);
+            state.create_block(2, 0, 0, &mut debugger);
 
             // Put 0 on the blocked/ready list depending on blocked status
             state.inputs_now_full(0);
