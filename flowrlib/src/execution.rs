@@ -45,6 +45,7 @@ fn execute(job: Job, output_tx: &Sender<Output>) {
     };
 
     let output = Output {
+        job_id: job.job_id,
         function_id: job.function_id,
         input_values: job.input_values,
         result,

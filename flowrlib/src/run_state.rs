@@ -31,6 +31,7 @@ pub struct Job {
 
 #[derive(Debug)]
 pub struct Output {
+    pub job_id: usize,
     pub function_id: usize,
     pub input_values: Vec<Vec<Value>>,
     pub result: (Option<Value>, bool),
@@ -405,26 +406,28 @@ impl RunState {
                 let output_value = output.result.0;
                 let source_can_run_again = output.result.1;
 
-                debug!("\tCompleted Function #{}", output.function_id);
+                debug!("\tCompleted Job #{} of Function #{}", output.job_id, output.function_id);
                 if cfg!(feature = "debugger") && display_output {
-                    debugger.client.display(&format!("Completed Function #{}\n", output.function_id));
+                    debugger.client.display(&format!("Completed Job #{} of Function #{}\n",
+                                                     output.job_id, output.function_id));
                 }
 
                 // did it produce any output value
                 if let Some(output_v) = output_value {
-                    debug!("\tProcessing output '{}' from Function #{}", output_v, output.function_id);
+                    debug!("\tProcessing output value '{}' from Job #{}", output_v, output.job_id);
 
                     if cfg!(feature = "debugger") && display_output {
-                        debugger.client.display(&format!("\tProduced output {}\n", &output_v));
+                        debugger.client.display(&format!("\tOutput value {}\n", &output_v));
                     }
 
                     for (ref output_route, destination_id, io_number) in output.destinations {
                         let output_value = output_v.pointer(&output_route).unwrap();
-                        debug!("\t\tFunction #{} sent value '{}' via output route '{}' to Function #{} input :{}",
-                               output.function_id, output_value, output_route, &destination_id, &io_number);
+                        debug!("\t\tJob #{} sending value '{}' via output route '{}' to Function #{} input :{}",
+                               output.job_id, output_value, output_route, &destination_id, &io_number);
                         if cfg!(feature = "debugger") && display_output {
                             debugger.client.display(
-                                &format!("\t\tSending to {}:{}\n", destination_id, io_number));
+                                &format!("\t\tJob #{} sending to {}:{}\n",
+                                         output.job_id, destination_id, io_number));
                         }
 
                         #[cfg(feature = "debugger")]
@@ -444,10 +447,10 @@ impl RunState {
                     let (refilled, full) = self.refill_inputs(output.function_id);
                     if full {
                         self.inputs_now_full(output.function_id);
+                    } else {
+                        // unblock senders blocked trying to send to this functions empty inputs
+                        self.unblock_senders_to(output.function_id, refilled);
                     }
-
-                    // unblock senders blocked trying to send to this functions empty inputs
-                    self.unblock_senders_to(output.function_id, refilled);
                 }
             }
             Some(_) => error!("Error in Job execution:\n{:#?}", output)
@@ -889,15 +892,16 @@ mod tests {
             let mut debugger = Debugger::new(test_debug_client());
             state.init();
             assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
-            assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state, by fB");
+            assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state, by f_b");
             assert_eq!(1, state.next_job().unwrap().function_id, "next() should return function_id=1 (f_b) for running");
 
             // Event
             let output = Output {
+                job_id: 1,
                 function_id: 1,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
-                destinations: vec!(("".into(), 1, 0)),
+                destinations: vec!(),
                 error: None,
 
             };
@@ -927,6 +931,7 @@ mod tests {
 
             // Event
             let output = Output {
+                job_id: 1,
                 function_id: 0,
                 input_values: vec!(vec!(json!(1))),
                 result: (None, true),
@@ -960,6 +965,7 @@ mod tests {
 
             // Event
             let output = Output {
+                job_id: 1,
                 function_id: 0,
                 input_values: vec!(vec!(json!(1))),
                 result: (None, true),
@@ -1002,6 +1008,7 @@ mod tests {
 
             // Event
             let output = Output {
+                job_id: 1,
                 function_id: 0,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
@@ -1039,6 +1046,7 @@ mod tests {
 
             // Event run f_b which will send to f_a
             let output = Output {
+                job_id: 1,
                 function_id: 1,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
@@ -1078,6 +1086,7 @@ mod tests {
 
             // Event run f_b which will send to f_a, but will block f_a due to initialize
             let output = Output {
+                job_id: 1,
                 function_id: 1,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
@@ -1126,6 +1135,7 @@ mod tests {
 
             // Event: run f_a
             let output = Output {
+                job_id: 1,
                 function_id: 0,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
@@ -1143,6 +1153,7 @@ mod tests {
 
             // Event: Run f_b
             let output = Output {
+                job_id: 1,
                 function_id: 1,
                 input_values: vec!(vec!(json!(1))),
                 result: (None, true),
@@ -1334,6 +1345,7 @@ mod tests {
 
             // Event run f_a
             let output = Output {
+                job_id: 1,
                 function_id: 0,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
@@ -1379,6 +1391,7 @@ mod tests {
 
             // Event: run f_b
             let output = Output {
+                job_id: 1,
                 function_id: 1,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
