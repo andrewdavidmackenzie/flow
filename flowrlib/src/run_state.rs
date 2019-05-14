@@ -330,7 +330,13 @@ impl RunState {
 
     #[cfg(feature = "debugger")]
     pub fn display_state(&self, function_id: usize) -> String {
-        let mut output = format!("\tState: {:?}\n", self.get_state(function_id));
+        let function_state = self.get_state(function_id);
+        let mut output = format!("\tState: {:?}\n", function_state);
+
+        if function_state == State::Running {
+            output.push_str(&format!("\t\tJob Numbers Running: {:?}\n",
+                                     self.running.get_vec(&function_id).unwrap()));
+        }
 
         for (blocking, blocking_io_number, blocked) in &self.blocks {
             if *blocked == function_id {
@@ -509,9 +515,8 @@ impl RunState {
     }
 
     /*
-        Removes the entry from the running MultiMap where k=function_id and v=job_id
-        It assumes that the function has already been marked as running and there is an
-        entry in the Map with k=function_id and v=job_id
+        Removes any entry from the running list where k=function_id AND v=job_id
+        as there maybe more than one job running with function_id
     */
     fn done(&mut self, function_id: usize, job_id: usize) {
         self.running.retain(|&k, &v| k != function_id || v != job_id);

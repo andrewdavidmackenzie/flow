@@ -11,13 +11,13 @@ pub struct Debugger {
     block_breakpoints: HashSet<(usize, usize)>,
     /* blocked_id -> blocking_id */
     output_breakpoints: HashSet<(usize, String)>,
-    break_at_invocation: usize,
-    process_breakpoints: HashSet<usize>,
+    break_at_job: usize,
+    function_breakpoints: HashSet<usize>,
 }
 
 const HELP_STRING: &str = "Debugger commands:
 'b' | 'breakpoint' {spec}    - Set a breakpoint on a process, an output or an input using spec:
-                                - process_id
+                                - function_id
                                 - source_id/output_route ('source_id/' for default output route)
                                 - destination_id:input_number
                                 - blocked_process_id->blocking_process_id
@@ -29,7 +29,7 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
 'l' | 'list'                 - List all breakpoints
 'p' | 'print' [n]            - Print the overall state, or state of process number 'n'
 'r' | 'reset'                - reset the state back to initial state after loading
-'s' | 'step' [n]             - Step over the next 'n' process executions (default = 1) then break
+'s' | 'step' [n]             - Step over the next 'n' jobs (default = 1) then break
 'q' | 'quit'                 - Stop flow execution and exit debugger
 ";
 
@@ -83,24 +83,27 @@ impl Debugger {
             input_breakpoints: HashSet::<(usize, usize)>::new(),
             block_breakpoints: HashSet::<(usize, usize)>::new(),
             output_breakpoints: HashSet::<(usize, String)>::new(),
-            break_at_invocation: 0,
-            process_breakpoints: HashSet::<usize>::new(),
+            break_at_job: 0,
+            function_breakpoints: HashSet::<usize>::new(),
         }
     }
 
+    /*
+        Return values are (display next output, reset execution)
+    */
     pub fn start(&mut self, state: &mut RunState) -> (bool, bool) {
         self.client.display("Entering Debugger:\n");
         return self.command_loop(state);
     }
 
     /*
-        return true if the debugger requests that we display the output of the next dispatch
+        Return values are (display next output, reset execution)
     */
-    pub fn check(&mut self, state: &mut RunState, next_process_id: usize) -> (bool, bool) {
-        if self.break_at_invocation == state.jobs() ||
-            self.process_breakpoints.contains(&next_process_id) {
+    pub fn check(&mut self, state: &mut RunState, next_job_id: usize, function_id: usize) -> (bool, bool) {
+        if self.break_at_job == next_job_id ||
+            self.function_breakpoints.contains(&function_id) {
             self.client.display("Sending Job:\n");
-            self.print(state, Some(Param::Numeric(next_process_id)));
+            self.print(state, Some(Param::Numeric(function_id)));
             return self.command_loop(state);
         }
 
@@ -133,6 +136,9 @@ impl Debugger {
         self.command_loop(state);
     }
 
+    /*
+        Return values are (display next output, reset execution)
+    */
     pub fn end(&mut self, state: &mut RunState) -> (bool, bool) {
         self.client.display("Execution has ended\n");
         self.deadlock_inspection(state);
@@ -144,7 +150,7 @@ impl Debugger {
     }
 
     /*
-        Return values are (display_output of next invocation, reset execution)
+        Return values are (display next output, reset execution)
     */
     pub fn command_loop(&mut self, state: &mut RunState) -> (bool, bool) {
         loop {
@@ -163,7 +169,7 @@ impl Debugger {
                         "l" | "list" => self.list_breakpoints(),
                         "p" | "print" => self.print(state, param),
                         "r" | "reset" => {
-                            self.break_at_invocation = 0;
+                            self.break_at_job = 0;
                             self.client.display("Resetting state\n");
                             state.reset();
                             return (false, true);
@@ -189,7 +195,7 @@ impl Debugger {
                     self.client.display(
                         &format!("There is no process with id '{}' to set a breakpoint on\n", process_id));
                 } else {
-                    self.process_breakpoints.insert(process_id);
+                    self.function_breakpoints.insert(process_id);
                     self.client.display(
                         &format!("Set process breakpoint on Function #{}\n", process_id));
                 }
@@ -217,7 +223,7 @@ impl Debugger {
         match param {
             None => self.client.display("No process id specified\n"),
             Some(Param::Numeric(process_number)) => {
-                if self.process_breakpoints.remove(&process_number) {
+                if self.function_breakpoints.remove(&process_number) {
                     self.client.display(
                         &format!("Breakpoint on process #{} was deleted\n", process_number));
                 } else {
@@ -236,7 +242,7 @@ impl Debugger {
             Some(Param::Wildcard) => {
                 self.output_breakpoints.clear();
                 self.input_breakpoints.clear();
-                self.process_breakpoints.clear();
+                self.function_breakpoints.clear();
                 self.client.display("Deleted all breakpoints\n");
             }
         }
@@ -244,10 +250,10 @@ impl Debugger {
 
     fn list_breakpoints(&self) {
         let mut breakpoints = false;
-        if !self.process_breakpoints.is_empty() {
+        if !self.function_breakpoints.is_empty() {
             breakpoints = true;
             self.client.display("Function Breakpoints: \n");
-            for process_id in &self.process_breakpoints {
+            for process_id in &self.function_breakpoints {
                 self.client.display(&format!("\tFunction #{}\n", process_id));
             }
         }
@@ -365,10 +371,10 @@ impl Debugger {
         }
     }
 
-    fn print_function(&self, state: &RunState, process_id: usize) {
-        let function = state.get(process_id);
+    fn print_function(&self, state: &RunState, function_id: usize) {
+        let function = state.get(function_id);
         self.client.display(&format!("{}", function));
-        self.client.display(&state.display_state(process_id));
+        self.client.display(&state.display_state(function_id));
     }
 
     fn print_all_processes(&self, state: &RunState) {
@@ -380,9 +386,9 @@ impl Debugger {
     fn print(&self, state: &RunState, param: Option<Param>) {
         match param {
             None => self.client.display(&format!("{}\n", state)),
-            Some(Param::Numeric(process_id)) |
-            Some(Param::Block((process_id, _))) => self.print_function(state, process_id),
-            Some(Param::Input((process_id, _))) => self.print_function(state, process_id),
+            Some(Param::Numeric(function_id)) |
+            Some(Param::Block((function_id, _))) => self.print_function(state, function_id),
+            Some(Param::Input((function_id, _))) => self.print_function(state, function_id),
             Some(Param::Wildcard) => self.print_all_processes(state),
             Some(Param::Output(_)) => self.client.display(
                 "Cannot display the output of a process until it is executed. \
@@ -392,8 +398,8 @@ impl Debugger {
 
     fn step(&mut self, state: &RunState, steps: Option<Param>) {
         match steps {
-            None => self.break_at_invocation = state.jobs() + 1,
-            Some(Param::Numeric(steps)) => self.break_at_invocation = state.jobs() + steps,
+            None => self.break_at_job = state.jobs() + 1,
+            Some(Param::Numeric(steps)) => self.break_at_job = state.jobs() + steps,
             _ => self.client.display("Did not understand step command parameter\n")
         }
     }
