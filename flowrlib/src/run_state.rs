@@ -6,7 +6,7 @@ use debugger::Debugger;
 use function::Function;
 use implementation::Implementation;
 use metrics::Metrics;
-
+use multimap::MultiMap;
 use serde_json::Value;
 
 #[derive(Debug, PartialEq)]
@@ -21,6 +21,7 @@ pub enum State {
 }
 
 pub struct Job {
+    pub job_id: usize,
     pub function_id: usize,
     pub implementation: Arc<Implementation>,
     pub input_values: Vec<Vec<Value>>,
@@ -30,6 +31,7 @@ pub struct Job {
 
 #[derive(Debug)]
 pub struct Output {
+    pub job_id: usize,
     pub function_id: usize,
     pub input_values: Vec<Vec<Value>>,
     pub result: (Option<Value>, bool),
@@ -192,7 +194,7 @@ pub struct RunState {
     // blocking: Vec<(blocking_id, blocking_io_number, blocked_id)>
     ready: Vec<usize>,
     // ready: Vec<function_id>
-    running: HashSet<usize>,
+    running: MultiMap<usize, usize>,
     // running: HashSet<function_id>
     jobs: usize,
     // number of jobs created to date
@@ -207,7 +209,7 @@ impl RunState {
             blocked: HashSet::<usize>::new(),
             blocks: Vec::<(usize, usize, usize)>::new(),
             ready: Vec::<usize>::new(),
-            running: HashSet::<usize>::new(),
+            running: MultiMap::<usize, usize>::new(),
             #[cfg(feature = "debugger")]
             jobs: 0,
             max_jobs,
@@ -313,7 +315,7 @@ impl RunState {
         } else {
             if self.blocked.contains(&function_id) {
                 State::Blocked
-            } else if self.running.contains(&function_id) {
+            } else if self.running.contains_key(&function_id) {
                 State::Running
             } else {
                 State::Waiting
@@ -328,7 +330,13 @@ impl RunState {
 
     #[cfg(feature = "debugger")]
     pub fn display_state(&self, function_id: usize) -> String {
-        let mut output = format!("\tState: {:?}\n", self.get_state(function_id));
+        let function_state = self.get_state(function_id);
+        let mut output = format!("\tState: {:?}\n", function_state);
+
+        if function_state == State::Running {
+            output.push_str(&format!("\t\tJob Numbers Running: {:?}\n",
+                                     self.running.get_vec(&function_id).unwrap()));
+        }
 
         for (blocking, blocking_io_number, blocked) in &self.blocks {
             if *blocked == function_id {
@@ -341,11 +349,6 @@ impl RunState {
         }
 
         output
-    }
-
-    #[cfg(any(feature = "metrics", feature = "debugger"))]
-    pub fn increment_jobs(&mut self) {
-        self.jobs += 1;
     }
 
     pub fn get(&self, id: usize) -> &Function {
@@ -367,32 +370,33 @@ impl RunState {
 
         // Take the function_id at the head of the ready list
         let function_id = self.ready.remove(0);
-        self.running.insert(function_id);
+        // create a job from it
+        let job = self.create_job(function_id);
+        // mark it as started
+        self.start(function_id, job.job_id);
 
-        Some(self.create_job(function_id))
+        Some(job)
     }
 
     /*
         Given a function id, prepare a job for execution that contains the input values, the
         implementation and the destination functions the output should be sent to when done
     */
-    fn create_job(&mut self, id: usize) -> Job {
-        {
-            #[cfg(any(feature = "metrics", feature = "debugger"))]
-                self.increment_jobs();
-        }
+    fn create_job(&mut self, function_id: usize) -> Job {
+        let job_id = self.jobs;
+        self.jobs += 1;
 
-        let function = self.get_mut(id);
+        let function = self.get_mut(function_id);
 
         let input_values = function.take_input_values();
 
-        debug!("Preparing Job for Function #{} '{}' with inputs: {:?}", id, function.name(), input_values);
+        debug!("Preparing Job for Function #{} '{}' with inputs: {:?}", function_id, function.name(), input_values);
 
         let implementation = function.get_implementation();
 
         let destinations = function.output_destinations().clone();
 
-        Job { function_id: id, implementation, input_values, destinations, impure: function.is_impure() }
+        Job { job_id, function_id, implementation, input_values, destinations, impure: function.is_impure() }
     }
 
     /*
@@ -411,26 +415,28 @@ impl RunState {
                 let output_value = output.result.0;
                 let source_can_run_again = output.result.1;
 
-                debug!("\tCompleted Function #{}", output.function_id);
+                debug!("\tCompleted Job #{} of Function #{}", output.job_id, output.function_id);
                 if cfg!(feature = "debugger") && display_output {
-                    debugger.client.display(&format!("Completed Function #{}\n", output.function_id));
+                    debugger.client.display(&format!("Completed Job #{} of Function #{}\n",
+                                                     output.job_id, output.function_id));
                 }
 
                 // did it produce any output value
                 if let Some(output_v) = output_value {
-                    debug!("\tProcessing output '{}' from Function #{}", output_v, output.function_id);
+                    debug!("\tProcessing output value '{}' from Job #{}", output_v, output.job_id);
 
                     if cfg!(feature = "debugger") && display_output {
-                        debugger.client.display(&format!("\tProduced output {}\n", &output_v));
+                        debugger.client.display(&format!("\tOutput value {}\n", &output_v));
                     }
 
                     for (ref output_route, destination_id, io_number) in output.destinations {
                         let output_value = output_v.pointer(&output_route).unwrap();
-                        debug!("\t\tFunction #{} sent value '{}' via output route '{}' to Function #{} input :{}",
-                               output.function_id, output_value, output_route, &destination_id, &io_number);
+                        debug!("\t\tJob #{} sending value '{}' via output route '{}' to Function #{} input :{}",
+                               output.job_id, output_value, output_route, &destination_id, &io_number);
                         if cfg!(feature = "debugger") && display_output {
                             debugger.client.display(
-                                &format!("\t\tSending to {}:{}\n", destination_id, io_number));
+                                &format!("\t\tJob #{} sending to {}:{}\n",
+                                         output.job_id, destination_id, io_number));
                         }
 
                         #[cfg(feature = "debugger")]
@@ -450,17 +456,17 @@ impl RunState {
                     let (refilled, full) = self.refill_inputs(output.function_id);
                     if full {
                         self.inputs_now_full(output.function_id);
+                    } else {
+                        // unblock senders blocked trying to send to this functions empty inputs
+                        self.unblock_senders_to(output.function_id, refilled);
                     }
-
-                    // unblock senders blocked trying to send to this functions empty inputs
-                    self.unblock_senders_to(output.function_id, refilled);
                 }
             }
             Some(_) => error!("Error in Job execution:\n{:#?}", output)
         }
 
         // remove from the running list error or not
-        self.done(output.function_id);
+        self.done(output.function_id, output.job_id);
     }
 
     /*
@@ -508,9 +514,18 @@ impl RunState {
         (refilled, source.inputs_full())
     }
 
-    fn done(&mut self, id: usize) {
-        self.running.remove(&id);
+    /*
+        Removes any entry from the running list where k=function_id AND v=job_id
+        as there maybe more than one job running with function_id
+    */
+    fn done(&mut self, function_id: usize, job_id: usize) {
+        self.running.retain(|&k, &v| k != function_id || v != job_id);
     }
+
+    fn start(&mut self, function_id: usize, job_id: usize) {
+        self.running.insert(function_id, job_id);
+    }
+
 
     // See if there is any tuple in the vector where the second (blocked_id) is the one we're after
     fn is_blocked(&self, id: usize) -> bool {
@@ -895,15 +910,16 @@ mod tests {
             let mut debugger = Debugger::new(test_debug_client());
             state.init();
             assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
-            assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state, by fB");
+            assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state, by f_b");
             assert_eq!(1, state.next_job().unwrap().function_id, "next() should return function_id=1 (f_b) for running");
 
             // Event
             let output = Output {
+                job_id: 1,
                 function_id: 1,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
-                destinations: vec!(("".into(), 1, 0)),
+                destinations: vec!(),
                 error: None,
 
             };
@@ -933,6 +949,7 @@ mod tests {
 
             // Event
             let output = Output {
+                job_id: 1,
                 function_id: 0,
                 input_values: vec!(vec!(json!(1))),
                 result: (None, true),
@@ -966,6 +983,7 @@ mod tests {
 
             // Event
             let output = Output {
+                job_id: 0,
                 function_id: 0,
                 input_values: vec!(vec!(json!(1))),
                 result: (None, true),
@@ -1008,6 +1026,7 @@ mod tests {
 
             // Event
             let output = Output {
+                job_id: 1,
                 function_id: 0,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
@@ -1045,6 +1064,7 @@ mod tests {
 
             // Event run f_b which will send to f_a
             let output = Output {
+                job_id: 1,
                 function_id: 1,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
@@ -1084,6 +1104,7 @@ mod tests {
 
             // Event run f_b which will send to f_a, but will block f_a due to initialize
             let output = Output {
+                job_id: 1,
                 function_id: 1,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
@@ -1132,6 +1153,7 @@ mod tests {
 
             // Event: run f_a
             let output = Output {
+                job_id: 0,
                 function_id: 0,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
@@ -1149,6 +1171,7 @@ mod tests {
 
             // Event: Run f_b
             let output = Output {
+                job_id: 1,
                 function_id: 1,
                 input_values: vec!(vec!(json!(1))),
                 result: (None, true),
@@ -1254,7 +1277,7 @@ mod tests {
             let mut debugger = Debugger::new(test_debug_client());
 
             // Indicate that 0 is blocked by 1 on input 0
-            state.create_block(1, 0, 0,  &mut debugger);
+            state.create_block(1, 0, 0, &mut debugger);
 
             // Put 0 on the blocked/ready list depending on blocked status
             state.inputs_now_full(0);
@@ -1288,8 +1311,8 @@ mod tests {
             let mut debugger = Debugger::new(test_debug_client());
 
             // Indicate that 0 is blocked by 1 and 2
-            state.create_block(1, 0, 0,  &mut debugger);
-            state.create_block(2, 0, 0,  &mut debugger);
+            state.create_block(1, 0, 0, &mut debugger);
+            state.create_block(2, 0, 0, &mut debugger);
 
             // Put 0 on the blocked/ready list depending on blocked status
             state.inputs_now_full(0);
@@ -1340,6 +1363,7 @@ mod tests {
 
             // Event run f_a
             let output = Output {
+                job_id: 0,
                 function_id: 0,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
@@ -1385,6 +1409,7 @@ mod tests {
 
             // Event: run f_b
             let output = Output {
+                job_id: 1,
                 function_id: 1,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),

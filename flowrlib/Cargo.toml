@@ -27,6 +27,7 @@ debugger = []
 logging = []
 
 [dependencies]
+multimap = { git = "https://github.com/andrewdavidmackenzie/multimap" }
 log = "0.4.6"
 serde_derive = "~1.0.27"
 serde = "~1.0.27"

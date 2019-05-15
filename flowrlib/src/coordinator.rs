@@ -215,7 +215,7 @@ impl Coordinator {
             }
 
             if cfg!(feature = "debugger") && self.debugging {
-                let check = self.debugger.check(state, job.function_id);
+                let check = self.debugger.check(state, job.job_id, job.function_id);
                 display_output = check.0;
                 restart = check.1;
 
