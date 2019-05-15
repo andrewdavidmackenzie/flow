@@ -153,9 +153,12 @@ impl Coordinator {
 
                 if state.number_jobs_running() > 0 {
                     match self.output_rx.recv_timeout(output_timeout) {
-                        Ok(output) => state.process_output(&mut metrics, output,
-                                                           display_next_output,
-                                                           &mut self.debugger),
+                        Ok(output) => {
+                            state.done(&output);
+                            state.process_output(&mut metrics, output,
+                                                 display_next_output,
+                                                 &mut self.debugger)
+                        },
                         Err(err) => error!("Error receiving execution result: {}", err)
                     }
                 }
@@ -224,7 +227,7 @@ impl Coordinator {
                 }
             }
 
-            self.send_job(job);
+            self.send_job(state, job);
         }
 
         (display_output, restart)
@@ -235,7 +238,8 @@ impl Coordinator {
         - if impure, then needs to be run on the main thread which has stdio (stdin in particular)
         - if pure send it on the 'job_tx' channel where executors will pick it up by an executor
     */
-    fn send_job(&self, job: Job) {
+    fn send_job(&self, state: &mut RunState, job: Job) {
+        state.start(&job);
         match self.job_tx.send(job) {
             Ok(_) => debug!("Job sent to Executors"),
             Err(err) => error!("Error sending on 'job_tx': {}", err)

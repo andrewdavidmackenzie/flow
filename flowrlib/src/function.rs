@@ -128,11 +128,7 @@ impl Function {
     pub fn is_pure(field: &bool) -> bool { !*field }
 
     pub fn write_input(&mut self, input_number: usize, input_value: Value) {
-        if !self.inputs[input_number].full() {
-            self.inputs[input_number].push(input_value);
-        } else {
-            error!("\t\t\tFunction #{} '{}' Input overflow on input number {}", self.id(), self.name(), input_number);
-        }
+        self.inputs[input_number].push(input_value);
     }
 
     pub fn output_destinations(&self) -> &Vec<(String, usize, usize)> {
@@ -170,12 +166,12 @@ impl Function {
     /*
         Read the values from the inputs and return them for use in executing the function
     */
-    pub fn take_input_values(&mut self) -> Vec<Vec<Value>> {
-        let mut input_values: Vec<Vec<Value>> = Vec::new();
-        for input_value in &mut self.inputs {
-            input_values.push(input_value.take());
+    pub fn take_input_set(&mut self) -> Vec<Vec<Value>> {
+        let mut input_set: Vec<Vec<Value>> = Vec::new();
+        for input in &mut self.inputs {
+            input_set.push(input.take());
         }
-        input_values
+        input_set
     }
 }
 
@@ -208,27 +204,27 @@ mod test {
     #[test]
     fn can_send_input_if_empty() {
         let mut function = Function::new("test".to_string(),
-                                        "/context/test".to_string(),
-                                        "/test".to_string(), false,
-                                        vec!(Input::new(1, &None)),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(1, &None)),
                                          0,
-                                        &vec!());
+                                         &vec!());
         function.init_inputs(true);
         function.write_input(0, json!(1));
-        assert_eq!(function.take_input_values().remove(0).remove(0), json!(1));
+        assert_eq!(function.take_input_set().remove(0).remove(0), json!(1));
     }
 
     #[test]
     fn cannot_send_input_if_full() {
         let mut function = Function::new("test".to_string(),
-                                        "/context/test".to_string(),
-                                        "/test".to_string(), false,
-                                        vec!(Input::new(1, &None)),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(1, &None)),
                                          0,
-                                        &vec!());
+                                         &vec!());
         function.init_inputs(true);
         function.write_input(0, json!(1)); // success
         function.write_input(0, json!(2)); // fail
-        assert_eq!(function.take_input_values().remove(0).remove(0), json!(1));
+        assert_eq!(function.take_input_set().remove(0).remove(0), json!(1));
     }
 }

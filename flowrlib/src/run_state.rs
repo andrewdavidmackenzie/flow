@@ -24,7 +24,7 @@ pub struct Job {
     pub job_id: usize,
     pub function_id: usize,
     pub implementation: Arc<Implementation>,
-    pub input_values: Vec<Vec<Value>>,
+    pub input_set: Vec<Vec<Value>>,
     pub destinations: Vec<(String, usize, usize)>,
     pub impure: bool,
 }
@@ -368,12 +368,14 @@ impl RunState {
             return None;
         }
 
-        // Take the function_id at the head of the ready list
-        let function_id = self.ready.remove(0);
-        // create a job from it
-        let job = self.create_job(function_id);
-        // mark it as started
-        self.start(function_id, job.job_id);
+        // create a job for the function_id at the head of the ready list
+        let function_id = *self.ready.get(0).unwrap();
+        let (job, inputs_still_full) = self.create_job(function_id);
+
+        // only remove it from the ready list if its inputs are not still full
+        if !inputs_still_full {
+            self.ready.remove(0);
+        }
 
         Some(job)
     }
@@ -382,21 +384,21 @@ impl RunState {
         Given a function id, prepare a job for execution that contains the input values, the
         implementation and the destination functions the output should be sent to when done
     */
-    fn create_job(&mut self, function_id: usize) -> Job {
+    fn create_job(&mut self, function_id: usize) -> (Job, bool) {
         let job_id = self.jobs;
         self.jobs += 1;
 
         let function = self.get_mut(function_id);
 
-        let input_values = function.take_input_values();
+        let input_set = function.take_input_set();
 
-        debug!("Preparing Job for Function #{} '{}' with inputs: {:?}", function_id, function.name(), input_values);
+        debug!("Preparing Job for Function #{} '{}' with inputs: {:?}", function_id, function.name(), input_set);
 
         let implementation = function.get_implementation();
 
         let destinations = function.output_destinations().clone();
 
-        Job { job_id, function_id, implementation, input_values, destinations, impure: function.is_impure() }
+        (Job { job_id, function_id, implementation, input_set, destinations, impure: function.is_impure() }, function.inputs_full())
     }
 
     /*
@@ -412,7 +414,7 @@ impl RunState {
                           display_output: bool, debugger: &mut Debugger) {
         match output.error {
             None => {
-                let output_value = output.result.0;
+                let output_value = &output.result.0;
                 let source_can_run_again = output.result.1;
 
                 debug!("\tCompleted Job #{} of Function #{}", output.job_id, output.function_id);
@@ -429,7 +431,7 @@ impl RunState {
                         debugger.client.display(&format!("\tOutput value {}\n", &output_v));
                     }
 
-                    for (ref output_route, destination_id, io_number) in output.destinations {
+                    for (ref output_route, destination_id, io_number) in &output.destinations {
                         let output_value = output_v.pointer(&output_route).unwrap();
                         debug!("\t\tJob #{} sending value '{}' via output route '{}' to Function #{} input :{}",
                                output.job_id, output_value, output_route, &destination_id, &io_number);
@@ -441,17 +443,15 @@ impl RunState {
 
                         #[cfg(feature = "debugger")]
                             debugger.watch_data(self, output.function_id, output_route,
-                                                &output_value, destination_id, io_number);
+                                                &output_value, *destination_id, *io_number);
 
-                        if self.send_value(output.function_id, destination_id,
-                                           io_number, output_value.clone(), metrics, debugger) {
-                            self.inputs_now_full(destination_id);
-                        }
+                        self.send_value(output.function_id, *destination_id,
+                                           *io_number, output_value.clone(), metrics, debugger);
                     }
                 }
 
                 // if it wants to run again, and after possibly refreshing any constant inputs, it can
-                // (it's inputs are ready) then add back to the Will Run list
+                // (it's inputs are ready) then add back to the Ready list
                 if source_can_run_again {
                     let (refilled, full) = self.refill_inputs(output.function_id);
                     if full {
@@ -464,9 +464,6 @@ impl RunState {
             }
             Some(_) => error!("Error in Job execution:\n{:#?}", output)
         }
-
-        // remove from the running list error or not
-        self.done(output.function_id, output.job_id);
     }
 
     /*
@@ -474,7 +471,7 @@ impl RunState {
         a specific input, update the metrics and potentially enter the debugger
     */
     fn send_value(&mut self, source_id: usize, destination_id: usize, io_number: usize,
-                  output_value: Value, metrics: &mut Metrics, debugger: &mut Debugger) -> bool {
+                  output_value: Value, metrics: &mut Metrics, debugger: &mut Debugger) {
         let block;
         let full;
 
@@ -499,7 +496,9 @@ impl RunState {
             self.create_block(destination_id, io_number, source_id, debugger);
         }
 
-        full
+        if full {
+            self.inputs_now_full(destination_id);
+        }
     }
 
     /*
@@ -518,14 +517,13 @@ impl RunState {
         Removes any entry from the running list where k=function_id AND v=job_id
         as there maybe more than one job running with function_id
     */
-    fn done(&mut self, function_id: usize, job_id: usize) {
-        self.running.retain(|&k, &v| k != function_id || v != job_id);
+    pub  fn done(&mut self, output: &Output) {
+        self.running.retain(|&k, &v| k != output.function_id || v != output.job_id);
     }
 
-    fn start(&mut self, function_id: usize, job_id: usize) {
-        self.running.insert(function_id, job_id);
+    pub fn start(&mut self, job: &Job) {
+        self.running.insert(job.function_id, job.job_id);
     }
-
 
     // See if there is any tuple in the vector where the second (blocked_id) is the one we're after
     fn is_blocked(&self, id: usize) -> bool {
@@ -861,7 +859,9 @@ mod tests {
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
 
             // Event
-            assert_eq!(0, state.next_job().unwrap().function_id, "next_job() should return function_id = 0");
+            let job = state.next_job().unwrap();
+            assert_eq!(0, job.function_id, "next_job() should return function_id = 0");
+            state.start(&job);
 
             // Test
             assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
@@ -944,7 +944,10 @@ mod tests {
             let mut debugger = Debugger::new(test_debug_client());
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
-            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return function_id = 0");
+            let job = state.next_job().unwrap();
+            assert_eq!(0, job.function_id, "next() should return function_id = 0");
+            state.start(&job);
+
             assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
 
             // Event
@@ -978,7 +981,10 @@ mod tests {
             let mut debugger = Debugger::new(test_debug_client());
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
-            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return function_id = 0");
+            let job = state.next_job().unwrap();
+            assert_eq!(0, job.function_id, "next() should return function_id = 0");
+            state.start(&job);
+
             assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
 
             // Event
@@ -990,6 +996,7 @@ mod tests {
                 destinations: vec!(),
                 error: None,
             };
+            state.done(&output);
             state.process_output(&mut metrics, output, false, &mut debugger);
 
             // Test
@@ -1021,7 +1028,10 @@ mod tests {
 
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
 
-            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return function_id=0 (f_a) for running");
+            let job = state.next_job().unwrap();
+            assert_eq!(0, job.function_id, "next() should return function_id=0 (f_a) for running");
+            state.start(&job);
+
             assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
 
             // Event
@@ -1209,7 +1219,7 @@ mod tests {
                                    false,
                                    vec!(), // input array
                                    0,    // id
-                                   &vec!(("".to_string(), 1, 0), ("".to_string(), 1, 0)), // destinations
+                                   &vec!(("".to_string(), 1, 0), ("".to_string(), 2, 0)), // destinations
             );    // implementation
             let p1 = Function::new("p1".to_string(),
                                    "/context/p1".to_string(),
@@ -1330,12 +1340,15 @@ mod tests {
         fn wont_return_too_many_jobs() {
             let mut state = RunState::new(test_functions(), 1);
 
-            // Put 0 on the blocked/ready
+            // Put 0 on the ready list
             state.inputs_now_full(0);
-            // Put 1 on the blocked/ready
+            // Put 1 on the ready list
             state.inputs_now_full(1);
 
-            assert_eq!(state.next_job().unwrap().function_id, 0);
+            let job = state.next_job().unwrap();
+            assert_eq!(0, job.function_id);
+            state.start(&job);
+
             assert!(state.next_job().is_none());
         }
 
@@ -1405,7 +1418,7 @@ mod tests {
             assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready initially");
             assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked initially");
 
-            assert_eq!(1, state.next_job().unwrap().function_id, "next() should return function_id=1 (f_b) for running");
+            assert_eq!(1, state.next_job().unwrap().function_id, "next() should return a job for function_id=1 (f_b) for running");
 
             // Event: run f_b
             let output = Output {
@@ -1422,6 +1435,34 @@ mod tests {
             // Test
             assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready after inputs refreshed");
             assert_eq!(State::Blocked, state.get_state(0), "f_a should still be Blocked on f_b");
+        }
+
+        /*
+            Check that we can accumulat ea number of inputs values on a function's input and
+            then get multiple jobs for execution for the same function
+        */
+        #[test]
+        fn can_create_multiple_jobs() {
+            let f_a = Function::new("f_a".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!(Input::new(1, &None)),
+                                    0,
+                                    &vec!());
+            let functions = vec!(f_a);
+            let mut state = RunState::new(functions, 4);
+            let mut metrics = Metrics::new(1);
+            let mut debugger = Debugger::new(test_debug_client());
+            state.init();
+
+            // Send multiple inputs to f_a
+            state.send_value(1, 0, 0, json!(1), &mut metrics, &mut debugger);
+            state.send_value(1, 0, 0, json!(1), &mut metrics, &mut debugger);
+
+            // Test
+            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a job for function_id=0 (f_a) for running");
+            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a second job for function_id=0 (f_a) for running");
         }
     }
 }
