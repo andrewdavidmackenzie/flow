@@ -38,7 +38,7 @@ fn create_executor(name: String, job_rx: Arc<Mutex<Receiver<Job>>>, output_tx: S
 fn execute(job: Job, output_tx: &Sender<Output>) {
     // Run the implementation with the input values and catch the execution result
     let (result, error) = match panic::catch_unwind(|| {
-        job.implementation.run(job.input_values.clone())
+        job.implementation.run(job.input_set.clone())
     }) {
         Ok(result) => (result, None),
         Err(_) => ((None, false), Some("Execution panicked".into())),
@@ -47,7 +47,7 @@ fn execute(job: Job, output_tx: &Sender<Output>) {
     let output = Output {
         job_id: job.job_id,
         function_id: job.function_id,
-        input_values: job.input_values,
+        input_values: job.input_set,
         result,
         destinations: job.destinations,
         error,
