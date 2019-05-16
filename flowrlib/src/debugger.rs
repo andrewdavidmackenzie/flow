@@ -102,7 +102,7 @@ impl Debugger {
     pub fn check(&mut self, state: &mut RunState, next_job_id: usize, function_id: usize) -> (bool, bool) {
         if self.break_at_job == next_job_id ||
             self.function_breakpoints.contains(&function_id) {
-            self.client.display("Sending Job:\n");
+            self.client.display(&format!("Sending Job #{}:\n", next_job_id));
             self.print(state, Some(Param::Numeric(function_id)));
             return self.command_loop(state);
         }

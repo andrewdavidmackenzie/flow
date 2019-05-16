@@ -54,11 +54,11 @@ DEBUG   - Initializing all functions
 DEBUG   -       Initializing function #0 'HEAD-1'
 DEBUG   -               Function initialized by writing 'Number(1)' to input
 DEBUG   -                       Function #0 inputs are ready
-DEBUG   -                       Function #0 not blocked on output, so added to end of 'Will Run' list
+DEBUG   -                       Function #0 not blocked on output, so added to end of 'Ready' list
 DEBUG   -       Initializing function #1 'HEAD'
 DEBUG   -               Value initialized by writing 'Number(1)' to input
 DEBUG   -                       Function #1 inputs are ready
-DEBUG   -                       Function #1 not blocked on output, so added to end of 'Will Run' list
+DEBUG   -                       Function #1 not blocked on output, so added to end of 'Ready' list
 DEBUG   -       Initializing function #2 'sum'
 DEBUG   -       Initializing function #3 'print'
 DEBUG   - Starting execution loop
@@ -66,7 +66,7 @@ DEBUG   - -----------------------------------------------------------------
 DEBUG   - Dispatch count: 0
 DEBUG   -        Can Run: {1, 0}
 DEBUG   -       Blocking: []
-DEBUG   -       Will Run: [0, 1]
+DEBUG   -       Ready: [0, 1]
 DEBUG   - -------------------------------------
 DEBUG   - Function #0 'HEAD-1' dispatched
 DEBUG   -       Function #0 consumed its inputs, removing from the 'Can Run' list
@@ -76,12 +76,12 @@ DEBUG   -                       Function #0 is now blocked on output by Function
 DEBUG   -               Function #0 'HEAD-1' sending output '1' to Function #3 'print' input #0
 DEBUG   -                       Function #0 is now blocked on output by Function #3
 DEBUG   -                       Function #3 inputs are ready
-DEBUG   -                       Function #3 not blocked on output, so added to end of 'Will Run' list
+DEBUG   -                       Function #3 not blocked on output, so added to end of 'Ready' list
 DEBUG   -       Function #0 'HEAD-1' completed
 DEBUG   - Dispatch count: 1
 DEBUG   -        Can Run: {1, 3}
 DEBUG   -       Blocking: [(2, 0), (3, 0)]
-DEBUG   -       Will Run: [1, 3]
+DEBUG   -       Ready: [1, 3]
 DEBUG   - -------------------------------------
 DEBUG   - Function #1 'HEAD' dispatched
 DEBUG   -       Function #1 consumed its inputs, removing from the 'Can Run' list
@@ -92,10 +92,10 @@ DEBUG   -                       Function #0 inputs are ready
 DEBUG   -               Function #1 'HEAD' sending output '1' to Function #2 'sum' input #1
 DEBUG   -                       Function #1 is now blocked on output by Function #2
 DEBUG   -                       Function #2 inputs are ready
-DEBUG   -                       Function #2 not blocked on output, so added to end of 'Will Run' list
+DEBUG   -                       Function #2 not blocked on output, so added to end of 'Ready' list
 DEBUG   -       Function #1 'HEAD' completed
 DEBUG   - Dispatch count: 2
 DEBUG   -        Can Run: {3, 2, 0}
 DEBUG   -       Blocking: [(2, 0), (3, 0), (0, 1), (2, 1)]
-DEBUG   -       Will Run: [3, 2]
+DEBUG   -       Ready: [3, 2]
 ```

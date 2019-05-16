@@ -383,6 +383,9 @@ impl RunState {
     /*
         Given a function id, prepare a job for execution that contains the input values, the
         implementation and the destination functions the output should be sent to when done
+        Return:
+            - Job created
+            - true if we took an input set but enough remain to create more jobs
     */
     fn create_job(&mut self, function_id: usize) -> (Job, bool) {
         let job_id = self.jobs;
@@ -398,7 +401,10 @@ impl RunState {
 
         let destinations = function.output_destinations().clone();
 
-        (Job { job_id, function_id, implementation, input_set, destinations, impure: function.is_impure() }, function.inputs_full())
+        let can_create_more_jobs = !input_set.is_empty() && function.inputs_full();
+
+        (Job { job_id, function_id, implementation, input_set, destinations, impure: function.is_impure() },
+         can_create_more_jobs)
     }
 
     /*
@@ -603,7 +609,7 @@ impl RunState {
             debug!("\t\t\tFunction #{} inputs are ready, but blocked on output", id);
             self.blocked.insert(id);
         } else {
-            debug!("\t\t\tFunction #{} not blocked on output, so added to 'Will Run' list", id);
+            debug!("\t\t\tFunction #{} not blocked on output, so added to 'Ready' list", id);
             self.ready.push(id);
         }
     }
@@ -676,7 +682,7 @@ impl fmt::Display for RunState {
         write!(f, "        Jobs: {}\n", self.jobs)?;
         write!(f, "     Blocked: {:?}\n", self.blocked)?;
         write!(f, "    Blocking: {:?}\n", self.blocks)?;
-        write!(f, "    Will Run: {:?}\n", self.ready)?;
+        write!(f, "    Ready: {:?}\n", self.ready)?;
         write!(f, "     Running: {:?}\n", self.running)
     }
 }
