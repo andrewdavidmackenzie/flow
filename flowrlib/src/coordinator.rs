@@ -194,7 +194,7 @@ impl Coordinator {
         if self.display_metrics {
             #[cfg(feature = "metrics")]
             println!("\nMetrics: \n {}", metrics);
-            println!("\t\t   Jobs sent: \t{}\n", state.jobs());
+            println!("\t\tJobs processed: \t{}\n", state.jobs());
         }
     }
 
