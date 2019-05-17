@@ -370,10 +370,10 @@ impl RunState {
 
         // create a job for the function_id at the head of the ready list
         let function_id = *self.ready.get(0).unwrap();
-        let (job, inputs_still_full) = self.create_job(function_id);
+        let (job, can_create_more_jobs) = self.create_job(function_id);
 
         // only remove it from the ready list if its inputs are not still full
-        if !inputs_still_full {
+        if !can_create_more_jobs {
             self.ready.remove(0);
         }
 
@@ -395,13 +395,22 @@ impl RunState {
 
         let input_set = function.take_input_set();
 
+        // refresh any inputs that have constant initializers
+        let refilled = function.init_inputs(false);
+        let all_refilled = refilled.len() == function.inputs().len();
+
         debug!("Preparing Job for Function #{} '{}' with inputs: {:?}", function_id, function.name(), input_set);
 
         let implementation = function.get_implementation();
 
         let destinations = function.output_destinations().clone();
 
-        let can_create_more_jobs = !input_set.is_empty() && function.inputs_full();
+        // create more jobs for the same function if:
+        //    - it has inputs, otherwise we can generate infinite number of jobs
+        //    - it does not have ONLY ConstantInitialized inputs and we have refilled them
+        //    - all the inputs are still full, so we can create another job for this function
+        let can_create_more_jobs = !function.inputs().is_empty() && function.inputs_full()
+            && !all_refilled;
 
         (Job { job_id, function_id, implementation, input_set, destinations, impure: function.is_impure() },
          can_create_more_jobs)
@@ -484,7 +493,6 @@ impl RunState {
         {
             let destination = self.get_mut(destination_id);
 
-            // to another, and it sets the correct state on both.
             destination.write_input(io_number, output_value);
 
             #[cfg(feature = "metrics")]
@@ -1552,7 +1560,7 @@ mod tests {
             let mut debugger = Debugger::new(test_debug_client());
             state.init();
 
-            // Send multiple inputs to f_a via an array
+            // Send multiple inputs to f_a input 0 - via an array
             state.send_value(1, 0, 0, json!([1, 2, 3, 4]), &mut metrics, &mut debugger);
 
             // Test
