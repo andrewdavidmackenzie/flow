@@ -128,7 +128,14 @@ impl Function {
     pub fn is_pure(field: &bool) -> bool { !*field }
 
     pub fn write_input(&mut self, input_number: usize, input_value: Value) {
-        self.inputs[input_number].push(input_value);
+        let input = &mut self.inputs[input_number];
+        if input_value.is_array() && !input.is_array {
+            for value in input_value.as_array().unwrap().iter() {
+                input.push(value.clone());
+            }
+        } else {
+            input.push(input_value);
+        }
     }
 
     pub fn output_destinations(&self) -> &Vec<(String, usize, usize)> {
@@ -206,7 +213,7 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/context/test".to_string(),
                                          "/test".to_string(), false,
-                                         vec!(Input::new(1, &None)),
+                                         vec!(Input::new(1, &None, false)),
                                          0,
                                          &vec!());
         function.init_inputs(true);
@@ -219,7 +226,7 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/context/test".to_string(),
                                          "/test".to_string(), false,
-                                         vec!(Input::new(1, &None)),
+                                         vec!(Input::new(1, &None, false)),
                                          0,
                                          &vec!());
         function.init_inputs(true);

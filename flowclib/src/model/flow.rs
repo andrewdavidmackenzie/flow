@@ -18,6 +18,7 @@ use model::connection::Direction::TO;
 use std::fmt;
 use std::mem::replace;
 use flowrlib::input::InputInitializer;
+use model::datatype::TypeCheck;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -245,6 +246,12 @@ impl Flow {
         }
     }
 
+    fn valid_datatype_match(from: &IO, to: &IO) -> bool {
+        from.datatype(0) == to.datatype(0) ||
+            (from.datatype(0).is_array() && from.datatype(1) == to.datatype(0)) ||
+            from.datatype(0).is_generic() ||
+            to.datatype(0).is_generic()
+    }
 
     /*
         Change the names of connections to be routes to the alias used in this flow,
@@ -278,8 +285,7 @@ impl Flow {
                     match self.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {
                         Ok(to_io) => {
                             debug!("Found connection destination:\n{:#?}", to_io);
-                            if (from_io.datatype(0) == to_io.datatype(0)) ||
-                                from_io.datatype(0) == "Json" || to_io.datatype(0) == "Json" {
+                            if Self::valid_datatype_match(&from_io, &to_io) {
                                 debug!("Connection source and destination types match");
                                 info!("Connection built from '{}' to '{}'", from_io.route(), to_io.route());
                                 connection.from_io = from_io;
