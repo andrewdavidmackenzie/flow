@@ -511,12 +511,12 @@ impl RunState {
         Refresh any inputs that have initializers on them
     */
     fn refill_inputs(&mut self, id: usize) -> (Vec<usize>, bool) {
-        let source = self.get_mut(id);
+        let function = self.get_mut(id);
 
         // refresh any constant inputs it may have
-        let refilled = source.init_inputs(false);
+        let refilled = function.init_inputs(false);
 
-        (refilled, source.inputs_full())
+        (refilled, function.inputs_full())
     }
 
     /*
@@ -1520,12 +1520,46 @@ mod tests {
             let mut debugger = Debugger::new(test_debug_client());
             state.init();
 
-            // Send multiple inputs to f_a
-            state.send_value(1, 0, 0, json!([1, 2]), &mut metrics, &mut debugger);
+            // Send multiple inputs to f_a via an array
+            state.send_value(1, 0, 0, json!([1, 2, 3, 4]), &mut metrics, &mut debugger);
 
             // Test
             assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a job for function_id=0 (f_a) for running");
             assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a second job for function_id=0 (f_a) for running");
+            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a third job for function_id=0 (f_a) for running");
+            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a fourth job for function_id=0 (f_a) for running");
+        }
+
+        /*
+              Check that we can accumulate a number of inputs values on a function's input when an array
+              of the same type is sent to it, and then get multiple jobs for execution
+        */
+        #[test]
+        fn can_create_multiple_jobs_with_initializer() {
+            let f_a = Function::new("f_a".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!(Input::new(1, &None, false),
+                                         Input::new(1,
+                                                    &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
+                                                    false)),
+                                    0,
+                                    &vec!());
+            let functions = vec!(f_a);
+            let mut state = RunState::new(functions, 4);
+            let mut metrics = Metrics::new(1);
+            let mut debugger = Debugger::new(test_debug_client());
+            state.init();
+
+            // Send multiple inputs to f_a via an array
+            state.send_value(1, 0, 0, json!([1, 2, 3, 4]), &mut metrics, &mut debugger);
+
+            // Test
+            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a job for function_id=0 (f_a) for running");
+            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a second job for function_id=0 (f_a) for running");
+            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a third job for function_id=0 (f_a) for running");
+            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a fourth job for function_id=0 (f_a) for running");
         }
     }
 }
