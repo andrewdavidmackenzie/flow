@@ -1500,5 +1500,32 @@ mod tests {
             assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a job for function_id=0 (f_a) for running");
             assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a second job for function_id=0 (f_a) for running");
         }
+
+        /*
+            Check that we can accumulate a number of inputs values on a function's input when an array
+            of the same type is sent to it, and then get multiple jobs for execution
+        */
+        #[test]
+        fn can_create_multiple_jobs_from_array() {
+            let f_a = Function::new("f_a".to_string(), // name
+                                    "/context/fA".to_string(),
+                                    "/test".to_string(),
+                                    false,
+                                    vec!(Input::new(1, &None, false)),
+                                    0,
+                                    &vec!());
+            let functions = vec!(f_a);
+            let mut state = RunState::new(functions, 4);
+            let mut metrics = Metrics::new(1);
+            let mut debugger = Debugger::new(test_debug_client());
+            state.init();
+
+            // Send multiple inputs to f_a
+            state.send_value(1, 0, 0, json!([1, 2]), &mut metrics, &mut debugger);
+
+            // Test
+            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a job for function_id=0 (f_a) for running");
+            assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a second job for function_id=0 (f_a) for running");
+        }
     }
 }
