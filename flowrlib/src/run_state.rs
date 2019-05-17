@@ -364,7 +364,7 @@ impl RunState {
         too many jobs already running
     */
     pub fn next_job(&mut self) -> Option<Job> {
-        if self.ready.is_empty() || self.running.len() >= self.max_jobs {
+        if self.ready.is_empty() || self.number_jobs_running() >= self.max_jobs {
             return None;
         }
 
@@ -563,7 +563,11 @@ impl RunState {
     }
 
     pub fn number_jobs_running(&self) -> usize {
-        self.running.len()
+        let mut num_running_jobs = 0;
+        for (_, vector) in self.running.iter_all() {
+            num_running_jobs += vector.len()
+        };
+        num_running_jobs
     }
 
     pub fn number_jobs_ready(&self) -> usize {
