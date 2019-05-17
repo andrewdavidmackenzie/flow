@@ -16,7 +16,7 @@ pub struct Debugger {
 }
 
 const HELP_STRING: &str = "Debugger commands:
-'b' | 'breakpoint' {spec}    - Set a breakpoint on a process, an output or an input using spec:
+'b' | 'breakpoint' {spec}    - Set a breakpoint on a function (by id), an output or an input using spec:
                                 - function_id
                                 - source_id/output_route ('source_id/' for default output route)
                                 - destination_id:input_number
@@ -189,7 +189,7 @@ impl Debugger {
 
     fn add_breakpoint(&mut self, state: &RunState, param: Option<Param>) {
         match param {
-            None => self.client.display("'break' command must specify a process id to break on"),
+            None => self.client.display("'break' command must specify a process id to break on\n"),
             Some(Param::Numeric(process_id)) => {
                 if process_id > state.num_functions() {
                     self.client.display(

@@ -1,0 +1,8 @@
+function = "ComposeArray"
+
+[[input]]
+type = "Number"
+depth = 2
+
+[[output]]
+type = "Array/Number"

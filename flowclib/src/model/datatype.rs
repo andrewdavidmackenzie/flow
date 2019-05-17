@@ -9,6 +9,7 @@ pub trait HasDataType {
 pub trait TypeCheck {
     fn valid(&self) -> Result<(), String>;
     fn is_array(&self) -> bool;
+    fn is_generic(&self) -> bool;
 }
 
 impl TypeCheck for DataType {
@@ -26,6 +27,10 @@ impl TypeCheck for DataType {
 
     fn is_array(&self) -> bool {
         self == &DataType::from("Array")
+    }
+
+    fn is_generic(&self) -> bool {
+        self == &DataType::from("Json")
     }
 }
 
