@@ -11,6 +11,7 @@ use model::function::Function;
 use model::name::HasName;
 use model::route::HasRoute;
 use model::io::IO;
+use model::datatype::TypeCheck;
 
 #[derive(Serialize)]
 pub struct GenerationTables {
@@ -48,7 +49,7 @@ impl From<&Flow> for MetaData {
 
 impl From<&IO> for Input {
     fn from(io: &IO) -> Self {
-        Input::new(io.depth(), io.get_initializer())
+        Input::new(io.depth(), io.get_initializer(), io.datatype(0).is_array())
     }
 }
 
@@ -298,6 +299,42 @@ mod test {
       'initializer': {
         'constant': 1
       }
+    }
+  ]
+}";
+
+        let br = Box::new(function) as Box<Function>;
+        let process = function_to_runtimefunction("/test", &br, false);
+
+        println!("process {}", process);
+
+        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        assert_eq!(expected.replace("'", "\""), serialized_process);
+    }
+
+    #[test]
+    fn function_with_array_input_generation() {
+        let io = IO::new(&"Array/String".to_string(), &"".to_string());
+
+        let function = Function::new(
+            "Stdout".to_string(),
+            false,
+            Some("lib://runtime/stdio/stdout".to_string()),
+            "print".to_string(),
+            Some(vec!(io)),
+            None,
+            "file:///fake/file".to_string(),
+            "/flow0/stdout".to_string(),
+            None,
+            vec!(),
+            0);
+
+        let expected = "{
+  'id': 0,
+  'implementation_source': 'lib://runtime/stdio/stdout',
+  'inputs': [
+    {
+      'is_array': true
     }
   ]
 }";

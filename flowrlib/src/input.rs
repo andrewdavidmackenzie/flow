@@ -25,6 +25,8 @@ pub struct Input {
     depth: usize,
     #[serde(default = "default_initial_value", skip_serializing_if = "Option::is_none")]
     pub initializer: Option<InputInitializer>,
+    #[serde(default = "default_is_array", skip_serializing_if = "is_not_array")]
+    pub is_array: bool,
     #[serde(skip)]
     received: Vec<Value>,
 }
@@ -39,6 +41,12 @@ impl fmt::Display for Input {
     }
 }
 
+fn is_not_array(is_array: &bool) -> bool {
+    !*is_array
+}
+
+fn default_is_array() -> bool { false }
+
 fn is_default_depth(depth: &usize) -> bool {
     *depth == default_depth()
 }
@@ -52,11 +60,12 @@ fn default_initial_value() -> Option<InputInitializer> {
 }
 
 impl Input {
-    pub fn new(depth: usize, initial_value: &Option<InputInitializer>) -> Self {
+    pub fn new(depth: usize, initial_value: &Option<InputInitializer>, is_array: bool) -> Self {
         Input {
             depth,
             initializer: initial_value.clone(),
             received: Vec::with_capacity(depth),
+            is_array
         }
     }
 
@@ -111,27 +120,27 @@ mod test {
 
     #[test]
     fn no_inputs_initially() {
-        let input = Input::new(1, &None);
+        let input = Input::new(1, &None, false);
         assert!(input.is_empty());
     }
 
     #[test]
     fn accepts_value() {
-        let mut input = Input::new(1, &None);
+        let mut input = Input::new(1, &None, false);
         input.push(Value::Null);
         assert!(!input.is_empty());
     }
 
     #[test]
     fn gets_full() {
-        let mut input = Input::new(1, &None);
+        let mut input = Input::new(1, &None, false);
         input.push(Value::Null);
         assert!(input.full());
     }
 
     #[test]
     fn take_empties() {
-        let mut input = Input::new(1, &None);
+        let mut input = Input::new(1, &None, false);
         input.push(json!(10));
         assert!(!input.is_empty());
         input.take();
@@ -140,7 +149,7 @@ mod test {
 
     #[test]
     fn reset_empties() {
-        let mut input = Input::new(1, &None);
+        let mut input = Input::new(1, &None, false);
         input.push(json!(10));
         assert!(!input.is_empty());
         input.reset();
@@ -149,7 +158,7 @@ mod test {
 
     #[test]
     fn depth_works() {
-        let mut input = Input::new(2, &None);
+        let mut input = Input::new(2, &None, false);
         input.push(json!(5));
         assert!(!input.full());
         input.push(json!(10));
@@ -159,7 +168,7 @@ mod test {
 
     #[test]
     fn can_hold_more_than_depth() {
-        let mut input = Input::new(2, &None);
+        let mut input = Input::new(2, &None, false);
         input.push(json!(5));
         input.push(json!(10));
         input.push(json!(15));
@@ -170,7 +179,7 @@ mod test {
 
     #[test]
     fn can_take_from_more_than_depth() {
-        let mut input = Input::new(2, &None);
+        let mut input = Input::new(2, &None, false);
         input.push(json!(5));
         input.push(json!(10));
         input.push(json!(15));

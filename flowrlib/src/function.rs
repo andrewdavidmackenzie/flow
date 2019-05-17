@@ -206,7 +206,7 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/context/test".to_string(),
                                          "/test".to_string(), false,
-                                         vec!(Input::new(1, &None)),
+                                         vec!(Input::new(1, &None, false)),
                                          0,
                                          &vec!());
         function.init_inputs(true);
@@ -219,7 +219,7 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/context/test".to_string(),
                                          "/test".to_string(), false,
-                                         vec!(Input::new(1, &None)),
+                                         vec!(Input::new(1, &None, false)),
                                          0,
                                          &vec!());
         function.init_inputs(true);

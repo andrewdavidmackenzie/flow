@@ -429,7 +429,7 @@ impl RunState {
                                                      output.job_id, output.function_id));
                 }
 
-                // did it produce any output value
+                // if it produced an output value
                 if let Some(output_v) = output_value {
                     debug!("\tProcessing output value '{}' from Job #{}", output_v, output.job_id);
 
@@ -452,7 +452,7 @@ impl RunState {
                                                 &output_value, *destination_id, *io_number);
 
                         self.send_value(output.function_id, *destination_id,
-                                           *io_number, output_value.clone(), metrics, debugger);
+                                        *io_number, output_value.clone(), metrics, debugger);
                     }
                 }
 
@@ -523,7 +523,7 @@ impl RunState {
         Removes any entry from the running list where k=function_id AND v=job_id
         as there maybe more than one job running with function_id
     */
-    pub  fn done(&mut self, output: &Output) {
+    pub fn done(&mut self, output: &Output) {
         self.running.retain(|&k, &v| k != output.function_id || v != output.job_id);
     }
 
@@ -740,7 +740,7 @@ mod tests {
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &None)),
+                                    vec!(Input::new(1, &None, false)),
                                     1,
                                     &vec!());
             let functions = vec!(f_a, f_b);
@@ -759,14 +759,16 @@ mod tests {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    vec!(Input::new(1,
+                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
+                                                    false)),
                                     0,
                                     &vec!(("".to_string(), 1, 0))); // outputs to fB:0
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &None)),
+                                    vec!(Input::new(1, &None, false)),
                                     1,
                                     &vec!());
             let functions = vec!(f_a, f_b);
@@ -785,7 +787,9 @@ mod tests {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    vec!(Input::new(1,
+                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
+                                                    false)),
                                     0,
                                     &vec!());
             let functions = vec!(f_a);
@@ -810,14 +814,18 @@ mod tests {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    vec!(Input::new(1,
+                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
+                                                    false)),
                                     0,
                                     &vec!(("".to_string(), 1, 0))); // outputs to fB:0
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    vec!(Input::new(1,
+                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
+                                                    false)),
                                     1,
                                     &vec!());
             let functions = vec!(f_b, f_a);
@@ -837,7 +845,7 @@ mod tests {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &None)),
+                                    vec!(Input::new(1, &None, false)),
                                     0,
                                     &vec!());
             let functions = vec!(f_a);
@@ -856,7 +864,9 @@ mod tests {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    vec!(Input::new(1,
+                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
+                                                    false)),
                                     0,
                                     &vec!());
             let functions = vec!(f_a);
@@ -879,7 +889,7 @@ mod tests {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &None)),
+                                    vec!(Input::new(1, &None, false)),
                                     0,
                                     &vec!());
             let functions = vec!(f_a);
@@ -900,14 +910,18 @@ mod tests {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    vec!(Input::new(1,
+                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
+                                                    false)),
                                     0,
                                     &vec!(("".to_string(), 1, 0))); // outputs to fB:0
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    vec!(Input::new(1,
+                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
+                                                    false)),
                                     1,
                                     &vec!());
             let functions = vec!(f_b, f_a); // NOTE the order!
@@ -941,7 +955,9 @@ mod tests {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
+                                    vec!(Input::new(1,
+                                                    &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
+                                                    false)),
                                     0,
                                     &vec!());
             let functions = vec!(f_a);
@@ -978,7 +994,9 @@ mod tests {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    vec!(Input::new(1,
+                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
+                                                    false)),
                                     0,
                                     &vec!());
             let functions = vec!(f_a);
@@ -1016,14 +1034,16 @@ mod tests {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
+                                    vec!(Input::new(1,
+                                                    &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
+                                                    false)),
                                     0,
                                     &vec!(("".to_string(), 1, 0))); // outputs to fB:0
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &None)),
+                                    vec!(Input::new(1, &None, false)),
                                     1,
                                     &vec!());
             let functions = vec!(f_a, f_b);
@@ -1061,14 +1081,14 @@ mod tests {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &None)),
+                                    vec!(Input::new(1, &None, false)),
                                     0,
                                     &vec!());
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &None)),
+                                    vec!(Input::new(1, &None, false)),
                                     1,
                                     &vec!(("".into(), 0, 0)));
             let functions = vec!(f_a, f_b);
@@ -1099,14 +1119,16 @@ mod tests {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &None)),
+                                    vec!(Input::new(1, &None, false)),
                                     0,
                                     &vec!(("".to_string(), 1, 0))); // outputs to fB:0
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
+                                    vec!(Input::new(1,
+                                                    &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
+                                                    false)),
                                     1,
                                     &vec!(("".into(), 0, 0)));
             let functions = vec!(f_a, f_b);
@@ -1144,7 +1166,9 @@ mod tests {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    vec!(Input::new(1,
+                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
+                                                    false)),
                                     0,
                                     &vec!(
                                         ("".to_string(), 0, 0), // outputs to self:0
@@ -1154,7 +1178,7 @@ mod tests {
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &None)),
+                                    vec!(Input::new(1, &None, false)),
                                     1,
                                     &vec!());
             let functions = vec!(f_a, f_b); // NOTE the order!
@@ -1231,13 +1255,13 @@ mod tests {
                                    "/context/p1".to_string(),
                                    "/test".to_string(),
                                    false,
-                                   vec!(Input::new(1, &None)), // inputs array
+                                   vec!(Input::new(1, &None, false)), // inputs array
                                    1,    // id
                                    &vec!());
             let p2 = Function::new("p2".to_string(),
                                    "/context/p2".to_string(),
                                    "/test".to_string(),
-                                   false, vec!(Input::new(1, &None)), // inputs array
+                                   false, vec!(Input::new(1, &None, false)), // inputs array
                                    2,    // id
                                    &vec!());
             vec!(p0, p1, p2)
@@ -1368,7 +1392,9 @@ mod tests {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    vec!(Input::new(1,
+                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
+                                                    false)),
                                     0,
                                     &vec!());
 
@@ -1406,14 +1432,18 @@ mod tests {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                    vec!(Input::new(1,
+                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
+                                                    false)),
                                     0,
                                     &vec!(("".to_string(), 1, 0)));
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
+                                    vec!(Input::new(1,
+                                                    &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
+                                                    false)),
                                     1,
                                     &vec!());
             let functions = vec!(f_a, f_b);
@@ -1453,7 +1483,7 @@ mod tests {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     false,
-                                    vec!(Input::new(1, &None)),
+                                    vec!(Input::new(1, &None, false)),
                                     0,
                                     &vec!());
             let functions = vec!(f_a);
