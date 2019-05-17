@@ -194,7 +194,7 @@ impl Coordinator {
         if self.display_metrics {
             #[cfg(feature = "metrics")]
             println!("\nMetrics: \n {}", metrics);
-            println!("\t\t   Jobs sent: \t{}\n", state.jobs());
+            println!("\t\tJobs processed: \t{}\n", state.jobs());
         }
     }
 
@@ -210,9 +210,6 @@ impl Coordinator {
             display_output = false;
             restart = false;
 
-            #[cfg(feature = "metrics")]
-                metrics.track_max_jobs(state.number_jobs_running());
-
             if cfg!(feature = "logging") && log_enabled!(Debug) {
                 debug!("{}", state);
             }
@@ -227,7 +224,7 @@ impl Coordinator {
                 }
             }
 
-            self.send_job(state, job);
+            self.send_job(state, metrics, job);
         }
 
         (display_output, restart)
@@ -238,8 +235,11 @@ impl Coordinator {
         - if impure, then needs to be run on the main thread which has stdio (stdin in particular)
         - if pure send it on the 'job_tx' channel where executors will pick it up by an executor
     */
-    fn send_job(&self, state: &mut RunState, job: Job) {
+    fn send_job(&self, state: &mut RunState, metrics: &mut Metrics, job: Job) {
         state.start(&job);
+        #[cfg(feature = "metrics")]
+        metrics.track_max_jobs(state.number_jobs_running());
+
         match self.job_tx.send(job) {
             Ok(_) => debug!("Job sent to Executors"),
             Err(err) => error!("Error sending on 'job_tx': {}", err)

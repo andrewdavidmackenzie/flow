@@ -127,9 +127,15 @@ impl Function {
 
     pub fn is_pure(field: &bool) -> bool { !*field }
 
+    /*
+        The value being sent maybe an Array of values, in which case if the destination input does
+        not accept Array, then iterate over the contents of the array and send each one to the
+        input individually
+    */
     pub fn write_input(&mut self, input_number: usize, input_value: Value) {
         let input = &mut self.inputs[input_number];
         if input_value.is_array() && !input.is_array {
+            debug!("Serializing Array value to non-Array input");
             for value in input_value.as_array().unwrap().iter() {
                 input.push(value.clone());
             }
