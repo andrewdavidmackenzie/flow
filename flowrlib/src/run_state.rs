@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::fmt;
 use std::sync::Arc;
-
+use std::collections::VecDeque;
 use debugger::Debugger;
 use function::Function;
 use implementation::Implementation;
@@ -192,7 +192,7 @@ pub struct RunState {
     // blocked: HashSet<function_id>
     blocks: Vec<(usize, usize, usize)>,
     // blocking: Vec<(blocking_id, blocking_io_number, blocked_id)>
-    ready: Vec<usize>,
+    ready: VecDeque<usize>,
     // ready: Vec<function_id>
     running: MultiMap<usize, usize>,
     // running: MultiMap<function_id, job_id>
@@ -208,7 +208,7 @@ impl RunState {
             functions,
             blocked: HashSet::<usize>::new(),
             blocks: Vec::<(usize, usize, usize)>::new(),
-            ready: Vec::<usize>::new(),
+            ready: VecDeque::<usize>::new(),
             running: MultiMap::<usize, usize>::new(),
             #[cfg(feature = "debugger")]
             jobs: 0,
@@ -627,7 +627,7 @@ impl RunState {
     }
 
     fn mark_ready(&mut self, id: usize) {
-        self.ready.push(id);
+        self.ready.push_back(id);
     }
 
     pub fn jobs(&self) -> usize {
