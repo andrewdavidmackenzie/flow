@@ -622,8 +622,12 @@ impl RunState {
             self.blocked.insert(id);
         } else {
             debug!("\t\t\tFunction #{} not blocked on output, so added to 'Ready' list", id);
-            self.ready.push(id);
+            self.mark_ready(id);
         }
+    }
+
+    fn mark_ready(&mut self, id: usize) {
+        self.ready.push(id);
     }
 
     pub fn jobs(&self) -> usize {
@@ -662,7 +666,7 @@ impl RunState {
                 if self.blocked.contains(&unblocked) && !self.is_blocked(unblocked) {
                     debug!("\t\t\tFunction #{} has inputs ready, so removed from 'blocked' and added to 'ready'", unblocked);
                     self.blocked.remove(&unblocked);
-                    self.ready.push(unblocked);
+                    self.mark_ready(unblocked);
                 }
             }
         }
