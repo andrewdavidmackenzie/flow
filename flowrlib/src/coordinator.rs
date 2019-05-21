@@ -104,7 +104,7 @@ impl Coordinator {
         debug!("Starting {} executor threads", num_threads);
         execution::start_executors(num_threads, job_rx, output_tx.clone());
 
-        execution::set_panic_hook();
+//        execution::set_panic_hook();
 
         Coordinator {
             debugging,
@@ -116,9 +116,10 @@ impl Coordinator {
         }
     }
 
-    pub fn run(&mut self, manifest: Manifest, num_parallel_jobs: usize) {
+    pub fn run(&mut self, manifest: Manifest, max_parallel_jobs: usize) {
+        debug!("Max Jobs in parallel set to {}", max_parallel_jobs);
         let output_timeout = Duration::new(1, 0);
-        let mut state = RunState::new(manifest.functions, num_parallel_jobs);
+        let mut state = RunState::new(manifest.functions, max_parallel_jobs);
         #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(state.num_functions());
 
@@ -210,10 +211,6 @@ impl Coordinator {
             display_output = false;
             restart = false;
 
-            if cfg!(feature = "logging") && log_enabled!(Debug) {
-                debug!("{}", state);
-            }
-
             if cfg!(feature = "debugger") && self.debugging {
                 let check = self.debugger.check(state, job.job_id, job.function_id);
                 display_output = check.0;
@@ -225,6 +222,10 @@ impl Coordinator {
             }
 
             self.send_job(state, metrics, job);
+
+            if cfg!(feature = "logging") && log_enabled!(Debug) {
+                debug!("{}", state);
+            }
         }
 
         (display_output, restart)

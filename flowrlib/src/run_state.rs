@@ -195,7 +195,7 @@ pub struct RunState {
     ready: Vec<usize>,
     // ready: Vec<function_id>
     running: MultiMap<usize, usize>,
-    // running: HashSet<function_id>
+    // running: MultiMap<function_id, job_id>
     jobs: usize,
     // number of jobs created to date
     max_jobs: usize,
