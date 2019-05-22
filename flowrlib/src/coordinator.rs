@@ -103,8 +103,7 @@ impl Coordinator {
 
         debug!("Starting {} executor threads", num_threads);
         execution::start_executors(num_threads, job_rx, output_tx.clone());
-
-//        execution::set_panic_hook();
+        execution::set_panic_hook();
 
         Coordinator {
             debugging,
@@ -212,7 +211,7 @@ impl Coordinator {
             restart = false;
 
             if cfg!(feature = "debugger") && self.debugging {
-                let check = self.debugger.check(state, job.job_id, job.function_id);
+                let check = self.debugger.check_job(state, job.job_id, job.function_id);
                 display_output = check.0;
                 restart = check.1;
 

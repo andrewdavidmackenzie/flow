@@ -190,7 +190,7 @@ pub struct RunState {
     functions: Vec<Function>,
     blocked: HashSet<usize>,
     // blocked: HashSet<function_id>
-    blocks: Vec<(usize, usize, usize)>,
+    blocks: VecDeque<(usize, usize, usize)>,
     // blocking: Vec<(blocking_id, blocking_io_number, blocked_id)>
     ready: VecDeque<usize>,
     // ready: Vec<function_id>
@@ -207,7 +207,7 @@ impl RunState {
         RunState {
             functions,
             blocked: HashSet::<usize>::new(),
-            blocks: Vec::<(usize, usize, usize)>::new(),
+            blocks: VecDeque::<(usize, usize, usize)>::new(),
             ready: VecDeque::<usize>::new(),
             running: MultiMap::<usize, usize>::new(),
             #[cfg(feature = "debugger")]
@@ -276,7 +276,7 @@ impl RunState {
         list.
     */
     fn create_init_blocks(&mut self) {
-        let mut blocks = Vec::<(usize, usize, usize)>::new();
+        let mut blocks = VecDeque::<(usize, usize, usize)>::new();
         let mut blocked = HashSet::<usize>::new();
 
         debug!("Creating any initial block entries that are needed");
@@ -295,7 +295,7 @@ impl RunState {
                     let destination_function = self.get(destination_id);
                     if destination_function.input_full(io_number) {
                         debug!("\tAdded block between #{} <-- #{}", destination_id, source_id);
-                        blocks.push((destination_id, io_number, source_id));
+                        blocks.push_back((destination_id, io_number, source_id));
                         // only put source on the blocked list if it already has it's inputs full
                         if source_has_inputs_full {
                             blocked.insert(source_id);
@@ -391,6 +391,8 @@ impl RunState {
         let job_id = self.jobs;
         self.jobs += 1;
 
+        debug!("Creating Job #{} for Function #{}" , job_id, function_id);
+
         let function = self.get_mut(function_id);
 
         let input_set = function.take_input_set();
@@ -399,7 +401,7 @@ impl RunState {
         let refilled = function.init_inputs(false);
         let all_refilled = refilled.len() == function.inputs().len();
 
-        debug!("Preparing Job for Function #{} '{}' with inputs: {:?}", function_id, function.name(), input_set);
+        debug!("Job #{},  Function #{} '{}', Input set: {:?}", job_id, function_id, function.name(), input_set);
 
         let implementation = function.get_implementation();
 
@@ -432,9 +434,9 @@ impl RunState {
                 let output_value = &output.result.0;
                 let source_can_run_again = output.result.1;
 
-                debug!("\tCompleted Job #{} of Function #{}", output.job_id, output.function_id);
+                debug!("\tCompleted Job #{} for Function #{}", output.job_id, output.function_id);
                 if cfg!(feature = "debugger") && display_output {
-                    debugger.client.display(&format!("Completed Job #{} of Function #{}\n",
+                    debugger.client.display(&format!("Completed Job #{} for Function #{}\n",
                                                      output.job_id, output.function_id));
                 }
 
@@ -443,12 +445,12 @@ impl RunState {
                     debug!("\tProcessing output value '{}' from Job #{}", output_v, output.job_id);
 
                     if cfg!(feature = "debugger") && display_output {
-                        debugger.client.display(&format!("\tOutput value {}\n", &output_v));
+                        debugger.client.display(&format!("\tOutput value: '{}'\n", &output_v));
                     }
 
                     for (ref output_route, destination_id, io_number) in &output.destinations {
                         let output_value = output_v.pointer(&output_route).unwrap();
-                        debug!("\t\tJob #{} sending value '{}' via output route '{}' to Function #{} input :{}",
+                        debug!("\t\tJob #{} sending value '{}' via output route '{}' to Function #{}:{}",
                                output.job_id, output_value, output_route, &destination_id, &io_number);
                         if cfg!(feature = "debugger") && display_output {
                             debugger.client.display(
@@ -627,7 +629,9 @@ impl RunState {
     }
 
     fn mark_ready(&mut self, id: usize) {
-        self.ready.push_back(id);
+        if !self.ready.contains(&id) {
+            self.ready.push_back(id);
+        }
     }
 
     pub fn jobs(&self) -> usize {
@@ -650,7 +654,7 @@ impl RunState {
 
             for &(blocking_id, blocking_io_number, blocked_id) in &self.blocks {
                 if (blocking_id == blocker_id) && !refilled_inputs.contains(&blocking_io_number) {
-                    debug!("\t\tFunction #{} <-- #{} - blocked removed", blocking_id, blocked_id);
+                    debug!("\t\tBlock removed #{}:{} <-- #{}", blocking_id, blocking_io_number, blocked_id);
                     unblocked_list.push(blocked_id);
                 }
             }
@@ -664,7 +668,7 @@ impl RunState {
             // Note, they could be blocked on other functions apart from the the one that just unblocked
             for unblocked in unblocked_list {
                 if self.blocked.contains(&unblocked) && !self.is_blocked(unblocked) {
-                    debug!("\t\t\tFunction #{} has inputs ready, so removed from 'blocked' and added to 'ready'", unblocked);
+                    debug!("\t\t\tFunction #{} has inputs ready, so removed from 'blocked' list and added to 'ready' list", unblocked);
                     self.blocked.remove(&unblocked);
                     self.mark_ready(unblocked);
                 }
@@ -683,7 +687,8 @@ impl RunState {
         if blocked_id != blocking_id {
             debug!("\t\t\tProcess #{}:{} <-- Process #{} blocked", &blocking_id,
                    &blocking_io_number, &blocked_id);
-            self.blocks.push((blocking_id, blocking_io_number, blocked_id));
+
+            self.blocks.push_back((blocking_id, blocking_io_number, blocked_id));
             #[cfg(feature = "debugger")]
                 debugger.check_block(self, blocking_id, blocking_io_number, blocked_id);
         }
@@ -697,8 +702,8 @@ impl fmt::Display for RunState {
         write!(f, "   Processes: {}\n", self.functions.len())?;
         write!(f, "        Jobs: {}\n", self.jobs)?;
         write!(f, "     Blocked: {:?}\n", self.blocked)?;
-        write!(f, "    Blocking: {:?}\n", self.blocks)?;
-        write!(f, "    Ready: {:?}\n", self.ready)?;
+        write!(f, "      Blocks: {:?}\n", self.blocks)?;
+        write!(f, "       Ready: {:?}\n", self.ready)?;
         write!(f, "     Running: {:?}\n", self.running)
     }
 }
