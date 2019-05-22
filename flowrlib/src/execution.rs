@@ -61,12 +61,9 @@ fn execute(job: Job, output_tx: &Sender<Output>) {
     runtime panic.
 */
 pub fn set_panic_hook() {
-    // TODO
-    /*
     panic::set_hook(Box::new(|panic_info| {
         if let Some(location) = panic_info.location() {
             error!("panic occurred in file '{}' at line {}", location.file(), location.line());
         }
     }));
-    */
 }

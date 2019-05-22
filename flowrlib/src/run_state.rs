@@ -391,7 +391,7 @@ impl RunState {
         let job_id = self.jobs;
         self.jobs += 1;
 
-        debug!("Creating Job #{} for Function #{}" , job_id, function_id);
+        debug!("Creating Job #{} for Function #{}", job_id, function_id);
 
         let function = self.get_mut(function_id);
 
@@ -668,9 +668,13 @@ impl RunState {
             // Note, they could be blocked on other functions apart from the the one that just unblocked
             for unblocked in unblocked_list {
                 if self.blocked.contains(&unblocked) && !self.is_blocked(unblocked) {
-                    debug!("\t\t\tFunction #{} has inputs ready, so removed from 'blocked' list and added to 'ready' list", unblocked);
+                    debug!("\t\t\tFunction #{} removed from 'blocked' list", unblocked);
                     self.blocked.remove(&unblocked);
-                    self.mark_ready(unblocked);
+
+                    if self.get(unblocked).inputs_full() {
+                        debug!("\t\t\tFunction #{} has inputs ready, so added to 'ready' list", unblocked);
+                        self.mark_ready(unblocked);
+                    }
                 }
             }
         }
