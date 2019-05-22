@@ -688,9 +688,11 @@ impl RunState {
             debug!("\t\t\tProcess #{}:{} <-- Process #{} blocked", &blocking_id,
                    &blocking_io_number, &blocked_id);
 
-            self.blocks.push_back((blocking_id, blocking_io_number, blocked_id));
-            #[cfg(feature = "debugger")]
-                debugger.check_block(self, blocking_id, blocking_io_number, blocked_id);
+            if !self.blocks.contains(&(blocking_id, blocking_io_number, blocked_id)) {
+                self.blocks.push_back((blocking_id, blocking_io_number, blocked_id));
+                #[cfg(feature = "debugger")]
+                    debugger.check_block(self, blocking_id, blocking_io_number, blocked_id);
+            }
         }
     }
 }
