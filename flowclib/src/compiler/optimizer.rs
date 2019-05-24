@@ -3,7 +3,6 @@ use model::route::HasRoute;
 use model::connection::Connection;
 use model::function::Function;
 use model::name::HasName;
-use model::route::Router;
 
 /*
     Keep removing dead processes (that have no effect) and any connection that goes
@@ -26,8 +25,8 @@ fn remove_dead_processes(tables: &mut GenerationTables) -> bool {
             let removed_route = function.route();
             // remove connections to and from the process
             for (conn_index, connection) in tables.collapsed_connections.iter().enumerate() {
-                if connection.from_io.route().starts_with(removed_route) ||
-                    connection.to_io.route().starts_with(removed_route) {
+                if connection.from_io.route().sub_route_of(removed_route) ||
+                    connection.to_io.route().sub_route_of(removed_route) {
                     debug!("Connection for removal {}",connection);
                     connections_to_remove.push(conn_index);
                 }
@@ -69,9 +68,9 @@ fn connection_from_function(connections: &Vec<Connection>, function: &Box<Functi
         for output in outputs {
             let route = output.route();
             for connection in connections {
-                let connection_route = Router::without_trailing_array_index(connection.from_io.route());
+                let (connection_route, _, _) = connection.from_io.route().without_trailing_array_index();
                 // connection route without any trailing array index
-                if connection_route.0.to_string() == *route {
+                if connection_route.into_owned() == *route {
                     return true;
                 }
             }

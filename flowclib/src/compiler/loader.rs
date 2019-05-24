@@ -12,6 +12,7 @@ use model::process::Process;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
 use model::route::Route;
+use model::name::Name;
 use model::route::SetRoute;
 use std::fmt;
 
@@ -61,7 +62,7 @@ impl fmt::Display for DeserializeError {
     }
 }
 
-// Any deserializer has to implement this method
+// All deserializers have to implement this method
 pub trait Deserializer {
     fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process, DeserializeError>;
 }
@@ -110,10 +111,10 @@ pub trait Validate {
 /// flowclib::compiler::loader::load_context("file:///example.toml", &dummy_provider).unwrap();
 /// ```
 pub fn load_context(url: &str, provider: &Provider) -> Result<Process, String> {
-    load_process("", "context", url, provider, &None)
+    load_process(&Route::from(""), &Name::from("context"), url, provider, &None)
 }
 
-fn load_process(parent_route: &str, alias: &str, url: &str, provider: &Provider,
+fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provider,
                 initializations: &Option<HashMap<String, InputInitializer>>) -> Result<Process, String> {
     let (resolved_url, lib_ref) = provider.resolve(url, "context.toml")?;
     let contents = provider.get(&resolved_url)?;
@@ -126,12 +127,12 @@ fn load_process(parent_route: &str, alias: &str, url: &str, provider: &Provider,
 
     match process {
         FlowProcess(ref mut flow) => {
-            config_flow(flow, &resolved_url, &String::from(parent_route), alias, initializations)?;
+            config_flow(flow, &resolved_url, parent_route, alias, initializations)?;
             load_subprocesses(flow, provider)?;
             flow.build_connections()?;
         }
         FunctionProcess(ref mut function) => {
-            config_function(function, &resolved_url, &String::from(parent_route), alias, lib_ref,
+            config_function(function, &resolved_url, parent_route, alias, lib_ref,
                             initializations)?;
         }
     }
@@ -159,10 +160,10 @@ fn load_subprocesses(flow: &mut Flow, provider: &Provider) -> Result<(), String>
     Ok(())
 }
 
-fn config_function(function: &mut Function, source_url: &str, parent_route: &Route, alias: &str,
+fn config_function(function: &mut Function, source_url: &str, parent_route: &Route, alias: &Name,
                    lib_ref: Option<String>, initializations: &Option<HashMap<String, InputInitializer>>)
                    -> Result<(), String> {
-    function.set_alias(alias.to_string());
+    function.set_alias(alias);
     function.set_source_url(source_url.clone());
     function.set_lib_reference(lib_ref);
     function.set_routes_from_parent(parent_route);
@@ -170,10 +171,10 @@ fn config_function(function: &mut Function, source_url: &str, parent_route: &Rou
     function.validate()
 }
 
-fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &str,
+fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &Name,
                initializations: &Option<HashMap<String, InputInitializer>>)
                -> Result<(), String> {
-    flow.alias = alias.to_string();
+    flow.alias = alias.clone();
     flow.source_url = source_url.to_string();
     IO::set_initial_values(flow.inputs_mut(), initializations);
     flow.set_routes_from_parent(parent_route);

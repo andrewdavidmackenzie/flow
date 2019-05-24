@@ -122,10 +122,10 @@ impl fmt::Display for Flow {
 impl Default for Flow {
     fn default() -> Flow {
         Flow {
-            name: "".to_string(),
-            alias: "".to_string(),
+            name: Name::default(),
+            alias: Name::default(),
             source_url: Flow::default_url(),
-            route: "".to_string(),
+            route: Route::default(),
             process_refs: None,
             inputs: None,
             outputs: None,
@@ -156,7 +156,7 @@ impl HasRoute for Flow {
 
 impl SetRoute for Flow {
     fn set_routes_from_parent(&mut self, parent_route: &Route) {
-        self.route = format!("{}/{}", parent_route, self.alias);
+        self.route = Route::from(format!("{}/{}", parent_route, self.alias));
         self.inputs.set_io_routes_from_parent(&self.route, IOType::FlowInput);
         self.outputs.set_io_routes_from_parent(&self.route, IOType::FlowOutput);
     }
@@ -193,18 +193,19 @@ impl Flow {
 
     // TODO create a trait HasInputs and HasOutputs and implement it for function and flow
     // and process so this below can avoid the match
-    fn get_io_subprocess(&mut self, subprocess_alias: &str, direction: Direction, route: &Route,
+    fn get_io_subprocess(&mut self, subprocess_alias: &Name, direction: Direction, route: &Route,
                          initial_value: &Option<InputInitializer>) -> Result<IO, String> {
         if let Some(ref mut process_refs) = self.process_refs {
             for mut process_ref in process_refs {
                 debug!("\tLooking in process_ref with alias = '{}'", process_ref.alias);
-                if subprocess_alias == process_ref.alias().clone() {
+                if *subprocess_alias == process_ref.alias().clone() {
                     match process_ref.process {
                         FlowProcess(ref mut sub_flow) => {
                             debug!("\tFlow sub-process with matching name found, name = '{}'", process_ref.alias);
+                            let io_name = Name::from(route);
                             return match direction {
-                                Direction::TO => sub_flow.inputs.find_by_name(route, initial_value),
-                                Direction::FROM => sub_flow.outputs.find_by_name(route, &None)
+                                Direction::TO => sub_flow.inputs.find_by_name(&io_name, initial_value),
+                                Direction::FROM => sub_flow.outputs.find_by_name(&io_name, &None)
                             };
                         }
                         FunctionProcess(ref mut function) => {
@@ -233,7 +234,7 @@ impl Flow {
 
         let object_type = segments.remove(0); // first part is type of object
         let object_name = &Name::from(segments.remove(0)); // second part is the name of it
-        let route = segments.join("/");       // the rest is a sub-route
+        let route = Route::from(segments.join("/"));       // the rest is a sub-route
 
         debug!("Looking for connection {:?} '{}' called '{}' with route '{}'", direction, object_type, object_name, route);
 

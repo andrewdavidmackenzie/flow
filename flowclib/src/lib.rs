@@ -15,6 +15,7 @@ extern crate strfmt;
 extern crate url;
 extern crate serde_yaml;
 extern crate flowrlib;
+#[macro_use] extern crate shrinkwraprs;
 
 pub mod deserializers;
 pub mod dumper;

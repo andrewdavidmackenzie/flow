@@ -6,13 +6,12 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 use model::process_reference::ProcessReference;
 use model::io::IOSet;
-use model::name::Name;
 use model::route::Route;
-use model::route::Router;
 use model::route::HasRoute;
 use model::route::FindRoute;
 use model::connection::Connection;
 use model::name::HasName;
+use model::name::Name;
 use model::function::Function;
 use model::process::Process::FlowProcess;
 use model::process::Process::FunctionProcess;
@@ -72,7 +71,7 @@ pub fn functions_to_dot(flow: &Flow, tables: &GenerationTables, output_dir: &Pat
     info!("==== Dumper: Dumping functions to functions.dot file in '{}'", output_dir.display());
     let mut dot_file = helper::create_output_file(&output_dir, "functions", "dot")?;
     info!("Generating Functions dot file {}, Use \"dotty\" to view it", output_dir.display());
-    dot_file.write_all(format!("digraph {} {{\nnodesep=1.0\n", str::replace(&flow.alias, "-", "_")).as_bytes())?;
+    dot_file.write_all(format!("digraph {} {{\nnodesep=1.0\n", str::replace(&flow.alias.to_string(), "-", "_")).as_bytes())?;
     dot_file.write_all(&format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
 
 
@@ -92,21 +91,21 @@ fn index_from_name<T: Hash>(t: &T, length: usize) -> usize {
     index as usize
 }
 
-fn input_name_to_port(name: &Name) -> &str {
-    INPUT_PORTS[index_from_name(name, INPUT_PORTS.len())]
+fn input_name_to_port<T: Hash>(t: &T) -> &str {
+    INPUT_PORTS[index_from_name(t, INPUT_PORTS.len())]
 }
 
-fn output_name_to_port(name: &Name) -> &str {
-    OUTPUT_PORTS[index_from_name(name, OUTPUT_PORTS.len())]
+fn output_name_to_port<T: Hash>(t: &T) -> &str {
+    OUTPUT_PORTS[index_from_name(t, OUTPUT_PORTS.len())]
 }
 
 fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IOSet) -> String {
-    let (from_route, number, array_index) = Router::without_trailing_array_index(&connection.from_io.route());
+    let (from_route, number, array_index) = connection.from_io.route().without_trailing_array_index();
 
-    let (from_node, from_label) = node_from_io_route(&from_route.to_string(), &connection.from_io.name(), input_set);
+    let (from_node, from_label) = node_from_io_route(&from_route, connection.from_io.name(), input_set);
     let (to_node, to_label) = node_from_io_route(&connection.to_io.route(), &connection.to_io.name(), output_set);
-    let from_port = output_name_to_port(&connection.from_io.name());
-    let to_port = input_name_to_port(&connection.to_io.name());
+    let from_port = output_name_to_port(connection.from_io.name());
+    let to_port = input_name_to_port(connection.to_io.name());
 
     if array_index {
         format!("\n\t\"{}\":{} -> \"{}\":{} [labeldistance=\"3\", taillabel=\"{}[{}]\", headlabel=\"{}\"];",
@@ -125,14 +124,14 @@ fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IO
     If the input or output IS NOT the default one ("" empty string) then remove the IO name from the
     route and return that.
 */
-fn node_from_io_route(route: &Route, name: &str, io_set: &IOSet) -> (String, String) {
+fn node_from_io_route(route: &Route, name: &Name, io_set: &IOSet) -> (String, String) {
     let mut label = "".to_string();
     if !io_set.find(route) {
         label = name.to_string();
     }
 
     if name.is_empty() || io_set.find(route) {
-        return (route.clone(), label);
+        return (route.clone().to_string(), label);
     } else {
         let length_without_io_name = route.len() - name.len() - 1; // 1 for '/'
         return (route.clone()[..length_without_io_name].to_string(), label);
@@ -143,7 +142,7 @@ fn digraph_wrapper_start(flow: &Flow) -> String {
     let mut wrapper = String::new();
 
     // Create a directed graph named after the flow
-    wrapper.push_str(&format!("digraph {} {{\n", str::replace(&flow.alias, "-", "_")));
+    wrapper.push_str(&format!("digraph {} {{\n", str::replace(&flow.alias.to_string(), "-", "_")));
     wrapper.push_str(&format!("\tlabel=\"{}\";\n", flow.alias));
     wrapper.push_str("\tlabelloc=t;\n");
     wrapper.push_str("\tmargin=0.4;\n");
@@ -169,10 +168,9 @@ fn fn_to_dot(function: &Function) -> String {
     };
 
     dot_string.push_str(&format!("\t\"{}\" [style=filled, fillcolor=coral, label=\"{}{}\"]; // function @ route, label = function name \n",
-                                 function.route(),
-                                 function.alias(), name));
+                                 function.route(), function.alias(), name));
 
-    dot_string.push_str(&input_initializers(function, function.route()));
+    dot_string.push_str(&input_initializers(function, &function.route().to_string()));
 
     dot_string
 }
@@ -331,7 +329,7 @@ fn process_refs_to_dot(flow: &Flow, tables: &GenerationTables) -> io::Result<Str
             match process_ref.process {
                 FlowProcess(ref subflow) => {
                     // create cluster sub graph
-                    output.push_str(&format!("\nsubgraph cluster_{} {{\n", str::replace(&subflow.alias, "-", "_")));
+                    output.push_str(&format!("\nsubgraph cluster_{} {{\n", str::replace(&subflow.alias.to_string(), "-", "_")));
                     output.push_str(&format!("label = \"{}\";", subflow.route()));
 
                     output.push_str(&process_refs_to_dot(subflow, tables)?); // recurse

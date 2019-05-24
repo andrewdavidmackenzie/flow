@@ -35,12 +35,14 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables, String> {
 #[cfg(test)]
 mod test {
     use super::compile;
-    use ::model::flow::Flow;
-    use ::model::function::Function;
-    use ::model::io::IO;
-    use ::model::process::Process::FunctionProcess;
-    use ::model::process_reference::ProcessReference;
-    use ::model::name::HasName;
+    use model::flow::Flow;
+    use model::function::Function;
+    use model::io::IO;
+    use model::process::Process::FunctionProcess;
+    use model::process_reference::ProcessReference;
+    use model::name::HasName;
+    use model::name::Name;
+    use model::route::Route;
 
     /*
         Test for a function that is dead code. It has no connections to it or from it so will
@@ -48,22 +50,22 @@ mod test {
     */
     #[test]
     fn dead_function() {
-        let function = Function::new("Stdout".to_string(),
+        let function = Function::new(Name::from("Stdout"),
                                          false,
                                          Some("lib://runtime/stdio/stdout.toml".to_string()),
-                                         "test-function".to_string(),
+                                         Name::from("test-function"),
                                          Some(vec!(IO::new(&"String".to_string(),
-                                                           &"/context/print".to_string()))),
+                                                           &Route::from("/context/print")))),
                                          Some(vec!()),
-                                         "lib://runtime/stdio/stdout.toml".to_string(),
-                                         "/context/print".to_string(),
+                                         "lib://runtime/stdio/stdout.toml",
+                                         Route::from("/context/print"),
                                          Some("lib://runtime/stdio/stdout.toml".to_string()),
                                          vec!(),
                                          0,
         );
 
         let function_ref = ProcessReference {
-            alias: function.alias().to_string(),
+            alias: function.alias().to_owned(),
             source: "lib://runtime/stdio/stdout.toml".to_string(),
             initializations: None,
             source_url: function.get_implementation_source(),
@@ -71,8 +73,8 @@ mod test {
         };
 
         let mut flow = Flow::default();
-        flow.alias = "context".to_string();
-        flow.name = "test-flow".to_string();
+        flow.alias = Name::from("context");
+        flow.name = Name::from("test-flow");
         flow.process_refs = Some(vec!(function_ref));
 
         let _tables = compile(&flow).unwrap();

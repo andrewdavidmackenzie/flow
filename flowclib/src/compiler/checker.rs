@@ -128,6 +128,7 @@ mod test {
     use model::datatype::DataType;
     use model::io::IO;
     use model::route::Route;
+    use model::name::Name;
 
     use super::remove_duplicates;
 
@@ -137,18 +138,18 @@ mod test {
     #[test]
     fn collapse_double_connection() {
         let first = Connection {
-            name: Some("first".to_string()),
-            from: "/r1".to_string(),
-            to: "/r2".to_string(),
+            name: Some(Name::from("first")),
+            from: Route::from("/r1"),
+            to: Route::from("/r2"),
             from_io: IO::new(&DataType::from("String"), &Route::from("/r1")),
             to_io: IO::new(&DataType::from("String"), &Route::from("/r2")),
             level: 0,
         };
 
         let second = Connection {
-            name: Some("second".to_string()),
-            from: "/r1".to_string(),
-            to: "/r2".to_string(),
+            name: Some(Name::from("second")),
+            from: Route::from("/r1"),
+            to: Route::from("/r2"),
             from_io: IO::new(&DataType::from("String"), &Route::from("/r1")),
             to_io: IO::new(&DataType::from("String"), &Route::from("/r2")),
             level: 0,

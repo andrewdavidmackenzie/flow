@@ -66,6 +66,8 @@ mod test {
     use std::collections::HashMap;
     use model::process::Process;
     use model::function::Function;
+    use model::name::Name;
+    use model::route::Route;
     use flowrlib::input::InputInitializer;
     use flowrlib::input::ConstantInputInitializer;
     use flowrlib::input::InputInitializer::{Constant, OneTime};
@@ -115,12 +117,12 @@ constant = 1
         let input_initializer = super::InputInitializer::Constant(constant_initializer);
         let mut initializers = HashMap::<String, InputInitializer>::new();
         initializers.insert("input1".to_string(), input_initializer);
-        let function = Function::new("function".to_string(), true,
-                                     None, "alias".to_string(),
-                                     None, None, "url".to_string(),
-                                     "route".to_string(), None, vec!(), 0);
+        let function = Function::new(Name::from("function"), true,
+                                     None, Name::from("alias"),
+                                     None, None, "url",
+                                     Route::from("route"), None, vec!(), 0);
         let reference = ProcessReference {
-            alias: "other".to_string(),
+            alias: Name::from("other"),
             source: "other.toml".to_string(),
             initializations: Some(initializers),
             source_url: "don't care".to_string(),
