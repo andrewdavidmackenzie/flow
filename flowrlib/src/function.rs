@@ -224,7 +224,7 @@ mod test {
     }
 
     #[test]
-    fn cannot_send_input_if_full() {
+    fn can_oversend_inputs() {
         let mut function = Function::new("test".to_string(),
                                          "/context/test".to_string(),
                                          "/test".to_string(), false,
@@ -232,8 +232,9 @@ mod test {
                                          0,
                                          &vec!());
         function.init_inputs(true);
-        function.write_input(0, json!(1)); // success
-        function.write_input(0, json!(2)); // fail
+        function.write_input(0, json!(1));
+        function.write_input(0, json!(2));
         assert_eq!(function.take_input_set().remove(0).remove(0), json!(1));
+        assert_eq!(function.take_input_set().remove(0).remove(0), json!(2));
     }
 }
