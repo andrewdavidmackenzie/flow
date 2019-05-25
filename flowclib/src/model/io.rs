@@ -9,7 +9,6 @@ use model::datatype::TypeCheck;
 use compiler::loader::Validate;
 use model::route::Route;
 use std::collections::HashSet;
-use model::route::Router;
 use std::collections::HashMap;
 use flowrlib::input::InputInitializer;
 
@@ -23,8 +22,8 @@ pub enum IOType {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct IO {
-    #[serde(default = "default_name")]
-    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default = "Name::default")]
+    #[serde(skip_serializing_if = "Name::empty")]
     name: Name,
     #[serde(rename = "type", default = "default_type")]
     datatype: DataType,
@@ -42,10 +41,10 @@ pub struct IO {
 impl Default for IO {
     fn default() -> Self {
         IO {
-            name: default_name(),
+            name: Name::default(),
             datatype: default_type(),
             depth: default_depth(),
-            route: "".to_string(),
+            route: Route::default(),
             io_type: IOType::FunctionIO,
             initializer: None,
         }
@@ -87,10 +86,6 @@ impl IO {
         self.io_type = io_type;
     }
 
-    pub fn set_name(&mut self, name: String) {
-        self.name = name;
-    }
-
     pub fn datatype(&self, level: usize) -> DataType {
         let type_levels: Vec<&str> = self.datatype.split('/').collect();
         DataType::from(type_levels[level])
@@ -107,7 +102,7 @@ impl IO {
         if name.is_empty() {
             self.set_route(&parent, &io_type);
         } else {
-            self.set_route(&format!("{}/{}", parent, name), &io_type);
+            self.set_route(&Route::from(&format!("{}/{}", parent, name)), &io_type);
         }
     }
 
@@ -131,10 +126,6 @@ impl HasRoute for IO {
     fn route(&self) -> &Route {
         &self.route
     }
-}
-
-fn default_name() -> String {
-    "".to_string()
 }
 
 fn default_type() -> String {
@@ -225,19 +216,19 @@ impl Find for IOSet {
     fn find_by_route(&mut self, sub_route: &Route, initial_value: &Option<InputInitializer>) -> Result<IO, String> {
         if let Some(ref mut ios) = self {
             for mut io in ios {
-                let (array_route, _num, array_index) = Router::without_trailing_array_index(sub_route);
-                if array_index && (io.datatype(0).is_array()) && (io.name() == array_route.as_ref()) {
+                let (array_route, _num, array_index) = sub_route.without_trailing_array_index();
+                if array_index && (io.datatype(0).is_array()) && (Route::from(io.name()) == array_route.into_owned()) {
                     io.set_initial_value(initial_value);
 
                     let mut found = io.clone();
                     found.set_datatype(&io.datatype(1)); // the type within the array
                     let mut new_route = found.route().clone();
-                    new_route.push_str(&format!("/{}", sub_route));
+                    new_route.push(&Route::from(format!("/{}", sub_route)));
                     found.set_route(&new_route, &io.io_type);
                     return Ok(found);
                 }
 
-                if io.name() == sub_route {
+                if Route::from(io.name()) == *sub_route {
                     io.set_initial_value(initial_value);
                     return Ok(io.clone());
                 }
@@ -256,7 +247,7 @@ impl IO {
                 for initializer in inits {
                     // initializer.0 is io name, initializer.1 is the initial value to set it to
                     for (index, input) in inputs.iter_mut().enumerate() {
-                        if input.name() == initializer.0.as_str() ||
+                        if *input.name() == Name::from(initializer.0) ||
                             (initializer.0.as_str() == "default" && index == 0) {
                             input.initializer = Some(initializer.1.clone());
                         }
@@ -274,6 +265,8 @@ mod test {
     use compiler::loader::Validate;
     use model::name::HasName;
     use model::io::IOType;
+    use model::name::Name;
+    use model::route::Route;
 
     #[test]
     fn deserialize_empty_string() {
@@ -282,7 +275,7 @@ mod test {
         let output: IO = toml::from_str(input_str).unwrap();
         output.validate().unwrap();
         assert_eq!(output.datatype, "Json");
-        assert_eq!(output.name, "");
+        assert_eq!(output.name, Name::default());
     }
 
     #[test]
@@ -315,7 +308,7 @@ mod test {
 
         let output: IO = toml::from_str(input_str).unwrap();
         output.validate().unwrap();
-        assert_eq!(output.name, "/sub_route");
+        assert_eq!("/sub_route", output.name.to_string());
     }
 
     #[test]
@@ -337,8 +330,8 @@ mod test {
         ";
 
         let input: IO = toml::from_str(input_str).unwrap();
-        assert_eq!(input.name(), "input");
-        assert_eq!(input.datatype(0), "String");
+        assert_eq!(Name::from("input"), *input.name());
+        assert_eq!("String", input.datatype(0));
     }
 
     #[test]
@@ -368,17 +361,17 @@ mod test {
     #[test]
     fn unique_io_names_validate() {
         let io0 = IO {
-            name: "io_name".to_string(),
+            name: Name::from("io_name"),
             datatype: "String".to_string(),
-            route: "".to_string(),
+            route: Route::default(),
             depth: 1,
             io_type: IOType::FunctionIO,
             initializer: None,
         };
         let io1 = IO {
-            name: "different_name".to_string(),
+            name: Name::from("different_name"),
             datatype: "String".to_string(),
-            route: "".to_string(),
+            route: Route::default(),
             depth: 1,
             io_type: IOType::FunctionIO,
             initializer: None,
@@ -391,9 +384,9 @@ mod test {
     #[should_panic]
     fn non_unique_io_names_wont_validate() {
         let io0 = IO {
-            name: "io_name".to_string(),
+            name: Name::from("io_name"),
             datatype: "String".to_string(),
-            route: "".to_string(),
+            route: Route::default(),
             depth: 1,
             io_type: IOType::FunctionIO,
             initializer: None,
@@ -407,17 +400,17 @@ mod test {
     #[should_panic]
     fn multiple_inputs_empty_name_not_allowed() {
         let io0 = IO {
-            name: "io_name".to_string(),
+            name: Name::from("io_name"),
             datatype: "String".to_string(),
-            route: "".to_string(),
+            route:Route::default(),
             depth: 1,
             io_type: IOType::FunctionIO,
             initializer: None,
         };
         let io1 = IO {
-            name: "".to_string(),
+            name: Name::default(),
             datatype: "String".to_string(),
-            route: "".to_string(),
+            route: Route::default(),
             depth: 1,
             io_type: IOType::FunctionIO,
             initializer: None,

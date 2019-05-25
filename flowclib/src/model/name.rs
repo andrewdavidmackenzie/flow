@@ -1,6 +1,15 @@
 use compiler::loader::Validate;
+use std::fmt;
+use model::route::Route;
 
-pub type Name = String;
+#[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct Name(String);
+
+impl Name {
+    pub fn empty(&self) -> bool {
+        self.is_empty()
+    }
+}
 
 impl Validate for Name {
     fn validate(&self) -> Result<(), String> {
@@ -17,6 +26,30 @@ impl Validate for Name {
     }
 }
 
+impl fmt::Display for Name {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<&str> for Name {
+    fn from(string: &str) -> Self {
+        Name(string.to_string())
+    }
+}
+
+impl From<&String> for Name {
+    fn from(string: &String) -> Self {
+        Name(string.to_string())
+    }
+}
+
+impl From<&Route> for Name {
+    fn from(route: &Route) -> Self {
+        Name::from(&route.to_string())
+    }
+}
+
 pub trait HasName {
     fn name(&self) -> &Name;
     fn alias(&self) -> &Name;
@@ -30,7 +63,7 @@ mod test {
 
     #[test]
     fn does_not_validate_when_empty() {
-        let name = "".to_string();
+        let name = Name::default();
         match name.validate() {
             Err(_) => {}
             Ok(_) => { assert!(false) }
@@ -39,7 +72,7 @@ mod test {
 
     #[test]
     fn number_does_not_validate() {
-        let name = "123".to_string();
+        let name = Name::from("123");
         match name.validate() {
             Err(_) => {}
             Ok(_) => { assert!(false) }
@@ -48,7 +81,7 @@ mod test {
 
     #[test]
     fn validates_when_has_value() {
-        let name: Name = "test".to_string();
+        let name: Name = Name::from("test");
         match name.validate() {
             Ok(_) => {}
             Err(_) => { assert!(false) }

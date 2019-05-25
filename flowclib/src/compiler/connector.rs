@@ -1,5 +1,4 @@
 use model::route::Route;
-use model::route::Router;
 use model::route::HasRoute;
 use std::collections::HashMap;
 use generator::generate::GenerationTables;
@@ -59,21 +58,21 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<(),
     return a tuple of the sub-route to use (possibly with array index included), and the function index
 */
 pub fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &Route) -> Option<(Route, usize)> {
-    let (source_without_index, array_index, is_array_output) = Router::without_trailing_array_index(from_route);
-    let source = source_routes.get(&source_without_index.to_string());
+    let (source_without_index, array_index, is_array_output) = from_route.without_trailing_array_index();
+    let source = source_routes.get(&*source_without_index.to_owned());
 
     if let Some(&(ref route, function_index)) = source {
         if is_array_output {
             if route.is_empty() {
-                return Some((format!("/{}", array_index), function_index));
+                return Some((Route::from(&format!("/{}", array_index)), function_index));
             } else {
-                return Some((format!("/{}/{}", route, array_index), function_index));
+                return Some((Route::from(&format!("/{}/{}", route, array_index)), function_index));
             }
         } else {
             if route.is_empty() {
-                return Some((route.to_string(), function_index));
+                return Some((route.clone(), function_index));
             } else {
-                return Some((format!("/{}", route.to_string()), function_index));
+                return Some((Route::from(&format!("/{}", route.to_string())), function_index));
             }
         }
     } else {
@@ -90,7 +89,7 @@ pub fn create_routes_table(tables: &mut GenerationTables) {
         // Add any output routes it has to the source routes table
         if let Some(ref outputs) = function.get_outputs() {
             for output in outputs {
-                tables.source_routes.insert(output.route().clone(), (output.name().clone(), function.get_id()));
+                tables.source_routes.insert(output.route().clone(), (Route::from(output.name()), function.get_id()));
             }
         }
 
@@ -255,15 +254,17 @@ mod test {
     use model::io::{IO, IOType};
     use super::collapse_connections;
     use model::route::HasRoute;
+    use model::name::Name;
+    use model::route::Route;
 
     #[test]
     fn drop_useless_connections() {
         let mut unused = Connection {
-            name: Some("left".to_string()),
-            from: "/f1/a".to_string(),
-            to: "/f2/a".to_string(),
-            from_io: IO::new(&"String".to_string(), &"/f1/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
+            name: Some(Name::from("left")),
+            from: Route::from("/f1/a"),
+            to: Route::from("/f2/a"),
+            from_io: IO::new(&"String".to_string(), &Route::from("/f1/a")),
+            to_io: IO::new(&"String".to_string(), &Route::from("/f2/a")),
             level: 0,
         };
         unused.to_io.set_flow_io(IOType::FlowInput);
@@ -276,11 +277,11 @@ mod test {
     #[test]
     fn collapse_a_connection() {
         let mut left_side = Connection {
-            name: Some("left".to_string()),
-            from: "/context/function1".to_string(),
-            to: "/context/flow2/a".to_string(),
-            from_io: IO::new(&"String".to_string(), &"/context/function1".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/context/flow2/a".to_string()),
+            name: Some(Name::from("left")),
+            from: Route::from("/context/function1"),
+            to: Route::from("/context/flow2/a"),
+            from_io: IO::new(&"String".to_string(), &Route::from("/context/function1")),
+            to_io: IO::new(&"String".to_string(), &Route::from("/context/flow2/a")),
             level: 0,
         };
         left_side.from_io.set_flow_io(IOType::FunctionIO);
@@ -288,22 +289,22 @@ mod test {
 
 // This one goes to a flow but then nowhere, so should be dropped
         let mut extra_one = Connection {
-            name: Some("unused".to_string()),
-            from: "/context/flow2/a".to_string(),
-            to: "/context/flow2/f4/a".to_string(),
-            from_io: IO::new(&"String".to_string(), &"/context/flow2/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/context/flow2/f4/a".to_string()),
+            name: Some(Name::from("unused")),
+            from: Route::from("/context/flow2/a"),
+            to: Route::from("/context/flow2/f4/a"),
+            from_io: IO::new(&"String".to_string(), &Route::from("/context/flow2/a")),
+            to_io: IO::new(&"String".to_string(), &Route::from("/context/flow2/f4/a")),
             level: 1,
         };
         extra_one.from_io.set_flow_io(IOType::FlowInput);
         extra_one.to_io.set_flow_io(IOType::FlowInput); // /context/flow2/f4 doesn't exist
 
         let mut right_side = Connection {
-            name: Some("right".to_string()),
-            from: "/context/flow2/a".to_string(),
-            to: "/context/flow2/function3".to_string(),
-            from_io: IO::new(&"String".to_string(), &"/context/flow2/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/context/flow2/function3".to_string()),
+            name: Some(Name::from("right")),
+            from: Route::from("/context/flow2/a"),
+            to: Route::from("/context/flow2/function3"),
+            from_io: IO::new(&"String".to_string(), &Route::from("/context/flow2/a")),
+            to_io: IO::new(&"String".to_string(), &Route::from("/context/flow2/function3")),
             level: 1,
         };
         right_side.from_io.set_flow_io(IOType::FlowInput);
@@ -313,8 +314,8 @@ mod test {
 
         let collapsed = collapse_connections(&connections);
         assert_eq!(collapsed.len(), 1);
-        assert_eq!(collapsed[0].from_io.route(), "/context/function1");
-        assert_eq!(collapsed[0].to_io.route(), "/context/flow2/function3");
+        assert_eq!(*collapsed[0].from_io.route(), Route::from("/context/function1"));
+        assert_eq!(*collapsed[0].to_io.route(), Route::from("/context/flow2/function3"));
     }
 
     /*
@@ -326,33 +327,33 @@ mod test {
     #[test]
     fn two_connections_from_flow_boundary() {
         let mut left_side = Connection {
-            name: Some("left".to_string()),
-            from: "/context/f1".to_string(),
-            to: "/context/f2/a".to_string(),
-            from_io: IO::new(&"String".to_string(), &"/context/f1".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/context/f2/a".to_string()),
+            name: Some(Name::from("left")),
+            from: Route::from("/context/f1"),
+            to: Route::from("/context/f2/a"),
+            from_io: IO::new(&"String".to_string(), &Route::from("/context/f1")),
+            to_io: IO::new(&"String".to_string(), &Route::from("/context/f2/a")),
             level: 0,
         };
         left_side.from_io.set_flow_io(IOType::FunctionIO);
         left_side.to_io.set_flow_io(IOType::FlowInput);
 
         let mut right_side_one = Connection {
-            name: Some("right1".to_string()),
-            from: "/context/f2/a".to_string(),
-            to: "/context/f2/value1".to_string(),
-            from_io: IO::new(&"String".to_string(), &"/context/f2/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/context/f2/value1".to_string()),
+            name: Some(Name::from("right1")),
+            from: Route::from("/context/f2/a"),
+            to: Route::from("/context/f2/value1"),
+            from_io: IO::new(&"String".to_string(), &Route::from("/context/f2/a")),
+            to_io: IO::new(&"String".to_string(), &Route::from("/context/f2/value1")),
             level: 1,
         };
         right_side_one.from_io.set_flow_io(IOType::FlowInput);
         right_side_one.to_io.set_flow_io(IOType::FunctionIO);
 
         let mut right_side_two = Connection {
-            name: Some("right2".to_string()),
-            from: "/context/f2/a".to_string(),
-            to: "/context/f2/value2".to_string(),
-            from_io: IO::new(&"String".to_string(), &"/context/f2/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/context/f2/value2".to_string()),
+            name: Some(Name::from("right2")),
+            from: Route::from("/context/f2/a"),
+            to: Route::from("/context/f2/value2"),
+            from_io: IO::new(&"String".to_string(), &Route::from("/context/f2/a")),
+            to_io: IO::new(&"String".to_string(), &Route::from("/context/f2/value2")),
             level: 1,
         };
         right_side_two.from_io.set_flow_io(IOType::FlowInput);
@@ -363,42 +364,42 @@ mod test {
 
         let collapsed = collapse_connections(&connections);
         assert_eq!(2, collapsed.len());
-        assert_eq!("/context/f1", collapsed[0].from_io.route());
-        assert_eq!("/context/f2/value1", collapsed[0].to_io.route());
-        assert_eq!("/context/f1", collapsed[1].from_io.route());
-        assert_eq!("/context/f2/value2", collapsed[1].to_io.route());
+        assert_eq!(Route::from("/context/f1"), *collapsed[0].from_io.route());
+        assert_eq!(Route::from("/context/f2/value1"), *collapsed[0].to_io.route());
+        assert_eq!(Route::from("/context/f1"), *collapsed[1].from_io.route());
+        assert_eq!(Route::from("/context/f2/value2"), *collapsed[1].to_io.route());
     }
 
     #[test]
     fn collapses_connection_into_subflow() {
         let mut first_level = Connection {
-            name: Some("value-to-f1:a at context level".to_string()),
-            from: "/context/value".to_string(),
-            to: "/context/flow1/a".to_string(),
-            from_io: IO::new(&"String".to_string(), &"/context/value".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/context/flow1/a".to_string()),
+            name: Some(Name::from("value-to-f1:a at context level")),
+            from: Route::from("/context/value"),
+            to: Route::from("/context/flow1/a"),
+            from_io: IO::new(&"String".to_string(), &Route::from("/context/value")),
+            to_io: IO::new(&"String".to_string(), &Route::from("/context/flow1/a")),
             level: 0,
         };
         first_level.from_io.set_flow_io(IOType::FunctionIO);
         first_level.to_io.set_flow_io(IOType::FlowInput);
 
         let mut second_level = Connection {
-            name: Some("subflow_connection".to_string()),
-            from: "/context/flow1/a".to_string(),
-            to: "/context/flow1/flow2/a".to_string(),
-            from_io: IO::new(&"String".to_string(), &"/context/flow1/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/context/flow1/flow2/a".to_string()),
+            name: Some(Name::from("subflow_connection")),
+            from: Route::from("/context/flow1/a"),
+            to: Route::from("/context/flow1/flow2/a"),
+            from_io: IO::new(&"String".to_string(), &Route::from("/context/flow1/a")),
+            to_io: IO::new(&"String".to_string(), &Route::from("/context/flow1/flow2/a")),
             level: 1,
         };
         second_level.from_io.set_flow_io(IOType::FlowInput);
         second_level.to_io.set_flow_io(IOType::FlowInput);
 
         let mut third_level = Connection {
-            name: Some("subsubflow_connection".to_string()),
-            from: "/context/flow1/flow2/a".to_string(),
-            to: "/context/flow1/flow2/func/in".to_string(),
-            from_io: IO::new(&"String".to_string(), &"/context/flow1/flow2/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/context/flow1/flow2/func/in".to_string()),
+            name: Some(Name::from("subsubflow_connection")),
+            from: Route::from("/context/flow1/flow2/a"),
+            to: Route::from("/context/flow1/flow2/func/in"),
+            from_io: IO::new(&"String".to_string(), &Route::from("/context/flow1/flow2/a")),
+            to_io: IO::new(&"String".to_string(), &Route::from("/context/flow1/flow2/func/in")),
             level: 2,
         };
         third_level.from_io.set_flow_io(IOType::FlowInput);
@@ -410,27 +411,27 @@ mod test {
 
         let collapsed = collapse_connections(&connections);
         assert_eq!(1, collapsed.len());
-        assert_eq!("/context/value", collapsed[0].from_io.route());
-        assert_eq!("/context/flow1/flow2/func/in", collapsed[0].to_io.route());
+        assert_eq!(Route::from("/context/value"), *collapsed[0].from_io.route());
+        assert_eq!(Route::from("/context/flow1/flow2/func/in"), *collapsed[0].to_io.route());
     }
 
     #[test]
     fn doesnt_collapse_a_non_connection() {
         let one = Connection {
-            name: Some("left".to_string()),
-            from: "/f1/a".to_string(),
-            to: "/f2/a".to_string(),
-            from_io: IO::new(&"String".to_string(), &"/f1/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/f2/a".to_string()),
+            name: Some(Name::from("left")),
+            from: Route::from("/f1/a"),
+            to: Route::from("/f2/a"),
+            from_io: IO::new(&"String".to_string(), &Route::from("/f1/a")),
+            to_io: IO::new(&"String".to_string(), &Route::from("/f2/a")),
             level: 0,
         };
 
         let other = Connection {
-            name: Some("right".to_string()),
-            from: "/f3/a".to_string(),
-            to: "/f4/a".to_string(),
-            from_io: IO::new(&"String".to_string(), &"/f3/a".to_string()),
-            to_io: IO::new(&"String".to_string(), &"/f4/a".to_string()),
+            name: Some(Name::from("right")),
+            from: Route::from("/f3/a"),
+            to: Route::from("/f4/a"),
+            from_io: IO::new(&"String".to_string(), &Route::from("/f3/a")),
+            to_io: IO::new(&"String".to_string(), &Route::from("/f4/a")),
             level: 0,
         };
 

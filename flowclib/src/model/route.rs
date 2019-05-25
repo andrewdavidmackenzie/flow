@@ -1,7 +1,53 @@
 use std::borrow::Cow;
 use model::io::IOType;
+use std::fmt;
+use model::name::Name;
+use compiler::loader::Validate;
 
-pub type Route = String;
+#[derive(Shrinkwrap, Hash, Debug, PartialEq, Clone, Default, Serialize, Deserialize, Eq)]
+pub struct Route(String);
+
+impl Route {
+    pub fn sub_route_of(&self, other_route: &Route) -> bool {
+        self.as_str().starts_with(other_route.as_str())
+    }
+
+    pub fn push(&mut self, sub_route: &Route) {
+        self.to_string().push_str(sub_route.as_str());
+    }
+
+    /*
+        Return the io route without a trailing number (array index) and if it has one or not
+        If the trailing number was present then return the route with a trailing '/'
+    */
+    pub fn without_trailing_array_index(&self) -> (Cow<Route>, usize, bool) {
+        let mut parts: Vec<&str> = self.split('/').collect();
+        if let Some(last_part) = parts.pop() {
+            if let Ok(number) = last_part.parse::<usize>() {
+                let route_without_number = parts.join("/");
+                return (Cow::Owned(Route::from(route_without_number)), number, true);
+            }
+        }
+
+        (Cow::Borrowed(self), 0, false)
+    }
+}
+
+impl Validate for Route {
+    fn validate(&self) -> Result<(), String> {
+        if self.is_empty() {
+            return Ok(());
+        }
+
+        /*
+        if !self.starts_with('/') {
+            return Err(format!("Non-empty route '{}' must start with '/'", self));
+        }
+        */
+
+        Ok(())
+    }
+}
 
 pub trait HasRoute {
     fn route(&self) -> &Route;
@@ -19,25 +65,32 @@ pub trait SetIORoutes {
     fn set_io_routes_from_parent(&mut self, parent: &Route, io_type: IOType);
 }
 
-pub struct Router;
+impl fmt::Display for Route {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
-/*
-    return the io route without a trailing number (array index) and if it has one or not
+impl From<&str> for Route {
+    fn from(string: &str) -> Self {
+        Route(string.to_string())
+    }
+}
 
-    If the trailing number was present then return the route with a trailing '/'
-*/
-impl Router {
-    // TODO store the route with an indicator it has a trailing array index when created and
-    // avoid all this guff
-    pub fn without_trailing_array_index(route: &Route) -> (Cow<Route>, usize, bool) {
-        let mut parts: Vec<&str> = route.split('/').collect();
-        if let Some(last_part) = parts.pop() {
-            if let Ok(number) = last_part.parse::<usize>() {
-                let route_without_number = parts.join("/");
-                return (Cow::Owned(route_without_number), number, true);
-            }
-        }
+impl From<&String> for Route {
+    fn from(string: &String) -> Self {
+        Route(string.to_string())
+    }
+}
 
-        (Cow::Borrowed(route), 0, false)
+impl From<String> for Route {
+    fn from(string: String) -> Self {
+        Route(string.to_string())
+    }
+}
+
+impl From<&Name> for Route {
+    fn from(name: &Name) -> Self {
+        Route(name.to_string())
     }
 }

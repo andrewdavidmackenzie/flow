@@ -55,11 +55,7 @@ impl fmt::Display for Function {
             }
         }
         for output_route in &self.output_routes {
-            if output_route.0.is_empty() {
-                write!(f, "\tOutput route '/{}' -> {}:{}\n", output_route.0, output_route.1, output_route.2)?;
-            } else {
-                write!(f, "\tOutput route '{}' -> {}:{}\n", output_route.0, output_route.1, output_route.2)?;
-            }
+            write!(f, "\tOutput route '/{}' -> {}:{}\n", output_route.0, output_route.1, output_route.2)?;
         }
         write!(f, "")
     }

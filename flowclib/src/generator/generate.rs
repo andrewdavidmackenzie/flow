@@ -27,7 +27,7 @@ impl GenerationTables {
     pub fn new() -> Self {
         GenerationTables {
             connections: Vec::new(),
-            source_routes: HashMap::<Route, (String, usize)>::new(),
+            source_routes: HashMap::<Route, (Route, usize)>::new(),
             destination_routes: HashMap::<Route, (usize, usize)>::new(),
             collapsed_connections: Vec::new(),
             functions: Vec::new(),
@@ -39,7 +39,7 @@ impl GenerationTables {
 impl From<&Flow> for MetaData {
     fn from(flow: &Flow) -> Self {
         MetaData {
-            alias: flow.alias.clone(),
+            alias: flow.alias.clone().to_string(),
             version: flow.version.clone(),
             author_name: flow.author_name.clone(),
             author_email: flow.author_email.clone(),
@@ -111,21 +111,23 @@ mod test {
     use super::function_to_runtimefunction;
     use flowrlib::input::{InputInitializer, ConstantInputInitializer};
     use flowrlib::input::OneTimeInputInitializer;
+    use model::name::Name;
+    use model::route::Route;
 
     #[test]
     fn function_with_sub_route_output_generation() {
         let function = Function::new(
-            "Stdout".to_string(),
+            Name::from("Stdout"),
             false,
             Some("lib://runtime/stdio/stdout".to_string()),
-            "print".to_string(),
+            Name::from("print"),
             Some(vec!()),
             Some(vec!(
-                IO::new(&"Json".to_string(), &"".to_string()),
-                IO::new(&"String".to_string(), &"".to_string())
+                IO::new(&"Json".to_string(), &Route::default()),
+                IO::new(&"String".to_string(), &Route::default())
             )),
-            "file:///fake/file".to_string(),
-            "/flow0/stdout".to_string(),
+            "file:///fake/file",
+            Route::from("/flow0/stdout"),
             None,
             vec!(("".to_string(), 1, 0), ("sub_route".to_string(), 2, 0)),
             0);
@@ -158,16 +160,16 @@ mod test {
     #[test]
     fn function_generation() {
         let function = Function::new(
-            "Stdout".to_string(),
+            Name::from("Stdout"),
             false,
             Some("lib://runtime/stdio/stdout".to_string()),
-            "print".to_string(),
+            Name::from("print"),
             Some(vec!()),
             Some(vec!(
-                IO::new(&"String".to_string(), &"".to_string())
+                IO::new(&"String".to_string(), &Route::default())
             )),
-            "file:///fake/file".to_string(),
-            "/flow0/stdout".to_string(),
+            "file:///fake/file",
+            Route::from("/flow0/stdout"),
             None,
             vec!(("".to_string(), 1, 0)),
             0);
@@ -195,16 +197,16 @@ mod test {
     #[test]
     fn impure_function_generation() {
         let function = Function::new(
-            "Stdout".to_string(),
+            Name::from("Stdout"),
             true,
             Some("lib://runtime/stdio/stdout".to_string()),
-            "print".to_string(),
+            Name::from("print"),
             Some(vec!()),
             Some(vec!(
-                IO::new(&"String".to_string(), &"".to_string())
+                IO::new(&"String".to_string(), &Route::default())
             )),
-            "file:///fake/file".to_string(),
-            "/flow0/stdout".to_string(),
+            "file:///fake/file",
+            Route::from("/flow0/stdout"),
             None,
             vec!(("".to_string(), 1, 0)),
             0);
@@ -232,20 +234,20 @@ mod test {
 
     #[test]
     fn function_with_initialized_input_generation() {
-        let mut io = IO::new(&"String".to_string(), &"".to_string());
+        let mut io = IO::new(&"String".to_string(), &Route::default());
         io.set_initial_value(&Some(InputInitializer::OneTime(
             OneTimeInputInitializer { once: json!(1) }
         )));
 
         let function = Function::new(
-            "Stdout".to_string(),
+            Name::from("Stdout"),
             false,
             Some("lib://runtime/stdio/stdout".to_string()),
-            "print".to_string(),
+            Name::from("print"),
             Some(vec!(io)),
             None,
-            "file:///fake/file".to_string(),
-            "/flow0/stdout".to_string(),
+            "file:///fake/file",
+            Route::from("/flow0/stdout"),
             None,
             vec!(),
             0);
@@ -273,20 +275,20 @@ mod test {
 
     #[test]
     fn function_with_constant_input_generation() {
-        let mut io = IO::new(&"String".to_string(), &"".to_string());
+        let mut io = IO::new(&"String".to_string(), &Route::default());
         io.set_initial_value(&Some(InputInitializer::Constant(
             ConstantInputInitializer { constant: json!(1) }
         )));
 
         let function = Function::new(
-            "Stdout".to_string(),
+            Name::from("Stdout"),
             false,
             Some("lib://runtime/stdio/stdout".to_string()),
-            "print".to_string(),
+            Name::from("print"),
             Some(vec!(io)),
             None,
-            "file:///fake/file".to_string(),
-            "/flow0/stdout".to_string(),
+            "file:///fake/file",
+            Route::from("/flow0/stdout"),
             None,
             vec!(),
             0);
@@ -314,17 +316,17 @@ mod test {
 
     #[test]
     fn function_with_array_input_generation() {
-        let io = IO::new(&"Array/String".to_string(), &"".to_string());
+        let io = IO::new(&"Array/String".to_string(), &Route::default());
 
         let function = Function::new(
-            "Stdout".to_string(),
+            Name::from("Stdout"),
             false,
             Some("lib://runtime/stdio/stdout".to_string()),
-            "print".to_string(),
+            Name::from("print"),
             Some(vec!(io)),
             None,
-            "file:///fake/file".to_string(),
-            "/flow0/stdout".to_string(),
+            "file:///fake/file",
+            Route::from("/flow0/stdout"),
             None,
             vec!(),
             0);
@@ -351,16 +353,16 @@ mod test {
     #[test]
     fn function_to_code_with_debug_generation() {
         let function = Function::new(
-            "Stdout".to_string(),
+            Name::from("Stdout"),
             false,
             Some("lib://runtime/stdio/stdout".to_string()),
-            "print".to_string(),
+            Name::from("print"),
             Some(vec!()),
             Some(vec!(
-                IO::new(&"String".to_string(), &"".to_string())
+                IO::new(&"String".to_string(), &Route::default())
             )),
-            "file:///fake/file".to_string(),
-            "/flow0/stdout".to_string(),
+            "file:///fake/file",
+            Route::from("/flow0/stdout"),
             None,
             vec!(("".to_string(), 1, 0)),
             0);
@@ -390,16 +392,16 @@ mod test {
     #[test]
     fn function_with_array_element_output_generation() {
         let function = Function::new(
-            "Stdout".to_string(),
+            Name::from("Stdout"),
             false,
             Some("lib://runtime/stdio/stdout".to_string()),
-            "print".to_string(),
+            Name::from("print"),
             Some(vec!()),
             Some(vec!(
-                IO::new(&"Array".to_string(), &"".to_string())
+                IO::new(&"Array".to_string(), &Route::default())
             )),
-            "file:///fake/file".to_string(),
-            "/flow0/stdout".to_string(),
+            "file:///fake/file",
+            Route::from("/flow0/stdout"),
             None,
             vec!(("0".to_string(), 1, 0)),
             0);
