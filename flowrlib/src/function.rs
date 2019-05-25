@@ -130,13 +130,25 @@ impl Function {
     */
     pub fn write_input(&mut self, input_number: usize, input_value: Value) {
         let input = &mut self.inputs[input_number];
-        if input_value.is_array() && !input.is_array {
-            debug!("Serializing Array value to non-Array input");
-            for value in input_value.as_array().unwrap().iter() {
-                input.push(value.clone());
+        if input_value.is_array() {
+            // Serialize Array value into the non-Array input
+            if !input.is_array {
+                debug!("Serializing Array value to non-Array input");
+                for value in input_value.as_array().unwrap().iter() {
+                    input.push(value.clone());
+                }
+            } else {
+                // Send Array value to the Array input
+                input.push(input_value);
             }
         } else {
-            input.push(input_value);
+            if input.is_array {
+                // Send Non-Array value to the Array input
+                input.push(json!([input_value]));
+            } else {
+                // Send Non-Array value to Non-Array input
+                input.push(input_value);
+            }
         }
     }
 
@@ -239,6 +251,20 @@ mod test {
         function.init_inputs(true);
         function.write_input(0, json!([1, 2]));
         assert_eq!(json!([1, 2]), function.take_input_set().remove(0).remove(0),
+                   "Value from input set wasn't what was expected");
+    }
+
+    #[test]
+    fn can_send_simple_object_to_array_input() {
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(1, &None, true)),
+                                         0,
+                                         &vec!());
+        function.init_inputs(true);
+        function.write_input(0, json!(1));
+        assert_eq!(vec!(json!([1])), function.take_input_set().remove(0),
                    "Value from input set wasn't what was expected");
     }
 
