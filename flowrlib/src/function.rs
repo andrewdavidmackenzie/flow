@@ -193,21 +193,21 @@ mod test {
     #[test]
     fn destructure_output_base_route() {
         let json = json!("simple");
-        assert_eq!(json.pointer("").unwrap(), "simple");
+        assert_eq!("simple", json.pointer("").unwrap(), "json pointer functionality not working!");
     }
 
     #[test]
     fn destructure_json_value() {
         let json: Value = json!({ "sub_route": "sub_output" });
-        assert_eq!(json.pointer("/sub_route").unwrap(), "sub_output");
+        assert_eq!("sub_output", json.pointer("/sub_route").unwrap(), "json pointer functionality not working!");
     }
 
     #[test]
     fn access_array_elements() {
         let args: Vec<&str> = vec!("arg0", "arg1", "arg2");
         let json = json!(args);
-        assert_eq!(json.pointer("/0").unwrap(), "arg0");
-        assert_eq!(json.pointer("/1").unwrap(), "arg1");
+        assert_eq!("arg0", json.pointer("/0").unwrap(), "json pointer array indexing functionality not working!");
+        assert_eq!("arg1", json.pointer("/1").unwrap(), "json pointer array indexing functionality not working!");
     }
 
     #[test]
@@ -220,7 +220,8 @@ mod test {
                                          &vec!());
         function.init_inputs(true);
         function.write_input(0, json!(1));
-        assert_eq!(function.take_input_set().remove(0).remove(0), json!(1));
+        assert_eq!(json!(1), function.take_input_set().remove(0).remove(0),
+                   "Value from input set wasn't what was expected");
     }
 
     #[test]
@@ -234,7 +235,38 @@ mod test {
         function.init_inputs(true);
         function.write_input(0, json!(1));
         function.write_input(0, json!(2));
-        assert_eq!(function.take_input_set().remove(0).remove(0), json!(1));
-        assert_eq!(function.take_input_set().remove(0).remove(0), json!(2));
+        assert_eq!(json!(1), function.take_input_set().remove(0).remove(0),
+                   "Value from input set wasn't what was expected");
+        assert_eq!(json!(2), function.take_input_set().remove(0).remove(0),
+                   "Value from input set wasn't what was expected");
+    }
+
+    #[test]
+    fn can_send_when_depth_more_than_1() {
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(2, &None, false)),
+                                         0,
+                                         &vec!());
+        function.init_inputs(true);
+        function.write_input(0, json!(1));
+        function.write_input(0, json!(2));
+        assert_eq!(vec!(json!(1), json!(2)), function.take_input_set().remove(0),
+                   "Value from input set wasn't the array of numbers expected");
+    }
+
+    #[test]
+    #[should_panic]
+    fn cannot_take_input_set_if_not_full() {
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(2, &None, false)),
+                                         0,
+                                         &vec!());
+        function.init_inputs(true);
+        function.write_input(0, json!(1));
+        function.take_input_set().remove(0);
     }
 }
