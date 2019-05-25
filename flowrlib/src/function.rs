@@ -190,6 +190,8 @@ mod test {
     use super::Function;
     use input::Input;
 
+    /*************** Below are tests for basic json.pointer functionality *************************/
+
     #[test]
     fn destructure_output_base_route() {
         let json = json!("simple");
@@ -210,8 +212,10 @@ mod test {
         assert_eq!("arg1", json.pointer("/1").unwrap(), "json pointer array indexing functionality not working!");
     }
 
+    /*************** Below are tests for inputs with depth = 1 ***********************/
+
     #[test]
-    fn can_send_input_if_empty() {
+    fn can_send_simple_object() {
         let mut function = Function::new("test".to_string(),
                                          "/context/test".to_string(),
                                          "/test".to_string(), false,
@@ -221,6 +225,34 @@ mod test {
         function.init_inputs(true);
         function.write_input(0, json!(1));
         assert_eq!(json!(1), function.take_input_set().remove(0).remove(0),
+                   "Value from input set wasn't what was expected");
+    }
+
+    #[test]
+    fn can_send_array_object() {
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(1, &None, true)),
+                                         0,
+                                         &vec!());
+        function.init_inputs(true);
+        function.write_input(0, json!([1, 2]));
+        assert_eq!(json!([1, 2]), function.take_input_set().remove(0).remove(0),
+                   "Value from input set wasn't what was expected");
+    }
+
+    #[test]
+    fn can_send_array_to_simple_object_depth_1() {
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(1, &None, false)),
+                                         0,
+                                         &vec!());
+        function.init_inputs(true);
+        function.write_input(0, json!([1, 2]));
+        assert_eq!(vec!(json!(1)), function.take_input_set().remove(0),
                    "Value from input set wasn't what was expected");
     }
 
@@ -242,7 +274,36 @@ mod test {
     }
 
     #[test]
-    fn can_send_when_depth_more_than_1() {
+    #[should_panic]
+    fn cannot_take_input_set_if_not_full() {
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(1, &None, false)),
+                                         0,
+                                         &vec!());
+        function.init_inputs(true);
+        function.take_input_set().remove(0);
+    }
+
+    /*************** Below are tests for inputs with depth > 1 ***********************/
+
+    #[test]
+    fn can_send_array_to_simple_object_depth_2() {
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(2, &None, false)),
+                                         0,
+                                         &vec!());
+        function.init_inputs(true);
+        function.write_input(0, json!([1, 2]));
+        assert_eq!(vec!(json!(1), json!(2)), function.take_input_set().remove(0),
+                   "Value from input set wasn't what was expected");
+    }
+
+    #[test]
+    fn can_send_simple_object_when_depth_more_than_1() {
         let mut function = Function::new("test".to_string(),
                                          "/context/test".to_string(),
                                          "/test".to_string(), false,
@@ -258,7 +319,7 @@ mod test {
 
     #[test]
     #[should_panic]
-    fn cannot_take_input_set_if_not_full() {
+    fn cannot_take_input_set_if_not_full_depth_2() {
         let mut function = Function::new("test".to_string(),
                                          "/context/test".to_string(),
                                          "/test".to_string(), false,
