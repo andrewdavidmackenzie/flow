@@ -318,6 +318,21 @@ mod test {
     }
 
     #[test]
+    fn can_send_array_objects_when_input_depth_more_than_1() {
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(2, &None, true)),
+                                         0,
+                                         &vec!());
+        function.init_inputs(true);
+        function.write_input(0, json!([1, 2]));
+        function.write_input(0, json!([3, 4]));
+        assert_eq!(vec!(json!([1, 2]), json!([3, 4])), function.take_input_set().remove(0),
+                   "Value from input set wasn't what was expected");
+    }
+
+    #[test]
     #[should_panic]
     fn cannot_take_input_set_if_not_full_depth_2() {
         let mut function = Function::new("test".to_string(),
