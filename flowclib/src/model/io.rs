@@ -38,30 +38,6 @@ pub struct IO {
     initializer: Option<InputInitializer>,
 }
 
-impl Default for IO {
-    fn default() -> Self {
-        IO {
-            name: Name::default(),
-            datatype: default_type(),
-            depth: default_depth(),
-            route: Route::default(),
-            io_type: IOType::FunctionIO,
-            initializer: None,
-        }
-    }
-}
-
-impl HasName for IO {
-    fn name(&self) -> &Name { &self.name }
-    fn alias(&self) -> &Name { &self.name }
-}
-
-impl HasDataType for IO {
-    fn datatype(&self, level: usize) -> DataType {
-        self.datatype(level)
-    }
-}
-
 impl IO {
     pub fn new<S: Into<DataType>>(datatype: S, route: &Route) -> Self {
         let mut io = IO::default();
@@ -72,6 +48,10 @@ impl IO {
 
     pub fn depth(&self) -> usize {
         self.depth
+    }
+
+    pub fn set_depth(&mut self, depth: usize) {
+        self.depth = depth
     }
 
     pub fn flow_io(&self) -> bool {
@@ -119,6 +99,30 @@ impl IO {
         if initial_value.is_some() {
             self.initializer = initial_value.clone();
         }
+    }
+}
+
+impl Default for IO {
+    fn default() -> Self {
+        IO {
+            name: Name::default(),
+            datatype: default_type(),
+            depth: default_depth(),
+            route: Route::default(),
+            io_type: IOType::FunctionIO,
+            initializer: None,
+        }
+    }
+}
+
+impl HasName for IO {
+    fn name(&self) -> &Name { &self.name }
+    fn alias(&self) -> &Name { &self.name }
+}
+
+impl HasDataType for IO {
+    fn datatype(&self, level: usize) -> DataType {
+        self.datatype(level)
     }
 }
 

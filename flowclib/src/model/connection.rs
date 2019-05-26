@@ -157,24 +157,53 @@ mod test {
     /// serialized and sent to input one by one, will be extracted in sets of size 'depth')
     #[test]
     fn simple_to_simple_depth_1() {
-        let from_io = IO::new("String", &Route::from("/output"));
+        let from_io = IO::new("String", &Route::from("/p1/output"));
+        let to_io = IO::new("String", &Route::from("/p2"));
+        assert!(Connection::compatible_types(&from_io, &to_io));
     }
 
     #[test]
-    fn simple_to_simple_depth_greater_than_1() {}
+    fn simple_to_simple_depth_greater_than_1() {
+        let from_io = IO::new("String", &Route::from("/p1/output"));
+        let mut to_io = IO::new("String", &Route::from("/p2"));
+        to_io.set_depth(2);
+        assert!(Connection::compatible_types(&from_io, &to_io));
+    }
 
     #[test]
-    fn simple_to_array() {}
+    fn simple_to_array() {
+        let from_io = IO::new("String", &Route::from("/p1/output"));
+        let to_io = IO::new("Array/String", &Route::from("/p2"));
+        assert!(Connection::compatible_types(&from_io, &to_io));
+    }
 
     #[test]
-    fn array_to_array_depth_1() {}
+    fn array_to_array_depth_1() {
+        let from_io = IO::new("Array", &Route::from("/p1/output"));
+        let to_io = IO::new("Array", &Route::from("/p2"));
+        assert!(Connection::compatible_types(&from_io, &to_io));
+    }
 
     #[test]
-    fn array_to_array_depth_more_than_1() {}
+    fn array_to_array_depth_more_than_1() {
+        let from_io = IO::new("Array", &Route::from("/p1/output"));
+        let mut to_io = IO::new("Array", &Route::from("/p2"));
+        to_io.set_depth(2);
+        assert!(Connection::compatible_types(&from_io, &to_io));
+    }
 
     #[test]
-    fn array_to_simple_depth_1() {}
+    fn array_to_simple_depth_1() {
+        let from_io = IO::new("Array/String", &Route::from("/p1/output"));
+        let to_io = IO::new("String", &Route::from("/p2"));
+        assert!(Connection::compatible_types(&from_io, &to_io));
+    }
 
     #[test]
-    fn array_to_simple_depth_more_than_1() {}
+    fn array_to_simple_depth_more_than_1() {
+        let from_io = IO::new("Array/String", &Route::from("/p1/output"));
+        let mut to_io = IO::new("String", &Route::from("/p2"));
+        to_io.set_depth(2);
+        assert!(Connection::compatible_types(&from_io, &to_io));
+    }
 }
