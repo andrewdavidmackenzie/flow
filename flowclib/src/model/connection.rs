@@ -32,9 +32,9 @@ pub enum Direction {
 impl fmt::Display for Connection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match (self.from_io.flow_io(), self.to_io.flow_io()) {
-            (true, true) => write!(f,   "(f){} --> {}(f)", self.from_io.route(), self.to_io.route()),
-            (true, false) => write!(f,  "(f){} --> {}", self.from_io.route(), self.to_io.route()),
-            (false, true) => write!(f,  "   {} --> {}(f)", self.from_io.route(), self.to_io.route()),
+            (true, true) => write!(f, "(f){} --> {}(f)", self.from_io.route(), self.to_io.route()),
+            (true, false) => write!(f, "(f){} --> {}", self.from_io.route(), self.to_io.route()),
+            (false, true) => write!(f, "   {} --> {}(f)", self.from_io.route(), self.to_io.route()),
             (false, false) => write!(f, "   {} --> {}", self.from_io.route(), self.to_io.route())
         }
     }
@@ -60,8 +60,9 @@ impl Connection {
         from.datatype(0) == to.datatype(0) ||
             from.datatype(0).is_generic() ||
             to.datatype(0).is_generic() ||
-            (from.datatype(0).is_array() && from.datatype(1) == to.datatype(0) ||
-                (to.datatype(0).is_array() && to.datatype(1) == from.datatype(0)))
+            from.datatype(0).is_array() && from.datatype(1) == to.datatype(0) ||
+            to.datatype(0).is_array() && to.datatype(1) == from.datatype(0) ||
+            to.datatype(0).is_array() && to.datatype(1).is_generic()
     }
 }
 
@@ -154,39 +155,26 @@ mod test {
     /// serialized and sent to input one by one, will be extracted one-by-one as per depth)
     /// * Array Object  --> Simple Object (is_array = false, depth > 1) (values in Array will be
     /// serialized and sent to input one by one, will be extracted in sets of size 'depth')
-
     #[test]
     fn simple_to_simple_depth_1() {
         let from_io = IO::new("String", &Route::from("/output"));
     }
 
     #[test]
-    fn simple_to_simple_depth_greater_than_1() {
-
-    }
+    fn simple_to_simple_depth_greater_than_1() {}
 
     #[test]
-    fn simple_to_array() {
-
-    }
+    fn simple_to_array() {}
 
     #[test]
-    fn array_to_array_depth_1() {
-
-    }
+    fn array_to_array_depth_1() {}
 
     #[test]
-    fn array_to_array_depth_more_than_1() {
-
-    }
+    fn array_to_array_depth_more_than_1() {}
 
     #[test]
-    fn array_to_simple_depth_1() {
-
-    }
+    fn array_to_simple_depth_1() {}
 
     #[test]
-    fn array_to_simple_depth_more_than_1() {
-
-    }
+    fn array_to_simple_depth_more_than_1() {}
 }
