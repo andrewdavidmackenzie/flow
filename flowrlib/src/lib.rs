@@ -2,10 +2,7 @@
 //! to enable it to be compiled and ran as a native program.
 #[macro_use]
 extern crate log;
-#[cfg(test)]
 #[macro_use]
-extern crate serde_json;
-#[cfg(not(test))]
 extern crate serde_json;
 extern crate serde;
 #[macro_use]

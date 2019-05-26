@@ -130,13 +130,25 @@ impl Function {
     */
     pub fn write_input(&mut self, input_number: usize, input_value: Value) {
         let input = &mut self.inputs[input_number];
-        if input_value.is_array() && !input.is_array {
-            debug!("Serializing Array value to non-Array input");
-            for value in input_value.as_array().unwrap().iter() {
-                input.push(value.clone());
+        if input_value.is_array() {
+            // Serialize Array value into the non-Array input
+            if !input.is_array {
+                debug!("Serializing Array value to non-Array input");
+                for value in input_value.as_array().unwrap().iter() {
+                    input.push(value.clone());
+                }
+            } else {
+                // Send Array value to the Array input
+                input.push(input_value);
             }
         } else {
-            input.push(input_value);
+            if input.is_array {
+                // Send Non-Array value to the Array input
+                input.push(json!([input_value]));
+            } else {
+                // Send Non-Array value to Non-Array input
+                input.push(input_value);
+            }
         }
     }
 
@@ -190,28 +202,32 @@ mod test {
     use super::Function;
     use input::Input;
 
+    /*************** Below are tests for basic json.pointer functionality *************************/
+
     #[test]
     fn destructure_output_base_route() {
         let json = json!("simple");
-        assert_eq!(json.pointer("").unwrap(), "simple");
+        assert_eq!("simple", json.pointer("").unwrap(), "json pointer functionality not working!");
     }
 
     #[test]
     fn destructure_json_value() {
         let json: Value = json!({ "sub_route": "sub_output" });
-        assert_eq!(json.pointer("/sub_route").unwrap(), "sub_output");
+        assert_eq!("sub_output", json.pointer("/sub_route").unwrap(), "json pointer functionality not working!");
     }
 
     #[test]
     fn access_array_elements() {
         let args: Vec<&str> = vec!("arg0", "arg1", "arg2");
         let json = json!(args);
-        assert_eq!(json.pointer("/0").unwrap(), "arg0");
-        assert_eq!(json.pointer("/1").unwrap(), "arg1");
+        assert_eq!("arg0", json.pointer("/0").unwrap(), "json pointer array indexing functionality not working!");
+        assert_eq!("arg1", json.pointer("/1").unwrap(), "json pointer array indexing functionality not working!");
     }
 
+    /*************** Below are tests for inputs with depth = 1 ***********************/
+
     #[test]
-    fn can_send_input_if_empty() {
+    fn can_send_simple_object() {
         let mut function = Function::new("test".to_string(),
                                          "/context/test".to_string(),
                                          "/test".to_string(), false,
@@ -220,11 +236,40 @@ mod test {
                                          &vec!());
         function.init_inputs(true);
         function.write_input(0, json!(1));
-        assert_eq!(function.take_input_set().remove(0).remove(0), json!(1));
+        assert_eq!(json!(1), function.take_input_set().remove(0).remove(0),
+                   "Value from input set wasn't what was expected");
     }
 
     #[test]
-    fn cannot_send_input_if_full() {
+    fn can_send_array_object() {
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(1, &None, true)),
+                                         0,
+                                         &vec!());
+        function.init_inputs(true);
+        function.write_input(0, json!([1, 2]));
+        assert_eq!(json!([1, 2]), function.take_input_set().remove(0).remove(0),
+                   "Value from input set wasn't what was expected");
+    }
+
+    #[test]
+    fn can_send_simple_object_to_array_input() {
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(1, &None, true)),
+                                         0,
+                                         &vec!());
+        function.init_inputs(true);
+        function.write_input(0, json!(1));
+        assert_eq!(vec!(json!([1])), function.take_input_set().remove(0),
+                   "Value from input set wasn't what was expected");
+    }
+
+    #[test]
+    fn can_send_array_to_simple_object_depth_1() {
         let mut function = Function::new("test".to_string(),
                                          "/context/test".to_string(),
                                          "/test".to_string(), false,
@@ -232,8 +277,98 @@ mod test {
                                          0,
                                          &vec!());
         function.init_inputs(true);
-        function.write_input(0, json!(1)); // success
-        function.write_input(0, json!(2)); // fail
-        assert_eq!(function.take_input_set().remove(0).remove(0), json!(1));
+        function.write_input(0, json!([1, 2]));
+        assert_eq!(vec!(json!(1)), function.take_input_set().remove(0),
+                   "Value from input set wasn't what was expected");
+    }
+
+    #[test]
+    fn can_oversend_inputs() {
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(1, &None, false)),
+                                         0,
+                                         &vec!());
+        function.init_inputs(true);
+        function.write_input(0, json!(1));
+        function.write_input(0, json!(2));
+        assert_eq!(json!(1), function.take_input_set().remove(0).remove(0),
+                   "Value from input set wasn't what was expected");
+        assert_eq!(json!(2), function.take_input_set().remove(0).remove(0),
+                   "Value from input set wasn't what was expected");
+    }
+
+    #[test]
+    #[should_panic]
+    fn cannot_take_input_set_if_not_full() {
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(1, &None, false)),
+                                         0,
+                                         &vec!());
+        function.init_inputs(true);
+        function.take_input_set().remove(0);
+    }
+
+    /*************** Below are tests for inputs with depth > 1 ***********************/
+
+    #[test]
+    fn can_send_array_to_simple_object_depth_2() {
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(2, &None, false)),
+                                         0,
+                                         &vec!());
+        function.init_inputs(true);
+        function.write_input(0, json!([1, 2]));
+        assert_eq!(vec!(json!(1), json!(2)), function.take_input_set().remove(0),
+                   "Value from input set wasn't what was expected");
+    }
+
+    #[test]
+    fn can_send_simple_object_when_depth_more_than_1() {
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(2, &None, false)),
+                                         0,
+                                         &vec!());
+        function.init_inputs(true);
+        function.write_input(0, json!(1));
+        function.write_input(0, json!(2));
+        assert_eq!(vec!(json!(1), json!(2)), function.take_input_set().remove(0),
+                   "Value from input set wasn't the array of numbers expected");
+    }
+
+    #[test]
+    fn can_send_array_objects_when_input_depth_more_than_1() {
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(2, &None, true)),
+                                         0,
+                                         &vec!());
+        function.init_inputs(true);
+        function.write_input(0, json!([1, 2]));
+        function.write_input(0, json!([3, 4]));
+        assert_eq!(vec!(json!([1, 2]), json!([3, 4])), function.take_input_set().remove(0),
+                   "Value from input set wasn't what was expected");
+    }
+
+    #[test]
+    #[should_panic]
+    fn cannot_take_input_set_if_not_full_depth_2() {
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(), false,
+                                         vec!(Input::new(2, &None, false)),
+                                         0,
+                                         &vec!());
+        function.init_inputs(true);
+        function.write_input(0, json!(1));
+        function.take_input_set().remove(0);
     }
 }
