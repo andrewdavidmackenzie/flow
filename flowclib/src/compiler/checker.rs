@@ -125,7 +125,6 @@ fn connection_to(tables: &GenerationTables, input: &Route) -> bool {
 #[cfg(test)]
 mod test {
     use model::connection::Connection;
-    use model::datatype::DataType;
     use model::io::IO;
     use model::route::Route;
     use model::name::Name;
@@ -141,8 +140,8 @@ mod test {
             name: Some(Name::from("first")),
             from: Route::from("/r1"),
             to: Route::from("/r2"),
-            from_io: IO::new(&DataType::from("String"), &Route::from("/r1")),
-            to_io: IO::new(&DataType::from("String"), &Route::from("/r2")),
+            from_io: IO::new("String", &Route::from("/r1")),
+            to_io: IO::new("String", &Route::from("/r2")),
             level: 0,
         };
 
@@ -150,8 +149,8 @@ mod test {
             name: Some(Name::from("second")),
             from: Route::from("/r1"),
             to: Route::from("/r2"),
-            from_io: IO::new(&DataType::from("String"), &Route::from("/r1")),
-            to_io: IO::new(&DataType::from("String"), &Route::from("/r2")),
+            from_io: IO::new("String", &Route::from("/r1")),
+            to_io: IO::new("String", &Route::from("/r2")),
             level: 0,
         };
 

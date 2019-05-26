@@ -18,7 +18,6 @@ use model::connection::Direction::TO;
 use std::fmt;
 use std::mem::replace;
 use flowrlib::input::InputInitializer;
-use model::datatype::TypeCheck;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -247,14 +246,6 @@ impl Flow {
         }
     }
 
-    fn valid_type_connection(from: &IO, to: &IO) -> bool {
-        from.datatype(0) == to.datatype(0) ||
-            from.datatype(0).is_generic() ||
-            to.datatype(0).is_generic() ||
-            (from.datatype(0).is_array() && from.datatype(1) == to.datatype(0) ||
-            (to.datatype(0).is_array() && to.datatype(1) == from.datatype(0)))
-    }
-
     /*
         Change the names of connections to be routes to the alias used in this flow,
         in the process ensuring they exist, that direction is correct and types match
@@ -287,7 +278,7 @@ impl Flow {
                     match self.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {
                         Ok(to_io) => {
                             debug!("Found connection destination:\n{:#?}", to_io);
-                            if Self::valid_type_connection(&from_io, &to_io) {
+                            if Connection::compatible_types(&from_io, &to_io) {
                                 debug!("Connection source and destination types match");
                                 info!("Connection built from '{}' to '{}'", from_io.route(), to_io.route());
                                 connection.from_io = from_io;

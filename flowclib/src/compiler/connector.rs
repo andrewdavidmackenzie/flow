@@ -263,8 +263,8 @@ mod test {
             name: Some(Name::from("left")),
             from: Route::from("/f1/a"),
             to: Route::from("/f2/a"),
-            from_io: IO::new(&"String".to_string(), &Route::from("/f1/a")),
-            to_io: IO::new(&"String".to_string(), &Route::from("/f2/a")),
+            from_io: IO::new("String", &Route::from("/f1/a")),
+            to_io: IO::new("String", &Route::from("/f2/a")),
             level: 0,
         };
         unused.to_io.set_flow_io(IOType::FlowInput);
@@ -280,8 +280,8 @@ mod test {
             name: Some(Name::from("left")),
             from: Route::from("/context/function1"),
             to: Route::from("/context/flow2/a"),
-            from_io: IO::new(&"String".to_string(), &Route::from("/context/function1")),
-            to_io: IO::new(&"String".to_string(), &Route::from("/context/flow2/a")),
+            from_io: IO::new("String", &Route::from("/context/function1")),
+            to_io: IO::new("String", &Route::from("/context/flow2/a")),
             level: 0,
         };
         left_side.from_io.set_flow_io(IOType::FunctionIO);
@@ -292,8 +292,8 @@ mod test {
             name: Some(Name::from("unused")),
             from: Route::from("/context/flow2/a"),
             to: Route::from("/context/flow2/f4/a"),
-            from_io: IO::new(&"String".to_string(), &Route::from("/context/flow2/a")),
-            to_io: IO::new(&"String".to_string(), &Route::from("/context/flow2/f4/a")),
+            from_io: IO::new("String", &Route::from("/context/flow2/a")),
+            to_io: IO::new("String", &Route::from("/context/flow2/f4/a")),
             level: 1,
         };
         extra_one.from_io.set_flow_io(IOType::FlowInput);
@@ -303,8 +303,8 @@ mod test {
             name: Some(Name::from("right")),
             from: Route::from("/context/flow2/a"),
             to: Route::from("/context/flow2/function3"),
-            from_io: IO::new(&"String".to_string(), &Route::from("/context/flow2/a")),
-            to_io: IO::new(&"String".to_string(), &Route::from("/context/flow2/function3")),
+            from_io: IO::new("String", &Route::from("/context/flow2/a")),
+            to_io: IO::new("String", &Route::from("/context/flow2/function3")),
             level: 1,
         };
         right_side.from_io.set_flow_io(IOType::FlowInput);
@@ -330,8 +330,8 @@ mod test {
             name: Some(Name::from("left")),
             from: Route::from("/context/f1"),
             to: Route::from("/context/f2/a"),
-            from_io: IO::new(&"String".to_string(), &Route::from("/context/f1")),
-            to_io: IO::new(&"String".to_string(), &Route::from("/context/f2/a")),
+            from_io: IO::new("String", &Route::from("/context/f1")),
+            to_io: IO::new("String", &Route::from("/context/f2/a")),
             level: 0,
         };
         left_side.from_io.set_flow_io(IOType::FunctionIO);
@@ -341,8 +341,8 @@ mod test {
             name: Some(Name::from("right1")),
             from: Route::from("/context/f2/a"),
             to: Route::from("/context/f2/value1"),
-            from_io: IO::new(&"String".to_string(), &Route::from("/context/f2/a")),
-            to_io: IO::new(&"String".to_string(), &Route::from("/context/f2/value1")),
+            from_io: IO::new("String", &Route::from("/context/f2/a")),
+            to_io: IO::new("String", &Route::from("/context/f2/value1")),
             level: 1,
         };
         right_side_one.from_io.set_flow_io(IOType::FlowInput);
@@ -352,8 +352,8 @@ mod test {
             name: Some(Name::from("right2")),
             from: Route::from("/context/f2/a"),
             to: Route::from("/context/f2/value2"),
-            from_io: IO::new(&"String".to_string(), &Route::from("/context/f2/a")),
-            to_io: IO::new(&"String".to_string(), &Route::from("/context/f2/value2")),
+            from_io: IO::new("String", &Route::from("/context/f2/a")),
+            to_io: IO::new("String", &Route::from("/context/f2/value2")),
             level: 1,
         };
         right_side_two.from_io.set_flow_io(IOType::FlowInput);
@@ -376,8 +376,8 @@ mod test {
             name: Some(Name::from("value-to-f1:a at context level")),
             from: Route::from("/context/value"),
             to: Route::from("/context/flow1/a"),
-            from_io: IO::new(&"String".to_string(), &Route::from("/context/value")),
-            to_io: IO::new(&"String".to_string(), &Route::from("/context/flow1/a")),
+            from_io: IO::new("String", &Route::from("/context/value")),
+            to_io: IO::new("String", &Route::from("/context/flow1/a")),
             level: 0,
         };
         first_level.from_io.set_flow_io(IOType::FunctionIO);
@@ -387,8 +387,8 @@ mod test {
             name: Some(Name::from("subflow_connection")),
             from: Route::from("/context/flow1/a"),
             to: Route::from("/context/flow1/flow2/a"),
-            from_io: IO::new(&"String".to_string(), &Route::from("/context/flow1/a")),
-            to_io: IO::new(&"String".to_string(), &Route::from("/context/flow1/flow2/a")),
+            from_io: IO::new("String", &Route::from("/context/flow1/a")),
+            to_io: IO::new("String", &Route::from("/context/flow1/flow2/a")),
             level: 1,
         };
         second_level.from_io.set_flow_io(IOType::FlowInput);
@@ -398,8 +398,8 @@ mod test {
             name: Some(Name::from("subsubflow_connection")),
             from: Route::from("/context/flow1/flow2/a"),
             to: Route::from("/context/flow1/flow2/func/in"),
-            from_io: IO::new(&"String".to_string(), &Route::from("/context/flow1/flow2/a")),
-            to_io: IO::new(&"String".to_string(), &Route::from("/context/flow1/flow2/func/in")),
+            from_io: IO::new("String", &Route::from("/context/flow1/flow2/a")),
+            to_io: IO::new("String", &Route::from("/context/flow1/flow2/func/in")),
             level: 2,
         };
         third_level.from_io.set_flow_io(IOType::FlowInput);
@@ -421,8 +421,8 @@ mod test {
             name: Some(Name::from("left")),
             from: Route::from("/f1/a"),
             to: Route::from("/f2/a"),
-            from_io: IO::new(&"String".to_string(), &Route::from("/f1/a")),
-            to_io: IO::new(&"String".to_string(), &Route::from("/f2/a")),
+            from_io: IO::new("String", &Route::from("/f1/a")),
+            to_io: IO::new("String", &Route::from("/f2/a")),
             level: 0,
         };
 
@@ -430,8 +430,8 @@ mod test {
             name: Some(Name::from("right")),
             from: Route::from("/f3/a"),
             to: Route::from("/f4/a"),
-            from_io: IO::new(&"String".to_string(), &Route::from("/f3/a")),
-            to_io: IO::new(&"String".to_string(), &Route::from("/f4/a")),
+            from_io: IO::new("String", &Route::from("/f3/a")),
+            to_io: IO::new("String", &Route::from("/f4/a")),
             level: 0,
         };
 

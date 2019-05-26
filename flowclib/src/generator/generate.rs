@@ -123,8 +123,8 @@ mod test {
             Name::from("print"),
             Some(vec!()),
             Some(vec!(
-                IO::new(&"Json".to_string(), &Route::default()),
-                IO::new(&"String".to_string(), &Route::default())
+                IO::new("Json", &Route::default()),
+                IO::new("String", &Route::default())
             )),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
@@ -165,9 +165,7 @@ mod test {
             Some("lib://runtime/stdio/stdout".to_string()),
             Name::from("print"),
             Some(vec!()),
-            Some(vec!(
-                IO::new(&"String".to_string(), &Route::default())
-            )),
+            Some(vec!(IO::new("String", &Route::default()) )),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
@@ -202,9 +200,7 @@ mod test {
             Some("lib://runtime/stdio/stdout".to_string()),
             Name::from("print"),
             Some(vec!()),
-            Some(vec!(
-                IO::new(&"String".to_string(), &Route::default())
-            )),
+            Some(vec!(IO::new("String", &Route::default()))),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
@@ -234,7 +230,7 @@ mod test {
 
     #[test]
     fn function_with_initialized_input_generation() {
-        let mut io = IO::new(&"String".to_string(), &Route::default());
+        let mut io = IO::new("String", &Route::default());
         io.set_initial_value(&Some(InputInitializer::OneTime(
             OneTimeInputInitializer { once: json!(1) }
         )));
@@ -275,7 +271,7 @@ mod test {
 
     #[test]
     fn function_with_constant_input_generation() {
-        let mut io = IO::new(&"String".to_string(), &Route::default());
+        let mut io = IO::new("String", &Route::default());
         io.set_initial_value(&Some(InputInitializer::Constant(
             ConstantInputInitializer { constant: json!(1) }
         )));
@@ -316,7 +312,7 @@ mod test {
 
     #[test]
     fn function_with_array_input_generation() {
-        let io = IO::new(&"Array/String".to_string(), &Route::default());
+        let io = IO::new("Array/String", &Route::default());
 
         let function = Function::new(
             Name::from("Stdout"),
@@ -359,7 +355,7 @@ mod test {
             Name::from("print"),
             Some(vec!()),
             Some(vec!(
-                IO::new(&"String".to_string(), &Route::default())
+                IO::new("String", &Route::default())
             )),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
@@ -397,9 +393,7 @@ mod test {
             Some("lib://runtime/stdio/stdout".to_string()),
             Name::from("print"),
             Some(vec!()),
-            Some(vec!(
-                IO::new(&"Array".to_string(), &Route::default())
-            )),
+            Some(vec!(IO::new("Array", &Route::default()))),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,

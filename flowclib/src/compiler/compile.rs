@@ -54,7 +54,7 @@ mod test {
                                          false,
                                          Some("lib://runtime/stdio/stdout.toml".to_string()),
                                          Name::from("test-function"),
-                                         Some(vec!(IO::new(&"String".to_string(),
+                                         Some(vec!(IO::new("String",
                                                            &Route::from("/context/print")))),
                                          Some(vec!()),
                                          "lib://runtime/stdio/stdout.toml",

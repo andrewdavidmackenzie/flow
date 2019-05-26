@@ -4,6 +4,7 @@ use model::route::Route;
 use model::route::HasRoute;
 use model::io::IO;
 use std::fmt;
+use model::datatype::TypeCheck;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -50,9 +51,24 @@ impl Validate for Connection {
     }
 }
 
+impl Connection {
+    /*
+        Determine if the type of the source of a connection and the type of the destination are
+        compatible, and a Connection can be formed that can be implemented by the run-time
+    */
+    pub fn compatible_types(from: &IO, to: &IO) -> bool {
+        from.datatype(0) == to.datatype(0) ||
+            from.datatype(0).is_generic() ||
+            to.datatype(0).is_generic() ||
+            (from.datatype(0).is_array() && from.datatype(1) == to.datatype(0) ||
+                (to.datatype(0).is_array() && to.datatype(1) == from.datatype(0)))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use model::route::Route;
+    use model::io::IO;
     use super::Connection;
 
     #[test]
@@ -117,5 +133,60 @@ mod test {
         ";
 
         let _connection: Connection = toml::from_str(input_str).unwrap();
+    }
+
+    /******************** Tests for compatible_types ********************/
+
+    /// # Compatible Types in a Connection
+    ///
+    /// ## Simple Object Value being sent
+    ///   Value Type        Input Type
+    /// * Simple Object --> Simple Object (is_array = false, depth = 1)
+    /// * Simple Object --> Simple Object (is_array = false, depth > 1) (will be accumulated at the
+    /// input and sent to the function as an array of size 'depth'
+    /// * Simple Object --> Array (is_array = true, depth = 1)
+    ///
+    /// ## Array Object being sent
+    ///   Value Type        Input Type
+    /// * Array Object  --> Array (is_array = true, depth = 1)
+    /// * Array Object  --> Array (is_array = true, depth > 1)
+    /// * Array Object  --> Simple Object (is_array = false, depth = 1) (values in Array will be
+    /// serialized and sent to input one by one, will be extracted one-by-one as per depth)
+    /// * Array Object  --> Simple Object (is_array = false, depth > 1) (values in Array will be
+    /// serialized and sent to input one by one, will be extracted in sets of size 'depth')
+
+    #[test]
+    fn simple_to_simple_depth_1() {
+        let from_io = IO::new("String", &Route::from("/output"));
+    }
+
+    #[test]
+    fn simple_to_simple_depth_greater_than_1() {
+
+    }
+
+    #[test]
+    fn simple_to_array() {
+
+    }
+
+    #[test]
+    fn array_to_array_depth_1() {
+
+    }
+
+    #[test]
+    fn array_to_array_depth_more_than_1() {
+
+    }
+
+    #[test]
+    fn array_to_simple_depth_1() {
+
+    }
+
+    #[test]
+    fn array_to_simple_depth_more_than_1() {
+
     }
 }
