@@ -1,0 +1,13 @@
+function = "Zip"
+
+[[input]]
+name = "left"
+type = "Array"
+
+[[input]]
+name = "right"
+type = "Array"
+
+[[output]]
+name = "tuples"
+type = "Array"
