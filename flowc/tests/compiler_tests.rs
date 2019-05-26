@@ -58,6 +58,19 @@ fn args() {
 }
 
 #[test]
+fn object_to_array_connection() {
+    set_flow_lib_path();
+    let meta_provider = MetaProvider {};
+    let path = url_from_rel_path("test-flows/object_to_array_connection.toml");
+    let process = loader::load_context(&path, &meta_provider).unwrap();
+    if let FlowProcess(ref flow) = process {
+        let _tables = compile::compile(flow).unwrap();
+    } else {
+        assert!(false, "Process loaded was not a flow");
+    }
+}
+
+#[test]
 fn context_with_io() {
     set_flow_lib_path();
     let meta_provider = MetaProvider {};
