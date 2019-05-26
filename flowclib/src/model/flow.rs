@@ -247,11 +247,12 @@ impl Flow {
         }
     }
 
-    fn valid_datatype_match(from: &IO, to: &IO) -> bool {
+    fn valid_type_connection(from: &IO, to: &IO) -> bool {
         from.datatype(0) == to.datatype(0) ||
-            (from.datatype(0).is_array() && from.datatype(1) == to.datatype(0)) ||
             from.datatype(0).is_generic() ||
-            to.datatype(0).is_generic()
+            to.datatype(0).is_generic() ||
+            (from.datatype(0).is_array() && from.datatype(1) == to.datatype(0) ||
+            (to.datatype(0).is_array() && to.datatype(1) == from.datatype(0)))
     }
 
     /*
@@ -286,7 +287,7 @@ impl Flow {
                     match self.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {
                         Ok(to_io) => {
                             debug!("Found connection destination:\n{:#?}", to_io);
-                            if Self::valid_datatype_match(&from_io, &to_io) {
+                            if Self::valid_type_connection(&from_io, &to_io) {
                                 debug!("Connection source and destination types match");
                                 info!("Connection built from '{}' to '{}'", from_io.route(), to_io.route());
                                 connection.from_io = from_io;
