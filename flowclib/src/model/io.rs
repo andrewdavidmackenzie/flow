@@ -38,40 +38,20 @@ pub struct IO {
     initializer: Option<InputInitializer>,
 }
 
-impl Default for IO {
-    fn default() -> Self {
-        IO {
-            name: Name::default(),
-            datatype: default_type(),
-            depth: default_depth(),
-            route: Route::default(),
-            io_type: IOType::FunctionIO,
-            initializer: None,
-        }
-    }
-}
-
-impl HasName for IO {
-    fn name(&self) -> &Name { &self.name }
-    fn alias(&self) -> &Name { &self.name }
-}
-
-impl HasDataType for IO {
-    fn datatype(&self, level: usize) -> DataType {
-        self.datatype(level)
-    }
-}
-
 impl IO {
-    pub fn new(datatype: &DataType, route: &Route) -> Self {
+    pub fn new<S: Into<DataType>>(datatype: S, route: &Route) -> Self {
         let mut io = IO::default();
-        io.datatype = datatype.clone();
+        io.datatype = datatype.into();
         io.route = route.clone();
         io
     }
 
     pub fn depth(&self) -> usize {
         self.depth
+    }
+
+    pub fn set_depth(&mut self, depth: usize) {
+        self.depth = depth
     }
 
     pub fn flow_io(&self) -> bool {
@@ -122,14 +102,38 @@ impl IO {
     }
 }
 
+impl Default for IO {
+    fn default() -> Self {
+        IO {
+            name: Name::default(),
+            datatype: default_type(),
+            depth: default_depth(),
+            route: Route::default(),
+            io_type: IOType::FunctionIO,
+            initializer: None,
+        }
+    }
+}
+
+impl HasName for IO {
+    fn name(&self) -> &Name { &self.name }
+    fn alias(&self) -> &Name { &self.name }
+}
+
+impl HasDataType for IO {
+    fn datatype(&self, level: usize) -> DataType {
+        self.datatype(level)
+    }
+}
+
 impl HasRoute for IO {
     fn route(&self) -> &Route {
         &self.route
     }
 }
 
-fn default_type() -> String {
-    "Json".to_string()
+fn default_type() -> DataType {
+    DataType::from("Json")
 }
 
 fn default_depth() -> usize {
@@ -267,6 +271,7 @@ mod test {
     use model::io::IOType;
     use model::name::Name;
     use model::route::Route;
+    use model::datatype::DataType;
 
     #[test]
     fn deserialize_empty_string() {
@@ -274,7 +279,7 @@ mod test {
 
         let output: IO = toml::from_str(input_str).unwrap();
         output.validate().unwrap();
-        assert_eq!(output.datatype, "Json");
+        assert_eq!(output.datatype, DataType::from("Json"));
         assert_eq!(output.name, Name::default());
     }
 
@@ -331,7 +336,7 @@ mod test {
 
         let input: IO = toml::from_str(input_str).unwrap();
         assert_eq!(Name::from("input"), *input.name());
-        assert_eq!("String", input.datatype(0));
+        assert_eq!(DataType::from("String"), input.datatype(0));
     }
 
     #[test]
@@ -362,7 +367,7 @@ mod test {
     fn unique_io_names_validate() {
         let io0 = IO {
             name: Name::from("io_name"),
-            datatype: "String".to_string(),
+            datatype: DataType::from("String"),
             route: Route::default(),
             depth: 1,
             io_type: IOType::FunctionIO,
@@ -370,7 +375,7 @@ mod test {
         };
         let io1 = IO {
             name: Name::from("different_name"),
-            datatype: "String".to_string(),
+            datatype: DataType::from("String"),
             route: Route::default(),
             depth: 1,
             io_type: IOType::FunctionIO,
@@ -385,7 +390,7 @@ mod test {
     fn non_unique_io_names_wont_validate() {
         let io0 = IO {
             name: Name::from("io_name"),
-            datatype: "String".to_string(),
+            datatype: DataType::from("String"),
             route: Route::default(),
             depth: 1,
             io_type: IOType::FunctionIO,
@@ -401,7 +406,7 @@ mod test {
     fn multiple_inputs_empty_name_not_allowed() {
         let io0 = IO {
             name: Name::from("io_name"),
-            datatype: "String".to_string(),
+            datatype: DataType::from("String"),
             route:Route::default(),
             depth: 1,
             io_type: IOType::FunctionIO,
@@ -409,7 +414,7 @@ mod test {
         };
         let io1 = IO {
             name: Name::default(),
-            datatype: "String".to_string(),
+            datatype: DataType::from("String"),
             route: Route::default(),
             depth: 1,
             io_type: IOType::FunctionIO,

@@ -2,12 +2,12 @@ function = "Zip"
 
 [[input]]
 name = "left"
-type = "Array/String"
+type = "Array/Json"
 
 [[input]]
 name = "right"
-type = "Array/String"
+type = "Array/Json"
 
 [[output]]
 name = "tuples"
-type = "Array/String"
+type = "Array/Json"

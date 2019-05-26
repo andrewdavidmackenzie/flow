@@ -186,7 +186,7 @@ impl Default for Function {
             implementation: None,
             alias: Name::default(),
             inputs: None,
-            outputs: Some(vec!(IO::new(&"Json".to_string(), &Route::default()))),
+            outputs: Some(vec!(IO::new("Json", &Route::default()))),
             source_url: Function::default_url(),
             route: Route::default(),
             lib_reference: None,
@@ -240,6 +240,7 @@ mod test {
     use model::route::SetRoute;
     use model::name::Name;
     use model::io::IOSet;
+    use model::datatype::DataType;
     use toml;
 
     use super::Function;
@@ -342,7 +343,7 @@ mod test {
         assert!(function.outputs.is_some());
         let output = &function.outputs.unwrap()[0];
         assert_eq!(*output.name(), Name::default());
-        assert_eq!(output.datatype(0), "String");
+        assert_eq!(output.datatype(0), DataType::from("String"));
     }
 
     #[test]
@@ -359,7 +360,7 @@ mod test {
         assert!(function.outputs.is_some());
         let output = &function.outputs.unwrap()[0];
         assert_eq!(*output.name(), Name::from("sub_output"));
-        assert_eq!(output.datatype(0), "String");
+        assert_eq!(output.datatype(0), DataType::from("String"));
     }
 
     #[test]
@@ -381,10 +382,10 @@ mod test {
         assert_eq!(outputs.len(), 2);
         let output0 = &outputs[0];
         assert_eq!(*output0.name(), Name::from("sub_output"));
-        assert_eq!(output0.datatype(0), "String");
+        assert_eq!(output0.datatype(0), DataType::from("String"));
         let output1 = &outputs[1];
         assert_eq!(*output1.name(), Name::from("other_output"));
-        assert_eq!(output1.datatype(0), "Number");
+        assert_eq!(output1.datatype(0), DataType::from("Number"));
     }
 
     #[test]
