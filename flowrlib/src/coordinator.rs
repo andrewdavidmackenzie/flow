@@ -101,7 +101,7 @@ impl Coordinator {
         let (job_tx, job_rx, ) = mpsc::channel();
         let (output_tx, output_rx) = mpsc::channel();
 
-        debug!("Starting {} executor threads", num_threads);
+        info!("Starting {} executor threads", num_threads);
         execution::start_executors(num_threads, job_rx, output_tx.clone());
         execution::set_panic_hook();
 
@@ -116,7 +116,7 @@ impl Coordinator {
     }
 
     pub fn run(&mut self, manifest: Manifest, max_parallel_jobs: usize) {
-        debug!("Max Jobs in parallel set to {}", max_parallel_jobs);
+        info!("Max Jobs in parallel set to {}", max_parallel_jobs);
         let output_timeout = Duration::new(1, 0);
         let mut state = RunState::new(manifest.functions, max_parallel_jobs);
         #[cfg(feature = "metrics")]
