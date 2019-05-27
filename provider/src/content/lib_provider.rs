@@ -41,7 +41,7 @@ impl Provider for LibProvider {
         Also, construct a string that is a reference to that module in the library, such as:
             "flowstdlib/stdio/stdout" and return that also.
     */
-    fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>), String> {
+    fn resolve(&self, url_str: &str, default_filename: &str) -> Result<(String, Option<String>), String> {
         let url = Url::parse(url_str)
             .map_err(|_| format!("Could not convert '{}' to valid Url", url_str))?;
         let lib_name = url.host_str().expect(
@@ -49,12 +49,11 @@ impl Provider for LibProvider {
 
         if let Err(_) = env::var("FLOW_LIB_PATH") {
             let mut parent_dir = std::env::current_dir().unwrap();
-//            parent_dir.pop();
             debug!("Setting 'FLOW_LIB_PATH' to '{}'", parent_dir.to_string_lossy().to_string());
             env::set_var("FLOW_LIB_PATH", parent_dir.to_string_lossy().to_string());
         }
 
-        let flow_lib_search_path= Simpath::new("FLOW_LIB_PATH");
+        let flow_lib_search_path = Simpath::new("FLOW_LIB_PATH");
         let mut lib_path = flow_lib_search_path.find(lib_name)
             .map_err(|e| e.to_string())?;
         lib_path.push("src");
@@ -66,6 +65,13 @@ impl Provider for LibProvider {
         let lib_ref = format!("{}{}", lib_name, module.unwrap().path());
 
         if lib_path.exists() {
+            if lib_path.is_dir() {
+                debug!("'{:?}' is a directory, so looking for default file name '{}'", lib_path, default_filename);
+                lib_path.push(default_filename);
+                if !lib_path.exists() {
+                    return Err(format!("Could not locate url '{}' in libraries in 'FLOW_LIB_PATH'", url));
+                }
+            }
             let lib_path_url = Url::from_file_path(&lib_path)
                 .map_err(|_| format!("Could not create Url from '{:?}'", &lib_path))?;
             Ok((lib_path_url.to_string(), Some(lib_ref.to_string())))
