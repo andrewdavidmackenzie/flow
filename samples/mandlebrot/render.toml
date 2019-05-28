@@ -13,4 +13,8 @@ name = "lower_right"
 name = "bytes"
 
 [[output]]
-name = "bitmap_bounds"
+name = "bounds"
+
+[[connection]]
+from = "input/bounds"
+to = "output/bounds"
