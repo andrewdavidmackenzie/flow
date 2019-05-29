@@ -38,12 +38,16 @@
     - [Standard Input and Output](running/stdio.md)
     - [Exceptions and Panics](running/panics.md)
 
+- [Test Samples](flowc/tests/samples/overview.md)
+    - [hello-world](flowc/tests/samples//hello-world/hello-world.md)
+    - [line-echo](flowc/tests/samples//line-echo/line-echo.md)
+    - [primitives](flowc/tests/samples//primitives/primitives.md)
+    - [print-args](flowc/tests/samples//print-args/print-args.md)
+
 - [Samples](samples/overview.md)
     - [first sample](samples/first/DESCRIPTION.md)
-    - [echo sample](samples/echo/DESCRIPTION.md)
     - [fibonacci sample](samples/fibonacci/DESCRIPTION.md)
     - [hello-world-include sample](samples/hello-world-include/DESCRIPTION.md)
-    - [hello-world-simple sample](samples/hello-world-simple/DESCRIPTION.md)
     - [hello-world sample](samples/hello-world/DESCRIPTION.md)
     - [line-echo sample](samples/line-echo/DESCRIPTION.md)
 

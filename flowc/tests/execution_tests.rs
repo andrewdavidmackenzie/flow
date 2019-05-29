@@ -6,7 +6,7 @@ extern crate url;
 
 use std::env;
 use std::fs::File;
-use std::io::{BufRead, BufReader, BufWriter, Write};
+use std::io::{BufRead, BufReader, Write};
 use std::io::prelude::*;
 use std::path::PathBuf;
 use std::process::Command;
@@ -70,12 +70,11 @@ fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>, inp
         .spawn().unwrap();
 
     // send it stdin from the file
-    let mut stdin = child.stdin.unwrap();
-    let mut writer = BufWriter::new(&mut stdin);
-    writer.write_all(input.as_bytes()).unwrap();
+    write!(child.stdin.unwrap(), "{}", input).unwrap();
 
     let mut output = String::new();
 
+    // read the stdout
     if let Some(ref mut stdout) = child.stdout {
         for line in BufReader::new(stdout).lines() {
             output.push_str(&format!("{}\n", &line.unwrap()));
@@ -121,7 +120,7 @@ fn execute_test(test_name: &str) {
     let mut test_dir = env::current_dir().unwrap();
     let mut run_dir = test_dir.clone();
     run_dir.pop();
-    test_dir.push("tests/samples");
+    test_dir.push(&format!("tests/samples/{}", test_name));
 
     if let FlowProcess(ref flow) = load_flow(&test_dir, test_name) {
         let tables = compile::compile(flow).unwrap();
@@ -150,4 +149,9 @@ fn primitives() {
 #[test]
 fn hello_world() {
     execute_test("hello-world");
+}
+
+#[test]
+fn echo() {
+    execute_test("line-echo");
 }
