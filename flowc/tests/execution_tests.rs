@@ -6,7 +6,7 @@ extern crate url;
 
 use std::env;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::io::prelude::*;
 use std::path::PathBuf;
 use std::process::Command;
@@ -65,11 +65,15 @@ fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>) -> 
         command_args.push(test_arg);
     }
     command.current_dir(run_dir);
-    command.args(command_args)
-        .stdin(Stdio::inherit())
+    let mut child = command.args(command_args)
+        .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .output().unwrap()
+        .spawn().unwrap();
+
+//    let mut stdin = child.stdin.unwrap();
+
+    child.wait_with_output().unwrap()
 }
 
 fn test_args(test_dir: &PathBuf, test_name: &str) -> Vec<String> {
