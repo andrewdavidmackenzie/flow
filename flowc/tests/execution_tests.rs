@@ -19,7 +19,6 @@ use flowclib::generator::generate::GenerationTables;
 use flowclib::model::flow::Flow;
 use flowclib::model::process::Process;
 use flowclib::model::process::Process::FlowProcess;
-use flowrlib::manifest::DEFAULT_MANIFEST_FILENAME;
 use url::Url;
 
 use provider::content::provider::MetaProvider;
@@ -42,12 +41,12 @@ fn set_flow_lib_path() {
     env::set_var("FLOW_LIB_PATH", parent_dir.to_string_lossy().to_string());
 }
 
-fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: PathBuf, tables: &GenerationTables)
+fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: PathBuf, test_name: &str, tables: &GenerationTables)
                   -> Result<PathBuf, std::io::Error> {
     let mut filename = out_dir.clone();
-    filename.push(DEFAULT_MANIFEST_FILENAME.to_string());
+    filename.push(&format!("{}.json", test_name));
     let mut manifest_file = File::create(&filename)?;
-    let out_dir_path = Url::from_file_path(out_dir).unwrap().to_string();
+    let out_dir_path = Url::from_file_path(&filename).unwrap().to_string();
 
     let manifest = generate::create_manifest(&flow, debug_symbols, &out_dir_path, tables)?;
 
@@ -59,7 +58,7 @@ fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: PathBuf, tables: &G
 fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>, input: String) -> String {
     let mut command = Command::new("cargo");
     let mut command_args = vec!("run", "--bin", "flowr", filepath.to_str().unwrap(),
-                            "--");
+                                "-j 1", "--");
     for test_arg in &test_args {
         command_args.push(test_arg);
     }
@@ -127,7 +126,8 @@ fn execute_test(test_name: &str) {
     if let FlowProcess(ref flow) = load_flow(&test_dir, test_name) {
         let tables = compile::compile(flow).unwrap();
         let out_dir = test_dir.clone();
-        let manifest_path = write_manifest(flow, true, out_dir, &tables).unwrap();
+        let manifest_path = write_manifest(flow, true, out_dir,
+                                           test_name, &tables).unwrap();
 
         let mut test_args = test_args(&test_dir, test_name);
         let input = get(&test_dir,&format!("{}.stdin", test_name) );
@@ -140,4 +140,9 @@ fn execute_test(test_name: &str) {
 #[test]
 fn print_args() {
     execute_test("print_args");
+}
+
+#[test]
+fn primitives() {
+    execute_test("primitives");
 }
