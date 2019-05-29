@@ -56,7 +56,7 @@ fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: PathBuf, tables: &G
     Ok(filename)
 }
 
-fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>) -> String {
+fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>, input: String) -> String {
     let mut command = Command::new("cargo");
     let mut command_args = vec!("run", "--bin", "flowr", filepath.to_str().unwrap(),
                             "--");
@@ -70,9 +70,10 @@ fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>) -> 
         .stderr(Stdio::piped())
         .spawn().unwrap();
 
-    // Create a handle and writer for the stdin of the second process
-    let mut outstdin = child.stdin.unwrap();
-    let mut writer = BufWriter::new(&mut outstdin);
+    // send it stdin from the file
+    let mut stdin = child.stdin.unwrap();
+    let mut writer = BufWriter::new(&mut stdin);
+    writer.write_all(input.as_bytes()).unwrap();
 
     let mut output = String::new();
 
@@ -107,10 +108,9 @@ fn load_flow(test_dir: &PathBuf, test_name: &str) -> Process {
     loader::load_context(&url_from_rel_path(&flow_file.to_string_lossy()), &MetaProvider {}).unwrap()
 }
 
-fn get_expected(test_dir: &PathBuf, test_name: &str) -> String {
-    let test_expected = format!("{}.expected", test_name);
+fn get(test_dir: &PathBuf, file_name: &str) -> String {
     let mut expected_file = test_dir.clone();
-    expected_file.push(test_expected);
+    expected_file.push(file_name);
     let mut f = File::open(&expected_file).unwrap();
     let mut buffer = Vec::new();
     f.read_to_end(&mut buffer).unwrap();
@@ -129,10 +129,10 @@ fn execute_test(test_name: &str) {
         let out_dir = test_dir.clone();
         let manifest_path = write_manifest(flow, true, out_dir, &tables).unwrap();
 
-        let test_stdin = format!("{}.stdin", test_name);
         let mut test_args = test_args(&test_dir, test_name);
-        let actual_output = execute_flow(run_dir, manifest_path, test_args);
-        let expected_output = get_expected(&test_dir, test_name);
+        let input = get(&test_dir,&format!("{}.stdin", test_name) );
+        let actual_output = execute_flow(run_dir, manifest_path, test_args, input);
+        let expected_output = get(&test_dir,&format!("{}.expected", test_name) );
         assert_eq!(expected_output, actual_output);
     }
 }
