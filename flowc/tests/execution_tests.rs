@@ -61,11 +61,13 @@ fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>) -> 
     let mut command = Command::new("cargo");
     let mut command_args = vec!("run", "--bin", "flowr", filepath.to_str().unwrap(),
                             "--");
-    test_args.iter().map(|arg| command_args.push(arg));
+    for test_arg in &test_args {
+        command_args.push(test_arg);
+    }
     command.current_dir(run_dir);
     command.args(command_args)
         .stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
+        .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output().unwrap()
 }
@@ -81,6 +83,7 @@ fn test_args(test_dir: &PathBuf, test_name: &str) -> Vec<String> {
     for line in f.lines() {
         args.push(line.unwrap());
     }
+    println!("flow args: {:?}", args);
     args
 }
 
@@ -91,11 +94,14 @@ fn load_flow(test_dir: &PathBuf, test_name: &str) -> Process {
     loader::load_context(&url_from_rel_path(&flow_file.to_string_lossy()), &MetaProvider {}).unwrap()
 }
 
-fn get(file_path: &PathBuf) -> Vec<u8> {
-    let mut f = File::open(&file_path).unwrap();
+fn get_expected(test_dir: &PathBuf, test_name: &str) -> String {
+    let test_expected = format!("{}.expected", test_name);
+    let mut expected_file = test_dir.clone();
+    expected_file.push(test_expected);
+    let mut f = File::open(&expected_file).unwrap();
     let mut buffer = Vec::new();
     f.read_to_end(&mut buffer).unwrap();
-    buffer
+    String::from_utf8(buffer).unwrap()
 }
 
 fn execute_test(test_name: &str) {
@@ -113,10 +119,15 @@ fn execute_test(test_name: &str) {
         let test_stdin = format!("{}.stdin", test_name);
         let mut test_args = test_args(&test_dir, test_name);
         let output = execute_flow(run_dir, manifest_path, test_args);
+        assert_eq!(Some(0), output.status.code());
+
+        let actual_output = String::from_utf8(output.stdout).unwrap();
+        let expected_output = get_expected(&test_dir, test_name);
+        assert_eq!(expected_output, actual_output);
     }
 }
 
 #[test]
-fn args() {
+fn print_args() {
     execute_test("print_args");
 }
