@@ -10,7 +10,6 @@ use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::io::prelude::*;
 use std::path::PathBuf;
 use std::process::Command;
-use std::process::Output;
 use std::process::Stdio;
 
 use flowclib::compiler::compile;
@@ -57,7 +56,7 @@ fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: PathBuf, tables: &G
     Ok(filename)
 }
 
-fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>) -> Output {
+fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>) -> String {
     let mut command = Command::new("cargo");
     let mut command_args = vec!("run", "--bin", "flowr", filepath.to_str().unwrap(),
                             "--");
@@ -71,9 +70,19 @@ fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>) -> 
         .stderr(Stdio::piped())
         .spawn().unwrap();
 
-//    let mut stdin = child.stdin.unwrap();
+    // Create a handle and writer for the stdin of the second process
+    let mut outstdin = child.stdin.unwrap();
+    let mut writer = BufWriter::new(&mut outstdin);
 
-    child.wait_with_output().unwrap()
+    let mut output = String::new();
+
+    if let Some(ref mut stdout) = child.stdout {
+        for line in BufReader::new(stdout).lines() {
+            output.push_str(&format!("{}\n", &line.unwrap()));
+        }
+    }
+
+    output
 }
 
 fn test_args(test_dir: &PathBuf, test_name: &str) -> Vec<String> {
@@ -122,10 +131,7 @@ fn execute_test(test_name: &str) {
 
         let test_stdin = format!("{}.stdin", test_name);
         let mut test_args = test_args(&test_dir, test_name);
-        let output = execute_flow(run_dir, manifest_path, test_args);
-        assert_eq!(Some(0), output.status.code());
-
-        let actual_output = String::from_utf8(output.stdout).unwrap();
+        let actual_output = execute_flow(run_dir, manifest_path, test_args);
         let expected_output = get_expected(&test_dir, test_name);
         assert_eq!(expected_output, actual_output);
     }
