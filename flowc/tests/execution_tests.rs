@@ -146,3 +146,8 @@ fn print_args() {
 fn primitives() {
     execute_test("primitives");
 }
+
+#[test]
+fn hello_world() {
+    execute_test("hello-world");
+}
