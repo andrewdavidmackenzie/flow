@@ -55,6 +55,10 @@ copy-md-files:
 	@find flowr -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
 	@find flowr -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
 
+	@echo "------- Started copying Markdown files from 'flowc' to 'guide/src' -------------"
+	@find flowc -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
+	@find flowc -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
+
 	@echo "------- Done    copying Markdown files from 'samples', 'flowstdlib' and 'flowr' to 'guide/src' -------------"
 
 #################### Build ####################

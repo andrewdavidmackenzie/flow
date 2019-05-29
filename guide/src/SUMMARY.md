@@ -39,10 +39,11 @@
     - [Exceptions and Panics](running/panics.md)
 
 - [Test Samples](flowc/tests/samples/overview.md)
-    - [hello-world](flowc/tests/samples//hello-world/hello-world.md)
-    - [line-echo](flowc/tests/samples//line-echo/line-echo.md)
-    - [primitives](flowc/tests/samples//primitives/primitives.md)
-    - [print-args](flowc/tests/samples//print-args/print-args.md)
+    - [hello-world](flowc/tests/samples/hello-world/hello-world.md)
+    - [line-echo](flowc/tests/samples/line-echo/line-echo.md)
+    - [primitives](flowc/tests/samples/primitives/primitives.md)
+    - [print-args](flowc/tests/samples/print-args/print-args.md)
+    - [range](flowc/tests/samples/range/range.md)
 
 - [Samples](samples/overview.md)
     - [first sample](samples/first/DESCRIPTION.md)

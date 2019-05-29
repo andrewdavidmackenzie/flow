@@ -138,7 +138,7 @@ fn execute_test(test_name: &str) {
 
 #[test]
 fn print_args() {
-    execute_test("print_args");
+    execute_test("print-args");
 }
 
 #[test]
@@ -154,4 +154,9 @@ fn hello_world() {
 #[test]
 fn echo() {
     execute_test("line-echo");
+}
+
+#[test]
+fn range() {
+    execute_test("range");
 }
