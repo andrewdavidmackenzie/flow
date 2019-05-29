@@ -50,8 +50,7 @@
     - [fibonacci sample](samples/fibonacci/DESCRIPTION.md)
     - [hello-world-include sample](samples/hello-world-include/DESCRIPTION.md)
     - [hello-world sample](samples/hello-world/DESCRIPTION.md)
-    - [line-echo sample](samples/line-echo/DESCRIPTION.md)
-
+s
 - [The flow standard library](flowstdlib/src/flowstdlib.md)
     - [Control functions](flowstdlib/src/control/control.md)
         - [Tap function](flowstdlib/src/control/tap.md)
