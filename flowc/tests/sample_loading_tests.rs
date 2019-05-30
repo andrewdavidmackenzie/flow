@@ -24,14 +24,6 @@ fn set_flow_lib_path() {
 }
 
 #[test]
-fn load_hello_world_simple_from_context() {
-    set_flow_lib_path();
-    let meta_provider = MetaProvider {};
-    loader::load_context(&url_from_rel_path("samples/hello-world-simple/context.toml"),
-                         &meta_provider).unwrap();
-}
-
-#[test]
 fn load_hello_world_from_context() {
     set_flow_lib_path();
     let meta_provider = MetaProvider {};

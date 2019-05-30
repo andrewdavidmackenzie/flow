@@ -1,4 +1,4 @@
-flow = "hello world simple"
+flow = "hello world"
 
 [[process]]
 alias = "print"
