@@ -63,6 +63,7 @@ pub struct Coordinator {
 /// use std::process::exit;
 /// use flowrlib::debug_client::DebugClient;
 /// use flowrlib::manifest::{Manifest, MetaData};
+/// use flowrlib::debug_client::{Command, Param};
 ///
 /// struct SampleDebugClient {}
 ///
@@ -76,6 +77,10 @@ pub struct Coordinator {
 ///
 ///    fn read_input(&self, input: &mut String) -> io::Result<usize> {
 ///        io::stdin().read_line(input)
+///    }
+///
+///    fn get_command(&self, _job_number: usize) -> Command {
+///       Command::Step(Some(Param::Numeric(1)))
 ///    }
 /// }
 ///

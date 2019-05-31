@@ -720,6 +720,8 @@ mod tests {
     use std::io::Write;
 
     use debug_client::DebugClient;
+    use debug_client::{Command, Param};
+    use run_state;
 
     // Helpers
     struct TestDebugClient {}
@@ -733,6 +735,10 @@ mod tests {
         }
         fn read_input(&self, input: &mut String) -> io::Result<usize> {
             io::stdin().read_line(input)
+        }
+
+        fn get_command(&self, _job_number: usize) -> Command {
+            Command::Step(Some(run_state::tests::Param::Numeric(1)))
         }
     }
 
