@@ -128,7 +128,7 @@ impl Function {
         not accept Array, then iterate over the contents of the array and send each one to the
         input individually
     */
-    pub fn write_input(&mut self, input_number: usize, input_value: Value) {
+    pub fn write_input(&mut self, input_number: usize, input_value: &Value) {
         let input = &mut self.inputs[input_number];
         if input_value.is_array() {
             // Serialize Array value into the non-Array input
@@ -139,7 +139,7 @@ impl Function {
                 }
             } else {
                 // Send Array value to the Array input
-                input.push(input_value);
+                input.push(input_value.clone());
             }
         } else {
             if input.is_array {
@@ -147,7 +147,7 @@ impl Function {
                 input.push(json!([input_value]));
             } else {
                 // Send Non-Array value to Non-Array input
-                input.push(input_value);
+                input.push(input_value.clone());
             }
         }
     }
@@ -235,7 +235,7 @@ mod test {
                                          0,
                                          &vec!());
         function.init_inputs(true);
-        function.write_input(0, json!(1));
+        function.write_input(0, &json!(1));
         assert_eq!(json!(1), function.take_input_set().remove(0).remove(0),
                    "Value from input set wasn't what was expected");
     }
@@ -249,7 +249,7 @@ mod test {
                                          0,
                                          &vec!());
         function.init_inputs(true);
-        function.write_input(0, json!([1, 2]));
+        function.write_input(0, &json!([1, 2]));
         assert_eq!(json!([1, 2]), function.take_input_set().remove(0).remove(0),
                    "Value from input set wasn't what was expected");
     }
@@ -263,7 +263,7 @@ mod test {
                                          0,
                                          &vec!());
         function.init_inputs(true);
-        function.write_input(0, json!(1));
+        function.write_input(0, &json!(1));
         assert_eq!(vec!(json!([1])), function.take_input_set().remove(0),
                    "Value from input set wasn't what was expected");
     }
@@ -277,7 +277,7 @@ mod test {
                                          0,
                                          &vec!());
         function.init_inputs(true);
-        function.write_input(0, json!([1, 2]));
+        function.write_input(0, &json!([1, 2]));
         assert_eq!(vec!(json!(1)), function.take_input_set().remove(0),
                    "Value from input set wasn't what was expected");
     }
@@ -291,8 +291,8 @@ mod test {
                                          0,
                                          &vec!());
         function.init_inputs(true);
-        function.write_input(0, json!(1));
-        function.write_input(0, json!(2));
+        function.write_input(0, &json!(1));
+        function.write_input(0, &json!(2));
         assert_eq!(json!(1), function.take_input_set().remove(0).remove(0),
                    "Value from input set wasn't what was expected");
         assert_eq!(json!(2), function.take_input_set().remove(0).remove(0),
@@ -323,7 +323,7 @@ mod test {
                                          0,
                                          &vec!());
         function.init_inputs(true);
-        function.write_input(0, json!([1, 2]));
+        function.write_input(0, &json!([1, 2]));
         assert_eq!(vec!(json!(1), json!(2)), function.take_input_set().remove(0),
                    "Value from input set wasn't what was expected");
     }
@@ -337,8 +337,8 @@ mod test {
                                          0,
                                          &vec!());
         function.init_inputs(true);
-        function.write_input(0, json!(1));
-        function.write_input(0, json!(2));
+        function.write_input(0, &json!(1));
+        function.write_input(0, &json!(2));
         assert_eq!(vec!(json!(1), json!(2)), function.take_input_set().remove(0),
                    "Value from input set wasn't the array of numbers expected");
     }
@@ -352,8 +352,8 @@ mod test {
                                          0,
                                          &vec!());
         function.init_inputs(true);
-        function.write_input(0, json!([1, 2]));
-        function.write_input(0, json!([3, 4]));
+        function.write_input(0, &json!([1, 2]));
+        function.write_input(0, &json!([3, 4]));
         assert_eq!(vec!(json!([1, 2]), json!([3, 4])), function.take_input_set().remove(0),
                    "Value from input set wasn't what was expected");
     }
@@ -368,7 +368,7 @@ mod test {
                                          0,
                                          &vec!());
         function.init_inputs(true);
-        function.write_input(0, json!(1));
+        function.write_input(0, &json!(1));
         function.take_input_set().remove(0);
     }
 }

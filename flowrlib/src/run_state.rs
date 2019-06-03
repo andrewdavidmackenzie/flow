@@ -210,7 +210,6 @@ impl RunState {
             blocks: VecDeque::<(usize, usize, usize)>::new(),
             ready: VecDeque::<usize>::new(),
             running: MultiMap::<usize, usize>::new(),
-            #[cfg(feature = "debugger")]
             jobs: 0,
             max_jobs,
         }
@@ -219,7 +218,7 @@ impl RunState {
     /*
         Reset all values back to inital ones to enable debugging from scracth
     */
-    pub fn reset(&mut self) {
+    fn reset(&mut self) {
         for mut function in &mut self.functions {
             function.reset()
         };
@@ -227,9 +226,7 @@ impl RunState {
         self.blocks.clear();
         self.ready.clear();
         self.running.clear();
-        if cfg!(feature = "debugger") {
-            self.jobs = 0;
-        }
+        self.jobs = 0;
     }
 
     /*
@@ -251,6 +248,8 @@ impl RunState {
 
     */
     pub fn init(&mut self) {
+        self.reset();
+
         let mut inputs_ready_list = Vec::<usize>::new();
 
         for mut function in &mut self.functions {
@@ -427,43 +426,20 @@ impl RunState {
         sent to, marking the source function as blocked because those others must consume the output
         if those other function have all their inputs, then mark them accordingly.
     */
-    pub fn process_output(&mut self, metrics: &mut Metrics, output: Output,
-                          display_output: bool, debugger: &mut Debugger) {
+    pub fn process_output(&mut self, metrics: &mut Metrics, output: Output, debugger: &mut Option<Debugger>) {
         match output.error {
             None => {
-                let output_value = &output.result.0;
+                let output_value = output.result.0;
                 let source_can_run_again = output.result.1;
-
-                debug!("\tCompleted Job #{} for Function #{}", output.job_id, output.function_id);
-                if cfg!(feature = "debugger") && display_output {
-                    debugger.client.display(&format!("Completed Job #{} for Function #{}\n",
-                                                     output.job_id, output.function_id));
-                }
 
                 // if it produced an output value
                 if let Some(output_v) = output_value {
                     debug!("\tProcessing output value '{}' from Job #{}", output_v, output.job_id);
 
-                    if cfg!(feature = "debugger") && display_output {
-                        debugger.client.display(&format!("\tOutput value: '{}'\n", &output_v));
-                    }
-
                     for (ref output_route, destination_id, io_number) in &output.destinations {
                         let output_value = output_v.pointer(&output_route).unwrap();
-                        debug!("\t\tJob #{} sending value '{}' via output route '{}' to Function #{}:{}",
-                               output.job_id, output_value, output_route, &destination_id, &io_number);
-                        if cfg!(feature = "debugger") && display_output {
-                            debugger.client.display(
-                                &format!("\t\tJob #{} sending to {}:{}\n",
-                                         output.job_id, destination_id, io_number));
-                        }
-
-                        #[cfg(feature = "debugger")]
-                            debugger.watch_data(self, output.function_id, output_route,
-                                                &output_value, *destination_id, *io_number);
-
-                        self.send_value(output.function_id, *destination_id,
-                                        *io_number, output_value.clone(), metrics, debugger);
+                        self.send_value(output.function_id, output_route, *destination_id,
+                                        *io_number, output_value, metrics, debugger);
                     }
                 }
 
@@ -479,7 +455,13 @@ impl RunState {
                     }
                 }
             }
-            Some(_) => error!("Error in Job execution:\n{:#?}", output)
+            Some(_) => {
+                match debugger {
+                    None => error!("Error in Job execution:\n{:#?}", output),
+                    Some(debugger) => debugger.panic(&self, output)
+                }
+
+            }
         }
     }
 
@@ -487,10 +469,18 @@ impl RunState {
         Send a value produced as part of an output of running a job to a destination function on
         a specific input, update the metrics and potentially enter the debugger
     */
-    fn send_value(&mut self, source_id: usize, destination_id: usize, io_number: usize,
-                  output_value: Value, metrics: &mut Metrics, debugger: &mut Debugger) {
+    fn send_value(&mut self, source_id: usize, output_route: &str, destination_id: usize, io_number: usize,
+                  output_value: &Value, metrics: &mut Metrics, debugger: &mut Option<Debugger>) {
         let block;
         let full;
+
+        debug!("\t\tJob #{} sending value '{}' via output route '{}' to Function #{}:{}",
+               source_id, output_value, output_route, destination_id, io_number);
+
+        if let Some(ref mut debugger) = debugger {
+            debugger.check_send(self, source_id, output_route,
+                                &output_value, destination_id, io_number);
+        }
 
         {
             let destination = self.get_mut(destination_id);
@@ -533,7 +523,7 @@ impl RunState {
         Removes any entry from the running list where k=function_id AND v=job_id
         as there maybe more than one job running with function_id
     */
-    pub fn done(&mut self, output: &Output) {
+    pub fn job_done(&mut self, output: &Output) {
         self.running.retain(|&k, &v| k != output.function_id || v != output.job_id);
     }
 
@@ -687,15 +677,16 @@ impl RunState {
         Avoid deadlocks caused by a function blocking itself
     */
     fn create_block(&mut self, blocking_id: usize, blocking_io_number: usize,
-                    blocked_id: usize, debugger: &mut Debugger) {
+                    blocked_id: usize, debugger: &mut Option<Debugger>) {
         if blocked_id != blocking_id {
             debug!("\t\t\tProcess #{}:{} <-- Process #{} blocked", &blocking_id,
                    &blocking_io_number, &blocked_id);
 
             if !self.blocks.contains(&(blocking_id, blocking_io_number, blocked_id)) {
                 self.blocks.push_back((blocking_id, blocking_io_number, blocked_id));
-                #[cfg(feature = "debugger")]
+                if let Some(ref mut debugger) = debugger {
                     debugger.check_block(self, blocking_id, blocking_io_number, blocked_id);
+                }
             }
         }
     }
@@ -716,10 +707,9 @@ impl fmt::Display for RunState {
 
 #[cfg(test)]
 mod tests {
-    use std::io;
-    use std::io::Write;
-
-    use debug_client::DebugClient;
+    use debug_client::{DebugClient, Response, Event};
+    use debug_client::{Command, Param};
+    use run_state;
 
     // Helpers
     struct TestDebugClient {}
@@ -727,13 +717,13 @@ mod tests {
     impl DebugClient for TestDebugClient {
         fn init(&self) {}
 
-        fn display(&self, output: &str) {
-            print!("{}", output);
-            io::stdout().flush().unwrap();
+        fn get_command(&self, _job_number: usize) -> Command {
+            Command::Step(Some(run_state::tests::Param::Numeric(1)))
         }
-        fn read_input(&self, input: &mut String) -> io::Result<usize> {
-            io::stdin().read_line(input)
-        }
+
+        fn send_event(&self, _event: Event) {}
+
+        fn send_response(&self, _response: Response) {}
     }
 
     fn test_debug_client() -> &'static DebugClient {
@@ -954,7 +944,7 @@ mod tests {
             let functions = vec!(f_b, f_a); // NOTE the order!
             let mut state = RunState::new(functions, 1);
             let mut metrics = Metrics::new(2);
-            let mut debugger = Debugger::new(test_debug_client());
+            let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
             assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
             assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state, by f_b");
@@ -970,7 +960,7 @@ mod tests {
                 error: None,
 
             };
-            state.process_output(&mut metrics, output, false, &mut debugger);
+            state.process_output(&mut metrics, output, &mut debugger);
 
             // Test
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
@@ -990,7 +980,7 @@ mod tests {
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 1);
             let mut metrics = Metrics::new(1);
-            let mut debugger = Debugger::new(test_debug_client());
+            let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
             let job = state.next_job().unwrap();
@@ -1008,7 +998,7 @@ mod tests {
                 destinations: vec!(),
                 error: None,
             };
-            state.process_output(&mut metrics, output, false, &mut debugger);
+            state.process_output(&mut metrics, output, &mut debugger);
 
             // Test
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready again");
@@ -1029,7 +1019,7 @@ mod tests {
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 1);
             let mut metrics = Metrics::new(1);
-            let mut debugger = Debugger::new(test_debug_client());
+            let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
             let job = state.next_job().unwrap();
@@ -1047,8 +1037,8 @@ mod tests {
                 destinations: vec!(),
                 error: None,
             };
-            state.done(&output);
-            state.process_output(&mut metrics, output, false, &mut debugger);
+            state.job_done(&output);
+            state.process_output(&mut metrics, output, &mut debugger);
 
             // Test
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting again");
@@ -1076,7 +1066,7 @@ mod tests {
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
             let mut metrics = Metrics::new(1);
-            let mut debugger = Debugger::new(test_debug_client());
+            let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
 
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
@@ -1096,7 +1086,7 @@ mod tests {
                 destinations: vec!(("".to_string(), 1, 0)),
                 error: None,
             };
-            state.process_output(&mut metrics, output, false, &mut debugger);
+            state.process_output(&mut metrics, output, &mut debugger);
 
             // Test f_a should transition to Blocked on f_b
             assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked");
@@ -1121,7 +1111,7 @@ mod tests {
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
             let mut metrics = Metrics::new(1);
-            let mut debugger = Debugger::new(test_debug_client());
+            let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
 
@@ -1134,7 +1124,7 @@ mod tests {
                 destinations: vec!(("".to_string(), 0, 0)),
                 error: None,
             };
-            state.process_output(&mut metrics, output, false, &mut debugger);
+            state.process_output(&mut metrics, output, &mut debugger);
 
             // Test
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
@@ -1161,7 +1151,7 @@ mod tests {
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
             let mut metrics = Metrics::new(1);
-            let mut debugger = Debugger::new(test_debug_client());
+            let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
 
             assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
@@ -1176,7 +1166,7 @@ mod tests {
                 destinations: vec!(("".to_string(), 0, 0)),
                 error: None,
             };
-            state.process_output(&mut metrics, output, false, &mut debugger);
+            state.process_output(&mut metrics, output, &mut debugger);
 
             // Test
             assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked");
@@ -1211,7 +1201,7 @@ mod tests {
             let functions = vec!(f_a, f_b); // NOTE the order!
             let mut state = RunState::new(functions, 1);
             let mut metrics = Metrics::new(2);
-            let mut debugger = Debugger::new(test_debug_client());
+            let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
             assert_eq!(State::Waiting, state.get_state(1), "f_b should be in Waiting");
@@ -1228,7 +1218,7 @@ mod tests {
                 error: None,
 
             };
-            state.process_output(&mut metrics, output, false, &mut debugger);
+            state.process_output(&mut metrics, output, &mut debugger);
 
             // Test
             assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
@@ -1246,7 +1236,7 @@ mod tests {
                 error: None,
 
             };
-            state.process_output(&mut metrics, output, false, &mut debugger);
+            state.process_output(&mut metrics, output, &mut debugger);
 
             // Test
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
@@ -1297,7 +1287,7 @@ mod tests {
         #[test]
         fn blocked_works() {
             let mut state = RunState::new(test_functions(), 1);
-            let mut debugger = Debugger::new(test_debug_client());
+            let mut debugger = Some(Debugger::new(test_debug_client()));
 
             // Indicate that 0 is blocked by 1 on input 0
             state.create_block(1, 0, 0, &mut debugger);
@@ -1341,7 +1331,7 @@ mod tests {
         #[test]
         fn blocked_is_not_ready() {
             let mut state = RunState::new(test_functions(), 1);
-            let mut debugger = Debugger::new(test_debug_client());
+            let mut debugger = Some(Debugger::new(test_debug_client()));
 
             // Indicate that 0 is blocked by 1 on input 0
             state.create_block(1, 0, 0, &mut debugger);
@@ -1355,7 +1345,7 @@ mod tests {
         #[test]
         fn unblocking_makes_ready() {
             let mut state = RunState::new(test_functions(), 1);
-            let mut debugger = Debugger::new(test_debug_client());
+            let mut debugger = Some(Debugger::new(test_debug_client()));
 
             // Indicate that 0 is blocked by 1
             state.create_block(1, 0, 0, &mut debugger);
@@ -1375,7 +1365,7 @@ mod tests {
         #[test]
         fn unblocking_doubly_blocked_functions_not_ready() {
             let mut state = RunState::new(test_functions(), 1);
-            let mut debugger = Debugger::new(test_debug_client());
+            let mut debugger = Some(Debugger::new(test_debug_client()));
 
             // Indicate that 0 is blocked by 1 and 2
             state.create_block(1, 0, 0, &mut debugger);
@@ -1428,7 +1418,7 @@ mod tests {
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 1);
             let mut metrics = Metrics::new(1);
-            let mut debugger = Debugger::new(test_debug_client());
+            let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
 
             assert_eq!(state.next_job().unwrap().function_id, 0);
@@ -1444,7 +1434,7 @@ mod tests {
             };
 
             // Test there is no problem producing an Output when no destinations to send it to
-            state.process_output(&mut metrics, output, false, &mut debugger);
+            state.process_output(&mut metrics, output, &mut debugger);
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
         }
 
@@ -1476,7 +1466,7 @@ mod tests {
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
             let mut metrics = Metrics::new(2);
-            let mut debugger = Debugger::new(test_debug_client());
+            let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
             assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready initially");
             assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked initially");
@@ -1493,7 +1483,7 @@ mod tests {
                 error: None,
 
             };
-            state.process_output(&mut metrics, output, false, &mut debugger);
+            state.process_output(&mut metrics, output, &mut debugger);
 
             // Test
             assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready after inputs refreshed");
@@ -1516,12 +1506,12 @@ mod tests {
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 4);
             let mut metrics = Metrics::new(1);
-            let mut debugger = Debugger::new(test_debug_client());
+            let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
 
             // Send multiple inputs to f_a
-            state.send_value(1, 0, 0, json!(1), &mut metrics, &mut debugger);
-            state.send_value(1, 0, 0, json!(1), &mut metrics, &mut debugger);
+            state.send_value(1, "/", 0, 0, &json!(1), &mut metrics, &mut debugger);
+            state.send_value(1, "/", 0, 0, &json!(1), &mut metrics, &mut debugger);
 
             // Test
             assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a job for function_id=0 (f_a) for running");
@@ -1544,11 +1534,11 @@ mod tests {
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 4);
             let mut metrics = Metrics::new(1);
-            let mut debugger = Debugger::new(test_debug_client());
+            let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
 
             // Send multiple inputs to f_a via an array
-            state.send_value(1, 0, 0, json!([1, 2, 3, 4]), &mut metrics, &mut debugger);
+            state.send_value(1, "/",0, 0, &json!([1, 2, 3, 4]), &mut metrics, &mut debugger);
 
             // Test
             assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a job for function_id=0 (f_a) for running");
@@ -1576,11 +1566,11 @@ mod tests {
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 4);
             let mut metrics = Metrics::new(1);
-            let mut debugger = Debugger::new(test_debug_client());
+            let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
 
             // Send multiple inputs to f_a input 0 - via an array
-            state.send_value(1, 0, 0, json!([1, 2, 3, 4]), &mut metrics, &mut debugger);
+            state.send_value(1, "/", 0, 0, &json!([1, 2, 3, 4]), &mut metrics, &mut debugger);
 
             // Test
             assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a job for function_id=0 (f_a) for running");
