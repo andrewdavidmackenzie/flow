@@ -1,10 +1,8 @@
 use std::io;
 use std::io::Write;
 
-use flowrlib::debug_client::Command;
-use flowrlib::debug_client::Command::{*};
-use flowrlib::debug_client::DebugClient;
-use flowrlib::debug_client::Param;
+use flowrlib::debug_client::{Command, Command::{*}, DebugClient, Param, Event, Event::{*}, Response,
+                             Response::{*}};
 
 const HELP_STRING: &str = "Debugger commands:
 'b' | 'breakpoint' {spec}    - Set a breakpoint on a function (by id), an output or an input using spec:
@@ -76,46 +74,89 @@ fn parse_command(input: &String) -> (&str, Option<Param>) {
     (command, None)
 }
 
+fn read_input(input: &mut String) -> io::Result<usize> {
+    io::stdin().read_line(input)
+}
+
 /*
     Implement a client for the debugger that reads and writes to standard input and output
 */
 impl DebugClient for CLIDebugClient {
     fn init(&self) {}
 
-    fn display(&self, output: &str) {
-        print!("{}", output);
-        io::stdout().flush().unwrap();
-    }
-
-    fn read_input(&self, input: &mut String) -> io::Result<usize> {
-        io::stdin().read_line(input)
-    }
-
     fn get_command(&self, job_number: usize) -> Command {
         loop {
-            self.display(&format!("Debug #{}> ", job_number));
+            print!("Debug #{}> ", job_number);
+            io::stdout().flush().unwrap();
 
             let mut input = String::new();
-            match self.read_input(&mut input) {
+            match read_input(&mut input) {
                 Ok(_n) => {
                     let (command, param) = parse_command(&input);
                     match command {
                         "b" | "breakpoint" => return Breakpoint(param),
                         "" | "c" | "continue" => return Continue,
                         "d" | "delete" => return Delete(param),
-                        "e" | "exit" => return Exit,
+                        "e" | "exit" => return ExitDebugger,
                         "h" | "help" => help(),
                         "i" | "inspect" => return Inspect,
                         "l" | "list" => return List,
                         "p" | "print" => return Print(param),
                         "r" | "reset" => return Reset,
                         "s" | "step" => return Step(param),
-                        "q" | "quit" => return Exit,
+                        "q" | "quit" => return ExitDebugger,
                         _ => println!("Unknown debugger command '{}'\n", command)
                     }
                 }
                 Err(_) => println!("Error reading debugger command\n")
             }
+        }
+    }
+
+    fn send_event(&self, event: Event) {
+        match event {
+            JobCompleted(job_id, function_id, opt_output) => {
+                println!("Completed Job #{} for Function #{}", job_id, function_id);
+                if let Some(output) = opt_output {
+                    println!("\tOutput value: '{}'", &output);
+                }
+            }
+            Start =>
+                println!("Entering Debugger:"),
+            SendingJob(job_id, function_id) =>
+                println!("Sending Job #{} for Function #{}:",
+                         job_id, function_id),
+            BlockBreakpoint(blocked_id, blocking_id, blocking_io_number) =>
+                println!("Block breakpoint: Function #{} ----- blocked by ----> Function #{}:{}",
+                         blocked_id, blocking_id, blocking_io_number),
+            DataBreakpoint(source_process_id, output_route, value,
+                           destination_id, input_number) =>
+                println!("Data breakpoint: Function #{}{}    ----- {} ----> Function #{}:{}",
+                         source_process_id, output_route, value,
+                         destination_id, input_number),
+            Panic(output) =>
+                println!("Function panicked - Job: {:?}", output),
+            End =>
+                println!("Execution has ended"),
+            Deadlock(message) =>
+                println!("Deadlock detected{}", message),
+            SendingValue(source_process_id, value, destination_id, input_number) =>
+                println!("Job #{} sending '{}' to {}:{}",
+                         source_process_id, value, destination_id, input_number),
+        }
+    }
+
+    fn send_response(&self, response: Response) {
+        match response {
+            Ack => {}
+            Error(error_message) =>
+                println!("{}", error_message),
+            Message(message) =>
+                println!("{}", message),
+            Resetting =>
+                println!("Resetting state"),
+            Exiting =>
+                println!("Debugger is exiting"),
         }
     }
 }

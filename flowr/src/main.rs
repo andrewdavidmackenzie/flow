@@ -50,19 +50,22 @@ fn main() -> Result<(), String> {
     // Load standard library functions from flowstdlib
     // For now we are passing in a fake ilt.json file so the basepath for finding wasm files works.
     loader.add_lib(&provider, flowstdlib::ilt::get_ilt(),
-                 &format!("{}flowstdlib/ilt.json", &cwd.to_string()))?;
+                   &format!("{}flowstdlib/ilt.json", &cwd.to_string()))?;
 
     let debugger = matches.is_present("debugger");
     let metrics = matches.is_present("metrics");
-    let mut coordinator = Coordinator::new(CLI_DEBUG_CLIENT,
-                                       num_threads(&matches), debugger, metrics);
+    let mut coordinator = Coordinator::new(num_threads(&matches), metrics);
 
     // Load the flow to run from the manifest
     let manifest = loader.load_manifest(&provider, &url.to_string())?;
 
     // run the flow
     let num_parallel_jobs = num_parallel_jobs(&matches);
-    coordinator.run(manifest, num_parallel_jobs);
+    if debugger {
+        coordinator.run(manifest, num_parallel_jobs, Some(CLI_DEBUG_CLIENT));
+    } else {
+        coordinator.run(manifest, num_parallel_jobs, None);
+    }
 
     exit(0);
 }
