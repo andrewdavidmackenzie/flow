@@ -1,7 +1,7 @@
 use std::io;
 use std::io::Write;
 
-use flowrlib::debug_client::{Command, Command::{*}, DebugClient, Param, Event, Event::{*}, Response,
+use flowrlib::debug_client::{Command, Command::{*}, DebugClient, Event, Event::{*}, Param, Response,
                              Response::{*}};
 
 const HELP_STRING: &str = "Debugger commands:
@@ -135,7 +135,7 @@ impl DebugClient for CLIDebugClient {
                          source_process_id, output_route, value,
                          destination_id, input_number),
             Panic(output) =>
-                println!("Function panicked - Job: {:?}", output),
+                println!("Function panicked - Job: {:#?}", output),
             End =>
                 println!("Execution has ended"),
             Deadlock(message) =>
