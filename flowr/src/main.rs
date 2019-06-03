@@ -61,11 +61,13 @@ fn main() -> Result<(), String> {
 
     // run the flow
     let num_parallel_jobs = num_parallel_jobs(&matches);
-    if debugger {
-        coordinator.run(manifest, num_parallel_jobs, Some(CLI_DEBUG_CLIENT));
-    } else {
-        coordinator.run(manifest, num_parallel_jobs, None);
-    }
+
+    let debug_client = match debugger {
+        false => None,
+        true => Some(CLI_DEBUG_CLIENT)
+    };
+
+    coordinator.run(manifest, num_parallel_jobs, debug_client);
 
     exit(0);
 }
