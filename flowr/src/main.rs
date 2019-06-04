@@ -69,7 +69,7 @@ fn main() -> Result<(), String> {
 
     let submission = Submission::new(manifest, num_parallel_jobs, metrics, debug_client);
 
-    coordinator.start(submission);
+    coordinator.submit( submission);
 
     exit(0);
 }

@@ -36,7 +36,7 @@ use manifest::MetaData;
 */
 pub struct Coordinator {
     job_tx: Sender<Job>,
-    output_rx: Receiver<Output>
+    output_rx: Receiver<Output>,
 }
 
 pub struct Submission {
@@ -115,7 +115,7 @@ impl Submission {
 ///                                     false /* display_metrics */,
 ///                                     None /* debug client*/);
 ///
-/// coordinator.start(submission);
+/// coordinator.submit(submission);
 ///
 /// exit(0);
 /// ```
@@ -126,18 +126,27 @@ impl Coordinator {
 
         info!("Starting {} executor threads", num_threads);
         execution::start_executors(num_threads, job_rx, output_tx.clone());
-        execution::set_panic_hook();
 
-        Coordinator {
+        let coordinator = Coordinator {
             job_tx,
-            output_rx
-        }
+            output_rx,
+        };
+
+        // Start a thread that executes the looper that waits for and executes flows
+
+        coordinator
     }
 
     /*
-        Start execution of a flow
+        Start execution of a flow, by sending the submission to the looper thread
     */
-    pub fn start(&mut self, mut submission: Submission) {
+    pub fn submit(&mut self, submission: Submission) {
+        self.looper(submission);
+    }
+
+    fn looper(&mut self, mut submission: Submission) {
+        execution::set_panic_hook();
+
         /*
             This outer loop is just a way of restarting execution from scratch if the debugger
             requests it.
