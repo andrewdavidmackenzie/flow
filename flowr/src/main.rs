@@ -13,7 +13,7 @@ use std::env;
 use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
-use flowrlib::coordinator::Coordinator;
+use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::debug_client::DebugClient;
 use flowrlib::info;
 use flowrlib::loader::Loader;
@@ -54,7 +54,7 @@ fn main() -> Result<(), String> {
 
     let debugger = matches.is_present("debugger");
     let metrics = matches.is_present("metrics");
-    let mut coordinator = Coordinator::new(num_threads(&matches), metrics);
+    let mut coordinator = Coordinator::new(num_threads(&matches));
 
     // Load the flow to run from the manifest
     let manifest = loader.load_manifest(&provider, &url.to_string())?;
@@ -67,7 +67,9 @@ fn main() -> Result<(), String> {
         true => Some(CLI_DEBUG_CLIENT)
     };
 
-    coordinator.run(manifest, num_parallel_jobs, debug_client);
+    let submission = Submission::new(manifest, num_parallel_jobs, metrics, debug_client);
+
+    coordinator.start(submission);
 
     exit(0);
 }
