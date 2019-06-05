@@ -46,7 +46,7 @@ fn main() -> Result<(), String> {
     loader.add_lib(&provider, ::ilt::get_ilt(), &cwd.to_string())?;
 
     // TODO - when loader can load a library from a reference in the manifest via it's WASM
-    // implementations, then remove this and let the loader take care of it
+    // implementations, then remove this and let the loader take care of it in flowrlib
     // Load standard library functions from flowstdlib
     // For now we are passing in a fake ilt.json file so the basepath for finding wasm files works.
     loader.add_lib(&provider, flowstdlib::ilt::get_ilt(),
@@ -69,7 +69,7 @@ fn main() -> Result<(), String> {
 
     let submission = Submission::new(manifest, num_parallel_jobs, metrics, debug_client);
 
-    coordinator.submit( submission);
+    coordinator.submit(submission);
 
     exit(0);
 }
