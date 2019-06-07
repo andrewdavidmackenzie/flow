@@ -291,8 +291,8 @@ impl RunState {
             }
             for (_, destination_id, io_number) in destinations {
                 if destination_id != source_id { // don't block yourself!
-                    let destination_function = self.get(destination_id);
-                    if destination_function.input_full(io_number) {
+                    let destination_function = self.get(*destination_id);
+                    if destination_function.input_full(*io_number) {
                         debug!("\tAdded block between #{} <-- #{}", destination_id, source_id);
                         blocks.push_back((destination_id, io_number, source_id));
                         // only put source on the blocked list if it already has it's inputs full
