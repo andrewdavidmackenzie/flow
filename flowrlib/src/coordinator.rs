@@ -1,4 +1,4 @@
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, SendError};
 use std::sync::mpsc;
 use std::time::Duration;
 
@@ -243,9 +243,25 @@ impl Coordinator {
         let mut restart = false;
 
         while let Some(job) = submission.state.next_job() {
-            let check = self.send_job(job, submission);
-            display_output = check.0;
-            restart = check.1;
+            match self.send_job(job, submission) {
+                Ok((display, rest)) => {
+                    debug!("Job sent to Executors");
+                    submission.state.job_sent();
+                    display_output = display;
+                    restart = rest;
+                },
+                Err(err) => {
+                    error!("Error sending on 'job_tx': {}", err.to_string());
+
+                    if cfg!(feature = "logging") && log_enabled!(Debug) {
+                        debug!("{}", submission.state);
+                    }
+
+                    if let Some(ref mut debugger) = submission.debugger {
+                        debugger.error(&submission.state, err.to_string());
+                    }
+                }
+            }
         }
 
         (display_output, restart)
@@ -256,7 +272,7 @@ impl Coordinator {
         - if impure, then needs to be run on the main thread which has stdio (stdin in particular)
         - if pure send it on the 'job_tx' channel where executors will pick it up by an executor
     */
-    fn send_job(&self, job: Job, submission: &mut Submission) -> (bool, bool) {
+    fn send_job(&self, job: Job, submission: &mut Submission) -> (Result<(bool, bool), SendError<Job>>) {
         let mut debug_options = (false, false);
 
         submission.state.start(&job);
@@ -265,19 +281,12 @@ impl Coordinator {
 
         if cfg!(feature = "debugger") {
             if let Some(ref mut debugger) = submission.debugger {
-                debug_options = debugger.check_job(&submission.state, job.job_id, job.function_id);
+                debug_options = debugger.check_prior_to_job(&submission.state, job.job_id, job.function_id);
             }
         }
 
-        match self.job_tx.send(job) {
-            Ok(_) => debug!("Job sent to Executors"),
-            Err(err) => error!("Error sending on 'job_tx': {}", err)
-        }
+        self.job_tx.send(job)?;
 
-        if cfg!(feature = "logging") && log_enabled!(Debug) {
-            debug!("{}", submission.state);
-        }
-
-        debug_options
+        Ok(debug_options)
     }
 }

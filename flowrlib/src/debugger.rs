@@ -62,7 +62,7 @@ impl Debugger {
             input_breakpoints: HashSet::<(usize, usize)>::new(),
             block_breakpoints: HashSet::<(usize, usize)>::new(),
             output_breakpoints: HashSet::<(usize, String)>::new(),
-            break_at_job: 0,
+            break_at_job: std::usize::MAX,
             function_breakpoints: HashSet::<usize>::new(),
         }
     }
@@ -72,7 +72,7 @@ impl Debugger {
     */
     pub fn start(&mut self, state: &RunState) -> (bool, bool) {
         self.client.send_event(Start);
-        self.wait_for_command(state)
+        self.wait_for_command(state, None)
     }
 
     pub fn job_completed(&self, output: &Output) {
@@ -86,42 +86,47 @@ impl Debugger {
 
         Return values are (display next output, reset execution)
     */
-    pub fn check_job(&mut self, state: &RunState, next_job_id: usize, function_id: usize) -> (bool, bool) {
+    pub fn check_prior_to_job(&mut self, state: &RunState, next_job_id: usize, function_id: usize) -> (bool, bool) {
         if self.break_at_job == next_job_id ||
             self.function_breakpoints.contains(&function_id) {
-            self.client.send_event(SendingJob(next_job_id, function_id));
+            self.client.send_event(PriorToSendingJob(next_job_id, function_id));
             self.print(state, Some(Param::Numeric(function_id)));
-            return self.wait_for_command(state);
+            return self.wait_for_command(state, Some(state.jobs()));
         }
 
         // No breakpoint - continue execution
         (false, false)
     }
 
-    pub fn check_block(&mut self, state: &RunState, blocking_id: usize,
-                       blocking_io_number: usize, blocked_id: usize) {
+    pub fn check_on_block_creation(&mut self, state: &RunState, blocking_id: usize,
+                                   blocking_io_number: usize, blocked_id: usize) {
         if self.block_breakpoints.contains(&(blocked_id, blocking_id)) {
             self.client.send_event(BlockBreakpoint(blocked_id, blocking_id, blocking_io_number));
-            self.wait_for_command(state);
+            self.wait_for_command(state, Some(state.jobs()));
         }
     }
 
-    pub fn check_send(&mut self, state: &RunState, source_process_id: usize, output_route: &str,
-                     value: &Value, destination_id: usize, input_number: usize) {
-        self.client.send_event(SendingValue(
-            source_process_id, value.clone(), destination_id, input_number));
-
+    pub fn check_prior_to_send(&mut self, state: &RunState, source_process_id: usize, output_route: &str,
+                               value: &Value, destination_id: usize, input_number: usize) {
         if self.output_breakpoints.contains(&(source_process_id, output_route.to_string())) ||
             self.input_breakpoints.contains(&(destination_id, input_number)) {
+            self.client.send_event(SendingValue(
+                source_process_id, value.clone(), destination_id, input_number));
+
             self.client.send_event(DataBreakpoint(source_process_id, output_route.to_string(),
                                                   value.clone(), destination_id, input_number));
-            self.wait_for_command(state);
+            self.wait_for_command(state, Some(state.jobs()));
         }
+    }
+
+    pub fn error(&mut self, state: &RunState, error_message: String) {
+        self.client.send_event(RuntimeError(error_message));
+        self.wait_for_command(state, Some(state.jobs()));
     }
 
     pub fn panic(&mut self, state: &RunState, output: Output) {
         self.client.send_event(Panic(output));
-        self.wait_for_command(state);
+        self.wait_for_command(state, Some(state.jobs()));
     }
 
     /*
@@ -130,7 +135,7 @@ impl Debugger {
     pub fn end(&mut self, state: &RunState) -> (bool, bool) {
         self.client.send_event(End);
         self.deadlock_inspection(state);
-        self.wait_for_command(state)
+        self.wait_for_command(state, None)
     }
 
     /*
@@ -143,9 +148,9 @@ impl Debugger {
         When exiting return a tuple for the Coordinaator to determine what to do:
            ()
     */
-    fn wait_for_command(&mut self, state: &RunState) -> (bool, bool) {
+    fn wait_for_command(&mut self, state: &RunState, jobs_sent: Option<usize>) -> (bool, bool) {
         loop {
-            match self.client.get_command(state.jobs()) {
+            match self.client.get_command(jobs_sent) {
                 // *************************      The following are commands that send a response
                 GetState => {
                     // Respond with 'state'
@@ -170,17 +175,26 @@ impl Debugger {
 
                 // **************************      The following commands exit the command loop
                 Continue => {
-                    self.client.send_response(Ack);
-                    return (false, false);
-                }
-                Reset => {
-                    self.client.send_response(self.reset());
-                    return (false, true);
-                }
+                    if jobs_sent.is_some() {
+                        self.client.send_response(Ack);
+                        return (false, false);
+                    }
+                },
+                RunReset => {
+                    if jobs_sent.is_some() {
+                        self.client.send_response(self.reset());
+                        return (false, true);
+                    } else {
+                        self.client.send_response(Running);
+                        return (false, false);
+                    }
+                },
                 Step(param) => {
-                    self.client.send_response(self.step(state, param));
-                    return (true, false);
-                }
+                    if jobs_sent.is_some() {
+                        self.client.send_response(self.step(state, param));
+                        return (true, false);
+                    }
+                },
             };
         }
     }
@@ -320,10 +334,10 @@ impl Debugger {
             Some(Param::Numeric(function_id)) |
             Some(Param::Block((function_id, _))) => {
                 response.push_str(&self.print_function(state, function_id));
-            },
+            }
             Some(Param::Input((function_id, _))) => {
                 response.push_str(&self.print_function(state, function_id));
-            },
+            }
             Some(Param::Wildcard) => {
                 response.push_str(&self.print_all_processes(state))
             }
@@ -338,7 +352,7 @@ impl Debugger {
     fn reset(&mut self) -> Response {
         // Leave all the breaakpoints untouch for the repeat run
         // But set the job breakpoint to be 0, so we will enter debugger again when we restart
-        self.break_at_job = 0;
+        self.break_at_job = std::usize::MAX;
         Resetting
     }
 
@@ -347,11 +361,11 @@ impl Debugger {
             None => {
                 self.break_at_job = state.jobs() + 1;
                 Ack
-            },
+            }
             Some(Param::Numeric(steps)) => {
                 self.break_at_job = state.jobs() + steps;
                 Ack
-            },
+            }
             _ => {
                 Error("Did not understand step command parameter\n".into())
             }

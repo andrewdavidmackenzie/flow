@@ -17,7 +17,7 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
 'i' | 'inspect'              - Run a series of defined 'inspections' to check status of flow
 'l' | 'list'                 - List all breakpoints
 'p' | 'print' [n]            - Print the overall state, or state of process number 'n'
-'r' | 'reset'                - reset the state back to initial state after loading
+'r' | 'run' or 'reset'       - run or reset the state back to initial state after starting
 's' | 'step' [n]             - Step over the next 'n' jobs (default = 1) then break
 'q' | 'quit'                 - Stop flow execution and exit debugger
 ";
@@ -84,9 +84,12 @@ fn read_input(input: &mut String) -> io::Result<usize> {
 impl DebugClient for CLIDebugClient {
     fn init(&self) {}
 
-    fn get_command(&self, job_number: usize) -> Command {
+    fn get_command(&self, job_number: Option<usize>) -> Command {
         loop {
-            print!("Debug #{}> ", job_number);
+            match job_number {
+                None => print!("Debug> "),
+                Some(number) => print!("Debug #{}> ", number),
+            };
             io::stdout().flush().unwrap();
 
             let mut input = String::new();
@@ -102,7 +105,7 @@ impl DebugClient for CLIDebugClient {
                         "i" | "inspect" => return Inspect,
                         "l" | "list" => return List,
                         "p" | "print" => return Print(param),
-                        "r" | "reset" => return Reset,
+                        "r" | "run" | "reset" => return RunReset,
                         "s" | "step" => return Step(param),
                         "q" | "quit" => return ExitDebugger,
                         _ => println!("Unknown debugger command '{}'\n", command)
@@ -122,10 +125,9 @@ impl DebugClient for CLIDebugClient {
                 }
             }
             Start =>
-                println!("Entering Debugger:"),
-            SendingJob(job_id, function_id) =>
-                println!("Sending Job #{} for Function #{}:",
-                         job_id, function_id),
+                println!("Entering Debugger. Use 'h' or 'help' for help on commands"),
+            PriorToSendingJob(job_id, function_id) =>
+                println!("About to send Job #{} for Function #{}:", job_id, function_id),
             BlockBreakpoint(blocked_id, blocking_id, blocking_io_number) =>
                 println!("Block breakpoint: Function #{} ----- blocked by ----> Function #{}:{}",
                          blocked_id, blocking_id, blocking_io_number),
@@ -136,8 +138,10 @@ impl DebugClient for CLIDebugClient {
                          destination_id, input_number),
             Panic(output) =>
                 println!("Function panicked - Job: {:#?}", output),
+            RuntimeError(error_message) =>
+                println!("Error occurred: Message = '{}'", error_message),
             End =>
-                println!("Execution has ended"),
+                println!("Execution has ended."),
             Deadlock(message) =>
                 println!("Deadlock detected{}", message),
             SendingValue(source_process_id, value, destination_id, input_number) =>
@@ -155,6 +159,8 @@ impl DebugClient for CLIDebugClient {
                 println!("{}", message),
             Resetting =>
                 println!("Resetting state"),
+            Running =>
+                println!("Running flow"),
             Exiting =>
                 println!("Debugger is exiting"),
         }
