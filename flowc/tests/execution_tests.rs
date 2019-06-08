@@ -57,7 +57,7 @@ fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: PathBuf, test_name:
 
 fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>, input: String) -> String {
     let mut command = Command::new("cargo");
-    let mut command_args = vec!("run", "--bin", "flowr", filepath.to_str().unwrap(),
+    let mut command_args = vec!("run", "--bin", "flowr", "--", filepath.to_str().unwrap(),
                                 "-j 1", "--");
     for test_arg in &test_args {
         command_args.push(test_arg);
@@ -129,9 +129,9 @@ fn execute_test(test_name: &str) {
                                            test_name, &tables).unwrap();
 
         let mut test_args = test_args(&test_dir, test_name);
-        let input = get(&test_dir,&format!("{}.stdin", test_name) );
+        let input = get(&test_dir, &format!("{}.stdin", test_name));
         let actual_output = execute_flow(run_dir, manifest_path, test_args, input);
-        let expected_output = get(&test_dir,&format!("{}.expected", test_name) );
+        let expected_output = get(&test_dir, &format!("{}.expected", test_name));
         assert_eq!(expected_output, actual_output);
     }
 }
