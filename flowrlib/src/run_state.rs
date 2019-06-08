@@ -196,8 +196,8 @@ pub struct RunState {
     // ready: Vec<function_id>
     running: MultiMap<usize, usize>,
     // running: MultiMap<function_id, job_id>
-    jobs: usize,
-    // number of jobs created to date
+    jobs_sent: usize,
+    // number of jobs sent to date
     max_jobs: usize,
     // limit on the number of jobs to allow to run in parallel
 }
@@ -210,7 +210,7 @@ impl RunState {
             blocks: VecDeque::<(usize, usize, usize)>::new(),
             ready: VecDeque::<usize>::new(),
             running: MultiMap::<usize, usize>::new(),
-            jobs: 0,
+            jobs_sent: 0,
             max_jobs,
         }
     }
@@ -226,7 +226,7 @@ impl RunState {
         self.blocks.clear();
         self.ready.clear();
         self.running.clear();
-        self.jobs = 0;
+        self.jobs_sent = 0;
     }
 
     /*
@@ -380,17 +380,21 @@ impl RunState {
     }
 
     /*
+        Track the number of jobs sent to date
+    */
+    pub fn job_sent(&mut self) {
+        self.jobs_sent += 1;
+    }
+
+    /*
         Given a function id, prepare a job for execution that contains the input values, the
         implementation and the destination functions the output should be sent to when done
         Return:
             - Job created
             - true if we took an input set but enough remain to create more jobs
     */
-    fn create_job(&mut self, function_id: usize) -> (Job, bool) {
-        let job_id = self.jobs;
-        self.jobs += 1;
-
-        debug!("Creating Job #{} for Function #{}", job_id, function_id);
+    fn create_job(&mut self, function_id: usize) -> (Job, bool) { let job_id = self.jobs_sent;
+        debug!("Creating Job #{} for Function #{}", self.jobs_sent, function_id);
 
         let function = self.get_mut(function_id);
 
@@ -460,7 +464,6 @@ impl RunState {
                     None => error!("Error in Job execution:\n{:#?}", output),
                     Some(debugger) => debugger.panic(&self, output)
                 }
-
             }
         }
     }
@@ -478,8 +481,8 @@ impl RunState {
                source_id, output_value, output_route, destination_id, io_number);
 
         if let Some(ref mut debugger) = debugger {
-            debugger.check_send(self, source_id, output_route,
-                                &output_value, destination_id, io_number);
+            debugger.check_prior_to_send(self, source_id, output_route,
+                                         &output_value, destination_id, io_number);
         }
 
         {
@@ -625,7 +628,7 @@ impl RunState {
     }
 
     pub fn jobs(&self) -> usize {
-        self.jobs
+        self.jobs_sent
     }
 
     pub fn num_functions(&self) -> usize {
@@ -685,7 +688,7 @@ impl RunState {
             if !self.blocks.contains(&(blocking_id, blocking_io_number, blocked_id)) {
                 self.blocks.push_back((blocking_id, blocking_io_number, blocked_id));
                 if let Some(ref mut debugger) = debugger {
-                    debugger.check_block(self, blocking_id, blocking_io_number, blocked_id);
+                    debugger.check_on_block_creation(self, blocking_id, blocking_io_number, blocked_id);
                 }
             }
         }
@@ -697,7 +700,7 @@ impl fmt::Display for RunState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "RunState:\n")?;
         write!(f, "   Processes: {}\n", self.functions.len())?;
-        write!(f, "        Jobs: {}\n", self.jobs)?;
+        write!(f, "        Jobs: {}\n", self.jobs_sent)?;
         write!(f, "     Blocked: {:?}\n", self.blocked)?;
         write!(f, "      Blocks: {:?}\n", self.blocks)?;
         write!(f, "       Ready: {:?}\n", self.ready)?;
