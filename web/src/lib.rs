@@ -4,7 +4,7 @@ extern crate flowstdlib;
 
 use wasm_bindgen::prelude::*;
 
-// Called by our JS entry point to run the example
+// Called by our JS entry point
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
     // Use `web_sys`'s global `window` function to get a handle on the global
