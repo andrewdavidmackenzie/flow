@@ -49,5 +49,5 @@ codegen-units = 1
 
 [workspace]
 members = ["web", "flowc", "flowr", "provider"]
-default-members = ["flowc", "flowr", "provider"]
+default-members = ["web", "flowc", "flowr", "provider"]
 exclude = ["flowstdlib", "flowrlib", "flowclib"]
