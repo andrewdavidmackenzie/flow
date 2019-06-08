@@ -720,7 +720,7 @@ mod tests {
     impl DebugClient for TestDebugClient {
         fn init(&self) {}
 
-        fn get_command(&self, _job_number: usize) -> Command {
+        fn get_command(&self, _job_number: Option<usize>) -> Command {
             Command::Step(Some(run_state::tests::Param::Numeric(1)))
         }
 
