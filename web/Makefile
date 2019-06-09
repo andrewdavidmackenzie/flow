@@ -1,18 +1,17 @@
 build:
 	@echo ""
-	@echo "------- Started building 'web' module -------------"
-	@echo "------- Building for 'wasm32' target -------------"
+	@echo "--- Started building 'web' module for 'wasm32' target --------"
 	cargo build --target wasm32-unknown-unknown
-	@echo "------- Generating Javascript bindings using 'wasm-bindgen' -------------"
+	@echo "--- Generating Javascript bindings using 'wasm-bindgen' ------"
 	wasm-bindgen target/wasm32-unknown-unknown/debug/web.wasm --out-dir run
-	@echo "------- Finished building 'web' module -------------"
+	@echo "------------ Finished building 'web' module ------------------"
 
 run: build
 	cd run && npm install
 	cd run && npm run serve
 
 test:
-	cargo test
+	cargo test --target wasm32-unknown-unknown
 
 clean:
 	cargo clean
