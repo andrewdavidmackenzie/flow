@@ -21,6 +21,10 @@ config:
 	cargo install wasm-bindgen-cli || true
 	cargo install mdbook || true
 	cargo install mdbook-linkcheck || true
+	curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash
+	source ~/.nvm/nvm.sh
+	nvm install v10.5
+	curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
 
 #################### Docs ####################
 doc: dot-graphs guide
@@ -62,7 +66,7 @@ copy-md-files:
 	@echo "------- Done    copying Markdown files from 'samples', 'flowstdlib' and 'flowr' to 'guide/src' -------------"
 
 #################### Build ####################
-build: workspace web
+build: workspace webapp
 	@echo "------- Done 'build:' target -------------"
 
 workspace:
@@ -71,8 +75,8 @@ workspace:
 	cargo build
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
-web:
-	cd web && make build
+webapp:
+	cd webapp && make build
 
 flowclib:
 	cd flowclib && make build
@@ -87,7 +91,7 @@ flowrlib:
 travis: clean test guide
 
 #################### Tests ####################
-test: test-workspace web test-web test-flowclib test-flowstdlib test-flowrlib test-provider samples
+test: test-workspace test-webapp test-flowclib test-flowstdlib test-flowrlib test-provider samples
 # TODO add online-samples
 	@echo ""
 	@echo "------- Done    test: -------------"
@@ -98,10 +102,10 @@ test-workspace:
 	cargo test $(features)
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
-test-web:
+test-webapp:
 # Include web build to make sure it builds for wasm target as test doesn't use it
-	@cd web && make build
-	@cd web && make test
+	@cd webapp && make build
+	@cd webapp && make test
 
 test-flowclib:
 	cd flowclib && make test
@@ -165,7 +169,7 @@ package-flowc:
 	@cargo package --manifest-path flowc/Cargo.toml
 	@echo "------- Finished packaging flowc --------------"
 
-package-electron: web
+package-electron: webapp
 	@echo ""
 	@echo "------- Started  packaging electron -----------"
 	@cd electron && make package
@@ -180,7 +184,7 @@ clean: clean-samples clean-dumps
 	cargo clean
 	@rm -rf guide/book
 	cd electron && make clean
-	cd web && make clean
+	cd webapp && make clean
 	cd flowclib && make clean
 	cd flowstdlib && make clean
 	cd flowrlib && make clean
