@@ -63,7 +63,7 @@ copy-md-files:
 	@echo "------- Done    copying Markdown files from 'samples', 'flowstdlib' and 'flowr' to 'guide/src' -------------"
 
 #################### Build ####################
-build: workspace webapp
+build: workspace web
 	@echo "------- Done 'build:' target -------------"
 
 workspace:
@@ -72,8 +72,8 @@ workspace:
 	cargo build
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
-webapp:
-	cd webapp && make build
+web:
+	cd web && make build
 
 flowclib:
 	cd flowclib && make build
@@ -88,7 +88,7 @@ flowrlib:
 travis: clean test guide
 
 #################### Tests ####################
-test: test-workspace test-webapp test-flowclib test-flowstdlib test-flowrlib test-provider samples
+test: test-workspace test-web test-flowclib test-flowstdlib test-flowrlib test-provider samples
 # TODO add online-samples
 	@echo ""
 	@echo "------- Done    test: -------------"
@@ -99,10 +99,10 @@ test-workspace:
 	cargo test $(features)
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
-test-webapp:
+test-web:
 # Include web build to make sure it builds for wasm target as test doesn't use it
-	@cd webapp && make build
-	@cd webapp && make test
+	@cd web && make build
+	@cd web && make test
 
 test-flowclib:
 	cd flowclib && make test
@@ -166,7 +166,7 @@ package-flowc:
 	@cargo package --manifest-path flowc/Cargo.toml
 	@echo "------- Finished packaging flowc --------------"
 
-package-electron: webapp
+package-electron: web
 	@echo ""
 	@echo "------- Started  packaging electron -----------"
 	@cd electron && make package
@@ -181,7 +181,7 @@ clean: clean-samples clean-dumps
 	cargo clean
 	@rm -rf guide/book
 	cd electron && make clean
-	cd webapp && make clean
+	cd web && make clean
 	cd flowclib && make clean
 	cd flowstdlib && make clean
 	cd flowrlib && make clean
