@@ -21,9 +21,6 @@ config:
 	cargo install wasm-bindgen-cli || true
 	cargo install mdbook || true
 	cargo install mdbook-linkcheck || true
-	curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash
-	source ~/.nvm/nvm.sh
-	nvm install v10.5
 	curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
 
 #################### Docs ####################
