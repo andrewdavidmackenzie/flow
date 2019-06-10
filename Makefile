@@ -87,7 +87,7 @@ flowrlib:
 travis: clean test guide
 
 #################### Tests ####################
-test: test-workspace test-web test-flowclib test-flowstdlib test-flowrlib test-provider samples
+test: test-workspace web test-web test-flowclib test-flowstdlib test-flowrlib test-provider samples
 # TODO add online-samples
 	@echo ""
 	@echo "------- Done    test: -------------"
@@ -99,7 +99,9 @@ test-workspace:
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
 test-web:
-	cd web && make test
+# Include web build to make sure it builds for wasm target as test doesn't use it
+	@cd web && make build
+	@cd web && make test
 
 test-flowclib:
 	cd flowclib && make test
