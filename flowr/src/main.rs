@@ -170,7 +170,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 }
 
 /*
-    Parse the command line arguments
+    Parse the command line arguments passed onto the flow itself
 */
 fn parse_args(matches: &ArgMatches) -> Result<Url, String> {
     // Set anvironment variable with the args

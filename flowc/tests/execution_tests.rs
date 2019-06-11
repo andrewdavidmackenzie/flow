@@ -58,10 +58,13 @@ fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: PathBuf, test_name:
 fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>, input: String) -> String {
     let mut command = Command::new("cargo");
     let mut command_args = vec!("run", "--bin", "flowr", "--", filepath.to_str().unwrap(),
-                                "-j 1", "--");
+                                "-j", "1", "-t", "1", "--");
     for test_arg in &test_args {
         command_args.push(test_arg);
     }
+
+    println!("Command line: {:?}, {:?}", command, command_args);
+
     command.current_dir(run_dir);
     let mut child = command.args(command_args)
         .stdin(Stdio::piped())
@@ -132,7 +135,7 @@ fn execute_test(test_name: &str) {
         let input = get(&test_dir, &format!("{}.stdin", test_name));
         let actual_output = execute_flow(run_dir, manifest_path, test_args, input);
         let expected_output = get(&test_dir, &format!("{}.expected", test_name));
-        assert_eq!(expected_output, actual_output);
+        assert_eq!(expected_output, actual_output, "Flow output did not match that in .expected file");
     }
 }
 

@@ -9,5 +9,5 @@ alias = "print"
 source = "lib://runtime/stdio/stdout.toml"
 
 [[connection]]
-from = "process/args/1"
+from = "process/args"
 to = "process/print"
