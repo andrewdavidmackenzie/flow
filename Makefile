@@ -21,6 +21,7 @@ config:
 	cargo install wasm-bindgen-cli || true
 	cargo install mdbook || true
 	cargo install mdbook-linkcheck || true
+	curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
 
 #################### Docs ####################
 doc: dot-graphs guide
@@ -99,7 +100,9 @@ test-workspace:
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
 test-web:
-	cd web && make test
+# Include web build to make sure it builds for wasm target as test doesn't use it
+	@cd web && make build
+	@cd web && make test
 
 test-flowclib:
 	cd flowclib && make test

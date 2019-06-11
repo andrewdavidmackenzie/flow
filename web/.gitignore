@@ -1,6 +1,9 @@
-run/node_modules
-run/web.js
-run/web.d.ts
-run/web_bg.js
-run/web_bg.d.ts
-run/web_bg.wasm
+.bin/
+crate/.crates.toml
+dist
+node_modules
+crate/bin
+crate/pkg
+crate/target
+crate/wasm-pack.log
+crate/Cargo.lock
