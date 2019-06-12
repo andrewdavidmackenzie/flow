@@ -1,3 +1,4 @@
+wasm-pack.log
 .bin/
 crate/.crates.toml
 dist
