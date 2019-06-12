@@ -54,13 +54,13 @@ fn main() -> Result<(), String> {
 
     let debugger = matches.is_present("debugger");
     let metrics = matches.is_present("metrics");
-    let mut coordinator = Coordinator::new(num_threads(&matches));
+    let mut coordinator = Coordinator::new(num_threads(&matches, debugger));
 
     // Load the flow to run from the manifest
     let manifest = loader.load_manifest(&provider, &url.to_string())?;
 
     // run the flow
-    let num_parallel_jobs = num_parallel_jobs(&matches);
+    let num_parallel_jobs = num_parallel_jobs(&matches, debugger);
 
     let debug_client = match debugger {
         false => None,
@@ -78,8 +78,10 @@ fn main() -> Result<(), String> {
 /*
     Determine the number of threads to use to execute flows, with a default of the number of cores
     in the device, or any override from the command line.
+
+    If debugger=true, then default to 0 threads, unless overridden by an argument
 */
-fn num_threads(matches: &ArgMatches) -> usize {
+fn num_threads(matches: &ArgMatches, debugger: bool) -> usize {
     match matches.value_of("threads") {
         Some(value) => {
             match value.parse::<i32>() {
@@ -96,7 +98,14 @@ fn num_threads(matches: &ArgMatches) -> usize {
                 }
             }
         }
-        None => num_cpus::get()
+        None => {
+            if debugger {
+                info!("Due to debugger option being set, number of threads has defaulted to 0");
+                0
+            } else {
+                num_cpus::get()
+            }
+        }
     }
 }
 
@@ -104,7 +113,7 @@ fn num_threads(matches: &ArgMatches) -> usize {
     Determine the number of parallel jobs to be run in parallel based on a default of 2 times
     the number of cores in the device, or any override from the command line.
 */
-fn num_parallel_jobs(matches: &ArgMatches) -> usize {
+fn num_parallel_jobs(matches: &ArgMatches, debugger: bool) -> usize {
     match matches.value_of("jobs") {
         Some(value) => {
             match value.parse::<i32>() {
@@ -122,7 +131,14 @@ fn num_parallel_jobs(matches: &ArgMatches) -> usize {
                 }
             }
         }
-        None => 2 * num_cpus::get()
+        None => {
+            if debugger {
+                info!("Due to debugger option being set, max number of parallel jobs has defaulted to 1");
+                1
+            } else {
+                2 * num_cpus::get()
+            }
+        }
     }
 }
 
