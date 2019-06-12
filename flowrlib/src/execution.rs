@@ -9,12 +9,19 @@ use std::thread;
     Jobs to execute and return the Outputs on the 'output_tx' channel
 */
 pub fn start_executors(number_of_executors: usize,
-                       job_rx: Receiver<Job>,
-                       output_tx: Sender<Output>) {
-    let shared_job_receiver = Arc::new(Mutex::new(job_rx));
+                       job_rx: &Arc<Mutex<Receiver<Job>>>,
+                       output_tx: &Sender<Output>) {
     for executor_number in 0..number_of_executors {
         create_executor(format!("Executor #{}", executor_number),
-                        Arc::clone(&shared_job_receiver), output_tx.clone());
+                        job_rx.clone(), output_tx.clone());
+    }
+}
+
+pub fn get_and_execute_job(job_rx: &Arc<Mutex<Receiver<Job>>>, output_tx: &Sender<Output>) -> Result<(), String> {
+    let job = job_rx.lock().unwrap().recv();
+    match job {
+        Ok(job) => execute(job, output_tx),
+        Err(e) => Err(e.to_string())
     }
 }
 
@@ -24,18 +31,12 @@ fn create_executor(name: String, job_rx: Arc<Mutex<Receiver<Job>>>, output_tx: S
         set_panic_hook();
 
         loop {
-            let job = job_rx.lock().unwrap().recv();
-            match job {
-                Ok(job) => {
-                    execute(job, &output_tx);
-                }
-                _ => break
-            }
+            get_and_execute_job(&job_rx, &output_tx).unwrap();
         }
     }).unwrap();
 }
 
-fn execute(job: Job, output_tx: &Sender<Output>) {
+fn execute(job: Job, output_tx: &Sender<Output>) -> Result<(), String> {
     // Run the implementation with the input values and catch the execution result
     let (result, error) = match panic::catch_unwind(|| {
         job.implementation.run(job.input_set.clone())
@@ -54,6 +55,8 @@ fn execute(job: Job, output_tx: &Sender<Output>) {
     };
 
     output_tx.send(output).unwrap();
+
+    Ok(())
 }
 
 /*

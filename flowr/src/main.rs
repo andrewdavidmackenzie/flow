@@ -84,10 +84,9 @@ fn num_threads(matches: &ArgMatches) -> usize {
         Some(value) => {
             match value.parse::<i32>() {
                 Ok(mut threads) => {
-                    if threads < 1 {
-                        error!("Minimum number of threads is '1', so option of '{}' has been overridded to be '1'",
-                               threads);
-                        threads = 1;
+                    if threads < 0 {
+                        error!("Minimum number of additional threads is '0', so option of has been overridded to be '0'");
+                        threads = 0;
                     }
                     threads as usize
                 }
@@ -111,7 +110,7 @@ fn num_parallel_jobs(matches: &ArgMatches) -> usize {
             match value.parse::<i32>() {
                 Ok(mut jobs) => {
                     if jobs < 1 {
-                        error!("Minimum number of parallel jobs is '1', so option of '{}' has been overridded to be '1'",
+                        error!("Minimum number of parallel jobs is '0', so option of '{}' has been overridded to be '1'",
                                jobs);
                         jobs = 1;
                     }

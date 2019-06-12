@@ -1,6 +1,7 @@
 use std::sync::mpsc::{Receiver, Sender, SendError};
 use std::sync::mpsc;
 use std::time::Duration;
+use std::sync::{Arc, Mutex};
 
 use debug_client::DebugClient;
 use debugger::Debugger;
@@ -13,32 +14,21 @@ use run_state::{Job, Output};
 use run_state::RunState;
 use manifest::MetaData;
 
-/*
-    RunList is a structure that maintains the state of all the functions in the currently
-    executing flow.
-
-    A function maybe blocking multiple others trying to send data to it.
-    Those others maybe blocked trying to send to multiple different function.
-
-    function:
-    A list of all the functions that could be executed at some point.
-
-    inputs_satisfied:
-    A list of functions who's inputs are satisfied.
-
-    blocking:
-    A list of tuples of function ids where first id is id of the function data is trying to be sent
-    to, and the second id is the id of the function trying to send data.
-
-    ready:
-    A list of Processs who are ready to be run, they have their inputs satisfied and they are not
-    blocked on the output (so their output can be produced).
-*/
-pub struct Coordinator {
-    job_tx: Sender<Job>,
-    output_rx: Receiver<Output>,
-}
-
+///
+/// A Sumission is the struct used to send a flow to the Coordinator for execution. It contains
+/// all the information encessary to execute it:
+///
+/// A new Submission is created supplying:
+/// - the manifest of the flow to execute
+/// - the maximum number of jobs you want dispatched/executing in parallel
+/// - whether to display some execution metrics when the flow completes
+/// - an optional DebugClient to allow you to debug the execution
+///
+/// let mut submission = Submission::new(manifest,
+///                                     1 /* num_parallel_jobs */,
+///                                     false /* display_metrics */,
+///                                     None /* debug client */);
+///
 pub struct Submission {
     _metadata: MetaData,
     display_metrics: bool,
@@ -51,6 +41,9 @@ pub struct Submission {
 }
 
 impl Submission {
+    /*
+        Create a new submission
+    */
     pub fn new(manifest: Manifest, max_parallel_jobs: usize, display_metrics: bool,
                client: Option<&'static DebugClient>) -> Submission {
         info!("Max Jobs in parallel set to {}", max_parallel_jobs);
@@ -78,15 +71,26 @@ impl Submission {
     }
 }
 
-/// The generated code for a flow consists of a list of Functions.
 ///
-/// This list is built program start-up in `main` which then starts execution of the flow by calling
-/// this `execute` method.
+/// The Coordinator is responsible for coordinating the dispatching of jobs (consisting
+/// of a set of Input values and an Implementation of a Function) for execution,
+/// gathering the resulting Outputs and distributing output values to other connected function's
+/// Inputs.
 ///
-/// You should not have to write code to call `execute` yourself, it will be called from the
-/// generated code in the `main` method.
+/// It accepts Flows to be executed in the form of a Submission struct that has the required
+/// information to execut the flow.
 ///
-/// On completion of the execution of the flow it will return and `main` will call `exit`
+pub struct Coordinator {
+    num_threads: usize,
+    job_tx: Sender<Job>,
+    output_rx: Receiver<Output>,
+    shared_job_receiver: Arc<Mutex<Receiver<Job>>>,
+    output_tx: Sender<Output>
+}
+
+/// Create a Submission for a flow to be executed.
+/// Instantiate the Coordinator.
+/// Send the Submission to the Coordinator to be executed
 ///
 /// # Example
 /// ```
@@ -108,31 +112,37 @@ impl Submission {
 ///                 };
 /// let manifest = Manifest::new(meta_data);
 ///
-/// let mut coordinator = Coordinator::new( 1 /* num_threads */, );
-///
 /// let mut submission = Submission::new(manifest,
 ///                                     1 /* num_parallel_jobs */,
 ///                                     false /* display_metrics */,
 ///                                     None /* debug client*/);
 ///
+/// let mut coordinator = Coordinator::new( 1 /* num_threads */, );
+///
 /// coordinator.submit(submission);
 ///
 /// exit(0);
 /// ```
+///
 impl Coordinator {
     pub fn new(num_threads: usize) -> Self {
         let (job_tx, job_rx, ) = mpsc::channel();
         let (output_tx, output_rx) = mpsc::channel();
 
-        info!("Starting {} executor threads", num_threads);
-        execution::start_executors(num_threads, job_rx, output_tx.clone());
+        let shared_job_receiver = Arc::new(Mutex::new(job_rx));
+
+        if num_threads > 0 {
+            info!("Starting {} additional executor threads", num_threads);
+            execution::start_executors(num_threads, &shared_job_receiver, &output_tx);
+        }
 
         let coordinator = Coordinator {
+            num_threads,
             job_tx,
             output_rx,
+            shared_job_receiver,
+            output_tx
         };
-
-        // Start a thread that executes the looper that waits for and executes flows
 
         coordinator
     }
@@ -176,6 +186,11 @@ impl Coordinator {
 
                 if restart {
                     break 'inner;
+                }
+
+                // if no executor threads - then I guess I'll just have to do the work myself!
+                if self.num_threads == 0 {
+                    execution::get_and_execute_job(&self.shared_job_receiver, &self.output_tx).unwrap();
                 }
 
                 if submission.state.number_jobs_running() > 0 {
@@ -249,7 +264,7 @@ impl Coordinator {
                     submission.state.job_sent();
                     display_output = display;
                     restart = rest;
-                },
+                }
                 Err(err) => {
                     error!("Error sending on 'job_tx': {}", err.to_string());
 
