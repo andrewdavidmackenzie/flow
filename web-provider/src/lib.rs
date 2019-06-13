@@ -2,6 +2,5 @@
 extern crate flowrlib;
 #[macro_use]
 extern crate log;
-extern crate url;
 
 pub mod content;

@@ -1,11 +1,9 @@
 //! MetaProvider is an overall provider that determines which internal content provider to use
 //! based on the URL scheme provided (http, file or lib).
-use flowrlib::provider::Provider;
-use url::Url;
-
 use content::file_provider::FileProvider;
 use content::http_provider::HttpProvider;
 use content::lib_provider::LibProvider;
+use flowrlib::provider::Provider;
 
 const FILE_PROVIDER: &Provider = &FileProvider as &Provider;
 const LIB_PROVIDER: &Provider = &LibProvider as &Provider;
@@ -24,14 +22,15 @@ pub struct MetaProvider {}
 impl MetaProvider {
     // Determine which specific provider should be used based on the scheme of the Url of the content
     fn get_provider(url_str: &str) -> Result<&'static Provider, String> {
-        let url = Url::parse(url_str)
-            .map_err(|_| format!("Could not convert '{}' to valid Url", url_str))?;
-        match url.scheme() {
+        let parts: Vec<&str> = url_str.split(":").collect();
+        let scheme = parts[0];
+        info!("Looking for correct content provider");
+        match scheme {
             "" => Ok(FILE_PROVIDER),
             "file" => Ok(FILE_PROVIDER),
             "lib" => Ok(LIB_PROVIDER),
             "http" | "https" => Ok(HTTP_PROVIDER),
-            _ => Err(format!("Cannot determine which provider to use for url: '{}'", url))
+            _ => Err(format!("Cannot determine which provider to use for url: '{}'", url_str))
         }
     }
 }

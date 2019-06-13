@@ -117,7 +117,7 @@ test-provider:
 	cd provider && cargo test
 
 test-web-provider:
-	cd web-provider && cargo test
+	cd web-provider && make test
 
 #################### Raspberry Pi ####################
 pi:

@@ -1,17 +1,15 @@
+use flowrlib::provider::Provider;
 use std::io;
 use std::path::PathBuf;
-
-use flowrlib::provider::Provider;
-use url::Url;
 
 pub struct FileProvider;
 
 impl Provider for FileProvider {
     fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>), String> {
+        /*
         let _url = Url::parse(url_str)
             .map_err(|_| format!("Could not convert '{}' to Url", url_str))?;
         let mut _path = _url.to_file_path().unwrap();
-        /*
         match metadata(&path) {
             Ok(md) => {
                 if md.is_dir() {

@@ -1,5 +1,4 @@
 use flowrlib::provider::Provider;
-use url::Url;
 
 pub struct LibProvider;
 
@@ -39,11 +38,12 @@ impl Provider for LibProvider {
             "flowstdlib/stdio/stdout" and return that also.
     */
     fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>), String> {
+/*
         let url = Url::parse(url_str)
             .map_err(|_| format!("Could not convert '{}' to valid Url", url_str))?;
         let _lib_name = url.host_str().expect(
             &format!("'lib_name' could not be extracted from host part of url '{}'", url));
-
+*/
         // TODO search in some path provided by the web runtime
 
 // find rhe lib directory
