@@ -48,8 +48,8 @@ debug-assertions = true
 codegen-units = 1
 
 [workspace]
-members = ["flowc", "flowr", "provider"]
-default-members = ["flowc", "flowr", "provider"]
+members = ["flowc", "flowr", "provider", "web-provider"]
+default-members = ["flowc", "flowr", "provider", "web-provider"]
 # These libraries are excluded as they must  compile for the wasm target
 # independently, and if they are part of the workspace they inherit other
 # dependencies that don't compile for wasm
