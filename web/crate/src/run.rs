@@ -111,6 +111,7 @@ pub fn run() -> Result<(), JsValue> {
     let submission = Submission::new(manifest, 1, false, None);
 
     let mut coordinator = Coordinator::new(1);
+    info!("Submitting flow for execution");
     coordinator.submit(submission);
 
     Ok(())
