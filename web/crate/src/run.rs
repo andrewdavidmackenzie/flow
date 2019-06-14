@@ -2,7 +2,9 @@ use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::loader::Loader;
 use flowrlib::manifest::Manifest;
 use flowrlib::provider::Provider;
+use log;
 use wasm_bindgen::prelude::*;
+use wasm_logger;
 
 use crate::runtime::ilt;
 use crate::web_provider::WebProvider;
@@ -14,6 +16,8 @@ use crate::web_provider::WebProvider;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 fn layout_panels() -> Result<(), JsValue> {
+    info!("Laying out panels");
+
     // Use `web_sys`'s global `window` function to get a handle on the global
     // window object.
     let window = web_sys::window().expect("no global `window` exists");
@@ -56,7 +60,9 @@ fn layout_panels() -> Result<(), JsValue> {
 }
 
 fn load_manifest(provider: &Provider, _url: &str) -> Result<Manifest, String> {
-    let  content = String::from_utf8_lossy(include_bytes!("manifest.json"));
+    info!("Loading manifest");
+
+    let content = String::from_utf8_lossy(include_bytes!("manifest.json"));
 
     let mut manifest = Manifest::from_str(&content)?;
     let window = web_sys::window().expect("no global `window` exists");
@@ -82,14 +88,24 @@ fn load_manifest(provider: &Provider, _url: &str) -> Result<Manifest, String> {
     Ok(manifest)
 }
 
+fn init_logging() {
+    wasm_logger::init(
+        wasm_logger::Config::new(log::Level::Debug)
+            .message_on_new_line()
+    );
+
+    info!("Logging  initialized");
+}
+
 // Called by our JS entry point to run the example.
 #[wasm_bindgen]
 pub fn run() -> Result<(), JsValue> {
     set_panic_hook();
+    init_logging();
 
     layout_panels()?;
 
-    let provider = WebProvider{};
+    let provider = WebProvider {};
     let manifest = load_manifest(&provider, "fake url")?;
 
     let submission = Submission::new(manifest, 1, false, None);
