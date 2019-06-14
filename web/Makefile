@@ -10,7 +10,7 @@ run: build
 
 test:
 	@echo "--- Started  'cargo test' for 'web' module on native target ---"
-	@cargo test
+	@cd crate;cargo test
 	@echo "--- Finished 'cargo test' for 'web' module on native target ---"
 
 clean:

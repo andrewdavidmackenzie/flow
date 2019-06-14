@@ -7,6 +7,5 @@ extern crate log;
 extern crate serde_json;
 extern crate web_sys;
 
-mod web_provider;
 mod run;
 mod runtime;

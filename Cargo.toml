@@ -53,4 +53,4 @@ default-members = ["flowc", "flowr", "provider"]
 # These libraries are excluded as they must  compile for the wasm target
 # independently, and if they are part of the workspace they inherit other
 # dependencies that don't compile for wasm
-exclude = ["flowstdlib", "flowrlib", "flowclib", "web", "web-provider"]
+exclude = ["flowstdlib", "flowrlib", "flowclib", "web", "webprovider"]

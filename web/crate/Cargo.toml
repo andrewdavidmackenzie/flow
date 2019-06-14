@@ -20,7 +20,7 @@ serde_json = "1.0"
 wasm-bindgen = "0.2.25"
 log = "0.4.6"
 wasm-logger = "0.1.4"
-web-provider = { path = "../../web-provider", version = "0.1.0"}
+webprovider = { path = "../../webprovider", version = "0.1.0"}
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires

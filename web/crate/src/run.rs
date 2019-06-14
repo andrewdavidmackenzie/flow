@@ -5,11 +5,10 @@ use flowrlib::provider::Provider;
 use log;
 use wasm_bindgen::prelude::*;
 use wasm_logger;
-use web
+use webprovider::content::provider::MetaProvider;
 
 use crate::runtime::ilt;
 
--provider::content::MetaProvider;
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
 #[cfg(feature = "wee_alloc")]
@@ -123,4 +122,12 @@ fn set_panic_hook() {
     // `set_panic_hook` function to get better error messages if we ever panic.
     #[cfg(feature = "console_error_panic_hook")]
         console_error_panic_hook::set_once();
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_load_manifest() {
+        assert!(true);
+    }
 }
