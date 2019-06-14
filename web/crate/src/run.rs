@@ -5,10 +5,11 @@ use flowrlib::provider::Provider;
 use log;
 use wasm_bindgen::prelude::*;
 use wasm_logger;
+use web
 
 use crate::runtime::ilt;
-use crate::web_provider::WebProvider;
 
+-provider::content::MetaProvider;
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
 #[cfg(feature = "wee_alloc")]
@@ -59,8 +60,9 @@ fn layout_panels() -> Result<(), JsValue> {
     Ok(())
 }
 
-fn load_manifest(provider: &Provider, _url: &str) -> Result<Manifest, String> {
+fn load_manifest(_url: &str) -> Result<Manifest, String> {
     info!("Loading manifest");
+    let provider = &MetaProvider{};
 
     let content = String::from_utf8_lossy(include_bytes!("manifest.json"));
 
@@ -105,8 +107,7 @@ pub fn run() -> Result<(), JsValue> {
 
     layout_panels()?;
 
-    let provider = WebProvider {};
-    let manifest = load_manifest(&provider, "fake url")?;
+    let manifest = load_manifest("fake url")?;
 
     let submission = Submission::new(manifest, 1, false, None);
 
