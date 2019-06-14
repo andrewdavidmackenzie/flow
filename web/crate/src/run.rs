@@ -16,8 +16,6 @@ use crate::runtime::ilt;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 fn layout_panels() -> Result<(), JsValue> {
-    info!("Laying out panels");
-
     // Use `web_sys`'s global `window` function to get a handle on the global
     // window object.
     let window = web_sys::window().expect("no global `window` exists");
@@ -60,7 +58,6 @@ fn layout_panels() -> Result<(), JsValue> {
 }
 
 fn load_manifest(_url: &str) -> Result<Manifest, String> {
-    info!("Loading manifest");
     let provider = &MetaProvider{};
 
     let content = String::from_utf8_lossy(include_bytes!("manifest.json"));
@@ -104,13 +101,18 @@ pub fn run() -> Result<(), JsValue> {
     set_panic_hook();
     init_logging();
 
+    info!("Laying out panels");
     layout_panels()?;
 
+    info!("Loading manifest");
     let manifest = load_manifest("fake url")?;
 
+    info!("Creating Submission");
     let submission = Submission::new(manifest, 1, false, None);
 
-    let mut coordinator = Coordinator::new(1);
+    info!("Creating Coordinator");
+    let mut coordinator = Coordinator::new(0);
+
     info!("Submitting flow for execution");
     coordinator.submit(submission);
 
