@@ -9,9 +9,9 @@ run: build
 	npm start
 
 test:
-	@echo "--- Started  'cargo test' for 'web' module on native target ---"
+	@echo "--- Started  'cargo test' for 'web/crate' on native target ---"
 	@cd crate;cargo test
-	@echo "--- Finished 'cargo test' for 'web' module on native target ---"
+	@echo "--- Finished 'cargo test' for 'web/crate' on native target ---"
 
 clean:
 	cargo clean
