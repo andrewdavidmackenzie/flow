@@ -27,6 +27,8 @@ debugger = []
 logging = []
 
 [dependencies]
+# A std::Instant compatible crate that also supports wasm
+instant = { version = "0.1", features = [ "now" ] }
 multimap = "~0.5"
 log = "0.4.6"
 serde_derive = "~1.0.27"

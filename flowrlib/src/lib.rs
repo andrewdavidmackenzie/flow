@@ -10,6 +10,7 @@ extern crate serde_derive;
 #[cfg(not(target_arg = "wasm32"))]
 extern crate wasmi;
 extern crate multimap;
+extern crate instant;
 
 pub mod info;
 pub mod url;

@@ -1,11 +1,11 @@
-use std::time::Instant;
+use instant::Instant;
 use std::fmt;
 use std::cmp::max;
 
 pub struct Metrics {
     num_functions: usize,
     outputs_sent: u32,
-    start_time: Instant,
+//    start_time: Instant,
     max_simultaneous_jobs: usize,
 }
 
@@ -14,14 +14,14 @@ impl Metrics {
         Metrics {
             num_functions,
             outputs_sent: 0,
-            start_time: Instant::now(),
+//            start_time: Instant::now(),
             max_simultaneous_jobs: 0,
         }
     }
 
     pub fn reset(&mut self) {
         self.outputs_sent = 0;
-        self.start_time = Instant::now();
+//        self.start_time = Instant::now();
         self.max_simultaneous_jobs = 0;
     }
 
@@ -36,10 +36,10 @@ impl Metrics {
 
 impl fmt::Display for Metrics {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let elapsed = self.start_time.elapsed();
+//        let elapsed = self.start_time.elapsed();
         write!(f, "\t   Number of Functions: \t{}\n", self.num_functions)?;
         write!(f, "\t          Outputs sent: \t{}\n", self.outputs_sent)?;
-        write!(f, "\t       Elapsed time(s): \t{:.*}\n", 6, elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9)?;
+//        write!(f, "\t       Elapsed time(s): \t{:.*}\n", 6, elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9)?;
         write!(f, "\t  Max Jobs in Parallel: \t{}", self.max_simultaneous_jobs)
     }
 }

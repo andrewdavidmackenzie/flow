@@ -1,13 +1,14 @@
+use std::collections::HashMap;
 use std::sync::Arc;
+
 use implementation::Implementation;
-use implementation_table::ImplementationLocatorTable;
 use implementation_table::ImplementationLocator::Native;
 use implementation_table::ImplementationLocator::Wasm;
+use implementation_table::ImplementationLocatorTable;
 use manifest::Manifest;
 use provider::Provider;
-use std::collections::HashMap;
-use wasm;
 use url;
+use wasm;
 
 pub struct Loader {
     global_lib_implementations: HashMap<String, Arc<Implementation>>,
@@ -62,7 +63,7 @@ impl Loader {
     }
 
     pub fn resolve_implementations(&mut self, manifest: &mut Manifest, provider: &Provider,
-                                   manifest_url: &str) -> Result<String, String>{
+                                   manifest_url: &str) -> Result<String, String> {
         // find in a library, or load the implementation required - as specified by the source
         for mut function in &mut manifest.functions {
             let source_url = function.implementation_source().to_string();
@@ -104,6 +105,7 @@ impl Loader {
                 // create or find the implementation we need
                 let implementation = match locator {
                     Wasm(wasm_source) => {
+                        info!("Looking for wasm source: '{}'", wasm_source.0);
                         // Path to the wasm source could be relative to the URL where we loaded the ILT from
                         let wasm_url = url::join(ilt_url, &wasm_source.0);
                         // Wasm implementation being added. Wrap it with the Wasm Native Implementation

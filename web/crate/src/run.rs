@@ -1,7 +1,6 @@
 use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::loader::Loader;
 use flowrlib::manifest::Manifest;
-use flowrlib::provider::Provider;
 use log;
 use wasm_bindgen::prelude::*;
 use wasm_logger;
@@ -60,7 +59,6 @@ fn layout_panels() -> Result<(), JsValue> {
 fn load_manifest(_url: &str) -> Result<Manifest, String> {
     let provider = &MetaProvider{};
 
-    info!("Loading bytes");
     let content = String::from_utf8_lossy(include_bytes!("manifest.json"));
     let mut manifest = Manifest::from_str(&content)?;
 
@@ -69,19 +67,19 @@ fn load_manifest(_url: &str) -> Result<Manifest, String> {
     let manifest_el = document.get_element_by_id("manifest").expect("could not find 'stderr' element");
     manifest_el.set_inner_html(&content);
 
-    info!("creating loader");
     let mut loader = Loader::new();
 
-    info!("adding runtime lib");
     // Load this runtime's native implementations
-    loader.add_lib(provider, ilt::get_ilt(), "fake url")?;
+    loader.add_lib(provider, ilt::get_ilt(), "")?;
 
     info!("adding flowstdlib");
     // TODO - when loader can load a library from a reference in the manifest via it's WASM
     loader.add_lib(provider, flowstdlib::ilt::get_ilt(),
-                   &format!("{}flowstdlib/ilt.json", "fake url"))?;
+                   &format!("{}flowstdlib/ilt.json", "file://"))?;
 
-    info!("loading libraries");
+    // This doesn't do anything currently - leaving here for the future
+    // as when this loads libraries from manifest, previous manual adding of
+    // libs will not be needed
     Loader::load_libraries(provider, &manifest)?;
 
     info!("resolving implementations");
@@ -98,7 +96,7 @@ fn init_logging() {
             .message_on_new_line()
     );
 
-    info!("Logging  initialized");
+    info!("Logging initialized");
 }
 
 // Called by our JS entry point to run the example.
