@@ -60,25 +60,31 @@ fn layout_panels() -> Result<(), JsValue> {
 fn load_manifest(_url: &str) -> Result<Manifest, String> {
     let provider = &MetaProvider{};
 
+    info!("Loading bytes");
     let content = String::from_utf8_lossy(include_bytes!("manifest.json"));
-
     let mut manifest = Manifest::from_str(&content)?;
+
     let window = web_sys::window().expect("no global `window` exists");
     let document = window.document().expect("should have a document on window");
     let manifest_el = document.get_element_by_id("manifest").expect("could not find 'stderr' element");
     manifest_el.set_inner_html(&content);
 
+    info!("creating loader");
     let mut loader = Loader::new();
 
+    info!("adding runtime lib");
     // Load this runtime's native implementations
     loader.add_lib(provider, ilt::get_ilt(), "fake url")?;
 
+    info!("adding flowstdlib");
     // TODO - when loader can load a library from a reference in the manifest via it's WASM
     loader.add_lib(provider, flowstdlib::ilt::get_ilt(),
                    &format!("{}flowstdlib/ilt.json", "fake url"))?;
 
+    info!("loading libraries");
     Loader::load_libraries(provider, &manifest)?;
 
+    info!("resolving implementations");
     // Find the implementations for all functions in this flow
     loader.resolve_implementations(&mut manifest, provider, "fake manifest_url").
         map_err(|e| e.to_string())?;

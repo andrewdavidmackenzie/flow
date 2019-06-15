@@ -24,7 +24,7 @@ impl MetaProvider {
     fn get_provider(url_str: &str) -> Result<&'static Provider, String> {
         let parts: Vec<&str> = url_str.split(":").collect();
         let scheme = parts[0];
-        info!("Looking for correct content provider");
+        info!("Looking for correct content provider for scheme: '{}'", scheme);
         match scheme {
             "" => Ok(FILE_PROVIDER),
             "file" => Ok(FILE_PROVIDER),
