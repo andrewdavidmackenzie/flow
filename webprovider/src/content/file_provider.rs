@@ -5,7 +5,7 @@ use std::path::PathBuf;
 pub struct FileProvider;
 
 impl Provider for FileProvider {
-    fn resolve(&self, url_str: &str, default_filename: &str) -> Result<(String, Option<String>), String> {
+    fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>), String> {
 /*
         match metadata(&path) {
             Ok(md) => {

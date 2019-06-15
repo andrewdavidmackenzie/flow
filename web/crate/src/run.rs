@@ -2,6 +2,7 @@ use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::loader::Loader;
 use flowrlib::manifest::Manifest;
 use log;
+use std::fmt::Debug;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
 use wasm_logger;
@@ -30,6 +31,14 @@ fn info(document: &Document) -> Result<(), JsValue> {
     Ok(())
 }
 
+fn pretty_print_for_html<S: Into<String> + Debug>(string: S) -> String {
+    format!("{:?}", string)
+        .replace("\\\"", "\"")
+        .replace("\\n", "<br/>")
+        .replace("\"{", "{")
+        .replace("}\"", "}")
+}
+
 fn load_manifest(document: &Document, _url: &str) -> Result<Manifest, String> {
     info!("Loading manifest");
     let provider = &MetaProvider {};
@@ -38,7 +47,7 @@ fn load_manifest(document: &Document, _url: &str) -> Result<Manifest, String> {
     let mut manifest = Manifest::from_str(&content)?;
 
     let manifest_el = document.get_element_by_id("manifest").expect("could not find 'stderr' element");
-    manifest_el.set_inner_html(&content);
+    manifest_el.set_inner_html(&pretty_print_for_html(content));
 
     let mut loader = Loader::new();
 
