@@ -10,8 +10,7 @@ use wasmi::{ImportsBuilder, Module, ModuleInstance, ModuleRef};
 #[cfg(not(target_arch = "wasm32"))]
 use std::sync::Mutex;
 
-//use wasmi::{Module, ModuleRef, ModuleInstance, ImportsBuilder, RuntimeValue, NopExternals};
-
+#[cfg(not(target_arch = "wasm32"))]
 const DEFAULT_WASM_FILENAME: &str = "module.wasm";
 
 #[cfg(not(target_arch = "wasm32"))]
