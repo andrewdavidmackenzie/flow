@@ -6,7 +6,9 @@ build:
 	@echo "------------ Finished building 'web' module ------------------\n"
 
 run: build
-	npm start
+	@echo ""
+	@echo "--- Starting 'web' module via npm--------"
+	@npm start
 
 test:
 	@echo "--- Started  'cargo test' for 'web/crate' on native target ---"
@@ -15,4 +17,4 @@ test:
 
 clean:
 	cargo clean
-	rm -rf crate/bin crate/pkg crate/target crate/Cargo.lock crate/wasm-pack.log dist .bin crate/.crates.toml
+	rm -rf crate/bin crate/pkg/* crate/target crate/Cargo.lock crate/wasm-pack.log dist .bin crate/.crates.toml
