@@ -33,7 +33,7 @@ fn info(document: &Document) -> Result<(), JsValue> {
 
 fn load_manifest(document: &Document, _url: &str) -> Result<Manifest, String> {
     info!("Loading manifest");
-    let provider = &MetaProvider{};
+    let provider = &MetaProvider {};
 
     let content = String::from_utf8_lossy(include_bytes!("manifest.json"));
     let mut manifest = Manifest::from_str(&content)?;
@@ -73,9 +73,23 @@ fn init_logging(_document: &Document) {
     info!("Logging initialized");
 }
 
-fn setup_actions(document: &Document) -> Result<(), JsValue> {
+
+fn setup_load_button(document: &Document) {
+    let load = Closure::wrap(Box::new(move || {
+        info!("load clicked");
+    }) as Box<dyn FnMut()>);
+    document
+        .get_element_by_id("load_button")
+        .expect("could not find 'load_button' element")
+        .dyn_ref::<HtmlButtonElement>()
+        .expect("#load_button should be an `HtmlButtonElement`")
+        .set_onclick(Some(load.as_ref().unchecked_ref()));
+    load.forget();
+}
+
+fn setup_run_button(document: &Document) {
     let run = Closure::wrap(Box::new(move || {
-        info!("clicked");
+        info!("run clicked");
     }) as Box<dyn FnMut()>);
     document
         .get_element_by_id("run_button")
@@ -84,6 +98,11 @@ fn setup_actions(document: &Document) -> Result<(), JsValue> {
         .expect("#run_button should be an `HtmlButtonElement`")
         .set_onclick(Some(run.as_ref().unchecked_ref()));
     run.forget();
+}
+
+fn setup_actions(document: &Document) -> Result<(), JsValue> {
+    setup_load_button(document);
+    setup_run_button(document);
 
     Ok(())
 }
@@ -101,22 +120,23 @@ pub fn run() -> Result<(), JsValue> {
 
     setup_actions(&document)?;
 
-    run_manifest(&document, "fake url")?;
+    let submission = load(&document, "fake url")?;
+
+    run_submission(submission);
 
     Ok(())
 }
 
-fn run_manifest(document: &Document, url: &str) -> Result<(), JsValue> {
+fn load(document: &Document, url: &str) -> Result<Submission, String> {
     let manifest = load_manifest(&document, url)?;
+    Ok(Submission::new(manifest, 1, false, None))
+}
 
-    let submission = Submission::new(manifest, 1, false, None);
-
+fn run_submission(submission: Submission) {
     let mut coordinator = Coordinator::new(0);
 
     info!("Submitting flow for execution");
     coordinator.submit(submission);
-
-    Ok(())
 }
 
 fn set_panic_hook() {
