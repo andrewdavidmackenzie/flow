@@ -18,7 +18,6 @@ use crate::runtime::ilt;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 fn info(document: &Document) -> Result<(), JsValue> {
-    info!("Laying out panels");
     let flowstdlib_el = document.get_element_by_id("flowstdlib").expect("could not find 'flowstdlib' element");
     flowstdlib_el.set_inner_html(&format!("flowstdlib: version = {}", flowstdlib::info::version()));
 
