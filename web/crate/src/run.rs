@@ -4,6 +4,7 @@ use flowrlib::manifest::Manifest;
 use log;
 use wasm_bindgen::prelude::*;
 use wasm_logger;
+use web_sys::Document;
 use webprovider::content::provider::MetaProvider;
 
 use crate::runtime::ilt;
@@ -14,56 +15,25 @@ use crate::runtime::ilt;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-fn layout_panels() -> Result<(), JsValue> {
-    // Use `web_sys`'s global `window` function to get a handle on the global
-    // window object.
-    let window = web_sys::window().expect("no global `window` exists");
-    let document = window.document().expect("should have a document on window");
-    let body = document.body().expect("document should have a body");
+fn layout_panels(document: &Document) -> Result<(), JsValue> {
+    let flowstdlib_el = document.get_element_by_id("flowstdlib").expect("could not find 'flowstdlib' element");
+    flowstdlib_el.set_inner_html(&format!("flowstdlib: version = {}", flowstdlib::info::version()));
 
-    // Get versions of libraries we link with
-    let flowstdlib_version = flowstdlib::info::version();
-    let flowrlib_version = flowrlib::info::version();
-    let flowclib_version = flowclib::info::version();
+    let flowrlib_el = document.get_element_by_id("flowrlib").expect("could not find 'flowrlib' element");
+    flowrlib_el.set_inner_html(&format!("flowrlib: version = {}", flowrlib::info::version()));
 
-    let info = document.create_element("p")?;
-    body.append_child(&info)?;
-
-    let mut text = document.create_text_node(&format!("flowstdlib: version = {}", flowstdlib_version));
-    info.append_child(&text)?;
-    text = document.create_text_node(&format!("flowrlib: version = {}", flowrlib_version));
-    info.append_child(&text)?;
-    text = document.create_text_node(&format!("flowclib: version = {}", flowclib_version));
-    info.append_child(&text)?;
-
-    let manifest_el = document.create_element("p")?;
-    manifest_el.set_id("manifest");
-    body.append_child(&manifest_el)?;
-
-    let args_el = document.create_element("p")?;
-    args_el.set_id("args");
-    args_el.set_inner_html("arg1 arg2");
-    body.append_child(&args_el)?;
-
-    let std_out_el = document.create_element("p")?;
-    std_out_el.set_id("stdout");
-    body.append_child(&std_out_el)?;
-
-    let std_err_el = document.create_element("p")?;
-    std_err_el.set_id("stderr");
-    body.append_child(&std_err_el)?;
+    let flowclib_el = document.get_element_by_id("flowclib").expect("could not find 'flowclib' element");
+    flowclib_el.set_inner_html(&format!("flowclib: version = {}", flowclib::info::version()));
 
     Ok(())
 }
 
-fn load_manifest(_url: &str) -> Result<Manifest, String> {
+fn load_manifest(document: &Document, _url: &str) -> Result<Manifest, String> {
     let provider = &MetaProvider{};
 
     let content = String::from_utf8_lossy(include_bytes!("manifest.json"));
     let mut manifest = Manifest::from_str(&content)?;
 
-    let window = web_sys::window().expect("no global `window` exists");
-    let document = window.document().expect("should have a document on window");
     let manifest_el = document.get_element_by_id("manifest").expect("could not find 'stderr' element");
     manifest_el.set_inner_html(&content);
 
@@ -90,7 +60,7 @@ fn load_manifest(_url: &str) -> Result<Manifest, String> {
     Ok(manifest)
 }
 
-fn init_logging() {
+fn init_logging(_document: &Document) {
     wasm_logger::init(
         wasm_logger::Config::new(log::Level::Debug)
             .message_on_new_line()
@@ -103,13 +73,16 @@ fn init_logging() {
 #[wasm_bindgen]
 pub fn run() -> Result<(), JsValue> {
     set_panic_hook();
-    init_logging();
+    let window = web_sys::window().expect("no global `window` exists");
+    let document = window.document().expect("should have a document on window");
+
+    init_logging(&document);
 
     info!("Laying out panels");
-    layout_panels()?;
+    layout_panels(&document)?;
 
     info!("Loading manifest");
-    let manifest = load_manifest("fake url")?;
+    let manifest = load_manifest(&document, "fake url")?;
 
     info!("Creating Submission");
     let submission = Submission::new(manifest, 1, false, None);
