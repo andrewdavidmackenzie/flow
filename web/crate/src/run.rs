@@ -2,9 +2,11 @@ use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::loader::Loader;
 use flowrlib::manifest::Manifest;
 use log;
+use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
 use wasm_logger;
 use web_sys::Document;
+use web_sys::HtmlButtonElement;
 use webprovider::content::provider::MetaProvider;
 
 use crate::runtime::ilt;
@@ -15,7 +17,8 @@ use crate::runtime::ilt;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-fn layout_panels(document: &Document) -> Result<(), JsValue> {
+fn info(document: &Document) -> Result<(), JsValue> {
+    info!("Laying out panels");
     let flowstdlib_el = document.get_element_by_id("flowstdlib").expect("could not find 'flowstdlib' element");
     flowstdlib_el.set_inner_html(&format!("flowstdlib: version = {}", flowstdlib::info::version()));
 
@@ -29,6 +32,7 @@ fn layout_panels(document: &Document) -> Result<(), JsValue> {
 }
 
 fn load_manifest(document: &Document, _url: &str) -> Result<Manifest, String> {
+    info!("Loading manifest");
     let provider = &MetaProvider{};
 
     let content = String::from_utf8_lossy(include_bytes!("manifest.json"));
@@ -69,6 +73,21 @@ fn init_logging(_document: &Document) {
     info!("Logging initialized");
 }
 
+fn setup_actions(document: &Document) -> Result<(), JsValue> {
+    let run = Closure::wrap(Box::new(move || {
+        info!("clicked");
+    }) as Box<dyn FnMut()>);
+    document
+        .get_element_by_id("run_button")
+        .expect("could not find 'run_button' element")
+        .dyn_ref::<HtmlButtonElement>()
+        .expect("#run_button should be an `HtmlButtonElement`")
+        .set_onclick(Some(run.as_ref().unchecked_ref()));
+    run.forget();
+
+    Ok(())
+}
+
 // Called by our JS entry point to run the example.
 #[wasm_bindgen]
 pub fn run() -> Result<(), JsValue> {
@@ -78,16 +97,20 @@ pub fn run() -> Result<(), JsValue> {
 
     init_logging(&document);
 
-    info!("Laying out panels");
-    layout_panels(&document)?;
+    info(&document)?;
 
-    info!("Loading manifest");
-    let manifest = load_manifest(&document, "fake url")?;
+    setup_actions(&document)?;
 
-    info!("Creating Submission");
+    run_manifest(&document, "fake url")?;
+
+    Ok(())
+}
+
+fn run_manifest(document: &Document, url: &str) -> Result<(), JsValue> {
+    let manifest = load_manifest(&document, url)?;
+
     let submission = Submission::new(manifest, 1, false, None);
 
-    info!("Creating Coordinator");
     let mut coordinator = Coordinator::new(0);
 
     info!("Submitting flow for execution");
