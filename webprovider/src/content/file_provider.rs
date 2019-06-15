@@ -5,11 +5,8 @@ use std::path::PathBuf;
 pub struct FileProvider;
 
 impl Provider for FileProvider {
-    fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>), String> {
-        /*
-        let _url = Url::parse(url_str)
-            .map_err(|_| format!("Could not convert '{}' to Url", url_str))?;
-        let mut _path = _url.to_file_path().unwrap();
+    fn resolve(&self, url_str: &str, default_filename: &str) -> Result<(String, Option<String>), String> {
+/*
         match metadata(&path) {
             Ok(md) => {
                 if md.is_dir() {
@@ -35,6 +32,22 @@ impl Provider for FileProvider {
 
     fn get(&self, _url_str: &str) -> Result<Vec<u8>, String> {
         /*
+        let file_reader = FileReader::new();
+        file_reader.onload = (function(reader)
+        {
+            return function()
+            {
+                var contents = reader.result;
+                var lines = contents.split('\n');
+                //////
+                document.getElementById('container').innerHTML=contents;
+            }
+        })(reader);
+
+        file_reader.readAsText(f);
+        */
+
+        /*
         let url = Url::parse(url_str)
             .map_err(|_| format!("Could not convert '{}' to Url", url_str))?;
         let file_path = url.to_file_path().unwrap();
@@ -54,6 +67,7 @@ impl FileProvider {
         Passed a path to a directory, it searches for a file in the directory called 'default_filename'
         If found, it opens the file and returns its contents as a String in the result
     */
+
     fn find_default_file(path: &mut PathBuf, _default_filename: &str) -> io::Result<PathBuf> {
         /*
         // TODO pending more complex patterns based on implemented loaders

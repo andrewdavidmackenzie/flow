@@ -11,4 +11,12 @@ readme = "https://github.com/andrewdavidmackenzie/flow/README.md"
 
 [dependencies]
 flowrlib = { path = "../flowrlib", version = "~0.7.0" }
-log = "0.4.6"
+log = {version = "0.4.6", features = ["std"]}
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+  "Directory",
+  "FileReader",
+  "console",
+]
