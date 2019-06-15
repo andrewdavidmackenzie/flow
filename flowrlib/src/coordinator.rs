@@ -1,18 +1,18 @@
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, SendError};
 use std::sync::mpsc;
 use std::time::Duration;
-use std::sync::{Arc, Mutex};
 
 use debug_client::DebugClient;
 use debugger::Debugger;
 use execution;
 use log::Level::Debug;
 use manifest::Manifest;
+use manifest::MetaData;
 #[cfg(feature = "metrics")]
 use metrics::Metrics;
 use run_state::{Job, Output};
 use run_state::RunState;
-use manifest::MetaData;
 
 ///
 /// A Sumission is the struct used to send a flow to the Coordinator for execution. It contains
@@ -46,17 +46,20 @@ impl Submission {
     */
     pub fn new(manifest: Manifest, max_parallel_jobs: usize, display_metrics: bool,
                client: Option<&'static DebugClient>) -> Submission {
-        info!("Max Jobs in parallel set to {}", max_parallel_jobs);
-        let output_timeout = Duration::new(1, 0);
+        info!("Maximum jobs dispatched in parallel limited to {}", max_parallel_jobs);
+        let output_timeout = Duration::from_secs(1);
 
         let state = RunState::new(manifest.functions, max_parallel_jobs);
+
+        info!("creating metrics");
         #[cfg(feature = "metrics")]
             let metrics = Metrics::new(state.num_functions());
+
         #[cfg(feature = "debugger")]
             let debugger = match client {
-            Some(client) => Some(Debugger::new(client)),
-            None => None
-        };
+                Some(client) => Some(Debugger::new(client)),
+                None => None
+            };
 
         Submission {
             _metadata: manifest.metadata,
@@ -85,7 +88,7 @@ pub struct Coordinator {
     job_tx: Sender<Job>,
     output_rx: Receiver<Output>,
     shared_job_receiver: Arc<Mutex<Receiver<Job>>>,
-    output_tx: Sender<Output>
+    output_tx: Sender<Output>,
 }
 
 /// Create a Submission for a flow to be executed.
@@ -141,7 +144,7 @@ impl Coordinator {
             job_tx,
             output_rx,
             shared_job_receiver,
-            output_tx
+            output_tx,
         };
 
         coordinator
