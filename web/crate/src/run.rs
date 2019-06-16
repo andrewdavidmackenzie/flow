@@ -43,7 +43,7 @@ fn load_manifest(document: &Document, _url: &str) -> Result<Manifest, String> {
     info!("Loading manifest");
     let provider = &MetaProvider {};
 
-    let content = String::from_utf8_lossy(include_bytes!("manifest.json"));
+    let content = String::from_utf8_lossy(include_bytes!("hello_world.json"));
     let mut manifest = Manifest::from_str(&content)?;
 
     let manifest_el = document.get_element_by_id("manifest").expect("could not find 'stderr' element");
