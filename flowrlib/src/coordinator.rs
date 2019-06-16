@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, SendError};
 use std::sync::mpsc;
-//use std::time::Duration;
+use std::time::Duration;
 
 use debug_client::DebugClient;
 use debugger::Debugger;
@@ -34,7 +34,7 @@ pub struct Submission {
     display_metrics: bool,
     #[cfg(feature = "metrics")]
     metrics: Metrics,
-//    output_timeout: Duration,
+    output_timeout: Duration,
     state: RunState,
     #[cfg(feature = "debugger")]
     debugger: Option<Debugger>,
@@ -47,7 +47,7 @@ impl Submission {
     pub fn new(manifest: Manifest, max_parallel_jobs: usize, display_metrics: bool,
                client: Option<&'static DebugClient>) -> Submission {
         info!("Maximum jobs dispatched in parallel limited to {}", max_parallel_jobs);
-//        let output_timeout = Duration::from_secs(1);
+        let output_timeout = Duration::from_secs(1);
 
         let state = RunState::new(manifest.functions, max_parallel_jobs);
 
@@ -66,7 +66,7 @@ impl Submission {
             display_metrics,
             #[cfg(feature = "metrics")]
             metrics,
-//            output_timeout,
+            output_timeout,
             state,
             #[cfg(feature = "debugger")]
             debugger,
@@ -197,8 +197,7 @@ impl Coordinator {
                 }
 
                 if submission.state.number_jobs_running() > 0 {
-//                    match self.output_rx.recv_timeout(submission.output_timeout) {
-                    match self.output_rx.recv() {
+                    match self.output_rx.recv_timeout(submission.output_timeout) {
                         Ok(output) => {
                             submission.state.job_done(&output);
 
