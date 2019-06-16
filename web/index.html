@@ -1,10 +1,100 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
+    <link rel='shortcut icon' type='image/x-icon' href='favicon.ico'/>
     <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Flow - web</title>
-  </head>
-  <body>
-  </body>
+    <style>
+        #manifest {
+            font-family:courier, courier new, serif;
+            white-space: pre;
+        }
+
+        .collapsible {
+            background-color: #777;
+            color: white;
+            cursor: pointer;
+            border: none;
+            text-align: left;
+            outline: none;
+        }
+
+        .content {
+            padding: 0 18px;
+            display: none;
+            overflow: hidden;
+            background-color: #f1f1f1;
+        }
+
+        .scroll {
+            overflow:auto;
+            scrollbar-base-color:gold;
+            border-width:8px;
+            border-style: solid;
+        }
+
+        .stdout {
+            border-color: yellowgreen;
+        }
+
+        .stderr {
+            border-color: red;
+        }
+
+        .active .collapsible:hover {
+            background-color: #555;
+        }
+
+        .row:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        .column {
+            float: left;
+            width: 45%;
+            height: 300px; /* Should be removed. Only for demonstration */
+        }
+    </style>
+</head>
+<body>
+    <p>
+        <p id="flowstdlib"></p>
+        <p id="flowrlib"></p>
+        <p id="flowclib"></p>
+    <div>
+        <button id="load_button">Select Manifest File</button>
+        <button class="collapsible">View Manifest</button>
+        <div id="manifest" class="content" style="display:none;"></div>
+    </div>
+    </p>
+    <p id="log_level">Debug</p>
+    <p id="args">arg1 arg2</p>
+    <p id="stdin">stdin</p>
+    <button id="run_button">Run</button>
+    <div class="stdio row">
+        <div class="scroll stdout column" id="stdout"></div>
+        <div class="scroll stderr column" id="stderr"></div>
+    </div>
+
+    <script>
+        var coll = document.getElementsByClassName("collapsible");
+        var i;
+
+        for (i = 0; i < coll.length; i++) {
+            coll[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                var content = this.nextElementSibling;
+                if (content.style.display === "block") {
+                    content.style.display = "none";
+                } else {
+                    content.style.display = "block";
+                }
+            });
+        }
+    </script>
+</body>
 </html>
 

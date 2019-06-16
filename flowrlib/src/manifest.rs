@@ -9,14 +9,14 @@ pub struct MetaData {
     pub alias: String,
     pub version: String,
     pub author_name: String,
-    pub author_email: String
+    pub author_email: String,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct Manifest {
     pub metadata: MetaData,
     pub lib_references: HashSet<String>,
-    pub functions: Vec<Function>
+    pub functions: Vec<Function>,
 }
 
 impl Manifest {
@@ -27,7 +27,7 @@ impl Manifest {
         Manifest {
             metadata,
             lib_references: HashSet::<String>::new(),
-            functions: Vec::<Function>::new()
+            functions: Vec::<Function>::new(),
         }
     }
 
@@ -42,11 +42,20 @@ impl Manifest {
         Load, or Deserialize, a manifest from a `source` Url using `provider`
     */
     pub fn load(provider: &Provider, source: &str) -> Result<Manifest, String> {
-        let (resolved_url, _) = provider.resolve(source,DEFAULT_MANIFEST_FILENAME)?;
+        let (resolved_url, _) = provider.resolve(source, DEFAULT_MANIFEST_FILENAME)?;
         let content = provider.get(&resolved_url)?;
 
         serde_json::from_str(&String::from_utf8(content).unwrap())
-            .map_err(|e| format!("Could not read manifest from '{}'\nError = '{}'",
+            .map_err(|e| format!("Could not create a manifest from '{}'\nError = '{}'",
                                  source, e))
+    }
+
+    /*
+        Deserialize a manifest from a content &str
+    */
+    pub fn from_str(content: &str) -> Result<Manifest, String> {
+        serde_json::from_str(content)
+            .map_err(|e| format!("Could not create a manifest from '{}'\nError = '{}'",
+                                 content, e))
     }
 }

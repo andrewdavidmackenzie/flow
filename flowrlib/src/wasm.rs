@@ -1,23 +1,25 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use implementation::Implementation;
 use implementation::RunAgain;
-use serde_json::Value;
 use provider::Provider;
+use serde_json::Value;
 
-#[cfg(not(target_arg = "wasm32"))]
-use wasmi::{Module, ModuleRef, ModuleInstance, ImportsBuilder};
-//use wasmi::{Module, ModuleRef, ModuleInstance, ImportsBuilder, RuntimeValue, NopExternals};
+#[cfg(not(target_arch = "wasm32"))]
+use wasmi::{ImportsBuilder, Module, ModuleInstance, ModuleRef};
+#[cfg(not(target_arch = "wasm32"))]
+use std::sync::Mutex;
 
+#[cfg(not(target_arch = "wasm32"))]
 const DEFAULT_WASM_FILENAME: &str = "module.wasm";
 
-#[cfg(not(target_arg = "wasm32"))]
+#[cfg(not(target_arch = "wasm32"))]
 pub struct WasmExecutor {
     pub module: Arc<Mutex<ModuleRef>>,
     function_name: String,
 }
 
-#[cfg(target_arg = "wasm32")]
+#[cfg(target_arch = "wasm32")]
 pub struct WasmExecutor;
 
 /*
@@ -25,6 +27,7 @@ pub struct WasmExecutor;
 */
 impl Implementation for WasmExecutor {
     fn run(&self, _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+        #[cfg(not(target_arch = "wasm32"))]
         println!("Wasm implementation wrapper for function '{}' called", self.function_name);
 
         // TODO setup module memory
@@ -47,6 +50,13 @@ impl Implementation for WasmExecutor {
 /*
     load a Wasm module from the specified Url.
 */
+#[cfg(target_arch = "wasm32")]
+pub fn load(_provider: &Provider, _function_name: &str, _source_url: &str) -> Result<Arc<WasmExecutor>, String> {
+    let executor = WasmExecutor {};
+    Ok(Arc::new(executor))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 pub fn load(provider: &Provider, function_name: &str, source_url: &str) -> Result<Arc<WasmExecutor>, String> {
     let (resolved_url, _) = provider.resolve(&source_url, DEFAULT_WASM_FILENAME)?;
     let content = provider.get(&resolved_url)?;
@@ -59,7 +69,7 @@ pub fn load(provider: &Provider, function_name: &str, source_url: &str) -> Resul
 
     let executor = WasmExecutor {
         module: Arc::new(Mutex::new(module_ref.clone())),
-        function_name: function_name.to_string()
+        function_name: function_name.to_string(),
     };
 
     Ok(Arc::new(executor))

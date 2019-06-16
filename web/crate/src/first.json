@@ -1,0 +1,90 @@
+{
+  "metadata": {
+    "alias": "context",
+    "version": "0.0.0",
+    "author_name": "unknown",
+    "author_email": "unknown@unknown.com"
+  },
+  "lib_references": [
+    "lib://flowstdlib"
+  ],
+  "functions": [
+    {
+      "name": "HEAD-1",
+      "route": "/context/HEAD-1",
+      "id": 0,
+      "implementation_source": "lib://flowstdlib/data/buffer/Buffer",
+      "inputs": [
+        {
+          "initializer": {
+            "once": 1
+          }
+        }
+      ],
+      "output_routes": [
+        [
+          "",
+          2,
+          0
+        ],
+        [
+          "",
+          3,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "HEAD",
+      "route": "/context/HEAD",
+      "id": 1,
+      "implementation_source": "lib://flowstdlib/data/buffer/Buffer",
+      "inputs": [
+        {
+          "initializer": {
+            "once": 1
+          }
+        }
+      ],
+      "output_routes": [
+        [
+          "",
+          0,
+          0
+        ],
+        [
+          "",
+          2,
+          1
+        ]
+      ]
+    },
+    {
+      "name": "sum",
+      "route": "/context/sum",
+      "id": 2,
+      "implementation_source": "lib://flowstdlib/math/add/Add",
+      "inputs": [
+        {},
+        {}
+      ],
+      "output_routes": [
+        [
+          "",
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "print",
+      "route": "/context/print",
+      "id": 3,
+      "implementation_source": "lib://runtime/stdio/stdout/Stdout",
+      "inputs": [
+        {}
+      ],
+      "impure": true
+    }
+  ]
+}

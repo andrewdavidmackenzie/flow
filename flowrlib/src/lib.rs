@@ -7,9 +7,10 @@ extern crate serde_json;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-#[cfg(not(target_arg = "wasm32"))]
+#[cfg(not(target_arch = "wasm32"))]
 extern crate wasmi;
 extern crate multimap;
+extern crate instant;
 
 pub mod info;
 pub mod url;

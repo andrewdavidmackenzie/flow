@@ -1,13 +1,14 @@
+use std::collections::HashMap;
 use std::sync::Arc;
+
 use implementation::Implementation;
-use implementation_table::ImplementationLocatorTable;
 use implementation_table::ImplementationLocator::Native;
 use implementation_table::ImplementationLocator::Wasm;
+use implementation_table::ImplementationLocatorTable;
 use manifest::Manifest;
 use provider::Provider;
-use std::collections::HashMap;
-use wasm;
 use url;
+use wasm;
 
 pub struct Loader {
     global_lib_implementations: HashMap<String, Arc<Implementation>>,
@@ -40,12 +41,7 @@ impl Loader {
     pub fn load_manifest(&mut self, provider: &Provider, manifest_url: &str) -> Result<Manifest, String> {
         let mut manifest = Manifest::load(provider, manifest_url)?;
 
-        // Load libraries references from by this flow, as specified in manifest
-        for library_reference in &manifest.lib_references {
-            let (resolved_url, _) = provider.resolve(&library_reference, "manifest.json")?;
-            let _contents = provider.get(&resolved_url)?;
-            // TODO load the library from it's manifest - loading the WASM implementations
-        }
+        Self::load_libraries(provider, &manifest)?;
 
         // Find the implementations for all functions in this flow
         self.resolve_implementations(&mut manifest, provider, manifest_url)?;
@@ -53,8 +49,21 @@ impl Loader {
         Ok(manifest)
     }
 
+    /*
+        Load libraries references referenced in the manifest
+    */
+    pub fn load_libraries(provider: &Provider, manifest: &Manifest) -> Result<(), String> {
+        for library_reference in &manifest.lib_references {
+            let (resolved_url, _) = provider.resolve(&library_reference, "manifest.json")?;
+            let _contents = provider.get(&resolved_url)?;
+            // TODO load the library from it's manifest - loading the WASM implementations
+        }
+
+        Ok(())
+    }
+
     pub fn resolve_implementations(&mut self, manifest: &mut Manifest, provider: &Provider,
-                                   manifest_url: &str) -> Result<String, String>{
+                                   manifest_url: &str) -> Result<String, String> {
         // find in a library, or load the implementation required - as specified by the source
         for mut function in &mut manifest.functions {
             let source_url = function.implementation_source().to_string();
@@ -63,8 +72,7 @@ impl Loader {
                 "lib" => { // Try and find the implementation in the libraries already loaded
                     match self.global_lib_implementations.get(function.implementation_source()) {
                         Some(implementation) => function.set_implementation(implementation.clone()),
-                        None => return Err(format!("Did not find implementation for '{}'",
-                                                   source_url))
+                        None => return Err(format!("Did not find implementation for '{}'", source_url))
                     }
                 }
 
@@ -97,6 +105,7 @@ impl Loader {
                 // create or find the implementation we need
                 let implementation = match locator {
                     Wasm(wasm_source) => {
+                        info!("Looking for wasm source: '{}'", wasm_source.0);
                         // Path to the wasm source could be relative to the URL where we loaded the ILT from
                         let wasm_url = url::join(ilt_url, &wasm_source.0);
                         // Wasm implementation being added. Wrap it with the Wasm Native Implementation

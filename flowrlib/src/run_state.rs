@@ -39,6 +39,13 @@ pub struct Output {
     pub error: Option<String>,
 }
 
+///
+/// RunList is a structure that maintains the state of all the functions in the currently
+/// executing flow.
+///
+/// A function maybe blocking multiple others trying to send data to it.
+/// Those others maybe blocked trying to send to multiple different function.
+///
 /// The Semantics of a Flow's RunState
 /// ==================================
 /// The semantics of the state of each function in a flow and the flow over are described here
@@ -47,7 +54,7 @@ pub struct Output {
 /// Terminology
 /// ===========
 /// * function        - an entry in the manifest and the flow graph that may take inputs, will execute an
-///                     implementation on a job and may produce an output
+///                     implementation on a Job and may produce an Output
 /// * input           - a function may have 0 or more inputs that accept values required for it's execution
 /// * implementation  - the code that is run, accepting 0 or more input values performing some calculations
 ///                     and possibly producing an output value. One implementation can be used by multiple
