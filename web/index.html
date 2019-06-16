@@ -10,6 +10,7 @@
             font-family:courier, courier new, serif;
             white-space: pre;
         }
+
         .collapsible {
             background-color: #777;
             color: white;
@@ -26,8 +27,35 @@
             background-color: #f1f1f1;
         }
 
+        .scroll {
+            overflow:auto;
+            scrollbar-base-color:gold;
+            border-width:8px;
+            border-style: solid;
+        }
+
+        .stdout {
+            border-color: yellowgreen;
+        }
+
+        .stderr {
+            border-color: red;
+        }
+
         .active .collapsible:hover {
             background-color: #555;
+        }
+
+        .row:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        .column {
+            float: left;
+            width: 45%;
+            height: 300px; /* Should be removed. Only for demonstration */
         }
     </style>
 </head>
@@ -36,18 +64,20 @@
         <p id="flowstdlib"></p>
         <p id="flowrlib"></p>
         <p id="flowclib"></p>
-    </p>
-    <p id="log_level">Debug</p>
     <div>
         <button id="load_button">Select Manifest File</button>
         <button class="collapsible">View Manifest</button>
         <div id="manifest" class="content" style="display:none;"></div>
     </div>
+    </p>
+    <p id="log_level">Debug</p>
     <p id="args">arg1 arg2</p>
     <p id="stdin">stdin</p>
     <button id="run_button">Run</button>
-    <p id="stdout"></p>
-    <p id="stderr"></p>
+    <div class="stdio row">
+        <div class="scroll stdout column" id="stdout"></div>
+        <div class="scroll stderr column" id="stderr"></div>
+    </div>
 
     <script>
         var coll = document.getElementsByClassName("collapsible");
