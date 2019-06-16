@@ -19,9 +19,14 @@ endif
 config:
 	rustup target add wasm32-unknown-unknown
 	cargo install wasm-bindgen-cli || true
+	# install mdbook for generating guides
 	cargo install mdbook || true
 	cargo install mdbook-linkcheck || true
+	# install wasm-pack
 	curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
+	# Install chromedriver.
+	#curl --retry 5 -LO https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.zip
+	#unzip chromedriver_linux64.zip
 
 #################### Docs ####################
 doc: dot-graphs guide
