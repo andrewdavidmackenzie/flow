@@ -48,3 +48,6 @@ features = [
   "Window",
   "console",
 ]
+
+[dev-dependencies]
+wasm-bindgen-test = "0.2"

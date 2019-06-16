@@ -14,6 +14,7 @@ run: build
 test:
 	@echo "--- Started  'cargo test' for 'web/crate' on native target ---"
 	@cd crate;cargo test
+	@cd crate;wasm-pack test --chrome --headless -- --features wasm-bindgen
 	@echo "--- Finished 'cargo test' for 'web/crate' on native target ---"
 
 clean:
