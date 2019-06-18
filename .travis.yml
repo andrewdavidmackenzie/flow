@@ -14,7 +14,7 @@ before_install:
 cache:
   cargo: true
   directories:
-    - node_modules
+    - web/node_modules
 
 script: make travis
 
