@@ -12,9 +12,7 @@ wasm:
 	cargo build --target=wasm32-unknown-unknown
 	@echo "------- Done     build of 'flowstdlib' wasm -------------"
 
-test: test-native wasm
-
-test-native:
+test:
 	@echo ""
 	@echo "------- Starting test of 'flowstdlib' native -------------"
 	cargo test
