@@ -22,3 +22,25 @@ impl Implementation for Get {
         (value, DONT_RUN_AGAIN)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::env;
+
+    use flowrlib::implementation::DONT_RUN_AGAIN;
+    use flowrlib::implementation::Implementation;
+
+    use super::Get;
+    use super::super::super::FLOW_ARGS_NAME;
+
+    #[test]
+    fn test_arg_passing() {
+        env::set_var(FLOW_ARGS_NAME, "test");
+
+        let get = Get{};
+        let (value, again) = get.run(vec!());
+
+        assert_eq!(json!(["test"]), value.unwrap());
+        assert_eq!(DONT_RUN_AGAIN, again);
+    }
+}
