@@ -8,8 +8,10 @@ use flowrlib::loader::Loader;
 use flowrlib::manifest::Manifest;
 use flowrlib::provider::Provider;
 use log;
+use log::Level;
 use serde_json;
 use std::fmt::Debug;
+use std::str::FromStr;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
 use wasm_logger;
@@ -18,6 +20,8 @@ use web_sys::HtmlButtonElement;
 use webprovider::content::provider::MetaProvider;
 
 use crate::runtime::ilt;
+
+const DEFAULT_LOG_LEVEL: Level = Level::Error;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -71,7 +75,7 @@ fn compile(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manif
         e.to_string())
 }
 
-fn load_manifest(content: &str) -> Result<Manifest, String> {
+fn load_manifest(content: &str, url: &str) -> Result<Manifest, String> {
     info!("Loading manifest");
 
     let provider = &MetaProvider {
@@ -83,12 +87,12 @@ fn load_manifest(content: &str) -> Result<Manifest, String> {
     let mut loader = Loader::new();
 
     // Load this runtime's native implementations
-    loader.add_lib(provider, ilt::get_ilt(), "")?;
+    loader.add_lib(provider, ilt::get_ilt(), url)?;
 
     info!("adding flowstdlib");
     // TODO - when loader can load a library from a reference in the manifest via it's WASM
     loader.add_lib(provider, flowstdlib::ilt::get_ilt(),
-                   &format!("{}flowstdlib/ilt.json", "file://"))?;
+                   &format!("{}flowstdlib/ilt.json", url))?; // TODO fix this URL
 
     // This doesn't do anything currently - leaving here for the future
     // as when this loads libraries from manifest, previous manual adding of
@@ -106,15 +110,6 @@ fn load_manifest(content: &str) -> Result<Manifest, String> {
 fn set_manifest_contents(document: &Document, content: &str) {
     let manifest_el = document.get_element_by_id("manifest").expect("could not find 'manifest' element");
     manifest_el.set_inner_html(&pretty_print_json_for_html(&content));
-}
-
-fn init_logging(_document: &Document) {
-    wasm_logger::init(
-        wasm_logger::Config::new(log::Level::Debug)
-            .message_on_new_line()
-    );
-
-    info!("Logging initialized");
 }
 
 fn setup_load_flow_button(document: &Document) {
@@ -178,6 +173,33 @@ fn set_panic_hook() {
         console_error_panic_hook::set_once();
 }
 
+fn init_logging(arg: Option<String>) {
+    let level = match arg {
+        Some(string) => {
+            match Level::from_str(&string) {
+                Ok(ll) => ll,
+                Err(_) => DEFAULT_LOG_LEVEL
+            }
+        }
+        None => DEFAULT_LOG_LEVEL
+    };
+
+    wasm_logger::init(
+        wasm_logger::Config::new(level)
+            .message_on_new_line()
+    );
+
+    info!("Logging initialized to level: '{}'", level);
+}
+
+fn
+get_log_level(document: &Document) ->
+Option<
+    String> {
+    let log_level_el = document.get_element_by_id("log_level").expect("could not find 'log_level' element");
+    log_level_el.text_content()
+}
+
 // Called by our JS entry point
 #[wasm_bindgen]
 pub fn run() -> Result<(), JsValue> {
@@ -185,7 +207,9 @@ pub fn run() -> Result<(), JsValue> {
     let window = web_sys::window().expect("no global `window` exists");
     let document = window.document().expect("should have a document on window");
 
-    init_logging(&document);
+    let log_level_arg = get_log_level(&document);
+
+    init_logging(log_level_arg);
 
     info(&document)?;
 
@@ -203,7 +227,7 @@ pub fn run() -> Result<(), JsValue> {
 //    let manifest = compile(&flow, true, "/Users/andrew/workflow/flow")?;
 
     let manifest_content = String::from_utf8_lossy(include_bytes!("hello_world.json"));
-    let manifest = load_manifest(&manifest_content)?;
+    let manifest = load_manifest(&manifest_content, "file://")?;
 
     let manifest_content = serde_json::to_string_pretty(&manifest).map_err(|e|
         e.to_string())?;

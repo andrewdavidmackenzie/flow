@@ -65,10 +65,12 @@
     </style>
 </head>
 <body>
-    <p>
-        <p id="flowstdlib"></p>
-        <p id="flowrlib"></p>
-        <p id="flowclib"></p>
+    <div>
+        <span id="flowstdlib"></span>,
+        <span id="flowrlib"></span>,
+        <span id="flowclib"></span>
+    </div>
+    <div>Log Level: <span id="log_level">Debug</span></div>
     <div>
         <button id="load_flow_button">Select Flow File</button>
         <button class="collapsible">View Flow</button>
@@ -81,7 +83,6 @@
         <div id="manifest" class="content" style="display:none;"></div>
     </div>
     </p>
-    <p id="log_level">Debug</p>
     <p id="args">arg1 arg2</p>
     <p id="stdin">stdin</p>
     <button id="run_button">Run</button>
