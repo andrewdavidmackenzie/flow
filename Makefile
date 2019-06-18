@@ -93,7 +93,7 @@ flowrlib:
 travis: clean test guide
 
 #################### Tests ####################
-test: test-workspace test-web test-flowclib test-flowstdlib test-flowrlib test-provider test-webprovider samples
+test: test-workspace test-web test-flowclib test-flowstdlib test-flowrlib test-webprovider samples
 # TODO add online-samples
 	@echo ""
 	@echo "------- Done    test: -------------"
