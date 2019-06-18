@@ -7,12 +7,15 @@
     <title>Flow - web</title>
     <style>
         #flow {
-            font-family:courier, courier new, serif;
             white-space: pre;
         }
 
-        #manifest {
+        .fixed {
             font-family:courier, courier new, serif;
+            font-size: 14px;
+        }
+
+        #manifest {
             white-space: pre;
         }
 
@@ -59,7 +62,7 @@
 
         .column {
             float: left;
-            width: 45%;
+            width: 80ch;
             height: 300px; /* Should be removed. Only for demonstration */
         }
     </style>
@@ -75,21 +78,21 @@
     <div>
         <button id="load_flow_button">Select Flow File</button>
         <button class="collapsible">View Flow</button>
-        <div id="flow" class="content" style="display:none;"></div>
+        <div id="flow" class="content fixed" style="display:none;"></div>
     </div>
 
     <div>
         <button id="load_manifest_button">Select Manifest File</button>
         <button class="collapsible">View Manifest</button>
-        <div id="manifest" class="content" style="display:none;"></div>
+        <div id="manifest" class="content fixed" style="display:none;"></div>
     </div>
     </p>
     <p id="args">arg1 arg2</p>
     <p id="stdin">stdin</p>
     <button id="run_button">Run</button>
     <div class="stdio row">
-        <div class="scroll stdout column" id="stdout"></div>
-        <div class="scroll stderr column" id="stderr"></div>
+        <div class="scroll stdout column fixed" id="stdout"></div>
+        <div class="scroll stderr column fixed" id="stderr"></div>
     </div>
 
     <script>
