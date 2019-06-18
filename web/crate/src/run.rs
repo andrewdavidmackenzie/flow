@@ -1,7 +1,14 @@
+use flowclib::compiler::compile;
+use flowclib::compiler::loader;
+use flowclib::generator::generate;
+use flowclib::model::flow::Flow;
+use flowclib::model::process::Process::FlowProcess;
 use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::loader::Loader;
 use flowrlib::manifest::Manifest;
+use flowrlib::provider::Provider;
 use log;
+use serde_json;
 use std::fmt::Debug;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
@@ -31,7 +38,7 @@ fn info(document: &Document) -> Result<(), JsValue> {
     Ok(())
 }
 
-fn pretty_print_for_html<S: Into<String> + Debug>(string: S) -> String {
+fn pretty_print_json_for_html<S: Into<String> + Debug>(string: &S) -> String {
     format!("{:?}", string)
         .replace("\\\"", "\"")
         .replace("\\n", "<br/>")
@@ -39,15 +46,39 @@ fn pretty_print_for_html<S: Into<String> + Debug>(string: S) -> String {
         .replace("}\"", "}")
 }
 
-fn load_manifest(document: &Document, _url: &str) -> Result<Manifest, String> {
+fn load_flow(provider: &Provider, url: &str) -> Result<Flow, String> {
+    info!("Loading flow");
+
+    match loader::load_context(url, provider)? {
+        FlowProcess(flow) => Ok(flow),
+        _ => Err("Process loaded was not of type 'Flow'".into())
+    }
+}
+
+fn set_flow_contents(document: &Document, content: &str) {
+    let flow_el = document.get_element_by_id("flow").expect("could not find 'flow' element");
+    flow_el.set_inner_html(&content);
+}
+
+/*
+    manifest_dir is used as a reference directory for relative paths to project files
+*/
+fn compile(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manifest, String> {
+    info!("Compiling Flow to Manifest");
+    let tables = compile::compile(flow)?;
+
+    generate::create_manifest(&flow, debug_symbols, &manifest_dir, &tables).map_err(|e|
+        e.to_string())
+}
+
+fn load_manifest(content: &str) -> Result<Manifest, String> {
     info!("Loading manifest");
-    let provider = &MetaProvider {};
 
-    let content = String::from_utf8_lossy(include_bytes!("hello_world.json"));
-    let mut manifest = Manifest::from_str(&content)?;
+    let provider = &MetaProvider {
+        content: content.to_string()
+    };
 
-    let manifest_el = document.get_element_by_id("manifest").expect("could not find 'stderr' element");
-    manifest_el.set_inner_html(&pretty_print_for_html(content));
+    let mut manifest = Manifest::from_str(content)?;
 
     let mut loader = Loader::new();
 
@@ -72,6 +103,11 @@ fn load_manifest(document: &Document, _url: &str) -> Result<Manifest, String> {
     Ok(manifest)
 }
 
+fn set_manifest_contents(document: &Document, content: &str) {
+    let manifest_el = document.get_element_by_id("manifest").expect("could not find 'manifest' element");
+    manifest_el.set_inner_html(&pretty_print_json_for_html(&content));
+}
+
 fn init_logging(_document: &Document) {
     wasm_logger::init(
         wasm_logger::Config::new(log::Level::Debug)
@@ -81,16 +117,28 @@ fn init_logging(_document: &Document) {
     info!("Logging initialized");
 }
 
-
-fn setup_load_button(document: &Document) {
+fn setup_load_flow_button(document: &Document) {
     let load = Closure::wrap(Box::new(move || {
         info!("load clicked");
     }) as Box<dyn FnMut()>);
     document
-        .get_element_by_id("load_button")
-        .expect("could not find 'load_button' element")
+        .get_element_by_id("load_flow_button")
+        .expect("could not find 'load_flow_button' element")
         .dyn_ref::<HtmlButtonElement>()
-        .expect("#load_button should be an `HtmlButtonElement`")
+        .expect("#load_flow_button should be an `HtmlButtonElement`")
+        .set_onclick(Some(load.as_ref().unchecked_ref()));
+    load.forget();
+}
+
+fn setup_load_manifest_button(document: &Document) {
+    let load = Closure::wrap(Box::new(move || {
+        info!("load clicked");
+    }) as Box<dyn FnMut()>);
+    document
+        .get_element_by_id("load_manifest_button")
+        .expect("could not find 'load_manifest_button' element")
+        .dyn_ref::<HtmlButtonElement>()
+        .expect("#load_manifest_button should be an `HtmlButtonElement`")
         .set_onclick(Some(load.as_ref().unchecked_ref()));
     load.forget();
 }
@@ -109,35 +157,11 @@ fn setup_run_button(document: &Document) {
 }
 
 fn setup_actions(document: &Document) -> Result<(), JsValue> {
-    setup_load_button(document);
+    setup_load_manifest_button(document);
+    setup_load_flow_button(document);
     setup_run_button(document);
 
     Ok(())
-}
-
-// Called by our JS entry point to run the example.
-#[wasm_bindgen]
-pub fn run() -> Result<(), JsValue> {
-    set_panic_hook();
-    let window = web_sys::window().expect("no global `window` exists");
-    let document = window.document().expect("should have a document on window");
-
-    init_logging(&document);
-
-    info(&document)?;
-
-    setup_actions(&document)?;
-
-    let submission = load(&document, "fake url")?;
-
-    run_submission(submission);
-
-    Ok(())
-}
-
-fn load(document: &Document, url: &str) -> Result<Submission, String> {
-    let manifest = load_manifest(&document, url)?;
-    Ok(Submission::new(manifest, 1, false, None))
 }
 
 fn run_submission(submission: Submission) {
@@ -152,6 +176,45 @@ fn set_panic_hook() {
     // `set_panic_hook` function to get better error messages if we ever panic.
     #[cfg(feature = "console_error_panic_hook")]
         console_error_panic_hook::set_once();
+}
+
+// Called by our JS entry point
+#[wasm_bindgen]
+pub fn run() -> Result<(), JsValue> {
+    set_panic_hook();
+    let window = web_sys::window().expect("no global `window` exists");
+    let document = window.document().expect("should have a document on window");
+
+    init_logging(&document);
+
+    info(&document)?;
+
+    setup_actions(&document)?;
+
+    let flow_content: String = String::from_utf8_lossy(include_bytes!("hello_world.toml")).into();
+
+    set_flow_contents(&document, &flow_content);
+
+    let provider = MetaProvider {
+        content: flow_content
+    };
+
+//    let flow = load_flow(&provider, "file:://Users/andrew/workspace/flow/web/crate/src/hello_world.toml")?;
+//    let manifest = compile(&flow, true, "/Users/andrew/workflow/flow")?;
+
+    let manifest_content = String::from_utf8_lossy(include_bytes!("hello_world.json"));
+    let manifest = load_manifest(&manifest_content)?;
+
+    let manifest_content = serde_json::to_string_pretty(&manifest).map_err(|e|
+        e.to_string())?;
+
+    set_manifest_contents(&document, &manifest_content);
+
+    let submission = Submission::new(manifest, 1, false, None);
+
+    run_submission(submission);
+
+    Ok(())
 }
 
 #[cfg(test)]

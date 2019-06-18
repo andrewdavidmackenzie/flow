@@ -9,7 +9,10 @@ const FILE_PROVIDER: &Provider = &FileProvider as &Provider;
 const LIB_PROVIDER: &Provider = &LibProvider as &Provider;
 const HTTP_PROVIDER: &Provider = &HttpProvider as &Provider;
 
-pub struct MetaProvider {}
+pub struct MetaProvider {
+    // TODO remove when complete
+    pub content: String
+}
 
 ///
 /// // Instantiate MetaProvider and then use the Provider trait methods on it to resolve and fetch

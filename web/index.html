@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Flow - web</title>
     <style>
+        #flow {
+            font-family:courier, courier new, serif;
+            white-space: pre;
+        }
+
         #manifest {
             font-family:courier, courier new, serif;
             white-space: pre;
@@ -65,7 +70,13 @@
         <p id="flowrlib"></p>
         <p id="flowclib"></p>
     <div>
-        <button id="load_button">Select Manifest File</button>
+        <button id="load_flow_button">Select Flow File</button>
+        <button class="collapsible">View Flow</button>
+        <div id="flow" class="content" style="display:none;"></div>
+    </div>
+
+    <div>
+        <button id="load_manifest_button">Select Manifest File</button>
         <button class="collapsible">View Manifest</button>
         <div id="manifest" class="content" style="display:none;"></div>
     </div>
