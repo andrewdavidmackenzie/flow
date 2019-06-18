@@ -105,8 +105,6 @@ test-workspace:
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
 test-web:
-# Include web build to make sure it builds for wasm target as test doesn't use it
-	@cd web && make build
 	@cd web && make test
 
 test-flowclib:
