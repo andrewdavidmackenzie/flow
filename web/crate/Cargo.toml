@@ -42,6 +42,8 @@ features = [
   "Document",
   "Element",
   'HtmlButtonElement',
+  'HtmlSelectElement',
+  'HtmlOptionsCollection',
   "HtmlElement",
   "Node",
   "Text",
