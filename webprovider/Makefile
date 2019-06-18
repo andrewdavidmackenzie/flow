@@ -6,13 +6,15 @@ build-wasm:
 	cargo build --target=wasm32-unknown-unknown
 	@echo "------- Done     build of 'webprovider' wasm -------------"
 
-test: test-native build-wasm
-
-test-native:
+test:
 	@echo ""
-	@echo "------- Starting test of 'webprovider' native -------------"
-	cargo test
-	@echo "------- Done     test of 'webprovider' native -------------"
+	@echo "--- Started  'cargo build' for 'webprovider' on wasm target ---"
+	@cargo build --target wasm32-unknown-unknown
+	@echo "--- Ended    'cargo build' for 'webprovider' on wasm target ---"
+	@echo ""
+	@echo "--- Started  'cargo test' for 'webprovider' on native target ---"
+	@cd crate;cargo test
+	@echo "--- Finished 'cargo test' for 'web/crate' on native target ---"
 
 clean:
 	cargo clean
