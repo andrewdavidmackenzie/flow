@@ -75,7 +75,7 @@ fn compile(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manif
         e.to_string())
 }
 
-fn load_manifest(content: &str, url: &str) -> Result<Manifest, String> {
+pub fn load_manifest(content: &str, url: &str) -> Result<Manifest, String> {
     info!("Loading manifest");
 
     let provider = &MetaProvider {
@@ -192,10 +192,7 @@ fn init_logging(arg: Option<String>) {
     info!("Logging initialized to level: '{}'", level);
 }
 
-fn
-get_log_level(document: &Document) ->
-Option<
-    String> {
+fn get_log_level(document: &Document) -> Option<String> {
     let log_level_el = document.get_element_by_id("log_level").expect("could not find 'log_level' element");
     log_level_el.text_content()
 }
@@ -229,8 +226,7 @@ pub fn run() -> Result<(), JsValue> {
     let manifest_content = String::from_utf8_lossy(include_bytes!("hello_world.json"));
     let manifest = load_manifest(&manifest_content, "file://")?;
 
-    let manifest_content = serde_json::to_string_pretty(&manifest).map_err(|e|
-        e.to_string())?;
+    let manifest_content = serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?;
 
     set_manifest_contents(&document, &manifest_content);
 
@@ -239,12 +235,4 @@ pub fn run() -> Result<(), JsValue> {
     run_submission(submission);
 
     Ok(())
-}
-
-#[cfg(test)]
-mod test {
-    #[test]
-    fn test_load_manifest() {
-        assert!(true);
-    }
 }

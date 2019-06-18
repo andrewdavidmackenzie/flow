@@ -18,7 +18,7 @@ flowrlib = { path = "../../flowrlib", version = "~0.7.0" }
 flowstdlib = { path = "../../flowstdlib", version = "~0.7.0" }
 webprovider = { path = "../../webprovider", version = "0.1.0" }
 serde_json = "1.0"
-wasm-bindgen = {version = "0.2.25", optional = true }
+wasm-bindgen = {version = "0.2", optional = true }
 wasm-logger = "0.1.4"
 log = {version = "0.4.6", features = ["std"]}
 
