@@ -32,6 +32,29 @@ mod test {
         };
     }
 
+
+    #[test]
+    fn simplest_context_loads() {
+        let flow_description = "{
+    'flow': 'hello-world-simple-toml',
+    'process': [
+        {
+            'alias': 'print',
+            'source': 'lib://runtime/stdio/stdout.toml',
+            'input': {
+                'default': {
+                    'once': 'hello'
+                }
+            }
+        }
+    ]
+}";
+        let toml = FlowJsonLoader {};
+        let flow = toml.deserialize(&flow_description.replace("'", "\""), None);
+        println!("{:?}", flow);
+        assert!(flow.is_ok());
+    }
+
     #[test]
     fn simple_context_loads() {
         let flow_description = "{
