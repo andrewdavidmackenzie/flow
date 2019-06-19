@@ -220,11 +220,11 @@ pub fn run() -> Result<(), JsValue> {
         content: flow_content
     };
 
-//    let flow = load_flow(&provider, "file:://Users/andrew/workspace/flow/web/crate/src/hello_world.toml")?;
-//    let manifest = compile(&flow, true, "/Users/andrew/workflow/flow")?;
+    let flow = load_flow(&provider, "file:://Users/andrew/workspace/flow/web/crate/src/hello_world.toml")?;
+    let manifest = compile(&flow, true, "/Users/andrew/workflow/flow")?;
 
-    let manifest_content = String::from_utf8_lossy(include_bytes!("hello_world.json"));
-    let manifest = load_manifest(&manifest_content, "file://")?;
+//    let manifest_content = String::from_utf8_lossy(include_bytes!("hello_world.json"));
+//    let manifest = load_manifest(&manifest_content, "file://")?;
 
     let manifest_content = serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?;
 

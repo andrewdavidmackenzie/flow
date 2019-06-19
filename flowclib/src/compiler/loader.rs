@@ -65,6 +65,8 @@ impl fmt::Display for DeserializeError {
 // All deserializers have to implement this method
 pub trait Deserializer {
     fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process, DeserializeError>;
+
+    fn name(&self) -> &'static str;
 }
 
 pub trait Validate {
@@ -117,10 +119,12 @@ pub fn load_context(url: &str, provider: &Provider) -> Result<Process, String> {
 fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provider,
                 initializations: &Option<HashMap<String, InputInitializer>>) -> Result<Process, String> {
     let (resolved_url, lib_ref) = provider.resolve(url, "context.toml")?;
+    debug!("Resolved URL: '{}'", resolved_url);
     let contents = provider.get(&resolved_url)?;
 
     let deserializer = get_deserializer(&resolved_url)?;
-    info!("Deserializing process with alias = '{}' from url = '{}' ", alias, resolved_url);
+    info!("Deserializing process with alias = '{}' from url = '{}' with deserializer: '{}'",
+          alias, resolved_url, deserializer.name());
     let mut process = deserializer.deserialize(&String::from_utf8(contents).unwrap(),
                                                Some(url))
         .map_err(|e| e.to_string() )?;

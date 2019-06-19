@@ -14,6 +14,8 @@ impl Deserializer for FlowJsonLoader {
             DeserializeError::new(e.description(), Some((e.line(), e.column())), url)
         })
     }
+
+    fn name(&self) -> &'static str { "Json" }
 }
 
 #[cfg(test)]

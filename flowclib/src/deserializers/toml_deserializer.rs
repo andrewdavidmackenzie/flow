@@ -19,6 +19,8 @@ impl Deserializer for FlowTomelLoader {
             DeserializeError::new(e.description(), line_col, url)
         })
     }
+
+    fn name(&self) -> &'static str { "Toml" }
 }
 
 #[cfg(test)]
