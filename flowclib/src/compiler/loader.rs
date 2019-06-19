@@ -125,6 +125,7 @@ fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provid
                                                Some(url))
         .map_err(|e| e.to_string() )?;
 
+    debug!("Deserialized flow, now parsing and loading any sub-processes");
     match process {
         FlowProcess(ref mut flow) => {
             config_flow(flow, &resolved_url, parent_route, alias, initializations)?;
