@@ -1,6 +1,16 @@
 use flowrlib::provider::Provider;
 
-pub struct LibProvider;
+pub struct LibProvider {
+    flow_lib_path: String
+}
+
+impl LibProvider {
+    pub fn new(flow_lib_path: String) -> Self {
+        LibProvider {
+            flow_lib_path
+        }
+    }
+}
 
 /*
     Urls for library flows and functions and values will be of the form:
@@ -38,39 +48,22 @@ impl Provider for LibProvider {
             "flowstdlib/stdio/stdout" and return that also.
     */
     fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>), String> {
-/*
-        let url = Url::parse(url_str)
-            .map_err(|_| format!("Could not convert '{}' to valid Url", url_str))?;
-        let _lib_name = url.host_str().expect(
-            &format!("'lib_name' could not be extracted from host part of url '{}'", url));
-*/
-        // TODO search in some path provided by the web runtime
+        let parts: Vec<&str> = url_str.split("://").collect();
+        let path = parts[1];
+        let parts: Vec<&str> = path.split("/").collect();
 
-// find rhe lib directory
+        let lib_name = parts[0];
+        let mut lib_path = format!("{}/", self.flow_lib_path);
+        lib_path.push_str(lib_name);
+        lib_path.push_str("/");
+        lib_path.push_str("src");
 
-//        lib_path.push("src");
-//        lib_path.push(&url.path()[1..]); // Strip off leading '/' to concatenate to path
+        for part in parts[1..].into_iter() {
+            lib_path.push_str(&format!("/{}", part));
+        }
 
-        // Drop the file extension off the lib definition file path to get a lib reference
-//        let module = url.join("./").
-  //          unwrap().join(lib_path.file_stem().unwrap().to_str().unwrap());
-   //     let lib_ref = format!("{}{}", lib_name, module.unwrap().path());
-
-//        if lib_path.exists() {
-  //          if lib_path.is_dir() {
-    //            debug!("'{:?}' is a directory, so looking for default file name '{}'", lib_path, default_filename);
-      //          lib_path.push(default_filename);
-       //         if !lib_path.exists() {
-        //            return Err(format!("Could not locate url '{}' in libraries in 'FLOW_LIB_PATH'", url));
-         //       }
-      //      }
-       //     let lib_path_url = Url::from_file_path(&lib_path)
-        //        .map_err(|_| format!("Could not create Url from '{:?}'", &lib_path))?;
-         //   Ok((lib_path_url.to_string(), Some(lib_ref.to_string())))
-   //     } else {
-   //         Err(format!("Could not locate url '{}' in libraries in 'FLOW_LIB_PATH'", url))
-    //    }
-        Ok((url_str.into(), Some(url_str.into())))
+        // TODO construct correctly the second one
+        Ok((lib_path, Some(lib_name.to_string())))
     }
 
     // All Urls that start with "lib://" should resource to a different Url with "http(s)" or "file"

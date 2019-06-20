@@ -42,6 +42,11 @@ fn info(document: &Document) -> Result<(), JsValue> {
     Ok(())
 }
 
+fn get_flow_lib_path(document: &Document) -> Result<String, String> {
+    let flow_lib_path_el = document.get_element_by_id("flow_lib_path").expect("could not find 'flow_lib_path' element");
+    flow_lib_path_el.text_content().ok_or("Flow Lib Path not set".into())
+}
+
 fn pretty_print_json_for_html<S: Into<String> + Debug>(string: &S) -> String {
     format!("{:?}", string)
         .replace("\\\"", "\"")
@@ -75,14 +80,11 @@ fn compile(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manif
         e.to_string())
 }
 
-pub fn load_manifest(content: &str, url: &str) -> Result<Manifest, String> {
+/*
+pub fn load_manifest(provider: &Provider, url: &str) -> Result<Manifest, String> {
     info!("Loading manifest");
 
-    let provider = &MetaProvider {
-        content: content.to_string()
-    };
-
-    let mut manifest = Manifest::from_str(content)?;
+    let manifest = loader.load_manifest(&provider, url)?;
 
     let mut loader = Loader::new();
 
@@ -106,36 +108,11 @@ pub fn load_manifest(content: &str, url: &str) -> Result<Manifest, String> {
 
     Ok(manifest)
 }
+*/
 
 fn set_manifest_contents(document: &Document, content: &str) {
     let manifest_el = document.get_element_by_id("manifest").expect("could not find 'manifest' element");
     manifest_el.set_inner_html(&pretty_print_json_for_html(&content));
-}
-
-fn setup_load_flow_button(document: &Document) {
-    let load = Closure::wrap(Box::new(move || {
-        info!("load clicked");
-    }) as Box<dyn FnMut()>);
-    document
-        .get_element_by_id("load_flow_button")
-        .expect("could not find 'load_flow_button' element")
-        .dyn_ref::<HtmlButtonElement>()
-        .expect("#load_flow_button should be an `HtmlButtonElement`")
-        .set_onclick(Some(load.as_ref().unchecked_ref()));
-    load.forget();
-}
-
-fn setup_load_manifest_button(document: &Document) {
-    let load = Closure::wrap(Box::new(move || {
-        info!("load clicked");
-    }) as Box<dyn FnMut()>);
-    document
-        .get_element_by_id("load_manifest_button")
-        .expect("could not find 'load_manifest_button' element")
-        .dyn_ref::<HtmlButtonElement>()
-        .expect("#load_manifest_button should be an `HtmlButtonElement`")
-        .set_onclick(Some(load.as_ref().unchecked_ref()));
-    load.forget();
 }
 
 fn setup_run_button(document: &Document) {
@@ -152,8 +129,6 @@ fn setup_run_button(document: &Document) {
 }
 
 fn setup_actions(document: &Document) -> Result<(), JsValue> {
-    setup_load_manifest_button(document);
-    setup_load_flow_button(document);
     setup_run_button(document);
 
     Ok(())
@@ -210,21 +185,25 @@ pub fn run() -> Result<(), JsValue> {
 
     info(&document)?;
 
+    let flow_lib_path = get_flow_lib_path(&document)?;
+
     setup_actions(&document)?;
 
     let flow_content: String = String::from_utf8_lossy(include_bytes!("hello_world.toml")).into();
 
     set_flow_contents(&document, &flow_content);
 
-    let provider = MetaProvider {
-        content: flow_content
-    };
+    let provider = MetaProvider::new(flow_content, flow_lib_path);
 
     let flow = load_flow(&provider, "file:://Users/andrew/workspace/flow/web/crate/src/hello_world.toml")?;
     let manifest = compile(&flow, true, "/Users/andrew/workflow/flow")?;
 
 //    let manifest_content = String::from_utf8_lossy(include_bytes!("hello_world.json"));
-//    let manifest = load_manifest(&manifest_content, "file://")?;
+    //     let provider = MetaProvider {
+    //        content: flow_content,
+    //        flow_lib_path
+    //    };
+//    let manifest = load_manifest(&provider, "file://")?;
 
     let manifest_content = serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?;
 

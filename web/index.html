@@ -73,6 +73,9 @@
         <span id="flowrlib"></span>,
         <span id="flowclib"></span>
     </div>
+    <div>
+        <span>FLOW_LIB_PATH: </span><span id="flow_lib_path">file:://Users/andrew/workspace/flow</span>
+    </div>
     <!-- make this a drop down with the correct levels available
     <div>Log Level:
         <select id="log_level">
@@ -87,7 +90,9 @@
     <div>Log Level: <span id="log_level">Debug</span></div>
 
     <div>
-        <button id="load_flow_button">Select Flow File</button>
+        <span>Select Flow File: </span><input type="file" id="file" name="files[]"/>
+        <output id="list"></output>
+
         <button class="collapsible">View Flow</button>
         <div id="flow" class="content fixed" style="display:none;"></div>
     </div>
@@ -121,6 +126,24 @@
                 }
             });
         }
+    </script>
+
+    <script>
+        function handleFileSelect(evt) {
+            var files = evt.target.files; // FileList object
+
+            // files is a FileList of File objects. List some properties.
+            var output = [];
+            for (var i = 0, f; f = files[i]; i++) {
+                output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
+                    f.size, ' bytes, last modified: ',
+                    f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a',
+                    '</li>');
+            }
+            document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
+        }
+
+        document.getElementById('file').addEventListener('change', handleFileSelect, false);
     </script>
 </body>
 </html>

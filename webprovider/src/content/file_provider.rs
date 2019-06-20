@@ -2,7 +2,17 @@ use flowrlib::provider::Provider;
 use std::io;
 use std::path::PathBuf;
 
-pub struct FileProvider;
+pub struct FileProvider{
+    content: String
+}
+
+impl FileProvider {
+    pub fn new(content: String) -> Self {
+        FileProvider{
+            content
+        }
+    }
+}
 
 impl Provider for FileProvider {
     fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>), String> {
@@ -10,7 +20,7 @@ impl Provider for FileProvider {
         match metadata(&path) {
             Ok(md) => {
                 if md.is_dir() {
-                    info!("'{}' is a directory, so attempting to find context file in it",
+                    info!("'{}' is a directory, so attempting to find default filename in it",
                           path.display());
                     let file = FileProvider::find_default_file(&mut path, default_filename).
                         map_err(|e| e.to_string())?;
@@ -30,7 +40,13 @@ impl Provider for FileProvider {
         Ok((url_str.into(), None))
     }
 
-    fn get(&self, _url_str: &str) -> Result<Vec<u8>, String> {
+    fn get(&self, url_str: &str) -> Result<Vec<u8>, String> {
+//        let file = File::new(url_str);
+//        let reader = FileReaderSync::new()?;
+//        let result_base64 = reader.read_as_text(file);
+
+        Ok(self.content.clone().into_bytes())
+
         /*
         let file_reader = FileReader::new();
         file_reader.onload = (function(reader)
@@ -58,7 +74,6 @@ impl Provider for FileProvider {
             .map_err(|e| format!("Could not read content from '{:?}' ({}", file_path, e))?;
         Ok(buffer)
         */
-        Ok(Vec::from("hello"))
     }
 }
 
