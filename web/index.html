@@ -6,8 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Flow - web</title>
     <style>
-        #manifest {
+        #flow {
+            white-space: pre;
+        }
+
+        .fixed {
             font-family:courier, courier new, serif;
+            font-size: 14px;
+        }
+
+        #manifest {
             white-space: pre;
         }
 
@@ -54,29 +62,53 @@
 
         .column {
             float: left;
-            width: 45%;
+            width: 80ch;
             height: 300px; /* Should be removed. Only for demonstration */
         }
     </style>
 </head>
 <body>
-    <p>
-        <p id="flowstdlib"></p>
-        <p id="flowrlib"></p>
-        <p id="flowclib"></p>
     <div>
-        <button id="load_button">Select Manifest File</button>
+        <span id="flowstdlib"></span>,
+        <span id="flowrlib"></span>,
+        <span id="flowclib"></span>
+    </div>
+    <div>
+        <span>FLOW_LIB_PATH: </span><span id="flow_lib_path">file:://Users/andrew/workspace/flow</span>
+    </div>
+    <!-- make this a drop down with the correct levels available
+    <div>Log Level:
+        <select id="log_level">
+            <option value="Error">Error</option>
+            <option value="Warn">Warn</option>
+            <option value="Info">Info</option>
+            <option value="DEBUG">Debug</option>
+            <option value="Trace">Trace</option>
+        </select>
+    </div>
+    -->
+    <div>Log Level: <span id="log_level">Debug</span></div>
+
+    <div>
+        <span>Select Flow File: </span><input type="file" id="file" name="files[]"/>
+        <output id="list"></output>
+
+        <button class="collapsible">View Flow</button>
+        <div id="flow" class="content fixed" style="display:none;"></div>
+    </div>
+
+    <div>
+        <button id="load_manifest_button">Select Manifest File</button>
         <button class="collapsible">View Manifest</button>
-        <div id="manifest" class="content" style="display:none;"></div>
+        <div id="manifest" class="content fixed" style="display:none;"></div>
     </div>
     </p>
-    <p id="log_level">Debug</p>
     <p id="args">arg1 arg2</p>
     <p id="stdin">stdin</p>
     <button id="run_button">Run</button>
     <div class="stdio row">
-        <div class="scroll stdout column" id="stdout"></div>
-        <div class="scroll stderr column" id="stderr"></div>
+        <div class="scroll stdout column fixed" id="stdout"></div>
+        <div class="scroll stderr column fixed" id="stderr"></div>
     </div>
 
     <script>
@@ -94,6 +126,24 @@
                 }
             });
         }
+    </script>
+
+    <script>
+        function handleFileSelect(evt) {
+            var files = evt.target.files; // FileList object
+
+            // files is a FileList of File objects. List some properties.
+            var output = [];
+            for (var i = 0, f; f = files[i]; i++) {
+                output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
+                    f.size, ' bytes, last modified: ',
+                    f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a',
+                    '</li>');
+            }
+            document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
+        }
+
+        document.getElementById('file').addEventListener('change', handleFileSelect, false);
     </script>
 </body>
 </html>

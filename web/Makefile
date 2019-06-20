@@ -12,6 +12,11 @@ run: build
 	@npm start
 
 test:
+	@echo ""
+	@echo "--- Started  'cargo build' for 'web/crate' on wasm target ---"
+	@cd crate;cargo build --target wasm32-unknown-unknown
+	@echo "--- Ended    'cargo build' for 'web/crate' on wasm target ---"
+	@echo ""
 	@echo "--- Started  'cargo test' for 'web/crate' on native target ---"
 	@cd crate;cargo test
 ifeq ($(TRAVIS),)
@@ -21,4 +26,4 @@ endif
 
 clean:
 	cargo clean
-	rm -rf crate/bin crate/pkg/* crate/target crate/Cargo.lock crate/wasm-pack.log dist .bin
+	rm -rf crate/bin crate/pkg/* crate/target crate/Cargo.lock crate/wasm-pack.l	og dist .bin

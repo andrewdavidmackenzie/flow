@@ -14,6 +14,8 @@ impl Deserializer for FlowYamlLoader {
             DeserializeError::new("Yaml deserialization error", line_col, url)
         })
     }
+
+    fn name(&self) -> &'static str { "Yaml" }
 }
 
 

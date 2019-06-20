@@ -14,6 +14,8 @@ impl Deserializer for FlowJsonLoader {
             DeserializeError::new(e.description(), Some((e.line(), e.column())), url)
         })
     }
+
+    fn name(&self) -> &'static str { "Json" }
 }
 
 #[cfg(test)]
@@ -30,6 +32,29 @@ mod test {
             Ok(_) => assert!(false, "Should not have parsed correctly as is invalid JSON"),
             Err(e) => assert_eq!(Some((1, 1)), e.line_col(), "Should produce syntax error at (1,1)")
         };
+    }
+
+
+    #[test]
+    fn simplest_context_loads() {
+        let flow_description = "{
+    'flow': 'hello-world-simple-toml',
+    'process': [
+        {
+            'alias': 'print',
+            'source': 'lib://runtime/stdio/stdout.toml',
+            'input': {
+                'default': {
+                    'once': 'hello'
+                }
+            }
+        }
+    ]
+}";
+        let toml = FlowJsonLoader {};
+        let flow = toml.deserialize(&flow_description.replace("'", "\""), None);
+        println!("{:?}", flow);
+        assert!(flow.is_ok());
     }
 
     #[test]

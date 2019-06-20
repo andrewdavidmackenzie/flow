@@ -11,7 +11,10 @@ before_install:
 - make config
 - export PATH="$PATH:~/.cargo/bin"
 
-cache: cargo
+cache:
+  cargo: true
+  directories:
+    - web/node_modules
 
 script: make travis
 
