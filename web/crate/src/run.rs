@@ -9,6 +9,7 @@ use flowrlib::manifest::Manifest;
 use flowrlib::provider::Provider;
 use log;
 use log::Level;
+use nodeprovider::content::provider::MetaProvider;
 use serde_json;
 use std::fmt::Debug;
 use std::str::FromStr;
@@ -17,7 +18,6 @@ use wasm_bindgen::prelude::*;
 use wasm_logger;
 use web_sys::Document;
 use web_sys::HtmlButtonElement;
-use webprovider::content::provider::MetaProvider;
 
 use crate::runtime::ilt;
 

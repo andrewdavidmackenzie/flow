@@ -93,7 +93,7 @@ flowrlib:
 travis: clean test guide
 
 #################### Tests ####################
-test: test-workspace test-flowclib test-flowstdlib test-flowrlib test-webprovider test-web samples
+test: test-workspace test-flowclib test-flowstdlib test-flowrlib test-nodeprovider test-web samples
 # TODO add online-samples
 	@echo ""
 	@echo "------- Done    test: -------------"
@@ -119,8 +119,8 @@ test-flowrlib:
 test-provider:
 	cd provider && cargo test
 
-test-webprovider:
-	cd webprovider && make test
+test-nodeprovider:
+	cd nodeprovider && make test
 
 #################### Raspberry Pi ####################
 pi:

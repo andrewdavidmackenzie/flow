@@ -16,7 +16,7 @@ crate-type = ["cdylib"]
 flowclib = { path = "../../flowclib", version = "~0.7.0" }
 flowrlib = { path = "../../flowrlib", version = "~0.7.0" }
 flowstdlib = { path = "../../flowstdlib", version = "~0.7.0" }
-webprovider = { path = "../../webprovider", version = "0.1.0" }
+nodeprovider = { path = "../../nodeprovider", version = "0.1.0" }
 serde_json = "1.0"
 wasm-bindgen = {version = "0.2", optional = true }
 wasm-logger = "0.1.4"
