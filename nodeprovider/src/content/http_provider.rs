@@ -17,16 +17,44 @@ impl Provider for HttpProvider {
     }
 
     fn get(&self, _url: &str) -> Result<Vec<u8>, String> {
-/*        let mut easy = Easy2::new(Collector(Vec::new()));
-        easy.get(true).unwrap();
-        easy.url(url).unwrap();
-        easy.perform().unwrap();
+        /*
+            let mut opts = RequestInit::new();
+    opts.method("GET");
+    opts.mode(RequestMode::Cors);
 
-        // TODO catch and return error string with details
-        assert_eq!(easy.response_code().unwrap(), 200);
-        let contents = easy.get_ref();
-*/
-        //Ok(contents.0.clone())
+    let request = Request::new_with_str_and_init(
+        "https://api.github.com/repos/rustwasm/wasm-bindgen/branches/master",
+        &opts,
+    )
+    .unwrap();
+
+    request
+        .headers()
+        .set("Accept", "application/vnd.github.v3+json")
+        .unwrap();
+
+    let window = web_sys::window().unwrap();
+    let request_promise = window.fetch_with_request(&request);
+
+    let future = JsFuture::from(request_promise)
+        .and_then(|resp_value| {
+            // `resp_value` is a `Response` object.
+            assert!(resp_value.is_instance_of::<Response>());
+            let resp: Response = resp_value.dyn_into().unwrap();
+            resp.json()
+        })
+        .and_then(|json_value: Promise| {
+            // Convert this other `Promise` into a rust `Future`.
+            JsFuture::from(json_value)
+        })
+        .and_then(|json| {
+            // Use serde to parse the JSON into a struct.
+            let branch_info: Branch = json.into_serde().unwrap();
+
+            // Send the `Branch` struct back to JS as an `Object`.
+            future::ok(JsValue::from_serde(&branch_info).unwrap())
+        });
+        */
         Ok(Vec::from("hello"))
     }
 }

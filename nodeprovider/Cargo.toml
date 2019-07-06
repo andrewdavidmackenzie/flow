@@ -20,4 +20,10 @@ features = [
   "FileReader",
   "FileReaderSync",
   "console",
+  'Headers',
+  'Request',
+  'RequestInit',
+  'RequestMode',
+  'Response',
+  'Window',
 ]
