@@ -26,9 +26,9 @@ endif
 
 package:
 	@echo ""
-    @echo "------- Started  packaging ide -----------"
+	@echo "------- Started  packaging ide -----------"
 	@echo "Not implemented yet"
-    @echo "------- Finished packaging ide -----------"
+	@echo "------- Finished packaging ide -----------"
 
 clean:
 	cargo clean
