@@ -16,12 +16,10 @@ Some crates depend on `open-ssl` and so you may need to install SSL Development 
 to be able to compile them. This was fixed with `sudo apt install libssl-dev` on Linux boxes (Raspberry Pi)
 where I found the problem. Seems that `brew install openssl` should do it for Mac.
 
-The 'web' and 'electron' parts require:
+The 'ide' module requires:
 * [wasm-bindgen] [Node.js](https://nodejs.org/en/download/) (which comes with [npm](http://npmjs.com))
 * 'wasm-bindgen' install with `cargo install wasm-bindgen`
-
-The 'electron' part requires [electron-forge](https://github.com/electron-userland/electron-forge) packaging tool
-* You can install it with `npm install -g electron-forge`
+* [electron-forge](https://github.com/electron-userland/electron-forge) packaging tool, which you can install it with `npm install -g electron-forge`
 
 ## Build and test
 

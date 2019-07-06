@@ -25,7 +25,10 @@ endif
 	@echo "--- Finished 'cargo test' for 'ide/crate' on native target ---"
 
 package:
+	@echo ""
+    @echo "------- Started  packaging ide -----------"
 	@echo "Not implemented yet"
+    @echo "------- Finished packaging ide -----------"
 
 clean:
 	cargo clean

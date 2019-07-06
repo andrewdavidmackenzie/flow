@@ -163,8 +163,7 @@ test-hello-simple-online: ./target/debug/flowc
 	@echo "Hello" | cargo run --bin flowc -- https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 
 ################# Packaging ################
-#package: package-electron package-flowc
-package: package-flowc
+package: package-ide package-flowc
 
 package-flowc:
 	@echo ""
@@ -172,21 +171,13 @@ package-flowc:
 	@cargo package --manifest-path flowc/Cargo.toml
 	@echo "------- Finished packaging flowc --------------"
 
-package-electron: ide
-	@echo ""
-	@echo "------- Started  packaging electron -----------"
-	@cd electron && make package
-	@echo "------- Finished packaging electron -----------"
-
-############## Electron version #############
-run-electron:
-	@cd electron && make run-electron
+package-ide: ide
+	@cd ide && make package
 
 ################# Clean ################
 clean: clean-samples clean-dumps
 	cargo clean
 	@rm -rf guide/book
-	cd electron && make clean
 	cd ide && make clean
 	cd flowclib && make clean
 	cd flowstdlib && make clean
