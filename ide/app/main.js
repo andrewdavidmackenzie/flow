@@ -23,7 +23,7 @@ function createUI() {
         });
     });
 
-    mainWindow.loadFile("index.html");
+    mainWindow.webContents.loadFile("index.html");
 
     mainWindow.webContents.openDevTools({mode: 'bottom'});
 
