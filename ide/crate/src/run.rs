@@ -30,6 +30,9 @@ const DEFAULT_LOG_LEVEL: Level = Level::Error;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 fn info(document: &Document) -> Result<(), JsValue> {
+    let flowide_el = document.get_element_by_id("flowide").expect("could not find 'flowide' element");
+    flowide_el.set_inner_html(&format!("flowide: version = {}", env!("CARGO_PKG_VERSION")));
+
     let flowstdlib_el = document.get_element_by_id("flowstdlib").expect("could not find 'flowstdlib' element");
     flowstdlib_el.set_inner_html(&format!("flowstdlib: version = {}", flowstdlib::info::version()));
 
@@ -80,13 +83,12 @@ fn compile(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manif
         e.to_string())
 }
 
-/*
 pub fn load_manifest(provider: &Provider, url: &str) -> Result<Manifest, String> {
     info!("Loading manifest");
 
-    let manifest = loader.load_manifest(&provider, url)?;
-
     let mut loader = Loader::new();
+
+    let mut manifest = loader.load_manifest(provider, url)?;
 
     // Load this runtime's native implementations
     loader.add_lib(provider, ilt::get_ilt(), url)?;
@@ -108,7 +110,6 @@ pub fn load_manifest(provider: &Provider, url: &str) -> Result<Manifest, String>
 
     Ok(manifest)
 }
-*/
 
 fn set_manifest_contents(document: &Document, content: &str) {
     let manifest_el = document.get_element_by_id("manifest").expect("could not find 'manifest' element");
@@ -189,25 +190,27 @@ pub fn run() -> Result<(), JsValue> {
 
     setup_actions(&document)?;
 
-    let flow_content: String = String::from_utf8_lossy(include_bytes!("hello_world.toml")).into();
+    let manifest;
 
-    set_flow_contents(&document, &flow_content);
+    if false {
+        let flow_content: String = String::from_utf8_lossy(include_bytes!("hello_world.toml")).into();
+        set_flow_contents(&document, &flow_content);
 
-    let provider = MetaProvider::new(flow_content, flow_lib_path);
+        let provider = MetaProvider::new(flow_content, flow_lib_path);
 
-    let flow = load_flow(&provider, "file:://Users/andrew/workspace/flow/ide/crate/src/hello_world.toml")?;
-    let manifest = compile(&flow, true, "/Users/andrew/workflow/flow")?;
+        let flow = load_flow(&provider, "file:://Users/andrew/workspace/flow/ide/crate/src/hello_world.toml")?;
+        manifest = compile(&flow, true, "/Users/andrew/workflow/flow")?;
 
-//    let manifest_content = String::from_utf8_lossy(include_bytes!("hello_world.json"));
-    //     let provider = MetaProvider {
-    //        content: flow_content,
-    //        flow_lib_path
-    //    };
-//    let manifest = load_manifest(&provider, "file://")?;
+        let manifest_content = serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?;
+        set_manifest_contents(&document, &manifest_content);
+    } else {
+        let manifest_content = String::from_utf8_lossy(include_bytes!("hello_world.json")).to_string();
+        set_manifest_contents(&document, &manifest_content);
 
-    let manifest_content = serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?;
+        let provider = MetaProvider::new(manifest_content, flow_lib_path);
 
-    set_manifest_contents(&document, &manifest_content);
+        manifest = load_manifest(&provider, "file://")?;
+    }
 
     let submission = Submission::new(manifest, 1, false, None);
 
