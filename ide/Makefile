@@ -1,10 +1,10 @@
 build:
 	@echo ""
-	@echo "--- Started building 'web' module for 'wasm32' target --------"
+	@echo "--- Started building 'ide' module for 'wasm32' target --------"
 	@npm install
 	wasm-pack build crate/
 	@npm run build
-	@echo "------------ Finished building 'web' module ------------------\n"
+	@echo "------------ Finished building 'ide' module ------------------\n"
 
 run: build
 	@echo ""
@@ -13,16 +13,19 @@ run: build
 
 test:
 	@echo ""
-	@echo "--- Started  'cargo build' for 'web/crate' on wasm target ---"
+	@echo "--- Started  'cargo build' for 'ide/crate' on wasm target ---"
 	@cd crate;cargo build --target wasm32-unknown-unknown
 	@echo "--- Ended    'cargo build' for 'web/crate' on wasm target ---"
 	@echo ""
-	@echo "--- Started  'cargo test' for 'web/crate' on native target ---"
+	@echo "--- Started  'cargo test' for 'ide/crate' on native target ---"
 	@cd crate;cargo test
 ifeq ($(TRAVIS),)
 	@cd crate;wasm-pack test --chrome --headless -- --features wasm-bindgen
 endif
-	@echo "--- Finished 'cargo test' for 'web/crate' on native target ---"
+	@echo "--- Finished 'cargo test' for 'ide/crate' on native target ---"
+
+package:
+	@echo "Not implemented yet"
 
 clean:
 	cargo clean

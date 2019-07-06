@@ -195,7 +195,7 @@ pub fn run() -> Result<(), JsValue> {
 
     let provider = MetaProvider::new(flow_content, flow_lib_path);
 
-    let flow = load_flow(&provider, "file:://Users/andrew/workspace/flow/web/crate/src/hello_world.toml")?;
+    let flow = load_flow(&provider, "file:://Users/andrew/workspace/flow/ide/crate/src/hello_world.toml")?;
     let manifest = compile(&flow, true, "/Users/andrew/workflow/flow")?;
 
 //    let manifest_content = String::from_utf8_lossy(include_bytes!("hello_world.json"));
