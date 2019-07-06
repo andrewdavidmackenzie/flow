@@ -1,5 +1,5 @@
 [package]
-name = "web"
+name = "flowide"
 version = "0.1.0"
 authors = ["Andrew Mackenzie"]
 edition = "2018"

@@ -1,3 +1,3 @@
-import("./crate/pkg/web").then(module => {
+import("./crate/pkg/flowide").then(module => {
   module.run();
 });
