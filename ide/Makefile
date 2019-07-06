@@ -8,7 +8,12 @@ build:
 
 web: build
 	@echo ""
-	@echo "--- Starting 'web' module via npm--------"
+	@echo "--- Starting 'ide' as web app --------"
+	@npm run web
+
+app: build
+	@echo ""
+	@echo "--- Starting 'ide' as electron app --------"
 	@npm start
 
 test:
