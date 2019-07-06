@@ -11,7 +11,7 @@
     "build": "webpack",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "main": "main.js",
+  "main": "app/main.js",
   "dependencies": {
     "ffi-napi": "^2.4.3"
   },
