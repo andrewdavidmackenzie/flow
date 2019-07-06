@@ -6,8 +6,7 @@
   "repository": "https://github.com/andrewdmackenzie/flow",
   "license": "MIT",
   "scripts": {
-    "start": "webpack-dev-server -d",
-    "app": "electron .",
+    "start": "electron .",
     "build": "webpack",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

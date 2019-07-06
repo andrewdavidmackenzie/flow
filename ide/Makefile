@@ -6,7 +6,7 @@ build:
 	@npm run build
 	@echo "------------ Finished building 'ide' module ------------------\n"
 
-run: build
+web: build
 	@echo ""
 	@echo "--- Starting 'web' module via npm--------"
 	@npm start
