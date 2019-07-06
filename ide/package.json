@@ -1,6 +1,6 @@
 {
   "author": "Andrew Mackenzie <andrew@mackenzie-serres.net>",
-  "name": "flowide",
+  "name": "FlowIDE",
   "description": "A web version of the 'flow' project for data driven parallel applications",
   "version": "0.1.0",
   "repository": "https://github.com/andrewdmackenzie/flow",

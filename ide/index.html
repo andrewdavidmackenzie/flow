@@ -4,14 +4,15 @@
     <link rel='shortcut icon' type='image/x-icon' href='favicon.ico'/>
     <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Flow - web</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/foundation/6.4.3/css/foundation.min.css"/>
+    <title>FlowIDE</title>
     <style>
         #flow {
             white-space: pre;
         }
 
         .fixed {
-            font-family:courier, courier new, serif;
+            font-family: courier, courier new, serif;
             font-size: 14px;
         }
 
@@ -36,9 +37,9 @@
         }
 
         .scroll {
-            overflow:auto;
-            scrollbar-base-color:gold;
-            border-width:8px;
+            overflow: auto;
+            scrollbar-base-color: gold;
+            border-width: 8px;
             border-style: solid;
         }
 
@@ -68,83 +69,100 @@
     </style>
 </head>
 <body>
-    <div>
-        <span id="flowstdlib"></span>,
-        <span id="flowrlib"></span>,
-        <span id="flowclib"></span>
-    </div>
-    <div>
-        <span>FLOW_LIB_PATH: </span><span id="flow_lib_path">file:://Users/andrew/workspace/flow</span>
-    </div>
-    <!-- make this a drop down with the correct levels available
-    <div>Log Level:
-        <select id="log_level">
-            <option value="Error">Error</option>
-            <option value="Warn">Warn</option>
-            <option value="Info">Info</option>
-            <option value="DEBUG">Debug</option>
-            <option value="Trace">Trace</option>
-        </select>
-    </div>
-    -->
-    <div>Log Level: <span id="log_level">Debug</span></div>
-
-    <div>
-        <span>Select Flow File: </span><input type="file" id="file" name="files[]"/>
-        <output id="list"></output>
-
-        <button class="collapsible">View Flow</button>
-        <div id="flow" class="content fixed" style="display:none;"></div>
+<div class="window">
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <ul class="menu">
+                <li>
+                    <span>Select Flow File: </span><input type="file" id="file" name="files[]"/>
+                    <output id="list"></output>
+                </li>
+                <li>
+                    <span>Select Manifest File: </span><input type="file" id="manifest_file" name="manifest_files[]"/>
+                    <output id="list"></output>
+                </li>
+            </ul>
+        </div>
     </div>
 
-    <div>
-        <button id="load_manifest_button">Select Manifest File</button>
-        <button class="collapsible">View Manifest</button>
-        <div id="manifest" class="content fixed" style="display:none;"></div>
+    <!-- Your app's content goes inside .window-content -->
+    <div class="window-content">
+        <div>
+            <span id="flowide"></span>,
+            <span id="flowstdlib"></span>,
+            <span id="flowrlib"></span>,
+            <span id="flowclib"></span>
+        </div>
+        <div>
+            <span>FLOW_LIB_PATH: </span><span id="flow_lib_path">file:://Users/andrew/workspace/flow</span>
+        </div>
+        <!-- make this a drop down with the correct levels available
+        <div>Log Level:
+            <select id="log_level">
+                <option value="Error">Error</option>
+                <option value="Warn">Warn</option>
+                <option value="Info">Info</option>
+                <option value="DEBUG">Debug</option>
+                <option value="Trace">Trace</option>
+            </select>
+        </div>
+        -->
+        <div>Log Level: <span id="log_level">Debug</span></div>
+
+        <div>
+            <button class="collapsible">View Flow</button>
+            <div id="flow" class="content fixed" style="display:none;"></div>
+        </div>
+
+        <div>
+            <button class="collapsible">View Manifest</button>
+            <div id="manifest" class="content fixed" style="display:none;"></div>
+        </div>
+        </p>
+        <p id="args">arg1 arg2</p>
+        <p id="stdin">stdin</p>
+        <button id="run_button">Run</button>
+        <div class="stdio row">
+            <div class="scroll stdout column fixed" id="stdout"></div>
+            <div class="scroll stderr column fixed" id="stderr"></div>
+        </div>
     </div>
-    </p>
-    <p id="args">arg1 arg2</p>
-    <p id="stdin">stdin</p>
-    <button id="run_button">Run</button>
-    <div class="stdio row">
-        <div class="scroll stdout column fixed" id="stdout"></div>
-        <div class="scroll stderr column fixed" id="stderr"></div>
-    </div>
+</div>
 
-    <script>
-        var coll = document.getElementsByClassName("collapsible");
-        var i;
+<script>
+    var coll = document.getElementsByClassName("collapsible");
+    var i;
 
-        for (i = 0; i < coll.length; i++) {
-            coll[i].addEventListener("click", function() {
-                this.classList.toggle("active");
-                var content = this.nextElementSibling;
-                if (content.style.display === "block") {
-                    content.style.display = "none";
-                } else {
-                    content.style.display = "block";
-                }
-            });
-        }
-    </script>
-
-    <script>
-        function handleFileSelect(evt) {
-            var files = evt.target.files; // FileList object
-
-            // files is a FileList of File objects. List some properties.
-            var output = [];
-            for (var i = 0, f; f = files[i]; i++) {
-                output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
-                    f.size, ' bytes, last modified: ',
-                    f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a',
-                    '</li>');
+    for (i = 0; i < coll.length; i++) {
+        coll[i].addEventListener("click", function () {
+            this.classList.toggle("active");
+            var content = this.nextElementSibling;
+            if (content.style.display === "block") {
+                content.style.display = "none";
+            } else {
+                content.style.display = "block";
             }
-            document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
-        }
+        });
+    }
+</script>
 
-        document.getElementById('file').addEventListener('change', handleFileSelect, false);
-    </script>
+<script>
+    function handleFileSelect(evt) {
+        var files = evt.target.files; // FileList object
+
+        // files is a FileList of File objects. List some properties.
+        var output = [];
+        for (var i = 0, f; f = files[i]; i++) {
+            output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
+                f.size, ' bytes, last modified: ',
+                f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a',
+                '</li>');
+        }
+        document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
+    }
+
+    document.getElementById('file').addEventListener('change', handleFileSelect, false);
+</script>
 </body>
 </html>
 
