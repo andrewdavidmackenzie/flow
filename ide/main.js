@@ -13,16 +13,16 @@ function createWindow() {
         nodeIntegration: true
     });
 
-//    process.once("loaded", () => {
-//        // Allow window.fetch() to access app files
-//        webFrame.registerURLSchemeAsPrivileged("app", {
-//            secure: true,
-//            bypassCSP: false,
-//            allowServiceWorkers: true,
-//            supportFetchAPI: true,
-//            corsEnabled: false
-//        });
-//    });
+    process.once("loaded", () => {
+        // Allow window.fetch() to access app files
+        webFrame.registerURLSchemeAsPrivileged("app", {
+            secure: true,
+            bypassCSP: false,
+            allowServiceWorkers: true,
+            supportFetchAPI: true,
+            corsEnabled: false
+        });
+    });
 
     win.loadFile("index.html");
 
