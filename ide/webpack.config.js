@@ -6,7 +6,7 @@ const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 
 module.exports = {
     mode: 'development',
-    entry: "./js/index.js",
+    entry: "./index.js",
     output: {
         path: dist,
         filename: "bundle.js"
