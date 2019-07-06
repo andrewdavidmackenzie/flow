@@ -1,6 +1,6 @@
 const {app, BrowserWindow} = require('electron');
-const path = require('path');
-const url = require('url');
+//const path = require('path');
+//const url = require('url');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -8,19 +8,26 @@ let win;
 
 function createWindow() {
     // Create the browser window.
-    win = new BrowserWindow({width: 1400, height: 600});
+    win = new BrowserWindow({
+        width: 1400, height: 900,
+        nodeIntegration: true
+    });
 
-    // and load the index.html of the app.
-    win.loadURL(url.format({
-        pathname: path.join(__dirname, 'index.html'),
-        protocol: 'file:',
-        slashes: true
-    }));
+//    process.once("loaded", () => {
+//        // Allow window.fetch() to access app files
+//        webFrame.registerURLSchemeAsPrivileged("app", {
+//            secure: true,
+//            bypassCSP: false,
+//            allowServiceWorkers: true,
+//            supportFetchAPI: true,
+//            corsEnabled: false
+//        });
+//    });
 
-    // Open the DevTools.
-    // win.webContents.openDevTools();
+    win.loadFile("index.html");
 
-    // Emitted when the window is closed.
+    win.webContents.openDevTools({mode: 'bottom'});
+
     win.on('closed', () => {
         // Dereference the window object, usually you would store windows
         // in an array if your app supports multi windows, this is the time
