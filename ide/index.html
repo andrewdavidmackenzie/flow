@@ -5,68 +5,8 @@
     <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/foundation/6.4.3/css/foundation.min.css"/>
+    <link rel="stylesheet" href="app/style.css" type="text/css"/>
     <title>FlowIDE</title>
-    <style>
-        #flow {
-            white-space: pre;
-        }
-
-        .fixed {
-            font-family: courier, courier new, serif;
-            font-size: 14px;
-        }
-
-        #manifest {
-            white-space: pre;
-        }
-
-        .collapsible {
-            background-color: #777;
-            color: white;
-            cursor: pointer;
-            border: none;
-            text-align: left;
-            outline: none;
-        }
-
-        .content {
-            padding: 0 18px;
-            display: none;
-            overflow: hidden;
-            background-color: #f1f1f1;
-        }
-
-        .scroll {
-            overflow: auto;
-            scrollbar-base-color: gold;
-            border-width: 8px;
-            border-style: solid;
-        }
-
-        .stdout {
-            border-color: yellowgreen;
-        }
-
-        .stderr {
-            border-color: red;
-        }
-
-        .active .collapsible:hover {
-            background-color: #555;
-        }
-
-        .row:after {
-            content: "";
-            display: table;
-            clear: both;
-        }
-
-        .column {
-            float: left;
-            width: 80ch;
-            height: 300px; /* Should be removed. Only for demonstration */
-        }
-    </style>
 </head>
 <body>
 <div class="window">
