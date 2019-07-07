@@ -24,7 +24,6 @@ use std::str::FromStr;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
 use wasm_logger;
-use web_sys::console;
 use web_sys::Document;
 use web_sys::HtmlButtonElement;
 
