@@ -1,14 +1,20 @@
-build:
-	@echo ""
-	@echo "--- Started building 'ide' module for 'wasm32' target --------"
-	@npm install
-	wasm-pack build crate/
+build: npm-build
+
+npm-build: wasm-pack-build npm-install
+	@echo "------------ Starting npm-build for 'ide' ------------------"
 	@npm run build
-	@echo "------------ Finished building 'ide' module ------------------\n"
+	@echo "------------ Finished building 'ide' -----------------------\n"
+
+wasm-pack-build: npm-install
+	@echo "------------ Started wasm-pack build for ide ---------------"
+	@wasm-pack build --dev crate/
+	@echo "------------ Finished wasm-pack build to crate/pkg ---------\n"
+
+npm-install:
+	@npm install
 
 web: build
-	@echo ""
-	@echo "--- Starting 'ide' as web app --------"
+	@echo "\n------------ Starting 'ide' as web app --------"
 	@npm run web
 
 app: build
