@@ -1,27 +1,29 @@
 const path = require("path");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
-
 const dist = path.resolve(__dirname, "dist");
+const CopyPlugin = require("copy-webpack-plugin");
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 
 module.exports = {
     mode: 'development',
-    entry: "./app/index.js",
+    entry: {
+        index: "./js/index.js"
+    },
     output: {
-        path: path.resolve(__dirname, "dist"),
-        filename: "bundle.js"
+        path: dist,
+        filename: "[name].js"
     },
     devServer: {
         contentBase: dist,
     },
     plugins: [
-        new HtmlWebpackPlugin({
-            template: 'index.html'
-        }),
+        new CopyPlugin([
+            path.resolve(__dirname, "static"),
+            path.resolve(__dirname, "js"),
+        ]),
 
         new WasmPackPlugin({
-            crateDirectory: path.resolve(__dirname, "crate"),
-            forceMode: 'development'
-        })
+            crateDirectory: __dirname,
+            extraArgs: "--out-name index"
+        }),
     ]
 };

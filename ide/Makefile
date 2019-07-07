@@ -1,25 +1,15 @@
-app: wasm-pack-build-bundler npm-build npm-install
+app: npm-build
 	@echo "------------ Starting 'ide' as electron app ----------------"
-	@npm start
+	@npm run app
 
-web: wasm-pack-build-web npm-build
+web: npm-build
 	@echo "------------ Starting 'ide' as web app ---------------------"
-	@npm run web
+	@npm start
 
 npm-build: npm-install
 	@echo "------------ Starting npm-build for 'ide' ------------------"
 	@npm run build
 	@echo "------------ Finished building 'ide' -----------------------\n"
-
-wasm-pack-build-bundler: npm-install
-	@echo "------------ Started wasm-pack bundler build ---------------"
-	@wasm-pack build --dev --target bundler crate/
-	@echo "------------ Finished wasm-pack build to crate/pkg ---------\n"
-
-wasm-pack-build-web: npm-install
-	@echo "------------ Started wasm-pack web build ---------------"
-	@wasm-pack build --dev --target web crate/
-	@echo "------------ Finished wasm-pack build to crate/pkg ---------\n"
 
 npm-install:
 	@npm install

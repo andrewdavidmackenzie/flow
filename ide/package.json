@@ -6,21 +6,22 @@
   "repository": "https://github.com/andrewdmackenzie/flow",
   "license": "MIT",
   "scripts": {
-    "web": "webpack-dev-server -d",
-    "start": "electron .",
-    "build": "webpack",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "app": "electron .",
+    "build": "rimraf dist pkg && webpack",
+    "start": "rimraf dist pkg && webpack-dev-server --open -d",
+    "test": "cargo test && wasm-pack test --headless"
   },
-  "main": "app/main.js",
+  "main": "js/main.js",
   "dependencies": {
     "ffi-napi": "^2.4.3"
   },
   "devDependencies": {
-    "@wasm-tool/wasm-pack-plugin": "0.4.2",
-    "electron": "^5.0.6",
-    "html-webpack-plugin": "^3.2.0",
+    "@wasm-tool/wasm-pack-plugin": "^0.4.2",
+    "copy-webpack-plugin": "^5.0.3",
     "webpack": "^4.33.0",
-    "webpack-cli": "^3.3.2",
-    "webpack-dev-server": "^3.5.1"
+    "webpack-cli": "^3.3.3",
+    "webpack-dev-server": "^3.7.1",
+    "rimraf": "^2.6.3",
+    "electron": "^5.0.6"
   }
 }
