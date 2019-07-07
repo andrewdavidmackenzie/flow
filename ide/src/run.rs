@@ -175,7 +175,7 @@ fn get_log_level(document: &Document) -> Option<String> {
 
 // Called by our JS entry point
 #[wasm_bindgen]
-pub fn run() -> Result<(), JsValue> {
+pub fn main_js() -> Result<(), JsValue> {
     set_panic_hook();
     let window = web_sys::window().expect("no global `window` exists");
     let document = window.document().expect("should have a document on window");
