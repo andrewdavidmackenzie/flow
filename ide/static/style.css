@@ -1,0 +1,64 @@
+#flow {
+    white-space: pre;
+}
+
+.fixed {
+    font-family: courier, courier new, serif;
+    font-size: 14px;
+}
+
+#manifest {
+    white-space: pre;
+}
+
+.collapsible {
+    background-color: #777;
+    color: white;
+    cursor: pointer;
+    border: none;
+    text-align: left;
+    outline: none;
+}
+
+.content {
+    padding: 0 18px;
+    display: none;
+    overflow: hidden;
+    background-color: #f1f1f1;
+}
+
+.scroll {
+    overflow: auto;
+    scrollbar-base-color: gold;
+    border-width: 8px;
+    border-style: solid;
+}
+
+.stdout {
+    border-color: yellowgreen;
+}
+
+.stderr {
+    border-color: red;
+}
+
+.active .collapsible:hover {
+    background-color: #555;
+}
+
+.row:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.column {
+    float: left;
+    width: 80ch;
+    height: 300px; /* Should be removed. Only for demonstration */
+}
+
+/* Use OS system font */
+body, input {
+    font: menu;
+}

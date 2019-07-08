@@ -68,7 +68,7 @@ copy-md-files:
 	@echo "------- Done    copying Markdown files from 'samples', 'flowstdlib' and 'flowr' to 'guide/src' -------------"
 
 #################### Build ####################
-build: workspace web
+build: workspace ide
 	@echo "------- Done 'build:' target -------------"
 
 workspace:
@@ -77,8 +77,8 @@ workspace:
 	cargo build
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
-web:
-	cd web && make build
+ide:
+	cd ide && make build
 
 flowclib:
 	cd flowclib && make build
@@ -93,7 +93,7 @@ flowrlib:
 travis: clean test guide
 
 #################### Tests ####################
-test: test-workspace test-flowclib test-flowstdlib test-flowrlib test-webprovider test-web samples
+test: test-workspace test-flowclib test-flowstdlib test-flowrlib test-nodeprovider test-ide samples
 # TODO add online-samples
 	@echo ""
 	@echo "------- Done    test: -------------"
@@ -104,8 +104,8 @@ test-workspace:
 	cargo test $(features)
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
-test-web:
-	@cd web && make test
+test-ide:
+	@cd ide && make test
 
 test-flowclib:
 	cd flowclib && make test
@@ -119,8 +119,8 @@ test-flowrlib:
 test-provider:
 	cd provider && cargo test
 
-test-webprovider:
-	cd webprovider && make test
+test-nodeprovider:
+	cd nodeprovider && make test
 
 #################### Raspberry Pi ####################
 pi:
@@ -163,8 +163,7 @@ test-hello-simple-online: ./target/debug/flowc
 	@echo "Hello" | cargo run --bin flowc -- https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 
 ################# Packaging ################
-#package: package-electron package-flowc
-package: package-flowc
+package: package-ide package-flowc
 
 package-flowc:
 	@echo ""
@@ -172,22 +171,14 @@ package-flowc:
 	@cargo package --manifest-path flowc/Cargo.toml
 	@echo "------- Finished packaging flowc --------------"
 
-package-electron: web
-	@echo ""
-	@echo "------- Started  packaging electron -----------"
-	@cd electron && make package
-	@echo "------- Finished packaging electron -----------"
-
-############## Electron version #############
-run-electron:
-	@cd electron && make run-electron
+package-ide: ide
+	@cd ide && make package
 
 ################# Clean ################
 clean: clean-samples clean-dumps
 	cargo clean
 	@rm -rf guide/book
-	cd electron && make clean
-	cd web && make clean
+	cd ide && make clean
 	cd flowclib && make clean
 	cd flowstdlib && make clean
 	cd flowrlib && make clean
