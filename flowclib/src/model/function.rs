@@ -1,17 +1,18 @@
 use std::fmt;
 
-use compiler::loader::Validate;
 use flowrlib::function::Function as RuntimeFunction;
-use flowrlib::url;
-use model::io::{IO, IOType};
-use model::io::IOSet;
-use model::name::HasName;
-use model::name::Name;
-use model::route::HasRoute;
-use model::route::Route;
-use model::route::SetIORoutes;
-use model::route::SetRoute;
 use flowrlib::input::Input;
+use flowrlib::url;
+
+use crate::compiler::loader::Validate;
+use crate::model::io::{IO, IOType};
+use crate::model::io::IOSet;
+use crate::model::name::HasName;
+use crate::model::name::Name;
+use crate::model::route::HasRoute;
+use crate::model::route::Route;
+use crate::model::route::SetIORoutes;
+use crate::model::route::SetRoute;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -22,7 +23,8 @@ pub struct Function {
     impure: bool,
     implementation: Option<String>,
     #[serde(rename = "input")]
-    pub inputs: IOSet, // TODO
+    pub inputs: IOSet,
+    // TODO
     #[serde(rename = "output")]
     outputs: IOSet,
 
@@ -232,16 +234,16 @@ impl Function {
 
 #[cfg(test)]
 mod test {
-    use compiler::loader::Validate;
-    use model::io::Find;
-    use model::name::HasName;
-    use model::route::HasRoute;
-    use model::route::Route;
-    use model::route::SetRoute;
-    use model::name::Name;
-    use model::io::IOSet;
-    use model::datatype::DataType;
-    use toml;
+    use crate::compiler::loader::Validate;
+    use crate::model::datatype::DataType;
+    use crate::model::io::Find;
+    use crate::model::io::IOSet;
+    use crate::model::name::HasName;
+    use crate::model::name::Name;
+    use crate::model::route::HasRoute;
+    use crate::model::route::Route;
+    use crate::model::route::SetRoute;
+    use crate::toml;
 
     use super::Function;
 

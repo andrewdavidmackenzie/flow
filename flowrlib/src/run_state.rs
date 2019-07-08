@@ -2,10 +2,10 @@ use std::collections::HashSet;
 use std::fmt;
 use std::sync::Arc;
 use std::collections::VecDeque;
-use debugger::Debugger;
-use function::Function;
-use implementation::Implementation;
-use metrics::Metrics;
+use crate::debugger::Debugger;
+use crate::function::Function;
+use crate::implementation::Implementation;
+use crate::metrics::Metrics;
 use multimap::MultiMap;
 use serde_json::Value;
 
@@ -226,7 +226,7 @@ impl RunState {
         Reset all values back to inital ones to enable debugging from scracth
     */
     fn reset(&mut self) {
-        for mut function in &mut self.functions {
+        for function in &mut self.functions {
             function.reset()
         };
         self.blocked.clear();
@@ -259,7 +259,7 @@ impl RunState {
 
         let mut inputs_ready_list = Vec::<usize>::new();
 
-        for mut function in &mut self.functions {
+        for function in &mut self.functions {
             debug!("\tInitializing Function #{} '{}'", function.id(), function.name());
             function.init_inputs(true);
             if function.inputs_full() {
@@ -287,7 +287,7 @@ impl RunState {
 
         debug!("Creating any initial block entries that are needed");
 
-        for mut source_function in &self.functions {
+        for source_function in &self.functions {
             let source_id;
             let destinations;
             let source_has_inputs_full;
@@ -717,9 +717,9 @@ impl fmt::Display for RunState {
 
 #[cfg(test)]
 mod tests {
-    use debug_client::{DebugClient, Response, Event};
-    use debug_client::{Command, Param};
-    use run_state;
+    use crate::debug_client::{DebugClient, Response, Event};
+    use crate::debug_client::{Command, Param};
+    use crate::run_state;
 
     // Helpers
     struct TestDebugClient {}
@@ -742,12 +742,12 @@ mod tests {
 
     /********************************* State Transition Tests *********************************/
     mod state_transitions {
-        use debugger::Debugger;
-        use function::Function;
-        use input::{ConstantInputInitializer, OneTimeInputInitializer};
-        use input::Input;
-        use input::InputInitializer::{Constant, OneTime};
-        use metrics::Metrics;
+        use crate::debugger::Debugger;
+        use crate::function::Function;
+        use crate::input::{ConstantInputInitializer, OneTimeInputInitializer};
+        use crate::input::Input;
+        use crate::input::InputInitializer::{Constant, OneTime};
+        use crate::metrics::Metrics;
 
         use super::super::Output;
         use super::super::RunState;
@@ -1255,14 +1255,14 @@ mod tests {
 
     /****************************** Miscelaneous tests **************************/
     mod functional_tests {
-        use debugger::Debugger;
-        use function::Function;
-        use input::ConstantInputInitializer;
-        use input::Input;
-        use input::InputInitializer::Constant;
-        use input::InputInitializer::OneTime;
-        use input::OneTimeInputInitializer;
-        use metrics::Metrics;
+        use crate::debugger::Debugger;
+        use crate::function::Function;
+        use crate::input::ConstantInputInitializer;
+        use crate::input::Input;
+        use crate::input::InputInitializer::Constant;
+        use crate::input::InputInitializer::OneTime;
+        use crate::input::OneTimeInputInitializer;
+        use crate::metrics::Metrics;
 
         use super::super::Output;
         use super::super::RunState;

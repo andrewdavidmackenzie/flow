@@ -13,7 +13,7 @@ test:
 	@echo "--- Ended    'cargo build' for 'nodeprovider' on wasm target ---"
 	@echo ""
 	@echo "--- Started  'cargo test' for 'nodeprovider' on native target ---"
-	@cd crate;cargo test
+	@cargo test
 	@echo "--- Finished 'cargo test' for 'web/crate' on native target ---"
 
 clean:

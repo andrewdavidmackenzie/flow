@@ -1,17 +1,19 @@
-use std::io::Result;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use model::flow::Flow;
-use model::route::Route;
-use model::connection::Connection;
-use flowrlib::manifest::{Manifest, MetaData};
+use std::io::Result;
+
 use flowrlib::function::Function as RuntimeFunction;
 use flowrlib::input::Input;
-use model::function::Function;
-use model::name::HasName;
-use model::route::HasRoute;
-use model::io::IO;
-use model::datatype::TypeCheck;
+use flowrlib::manifest::{Manifest, MetaData};
+
+use crate::model::connection::Connection;
+use crate::model::datatype::TypeCheck;
+use crate::model::flow::Flow;
+use crate::model::function::Function;
+use crate::model::io::IO;
+use crate::model::name::HasName;
+use crate::model::route::HasRoute;
+use crate::model::route::Route;
 
 #[derive(Serialize)]
 pub struct GenerationTables {
@@ -106,13 +108,15 @@ fn function_to_runtimefunction(out_dir_path: &str, function: &Box<Function>, deb
 
 #[cfg(test)]
 mod test {
-    use model::io::IO;
-    use model::function::Function;
-    use super::function_to_runtimefunction;
-    use flowrlib::input::{InputInitializer, ConstantInputInitializer};
+    use flowrlib::input::{ConstantInputInitializer, InputInitializer};
     use flowrlib::input::OneTimeInputInitializer;
-    use model::name::Name;
-    use model::route::Route;
+
+    use crate::model::function::Function;
+    use crate::model::io::IO;
+    use crate::model::name::Name;
+    use crate::model::route::Route;
+
+    use super::function_to_runtimefunction;
 
     #[test]
     fn function_with_sub_route_output_generation() {

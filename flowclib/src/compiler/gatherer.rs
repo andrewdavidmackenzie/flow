@@ -1,8 +1,8 @@
-use model::flow::Flow;
-use model::process::Process::FlowProcess;
-use model::process::Process::FunctionProcess;
-use generator::generate::GenerationTables;
-use model::function::Function;
+use crate::model::flow::Flow;
+use crate::model::process::Process::FlowProcess;
+use crate::model::process::Process::FunctionProcess;
+use crate::generator::generate::GenerationTables;
+use crate::model::function::Function;
 
 /*
     This module is responsible for parsing the flow tree and gathering information into a set of
@@ -47,7 +47,7 @@ pub fn gather_functions_and_connections(flow: &Flow, tables: &mut GenerationTabl
     to, and used in code generation.
 */
 pub fn index_functions(functions: &mut Vec<Box<Function>>) {
-    for (index, mut function) in functions.into_iter().enumerate() {
+    for (index, function) in functions.into_iter().enumerate() {
         function.set_id(index);
     }
 }

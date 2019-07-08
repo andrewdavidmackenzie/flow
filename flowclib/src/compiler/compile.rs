@@ -1,7 +1,7 @@
-use model::flow::Flow;
+use crate::model::flow::Flow;
 use super::gatherer;
 use super::connector;
-use generator::generate::GenerationTables;
+use crate::generator::generate::GenerationTables;
 use super::checker;
 use super::optimizer;
 
@@ -35,14 +35,14 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables, String> {
 #[cfg(test)]
 mod test {
     use super::compile;
-    use model::flow::Flow;
-    use model::function::Function;
-    use model::io::IO;
-    use model::process::Process::FunctionProcess;
-    use model::process_reference::ProcessReference;
-    use model::name::HasName;
-    use model::name::Name;
-    use model::route::Route;
+    use crate::model::flow::Flow;
+    use crate::model::function::Function;
+    use crate::model::io::IO;
+    use crate::model::process::Process::FunctionProcess;
+    use crate::model::process_reference::ProcessReference;
+    use crate::model::name::HasName;
+    use crate::model::name::Name;
+    use crate::model::route::Route;
 
     /*
         Test for a function that is dead code. It has no connections to it or from it so will

@@ -1,6 +1,6 @@
-use compiler::loader::Validate;
+use crate::compiler::loader::Validate;
 use std::fmt;
-use model::route::Route;
+use crate::model::route::Route;
 
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct Name(String);
@@ -57,7 +57,7 @@ pub trait HasName {
 
 #[cfg(test)]
 mod test {
-    use compiler::loader::Validate;
+    use crate::compiler::loader::Validate;
 
     use super::Name;
 

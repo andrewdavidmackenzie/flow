@@ -1,10 +1,11 @@
-use model::name::Name;
-use compiler::loader::Validate;
-use model::route::Route;
-use model::route::HasRoute;
-use model::io::IO;
 use std::fmt;
-use model::datatype::TypeCheck;
+
+use crate::compiler::loader::Validate;
+use crate::model::datatype::TypeCheck;
+use crate::model::io::IO;
+use crate::model::name::Name;
+use crate::model::route::HasRoute;
+use crate::model::route::Route;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -68,8 +69,9 @@ impl Connection {
 
 #[cfg(test)]
 mod test {
-    use model::route::Route;
-    use model::io::IO;
+    use crate::model::io::IO;
+    use crate::model::route::Route;
+
     use super::Connection;
 
     #[test]

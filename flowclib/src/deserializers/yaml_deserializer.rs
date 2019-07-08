@@ -1,5 +1,5 @@
-use compiler::loader::{Deserializer, DeserializeError};
-use model::process::Process;
+use crate::compiler::loader::{Deserializer, DeserializeError};
+use crate::model::process::Process;
 
 pub struct FlowYamlLoader;
 
@@ -21,7 +21,7 @@ impl Deserializer for FlowYamlLoader {
 
 #[cfg(test)]
 mod test {
-    use compiler::loader::Deserializer;
+    use crate::compiler::loader::Deserializer;
 
     use super::FlowYamlLoader;
 

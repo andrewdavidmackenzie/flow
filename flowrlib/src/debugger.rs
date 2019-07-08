@@ -1,14 +1,14 @@
-use debug_client::DebugClient;
+use crate::debug_client::DebugClient;
 use std::process::exit;
-use run_state::{RunState, Output};
+use crate::run_state::{RunState, Output};
 use std::collections::HashSet;
 use serde_json::Value;
 use std::fmt;
-use debug_client::Param;
-use debug_client::Command::{*};
-use debug_client::Response;
-use debug_client::Event::{*};
-use debug_client::Response::{*};
+use crate::debug_client::Param;
+use crate::debug_client::Command::{*};
+use crate::debug_client::Response;
+use crate::debug_client::Event::{*};
+use crate::debug_client::Response::{*};
 
 pub struct Debugger {
     client: &'static DebugClient,
@@ -404,7 +404,7 @@ impl Debugger {
         visited_nodes.push(node.process_id);
         node.blockers = self.find_blockers(state, node.process_id);
 
-        for mut blocker in &mut node.blockers {
+        for blocker in &mut node.blockers {
             if blocker.process_id == root_node_id {
                 return vec!(blocker.clone()); // add the last node in the loop to end of trail
             }
@@ -442,7 +442,7 @@ impl Debugger {
             let mut root_node = BlockerNode::new(*blocked_process_id, 0, BlockType::OutputBlocked);
             let mut visited_nodes = vec!();
 
-            let mut deadlock_set = self.traverse_blocker_tree(state, &mut visited_nodes,
+            let deadlock_set = self.traverse_blocker_tree(state, &mut visited_nodes,
                                                               *blocked_process_id, &mut root_node);
             if deadlock_set.len() > 0 {
                 response.push_str(&format!("{}\n", Self::display_set(&root_node, deadlock_set)));

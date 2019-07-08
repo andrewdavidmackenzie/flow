@@ -2,8 +2,8 @@ extern crate serde_json;
 
 use std::error::Error;
 
-use compiler::loader::{DeserializeError, Deserializer};
-use model::process::Process;
+use crate::compiler::loader::{DeserializeError, Deserializer};
+use crate::model::process::Process;
 
 pub struct FlowJsonLoader;
 
@@ -20,7 +20,7 @@ impl Deserializer for FlowJsonLoader {
 
 #[cfg(test)]
 mod test {
-    use compiler::loader::Deserializer;
+    use crate::compiler::loader::Deserializer;
 
     use super::FlowJsonLoader;
 

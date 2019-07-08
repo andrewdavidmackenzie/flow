@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-use compiler::connector;
+use crate::compiler::connector;
 use flowrlib::input::InputInitializer::Constant;
-use generator::generate::GenerationTables;
-use model::connection::Connection;
-use model::flow::Flow;
-use model::route::HasRoute;
-use model::route::Route;
+use crate::generator::generate::GenerationTables;
+use crate::model::connection::Connection;
+use crate::model::flow::Flow;
+use crate::model::route::HasRoute;
+use crate::model::route::Route;
 
 /*
     Check root process fits the rules for a Context and a compilable flow
@@ -124,10 +124,10 @@ fn connection_to(tables: &GenerationTables, input: &Route) -> bool {
 
 #[cfg(test)]
 mod test {
-    use model::connection::Connection;
-    use model::io::IO;
-    use model::route::Route;
-    use model::name::Name;
+    use crate::model::connection::Connection;
+    use crate::model::io::IO;
+    use crate::model::route::Route;
+    use crate::model::name::Name;
 
     use super::remove_duplicates;
 

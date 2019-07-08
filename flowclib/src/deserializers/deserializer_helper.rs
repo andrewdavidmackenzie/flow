@@ -1,7 +1,7 @@
 use super::yaml_deserializer::FlowYamlLoader;
 use super::toml_deserializer::FlowTomelLoader;
 use super::json_deserializer::FlowJsonLoader;
-use compiler::loader::Deserializer;
+use crate::compiler::loader::Deserializer;
 
 const TOML: &Deserializer = &FlowTomelLoader as &Deserializer;
 const YAML: &Deserializer = &FlowYamlLoader as &Deserializer;

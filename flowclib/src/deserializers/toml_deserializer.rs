@@ -2,9 +2,9 @@ extern crate serde_json;
 
 use std::error::Error;
 
-use compiler::loader::{DeserializeError, Deserializer};
-use model::process::Process;
-use toml;
+use crate::compiler::loader::{DeserializeError, Deserializer};
+use crate::model::process::Process;
+use crate::toml;
 
 pub struct FlowTomelLoader;
 
@@ -25,9 +25,9 @@ impl Deserializer for FlowTomelLoader {
 
 #[cfg(test)]
 mod test {
-    use compiler::loader::Deserializer;
-    use model::flow::Flow;
-    use model::process::Process::FlowProcess;
+    use crate::compiler::loader::Deserializer;
+    use crate::model::flow::Flow;
+    use crate::model::process::Process::FlowProcess;
 
     use super::FlowTomelLoader;
 

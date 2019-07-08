@@ -3,9 +3,9 @@
 use flowrlib::provider::Provider;
 use url::Url;
 
-use content::file_provider::FileProvider;
-use content::http_provider::HttpProvider;
-use content::lib_provider::LibProvider;
+use crate::content::file_provider::FileProvider;
+use crate::content::http_provider::HttpProvider;
+use crate::content::lib_provider::LibProvider;
 
 const FILE_PROVIDER: &Provider = &FileProvider as &Provider;
 const LIB_PROVIDER: &Provider = &LibProvider as &Provider;

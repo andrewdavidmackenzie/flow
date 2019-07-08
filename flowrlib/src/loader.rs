@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use implementation::Implementation;
-use implementation_table::ImplementationLocator::Native;
-use implementation_table::ImplementationLocator::Wasm;
-use implementation_table::ImplementationLocatorTable;
-use manifest::Manifest;
-use provider::Provider;
-use url;
-use wasm;
+use crate::implementation::Implementation;
+use crate::implementation_table::ImplementationLocator::Native;
+use crate::implementation_table::ImplementationLocator::Wasm;
+use crate::implementation_table::ImplementationLocatorTable;
+use crate::manifest::Manifest;
+use crate::provider::Provider;
+use crate::url;
+use crate::wasm;
 
 pub struct Loader {
     global_lib_implementations: HashMap<String, Arc<Implementation>>,
@@ -65,7 +65,7 @@ impl Loader {
     pub fn resolve_implementations(&mut self, manifest: &mut Manifest, provider: &Provider,
                                    manifest_url: &str) -> Result<String, String> {
         // find in a library, or load the implementation required - as specified by the source
-        for mut function in &mut manifest.functions {
+        for function in &mut manifest.functions {
             let source_url = function.implementation_source().to_string();
             let parts: Vec<_> = source_url.split(":").collect();
             match parts[0] {

@@ -1,23 +1,25 @@
-use model::name::Name;
-use model::name::HasName;
-use model::connection::Connection;
-use model::io::{IO, IOType};
-use model::io::IOSet;
-use model::process_reference::ProcessReference;
-use model::route::Route;
-use model::route::HasRoute;
-use model::route::SetRoute;
-use model::route::SetIORoutes;
-use model::io::Find;
-use compiler::loader::Validate;
-use model::connection::Direction;
-use model::process::Process::FlowProcess;
-use model::process::Process::FunctionProcess;
-use model::connection::Direction::FROM;
-use model::connection::Direction::TO;
 use std::fmt;
 use std::mem::replace;
+
 use flowrlib::input::InputInitializer;
+
+use crate::compiler::loader::Validate;
+use crate::model::connection::Connection;
+use crate::model::connection::Direction;
+use crate::model::connection::Direction::FROM;
+use crate::model::connection::Direction::TO;
+use crate::model::io::{IO, IOType};
+use crate::model::io::Find;
+use crate::model::io::IOSet;
+use crate::model::name::HasName;
+use crate::model::name::Name;
+use crate::model::process::Process::FlowProcess;
+use crate::model::process::Process::FunctionProcess;
+use crate::model::process_reference::ProcessReference;
+use crate::model::route::HasRoute;
+use crate::model::route::Route;
+use crate::model::route::SetIORoutes;
+use crate::model::route::SetRoute;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -195,7 +197,7 @@ impl Flow {
     fn get_io_subprocess(&mut self, subprocess_alias: &Name, direction: Direction, route: &Route,
                          initial_value: &Option<InputInitializer>) -> Result<IO, String> {
         if let Some(ref mut process_refs) = self.process_refs {
-            for mut process_ref in process_refs {
+            for process_ref in process_refs {
                 debug!("\tLooking in process_ref with alias = '{}'", process_ref.alias);
                 if *subprocess_alias == process_ref.alias().clone() {
                     match process_ref.process {

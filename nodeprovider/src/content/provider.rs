@@ -1,9 +1,10 @@
 //! MetaProvider is an overall provider that determines which internal content provider to use
 //! based on the URL scheme provided (http, file or lib).
-use content::file_provider::FileProvider;
-use content::http_provider::HttpProvider;
-use content::lib_provider::LibProvider;
 use flowrlib::provider::Provider;
+
+use crate::content::file_provider::FileProvider;
+use crate::content::http_provider::HttpProvider;
+use crate::content::lib_provider::LibProvider;
 
 const HTTP_PROVIDER: &Provider = &HttpProvider as &Provider;
 
