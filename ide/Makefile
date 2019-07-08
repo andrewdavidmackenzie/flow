@@ -4,7 +4,7 @@ app: npm-build
 
 web: npm-build
 	@echo "------------ Starting 'ide' as web app ---------------------"
-	@npm start
+	@npm run start
 
 npm-build: npm-install
 	@echo "------------ Starting npm-build for 'ide' ------------------"
