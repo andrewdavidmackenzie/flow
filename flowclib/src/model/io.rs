@@ -1,16 +1,18 @@
-use model::name::Name;
-use model::name::HasName;
-use model::route::HasRoute;
-use model::route::FindRoute;
-use model::route::SetIORoutes;
-use model::datatype::HasDataType;
-use model::datatype::DataType;
-use model::datatype::TypeCheck;
-use compiler::loader::Validate;
-use model::route::Route;
-use std::collections::HashSet;
 use std::collections::HashMap;
+use std::collections::HashSet;
+
 use flowrlib::input::InputInitializer;
+
+use crate::compiler::loader::Validate;
+use crate::model::datatype::DataType;
+use crate::model::datatype::HasDataType;
+use crate::model::datatype::TypeCheck;
+use crate::model::name::HasName;
+use crate::model::name::Name;
+use crate::model::route::FindRoute;
+use crate::model::route::HasRoute;
+use crate::model::route::Route;
+use crate::model::route::SetIORoutes;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub enum IOType {
@@ -204,7 +206,7 @@ pub trait Find {
 impl Find for IOSet {
     fn find_by_name(&mut self, name: &Name, initial_value: &Option<InputInitializer>) -> Result<IO, String> {
         if let Some(ref mut ios) = self {
-            for mut io in ios {
+            for io in ios {
                 if io.name() == name {
                     io.set_initial_value(initial_value);
                     return Ok(io.clone());
@@ -219,7 +221,7 @@ impl Find for IOSet {
     // TODO return a reference to the IO, with same lifetime as IOSet?
     fn find_by_route(&mut self, sub_route: &Route, initial_value: &Option<InputInitializer>) -> Result<IO, String> {
         if let Some(ref mut ios) = self {
-            for mut io in ios {
+            for io in ios {
                 let (array_route, _num, array_index) = sub_route.without_trailing_array_index();
                 if array_index && (io.datatype(0).is_array()) && (Route::from(io.name()) == array_route.into_owned()) {
                     io.set_initial_value(initial_value);
@@ -265,13 +267,15 @@ impl IO {
 #[cfg(test)]
 mod test {
     use toml;
+
+    use crate::compiler::loader::Validate;
+    use crate::model::datatype::DataType;
+    use crate::model::io::IOType;
+    use crate::model::name::HasName;
+    use crate::model::name::Name;
+    use crate::model::route::Route;
+
     use super::IO;
-    use compiler::loader::Validate;
-    use model::name::HasName;
-    use model::io::IOType;
-    use model::name::Name;
-    use model::route::Route;
-    use model::datatype::DataType;
 
     #[test]
     fn deserialize_empty_string() {

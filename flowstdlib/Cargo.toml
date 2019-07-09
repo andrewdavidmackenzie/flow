@@ -10,10 +10,9 @@ repository = "https://github.com/andrewdavidmackenzie/flow/"
 readme = "../README.md"
 include = ["src/**/*", "Cargo.toml"]
 
-#build = "flow_lib_build.rs"
+edition = "2018"
 
-[target.wasm32-unknown-unknown]
-linker = ""
+#build = "flow_lib_build.rs"
 
 [lib]
 name = "flowstdlib"

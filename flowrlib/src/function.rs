@@ -1,6 +1,6 @@
-use implementation::Implementation;
-use implementation::RunAgain;
-use input::Input;
+use crate::implementation::Implementation;
+use crate::implementation::RunAgain;
+use crate::input::Input;
 use serde_json::Value;
 use std::sync::Arc;
 #[cfg(feature = "debugger")]
@@ -107,7 +107,7 @@ impl Function {
     */
     pub fn init_inputs(&mut self, first_time: bool) -> Vec<usize> {
         let mut refilled = vec!();
-        for (io_number, mut input) in &mut self.inputs.iter_mut().enumerate() {
+        for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
             if input.init(first_time) {
                 refilled.push(io_number);
             }
@@ -200,7 +200,7 @@ impl Function {
 mod test {
     use serde_json::value::Value;
     use super::Function;
-    use input::Input;
+    use crate::input::Input;
 
     /*************** Below are tests for basic json.pointer functionality *************************/
 

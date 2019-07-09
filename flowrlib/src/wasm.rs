@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use implementation::Implementation;
-use implementation::RunAgain;
-use provider::Provider;
+use crate::implementation::Implementation;
+use crate::implementation::RunAgain;
+use crate::provider::Provider;
 use serde_json::Value;
 
 #[cfg(not(target_arch = "wasm32"))]

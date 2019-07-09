@@ -1,4 +1,3 @@
-
 [package]
 name = "flowide"
 version = "0.1.0"
@@ -10,7 +9,12 @@ license = "Apache-2.0/MIT"
 readme = "README.md"
 repository = "https://github.com/andrewdmackenzie/flow"
 
+[[bin]]
+name = "ide"
+path = "src/main.rs"
+
 [lib]
+name = "flowide"
 crate-type = ["cdylib"]
 
 [profile.release]

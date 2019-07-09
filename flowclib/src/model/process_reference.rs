@@ -1,12 +1,14 @@
-use model::name::Name;
-use model::name::HasName;
-use model::route::Route;
-use model::route::HasRoute;
-use model::process::Process;
-use compiler::loader::Validate;
-use std::fmt;
 use std::collections::HashMap;
+use std::fmt;
+
 use flowrlib::input::InputInitializer;
+
+use crate::compiler::loader::Validate;
+use crate::model::name::HasName;
+use crate::model::name::Name;
+use crate::model::process::Process;
+use crate::model::route::HasRoute;
+use crate::model::route::Route;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -62,15 +64,18 @@ impl ProcessReference {
 
 #[cfg(test)]
 mod test {
-    use super::ProcessReference;
     use std::collections::HashMap;
-    use model::process::Process;
-    use model::function::Function;
-    use model::name::Name;
-    use model::route::Route;
-    use flowrlib::input::InputInitializer;
+
     use flowrlib::input::ConstantInputInitializer;
+    use flowrlib::input::InputInitializer;
     use flowrlib::input::InputInitializer::{Constant, OneTime};
+
+    use crate::model::function::Function;
+    use crate::model::name::Name;
+    use crate::model::process::Process;
+    use crate::model::route::Route;
+
+    use super::ProcessReference;
 
     #[test]
     fn deserialize_simple() {

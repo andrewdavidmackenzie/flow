@@ -1,10 +1,10 @@
-use model::route::Route;
-use model::route::HasRoute;
+use crate::model::route::Route;
+use crate::model::route::HasRoute;
 use std::collections::HashMap;
-use generator::generate::GenerationTables;
-use model::connection::Connection;
-use model::name::HasName;
-use model::io::IOType;
+use crate::generator::generate::GenerationTables;
+use crate::model::connection::Connection;
+use crate::model::name::HasName;
+use crate::model::io::IOType;
 
 /*
     Go through all connections, finding:
@@ -31,7 +31,7 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<(),
                 if connection.to_io.get_initializer().is_some() {
                     if let Some(destination_function) = tables.functions.get_mut(destination_process_id) {
                         if let Some(ref mut inputs) = destination_function.get_mut_inputs() {
-                            let mut destination_input = inputs.get_mut(destination_input_index).unwrap();
+                            let destination_input = inputs.get_mut(destination_input_index).unwrap();
                             if destination_input.get_initializer().is_none() {
                                 destination_input.set_initial_value(connection.to_io.get_initializer());
                                 debug!("Set initializer on destination function input at '{}' from connection",
@@ -85,7 +85,7 @@ pub fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &R
     and the index of it's input - using the input route or it's output route
 */
 pub fn create_routes_table(tables: &mut GenerationTables) {
-    for mut function in &mut tables.functions {
+    for function in &mut tables.functions {
         // Add any output routes it has to the source routes table
         if let Some(ref outputs) = function.get_outputs() {
             for output in outputs {
@@ -250,12 +250,12 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
 
 #[cfg(test)]
 mod test {
-    use model::connection::Connection;
-    use model::io::{IO, IOType};
+    use crate::model::connection::Connection;
+    use crate::model::io::{IO, IOType};
     use super::collapse_connections;
-    use model::route::HasRoute;
-    use model::name::Name;
-    use model::route::Route;
+    use crate::model::route::HasRoute;
+    use crate::model::name::Name;
+    use crate::model::route::Route;
 
     #[test]
     fn drop_useless_connections() {

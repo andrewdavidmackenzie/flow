@@ -1,8 +1,8 @@
-use generator::generate::GenerationTables;
-use model::route::HasRoute;
-use model::connection::Connection;
-use model::function::Function;
-use model::name::HasName;
+use crate::generator::generate::GenerationTables;
+use crate::model::route::HasRoute;
+use crate::model::connection::Connection;
+use crate::model::function::Function;
+use crate::model::name::HasName;
 
 /*
     Keep removing dead processes (that have no effect) and any connection that goes

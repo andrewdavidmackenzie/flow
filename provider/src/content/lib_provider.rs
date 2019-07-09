@@ -48,7 +48,7 @@ impl Provider for LibProvider {
             &format!("'lib_name' could not be extracted from host part of url '{}'", url));
 
         if let Err(_) = env::var("FLOW_LIB_PATH") {
-            let mut parent_dir = std::env::current_dir().unwrap();
+            let parent_dir = std::env::current_dir().unwrap();
             debug!("Setting 'FLOW_LIB_PATH' to '{}'", parent_dir.to_string_lossy().to_string());
             env::set_var("FLOW_LIB_PATH", parent_dir.to_string_lossy().to_string());
         }

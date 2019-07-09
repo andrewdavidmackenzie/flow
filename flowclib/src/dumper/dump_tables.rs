@@ -1,11 +1,11 @@
-use model::flow::Flow;
+use crate::model::flow::Flow;
 use std::fmt;
-use generator::generate::GenerationTables;
+use crate::generator::generate::GenerationTables;
 use std::fs::File;
 use std::io;
 use std::io::Write;
 use std::path::PathBuf;
-use ::dumper::dump_dot;
+use crate::dumper::dump_dot;
 
 /// dump a flow's compiler tables that were constructed for use in code generation
 ///

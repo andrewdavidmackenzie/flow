@@ -1,6 +1,6 @@
-use implementation::Implementation;
+use crate::implementation::Implementation;
 use std::collections::HashMap;
-use provider::Provider;
+use crate::provider::Provider;
 use std::sync::Arc;
 
 /*
@@ -45,10 +45,10 @@ impl ImplementationLocatorTable {
 
 #[cfg(test)]
 mod test {
-    use implementation_table::ImplementationLocatorTable;
-    use implementation_table::ImplementationLocator;
-    use implementation_table::ImplementationLocator::Wasm;
-    use provider::Provider;
+    use crate::implementation_table::ImplementationLocatorTable;
+    use crate::implementation_table::ImplementationLocator;
+    use crate::implementation_table::ImplementationLocator::Wasm;
+    use crate::provider::Provider;
 
     pub struct TestProvider {
         test_content: &'static str

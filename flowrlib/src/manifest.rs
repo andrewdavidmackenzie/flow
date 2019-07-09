@@ -1,5 +1,5 @@
-use function::Function;
-use provider::Provider;
+use crate::function::Function;
+use crate::provider::Provider;
 use std::collections::HashSet;
 
 pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest.json";

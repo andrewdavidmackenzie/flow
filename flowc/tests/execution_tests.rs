@@ -131,7 +131,7 @@ fn execute_test(test_name: &str) {
         let manifest_path = write_manifest(flow, true, out_dir,
                                            test_name, &tables).unwrap();
 
-        let mut test_args = test_args(&test_dir, test_name);
+        let test_args = test_args(&test_dir, test_name);
         let input = get(&test_dir, &format!("{}.stdin", test_name));
         let actual_output = execute_flow(run_dir, manifest_path, test_args, input);
         let expected_output = get(&test_dir, &format!("{}.expected", test_name));

@@ -3,16 +3,16 @@ use std::sync::mpsc::{Receiver, Sender, SendError};
 use std::sync::mpsc;
 use std::time::Duration;
 
-use debug_client::DebugClient;
-use debugger::Debugger;
-use execution;
+use crate::debug_client::DebugClient;
+use crate::debugger::Debugger;
+use crate::execution;
 use log::Level::Debug;
-use manifest::Manifest;
-use manifest::MetaData;
+use crate::manifest::Manifest;
+use crate::manifest::MetaData;
 #[cfg(feature = "metrics")]
-use metrics::Metrics;
-use run_state::{Job, Output};
-use run_state::RunState;
+use crate::metrics::Metrics;
+use crate::run_state::{Job, Output};
+use crate::run_state::RunState;
 
 ///
 /// A Sumission is the struct used to send a flow to the Coordinator for execution. It contains

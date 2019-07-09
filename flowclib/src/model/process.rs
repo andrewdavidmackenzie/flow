@@ -1,5 +1,5 @@
-use model::flow::Flow;
-use model::function::Function;
+use crate::model::flow::Flow;
+use crate::model::function::Function;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]

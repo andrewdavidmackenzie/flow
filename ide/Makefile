@@ -21,7 +21,7 @@ test:
 	@echo "--- Ended    'cargo build' for 'web/crate' on wasm target ---"
 	@echo ""
 	@echo "--- Started  'cargo test' for 'ide/crate' on native target ---"
-	@cd crate;cargo test
+	@cargo test
 ifeq ($(TRAVIS),)
 	@wasm-pack test --chrome --headless -- --features wasm-bindgen
 endif

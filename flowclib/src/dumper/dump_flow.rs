@@ -1,10 +1,10 @@
-use model::flow::Flow;
+use crate::model::flow::Flow;
 use std::io;
 use std::io::Write;
 use std::path::PathBuf;
-use ::dumper::dump_dot;
-use ::dumper::helper;
-use model::process::Process::FlowProcess;
+use crate::dumper::dump_dot;
+use crate::dumper::helper;
+use crate::model::process::Process::FlowProcess;
 
 /// dump a flow definition that has been loaded to a file in the specified output directory
 ///
