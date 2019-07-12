@@ -1,10 +1,4 @@
 wasm-pack.log
 .bin/
-crate/.crates.toml
 dist
 node_modules
-crate/bin
-crate/pkg
-crate/target
-crate/wasm-pack.log
-crate/Cargo.lock
