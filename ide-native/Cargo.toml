@@ -5,6 +5,7 @@ authors = ["Adam Saladino <adam@codingsimply.com>"]
 
 [lib]
 name = "flow"
+path = "src/flow.rs"
 crate-type = ["dylib"]
 
 [dependencies]
