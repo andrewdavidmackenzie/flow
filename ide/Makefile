@@ -1,12 +1,12 @@
-app: npm-build
+app: build
 	@echo "------------ Starting 'ide' as electron app ----------------"
 	@npm run app
 
-web: npm-build
+web: build
 	@echo "------------ Starting 'ide' as web app ---------------------"
 	@npm run start
 
-npm-build: npm-install
+build: npm-install
 	@echo "------------ Starting npm-build for 'ide' ------------------"
 	@npm run build
 	@echo "------------ Finished building 'ide' -----------------------\n"
@@ -16,11 +16,11 @@ npm-install:
 
 test:
 	@echo ""
-	@echo "--- Started  'cargo build' for 'ide/crate' on wasm target ---"
+	@echo "--- Started  'cargo build' for 'ide' on wasm target ---"
 	@cargo build --target wasm32-unknown-unknown
-	@echo "--- Ended    'cargo build' for 'web/crate' on wasm target ---"
+	@echo "--- Ended    'cargo build' for 'ide' on wasm target ---"
 	@echo ""
-	@echo "--- Started  'cargo test' for 'ide/crate' on native target ---"
+	@echo "--- Started  'cargo test' for 'ide' on native target ---"
 	@cargo test
 ifeq ($(TRAVIS),)
 	@wasm-pack test --chrome --headless -- --features wasm-bindgen

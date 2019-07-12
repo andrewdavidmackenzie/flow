@@ -1,0 +1,11 @@
+[package]
+name = "electron_native"
+version = "0.1.0"
+authors = ["Adam Saladino <adam@codingsimply.com>"]
+
+[lib]
+name = "flow"
+crate-type = ["dylib"]
+
+[dependencies]
+flowclib = { path = "../flowclib", version = "~0.7.0" }

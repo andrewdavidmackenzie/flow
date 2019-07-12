@@ -1,13 +1,15 @@
 use std::collections::HashSet;
+use std::collections::VecDeque;
 use std::fmt;
 use std::sync::Arc;
-use std::collections::VecDeque;
+
+use multimap::MultiMap;
+use serde_json::Value;
+
 use crate::debugger::Debugger;
 use crate::function::Function;
 use crate::implementation::Implementation;
 use crate::metrics::Metrics;
-use multimap::MultiMap;
-use serde_json::Value;
 
 #[derive(Debug, PartialEq)]
 pub enum State {
@@ -400,7 +402,8 @@ impl RunState {
             - Job created
             - true if we took an input set but enough remain to create more jobs
     */
-    fn create_job(&mut self, function_id: usize) -> (Job, bool) { let job_id = self.jobs_sent;
+    fn create_job(&mut self, function_id: usize) -> (Job, bool) {
+        let job_id = self.jobs_sent;
         debug!("Creating Job #{} for Function #{}", self.jobs_sent, function_id);
 
         let function = self.get_mut(function_id);
@@ -717,7 +720,7 @@ impl fmt::Display for RunState {
 
 #[cfg(test)]
 mod tests {
-    use crate::debug_client::{DebugClient, Response, Event};
+    use crate::debug_client::{DebugClient, Event, Response};
     use crate::debug_client::{Command, Param};
     use crate::run_state;
 
@@ -1548,7 +1551,7 @@ mod tests {
             state.init();
 
             // Send multiple inputs to f_a via an array
-            state.send_value(1, "/",0, 0, &json!([1, 2, 3, 4]), &mut metrics, &mut debugger);
+            state.send_value(1, "/", 0, 0, &json!([1, 2, 3, 4]), &mut metrics, &mut debugger);
 
             // Test
             assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a job for function_id=0 (f_a) for running");

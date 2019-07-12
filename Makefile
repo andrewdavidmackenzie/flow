@@ -68,8 +68,8 @@ copy-md-files:
 	@echo "------- Done    copying Markdown files from 'samples', 'flowstdlib' and 'flowr' to 'guide/src' -------------"
 
 #################### Build ####################
-build: workspace ide
-	@echo "------- Done 'build:' target -------------"
+build: workspace ide_build ide_native_build
+	@echo "------- Done 'build:' -------------"
 
 workspace:
 	@echo ""
@@ -77,16 +77,19 @@ workspace:
 	cargo build
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
-ide:
+ide_build:
 	cd ide && make build
 
-flowclib:
+ide_native_build:
+	cd ide-native && make build
+
+flowclib_build:
 	cd flowclib && make build
 
-flowstdlib: flowrlib
+flowstdlib_build: flowrlib_build
 	cd flowstdlib && make build
 
-flowrlib:
+flowrlib_build:
 	cd flowrlib && make build
 
 ################## Travis CI ##################
@@ -171,7 +174,7 @@ package-flowc:
 	@cargo package --manifest-path flowc/Cargo.toml
 	@echo "------- Finished packaging flowc --------------"
 
-package-ide: ide
+package-ide: ide_build
 	@cd ide && make package
 
 ################# Clean ################
