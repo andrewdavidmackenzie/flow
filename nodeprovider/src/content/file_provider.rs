@@ -1,6 +1,7 @@
 use flowrlib::provider::Provider;
-use std::io;
-use std::path::PathBuf;
+
+//use std::io;
+//use std::path::PathBuf;
 
 pub struct FileProvider{
     content: String
@@ -40,7 +41,7 @@ impl Provider for FileProvider {
         Ok((url_str.into(), None))
     }
 
-    fn get(&self, url_str: &str) -> Result<Vec<u8>, String> {
+    fn get(&self, _url_str: &str) -> Result<Vec<u8>, String> {
 //        let file = File::new(url_str);
 //        let reader = FileReaderSync::new()?;
 //        let result_base64 = reader.read_as_text(file);
@@ -83,7 +84,7 @@ impl FileProvider {
         If found, it opens the file and returns its contents as a String in the result
     */
 
-    fn find_default_file(path: &mut PathBuf, _default_filename: &str) -> io::Result<PathBuf> {
+//    fn find_default_file(path: &mut PathBuf, _default_filename: &str) -> io::Result<PathBuf> {
         /*
         // TODO pending more complex patterns based on implemented loaders
         // Or iterate through the matches until a loader is found which understands that file extension
@@ -107,6 +108,6 @@ impl FileProvider {
                            format!("No default context file found. Tried '{}'", path.display())))
                            */
 
-        Ok(path.clone())
-    }
+//        Ok(path.clone())
+//    }
 }
