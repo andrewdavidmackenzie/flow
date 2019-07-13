@@ -3,10 +3,11 @@ use std::sync::mpsc::{Receiver, Sender, SendError};
 use std::sync::mpsc;
 use std::time::Duration;
 
+use log::Level::Debug;
+
 use crate::debug_client::DebugClient;
 use crate::debugger::Debugger;
 use crate::execution;
-use log::Level::Debug;
 use crate::manifest::Manifest;
 use crate::manifest::MetaData;
 #[cfg(feature = "metrics")]
@@ -57,9 +58,9 @@ impl Submission {
 
         #[cfg(feature = "debugger")]
             let debugger = match client {
-                Some(client) => Some(Debugger::new(client)),
-                None => None
-            };
+            Some(client) => Some(Debugger::new(client)),
+            None => None
+        };
 
         Submission {
             _metadata: manifest.metadata,
@@ -87,7 +88,8 @@ pub struct Coordinator {
     num_threads: usize,
     job_tx: Sender<Job>,
     output_rx: Receiver<Output>,
-    shared_job_receiver: Arc<Mutex<Receiver<Job>>>,
+    pure_job_tx: Sender<Job>,
+    pure_job_rx: Receiver<Job>,
     output_tx: Sender<Output>,
 }
 
@@ -130,12 +132,12 @@ pub struct Coordinator {
 impl Coordinator {
     pub fn new(num_threads: usize) -> Self {
         let (job_tx, job_rx, ) = mpsc::channel();
+        let (pure_job_tx, pure_job_rx, ) = mpsc::channel();
         let (output_tx, output_rx) = mpsc::channel();
-
-        let shared_job_receiver = Arc::new(Mutex::new(job_rx));
 
         if num_threads > 0 {
             info!("Starting {} additional executor threads", num_threads);
+            let shared_job_receiver = Arc::new(Mutex::new(job_rx));
             execution::start_executors(num_threads, &shared_job_receiver, &output_tx);
         }
 
@@ -143,7 +145,8 @@ impl Coordinator {
             num_threads,
             job_tx,
             output_rx,
-            shared_job_receiver,
+            pure_job_tx,
+            pure_job_rx,
             output_tx,
         };
 
@@ -191,10 +194,8 @@ impl Coordinator {
                     break 'inner;
                 }
 
-                // if no executor threads - then I guess I'll just have to do the work myself!
-                if self.num_threads == 0 {
-                    execution::get_and_execute_job(&self.shared_job_receiver, &self.output_tx).unwrap();
-                }
+                // see if any jobs on the pure_job channel that this main thread should execute
+                let _ = execution::get_and_execute_pure_job(&self.pure_job_rx, &self.output_tx);
 
                 if submission.state.number_jobs_running() > 0 {
                     match self.output_rx.recv_timeout(submission.output_timeout) {
@@ -287,8 +288,11 @@ impl Coordinator {
 
     /*
         Send a job for execution:
-        - if impure, then needs to be run on the main thread which has stdio (stdin in particular)
-        - if pure send it on the 'job_tx' channel where executors will pick it up by an executor
+        - if impure, then needs to be run on a thread which has stdio so send on the 'pure_job' channel
+        - if pure send it on the 'job' channel where executors will pick it up by an executor
+
+        - In the case there are no executor threads, then we need to have all jobs executed on the same
+          thread, so send it on the 'pure_job' channel always.
     */
     fn send_job(&self, job: Job, submission: &mut Submission) -> (Result<(bool, bool), SendError<Job>>) {
         let mut debug_options = (false, false);
@@ -303,7 +307,12 @@ impl Coordinator {
             }
         }
 
-        self.job_tx.send(job)?;
+        // If there are no executor threads then send all jobs on pure_job channel to have main thread execute them
+        if self.num_threads == 0 || job.impure {
+            self.pure_job_tx.send(job)?;
+        } else {
+            self.job_tx.send(job)?;
+        }
 
         Ok(debug_options)
     }
