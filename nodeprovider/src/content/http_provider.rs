@@ -64,7 +64,7 @@ impl HttpProvider {
         Passed a path to a directory, it searches for the first file it can find fitting the pattern
         "context.*", for known file extensions
     */
-    fn find_default_file(_url: &str) -> Result<String, String> {
-        Err("Not implemented yet".to_string())
-    }
+//    fn find_default_file(_url: &str) -> Result<String, String> {
+//        Err("Not implemented yet".to_string())
+//    }
 }
