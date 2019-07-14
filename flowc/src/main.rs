@@ -47,7 +47,7 @@ mod source_arg;
 // `error_chain!` creates.
 mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
-    error_chain! { }
+    error_chain! {}
 }
 
 error_chain! {
@@ -166,7 +166,8 @@ fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, bool
     let skip_generation = matches.is_present("skip");
     let debug_symbols = matches.is_present("symbols");
     let out_dir_option = matches.value_of("OUTPUT_DIR");
-    let output_dir = source_arg::get_output_dir(&url, out_dir_option)?;
+    let output_dir = source_arg::get_output_dir(&url, out_dir_option)
+        .chain_err(|| "Could not get or create the output directory")?;
 
     Ok((url, args, dump, skip_generation, debug_symbols, output_dir))
 }
