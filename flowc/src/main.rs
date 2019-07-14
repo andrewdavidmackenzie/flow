@@ -1,6 +1,4 @@
 extern crate clap;
-// Import the macro. Don't forget to add `error-chain` in your
-// `Cargo.toml`!
 #[macro_use]
 extern crate error_chain;
 extern crate flowclib;
@@ -52,6 +50,7 @@ mod errors {
 
 error_chain! {
     foreign_links {
+        Provider(::provider::errors::Error);
         Io(::std::io::Error);
     }
 }
@@ -160,7 +159,8 @@ fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, bool
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     info!("'flowclib' version {}\n", info::version());
 
-    let url = url_from_string(matches.value_of("FLOW"))?;
+    let url = url_from_string(matches.value_of("FLOW"))
+        .chain_err(|| "Could not create a url for flow from the 'FLOW' command line paramter")?;
 
     let dump = matches.is_present("dump");
     let skip_generation = matches.is_present("skip");

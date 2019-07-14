@@ -4,6 +4,8 @@ use std::env;
 
 use url::Url;
 
+use crate::errors::*;
+
 /// Accept an optional string (URL or filename) and from it create an absolute path URL with correct
 /// scheme. This allows specifiying of full URL (http, file etc) as well as file paths relative
 /// to the working directory.
@@ -17,7 +19,7 @@ use url::Url;
 /// Returns a full URL with appropriate scheme (depending on the original scheme passed in),
 /// and an absolute path.
 ///
-pub fn url_from_string(string: Option<&str>) -> Result<Url, String> {
+pub fn url_from_string(string: Option<&str>) -> Result<Url> {
     let parent = cwd_as_url()?;
 
     match string {
@@ -26,19 +28,18 @@ pub fn url_from_string(string: Option<&str>) -> Result<Url, String> {
             Ok(parent.clone())
         }
         Some(url_string) => {
-            parent.join(url_string).map_err(|_|
-                format!("Problem joining url '{}' with '{}'", parent, url_string))
+            parent.join(url_string)
+                .chain_err(|| format!("Problem joining url '{}' with '{}'", parent, url_string))
         }
     }
 }
 
 ///
-/// Provide the Current Working Directory (CWD) as a URL (with 'file:' scheme) or an error message
-/// String if it cannot be found.
+/// Provide the Current Working Directory (CWD) as a URL (with 'file:' scheme) or an error if it cannot be found.
 ///
-pub fn cwd_as_url() -> Result<Url, String> {
+pub fn cwd_as_url() -> Result<Url> {
     Url::from_directory_path(env::current_dir().unwrap())
-        .map_err(|_e| "Could not form a Url for the current working directory".to_string())
+        .map_err(|_| "Could not form a Url for the current working directory".into())
 }
 
 #[cfg(test)]
@@ -49,8 +50,6 @@ mod test {
 
     use super::cwd_as_url;
     use super::url_from_string;
-
-// Tests for url_from_cl_arg
 
     #[test]
     fn no_arg_returns_parent() {

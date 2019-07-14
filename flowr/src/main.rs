@@ -1,4 +1,6 @@
 extern crate clap;
+#[macro_use]
+extern crate error_chain;
 extern crate flowrlib;
 #[macro_use]
 extern crate log;
@@ -34,13 +36,51 @@ pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
 
 const CLI_DEBUG_CLIENT: &DebugClient = &CLIDebugClient {};
 
-fn main() -> Result<(), String> {
+// We'll put our errors in an `errors` module, and other modules in
+// this crate will `use errors::*;` to get access to everything
+// `error_chain!` creates.
+mod errors {
+    // Create the Error, ErrorKind, ResultExt, and Result types
+    error_chain! {}
+}
+
+error_chain! {
+    foreign_links {
+        Provider(::provider::errors::Error);
+        Io(::std::io::Error);
+    }
+}
+
+fn main() {
+    match run() {
+        Err(ref e) => {
+            println!("error: {}", e);
+
+            for e in e.iter().skip(1) {
+                println!("caused by: {}", e);
+            }
+
+            // The backtrace is not always generated. Try to run this example
+            // with `RUST_BACKTRACE=1`.
+            if let Some(backtrace) = e.backtrace() {
+                println!("backtrace: {:?}", backtrace);
+            }
+
+            ::std::process::exit(1);
+        }
+        Ok(_) => {
+            exit(0);
+        }
+    }
+}
+
+fn run() -> Result<()> {
     let matches = get_matches();
     let url = parse_args(&matches)?;
     let mut loader = Loader::new();
     let provider = MetaProvider {};
 
-    let cwd = cwd_as_url()?;
+    let cwd = cwd_as_url().chain_err(|| "Could not get the current working directory as a URL")?;
 
     // Load this runtime's native implementations
     loader.add_lib(&provider, ::ilt::get_ilt(), &cwd.to_string())?;
@@ -69,9 +109,7 @@ fn main() -> Result<(), String> {
 
     let submission = Submission::new(manifest, num_parallel_jobs, metrics, debug_client);
 
-    coordinator.submit(submission);
-
-    exit(0);
+    Ok(coordinator.submit(submission))
 }
 
 
@@ -187,13 +225,13 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 /*
     Parse the command line arguments passed onto the flow itself
 */
-fn parse_args(matches: &ArgMatches) -> Result<Url, String> {
+fn parse_args(matches: &ArgMatches) -> Result<Url> {
     // Set anvironment variable with the args
     // this will not be unique, but it will be used very soon and removed
     if let Some(flow_args) = matches.values_of("flow-arguments") {
         let mut args: Vec<&str> = flow_args.collect();
-        // arg #0 is the flow/package name
-        // TODO fix this to be the name of the flow, not 'flowr'
+    // arg #0 is the flow/package name
+    // TODO fix this to be the name of the flow, not 'flowr'
         args.insert(0, env!("CARGO_PKG_NAME"));
         env::set_var(FLOW_ARGS_NAME, args.join(" "));
         debug!("Setup '{}' with values = '{:?}'", FLOW_ARGS_NAME, args);
@@ -205,4 +243,5 @@ fn parse_args(matches: &ArgMatches) -> Result<Url, String> {
     info!("'flowrlib' version {}\n", info::version());
 
     url_from_string(matches.value_of("flow-manifest"))
+        .chain_err(|| "Unable to parse the URL of the manifest of the flow to run")
 }
