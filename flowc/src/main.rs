@@ -1,4 +1,8 @@
 extern crate clap;
+// Import the macro. Don't forget to add `error-chain` in your
+// `Cargo.toml`!
+#[macro_use]
+extern crate error_chain;
 extern crate flowclib;
 extern crate flowrlib;
 #[macro_use]
@@ -38,10 +42,38 @@ use provider::content::provider::MetaProvider;
 
 mod source_arg;
 
+// We'll put our errors in an `errors` module, and other modules in
+// this crate will `use errors::*;` to get access to everything
+// `error_chain!` creates.
+mod errors {
+    // Create the Error, ErrorKind, ResultExt, and Result types
+    error_chain! { }
+}
+
+error_chain! {
+    foreign_links {
+        Io(::std::io::Error);
+    }
+}
+
 fn main() {
     match run() {
-        Ok(message) => info!("{}", message),
-        Err(e) => error!("{}", e)
+        Err(ref e) => {
+            println!("error: {}", e);
+
+            for e in e.iter().skip(1) {
+                println!("caused by: {}", e);
+            }
+
+            // The backtrace is not always generated. Try to run this example
+            // with `RUST_BACKTRACE=1`.
+            if let Some(backtrace) = e.backtrace() {
+                println!("backtrace: {:?}", backtrace);
+            }
+
+            ::std::process::exit(1);
+        }
+        Ok(message) => info!("{}", message)
     }
 }
 
@@ -50,7 +82,7 @@ fn main() {
     Return either an error string if anything goes wrong or
     a message to display to the user if all went OK
 */
-fn run() -> Result<String, String> {
+fn run() -> Result<String> {
     let (url, args, dump, skip_generation, debug_symbols, out_dir)
         = parse_args(get_matches())?;
     let meta_provider = MetaProvider {};
@@ -70,7 +102,7 @@ fn run() -> Result<String, String> {
             // Append flow arguments at the end of the arguments so that they are passed on it when it's run
             execute_flow(manifest_path, args)
         }
-        _ => Err(format!("Process loaded was not of type 'Flow' and cannot be executed"))
+        _ => bail!("Process loaded was not of type 'Flow' and cannot be executed")
     }
 }
 
@@ -117,7 +149,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 /*
     Parse the command line arguments
 */
-fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, bool, PathBuf), String> {
+fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, bool, PathBuf)> {
     let mut args: Vec<String> = vec!();
     if let Some(flow_args) = matches.values_of("flow_args") {
         args = flow_args.map(|a| a.to_string()).collect();
@@ -139,7 +171,7 @@ fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, bool
     Ok((url, args, dump, skip_generation, debug_symbols, output_dir))
 }
 
-fn compile(flow: &Flow, dump: bool, out_dir: &PathBuf) -> Result<GenerationTables, String> {
+fn compile(flow: &Flow, dump: bool, out_dir: &PathBuf) -> Result<GenerationTables> {
     info!("flow loaded with alias '{}'\n", flow.alias);
 
     let tables = compile::compile(&flow)?;
@@ -154,15 +186,18 @@ fn compile(flow: &Flow, dump: bool, out_dir: &PathBuf) -> Result<GenerationTable
 }
 
 fn write_manifest(flow: Flow, debug_symbols: bool, out_dir: PathBuf, tables: &GenerationTables)
-                  -> Result<PathBuf, std::io::Error> {
+                  -> Result<PathBuf> {
     let mut filename = out_dir.clone();
     filename.push(DEFAULT_MANIFEST_FILENAME.to_string());
-    let mut manifest_file = File::create(&filename)?;
+    let mut manifest_file = File::create(&filename).chain_err(|| "Could not create manifest file")?;
     let out_dir_path = Url::from_file_path(out_dir).unwrap().to_string();
 
-    let manifest = generate::create_manifest(&flow, debug_symbols, &out_dir_path, tables)?;
+    let manifest = generate::create_manifest(&flow, debug_symbols, &out_dir_path, tables)
+        .chain_err(|| "Could not create manifest from parsed flow and compiler tables")?;
 
-    manifest_file.write_all(serde_json::to_string_pretty(&manifest)?.as_bytes())?;
+    manifest_file.write_all(serde_json::to_string_pretty(&manifest)
+        .chain_err(|| "Could not pretty format the manifest JSON contents")?
+        .as_bytes()).chain_err(|| "Could not write manifest data bytes to created manifest file")?;
 
     Ok(filename)
 }
@@ -183,7 +218,7 @@ fn get_executable_name() -> String {
           to facilitate development.
         - If not found there, then look in the PATH env variable
 */
-fn find_executable_path(name: &str) -> Result<String, String> {
+fn find_executable_path(name: &str) -> Result<String> {
     // See if debug version in development is available
     let cwd = env::current_dir().map_err(|e| e.to_string())?;
     let file = cwd.join(&format!("./target/debug/{}", name));
@@ -194,10 +229,10 @@ fn find_executable_path(name: &str) -> Result<String, String> {
 
     // Couldn't find the development version under CWD where running, so look in path
     let bin_search_path = Simpath::new("PATH");
-    match bin_search_path.find_type(name, FileType::File) {
-        Ok(bin_path) => Ok(bin_path.to_string_lossy().to_string()),
-        Err(e) => Err(e.to_string())
-    }
+    let bin_path = bin_search_path.find_type(name, FileType::File)
+        .chain_err(|| format!("Could not find executable '{}'", name))?;
+
+    Ok(bin_path.to_string_lossy().to_string())
 }
 
 /*
@@ -207,7 +242,7 @@ fn find_executable_path(name: &str) -> Result<String, String> {
     If the process exits correctly then just return an Ok() with message and no log
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
-fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String, String> {
+fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String> {
     info!("==== Flowc: Executing flow from manifest in '{}'", filepath.display());
 
     let command = find_executable_path(&get_executable_name())?;
@@ -223,8 +258,8 @@ fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String, Stri
         Some(0) => Ok("Flow ran to completion".to_string()),
         Some(code) => {
             error!("Process STDERR:\n{}", String::from_utf8_lossy(&output.stderr));
-            Err(format!("Exited with status code: {}", code))
+            bail!("Exited with status code: {}", code);
         }
-        None => Err("Process terminated by signal".to_string())
+        None => bail!("Process terminated by signal")
     }
 }
