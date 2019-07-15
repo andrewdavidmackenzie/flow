@@ -6,6 +6,7 @@ use crate::model::io::IO;
 use crate::model::name::Name;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
+use crate::errors::*;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -43,7 +44,7 @@ impl fmt::Display for Connection {
 
 impl Validate for Connection {
     // Called before everything is loaded and connected up to check all looks good
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<()> {
         if let Some(ref name) = self.name {
             name.validate()?;
         }

@@ -1,18 +1,13 @@
-use crate::compiler::loader::{Deserializer, DeserializeError};
+use crate::compiler::loader::Deserializer;
+use crate::errors::*;
 use crate::model::process::Process;
 
 pub struct FlowYamlLoader;
 
 // NOTE: Indexes are one-based
 impl Deserializer for FlowYamlLoader {
-    fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process, DeserializeError> {
-        serde_yaml::from_str(contents).map_err(|e| {
-            let line_col = match e.location() {
-                Some(location) => Some((location.line(), location.column())),
-                _ => None
-            };
-            DeserializeError::new("Yaml deserialization error", line_col, url)
-        })
+    fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process> {
+        serde_yaml::from_str(contents).chain_err(|| format!("Error deserializing Yaml from: '{:?}'", url))
     }
 
     fn name(&self) -> &'static str { "Yaml" }
@@ -31,7 +26,7 @@ mod test {
 
         match deserializer.deserialize("{}", None) {
             Ok(_) => assert!(false, "Should not have parsed correctly as is invalid JSON"),
-            Err(e) => assert_eq!(None, e.line_col(), "Should produce syntax error at (1,1)")
+            Err(_) => assert!(true, "Should produce syntax error at (1,1)")
         };
     }
 

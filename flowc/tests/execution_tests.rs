@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate error_chain;
 extern crate flowclib;
 extern crate flowrlib;
 extern crate provider;
@@ -23,6 +25,19 @@ use url::Url;
 
 use provider::content::provider::MetaProvider;
 
+mod errors {
+    // Create the Error, ErrorKind, ResultExt, and Result types
+    error_chain! {}
+}
+
+error_chain! {
+    foreign_links {
+        Provider(::provider::errors::Error);
+        Compiler(::flowclib::errors::Error);
+        Io(::std::io::Error);
+    }
+}
+
 /// Execution tests
 ///
 /// These are a set of System tests that compile a sample flow, and then execute it, capturing
@@ -42,15 +57,18 @@ fn set_flow_lib_path() {
 }
 
 fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: PathBuf, test_name: &str, tables: &GenerationTables)
-                  -> Result<PathBuf, std::io::Error> {
+                  -> Result<PathBuf> {
     let mut filename = out_dir.clone();
     filename.push(&format!("{}.json", test_name));
-    let mut manifest_file = File::create(&filename)?;
+    let mut manifest_file = File::create(&filename).chain_err(|| "Could not create manifest file")?;
     let out_dir_path = Url::from_file_path(&filename).unwrap().to_string();
 
     let manifest = generate::create_manifest(&flow, debug_symbols, &out_dir_path, tables)?;
 
-    manifest_file.write_all(serde_json::to_string_pretty(&manifest)?.as_bytes())?;
+    manifest_file.write_all(serde_json::to_string_pretty(&manifest)
+        .chain_err(|| "Could not pretty format json for manifest")?
+        .as_bytes())
+        .chain_err(|| "Could not writ emanifest data bytes to file")?;
 
     Ok(filename)
 }

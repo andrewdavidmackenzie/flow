@@ -5,6 +5,7 @@ use crate::generator::generate::GenerationTables;
 use crate::model::connection::Connection;
 use crate::model::name::HasName;
 use crate::model::io::IOType;
+use crate::errors::*;
 
 /*
     Go through all connections, finding:
@@ -15,7 +16,7 @@ use crate::model::io::IOType;
     (according to each function's output route in the original description plus each connection from
      that route, which could be to multiple destinations)
 */
-pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<(), String> {
+pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()> {
     debug!("Setting output routes on processes");
     for connection in &tables.collapsed_connections {
         if let Some((output_route, source_id)) = get_source(&tables.source_routes, &connection.from_io.route()) {
@@ -41,10 +42,10 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<(),
                     }
                 }
             } else {
-                return Err(format!("Connection destination process for route '{}' not found", connection.to_io.route()));
+                bail!("Connection destination process for route '{}' not found", connection.to_io.route());
             }
         } else {
-            return Err(format!("Connection source process for route '{}' not found", connection.from_io.route()));
+            bail!("Connection source process for route '{}' not found", connection.from_io.route());
         }
     }
 

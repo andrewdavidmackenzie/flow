@@ -51,6 +51,7 @@ mod errors {
 error_chain! {
     foreign_links {
         Provider(::provider::errors::Error);
+        Compiler(::flowclib::errors::Error);
         Io(::std::io::Error);
     }
 }

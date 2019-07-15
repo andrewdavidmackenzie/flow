@@ -1,5 +1,7 @@
-use crate::compiler::loader::Validate;
 use std::fmt;
+
+use crate::compiler::loader::Validate;
+use crate::errors::*;
 use crate::model::route::Route;
 
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -12,14 +14,14 @@ impl Name {
 }
 
 impl Validate for Name {
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<()> {
         if self.is_empty() {
-            return Err(format!("Name '{}' cannot have an empty or whitespace name", self));
+            bail!("Name '{}' cannot have an empty or whitespace name", self);
         }
 
         // Names cannot be numbers as they can be confused with array indexes for Array outputs
         if let Ok(_) = self.parse::<usize>() {
-            return Err(format!("Name '{}' cannot be a number, they are reserved for array indexes", self));
+            bail!("Name '{}' cannot be a number, they are reserved for array indexes", self);
         }
 
         Ok(())

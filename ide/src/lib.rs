@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate error_chain;
 extern crate flowclib;
 extern crate flowrlib;
 extern crate flowstdlib;
@@ -29,6 +31,21 @@ use web_sys::HtmlButtonElement;
 
 use crate::runtime::ilt;
 
+// We'll put our errors in an `errors` module, and other modules in
+// this crate will `use errors::*;` to get access to everything
+// `error_chain!` creates.
+pub mod errors {
+    // Create the Error, ErrorKind, ResultExt, and Result types
+    error_chain! {}
+}
+
+error_chain! {
+    foreign_links {
+        Compiler(flowclib::errors::Error);
+        Io(::std::io::Error);
+    }
+}
+
 mod runtime;
 
 const DEFAULT_LOG_LEVEL: Level = Level::Error;
@@ -39,7 +56,7 @@ const DEFAULT_LOG_LEVEL: Level = Level::Error;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-fn info(document: &Document) -> Result<(), JsValue> {
+fn info(document: &Document) {
     let flowide_el = document.get_element_by_id("flowide").expect("could not find 'flowide' element");
     flowide_el.set_inner_html(&format!("flowide: version = {}", env!("CARGO_PKG_VERSION")));
 
@@ -51,11 +68,9 @@ fn info(document: &Document) -> Result<(), JsValue> {
 
     let flowclib_el = document.get_element_by_id("flowclib").expect("could not find 'flowclib' element");
     flowclib_el.set_inner_html(&format!("flowclib: version = {}", flowclib::info::version()));
-
-    Ok(())
 }
 
-fn get_flow_lib_path(document: &Document) -> Result<String, String> {
+fn get_flow_lib_path(document: &Document) -> Result<String> {
     let flow_lib_path_el = document.get_element_by_id("flow_lib_path").expect("could not find 'flow_lib_path' element");
     flow_lib_path_el.text_content().ok_or("Flow Lib Path not set".into())
 }
@@ -68,7 +83,7 @@ fn pretty_print_json_for_html<S: Into<String> + Debug>(string: &S) -> String {
         .replace("}\"", "}")
 }
 
-fn load_flow(provider: &Provider, url: &str) -> Result<Flow, String> {
+fn load_flow(provider: &Provider, url: &str) -> Result<Flow> {
     info!("Loading flow");
 
     match loader::load_context(url, provider)? {
@@ -85,15 +100,15 @@ fn set_flow_contents(document: &Document, content: &str) {
 /*
     manifest_dir is used as a reference directory for relative paths to project files
 */
-fn compile(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manifest, String> {
+fn compile(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manifest> {
     info!("Compiling Flow to Manifest");
     let tables = compile::compile(flow)?;
 
-    generate::create_manifest(&flow, debug_symbols, &manifest_dir, &tables).map_err(|e|
-        e.to_string())
+    generate::create_manifest(&flow, debug_symbols, &manifest_dir, &tables)
+        .chain_err(|| "COuld not compile flow to manifest")
 }
 
-pub fn load_manifest(provider: &Provider, url: &str) -> Result<Manifest, String> {
+pub fn load_manifest(provider: &Provider, url: &str) -> Result<Manifest> {
     info!("Loading manifest");
 
     let mut loader = Loader::new();
@@ -139,7 +154,7 @@ fn setup_run_button(document: &Document) {
     run.forget();
 }
 
-fn setup_actions(document: &Document) -> Result<(), JsValue> {
+fn setup_actions(document: &Document) -> Result<()> {
     setup_run_button(document);
 
     Ok(())
@@ -185,7 +200,7 @@ fn get_log_level(document: &Document) -> Option<String> {
 
 // This is like the `main` function, except for JavaScript.
 #[wasm_bindgen(start)]
-pub fn main_js() -> Result<(), JsValue> {
+pub fn main_js() -> std::result::Result<(), JsValue> {
     set_panic_hook();
     let window = web_sys::window().expect("no global `window` exists");
     let document = window.document().expect("should have a document on window");
@@ -194,11 +209,11 @@ pub fn main_js() -> Result<(), JsValue> {
 
     init_logging(log_level_arg);
 
-    info(&document)?;
+    info(&document);
 
-    let flow_lib_path = get_flow_lib_path(&document)?;
+    let flow_lib_path = get_flow_lib_path(&document).map_err(|e| JsValue::from_str(&e.to_string()))?;
 
-    setup_actions(&document)?;
+    setup_actions(&document).map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     let manifest;
 
@@ -208,10 +223,13 @@ pub fn main_js() -> Result<(), JsValue> {
 
         let provider = MetaProvider::new(flow_content, flow_lib_path);
 
-        let flow = load_flow(&provider, "file:://Users/andrew/workspace/flow/ide/crate/src/hello_world.toml")?;
-        manifest = compile(&flow, true, "/Users/andrew/workflow/flow")?;
+        let flow = load_flow(&provider, "file:://Users/andrew/workspace/flow/ide/crate/src/hello_world.toml")
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        manifest = compile(&flow, true, "/Users/andrew/workflow/flow")
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
-        let manifest_content = serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?;
+        let manifest_content = serde_json::to_string_pretty(&manifest)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
         set_manifest_contents(&document, &manifest_content);
     } else {
         let manifest_content = String::from_utf8_lossy(include_bytes!("hello_world.json")).to_string();
@@ -219,7 +237,8 @@ pub fn main_js() -> Result<(), JsValue> {
 
         let provider = MetaProvider::new(manifest_content, flow_lib_path);
 
-        manifest = load_manifest(&provider, "file://")?;
+        manifest = load_manifest(&provider, "file://")
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
     }
 
     let submission = Submission::new(manifest, 1, false, None);

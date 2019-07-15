@@ -13,6 +13,7 @@ use crate::model::route::HasRoute;
 use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
+use crate::errors::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -128,7 +129,7 @@ impl From<Function> for RuntimeFunction {
 }
 
 impl Validate for Function {
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<()> {
         self.name.validate()?;
 
         let mut io_count = 0;
@@ -149,7 +150,7 @@ impl Validate for Function {
 
         // A function must have at least one valid input or output
         if io_count == 0 {
-            return Err("A function must have at least one input or output".to_string());
+            bail!("A function must have at least one input or output");
         }
 
         Ok(())

@@ -5,7 +5,6 @@ authors = ["Andrew Mackenzie"]
 edition = "2018"
 categories = ["wasm"]
 description = "A web version of the 'flow' project for data driven parallel applications"
-license = "Apache-2.0/MIT"
 readme = "README.md"
 repository = "https://github.com/andrewdmackenzie/flow"
 
@@ -36,6 +35,7 @@ nodeprovider = { path = "../nodeprovider", version = "0.1.0" }
 serde_json = "1.0"
 wasm-logger = "0.1.4"
 log = {version = "0.4.6", features = ["std"]}
+error-chain = "0.12.1"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
