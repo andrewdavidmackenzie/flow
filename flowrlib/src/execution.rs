@@ -1,8 +1,10 @@
 use std::panic;
-use crate::run_state::{Job, Output};
-use std::sync::mpsc::{Sender, Receiver};
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
+
+use crate::errors::*;
+use crate::run_state::{Job, Output};
 
 /*
     Start a number of executor threads that all listen on the 'job_rx' channel for
@@ -17,34 +19,30 @@ pub fn start_executors(number_of_executors: usize,
     }
 }
 
-pub fn get_and_execute_job(job_rx: &Arc<Mutex<Receiver<Job>>>, output_tx: &Sender<Output>) -> Result<(), String> {
-    let job = job_rx.lock().unwrap().recv();
-    match job {
-        Ok(job) => execute(job, output_tx),
-        Err(e) => Err(e.to_string())
-    }
+pub fn get_and_execute_job(job_rx: &Arc<Mutex<Receiver<Job>>>,
+                           output_tx: &Sender<Output>) -> Result<()> {
+    let job = job_rx.lock().unwrap().recv().chain_err(|| "Error while receiving job for execution")?;
+    execute(job, output_tx)
 }
 
-pub fn get_and_execute_pure_job(pure_job_rx: &Receiver<Job>, output_tx: &Sender<Output>) -> Result<(), String> {
-    let job = pure_job_rx.try_recv();
-    match job {
-        Ok(job) => execute(job, output_tx),
-        Err(e) => Err(e.to_string())
-    }
+pub fn get_and_execute_pure_job(pure_job_rx: &Receiver<Job>,
+                                output_tx: &Sender<Output>) -> Result<()> {
+    let job = pure_job_rx.try_recv().chain_err(|| "Error while receiving pure job for execution")?;
+    execute(job, output_tx)
 }
 
 fn create_executor(name: String, job_rx: Arc<Mutex<Receiver<Job>>>, output_tx: Sender<Output>) {
     let builder = thread::Builder::new().name(name);
-    builder.spawn(move || {
+    let _ = builder.spawn(move || {
         set_panic_hook();
 
         loop {
             get_and_execute_job(&job_rx, &output_tx).unwrap();
         }
-    }).unwrap();
+    });
 }
 
-fn execute(job: Job, output_tx: &Sender<Output>) -> Result<(), String> {
+fn execute(job: Job, output_tx: &Sender<Output>) -> Result<()> {
     // Run the implementation with the input values and catch the execution result
     let (result, error) = match panic::catch_unwind(|| {
         job.implementation.run(job.input_set.clone())

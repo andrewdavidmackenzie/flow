@@ -1,6 +1,8 @@
+use std::collections::HashSet;
+
+use crate::errors::*;
 use crate::function::Function;
 use crate::provider::Provider;
-use std::collections::HashSet;
 
 pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest.json";
 
@@ -41,21 +43,12 @@ impl Manifest {
     /*
         Load, or Deserialize, a manifest from a `source` Url using `provider`
     */
-    pub fn load(provider: &Provider, source: &str) -> Result<Manifest, String> {
+    pub fn load(provider: &Provider, source: &str) -> Result<Manifest> {
         let (resolved_url, _) = provider.resolve(source, DEFAULT_MANIFEST_FILENAME)?;
         let content = provider.get(&resolved_url)?;
 
-        serde_json::from_str(&String::from_utf8(content).unwrap())
-            .map_err(|e| format!("Could not create a manifest from '{}'\nError = '{}'",
-                                 source, e))
-    }
-
-    /*
-        Deserialize a manifest from a content &str
-    */
-    pub fn from_str(content: &str) -> Result<Manifest, String> {
-        serde_json::from_str(content)
-            .map_err(|e| format!("Could not create a manifest from '{}'\nError = '{}'",
-                                 content, e))
+        serde_json::from_str(
+            &String::from_utf8(content).chain_err(|| "Could not convert from utf8 to String")?)
+            .chain_err(|| format!("Could not create a manifest from '{}'", source))
     }
 }

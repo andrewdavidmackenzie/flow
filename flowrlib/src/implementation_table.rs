@@ -2,6 +2,7 @@ use crate::implementation::Implementation;
 use std::collections::HashMap;
 use crate::provider::Provider;
 use std::sync::Arc;
+use crate::errors::*;
 
 /*
     Implementations can be of two types - either a native and statically bound function referenced
@@ -33,13 +34,13 @@ impl ImplementationLocatorTable {
         }
     }
 
-    pub fn load(provider: &Provider, source: &str) -> Result<ImplementationLocatorTable, String> {
+    pub fn load(provider: &Provider, source: &str) -> Result<ImplementationLocatorTable> {
         let (resolved_url, _) = provider.resolve(source, DEFAULT_ILT_FILENAME)?;
         let content = provider.get(&resolved_url)?;
 
-        serde_json::from_str(&String::from_utf8(content).unwrap())
-            .map_err(|e| format!("Could not read ILT from '{}'\nError = '{}'",
-                                 source, e))
+        serde_json::from_str(
+            &String::from_utf8(content).chain_err(|| "Could not convert from utf8 to String")?)
+            .chain_err(|| format!("Could not read ILT as Json from '{}'", source))
     }
 }
 

@@ -10,6 +10,8 @@ use wasmi::{ImportsBuilder, Module, ModuleInstance, ModuleRef};
 #[cfg(not(target_arch = "wasm32"))]
 use std::sync::Mutex;
 
+use crate::errors::*;
+
 #[cfg(not(target_arch = "wasm32"))]
 const DEFAULT_WASM_FILENAME: &str = "module.wasm";
 
@@ -51,20 +53,20 @@ impl Implementation for WasmExecutor {
     load a Wasm module from the specified Url.
 */
 #[cfg(target_arch = "wasm32")]
-pub fn load(_provider: &Provider, _function_name: &str, _source_url: &str) -> Result<Arc<WasmExecutor>, String> {
+pub fn load(_provider: &Provider, _function_name: &str, _source_url: &str) -> Result<Arc<WasmExecutor>> {
     let executor = WasmExecutor {};
     Ok(Arc::new(executor))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn load(provider: &Provider, function_name: &str, source_url: &str) -> Result<Arc<WasmExecutor>, String> {
+pub fn load(provider: &Provider, function_name: &str, source_url: &str) -> Result<Arc<WasmExecutor>> {
     let (resolved_url, _) = provider.resolve(&source_url, DEFAULT_WASM_FILENAME)?;
     let content = provider.get(&resolved_url)?;
 
     let module = Module::from_buffer(content).map_err(|e| e.to_string())?;
 
     let module_ref = ModuleInstance::new(&module, &ImportsBuilder::default())
-        .map_err(|e| e.to_string())?
+        .chain_err(|| "Could not create new ModuleInstance when loading WASM content")?
         .assert_no_start();
 
     let executor = WasmExecutor {

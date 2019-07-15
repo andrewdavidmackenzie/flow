@@ -83,21 +83,24 @@ fn run() -> Result<()> {
     let cwd = cwd_as_url().chain_err(|| "Could not get the current working directory as a URL")?;
 
     // Load this runtime's native implementations
-    loader.add_lib(&provider, ::ilt::get_ilt(), &cwd.to_string())?;
+    loader.add_lib(&provider, ::ilt::get_ilt(), &cwd.to_string())
+        .chain_err(|| "Could not add library to loader")?;
 
     // TODO - when loader can load a library from a reference in the manifest via it's WASM
     // implementations, then remove this and let the loader take care of it in flowrlib
     // Load standard library functions from flowstdlib
     // For now we are passing in a fake ilt.json file so the basepath for finding wasm files works.
     loader.add_lib(&provider, flowstdlib::ilt::get_ilt(),
-                   &format!("{}flowstdlib/ilt.json", &cwd.to_string()))?;
+                   &format!("{}flowstdlib/ilt.json", &cwd.to_string()))
+        .chain_err(|| "Could not add library to loader")?;
 
     let debugger = matches.is_present("debugger");
     let metrics = matches.is_present("metrics");
     let mut coordinator = Coordinator::new(num_threads(&matches, debugger));
 
     // Load the flow to run from the manifest
-    let manifest = loader.load_manifest(&provider, &url.to_string())?;
+    let manifest = loader.load_manifest(&provider, &url.to_string())
+        .chain_err(|| "Could not load the flow to execute from the manifest")?;
 
     // run the flow
     let num_parallel_jobs = num_parallel_jobs(&matches, debugger);
