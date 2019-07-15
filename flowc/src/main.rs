@@ -260,7 +260,7 @@ fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String> {
         Some(0) => Ok("Flow ran to completion".to_string()),
         Some(code) => {
             error!("Process STDERR:\n{}", String::from_utf8_lossy(&output.stderr));
-            bail!("Exited with status code: {}", code);
+            bail!("Exited with status code: {}", code)
         }
         None => bail!("Process terminated by signal")
     }
