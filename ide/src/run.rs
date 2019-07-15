@@ -79,8 +79,8 @@ fn compile(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manif
     info!("Compiling Flow to Manifest");
     let tables = compile::compile(flow)?;
 
-    generate::create_manifest(&flow, debug_symbols, &manifest_dir, &tables).map_err(|e|
-        e.to_string())
+    generate::create_manifest(&flow, debug_symbols, &manifest_dir, &tables)
+        .chain_err(|| "Could not create the manifest from flow and compiled tables")
 }
 
 pub fn load_manifest(provider: &Provider, url: &str) -> Result<Manifest, String> {
@@ -106,7 +106,7 @@ pub fn load_manifest(provider: &Provider, url: &str) -> Result<Manifest, String>
     info!("resolving implementations");
     // Find the implementations for all functions in this flow
     loader.resolve_implementations(&mut manifest, provider, "fake manifest_url").
-        map_err(|e| e.to_string())?;
+        chain_err(|| "Could not resolve the implementations of loaded functions")?;
 
     Ok(manifest)
 }
@@ -201,7 +201,8 @@ pub fn main_js() -> Result<(), JsValue> {
         let flow = load_flow(&provider, "file:://Users/andrew/workspace/flow/ide/crate/src/hello_world.toml")?;
         manifest = compile(&flow, true, "/Users/andrew/workflow/flow")?;
 
-        let manifest_content = serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?;
+        let manifest_content = serde_json::to_string_pretty(&manifest)
+            .chain_err(|e| "Could not pretty format Json content")?;
         set_manifest_contents(&document, &manifest_content);
     } else {
         let manifest_content = String::from_utf8_lossy(include_bytes!("hello_world.json")).to_string();

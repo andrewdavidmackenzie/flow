@@ -63,7 +63,8 @@ pub fn load(provider: &Provider, function_name: &str, source_url: &str) -> Resul
     let (resolved_url, _) = provider.resolve(&source_url, DEFAULT_WASM_FILENAME)?;
     let content = provider.get(&resolved_url)?;
 
-    let module = Module::from_buffer(content).map_err(|e| e.to_string())?;
+    let module = Module::from_buffer(content)
+        .chain_err(|| format!("Could not create Wasm Module from content in '{}'", resolved_url))?;
 
     let module_ref = ModuleInstance::new(&module, &ImportsBuilder::default())
         .chain_err(|| "Could not create new ModuleInstance when loading WASM content")?

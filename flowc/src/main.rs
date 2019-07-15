@@ -90,14 +90,14 @@ fn run() -> Result<String> {
     info!("==== Loader");
     match loader::load_context(&url.to_string(), &meta_provider)? {
         FlowProcess(flow) => {
-            let tables = compile(&flow, dump, &out_dir).map_err(|e| e.to_string())?;
+            let tables = compile(&flow, dump, &out_dir).chain_err(|| "Failed to compile")?;
 
             if skip_generation {
                 return Ok("Manifest generation and flow running skipped".to_string());
             }
 
-            let manifest_path = write_manifest(flow, debug_symbols, out_dir, &tables).map_err(|e| e.to_string()).
-                map_err(|e| e.to_string())?;
+            let manifest_path = write_manifest(flow, debug_symbols, out_dir, &tables)
+                .chain_err(|| "Failed to write manifest")?;
 
             // Append flow arguments at the end of the arguments so that they are passed on it when it's run
             execute_flow(manifest_path, args)
@@ -179,9 +179,12 @@ fn compile(flow: &Flow, dump: bool, out_dir: &PathBuf) -> Result<GenerationTable
     let tables = compile::compile(&flow)?;
 
     if dump {
-        dump_flow::dump_flow(&flow, &out_dir).map_err(|e| e.to_string())?;
-        dump_tables::dump_tables(&tables, &out_dir).map_err(|e| e.to_string())?;
-        dump_tables::dump_functions(&flow, &tables, &out_dir).map_err(|e| e.to_string())?;
+        dump_flow::dump_flow(&flow, &out_dir)
+            .chain_err(|| "Failed to dump flow's definition")?;
+        dump_tables::dump_tables(&tables, &out_dir)
+            .chain_err(|| "Failed to dump flow's tables")?;
+        dump_tables::dump_functions(&flow, &tables, &out_dir)
+            .chain_err(|| "Failed to dump flow's functions")?;
     }
 
     Ok(tables)
@@ -222,7 +225,7 @@ fn get_executable_name() -> String {
 */
 fn find_executable_path(name: &str) -> Result<String> {
     // See if debug version in development is available
-    let cwd = env::current_dir().map_err(|e| e.to_string())?;
+    let cwd = env::current_dir().chain_err(|| "Could not get the current working directory")?;
     let file = cwd.join(&format!("./target/debug/{}", name));
     let abs_path = file.canonicalize();
     if let Ok(file_exists) = abs_path {
@@ -255,13 +258,13 @@ fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String> {
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::piped())
-        .output().map_err(|e| e.to_string())?;
+        .output().chain_err(|| "Error while attempting to spawn command to compile and run flow")?;
     match output.status.code() {
         Some(0) => Ok("Flow ran to completion".to_string()),
         Some(code) => {
             error!("Process STDERR:\n{}", String::from_utf8_lossy(&output.stderr));
             bail!("Exited with status code: {}", code)
         }
-        None => bail!("Process terminated by signal")
+        None => Ok("No return code - ignoring".to_string())
     }
 }

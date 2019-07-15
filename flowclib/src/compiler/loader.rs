@@ -39,6 +39,7 @@ pub trait Validate {
 /// extern crate flowrlib;
 ///
 /// use flowrlib::provider::Provider;
+/// use flowrlib::errors::*;
 /// use std::env;
 /// use url::Url;
 ///
@@ -49,12 +50,12 @@ pub trait Validate {
 /// // A Provider must implement the `Provider` trait, with the methods to `resolve` a URL and to
 /// // `get` the contents for parsing.
 /// impl Provider for DummyProvider {
-///     fn resolve(&self, url: &str, default_filename: &str) -> Result<(String, Option<String>), String> {
+///     fn resolve(&self, url: &str, default_filename: &str) -> Result<(String, Option<String>)> {
 ///        // Just fake the url resolution in this example
 ///        Ok((url.to_string(), None))
 ///     }
 ///
-///    fn get(&self, url: &str) -> Result<Vec<u8>, String> {
+///    fn get(&self, url: &str) -> Result<Vec<u8>> {
 ///        // Return the simplest flow definition possible - ignoring the url passed in
 ///        Ok("flow = \"test\"".as_bytes().to_owned())
 ///     }
@@ -72,16 +73,18 @@ pub fn load_context(url: &str, provider: &Provider) -> Result<Process> {
 
 fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provider,
                 initializations: &Option<HashMap<String, InputInitializer>>) -> Result<Process> {
-    let (resolved_url, lib_ref) = provider.resolve(url, "context.toml")?;
+    let (resolved_url, lib_ref) = provider.resolve(url, "context.toml")
+        .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
     debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
-    let contents = provider.get(&resolved_url)?;
+    let contents = provider.get(&resolved_url)
+        .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
 
     let deserializer = get_deserializer(&resolved_url)?;
     info!("Deserializing process with alias = '{}' from url = '{}' with deserializer: '{}'",
           alias, resolved_url, deserializer.name());
     let mut process = deserializer.deserialize(&String::from_utf8(contents).unwrap(),
                                                Some(url))
-        .map_err(|e| e.to_string() )?;
+        .chain_err(|| format!("Could not deserialize process from content in '{}'", url))?;
 
     debug!("Deserialized flow, now parsing and loading any sub-processes");
     match process {

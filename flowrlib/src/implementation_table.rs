@@ -50,17 +50,18 @@ mod test {
     use crate::implementation_table::ImplementationLocator;
     use crate::implementation_table::ImplementationLocator::Wasm;
     use crate::provider::Provider;
+    use crate::errors::*;
 
     pub struct TestProvider {
         test_content: &'static str
     }
 
     impl Provider for TestProvider {
-        fn resolve(&self, source: &str, _default_filename: &str) -> Result<(String, Option<String>), String> {
+        fn resolve(&self, source: &str, _default_filename: &str) -> Result<(String, Option<String>)> {
             Ok((source.to_string(), None))
         }
 
-        fn get(&self, _url: &str) -> Result<Vec<u8>, String> {
+        fn get(&self, _url: &str) -> Result<Vec<u8>> {
             Ok(self.test_content.as_bytes().to_owned())
         }
     }

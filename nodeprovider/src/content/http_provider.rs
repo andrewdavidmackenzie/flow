@@ -1,11 +1,12 @@
+use flowrlib::errors::*;
 use flowrlib::provider::Provider;
 
 pub struct HttpProvider;
 
 impl Provider for HttpProvider {
-    fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>), String> {
+    fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>)> {
 /*        let url = Url::parse(url_str)
-            .map_err(|_| format!("COuld not convert '{}' to valid Url", url_str))?;
+            .chain_err(|| format!("Could not convert '{}' to valid Url", url_str))?;
         if url.path().ends_with('/') {
             info!("'{}' is a directory, so attempting to find context file in it", url);
             Ok((HttpProvider::find_default_file(&url_str).unwrap(), None))
@@ -16,7 +17,7 @@ impl Provider for HttpProvider {
         Ok((url_str.into(), None))
     }
 
-    fn get(&self, _url: &str) -> Result<Vec<u8>, String> {
+    fn get(&self, _url: &str) -> Result<Vec<u8>> {
         /*
             let mut opts = RequestInit::new();
     opts.method("GET");

@@ -134,8 +134,8 @@ pub fn load_manifest(provider: &Provider, url: &str) -> Result<Manifest> {
 
     info!("resolving implementations");
     // Find the implementations for all functions in this flow
-    loader.resolve_implementations(&mut manifest, provider, "fake manifest_url").
-        map_err(|e| e.to_string())?;
+    loader.resolve_implementations(&mut manifest, provider, "fake manifest_url")
+        .chain_err(|| "Could not resolve implementations of loaded functions")?;
 
     Ok(manifest)
 }

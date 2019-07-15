@@ -44,7 +44,9 @@ pub fn get_output_dir(url: &Url, option: Option<&str>) -> Result<PathBuf> {
 fn make_writeable(output_dir: PathBuf) -> Result<PathBuf> {
     // Now make sure the directory exists, if not create it, and is writable
     if output_dir.exists() {
-        let md = fs::metadata(&output_dir).map_err(|e| e.to_string())?;
+        let md = fs::metadata(&output_dir)
+            .chain_err(|| format!("Could not read metadata of the existing output directory '{}'",
+                                  output_dir.to_str().unwrap()))?;
         // Check it's not a file!
         if md.is_file() {
             bail!("Output directory '{}' already exists as a file", output_dir.to_str().unwrap());
@@ -55,7 +57,8 @@ fn make_writeable(output_dir: PathBuf) -> Result<PathBuf> {
             bail!("Output directory '{}' is read only", output_dir.to_str().unwrap());
         }
     } else {
-        fs::create_dir(&output_dir).map_err(|e| e.to_string())?;
+        fs::create_dir(&output_dir).chain_err(|| format!("Could not create directory '{}'",
+                                                         output_dir.to_str().unwrap()))?;
     }
 
     Ok(output_dir)

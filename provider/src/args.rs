@@ -38,7 +38,8 @@ pub fn url_from_string(string: Option<&str>) -> Result<Url> {
 /// Provide the Current Working Directory (CWD) as a URL (with 'file:' scheme) or an error if it cannot be found.
 ///
 pub fn cwd_as_url() -> Result<Url> {
-    Url::from_directory_path(env::current_dir().unwrap())
+    Url::from_directory_path(
+        env::current_dir().chain_err(|| "Could not get current working directory value")?)
         .map_err(|_| "Could not form a Url for the current working directory".into())
 }
 

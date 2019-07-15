@@ -19,16 +19,17 @@ use crate::dumper::dump_dot;
 /// use std::env;
 /// use url::Url;
 /// use flowrlib::provider::Provider;
+/// use flowrlib::errors::*;
 /// use flowclib::model::process::Process::FlowProcess;
 ///
 /// struct DummyProvider {}
 ///
 /// impl Provider for DummyProvider {
-///     fn resolve(&self, url: &str, default_filename: &str) -> Result<(String, Option<String>), String> {
+///     fn resolve(&self, url: &str, default_filename: &str) -> Result<(String, Option<String>)> {
 ///         Ok((url.to_string(), None))
 ///     }
 ///
-///     fn get(&self, url: &str) -> Result<Vec<u8>, String> {
+///     fn get(&self, url: &str) -> Result<Vec<u8>> {
 ///         Ok("flow = \"dummy\"".as_bytes().to_owned())
 ///     }
 /// }
@@ -95,17 +96,18 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Resul
 /// use std::env;
 /// use url::Url;
 /// use flowrlib::provider::Provider;
+/// use flowrlib::errors::*;
 /// use flowclib::model::process::Process::FlowProcess;
 ///
 /// struct DummyProvider {}
 ///
 /// impl Provider for DummyProvider {
-///     fn resolve(&self, url: &str, default_filename: &str) -> Result<(String, Option<String>), String> {
+///     fn resolve(&self, url: &str, default_filename: &str) -> Result<(String, Option<String>)> {
 ///         Ok((url.to_string(), None))
 ///     }
 ///
 ///     // Return a flow definition for the content for the example
-///     fn get(&self, url: &str) -> Result<Vec<u8>, String> {
+///     fn get(&self, url: &str) -> Result<Vec<u8>> {
 ///         Ok("flow = \"dummy\"".as_bytes().to_owned())
 ///     }
 /// }
