@@ -1,76 +1,30 @@
 use std::collections::HashMap;
 
-use crate::deserializers::deserializer_helper::get_deserializer;
 use flowrlib::input::InputInitializer;
 use flowrlib::provider::Provider;
 use flowrlib::url;
+
+use crate::deserializers::deserializer_helper::get_deserializer;
+use crate::errors::*;
 use crate::model::flow::Flow;
 use crate::model::function::Function;
 use crate::model::io::IO;
 use crate::model::name::HasName;
+use crate::model::name::Name;
 use crate::model::process::Process;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 use crate::model::route::Route;
-use crate::model::name::Name;
 use crate::model::route::SetRoute;
-use std::fmt;
-
-#[derive(Debug)]
-pub struct DeserializeError {
-    description: String,
-    line_col: Option<(usize, usize)>,
-    url: Option<String>,
-}
-
-impl DeserializeError {
-    pub fn new(description: &str, line_col: Option<(usize, usize)>, url: Option<&str>) -> Self {
-        let source_url = match url {
-            None => None,
-            Some(url_str) => Some(url_str.into())
-        };
-        DeserializeError {
-            description: description.into(),
-            line_col,
-            url: source_url,
-        }
-    }
-
-    pub fn description(&self) -> &str {
-        &self.description
-    }
-
-    pub fn line_col(&self) -> Option<(usize, usize)> {
-        self.line_col
-    }
-
-    pub fn url(&self) -> &Option<String> {
-        &self.url
-    }
-}
-
-impl fmt::Display for DeserializeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Deserializing error: {}\n", self.description)?;
-        if let Some(url) = &self.url {
-            write!(f, "\tUrl: {}\n", url)?;
-        }
-        if let Some((line, col)) = self.line_col {
-            write!(f, "\tLine: {}, Column: {}", line, col)?;
-        }
-        Ok(())
-    }
-}
 
 // All deserializers have to implement this method
 pub trait Deserializer {
-    fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process, DeserializeError>;
-
+    fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process>;
     fn name(&self) -> &'static str;
 }
 
 pub trait Validate {
-    fn validate(&self) -> Result<(), String>;
+    fn validate(&self) -> Result<()>;
 }
 
 /// Load a context process definition from `url`, recursively loading all sub-processes referenced.
@@ -85,6 +39,7 @@ pub trait Validate {
 /// extern crate flowrlib;
 ///
 /// use flowrlib::provider::Provider;
+/// use flowrlib::errors::*;
 /// use std::env;
 /// use url::Url;
 ///
@@ -95,12 +50,12 @@ pub trait Validate {
 /// // A Provider must implement the `Provider` trait, with the methods to `resolve` a URL and to
 /// // `get` the contents for parsing.
 /// impl Provider for DummyProvider {
-///     fn resolve(&self, url: &str, default_filename: &str) -> Result<(String, Option<String>), String> {
+///     fn resolve(&self, url: &str, default_filename: &str) -> Result<(String, Option<String>)> {
 ///        // Just fake the url resolution in this example
 ///        Ok((url.to_string(), None))
 ///     }
 ///
-///    fn get(&self, url: &str) -> Result<Vec<u8>, String> {
+///    fn get(&self, url: &str) -> Result<Vec<u8>> {
 ///        // Return the simplest flow definition possible - ignoring the url passed in
 ///        Ok("flow = \"test\"".as_bytes().to_owned())
 ///     }
@@ -112,22 +67,24 @@ pub trait Validate {
 /// // load the flow from `url = file:///example.toml` using the `dummy_provider`
 /// flowclib::compiler::loader::load_context("file:///example.toml", &dummy_provider).unwrap();
 /// ```
-pub fn load_context(url: &str, provider: &Provider) -> Result<Process, String> {
+pub fn load_context(url: &str, provider: &Provider) -> Result<Process> {
     load_process(&Route::from(""), &Name::from("context"), url, provider, &None)
 }
 
 fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provider,
-                initializations: &Option<HashMap<String, InputInitializer>>) -> Result<Process, String> {
-    let (resolved_url, lib_ref) = provider.resolve(url, "context.toml")?;
+                initializations: &Option<HashMap<String, InputInitializer>>) -> Result<Process> {
+    let (resolved_url, lib_ref) = provider.resolve(url, "context.toml")
+        .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
     debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
-    let contents = provider.get(&resolved_url)?;
+    let contents = provider.get(&resolved_url)
+        .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
 
     let deserializer = get_deserializer(&resolved_url)?;
     info!("Deserializing process with alias = '{}' from url = '{}' with deserializer: '{}'",
           alias, resolved_url, deserializer.name());
     let mut process = deserializer.deserialize(&String::from_utf8(contents).unwrap(),
                                                Some(url))
-        .map_err(|e| e.to_string() )?;
+        .chain_err(|| format!("Could not deserialize process from content in '{}'", url))?;
 
     debug!("Deserialized flow, now parsing and loading any sub-processes");
     match process {
@@ -148,7 +105,7 @@ fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provid
 /*
     Load all sub-processes referenced from a flow via the process_refs field
 */
-fn load_subprocesses(flow: &mut Flow, provider: &Provider) -> Result<(), String> {
+fn load_subprocesses(flow: &mut Flow, provider: &Provider) -> Result<()> {
     if let Some(ref mut process_refs) = flow.process_refs {
         for process_ref in process_refs {
             let subprocess_url = url::join(&flow.source_url, &process_ref.source);
@@ -167,7 +124,7 @@ fn load_subprocesses(flow: &mut Flow, provider: &Provider) -> Result<(), String>
 
 fn config_function(function: &mut Function, source_url: &str, parent_route: &Route, alias: &Name,
                    lib_ref: Option<String>, initializations: &Option<HashMap<String, InputInitializer>>)
-                   -> Result<(), String> {
+                   -> Result<()> {
     function.set_alias(alias);
     function.set_source_url(source_url.clone());
     function.set_lib_reference(lib_ref);
@@ -177,8 +134,7 @@ fn config_function(function: &mut Function, source_url: &str, parent_route: &Rou
 }
 
 fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &Name,
-               initializations: &Option<HashMap<String, InputInitializer>>)
-               -> Result<(), String> {
+               initializations: &Option<HashMap<String, InputInitializer>>) -> Result<()> {
     flow.alias = alias.clone();
     flow.source_url = source_url.to_string();
     IO::set_initial_values(flow.inputs_mut(), initializations);

@@ -1,3 +1,4 @@
+use flowrlib::errors::*;
 use flowrlib::provider::Provider;
 
 //use std::io;
@@ -16,7 +17,7 @@ impl FileProvider {
 }
 
 impl Provider for FileProvider {
-    fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>), String> {
+    fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>)> {
 /*
         match metadata(&path) {
             Ok(md) => {
@@ -24,9 +25,9 @@ impl Provider for FileProvider {
                     info!("'{}' is a directory, so attempting to find default filename in it",
                           path.display());
                     let file = FileProvider::find_default_file(&mut path, default_filename).
-                        map_err(|e| e.to_string())?;
+                        chain_err(|| format!("Could not find default file name '{}'", default_filename))?;
                     let resolved_url = Url::from_file_path(&file)
-                        .map_err(|_| format!("Could not create url from file path '{}'",
+                        .chain_err(|_| format!("Could not create url from file path '{}'",
                                              file.to_str().unwrap()))?;
                     Ok((resolved_url.into_string(), None))
                 } else {
@@ -41,7 +42,7 @@ impl Provider for FileProvider {
         Ok((url_str.into(), None))
     }
 
-    fn get(&self, _url_str: &str) -> Result<Vec<u8>, String> {
+    fn get(&self, _url_str: &str) -> Result<Vec<u8>> {
 //        let file = File::new(url_str);
 //        let reader = FileReaderSync::new()?;
 //        let result_base64 = reader.read_as_text(file);
@@ -66,13 +67,13 @@ impl Provider for FileProvider {
 
         /*
         let url = Url::parse(url_str)
-            .map_err(|_| format!("Could not convert '{}' to Url", url_str))?;
+            .chain_err(|_| format!("Could not convert '{}' to Url", url_str))?;
         let file_path = url.to_file_path().unwrap();
         let mut f = File::open(&file_path)
-            .map_err(|e| format!("Could not open file '{:?}' ({}", file_path, e))?;
+            .chain_err(|e| format!("Could not open file '{:?}' ({}", file_path, e))?;
         let mut buffer = Vec::new();
         f.read_to_end(&mut buffer)
-            .map_err(|e| format!("Could not read content from '{:?}' ({}", file_path, e))?;
+            .chain_err(|e| format!("Could not read content from '{:?}' ({}", file_path, e))?;
         Ok(buffer)
         */
     }

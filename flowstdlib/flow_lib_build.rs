@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate error_chain;
 extern crate flowclib;
 extern crate flowrlib;
 extern crate glob;
@@ -13,6 +15,20 @@ use flowclib::model::name::HasName;
 use flowclib::model::process::Process;
 use flowclib::model::process::Process::FunctionProcess;
 use glob::glob;
+
+// We'll put our errors in an `errors` module, and other modules in
+// this crate will `use errors::*;` to get access to everything
+// `error_chain!` creates.
+mod errors {
+    // Create the Error, ErrorKind, ResultExt, and Result types
+    error_chain! {}
+}
+
+error_chain! {
+    foreign_links {
+        Io(::std::io::Error);
+    }
+}
 
 fn main() -> Result<(), String> {
     let out_dir = env::var("OUT_DIR").unwrap();
@@ -62,10 +78,9 @@ fn build_manifest(lib_name: &str, out_dir: &str) -> HashMap<String, String>{
 }
 
 fn deserialize(path: &PathBuf) -> Result<Process, String> {
-    let content = fs::read_to_string(&path).map_err(
-        |e| format!("Could not load content from '{}', {}",
-                    path.to_str().unwrap(), e))?;
-    toml::from_str(&content).map_err(|e| e.to_string())
+    let content = fs::read_to_string(&path).chain_err(
+        || format!("Could not load content from '{}', {}", path.to_str().unwrap()))?;
+    toml::from_str(&content).chain_err(|| format!("Could not deserialize TOML from '{}'", path))
 }
 
 fn add_to_manifest(lib_name: &str, path: &PathBuf, function_name: &str,

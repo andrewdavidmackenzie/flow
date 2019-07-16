@@ -1,4 +1,5 @@
 use std::fmt;
+use crate::errors::*;
 
 const DATATYPES: &'static [&'static str] = &["String", "Json", "Number", "Bool", "Map", "Array"];
 
@@ -22,19 +23,19 @@ pub trait HasDataType {
 }
 
 pub trait TypeCheck {
-    fn valid(&self) -> Result<(), String>;
+    fn valid(&self) -> Result<()>;
     fn is_array(&self) -> bool;
     fn is_generic(&self) -> bool;
 }
 
 impl TypeCheck for DataType {
-    fn valid(&self) -> Result<(), String> {
+    fn valid(&self) -> Result<()> {
         // Split the type hierarchy and check all levels are valid
         let type_levels = self.split('/');
 
         for type_level in type_levels {
             if !DATATYPES.contains(&type_level) {
-                return Err(format!("Type '{}' is invalid", &self));
+                bail!("Type '{}' is invalid", &self);
             }
         }
         return Ok(());

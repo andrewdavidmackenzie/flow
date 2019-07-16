@@ -4,13 +4,15 @@ use std::path::PathBuf;
 use tempdir::TempDir;
 use url::Url;
 
+use crate::errors::*;
+
 /*
     Determine the output directory to use for generation on the local file system as a
     function of the url of the source flow, and the optional argument to specify the output
     directory to use.
     The flow source location can be http url, or file url
 */
-pub fn get_output_dir(url: &Url, option: Option<&str>) -> Result<PathBuf, String> {
+pub fn get_output_dir(url: &Url, option: Option<&str>) -> Result<PathBuf> {
     let mut output_dir;
 
     // Allow the optional command line argument to force output_dir
@@ -21,7 +23,7 @@ pub fn get_output_dir(url: &Url, option: Option<&str>) -> Result<PathBuf, String
             // If loading flow from a local file, then generate in the same directory
             "file" => {
                 let dir = url.to_file_path()
-                    .map_err(|_e| format!("Error converting url to file path\nurl = '{}'", url))?;
+                    .map_err(|_| format!("Error converting url to file path\nurl = '{}'", url))?;
                 output_dir = dir.clone();
                 if output_dir.is_file() {
                     output_dir.pop(); // remove trailing filename
@@ -30,8 +32,7 @@ pub fn get_output_dir(url: &Url, option: Option<&str>) -> Result<PathBuf, String
             // If not from a file, then create a dir with flow name under a temp dir
             _ => {
                 let dir = TempDir::new("flow")
-                    .map_err(|e| format!("Error creating new TempDir, \n'{}'",
-                                         e.to_string()))?;
+                    .chain_err(|| format!("Error creating new TempDir"))?;
                 output_dir = dir.into_path();
             }
         }
@@ -40,22 +41,24 @@ pub fn get_output_dir(url: &Url, option: Option<&str>) -> Result<PathBuf, String
     Ok(make_writeable(output_dir)?)
 }
 
-fn make_writeable(output_dir: PathBuf) -> Result<PathBuf, String> {
+fn make_writeable(output_dir: PathBuf) -> Result<PathBuf> {
     // Now make sure the directory exists, if not create it, and is writable
     if output_dir.exists() {
-        let md = fs::metadata(&output_dir).map_err(|e| e.to_string())?;
+        let md = fs::metadata(&output_dir)
+            .chain_err(|| format!("Could not read metadata of the existing output directory '{}'",
+                                  output_dir.to_str().unwrap()))?;
         // Check it's not a file!
         if md.is_file() {
-            return Err(format!("Output directory '{}' already exists as a file",
-                               output_dir.to_str().unwrap()));
+            bail!("Output directory '{}' already exists as a file", output_dir.to_str().unwrap());
         }
 
         // check it's not read only!
         if md.permissions().readonly() {
-            return Err(format!("Output directory '{}' is read only", output_dir.to_str().unwrap()));
+            bail!("Output directory '{}' is read only", output_dir.to_str().unwrap());
         }
     } else {
-        fs::create_dir(&output_dir).map_err(|e| e.to_string())?;
+        fs::create_dir(&output_dir).chain_err(|| format!("Could not create directory '{}'",
+                                                         output_dir.to_str().unwrap()))?;
     }
 
     Ok(output_dir)

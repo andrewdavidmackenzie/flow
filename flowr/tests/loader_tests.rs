@@ -46,8 +46,10 @@ fn url_from_rel_path(path: &str) -> String {
 }
 
 fn cwd_as_url() -> Result<Url, String> {
-    Url::from_directory_path(env::current_dir().unwrap())
-        .map_err(|_e| "Could not form a Url for the current working directory".to_string())
+    Url::from_directory_path(
+        env::current_dir()
+            .map_err(|_| "Could not get the value of the current working directory".to_string())?)
+        .map_err(|_| "Could not form a Url for the current working directory".into())
 }
 
 fn create_manifest(functions: Vec<Function>) -> Manifest {

@@ -1,8 +1,7 @@
 extern crate serde_json;
 
-use std::error::Error;
-
-use crate::compiler::loader::{DeserializeError, Deserializer};
+use crate::compiler::loader::Deserializer;
+use crate::errors::*;
 use crate::model::process::Process;
 use crate::toml;
 
@@ -10,14 +9,8 @@ pub struct FlowTomelLoader;
 
 // NOTE: Add one to make indexes one-based
 impl Deserializer for FlowTomelLoader {
-    fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process, DeserializeError> {
-        toml::from_str(contents).map_err(|e| {
-            let line_col = match e.line_col() {
-                Some(lc) => Some((lc.0 +1, lc.1 +1)),
-                None => None
-            };
-            DeserializeError::new(e.description(), line_col, url)
-        })
+    fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process> {
+        toml::from_str(contents).chain_err(|| format!("Error deserializing Toml from: '{:?}'", url))
     }
 
     fn name(&self) -> &'static str { "Toml" }
@@ -37,7 +30,7 @@ mod test {
 
         match deserializer.deserialize("{}}}}f dsdsadsa ", None) {
             Ok(_) => assert!(false, "Should not have parsed correctly as is invalid TOML"),
-            Err(e) => assert_eq!(e.line_col(), Some((1, 1)), "Should produce syntax error at (1,1)")
+            Err(_) => assert!(true, "Should produce syntax error at (1,1)")
         };
     }
 

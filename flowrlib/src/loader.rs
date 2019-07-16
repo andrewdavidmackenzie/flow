@@ -9,6 +9,7 @@ use crate::manifest::Manifest;
 use crate::provider::Provider;
 use crate::url;
 use crate::wasm;
+use crate::errors::*;
 
 pub struct Loader {
     global_lib_implementations: HashMap<String, Arc<Implementation>>,
@@ -38,7 +39,7 @@ impl Loader {
         have been wrapped in a Native "WasmExecutor" implementation to make it appear native.
         Thus, all library implementations found will be Native.
     */
-    pub fn load_manifest(&mut self, provider: &Provider, manifest_url: &str) -> Result<Manifest, String> {
+    pub fn load_manifest(&mut self, provider: &Provider, manifest_url: &str) -> Result<Manifest> {
         let mut manifest = Manifest::load(provider, manifest_url)?;
 
         Self::load_libraries(provider, &manifest)?;
@@ -52,7 +53,7 @@ impl Loader {
     /*
         Load libraries references referenced in the manifest
     */
-    pub fn load_libraries(provider: &Provider, manifest: &Manifest) -> Result<(), String> {
+    pub fn load_libraries(provider: &Provider, manifest: &Manifest) -> Result<()> {
         for library_reference in &manifest.lib_references {
             let (resolved_url, _) = provider.resolve(&library_reference, "manifest.json")?;
             let _contents = provider.get(&resolved_url)?;
@@ -63,7 +64,7 @@ impl Loader {
     }
 
     pub fn resolve_implementations(&mut self, manifest: &mut Manifest, provider: &Provider,
-                                   manifest_url: &str) -> Result<String, String> {
+                                   manifest_url: &str) -> Result<String> {
         // find in a library, or load the implementation required - as specified by the source
         for function in &mut manifest.functions {
             let source_url = function.implementation_source().to_string();
@@ -72,7 +73,7 @@ impl Loader {
                 "lib" => { // Try and find the implementation in the libraries already loaded
                     match self.global_lib_implementations.get(function.implementation_source()) {
                         Some(implementation) => function.set_implementation(implementation.clone()),
-                        None => return Err(format!("Did not find implementation for '{}'", source_url))
+                        None => bail!("Did not find implementation for '{}'", source_url)
                     }
                 }
 
@@ -98,7 +99,7 @@ impl Loader {
     */
     pub fn add_lib(&mut self, provider: &Provider,
                    lib_manifest: ImplementationLocatorTable,
-                   ilt_url: &str) -> Result<(), String> {
+                   ilt_url: &str) -> Result<()> {
         for (route, locator) in lib_manifest.locators {
             // if we don't already have an implementation loaded for that route
             if self.global_lib_implementations.get(&route).is_none() {

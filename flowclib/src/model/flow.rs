@@ -20,6 +20,7 @@ use crate::model::route::HasRoute;
 use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
+use crate::errors::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -54,7 +55,7 @@ pub struct Flow {
 
 impl Validate for Flow {
     // check the correctness of all the fields in this flow, prior to loading sub-elements
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<()> {
         if let Some(ref process_refs) = self.process_refs {
             for process_ref in process_refs {
                 process_ref.validate()?;
@@ -195,7 +196,7 @@ impl Flow {
     // TODO create a trait HasInputs and HasOutputs and implement it for function and flow
     // and process so this below can avoid the match
     fn get_io_subprocess(&mut self, subprocess_alias: &Name, direction: Direction, route: &Route,
-                         initial_value: &Option<InputInitializer>) -> Result<IO, String> {
+                         initial_value: &Option<InputInitializer>) -> Result<IO> {
         if let Some(ref mut process_refs) = self.process_refs {
             for process_ref in process_refs {
                 debug!("\tLooking in process_ref with alias = '{}'", process_ref.alias);
@@ -218,19 +219,19 @@ impl Flow {
                     }
                 }
             }
-            return Err(format!("Could not find sub-process named '{}'", subprocess_alias));
+            bail!("Could not find sub-process named '{}'", subprocess_alias);
         }
 
-        return Err("No sub-processes present".to_string());
+        bail!("No sub-processes present");
     }
 
     // TODO consider finding the object first using it's type and name (flow, subflow, value, function)
     // Then from the object find the IO (by name or route, probably route) in common code, maybe using IOSet directly?
     pub fn get_route_and_type(&mut self, direction: Direction, conn_descriptor: &str,
-                              initial_value: &Option<InputInitializer>) -> Result<IO, String> {
+                              initial_value: &Option<InputInitializer>) -> Result<IO> {
         let mut segments: Vec<&str> = conn_descriptor.split('/').collect();
         if segments.len() < 2 {
-            return Err(format!("Invalid route '{}'", conn_descriptor));
+            bail!("Invalid route '{}'", conn_descriptor);
         }
 
         let object_type = segments.remove(0); // first part is type of object
@@ -243,8 +244,8 @@ impl Flow {
             (&Direction::TO, "output") => self.outputs.find_by_name(object_name, &None), // an output from this flow
             (&Direction::FROM, "input") => self.inputs.find_by_name(object_name, &None), // an input to this flow
             (_, "process") => self.get_io_subprocess(object_name, direction, &route, initial_value), // input or output of a sub-process
-            _ => Err(format!("Invalid combination of direction '{:?}' and type '{}' used in connection '{}'",
-                             direction, object_type, conn_descriptor))
+            _ => bail!("Invalid combination of direction '{:?}' and type '{}' used in connection '{}'",
+                             direction, object_type, conn_descriptor)
         }
     }
 
@@ -262,7 +263,7 @@ impl Flow {
 
         Propogate any initializers on a flow input into the input (subflow or funcion) it is connected to
     */
-    pub fn build_connections(&mut self) -> Result<(), String> {
+    pub fn build_connections(&mut self) -> Result<()> {
         if self.connections.is_none() { return Ok(()); }
 
         debug!("Building connections for flow '{}'", self.source_url);
@@ -313,7 +314,7 @@ impl Flow {
             debug!("All connections inside flow '{}' successfully built", self.source_url);
             Ok(())
         } else {
-            Err(format!("{} connections errors found in flow '{}'", error_count, self.source_url))
+            bail!("{} connections errors found in flow '{}'", error_count, self.source_url)
         }
     }
 }

@@ -4,6 +4,7 @@ use std::fmt;
 use crate::compiler::loader::Validate;
 use crate::model::io::IOType;
 use crate::model::name::Name;
+use crate::errors::*;
 
 #[derive(Shrinkwrap, Hash, Debug, PartialEq, Clone, Default, Serialize, Deserialize, Eq)]
 pub struct Route(String);
@@ -35,7 +36,7 @@ impl Route {
 }
 
 impl Validate for Route {
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<()> {
         if self.is_empty() {
             return Ok(());
         }

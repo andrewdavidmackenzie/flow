@@ -13,6 +13,7 @@ use crate::model::route::FindRoute;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
+use crate::errors::*;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub enum IOType {
@@ -145,7 +146,7 @@ fn default_depth() -> usize {
 fn default_io_type() -> IOType { IOType::FunctionIO }
 
 impl Validate for IO {
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<()> {
         self.datatype.valid()
     }
 }
@@ -153,18 +154,18 @@ impl Validate for IO {
 pub type IOSet = Option<Vec<IO>>;
 
 impl Validate for IOSet {
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<()> {
         let mut name_set = HashSet::new();
         if let Some(ios) = self {
             for io in ios {
                 io.validate()?;
 
                 if io.name.is_empty() && ios.len() > 0 {
-                    return Err("Cannot have empty IO name when there are multiple IOs".to_string());
+                    bail!("Cannot have empty IO name when there are multiple IOs");
                 }
 
                 if !name_set.insert(&io.name) {
-                    return Err(format!("Two IOs cannot have the same name: '{}'", io.name));
+                    bail!("Two IOs cannot have the same name: '{}'", io.name);
                 }
             }
         }
@@ -199,12 +200,12 @@ impl SetIORoutes for IOSet {
 }
 
 pub trait Find {
-    fn find_by_name(&mut self, name: &Name, initial_value: &Option<InputInitializer>) -> Result<IO, String>;
-    fn find_by_route(&mut self, route: &Route, initial_value: &Option<InputInitializer>) -> Result<IO, String>;
+    fn find_by_name(&mut self, name: &Name, initial_value: &Option<InputInitializer>) -> Result<IO>;
+    fn find_by_route(&mut self, route: &Route, initial_value: &Option<InputInitializer>) -> Result<IO>;
 }
 
 impl Find for IOSet {
-    fn find_by_name(&mut self, name: &Name, initial_value: &Option<InputInitializer>) -> Result<IO, String> {
+    fn find_by_name(&mut self, name: &Name, initial_value: &Option<InputInitializer>) -> Result<IO> {
         if let Some(ref mut ios) = self {
             for io in ios {
                 if io.name() == name {
@@ -212,14 +213,14 @@ impl Find for IOSet {
                     return Ok(io.clone());
                 }
             }
-            return Err(format!("No input or output with name '{}' was found", name));
+            bail!("No input or output with name '{}' was found", name);
         }
-        Err(format!("No inputs or outputs found when looking for input/output named '{}'", name))
+        bail!("No inputs or outputs found when looking for input/output named '{}'", name)
     }
 
     // TODO improve the Route handling of this - maybe moving into Router
     // TODO return a reference to the IO, with same lifetime as IOSet?
-    fn find_by_route(&mut self, sub_route: &Route, initial_value: &Option<InputInitializer>) -> Result<IO, String> {
+    fn find_by_route(&mut self, sub_route: &Route, initial_value: &Option<InputInitializer>) -> Result<IO> {
         if let Some(ref mut ios) = self {
             for io in ios {
                 let (array_route, _num, array_index) = sub_route.without_trailing_array_index();
@@ -239,10 +240,10 @@ impl Find for IOSet {
                     return Ok(io.clone());
                 }
             }
-            return Err(format!("No output with sub-route '{}' was found", sub_route));
+            bail!("No output with sub-route '{}' was found", sub_route);
         }
 
-        Err(format!("No inputs or outputs found when looking for input/output with sub-route '{}'", sub_route))
+        bail!("No inputs or outputs found when looking for input/output with sub-route '{}'", sub_route)
     }
 }
 

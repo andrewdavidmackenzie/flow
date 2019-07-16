@@ -2,12 +2,13 @@ use crate::model::flow::Flow;
 use super::gatherer;
 use super::connector;
 use crate::generator::generate::GenerationTables;
+use crate::errors::*;
 use super::checker;
 use super::optimizer;
 
 /// Take a hierarchical flow definition in memory and compile it, generating a manifest for execution
 /// of the flow, including references to libraries required.
-pub fn compile(flow: &Flow) -> Result<GenerationTables, String> {
+pub fn compile(flow: &Flow) -> Result<GenerationTables> {
     let mut tables = GenerationTables::new();
 
     info!("==== Compiler phase: Checking Context");

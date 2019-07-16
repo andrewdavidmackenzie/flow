@@ -1,5 +1,7 @@
 //! A module to help parse command line arguments for flow URLs and fetch the associated content
 extern crate curl;
+#[macro_use]
+extern crate error_chain;
 extern crate flowrlib;
 extern crate glob;
 #[macro_use]
@@ -10,3 +12,8 @@ extern crate url;
 
 pub mod content;
 pub mod args;
+
+pub mod errors {
+    // Create the Error, ErrorKind, ResultExt, and Result types
+    error_chain! {}
+}

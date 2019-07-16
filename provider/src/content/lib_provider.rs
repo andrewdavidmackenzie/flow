@@ -1,5 +1,6 @@
 use std::env;
 
+use flowrlib::errors::*;
 use flowrlib::provider::Provider;
 use simpath::Simpath;
 use url::Url;
@@ -41,9 +42,9 @@ impl Provider for LibProvider {
         Also, construct a string that is a reference to that module in the library, such as:
             "flowstdlib/stdio/stdout" and return that also.
     */
-    fn resolve(&self, url_str: &str, default_filename: &str) -> Result<(String, Option<String>), String> {
+    fn resolve(&self, url_str: &str, default_filename: &str) -> Result<(String, Option<String>)> {
         let url = Url::parse(url_str)
-            .map_err(|_| format!("Could not convert '{}' to valid Url", url_str))?;
+            .chain_err(|| format!("Could not convert '{}' to valid Url", url_str))?;
         let lib_name = url.host_str().expect(
             &format!("'lib_name' could not be extracted from host part of url '{}'", url));
 
@@ -55,7 +56,7 @@ impl Provider for LibProvider {
 
         let flow_lib_search_path = Simpath::new("FLOW_LIB_PATH");
         let mut lib_path = flow_lib_search_path.find(lib_name)
-            .map_err(|e| e.to_string())?;
+            .chain_err(|| format!("Could not find lib named '{}' in FLOW_LIB_PATH", lib_name))?;
         lib_path.push("src");
         lib_path.push(&url.path()[1..]); // Strip off leading '/' to concatenate to path
 
@@ -69,20 +70,20 @@ impl Provider for LibProvider {
                 debug!("'{:?}' is a directory, so looking for default file name '{}'", lib_path, default_filename);
                 lib_path.push(default_filename);
                 if !lib_path.exists() {
-                    return Err(format!("Could not locate url '{}' in libraries in 'FLOW_LIB_PATH'", url));
+                    bail!("Could not locate url '{}' in libraries in 'FLOW_LIB_PATH'", url)
                 }
             }
             let lib_path_url = Url::from_file_path(&lib_path)
                 .map_err(|_| format!("Could not create Url from '{:?}'", &lib_path))?;
             Ok((lib_path_url.to_string(), Some(lib_ref.to_string())))
         } else {
-            Err(format!("Could not locate url '{}' in libraries in 'FLOW_LIB_PATH'", url))
+            bail!("Could not locate url '{}' in libraries in 'FLOW_LIB_PATH'", url)
         }
     }
 
     // All Urls that start with "lib://" should resource to a different Url with "http(s)" or "file"
     // and so we should never get a request to get content from a Url with such a scheme
-    fn get(&self, _url: &str) -> Result<Vec<u8>, String> {
+    fn get(&self, _url: &str) -> Result<Vec<u8>> {
         unimplemented!();
     }
 }

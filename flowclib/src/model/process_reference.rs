@@ -9,6 +9,7 @@ use crate::model::name::Name;
 use crate::model::process::Process;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
+use crate::errors::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -43,7 +44,7 @@ impl HasRoute for ProcessReference {
 }
 
 impl Validate for ProcessReference {
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<()> {
         self.alias.validate()
     }
 }
