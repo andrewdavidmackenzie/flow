@@ -1,5 +1,5 @@
 const {app, shell, Menu, BrowserWindow} = require('electron');
-const helpUrl = 'http://github.com/andrewdavidmackenzie/flow/README.md';
+const helpUrl = 'https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/ide/help.md';
 const path = require('path');
 //const url = require('url');
 
