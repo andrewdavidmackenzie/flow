@@ -3,13 +3,14 @@
 <head>
     <link rel='shortcut icon' type='image/x-icon' href='assets/icons/favicon.ico'/>
     <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self'">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/foundation/6.4.3/css/foundation.min.css"/>
     <link rel="stylesheet" href="assets/css/style.css" type="text/css"/>
     <title>FlowIDE</title>
 </head>
 <body>
-<script type="module">
+<script type="script">
     import init from "./pkg/flowide.js";
 
     async function run() {

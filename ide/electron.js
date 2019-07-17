@@ -17,11 +17,11 @@ function createUI() {
     process.once("loaded", () => {
         // Allow window.fetch() to access app files
         webFrame.registerURLSchemeAsPrivileged("app", {
-            secure: true,
-            bypassCSP: false,
+            secure: false,
+            bypassCSP: true,
             allowServiceWorkers: true,
             supportFetchAPI: true,
-            corsEnabled: false
+            corsEnabled: true
         });
     });
 

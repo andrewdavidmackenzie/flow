@@ -8,7 +8,7 @@
   "license": "MIT",
   "scripts": {
     "app": "electron .",
-    "build": "cargo build;wasm-pack build --target web",
+    "build": "wasm-pack build --target web",
     "start": "http-server"
   },
   "main": "electron.js",
