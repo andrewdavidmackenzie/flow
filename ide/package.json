@@ -1,27 +1,27 @@
 {
   "author": "Andrew Mackenzie <andrew@mackenzie-serres.net>",
-  "name": "FlowIDE",
+  "name": "flowide",
+  "productName": "Flow IDE",
   "description": "An IDE for 'flow' data driven parallel applications",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "repository": "https://github.com/andrewdmackenzie/flow",
   "license": "MIT",
   "scripts": {
     "app": "electron .",
-    "build": "rimraf dist pkg && webpack",
-    "start": "rimraf dist pkg && webpack-dev-server --open -d",
-    "test": "cargo test && wasm-pack test --headless --chrome"
+    "build": "wasm-pack build --target web",
+    "start": "http-server"
   },
-  "main": "js/main.js",
+  "main": "main.js",
   "dependencies": {
     "ffi-napi": "^2.4.3"
   },
   "devDependencies": {
     "@wasm-tool/wasm-pack-plugin": "^0.4.2",
-    "copy-webpack-plugin": "^5.0.3",
-    "webpack": "^4.35.0",
-    "webpack-cli": "^3.3.3",
-    "webpack-dev-server": "^3.7.1",
     "rimraf": "^2.6.3",
-    "electron": "^5.0.6"
+    "electron": "^5.0.6",
+    "http-server": "^0.11.1",
+    "electron-packager": "^14.0.1",
+    "electron-installer-dmg": "^3.0.0",
+    "electron-installer-debian": "^2.0.0"
   }
 }

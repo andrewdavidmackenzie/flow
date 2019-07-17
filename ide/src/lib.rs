@@ -202,9 +202,24 @@ fn get_log_level(document: &Document) -> Option<String> {
     log_level_el.text_content()
 }
 
+// Declaring a JS function using wasm_bindgen and doing the rest yourself
+// to be able to call it from rust
+#[wasm_bindgen]
+extern "C" {
+    fn alert(s: &str);
+}
+
+// exporting a function so that it can be called from JS
+#[wasm_bindgen]
+pub fn export_from_rust(a: u32, b: u32) -> u32 {
+    a + b
+}
+
 // This is like the `main` function, except for JavaScript.
 #[wasm_bindgen(start)]
 pub fn main_js() -> std::result::Result<(), JsValue> {
+    alert("started");
+
     set_panic_hook();
     let window = web_sys::window().expect("no global `window` exists");
     let document = window.document().expect("should have a document on window");

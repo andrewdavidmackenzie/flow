@@ -28,6 +28,9 @@ config:
 	#curl --retry 5 -LO https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.zip
 	#unzip chromedriver_linux64.zip
 
+config-linux:
+	brew install fakeroot
+
 #################### Docs ####################
 doc: dot-graphs guide
 	@echo ""
