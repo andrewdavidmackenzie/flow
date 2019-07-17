@@ -1,25 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <link rel='shortcut icon' type='image/x-icon' href='favicon.ico'/>
+    <link rel='shortcut icon' type='image/x-icon' href='assets/icons/favicon.ico'/>
     <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self'">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/foundation/6.4.3/css/foundation.min.css"/>
-    <link rel="stylesheet" href="style.css" type="text/css"/>
+    <link rel="stylesheet" href="assets/css/style.css" type="text/css"/>
     <title>FlowIDE</title>
 </head>
 <body>
+<script type="script">
+    import init from "./pkg/flowide.js";
+
+    async function run() {
+        await init();
+    }
+
+    run();
+</script>
 <div class="window">
     <div class="top-bar">
         <div class="top-bar-left">
             <ul class="menu">
                 <li>
                     <span>Select Flow File: </span><input type="file" id="file" name="files[]"/>
-                    <output id="list"></output>
+                    <output id="flow_list"></output>
                 </li>
                 <li>
                     <span>Select Manifest File: </span><input type="file" id="manifest_file" name="manifest_files[]"/>
-                    <output id="list"></output>
+                    <output id="manifest_list"></output>
                 </li>
             </ul>
         </div>
@@ -58,7 +68,6 @@
             <button class="collapsible">View Manifest</button>
             <div id="manifest" class="content fixed" style="display:none;"></div>
         </div>
-        </p>
         <p id="args">arg1 arg2</p>
         <p id="stdin">stdin</p>
         <button id="run_button">Run</button>
@@ -69,8 +78,7 @@
     </div>
 </div>
 
-<script src="index.js"></script>
-<script src="renderer.js"></script>
+<script src="assets/js/renderer.js"></script>
 
 </body>
 </html>

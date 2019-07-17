@@ -1,7 +1,6 @@
 const {app, shell, Menu, BrowserWindow} = require('electron');
 const helpUrl = 'http://github.com/andrewdavidmackenzie/flow/README.md';
-
-//const path = require('path');
+const path = require('path');
 //const url = require('url');
 
 // Keep a global reference of the main window object, if you don't, the window will
@@ -11,17 +10,18 @@ let mainWindow;
 function createUI() {
     mainWindow = new BrowserWindow({
         width: 1400, height: 900,
-        nodeIntegration: true
+        nodeIntegration: true,
+        icon: path.join(__dirname, 'assets/icons/png/128x128.png')
     });
 
     process.once("loaded", () => {
         // Allow window.fetch() to access app files
         webFrame.registerURLSchemeAsPrivileged("app", {
-            secure: true,
-            bypassCSP: false,
+            secure: false,
+            bypassCSP: true,
             allowServiceWorkers: true,
             supportFetchAPI: true,
-            corsEnabled: false
+            corsEnabled: true
         });
     });
 

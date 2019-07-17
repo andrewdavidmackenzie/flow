@@ -1,0 +1,11 @@
+{
+  "src": "release-builds/flowide-linux-x64/",
+  "dest": "installers/",
+  "icon": "assets/icons/png/128x128.png",
+  "categories": [
+    "Development"
+  ],
+  "lintianOverrides": [
+    "changelog-file-missing-in-native-package"
+  ]
+}
