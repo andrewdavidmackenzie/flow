@@ -218,7 +218,7 @@ pub fn export_from_rust(a: u32, b: u32) -> u32 {
 // This is like the `main` function, except for JavaScript.
 #[wasm_bindgen(start)]
 pub fn main_js() -> std::result::Result<(), JsValue> {
-    alert("started");
+    alert("Flow IDE started");
 
     set_panic_hook();
     let window = web_sys::window().expect("no global `window` exists");

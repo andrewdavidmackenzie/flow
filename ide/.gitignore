@@ -1,6 +1,5 @@
-wasm-pack.log
-.bin/
-dist
-node_modules
+node_modules/
 release-builds/
 installers/
+pkg/
+target/

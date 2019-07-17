@@ -10,15 +10,10 @@
 </head>
 <body>
 <script type="module">
-    import init, { export_from_rust } from "./pkg/flowide.js";
+    import init from "./pkg/flowide.js";
 
     async function run() {
         await init();
-
-        const result = export_from_rust(1, 2);
-        console.log('1 + 2 = ${result}');
-        if (result !== 3)
-            throw new Error("wasm addition doesnm't work");
     }
 
     run();
