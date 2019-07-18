@@ -29,3 +29,5 @@ function handleFileSelect(evt) {
 }
 
 document.getElementById('file').addEventListener('change', handleFileSelect, false);
+
+console.log("renderer.js loaded");

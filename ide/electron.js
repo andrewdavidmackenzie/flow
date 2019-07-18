@@ -1,4 +1,4 @@
-const {app, shell, Menu, BrowserWindow} = require('electron');
+const {app, shell, Menu, webFrame, BrowserWindow} = require('electron');
 const helpUrl = 'https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/ide/help.md';
 const path = require('path');
 //const url = require('url');
@@ -23,6 +23,18 @@ function createUI() {
             supportFetchAPI: true,
             corsEnabled: true
         });
+    });
+
+    const session = mainWindow.webContents.session;
+
+    // Mute warnings in development about CSP
+    // process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = true;
+
+    // Force a CSP
+    session.webRequest.onHeadersReceived((details, callback) => {
+        callback({ responseHeaders: Object.assign({
+                "Content-Security-Policy": [ "default-src 'self'" ]
+            }, details.responseHeaders)});
     });
 
     mainWindow.webContents.loadFile("index.html");
