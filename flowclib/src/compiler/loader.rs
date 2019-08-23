@@ -67,11 +67,11 @@ pub trait Validate {
 /// // load the flow from `url = file:///example.toml` using the `dummy_provider`
 /// flowclib::compiler::loader::load_context("file:///example.toml", &dummy_provider).unwrap();
 /// ```
-pub fn load_context(url: &str, provider: &Provider) -> Result<Process> {
+pub fn load_context(url: &str, provider: &dyn Provider) -> Result<Process> {
     load_process(&Route::from(""), &Name::from("context"), url, provider, &None)
 }
 
-fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provider,
+fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &dyn Provider,
                 initializations: &Option<HashMap<String, InputInitializer>>) -> Result<Process> {
     let (resolved_url, lib_ref) = provider.resolve(url, "context.toml")
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
@@ -105,7 +105,7 @@ fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &Provid
 /*
     Load all sub-processes referenced from a flow via the process_refs field
 */
-fn load_subprocesses(flow: &mut Flow, provider: &Provider) -> Result<()> {
+fn load_subprocesses(flow: &mut Flow, provider: &dyn Provider) -> Result<()> {
     if let Some(ref mut process_refs) = flow.process_refs {
         for process_ref in process_refs {
             let subprocess_url = url::join(&flow.source_url, &process_ref.source);

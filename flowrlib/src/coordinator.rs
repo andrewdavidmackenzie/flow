@@ -46,7 +46,7 @@ impl Submission {
         Create a new submission
     */
     pub fn new(manifest: Manifest, max_parallel_jobs: usize, display_metrics: bool,
-               client: Option<&'static DebugClient>) -> Submission {
+               client: Option<&'static dyn DebugClient>) -> Submission {
         info!("Maximum jobs dispatched in parallel limited to {}", max_parallel_jobs);
         let output_timeout = Duration::from_secs(1);
 

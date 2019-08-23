@@ -16,7 +16,7 @@ function createUI() {
 
     process.once("loaded", () => {
         // Allow window.fetch() to access app files
-        webFrame.registerURLSchemeAsPrivileged("app", {
+        webFrame.registerURLSchemeAsPrivileged("file", {
             secure: false,
             bypassCSP: true,
             allowServiceWorkers: true,

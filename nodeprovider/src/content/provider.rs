@@ -7,7 +7,7 @@ use crate::content::file_provider::FileProvider;
 use crate::content::http_provider::HttpProvider;
 use crate::content::lib_provider::LibProvider;
 
-const HTTP_PROVIDER: &Provider = &HttpProvider as &Provider;
+const HTTP_PROVIDER: &dyn Provider = &HttpProvider as &dyn Provider;
 
 pub struct MetaProvider {
     file_provider: FileProvider,
@@ -31,7 +31,7 @@ impl MetaProvider {
     }
 
     // Determine which specific provider should be used based on the scheme of the Url of the content
-    fn get_provider(&self, url_str: &str) -> Result<&Provider> {
+    fn get_provider(&self, url_str: &str) -> Result<&dyn Provider> {
         let parts: Vec<&str> = url_str.split(":").collect();
         let scheme = parts[0];
         info!("Looking for correct content provider for scheme: '{}'", scheme);

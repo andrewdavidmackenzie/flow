@@ -3,11 +3,11 @@ use super::toml_deserializer::FlowTomelLoader;
 use super::json_deserializer::FlowJsonLoader;
 use crate::compiler::loader::Deserializer;
 
-const TOML: &Deserializer = &FlowTomelLoader as &Deserializer;
-const YAML: &Deserializer = &FlowYamlLoader as &Deserializer;
-const JSON: &Deserializer = &FlowJsonLoader as &Deserializer;
+const TOML: &dyn Deserializer = &FlowTomelLoader as &dyn Deserializer;
+const YAML: &dyn Deserializer = &FlowYamlLoader as &dyn Deserializer;
+const JSON: &dyn Deserializer = &FlowJsonLoader as &dyn Deserializer;
 
-pub fn get_deserializer(url: &str) -> Result<&'static Deserializer, String> {
+pub fn get_deserializer(url: &str) -> Result<&'static dyn Deserializer, String> {
     match get_file_extension(url) {
         Ok(ext) => {
             match ext.as_ref() {

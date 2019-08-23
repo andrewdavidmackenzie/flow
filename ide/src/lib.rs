@@ -83,7 +83,7 @@ fn pretty_print_json_for_html<S: Into<String> + Debug>(string: &S) -> String {
         .replace("}\"", "}")
 }
 
-fn load_flow(provider: &Provider, url: &str) -> Result<Flow> {
+fn load_flow(provider: &dyn Provider, url: &str) -> Result<Flow> {
     info!("Loading flow");
 
     match loader::load_context(url, provider)? {
@@ -108,7 +108,7 @@ fn compile(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manif
         .chain_err(|| "COuld not compile flow to manifest")
 }
 
-pub fn load_manifest(provider: &Provider, url: &str) -> Result<Manifest> {
+pub fn load_manifest(provider: &dyn Provider, url: &str) -> Result<Manifest> {
     info!("Loading manifest");
 
     let mut loader = Loader::new();

@@ -22,7 +22,7 @@ use std::hash::{Hash, Hasher};
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
 static OUTPUT_PORTS: &[&str] = &["s", "se", "sw"];
 
-pub fn flow_to_dot(flow: &Flow, dot_file: &mut Write) -> io::Result<String> {
+pub fn flow_to_dot(flow: &Flow, dot_file: &mut dyn Write) -> io::Result<String> {
     dot_file.write_all(digraph_wrapper_start(flow).as_bytes())?;
 
     let mut contents = String::new();

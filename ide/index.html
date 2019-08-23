@@ -73,19 +73,12 @@
     </div>
 </div>
 
-<script type="module">
-    console.log("loading flowide.js for WASM module");
+<script type="module" src="loader2.js"></script>
+<!--
+<script async type="text/javascript" src="hello.js"></script>
+-->
 
-    import init from "./pkg/flowide.js";
-
-    async function run() {
-        await init();
-    }
-
-    run();
-</script>
-
-<script src="assets/js/renderer.js"></script>
+<script type="text/javascript" src="assets/js/renderer.js"></script>
 
 </body>
 </html>

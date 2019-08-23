@@ -8,9 +8,9 @@ use crate::content::file_provider::FileProvider;
 use crate::content::http_provider::HttpProvider;
 use crate::content::lib_provider::LibProvider;
 
-const FILE_PROVIDER: &Provider = &FileProvider as &Provider;
-const LIB_PROVIDER: &Provider = &LibProvider as &Provider;
-const HTTP_PROVIDER: &Provider = &HttpProvider as &Provider;
+const FILE_PROVIDER: &dyn Provider = &FileProvider as &dyn Provider;
+const LIB_PROVIDER: &dyn Provider = &LibProvider as &dyn Provider;
+const HTTP_PROVIDER: &dyn Provider = &HttpProvider as &dyn Provider;
 
 pub struct MetaProvider {}
 
@@ -24,7 +24,7 @@ pub struct MetaProvider {}
 ///
 impl MetaProvider {
     // Determine which specific provider should be used based on the scheme of the Url of the content
-    fn get_provider(url_str: &str) -> Result<&'static Provider> {
+    fn get_provider(url_str: &str) -> Result<&'static dyn Provider> {
         let url = Url::parse(url_str)
             .chain_err(|| format!("Could not convert '{}' to valid Url", url_str))?;
         match url.scheme() {

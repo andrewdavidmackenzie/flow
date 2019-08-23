@@ -25,7 +25,7 @@ pub enum State {
 pub struct Job {
     pub job_id: usize,
     pub function_id: usize,
-    pub implementation: Arc<Implementation>,
+    pub implementation: Arc<dyn Implementation>,
     pub input_set: Vec<Vec<Value>>,
     pub destinations: Vec<(String, usize, usize)>,
     pub impure: bool,

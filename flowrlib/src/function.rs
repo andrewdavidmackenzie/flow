@@ -28,7 +28,7 @@ pub struct Function {
 
     #[serde(skip)]
     #[serde(default = "Function::default_implementation")]
-    implementation: Arc<Implementation>,
+    implementation: Arc<dyn Implementation>,
 
     #[serde(default, skip_serializing_if = "Self::is_pure")]
     impure: bool,
@@ -90,7 +90,7 @@ impl Function {
         }
     }
 
-    pub fn default_implementation() -> Arc<Implementation> {
+    pub fn default_implementation() -> Arc<dyn Implementation> {
         Arc::new(super::function::ImplementationNotFound {})
     }
 
@@ -156,11 +156,11 @@ impl Function {
         &self.output_routes
     }
 
-    pub fn get_implementation(&self) -> Arc<Implementation> {
+    pub fn get_implementation(&self) -> Arc<dyn Implementation> {
         self.implementation.clone()
     }
 
-    pub fn set_implementation(&mut self, implementation: Arc<Implementation>) {
+    pub fn set_implementation(&mut self, implementation: Arc<dyn Implementation>) {
         self.implementation = implementation;
     }
 

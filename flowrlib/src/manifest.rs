@@ -43,7 +43,7 @@ impl Manifest {
     /*
         Load, or Deserialize, a manifest from a `source` Url using `provider`
     */
-    pub fn load(provider: &Provider, source: &str) -> Result<Manifest> {
+    pub fn load(provider: &dyn Provider, source: &str) -> Result<Manifest> {
         let (resolved_url, _) = provider.resolve(source, DEFAULT_MANIFEST_FILENAME)?;
         let content = provider.get(&resolved_url)?;
 

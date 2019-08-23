@@ -137,7 +137,7 @@ pub fn dump_functions(flow: &Flow, tables: &GenerationTables, output_dir: &PathB
 }
 
 // TODO I can't get output of functions as JSON to work with serde
-fn dump_table<C: Iterator>(table: C, writer: &mut Write) -> io::Result<String>
+fn dump_table<C: Iterator>(table: C, writer: &mut dyn Write) -> io::Result<String>
     where <C as Iterator>::Item: fmt::Display {
     for function in table.into_iter() {
         writer.write_all(format!("{}\n", function).as_bytes())?;

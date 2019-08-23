@@ -34,7 +34,7 @@ mod cli_debug_client;
 
 pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
 
-const CLI_DEBUG_CLIENT: &DebugClient = &CLIDebugClient {};
+const CLI_DEBUG_CLIENT: &dyn DebugClient = &CLIDebugClient {};
 
 // We'll put our errors in an `errors` module, and other modules in
 // this crate will `use errors::*;` to get access to everything

@@ -59,7 +59,7 @@ pub fn load(_provider: &Provider, _function_name: &str, _source_url: &str) -> Re
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn load(provider: &Provider, function_name: &str, source_url: &str) -> Result<Arc<WasmExecutor>> {
+pub fn load(provider: &dyn Provider, function_name: &str, source_url: &str) -> Result<Arc<WasmExecutor>> {
     let (resolved_url, _) = provider.resolve(&source_url, DEFAULT_WASM_FILENAME)?;
     let content = provider.get(&resolved_url)?;
 

@@ -13,7 +13,7 @@ use crate::errors::*;
 #[serde(untagged)]
 pub enum ImplementationLocator {
     #[serde(skip_deserializing, skip_serializing)]
-    Native(Arc<Implementation>),
+    Native(Arc<dyn Implementation>),
     Wasm((String, String))
 }
 
@@ -34,7 +34,7 @@ impl ImplementationLocatorTable {
         }
     }
 
-    pub fn load(provider: &Provider, source: &str) -> Result<ImplementationLocatorTable> {
+    pub fn load(provider: &dyn Provider, source: &str) -> Result<ImplementationLocatorTable> {
         let (resolved_url, _) = provider.resolve(source, DEFAULT_ILT_FILENAME)?;
         let content = provider.get(&resolved_url)?;
 
