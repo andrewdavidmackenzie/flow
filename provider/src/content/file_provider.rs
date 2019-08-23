@@ -7,8 +7,9 @@ use std::path::PathBuf;
 
 use flowrlib::errors::*;
 use flowrlib::provider::Provider;
-use glob::glob;
 use url::Url;
+
+use glob::glob;
 
 pub struct FileProvider;
 
@@ -100,7 +101,7 @@ mod test {
     #[test]
     #[should_panic]
     fn get_contents_file_not_found() {
-        let provider: &Provider = &FileProvider;
+        let provider: &dyn Provider = &FileProvider;
         provider.get("file:///no-such-file").unwrap();
     }
 }

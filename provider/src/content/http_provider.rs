@@ -58,7 +58,7 @@ mod test {
     #[test]
     #[cfg_attr(not(feature = "online_tests"), ignore)]
     fn get_github_sample() {
-        let provider: &Provider = &HttpProvider;
+        let provider: &dyn Provider = &HttpProvider;
         provider.get("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml").unwrap();
     }
 
@@ -66,7 +66,7 @@ mod test {
     #[should_panic]
     #[cfg_attr(not(feature = "online_tests"), ignore)]
     fn online_get_contents_file_not_found() {
-        let provider: &Provider = &HttpProvider;
+        let provider: &dyn Provider = &HttpProvider;
         provider.get("http://google.com/no-such-file").unwrap();
     }
 }

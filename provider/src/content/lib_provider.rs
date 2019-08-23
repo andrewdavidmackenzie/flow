@@ -98,7 +98,7 @@ mod test {
 
     #[test]
     fn resolve_path() {
-        let provider: &Provider = &LibProvider;
+        let provider: &dyn Provider = &LibProvider;
         let mut root = env::current_dir().unwrap();
         root.pop();
         let root_str: String = root.as_os_str().to_str().unwrap().to_string();

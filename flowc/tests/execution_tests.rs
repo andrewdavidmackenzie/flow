@@ -90,17 +90,25 @@ fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>, inp
         .stderr(Stdio::piped())
         .spawn().unwrap();
 
-    // send it stdin from the file
+    // send it stdin from the "testname.stdin" file
     write!(child.stdin.unwrap(), "{}", input).unwrap();
 
+    // read stdout
     let mut output = String::new();
-
-    // read the stdout
     if let Some(ref mut stdout) = child.stdout {
         for line in BufReader::new(stdout).lines() {
             output.push_str(&format!("{}\n", &line.unwrap()));
         }
     }
+
+    // read stderr
+    let mut err = String::new();
+    if let Some(ref mut stderr) = child.stderr {
+        for line in BufReader::new(stderr).lines() {
+            err.push_str(&format!("{}\n", &line.unwrap()));
+        }
+    }
+    println!("stderr = '{}'", err);
 
     output
 }
@@ -142,6 +150,7 @@ fn execute_test(test_name: &str) {
     let mut run_dir = test_dir.clone();
     run_dir.pop();
     test_dir.push(&format!("tests/samples/{}", test_name));
+    println!("test_dir = '{:?}'", test_dir);
 
     if let FlowProcess(ref flow) = load_flow(&test_dir, test_name) {
         let tables = compile::compile(flow).unwrap();
@@ -153,6 +162,7 @@ fn execute_test(test_name: &str) {
         let input = get(&test_dir, &format!("{}.stdin", test_name));
         let actual_output = execute_flow(run_dir, manifest_path, test_args, input);
         let expected_output = get(&test_dir, &format!("{}.expected", test_name));
+        println!("actual_output = '{}'", actual_output);
         assert_eq!(expected_output, actual_output, "Flow output did not match that in .expected file");
     }
 }
