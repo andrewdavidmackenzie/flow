@@ -10,6 +10,7 @@ lto = false    # Controls `-C lto` for binaries and static libs
 debug-assertions = true  # Controls whether debug assertions are enabled
 codegen-units = 1 # Controls whether the compiler passes `-C codegen-units`
                   # `codegen-units` is ignored when `lto = true`
+panic = "unwind"
 
 # The release profile, used for `cargo build --release`
 [profile.release]
@@ -19,6 +20,7 @@ rpath = false
 lto = false
 debug-assertions = false
 codegen-units = 1
+panic = "unwind"
 
 # The testing profile, used for `cargo test`
 [profile.test]
@@ -48,9 +50,9 @@ debug-assertions = true
 codegen-units = 1
 
 [workspace]
-members = ["flowc", "flowr", "provider"]
-default-members = ["flowc", "flowr", "provider"]
+members = ["flowc", "flowr", "provider", "flowstdlib", "flowrlib", "flowclib", "nodeprovider"]
+default-members = ["flowc", "flowr"]
 # These libraries are excluded as they must compile for the wasm target
 # independently, and if they are part of the workspace they inherit other
 # dependencies that don't compile for wasm
-exclude = ["flowstdlib", "flowrlib", "flowclib", "ide", "nodeprovider", "ide-native"]
+exclude = ["ide", "ide-native"]

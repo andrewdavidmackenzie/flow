@@ -739,7 +739,7 @@ mod tests {
         fn send_response(&self, _response: Response) {}
     }
 
-    fn test_debug_client() -> &'static DebugClient {
+    fn test_debug_client() -> &'static dyn DebugClient {
         &TestDebugClient {}
     }
 

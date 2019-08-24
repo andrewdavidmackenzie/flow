@@ -77,7 +77,7 @@ build: workspace ide_build ide_native_build
 workspace:
 	@echo ""
 	@echo "------- Starting build of 'flow' workspace project -------------"
-	cargo build
+	cargo build --all
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
 ide_build:
@@ -86,20 +86,11 @@ ide_build:
 ide_native_build:
 	cd ide-native && make build
 
-flowclib_build:
-	cd flowclib && make build
-
-flowstdlib_build: flowrlib_build
-	cd flowstdlib && make build
-
-flowrlib_build:
-	cd flowrlib && make build
-
 ################## Travis CI ##################
 travis: clean test guide
 
 #################### Tests ####################
-test: test-workspace test-flowclib test-flowstdlib test-flowrlib test-nodeprovider test-ide samples
+test: test-workspace test-ide samples
 # TODO add online-samples
 	@echo ""
 	@echo "------- Done    test: -------------"
@@ -107,26 +98,11 @@ test: test-workspace test-flowclib test-flowstdlib test-flowrlib test-nodeprovid
 test-workspace:
 	@echo ""
 	@echo "------- Starting build of 'flow' workspace project -------------"
-	cargo test $(features)
+	cargo test $(features) --all
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
 test-ide:
 	@cd ide && make test
-
-test-flowclib:
-	cd flowclib && make test
-
-test-flowstdlib:
-	cd flowstdlib && make test
-
-test-flowrlib:
-	cd flowrlib && make test
-
-test-provider:
-	cd provider && cargo test
-
-test-nodeprovider:
-	cd nodeprovider && make test
 
 #################### Raspberry Pi ####################
 pi:

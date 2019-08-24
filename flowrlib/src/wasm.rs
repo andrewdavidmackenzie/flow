@@ -1,16 +1,15 @@
 use std::sync::Arc;
-
-use crate::implementation::Implementation;
-use crate::implementation::RunAgain;
-use crate::provider::Provider;
-use serde_json::Value;
-
-#[cfg(not(target_arch = "wasm32"))]
-use wasmi::{ImportsBuilder, Module, ModuleInstance, ModuleRef};
 #[cfg(not(target_arch = "wasm32"))]
 use std::sync::Mutex;
 
+use serde_json::Value;
+#[cfg(not(target_arch = "wasm32"))]
+use wasmi::{ImportsBuilder, Module, ModuleInstance, ModuleRef};
+
 use crate::errors::*;
+use crate::implementation::Implementation;
+use crate::implementation::RunAgain;
+use crate::provider::Provider;
 
 #[cfg(not(target_arch = "wasm32"))]
 const DEFAULT_WASM_FILENAME: &str = "module.wasm";
@@ -53,7 +52,7 @@ impl Implementation for WasmExecutor {
     load a Wasm module from the specified Url.
 */
 #[cfg(target_arch = "wasm32")]
-pub fn load(_provider: &Provider, _function_name: &str, _source_url: &str) -> Result<Arc<WasmExecutor>> {
+pub fn load(_provider: &dyn Provider, _function_name: &str, _source_url: &str) -> Result<Arc<WasmExecutor>> {
     let executor = WasmExecutor {};
     Ok(Arc::new(executor))
 }

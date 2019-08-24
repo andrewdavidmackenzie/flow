@@ -1,6 +1,7 @@
+use serde_json::Value;
+
 use flowrlib::implementation::Implementation;
 use flowrlib::implementation::RunAgain;
-use serde_json::Value;
 
 pub struct Divide;
 
@@ -17,13 +18,15 @@ impl Implementation for Divide {
 
 #[cfg(test)]
 mod test {
-    use flowrlib::implementation::Implementation;
     use serde_json::Value;
+
+    use flowrlib::implementation::Implementation;
+
     use super::Divide;
 
     #[test]
     fn test_divide() {
-        let divide: &Implementation = &Divide{} as &Implementation;
+        let divide: &dyn Implementation = &Divide{} as &dyn Implementation;
 
         // Create input vector
         let dividend = json!(99);
