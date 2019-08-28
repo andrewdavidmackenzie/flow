@@ -14,6 +14,8 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 
+use url::Url;
+
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowclib::generator::generate;
@@ -21,8 +23,6 @@ use flowclib::generator::generate::GenerationTables;
 use flowclib::model::flow::Flow;
 use flowclib::model::process::Process;
 use flowclib::model::process::Process::FlowProcess;
-use url::Url;
-
 use provider::content::provider::MetaProvider;
 
 mod errors {
@@ -75,7 +75,7 @@ fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: PathBuf, test_name:
 
 fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>, input: String) -> String {
     let mut command = Command::new("cargo");
-    let mut command_args = vec!("run", "--bin", "flowr", "--", filepath.to_str().unwrap(),
+    let mut command_args = vec!("run", "-p", "flowr", "--", filepath.to_str().unwrap(),
                                 "-j", "1", "-t", "0", "--");
     for test_arg in &test_args {
         command_args.push(test_arg);
