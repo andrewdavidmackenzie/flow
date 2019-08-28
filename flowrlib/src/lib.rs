@@ -2,6 +2,7 @@
 //! to enable it to be compiled and ran as a native program.
 #[macro_use]
 extern crate error_chain;
+extern crate flow_impl;
 extern crate instant;
 #[macro_use]
 extern crate log;
@@ -17,7 +18,6 @@ extern crate wasmi;
 pub mod info;
 pub mod url;
 pub mod coordinator;
-pub mod implementation;
 pub mod implementation_table;
 pub mod function;
 pub mod manifest;

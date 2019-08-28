@@ -1,9 +1,8 @@
 use std::io::{self};
 
-use flowrlib::implementation::DONT_RUN_AGAIN;
-use flowrlib::implementation::Implementation;
-use flowrlib::implementation::RunAgain;
 use serde_json::Value;
+
+use flow_impl::implementation::{DONT_RUN_AGAIN, Implementation, RunAgain};
 
 pub struct Readline;
 

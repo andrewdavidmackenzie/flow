@@ -1,5 +1,6 @@
-use serde_json::Value;
 use std::panic::{RefUnwindSafe, UnwindSafe};
+
+use serde_json::Value;
 
 pub type RunAgain = bool;
 pub const RUN_AGAIN: RunAgain = true;

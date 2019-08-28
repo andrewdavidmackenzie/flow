@@ -1,6 +1,7 @@
 extern crate clap;
 #[macro_use]
 extern crate error_chain;
+extern crate flow_impl;
 extern crate flowrlib;
 #[macro_use]
 extern crate log;
@@ -15,14 +16,14 @@ use std::env;
 use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
-use flowrlib::coordinator::{Coordinator, Submission};
-use flowrlib::debug_client::DebugClient;
-use flowrlib::info;
-use flowrlib::loader::Loader;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
 use cli_debug_client::CLIDebugClient;
+use flowrlib::coordinator::{Coordinator, Submission};
+use flowrlib::debug_client::DebugClient;
+use flowrlib::info;
+use flowrlib::loader::Loader;
 use provider::args::{cwd_as_url, url_from_string};
 use provider::content::provider::MetaProvider;
 

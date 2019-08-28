@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate error_chain;
+extern crate flow_impl;
 extern crate flowclib;
 extern crate flowrlib;
 extern crate flowstdlib;

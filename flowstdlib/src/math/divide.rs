@@ -1,7 +1,6 @@
 use serde_json::Value;
 
-use flowrlib::implementation::Implementation;
-use flowrlib::implementation::RunAgain;
+use flow_impl::implementation::{Implementation, RunAgain};
 
 pub struct Divide;
 
@@ -20,7 +19,7 @@ impl Implementation for Divide {
 mod test {
     use serde_json::Value;
 
-    use flowrlib::implementation::Implementation;
+    use flow_impl::implementation::Implementation;
 
     use super::Divide;
 

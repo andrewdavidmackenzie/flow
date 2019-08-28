@@ -1,10 +1,12 @@
-use crate::implementation::Implementation;
-use crate::implementation::RunAgain;
-use crate::input::Input;
-use serde_json::Value;
-use std::sync::Arc;
 #[cfg(feature = "debugger")]
 use std::fmt;
+use std::sync::Arc;
+
+use serde_json::Value;
+
+use flow_impl::implementation::{Implementation, RunAgain};
+
+use crate::input::Input;
 
 #[derive(Deserialize, Serialize)]
 pub struct Function {
@@ -199,8 +201,10 @@ impl Function {
 #[cfg(test)]
 mod test {
     use serde_json::value::Value;
-    use super::Function;
+
     use crate::input::Input;
+
+    use super::Function;
 
     /*************** Below are tests for basic json.pointer functionality *************************/
 

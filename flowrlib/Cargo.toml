@@ -22,6 +22,7 @@ debugger = []
 logging = []
 
 [dependencies]
+flow_impl = { path = "../flow_impl", version = "~0.7.0" }
 # A std::Instant compatible crate that also supports wasm
 instant = { version = "0.1", features = [ "now", "wasm-bindgen" ] }
 multimap = "~0.5"

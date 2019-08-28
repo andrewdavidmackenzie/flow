@@ -1,8 +1,10 @@
-use crate::implementation::Implementation;
 use std::collections::HashMap;
-use crate::provider::Provider;
 use std::sync::Arc;
+
+use flow_impl::implementation::Implementation;
+
 use crate::errors::*;
+use crate::provider::Provider;
 
 /*
     Implementations can be of two types - either a native and statically bound function referenced
@@ -46,11 +48,11 @@ impl ImplementationLocatorTable {
 
 #[cfg(test)]
 mod test {
-    use crate::implementation_table::ImplementationLocatorTable;
+    use crate::errors::*;
     use crate::implementation_table::ImplementationLocator;
     use crate::implementation_table::ImplementationLocator::Wasm;
+    use crate::implementation_table::ImplementationLocatorTable;
     use crate::provider::Provider;
-    use crate::errors::*;
 
     pub struct TestProvider {
         test_content: &'static str

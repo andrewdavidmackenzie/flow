@@ -6,9 +6,9 @@ use serde_json::Value;
 #[cfg(not(target_arch = "wasm32"))]
 use wasmi::{ImportsBuilder, Module, ModuleInstance, ModuleRef};
 
+use flow_impl::implementation::{Implementation, RunAgain};
+
 use crate::errors::*;
-use crate::implementation::Implementation;
-use crate::implementation::RunAgain;
 use crate::provider::Provider;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -16,16 +16,13 @@ const DEFAULT_WASM_FILENAME: &str = "module.wasm";
 
 #[cfg(not(target_arch = "wasm32"))]
 pub struct WasmExecutor {
-    pub module: Arc<Mutex<ModuleRef>>,
+    module: Arc<Mutex<ModuleRef>>,
     function_name: String,
 }
 
 #[cfg(target_arch = "wasm32")]
 pub struct WasmExecutor;
 
-/*
-
-*/
 impl Implementation for WasmExecutor {
     fn run(&self, _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         #[cfg(not(target_arch = "wasm32"))]
@@ -51,12 +48,6 @@ impl Implementation for WasmExecutor {
 /*
     load a Wasm module from the specified Url.
 */
-#[cfg(target_arch = "wasm32")]
-pub fn load(_provider: &dyn Provider, _function_name: &str, _source_url: &str) -> Result<Arc<WasmExecutor>> {
-    let executor = WasmExecutor {};
-    Ok(Arc::new(executor))
-}
-
 #[cfg(not(target_arch = "wasm32"))]
 pub fn load(provider: &dyn Provider, function_name: &str, source_url: &str) -> Result<Arc<WasmExecutor>> {
     let (resolved_url, _) = provider.resolve(&source_url, DEFAULT_WASM_FILENAME)?;
@@ -74,5 +65,14 @@ pub fn load(provider: &dyn Provider, function_name: &str, source_url: &str) -> R
         function_name: function_name.to_string(),
     };
 
+    Ok(Arc::new(executor))
+}
+
+/*
+    When the target architecture is wasm - all will be compiled to wasm
+*/
+#[cfg(target_arch = "wasm32")]
+pub fn load(_provider: &dyn Provider, _function_name: &str, _source_url: &str) -> Result<Arc<WasmExecutor>> {
+    let executor = WasmExecutor {};
     Ok(Arc::new(executor))
 }

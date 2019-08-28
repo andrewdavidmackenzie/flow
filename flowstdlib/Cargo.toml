@@ -19,6 +19,7 @@ name = "flowstdlib"
 path = "src/lib.rs"
 
 [dependencies]
+flow_impl = { path = "../flow_impl", version = "~0.7.0" }
 flowrlib = { path = "../flowrlib", version = "~0.7.0" }
 serde_json = "1.0"
 image = "*"

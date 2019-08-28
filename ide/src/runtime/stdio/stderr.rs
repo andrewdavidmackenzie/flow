@@ -1,6 +1,4 @@
-use flowrlib::implementation::Implementation;
-use flowrlib::implementation::RUN_AGAIN;
-use flowrlib::implementation::RunAgain;
+use flow_impl::implementation::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
 pub struct Stderr;

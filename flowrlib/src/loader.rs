@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::implementation::Implementation;
+use flow_impl::implementation::Implementation;
+
+use crate::errors::*;
 use crate::implementation_table::ImplementationLocator::Native;
 use crate::implementation_table::ImplementationLocator::Wasm;
 use crate::implementation_table::ImplementationLocatorTable;
@@ -9,7 +11,6 @@ use crate::manifest::Manifest;
 use crate::provider::Provider;
 use crate::url;
 use crate::wasm;
-use crate::errors::*;
 
 pub struct Loader {
     global_lib_implementations: HashMap<String, Arc<dyn Implementation>>,

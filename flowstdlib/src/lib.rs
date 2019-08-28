@@ -1,7 +1,8 @@
+extern crate flow_impl;
 extern crate flowrlib;
-#[macro_use] extern crate serde_json;
 extern crate image;
 #[macro_use] extern crate log;
+#[macro_use] extern crate serde_json;
 
 pub mod math;
 pub mod fmt;

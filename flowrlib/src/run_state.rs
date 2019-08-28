@@ -6,9 +6,10 @@ use std::sync::Arc;
 use multimap::MultiMap;
 use serde_json::Value;
 
+use flow_impl::implementation::Implementation;
+
 use crate::debugger::Debugger;
 use crate::function::Function;
-use crate::implementation::Implementation;
 use crate::metrics::Metrics;
 
 #[derive(Debug, PartialEq)]
