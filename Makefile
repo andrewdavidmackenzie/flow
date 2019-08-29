@@ -169,7 +169,8 @@ clean-samples:
 clean-dumps:
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot -type f -exec rm -rf {} + ; true
-	@echo "All .dump and .dot files removed"
+	@find . -name \*.dot.png -type f -exec rm -rf {} + ; true
+	@echo "All .dump, .dot and .dot.png files removed"
 
 clean-guide:
 	@rm -rf guide/book
