@@ -12,7 +12,6 @@ extern crate serde;
 extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
-#[cfg(not(target_arch = "wasm32"))]
 extern crate wasmi;
 
 pub mod info;

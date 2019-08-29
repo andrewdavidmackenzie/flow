@@ -129,7 +129,7 @@ samples: $(sample_flows)  # This target must be below sample-flows in the Makefi
 samples/%/test.output: samples/%/test.input samples/%/test.arguments
 	@echo "\n------- Compiling and Running '$(@D)' ----"
 # build any samples that provide their own implementations
-	@test -f $(@D)/Makefile && cd $(@D) && make --quiet wasm;true
+	@test -f $(@D)/Makefile && cd $(@D) && make wasm;true
 # remove local file path from output messages with sed to make local failures match travis failures
 	@cat $< | cargo run --quiet --bin flowc -- -g -d $(@D) -- `cat $(@D)/test.arguments` | grep -v "Running" | grep -v "Finished dev" 2> $(@D)/test.err > $@; true
 	@diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && exit $$ret)
@@ -157,16 +157,14 @@ package-ide: ide_build
 	@cd ide && make package
 
 ################# Clean ################
-clean: clean-samples clean-dumps
+clean: clean-dumps
+	cd samples; make clean
 	cargo clean
 	@rm -rf guide/book
 	cd ide && make clean
 	cd flowclib && make clean
 	cd flowstdlib && make clean
 	cd flowrlib && make clean
-
-clean-samples:
-	cd samples && make clean
 
 clean-dumps:
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true

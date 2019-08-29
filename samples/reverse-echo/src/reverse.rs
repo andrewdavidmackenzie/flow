@@ -1,23 +1,32 @@
+extern crate core;
+extern crate flow_impl;
+extern crate flow_impl_derive;
 #[macro_use]
 extern crate serde_json;
 
+use flow_impl::implementation::Implementation;
+use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 use serde_json::Value::String as JsonString;
 
-#[no_mangle]
-pub extern "C" fn reverse(mut inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
-    let mut value = None;
+#[derive(FlowImpl)]
+pub struct Reverser;
 
-    let input = inputs.remove(0).remove(0);
-    match input {
-        JsonString(ref s) => {
-            value = Some(json!({
+impl Implementation for Reverser {
+    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
+        let mut value = None;
+
+        let input = inputs.remove(0).remove(0);
+        match input {
+            JsonString(ref s) => {
+                value = Some(json!({
                     "reversed" : s.chars().rev().collect::<String>(),
                     "original": s
                 }));
+            }
+            _ => {}
         }
-        _ => {}
-    }
 
-    (value, true)
+        (value, true)
+    }
 }
