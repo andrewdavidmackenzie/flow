@@ -1,4 +1,5 @@
 clean:
+	@find . -name \*.wasm -exec rm -rf {} + ; true
 	@find . -name test.output -exec rm -rf {} + ; true
 	@find . -name failed.output -exec rm -rf {} + ; true
 	@find . -name manifest.json -exec rm -rf {} + ; true

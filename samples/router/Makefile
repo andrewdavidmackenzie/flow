@@ -1,4 +1,4 @@
-NAME=parse_pair
+NAME=read_section
 
 wasm: src/$(NAME).wasm
 

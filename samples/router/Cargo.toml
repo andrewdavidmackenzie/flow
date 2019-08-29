@@ -1,19 +1,13 @@
 [package]
-name = "parse_pair"
+name = "router"
 version = "0.1.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
-
 edition = "2018"
 
 [lib]
-name = "parse_pair"
+name = "read_section"
 crate-type = ["cdylib"]
-path = "src/parse_pair.rs"
-
-[profile.release]
-debug = false
-lto = true
-opt-level = 's'
+path = "src/read_section.rs"
 
 [dependencies]
 flow_impl = { path = "../../flow_impl"}
