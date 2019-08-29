@@ -58,10 +58,7 @@ fn send_byte_array(instance: &ModuleRef, memory: &MemoryRef, bytes: &[u8]) -> u3
 
     match result.unwrap().unwrap() {
         RuntimeValue::I32(pointer) => {
-            let len = bytes.len();
-            for i in 0..len {
-                memory.set_value((pointer + i as i32) as u32, bytes[i]).unwrap();
-            }
+            memory.set(pointer as u32, bytes).unwrap();
             pointer as u32
         }
         _ => 0 as u32
