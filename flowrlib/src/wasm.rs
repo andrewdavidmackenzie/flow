@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use serde_json::Value;
+#[cfg(not(target_arch = "wasm32"))]
 use wasmi::{MemoryRef, ModuleRef};
 #[cfg(not(target_arch = "wasm32"))]
 use wasmi::{ImportsBuilder, Module, ModuleInstance, NopExternals, RuntimeValue};
