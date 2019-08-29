@@ -18,6 +18,7 @@ use crate::provider::Provider;
 #[cfg(not(target_arch = "wasm32"))]
 const DEFAULT_WASM_FILENAME: &str = "module.wasm";
 
+#[cfg(not(target_arch = "wasm32"))]
 const MAX_RESULT_SIZE: i32 = 1024;
 
 #[cfg(target_arch = "wasm32")]
@@ -27,13 +28,6 @@ pub struct WasmExecutor;
 pub struct WasmExecutor {
     module: Arc<Mutex<ModuleRef>>,
     memory: Arc<Mutex<MemoryRef>>,
-}
-
-#[cfg(target_arch = "wasm32")]
-impl WasmExecutor {
-    pub fn new(module_ref: ModuleRef, memory: MemoryRef) -> Self {
-        WasmExecutor{}
-    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -108,7 +102,7 @@ impl Implementation for WasmExecutor {
 
 #[cfg(target_arch = "wasm32")]
 impl Implementation for WasmExecutor {
-    fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         (None, false)
     }
 }
