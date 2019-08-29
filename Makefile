@@ -157,19 +157,22 @@ package-ide: ide_build
 	@cd ide && make package
 
 ################# Clean ################
-clean: clean-dumps
-	cd samples; make clean
-	cargo clean
-	@rm -rf guide/book
+clean: clean-samples clean-dumps clean-guide
+	cargo cleanuide:
+
 	cd ide && make clean
-	cd flowclib && make clean
-	cd flowstdlib && make clean
-	cd flowrlib && make clean
+	cd native-ide && make clean
+
+clean-samples:
+	cd samples; make clean
 
 clean-dumps:
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot -type f -exec rm -rf {} + ; true
 	@echo "All .dump and .dot files removed"
+
+clean-guide:
+	@rm -rf guide/book
 
 ################# Dot Graphs ################
 dot-graphs:
