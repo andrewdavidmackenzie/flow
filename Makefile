@@ -158,10 +158,9 @@ package-ide: ide_build
 
 ################# Clean ################
 clean: clean-samples clean-dumps clean-guide
-	cargo cleanuide:
-
+	cargo clean
 	cd ide && make clean
-	cd native-ide && make clean
+	cd ide-native && make clean
 
 clean-samples:
 	cd samples; make clean
