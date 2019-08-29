@@ -83,9 +83,8 @@ impl Loader {
                     let full_url = url::join(manifest_url,
                                              function.implementation_source());
                     let wasm_executor = wasm::load(provider,
-                                                   &function.name().to_lowercase(),
                                                    &full_url)?;
-                    function.set_implementation(wasm_executor as Arc<dyn Implementation>);
+                    function.set_implementation(Arc::new(wasm_executor) as Arc<dyn Implementation>);
                 }
             }
         }
@@ -111,9 +110,8 @@ impl Loader {
                         // Path to the wasm source could be relative to the URL where we loaded the ILT from
                         let wasm_url = url::join(ilt_url, &wasm_source.0);
                         // Wasm implementation being added. Wrap it with the Wasm Native Implementation
-                        let wasm_executor = wasm::load(provider, &wasm_source.1,
-                                                       &wasm_url)?;
-                        wasm_executor as Arc<dyn Implementation>
+                        let wasm_executor = wasm::load(provider, &wasm_url)?;
+                        Arc::new(wasm_executor) as Arc<dyn Implementation>
                     }
 
                     // Native implementation from Lib

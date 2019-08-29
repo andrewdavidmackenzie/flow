@@ -1,9 +1,9 @@
-wasm:
-	@cargo build --quiet --release --target=wasm32-unknown-unknown
-	@cp target/wasm32-unknown-unknown/release/*.wasm src/
-# wasm-opt -Oz
-# wasm-gc
-# wasm-strip
-# cargo install wasm-gc
-# cargo install wasm-snip
-# wasm-gc → wasm-snip → wasm-gc → wasm-opt.
+NAME=reverse
+
+wasm: src/$(NAME).wasm
+
+src/$(NAME).wasm: target/wasm32-unknown-unknown/debug/$(NAME).wasm
+	@cp $< $@
+
+target/wasm32-unknown-unknown/debug/$(NAME).wasm: src/$(NAME).rs Cargo.toml
+	@cargo build --quiet --lib --target=wasm32-unknown-unknown
