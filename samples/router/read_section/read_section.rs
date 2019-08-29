@@ -4,7 +4,7 @@ extern crate flow_impl_derive;
 #[macro_use]
 extern crate serde_json;
 
-use flow_impl::implementation::Implementation;
+use flow_impl::implementation::{Implementation, RUN_AGAIN, RunAgain};
 use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 
@@ -12,7 +12,7 @@ use serde_json::Value;
 pub struct Router;
 
 impl Implementation for Router {
-    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
+    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let mut value = None;
 
         let input_stream = inputs.remove(0);
@@ -22,11 +22,11 @@ impl Implementation for Router {
 
         match (ra, rb, rc) {
             (Ok(a), Ok(b), Ok(c)) => {
-                value = Some(json!([a, b, c]));
+                value = Some(json!(format!("{:?}", [a, b, c]))); // TODO remove format
             }
             _ => {}
         }
 
-        (value, true)
+        (value, RUN_AGAIN)
     }
 }
