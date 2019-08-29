@@ -19,6 +19,7 @@ endif
 config:
 	rustup target add wasm32-unknown-unknown
 	cargo install wasm-bindgen-cli || true
+	cargo install wasm-gc || true
 	# install mdbook for generating guides
 	cargo install mdbook || true
 	cargo install mdbook-linkcheck || true
@@ -77,14 +78,14 @@ build: workspace ide_build ide_native_build
 workspace:
 	@echo ""
 	@echo "------- Starting build of 'flow' workspace project -------------"
-	cargo build --all
+	@cargo build --all
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
 ide_build:
-	cd ide && make build
+	@cd ide && make build
 
 ide_native_build:
-	cd ide-native && make build
+	@cd ide-native && make build
 
 ################## Travis CI ##################
 travis: clean test guide
@@ -98,7 +99,7 @@ test: test-workspace test-ide samples
 test-workspace:
 	@echo ""
 	@echo "------- Starting build of 'flow' workspace project -------------"
-	cargo test $(features) --all
+	@cargo test $(features) --all
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
 test-ide:
@@ -158,9 +159,9 @@ package-ide: ide_build
 
 ################# Clean ################
 clean: clean-samples clean-dumps clean-guide
-	cargo clean
-	cd ide && make clean
-	cd ide-native && make clean
+	@cargo clean
+	@cd ide && make clean
+	@cd ide-native && make clean
 
 clean-samples:
 	@cd samples; make clean
