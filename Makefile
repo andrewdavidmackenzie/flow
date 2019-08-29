@@ -1,7 +1,7 @@
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 DOT := $(shell command -v dot 2> /dev/null)
 
-all: clean-samples build test doc
+all: build test doc
 	@echo ""
 	@echo "**************************************"
 	@echo "************* Done all: **************"
@@ -121,7 +121,7 @@ copy:
 # make paths - to compile all samples found in there. Avoid files using the filter.
 sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
-samples: $(sample_flows)  # This target must be below sample-flows in the Makefile
+samples: clean-samples $(sample_flows)  # This target must be below sample-flows in the Makefile
 	@echo ""
 	@echo "All local samples executed and output as expected"
 	@echo "------- Finished 'samples:' ----"
@@ -163,7 +163,7 @@ clean: clean-samples clean-dumps clean-guide
 	cd ide-native && make clean
 
 clean-samples:
-	cd samples; make clean
+	@cd samples; make clean
 
 clean-dumps:
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true
