@@ -5,6 +5,7 @@ use flowrlib::input::Input;
 use flowrlib::url;
 
 use crate::compiler::loader::Validate;
+use crate::errors::*;
 use crate::model::io::{IO, IOType};
 use crate::model::io::IOSet;
 use crate::model::name::HasName;
@@ -13,7 +14,6 @@ use crate::model::route::HasRoute;
 use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
-use crate::errors::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -221,7 +221,7 @@ impl Function {
     }
 
     pub fn set_source_url(&mut self, source: &str) {
-        self.source_url = source.to_string()
+        self.source_url = source.to_owned();
     }
 
     pub fn set_lib_reference(&mut self, lib_reference: Option<String>) {
