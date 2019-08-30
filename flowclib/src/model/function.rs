@@ -1,7 +1,5 @@
 use std::fmt;
 
-use flowrlib::function::Function as RuntimeFunction;
-use flowrlib::input::Input;
 use flowrlib::url;
 
 use crate::compiler::loader::Validate;
@@ -103,28 +101,6 @@ impl Function {
                 }
             }
         }
-    }
-}
-
-impl From<Function> for RuntimeFunction {
-    fn from(function: Function) -> Self {
-        let mut process_inputs = vec!();
-        match &function.get_inputs() {
-            &None => {}
-            Some(inputs) => {
-                for input in inputs {
-                    process_inputs.push(Input::from(input));
-                }
-            }
-        };
-
-        RuntimeFunction::new(function.alias().to_string(),
-                             function.route().to_string(),
-                             function.get_implementation_source(),
-                             function.is_impure(),
-                             process_inputs,
-                             function.get_id(),
-                             function.get_output_routes())
     }
 }
 
