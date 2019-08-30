@@ -1,5 +1,5 @@
 function = "ReadSection"
-implementation = "read_section.wasm"
+implementation = "read_section.rs"
 
 [[input]]
 type = "String"
