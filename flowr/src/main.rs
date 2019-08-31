@@ -101,7 +101,7 @@ fn run() -> Result<()> {
 
     // Load the flow to run from the manifest
     let manifest = loader.load_manifest(&provider, &url.to_string())
-        .chain_err(|| "Could not load the flow to execute from the manifest")?;
+        .chain_err(|| format!("Could not load the flow from manifest: '{}'", url))?;
 
     // run the flow
     let num_parallel_jobs = num_parallel_jobs(&matches, debugger);

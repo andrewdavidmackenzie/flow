@@ -1,9 +1,12 @@
 NAME=reverse
+TMPDIR := $(shell mktemp -d)
 
-wasm: src/$(NAME).wasm
+wasm: $(NAME)/$(NAME).wasm
 
-src/$(NAME).wasm: target/wasm32-unknown-unknown/debug/$(NAME).wasm
+$(NAME)/$(NAME).wasm: $(TMPDIR)/wasm32-unknown-unknown/release/$(NAME).wasm
 	@cp $< $@
 
-target/wasm32-unknown-unknown/debug/$(NAME).wasm: src/$(NAME).rs Cargo.toml
-	@cargo build --quiet --lib --target=wasm32-unknown-unknown
+$(TMPDIR)/wasm32-unknown-unknown/release/$(NAME).wasm: $(NAME)/$(NAME).rs $(NAME)/Cargo.toml
+	@cargo build --quiet --manifest-path=$(NAME)/Cargo.toml --release --target-dir=$(TMPDIR) --lib --target=wasm32-unknown-unknown
+	@wasm-gc $@
+	@echo "Generated wasm implementation for function '$(NAME)'"

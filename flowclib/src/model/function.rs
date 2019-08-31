@@ -1,10 +1,7 @@
 use std::fmt;
 
-use flowrlib::function::Function as RuntimeFunction;
-use flowrlib::input::Input;
-use flowrlib::url;
-
 use crate::compiler::loader::Validate;
+use crate::errors::*;
 use crate::model::io::{IO, IOType};
 use crate::model::io::IOSet;
 use crate::model::name::HasName;
@@ -13,7 +10,6 @@ use crate::model::route::HasRoute;
 use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
-use crate::errors::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -25,13 +21,12 @@ pub struct Function {
     implementation: Option<String>,
     #[serde(rename = "input")]
     pub inputs: IOSet,
-    // TODO
     #[serde(rename = "output")]
     outputs: IOSet,
 
     #[serde(skip_deserializing)]
     alias: Name,
-    #[serde(skip_deserializing, default = "Function::default_url")]
+    #[serde(skip_deserializing, default = "Function::default_source_url")]
     source_url: String,
     #[serde(skip_deserializing)]
     route: Route,
@@ -88,43 +83,16 @@ impl Function {
         &self.output_routes
     }
 
-    pub fn get_implementation_source(&self) -> String {
-        if let Some(ref reference) = self.lib_reference {
-            format!("lib://{}/{}", reference, &self.name)
-        } else {
-            match &self.implementation {
-                Some(path) => {
-                    url::join(&self.source_url, path)
-                }
-                None => {
-                    let path = format!("No implementation found for provided function '{}'", self.name);
-                    error!("{}", path);
-                    path
-                }
-            }
-        }
+    pub fn get_implementation(&self) -> Option<String> {
+        self.implementation.clone()
     }
-}
 
-impl From<Function> for RuntimeFunction {
-    fn from(function: Function) -> Self {
-        let mut process_inputs = vec!();
-        match &function.get_inputs() {
-            &None => {}
-            Some(inputs) => {
-                for input in inputs {
-                    process_inputs.push(Input::from(input));
-                }
-            }
-        };
+    pub fn set_implementation(&mut self, implementation: &str) {
+        self.implementation = Some(implementation.to_owned());
+    }
 
-        RuntimeFunction::new(function.alias().to_string(),
-                             function.route().to_string(),
-                             function.get_implementation_source(),
-                             function.is_impure(),
-                             process_inputs,
-                             function.get_id(),
-                             function.get_output_routes())
+    pub fn get_source_url(&self) -> String {
+        self.source_url.clone()
     }
 }
 
@@ -190,7 +158,7 @@ impl Default for Function {
             alias: Name::default(),
             inputs: None,
             outputs: Some(vec!(IO::new("Json", &Route::default()))),
-            source_url: Function::default_url(),
+            source_url: Function::default_source_url(),
             route: Route::default(),
             lib_reference: None,
             output_routes: vec!(("".to_string(), 0, 0)),
@@ -208,7 +176,7 @@ impl SetRoute for Function {
 }
 
 impl Function {
-    fn default_url() -> String {
+    fn default_source_url() -> String {
         "file:///".to_string()
     }
 
@@ -220,8 +188,8 @@ impl Function {
         self.alias = alias.clone();
     }
 
-    pub fn set_source_url(&mut self, source: &str) {
-        self.source_url = source.to_string()
+    pub fn set_implementation_url(&mut self, source: &str) {
+        self.source_url = source.to_owned();
     }
 
     pub fn set_lib_reference(&mut self, lib_reference: Option<String>) {
@@ -275,7 +243,7 @@ mod test {
             impure: false,
             implementation: None,
             alias: Name::from("test_function"),
-            source_url: Function::default_url(),
+            source_url: Function::default_source_url(),
             inputs: Some(vec!()), // No inputs!
             outputs: None,         // No output!
             route: Route::default(),

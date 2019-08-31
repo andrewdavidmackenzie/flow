@@ -1,5 +1,5 @@
 function = "ParsePair"
-implementation = "parse_pair.wasm"
+implementation = "parse_pair.rs"
 
 [[input]]
 name = "input"

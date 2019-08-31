@@ -122,16 +122,14 @@ copy:
 # make paths - to compile all samples found in there. Avoid files using the filter.
 sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
-samples: clean-samples $(sample_flows)  # This target must be below sample-flows in the Makefile
+samples: workspace clean-samples $(sample_flows)  # This target must be below sample-flows in the Makefile
 	@echo ""
 	@echo "All local samples executed and output as expected"
 	@echo "------- Finished 'samples:' ----"
 
 samples/%/test.output: samples/%/test.input samples/%/test.arguments
 	@echo "\n------- Compiling and Running '$(@D)' ----"
-# build any samples that provide their own implementations
-	@test -f $(@D)/Makefile && cd $(@D) && make wasm;true
-# remove local file path from output messages with sed to make local failures match travis failures
+# remove error messages with file path from output messages to make local output match travis output
 	@cat $< | cargo run --quiet --bin flowc -- -g -d $(@D) -- `cat $(@D)/test.arguments` | grep -v "Running" | grep -v "Finished dev" 2> $(@D)/test.err > $@; true
 	@diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && exit $$ret)
 	@echo "Sample output matches expected.output"

@@ -5,6 +5,7 @@ use flowrlib::function::Function as RuntimeFunction;
 use flowrlib::input::Input;
 use flowrlib::manifest::{Manifest, MetaData};
 
+use crate::errors::*;
 use crate::model::connection::Connection;
 use crate::model::datatype::TypeCheck;
 use crate::model::flow::Flow;
@@ -13,7 +14,6 @@ use crate::model::io::IO;
 use crate::model::name::HasName;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
-use crate::errors::*;
 
 #[derive(Serialize)]
 pub struct GenerationTables {
@@ -55,17 +55,15 @@ impl From<&IO> for Input {
     }
 }
 
-pub fn create_manifest(flow: &Flow, debug_symbols: bool, out_dir_path: &str, tables: &GenerationTables)
+pub fn create_manifest(flow: &Flow, debug_symbols: bool, out_dir: &str, tables: &GenerationTables)
                        -> Result<Manifest> {
-    info!("==== Generator: Writing manifest to '{}'", out_dir_path);
+    info!("==== Generator: Writing manifest to '{}'", out_dir);
 
     let mut manifest = Manifest::new(MetaData::from(flow));
-    let mut base_path = out_dir_path.to_string();
-    base_path.push('/');
 
     // Generate runtime Process struct for each of the functions
     for function in &tables.functions {
-        manifest.add_function(function_to_runtimefunction(&base_path, function, debug_symbols));
+        manifest.add_function(function_to_runtimefunction(&out_dir, function, debug_symbols)?);
     }
 
     manifest.lib_references = tables.libs.clone();
@@ -73,7 +71,7 @@ pub fn create_manifest(flow: &Flow, debug_symbols: bool, out_dir_path: &str, tab
     Ok(manifest)
 }
 
-fn function_to_runtimefunction(out_dir_path: &str, function: &Box<Function>, debug_symbols: bool) -> RuntimeFunction {
+fn function_to_runtimefunction(out_dir: &str, function: &Box<Function>, debug_symbols: bool) -> Result<RuntimeFunction> {
     let mut name = function.alias().to_string();
     let mut route = function.route().to_string();
 
@@ -82,10 +80,8 @@ fn function_to_runtimefunction(out_dir_path: &str, function: &Box<Function>, deb
         route = "".to_string();
     }
 
-    let mut implementation_source = function.get_implementation_source();
-
-    // make path to implementation relative to the output directory if under it
-    implementation_source = implementation_source.replace(out_dir_path, "");
+    // make location of implementation relative to the output directory if under it
+    let implementation_location = implementation_location_relative(&function, out_dir)?;
 
     let mut runtime_inputs = vec!();
     match &function.get_inputs() {
@@ -97,13 +93,35 @@ fn function_to_runtimefunction(out_dir_path: &str, function: &Box<Function>, deb
         }
     };
 
-    RuntimeFunction::new(name,
-                         route,
-                         implementation_source,
-                         function.is_impure(),
-                         runtime_inputs,
-                         function.get_id(),
-                         function.get_output_routes())
+    Ok(RuntimeFunction::new(name,
+                            route,
+                            implementation_location,
+                            function.is_impure(),
+                            runtime_inputs,
+                            function.get_id(),
+                            function.get_output_routes()))
+}
+
+/*
+    Get the location of the implementation - relative to the Manifest if it is a provided implementation
+*/
+fn implementation_location_relative(function: &Function, out_dir: &str) -> Result<String> {
+    if let Some(ref lib_reference) = function.get_lib_reference() {
+        Ok(format!("lib://{}/{}", lib_reference, &function.name()))
+    } else {
+        match &function.get_implementation() {
+            Some(implementation_path) => {
+                info!("Out_dir = '{}'", out_dir);
+                info!("Absolute implementation path = '{}'", implementation_path);
+                let relative_path = implementation_path.replace(out_dir, "");
+                info!("Absolute implementation path = '{}'", relative_path);
+                Ok(relative_path)
+            }
+            None => {
+                bail!("Function '{}' is not a lib reference but no implementation is provided", function.name())
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -138,7 +156,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://runtime/stdio/stdout',
   'output_routes': [
     [
       '',
@@ -155,7 +173,7 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let runtime_process = function_to_runtimefunction("/test", &br, false);
+        let runtime_process = function_to_runtimefunction("/test", &br, false).unwrap();
 
         let serialized_process = serde_json::to_string_pretty(&runtime_process).unwrap();
         assert_eq!(serialized_process, expected.replace("'", "\""));
@@ -169,7 +187,7 @@ mod test {
             Some("lib://runtime/stdio/stdout".to_string()),
             Name::from("print"),
             Some(vec!()),
-            Some(vec!(IO::new("String", &Route::default()) )),
+            Some(vec!(IO::new("String", &Route::default()))),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
@@ -178,7 +196,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://runtime/stdio/stdout',
   'output_routes': [
     [
       '',
@@ -190,7 +208,7 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = function_to_runtimefunction("/test", &br, false);
+        let process = function_to_runtimefunction("/test", &br, false).unwrap();
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
         assert_eq!(serialized_process, expected.replace("'", "\""));
@@ -213,7 +231,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://runtime/stdio/stdout',
   'output_routes': [
     [
       '',
@@ -226,7 +244,7 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = function_to_runtimefunction("/test", &br, false);
+        let process = function_to_runtimefunction("/test", &br, false).unwrap();
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
         assert_eq!(serialized_process, expected.replace("'", "\""));
@@ -254,7 +272,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://runtime/stdio/stdout',
   'inputs': [
     {
       'initializer': {
@@ -265,7 +283,7 @@ mod test {
 }";
 
         let br = Box::new(function) as Box<Function>;
-        let process = function_to_runtimefunction("/test", &br, false);
+        let process = function_to_runtimefunction("/test", &br, false).unwrap();
 
         println!("process {}", process);
 
@@ -295,7 +313,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://runtime/stdio/stdout',
   'inputs': [
     {
       'initializer': {
@@ -306,7 +324,7 @@ mod test {
 }";
 
         let br = Box::new(function) as Box<Function>;
-        let process = function_to_runtimefunction("/test", &br, false);
+        let process = function_to_runtimefunction("/test", &br, false).unwrap();
 
         println!("process {}", process);
 
@@ -333,7 +351,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://runtime/stdio/stdout',
   'inputs': [
     {
       'is_array': true
@@ -342,7 +360,7 @@ mod test {
 }";
 
         let br = Box::new(function) as Box<Function>;
-        let process = function_to_runtimefunction("/test", &br, false);
+        let process = function_to_runtimefunction("/test", &br, false).unwrap();
 
         println!("process {}", process);
 
@@ -371,7 +389,7 @@ mod test {
   'name': 'print',
   'route': '/flow0/stdout',
   'id': 0,
-  'implementation_source': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://runtime/stdio/stdout',
   'output_routes': [
     [
       '',
@@ -383,7 +401,7 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = function_to_runtimefunction("/test", &br, true);
+        let process = function_to_runtimefunction("/test", &br, true).unwrap();
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
         assert_eq!(serialized_process, expected.replace("'", "\""));
@@ -406,7 +424,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://runtime/stdio/stdout',
   'output_routes': [
     [
       '0',
@@ -418,7 +436,7 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = function_to_runtimefunction("/test", &br, false);
+        let process = function_to_runtimefunction("/test", &br, false).unwrap();
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
         assert_eq!(serialized_process, expected.replace("'", "\""));

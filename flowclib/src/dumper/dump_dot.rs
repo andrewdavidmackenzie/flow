@@ -1,23 +1,25 @@
-use crate::model::flow::Flow;
-use crate::generator::generate::GenerationTables;
 use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::io;
 use std::io::prelude::*;
 use std::path::PathBuf;
-use crate::model::process_reference::ProcessReference;
-use crate::model::io::IOSet;
-use crate::model::route::Route;
-use crate::model::route::HasRoute;
-use crate::model::route::FindRoute;
+
+use flowrlib::input::InputInitializer::{Constant, OneTime};
+
+use crate::dumper::helper;
+use crate::generator::generate::GenerationTables;
 use crate::model::connection::Connection;
+use crate::model::flow::Flow;
+use crate::model::function::Function;
+use crate::model::io::IOSet;
 use crate::model::name::HasName;
 use crate::model::name::Name;
-use crate::model::function::Function;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
-use crate::dumper::helper;
-use flowrlib::input::InputInitializer::{OneTime, Constant};
-use std::hash::{Hash, Hasher};
+use crate::model::process_reference::ProcessReference;
+use crate::model::route::FindRoute;
+use crate::model::route::HasRoute;
+use crate::model::route::Route;
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
 static OUTPUT_PORTS: &[&str] = &["s", "se", "sw"];
@@ -301,11 +303,11 @@ fn process_reference_to_dot(process_ref: &ProcessReference) -> String {
     match process_ref.process {
         FlowProcess(ref flow) => {
             dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot\"];\n",
-                                         flow.route(), process_ref.alias, process_ref.source_url));
+                                         flow.route(), process_ref.alias, process_ref.source));
         }
         FunctionProcess(ref function) => {
             dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot\"];\n",
-                                         function.route(), process_ref.alias, process_ref.source_url));
+                                         function.route(), process_ref.alias, process_ref.source));
         }
     }
     dot_string

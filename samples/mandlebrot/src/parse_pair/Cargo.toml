@@ -8,7 +8,7 @@ edition = "2018"
 [lib]
 name = "parse_pair"
 crate-type = ["cdylib"]
-path = "src/parse_pair.rs"
+path = "parse_pair.rs"
 
 [profile.release]
 debug = false
@@ -16,9 +16,9 @@ lto = true
 opt-level = 's'
 
 [dependencies]
-flow_impl = { path = "../../flow_impl"}
-flow_impl_derive = { path = "../../flow_impl/flow_impl_derive" }
+flow_impl = { path = "../../../../flow_impl"}
+flow_impl_derive = { path = "../../../../flow_impl/flow_impl_derive" }
 serde_json = "1.0"
 
 [workspace]
-exclude = ["../../"]
+exclude = ["../../../../"]
