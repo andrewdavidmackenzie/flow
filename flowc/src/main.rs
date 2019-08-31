@@ -86,7 +86,7 @@ fn main() {
     a message to display to the user if all went OK
 */
 fn run() -> Result<String> {
-    let (url, args, dump, skip_generation, debug_symbols, out_dir)
+    let (url, args, dump, skip_generation, debug_symbols, provided_implementations, out_dir)
         = parse_args(get_matches())?;
     let meta_provider = MetaProvider {};
 
@@ -95,8 +95,12 @@ fn run() -> Result<String> {
         FlowProcess(flow) => {
             let mut tables = compile(&flow, dump, &out_dir).chain_err(|| "Failed to compile")?;
 
-            info!("==== Compiling provided functions");
-            compile_supplied_functions(&mut tables)?;
+            if provided_implementations {
+                info!("==== Skipping compilation of provided functions");
+            } else {
+                info!("==== Compiling provided functions");
+                compile_supplied_functions(&mut tables)?;
+            }
 
             if skip_generation {
                 return Ok("Manifest generation and flow running skipped".to_string());
@@ -244,21 +248,25 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .arg(Arg::with_name("skip")
             .short("s")
             .long("skip")
-            .help("Skip code generation and running"))
+            .help("Skip manifest generation and running of flow"))
         .arg(Arg::with_name("dump")
             .short("d")
             .long("dump")
-            .help("Dump the flow to standard output after loading it"))
+            .help("Dump the flow to .dump files after loading it"))
         .arg(Arg::with_name("symbols")
             .short("g")
             .long("symbols")
             .help("Generate debug symbols (like process names and full routes)"))
+        .arg(Arg::with_name("provided")
+            .short("p")
+            .long("provided")
+            .help("Provided function implementations should NOT be compiled from source"))
         .arg(Arg::with_name("output")
             .short("o")
             .long("output")
             .takes_value(true)
             .value_name("OUTPUT_DIR")
-            .help("Output directory for generated code"))
+            .help("Specify the output directory for generated manifest"))
         .arg(Arg::with_name("log")
             .short("l")
             .long("log")
@@ -266,7 +274,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .value_name("LOG_LEVEL")
             .help("Set log level for output (trace, debug, info, warn, error (default))"))
         .arg(Arg::with_name("FLOW")
-            .help("the name of the 'flow' file")
+            .help("the name of the 'flow' definition file to compile")
             .required(false)
             .index(1))
         .arg(Arg::with_name("flow_args")
@@ -277,7 +285,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 /*
     Parse the command line arguments
 */
-fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, bool, PathBuf)> {
+fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, bool, bool, PathBuf)> {
     let mut args: Vec<String> = vec!();
     if let Some(flow_args) = matches.values_of("flow_args") {
         args = flow_args.map(|a| a.to_string()).collect();
@@ -294,11 +302,12 @@ fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, bool
     let dump = matches.is_present("dump");
     let skip_generation = matches.is_present("skip");
     let debug_symbols = matches.is_present("symbols");
+    let provided_implementations = matches.is_present("provided");
     let out_dir_option = matches.value_of("OUTPUT_DIR");
     let output_dir = source_arg::get_output_dir(&url, out_dir_option)
         .chain_err(|| "Could not get or create the output directory")?;
 
-    Ok((url, args, dump, skip_generation, debug_symbols, output_dir))
+    Ok((url, args, dump, skip_generation, debug_symbols, provided_implementations, output_dir))
 }
 
 fn compile(flow: &Flow, dump: bool, out_dir: &PathBuf) -> Result<GenerationTables> {
