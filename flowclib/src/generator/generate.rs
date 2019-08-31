@@ -5,6 +5,7 @@ use flowrlib::function::Function as RuntimeFunction;
 use flowrlib::input::Input;
 use flowrlib::manifest::{Manifest, MetaData};
 
+use crate::errors::*;
 use crate::model::connection::Connection;
 use crate::model::datatype::TypeCheck;
 use crate::model::flow::Flow;
@@ -13,7 +14,6 @@ use crate::model::io::IO;
 use crate::model::name::HasName;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
-use crate::errors::*;
 
 #[derive(Serialize)]
 pub struct GenerationTables {
@@ -82,10 +82,8 @@ fn function_to_runtimefunction(out_dir_path: &str, function: &Box<Function>, deb
         route = "".to_string();
     }
 
-    let mut implementation_source = function.get_implementation_source();
-
-    // make path to implementation relative to the output directory if under it
-    implementation_source = implementation_source.replace(out_dir_path, "");
+    // make location tof implementation relative to the output directory if under it
+    let implementation_location = function.get_implementation_url().replace(out_dir_path, "");
 
     let mut runtime_inputs = vec!();
     match &function.get_inputs() {
@@ -99,7 +97,7 @@ fn function_to_runtimefunction(out_dir_path: &str, function: &Box<Function>, deb
 
     RuntimeFunction::new(name,
                          route,
-                         implementation_source,
+                         implementation_location,
                          function.is_impure(),
                          runtime_inputs,
                          function.get_id(),

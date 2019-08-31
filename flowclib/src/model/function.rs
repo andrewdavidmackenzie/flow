@@ -23,14 +23,13 @@ pub struct Function {
     implementation: Option<String>,
     #[serde(rename = "input")]
     pub inputs: IOSet,
-    // TODO
     #[serde(rename = "output")]
     outputs: IOSet,
 
     #[serde(skip_deserializing)]
     alias: Name,
-    #[serde(skip_deserializing, default = "Function::default_url")]
-    source_url: String,
+    #[serde(skip_deserializing, default = "Function::default_implementation_url")]
+    implementation_url: String,
     #[serde(skip_deserializing)]
     route: Route,
     #[serde(skip_deserializing)]
@@ -86,13 +85,21 @@ impl Function {
         &self.output_routes
     }
 
-    pub fn get_implementation_source(&self) -> String {
+    pub fn get_implementation(&self) -> Option<String> {
+        self.implementation.clone()
+    }
+
+    pub fn set_implementation(&mut self, implementation: String) {
+        self.implementation = Some(implementation);
+    }
+
+    pub fn get_implementation_url(&self) -> String {
         if let Some(ref reference) = self.lib_reference {
             format!("lib://{}/{}", reference, &self.name)
         } else {
             match &self.implementation {
                 Some(path) => {
-                    url::join(&self.source_url, path)
+                    url::join(&self.implementation_url, path)
                 }
                 None => {
                     let path = format!("No implementation found for provided function '{}'", self.name);
@@ -166,7 +173,7 @@ impl Default for Function {
             alias: Name::default(),
             inputs: None,
             outputs: Some(vec!(IO::new("Json", &Route::default()))),
-            source_url: Function::default_url(),
+            implementation_url: Function::default_implementation_url(),
             route: Route::default(),
             lib_reference: None,
             output_routes: vec!(("".to_string(), 0, 0)),
@@ -184,7 +191,7 @@ impl SetRoute for Function {
 }
 
 impl Function {
-    fn default_url() -> String {
+    fn default_implementation_url() -> String {
         "file:///".to_string()
     }
 
@@ -196,8 +203,8 @@ impl Function {
         self.alias = alias.clone();
     }
 
-    pub fn set_source_url(&mut self, source: &str) {
-        self.source_url = source.to_owned();
+    pub fn set_implementation_url(&mut self, source: &str) {
+        self.implementation_url = source.to_owned();
     }
 
     pub fn set_lib_reference(&mut self, lib_reference: Option<String>) {
@@ -235,7 +242,7 @@ mod test {
                 alias,
                 inputs,
                 outputs,
-                source_url: source_url.to_string(),
+                implementation_url: source_url.to_string(),
                 route,
                 lib_reference,
                 output_routes: output_connections,
@@ -251,7 +258,7 @@ mod test {
             impure: false,
             implementation: None,
             alias: Name::from("test_function"),
-            source_url: Function::default_url(),
+            implementation_url: Function::default_implementation_url(),
             inputs: Some(vec!()), // No inputs!
             outputs: None,         // No output!
             route: Route::default(),

@@ -1,9 +1,10 @@
-use crate::model::flow::Flow;
-use super::gatherer;
-use super::connector;
-use crate::generator::generate::GenerationTables;
 use crate::errors::*;
+use crate::generator::generate::GenerationTables;
+use crate::model::flow::Flow;
+
 use super::checker;
+use super::connector;
+use super::gatherer;
 use super::optimizer;
 
 /// Take a hierarchical flow definition in memory and compile it, generating a manifest for execution
@@ -30,46 +31,61 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables> {
     info!("==== Compiler phase: Preparing functions connections");
     connector::prepare_function_connections(&mut tables)?;
 
+    // TODO compile supplied functions
+    compile_supplied_functions(&mut tables);
+
     Ok(tables)
+}
+
+// TODO move
+fn compile_supplied_functions(tables: &mut GenerationTables) {
+    for function in &mut tables.functions {
+        match function.get_implementation() {
+            Some(implementation) => {
+                function.set_implementation(implementation.replace(".rs", ".wasm"));
+            }
+            None => {}
+        }
+    }
 }
 
 #[cfg(test)]
 mod test {
-    use super::compile;
     use crate::model::flow::Flow;
     use crate::model::function::Function;
     use crate::model::io::IO;
-    use crate::model::process::Process::FunctionProcess;
-    use crate::model::process_reference::ProcessReference;
     use crate::model::name::HasName;
     use crate::model::name::Name;
+    use crate::model::process::Process::FunctionProcess;
+    use crate::model::process_reference::ProcessReference;
     use crate::model::route::Route;
 
+    use super::compile;
+
     /*
-        Test for a function that is dead code. It has no connections to it or from it so will
-        never run. So it should be removed by the optimizer and not fail at check stage.
-    */
+                    Test for a function that is dead code. It has no connections to it or from it so will
+                    never run. So it should be removed by the optimizer and not fail at check stage.
+                */
     #[test]
     fn dead_function() {
         let function = Function::new(Name::from("Stdout"),
-                                         false,
-                                         Some("lib://runtime/stdio/stdout.toml".to_string()),
-                                         Name::from("test-function"),
-                                         Some(vec!(IO::new("String",
-                                                           &Route::from("/context/print")))),
-                                         Some(vec!()),
-                                         "lib://runtime/stdio/stdout.toml",
-                                         Route::from("/context/print"),
-                                         Some("lib://runtime/stdio/stdout.toml".to_string()),
-                                         vec!(),
-                                         0,
+                                     false,
+                                     Some("lib://runtime/stdio/stdout.toml".to_string()),
+                                     Name::from("test-function"),
+                                     Some(vec!(IO::new("String",
+                                                       &Route::from("/context/print")))),
+                                     Some(vec!()),
+                                     "lib://runtime/stdio/stdout.toml",
+                                     Route::from("/context/print"),
+                                     Some("lib://runtime/stdio/stdout.toml".to_string()),
+                                     vec!(),
+                                     0,
         );
 
         let function_ref = ProcessReference {
             alias: function.alias().to_owned(),
             source: "lib://runtime/stdio/stdout.toml".to_string(),
             initializations: None,
-            source_url: function.get_implementation_source(),
             process: FunctionProcess(function),
         };
 

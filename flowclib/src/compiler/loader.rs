@@ -122,11 +122,11 @@ fn load_subprocesses(flow: &mut Flow, provider: &dyn Provider) -> Result<()> {
     Ok(())
 }
 
-fn config_function(function: &mut Function, source_url: &str, parent_route: &Route, alias: &Name,
+fn config_function(function: &mut Function, implementation_url: &str, parent_route: &Route, alias: &Name,
                    lib_ref: Option<String>, initializations: &Option<HashMap<String, InputInitializer>>)
                    -> Result<()> {
     function.set_alias(alias);
-    function.set_source_url(source_url.clone());
+    function.set_implementation_url(implementation_url.clone());
     function.set_lib_reference(lib_ref);
     function.set_routes_from_parent(parent_route);
     IO::set_initial_values(&mut function.inputs, initializations);

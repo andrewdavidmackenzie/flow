@@ -20,7 +20,7 @@ pub struct Function {
 
     id: usize,
 
-    implementation_source: String,
+    implementation_location: String,
 
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     inputs: Vec<Input>,
@@ -66,7 +66,7 @@ impl fmt::Display for Function {
 impl Function {
     pub fn new(name: String,
                route: String,
-               implementation_source: String,
+               implementation_location: String,
                impure: bool,
                inputs: Vec<Input>,
                id: usize,
@@ -75,7 +75,7 @@ impl Function {
             name,
             route,
             id,
-            implementation_source,
+            implementation_location,
             implementation: Function::default_implementation(),
             output_routes: (*output_routes).clone(),
             inputs,
@@ -118,7 +118,7 @@ impl Function {
     }
 
     pub fn implementation_source(&self) -> &str {
-        &self.implementation_source
+        &self.implementation_location
     }
 
     pub fn is_impure(&self) -> bool { self.impure }

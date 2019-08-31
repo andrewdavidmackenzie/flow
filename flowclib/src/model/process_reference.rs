@@ -4,12 +4,12 @@ use std::fmt;
 use flowrlib::input::InputInitializer;
 
 use crate::compiler::loader::Validate;
+use crate::errors::*;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::process::Process;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
-use crate::errors::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -19,8 +19,6 @@ pub struct ProcessReference {
     #[serde(rename = "input")]
     pub initializations: Option<HashMap<String, InputInitializer>>,
     // Map of initializers of inputs for this reference
-    #[serde(skip, default = "ProcessReference::default_url")]
-    pub source_url: String,
     #[serde(skip)]
     pub process: Process,
 }
@@ -52,16 +50,9 @@ impl Validate for ProcessReference {
 impl fmt::Display for ProcessReference {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "\t\t\t\talias: {}\n\t\t\t\t\tsource: {}\n\t\t\t\t\tURL: {}\n",
-               self.alias, self.source, self.source_url)
+               self.alias, self.source, self.source)
     }
 }
-
-impl ProcessReference {
-    fn default_url() -> String {
-        "file::///".to_string()
-    }
-}
-
 
 #[cfg(test)]
 mod test {
@@ -131,7 +122,6 @@ constant = 1
             alias: Name::from("other"),
             source: "other.toml".to_string(),
             initializations: Some(initializers),
-            source_url: "don't care".to_string(),
             process: Process::FunctionProcess(function),
         };
 
