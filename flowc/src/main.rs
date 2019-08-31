@@ -95,21 +95,19 @@ fn run() -> Result<String> {
         FlowProcess(flow) => {
             let mut tables = compile(&flow, dump, &out_dir).chain_err(|| "Failed to compile")?;
 
-            if provided_implementations {
-                info!("==== Skipping compilation of provided functions");
-            } else {
-                info!("==== Compiling provided functions");
-                compile_supplied_functions(&mut tables)?;
-            }
+            info!("==== Compiler phase: Compiling provided implementations");
+            compile_supplied_implementations(&mut tables, provided_implementations)?;
 
             if skip_generation {
                 return Ok("Manifest generation and flow running skipped".to_string());
             }
 
+            info!("==== Compiler phase: Generating Manifest");
             let manifest_path = write_manifest(flow, debug_symbols, out_dir, &tables)
                 .chain_err(|| "Failed to write manifest")?;
 
             // Append flow arguments at the end of the arguments so that they are passed on it when it's run
+            info!("==== Compiler phase: Executing flow from manifest");
             execute_flow(manifest_path, args)
         }
         _ => bail!("Process loaded was not of type 'Flow' and cannot be executed")
@@ -120,21 +118,21 @@ fn run() -> Result<String> {
     For any function that provides an implementation - compile the source to wasm and modify the
     implementation to indicate it is the wasm file
 */
-fn compile_supplied_functions(tables: &mut GenerationTables) -> Result<()> {
+fn compile_supplied_implementations(tables: &mut GenerationTables, skip_building: bool) -> Result<String> {
     for function in &mut tables.functions {
         match function.get_implementation() {
-            Some(_) => compile_function(function)?,
-            None => {}
-        }
+            Some(_) => compile_implementation(function, skip_building),
+            None => Ok("OK".into())
+        }?;
     }
 
-    Ok(())
+    Ok("All supplied implementations compiled successfully".into())
 }
 
 /*
     Compile a function provided in rust to wasm and modify implementation to point to new file
 */
-fn compile_function(function: &mut Box<Function>) -> Result<()> {
+fn compile_implementation(function: &mut Box<Function>, skip_building: bool) -> Result<String> {
     let source = function.get_source_url();
     let mut implementation_url = url_from_string(Some(&source)).expect("Could not create a url from source url");
     implementation_url = implementation_url.join(&function.get_implementation()
@@ -164,26 +162,38 @@ fn compile_function(function: &mut Box<Function>) -> Result<()> {
     wasm_destination.set_extension("wasm");
 
     // wasm file is out of date if it doesn't exist of timestamp is older than source
-    let out_of_date = !wasm_destination.exists() || out_of_date(&implementation_path, &wasm_destination)?;
+    let missing = !wasm_destination.exists();
+    let out_of_date = missing || out_of_date(&implementation_path, &wasm_destination)?;
 
-    if out_of_date {
-        info!("Building wasm '{}' from source '{}'", wasm_destination.display(), implementation_path.display());
+    if missing || out_of_date {
+        if skip_building {
+            if missing {
+                let message = format!("Implementation at '{}' is missing so the flow cannot be executed.\nEither build manually or have 'flowc' build it by not using the '-p' option", wasm_destination.display());
+                error!("{}", message);
+                bail!(message);
+            }
+            if out_of_date {
+                warn!("Implementation at '{}' is out of date with source at '{}'", wasm_destination.display(), implementation_path.display());
+            }
+        } else {
+            info!("Building wasm '{}' from source '{}'", wasm_destination.display(), implementation_path.display());
 
-        let build_dir = TempDir::new("flow")
-            .expect("Error creating new TempDir for compiling in")
-            .into_path();
+            let build_dir = TempDir::new("flow")
+                .expect("Error creating new TempDir for compiling in")
+                .into_path();
 
-        run_cargo_build(&cargo_path, &build_dir)?;
+            run_cargo_build(&cargo_path, &build_dir)?;
 
-        // copy compiled wasm output into place where flow's toml file expects it
-        let mut wasm_source = build_dir.clone();
-        wasm_source.push("wasm32-unknown-unknown/release/");
-        wasm_source.push(&wasm_destination.file_name().ok_or("Could not convert filename to str")?);
-        info!("Copying built wasm from '{}' to '{}'", &wasm_source.display(), &wasm_destination.display());
-        fs::copy(&wasm_source, &wasm_destination)?;
+            // copy compiled wasm output into place where flow's toml file expects it
+            let mut wasm_source = build_dir.clone();
+            wasm_source.push("wasm32-unknown-unknown/release/");
+            wasm_source.push(&wasm_destination.file_name().ok_or("Could not convert filename to str")?);
+            info!("Copying built wasm from '{}' to '{}'", &wasm_source.display(), &wasm_destination.display());
+            fs::copy(&wasm_source, &wasm_destination)?;
 
-        // clean up temp dir
-        fs::remove_dir_all(build_dir)?;
+            // clean up temp dir
+            fs::remove_dir_all(build_dir)?;
+        }
     } else {
         info!("wasm at '{}' is up-to-date with source at '{}', so skipping build",
               wasm_destination.display(), implementation_path.display());
@@ -191,7 +201,7 @@ fn compile_function(function: &mut Box<Function>) -> Result<()> {
 
     function.set_implementation(&wasm_destination.to_str().ok_or("Could not convert path to string")?);
 
-    Ok(())
+    Ok("Function's provided implementation compiled successfully".into())
 }
 
 /*

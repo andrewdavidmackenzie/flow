@@ -111,9 +111,11 @@ fn implementation_location_relative(function: &Function, out_dir: &str) -> Resul
     } else {
         match &function.get_implementation() {
             Some(implementation_path) => {
-                info!("Implementation path = '{}'", implementation_path);
                 info!("Out_dir = '{}'", out_dir);
-                Ok(implementation_path.replace(out_dir, ""))
+                info!("Absolute implementation path = '{}'", implementation_path);
+                let relative_path = implementation_path.replace(out_dir, "");
+                info!("Absolute implementation path = '{}'", relative_path);
+                Ok(relative_path)
             }
             None => {
                 bail!("Function '{}' is not a lib reference but no implementation is provided", function.name())
