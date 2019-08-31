@@ -93,18 +93,16 @@ impl Function {
         self.implementation = Some(implementation);
     }
 
-    pub fn get_implementation_url(&self) -> String {
+    pub fn get_implementation_url(&self) -> Result<String> {
         if let Some(ref reference) = self.lib_reference {
-            format!("lib://{}/{}", reference, &self.name)
+            Ok(format!("lib://{}/{}", reference, &self.name))
         } else {
             match &self.implementation {
                 Some(path) => {
-                    url::join(&self.implementation_url, path)
+                    Ok(url::join(&self.implementation_url, path))
                 }
                 None => {
-                    let path = format!("No implementation found for provided function '{}'", self.name);
-                    error!("{}", path);
-                    path
+                    bail!("Function is not a lib reference but no implementation provided '{}'", self.name)
                 }
             }
         }

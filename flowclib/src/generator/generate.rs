@@ -65,7 +65,7 @@ pub fn create_manifest(flow: &Flow, debug_symbols: bool, out_dir_path: &str, tab
 
     // Generate runtime Process struct for each of the functions
     for function in &tables.functions {
-        manifest.add_function(function_to_runtimefunction(&base_path, function, debug_symbols));
+        manifest.add_function(function_to_runtimefunction(&base_path, function, debug_symbols)?);
     }
 
     manifest.lib_references = tables.libs.clone();
@@ -73,7 +73,7 @@ pub fn create_manifest(flow: &Flow, debug_symbols: bool, out_dir_path: &str, tab
     Ok(manifest)
 }
 
-fn function_to_runtimefunction(out_dir_path: &str, function: &Box<Function>, debug_symbols: bool) -> RuntimeFunction {
+fn function_to_runtimefunction(out_dir_path: &str, function: &Box<Function>, debug_symbols: bool) -> Result<RuntimeFunction> {
     let mut name = function.alias().to_string();
     let mut route = function.route().to_string();
 
@@ -83,7 +83,7 @@ fn function_to_runtimefunction(out_dir_path: &str, function: &Box<Function>, deb
     }
 
     // make location tof implementation relative to the output directory if under it
-    let implementation_location = function.get_implementation_url().replace(out_dir_path, "");
+    let implementation_location = function.get_implementation_url()?.replace(out_dir_path, "");
 
     let mut runtime_inputs = vec!();
     match &function.get_inputs() {
@@ -95,13 +95,13 @@ fn function_to_runtimefunction(out_dir_path: &str, function: &Box<Function>, deb
         }
     };
 
-    RuntimeFunction::new(name,
+    Ok(RuntimeFunction::new(name,
                          route,
                          implementation_location,
                          function.is_impure(),
                          runtime_inputs,
                          function.get_id(),
-                         function.get_output_routes())
+                         function.get_output_routes()))
 }
 
 #[cfg(test)]
@@ -153,7 +153,7 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let runtime_process = function_to_runtimefunction("/test", &br, false);
+        let runtime_process = function_to_runtimefunction("/test", &br, false).unwrap();
 
         let serialized_process = serde_json::to_string_pretty(&runtime_process).unwrap();
         assert_eq!(serialized_process, expected.replace("'", "\""));
@@ -188,7 +188,7 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = function_to_runtimefunction("/test", &br, false);
+        let process = function_to_runtimefunction("/test", &br, false).unwrap();
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
         assert_eq!(serialized_process, expected.replace("'", "\""));
@@ -224,7 +224,7 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = function_to_runtimefunction("/test", &br, false);
+        let process = function_to_runtimefunction("/test", &br, false).unwrap();
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
         assert_eq!(serialized_process, expected.replace("'", "\""));
@@ -263,7 +263,7 @@ mod test {
 }";
 
         let br = Box::new(function) as Box<Function>;
-        let process = function_to_runtimefunction("/test", &br, false);
+        let process = function_to_runtimefunction("/test", &br, false).unwrap();
 
         println!("process {}", process);
 
@@ -304,7 +304,7 @@ mod test {
 }";
 
         let br = Box::new(function) as Box<Function>;
-        let process = function_to_runtimefunction("/test", &br, false);
+        let process = function_to_runtimefunction("/test", &br, false).unwrap();
 
         println!("process {}", process);
 
@@ -340,7 +340,7 @@ mod test {
 }";
 
         let br = Box::new(function) as Box<Function>;
-        let process = function_to_runtimefunction("/test", &br, false);
+        let process = function_to_runtimefunction("/test", &br, false).unwrap();
 
         println!("process {}", process);
 
@@ -381,7 +381,7 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = function_to_runtimefunction("/test", &br, true);
+        let process = function_to_runtimefunction("/test", &br, true).unwrap();
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
         assert_eq!(serialized_process, expected.replace("'", "\""));
@@ -416,7 +416,7 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = function_to_runtimefunction("/test", &br, false);
+        let process = function_to_runtimefunction("/test", &br, false).unwrap();
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
         assert_eq!(serialized_process, expected.replace("'", "\""));
