@@ -10,7 +10,7 @@ pub mod info;
 pub mod control;
 pub mod data;
 pub mod img;
-pub mod ilt;
+pub mod manifest;
 
 
 // TODO generate this from build script also!

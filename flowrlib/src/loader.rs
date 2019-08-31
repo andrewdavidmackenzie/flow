@@ -4,9 +4,7 @@ use std::sync::Arc;
 use flow_impl::implementation::Implementation;
 
 use crate::errors::*;
-use crate::implementation_table::ImplementationLocator::Native;
-use crate::implementation_table::ImplementationLocator::Wasm;
-use crate::implementation_table::ImplementationLocatorTable;
+use crate::lib_manifest::{ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest};
 use crate::manifest::Manifest;
 use crate::provider::Provider;
 use crate::url;
@@ -98,7 +96,7 @@ impl Loader {
         in the library, they can be found.
     */
     pub fn add_lib(&mut self, provider: &dyn Provider,
-                   lib_manifest: ImplementationLocatorTable,
+                   lib_manifest: LibraryManifest,
                    ilt_url: &str) -> Result<()> {
         for (route, locator) in lib_manifest.locators {
             // if we don't already have an implementation loaded for that route

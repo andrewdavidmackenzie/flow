@@ -1,4 +1,4 @@
-pub mod ilt;
+pub mod manifest;
 mod args;
 mod file;
 mod stdio;

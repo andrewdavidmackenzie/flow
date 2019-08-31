@@ -30,7 +30,7 @@ use provider::content::provider::MetaProvider;
 pub mod args;
 pub mod stdio;
 pub mod file;
-pub mod ilt;
+pub mod manifest;
 mod cli_debug_client;
 
 pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
@@ -84,14 +84,14 @@ fn run() -> Result<()> {
     let cwd = cwd_as_url().chain_err(|| "Could not get the current working directory as a URL")?;
 
     // Load this runtime's native implementations
-    loader.add_lib(&provider, ::ilt::get_ilt(), &cwd.to_string())
+    loader.add_lib(&provider, ::manifest::get_manifest(), &cwd.to_string())
         .chain_err(|| "Could not add library to loader")?;
 
     // TODO - when loader can load a library from a reference in the manifest via it's WASM
     // implementations, then remove this and let the loader take care of it in flowrlib
     // Load standard library functions from flowstdlib
     // For now we are passing in a fake ilt.json file so the basepath for finding wasm files works.
-    loader.add_lib(&provider, flowstdlib::ilt::get_ilt(),
+    loader.add_lib(&provider, flowstdlib::manifest::get_manifest(),
                    &format!("{}flowstdlib/ilt.json", &cwd.to_string()))
         .chain_err(|| "Could not add library to loader")?;
 

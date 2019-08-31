@@ -30,7 +30,7 @@ use wasm_logger;
 use web_sys::Document;
 use web_sys::HtmlButtonElement;
 
-use crate::runtime::ilt;
+use crate::runtime::manifest;
 
 // We'll put our errors in an `errors` module, and other modules in
 // this crate will `use errors::*;` to get access to everything
@@ -118,12 +118,12 @@ pub fn load_manifest(provider: &dyn Provider, url: &str) -> Result<Manifest> {
         .chain_err(|| "Could not load the manifest")?;
 
     // Load this runtime's native implementations
-    loader.add_lib(provider, ilt::get_ilt(), url)
+    loader.add_lib(provider, manifest::get_manifest(), url)
         .chain_err(|| "Could not add library to loader")?;
 
     info!("adding flowstdlib");
     // TODO - when loader can load a library from a reference in the manifest via it's WASM
-    loader.add_lib(provider, flowstdlib::ilt::get_ilt(),
+    loader.add_lib(provider, flowstdlib::manifest::get_manifest(),
                    &format!("{}flowstdlib/ilt.json", url))
         .chain_err(|| "Could not add library to loader")?; // TODO fix this URL
 

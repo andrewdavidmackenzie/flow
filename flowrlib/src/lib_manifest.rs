@@ -9,7 +9,7 @@ use crate::provider::Provider;
 /*
     Implementations can be of two types - either a native and statically bound function referenced
     via a function reference, or WASM bytecode file that is interpreted at run-time that is
-    referenced via a PathBuf pointing to the .wasm file
+    referenced via a string pointing to the .wasm file location
 */
 #[derive(Deserialize, Serialize)]
 #[serde(untagged)]
@@ -19,24 +19,24 @@ pub enum ImplementationLocator {
     Wasm((String, String))
 }
 
-const DEFAULT_ILT_FILENAME: &str = "ilt.json";
+const DEFAULT_ILT_FILENAME: &str = "manifest.json";
 
 /*
     Provided by libraries to help load and/or find implementations of processes
 */
 #[derive(Deserialize, Serialize)]
-pub struct ImplementationLocatorTable {
+pub struct LibraryManifest {
     pub locators: HashMap<String, ImplementationLocator>
 }
 
-impl ImplementationLocatorTable {
+impl LibraryManifest {
     pub fn new() -> Self {
-        ImplementationLocatorTable {
+        LibraryManifest {
             locators: HashMap::<String, ImplementationLocator>::new()
         }
     }
 
-    pub fn load(provider: &dyn Provider, source: &str) -> Result<ImplementationLocatorTable> {
+    pub fn load(provider: &dyn Provider, source: &str) -> Result<LibraryManifest> {
         let (resolved_url, _) = provider.resolve(source, DEFAULT_ILT_FILENAME)?;
         let content = provider.get(&resolved_url)?;
 
@@ -49,9 +49,7 @@ impl ImplementationLocatorTable {
 #[cfg(test)]
 mod test {
     use crate::errors::*;
-    use crate::implementation_table::ImplementationLocator;
-    use crate::implementation_table::ImplementationLocator::Wasm;
-    use crate::implementation_table::ImplementationLocatorTable;
+    use crate::lib_manifest::{ImplementationLocator, ImplementationLocator::Wasm, LibraryManifest};
     use crate::provider::Provider;
 
     pub struct TestProvider {
@@ -71,9 +69,9 @@ mod test {
     #[test]
     fn serialize() {
         let locator: ImplementationLocator = Wasm(("add2.wasm".to_string(), "add".to_string()));
-        let mut ilt = ImplementationLocatorTable::new();
-        ilt.locators.insert("//flowrlib/test-dyn-lib/add2".to_string(), locator);
-        let serialized = serde_json::to_string_pretty(&ilt).unwrap();
+        let mut manifest = LibraryManifest::new();
+        manifest.locators.insert("//flowrlib/test-dyn-lib/add2".to_string(), locator);
+        let serialized = serde_json::to_string_pretty(&manifest).unwrap();
         let expected = "{
   \"locators\": {
     \"//flowrlib/test-dyn-lib/add2\": [
@@ -98,7 +96,7 @@ mod test {
             test_content
         };
         let url = "file:://test/fake";
-        let ilt = ImplementationLocatorTable::load(&provider, url).unwrap();
+        let ilt = LibraryManifest::load(&provider, url).unwrap();
         assert_eq!(ilt.locators.len(), 1);
         assert!(ilt.locators.get("//flowrlib/test-dyn-lib/add2").is_some());
         let locator = ilt.locators.get("//flowrlib/test-dyn-lib/add2").unwrap();
