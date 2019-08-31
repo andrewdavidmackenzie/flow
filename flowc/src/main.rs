@@ -318,6 +318,9 @@ fn compile(flow: &Flow, dump: bool, out_dir: &PathBuf) -> Result<GenerationTable
     Ok(tables)
 }
 
+/*
+    Generate a manifest for the flow in JSON that can be used to run it using 'flowr'
+*/
 fn write_manifest(flow: Flow, debug_symbols: bool, out_dir_path: PathBuf, tables: &GenerationTables)
                   -> Result<PathBuf> {
     let mut filename = out_dir_path.clone();
