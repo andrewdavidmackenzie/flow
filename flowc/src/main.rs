@@ -13,6 +13,7 @@ extern crate tempdir;
 extern crate url;
 
 use std::env;
+use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -23,6 +24,7 @@ use clap::{App, AppSettings, Arg, ArgMatches};
 use simpath::FileType;
 use simpath::Simpath;
 use simplog::simplog::SimpleLogger;
+use tempdir::TempDir;
 use url::Url;
 
 use flowclib::compiler::compile;
@@ -130,12 +132,36 @@ fn compile_supplied_functions(tables: &mut GenerationTables) -> Result<()> {
 */
 fn compile_function(function: &mut Box<Function>) -> Result<()>{
     let source_file = function.get_implementation().ok_or("No implementation specified")?;
+    let source_path = PathBuf::from(&source_file);
     let wasm_output_file = source_file.replace(".rs", ".wasm");
-
-    // TODO determine if out of date by timestamp or none existance
-
+    let wasm_path = PathBuf::from(&wasm_output_file);
     function.set_implementation(wasm_output_file);
+
+    // determine if the wasm file is out of date by timestamp or none existance
+    let out_of_date = !wasm_path.exists() || out_of_date(&source_path, &wasm_path)?;
+
+    let build_dir = TempDir::new("flow").chain_err(|| format!("Error creating new TempDir for compiling in"))?;
+
+    //     Ok(dir.into_path())
+
+    // compile the source file into wasm -using the Cargo.toml it must provide
+    // copy compiled wasm output into place where flow's toml file expects it
+
+
     Ok(())
+}
+
+/*
+    Determine if one file that is derived from another source is out of date (source is newer
+    that derived)
+    Returns:
+        true - source is newer than derived
+        false - source has not been modified since derived was created
+*/
+fn out_of_date(source: &PathBuf, derived: &PathBuf) -> Result<bool> {
+    let source_last_modified = fs::metadata(source)?.modified()?;
+    let derived_last_modified = fs::metadata(derived)?.modified()?;
+    Ok(source_last_modified > derived_last_modified)
 }
 
 /*
