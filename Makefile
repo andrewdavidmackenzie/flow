@@ -130,7 +130,7 @@ samples: workspace clean-samples $(sample_flows)  # This target must be below sa
 samples/%/test.output: samples/%/test.input samples/%/test.arguments
 	@echo "\n------- Compiling and Running '$(@D)' ----"
 # build any samples that provide their own implementations
-	@test -f $(@D)/Makefile && cd $(@D) && make wasm;true
+#	@test -f $(@D)/Makefile && cd $(@D) && make wasm;true
 # remove local file path from output messages with sed to make local failures match travis failures
 	@cat $< | cargo run --quiet --bin flowc -- -g -d $(@D) -- `cat $(@D)/test.arguments` | grep -v "Running" | grep -v "Finished dev" 2> $(@D)/test.err > $@; true
 	@diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && exit $$ret)

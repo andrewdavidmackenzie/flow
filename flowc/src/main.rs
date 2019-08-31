@@ -130,25 +130,95 @@ fn compile_supplied_functions(tables: &mut GenerationTables) -> Result<()> {
 /*
     Compile a function provided in rust to wasm and modify implementation to point to new file
 */
-fn compile_function(function: &mut Box<Function>) -> Result<()>{
-    let source_file = function.get_implementation().ok_or("No implementation specified")?;
-    let source_path = PathBuf::from(&source_file);
-    let wasm_output_file = source_file.replace(".rs", ".wasm");
-    let wasm_path = PathBuf::from(&wasm_output_file);
-    function.set_implementation(wasm_output_file);
+fn compile_function(function: &mut Box<Function>) -> Result<()> {
+    let source = function.get_source_url();
+    let mut implementation_url = url_from_string(Some(&source)).expect("Could not create a url from source url");
+    implementation_url = implementation_url.join(&function.get_implementation()
+        .ok_or("No implementation specified")?).map_err(|_| "Could not convert Url")?;
 
-    // determine if the wasm file is out of date by timestamp or none existance
-    let out_of_date = !wasm_path.exists() || out_of_date(&source_path, &wasm_path)?;
+    // TODO what if not a file url? Copy and build locally?
 
-    let build_dir = TempDir::new("flow").chain_err(|| format!("Error creating new TempDir for compiling in"))?;
+    let implementation_path = implementation_url.to_file_path().expect("Could not convert source url to file path");
+    if implementation_path.extension().ok_or("No file extension on source file")?.
+        to_str().ok_or("Could not convert file extension to String")? != "rs" {
+        bail!("Source file at '{}' does not have a '.rs' extension", implementation_path.display());
+    }
 
-    //     Ok(dir.into_path())
+    if !implementation_path.exists() {
+        bail!("Source file at '{}' does not exist", implementation_path.display());
+    }
 
-    // compile the source file into wasm -using the Cargo.toml it must provide
-    // copy compiled wasm output into place where flow's toml file expects it
+    // check that a Cargo.toml file exists for compilation
+    let mut cargo_path = implementation_path.clone();
+    cargo_path.set_file_name("Cargo.toml");
+    if !cargo_path.exists() {
+        bail!("No Cargo.toml file could be found at '{}'", cargo_path.display());
+    }
+    info!("Building using rust manifest at '{}'", cargo_path.display());
 
+    let mut wasm_destination = implementation_path.clone();
+    wasm_destination.set_extension("wasm");
+
+    // wasm file is out of date if it doesn't exist of timestamp is older than source
+    let out_of_date = !wasm_destination.exists() || out_of_date(&implementation_path, &wasm_destination)?;
+
+    if out_of_date {
+        info!("Building wasm '{}' from source '{}'", wasm_destination.display(), implementation_path.display());
+
+        let build_dir = TempDir::new("flow")
+            .expect("Error creating new TempDir for compiling in")
+            .into_path();
+
+        run_cargo_build(&cargo_path, &build_dir)?;
+
+        // copy compiled wasm output into place where flow's toml file expects it
+        let mut wasm_source = build_dir.clone();
+        wasm_source.push("wasm32-unknown-unknown/release/");
+        wasm_source.push(&wasm_destination.file_name().ok_or("Could not convert filename to str")?);
+        info!("Copying built wasm from '{}' to '{}'", &wasm_source.display(), &wasm_destination.display());
+        fs::copy(&wasm_source, &wasm_destination)?;
+
+        // clean up temp dir
+        fs::remove_dir_all(build_dir)?;
+    } else {
+        info!("wasm at '{}' is up-to-date with source at '{}', so skipping build",
+              wasm_destination.display(), implementation_path.display());
+    }
+
+    function.set_implementation(&wasm_destination.to_str().ok_or("Could not convert path to string")?);
 
     Ok(())
+}
+
+/*
+    Run the cargo build to compile wasm from function source
+*/
+fn run_cargo_build(manifest_path: &PathBuf, target_dir: &PathBuf) -> Result<String> {
+    info!("Building into temporary directory '{}'", target_dir.display());
+
+    let command = "cargo";
+    let mut command_args = vec!("build", "--quiet", "--release", "--lib", "--target=wasm32-unknown-unknown");
+    let manifest = format!("--manifest-path={}", &manifest_path.display());
+    command_args.push(&manifest);
+    let target = format!("--target-dir={}", &target_dir.display());
+    command_args.push(&target);
+
+    debug!("Building with command = '{}', command_args = {:?}", command, command_args);
+
+    let output = Command::new(&command).args(command_args)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::piped())
+        .output().chain_err(|| "Error while attempting to spawn command to compile and run flow")?;
+
+    match output.status.code() {
+        Some(0) => Ok("Cargo Build of supplied function to wasm succeeded".to_string()),
+        Some(code) => {
+            error!("Process STDERR:\n{}", String::from_utf8_lossy(&output.stderr));
+            bail!("Exited with status code: {}", code)
+        }
+        None => Ok("No return code - ignoring".to_string())
+    }
 }
 
 /*
@@ -219,7 +289,7 @@ fn parse_args(matches: ArgMatches) -> Result<(Url, Vec<String>, bool, bool, bool
     info!("'flowclib' version {}\n", info::version());
 
     let url = url_from_string(matches.value_of("FLOW"))
-        .chain_err(|| "Could not create a url for flow from the 'FLOW' command line paramter")?;
+        .chain_err(|| "Could not create a url for flow from the 'FLOW' command line parameter")?;
 
     let dump = matches.is_present("dump");
     let skip_generation = matches.is_present("skip");
@@ -248,14 +318,13 @@ fn compile(flow: &Flow, dump: bool, out_dir: &PathBuf) -> Result<GenerationTable
     Ok(tables)
 }
 
-fn write_manifest(flow: Flow, debug_symbols: bool, out_dir: PathBuf, tables: &GenerationTables)
+fn write_manifest(flow: Flow, debug_symbols: bool, out_dir_path: PathBuf, tables: &GenerationTables)
                   -> Result<PathBuf> {
-    let mut filename = out_dir.clone();
+    let mut filename = out_dir_path.clone();
     filename.push(DEFAULT_MANIFEST_FILENAME.to_string());
     let mut manifest_file = File::create(&filename).chain_err(|| "Could not create manifest file")?;
-    let out_dir_path = Url::from_file_path(out_dir).unwrap().to_string();
-
-    let manifest = generate::create_manifest(&flow, debug_symbols, &out_dir_path, tables)
+    let manifest = generate::create_manifest(&flow, debug_symbols, out_dir_path.to_str()
+        .ok_or("Could not convert output directory to string")?, tables)
         .chain_err(|| "Could not create manifest from parsed flow and compiler tables")?;
 
     manifest_file.write_all(serde_json::to_string_pretty(&manifest)
@@ -306,7 +375,7 @@ fn find_executable_path(name: &str) -> Result<String> {
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
 fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String> {
-    info!("==== Flowc: Executing flow from manifest in '{}'", filepath.display());
+    info!("Executing flow from manifest in '{}'", filepath.display());
 
     let command = find_executable_path(&get_executable_name())?;
     let mut command_args = vec!(filepath.to_str().unwrap().to_string());

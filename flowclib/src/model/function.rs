@@ -1,7 +1,5 @@
 use std::fmt;
 
-use flowrlib::url;
-
 use crate::compiler::loader::Validate;
 use crate::errors::*;
 use crate::model::io::{IO, IOType};
@@ -28,8 +26,8 @@ pub struct Function {
 
     #[serde(skip_deserializing)]
     alias: Name,
-    #[serde(skip_deserializing, default = "Function::default_implementation_url")]
-    implementation_url: String,
+    #[serde(skip_deserializing, default = "Function::default_source_url")]
+    source_url: String,
     #[serde(skip_deserializing)]
     route: Route,
     #[serde(skip_deserializing)]
@@ -89,23 +87,12 @@ impl Function {
         self.implementation.clone()
     }
 
-    pub fn set_implementation(&mut self, implementation: String) {
-        self.implementation = Some(implementation);
+    pub fn set_implementation(&mut self, implementation: &str) {
+        self.implementation = Some(implementation.to_owned());
     }
 
-    pub fn get_implementation_url(&self) -> Result<String> {
-        if let Some(ref reference) = self.lib_reference {
-            Ok(format!("lib://{}/{}", reference, &self.name))
-        } else {
-            match &self.implementation {
-                Some(implementation_path) => {
-                    Ok(url::join(&self.implementation_url, implementation_path))
-                }
-                None => {
-                    bail!("Function is not a lib reference but no implementation provided '{}'", self.name)
-                }
-            }
-        }
+    pub fn get_source_url(&self) -> String {
+        self.source_url.clone()
     }
 }
 
@@ -171,7 +158,7 @@ impl Default for Function {
             alias: Name::default(),
             inputs: None,
             outputs: Some(vec!(IO::new("Json", &Route::default()))),
-            implementation_url: Function::default_implementation_url(),
+            source_url: Function::default_source_url(),
             route: Route::default(),
             lib_reference: None,
             output_routes: vec!(("".to_string(), 0, 0)),
@@ -189,7 +176,7 @@ impl SetRoute for Function {
 }
 
 impl Function {
-    fn default_implementation_url() -> String {
+    fn default_source_url() -> String {
         "file:///".to_string()
     }
 
@@ -202,7 +189,7 @@ impl Function {
     }
 
     pub fn set_implementation_url(&mut self, source: &str) {
-        self.implementation_url = source.to_owned();
+        self.source_url = source.to_owned();
     }
 
     pub fn set_lib_reference(&mut self, lib_reference: Option<String>) {
@@ -240,7 +227,7 @@ mod test {
                 alias,
                 inputs,
                 outputs,
-                implementation_url: source_url.to_string(),
+                source_url: source_url.to_string(),
                 route,
                 lib_reference,
                 output_routes: output_connections,
@@ -256,7 +243,7 @@ mod test {
             impure: false,
             implementation: None,
             alias: Name::from("test_function"),
-            implementation_url: Function::default_implementation_url(),
+            source_url: Function::default_source_url(),
             inputs: Some(vec!()), // No inputs!
             outputs: None,         // No output!
             route: Route::default(),

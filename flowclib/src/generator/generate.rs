@@ -55,17 +55,15 @@ impl From<&IO> for Input {
     }
 }
 
-pub fn create_manifest(flow: &Flow, debug_symbols: bool, out_dir_path: &str, tables: &GenerationTables)
+pub fn create_manifest(flow: &Flow, debug_symbols: bool, out_dir: &str, tables: &GenerationTables)
                        -> Result<Manifest> {
-    info!("==== Generator: Writing manifest to '{}'", out_dir_path);
+    info!("==== Generator: Writing manifest to '{}'", out_dir);
 
     let mut manifest = Manifest::new(MetaData::from(flow));
-    let mut base_path = out_dir_path.to_string();
-    base_path.push('/');
 
     // Generate runtime Process struct for each of the functions
     for function in &tables.functions {
-        manifest.add_function(function_to_runtimefunction(&base_path, function, debug_symbols)?);
+        manifest.add_function(function_to_runtimefunction(&out_dir, function, debug_symbols)?);
     }
 
     manifest.lib_references = tables.libs.clone();
@@ -73,7 +71,7 @@ pub fn create_manifest(flow: &Flow, debug_symbols: bool, out_dir_path: &str, tab
     Ok(manifest)
 }
 
-fn function_to_runtimefunction(out_dir_path: &str, function: &Box<Function>, debug_symbols: bool) -> Result<RuntimeFunction> {
+fn function_to_runtimefunction(out_dir: &str, function: &Box<Function>, debug_symbols: bool) -> Result<RuntimeFunction> {
     let mut name = function.alias().to_string();
     let mut route = function.route().to_string();
 
@@ -82,8 +80,8 @@ fn function_to_runtimefunction(out_dir_path: &str, function: &Box<Function>, deb
         route = "".to_string();
     }
 
-    // make location tof implementation relative to the output directory if under it
-    let implementation_location = function.get_implementation_url()?.replace(out_dir_path, "");
+    // make location of implementation relative to the output directory if under it
+    let implementation_location = implementation_location_relative(&function, out_dir)?;
 
     let mut runtime_inputs = vec!();
     match &function.get_inputs() {
@@ -96,12 +94,32 @@ fn function_to_runtimefunction(out_dir_path: &str, function: &Box<Function>, deb
     };
 
     Ok(RuntimeFunction::new(name,
-                         route,
-                         implementation_location,
-                         function.is_impure(),
-                         runtime_inputs,
-                         function.get_id(),
-                         function.get_output_routes()))
+                            route,
+                            implementation_location,
+                            function.is_impure(),
+                            runtime_inputs,
+                            function.get_id(),
+                            function.get_output_routes()))
+}
+
+/*
+    Get the location of the implementation - relative to the Manifest if it is a provided implementation
+*/
+fn implementation_location_relative(function: &Function, out_dir: &str) -> Result<String> {
+    if let Some(ref lib_reference) = function.get_lib_reference() {
+        Ok(format!("lib://{}/{}", lib_reference, &function.name()))
+    } else {
+        match &function.get_implementation() {
+            Some(implementation_path) => {
+                info!("Implementation path = '{}'", implementation_path);
+                info!("Out_dir = '{}'", out_dir);
+                Ok(implementation_path.replace(out_dir, ""))
+            }
+            None => {
+                bail!("Function '{}' is not a lib reference but no implementation is provided", function.name())
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -167,7 +185,7 @@ mod test {
             Some("lib://runtime/stdio/stdout".to_string()),
             Name::from("print"),
             Some(vec!()),
-            Some(vec!(IO::new("String", &Route::default()) )),
+            Some(vec!(IO::new("String", &Route::default()))),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
