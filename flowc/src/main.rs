@@ -20,6 +20,11 @@ use std::process::Command;
 use std::process::Stdio;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
+use simpath::FileType;
+use simpath::Simpath;
+use simplog::simplog::SimpleLogger;
+use url::Url;
+
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowclib::dumper::dump_flow;
@@ -28,13 +33,9 @@ use flowclib::generator::generate;
 use flowclib::generator::generate::GenerationTables;
 use flowclib::info;
 use flowclib::model::flow::Flow;
+use flowclib::model::function::Function;
 use flowclib::model::process::Process::FlowProcess;
 use flowrlib::manifest::DEFAULT_MANIFEST_FILENAME;
-use simpath::FileType;
-use simpath::Simpath;
-use simplog::simplog::SimpleLogger;
-use url::Url;
-
 use provider::args::url_from_string;
 use provider::content::provider::MetaProvider;
 
@@ -90,7 +91,10 @@ fn run() -> Result<String> {
     info!("==== Loader");
     match loader::load_context(&url.to_string(), &meta_provider)? {
         FlowProcess(flow) => {
-            let tables = compile(&flow, dump, &out_dir).chain_err(|| "Failed to compile")?;
+            let mut tables = compile(&flow, dump, &out_dir).chain_err(|| "Failed to compile")?;
+
+            info!("==== Compiling provided functions");
+            compile_supplied_functions(&mut tables)?;
 
             if skip_generation {
                 return Ok("Manifest generation and flow running skipped".to_string());
@@ -104,6 +108,34 @@ fn run() -> Result<String> {
         }
         _ => bail!("Process loaded was not of type 'Flow' and cannot be executed")
     }
+}
+
+/*
+    For any function that provides an implementation - compile the source to wasm and modify the
+    implementation to indicate it is the wasm file
+*/
+fn compile_supplied_functions(tables: &mut GenerationTables) -> Result<()> {
+    for function in &mut tables.functions {
+        match function.get_implementation() {
+            Some(_) => compile_function(function)?,
+            None => {}
+        }
+    }
+
+    Ok(())
+}
+
+/*
+    Compile a function provided in rust to wasm and modify implementation to point to new file
+*/
+fn compile_function(function: &mut Box<Function>) -> Result<()>{
+    let source_file = function.get_implementation().ok_or("No implementation specified")?;
+    let wasm_output_file = source_file.replace(".rs", ".wasm");
+
+    // TODO determine if out of date by timestamp or none existance
+
+    function.set_implementation(wasm_output_file);
+    Ok(())
 }
 
 /*

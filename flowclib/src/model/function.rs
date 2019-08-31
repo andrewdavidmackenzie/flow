@@ -98,8 +98,8 @@ impl Function {
             Ok(format!("lib://{}/{}", reference, &self.name))
         } else {
             match &self.implementation {
-                Some(path) => {
-                    Ok(url::join(&self.implementation_url, path))
+                Some(implementation_path) => {
+                    Ok(url::join(&self.implementation_url, implementation_path))
                 }
                 None => {
                     bail!("Function is not a lib reference but no implementation provided '{}'", self.name)
