@@ -136,7 +136,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://runtime/stdio/stdout',
   'output_routes': [
     [
       '',
@@ -176,7 +176,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://runtime/stdio/stdout',
   'output_routes': [
     [
       '',
@@ -211,7 +211,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://runtime/stdio/stdout',
   'output_routes': [
     [
       '',
@@ -252,7 +252,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://runtime/stdio/stdout',
   'inputs': [
     {
       'initializer': {
@@ -293,7 +293,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://runtime/stdio/stdout',
   'inputs': [
     {
       'initializer': {
@@ -331,7 +331,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://runtime/stdio/stdout',
   'inputs': [
     {
       'is_array': true
@@ -369,7 +369,7 @@ mod test {
   'name': 'print',
   'route': '/flow0/stdout',
   'id': 0,
-  'implementation_source': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://runtime/stdio/stdout',
   'output_routes': [
     [
       '',
@@ -404,7 +404,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_source': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://runtime/stdio/stdout',
   'output_routes': [
     [
       '0',
