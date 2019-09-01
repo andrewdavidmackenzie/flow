@@ -8,7 +8,7 @@ pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest.json";
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct MetaData {
-    pub alias: String,
+    pub name: String,
     pub version: String,
     pub author_name: String,
     pub author_email: String,
