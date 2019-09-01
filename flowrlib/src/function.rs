@@ -117,7 +117,7 @@ impl Function {
         refilled
     }
 
-    pub fn implementation_source(&self) -> &str {
+    pub fn implementation_location(&self) -> &str {
         &self.implementation_location
     }
 

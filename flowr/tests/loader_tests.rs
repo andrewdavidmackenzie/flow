@@ -53,6 +53,7 @@ fn cwd_as_url() -> Result<Url, String> {
 fn create_manifest(functions: Vec<Function>) -> Manifest {
     let metadata = MetaData {
         name: "test manifest".into(),
+        description: "test manifest".into(),
         version: "0.0".into(),
         author_name: "me".into(),
         author_email: "me@a.com".into(),

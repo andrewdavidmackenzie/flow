@@ -16,10 +16,10 @@ use crate::provider::Provider;
 pub enum ImplementationLocator {
     #[serde(skip_deserializing, skip_serializing)]
     Native(Arc<dyn Implementation>),
-    Wasm((String, String))
+    Wasm(String)
 }
 
-const DEFAULT_ILT_FILENAME: &str = "manifest.json";
+const DEFAULT_LIB_MANIFEST_FILENAME: &str = "manifest.json";
 
 /*
     Provided by libraries to help load and/or find implementations of processes
@@ -36,13 +36,16 @@ impl LibraryManifest {
         }
     }
 
-    pub fn load(provider: &dyn Provider, source: &str) -> Result<LibraryManifest> {
-        let (resolved_url, _) = provider.resolve(source, DEFAULT_ILT_FILENAME)?;
-        let content = provider.get(&resolved_url)?;
+    pub fn load(provider: &dyn Provider, source: &str) -> Result<(LibraryManifest, String)> {
+        let (resolved_url, _) = provider.resolve(source, DEFAULT_LIB_MANIFEST_FILENAME)?;
+        let content = provider.get(&resolved_url)
+            .expect(&format!("Could not read contents of Library Manifest from '{}'", resolved_url));
 
-        serde_json::from_str(
+        let manifest = serde_json::from_str(
             &String::from_utf8(content).chain_err(|| "Could not convert from utf8 to String")?)
-            .chain_err(|| format!("Could not read ILT as Json from '{}'", source))
+            .chain_err(|| format!("Could not load Library Manfest from '{}'", resolved_url))?;
+
+        Ok((manifest, resolved_url))
     }
 }
 
@@ -68,7 +71,7 @@ mod test {
 
     #[test]
     fn serialize() {
-        let locator: ImplementationLocator = Wasm(("add2.wasm".to_string(), "add".to_string()));
+        let locator: ImplementationLocator = Wasm("add2.wasm".to_string());
         let mut manifest = LibraryManifest::new();
         manifest.locators.insert("//flowrlib/test-dyn-lib/add2".to_string(), locator);
         let serialized = serde_json::to_string_pretty(&manifest).unwrap();
@@ -96,12 +99,12 @@ mod test {
             test_content
         };
         let url = "file:://test/fake";
-        let ilt = LibraryManifest::load(&provider, url).unwrap();
-        assert_eq!(ilt.locators.len(), 1);
-        assert!(ilt.locators.get("//flowrlib/test-dyn-lib/add2").is_some());
-        let locator = ilt.locators.get("//flowrlib/test-dyn-lib/add2").unwrap();
+        let (lib_manifest, _lib_manifest_url) = LibraryManifest::load(&provider, url).unwrap();
+        assert_eq!(lib_manifest.locators.len(), 1);
+        assert!(lib_manifest.locators.get("//flowrlib/test-dyn-lib/add2").is_some());
+        let locator = lib_manifest.locators.get("//flowrlib/test-dyn-lib/add2").unwrap();
         match locator {
-            Wasm(source) => assert_eq!(source.0, "add2.wasm"),
+            Wasm(source) => assert_eq!(source, "add2.wasm"),
             _ => assert!(false, "Expected type 'Wasm' but found another type")
         }
     }

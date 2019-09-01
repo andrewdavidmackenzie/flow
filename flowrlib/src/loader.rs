@@ -38,48 +38,48 @@ impl Loader {
         have been wrapped in a Native "WasmExecutor" implementation to make it appear native.
         Thus, all library implementations found will be Native.
     */
-    pub fn load_manifest(&mut self, provider: &dyn Provider, manifest_url: &str) -> Result<Manifest> {
-        let mut manifest = Manifest::load(provider, manifest_url)?;
+    pub fn load_manifest(&mut self, provider: &dyn Provider, flow_manifest_url: &str) -> Result<Manifest> {
+        let mut flow_manifest = Manifest::load(provider, flow_manifest_url)?;
 
-        Self::load_libraries(provider, &manifest)?;
+        self.load_libraries(provider, &flow_manifest)?;
 
         // Find the implementations for all functions in this flow
-        self.resolve_implementations(&mut manifest, provider, manifest_url)?;
+        self.resolve_implementations(&mut flow_manifest, provider, flow_manifest_url)?;
 
-        Ok(manifest)
+        Ok(flow_manifest)
     }
 
     /*
-        Load libraries references referenced in the manifest
+        Load libraries references referenced in the flows manifest
     */
-    pub fn load_libraries(provider: &dyn Provider, manifest: &Manifest) -> Result<()> {
+    pub fn load_libraries(&mut self, provider: &dyn Provider, manifest: &Manifest) -> Result<()> {
+        println!("loading libraries");
         for library_reference in &manifest.lib_references {
-            let (resolved_url, _) = provider.resolve(&library_reference, "manifest.json")?;
-            let _contents = provider.get(&resolved_url)?;
-            // TODO load the library from it's manifest - loading the WASM implementations
+            let (lib_manifest, lib_manifest_url) = LibraryManifest::load(provider, library_reference)?;
+            self.add_lib(provider, lib_manifest, &lib_manifest_url)?;
         }
 
         Ok(())
     }
 
-    pub fn resolve_implementations(&mut self, manifest: &mut Manifest, provider: &dyn Provider,
-                                   manifest_url: &str) -> Result<String> {
-        // find in a library, or load the implementation required - as specified by the source
-        for function in &mut manifest.functions {
-            let source_url = function.implementation_source().to_string();
-            let parts: Vec<_> = source_url.split(":").collect();
+    pub fn resolve_implementations(&mut self, flow_manifest: &mut Manifest, provider: &dyn Provider,
+                                   flow_manifest_url: &str) -> Result<String> {
+        // find in a library, or load the supplied implementation - as specified by the source
+        for function in &mut flow_manifest.functions {
+            let implementation_source_url = function.implementation_location().to_string();
+            let parts: Vec<_> = implementation_source_url.split(":").collect();
             match parts[0] {
                 "lib" => { // Try and find the implementation in the libraries already loaded
-                    match self.global_lib_implementations.get(function.implementation_source()) {
+                    match self.global_lib_implementations.get(function.implementation_location()) {
                         Some(implementation) => function.set_implementation(implementation.clone()),
-                        None => bail!("Did not find implementation for '{}'", source_url)
+                        None => bail!("Did not find implementation for '{}'", implementation_source_url)
                     }
                 }
 
                 /*** These below are not 'lib:' references - hence are supplied implementations ***/
                 _ => {
-                    let full_url = url::join(manifest_url,
-                                             function.implementation_source());
+                    let full_url = url::join(flow_manifest_url,
+                                             function.implementation_location());
                     let wasm_executor = wasm::load(provider,
                                                    &full_url)?;
                     function.set_implementation(Arc::new(wasm_executor) as Arc<dyn Implementation>);
@@ -97,16 +97,16 @@ impl Loader {
     */
     pub fn add_lib(&mut self, provider: &dyn Provider,
                    lib_manifest: LibraryManifest,
-                   ilt_url: &str) -> Result<()> {
+                   lib_manifest_url: &str) -> Result<()> {
         for (route, locator) in lib_manifest.locators {
             // if we don't already have an implementation loaded for that route
             if self.global_lib_implementations.get(&route).is_none() {
                 // create or find the implementation we need
                 let implementation = match locator {
                     Wasm(wasm_source) => {
-                        info!("Looking for wasm source: '{}'", wasm_source.0);
+                        info!("Looking for wasm source: '{}'", wasm_source);
                         // Path to the wasm source could be relative to the URL where we loaded the ILT from
-                        let wasm_url = url::join(ilt_url, &wasm_source.0);
+                        let wasm_url = url::join(lib_manifest_url, &wasm_source);
                         // Wasm implementation being added. Wrap it with the Wasm Native Implementation
                         let wasm_executor = wasm::load(provider, &wasm_url)?;
                         Arc::new(wasm_executor) as Arc<dyn Implementation>
