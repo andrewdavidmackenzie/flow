@@ -2,11 +2,11 @@ flow = "dead-process"
 
 [[process]]
 alias = "args"
-source = "lib://runtime/args/get.toml"
+source = "lib://runtime/args/get"
 
 [[process]]
 alias = "dead-process"
-source = "lib://flowstdlib/data/buffer.toml"
+source = "lib://flowstdlib/data/buffer"
 
 [[connection]]
 from = "process/args/1"

@@ -18,12 +18,12 @@ to = "output/prime"
 # Generate a series of possible divisors of the candidate, from 2 up to candidate
 #[[process]]
 #alias = "lowest-divisor"
-#source = "lib://flowstdlib/data/buffer.toml"
+#source = "lib://flowstdlib/data/buffer"
 #input.default = {constant = 2}
 
 #[[process]]
 #alias = "divisor-sequence"
-#source = "lib://flowstdlib/math/sequence.toml"
+#source = "lib://flowstdlib/math/sequence"
 
 #[[connection]]
 #from = "process/lowest-divisor"
@@ -36,7 +36,7 @@ to = "output/prime"
 # divide the candidate by the divisor
 #[[process]]
 #alias = "divide"
-#source = "lib://flowstdlib/math/divide.toml"
+#source = "lib://flowstdlib/math/divide"
 
 #[[connection]]
 #from = "process/divisor-sequence/sequence"
@@ -55,12 +55,12 @@ to = "output/prime"
 #check if the remainder is equal to 0
 #[[process]]
 #alias = "zero"
-#source = "lib://flowstdlib/data/buffer.toml"
+#source = "lib://flowstdlib/data/buffer"
 #input.default = {constant = 0}
 
 #[[process]]
 #alias = "zero_remainder"
-#source = "lib://flowstdlib/control/compare.toml"
+#source = "lib://flowstdlib/control/compare"
 
 #[[connection]]
 #from = "value/zero"
@@ -74,7 +74,7 @@ to = "output/prime"
 # if the remainder was 0 then let the value pass to output
 #[[process]]
 #alias = "tap"
-#source = "lib://flowstdlib/control/tap.toml"
+#source = "lib://flowstdlib/control/tap"
 
 #[[connection]]
 #from = "process/zero_remainder/equal"

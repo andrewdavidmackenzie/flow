@@ -10,6 +10,7 @@ pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest.json";
 pub struct MetaData {
     pub name: String,
     pub version: String,
+    pub description: String,
     pub author_name: String,
     pub author_email: String,
 }

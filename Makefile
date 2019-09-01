@@ -105,6 +105,13 @@ test-workspace:
 test-ide:
 	@cd ide && make test
 
+#################### LIBRARIES ####################
+flowstdlib:
+	@echo ""
+	@echo "------- Starting build of 'flowstdlib' -------------"
+	@flowc flowstdlib
+	@echo "------- Done     build of 'flowstdlib' -------------"
+
 #################### Raspberry Pi ####################
 pi:
 	@echo "Building flowc for pi in $(PWD)"
@@ -122,7 +129,7 @@ copy:
 # make paths - to compile all samples found in there. Avoid files using the filter.
 sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
-samples: workspace clean-samples $(sample_flows)  # This target must be below sample-flows in the Makefile
+samples: workspace flowstdlib clean-samples $(sample_flows)  # This target must be below sample-flows in the Makefile
 	@echo ""
 	@echo "All local samples executed and output as expected"
 	@echo "------- Finished 'samples:' ----"

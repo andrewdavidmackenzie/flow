@@ -2,11 +2,11 @@ flow = "dead-process-and-connected-process"
 
 [[process]]
 alias = "source-process"
-source = "lib://flowstdlib/data/buffer.toml"
+source = "lib://flowstdlib/data/buffer"
 
 [[process]]
 alias = "dead-process"
-source = "lib://flowstdlib/data/buffer.toml"
+source = "lib://flowstdlib/data/buffer"
 
 [[connection]]
 from = "process/source-process"

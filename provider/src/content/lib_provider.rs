@@ -1,9 +1,10 @@
 use std::env;
 
-use flowrlib::errors::*;
-use flowrlib::provider::Provider;
 use simpath::Simpath;
 use url::Url;
+
+use flowrlib::errors::*;
+use flowrlib::provider::Provider;
 
 pub struct LibProvider;
 
@@ -103,10 +104,10 @@ mod test {
         root.pop();
         let root_str: String = root.as_os_str().to_str().unwrap().to_string();
         env::set_var("FLOW_LIB_PATH", &root_str);
-        let lib_url = "lib://flowstdlib/control/tap.toml";
+        let lib_url = "lib://flowstdlib/control/tap/tap.toml";
         match provider.resolve(&lib_url, "".into()) {
             Ok((url, lib_ref)) => {
-                assert_eq!(url, format!("file://{}/flowstdlib/src/control/tap.toml", root_str));
+                assert_eq!(url, format!("file://{}/flowstdlib/control/tap/tap.toml", root_str));
                 assert_eq!(lib_ref, Some("flowstdlib/control/tap".to_string()));
             }
             Err(e) => assert!(false, e.to_string())

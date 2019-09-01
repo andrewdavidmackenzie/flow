@@ -21,7 +21,6 @@ debugger = []
 clap = "~2"
 flow_impl = { path = "../flow_impl", version = "~0.7.0" }
 flowrlib = { path = "../flowrlib", version = "~0.7.0" }
-flowstdlib = { path = "../flowstdlib", version = "~0.7.0" }
 provider = { path = "../provider", version = "~0.4.0" }
 simplog = "1.1.1"
 log = "0.4.6"

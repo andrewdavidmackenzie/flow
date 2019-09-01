@@ -2,13 +2,13 @@ flow = "primitives"
 
 [[process]]
 alias = "sum"
-source = "lib://flowstdlib/math/add.toml"
+source = "lib://flowstdlib/math/add"
 input.i1 = {once = 1}
 input.i2 = {once = 1}
 
 [[process]]
 alias = "add_again"
-source = "lib://flowstdlib/math/add.toml"
+source = "lib://flowstdlib/math/add"
 input.i2 = {once = 1}
 
 [[connection]]
@@ -17,7 +17,7 @@ to = "process/add_again/i1"
 
 [[process]]
 alias = "to_string"
-source = "lib://flowstdlib/fmt/to_string.toml"
+source = "lib://flowstdlib/fmt/to_string"
 
 [[connection]]
 from = "process/add_again"
@@ -25,12 +25,12 @@ to = "process/to_string"
 
 [[process]]
 alias = "tap"
-source = "lib://flowstdlib/control/tap.toml"
+source = "lib://flowstdlib/control/tap"
 input.control = {once = false}
 
 [[process]]
 alias = "compare"
-source = "lib://flowstdlib/control/compare.toml"
+source = "lib://flowstdlib/control/compare"
 input.right = {once = 2}
 
 [[connection]]
@@ -47,7 +47,7 @@ to = "process/to_string"
 
 [[process]]
 alias = "print"
-source = "lib://runtime/stdio/stdout.toml"
+source = "lib://runtime/stdio/stdout"
 
 [[connection]]
 from = "process/tap"

@@ -6,15 +6,14 @@ extern crate glob;
 extern crate phf_codegen;
 extern crate toml;
 
-use std::collections::HashMap;
-use std::env;
-use std::fs;
-use std::path::PathBuf;
-
 use flowclib::model::name::HasName;
 use flowclib::model::process::Process;
 use flowclib::model::process::Process::FunctionProcess;
 use glob::glob;
+use std::collections::HashMap;
+use std::env;
+use std::fs;
+use std::path::PathBuf;
 
 // We'll put our errors in an `errors` module, and other modules in
 // this crate will `use errors::*;` to get access to everything

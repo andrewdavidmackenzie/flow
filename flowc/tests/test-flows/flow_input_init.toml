@@ -2,13 +2,13 @@ flow = "flow_input_init"
 
 [[process]]
 alias = "pass-if-lte"
-source = "lib://flowstdlib/control/pass_if_lte.toml"
+source = "lib://flowstdlib/control/pass_if_lte"
 input.in = {once = 1}
 input.max = {once = 10}
 
 [[process]]
 alias = "print"
-source = "lib://runtime/stdio/stdout.toml"
+source = "lib://runtime/stdio/stdout"
 
 [[connection]]
 from = "process/pass-if-lte/passed"

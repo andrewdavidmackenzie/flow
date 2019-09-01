@@ -3,18 +3,18 @@ flow = "deadlock"
 # Generate a sequence of two numbers 1, 2
 [[process]]
 alias = "first-sequence"
-source = "lib://flowstdlib/math/sequence.toml"
+source = "lib://flowstdlib/math/sequence"
 input.start = 1
 input.end = 9
 
 # Generate a sequence of numbers from 2 upto the value from sequence above
 [[process]]
 alias = "second-sequence"
-source = "lib://flowstdlib/math/sequence.toml"
+source = "lib://flowstdlib/math/sequence"
 
 [[process]]
 alias = "second-start"
-source = "lib://flowstdlib/data/buffer.toml"
+source = "lib://flowstdlib/data/buffer"
 input.default = {constant = 2}
 
 [[connection]]
@@ -27,7 +27,7 @@ to = "process/second-sequence/end"
 
 [[process]]
 alias = "sum"
-source = "lib://flowstdlib/math/add.toml"
+source = "lib://flowstdlib/math/add"
 
 # send the max value directly to sum, and via a less-than comparison
 # both should arrive
@@ -41,7 +41,7 @@ to = "process/sum/i2"
 
 [[process]]
 alias = "print"
-source = "lib://runtime/stdio/stdout.toml"
+source = "lib://runtime/stdio/stdout"
 
 [[connection]]
 from = "process/sum"

@@ -15,7 +15,7 @@ to = "process/to_number"
 
 [[process]]
 alias = "to_number"
-source = "lib://flowstdlib/fmt/to_number.toml"
+source = "lib://flowstdlib/fmt/to_number"
 
 [[connection]]
 from = "process/to_number"
@@ -23,7 +23,7 @@ to = "process/candidates-range/end"
 
 [[process]]
 alias = "candidates-range"
-source = "lib://flowstdlib/math/sequence.toml"
+source = "lib://flowstdlib/math/sequence"
 input.start = {once = 1}
 
 [[connection]]

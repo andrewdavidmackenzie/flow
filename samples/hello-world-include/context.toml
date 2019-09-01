@@ -2,7 +2,7 @@ flow = "hello world include"
 
 [[process]]
 alias = "print"
-source = "lib://runtime/stdio/stdout.toml"
+source = "lib://runtime/stdio/stdout"
 
 [[process]]
 alias = "hello"

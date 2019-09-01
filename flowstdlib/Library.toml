@@ -1,4 +1,5 @@
-name = "flowstdlib"
+library = "flowstdlib"
+name = "Flow Standard Library"
 version = "0.7.0"
 author_name = "Andrew Mackenzie"
 author_email = "<andrew@mackenzie-serres.net>"

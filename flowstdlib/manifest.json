@@ -1,61 +1,56 @@
 {
   "functions": [
     {
-      "implementation_source": "lib://flowstdlib/control/compare/compare/Compare",
-      "implementation_location": "src/fmt/reverse.wasm"
+      "implementation_source": "lib://flowstdlib/control/compare/Compare",
+      "implementation_location": "control/compare/compare.wasm"
     },
     {
-      "implementation_source": "lib://flowstdlib/control/join/join/Join",
-      "implementation_location": "src/fmt/reverse.wasm"
+      "implementation_source": "lib://flowstdlib/control/join/Join",
+      "implementation_location": "control/join/join.wasm"
     },
     {
-      "implementation_source": "lib://flowstdlib/control/tap/tap/Tap",
-      "implementation_location": "src/fmt/reverse.wasm"
-    },
-
-    {
-      "implementation_source": "lib://flowstdlib/data/buffer/buffer/Buffer",
-      "implementation_location": "src/data/buffer.wasm"
+      "implementation_source": "lib://flowstdlib/control/tap/Tap",
+      "implementation_location": "conrol/tap/tap.wasm"
     },
     {
-      "implementation_source": "lib://flowstdlib/data/compose_array/compose_array/ComposeArray",
-      "implementation_location": "src/data/buffer.wasm"
+      "implementation_source": "lib://flowstdlib/data/buffer/Buffer",
+      "implementation_location": "data/buffer/buffer.wasm"
     },
     {
-      "implementation_source": "lib://flowstdlib/data/zip/zip/Zip",
-      "implementation_location": "src/data/buffer.wasm"
+      "implementation_source": "lib://flowstdlib/data/compose_array/ComposeArray",
+      "implementation_location": "data/compose_array/compose_array.wasm"
     },
     {
-      "implementation_source": "lib://flowstdlib/fmt/reverse/reverse/Reverse",
-      "implementation_location": "src/fmt/reverse.wasm"
+      "implementation_source": "lib://flowstdlib/data/zip/Zip",
+      "implementation_location": "data/zip/zip.wasm"
     },
     {
-      "implementation_source": "lib://flowstdlib/fmt/to_string/to_string/ToString",
-      "implementation_location": "src/fmt/reverse.wasm"
+      "implementation_source": "lib://flowstdlib/fmt/reverse/Reverse",
+      "implementation_location": "fmt/reverse/reverse.wasm"
     },
     {
-      "implementation_source": "lib://flowstdlib/fmt/to_number/to_number/ToNumber",
-      "implementation_location": "src/fmt/reverse.wasm"
+      "implementation_source": "lib://flowstdlib/fmt/to_string/ToString",
+      "implementation_location": "fmt/to_string/to_string.wasm"
     },
     {
-      "implementation_source": "lib://flowstdlib/img/format_png/format_png/FormatPNG",
-      "implementation_location": "src/fmt/reverse.wasm"
+      "implementation_source": "lib://flowstdlib/fmt/to_number/ToNumber",
+      "implementation_location": "fmt/to_number/to_number.wasm"
     },
     {
-      "implementation_source": "lib://flowstdlib/math/add/add/Add",
-      "implementation_location": "src/fmt/reverse.wasm"
+      "implementation_source": "lib://flowstdlib/img/format_png/FormatPNG",
+      "implementation_location": "img/format_png/format_png.wasm"
     },
     {
-      "implementation_source": "lib://flowstdlib/math/divide/divide/Divide",
-      "implementation_location": "src/fmt/reverse.wasm"
+      "implementation_source": "lib://flowstdlib/math/add/Add",
+      "implementation_location": "math/add/add.wasm"
     },
     {
-      "implementation_source": "lib://flowstdlib/math/subtract/subtract/Subtract",
-      "implementation_location": "src/fmt/reverse.wasm"
+      "implementation_source": "lib://flowstdlib/math/divide/Divide",
+      "implementation_location": "math/divide/divide.wasm"
     },
     {
-      "implementation_source": "lib://flowstdlib/math/sequence/Sequence",
-      "implementation_location": "src/fmt/reverse.wasm"
-    }
+      "implementation_source": "lib://flowstdlib/math/subtract/Subtract",
+      "implementation_location": "math/subtract/subtract.wasm"
+    },
   ]
 }

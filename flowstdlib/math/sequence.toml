@@ -27,7 +27,7 @@ to = "process/pilte/in"
 
 [[process]]
 alias = "limit-store"
-source = "lib://flowstdlib/data/buffer.toml"
+source = "lib://flowstdlib/data/buffer"
 
 [[connection]]
 from = "process/limit-store"
@@ -40,11 +40,11 @@ to = "process/limit-store"
 # pass if less than or equal, add one and loop
 [[process]]
 alias = "pilte"
-source = "lib://flowstdlib/control/pass_if_lte.toml"
+source = "lib://flowstdlib/control/pass_if_lte"
 
 [[process]]
 alias = "add"
-source = "lib://flowstdlib/math/add.toml"
+source = "lib://flowstdlib/math/add/add"
 input.i2 = {constant = 1}
 
 [[connection]]

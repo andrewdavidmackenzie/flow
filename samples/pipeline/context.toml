@@ -5,7 +5,7 @@ author_email = "andrew@mackenzie-serres.net"
 
 [[process]]
 alias = "range"
-source = "lib://flowstdlib/math/sequence.toml"
+source = "lib://flowstdlib/math/sequence"
 input.start = {once = 1}
 input.end = {once = 20}
 
@@ -15,7 +15,7 @@ to = "process/add1/i1"
 
 [[process]]
 alias = "add1"
-source = "lib://flowstdlib/math/add.toml"
+source = "lib://flowstdlib/math/add"
 input.i2 = {constant = 1}
 
 [[connection]]
@@ -24,7 +24,7 @@ to = "process/divide2/dividend"
 
 [[process]]
 alias = "divide2"
-source = "lib://flowstdlib/math/divide.toml"
+source = "lib://flowstdlib/math/divide"
 input.divisor = {constant = 2}
 
 [[connection]]
@@ -33,7 +33,7 @@ to = "process/add2/i1"
 
 [[process]]
 alias = "add2"
-source = "lib://flowstdlib/math/add.toml"
+source = "lib://flowstdlib/math/add"
 input.i2 = {constant = 2}
 
 [[connection]]
@@ -42,7 +42,7 @@ to = "process/divide4/dividend"
 
 [[process]]
 alias = "divide4"
-source = "lib://flowstdlib/math/divide.toml"
+source = "lib://flowstdlib/math/divide"
 input.divisor = {constant = 2}
 
 [[connection]]
@@ -51,7 +51,7 @@ to = "process/to_string"
 
 [[process]]
 alias = "to_string"
-source = "lib://flowstdlib/fmt/to_string.toml"
+source = "lib://flowstdlib/fmt/to_string"
 
 [[connection]]
 from = "process/to_string"
@@ -59,4 +59,4 @@ to = "process/print"
 
 [[process]]
 alias = "print"
-source = "lib://runtime/stdio/stdout.toml"
+source = "lib://runtime/stdio/stdout"
