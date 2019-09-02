@@ -4,6 +4,7 @@ use std::sync::Arc;
 use flow_impl::implementation::Implementation;
 
 use crate::errors::*;
+use crate::manifest::MetaData;
 use crate::provider::Provider;
 
 /*
@@ -26,12 +27,14 @@ const DEFAULT_LIB_MANIFEST_FILENAME: &str = "manifest.json";
 */
 #[derive(Deserialize, Serialize)]
 pub struct LibraryManifest {
+    pub metadata: MetaData,
     pub locators: HashMap<String, ImplementationLocator>
 }
 
 impl LibraryManifest {
-    pub fn new() -> Self {
+    pub fn new(metadata: MetaData) -> Self {
         LibraryManifest {
+            metadata,
             locators: HashMap::<String, ImplementationLocator>::new()
         }
     }
@@ -53,6 +56,7 @@ impl LibraryManifest {
 mod test {
     use crate::errors::*;
     use crate::lib_manifest::{ImplementationLocator, ImplementationLocator::Wasm, LibraryManifest};
+    use crate::manifest::MetaData;
     use crate::provider::Provider;
 
     pub struct TestProvider {
@@ -71,8 +75,16 @@ mod test {
 
     #[test]
     fn serialize() {
+        let metadata = MetaData {
+            name: "".to_string(),
+            description: "".into(),
+            version: "0.1.0".into(),
+            author_name: "".into(),
+            author_email: "".into(),
+        };
+
         let locator: ImplementationLocator = Wasm("add2.wasm".to_string());
-        let mut manifest = LibraryManifest::new();
+        let mut manifest = LibraryManifest::new(metadata);
         manifest.locators.insert("//flowrlib/test-dyn-lib/add2".to_string(), locator);
         let serialized = serde_json::to_string_pretty(&manifest).unwrap();
         let expected = "{

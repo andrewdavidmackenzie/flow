@@ -53,7 +53,6 @@ impl Loader {
         Load libraries references referenced in the flows manifest
     */
     pub fn load_libraries(&mut self, provider: &dyn Provider, manifest: &Manifest) -> Result<()> {
-        println!("loading libraries");
         for library_reference in &manifest.lib_references {
             let (lib_manifest, lib_manifest_url) = LibraryManifest::load(provider, library_reference)?;
             self.add_lib(provider, lib_manifest, &lib_manifest_url)?;

@@ -89,14 +89,21 @@ impl Implementation for Fake {
 }
 
 pub fn get_manifest() -> LibraryManifest {
-    let mut manifest = LibraryManifest::new();
+    let metadata = MetaData {
+        name: "".to_string(),
+        description: "".into(),
+        version: "0.1.0".into(),
+        author_name: "".into(),
+        author_email: "".into(),
+    };
+    let mut manifest = LibraryManifest::new(metadata);
 
-    manifest.locators.insert("lib://runtime/args/get/Get".to_string(), Native(Arc::new(Fake{})));
-    manifest.locators.insert("lib://runtime/file/file_write/FileWrite".to_string(), Native(Arc::new(Fake{})));
-    manifest.locators.insert("lib://runtime/stdio/readline/Readline".to_string(), Native(Arc::new(Fake{})));
-    manifest.locators.insert("lib://runtime/stdio/stdin/Stdin".to_string(), Native(Arc::new(Fake{})));
-    manifest.locators.insert("lib://runtime/stdio/stdout/Stdout".to_string(), Native(Arc::new(Fake{})));
-    manifest.locators.insert("lib://runtime/stdio/stderr/Stderr".to_string(), Native(Arc::new(Fake{})));
+    manifest.locators.insert("lib://runtime/args/get/Get".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://runtime/file/file_write/FileWrite".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://runtime/stdio/readline/Readline".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://runtime/stdio/stdin/Stdin".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://runtime/stdio/stdout/Stdout".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://runtime/stdio/stderr/Stderr".to_string(), Native(Arc::new(Fake {})));
 
     manifest
 }

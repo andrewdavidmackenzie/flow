@@ -1,8 +1,17 @@
 use flowrlib::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
+use flowrlib::manifest::MetaData;
 use std::sync::Arc;
 
 pub fn get_manifest() -> LibraryManifest {
-    let mut manifest = LibraryManifest::new();
+    let metadata = MetaData {
+        name: "flowr-runtime".into(),
+        version: "0.1.0".into(),
+        description: "Runtime library provided by flowr binary".into(),
+        author_name: "Andrew Mackenzie".into(),
+        author_email: "andrew@mackenzie-serres.net".into(),
+
+    };
+    let mut manifest = LibraryManifest::new(metadata);
 
     manifest.locators.insert("lib://runtime/args/get/Get".to_string(), Native(Arc::new(super::args::get::Get)));
     manifest.locators.insert("lib://runtime/file/file_write/FileWrite".to_string(), Native(Arc::new(super::file::file_write::FileWrite{})));

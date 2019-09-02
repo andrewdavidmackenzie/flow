@@ -3,6 +3,7 @@ pub mod datatype;
 pub mod route;
 pub mod function;
 pub mod flow;
+pub mod library;
 pub mod process;
 pub mod process_reference;
 pub mod connection;

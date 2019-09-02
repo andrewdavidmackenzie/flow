@@ -11,6 +11,7 @@ use crate::model::datatype::TypeCheck;
 use crate::model::flow::Flow;
 use crate::model::function::Function;
 use crate::model::io::IO;
+use crate::model::library::Library;
 use crate::model::name::HasName;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
@@ -46,6 +47,18 @@ impl From<&Flow> for MetaData {
             version: flow.version.clone(),
             author_name: flow.author_name.clone(),
             author_email: flow.author_email.clone(),
+        }
+    }
+}
+
+impl From<&Library> for MetaData {
+    fn from(library: &Library) -> Self {
+        MetaData {
+            name: library.name.clone().to_string(),
+            description: library.description.clone(),
+            version: library.version.clone(),
+            author_name: library.author_name.clone(),
+            author_email: library.author_email.clone(),
         }
     }
 }
