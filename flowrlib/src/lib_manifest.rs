@@ -7,6 +7,8 @@ use crate::errors::*;
 use crate::manifest::MetaData;
 use crate::provider::Provider;
 
+pub const DEFAULT_LIB_MANIFEST_FILENAME: &str = "manifest.json";
+
 /*
     Implementations can be of two types - either a native and statically bound function referenced
     via a function reference, or WASM bytecode file that is interpreted at run-time that is
@@ -19,8 +21,6 @@ pub enum ImplementationLocator {
     Native(Arc<dyn Implementation>),
     Wasm(String)
 }
-
-const DEFAULT_LIB_MANIFEST_FILENAME: &str = "manifest.json";
 
 /*
     Provided by libraries to help load and/or find implementations of processes
@@ -49,6 +49,15 @@ impl LibraryManifest {
             .chain_err(|| format!("Could not load Library Manfest from '{}'", resolved_url))?;
 
         Ok((manifest, resolved_url))
+    }
+
+    pub fn add_to_manifest(&mut self, base_dir: &str, wasm_abs_path: &str,  wasm_dir: &str, function_name: &str) {
+        let relative_dir = wasm_dir.replace(base_dir, "");
+        let lib_reference = format!("lib://{}/{}/{}", self.metadata.name, relative_dir, function_name);
+
+        let implementation_relative_location = wasm_abs_path.replace(base_dir, "");
+        debug!("Adding function to manifest: '{}'  --> '{}'", lib_reference, implementation_relative_location);
+        self.locators.insert(lib_reference, ImplementationLocator::Wasm(implementation_relative_location));
     }
 }
 

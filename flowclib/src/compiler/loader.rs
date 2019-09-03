@@ -103,14 +103,15 @@ fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &dyn Pr
     Ok(process)
 }
 
-pub fn load_library(url: &str, provider: &dyn Provider,) -> Result<Library> {
+pub fn load_library(url: &str, provider: &dyn Provider) -> Result<Library> {
     let (resolved_url, _) = provider.resolve(url, "Library.toml")
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
     debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
     let contents = provider.get(&resolved_url)
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
 
-    toml::from_str(&String::from_utf8(contents).unwrap()).chain_err(|| format!("Error deserializing Toml from: '{:?}'", url))
+    toml::from_str(&String::from_utf8(contents).unwrap())
+        .chain_err(|| format!("Error deserializing Toml from: '{:?}'", resolved_url))
 }
 
 /*
@@ -151,4 +152,16 @@ fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &
     IO::set_initial_values(flow.inputs_mut(), initializations);
     flow.set_routes_from_parent(parent_route);
     flow.validate()
+}
+
+#[cfg(test)]
+mod test {
+    use crate::model::library::Library;
+    use crate::toml;
+
+    #[test]
+    fn deserialize_library() {
+        let contents= include_str!("../../test_libs/Library_test.toml");
+        let _: Library = toml::from_str(contents).unwrap();
+    }
 }

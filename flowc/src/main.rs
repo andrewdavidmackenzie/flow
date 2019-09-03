@@ -28,6 +28,7 @@ use crate::lib_build::build_lib;
 mod source_arg;
 mod lib_build;
 mod flow_compile;
+mod compile_wasm;
 
 // We'll put our errors in an `errors` module, and other modules in
 // this crate will `use errors::*;` to get access to everything
@@ -76,15 +77,15 @@ fn main() {
     a message to display to the user if all went OK
 */
 fn run() -> Result<String> {
-    let (lib, url, args, dump, skip_generation, debug_symbols, provided_implementations, out_dir)
+    let (lib, url, args, dump, skip_generation, debug_symbols, provided_implementations, base_dir)
         = parse_args(get_matches())?;
 
     let provider = &MetaProvider {};
 
     if lib {
-        build_lib(url, provided_implementations, out_dir, provider).expect("Could not build library");
+        build_lib(url, provided_implementations, base_dir, provider).expect("Could not build library");
     } else {
-        compile_flow(url, args, dump, skip_generation, debug_symbols, provided_implementations, out_dir, provider)
+        compile_flow(url, args, dump, skip_generation, debug_symbols, provided_implementations, base_dir, provider)
             .expect("Could not compile flow");
     }
 

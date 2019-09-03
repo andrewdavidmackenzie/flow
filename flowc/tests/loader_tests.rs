@@ -5,17 +5,17 @@ extern crate url;
 
 use std::env;
 
+use url::Url;
+
 use flowclib::compiler::loader;
 use flowclib::model::io::IO;
 use flowclib::model::name::HasName;
+use flowclib::model::name::Name;
 use flowclib::model::process::Process::FlowProcess;
 use flowclib::model::process::Process::FunctionProcess;
 use flowclib::model::route::HasRoute;
-use flowrlib::input::InputInitializer::OneTime;
-use flowclib::model::name::Name;
 use flowclib::model::route::Route;
-use url::Url;
-
+use flowrlib::input::InputInitializer::OneTime;
 use provider::content::provider::MetaProvider;
 
 /// flowclib integration tests
@@ -213,8 +213,16 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
             } else {
                 panic!("First sub-process of flow was not a sub-flow as expected");
             }
-        },
+        }
         Ok(_) => panic!("Didn't load a flow"),
         Err(e) => panic!(e.to_string())
     }
+}
+
+#[test]
+fn load_library() {
+    let test_url = "../test_libs/Library_test.toml";
+    let provider = MetaProvider {};
+
+    loader::load_library(test_url, &provider).unwrap();
 }
