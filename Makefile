@@ -163,13 +163,17 @@ package-ide: ide_build
 	@cd ide && make package
 
 ################# Clean ################
-clean: clean-samples clean-dumps clean-guide
+clean: clean-flowstdlib clean-samples clean-dumps clean-guide
 	@cargo clean
 	@cd ide && make clean
 	@cd ide-native && make clean
 
 clean-samples:
 	@cd samples; make clean
+
+clean-flowstdlib:
+	@find flowstdlib -name \*.wasm -type f -exec rm -rf {} + ; true
+	@rm -f flowstdlib/manifest
 
 clean-dumps:
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true

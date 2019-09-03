@@ -83,7 +83,8 @@ fn run() -> Result<String> {
     let provider = &MetaProvider {};
 
     if lib {
-        build_lib(url, provided_implementations, base_dir, provider).expect("Could not build library");
+        build_lib(url, provided_implementations, base_dir, provider)
+            .expect("Could not build library");
     } else {
         compile_flow(url, args, dump, skip_generation, debug_symbols, provided_implementations, base_dir, provider)
             .expect("Could not compile flow");

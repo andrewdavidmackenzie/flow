@@ -39,6 +39,7 @@ impl Loader {
         Thus, all library implementations found will be Native.
     */
     pub fn load_manifest(&mut self, provider: &dyn Provider, flow_manifest_url: &str) -> Result<Manifest> {
+        debug!("Loading flow manifest from '{}'", flow_manifest_url);
         let mut flow_manifest = Manifest::load(provider, flow_manifest_url)?;
 
         self.load_libraries(provider, &flow_manifest)?;
@@ -53,8 +54,10 @@ impl Loader {
         Load libraries references referenced in the flows manifest
     */
     pub fn load_libraries(&mut self, provider: &dyn Provider, manifest: &Manifest) -> Result<()> {
+        debug!("Loading libraries used by the flow");
         for library_reference in &manifest.lib_references {
             let (lib_manifest, lib_manifest_url) = LibraryManifest::load(provider, library_reference)?;
+            debug!("Loading library '{}' from '{}'", library_reference, lib_manifest_url);
             self.add_lib(provider, lib_manifest, &lib_manifest_url)?;
         }
 
@@ -63,14 +66,19 @@ impl Loader {
 
     pub fn resolve_implementations(&mut self, flow_manifest: &mut Manifest, provider: &dyn Provider,
                                    flow_manifest_url: &str) -> Result<String> {
+        debug!("Resolving implementations");
         // find in a library, or load the supplied implementation - as specified by the source
         for function in &mut flow_manifest.functions {
             let implementation_source_url = function.implementation_location().to_string();
             let parts: Vec<_> = implementation_source_url.split(":").collect();
             match parts[0] {
-                "lib" => { // Try and find the implementation in the libraries already loaded
+                "lib" => {
+                    debug!("Looking for implementation for lib reference '{}'", function.implementation_location());
                     match self.global_lib_implementations.get(function.implementation_location()) {
-                        Some(implementation) => function.set_implementation(implementation.clone()),
+                        Some(implementation) => {
+                            debug!("Found implementation");
+                            function.set_implementation(implementation.clone())
+                        },
                         None => bail!("Did not find implementation for '{}'", implementation_source_url)
                     }
                 }
@@ -97,24 +105,25 @@ impl Loader {
     pub fn add_lib(&mut self, provider: &dyn Provider,
                    lib_manifest: LibraryManifest,
                    lib_manifest_url: &str) -> Result<()> {
-        for (route, locator) in lib_manifest.locators {
+        for (reference, locator) in lib_manifest.locators {
             // if we don't already have an implementation loaded for that route
-            if self.global_lib_implementations.get(&route).is_none() {
+            if self.global_lib_implementations.get(&reference).is_none() {
                 // create or find the implementation we need
                 let implementation = match locator {
                     Wasm(wasm_source) => {
-                        info!("Looking for wasm source: '{}'", wasm_source);
+                        debug!("Looking for wasm source: '{}'", wasm_source);
                         // Path to the wasm source could be relative to the URL where we loaded the ILT from
                         let wasm_url = url::join(lib_manifest_url, &wasm_source);
                         // Wasm implementation being added. Wrap it with the Wasm Native Implementation
                         let wasm_executor = wasm::load(provider, &wasm_url)?;
+                        info!("Loaded wasm module from '{}'", wasm_source);
                         Arc::new(wasm_executor) as Arc<dyn Implementation>
                     }
 
                     // Native implementation from Lib
                     Native(implementation) => implementation
                 };
-                self.global_lib_implementations.insert(route, implementation);
+                self.global_lib_implementations.insert(reference, implementation);
             }
         }
 

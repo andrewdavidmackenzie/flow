@@ -32,7 +32,17 @@ pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bo
     let context = loader::load_context(&url.to_string(), provider).expect("Couldn't load context");
     match context {
         FlowProcess(flow) => {
-            let mut tables = compile(&flow, dump, &out_dir).chain_err(|| "Failed to compile")?;
+            info!("flow loaded with alias '{}'\n", flow.alias);
+            let mut tables = compile::compile(&flow).expect("Could not compile flow");
+
+            if dump {
+                dump_flow::dump_flow(&flow, &out_dir)
+                    .chain_err(|| "Failed to dump flow's definition")?;
+                dump_tables::dump_tables(&tables, &out_dir)
+                    .chain_err(|| "Failed to dump flow's tables")?;
+                dump_tables::dump_functions(&flow, &tables, &out_dir)
+                    .chain_err(|| "Failed to dump flow's functions")?;
+            }
 
             info!("==== Compiler phase: Compiling provided implementations");
             compile_supplied_implementations(&mut tables, provided_implementations)?;
@@ -53,21 +63,19 @@ pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bo
     }
 }
 
-fn compile(flow: &Flow, dump: bool, out_dir: &PathBuf) -> Result<GenerationTables> {
-    info!("flow loaded with alias '{}'\n", flow.alias);
-
-    let tables = compile::compile(&flow).expect("Could not compile flow");
-
-    if dump {
-        dump_flow::dump_flow(&flow, &out_dir)
-            .chain_err(|| "Failed to dump flow's definition")?;
-        dump_tables::dump_tables(&tables, &out_dir)
-            .chain_err(|| "Failed to dump flow's tables")?;
-        dump_tables::dump_functions(&flow, &tables, &out_dir)
-            .chain_err(|| "Failed to dump flow's functions")?;
+/*
+    For any function that provides an implementation - compile the source to wasm and modify the
+    implementation to indicate it is the wasm file
+*/
+fn compile_supplied_implementations(tables: &mut GenerationTables, skip_building: bool) -> Result<String> {
+    for function in &mut tables.functions {
+        match function.get_implementation() {
+            Some(_) => compile_wasm::compile_implementation(function, skip_building),
+            None => Ok("OK".into())
+        }?;
     }
 
-    Ok(tables)
+    Ok("All supplied implementations compiled successfully".into())
 }
 
 /*
@@ -149,19 +157,4 @@ fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String> {
         }
         None => Ok("No return code - ignoring".to_string())
     }
-}
-
-/*
-    For any function that provides an implementation - compile the source to wasm and modify the
-    implementation to indicate it is the wasm file
-*/
-fn compile_supplied_implementations(tables: &mut GenerationTables, skip_building: bool) -> Result<String> {
-    for function in &mut tables.functions {
-        match function.get_implementation() {
-            Some(_) => compile_wasm::compile_implementation(function, skip_building),
-            None => Ok("OK".into())
-        }?;
-    }
-
-    Ok("All supplied implementations compiled successfully".into())
 }

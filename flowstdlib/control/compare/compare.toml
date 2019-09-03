@@ -1,4 +1,5 @@
 function = "Compare"
+implementation = "compare.rs"
 
 [[input]]
 name = "left"

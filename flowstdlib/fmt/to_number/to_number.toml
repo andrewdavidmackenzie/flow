@@ -1,4 +1,5 @@
 function = "ToNumber"
+implementation = "to_number.rs"
 
 [[input]]
 type = "String"

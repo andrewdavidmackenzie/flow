@@ -13,7 +13,7 @@ use crate::errors::*;
 /*
     Compile a function provided in rust to wasm and modify implementation to point to new file
 */
-pub fn compile_implementation(function: &mut Box<Function>, skip_building: bool) -> Result<String> {
+pub fn compile_implementation(function: &mut Function, skip_building: bool) -> Result<PathBuf> {
     let source = function.get_source_url();
     let mut implementation_url = url_from_string(Some(&source)).expect("Could not create a url from source url");
     implementation_url = implementation_url.join(&function.get_implementation()
@@ -82,7 +82,7 @@ pub fn compile_implementation(function: &mut Box<Function>, skip_building: bool)
 
     function.set_implementation(&wasm_destination.to_str().ok_or("Could not convert path to string")?);
 
-    Ok("Function's provided implementation compiled successfully".into())
+    Ok(wasm_destination)
 }
 
 /*

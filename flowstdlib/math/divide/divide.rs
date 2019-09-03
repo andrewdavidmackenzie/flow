@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate serde_json;
+
 use flow_impl::implementation::{Implementation, RunAgain};
 use serde_json::Value;
 

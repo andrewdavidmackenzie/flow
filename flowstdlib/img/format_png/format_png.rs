@@ -16,7 +16,7 @@ impl Implementation for FormatPNG {
         let width = bounds["width"].as_u64().unwrap() as u32;
         let height = bounds["height"].as_u64().unwrap() as u32;
 
-        debug!("Writing image of width '{}' and height '{}'", width, height);
+//        debug!("Writing image of width '{}' and height '{}'", width, height);
 
         let mut png_buffer = Vec::new();
         let encoder = PNGEncoder::new(png_buffer.by_ref());

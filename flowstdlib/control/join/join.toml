@@ -1,4 +1,5 @@
 function = "Join"
+implementation = "join.rs"
 
 [[input]]
 name = "data"

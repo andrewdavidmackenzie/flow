@@ -14,20 +14,21 @@ use flowrlib::manifest::MetaData;
 use flowrlib::provider::Provider;
 use glob::glob;
 
+use crate::compile_wasm;
 use crate::errors::*;
 
 /*
     Compile a Library
 */
-pub fn build_lib(url: Url, _provided_implementation: bool, lib_dir: PathBuf, provider: &dyn Provider) -> Result<String> {
-//    let lib_dir = base_dir.canonicalize().expect("Could not canonicalize the specified library path");
+pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn Provider) -> Result<String> {
     let library = loader::load_library(&url.to_string(), provider)
         .expect(&format!("Could not load Library from '{}'", lib_dir.display()));
 
     info!("Building manifest for '{}' in output directory: '{}'\n", library.name, lib_dir.display());
     let mut lib_manifest = LibraryManifest::new(MetaData::from(&library));
 
-    build_manifest(&mut lib_manifest, &lib_dir.to_str().unwrap(), provider).expect("Could not build library manifest");
+    build_manifest(&mut lib_manifest, &lib_dir.to_str().unwrap(), provider, skip_building)
+        .expect("Could not build library");
 
     let filename = write_lib_manifest(&lib_manifest, lib_dir)?;
     info!("Generated library manifest at '{}'", filename.display());
@@ -50,7 +51,8 @@ fn write_lib_manifest(lib_manifest: &LibraryManifest, base_dir: PathBuf) -> Resu
     Ok(filename)
 }
 
-fn build_manifest(lib_manifest: &mut LibraryManifest, base_dir: &str, provider: &dyn Provider) -> Result<()> {
+fn build_manifest(lib_manifest: &mut LibraryManifest, base_dir: &str, provider: &dyn Provider,
+                  skip_building: bool) -> Result<()> {
     let search_pattern = if base_dir.ends_with("/") {
         format!("{}**/*.toml", base_dir)
     } else {
@@ -69,21 +71,16 @@ fn build_manifest(lib_manifest: &mut LibraryManifest, base_dir: &str, provider: 
                     .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
                 let deserializer = get_deserializer(&resolved_url)?;
                 match deserializer.deserialize(&String::from_utf8(contents).unwrap(), Some(&resolved_url)) {
-                    Ok(process) => {
-                        match process {
-                            FunctionProcess(function) => {
-                                let mut wasm_abs_path: PathBuf = toml_path.clone();
-                                wasm_abs_path.set_extension("wasm");
-                                let wasm_dir = wasm_abs_path.parent().expect("Could not get parent directory of wasm path");
-                                lib_manifest.add_to_manifest(base_dir,
-                                                             wasm_abs_path.to_str().expect("Could not convert wasm_path to str"),
-                                                             wasm_dir.to_str().expect("Could not convert wasm_dir to str"),
-                                                             function.name() as &str);
-                            }
-                            _ => { /* Ignore valid flow definitions */ }
-                        }
+                    Ok(FunctionProcess(ref mut function)) => {
+                        function.set_implementation_url(&resolved_url);
+                        let wasm_abs_path = compile_wasm::compile_implementation(function, skip_building)?;
+                        let wasm_dir = wasm_abs_path.parent().expect("Could not get parent directory of wasm path");
+                        lib_manifest.add_to_manifest(base_dir,
+                                                     wasm_abs_path.to_str().expect("Could not convert wasm_path to str"),
+                                                     wasm_dir.to_str().expect("Could not convert wasm_dir to str"),
+                                                     function.name() as &str);
                     }
-                    Err(_) => { warn!("Skipping file '{}' that could not be deserialized as a process", resolved_url) }
+                    _ => { /* Ignore errors and valid flow definitions */ }
                 }
             }
             Err(_) => { /* Skipping unreadable files */ }

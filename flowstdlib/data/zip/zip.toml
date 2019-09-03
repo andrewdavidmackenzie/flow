@@ -1,4 +1,5 @@
 function = "Zip"
+implementation = "zip.rs"
 
 [[input]]
 name = "left"

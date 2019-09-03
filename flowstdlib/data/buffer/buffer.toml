@@ -1,4 +1,5 @@
 function = "Buffer"
+implementation = "buffer.rs"
 
 [[input]]
 

@@ -1,4 +1,5 @@
 function = "FormatPNG"
+implementation = "format_png.rs"
 
 [[input]]
 name = "bytes"

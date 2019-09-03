@@ -1,4 +1,5 @@
 function = "Subtract"
+implementation = "subtract.rs"
 
 [[input]]
 name = "i1"

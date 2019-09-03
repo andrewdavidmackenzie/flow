@@ -23,9 +23,11 @@ const DEFAULT_WASM_FILENAME: &str = "module.wasm";
 const MAX_RESULT_SIZE: i32 = 1024;
 
 #[cfg(target_arch = "wasm32")]
+#[derive(Debug)]
 pub struct WasmExecutor;
 
 #[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug)]
 pub struct WasmExecutor {
     module: Arc<Mutex<ModuleRef>>,
     memory: Arc<Mutex<MemoryRef>>,

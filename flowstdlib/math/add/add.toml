@@ -1,4 +1,5 @@
 function = "Add"
+implementation = "add.rs"
 
 [[input]]
 name = "i1"

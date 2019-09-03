@@ -53,7 +53,7 @@ impl LibraryManifest {
 
     pub fn add_to_manifest(&mut self, base_dir: &str, wasm_abs_path: &str,  wasm_dir: &str, function_name: &str) {
         let relative_dir = wasm_dir.replace(base_dir, "");
-        let lib_reference = format!("lib://{}/{}/{}", self.metadata.name, relative_dir, function_name);
+        let lib_reference = format!("lib://{}{}/{}", self.metadata.name, relative_dir, function_name);
 
         let implementation_relative_location = wasm_abs_path.replace(base_dir, "");
         debug!("Adding function to manifest: '{}'  --> '{}'", lib_reference, implementation_relative_location);

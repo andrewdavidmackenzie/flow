@@ -4,6 +4,7 @@ use serde_json::Value;
 
 use flow_impl::implementation::{DONT_RUN_AGAIN, Implementation, RunAgain};
 
+#[derive(Debug)]
 pub struct Stdin;
 
 impl Implementation for Stdin {

@@ -1,4 +1,5 @@
 function = "ComposeArray"
+implementation = "compose_array.rs"
 
 [[input]]
 type = "Number"

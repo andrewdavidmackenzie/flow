@@ -1,4 +1,5 @@
 function = "Tap"
+implementation = "tap.rs"
 
 [[input]]
 name = "data"

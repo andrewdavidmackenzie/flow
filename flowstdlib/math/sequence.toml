@@ -44,7 +44,7 @@ source = "lib://flowstdlib/control/pass_if_lte"
 
 [[process]]
 alias = "add"
-source = "lib://flowstdlib/math/add/add"
+source = "lib://flowstdlib/math/add"
 input.i2 = {constant = 1}
 
 [[connection]]

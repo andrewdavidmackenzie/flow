@@ -68,6 +68,7 @@ fn create_manifest(functions: Vec<Function>) -> Manifest {
     manifest
 }
 
+#[derive(Debug)]
 struct Fake;
 
 impl Implementation for Fake {

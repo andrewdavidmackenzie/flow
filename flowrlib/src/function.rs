@@ -36,6 +36,7 @@ pub struct Function {
     impure: bool,
 }
 
+#[derive(Debug)]
 struct ImplementationNotFound;
 
 impl Implementation for ImplementationNotFound {

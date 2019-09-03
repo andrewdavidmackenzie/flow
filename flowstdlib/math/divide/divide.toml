@@ -1,4 +1,5 @@
 function = "Divide"
+implementation = "divide.rs"
 
 [[input]]
 name = "dividend"

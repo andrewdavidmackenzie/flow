@@ -1,4 +1,5 @@
 function = "ToString"
+implementation = "to_string.rs"
 
 [[input]]
 
