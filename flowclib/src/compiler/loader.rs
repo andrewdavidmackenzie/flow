@@ -9,6 +9,7 @@ use crate::errors::*;
 use crate::model::flow::Flow;
 use crate::model::function::Function;
 use crate::model::io::IO;
+use crate::model::library::Library;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::process::Process;
@@ -100,6 +101,16 @@ fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &dyn Pr
     }
 
     Ok(process)
+}
+
+pub fn load_library(url: &str, provider: &dyn Provider,) -> Result<Library> {
+    let (resolved_url, _) = provider.resolve(url, "Library.toml")
+        .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
+    debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
+    let contents = provider.get(&resolved_url)
+        .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
+
+    toml::from_str(&String::from_utf8(contents).unwrap()).chain_err(|| format!("Error deserializing Toml from: '{:?}'", url))
 }
 
 /*

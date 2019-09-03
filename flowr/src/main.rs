@@ -47,8 +47,8 @@ mod errors {
 
 error_chain! {
     foreign_links {
-        Provider(::provider::errors::Error);
-        Io(::std::io::Error);
+        Provider(provider::errors::Error);
+        Io(std::io::Error);
     }
 }
 

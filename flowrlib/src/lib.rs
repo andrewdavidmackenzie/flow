@@ -51,7 +51,7 @@ error_chain! {
     }
 
     foreign_links {
-        Io(::std::io::Error);
+        Io(std::io::Error);
         Serde(serde_json::error::Error);
         Recv(std::sync::mpsc::RecvError);
     }
