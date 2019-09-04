@@ -81,6 +81,9 @@ workspace: flowstandardlib
 	@cargo build --all
 	@echo "------- Done     build of 'flow' workspace project -------------"
 
+flowr:
+	@cargo build -p flowr
+
 ide_build:
 	@cd ide && make build
 
@@ -129,7 +132,7 @@ copy:
 # make paths - to compile all samples found in there. Avoid files using the filter.
 sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
-samples: workspace clean-samples $(sample_flows)  # This target must be below sample-flows in the Makefile
+samples: workspace flowr clean-samples $(sample_flows)  # This target must be below sample-flows in the Makefile
 	@echo ""
 	@echo "All local samples executed and output as expected"
 	@echo "------- Finished 'samples:' ----"

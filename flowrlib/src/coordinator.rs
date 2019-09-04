@@ -202,7 +202,8 @@ impl Coordinator {
                         Ok(output) => {
                             submission.state.job_done(&output);
 
-                            debug!("\tCompleted Job #{} for Function #{}", output.job_id, output.function_id);
+                            debug!("\tCompleted Job #{} for Function #{} with result = {:?}",
+                                   output.job_id, output.function_id, output.result);
                             if cfg!(feature = "debugger") && display_next_output {
                                 if let Some(ref mut debugger) = submission.debugger {
                                     debugger.job_completed(&output);

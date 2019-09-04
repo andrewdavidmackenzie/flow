@@ -106,17 +106,16 @@ impl Loader {
                    lib_manifest: LibraryManifest,
                    lib_manifest_url: &str) -> Result<()> {
         for (reference, locator) in lib_manifest.locators {
-            // if we don't already have an implementation loaded for that route
+            // if we don't already have an implementation loaded for that reference
             if self.global_lib_implementations.get(&reference).is_none() {
                 // create or find the implementation we need
                 let implementation = match locator {
-                    Wasm(wasm_source) => {
-                        debug!("Looking for wasm source: '{}'", wasm_source);
+                    Wasm(wasm_source_relative) => {
                         // Path to the wasm source could be relative to the URL where we loaded the ILT from
-                        let wasm_url = url::join(lib_manifest_url, &wasm_source);
+                        let wasm_url = url::join(lib_manifest_url, &wasm_source_relative);
+                        debug!("Looking for wasm source: '{}'", wasm_url);
                         // Wasm implementation being added. Wrap it with the Wasm Native Implementation
                         let wasm_executor = wasm::load(provider, &wasm_url)?;
-                        info!("Loaded wasm module from '{}'", wasm_source);
                         Arc::new(wasm_executor) as Arc<dyn Implementation>
                     }
 

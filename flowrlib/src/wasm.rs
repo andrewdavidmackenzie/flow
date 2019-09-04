@@ -106,6 +106,7 @@ impl Implementation for WasmExecutor {
 #[cfg(target_arch = "wasm32")]
 impl Implementation for WasmExecutor {
     fn run(&self, _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+        unimplemented!();
         (None, false)
     }
 }
@@ -117,7 +118,6 @@ impl Implementation for WasmExecutor {
 pub fn load(provider: &dyn Provider, source_url: &str) -> Result<WasmExecutor> {
     let (resolved_url, _) = provider.resolve(&source_url, DEFAULT_WASM_FILENAME)?;
     let content = provider.get(&resolved_url)?;
-
     let module = Module::from_buffer(content)
         .chain_err(|| format!("Could not create Wasm Module from content in '{}'", resolved_url))?;
 
@@ -131,6 +131,8 @@ pub fn load(provider: &dyn Provider, source_url: &str) -> Result<WasmExecutor> {
         .expect("export name `memory` is not of memory type")
         .to_owned();
 
+    info!("Loaded wasm module from: '{}'", source_url);
+
     Ok(WasmExecutor::new(module_ref, memory))
 }
 
@@ -139,5 +141,6 @@ pub fn load(provider: &dyn Provider, source_url: &str) -> Result<WasmExecutor> {
 */
 #[cfg(target_arch = "wasm32")]
 pub fn load(_provider: &dyn Provider, _source_url: &str) -> Result<WasmExecutor> {
+    unimplemented!();
     Ok(WasmExecutor {})
 }
