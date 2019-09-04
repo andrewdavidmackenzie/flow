@@ -221,8 +221,8 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
 
 #[test]
 fn load_library() {
-    let test_url = "../test_libs/Library_test.toml";
+    let path = url_from_rel_path("test_libs/Library_test.toml");
     let provider = MetaProvider {};
 
-    loader::load_library(test_url, &provider).unwrap();
+    loader::load_library(&path, &provider).unwrap();
 }
