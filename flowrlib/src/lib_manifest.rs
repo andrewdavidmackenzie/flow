@@ -97,11 +97,15 @@ mod test {
         manifest.locators.insert("//flowrlib/test-dyn-lib/add2".to_string(), locator);
         let serialized = serde_json::to_string_pretty(&manifest).unwrap();
         let expected = "{
+  \"metadata\": {
+    \"name\": \"\",
+    \"version\": \"0.1.0\",
+    \"description\": \"\",
+    \"author_name\": \"\",
+    \"author_email\": \"\"
+  },
   \"locators\": {
-    \"//flowrlib/test-dyn-lib/add2\": [
-      \"add2.wasm\",
-      \"add\"
-    ]
+    \"//flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
   }
 }";
         assert_eq!(expected, serialized);
@@ -110,10 +114,15 @@ mod test {
     #[test]
     fn load_dyn_library() {
         let test_content = "{
+  \"metadata\": {
+    \"name\": \"\",
+    \"version\": \"0.1.0\",
+    \"description\": \"\",
+    \"author_name\": \"\",
+    \"author_email\": \"\"
+  },
   \"locators\": {
-    \"//flowrlib/test-dyn-lib/add2\": [\
-        \"add2.wasm\",\
-        \"add\"]
+    \"//flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
   }
 }";
         let provider = TestProvider {

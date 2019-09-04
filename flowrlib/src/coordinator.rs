@@ -110,7 +110,8 @@ pub struct Coordinator {
 /// use flowrlib::debug_client::Response;
 ///
 /// let meta_data = MetaData {
-///                     alias: "test flow".into(),
+///                     name: "test".into(),
+///                     description: "Test submission".into(),
 ///                     version: "0.0.1".into(),
 ///                     author_name: "test user".into(),
 ///                     author_email: "me@acme.com".into()
