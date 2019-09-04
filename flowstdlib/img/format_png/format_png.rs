@@ -1,9 +1,17 @@
+extern crate core;
+extern crate flow_impl;
+extern crate flow_impl_derive;
+#[macro_use]
+extern crate serde_json;
+
 use flow_impl::implementation::{Implementation, RUN_AGAIN, RunAgain};
+use flow_impl_derive::FlowImpl;
 use image::ColorType;
 use image::png::PNGEncoder;
 use serde_json::Value;
 use std::io::Write;
 
+#[derive(FlowImpl)]
 pub struct FormatPNG;
 
 impl Implementation for FormatPNG {

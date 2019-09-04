@@ -72,10 +72,11 @@ impl Implementation for WasmExecutor {
         // setup module memory with the serde serialization of `inputs: Vec<Vec<Value>>`
         let input_data = serde_json::to_vec(&inputs).unwrap();
 
+        trace!("Running the exported function 'run_wasm' on input_data '{}'", String::from_utf8(input_data.clone()).unwrap());
+
         // Allocate a string for the input data inside wasm module
         let input_data_wasm_ptr = send_byte_array(&module_ref, &memory_ref, &input_data);
 
-        trace!("Running the exported function 'run_wasm'");
         let result = module_ref.invoke_export("run_wasm",
                                               &[RuntimeValue::I32(input_data_wasm_ptr as i32),
                                                   RuntimeValue::I32(input_data.len() as i32), ], &mut NopExternals);
@@ -84,7 +85,9 @@ impl Implementation for WasmExecutor {
             Ok(value) => {
                 match value.unwrap() {
                     RuntimeValue::I32(result_length) => {
+                        trace!("Return length from wasm function of {}", result_length);
                         if result_length > MAX_RESULT_SIZE {
+                            error!("Return length from wasm function of {} exceed maximum allowed", result_length);
                             (None, true)
                         } else {
                             let result_data = memory_ref.get(input_data_wasm_ptr, result_length as usize).unwrap();
@@ -92,11 +95,14 @@ impl Implementation for WasmExecutor {
                             (result, run_again)
                         }
                     }
-                    _ => (None, true)
+                    _ => {
+                        error!("Unexpected return value from wasm function on invoke_export()");
+                        (None, true)
+                    }
                 }
             }
             Err(err) => {
-                println!("Error returned by Wasm invoke_export(): {:?}", err);
+                error!("Error returned by Wasm invoke_export(): {:?}", err);
                 (None, true)
             }
         }
@@ -106,7 +112,6 @@ impl Implementation for WasmExecutor {
 #[cfg(target_arch = "wasm32")]
 impl Implementation for WasmExecutor {
     fn run(&self, _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        unimplemented!();
         (None, false)
     }
 }
@@ -141,6 +146,5 @@ pub fn load(provider: &dyn Provider, source_url: &str) -> Result<WasmExecutor> {
 */
 #[cfg(target_arch = "wasm32")]
 pub fn load(_provider: &dyn Provider, _source_url: &str) -> Result<WasmExecutor> {
-    unimplemented!();
     Ok(WasmExecutor {})
 }

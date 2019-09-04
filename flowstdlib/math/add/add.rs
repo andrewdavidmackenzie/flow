@@ -1,8 +1,16 @@
-use flow_impl::implementation::{Implementation, RunAgain};
-use serde_json;
+extern crate core;
+extern crate flow_impl;
+extern crate flow_impl_derive;
+#[macro_use]
+extern crate serde_json;
+
+use flow_impl::implementation::{Implementation, RUN_AGAIN, RunAgain};
+use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 use serde_json::Value::Number;
 use serde_json::Value::String;
+
+#[derive(FlowImpl)]
 
 pub struct Add;
 

@@ -20,20 +20,26 @@ use crate::errors::*;
 /*
     Compile a Library
 */
-pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn Provider) -> Result<String> {
+pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn Provider) -> Result<()> {
     let library = loader::load_library(&url.to_string(), provider)
         .expect(&format!("Could not load Library from '{}'", lib_dir.display()));
 
     info!("Building manifest for '{}' in output directory: '{}'\n", library.name, lib_dir.display());
     let mut lib_manifest = LibraryManifest::new(MetaData::from(&library));
 
-    build_manifest(&mut lib_manifest, &lib_dir.to_str().unwrap(), provider, skip_building)
+    let mut base_dir = lib_dir.display().to_string();
+    // ensure basedir always ends in '/'
+    if !base_dir.ends_with("/") {
+        base_dir = format!("{}/", base_dir);
+    }
+
+    build_manifest(&mut lib_manifest, &base_dir, provider, skip_building)
         .expect("Could not build library");
 
     let filename = write_lib_manifest(&lib_manifest, lib_dir)?;
     info!("Generated library manifest at '{}'", filename.display());
 
-    Ok("ok".into())
+    Ok(())
 }
 
 /*
@@ -53,11 +59,7 @@ fn write_lib_manifest(lib_manifest: &LibraryManifest, base_dir: PathBuf) -> Resu
 
 fn build_manifest(lib_manifest: &mut LibraryManifest, base_dir: &str, provider: &dyn Provider,
                   skip_building: bool) -> Result<()> {
-    let search_pattern = if base_dir.ends_with("/") {
-        format!("{}**/*.toml", base_dir)
-    } else {
-        format!("{}/**/*.toml", base_dir)
-    };
+    let search_pattern = format!("{}**/*.toml", base_dir);
 
     debug!("Searching for process definitions using search pattern: '{}':\n", search_pattern);
     for entry in glob(&search_pattern).expect("Failed to read glob pattern") {
