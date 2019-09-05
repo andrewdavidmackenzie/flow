@@ -32,19 +32,13 @@ config:
 config-linux:
 	brew install fakeroot
 
-#################### Docs ####################
-doc: dot-graphs guide
-	@echo ""
-	@echo "------- Started building docs with cargo -------------"
-	cargo doc
-	@echo "------- Ended   building docs with cargo -------------"
-
-################### Guide ####################
-guide: copy-md-files
+################### Doc ####################
+doc: copy-md-files
 	@echo ""
 	@echo "------- Started building book from Markdown into 'guide/book/html' -------------"
 	@mdbook build guide
 	@echo "------- Done    building book from Markdown into 'guide/book/html' -------------"
+	@cargo doc
 
 ## Copy .md files (with same directory sturtcure) from samples and lib directories under guide 'src' directory
 copy-md-files:
@@ -75,6 +69,9 @@ copy-md-files:
 build: workspace ide_build ide_native_build
 	@echo "------- Done 'build:' -------------"
 
+flowcompiler:
+	@cargo build -p flowc
+
 workspace: flowstandardlib
 	@echo ""
 	@echo "------- Starting build of 'flow' workspace project -------------"
@@ -89,9 +86,6 @@ ide_build:
 
 ide_native_build:
 	@cd ide-native && make build
-
-################## Travis CI ##################
-travis: clean test guide
 
 #################### Tests ####################
 test: test-workspace test-ide samples
@@ -109,7 +103,7 @@ test-ide:
 	@cd ide && make test
 
 #################### LIBRARIES ####################
-flowstandardlib:
+flowstandardlib: flowcompiler
 	@echo ""
 	@echo "------- Starting build of 'flowstdlib' -------------"
 	@cargo run -p flowc -- --lib flowstdlib
@@ -176,7 +170,7 @@ clean-samples:
 
 clean-flowstdlib:
 	@find flowstdlib -name \*.wasm -type f -exec rm -rf {} + ; true
-	@rm -f flowstdlib/manifest
+	@rm -f flowstdlib/manifest.json
 
 clean-dumps:
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true

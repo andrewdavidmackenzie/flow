@@ -16,7 +16,7 @@ cache:
   directories:
     - ide/node_modules
 
-script: make travis
+script: make all
 
 env:
   global:
