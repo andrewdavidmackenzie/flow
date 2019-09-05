@@ -2,13 +2,13 @@ flow = "subflow_function_input_init"
 
 [[process]]
 alias = "sequence"
-source = "lib://flowstdlib/math/sequence.toml"
+source = "lib://flowstdlib/math/sequence"
 input.start = {once = 1}
 input.end = {once = 10}
 
 [[process]]
 alias = "print"
-source = "lib://runtime/stdio/stdout.toml"
+source = "lib://runtime/stdio/stdout"
 
 [[connection]]
 from = "process/sequence/sequence"

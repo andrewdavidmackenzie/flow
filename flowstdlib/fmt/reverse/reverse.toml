@@ -1,0 +1,13 @@
+function = "Reverse"
+implementation = "reverse.rs"
+
+[[input]]
+type = "String"
+
+[[output]]
+name = "reversed"
+type = "String"
+
+[[output]]
+name = "original"
+type = "String"

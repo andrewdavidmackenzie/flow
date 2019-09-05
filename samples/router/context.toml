@@ -2,7 +2,7 @@ flow = "router"
 
 [[process]]
 alias = "readline"
-source = "lib://runtime/stdio/readline.toml"
+source = "lib://runtime/stdio/readline"
 
 [[connection]]
 from = "process/readline"
@@ -18,7 +18,7 @@ to = "process/to_string"
 
 [[process]]
 alias = "to_string"
-source = "lib://flowstdlib/fmt/to_string.toml"
+source = "lib://flowstdlib/fmt/to_string"
 
 [[connection]]
 from = "process/to_string"
@@ -26,4 +26,4 @@ to = "process/print"
 
 [[process]]
 alias = "print"
-source = "lib://runtime/stdio/stdout.toml"
+source = "lib://runtime/stdio/stdout"

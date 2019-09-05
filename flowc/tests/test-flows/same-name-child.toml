@@ -8,7 +8,7 @@ name = "message"
 
 [[process]]
 alias = "buffer"
-source = "lib://flowstdlib/data/buffer.toml"
+source = "lib://flowstdlib/data/buffer"
 
 [[connection]]
 from = "input/message"

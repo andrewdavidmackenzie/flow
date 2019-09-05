@@ -24,13 +24,13 @@ use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::debug_client::DebugClient;
 use flowrlib::info;
 use flowrlib::loader::Loader;
-use provider::args::{cwd_as_url, url_from_string};
+use provider::args::url_from_string;
 use provider::content::provider::MetaProvider;
 
 pub mod args;
 pub mod stdio;
 pub mod file;
-pub mod ilt;
+pub mod manifest;
 mod cli_debug_client;
 
 pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
@@ -47,8 +47,8 @@ mod errors {
 
 error_chain! {
     foreign_links {
-        Provider(::provider::errors::Error);
-        Io(::std::io::Error);
+        Provider(provider::errors::Error);
+        Io(std::io::Error);
     }
 }
 
@@ -77,22 +77,12 @@ fn main() {
 
 fn run() -> Result<()> {
     let matches = get_matches();
-    let url = parse_args(&matches)?;
+    let flow_manifest_url = parse_args(&matches)?;
     let mut loader = Loader::new();
     let provider = MetaProvider {};
 
-    let cwd = cwd_as_url().chain_err(|| "Could not get the current working directory as a URL")?;
-
-    // Load this runtime's native implementations
-    loader.add_lib(&provider, ::ilt::get_ilt(), &cwd.to_string())
-        .chain_err(|| "Could not add library to loader")?;
-
-    // TODO - when loader can load a library from a reference in the manifest via it's WASM
-    // implementations, then remove this and let the loader take care of it in flowrlib
-    // Load standard library functions from flowstdlib
-    // For now we are passing in a fake ilt.json file so the basepath for finding wasm files works.
-    loader.add_lib(&provider, flowstdlib::ilt::get_ilt(),
-                   &format!("{}flowstdlib/ilt.json", &cwd.to_string()))
+    // Load this runtime's library of native (statically linked) implementations
+    loader.add_lib(&provider, ::manifest::get_manifest(), "runtime")
         .chain_err(|| "Could not add library to loader")?;
 
     let debugger = matches.is_present("debugger");
@@ -100,8 +90,8 @@ fn run() -> Result<()> {
     let mut coordinator = Coordinator::new(num_threads(&matches, debugger));
 
     // Load the flow to run from the manifest
-    let manifest = loader.load_manifest(&provider, &url.to_string())
-        .chain_err(|| format!("Could not load the flow from manifest: '{}'", url))?;
+    let manifest = loader.load_manifest(&provider, &flow_manifest_url.to_string())
+        .chain_err(|| format!("Could not load the flow from manifest: '{}'", flow_manifest_url))?;
 
     // run the flow
     let num_parallel_jobs = num_parallel_jobs(&matches, debugger);

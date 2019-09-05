@@ -1,0 +1,7 @@
+function = "ToString"
+implementation = "to_string.rs"
+
+[[input]]
+
+[[output]]
+type = "String"

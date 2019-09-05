@@ -50,7 +50,7 @@ debug-assertions = true
 codegen-units = 1
 
 [workspace]
-members = ["flowc", "flowr", "provider", "flowstdlib", "flowrlib", "flowclib", "flow_impl", "nodeprovider",
+members = ["flowc", "flowr", "provider", "flowrlib", "flowclib", "flow_impl", "nodeprovider",
             "flow_impl/flow_impl_derive"]
 default-members = ["flowc"]
 # These libraries are excluded as they must compile for the wasm target

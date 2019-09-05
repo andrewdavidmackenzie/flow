@@ -2,6 +2,7 @@ use serde_json::Value;
 
 use flow_impl::implementation::{Implementation, RUN_AGAIN, RunAgain};
 
+#[derive(Debug)]
 pub struct Stdout;
 
 impl Implementation for Stdout {

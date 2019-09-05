@@ -1,0 +1,11 @@
+function = "Tap"
+implementation = "tap.rs"
+
+[[input]]
+name = "data"
+
+[[input]]
+name = "control"
+type = "Bool"
+
+[[output]]

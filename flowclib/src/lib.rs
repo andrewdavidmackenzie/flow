@@ -1,3 +1,9 @@
+extern crate erased_serde;
+#[macro_use]
+extern crate error_chain;
+extern crate flowrlib;
+#[macro_use]
+extern crate log;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -6,19 +12,13 @@ extern crate serde_derive;
 extern crate serde_json;
 #[cfg(not(test))]
 extern crate serde_json;
-extern crate erased_serde;
-extern crate toml;
-#[macro_use]
-extern crate log;
-extern crate strfmt;
-#[cfg(test)]
-extern crate url;
 extern crate serde_yaml;
-extern crate flowrlib;
 #[macro_use]
 extern crate shrinkwraprs;
-#[macro_use]
-extern crate error_chain;
+extern crate strfmt;
+extern crate toml;
+#[cfg(test)]
+extern crate url;
 
 pub mod deserializers;
 pub mod dumper;
@@ -42,6 +42,6 @@ error_chain! {
     }
 
     foreign_links {
-        Io(::std::io::Error);
+        Io(std::io::Error);
     }
 }

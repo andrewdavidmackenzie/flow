@@ -6,23 +6,23 @@ flow = "first flow"
 # Both are initialized with the integer 1
 [[process]]
 alias = "HEAD-1"
-source = "lib://flowstdlib/data/buffer.toml"
+source = "lib://flowstdlib/data/buffer"
 input.default = {once = 1}
 
 [[process]]
 alias = "HEAD"
-source = "lib://flowstdlib/data/buffer.toml"
+source = "lib://flowstdlib/data/buffer"
 input.default = {once = 1}
 
 # The function "add" from the standard library is used, but aliased to be able to reference it using "sum"
 [[process]]
 alias = "sum"
-source = "lib://flowstdlib/math/add.toml"
+source = "lib://flowstdlib/math/add"
 
 # The function "stdout" from the standard library is used, but aliased to be able to reference it using "print"
 [[process]]
 alias = "print"
-source = "lib://runtime/stdio/stdout.toml"
+source = "lib://runtime/stdio/stdout"
 
 # All the required connections between functions and values to create the flow follow, as per diagram
 [[connection]]

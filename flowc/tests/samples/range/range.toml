@@ -2,7 +2,7 @@ flow = "range"
 
 [[process]]
 alias = "args"
-source = "lib://runtime/args/get.toml"
+source = "lib://runtime/args/get"
 
 [[connection]]
 from = "process/args/1"
@@ -10,7 +10,7 @@ to = "process/to_number"
 
 [[process]]
 alias = "to_number"
-source = "lib://flowstdlib/fmt/to_number.toml"
+source = "lib://flowstdlib/fmt/to_number"
 
 [[connection]]
 from = "process/to_number"
@@ -18,12 +18,12 @@ to = "process/sequence/end"
 
 [[process]]
 alias = "sequence"
-source = "lib://flowstdlib/math/sequence.toml"
+source = "lib://flowstdlib/math/sequence"
 input.start = {once = 1}
 
 [[process]]
 alias = "to_string"
-source = "lib://flowstdlib/fmt/to_string.toml"
+source = "lib://flowstdlib/fmt/to_string"
 
 [[connection]]
 from = "process/sequence/sequence"
@@ -32,7 +32,7 @@ to = "process/to_string"
 # Output a string to show we're done when the series ends
 [[process]]
 alias = "tap"
-source = "lib://flowstdlib/control/tap.toml"
+source = "lib://flowstdlib/control/tap"
 input.data = {constant = "Range done"}
 
 [[connection]]
@@ -46,7 +46,7 @@ to = "process/print"
 # Output
 [[process]]
 alias = "print"
-source = "lib://runtime/stdio/stdout.toml"
+source = "lib://runtime/stdio/stdout"
 
 [[connection]]
 from = "process/to_string"

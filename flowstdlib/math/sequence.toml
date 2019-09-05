@@ -1,0 +1,72 @@
+flow = "sequence"
+
+# IO declarations
+[[input]]
+name = "start"
+type = "Number"
+
+[[input]]
+name = "end"
+type = "Number"
+
+[[output]]
+name = "sequence"
+type = "Number"
+
+[[output]]
+name = "max"
+type = "Number"
+
+[[output]]
+name = "done"
+type = "Bool"
+
+[[connection]]
+from = "input/start"
+to = "process/pilte/in"
+
+[[process]]
+alias = "limit-store"
+source = "lib://flowstdlib/data/buffer"
+
+[[connection]]
+from = "process/limit-store"
+to = "process/limit-store"
+
+[[connection]]
+from = "input/end"
+to = "process/limit-store"
+
+# pass if less than or equal, add one and loop
+[[process]]
+alias = "pilte"
+source = "lib://flowstdlib/control/pass_if_lte"
+
+[[process]]
+alias = "add"
+source = "lib://flowstdlib/math/add"
+input.i2 = {constant = 1}
+
+[[connection]]
+from = "process/limit-store"
+to = "process/pilte/max"
+
+[[connection]]
+from = "process/pilte/passed"
+to = "output/sequence"
+
+[[connection]]
+from = "process/pilte/passed"
+to = "process/add/i1"
+
+[[connection]]
+from = "process/add"
+to = "process/pilte/in"
+
+[[connection]]
+from = "process/pilte/blocked"
+to = "output/done"
+
+[[connection]]
+from = "process/limit-store"
+to = "output/max"

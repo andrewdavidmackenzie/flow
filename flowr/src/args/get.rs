@@ -6,6 +6,7 @@ use flow_impl::implementation::{DONT_RUN_AGAIN, Implementation, RunAgain};
 
 use super::super::FLOW_ARGS_NAME;
 
+#[derive(Debug)]
 pub struct Get;
 
 impl Implementation for Get {

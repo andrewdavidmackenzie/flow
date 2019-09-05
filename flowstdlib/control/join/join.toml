@@ -1,0 +1,10 @@
+function = "Join"
+implementation = "join.rs"
+
+[[input]]
+name = "data"
+
+[[input]]
+name = "control"
+
+[[output]]

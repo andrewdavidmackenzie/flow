@@ -32,19 +32,13 @@ config:
 config-linux:
 	brew install fakeroot
 
-#################### Docs ####################
-doc: dot-graphs guide
-	@echo ""
-	@echo "------- Started building docs with cargo -------------"
-	cargo doc
-	@echo "------- Ended   building docs with cargo -------------"
-
-################### Guide ####################
-guide: copy-md-files
+################### Doc ####################
+doc: copy-md-files
 	@echo ""
 	@echo "------- Started building book from Markdown into 'guide/book/html' -------------"
 	@mdbook build guide
 	@echo "------- Done    building book from Markdown into 'guide/book/html' -------------"
+	@cargo doc
 
 ## Copy .md files (with same directory sturtcure) from samples and lib directories under guide 'src' directory
 copy-md-files:
@@ -75,20 +69,26 @@ copy-md-files:
 build: workspace ide_build ide_native_build
 	@echo "------- Done 'build:' -------------"
 
-workspace:
+flowcompiler:
+	@echo ""
+	@echo "------- Starting build of 'flowc'                  -------------"
+	@cargo build -p flowc
+	@echo "------- Done     build of 'flowc'                  -------------"
+
+workspace: flowstandardlib
 	@echo ""
 	@echo "------- Starting build of 'flow' workspace project -------------"
 	@cargo build --all
 	@echo "------- Done     build of 'flow' workspace project -------------"
+
+flowr:
+	@cargo build -p flowr
 
 ide_build:
 	@cd ide && make build
 
 ide_native_build:
 	@cd ide-native && make build
-
-################## Travis CI ##################
-travis: clean test guide
 
 #################### Tests ####################
 test: test-workspace test-ide samples
@@ -98,12 +98,19 @@ test: test-workspace test-ide samples
 
 test-workspace:
 	@echo ""
-	@echo "------- Starting build of 'flow' workspace project -------------"
+	@echo "------- Starting test of workspace project -------------"
 	@cargo test $(features) --all
-	@echo "------- Done     build of 'flow' workspace project -------------"
+	@echo "------- Done     test of workspace project -------------"
 
 test-ide:
 	@cd ide && make test
+
+#################### LIBRARIES ####################
+flowstandardlib: flowcompiler
+	@echo ""
+	@echo "------- Starting build of 'flowstdlib' -------------"
+	@cargo run -p flowc -- -l info --lib flowstdlib
+	@echo "------- Done     build of 'flowstdlib' -------------"
 
 #################### Raspberry Pi ####################
 pi:
@@ -122,7 +129,7 @@ copy:
 # make paths - to compile all samples found in there. Avoid files using the filter.
 sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
-samples: workspace clean-samples $(sample_flows)  # This target must be below sample-flows in the Makefile
+samples: workspace flowr clean-samples $(sample_flows)  # This target must be below sample-flows in the Makefile
 	@echo ""
 	@echo "All local samples executed and output as expected"
 	@echo "------- Finished 'samples:' ----"
@@ -156,13 +163,17 @@ package-ide: ide_build
 	@cd ide && make package
 
 ################# Clean ################
-clean: clean-samples clean-dumps clean-guide
+clean: clean-flowstdlib clean-samples clean-dumps clean-guide
 	@cargo clean
 	@cd ide && make clean
 	@cd ide-native && make clean
 
 clean-samples:
 	@cd samples; make clean
+
+clean-flowstdlib:
+	@find flowstdlib -name \*.wasm -type f -exec rm -rf {} + ; true
+	@rm -f flowstdlib/manifest.json
 
 clean-dumps:
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true

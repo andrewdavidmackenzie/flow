@@ -2,7 +2,7 @@ flow = "parent"
 
 [[process]]
 alias = "args"
-source = "lib://runtime/args/get.toml"
+source = "lib://runtime/args/get"
 
 [[process]]
 alias = "child"
@@ -14,7 +14,7 @@ to = "process/child/message"
 
 [[process]]
 alias = "print"
-source = "lib://runtime/stdio/stdout.toml"
+source = "lib://runtime/stdio/stdout"
 
 [[connection]]
 from = "process/child/message"

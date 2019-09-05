@@ -1,9 +1,10 @@
 use std::env;
 
-use flowrlib::errors::*;
-use flowrlib::provider::Provider;
 use simpath::Simpath;
 use url::Url;
+
+use flowrlib::errors::*;
+use flowrlib::provider::Provider;
 
 pub struct LibProvider;
 
@@ -27,20 +28,23 @@ pub struct LibProvider;
 */
 impl Provider for LibProvider {
     /*
-        Take the "lib:" Url (such as "lib://flowstdlib/stdio/stdout.toml") and extract the library
-         name ("flowstdlib")
+        Take the "lib:" Url (such as "lib://runtime/stdio/stdout") and extract the library
+         name ("runtime")
 
         Using the "FLOW_LIB_PATH" environment variable attempt to locate the library's root folder
         in the file system.
 
-        If located, then construct a PathBuf to refer to the specific file ("stdio/stdout.toml")
+        If located, then construct a PathBuf to refer to the definition file:
+            - either "stdio/stdout.toml" or
+            - "stdio/stdout/stdout.toml"
+
         within the library (using knowledge of library file structure).
 
         If the file exists, then create a "file:" Url that points to the file, for the file provider
         to use later to read the content.
 
         Also, construct a string that is a reference to that module in the library, such as:
-            "flowstdlib/stdio/stdout" and return that also.
+            "runtime/stdio/stdout" and return that also.
     */
     fn resolve(&self, url_str: &str, default_filename: &str) -> Result<(String, Option<String>)> {
         let url = Url::parse(url_str)
@@ -57,27 +61,55 @@ impl Provider for LibProvider {
         let flow_lib_search_path = Simpath::new("FLOW_LIB_PATH");
         let mut lib_path = flow_lib_search_path.find(lib_name)
             .chain_err(|| format!("Could not find lib named '{}' in FLOW_LIB_PATH", lib_name))?;
-        lib_path.push("src");
-        lib_path.push(&url.path()[1..]); // Strip off leading '/' to concatenate to path
+        lib_path.push(&url.path()[1..]);
 
         // Drop the file extension off the lib definition file path to get a lib reference
-        let module = url.join("./").
-            unwrap().join(lib_path.file_stem().unwrap().to_str().unwrap());
+        let module = url.join("./").unwrap().join(lib_path.file_stem().unwrap().to_str().unwrap());
         let lib_ref = format!("{}{}", lib_name, module.unwrap().path());
 
+        // See if the directory with that name exists
         if lib_path.exists() {
-            if lib_path.is_dir() {
-                debug!("'{:?}' is a directory, so looking for default file name '{}'", lib_path, default_filename);
-                lib_path.push(default_filename);
-                if !lib_path.exists() {
-                    bail!("Could not locate url '{}' in libraries in 'FLOW_LIB_PATH'", url)
-                }
+            if !lib_path.is_dir() {
+                // It's a file and it exists, so just return the path
+                let lib_path_url = Url::from_file_path(&lib_path)
+                    .map_err(|_| format!("Could not create Url from '{:?}'", &lib_path))?;
+                return Ok((lib_path_url.to_string(), Some(lib_ref.to_string())));
             }
-            let lib_path_url = Url::from_file_path(&lib_path)
-                .map_err(|_| format!("Could not create Url from '{:?}'", &lib_path))?;
-            Ok((lib_path_url.to_string(), Some(lib_ref.to_string())))
+
+            debug!("'{:?}' is a directory, so looking for default file name '{}'", lib_path, default_filename);
+            let mut default_path = lib_path.clone();
+            default_path.push(default_filename);
+            if default_path.exists() {
+                let default_path_url = Url::from_file_path(&default_path)
+                    .map_err(|_| format!("Could not create Url from '{:?}'", &default_path))?;
+                return Ok((default_path_url.to_string(), Some(lib_ref.to_string())));
+            }
+
+            // This could be for a provided implementation, so look for a file named the same
+            // as the directory, with a toml extension
+            let filename = lib_path.file_name().unwrap().to_str().unwrap();
+            let mut filename_path = lib_path.clone();
+            filename_path.push(filename);
+            filename_path.set_extension("toml");
+
+            if filename_path.exists() {
+                let file_path_url = Url::from_file_path(&filename_path)
+                    .map_err(|_| format!("Could not create Url from '{:?}'", &filename_path))?;
+                return Ok((file_path_url.to_string(), Some(lib_ref.to_string())));
+            }
+            bail!("Found library folder '{}' in 'FLOW_LIB_PATH', but could not locate default file '{}' or provided implementation file '{}' within it",
+            lib_path.display(), default_path.display(), filename_path.display())
         } else {
-            bail!("Could not locate url '{}' in libraries in 'FLOW_LIB_PATH'", url)
+            // See if the file, with a .toml extension exists
+            let mut implementation_path = lib_path.clone();
+            implementation_path.set_extension("toml");
+            if implementation_path.exists() {
+                let lib_path_url = Url::from_file_path(&implementation_path)
+                    .map_err(|_| format!("Could not create Url from '{:?}'", &implementation_path))?;
+                return Ok((lib_path_url.to_string(), Some(lib_ref.to_string())));
+            }
+            bail!("Could not locate a folder called '{}' or an implementation file called '{}' in 'FLOW_LIB_PATH'",
+            lib_path.display(), implementation_path.display())
         }
     }
 
@@ -103,10 +135,10 @@ mod test {
         root.pop();
         let root_str: String = root.as_os_str().to_str().unwrap().to_string();
         env::set_var("FLOW_LIB_PATH", &root_str);
-        let lib_url = "lib://flowstdlib/control/tap.toml";
+        let lib_url = "lib://flowstdlib/control/tap";
         match provider.resolve(&lib_url, "".into()) {
             Ok((url, lib_ref)) => {
-                assert_eq!(url, format!("file://{}/flowstdlib/src/control/tap.toml", root_str));
+                assert_eq!(url, format!("file://{}/flowstdlib/control/tap", root_str));
                 assert_eq!(lib_ref, Some("flowstdlib/control/tap".to_string()));
             }
             Err(e) => assert!(false, e.to_string())

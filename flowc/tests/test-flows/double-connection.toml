@@ -2,11 +2,11 @@ flow = "double-connection"
 
 [[process]]
 alias = "args"
-source = "lib://runtime/args/get.toml"
+source = "lib://runtime/args/get"
 
 [[process]]
 alias = "print"
-source = "lib://runtime/stdio/stdout.toml"
+source = "lib://runtime/stdio/stdout"
 
 [[connection]]
 from = "process/args/1"

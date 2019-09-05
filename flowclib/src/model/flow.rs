@@ -4,6 +4,7 @@ use std::mem::replace;
 use flowrlib::input::InputInitializer;
 
 use crate::compiler::loader::Validate;
+use crate::errors::*;
 use crate::model::connection::Connection;
 use crate::model::connection::Direction;
 use crate::model::connection::Direction::FROM;
@@ -20,7 +21,6 @@ use crate::model::route::HasRoute;
 use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
-use crate::errors::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -36,6 +36,8 @@ pub struct Flow {
     #[serde(rename = "connection")]
     pub connections: Option<Vec<Connection>>,
 
+    #[serde(default = "Flow::default_description")]
+    pub description: String,
     #[serde(default = "Flow::default_version")]
     pub version: String,
     #[serde(default = "Flow::default_author")]
@@ -133,6 +135,7 @@ impl Default for Flow {
             outputs: None,
             connections: None,
             lib_references: vec!(),
+            description: Flow::default_description(),
             version: Flow::default_version(),
             author_name: Flow::default_author(),
             author_email: Flow::default_email(),
@@ -167,6 +170,10 @@ impl SetRoute for Flow {
 impl Flow {
     fn default_url() -> String {
         "file:///".to_string()
+    }
+
+    pub fn default_description() -> String {
+        "".into()
     }
 
     pub fn default_version() -> String {

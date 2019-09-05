@@ -3,7 +3,7 @@ flow = "flow1"
 # TODO this could be removed when we are able to initialize an output with a value
 [[process]]
 alias = "message"
-source = "lib://flowstdlib/data/buffer.toml"
+source = "lib://flowstdlib/data/buffer"
 input.default = {once = "Hello World!"}
 
 [[output]]

@@ -2,7 +2,7 @@ flow = "double inputs"
 
 [[process]]
 alias = "args"
-source = "lib://runtime/args/get.toml"
+source = "lib://runtime/args/get"
 
 [[connection]]
 from = "process/args/1"
@@ -14,7 +14,7 @@ to = "process/to_number"
 
 [[process]]
 alias = "to_number"
-source = "lib://flowstdlib/fmt/to_number.toml"
+source = "lib://flowstdlib/fmt/to_number"
 
 [[connection]]
 from = "process/to_number"
@@ -22,7 +22,7 @@ to = "process/to_string"
 
 [[process]]
 alias = "to_string"
-source = "lib://flowstdlib/fmt/to_string.toml"
+source = "lib://flowstdlib/fmt/to_string"
 
 [[connection]]
 from = "process/to_string"
@@ -30,4 +30,4 @@ to = "process/print"
 
 [[process]]
 alias = "print"
-source = "lib://runtime/stdio/stdout.toml"
+source = "lib://runtime/stdio/stdout"

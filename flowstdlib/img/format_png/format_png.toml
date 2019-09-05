@@ -1,0 +1,12 @@
+function = "FormatPNG"
+implementation = "format_png.rs"
+
+[[input]]
+name = "bytes"
+
+[[input]]
+name = "bounds"
+type = "Json"
+
+[[output]]
+type = "Array"

@@ -1,6 +1,0 @@
-function = "ToString"
-
-[[input]]
-
-[[output]]
-type = "String"

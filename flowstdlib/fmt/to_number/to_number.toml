@@ -1,0 +1,8 @@
+function = "ToNumber"
+implementation = "to_number.rs"
+
+[[input]]
+type = "String"
+
+[[output]]
+type = "Number"

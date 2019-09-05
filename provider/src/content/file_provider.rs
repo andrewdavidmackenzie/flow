@@ -5,10 +5,10 @@ use std::io::ErrorKind;
 use std::io::prelude::*;
 use std::path::PathBuf;
 
-use flowrlib::errors::*;
-use flowrlib::provider::Provider;
 use url::Url;
 
+use flowrlib::errors::*;
+use flowrlib::provider::Provider;
 use glob::glob;
 
 pub struct FileProvider;
@@ -22,8 +22,8 @@ impl Provider for FileProvider {
             .chain_err(|| format!("Error getting file metadata for path: '{}'", path.display()))? ;
 
         if md.is_dir() {
-            info!("'{}' is a directory, so attempting to find context file in it",
-                  path.display());
+            info!("'{}' is a directory, so attempting to find default file named '{}' in it",
+                  path.display(), default_filename);
             let file = FileProvider::find_default_file(&mut path, default_filename).
                 chain_err(|| format!("Could not find default file called '{}'", default_filename))?;
             let resolved_url = Url::from_file_path(&file)

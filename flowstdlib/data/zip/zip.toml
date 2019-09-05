@@ -1,0 +1,14 @@
+function = "Zip"
+implementation = "zip.rs"
+
+[[input]]
+name = "left"
+type = "Array/Json"
+
+[[input]]
+name = "right"
+type = "Array/Json"
+
+[[output]]
+name = "tuples"
+type = "Array/Json"

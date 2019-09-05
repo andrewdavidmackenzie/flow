@@ -2,5 +2,5 @@ flow='hello world'
 
 [[process]]
 alias = "print"
-source = "lib://runtime/stdio/stdout.toml"
+source = "lib://runtime/stdio/stdout"
 input.default = {once = "Hello World!"}

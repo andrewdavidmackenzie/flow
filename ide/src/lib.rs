@@ -3,7 +3,6 @@ extern crate error_chain;
 extern crate flow_impl;
 extern crate flowclib;
 extern crate flowrlib;
-extern crate flowstdlib;
 #[macro_use]
 extern crate log;
 extern crate nodeprovider;
@@ -30,7 +29,7 @@ use wasm_logger;
 use web_sys::Document;
 use web_sys::HtmlButtonElement;
 
-use crate::runtime::ilt;
+use crate::runtime::manifest;
 
 // We'll put our errors in an `errors` module, and other modules in
 // this crate will `use errors::*;` to get access to everything
@@ -60,9 +59,6 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 fn info(document: &Document) {
     let flowide_el = document.get_element_by_id("flowide").expect("could not find 'flowide' element");
     flowide_el.set_inner_html(&format!("flowide: version = {}", env!("CARGO_PKG_VERSION")));
-
-    let flowstdlib_el = document.get_element_by_id("flowstdlib").expect("could not find 'flowstdlib' element");
-    flowstdlib_el.set_inner_html(&format!("flowstdlib: version = {}", flowstdlib::info::version()));
 
     let flowrlib_el = document.get_element_by_id("flowrlib").expect("could not find 'flowrlib' element");
     flowrlib_el.set_inner_html(&format!("flowrlib: version = {}", flowrlib::info::version()));
@@ -118,20 +114,13 @@ pub fn load_manifest(provider: &dyn Provider, url: &str) -> Result<Manifest> {
         .chain_err(|| "Could not load the manifest")?;
 
     // Load this runtime's native implementations
-    loader.add_lib(provider, ilt::get_ilt(), url)
+    loader.add_lib(provider, manifest::get_manifest(), url)
         .chain_err(|| "Could not add library to loader")?;
-
-    info!("adding flowstdlib");
-    // TODO - when loader can load a library from a reference in the manifest via it's WASM
-    loader.add_lib(provider, flowstdlib::ilt::get_ilt(),
-                   &format!("{}flowstdlib/ilt.json", url))
-        .chain_err(|| "Could not add library to loader")?; // TODO fix this URL
 
     // This doesn't do anything currently - leaving here for the future
     // as when this loads libraries from manifest, previous manual adding of
     // libs will not be needed
-    Loader::load_libraries(provider, &manifest)
-        .chain_err(|| "Could not load libraries")?;
+    loader.load_libraries(provider, &manifest).chain_err(|| "Could not load libraries")?;
 
     info!("resolving implementations");
     // Find the implementations for all functions in this flow

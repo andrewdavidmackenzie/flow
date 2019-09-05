@@ -13,8 +13,7 @@ use url::Url;
 
 use flow_impl::implementation::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use flowrlib::function::Function;
-use flowrlib::implementation_table::ImplementationLocator::Native;
-use flowrlib::implementation_table::ImplementationLocatorTable;
+use flowrlib::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowrlib::loader::Loader;
 use flowrlib::manifest::{Manifest, MetaData};
 use provider::content::provider::MetaProvider;
@@ -53,7 +52,8 @@ fn cwd_as_url() -> Result<Url, String> {
 
 fn create_manifest(functions: Vec<Function>) -> Manifest {
     let metadata = MetaData {
-        alias: "test manifest".into(),
+        name: "test manifest".into(),
+        description: "test manifest".into(),
         version: "0.0".into(),
         author_name: "me".into(),
         author_email: "me@a.com".into(),
@@ -68,6 +68,7 @@ fn create_manifest(functions: Vec<Function>) -> Manifest {
     manifest
 }
 
+#[derive(Debug)]
 struct Fake;
 
 impl Implementation for Fake {
@@ -88,17 +89,24 @@ impl Implementation for Fake {
     }
 }
 
-pub fn get_ilt() -> ImplementationLocatorTable {
-    let mut ilt = ImplementationLocatorTable::new();
+pub fn get_manifest() -> LibraryManifest {
+    let metadata = MetaData {
+        name: "".to_string(),
+        description: "".into(),
+        version: "0.1.0".into(),
+        author_name: "".into(),
+        author_email: "".into(),
+    };
+    let mut manifest = LibraryManifest::new(metadata);
 
-    ilt.locators.insert("lib://runtime/args/get/Get".to_string(), Native(Arc::new(Fake{})));
-    ilt.locators.insert("lib://runtime/file/file_write/FileWrite".to_string(), Native(Arc::new(Fake{})));
-    ilt.locators.insert("lib://runtime/stdio/readline/Readline".to_string(), Native(Arc::new(Fake{})));
-    ilt.locators.insert("lib://runtime/stdio/stdin/Stdin".to_string(), Native(Arc::new(Fake{})));
-    ilt.locators.insert("lib://runtime/stdio/stdout/Stdout".to_string(), Native(Arc::new(Fake{})));
-    ilt.locators.insert("lib://runtime/stdio/stderr/Stderr".to_string(), Native(Arc::new(Fake{})));
+    manifest.locators.insert("lib://runtime/args/get/Get".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://runtime/file/file_write/FileWrite".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://runtime/stdio/readline/Readline".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://runtime/stdio/stdin/Stdin".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://runtime/stdio/stdout/Stdout".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://runtime/stdio/stderr/Stderr".to_string(), Native(Arc::new(Fake {})));
 
-    ilt
+    manifest
 }
 
 #[test]
@@ -117,7 +125,7 @@ fn resolve_lib_implementation_test() {
     let manifest_url = url_from_rel_path("manifest.json");
 
     // Load library functions provided
-    loader.add_lib(&provider, get_ilt(), &cwd_as_url().unwrap().to_string()).unwrap();
+    loader.add_lib(&provider, get_manifest(), &cwd_as_url().unwrap().to_string()).unwrap();
 
     loader.resolve_implementations(&mut manifest, &provider, &manifest_url).unwrap();
 }
@@ -138,7 +146,7 @@ fn unresolved_lib_functions_test() {
     let manifest_url = url_from_rel_path("manifest.json");
 
     // Load library functions provided
-    loader.add_lib(&provider, get_ilt(), &cwd_as_url().unwrap().to_string()).unwrap();
+    loader.add_lib(&provider, get_manifest(), &cwd_as_url().unwrap().to_string()).unwrap();
 
     assert!(loader.resolve_implementations(&mut manifest, &provider, &manifest_url).is_err());
 }

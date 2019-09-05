@@ -3,7 +3,7 @@ flow = "mandlebrot"
 # Args
 [[process]]
 alias = "args"
-source = "lib://runtime/args/get.toml"
+source = "lib://runtime/args/get"
 
 
 # Bounds
@@ -13,7 +13,7 @@ source = "src/parse_pair/parse_pair.toml"
 
 [[process]]
 alias = "bounds_separator"
-source = "lib://flowstdlib/data/buffer.toml"
+source = "lib://flowstdlib/data/buffer/buffer"
 input.default = {constant = "x"}
 
 [[connection]]
@@ -29,7 +29,7 @@ to = "process/parse_bounds/separator"
 # Points Separator
 [[process]]
 alias = "point_separator"
-source = "lib://flowstdlib/data/buffer.toml"
+source = "lib://flowstdlib/data/buffer/buffer"
 input.default = {constant = ","}
 
 # Upper Left Coordinate
@@ -83,7 +83,7 @@ to = "process/render/lower_right"
 # Format Bitmap
 #[[process]]
 #alias = "format_bitmap"
-#source = "lib://flowstdlib/img/format_png.toml"
+#source = "lib://flowstdlib/img/format_png"
 
 #[[connection]]
 #from = "process/render/bitmap_bounds"
@@ -97,7 +97,7 @@ to = "process/render/lower_right"
 # Write Bitmap to a file
 #[[process]]
 #alias = "write_file"
-#source = "lib://runtime/file/file_write.toml"
+#source = "lib://runtime/file/file_write"
 
 #[[connection]]
 #from = "process/args/0"
