@@ -109,7 +109,7 @@ test-ide:
 flowstandardlib: flowcompiler
 	@echo ""
 	@echo "------- Starting build of 'flowstdlib' -------------"
-	@cargo run -p flowc -- --lib flowstdlib
+	@cargo run -p flowc -- -l info --lib flowstdlib
 	@echo "------- Done     build of 'flowstdlib' -------------"
 
 #################### Raspberry Pi ####################
