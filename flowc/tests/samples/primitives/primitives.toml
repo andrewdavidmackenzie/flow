@@ -7,20 +7,20 @@ input.i1 = {once = 1}
 input.i2 = {once = 1}
 
 [[process]]
-alias = "add_again"
-source = "lib://flowstdlib/math/add"
-input.i2 = {once = 1}
+alias = "divide"
+source = "lib://flowstdlib/math/divide"
+input.divisor = {once = 2}
 
 [[connection]]
 from = "process/sum"
-to = "process/add_again/i1"
+to = "process/divide/dividend"
 
 [[process]]
 alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string"
 
 [[connection]]
-from = "process/add_again"
+from = "process/divide"
 to = "process/to_string"
 
 [[process]]
@@ -31,14 +31,14 @@ input.control = {once = false}
 [[process]]
 alias = "compare"
 source = "lib://flowstdlib/control/compare"
-input.right = {once = 2}
+input.right = {once = 1}
 
 [[connection]]
-from = "process/add_again"
+from = "process/divide"
 to = "process/tap/data"
 
 [[connection]]
-from = "process/add_again"
+from = "process/divide"
 to = "process/compare/left"
 
 [[connection]]
