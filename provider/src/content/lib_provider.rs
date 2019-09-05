@@ -70,7 +70,7 @@ impl Provider for LibProvider {
         // See if the directory with that name exists
         if lib_path.exists() {
             if !lib_path.is_dir() {
-                // It's a file so just return the path
+                // It's a file and it exists, so just return the path
                 let lib_path_url = Url::from_file_path(&lib_path)
                     .map_err(|_| format!("Could not create Url from '{:?}'", &lib_path))?;
                 return Ok((lib_path_url.to_string(), Some(lib_ref.to_string())));
@@ -97,16 +97,19 @@ impl Provider for LibProvider {
                     .map_err(|_| format!("Could not create Url from '{:?}'", &filename_path))?;
                 return Ok((file_path_url.to_string(), Some(lib_ref.to_string())));
             }
-            bail!("Could not locate url '{}' in libraries in 'FLOW_LIB_PATH'", url)
+            bail!("Found library folder '{}' in 'FLOW_LIB_PATH', but could not locate default file '{}' or provided implementation file '{}' within it",
+            lib_path.display(), default_path.display(), filename_path.display())
         } else {
             // See if the file, with a .toml extension exists
-            lib_path.set_extension("toml");
-            if lib_path.exists() {
-                let lib_path_url = Url::from_file_path(&lib_path)
-                    .map_err(|_| format!("Could not create Url from '{:?}'", &lib_path))?;
+            let mut implementation_path = lib_path.clone();
+            implementation_path.set_extension("toml");
+            if implementation_path.exists() {
+                let lib_path_url = Url::from_file_path(&implementation_path)
+                    .map_err(|_| format!("Could not create Url from '{:?}'", &implementation_path))?;
                 return Ok((lib_path_url.to_string(), Some(lib_ref.to_string())));
             }
-            bail!("Could not locate url '{}' in libraries in 'FLOW_LIB_PATH'", url)
+            bail!("Could not locate a folder called '{}' or an implementation file called '{}' in 'FLOW_LIB_PATH'",
+            lib_path.display(), implementation_path.display())
         }
     }
 
