@@ -70,7 +70,10 @@ build: workspace ide_build ide_native_build
 	@echo "------- Done 'build:' -------------"
 
 flowcompiler:
+	@echo ""
+	@echo "------- Starting build of 'flowc'                  -------------"
 	@cargo build -p flowc
+	@echo "------- Done     build of 'flowc'                  -------------"
 
 workspace: flowstandardlib
 	@echo ""
@@ -95,9 +98,9 @@ test: test-workspace test-ide samples
 
 test-workspace:
 	@echo ""
-	@echo "------- Starting build of 'flow' workspace project -------------"
+	@echo "------- Starting test of workspace project -------------"
 	@cargo test $(features) --all
-	@echo "------- Done     build of 'flow' workspace project -------------"
+	@echo "------- Done     test of workspace project -------------"
 
 test-ide:
 	@cd ide && make test
