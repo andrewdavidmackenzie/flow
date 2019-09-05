@@ -1,17 +1,16 @@
 ## Compose Array (//flowstdlib/data/compose_array/compose_array.toml)
-Takes two arrays of values and produce an array of tuples of pairs of values from each input array.
+Take 'N' input values (width='N') from the input stream and gather them into a single output item, 
+which is an array of 'N' items long.
 
 #### Include using
 ```
 [[process]]
-alias = "zip"
-source = "lib://flowstdlib/data/zip.toml"
+alias = "compose_array"
+source = "lib://flowstdlib/data/compose_array/compose_array.toml"
 ```
 
-
 #### Input
-* left - the 'left' array
-* right - the 'right' array
+* type Number
 
 #### Outputs
-* tuples - the array of tuples of (left, right)
+* type Array of Number (Array/Number)
