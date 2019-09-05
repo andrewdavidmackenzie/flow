@@ -1,11 +1,13 @@
 flow = "primitives"
 
+# 1 plus 2 = 3
 [[process]]
 alias = "sum"
 source = "lib://flowstdlib/math/add"
-input.i1 = {once = 1}
+input.i1 = {once = 2}
 input.i2 = {once = 1}
 
+# 3 / 2 = 1.5
 [[process]]
 alias = "divide"
 source = "lib://flowstdlib/math/divide"
@@ -20,7 +22,7 @@ alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string"
 
 [[connection]]
-from = "process/divide"
+from = "process/divide/result"
 to = "process/to_string"
 
 [[process]]
@@ -28,17 +30,18 @@ alias = "tap"
 source = "lib://flowstdlib/control/tap"
 input.control = {once = false}
 
+#compare result (1.5) to 1
 [[process]]
 alias = "compare"
 source = "lib://flowstdlib/control/compare"
 input.right = {once = 1}
 
 [[connection]]
-from = "process/divide"
+from = "process/divide/result"
 to = "process/tap/data"
 
 [[connection]]
-from = "process/divide"
+from = "process/divide/result"
 to = "process/compare/left"
 
 [[connection]]
