@@ -63,7 +63,8 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool) -> R
                 .expect("Error creating new TempDir for compiling in")
                 .into_path();
 
-            run_cargo_build(&cargo_path, &build_dir)?;
+            run_cargo_build(&cargo_path, &build_dir, true)?;
+            run_cargo_build(&cargo_path, &build_dir, false)?;
 
             // copy compiled wasm output into place where flow's toml file expects it
             let mut wasm_source = build_dir.clone();
@@ -88,11 +89,14 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool) -> R
 /*
     Run the cargo build to compile wasm from function source
 */
-fn run_cargo_build(manifest_path: &PathBuf, target_dir: &PathBuf) -> Result<String> {
+fn run_cargo_build(manifest_path: &PathBuf, target_dir: &PathBuf, test: bool) -> Result<String> {
     info!("Building into temporary directory '{}'", target_dir.display());
 
     let command = "cargo";
-    let mut command_args = vec!("build", "--quiet", "--release", "--lib", "--target=wasm32-unknown-unknown");
+    let mut command_args = match test {
+        false => vec!("build", "--quiet", "--release", "--lib", "--target=wasm32-unknown-unknown"),
+        true => vec!("test", "--quiet", "--lib"),
+    };
     let manifest = format!("--manifest-path={}", &manifest_path.display());
     command_args.push(&manifest);
     let target = format!("--target-dir={}", &target_dir.display());
