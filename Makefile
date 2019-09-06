@@ -75,7 +75,7 @@ flowcompiler:
 	@cargo build -p flowc
 	@echo "------- Done     build of 'flowc'                  -------------"
 
-workspace: flowstandardlib
+workspace: flowstdlib/manifest.json
 	@echo ""
 	@echo "------- Starting build of 'flow' workspace project -------------"
 	@cargo build --all
@@ -106,7 +106,7 @@ test-ide:
 	@cd ide && make test
 
 #################### LIBRARIES ####################
-flowstandardlib: flowcompiler
+flowstdlib/manifest.json: flowcompiler
 	@echo ""
 	@echo "------- Starting build of 'flowstdlib' -------------"
 	@cargo run -p flowc -- -l info --lib flowstdlib
