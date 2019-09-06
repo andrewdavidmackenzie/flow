@@ -1,11 +1,11 @@
-## To Number (//flowstdlib/fmt/to_number.toml)
+## To Number (//flowstdlib/fmt/to_number)
 Convert a String to a number
 
 #### Include using
 ```
 [[process]]
 alias = "to_number"
-source = "lib://flowstdlib/fmt/to_number.toml"
+source = "lib://flowstdlib/fmt/to_number"
 ```
 
 #### Input

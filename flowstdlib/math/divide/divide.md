@@ -1,11 +1,11 @@
-## Divide (//flowstdlib/math/divide.toml)
+## Divide (//flowstdlib/math/divide)
 Divide one input by another, producing outputs for the dividend, divisor, result and the remainder
 
 #### Include using
 ```
 [[process]]
 alias = "divide"
-source = "lib://flowstdlib/math/divide.toml"
+source = "lib://flowstdlib/math/divide"
 ```
 
 #### Inputs

@@ -1,11 +1,11 @@
-## FormatBitmap (//flowstdlib/img/format_png.toml)
+## FormatBitmap (//flowstdlib/img/format_png)
 Format a series of bytes into a PNG image, for use in display or writing to a file
 
 #### Include using
 ```
 [[process]]
 alias = "format"
-source = "lib://flowstdlib/img/format_bitmap.toml"
+source = "lib://flowstdlib/img/format_png"
 ```
 
 #### Input

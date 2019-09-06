@@ -1,4 +1,4 @@
-## Reverse (//flowstdlib/fmt/reverse/reverse.toml)
+## Reverse (//flowstdlib/fmt/reverse/reverse)
 Revers a String
 
 #### Include using

@@ -1,11 +1,11 @@
-## Tap (//flowstdlib/control/tap.toml)
+## Tap (//flowstdlib/control/tap)
 Control the flow of data (flow or disapear it) based on a boolean control value.
 
 #### Include using
 ```
 [[process]]
 alias = "tap"
-source = "lib://flowstdlib/control/tap.toml"
+source = "lib://flowstdlib/control/tap"
 ```
 
 #### Inputs

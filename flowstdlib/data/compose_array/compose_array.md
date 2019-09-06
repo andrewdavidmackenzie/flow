@@ -1,4 +1,4 @@
-## Compose Array (//flowstdlib/data/compose_array/compose_array.toml)
+## Compose Array (//flowstdlib/data/compose_array/compose_array)
 Take 'N' input values (width='N') from the input stream and gather them into a single output item, 
 which is an array of 'N' items long.
 
@@ -6,7 +6,7 @@ which is an array of 'N' items long.
 ```
 [[process]]
 alias = "compose_array"
-source = "lib://flowstdlib/data/compose_array/compose_array.toml"
+source = "lib://flowstdlib/data/compose_array/compose_array"
 ```
 
 #### Input

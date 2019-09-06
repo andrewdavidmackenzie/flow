@@ -1,5 +1,12 @@
-## To Number (//flowstdlib/fmt/to_number.toml)
+## To Number (//flowstdlib/fmt/to_number)
 Convert an input type to a String
+
+#### Include using
+```
+[[process]]
+alias = "to_string"
+source = "lib://flowstdlib/fmt/to_string"
+```
 
 #### Input
 * The data to convert to a String. Current types supported are:

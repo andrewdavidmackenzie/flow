@@ -1,11 +1,11 @@
-## Tap (//flowstdlib/control/join.toml)
+## Tap (//flowstdlib/control/join)
 Control the flow of a piece of data by waiting for a second value to be available
 
 #### Include using
 ```
 [[process]]
 alias = "join"
-source = "lib://flowstdlib/control/join.toml"
+source = "lib://flowstdlib/control/join"
 ```
 
 #### Inputs
