@@ -106,7 +106,7 @@ fn run_cargo_build(manifest_path: &PathBuf, target_dir: &PathBuf, test: bool) ->
 
     let output = Command::new(&command).args(command_args)
         .stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
+        .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output().chain_err(|| "Error while attempting to spawn command to compile and run flow")?;
 
