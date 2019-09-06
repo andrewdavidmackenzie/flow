@@ -1,11 +1,15 @@
 extern crate core;
 extern crate flow_impl;
 extern crate flow_impl_derive;
+#[cfg(test)]
+#[macro_use]
+extern crate serde_json;
 
 use flow_impl::implementation::{Implementation, RUN_AGAIN, RunAgain};
 use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 use serde_json::Value::String as JsonString;
+
 
 #[derive(FlowImpl)]
 pub struct Buffer;

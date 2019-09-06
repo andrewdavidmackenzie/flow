@@ -63,5 +63,5 @@ installer-debian: package-debian
 	@echo "------- Created installer for Debian in ./installers/  -----------"
 
 clean:
-	cargo clean
-	rm -rf pkg target Cargo.lock .bin package-lock.json installers release-builds
+	@cargo clean
+	@rm -rf pkg target Cargo.lock .bin package-lock.json installers release-builds

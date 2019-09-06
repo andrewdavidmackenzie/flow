@@ -14,5 +14,5 @@ package:
 	@echo "--------- Finished packaging ide-native -----------"
 
 clean:
-	cargo clean
-	rm -rf pkg target Cargo.lock package-lock.json
+	@cargo clean
+	@rm -rf pkg target Cargo.lock package-lock.json
