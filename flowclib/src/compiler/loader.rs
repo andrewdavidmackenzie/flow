@@ -51,7 +51,7 @@ pub trait Validate {
 /// // A Provider must implement the `Provider` trait, with the methods to `resolve` a URL and to
 /// // `get` the contents for parsing.
 /// impl Provider for DummyProvider {
-///     fn resolve_url(&self, url: &str, default_filename: &str) -> Result<(String, Option<String>)> {
+///     fn resolve_url(&self, url: &str, default_filename: &str, _ext: &[&str]) -> Result<(String, Option<String>)> {
 ///        // Just fake the url resolution in this example
 ///        Ok((url.to_string(), None))
 ///     }

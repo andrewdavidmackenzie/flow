@@ -129,7 +129,7 @@ mod test {
         let lib_url = "lib://flowstdlib/control/tap";
         match provider.resolve_url(&lib_url, "".into(), &["toml"]) {
             Ok((url, lib_ref)) => {
-                assert_eq!(url, format!("file://{}/flowstdlib/control/tap", root_str));
+                assert_eq!(url, format!("file://{}/flowstdlib/control/tap/tap.toml", root_str));
                 assert_eq!(lib_ref, Some("flowstdlib/control/tap".to_string()));
             }
             Err(e) => assert!(false, e.to_string())

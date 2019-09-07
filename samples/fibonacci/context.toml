@@ -5,7 +5,7 @@ author_email = "andrew@mackenzie-serres.net"
 
 [[process]]
 alias = "fib"
-source="fib.toml"
+source="fib"
 
 [[process]]
 alias = "to_string"

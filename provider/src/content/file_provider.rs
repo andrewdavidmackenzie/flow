@@ -15,16 +15,29 @@ impl Provider for FileProvider {
         let url = Url::parse(url_str)
             .map_err(|_| format!("Could not convert '{}' to Url", url_str))?;
         let mut path = url.to_file_path().unwrap();
-        let md = fs::metadata(&path)
-            .map_err(|_| format!("Error getting file metadata for path: '{}'", path.display()))?;
+        let md_result = fs::metadata(&path)
+            .map_err(|_| format!("Error getting file metadata for path: '{}'", path.display()));
 
-        if md.is_dir() {
-            info!("'{}' is a directory, so attempting to find default file named '{}' in it",
-                  path.display(), default_filename);
-            let resolved_url = FileProvider::find_file(&mut path, default_filename, extensions)?;
-            Ok((resolved_url, None))
-        } else {
-            Ok((url.to_string(), None))
+        match md_result {
+            Ok(md) => {
+                if md.is_dir() {
+                    info!("'{}' is a directory, so attempting to find default file named '{}' in it",
+                          path.display(), default_filename);
+                    let file_found_url = FileProvider::find_file(&mut path, default_filename, extensions)?;
+                    Ok((file_found_url, None))
+                } else {
+                    if md.is_file() {
+                        return Ok((url.to_string(), None));
+                    } else {
+                        let file_found_url = FileProvider::file_by_extensions(&path, extensions)?;
+                        return Ok((file_found_url, None));
+                    }
+                }
+            }
+            _ => { // doesn't exist
+                let file_found_url = FileProvider::file_by_extensions(&path, extensions)?;
+                return Ok((file_found_url, None));
+            }
         }
     }
 
@@ -46,32 +59,42 @@ impl FileProvider {
         Passed a path to a directory, it searches for a file in the directory called 'default_filename'
         If found, it opens the file and returns its contents as a String in the result
     */
-    pub fn find_file(path: &PathBuf, default_filename: &str, extensions: &[&str]) -> Result<String> {
-        let mut file = path.clone();
+    pub fn find_file(dir: &PathBuf, default_filename: &str, extensions: &[&str]) -> Result<String> {
+        let mut file = dir.clone();
         file.push(default_filename);
 
-        for extension in extensions {
-            file.set_extension(extension);
-            let md = fs::metadata(&file)
-                .map_err(|_| format!("Could not get metadata for file '{}'", file.display()))?;
-            debug!("Looking for file '{}'", file.display());
-            if md.is_file() {
-                let file_path_as_url = Url::from_file_path(&file)
-                    .map_err(|_| format!("Could not create url from file path '{}'",
-                                         file.to_str().unwrap()))?;
+        Self::file_by_extensions(&file, extensions)
+    }
 
-                return Ok(file_path_as_url.to_string());
+    /*
+        Given a path to a filename, try to find an existing file with any of the allowed extensions
+    */
+    pub fn file_by_extensions(file: &PathBuf, extensions: &[&str]) -> Result<String> {
+        let mut file_with_extension = file.clone();
+
+        // for that file path, try with all the allowed file extensions
+        for extension in extensions {
+            file_with_extension.set_extension(extension);
+            debug!("Looking for file '{}'", file_with_extension.display());
+            if let Ok(md) = fs::metadata(&file_with_extension) {
+                if md.is_file() {
+                    let file_path_as_url = Url::from_file_path(&file_with_extension)
+                        .map_err(|_| format!("Could not create url from file path '{}'",
+                                             file_with_extension.to_str().unwrap()))?;
+
+                    return Ok(file_path_as_url.to_string());
+                }
             }
         }
 
-        bail!("No default file found with name '{}' Tried extensions '{:?}'",
-               default_filename,
-               extensions)
+        bail!("No file found at path '{}' with any of these extensions '{:?}'", file.display(), extensions)
     }
 }
 
 #[cfg(test)]
 mod test {
+    use std::ffi::OsStr;
+    use std::path::Path;
     use std::path::PathBuf;
 
     use flowrlib::provider::Provider;
@@ -80,12 +103,13 @@ mod test {
 
     #[test]
     fn get_default_sample() {
-        let mut path = PathBuf::from("../samples/hello-world");
+        let mut path = PathBuf::from("../samples/hello-world").canonicalize().unwrap();
         match FileProvider::find_file(&mut path, "context", &["toml"]) {
-            Ok(path) => {
-                assert_eq!("context.toml", path);
+            Ok(path_string) => {
+                let path = Path::new(&path_string);
+                assert_eq!(Some(OsStr::new("context.toml")), path.file_name());
             }
-            _ => assert!(false),
+            _ => assert!(false, "Could not find_file 'context.toml'"),
         }
     }
 

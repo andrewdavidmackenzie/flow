@@ -1,11 +1,12 @@
-use crate::model::flow::Flow;
 use std::fmt;
-use crate::generator::generate::GenerationTables;
 use std::fs::File;
 use std::io;
 use std::io::Write;
 use std::path::PathBuf;
+
 use crate::dumper::dump_dot;
+use crate::generator::generate::GenerationTables;
+use crate::model::flow::Flow;
 
 /// dump a flow's compiler tables that were constructed for use in code generation
 ///
@@ -25,11 +26,11 @@ use crate::dumper::dump_dot;
 /// struct DummyProvider {}
 ///
 /// impl Provider for DummyProvider {
-///     fn resolve(&self, url: &str, default_filename: &str) -> Result<(String, Option<String>)> {
+///     fn resolve_url(&self, url: &str, default_filename: &str, _ext: &[&str]) -> Result<(String, Option<String>)> {
 ///         Ok((url.to_string(), None))
 ///     }
 ///
-///     fn get(&self, url: &str) -> Result<Vec<u8>> {
+///     fn get_contents(&self, url: &str) -> Result<Vec<u8>> {
 ///         Ok("flow = \"dummy\"".as_bytes().to_owned())
 ///     }
 /// }
@@ -102,12 +103,12 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Resul
 /// struct DummyProvider {}
 ///
 /// impl Provider for DummyProvider {
-///     fn resolve(&self, url: &str, default_filename: &str) -> Result<(String, Option<String>)> {
+///     fn resolve_url(&self, url: &str, default_filename: &str, _ext: &[&str]) -> Result<(String, Option<String>)> {
 ///         Ok((url.to_string(), None))
 ///     }
 ///
 ///     // Return a flow definition for the content for the example
-///     fn get(&self, url: &str) -> Result<Vec<u8>> {
+///     fn get_contents(&self, url: &str) -> Result<Vec<u8>> {
 ///         Ok("flow = \"dummy\"".as_bytes().to_owned())
 ///     }
 /// }
