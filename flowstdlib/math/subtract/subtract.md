@@ -1,11 +1,11 @@
-## Subtract (//flowstdlib/math/subtract.toml)
+## Subtract (//flowstdlib/math/subtract)
 Subtract one input from another to produce a new output
 
 #### Include using
 ```
 [[process]]
 alias = "subtract"
-source = "lib://flowstdlib/math/subtract.toml"
+source = "lib://flowstdlib/math/subtract"
 ```
 
 #### Inputs

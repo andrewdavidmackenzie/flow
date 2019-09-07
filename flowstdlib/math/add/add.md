@@ -1,11 +1,11 @@
-## Add (//flowstdlib/math/add.toml)
+## Add (//flowstdlib/math/add)
 Add two inputs to produce a new output
 
 #### Include using
 ```
 [[process]]
 alias = "add"
-source = "lib://flowstdlib/math/add.toml"
+source = "lib://flowstdlib/math/add"
 ```
 
 #### Inputs

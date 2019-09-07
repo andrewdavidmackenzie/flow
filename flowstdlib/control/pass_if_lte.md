@@ -1,11 +1,11 @@
-## Pass if Less-Than-or-Equal (//flowstdlib/control/pass_if_lte.toml)
+## Pass if Less-Than-or-Equal (//flowstdlib/control/pass_if_lte)
 Let a piece of data pass, if it is less-than-or-equal to a control value
 
 #### Include using
 ```
 [[process]]
 alias = "pilte"
-source = "lib:://flowstdlib/control/pass_if_lte.toml"
+source = "lib:://flowstdlib/control/pass_if_lte"
 ```
 
 #### Inputs

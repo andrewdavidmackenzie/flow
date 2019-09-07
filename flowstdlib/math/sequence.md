@@ -1,11 +1,11 @@
-## Sequence (//flowstdlib/math/sequence.toml)
+## Sequence (//flowstdlib/math/sequence)
 Generate a sequence of numbers between a start and end number that is supplied
 
 #### Include using
 ```
 [[process]]
 alias = "sequence"
-source = "lib://flowstdlib/math/sequence.toml"
+source = "lib://flowstdlib/math/sequence"
 ```
 
 #### Inputs

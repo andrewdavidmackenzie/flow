@@ -1,4 +1,4 @@
-## Buffer (//flowstdlib/data/buffer.toml)
+## Buffer (//flowstdlib/data/buffer)
 Takes a value on it's input and sends the same value on it's output when it can
 run, effectively buffering it until the downstream processs can accept it.
 
@@ -6,7 +6,7 @@ run, effectively buffering it until the downstream processs can accept it.
 ```
 [[process]]
 alias = "buffer"
-source = "lib://flowstdlib/data/buffer.toml"
+source = "lib://flowstdlib/data/buffer"
 ```
 
 
