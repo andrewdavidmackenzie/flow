@@ -7,7 +7,7 @@ source = "lib://runtime/args/get"
 
 [[process]]
 alias = "generate-candidates"
-source = "generate_candidatess"
+source = "generate_candidates"
 
 [[connection]]
 from = "process/args/1"
