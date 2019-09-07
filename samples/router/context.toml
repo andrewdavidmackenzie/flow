@@ -10,7 +10,7 @@ to = "process/read_section"
 
 [[process]]
 alias = "read_section"
-source = "read_section/read_section.toml"
+source = "read_section/read_section"
 
 [[connection]]
 from = "process/read_section"

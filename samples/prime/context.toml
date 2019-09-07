@@ -7,7 +7,7 @@ source = "lib://runtime/args/get"
 
 [[process]]
 alias = "generate-candidates"
-source = "generate_candidates.toml"
+source = "generate_candidatess"
 
 [[connection]]
 from = "process/args/1"
@@ -19,7 +19,7 @@ to = "process/check-if-prime/candidate"
 
 [[process]]
 alias = "check-if-prime"
-source = "check_if_prime.toml"
+source = "check_if_prime"
 
 # Convert any prime that was output to a string and print it
 [[process]]
