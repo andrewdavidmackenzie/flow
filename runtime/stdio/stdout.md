@@ -1,4 +1,4 @@
-## Stdout (//runtime/stdio/stdout.toml)
+## Stdout (//runtime/stdio/stdout)
 Output text to the STDOUT of the process invoking the flow. If an array is passed then each element
 is output on a separate line.
 
@@ -6,7 +6,7 @@ is output on a separate line.
 ```
 [[process]]
 alias = "stdout"
-source = "lib://runtime/stdio/stdout.toml"
+source = "lib://runtime/stdio/stdout"
 ```
 
 #### Input

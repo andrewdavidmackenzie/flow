@@ -10,7 +10,7 @@ Include the `args` function in your flow:
 ```
 [[process]]
 alias = "args"
-source = "lib://flkowr/args/get.toml"
+source = "lib://flkowr/args/get"
 ```
 
 Then create a connection from the desired output of `args` to another function:

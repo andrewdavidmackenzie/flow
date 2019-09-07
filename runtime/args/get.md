@@ -1,11 +1,11 @@
-## Args (//runtime/args/get.toml)
+## Args (//runtime/args/get)
 Get the arguments the flow was executed with
 
 #### Include using
 ```
 [[process]]
 alias = "get"
-source = "lib://runtime/args/get.toml"
+source = "lib://runtime/args/get"
 ```
 
 #### Inputs
