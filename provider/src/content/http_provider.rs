@@ -1,7 +1,8 @@
 use curl::easy::{Easy2, Handler, WriteError};
+use url::Url;
+
 use flowrlib::errors::*;
 use flowrlib::provider::Provider;
-use url::Url;
 
 pub struct HttpProvider;
 
@@ -15,7 +16,7 @@ impl Handler for Collector {
 }
 
 impl Provider for HttpProvider {
-    fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>)> {
+    fn resolve_url(&self, url_str: &str, _default_filename: &str, _extensions: &[&str]) -> Result<(String, Option<String>)> {
         let url = Url::parse(url_str)
             .chain_err(|| format!("Could not convert '{}' to valid Url", url_str))?;
         if url.path().ends_with('/') {
@@ -26,7 +27,7 @@ impl Provider for HttpProvider {
         }
     }
 
-    fn get(&self, url: &str) -> Result<Vec<u8>> {
+    fn get_contents(&self, url: &str) -> Result<Vec<u8>> {
         let mut easy = Easy2::new(Collector(Vec::new()));
         easy.get(true).unwrap();
         easy.url(url).unwrap();
@@ -59,7 +60,7 @@ mod test {
     #[cfg_attr(not(feature = "online_tests"), ignore)]
     fn get_github_sample() {
         let provider: &dyn Provider = &HttpProvider;
-        provider.get("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml").unwrap();
+        provider.get_contents("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml").unwrap();
     }
 
     #[test]
@@ -67,6 +68,6 @@ mod test {
     #[cfg_attr(not(feature = "online_tests"), ignore)]
     fn online_get_contents_file_not_found() {
         let provider: &dyn Provider = &HttpProvider;
-        provider.get("http://google.com/no-such-file").unwrap();
+        provider.get_contents("http://google.com/no-such-file").unwrap();
     }
 }

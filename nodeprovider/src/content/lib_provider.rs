@@ -48,7 +48,7 @@ impl Provider for LibProvider {
         Also, construct a string that is a reference to that module in the library, such as:
             "flowstdlib/stdio/stdout" and return that also.
     */
-    fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>)> {
+    fn resolve_url(&self, url_str: &str, _default_filename: &str, _extensions: &[&str]) -> Result<(String, Option<String>)> {
         let parts: Vec<&str> = url_str.split("://").collect();
         let path = parts[1];
         let parts: Vec<&str> = path.split("/").collect();
@@ -69,7 +69,7 @@ impl Provider for LibProvider {
 
     // All Urls that start with "lib://" should resource to a different Url with "http(s)" or "file"
     // and so we should never get a request to get content from a Url with such a scheme
-    fn get(&self, _url: &str) -> Result<Vec<u8>> {
+    fn get_contents(&self, _url: &str) -> Result<Vec<u8>> {
         unimplemented!();
     }
 }

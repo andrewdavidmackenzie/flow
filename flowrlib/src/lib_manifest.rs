@@ -7,7 +7,7 @@ use crate::errors::*;
 use crate::manifest::MetaData;
 use crate::provider::Provider;
 
-pub const DEFAULT_LIB_MANIFEST_FILENAME: &str = "manifest.json";
+pub const DEFAULT_LIB_MANIFEST_FILENAME: &str = "manifest";
 
 /*
     Implementations can be of two types - either a native and statically bound function referenced
@@ -40,8 +40,10 @@ impl LibraryManifest {
     }
 
     pub fn load(provider: &dyn Provider, source: &str) -> Result<(LibraryManifest, String)> {
-        let (resolved_url, _) = provider.resolve(source, DEFAULT_LIB_MANIFEST_FILENAME)?;
-        let content = provider.get(&resolved_url)
+        let (resolved_url, _) = provider.resolve_url(source,
+                                                     DEFAULT_LIB_MANIFEST_FILENAME,
+                                                            &["json"])?;
+        let content = provider.get_contents(&resolved_url)
             .expect(&format!("Could not read contents of Library Manifest from '{}'", resolved_url));
 
         let manifest = serde_json::from_str(
@@ -73,11 +75,11 @@ mod test {
     }
 
     impl Provider for TestProvider {
-        fn resolve(&self, source: &str, _default_filename: &str) -> Result<(String, Option<String>)> {
+        fn resolve_url(&self, source: &str, _default_filename: &str, _extensions: &[&str]) -> Result<(String, Option<String>)> {
             Ok((source.to_string(), None))
         }
 
-        fn get(&self, _url: &str) -> Result<Vec<u8>> {
+        fn get_contents(&self, _url: &str) -> Result<Vec<u8>> {
             Ok(self.test_content.as_bytes().to_owned())
         }
     }

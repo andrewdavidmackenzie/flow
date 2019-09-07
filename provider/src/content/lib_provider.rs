@@ -6,6 +6,8 @@ use url::Url;
 use flowrlib::errors::*;
 use flowrlib::provider::Provider;
 
+use crate::content::file_provider::FileProvider;
+
 pub struct LibProvider;
 
 /*
@@ -46,7 +48,7 @@ impl Provider for LibProvider {
         Also, construct a string that is a reference to that module in the library, such as:
             "runtime/stdio/stdout" and return that also.
     */
-    fn resolve(&self, url_str: &str, default_filename: &str) -> Result<(String, Option<String>)> {
+    fn resolve_url(&self, url_str: &str, default_filename: &str, _extensions: &[&str]) -> Result<(String, Option<String>)> {
         let url = Url::parse(url_str)
             .chain_err(|| format!("Could not convert '{}' to valid Url", url_str))?;
         let lib_name = url.host_str().expect(
@@ -76,29 +78,18 @@ impl Provider for LibProvider {
                 return Ok((lib_path_url.to_string(), Some(lib_ref.to_string())));
             }
 
-            debug!("'{:?}' is a directory, so looking for default file name '{}'", lib_path, default_filename);
-            let mut default_path = lib_path.clone();
-            default_path.push(default_filename);
-            if default_path.exists() {
-                let default_path_url = Url::from_file_path(&default_path)
-                    .map_err(|_| format!("Could not create Url from '{:?}'", &default_path))?;
-                return Ok((default_path_url.to_string(), Some(lib_ref.to_string())));
+            let provided_implementation_filename = lib_path.file_name().unwrap().to_str().unwrap();
+            debug!("'{:?}' is a directory, so looking inside it for default file name '{}' or provided implemention file '{}' with extensions '{:?}'",
+                   lib_path, default_filename, provided_implementation_filename, _extensions);
+            for filename in [default_filename, provided_implementation_filename].iter() {
+                let file = FileProvider::find_file(&lib_path, filename, _extensions);
+                if let Ok(file_path_as_url) = file {
+                    return Ok(( file_path_as_url, Some(lib_ref.to_string())));
+                }
             }
 
-            // This could be for a provided implementation, so look for a file named the same
-            // as the directory, with a toml extension
-            let filename = lib_path.file_name().unwrap().to_str().unwrap();
-            let mut filename_path = lib_path.clone();
-            filename_path.push(filename);
-            filename_path.set_extension("toml");
-
-            if filename_path.exists() {
-                let file_path_url = Url::from_file_path(&filename_path)
-                    .map_err(|_| format!("Could not create Url from '{:?}'", &filename_path))?;
-                return Ok((file_path_url.to_string(), Some(lib_ref.to_string())));
-            }
-            bail!("Found library folder '{}' in 'FLOW_LIB_PATH', but could not locate default file '{}' or provided implementation file '{}' within it",
-            lib_path.display(), default_path.display(), filename_path.display())
+            bail!("Found library folder '{}' in 'FLOW_LIB_PATH', but could not locate default file '{}' or provided implementation file '{}' within it with extensions '{:?}'",
+            lib_path.display(), default_filename, provided_implementation_filename, _extensions)
         } else {
             // See if the file, with a .toml extension exists
             let mut implementation_path = lib_path.clone();
@@ -115,7 +106,7 @@ impl Provider for LibProvider {
 
     // All Urls that start with "lib://" should resource to a different Url with "http(s)" or "file"
     // and so we should never get a request to get content from a Url with such a scheme
-    fn get(&self, _url: &str) -> Result<Vec<u8>> {
+    fn get_contents(&self, _url: &str) -> Result<Vec<u8>> {
         unimplemented!();
     }
 }
@@ -136,7 +127,7 @@ mod test {
         let root_str: String = root.as_os_str().to_str().unwrap().to_string();
         env::set_var("FLOW_LIB_PATH", &root_str);
         let lib_url = "lib://flowstdlib/control/tap";
-        match provider.resolve(&lib_url, "".into()) {
+        match provider.resolve_url(&lib_url, "".into(), &["toml"]) {
             Ok((url, lib_ref)) => {
                 assert_eq!(url, format!("file://{}/flowstdlib/control/tap", root_str));
                 assert_eq!(lib_ref, Some("flowstdlib/control/tap".to_string()));

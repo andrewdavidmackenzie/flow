@@ -4,7 +4,7 @@ use crate::errors::*;
 use crate::function::Function;
 use crate::provider::Provider;
 
-pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest.json";
+pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest";
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct MetaData {
@@ -45,8 +45,8 @@ impl Manifest {
         Load, or Deserialize, a manifest from a `source` Url using `provider`
     */
     pub fn load(provider: &dyn Provider, source: &str) -> Result<Manifest> {
-        let (resolved_url, _) = provider.resolve(source, DEFAULT_MANIFEST_FILENAME)?;
-        let content = provider.get(&resolved_url)?;
+        let (resolved_url, _) = provider.resolve_url(source, DEFAULT_MANIFEST_FILENAME, &["json"])?;
+        let content = provider.get_contents(&resolved_url)?;
 
         serde_json::from_str(
             &String::from_utf8(content).chain_err(|| "Could not convert from utf8 to String")?)

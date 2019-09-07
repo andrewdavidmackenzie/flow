@@ -4,7 +4,7 @@ use flowrlib::provider::Provider;
 pub struct HttpProvider;
 
 impl Provider for HttpProvider {
-    fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>)> {
+    fn resolve_url(&self, url_str: &str, _default_filename: &str, _extensions: &[&str]) -> Result<(String, Option<String>)> {
 /*        let url = Url::parse(url_str)
             .chain_err(|| format!("Could not convert '{}' to valid Url", url_str))?;
         if url.path().ends_with('/') {
@@ -17,7 +17,7 @@ impl Provider for HttpProvider {
         Ok((url_str.into(), None))
     }
 
-    fn get(&self, _url: &str) -> Result<Vec<u8>> {
+    fn get_contents(&self, _url: &str) -> Result<Vec<u8>> {
         /*
             let mut opts = RequestInit::new();
     opts.method("GET");

@@ -51,12 +51,12 @@ pub trait Validate {
 /// // A Provider must implement the `Provider` trait, with the methods to `resolve` a URL and to
 /// // `get` the contents for parsing.
 /// impl Provider for DummyProvider {
-///     fn resolve(&self, url: &str, default_filename: &str) -> Result<(String, Option<String>)> {
+///     fn resolve_url(&self, url: &str, default_filename: &str) -> Result<(String, Option<String>)> {
 ///        // Just fake the url resolution in this example
 ///        Ok((url.to_string(), None))
 ///     }
 ///
-///    fn get(&self, url: &str) -> Result<Vec<u8>> {
+///    fn get_contents(&self, url: &str) -> Result<Vec<u8>> {
 ///        // Return the simplest flow definition possible - ignoring the url passed in
 ///        Ok("flow = \"test\"".as_bytes().to_owned())
 ///     }
@@ -74,10 +74,10 @@ pub fn load_context(url: &str, provider: &dyn Provider) -> Result<Process> {
 
 fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &dyn Provider,
                 initializations: &Option<HashMap<String, InputInitializer>>) -> Result<Process> {
-    let (resolved_url, lib_ref) = provider.resolve(url, "context.toml")
+    let (resolved_url, lib_ref) = provider.resolve_url(url, "context", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
     debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
-    let contents = provider.get(&resolved_url)
+    let contents = provider.get_contents(&resolved_url)
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
 
     let deserializer = get_deserializer(&resolved_url)?;
@@ -104,10 +104,10 @@ fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &dyn Pr
 }
 
 pub fn load_library(url: &str, provider: &dyn Provider) -> Result<Library> {
-    let (resolved_url, _) = provider.resolve(url, "Library.toml")
+    let (resolved_url, _) = provider.resolve_url(url, "Library", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
     debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
-    let contents = provider.get(&resolved_url)
+    let contents = provider.get_contents(&resolved_url)
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
 
     toml::from_str(&String::from_utf8(contents).unwrap())

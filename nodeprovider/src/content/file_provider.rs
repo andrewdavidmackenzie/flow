@@ -17,7 +17,7 @@ impl FileProvider {
 }
 
 impl Provider for FileProvider {
-    fn resolve(&self, url_str: &str, _default_filename: &str) -> Result<(String, Option<String>)> {
+    fn resolve_url(&self, url_str: &str, _default_filename: &str, _extensions: &[&str]) -> Result<(String, Option<String>)> {
 /*
         match metadata(&path) {
             Ok(md) => {
@@ -42,7 +42,7 @@ impl Provider for FileProvider {
         Ok((url_str.into(), None))
     }
 
-    fn get(&self, _url_str: &str) -> Result<Vec<u8>> {
+    fn get_contents(&self, _url_str: &str) -> Result<Vec<u8>> {
 //        let file = File::new(url_str);
 //        let reader = FileReaderSync::new()?;
 //        let result_base64 = reader.read_as_text(file);

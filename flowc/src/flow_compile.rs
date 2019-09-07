@@ -85,6 +85,7 @@ fn write_flow_manifest(flow: Flow, debug_symbols: bool, out_dir_path: PathBuf, t
                        -> Result<PathBuf> {
     let mut filename = out_dir_path.clone();
     filename.push(DEFAULT_MANIFEST_FILENAME.to_string());
+    filename.set_extension("json");
     let mut manifest_file = File::create(&filename).chain_err(|| "Could not create manifest file")?;
     let manifest = generate::create_manifest(&flow, debug_symbols, out_dir_path.to_str()
         .ok_or("Could not convert output directory to string")?, tables)

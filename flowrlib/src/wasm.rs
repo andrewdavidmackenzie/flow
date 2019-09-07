@@ -17,7 +17,7 @@ use crate::errors::*;
 use crate::provider::Provider;
 
 #[cfg(not(target_arch = "wasm32"))]
-const DEFAULT_WASM_FILENAME: &str = "module.wasm";
+const DEFAULT_WASM_FILENAME: &str = "module";
 
 #[cfg(not(target_arch = "wasm32"))]
 const MAX_RESULT_SIZE: i32 = 1024;
@@ -121,8 +121,8 @@ impl Implementation for WasmExecutor {
 */
 #[cfg(not(target_arch = "wasm32"))]
 pub fn load(provider: &dyn Provider, source_url: &str) -> Result<WasmExecutor> {
-    let (resolved_url, _) = provider.resolve(&source_url, DEFAULT_WASM_FILENAME)?;
-    let content = provider.get(&resolved_url)?;
+    let (resolved_url, _) = provider.resolve_url(&source_url, DEFAULT_WASM_FILENAME, &["wasm"])?;
+    let content = provider.get_contents(&resolved_url)?;
     let module = Module::from_buffer(content)
         .chain_err(|| format!("Could not create Wasm Module from content in '{}'", resolved_url))?;
 
