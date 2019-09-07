@@ -17,3 +17,14 @@ pub mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
     error_chain! {}
 }
+
+error_chain! {
+    types {
+        Error, ErrorKind, ResultExt, Result;
+    }
+
+    foreign_links {
+        Runtime(flowrlib::errors::Error);
+        Io(std::io::Error);
+    }
+}

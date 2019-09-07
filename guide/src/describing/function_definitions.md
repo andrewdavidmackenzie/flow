@@ -1,5 +1,5 @@
 ## Function Definitions
-A function is defined in a definition file (e.g. `add.toml`) that should be alongside the function's
+A function is defined in a definition file (e.g. `add`) that should be alongside the function's
 implementation files (see later)
 
 A function can consume data on 0 or more inputs (it must have all available in order to run)

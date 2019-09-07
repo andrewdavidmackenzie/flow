@@ -19,31 +19,31 @@ The following formats for specifying the `source` are available:
 #### Local File System
 The process definition file is in the local file system.
 * in the flow's directories, using relative file paths 
-    * e.g. `source = "my_function.toml"`
-    * e.g. `source = "my_flow.toml"`
-    * e.g. `source = "subdir/my_other_function.toml"`
-    * e.g. `source = "subdir/my_other_process.toml"`
+    * e.g. `source = "my_function"`
+    * e.g. `source = "my_flow"`
+    * e.g. `source = "subdir/my_other_function"`
+    * e.g. `source = "subdir/my_other_process"`
 * in a different flow's directories, using relative file paths
-    * e.g. `source = "../other_flow/other_function.toml"`
-    * e.g. `source = "../other_flow/other_flow.toml"`
+    * e.g. `source = "../other_flow/other_function"`
+    * e.g. `source = "../other_flow/other_flow"`
 * elsewhere in the local file system, using absolute paths
-    * e.g. `source = "/root/other_directory/other_function.toml"`
-    * e.g. `source = "/root/other_directory/other_flow.toml"`
+    * e.g. `source = "/root/other_directory/other_function"`
+    * e.g. `source = "/root/other_directory/other_flow"`
 
 #### Remote Web Server
 The process definition file can be found on a remote server, just specify the 
 URL of the file:
-* e.g. `source = "http://my_flow_server.com/folder/function.toml"`
-* e.g. `source = "https://my_secure_flow_server.com/folder/flow.toml"`
+* e.g. `source = "http://my_flow_server.com/folder/function"`
+* e.g. `source = "https://my_secure_flow_server.com/folder/flow"`
 
 #### Library Processes
 The process is in a library that is available to your current installation. 
 In order for flow to find the function at compile time it uses the 
 environment variable `FLOW_LIB_PATH`, that is a `PATH` style variable with zero or
 more directory entries. 
-* e.g. `source = "lib://runtime/stdio/stdin.toml"`
+* e.g. `source = "lib://runtime/stdio/stdin"`
     * Library name = `flowrlib`
-    * Function path within the library = `stdio/stdin.toml`
+    * Function path within the library = `stdio/stdin`
     
 All the directories in the path are searched for a top-level sub-directory that 
 matches the library name.
@@ -58,14 +58,14 @@ And my flow references a process thus:
 ```
 [[process]]
 alias = "stdin"
-source = "lib://runtime/stdio/stdin.toml"
+source = "lib://runtime/stdio/stdin"
 ```
 
 Then the directory `/Users/me/workspace/flow/flowrlib` is looked for.
 
 If that directory and hence the library is found, then the Function path within the library
-`stdio/stdin.toml` is used to create the full path to the Function definition file 
-`/Users/me/workspace/flow/flowrlib/stdio/stdin.toml`.
+`stdio/stdin` is used to create the full path to the Function definition file 
+`/Users/me/workspace/flow/flowrlib/stdio/stdin`.
 
 If that file exists and can be read, the process defined there is used and 
 included in the flow.

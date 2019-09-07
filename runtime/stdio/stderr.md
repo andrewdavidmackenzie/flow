@@ -1,4 +1,4 @@
-## Stderr (//runtime/stdio/stderr.toml)
+## Stderr (//runtime/stdio/stderr)
 Output text to the STDERR of the process invoking the flow. If an array is passed then each element
 is output on a separate line.
 
@@ -6,7 +6,7 @@ is output on a separate line.
 ```
 [[process]]
 alias = "stderr"
-source = "lib://runtime/stdio/stderr.toml"
+source = "lib://runtime/stdio/stderr"
 ```
 
 #### Input

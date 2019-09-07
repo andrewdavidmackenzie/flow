@@ -9,7 +9,7 @@ source = "lib://runtime/args/get"
 # Bounds
 [[process]]
 alias = "parse_bounds"
-source = "src/parse_pair/parse_pair.toml"
+source = "src/parse_pair/parse_pair"
 
 [[process]]
 alias = "bounds_separator"
@@ -35,7 +35,7 @@ input.default = {constant = ","}
 # Upper Left Coordinate
 [[process]]
 alias = "parse_upper_left"
-source = "src/parse_pair/parse_pair.toml"
+source = "src/parse_pair/parse_pair"
 
 [[connection]]
 from = "process/point_separator"
@@ -50,7 +50,7 @@ to = "process/parse_upper_left/input"
 # Lower Right Coordinate
 [[process]]
 alias = "parse_lower_right"
-source = "src/parse_pair/parse_pair.toml"
+source = "src/parse_pair/parse_pair"
 
 [[connection]]
 from = "process/point_separator"
@@ -64,7 +64,7 @@ to = "process/parse_lower_right/input"
 # Subflow 'render'
 [[process]]
 alias = "render"
-source = "render.toml"
+source = "render"
 
 [[connection]]
 from = "process/parse_bounds"

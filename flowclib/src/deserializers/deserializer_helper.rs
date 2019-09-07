@@ -1,11 +1,14 @@
-use super::yaml_deserializer::FlowYamlLoader;
-use super::toml_deserializer::FlowTomelLoader;
-use super::json_deserializer::FlowJsonLoader;
 use crate::compiler::loader::Deserializer;
+
+use super::json_deserializer::FlowJsonLoader;
+use super::toml_deserializer::FlowTomelLoader;
+use super::yaml_deserializer::FlowYamlLoader;
 
 const TOML: &dyn Deserializer = &FlowTomelLoader as &dyn Deserializer;
 const YAML: &dyn Deserializer = &FlowYamlLoader as &dyn Deserializer;
 const JSON: &dyn Deserializer = &FlowJsonLoader as &dyn Deserializer;
+
+pub const ACCEPTED_EXTENSIONS: &'static [&'static str] = &["toml", "yaml", "json"];
 
 pub fn get_deserializer(url: &str) -> Result<&'static dyn Deserializer, String> {
     match get_file_extension(url) {
@@ -35,8 +38,8 @@ fn get_file_extension(url: &str) -> Result<String, String> {
 
 #[cfg(test)]
 mod test {
-    use super::get_file_extension;
     use super::get_deserializer;
+    use super::get_file_extension;
 
     #[test]
     fn no_extension() {

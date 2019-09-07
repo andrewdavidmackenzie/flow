@@ -1,9 +1,10 @@
-use crate::model::flow::Flow;
 use std::io;
 use std::io::Write;
 use std::path::PathBuf;
+
 use crate::dumper::dump_dot;
 use crate::dumper::helper;
+use crate::model::flow::Flow;
 use crate::model::process::Process::FlowProcess;
 
 /// dump a flow definition that has been loaded to a file in the specified output directory
@@ -25,11 +26,11 @@ use crate::model::process::Process::FlowProcess;
 /// struct DummyProvider {}
 ///
 /// impl Provider for DummyProvider {
-///     fn resolve(&self, url: &str, default_filename: &str) -> Result<(String, Option<String>)> {
+///     fn resolve_url(&self, url: &str, default_filename: &str, _ext: &[&str]) -> Result<(String, Option<String>)> {
 ///         Ok((url.to_string(), None))
 ///     }
 ///
-///     fn get(&self, url: &str) -> Result<Vec<u8>> {
+///     fn get_contents(&self, url: &str) -> Result<Vec<u8>> {
 ///         Ok("flow = \"dummy\"\n[[input]]".as_bytes().to_owned())
 ///     }
 /// }

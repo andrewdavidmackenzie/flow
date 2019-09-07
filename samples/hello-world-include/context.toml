@@ -6,7 +6,7 @@ source = "lib://runtime/stdio/stdout"
 
 [[process]]
 alias = "hello"
-source = "../hello-world/flow1.toml"
+source = "../hello-world/flow1"
 
 [[connection]]
 name = "message"

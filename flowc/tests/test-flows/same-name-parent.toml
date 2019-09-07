@@ -6,7 +6,7 @@ source = "lib://runtime/args/get"
 
 [[process]]
 alias = "child"
-source = "same-name-child.toml"
+source = "same-name-child"
 
 [[connection]]
 from = "process/args/1"

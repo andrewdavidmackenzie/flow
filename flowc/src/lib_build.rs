@@ -48,6 +48,7 @@ pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn
 fn write_lib_manifest(lib_manifest: &LibraryManifest, base_dir: PathBuf) -> Result<PathBuf> {
     let mut filename = base_dir.clone();
     filename.push(DEFAULT_LIB_MANIFEST_FILENAME.to_string());
+    filename.set_extension("json");
     let mut manifest_file = File::create(&filename).chain_err(|| "Could not create lib manifest file")?;
 
     manifest_file.write_all(serde_json::to_string_pretty(lib_manifest)
@@ -69,7 +70,7 @@ fn build_manifest(lib_manifest: &mut LibraryManifest, base_dir: &str, provider: 
                     .map_err(|_| format!("Could not create url from file path '{}'",
                                          toml_path.to_str().unwrap()))?.to_string();
                 debug!("Inspecting '{}' for function definition", resolved_url);
-                let contents = provider.get(&resolved_url)
+                let contents = provider.get_contents(&resolved_url)
                     .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
                 let deserializer = get_deserializer(&resolved_url)?;
                 match deserializer.deserialize(&String::from_utf8(contents).unwrap(), Some(&resolved_url)) {

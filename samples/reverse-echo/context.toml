@@ -6,7 +6,7 @@ source = "lib://runtime/stdio/readline"
 
 [[process]]
 alias = "reverse"
-source = "reverse/reverse.toml"
+source = "reverse/reverse"
 
 [[process]]
 alias = "print"

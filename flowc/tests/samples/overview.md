@@ -14,7 +14,7 @@ Each sample of name 'text-name' is in it's own folder, which includes:
 * A test-name.md file that:
     * describes what it does
     * lists the features of 'flow' that this sample uses and demonstrates
-* A ```text-name.toml``` file that contains the flow description
+* A ```text-name``` file that contains the flow description
 * Files used in the automated testing of each sample:
     * ```test-name.args``` the arguments to be passed to the flow when running it
     * ```test-name.stdin``` the input supplied to the flow on standard input when running it
