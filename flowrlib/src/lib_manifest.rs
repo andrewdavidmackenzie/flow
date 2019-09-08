@@ -19,7 +19,18 @@ pub const DEFAULT_LIB_MANIFEST_FILENAME: &str = "manifest";
 pub enum ImplementationLocator {
     #[serde(skip_deserializing, skip_serializing)]
     Native(Arc<dyn Implementation>),
-    Wasm(String)
+    Wasm(String),
+}
+
+impl PartialEq for ImplementationLocator {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (ImplementationLocator::Wasm(self_source), ImplementationLocator::Wasm(other_source)) => {
+                self_source == other_source
+            }
+            _ => false
+        }
+    }
 }
 
 /*
@@ -28,21 +39,21 @@ pub enum ImplementationLocator {
 #[derive(Deserialize, Serialize)]
 pub struct LibraryManifest {
     pub metadata: MetaData,
-    pub locators: HashMap<String, ImplementationLocator>
+    pub locators: HashMap<String, ImplementationLocator>,
 }
 
 impl LibraryManifest {
     pub fn new(metadata: MetaData) -> Self {
         LibraryManifest {
             metadata,
-            locators: HashMap::<String, ImplementationLocator>::new()
+            locators: HashMap::<String, ImplementationLocator>::new(),
         }
     }
 
     pub fn load(provider: &dyn Provider, source: &str) -> Result<(LibraryManifest, String)> {
         let (resolved_url, _) = provider.resolve_url(source,
                                                      DEFAULT_LIB_MANIFEST_FILENAME,
-                                                            &["json"])?;
+                                                     &["json"])?;
         let content = provider.get_contents(&resolved_url)
             .expect(&format!("Could not read contents of Library Manifest from '{}'", resolved_url));
 
@@ -53,13 +64,38 @@ impl LibraryManifest {
         Ok((manifest, resolved_url))
     }
 
-    pub fn add_to_manifest(&mut self, base_dir: &str, wasm_abs_path: &str,  wasm_dir: &str, function_name: &str) {
+    pub fn add_to_manifest(&mut self, base_dir: &str, wasm_abs_path: &str, wasm_dir: &str, function_name: &str) {
         let relative_dir = wasm_dir.replace(base_dir, "");
         let lib_reference = format!("lib://{}/{}/{}", self.metadata.name, relative_dir, function_name);
 
         let implementation_relative_location = wasm_abs_path.replace(base_dir, "");
-        debug!("Adding function to manifest: '{}'  --> '{}'", lib_reference, implementation_relative_location);
+        debug!("Adding implementation to manifest: \n'{}'  --> '{}'", lib_reference, implementation_relative_location);
         self.locators.insert(lib_reference, ImplementationLocator::Wasm(implementation_relative_location));
+    }
+}
+
+impl PartialEq for LibraryManifest {
+    fn eq(&self, other: &Self) -> bool {
+        if self.metadata != other.metadata {
+            return false;
+        }
+
+        if self.locators.len() != other.locators.len() {
+            return false;
+        }
+
+        for locator in self.locators.iter() {
+            // try and find locator with the same key in the other HashMap
+            if let Some(other_impl_locator) = other.locators.get(locator.0) {
+                if *other_impl_locator != *locator.1 {
+                    return false;
+                }
+            } else {
+                return false; // no such locator in the other HashMap
+            }
+        }
+
+        true // if we made it here then everything is the same
     }
 }
 

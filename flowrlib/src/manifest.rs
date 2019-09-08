@@ -6,7 +6,7 @@ use crate::provider::Provider;
 
 pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest";
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, PartialEq)]
 pub struct MetaData {
     pub name: String,
     pub version: String,

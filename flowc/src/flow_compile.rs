@@ -69,10 +69,9 @@ pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bo
 */
 fn compile_supplied_implementations(tables: &mut GenerationTables, skip_building: bool) -> Result<String> {
     for function in &mut tables.functions {
-        match function.get_implementation() {
-            Some(_) => compile_wasm::compile_implementation(function, skip_building),
-            None => Ok("OK".into())
-        }?;
+        if let Some(_) = function.get_implementation() {
+            compile_wasm::compile_implementation(function, skip_building)?;
+        };
     }
 
     Ok("All supplied implementations compiled successfully".into())

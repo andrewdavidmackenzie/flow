@@ -46,6 +46,7 @@ error_chain! {
     foreign_links {
         Provider(provider::errors::Error);
         Compiler(flowclib::errors::Error);
+        Runtime(flowrlib::errors::Error);
         Io(std::io::Error);
     }
 }
@@ -90,7 +91,7 @@ fn run() -> Result<String> {
             .expect("Could not compile flow");
     }
 
-    Ok("OK".into())
+    Ok("flowc completed".into())
 }
 
 
