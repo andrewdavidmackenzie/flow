@@ -24,6 +24,7 @@ fn impl_flow_impl(ast: &syn::DeriveInput) -> TokenStream {
         /*
             Allocate a chunk of memory of `size` bytes in wasm module
         */
+        #[cfg(target_arch = "wasm32")]
         #[no_mangle]
         pub extern "C" fn alloc(size: usize) -> *mut c_void {
             use std::mem;
@@ -33,7 +34,8 @@ fn impl_flow_impl(ast: &syn::DeriveInput) -> TokenStream {
             return ptr as *mut c_void;
         }
 
-        #[no_mangle]
+        #[cfg(target_arch = "wasm32")]
+       #[no_mangle]
         pub extern "C" fn run_wasm(input_data_ptr: *mut c_void, input_data_length: i32) -> i32 {
             use std::ptr::copy;
             let input_data: Vec<u8> = unsafe {
