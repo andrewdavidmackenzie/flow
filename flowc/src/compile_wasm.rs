@@ -38,7 +38,6 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool) -> R
     if !cargo_path.exists() {
         bail!("No Cargo.toml file could be found at '{}'", cargo_path.display());
     }
-    info!("Compiling implementation using rust manifest at '{}'", cargo_path.display());
 
     let mut wasm_destination = implementation_path.clone();
     wasm_destination.set_extension("wasm");
@@ -58,12 +57,13 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool) -> R
                 warn!("Implementation at '{}' is out of date with source at '{}'", wasm_destination.display(), implementation_path.display());
             }
         } else {
-            info!("Building wasm '{}' from source '{}'", wasm_destination.display(), implementation_path.display());
+            debug!("Building wasm '{}' from source '{}'", wasm_destination.display(), implementation_path.display());
 
             let build_dir = TempDir::new("flow")
                 .expect("Error creating new TempDir for compiling in")
                 .into_path();
 
+            info!("Testing and Compiling '{}'", implementation_path.display());
             run_cargo_build(&cargo_path, &build_dir, true)?;
             run_cargo_build(&cargo_path, &build_dir, false)?;
 
@@ -80,7 +80,7 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool) -> R
             built = true;
         }
     } else {
-        info!("wasm at '{}' is up-to-date with source at '{}', so skipping build",
+        debug!("wasm at '{}' is up-to-date with source at '{}', so skipping build",
               wasm_destination.display(), implementation_path.display());
     }
 
@@ -93,7 +93,7 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool) -> R
     Run the cargo build to compile wasm from function source
 */
 fn run_cargo_build(manifest_path: &PathBuf, target_dir: &PathBuf, test: bool) -> Result<String> {
-    info!("Building into temporary directory '{}'", target_dir.display());
+    debug!("Building into temporary directory '{}'", target_dir.display());
 
     let command = "cargo";
     let mut command_args = match test {

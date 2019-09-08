@@ -22,8 +22,8 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
-    -l, --log <LOG_LEVEL>        Set log level for output (trace, debug, info, warn, error (default))
-    -o, --output <OUTPUT_DIR>    Output directory for generated code
+    -v, --verbosity <VERBOSITY_LEVEL> Set verbosity level for output (trace, debug, info, warn, error (default))
+    -o, --output <OUTPUT_DIR>         Output directory for generated code
 
 ARGS:
     <FLOW>            the name of the 'flow' file
@@ -38,7 +38,7 @@ Where the first line prints the binary name and the version number.
 * `-V, --version`- Prints version information
 
 ### Options Described
-* `-l, --log <LOG_LEVEL>`- Set log level for output (LOG_LEVEL can be `trace`, `debug`, `info`, `warn` or `error` (the default))
+* `-v, --verbosity <VERBOSITY_LEVEL>`- Set verbosity level for output (VERBOSITY_LEVEL_LEVEL can be `trace`, `debug`, `info`, `warn` or `error` (the default))
 * `-o, --output <OUTPUT_DIR>`- Specify the output directory for generated code. By default this is in a "rust" 
 subdirectory of the directory where the flow's context was loaded from
 

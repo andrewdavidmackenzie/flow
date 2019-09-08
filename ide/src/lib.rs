@@ -48,7 +48,7 @@ error_chain! {
 
 mod runtime;
 
-const DEFAULT_LOG_LEVEL: Level = Level::Error;
+const DEFAULT_VERBOSITY_LEVEL: Level = Level::Error;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -173,10 +173,10 @@ fn init_logging(arg: Option<String>) {
         Some(string) => {
             match Level::from_str(&string) {
                 Ok(ll) => ll,
-                Err(_) => DEFAULT_LOG_LEVEL
+                Err(_) => DEFAULT_VERBOSITY_LEVEL
             }
         }
-        None => DEFAULT_LOG_LEVEL
+        None => DEFAULT_VERBOSITY_LEVEL
     };
 
     wasm_logger::init(

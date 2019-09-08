@@ -32,7 +32,7 @@ pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bo
     let context = loader::load_context(&url.to_string(), provider).expect("Couldn't load context");
     match context {
         FlowProcess(flow) => {
-            info!("flow loaded with alias '{}'\n", flow.alias);
+            info!("flow loaded with alias '{}'", flow.alias);
             let mut tables = compile::compile(&flow).expect("Could not compile flow");
 
             if dump {

@@ -25,7 +25,7 @@ pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn
     let library = loader::load_library(&url.to_string(), provider)
         .expect(&format!("Could not load Library from '{}'", lib_dir.display()));
 
-    info!("Building manifest for '{}' in output directory: '{}'\n", library.name, lib_dir.display());
+    info!("Building manifest for '{}'", library.name);
     let mut lib_manifest = LibraryManifest::new(MetaData::from(&library));
 
     let mut base_dir = lib_dir.display().to_string();
@@ -52,7 +52,7 @@ pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn
                     info!("Library manifest exists, but new manifest has changes, so updating manifest file");
                     write_lib_manifest(&lib_manifest, &manifest_file)?;
                 } else {
-                    info!("No changes in Library manifest so leaving manifest file untouched");
+                    info!("No differences from existing manifest file, so leaving file untouched");
                 }
             } else {
                 info!("Could not load existing Library manifest to compare, so writing new manifest file");
@@ -100,7 +100,7 @@ fn compile_implementations(lib_manifest: &mut LibraryManifest, base_dir: &str, p
     let mut build_count = 0;
     let search_pattern = format!("{}**/*.toml", base_dir);
 
-    debug!("Searching for process definitions using search pattern: '{}':\n", search_pattern);
+    debug!("Searching for process definitions using search pattern: '{}'", search_pattern);
     for entry in glob(&search_pattern).expect("Failed to read glob pattern") {
         match entry {
             Ok(ref toml_path) => {

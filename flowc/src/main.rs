@@ -68,7 +68,7 @@ fn main() {
 
             ::std::process::exit(1);
         }
-        Ok(message) => info!("{}", message)
+        Ok(_) => {}
     }
 }
 
@@ -107,7 +107,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .long("skip")
             .help("Skip manifest generation and running of flow"))
         .arg(Arg::with_name("lib")
-            .short("b")
+            .short("l")
             .long("lib")
             .help("Compile a flow library"))
         .arg(Arg::with_name("dump")
@@ -128,12 +128,12 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .takes_value(true)
             .value_name("OUTPUT_DIR")
             .help("Specify the output directory for generated manifest"))
-        .arg(Arg::with_name("log")
-            .short("l")
-            .long("log")
+        .arg(Arg::with_name("verbosity")
+            .short("v")
+            .long("verbosity")
             .takes_value(true)
-            .value_name("LOG_LEVEL")
-            .help("Set log level for output (trace, debug, info, warn, error (default))"))
+            .value_name("VERBOSITY_LEVEL")
+            .help("Set verbosity level for output (trace, debug, info, warn, error (default))"))
         .arg(Arg::with_name("FLOW")
             .help("the name of the 'flow' definition file to compile")
             .required(false)
@@ -152,10 +152,10 @@ fn parse_args(matches: ArgMatches) -> Result<(bool, Url, Vec<String>, bool, bool
         args = flow_args.map(|a| a.to_string()).collect();
     }
 
-    SimpleLogger::init(matches.value_of("log"));
+    SimpleLogger::init(matches.value_of("verbosity"));
 
-    info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    info!("'flowclib' version {}\n", info::version());
+    debug!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+    debug!("'flowclib' version {}", info::version());
 
     let url = url_from_string(matches.value_of("FLOW"))
         .chain_err(|| "Could not create a url for flow from the 'FLOW' command line parameter")?;

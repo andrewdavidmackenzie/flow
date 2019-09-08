@@ -205,12 +205,12 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .takes_value(true)
             .value_name("THREADS")
             .help("Set number of threads to use to execute jobs)"))
-        .arg(Arg::with_name("log")
-            .short("l")
-            .long("log")
+        .arg(Arg::with_name("verbosity")
+            .short("v")
+            .long("verbosity")
             .takes_value(true)
-            .value_name("LOG_LEVEL")
-            .help("Set log level for output (trace, debug, info, warn, error (default))"))
+            .value_name("VERBOSITY_LEVEL")
+            .help("Set verbosity level for output (trace, debug, info, warn, error (default))"))
         .arg(Arg::with_name("flow-arguments")
             .multiple(true))
         .get_matches()
@@ -231,7 +231,7 @@ fn parse_args(matches: &ArgMatches) -> Result<Url> {
         debug!("Setup '{}' with values = '{:?}'", FLOW_ARGS_NAME, args);
     }
 
-    SimpleLogger::init(matches.value_of("log"));
+    SimpleLogger::init(matches.value_of("verbosity"));
 
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     info!("'flowrlib' version {}\n", info::version());

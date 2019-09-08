@@ -109,7 +109,7 @@ test-ide:
 flowstdlib/manifest.json: flowcompiler
 	@echo ""
 	@echo "------- Starting build of 'flowstdlib' -------------"
-	@cargo run -p flowc -- -l info --lib flowstdlib
+	@cargo run -p flowc -- -v info -l flowstdlib
 	@echo "------- Done     build of 'flowstdlib' -------------"
 
 #################### Raspberry Pi ####################
