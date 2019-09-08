@@ -7,9 +7,8 @@ use std::sync::Mutex;
 
 use serde_json::Value;
 #[cfg(not(target_arch = "wasm32"))]
-use wasmi::{MemoryRef, ModuleRef};
-#[cfg(not(target_arch = "wasm32"))]
-use wasmi::{ImportsBuilder, Module, ModuleInstance, NopExternals, RuntimeValue};
+use wasmi::{ExternVal, ImportsBuilder, MemoryRef, Module, ModuleInstance, ModuleRef,
+            NopExternals, RuntimeValue, Signature, ValueType};
 
 use flow_impl::implementation::{Implementation, RunAgain};
 
@@ -136,9 +135,35 @@ pub fn load(provider: &dyn Provider, source_url: &str) -> Result<WasmExecutor> {
         .expect("export name `memory` is not of memory type")
         .to_owned();
 
+    check_required_functions(&module_ref, &resolved_url)?;
+
     info!("Loaded wasm module from: '{}'", source_url);
 
     Ok(WasmExecutor::new(module_ref, memory))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn check_required_functions(module_ref: &ModuleRef, filename: &str) -> Result<()> {
+    let required_wasm_functions = vec!(
+        ("alloc", Signature::new(&[ValueType::I32][..], Some(ValueType::I32))),
+        ("run_wasm", Signature::new(&[ValueType::I32, ValueType::I32][..], Some(ValueType::I32))),
+    );
+
+    for (function_name, signature) in required_wasm_functions {
+        match module_ref.export_by_name(function_name).ok_or(format!("No function named '{}' found in wasm file '{}'",
+                                                                     function_name, filename))? {
+            ExternVal::Func(function_ref) => {
+                let sig = function_ref.signature();
+                if *sig != signature {
+                    bail!("Expected function signature '{:?}' and found signature '{:?}'",
+                            signature, sig);
+                }
+            }
+            _ => bail!("Exported value was not a function")
+        }
+    }
+
+    Ok(())
 }
 
 /*
