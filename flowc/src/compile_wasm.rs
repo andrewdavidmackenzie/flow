@@ -13,7 +13,8 @@ use crate::errors::*;
 /*
     Compile a function provided in rust to wasm and modify implementation to point to new file
 */
-pub fn compile_implementation(function: &mut Function, skip_building: bool) -> Result<PathBuf> {
+pub fn compile_implementation(function: &mut Function, skip_building: bool) -> Result<(PathBuf, bool)> {
+    let mut built = false;
     let source = function.get_source_url();
     let mut implementation_url = url_from_string(Some(&source)).expect("Could not create a url from source url");
     implementation_url = implementation_url.join(&function.get_implementation()
@@ -37,7 +38,7 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool) -> R
     if !cargo_path.exists() {
         bail!("No Cargo.toml file could be found at '{}'", cargo_path.display());
     }
-    info!("Building using rust manifest at '{}'", cargo_path.display());
+    info!("Compiling implementation using rust manifest at '{}'", cargo_path.display());
 
     let mut wasm_destination = implementation_path.clone();
     wasm_destination.set_extension("wasm");
@@ -75,6 +76,8 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool) -> R
 
             // clean up temp dir
             fs::remove_dir_all(build_dir).expect("Could not remove temporary build directory");
+
+            built = true;
         }
     } else {
         info!("wasm at '{}' is up-to-date with source at '{}', so skipping build",
@@ -83,7 +86,7 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool) -> R
 
     function.set_implementation(&wasm_destination.to_str().ok_or("Could not convert path to string")?);
 
-    Ok(wasm_destination)
+    Ok((wasm_destination, built))
 }
 
 /*

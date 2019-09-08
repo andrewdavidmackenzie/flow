@@ -13,6 +13,7 @@ use flowrlib::lib_manifest::LibraryManifest;
 use flowrlib::manifest::MetaData;
 use flowrlib::provider::Provider;
 use glob::glob;
+use provider::content::file_provider::FileProvider;
 
 use crate::compile_wasm;
 use crate::errors::*;
@@ -20,7 +21,7 @@ use crate::errors::*;
 /*
     Compile a Library
 */
-pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn Provider) -> Result<()> {
+pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn Provider) -> Result<String> {
     let library = loader::load_library(&url.to_string(), provider)
         .expect(&format!("Could not load Library from '{}'", lib_dir.display()));
 
@@ -33,33 +34,70 @@ pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn
         base_dir = format!("{}/", base_dir);
     }
 
-    build_manifest(&mut lib_manifest, &base_dir, provider, skip_building)
+    let build_count = compile_implementations(&mut lib_manifest, &base_dir, provider, skip_building)
         .expect("Could not build library");
 
-    let filename = write_lib_manifest(&lib_manifest, lib_dir)?;
-    info!("Generated library manifest at '{}'", filename.display());
+    let manifest_file = manifest_file(lib_dir);
+    let manifest_exists = manifest_file.exists() && manifest_file.is_file();
 
-    Ok(())
+    if manifest_exists {
+        if build_count > 0 {
+            info!("Library manifest exists, but implementations were built, so updating manifest file");
+            write_lib_manifest(&lib_manifest, &manifest_file)?;
+        } else {
+            let provider = &FileProvider{} as &dyn Provider;
+            let manifest_file_as_url = Url::from_file_path(&manifest_file).unwrap().to_string();
+            if let Ok((existing_manifest, _)) = LibraryManifest::load(provider, &manifest_file_as_url) {
+                if existing_manifest != lib_manifest {
+                    info!("Library manifest exists, but new manifest has changes, so updating manifest file");
+                    write_lib_manifest(&lib_manifest, &manifest_file)?;
+                } else {
+                    info!("No changes in Library manifest so leaving manifest file untouched");
+                }
+            } else {
+                info!("Could not load existing Library manifest to compare, so writing new manifest file");
+                write_lib_manifest(&lib_manifest, &manifest_file)?;
+            }
+        }
+    } else {
+        // no existing manifest, so just write the one we've built
+        info!("No existing library manifest, so writing one");
+        write_lib_manifest(&lib_manifest, &manifest_file)?;
+    }
+
+    Ok(format!("Library '{}' built successfully", url.to_string()))
+}
+
+fn manifest_file(base_dir: PathBuf) -> PathBuf {
+    let mut filename = base_dir.clone();
+    filename.push(DEFAULT_LIB_MANIFEST_FILENAME.to_string());
+    filename.set_extension("json");
+    filename
 }
 
 /*
     Generate a manifest for the library in JSON that can be used to load it using 'flowr'
 */
-fn write_lib_manifest(lib_manifest: &LibraryManifest, base_dir: PathBuf) -> Result<PathBuf> {
-    let mut filename = base_dir.clone();
-    filename.push(DEFAULT_LIB_MANIFEST_FILENAME.to_string());
-    filename.set_extension("json");
+fn write_lib_manifest(lib_manifest: &LibraryManifest, filename: &PathBuf) -> Result<()> {
     let mut manifest_file = File::create(&filename).chain_err(|| "Could not create lib manifest file")?;
 
     manifest_file.write_all(serde_json::to_string_pretty(lib_manifest)
         .chain_err(|| "Could not pretty format the library manifest JSON contents")?
         .as_bytes()).chain_err(|| "Could not write library smanifest data bytes to created manifest file")?;
 
-    Ok(filename)
+    info!("Generated library manifest at '{}'", filename.display());
+
+    Ok(())
 }
 
-fn build_manifest(lib_manifest: &mut LibraryManifest, base_dir: &str, provider: &dyn Provider,
-                  skip_building: bool) -> Result<()> {
+/*
+    Find all process definitions under the base_dir and if they provide an implementation, check if
+    the wasm file is up-to-date with the source and if not compile it, and add them all to the
+    manifest struct
+*/
+fn compile_implementations(lib_manifest: &mut LibraryManifest, base_dir: &str, provider: &dyn Provider,
+                           skip_building: bool) -> Result<i32> {
+    let mut build_count = 0;
     let search_pattern = format!("{}**/*.toml", base_dir);
 
     debug!("Searching for process definitions using search pattern: '{}':\n", search_pattern);
@@ -76,12 +114,15 @@ fn build_manifest(lib_manifest: &mut LibraryManifest, base_dir: &str, provider: 
                 match deserializer.deserialize(&String::from_utf8(contents).unwrap(), Some(&resolved_url)) {
                     Ok(FunctionProcess(ref mut function)) => {
                         function.set_implementation_url(&resolved_url);
-                        let wasm_abs_path = compile_wasm::compile_implementation(function, skip_building)?;
+                        let (wasm_abs_path, built) = compile_wasm::compile_implementation(function, skip_building)?;
                         let wasm_dir = wasm_abs_path.parent().expect("Could not get parent directory of wasm path");
                         lib_manifest.add_to_manifest(base_dir,
                                                      wasm_abs_path.to_str().expect("Could not convert wasm_path to str"),
                                                      wasm_dir.to_str().expect("Could not convert wasm_dir to str"),
                                                      function.name() as &str);
+                        if built {
+                            build_count += 1;
+                        }
                     }
                     _ => { /* Ignore errors and valid flow definitions */ }
                 }
@@ -90,5 +131,9 @@ fn build_manifest(lib_manifest: &mut LibraryManifest, base_dir: &str, provider: 
         }
     }
 
-    Ok(())
+    if build_count > 0 {
+        info!("Compiled {} functions to wasm", build_count);
+    }
+
+    Ok(build_count)
 }
