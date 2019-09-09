@@ -13,7 +13,7 @@ use crate::errors::*;
 /*
     Compile a function provided in rust to wasm and modify implementation to point to new file
 */
-pub fn compile_implementation(function: &mut Function, skip_building: bool) -> Result<(PathBuf, bool)> {
+pub fn compile_implementation(function: &mut Function, skip_building: bool, release: bool) -> Result<(PathBuf, bool)> {
     let mut built = false;
     let source = function.get_source_url();
     let mut implementation_url = url_from_string(Some(&source)).expect("Could not create a url from source url");
@@ -64,15 +64,20 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool) -> R
                 .into_path();
 
             info!("Testing and Compiling '{}'", implementation_path.display());
-            run_cargo_build(&cargo_path, &build_dir, true)?;
-            run_cargo_build(&cargo_path, &build_dir, false)?;
+            run_cargo_build(&cargo_path, &build_dir, true, false)?;
+            run_cargo_build(&cargo_path, &build_dir, false, release)?;
 
             // copy compiled wasm output into place where flow's toml file expects it
             let mut wasm_source = build_dir.clone();
-            wasm_source.push("wasm32-unknown-unknown/release/");
+            if release {
+                wasm_source.push("wasm32-unknown-unknown/release/");
+            } else {
+                wasm_source.push("wasm32-unknown-unknown/debug/");
+            }
             wasm_source.push(&wasm_destination.file_name().ok_or("Could not convert filename to str")?);
-            info!("Copying built wasm from '{}' to '{}'", &wasm_source.display(), &wasm_destination.display());
-            fs::copy(&wasm_source, &wasm_destination).expect("Could not copy wasm file");
+            let msg = format!("Copying built wasm from '{}' to '{}'", &wasm_source.display(), &wasm_destination.display());
+            info!("{}", msg);
+            fs::copy(&wasm_source, &wasm_destination).expect(&msg);
 
             // clean up temp dir
             fs::remove_dir_all(build_dir).expect("Could not remove temporary build directory");
@@ -92,13 +97,14 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool) -> R
 /*
     Run the cargo build to compile wasm from function source
 */
-fn run_cargo_build(manifest_path: &PathBuf, target_dir: &PathBuf, test: bool) -> Result<String> {
+fn run_cargo_build(manifest_path: &PathBuf, target_dir: &PathBuf, test: bool, release: bool) -> Result<String> {
     debug!("Building into temporary directory '{}'", target_dir.display());
 
     let command = "cargo";
-    let mut command_args = match test {
-        false => vec!("build", "--quiet", "--release", "--lib", "--target=wasm32-unknown-unknown"),
-        true => vec!("test", "--quiet", "--lib"),
+    let mut command_args = match (test, release) {
+        (false, true) => vec!("build", "--quiet", "--release", "--lib", "--target=wasm32-unknown-unknown"),
+        (false, false) => vec!("build", "--quiet", "--lib", "--target=wasm32-unknown-unknown"),
+        (true, _) => vec!("test", "--quiet", "--lib"),
     };
     let manifest = format!("--manifest-path={}", &manifest_path.display());
     command_args.push(&manifest);

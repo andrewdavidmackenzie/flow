@@ -27,7 +27,8 @@ use crate::errors::*;
     Compile a flow, maybe run it
 */
 pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool,
-                provided_implementations: bool, out_dir: PathBuf, provider: &dyn Provider) -> Result<String> {
+                    provided_implementations: bool, out_dir: PathBuf, provider: &dyn Provider, release: bool)
+                    -> Result<String> {
     info!("==== Loader");
     let context = loader::load_context(&url.to_string(), provider).expect("Couldn't load context");
     match context {
@@ -45,7 +46,7 @@ pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bo
             }
 
             info!("==== Compiler phase: Compiling provided implementations");
-            compile_supplied_implementations(&mut tables, provided_implementations)?;
+            compile_supplied_implementations(&mut tables, provided_implementations, release)?;
 
             if skip_generation {
                 return Ok("Manifest generation and flow running skipped".to_string());
@@ -58,7 +59,7 @@ pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bo
             // Append flow arguments at the end of the arguments so that they are passed on it when it's run
             info!("==== Compiler phase: Executing flow from manifest");
             execute_flow(manifest_path, args)
-        },
+        }
         _ => bail!("Process loaded was not of type 'Flow' and cannot be executed")
     }
 }
@@ -67,10 +68,10 @@ pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bo
     For any function that provides an implementation - compile the source to wasm and modify the
     implementation to indicate it is the wasm file
 */
-fn compile_supplied_implementations(tables: &mut GenerationTables, skip_building: bool) -> Result<String> {
+fn compile_supplied_implementations(tables: &mut GenerationTables, skip_building: bool, release: bool) -> Result<String> {
     for function in &mut tables.functions {
         if let Some(_) = function.get_implementation() {
-            compile_wasm::compile_implementation(function, skip_building)?;
+            compile_wasm::compile_implementation(function, skip_building, release)?;
         };
     }
 

@@ -21,7 +21,8 @@ use crate::errors::*;
 /*
     Compile a Library
 */
-pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn Provider) -> Result<String> {
+pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn Provider, release: bool)
+    -> Result<String> {
     let library = loader::load_library(&url.to_string(), provider)
         .expect(&format!("Could not load Library from '{}'", lib_dir.display()));
 
@@ -34,7 +35,8 @@ pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn
         base_dir = format!("{}/", base_dir);
     }
 
-    let build_count = compile_implementations(&mut lib_manifest, &base_dir, provider, skip_building)
+    let build_count = compile_implementations(&mut lib_manifest, &base_dir, provider,
+                                              skip_building, release)
         .expect("Could not build library");
 
     let manifest_file = manifest_file(lib_dir);
@@ -96,7 +98,7 @@ fn write_lib_manifest(lib_manifest: &LibraryManifest, filename: &PathBuf) -> Res
     manifest struct
 */
 fn compile_implementations(lib_manifest: &mut LibraryManifest, base_dir: &str, provider: &dyn Provider,
-                           skip_building: bool) -> Result<i32> {
+                           skip_building: bool, release: bool) -> Result<i32> {
     let mut build_count = 0;
     let search_pattern = format!("{}**/*.toml", base_dir);
 
@@ -114,7 +116,8 @@ fn compile_implementations(lib_manifest: &mut LibraryManifest, base_dir: &str, p
                 match deserializer.deserialize(&String::from_utf8(contents).unwrap(), Some(&resolved_url)) {
                     Ok(FunctionProcess(ref mut function)) => {
                         function.set_implementation_url(&resolved_url);
-                        let (wasm_abs_path, built) = compile_wasm::compile_implementation(function, skip_building)?;
+                        let (wasm_abs_path, built) = compile_wasm::compile_implementation(function,
+                                                                                          skip_building, release)?;
                         let wasm_dir = wasm_abs_path.parent().expect("Could not get parent directory of wasm path");
                         lib_manifest.add_to_manifest(base_dir,
                                                      wasm_abs_path.to_str().expect("Could not convert wasm_path to str"),

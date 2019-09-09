@@ -78,16 +78,17 @@ fn main() {
     a message to display to the user if all went OK
 */
 fn run() -> Result<String> {
-    let (lib, url, args, dump, skip_generation, debug_symbols, provided_implementations, base_dir)
+    let (lib, url, args, dump, skip_generation, debug_symbols,
+        provided_implementations, base_dir, release)
         = parse_args(get_matches())?;
 
     let provider = &MetaProvider {};
 
     if lib {
-        build_lib(url, provided_implementations, base_dir, provider)
+        build_lib(url, provided_implementations, base_dir, provider, release)
             .expect("Could not build library");
     } else {
-        compile_flow(url, args, dump, skip_generation, debug_symbols, provided_implementations, base_dir, provider)
+        compile_flow(url, args, dump, skip_generation, debug_symbols, provided_implementations, base_dir, provider, release)
             .expect("Could not compile flow");
     }
 
@@ -106,6 +107,10 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .short("s")
             .long("skip")
             .help("Skip manifest generation and running of flow"))
+        .arg(Arg::with_name("release")
+            .short("r")
+            .long("release")
+            .help("Build supplied and library implementations with release profile"))
         .arg(Arg::with_name("lib")
             .short("l")
             .long("lib")
@@ -146,7 +151,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 /*
     Parse the command line arguments
 */
-fn parse_args(matches: ArgMatches) -> Result<(bool, Url, Vec<String>, bool, bool, bool, bool, PathBuf)> {
+fn parse_args(matches: ArgMatches) -> Result<(bool, Url, Vec<String>, bool, bool, bool, bool, PathBuf, bool)> {
     let mut args: Vec<String> = vec!();
     if let Some(flow_args) = matches.values_of("flow_args") {
         args = flow_args.map(|a| a.to_string()).collect();
@@ -163,11 +168,12 @@ fn parse_args(matches: ArgMatches) -> Result<(bool, Url, Vec<String>, bool, bool
     let lib = matches.is_present("lib");
     let dump = matches.is_present("dump");
     let skip_generation = matches.is_present("skip");
+    let release = matches.is_present("release");
     let debug_symbols = matches.is_present("symbols");
     let provided_implementations = matches.is_present("provided");
     let out_dir_option = matches.value_of("OUTPUT_DIR");
     let output_dir = source_arg::get_output_dir(&url, out_dir_option)
         .chain_err(|| "Could not get or create the output directory")?;
 
-    Ok((lib, url, args, dump, skip_generation, debug_symbols, provided_implementations, output_dir))
+    Ok((lib, url, args, dump, skip_generation, debug_symbols, provided_implementations, output_dir, release))
 }
