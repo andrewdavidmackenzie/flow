@@ -151,32 +151,14 @@ test-hello-simple-online: ./target/debug/flowc
 	@echo "Hello" | cargo run --bin flowc -- https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 
 ################# Packaging ################
-package: package-flow_impl package-flowclib package-flowrlib package-flowc package-flowr
-
-package-flow_impl:
-	@echo "------- Started  packaging flow_impl --------------"
-	@cargo package --manifest-path flow_impl/Cargo.toml
-	@echo "------- Finished packaging flow_impl --------------"
-
-package-flowclib:
-	@echo "------- Started  packaging flowlibc --------------"
-	@cargo package --manifest-path flowclib/Cargo.toml
-	@echo "------- Finished packaging flowlibc --------------"
-
-package-flowrlib:
-	@echo "------- Started  packaging flowrlib --------------"
-	@cargo package --manifest-path flowrlib/Cargo.toml
-	@echo "------- Finished packaging flowrlib --------------"
-
-package-flowc:
-	@echo "------- Started  packaging flowc --------------"
-	@cargo package --manifest-path flowc/Cargo.toml
-	@echo "------- Finished packaging flowc --------------"
-
-package-flowr:
-	@echo "------- Started  packaging flowr --------------"
-	@cargo package --manifest-path flowr/Cargo.toml
-	@echo "------- Finished packaging flowr --------------"
+publish:
+	cargo publish --manifest-path=flow_impl/Cargo.toml
+	cargo publish --manifest-path=flow_impl/flow_impl_derive/Cargo.toml
+	cargo publish --manifest-path=flowrlib/Cargo.toml
+	cargo publish --manifest-path=provider/Cargo.toml
+	cargo publish --manifest-path=flowclib/Cargo.toml
+	cargo publish --manifest-path=flowc/Cargo.toml
+	cargo publish --manifest-path=flowr/Cargo.toml
 
 ################# Clean ################
 clean: clean-flowstdlib clean-samples clean-dumps clean-guide

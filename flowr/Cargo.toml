@@ -1,6 +1,6 @@
 [package]
 name = "flowr"
-version = "0.4.0"
+version = "0.8.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A runner for compiled 'flow' programs"
 license = "MIT"
@@ -19,9 +19,9 @@ debugger = []
 
 [dependencies]
 clap = "~2"
-flow_impl = { path = "../flow_impl", version = "~0.7.0" }
-flowrlib = { path = "../flowrlib", version = "~0.7.0" }
-provider = { path = "../provider", version = "~0.4.0" }
+flow_impl = { path = "../flow_impl", version = "~0.8.0" }
+flowrlib = { path = "../flowrlib", version = "~0.8.0" }
+provider = { path = "../provider", version = "~0.8.0" }
 simplog = "1.1.1"
 log = "0.4.6"
 url = "~1.6.0"
