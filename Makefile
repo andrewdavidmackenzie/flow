@@ -152,7 +152,7 @@ test-hello-simple-online: ./target/debug/flowc
 
 ################# Packaging ################
 publish:
-	cargo publish --manifest-path=flow_impl/Cargo.toml
+	cargo publish --manifest-path=flow_impl/Cargo.toml || true
 	cargo publish --manifest-path=flow_impl/flow_impl_derive/Cargo.toml
 	cargo publish --manifest-path=flowrlib/Cargo.toml
 	cargo publish --manifest-path=provider/Cargo.toml
