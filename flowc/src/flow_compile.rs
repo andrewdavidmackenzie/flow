@@ -29,11 +29,10 @@ use crate::errors::*;
 pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool,
                     provided_implementations: bool, out_dir: PathBuf, provider: &dyn Provider, release: bool)
                     -> Result<String> {
-    info!("==== Loader");
+    info!("==== Compiler phase: Loading flow");
     let context = loader::load_context(&url.to_string(), provider).expect("Couldn't load context");
     match context {
         FlowProcess(flow) => {
-            info!("flow loaded with alias '{}'", flow.alias);
             let mut tables = compile::compile(&flow).expect("Could not compile flow");
 
             if dump {

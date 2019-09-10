@@ -153,12 +153,12 @@ test-hello-simple-online: ./target/debug/flowc
 ################# Packaging ################
 publish:
 	cargo publish --manifest-path=flow_impl/Cargo.toml || true
-	cargo publish --manifest-path=flow_impl/flow_impl_derive/Cargo.toml
-	cargo publish --manifest-path=flowrlib/Cargo.toml
-	cargo publish --manifest-path=provider/Cargo.toml
-	cargo publish --manifest-path=flowclib/Cargo.toml
-	cargo publish --manifest-path=flowc/Cargo.toml
-	cargo publish --manifest-path=flowr/Cargo.toml
+	cargo publish --manifest-path=flow_impl/flow_impl_derive/Cargo.toml || true
+	cargo publish --manifest-path=flowrlib/Cargo.toml || true
+	cargo publish --manifest-path=provider/Cargo.toml || true
+	cargo publish --manifest-path=flowclib/Cargo.toml || true
+	cargo publish --manifest-path=flowc/Cargo.toml || true
+	cargo publish --manifest-path=flowr/Cargo.toml || true
 
 ################# Clean ################
 clean: clean-flowstdlib clean-samples clean-dumps clean-guide

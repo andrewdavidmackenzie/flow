@@ -289,8 +289,7 @@ impl Flow {
                         Ok(to_io) => {
                             debug!("Found connection destination:\n{:#?}", to_io);
                             if Connection::compatible_types(&from_io, &to_io) {
-                                debug!("Connection source and destination types match");
-                                info!("Connection built from '{}' to '{}'", from_io.route(), to_io.route());
+                                debug!("Connection built from '{}' to '{}'", from_io.route(), to_io.route());
                                 connection.from_io = from_io;
                                 connection.to_io = to_io;
                             } else {

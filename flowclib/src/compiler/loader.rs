@@ -81,8 +81,8 @@ fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &dyn Pr
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
 
     let deserializer = get_deserializer(&resolved_url)?;
-    info!("Deserializing process with alias = '{}' from url = '{}' with deserializer: '{}'",
-          alias, resolved_url, deserializer.name());
+    info!("Loading process with alias = '{}'", alias);
+    debug!("Loading from url = '{}' with deserializer: '{}'", resolved_url, deserializer.name());
     let mut process = deserializer.deserialize(&String::from_utf8(contents).unwrap(),
                                                Some(url))
         .chain_err(|| format!("Could not deserialize process from content in '{}'", url))?;
