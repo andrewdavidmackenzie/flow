@@ -151,7 +151,7 @@ test-hello-simple-online: ./target/debug/flowc
 	@echo "Hello" | cargo run --bin flowc -- https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 
 ################# Packaging ################
-package: package-flow_impl package-flowc package-flowr
+package: package-flow_impl package-flowclib package-flowrlib package-flowc package-flowr
 
 package-flow_impl:
 	@echo "------- Started  packaging flow_impl --------------"
@@ -160,7 +160,7 @@ package-flow_impl:
 
 package-flowclib:
 	@echo "------- Started  packaging flowlibc --------------"
-	@cargo package --manifest-path flowlibc/Cargo.toml
+	@cargo package --manifest-path flowclib/Cargo.toml
 	@echo "------- Finished packaging flowlibc --------------"
 
 package-flowrlib:
