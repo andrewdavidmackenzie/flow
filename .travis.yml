@@ -16,6 +16,11 @@ cache:
   directories:
     - ide/node_modules
 
+before_script:
+  - (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
+  - (test -x $HOME/.cargo/bin/mdbook || cargo install --vers "^0.3" mdbook)
+  - cargo install-update -a
+
 script: make all
 
 env:
@@ -28,7 +33,7 @@ deploy:
   provider: pages
   skip-cleanup: true
   github-token: $GITHUB_PAGES_TOKEN
-  local-dir: guide/book
+  local-dir: guide/book/html
   keep-history: false
   on:
     branch: master
