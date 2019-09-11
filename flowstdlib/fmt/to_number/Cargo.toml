@@ -16,7 +16,7 @@ opt-level = 's'
 
 [dependencies]
 flow_impl = { path = "../../../flow_impl"}
-flow_impl_derive = { path = "../../../flow_impl/flow_impl_derive" }
+flow_impl_derive = { path = "../../../flow_impl_derive" }
 serde_json = "1.0"
 
 [workspace]

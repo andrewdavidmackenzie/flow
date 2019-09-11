@@ -2,8 +2,8 @@
 name = "flow_impl_derive"
 description = "Definition of a derive macro for FlowImpl"
 license = "MIT"
-documentation = "https://github.com/andrewdavidmackenzie/flow_impl_derive/README.md"
-homepage = "https://github.com/andrewdavidmackenzie/flow_impl_derive/README.md"
+documentation = "https://github.com/andrewdavidmackenzie/flow/flow_impl_derive/README.md"
+homepage = "https://github.com/andrewdavidmackenzie/flow/flow_impl_derive/README.md"
 repository = "https://github.com/andrewdavidmackenzie/flow/"
 version = "0.8.1"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
