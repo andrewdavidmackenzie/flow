@@ -151,16 +151,14 @@ test-hello-simple-online: ./target/debug/flowc
 	@echo "Hello" | cargo run --bin flowc -- https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 
 ################# Packaging ################
-package: package-ide package-flowc
-
-package-flowc:
-	@echo ""
-	@echo "------- Started  packaging flowc --------------"
-	@cargo package --manifest-path flowc/Cargo.toml
-	@echo "------- Finished packaging flowc --------------"
-
-package-ide: ide_build
-	@cd ide && make package
+publish:
+	cargo publish --manifest-path=flow_impl/Cargo.toml || true
+	cargo publish --manifest-path=flow_impl/flow_impl_derive/Cargo.toml || true
+	cargo publish --manifest-path=flowrlib/Cargo.toml || true
+	cargo publish --manifest-path=provider/Cargo.toml || true
+	cargo publish --manifest-path=flowclib/Cargo.toml || true
+	cargo publish --manifest-path=flowc/Cargo.toml || true
+	cargo publish --manifest-path=flowr/Cargo.toml || true
 
 ################# Clean ################
 clean: clean-flowstdlib clean-samples clean-dumps clean-guide

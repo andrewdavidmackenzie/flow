@@ -12,7 +12,7 @@ readme = "https://github.com/andrewdavidmackenzie/flow/README.md"
 edition = "2018"
 
 [dependencies]
-flowrlib = { path = "../flowrlib", version = "~0.7.0" }
+flowrlib = { path = "../flowrlib", version = "~0.8.0" }
 log = {version = "0.4.6", features = ["std"]}
 error-chain = "0.12.1"
 

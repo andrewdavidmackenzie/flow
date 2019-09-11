@@ -71,7 +71,7 @@ impl From<&IO> for Input {
 
 pub fn create_manifest(flow: &Flow, debug_symbols: bool, out_dir: &str, tables: &GenerationTables)
                        -> Result<Manifest> {
-    info!("==== Generator: Writing manifest to '{}'", out_dir);
+    info!("Writing flow manifest to '{}'", out_dir);
 
     let mut manifest = Manifest::new(MetaData::from(flow));
 

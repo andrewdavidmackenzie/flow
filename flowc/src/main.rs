@@ -157,7 +157,7 @@ fn parse_args(matches: ArgMatches) -> Result<(bool, Url, Vec<String>, bool, bool
         args = flow_args.map(|a| a.to_string()).collect();
     }
 
-    SimpleLogger::init(matches.value_of("verbosity"));
+    SimpleLogger::init_prefix(matches.value_of("verbosity"), false);
 
     debug!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     debug!("'flowclib' version {}", info::version());
