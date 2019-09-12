@@ -63,8 +63,9 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool, rele
                 .expect("Error creating new TempDir for compiling in")
                 .into_path();
 
-            info!("Testing and Compiling '{}'", implementation_path.display());
+            info!("Testing '{}'", implementation_path.display());
             run_cargo_build(&cargo_path, &build_dir, true, false)?;
+            info!("Compiling '{}'", implementation_path.display());
             run_cargo_build(&cargo_path, &build_dir, false, release)?;
 
             // copy compiled wasm output into place where flow's toml file expects it

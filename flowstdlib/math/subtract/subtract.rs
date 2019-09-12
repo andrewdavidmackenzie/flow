@@ -11,8 +11,6 @@ use serde_json::Value::Number;
 #[derive(FlowImpl)]
 pub struct Subtract;
 
-// TODO implementation of `std::ops::Add` might be missing for `&serde_json::Number`
-
 impl Implementation for Subtract {
     fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let input_a = inputs.get(0).unwrap();
@@ -33,6 +31,6 @@ impl Implementation for Subtract {
             (_, _) => {}
         }
 
-        (value, true)
+        (value, RUN_AGAIN)
     }
 }
