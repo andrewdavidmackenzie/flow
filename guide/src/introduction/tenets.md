@@ -1,6 +1,6 @@
 ## Fundamental tenets of 'flow'?
 
-The 'tenets' of fundamental design principles of `flow` include:
+The 'tenets', or fundamental design principles, of `flow` include:
 
 * No Global shared memory
 * Processes have no side-effects (exception is IO processes which I'll describe later)
