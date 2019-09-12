@@ -10,3 +10,5 @@ Welcome to the guide to my pet project called `flow`
  Learn more about what it is and why I created it by reading the next (Introduction) section, 
  or dive right in and see if you can understand [Your First Flow](first_flow/first_flow.md)
  with zero previous knowledge and just your programmer's intuition.
+ 
+ You can view the projects main [README.md](README.md) also.
