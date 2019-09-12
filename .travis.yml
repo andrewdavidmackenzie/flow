@@ -7,6 +7,10 @@ os:
 - osx
 - linux
 
+branches:
+  only:
+    - "master"
+
 before_install:
 - make config
 - export PATH="$PATH:~/.cargo/bin"

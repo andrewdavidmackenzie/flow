@@ -38,19 +38,25 @@
     - [Standard Input and Output](running/stdio.md)
     - [Exceptions and Panics](running/panics.md)
 
-- [Test Samples](flowc/tests/samples/overview.md)
+- [Test Samples](flowc/tests/samples/README.md)
     - [hello-world](flowc/tests/samples/hello-world/hello-world.md)
     - [line-echo](flowc/tests/samples/line-echo/line-echo.md)
     - [primitives](flowc/tests/samples/primitives/primitives.md)
     - [print-args](flowc/tests/samples/print-args/print-args.md)
     - [range](flowc/tests/samples/range/range.md)
 
-- [Samples](samples/overview.md)
-    - [first sample](samples/first/DESCRIPTION.md)
+- [Samples](samples/README.md)
+    - [arrays sample](samples/arrays/DESCRIPTION.md)
     - [fibonacci sample](samples/fibonacci/DESCRIPTION.md)
-    - [hello-world-include sample](samples/hello-world-include/DESCRIPTION.md)
+    - [first sample](samples/first/DESCRIPTION.md)
     - [hello-world sample](samples/hello-world/DESCRIPTION.md)
-s
+    - [hello-world-include sample](samples/hello-world-include/DESCRIPTION.md)
+    - [mandlebrot-world sample](samples/mandlebrot/DESCRIPTION.md)
+    - [pipeline sample](samples/pipeline/DESCRIPTION.md)
+    - [prime sample](samples/prime/DESCRIPTION.md)
+    - [reverse-echo sample](samples/reverse-echo/DESCRIPTION.md)
+    - [router sample](samples/router/DESCRIPTION.md)
+
 - [The flow standard library](flowstdlib/flowstdlib.md)
     - [Control functions](flowstdlib/control/control.md)
         - [Tap function](flowstdlib/control/tap/tap.md)
@@ -67,7 +73,7 @@ s
         - [Subtract function](flowstdlib/math/subtract/subtract.md)
         - [Divide function](flowstdlib/math/divide/divide.md)
 
-- [The flow runtime library](runtime/runtime.md)
+- [The flow runtime library](runtime/README.md)
     - [Arg functions](runtime/args/args.md)
         - [Arg get function](runtime/args/get.md)
     - [File functions](runtime/file/file.md)
@@ -80,6 +86,7 @@ s
         
 - [Developing 'flow'](developing/overview.md)
     - [Pre-requisites](developing/prereqs.md)
+    - [Project Structure](developing/structure.md)
     - [Makefile targets](developing/make.md)
     - [Ways to contribute](developing/contributing.md)
         - [Issues](developing/issues.md)
@@ -91,12 +98,3 @@ s
     - [Flow Loading](internals/flow_loading.md)
     - [Flow Compiling](internals/flow_compiling.md)
     - [Flow Execution](internals/flow_execution.md)
-    
-    <!---
-        - [mandlebrot sample](samples/mandlebrot/DESCRIPTION.md)
-        - [prime sample](samples/prime/DESCRIPTION.md)
-        - [primitives sample](samples/primitives/DESCRIPTION.md)
-        - [range sample](samples/range/DESCRIPTION.md)
-        - [reverse-echo sample](samples/reverse-echo/DESCRIPTION.md)
-        - [router sample](samples/router/DESCRIPTION.md)
-    -->

@@ -4,3 +4,8 @@ Functions to interact with the Environment, related to standard input and output
 The values sent to these functions are read from standard input of the process that launched the flow
 causing the function to block until input (or EOF) is detected. Output is printed on the STDOUT/STDERR
 of the process invoking the flow.
+
+* [readline](readline.md)
+* [stderr](stderr.md)
+* [stdin](stdin.md)
+* [stdout](stdout.md)

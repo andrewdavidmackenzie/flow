@@ -2,3 +2,14 @@
 samples
 flowstdlib
 flowr
+flowrlib
+flowc
+flowclib
+/runtime/
+/provider/
+/nodeprovider/
+/ide-native/
+/ide/
+/flow_impl/
+/flow_impl_derive/
+/README.md
