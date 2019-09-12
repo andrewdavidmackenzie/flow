@@ -43,27 +43,10 @@ doc: copy-md-files
 ## Copy .md files (with same directory sturtcure) from samples and lib directories under guide 'src' directory
 copy-md-files:
 	@echo ""
-	@echo "------- Started copying Markdown files from 'samples', 'flowstdlib' and 'flowr' to 'guide/src' -------------"
-	@find samples -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
-	@find samples -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
-
-	@echo "------- Started copying Markdown files from 'flowstdlib' to 'guide/src' -------------"
-	@find flowstdlib -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
-	@find flowstdlib -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
-
-	@echo "------- Started copying Markdown files from 'runtime' to 'guide/src' -------------"
-	@find runtime -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
-	@find runtime -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
-
-	@echo "------- Started copying Markdown files from 'flowr' to 'guide/src' -------------"
-	@find flowr -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
-	@find flowr -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
-
-	@echo "------- Started copying Markdown files from 'flowc' to 'guide/src' -------------"
-	@find flowc -type f -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
-	@find flowc -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
-
-	@echo "------- Done    copying Markdown files from 'samples', 'flowstdlib' and 'flowr' to 'guide/src' -------------"
+	@echo "------- Started copying Markdown files to 'guide/src' -------------"
+	@find . -type f -not -path "./guide/*" -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
+	@find . -type f -not -path "./guide/*" -name \*.md -exec cp '{}' guide/src/'{}' ';'
+	@echo "------- Done    copying Markdown files to 'guide/src' -------------"
 
 .PHONY: deploy
 deploy: guide
