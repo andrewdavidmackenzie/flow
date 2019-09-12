@@ -18,7 +18,7 @@ impl Implementation for Divide {
 
         let output = json!({"dividend:": dividend, "divisor": divisor, "result": dividend/divisor, "remainder": dividend % divisor});
 
-        (Some(output), true)
+        (Some(output), RUN_AGAIN)
     }
 }
 

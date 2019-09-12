@@ -38,7 +38,7 @@ doc: copy-md-files
 	@echo "------- Started building book from Markdown into 'guide/book/html' -------------"
 	@mdbook build guide
 	@echo "------- Done    building book from Markdown into 'guide/book/html' -------------"
-	@cargo doc
+	@cargo doc --no-deps
 
 ## Copy .md files (with same directory sturtcure) from samples and lib directories under guide 'src' directory
 copy-md-files:
@@ -64,6 +64,17 @@ copy-md-files:
 	@find flowc -type f -name \*.md -exec cp '{}' guide/src/'{}' ';'
 
 	@echo "------- Done    copying Markdown files from 'samples', 'flowstdlib' and 'flowr' to 'guide/src' -------------"
+
+.PHONY: deploy
+deploy: guide
+	@echo "====> deploying guide to github"
+	git worktree add /tmp/book gh-pages
+	rm -rf /tmp/book/*
+	cp -rp guide/book/html/* /tmp/book/
+	cd /tmp/book && \
+		git add -A && \
+		git commit -m "deployed on $(shell date) by ${USER}" && \
+		git push origin gh-pages
 
 #################### Build ####################
 build: workspace ide_build ide_native_build
