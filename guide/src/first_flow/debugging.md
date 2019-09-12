@@ -43,7 +43,7 @@ If you want to follow what the runtime is doing in more detail, you can increase
 using the -v/--verbosity option.
 
 So, if you want to walk through each and every step of the flow's execution, similar to the previous [step by step section](step-by-step.md) 
-then you can do so by using `-v DEBUG` and piping the output to `more` (as there is a lot of output!) ```cargo run -- -l DEBUG | more```
+then you can do so by using `-v DEBUG` and piping the output to `more` (as there is a lot of output!) ```cargo run -- -v DEBUG | more```
 
 which should produce output similar to this:
 
