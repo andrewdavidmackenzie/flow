@@ -3,9 +3,10 @@ title = "The `flow` Guide"
 authors = ["Andrew Mackenzie"]
 description = "A guide to what 'flow' is and how to use it"
 multilingual = false
+src = "guide"
 
 [build]
-build-dir = "book"
+build-dir = "guide.build"
 create-missing = false
 
 [output.html]

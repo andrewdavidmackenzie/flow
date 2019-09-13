@@ -35,26 +35,26 @@ config-linux:
 ################### Doc ####################
 doc: copy-md-files
 	@echo ""
-	@echo "------- Started building book from Markdown into 'guide/book/html' -------------"
-	@mdbook build guide
-	@echo "------- Done    building book from Markdown into 'guide/book/html' -------------"
+	@echo "------- Started building book from Markdown into 'docs/guide.build/html' -------------"
+	@mdbook build docs
+	@echo "------- Done    building book from Markdown into 'docs/guide.build/html' -------------"
 	@cargo doc --no-deps
 
 ## Copy .md files (with same directory sturtcure) from samples and lib directories under guide 'src' directory
 copy-md-files:
 	@echo ""
-	@echo "------- Started copying Markdown files to 'guide/src' -------------"
-	@find . -type f -not -path "./guide/*" -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
-	@find . -type f -not -path "./guide/*" -name \*.md -exec cp '{}' guide/src/'{}' ';'
-	@echo "------- Done    copying Markdown files to 'guide/src' -------------"
+	@echo "------- Started copying Markdown files to 'docs/guide' -------------"
+	@find . -type f -not -path "./docs/*" -name \*.md -exec dirname '{}' ';' | xargs printf 'docs/guide/%s\n' | xargs mkdir -p
+	@find . -type f -not -path "./docs/*" -name \*.md -exec cp '{}' docs/guide/'{}' ';'
+	@echo "------- Done    copying Markdown files to 'docs/guide' -------------"
 
 .PHONY: deploy
-deploy: guide
+deploy: docs/guide
 	@echo "====> deploying guide to github"
-	git worktree add /tmp/book gh-pages
-	rm -rf /tmp/book/*
-	cp -rp guide/book/html/* /tmp/book/
-	cd /tmp/book && \
+	git worktree add /tmp/guide gh-pages
+	rm -rf /tmp/guide/*
+	cp -rp docs/guide.build/html/* /tmp/guide/
+	cd /tmp/guide && \
 		git add -A && \
 		git commit -m "deployed on $(shell date) by ${USER}" && \
 		git push origin gh-pages
