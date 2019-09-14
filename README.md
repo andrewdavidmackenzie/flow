@@ -48,11 +48,13 @@ The [first flow](http://andrewdavidmackenzie.github.io/flow/first_flow/first_flo
 what that sample does and walks you through it.
 
 ## Make docs or guide changes
-As all "guide" content must be under the `guide/src` folder, I currently have a make target to copy markdown files 
-across from other folder (preserving directory structure and relative links between them) under `guide/src`. 
-So, if you make changes to markdown docs, or the guide's `Summary.md` index file, then best to 
-run `make guide` (`make travis` depends on this target so it is done for you) before pushing and sending your PR. 
-I need to fix the Github Pages deploy of the guide that is built with `mdbook`.
+As all "guide" content must be under the `docs` folder, I currently have a make target to copy markdown files 
+across from other folders (preserving directory structure and relative links between them) under `docs`. 
+So, if you make changes to markdown docs, or the guide's `SUMMARY.md` index file, then best to 
+run `make doc` (`make travis` depends on this target so it is done for you) before pushing and sending your PR. 
+
+After a PR is merged, and the build of the modifed `master` branch succeeds, the guide is rebuilt with `mdbook` and
+ the resulting html is deployed to Github Pages, which can be viewed [here](http://andrewdavidmackenzie.github.io/flow/)
 
 ## License
 
@@ -64,4 +66,4 @@ The Project is structured into a number of sub-folders, many of which aare also 
 `Cargo.toml` file. There is a "workspace manifest" `Cargo.toml` in the root that includes many of them, but not
 all.
 
-see the [Structure section](guide/src/developing/structure.md) of the Guide.
+see the [Structure section](docs/developing/structure.md) of the Guide.

@@ -1,6 +1,6 @@
 # Welcome!
 
-Welcome to the guide to my pet project called `flow`
+Welcome to the guide to my project called `flow`
 
 `flow` is a system for defining and running parallel, data-dependency-driven 'programs'.
  
@@ -11,4 +11,4 @@ Welcome to the guide to my pet project called `flow`
  or dive right in and see if you can understand [Your First Flow](first_flow/first_flow.md)
  with zero previous knowledge and just your programmer's intuition.
  
- You can view the projects main [README.md](README.md) also.
+ You can view the projects main [README.md](../README.md) also.

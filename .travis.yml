@@ -37,7 +37,7 @@ deploy:
   provider: pages
   skip-cleanup: true
   github-token: $GITHUB_PAGES_TOKEN
-  local-dir: docs/guide.build/html
+  local-dir: target/guide/html
   keep-history: false
   on:
     branch: master

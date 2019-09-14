@@ -33,27 +33,19 @@ config-linux:
 	brew install fakeroot
 
 ################### Doc ####################
-doc: copy-md-files
+doc:
 	@echo ""
-	@echo "------- Started building book from Markdown into 'docs/guide.build/html' -------------"
-	@mdbook build docs
-	@echo "------- Done    building book from Markdown into 'docs/guide.build/html' -------------"
+	@echo "------- Building guide mdbook from Markdown -------------"
+	@mdbook build
+	@echo "------- Building code docs -------------"
 	@cargo doc --no-deps
-
-## Copy .md files (with same directory sturtcure) from samples and lib directories under guide 'src' directory
-copy-md-files:
-	@echo ""
-	@echo "------- Started copying Markdown files to 'docs/guide' -------------"
-	@find . -type f -not -path "./docs/*" -name \*.md -exec dirname '{}' ';' | xargs printf 'docs/guide/%s\n' | xargs mkdir -p
-	@find . -type f -not -path "./docs/*" -name \*.md -exec cp '{}' docs/guide/'{}' ';'
-	@echo "------- Done    copying Markdown files to 'docs/guide' -------------"
 
 .PHONY: deploy
 deploy: docs/guide
 	@echo "====> deploying guide to github"
 	git worktree add /tmp/guide gh-pages
 	rm -rf /tmp/guide/*
-	cp -rp docs/guide.build/html/* /tmp/guide/
+	cp -rp target/guide/html/* /tmp/guide/
 	cd /tmp/guide && \
 		git add -A && \
 		git commit -m "deployed on $(shell date) by ${USER}" && \
@@ -85,7 +77,7 @@ ide_native_build:
 	@cd ide-native && make build
 
 #################### Tests ####################
-test: test-workspace test-ide samples
+test: test-workspace test-ide samples book-test
 # TODO add online-samples
 	@echo ""
 	@echo "------- Done    test: -------------"
@@ -98,6 +90,9 @@ test-workspace:
 
 test-ide:
 	@cd ide && make test
+
+book-test:
+	@mdbook test
 
 #################### LIBRARIES ####################
 flowstdlib/manifest.json: flowcompiler
