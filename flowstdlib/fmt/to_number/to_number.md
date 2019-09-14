@@ -2,7 +2,7 @@
 Convert a String to a number
 
 #### Include using
-```
+```toml
 [[process]]
 alias = "to_number"
 source = "lib://flowstdlib/fmt/to_number"

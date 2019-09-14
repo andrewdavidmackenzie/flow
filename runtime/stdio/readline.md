@@ -6,7 +6,7 @@ The function will be scheduled for running again, until EOF is detected, after w
 again.
 
 #### Include using
-```
+```toml
 [[process]]
 alias = "readline"
 source = "lib://runtime/stdio/readline"

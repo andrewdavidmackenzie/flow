@@ -2,7 +2,7 @@
 Control the flow of data (flow or disapear it) based on a boolean control value.
 
 #### Include using
-```
+```toml
 [[process]]
 alias = "tap"
 source = "lib://flowstdlib/control/tap"

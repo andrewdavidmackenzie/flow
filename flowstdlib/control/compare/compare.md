@@ -3,7 +3,7 @@ Compare two input values and output different boolean values depending on if the
 is equal, greater than, greater than or equal, less than or less than or equal.
 
 #### Include using
-```
+```toml
 [[process]]
 alias = "compare"
 source = "lib://flowstdlib/control/compare"

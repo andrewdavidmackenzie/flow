@@ -2,7 +2,7 @@
 Subtract one input from another to produce a new output
 
 #### Include using
-```
+```toml
 [[process]]
 alias = "subtract"
 source = "lib://flowstdlib/math/subtract"

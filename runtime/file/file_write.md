@@ -2,7 +2,7 @@
 Writes `bytes` of data supplied to the file named `filename`, creating it if necessary.
 
 #### Include using
-```
+```toml
 [[process]]
 alias = "write"
 source = "lib://runtime/file/write"

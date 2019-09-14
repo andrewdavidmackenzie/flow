@@ -9,7 +9,7 @@ This section describes command line arguments that can be supplied to `flowc` an
 Use `-h, --help` (e.g. `flowc -h` or `cargo run flowc -h`) to print out help for the usage of `flowc`. 
 
 This will print something like this:
-``` 
+```shell script 
 flowc 0.4.0
 
 USAGE:

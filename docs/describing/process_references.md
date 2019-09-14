@@ -55,7 +55,7 @@ For example, if I define `FLOW_LIB_PATH` thus:
 * `FLOW_LIB_PATH=/Users/me/workspace/flow`
 
 And my flow references a process thus:
-```
+```toml
 [[process]]
 alias = "stdin"
 source = "lib://runtime/stdio/stdin"

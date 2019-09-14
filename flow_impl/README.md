@@ -18,7 +18,7 @@ native/wasm boundary.
 An example implementation using both of these (the trait and the
 derive macro) is shown:
 
-```
+```rust
 extern crate core;
 extern crate flow_impl;
 extern crate flow_impl_derive;
