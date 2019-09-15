@@ -36,7 +36,7 @@ config-linux:
 doc:
 	@echo ""
 	@echo "------- Building guide mdbook from Markdown -------------"
-	@mdbook build
+	@../mdbook/target/debug/mdbook build
 	@echo "------- Building code docs -------------"
 	@cargo doc --no-deps
 
@@ -92,7 +92,7 @@ test-ide:
 	@cd ide && make test
 
 book-test:
-	@mdbook test
+	@../mdbook/target/debug/mdbook test -L target/debug/deps/flow-impl
 
 #################### LIBRARIES ####################
 flowstdlib/manifest.json: flowcompiler
