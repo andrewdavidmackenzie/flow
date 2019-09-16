@@ -33,12 +33,32 @@ config-linux:
 	brew install fakeroot
 
 ################### Doc ####################
-doc:
-	@echo ""
-	@echo "------- Building guide mdbook from Markdown -------------"
-	@../mdbook/target/debug/mdbook build
+doc: build-guide clean-guide code-docs
+
+code-docs:
 	@echo "------- Building code docs -------------"
 	@cargo doc --no-deps
+
+build-guide:
+	@echo "------- Building guide mdbook from Markdown -------------"
+	@../mdbook/target/debug/mdbook build
+
+clean-guide:
+	@rm -rf target/html/nodeprovider/target
+	@rm -rf target/html/ide/target
+	@rm -rf target/html/flowrlib/target
+	@rm -rf target/html/flowstdlib/target
+	@rm -rf target/html/samples/mandlebrot/project/target
+	@rm -rf target/html/ide-native/target
+	@rm -rf target/html/flowclib/target
+	@find target/html -name node_modules | xargs rm -rf {}
+	@find target/html -name .idea | xargs rm -rf {}
+	@find target/html -name .git | xargs rm -rf {}
+	@find target/html -name assets | xargs rm -rf {}
+	@find target/html -name \*.rs | xargs rm -rf {}
+	@find target/html -name pkg | xargs rm -rf {}
+	@find target/html -name \*.dump | xargs rm -rf {}
+	@find target/html -name \*.dot | xargs rm -rf {}
 
 .PHONY: deploy
 deploy: docs/guide
