@@ -92,7 +92,7 @@ test-ide:
 	@cd ide && make test
 
 book-test:
-	@../mdbook/target/debug/mdbook test -L target/debug/deps/flow-impl
+	@../mdbook/target/debug/mdbook test
 
 #################### LIBRARIES ####################
 flowstdlib/manifest.json: flowcompiler
