@@ -12,18 +12,15 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 /// Any 'implementation' of a function must implement this trait
 ///
 /// Example implementation of this trait:
-///
+/// ```
 /// extern crate core;
 /// extern crate flow_impl;
-/// extern crate flow_impl_derive;
 /// #[macro_use]
 /// extern crate serde_json;
 ///
 /// use flow_impl::implementation::{Implementation, RUN_AGAIN, RunAgain};
-/// use flow_impl_derive::FlowImpl;
 /// use serde_json::Value;
 ///
-/// #[derive(FlowImpl)]
 /// pub struct Compare;
 ///
 /// /*
@@ -33,6 +30,7 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 ///     fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
 ///         let left = inputs[0].remove(0).as_i64().unwrap();
 ///         let right = inputs[1].remove(0).as_i64().unwrap();
+///
 ///         let output = json!({
 ///                     "equal" : left == right,
 ///                     "lt" : left < right,
@@ -40,12 +38,14 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 ///                     "lte" : left <= right,
 ///                     "gte" : left >= right
 ///                 });
+///
 ///         (None, RUN_AGAIN)
 ///     }
 /// }
 ///
 /// # fn main() {
 /// # }
+/// ```
 pub trait Implementation : RefUnwindSafe + UnwindSafe + Sync + Send {
     fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain);
 }
