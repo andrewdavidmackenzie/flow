@@ -41,7 +41,7 @@ code-docs:
 
 build-guide:
 	@echo "------- Building guide mdbook from Markdown -------------"
-	@../mdbook/target/debug/mdbook build
+	@mdbook build
 
 clean-guide:
 	@rm -rf target/html/nodeprovider/target
