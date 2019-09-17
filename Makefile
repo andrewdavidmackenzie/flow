@@ -21,7 +21,7 @@ config:
 	cargo install wasm-bindgen-cli || true
 	cargo install wasm-gc || true
 	# install mdbook for generating guides
-	cargo install mdbook || true
+	cargo install mdbook --git https://github.com/andrewdavidmackenzie/mdbook || true
 	cargo install mdbook-linkcheck || true
 	# install wasm-pack
 	curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
@@ -112,7 +112,7 @@ test-ide:
 	@cd ide && make test
 
 book-test:
-	@../mdbook/target/debug/mdbook test
+	@mdbook test
 
 #################### LIBRARIES ####################
 flowstdlib/manifest.json: flowcompiler
