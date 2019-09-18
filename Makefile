@@ -33,7 +33,7 @@ config-linux:
 	brew install fakeroot
 
 ################### Doc ####################
-doc: build-guide clean-guide code-docs
+doc: build-guide trim-guide code-docs
 
 code-docs:
 	@echo "------- Building code docs -------------"
@@ -43,7 +43,7 @@ build-guide:
 	@echo "------- Building guide mdbook from Markdown -------------"
 	@RUST_LOG=debug mdbook build
 
-clean-guide:
+trim-guide:
 	@rm -rf target/html/nodeprovider/target
 	@rm -rf target/html/ide/target
 	@rm -rf target/html/flowrlib/target
@@ -59,6 +59,8 @@ clean-guide:
 	@find target/html -name pkg | xargs rm -rf {}
 	@find target/html -name \*.dump | xargs rm -rf {}
 	@find target/html -name \*.dot | xargs rm -rf {}
+	@find target/html -name \*.wasm | xargs rm -rf {}
+	@find target/html -name \*.lock  | xargs rm -rf {}
 
 .PHONY: deploy
 deploy: docs/guide
