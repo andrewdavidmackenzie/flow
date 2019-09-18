@@ -33,7 +33,7 @@ config-linux:
 	brew install fakeroot
 
 ################### Doc ####################
-doc: build-guide trim-guide code-docs
+doc: clean build-guide trim-guide code-docs
 
 code-docs:
 	@echo "------- Building code docs -------------"
@@ -41,7 +41,6 @@ code-docs:
 
 build-guide:
 	@echo "------- Building guide mdbook from Markdown -------------"
-	@cargo clean
 	@RUST_LOG=debug mdbook build
 
 trim-guide:
