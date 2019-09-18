@@ -100,7 +100,7 @@ ide_native_build:
 	@cd ide-native && make build
 
 #################### Tests ####################
-test: test-workspace test-ide samples book-test
+test: test-workspace test-ide samples #book-test
 # TODO add online-samples
 	@echo ""
 	@echo "------- Done    test: -------------"
