@@ -112,7 +112,7 @@ test-ide:
 	@cd ide && make test
 
 book-test:
-	@RUST_LOG=info mdbook test
+	@RUST_LOG=debug mdbook test
 
 #################### LIBRARIES ####################
 flowstdlib/manifest.json: flowcompiler

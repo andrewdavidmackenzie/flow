@@ -25,7 +25,7 @@ before_script:
   - (test -x $HOME/.cargo/bin/mdbook || cargo install --vers "^0.3" mdbook)
   - cargo install-update -a
 
-script: travis_wait 40 make all
+script: make all
 
 env:
   global:
