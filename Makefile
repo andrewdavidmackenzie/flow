@@ -41,7 +41,7 @@ code-docs:
 
 build-guide:
 	@echo "------- Building guide mdbook from Markdown -------------"
-	@RUST_LOG=info mdbook build
+	@RUST_LOG=debug mdbook build
 
 clean-guide:
 	@rm -rf target/html/nodeprovider/target
