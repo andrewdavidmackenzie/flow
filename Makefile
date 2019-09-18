@@ -41,6 +41,7 @@ code-docs:
 
 build-guide:
 	@echo "------- Building guide mdbook from Markdown -------------"
+	@cargo clean
 	@RUST_LOG=debug mdbook build
 
 trim-guide:
