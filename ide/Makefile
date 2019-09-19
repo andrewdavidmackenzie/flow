@@ -64,4 +64,4 @@ installer-debian: package-debian
 
 clean:
 	@cargo clean
-	@rm -rf pkg target Cargo.lock .bin package-lock.json installers release-builds
+	@rm -rf pkg target Cargo.lock .bin package-lock.json installers release-builds node_modules

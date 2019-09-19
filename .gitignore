@@ -1,10 +1,8 @@
-**/out
-**/target
-ui-target
 .idea
+**/target
 *.iml
-*.dot
-**.dump
+**/*.dot
+**/*.dump
 dependencies.png
 failed.output
 target

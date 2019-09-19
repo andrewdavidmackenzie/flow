@@ -35,10 +35,6 @@ config-linux:
 ################### Doc ####################
 doc: clean build-guide trim-guide code-docs
 
-code-docs:
-	@echo "------- Building code docs -------------"
-	@cargo doc --no-deps
-
 build-guide:
 	@echo "------- Building guide mdbook from Markdown -------------"
 	@RUST_LOG=debug mdbook build
@@ -61,6 +57,10 @@ trim-guide:
 	@find target/html -name \*.dot | xargs rm -rf {}
 	@find target/html -name \*.wasm | xargs rm -rf {}
 	@find target/html -name \*.lock  | xargs rm -rf {}
+
+code-docs:
+	@echo "------- Building code docs -------------"
+	@cargo doc --no-deps
 
 .PHONY: deploy
 deploy: docs/guide
