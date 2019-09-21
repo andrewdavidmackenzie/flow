@@ -10,7 +10,7 @@ examples then jump to [The 'flow' Guide](http://andrewdavidmackenzie.github.io/f
 
 You need [Git](https://git-scm.com) to clone the repo.
 
-You need 'make' and a rust toolchain (rustup, cargo, rustc) to build from source.
+You need `make` and a rust toolchain (rustup, cargo, rustc) to build from source.
 
 There is a make target `config` to install pre-requisites, so try `make config`.
 
@@ -18,7 +18,7 @@ Some crates depend on `open-ssl` and so you may need to install SSL Development 
 to be able to compile them. This was fixed with `sudo apt install libssl-dev` on Linux boxes (Raspberry Pi)
 where I found the problem. Seems that `brew install openssl` should do it for Mac.
 
-The 'ide' module requires:
+The `ide` module requires:
 * [wasm-bindgen] [Node.js](https://nodejs.org/en/download/) (which comes with [npm](http://npmjs.com))
 * 'wasm-bindgen' install with `cargo install wasm-bindgen`
 
@@ -31,14 +31,17 @@ With pre-requisites installed, from your command line:
 git clone https://github.com/andrewdavidmackenzie/flow.git
 # Go into the repository directory
 cd flow
-# Build and test, including running supplied samples and checking their output is correct
-make travis
+# Build and test, including running supplied samples and checking their output is correct (don't build and test docs)
+make
 ```
+
+To run locally the same make target as is used in travis-ci use `make travis` this also builds and tests
+the `guide` using mdbook and generates code docs and runs doc tests.
 
 ## Run a 'flow'
 Run the [first flow](http://andrewdavidmackenzie.github.io/flow/first_flow/first_flow.html) sample flow using:
 
-```cargo run --bin flowc -- samples/first```
+```cargo run -p flowc -- samples/first```
 
 You should get a series of numbers output to the terminal, 
 followed by an "ERROR" on a panic, that is caused by integer overflow 
