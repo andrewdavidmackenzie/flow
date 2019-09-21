@@ -27,6 +27,7 @@ config:
 	cargo install wasm-bindgen-cli || true
 	cargo install wasm-gc || true
 	# install mdbook for generating guides
+	cargo uninstall mdbook
 	cargo install mdbook --git https://github.com/andrewdavidmackenzie/mdbook || true
 	cargo install mdbook-linkcheck || true
 	# install wasm-pack
