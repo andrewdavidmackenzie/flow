@@ -3,6 +3,7 @@ Makefile
 **/Cargo.lock
 **/Cargo.toml
 **/node_modules
+**/.git
 book.toml
 *.toml?
 **/*.rs

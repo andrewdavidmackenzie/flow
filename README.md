@@ -1,13 +1,24 @@
 [![Build Status](https://travis-ci.org/andrewdavidmackenzie/flow.svg?branch=master)](https://travis-ci.org/andrewdavidmackenzie/flow)
 
-# Flow
-Flow is a library and cli for the creation and execution of parallel, asynchronous, data-driven programs.
+# Welcome!
+Welcome to my project called `flow` for defining and running parallel, data-dependency-driven 'programs'.
 
-To learn more about the project, the ideas behind it, it's components, how to use it and see some 
-examples then jump to [The 'flow' Guide](http://andrewdavidmackenzie.github.io/flow/)
+It currently consists of libraries for compiling (`flowclib`) and running (`flowrlib`) flows as 
+well as command line binaries (`flowc` and `flowr`) that use the libraries. 
+
+Those libraries do not interact with the host system and can be compiled to WebAssembly for other types of applications, such as experiments I have started (`ide` and `ide-native`) on using them to create a type of IDE for flows.
+ 
+ The project is in its early stages and the current implementation is being used by me as a way
+ to clarify my ideas and also as a way to continue to learn rust.
+ 
+ Learn more about what it is and why I created it by reading the [Introduction section](docs/introduction/introduction.md), 
+ or dive right in and see if you can understand [Your First Flow](docs/first_flow/first_flow.md)
+ with zero previous knowledge and just your programmer's intuition.
+ 
+These docs form part of the ['flow' Guide](http://andrewdavidmackenzie.github.io/flow/) published on GitHub.io using gh-pages
+which you can read.
 
 ## Pre-requisites
-
 You need [Git](https://git-scm.com) to clone the repo.
 
 You need `make` and a rust toolchain (rustup, cargo, rustc) to build from source.
@@ -31,12 +42,9 @@ With pre-requisites installed, from your command line:
 git clone https://github.com/andrewdavidmackenzie/flow.git
 # Go into the repository directory
 cd flow
-# Build and test, including running supplied samples and checking their output is correct (don't build and test docs)
+# Build and test, including building and testing docs and guide and running supplied samples and checking their output is correct
 make
 ```
-
-To run locally the same make target as is used in travis-ci use `make travis` this also builds and tests
-the `guide` using mdbook and generates code docs and runs doc tests.
 
 ## Run a 'flow'
 Run the [first flow](http://andrewdavidmackenzie.github.io/flow/first_flow/first_flow.html) sample flow using:

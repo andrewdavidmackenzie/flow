@@ -7,6 +7,12 @@ all: build test doc
 	@echo "************* Done all: **************"
 	@echo "**************************************"
 
+travis: build test clean doc
+	@echo ""
+	@echo "*****************************************"
+	@echo "************* Done travis: **************"
+	@echo "*****************************************"
+
 online := false
 
 ifeq ($(online),true)
@@ -33,7 +39,7 @@ config-linux:
 	brew install fakeroot
 
 ################### Doc ####################
-doc: clean build-guide trim-guide code-docs
+doc: build-guide trim-guide code-docs
 
 build-guide:
 	@echo "------- Building guide mdbook from Markdown -------------"

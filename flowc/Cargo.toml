@@ -25,7 +25,7 @@ flowclib = { path = "../flowclib", version = "~0.8.0" }
 flowrlib = { path = "../flowrlib", version = "~0.8.0" }
 provider = { path = "../provider", version = "~0.8.0" }
 flowr = { path = "../flowr" , version = "~0.8.0" }
-simplog = "~1.2"
+simplog = { path  = "../../simplog", version = "~1.3" }
 log = "0.4.6"
 url = "~1.6.0"
 tempdir = "~0.3.5"
