@@ -19,7 +19,7 @@ debugger = []
 
 [dependencies]
 clap = "~2"
-flow_impl = { path = "../flow_impl", version = "~0.8.0" }
+flow_impl = "~0.8.0"
 flowrlib = { path = "../flowrlib", version = "~0.8.0" }
 provider = { path = "../provider", version = "~0.8.0" }
 simplog = "~1.2"
