@@ -38,7 +38,7 @@ doc: build-guide trim-guide code-docs
 
 build-guide:
 	@echo "------- Building guide mdbook from Markdown -------------"
-	@RUST_LOG=debug mdbook build
+	@RUST_LOG=info mdbook build
 
 trim-guide:
 	@rm -rf target/html/nodeprovider/target
@@ -115,7 +115,7 @@ test-ide:
 	@cd ide && make test
 
 book-test:
-	@RUST_LOG=debug mdbook test
+	@RUST_LOG=info mdbook test
 
 #################### LIBRARIES ####################
 flowstdlib/manifest.json: flowcompiler
