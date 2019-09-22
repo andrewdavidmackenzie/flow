@@ -1,7 +1,6 @@
 extern crate clap;
 #[macro_use]
 extern crate error_chain;
-extern crate flow_impl;
 extern crate flowrlib;
 #[macro_use]
 extern crate log;

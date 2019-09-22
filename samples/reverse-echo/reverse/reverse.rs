@@ -1,11 +1,11 @@
 extern crate core;
-extern crate flow_impl;
 extern crate flow_impl_derive;
+extern crate flowrlib;
 #[macro_use]
 extern crate serde_json;
 
-use flow_impl::implementation::Implementation;
 use flow_impl_derive::FlowImpl;
+use flowrlib::implementation::Implementation;
 use serde_json::Value;
 use serde_json::Value::String as JsonString;
 

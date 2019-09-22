@@ -1,4 +1,3 @@
-extern crate flow_impl;
 extern crate flowrlib;
 extern crate provider;
 extern crate serde_json;
@@ -11,8 +10,8 @@ use std::sync::Arc;
 use serde_json::Value;
 use url::Url;
 
-use flow_impl::implementation::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use flowrlib::function::Function;
+use flowrlib::implementation::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use flowrlib::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowrlib::loader::Loader;
 use flowrlib::manifest::{Manifest, MetaData};

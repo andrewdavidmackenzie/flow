@@ -87,7 +87,6 @@
 - [Developing 'flow'](docs/developing/overview.md)
     - [Pre-requisites](docs/developing/prereqs.md)
     - [Project Structure](docs/developing/structure.md)
-        - [flow_impl](flow_impl/README.md)
         - [flow_impl_derive](flow_impl_derive/README.md)
         - [flowc](flowc/README.md)
         - [flowclib](flowclib/README.md)

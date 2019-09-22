@@ -4,8 +4,7 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
-use flow_impl::implementation::{Implementation, RunAgain};
-
+use crate::implementation::{Implementation, RunAgain};
 use crate::input::Input;
 
 #[derive(Deserialize, Serialize)]

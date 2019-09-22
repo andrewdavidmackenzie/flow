@@ -1,10 +1,10 @@
 extern crate core;
-extern crate flow_impl;
 extern crate flow_impl_derive;
+extern crate flowrlib;
 extern crate serde_json;
 
-use flow_impl::implementation::{Implementation, RUN_AGAIN, RunAgain};
 use flow_impl_derive::FlowImpl;
+use flowrlib::implementation::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
 #[derive(FlowImpl)]

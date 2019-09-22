@@ -26,15 +26,15 @@ debugger = []
 logging = []
 
 [dependencies]
-flow_impl = "~0.8.0"
 multimap = "~0.5"
 log = "0.4.6"
 serde_derive = "~1.0.27"
 serde = "~1.0.27"
 serde_json = "1.0"
 error-chain = "0.12.1"
+# A std::Instant compatible crate that also supports wasm
 instant = { version = "0.1", features = [ "now", "wasm-bindgen" ] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-# A std::Instant compatible crate that also supports wasm
 wasmi = { git = "https://github.com/andrewdavidmackenzie/wasmi" }
+#wasmi = "0.5.1"

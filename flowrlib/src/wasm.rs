@@ -10,9 +10,8 @@ use serde_json::Value;
 use wasmi::{ExternVal, ImportsBuilder, MemoryRef, Module, ModuleInstance, ModuleRef,
             NopExternals, RuntimeValue, Signature, ValueType};
 
-use flow_impl::implementation::{Implementation, RunAgain};
-
 use crate::errors::*;
+use crate::implementation::{Implementation, RunAgain};
 use crate::provider::Provider;
 
 #[cfg(not(target_arch = "wasm32"))]

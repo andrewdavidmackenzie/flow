@@ -2,7 +2,7 @@ use std::env;
 
 use serde_json::Value;
 
-use flow_impl::implementation::{DONT_RUN_AGAIN, Implementation, RunAgain};
+use flowrlib::implementation::{DONT_RUN_AGAIN, Implementation, RunAgain};
 
 use super::super::FLOW_ARGS_NAME;
 
@@ -27,8 +27,8 @@ impl Implementation for Get {
 mod test {
     use std::env;
 
-    use flow_impl::implementation::DONT_RUN_AGAIN;
-    use flow_impl::implementation::Implementation;
+    use flowrlib::implementation::DONT_RUN_AGAIN;
+    use flowrlib::implementation::Implementation;
 
     use super::Get;
     use super::super::super::FLOW_ARGS_NAME;

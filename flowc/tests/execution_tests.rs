@@ -73,7 +73,7 @@ fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: PathBuf, test_name:
     Ok(filename)
 }
 
-fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>, input: String) -> String {
+fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>, input: String) -> Result<String> {
     let mut command = Command::new("cargo");
     let mut command_args = vec!("run", "-p", "flowr", "--", filepath.to_str().unwrap(),
                                 "-j", "1", "-t", "0", "--");
@@ -88,16 +88,16 @@ fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>, inp
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .spawn().unwrap();
+        .spawn()?;
 
     // send it stdin from the "testname.stdin" file
-    write!(child.stdin.unwrap(), "{}", input).unwrap();
+    write!(child.stdin.unwrap(), "{}", input)?;
 
     // read stdout
     let mut output = String::new();
     if let Some(ref mut stdout) = child.stdout {
         for line in BufReader::new(stdout).lines() {
-            output.push_str(&format!("{}\n", &line.unwrap()));
+            output.push_str(&format!("{}\n", &line?));
         }
     }
 
@@ -105,12 +105,12 @@ fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>, inp
     let mut err = String::new();
     if let Some(ref mut stderr) = child.stderr {
         for line in BufReader::new(stderr).lines() {
-            err.push_str(&format!("{}\n", &line.unwrap()));
+            err.push_str(&format!("{}\n", &line?));
         }
     }
     println!("stderr = '{}'", err);
 
-    output
+    Ok(output)
 }
 
 fn test_args(test_dir: &PathBuf, test_name: &str) -> Vec<String> {
@@ -157,13 +157,19 @@ fn execute_test(test_name: &str) {
         let out_dir = test_dir.clone();
         let manifest_path = write_manifest(flow, true, out_dir,
                                            test_name, &tables).unwrap();
-
         let test_args = test_args(&test_dir, test_name);
         let input = get(&test_dir, &format!("{}.stdin", test_name));
-        let actual_output = execute_flow(run_dir, manifest_path, test_args, input);
-        let expected_output = get(&test_dir, &format!("{}.expected", test_name));
-        println!("actual_output = '{}'", actual_output);
-        assert_eq!(expected_output, actual_output, "Flow output did not match that in .expected file");
+        let result = execute_flow(run_dir, manifest_path, test_args, input);
+        match result {
+            Ok(actual_output) => {
+                println!("actual_output = '{}'", actual_output);
+                let expected_output = get(&test_dir, &format!("{}.expected", test_name));
+                assert_eq!(expected_output, actual_output, "Flow output did not match that in .expected file");
+            },
+            Err(e) => {
+                panic!("Failed to execute test. Error = '{}'", e);
+            }
+        }
     }
 }
 

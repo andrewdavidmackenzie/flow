@@ -77,7 +77,7 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool, rele
             }
             wasm_source.push(&wasm_destination.file_name().ok_or("Could not convert filename to str")?);
             let msg = format!("Copying built wasm from '{}' to '{}'", &wasm_source.display(), &wasm_destination.display());
-            info!("{}", msg);
+            debug!("{}", msg);
             fs::copy(&wasm_source, &wasm_destination).expect(&msg);
 
             // clean up temp dir

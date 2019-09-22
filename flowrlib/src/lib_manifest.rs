@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use flow_impl::implementation::Implementation;
-
 use crate::errors::*;
+use crate::implementation::Implementation;
 use crate::manifest::MetaData;
 use crate::provider::Provider;
 

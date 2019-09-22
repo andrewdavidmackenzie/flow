@@ -6,19 +6,24 @@ pub type RunAgain = bool;
 pub const RUN_AGAIN: RunAgain = true;
 pub const DONT_RUN_AGAIN: RunAgain = false;
 
-/// An implementation runs with an array of inputs and returns a value (or null) and a
-/// bool indicating if it should be ran again.
+/// # `flow_impl` trait
+/// Define a trait that implementations of flow 'functions' must implement in order for
+/// them to be invoked by the flowrlib (or other) runtime library.
 ///
-/// Any 'implementation' of a function must implement this trait
+/// ## Derive Macro
+/// The flow_impl_derive crate defines a Derive macro called `FlowImpl` that should be used on
+/// the structure that implements the function, in order that when compiled for the `wasm32`
+/// target. code is inserted to allocate memory (`alloc`) and to serialize and deserialize the
+/// data passed across the native/wasm boundary.
 ///
 /// Example implementation of this trait:
 /// ```
 /// extern crate core;
-/// extern crate flow_impl;
+/// extern crate flowrlib;
 /// #[macro_use]
 /// extern crate serde_json;
 ///
-/// use flow_impl::implementation::{Implementation, RUN_AGAIN, RunAgain};
+/// use flowrlib::implementation::{Implementation, RUN_AGAIN, RunAgain};
 /// use serde_json::Value;
 ///
 /// pub struct Compare;
