@@ -2,7 +2,7 @@
 Add two inputs to produce a new output
 
 #### Include using
-```
+```toml
 [[process]]
 alias = "add"
 source = "lib://flowstdlib/math/add"

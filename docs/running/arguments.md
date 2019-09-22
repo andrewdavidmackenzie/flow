@@ -7,14 +7,14 @@ The flow runtime provides a function called `args` that can be included in a flo
 that fetches these arguments, allowing them to then be processed in the flow like any other inputs.
 
 Include the `args` function in your flow:
-```
+```toml
 [[process]]
 alias = "args"
 source = "lib://flkowr/args/get"
 ```
 
 Then create a connection from the desired output of `args` to another function:
-```
+```toml
 [[connection]]
 from = "function/args/2"
 to = "function/parse_bounds/input"

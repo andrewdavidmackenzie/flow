@@ -18,10 +18,11 @@ The generated project uses `clap` to parse command line options, and you can see
 When running the project via `cargo run` you should add `--` to mark the end of the options passed to cargo, 
 and the start of the options passed to the executable run by cargo.
 
-```
+```shell script
 > cargo run -- --help
     Finished dev [unoptimized + debuginfo] target(s) in 0.13s
      Running `target/debug/root --help`
+```
 flowrlib
 
 USAGE:
@@ -36,7 +37,7 @@ OPTIONS:
 
 ARGS:
     <flow_args>...
-```
+`
 
 ### Getting debug output
 If you want to follow what the runtime is doing in more detail, you can increase the verbosity level (default level is ERROR)
@@ -47,7 +48,7 @@ then you can do so by using `-v DEBUG` and piping the output to `more` (as there
 
 which should produce output similar to this:
 
-```
+`
 INFO    - 'flowrlib' version '0.5.0'
 DEBUG   - Panic hook set to catch panics in functions
 DEBUG   - Initializing all functions
@@ -98,4 +99,4 @@ DEBUG   - Dispatch count: 2
 DEBUG   -        Can Run: {3, 2, 0}
 DEBUG   -       Blocking: [(2, 0), (3, 0), (0, 1), (2, 1)]
 DEBUG   -       Ready: [3, 2]
-```
+`

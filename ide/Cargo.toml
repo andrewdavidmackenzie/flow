@@ -30,7 +30,7 @@ default = ["console_error_panic_hook", "wasm-bindgen"]
 # The `wasm-bindgen` crate provides the bare minimum functionality needed
 # to interact with JavaScript.
 wasm-bindgen = {version = "0.2.45", optional = true }
-flow_impl = { path = "../flow_impl", version = "~0.8.0" }
+flow_impl = "~0.8.0"
 flowclib = { path = "../flowclib", version = "~0.8.0" }
 flowrlib = { path = "../flowrlib", version = "~0.8.0" }
 nodeprovider = { path = "../nodeprovider", version = "0.1.0" }

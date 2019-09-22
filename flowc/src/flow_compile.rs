@@ -143,7 +143,7 @@ fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String> {
     let command = find_executable_path(&get_executable_name())?;
     let mut command_args = vec!(filepath.to_str().unwrap().to_string());
     command_args.append(&mut args);
-    info!("Running flow using '{} {:?}'", &command, &command_args);
+    debug!("Running flow using '{} {:?}'", &command, &command_args);
     let output = Command::new(&command).args(command_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())

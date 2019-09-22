@@ -21,7 +21,8 @@ config:
 	cargo install wasm-bindgen-cli || true
 	cargo install wasm-gc || true
 	# install mdbook for generating guides
-	cargo install mdbook || true
+	cargo uninstall mdbook
+	cargo install mdbook --git https://github.com/andrewdavidmackenzie/mdbook || true
 	cargo install mdbook-linkcheck || true
 	# install wasm-pack
 	curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
@@ -33,28 +34,42 @@ config-linux:
 	brew install fakeroot
 
 ################### Doc ####################
-doc: copy-md-files
-	@echo ""
-	@echo "------- Started building book from Markdown into 'guide/book/html' -------------"
-	@mdbook build guide
-	@echo "------- Done    building book from Markdown into 'guide/book/html' -------------"
+doc: build-guide trim-guide code-docs
+
+build-guide:
+	@echo "------- Building guide mdbook from Markdown -------------"
+	@RUST_LOG=info mdbook build
+
+trim-guide:
+	@rm -rf target/html/nodeprovider/target
+	@rm -rf target/html/ide/target
+	@rm -rf target/html/flowrlib/target
+	@rm -rf target/html/flowstdlib/target
+	@rm -rf target/html/samples/mandlebrot/project/target
+	@rm -rf target/html/ide-native/target
+	@rm -rf target/html/flowclib/target
+	@find target/html -name node_modules | xargs rm -rf {}
+	@find target/html -name .idea | xargs rm -rf {}
+	@find target/html -name .git | xargs rm -rf {}
+	@find target/html -name assets | xargs rm -rf {}
+	@find target/html -name \*.rs | xargs rm -rf {}
+	@find target/html -name pkg | xargs rm -rf {}
+	@find target/html -name \*.dump | xargs rm -rf {}
+	@find target/html -name \*.dot | xargs rm -rf {}
+	@find target/html -name \*.wasm | xargs rm -rf {}
+	@find target/html -name \*.lock  | xargs rm -rf {}
+
+code-docs:
+	@echo "------- Building code docs -------------"
 	@cargo doc --no-deps
 
-## Copy .md files (with same directory sturtcure) from samples and lib directories under guide 'src' directory
-copy-md-files:
-	@echo ""
-	@echo "------- Started copying Markdown files to 'guide/src' -------------"
-	@find . -type f -not -path "./guide/*" -name \*.md -exec dirname '{}' ';' | xargs printf 'guide/src/%s\n' | xargs mkdir -p
-	@find . -type f -not -path "./guide/*" -name \*.md -exec cp '{}' guide/src/'{}' ';'
-	@echo "------- Done    copying Markdown files to 'guide/src' -------------"
-
 .PHONY: deploy
-deploy: guide
+deploy: docs/guide
 	@echo "====> deploying guide to github"
-	git worktree add /tmp/book gh-pages
-	rm -rf /tmp/book/*
-	cp -rp guide/book/html/* /tmp/book/
-	cd /tmp/book && \
+	git worktree add /tmp/guide gh-pages
+	rm -rf /tmp/guide/*
+	cp -rp target/guide/html/* /tmp/guide/
+	cd /tmp/guide && \
 		git add -A && \
 		git commit -m "deployed on $(shell date) by ${USER}" && \
 		git push origin gh-pages
@@ -85,7 +100,7 @@ ide_native_build:
 	@cd ide-native && make build
 
 #################### Tests ####################
-test: test-workspace test-ide samples
+test: test-workspace test-ide samples #book-test
 # TODO add online-samples
 	@echo ""
 	@echo "------- Done    test: -------------"
@@ -98,6 +113,9 @@ test-workspace:
 
 test-ide:
 	@cd ide && make test
+
+book-test:
+	@RUST_LOG=info mdbook test
 
 #################### LIBRARIES ####################
 flowstdlib/manifest.json: flowcompiler

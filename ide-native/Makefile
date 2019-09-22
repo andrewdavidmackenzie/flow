@@ -15,4 +15,4 @@ package:
 
 clean:
 	@cargo clean
-	@rm -rf pkg target Cargo.lock package-lock.json
+	@rm -rf pkg target Cargo.lock package-lock.json node_modules

@@ -2,7 +2,7 @@
 Revers a String
 
 #### Include using
-```
+```toml
 [[process]]
 alias = "reverse"
 source = "lib://flowstdlib/fmt/reverse"

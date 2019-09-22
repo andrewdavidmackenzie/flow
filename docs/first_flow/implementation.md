@@ -6,14 +6,14 @@ not using nested flows or similar.
 ### Running the corresponding sample
 You can run this first flow and observe its output from the terminal, while in the project root folder:
 
-```
+```shell script
 > cargo run -- samples/first
 ```
 
 This should generate the flow and then run it with the runtime, producing a fibonacci series and eventually an
 integer overflow panic when the next number becomes too big to hold in a rust integer, similar to this:
 
-```
+`
 > cargo run -- samples/first
    Compiling flowstdlib v0.6.0 (/Users/andrew/workspace/flow/flowstdlib)
     Finished dev [unoptimized + debuginfo] target(s) in 1.75s
@@ -32,5 +32,5 @@ ERROR	- Function STDERR:
      Running `samples/first/rust/target/debug/context`
 
 ERROR	- Exited with status code: 101
-```
+`
 

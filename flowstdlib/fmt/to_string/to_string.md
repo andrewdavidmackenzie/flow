@@ -2,7 +2,7 @@
 Convert an input type to a String
 
 #### Include using
-```
+```toml
 [[process]]
 alias = "to_string"
 source = "lib://flowstdlib/fmt/to_string"

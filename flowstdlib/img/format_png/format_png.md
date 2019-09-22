@@ -2,7 +2,7 @@
 Format a series of bytes into a PNG image, for use in display or writing to a file
 
 #### Include using
-```
+```toml
 [[process]]
 alias = "format"
 source = "lib://flowstdlib/img/format_png"

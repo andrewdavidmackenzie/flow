@@ -3,7 +3,7 @@ Output text to the STDOUT of the process invoking the flow. If an array is passe
 is output on a separate line.
 
 #### Include using
-```
+```toml
 [[process]]
 alias = "stdout"
 source = "lib://runtime/stdio/stdout"

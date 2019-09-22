@@ -54,7 +54,7 @@ pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn
                     info!("Library manifest exists, but new manifest has changes, so updating manifest file");
                     write_lib_manifest(&lib_manifest, &manifest_file)?;
                 } else {
-                    info!("No differences from existing manifest file, so leaving file untouched");
+                    info!("Existing manifest file is up to date");
                 }
             } else {
                 info!("Could not load existing Library manifest to compare, so writing new manifest file");

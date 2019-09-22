@@ -3,7 +3,7 @@ Output text to the STDERR of the process invoking the flow. If an array is passe
 is output on a separate line.
 
 #### Include using
-```
+```toml
 [[process]]
 alias = "stderr"
 source = "lib://runtime/stdio/stderr"
