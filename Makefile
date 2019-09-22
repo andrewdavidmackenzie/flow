@@ -7,12 +7,6 @@ all: build test doc
 	@echo "************* Done all: **************"
 	@echo "**************************************"
 
-travis: build test clean doc
-	@echo ""
-	@echo "*****************************************"
-	@echo "************* Done travis: **************"
-	@echo "*****************************************"
-
 online := false
 
 ifeq ($(online),true)
