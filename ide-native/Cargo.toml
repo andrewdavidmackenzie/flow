@@ -9,4 +9,4 @@ path = "src/flow.rs"
 crate-type = ["dylib"]
 
 [dependencies]
-flowclib = { path = "../flowclib", version = "~0.8.0" }
+flowclib = "~0.8.1"
