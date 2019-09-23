@@ -41,6 +41,9 @@ impl WasmExecutor {
     }
 }
 
+unsafe impl Send for WasmExecutor {}
+unsafe impl Sync for WasmExecutor {}
+
 /*
     Allocate memory for array of bytes inside the wasm module and copy the array of bytes into it
 */
@@ -63,8 +66,7 @@ fn send_byte_array(instance: &ModuleRef, memory: &MemoryRef, bytes: &[u8]) -> u3
 #[cfg(not(target_arch = "wasm32"))]
 impl Implementation for WasmExecutor {
     fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        #[cfg(not(target_arch = "wasm32"))]
-            let module_ref = self.module.lock().unwrap();
+        let module_ref = self.module.lock().unwrap();
         let memory_ref = self.memory.lock().unwrap();
 
         // setup module memory with the serde serialization of `inputs: Vec<Vec<Value>>`

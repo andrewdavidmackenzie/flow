@@ -36,5 +36,4 @@ error-chain = "0.12.1"
 instant = { version = "0.1", features = [ "now", "wasm-bindgen" ] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-wasmi = { git = "https://github.com/andrewdavidmackenzie/wasmi" }
-#wasmi = "0.5.1"
+wasmi = "0.5.1"
