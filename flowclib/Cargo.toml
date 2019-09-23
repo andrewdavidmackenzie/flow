@@ -6,7 +6,7 @@ description = "A library for compiling 'flow' programs used by the 'flowc' compi
 documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
 homepage = "http://andrewdavidmackenzie.github.io/flow/"
 repository = "https://github.com/andrewdavidmackenzie/flow/"
-readme = "https://github.com/andrewdavidmackenzie/flow/README.md"
+readme = "README.md"
 license = "MIT"
 
 edition = "2018"
@@ -25,7 +25,7 @@ default = ["debugger"]
 debugger = []
 
 [dependencies]
-flowrlib = { path = "../flowrlib", version = "~0.8.0" }
+flowrlib = "~0.8.0"
 serde_yaml = "~0.8"
 toml = "0.4"
 serde_derive = "~1.0.27"
