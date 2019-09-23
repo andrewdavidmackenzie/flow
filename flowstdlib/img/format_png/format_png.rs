@@ -1,10 +1,8 @@
 extern crate core;
 extern crate flow_impl_derive;
-extern crate flowrlib;
 extern crate serde_json;
 
 use flow_impl_derive::FlowImpl;
-use flowrlib::implementation::{Implementation, RUN_AGAIN, RunAgain};
 use image::ColorType;
 use image::png::PNGEncoder;
 use serde_json::Value;
@@ -13,9 +11,8 @@ use std::io::Write;
 #[derive(FlowImpl)]
 pub struct FormatPNG;
 
-impl Implementation for FormatPNG {
-    fn run(&self, mut inputs: Vec<Vec<Value>>)
-        -> (Option<Value>, RunAgain) {
+impl  FormatPNG {
+    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
         let bytes = inputs.remove(0).remove(0);
 
         // bounds: (usize, usize),
@@ -34,6 +31,6 @@ impl Implementation for FormatPNG {
         // TODO
 //        let string = String::from_utf8_lossy(&png_buffer).to_string();
 //        run_list.send_output(function, Value::String(string));
-        (None, RUN_AGAIN)
+        (None, true)
     }
 }

@@ -1,18 +1,16 @@
 extern crate core;
 extern crate flow_impl_derive;
-extern crate flowrlib;
 #[macro_use]
 extern crate serde_json;
 
 use flow_impl_derive::FlowImpl;
-use flowrlib::implementation::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
 #[derive(FlowImpl)]
 pub struct Router;
 
-impl Implementation for Router {
-    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+impl Router {
+    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
         let mut value = None;
 
         let input_stream = inputs.remove(0);
@@ -27,6 +25,6 @@ impl Implementation for Router {
             _ => {}
         }
 
-        (value, RUN_AGAIN)
+        (value, true)
     }
 }

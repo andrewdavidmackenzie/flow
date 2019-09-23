@@ -1,6 +1,5 @@
 extern crate core;
 extern crate flow_impl_derive;
-extern crate flowrlib;
 #[cfg(test)]
 #[macro_use]
 extern crate serde_json;
@@ -8,7 +7,6 @@ extern crate serde_json;
 extern crate serde_json;
 
 use flow_impl_derive::FlowImpl;
-use flowrlib::implementation::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 use serde_json::Value::Number;
 use serde_json::Value::String;
@@ -16,8 +14,8 @@ use serde_json::Value::String;
 #[derive(FlowImpl)]
 pub struct Add;
 
-impl Implementation for Add {
-    fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+impl Add {
+    fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
         let mut value = None;
 
         let input_a = inputs.get(0).unwrap();
@@ -49,13 +47,12 @@ impl Implementation for Add {
             (_, _) => println!("Unsupported input value types")
         }
 
-        (value, RUN_AGAIN)
+        (value, true)
     }
 }
 
 #[cfg(test)]
 mod test {
-    use flowrlib::implementation::Implementation;
     use serde_json::Value;
 
     use super::Add;

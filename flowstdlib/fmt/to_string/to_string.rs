@@ -1,17 +1,15 @@
 extern crate core;
 extern crate flow_impl_derive;
-extern crate flowrlib;
 extern crate serde_json;
 
 use flow_impl_derive::FlowImpl;
-use flowrlib::implementation::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
 #[derive(FlowImpl)]
 pub struct ToString;
 
-impl Implementation for ToString {
-    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+impl  ToString {
+    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
         let mut value = None;
 
         let input = inputs.remove(0).remove(0);
@@ -30,6 +28,6 @@ impl Implementation for ToString {
             _ => {}
         };
 
-        (value, RUN_AGAIN)
+        (value, true)
     }
 }

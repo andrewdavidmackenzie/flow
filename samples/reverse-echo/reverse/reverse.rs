@@ -1,18 +1,18 @@
 extern crate core;
 extern crate flow_impl_derive;
-extern crate flowrlib;
+//extern crate flowrlib;
 #[macro_use]
 extern crate serde_json;
 
 use flow_impl_derive::FlowImpl;
-use flowrlib::implementation::Implementation;
+//use flowrlib::implementation::Implementation;
 use serde_json::Value;
 use serde_json::Value::String as JsonString;
 
 #[derive(FlowImpl)]
 pub struct Reverser;
 
-impl Implementation for Reverser {
+impl Reverser {
     fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
         let mut value = None;
 

@@ -1,18 +1,16 @@
 extern crate core;
 extern crate flow_impl_derive;
-extern crate flowrlib;
 extern crate serde_json;
 
 use flow_impl_derive::FlowImpl;
-use flowrlib::implementation::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 use serde_json::Value::Number;
 
 #[derive(FlowImpl)]
 pub struct Subtract;
 
-impl Implementation for Subtract {
-    fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+impl Subtract {
+    fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
         let input_a = inputs.get(0).unwrap();
         let input_b = inputs.get(1).unwrap();
         let mut value = None;
@@ -31,6 +29,6 @@ impl Implementation for Subtract {
             (_, _) => {}
         }
 
-        (value, RUN_AGAIN)
+        (value, true)
     }
 }

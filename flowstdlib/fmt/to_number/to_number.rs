@@ -1,17 +1,15 @@
 extern crate core;
 extern crate flow_impl_derive;
-extern crate flowrlib;
 extern crate serde_json;
 
 use flow_impl_derive::FlowImpl;
-use flowrlib::implementation::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
 #[derive(FlowImpl)]
 pub struct ToNumber;
 
-impl Implementation for ToNumber {
-    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+impl ToNumber {
+    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
         let mut value = None;
         let input = inputs.remove(0).remove(0);
 
@@ -25,6 +23,6 @@ impl Implementation for ToNumber {
             _ => {}
         };
 
-        (value, RUN_AGAIN)
+        (value, true)
     }
 }

@@ -15,7 +15,6 @@ lto = true
 opt-level = 's'
 
 [dependencies]
-flowrlib = { path = "../../../flowrlib", version = "~0.8.0" }
 flow_impl_derive = "~0.8.2"
 serde_json = "1.0"
 image="*"
