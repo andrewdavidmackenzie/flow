@@ -48,7 +48,7 @@ impl Provider for LibProvider {
         Also, construct a string that is a reference to that module in the library, such as:
             "runtime/stdio/stdout" and return that also.
     */
-    fn resolve_url(&self, url_str: &str, default_filename: &str, _extensions: &[&str]) -> Result<(String, Option<String>)> {
+    fn resolve_url(&self, url_str: &str, default_filename: &str, extensions: &[&str]) -> Result<(String, Option<String>)> {
         let url = Url::parse(url_str)
             .chain_err(|| format!("Could not convert '{}' to valid Url", url_str))?;
         let lib_name = url.host_str().expect(
@@ -80,16 +80,16 @@ impl Provider for LibProvider {
 
             let provided_implementation_filename = lib_path.file_name().unwrap().to_str().unwrap();
             debug!("'{:?}' is a directory, so looking inside it for default file name '{}' or provided implemention file '{}' with extensions '{:?}'",
-                   lib_path, default_filename, provided_implementation_filename, _extensions);
+                   lib_path, default_filename, provided_implementation_filename, extensions);
             for filename in [default_filename, provided_implementation_filename].iter() {
-                let file = FileProvider::find_file(&lib_path, filename, _extensions);
+                let file = FileProvider::find_file(&lib_path, filename, extensions);
                 if let Ok(file_path_as_url) = file {
                     return Ok(( file_path_as_url, Some(lib_ref.to_string())));
                 }
             }
 
             bail!("Found library folder '{}' in 'FLOW_LIB_PATH', but could not locate default file '{}' or provided implementation file '{}' within it with extensions '{:?}'",
-            lib_path.display(), default_filename, provided_implementation_filename, _extensions)
+            lib_path.display(), default_filename, provided_implementation_filename, extensions)
         } else {
             // See if the file, with a .toml extension exists
             let mut implementation_path = lib_path.clone();
