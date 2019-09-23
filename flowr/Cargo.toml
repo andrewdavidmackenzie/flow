@@ -7,7 +7,7 @@ license = "MIT"
 documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
 homepage = "http://andrewdavidmackenzie.github.io/flow/"
 repository = "https://github.com/andrewdavidmackenzie/flow/"
-readme = "https://github.com/andrewdavidmackenzie/flow/README.md"
+readme = "README.md"
 
 [[bin]]
 name = "flowr"
@@ -20,8 +20,8 @@ debugger = []
 [dependencies]
 clap = "~2"
 flow_impl = "~0.8.0"
-flowrlib = { path = "../flowrlib", version = "~0.8.0" }
-provider = { path = "../provider", version = "~0.8.0" }
+flowrlib = "~0.8.1"
+provider = "~0.8.1"
 simplog = "~1.2"
 log = "0.4.6"
 url = "~1.6.0"
