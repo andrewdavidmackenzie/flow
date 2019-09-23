@@ -1,4 +1,3 @@
-extern crate core;
 extern crate flow_impl_derive;
 #[macro_use]
 extern crate serde_json;

@@ -1,4 +1,3 @@
-extern crate core;
 extern crate flow_impl_derive;
 
 use flow_impl_derive::FlowImpl;
