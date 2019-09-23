@@ -34,7 +34,7 @@ fn impl_flow_impl(ast: &syn::DeriveInput) -> TokenStream {
             return ptr as *mut c_void;
         }
 
-        #[cfg(target_arch = "wasm32")]
+       #[cfg(target_arch = "wasm32")]
        #[no_mangle]
         pub extern "C" fn run_wasm(input_data_ptr: *mut c_void, input_data_length: i32) -> i32 {
             use std::ptr::copy;
