@@ -5,12 +5,11 @@ use std::sync::Arc;
 #[cfg(not(target_arch = "wasm32"))]
 use std::sync::Mutex;
 
+use flow_impl::implementation::{Implementation, RunAgain};
 use serde_json::Value;
 #[cfg(not(target_arch = "wasm32"))]
 use wasmi::{ExternVal, ImportsBuilder, MemoryRef, Module, ModuleInstance, ModuleRef,
             NopExternals, RuntimeValue, Signature, ValueType};
-
-use flow_impl::implementation::{Implementation, RunAgain};
 
 use crate::errors::*;
 use crate::provider::Provider;
@@ -41,6 +40,9 @@ impl WasmExecutor {
         }
     }
 }
+
+unsafe impl Send for WasmExecutor {}
+unsafe impl Sync for WasmExecutor {}
 
 /*
     Allocate memory for array of bytes inside the wasm module and copy the array of bytes into it
