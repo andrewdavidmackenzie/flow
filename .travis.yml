@@ -20,11 +20,7 @@ cache:
   directories:
     - ide/node_modules
 
-before_script:
-  - (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
-  - cargo install-update -a
-
-script: make all
+script: make travis
 
 env:
   global:

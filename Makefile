@@ -1,11 +1,13 @@
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 DOT := $(shell command -v dot 2> /dev/null)
 
-all: build test doc
+all: travis ide_build ide_native_build test-ide
 	@echo ""
 	@echo "**************************************"
 	@echo "************* Done all: **************"
 	@echo "**************************************"
+
+travis: workspace test-workspace samples book-test doc
 
 online := false
 
@@ -19,7 +21,7 @@ endif
 config:
 	rustup target add wasm32-unknown-unknown
 	cargo install wasm-bindgen-cli || true
-	cargo install wasm-gc || true
+	# cargo install wasm-gc || true
 	# install mdbook for generating guides
 	cargo uninstall mdbook
 	cargo install mdbook --git https://github.com/andrewdavidmackenzie/mdbook || true
