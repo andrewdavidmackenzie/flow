@@ -166,9 +166,9 @@ copy:
 sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
 # This target must be below sample-flows in the Makefile
-samples:
+samples: workspace flowr clean-samples
 	$(STIME)
-	$(MAKE) workspace flowr clean-samples $(sample_flows)
+	$(MAKE) $(sample_flows)
 	$(ETIME)
 
 samples/%/test.output: samples/%/test.input samples/%/test.arguments
