@@ -1,13 +1,17 @@
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 DOT := $(shell command -v dot 2> /dev/null)
+STIME = @date '+%s' > target/.$@time ; echo \\n------- Target \'$@\' starting
+ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 
-all: travis ide_build ide_native_build test-ide
-	@echo ""
-	@echo "**************************************"
-	@echo "************* Done all: **************"
-	@echo "**************************************"
+all:
+	$(STIME)
+	@$(MAKE) travis ide_build ide_native_build test-ide
+	$(ETIME)
 
-travis: workspace test-workspace samples book-test doc
+travis:
+	$(STIME)
+	@$(MAKE) workspace test-workspace samples book-test doc
+	$(ETIME)
 
 online := false
 
@@ -19,6 +23,7 @@ endif
 
 ########## Configure Dependencies ############
 config:
+	$(STIME)
 	rustup target add wasm32-unknown-unknown
 	cargo install wasm-bindgen-cli || true
 	# cargo install wasm-gc || true
@@ -31,18 +36,23 @@ config:
 	# Install chromedriver.
 	#curl --retry 5 -LO https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.zip
 	#unzip chromedriver_linux64.zip
+	$(ETIME)
 
 config-linux:
+	$(STIME)
 	brew install fakeroot
+	$(ETIME)
 
 ################### Doc ####################
 doc: build-guide trim-guide code-docs
 
 build-guide:
-	@echo "------- Building guide mdbook from Markdown -------------"
+	$(STIME)
 	@RUST_LOG=info mdbook build
+	$(ETIME)
 
 trim-guide:
+	$(STIME)
 	@rm -rf target/html/nodeprovider/target
 	@rm -rf target/html/ide/target
 	@rm -rf target/html/flowrlib/target
@@ -60,13 +70,16 @@ trim-guide:
 	@find target/html -name \*.dot | xargs rm -rf {}
 	@find target/html -name \*.wasm | xargs rm -rf {}
 	@find target/html -name \*.lock  | xargs rm -rf {}
+	$(ETIME)
 
 code-docs:
-	@echo "------- Building code docs -------------"
+	$(STIME)
 	@cargo doc --no-deps
+	$(ETIME)
 
 .PHONY: deploy
 deploy: docs/guide
+	$(STIME)
 	@echo "====> deploying guide to github"
 	git worktree add /tmp/guide gh-pages
 	rm -rf /tmp/guide/*
@@ -75,56 +88,67 @@ deploy: docs/guide
 		git add -A && \
 		git commit -m "deployed on $(shell date) by ${USER}" && \
 		git push origin gh-pages
+	$(ETIME)
 
 #################### Build ####################
-build: workspace ide_build ide_native_build
-	@echo "------- Done 'build:' -------------"
+build:
+	$(STIME)
+	@$(MAKE) workspace ide_build ide_native_build
+	$(ETIME)
 
 flowcompiler:
-	@echo ""
-	@echo "------- Starting build of 'flowc'                  -------------"
+	$(STIME)
 	@cargo build -p flowc
-	@echo "------- Done     build of 'flowc'                  -------------"
+	$(ETIME)
 
-workspace: flowstdlib/manifest.json
-	@echo ""
-	@echo "------- Starting build of 'flow' workspace project -------------"
+workspace: flowstandardlib
+	$(STIME)
 	@cargo build --all
-	@echo "------- Done     build of 'flow' workspace project -------------"
+	$(ETIME)
 
 flowr:
+	$(STIME)
 	@cargo build -p flowr
+	$(ETIME)
 
 ide_build:
+	$(STIME)
 	@cd ide && make build
+	$(ETIME)
 
 ide_native_build:
+	$(STIME)
 	@cd ide-native && make build
+	$(ETIME)
 
 #################### Tests ####################
-test: test-workspace test-ide samples book-test
+test:
+	$(STIME)
+	@$(MAKE) test-workspace test-ide samples book-test
+	$(ETIME)
+
 # TODO add online-samples
-	@echo ""
-	@echo "------- Done    test: -------------"
 
 test-workspace:
-	@echo ""
-	@echo "------- Starting test of workspace project -------------"
+	$(STIME)
 	@cargo test $(features) --all
-	@echo "------- Done     test of workspace project -------------"
+	$(ETIME)
 
 test-ide:
+	$(STIME)
 	@cd ide && make test
+	$(ETIME)
 
 book-test:
+	$(STIME)
 	@RUST_LOG=info mdbook test
+	$(ETIME)
 
 #################### LIBRARIES ####################
-flowstdlib/manifest.json: flowcompiler
-	@echo ""
-	@echo "------- Starting build of 'flowstdlib' -------------"
+flowstandardlib: flowstdlib/manifest.json flowcompiler
+	$(STIME)
 	@cargo run -p flowc -- -v info -l flowstdlib
-	@echo "------- Done     build of 'flowstdlib' -------------"
+	$(ETIME)
 
 #################### Raspberry Pi ####################
 pi:
@@ -143,13 +167,13 @@ copy:
 # make paths - to compile all samples found in there. Avoid files using the filter.
 sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
-samples: workspace flowr clean-samples $(sample_flows)  # This target must be below sample-flows in the Makefile
-	@echo ""
-	@echo "All local samples executed and output as expected"
-	@echo "------- Finished 'samples:' ----"
+# This target must be below sample-flows in the Makefile
+samples:
+	$(STIME)
+	$(MAKE) workspace flowr clean-samples $(sample_flows)
+	$(ETIME)
 
 samples/%/test.output: samples/%/test.input samples/%/test.arguments
-	@echo "\n------- Compiling and Running '$(@D)' ----"
 # remove error messages with file path from output messages to make local output match travis output
 	@cat $< | cargo run --quiet --bin flowc -- -g -d $(@D) -- `cat $(@D)/test.arguments` | grep -v "Running" | grep -v "Finished dev" 2> $(@D)/test.err > $@; true
 	@diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && exit $$ret)
@@ -159,13 +183,14 @@ samples/%/test.output: samples/%/test.input samples/%/test.arguments
 ################# ONLINE SAMPLES ################
 online-samples: test-hello-simple-online
 
-test-hello-simple-online: ./target/debug/flowc
-	@echo ""
-	@echo "------- Testing hello-world-simple-online ----"
+test-hello-simple-online: flowcompiler
+	$(STIME)
 	@echo "Hello" | cargo run --bin flowc -- https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
+	$(ETIME)
 
 ################# Packaging ################
 publish:
+	$(STIME)
 	cargo publish --manifest-path=flow_impl/Cargo.toml || true
 	cargo publish --manifest-path=flow_impl_derive/Cargo.toml || true
 	cargo publish --manifest-path=flowrlib/Cargo.toml || true
@@ -173,28 +198,39 @@ publish:
 	cargo publish --manifest-path=flowclib/Cargo.toml || true
 	cargo publish --manifest-path=flowc/Cargo.toml || true
 	cargo publish --manifest-path=flowr/Cargo.toml || true
+	$(ETIME)
 
 ################# Clean ################
 clean: clean-flowstdlib clean-samples clean-dumps clean-guide
+	$(STIME)
 	@cargo clean
 	@cd ide && make clean
 	@cd ide-native && make clean
+	$(ETIME)
 
 clean-samples:
+	$(STIME)
 	@cd samples; make clean
+	$(ETIME)
 
 clean-flowstdlib:
+	$(STIME)
 	@find flowstdlib -name \*.wasm -type f -exec rm -rf {} + ; true
 	@rm -f flowstdlib/manifest.json
+	$(ETIME)
 
 clean-dumps:
+	$(STIME)
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot.png -type f -exec rm -rf {} + ; true
 	@echo "All .dump, .dot and .dot.png files removed"
+	$(ETIME)
 
 clean-guide:
+	$(STIME)
 	@rm -rf guide/book
+	$(ETIME)
 
 ################# Dot Graphs ################
 dot-graphs:
