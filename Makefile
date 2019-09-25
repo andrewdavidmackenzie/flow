@@ -101,7 +101,7 @@ flowcompiler:
 	@cargo build -p flowc
 	$(ETIME)
 
-workspace: flowstandardlib
+workspace: flowstdlib/manifest.json
 	$(STIME)
 	@cargo build --all
 	$(ETIME)
@@ -145,10 +145,8 @@ book-test:
 	$(ETIME)
 
 #################### LIBRARIES ####################
-flowstandardlib: flowstdlib/manifest.json flowcompiler
-	$(STIME)
+flowstdlib/manifest.json: flowcompiler
 	@cargo run -p flowc -- -v info -l flowstdlib
-	$(ETIME)
 
 #################### Raspberry Pi ####################
 pi:
