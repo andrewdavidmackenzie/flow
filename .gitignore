@@ -8,3 +8,5 @@ failed.output
 target
 cov
 Cargo.lock
+.crates.toml
+bin

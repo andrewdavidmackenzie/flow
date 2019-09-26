@@ -28,9 +28,8 @@ config:
 	cargo install wasm-bindgen-cli || true
 	# cargo install wasm-gc || true
 	# install mdbook for generating guides
-	cargo uninstall mdbook
-	cargo install mdbook --git https://github.com/andrewdavidmackenzie/mdbook || true
-	cargo install mdbook-linkcheck || true
+	cargo install mdbook --root . --git https://github.com/andrewdavidmackenzie/mdbook || true
+	cargo install mdbook-linkcheck --root . || true
 	# install wasm-pack
 	curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
 	# Install chromedriver.
@@ -51,7 +50,7 @@ doc:
 
 build-guide:
 	$(STIME)
-	@RUST_LOG=info mdbook build
+	@RUST_LOG=info ./bin/mdbook build
 	$(ETIME)
 
 trim-guide:
@@ -144,7 +143,7 @@ test-ide:
 
 book-test:
 	$(STIME)
-	@RUST_LOG=info mdbook test
+	@RUST_LOG=info ./bin/mdbook test
 	$(ETIME)
 
 #################### LIBRARIES ####################
