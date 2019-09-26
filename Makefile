@@ -150,7 +150,7 @@ book-test:
 #################### LIBRARIES ####################
 flowstdlib/manifest.json: flowcompiler
 	@mkdir -p target;date '+%s' > target/.flowstdlib ; echo \\n------- Target \'$@\' starting
-	@cargo run -p flowc --quiet -- -l flowstdlib
+	@cargo run -p flowc --quiet -- -v info -l flowstdlib
 	@read st < target/.flowstdlib ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 
 #################### Raspberry Pi ####################
