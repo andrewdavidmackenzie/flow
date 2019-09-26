@@ -19,7 +19,6 @@ cache:
   cargo: true
   directories:
     - ide/node_modules
-    - node_modules
     - flowstdlib
     - bin
 
