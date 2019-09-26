@@ -1,6 +1,6 @@
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 DOT := $(shell command -v dot 2> /dev/null)
-STIME = @date '+%s' > target/.$@time ; echo \\n------- Target \'$@\' starting
+STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo \\n------- Target \'$@\' starting
 ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 
 all:
@@ -78,7 +78,7 @@ code-docs:
 	$(ETIME)
 
 .PHONY: deploy
-deploy: docs/guide
+deploy: build-guide
 	$(STIME)
 	@echo "====> deploying guide to github"
 	git worktree add /tmp/guide gh-pages
@@ -98,17 +98,17 @@ build:
 
 flowcompiler:
 	$(STIME)
-	@cargo build -p flowc
+	@cargo build -p flowc --quiet
 	$(ETIME)
 
 workspace: flowstdlib/manifest.json
 	$(STIME)
-	@cargo build --all
+	@cargo build --all --quiet
 	$(ETIME)
 
 flowr:
 	$(STIME)
-	@cargo build -p flowr
+	@cargo build -p flowr --quiet
 	$(ETIME)
 
 ide_build:
@@ -131,7 +131,7 @@ test:
 
 test-workspace:
 	$(STIME)
-	@cargo test $(features) --all
+	@cargo test $(features) --all --quiet
 	$(ETIME)
 
 test-ide:
@@ -146,7 +146,9 @@ book-test:
 
 #################### LIBRARIES ####################
 flowstdlib/manifest.json: flowcompiler
-	@cargo run -p flowc -- -v info -l flowstdlib
+	@mkdir -p target;date '+%s' > target/.flowstdlib ; echo \\n------- Target \'$@\' starting
+	@cargo run -p flowc --quiet -- -v info -l flowstdlib
+	@read st < target/.flowstdlib ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 
 #################### Raspberry Pi ####################
 pi:
@@ -200,35 +202,25 @@ publish:
 
 ################# Clean ################
 clean: clean-flowstdlib clean-samples clean-dumps clean-guide
-	$(STIME)
-	@cargo clean
+	@cargo clean --quiet
 	@cd ide && make clean
 	@cd ide-native && make clean
-	$(ETIME)
 
 clean-samples:
-	$(STIME)
 	@cd samples; make clean
-	$(ETIME)
 
 clean-flowstdlib:
-	$(STIME)
 	@find flowstdlib -name \*.wasm -type f -exec rm -rf {} + ; true
 	@rm -f flowstdlib/manifest.json
-	$(ETIME)
 
 clean-dumps:
-	$(STIME)
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot.png -type f -exec rm -rf {} + ; true
 	@echo "All .dump, .dot and .dot.png files removed"
-	$(ETIME)
 
 clean-guide:
-	$(STIME)
 	@rm -rf guide/book
-	$(ETIME)
 
 ################# Dot Graphs ################
 dot-graphs:
