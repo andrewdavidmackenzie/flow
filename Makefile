@@ -44,7 +44,10 @@ config-linux:
 	$(ETIME)
 
 ################### Doc ####################
-doc: build-guide trim-guide code-docs
+doc:
+	$(STIME)
+	@$(MAKE) build-guide trim-guide code-docs
+	$(ETIME)
 
 build-guide:
 	$(STIME)
@@ -74,7 +77,7 @@ trim-guide:
 
 code-docs:
 	$(STIME)
-	@cargo doc --no-deps
+	@cargo doc --no-deps --quiet
 	$(ETIME)
 
 .PHONY: deploy
@@ -147,7 +150,7 @@ book-test:
 #################### LIBRARIES ####################
 flowstdlib/manifest.json: flowcompiler
 	@mkdir -p target;date '+%s' > target/.flowstdlib ; echo \\n------- Target \'$@\' starting
-	@cargo run -p flowc --quiet -- -v info -l flowstdlib
+	@cargo run -p flowc --quiet -- -l flowstdlib
 	@read st < target/.flowstdlib ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 
 #################### Raspberry Pi ####################
