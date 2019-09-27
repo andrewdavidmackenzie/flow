@@ -11,4 +11,5 @@ create-missing = false
 
 [output.html]
 
-#[output.linkcheck]  # enable the "mdbook-linkcheck" renderer
+# enable the "mdbook-linkcheck" renderer
+[output.linkcheck]
