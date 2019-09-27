@@ -9,4 +9,4 @@ clean:
 	@find . -name \*.txt -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot.png -type f -exec rm -rf {} + ; true
-	@echo "------- Target 'samples/clean' done
+	@echo "------- Target 'samples/clean'" done
