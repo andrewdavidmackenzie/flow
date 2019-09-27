@@ -10,7 +10,7 @@ all:
 
 travis:
 	$(STIME)
-	@$(MAKE) test-workspace samples book-test doc
+	@$(MAKE) workspace test-workspace samples book-test doc
 	$(ETIME)
 
 online := false
@@ -45,23 +45,15 @@ config-linux:
 ################### Doc ####################
 doc:
 	$(STIME)
-	@$(MAKE) build-guide trim-guide code-docs
+	@$(MAKE) build_guide trim-guide code-docs
 	$(ETIME)
 
-build-guide:
-	$(STIME)
-	@RUST_LOG=info ./bin/mdbook build
-	$(ETIME)
+build_guide:
+	@RUST_LOG=info time ./bin/mdbook build
 
 trim-guide:
 	$(STIME)
-	@rm -rf target/html/nodeprovider/target
-	@rm -rf target/html/ide/target
-	@rm -rf target/html/flowrlib/target
-	@rm -rf target/html/flowstdlib/target
-	@rm -rf target/html/samples/mandlebrot/project/target
-	@rm -rf target/html/ide-native/target
-	@rm -rf target/html/flowclib/target
+	@find target/html -name target -type d | xargs rm -rf {}
 	@find target/html -name node_modules | xargs rm -rf {}
 	@find target/html -name .idea | xargs rm -rf {}
 	@find target/html -name .git | xargs rm -rf {}
@@ -76,11 +68,11 @@ trim-guide:
 
 code-docs:
 	$(STIME)
-	@cargo doc --no-deps --quiet
+	@cargo doc --no-deps
 	$(ETIME)
 
 .PHONY: deploy
-deploy: build-guide
+deploy: build_guide
 	$(STIME)
 	@echo "====> deploying guide to github"
 	git worktree add /tmp/guide gh-pages
@@ -93,24 +85,19 @@ deploy: build-guide
 	$(ETIME)
 
 #################### Build ####################
-build:
-	$(STIME)
-	@$(MAKE) workspace ide_build ide_native_build
-	$(ETIME)
-
 flowcompiler:
 	$(STIME)
-	@cargo build -p flowc --quiet
+	@cargo build -p flowc
 	$(ETIME)
 
 workspace:
 	$(STIME)
-	@cargo build --all --quiet
+	@cargo build --all
 	$(ETIME)
 
 flowrunner:
 	$(STIME)
-	@cargo build -p flowr --quiet
+	@cargo build -p flowr
 	$(ETIME)
 
 ide_build:
@@ -129,11 +116,9 @@ test:
 	@$(MAKE) test-workspace test-ide samples book-test
 	$(ETIME)
 
-# TODO add online-samples
-
 test-workspace:
 	$(STIME)
-	@cargo test $(features) --all --quiet
+	@cargo test $(features) --all
 	$(ETIME)
 
 test-ide:
@@ -148,9 +133,9 @@ book-test:
 
 #################### LIBRARIES ####################
 flowstdlib/manifest.json:
-	@mkdir -p target;date '+%s' > target/.flowstdlib ; echo \\n------- Target \'$@\' starting
-	@cargo run -p flowc --quiet -- -v info -l flowstdlib
-	@read st < target/.flowstdlib ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
+	@mkdir -p target;date '+%s' > target/.flowstdlibtime ; echo \\n------- Target \'$@\' starting
+	@cargo run -p flowc -- -v info -l flowstdlib
+	@read st < target/.flowstdlibtime ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 
 #################### Raspberry Pi ####################
 pi:
@@ -184,11 +169,9 @@ samples/%/test.output: samples/%/test.input samples/%/test.arguments
 	@rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time
 
 ################# ONLINE SAMPLES ################
-online-samples: test-hello-simple-online
-
-test-hello-simple-online: flowcompiler
+online-samples:
 	$(STIME)
-	@echo "Hello" | cargo run --bin flowc -- https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
+	@echo "Hello" | cargo run --p flowc -- https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 	$(ETIME)
 
 ################# Packaging ################
@@ -209,7 +192,7 @@ clean:
 	@$(MAKE) clean-dumps clean-guide
 	@cd flowstdlib; $(MAKE) clean
 	@cd samples; $(MAKE) clean
-	@cargo clean --quiet
+	@cargo clean
 	@cd ide && $(MAKE) clean
 	@cd ide-native && $(MAKE) clean
 	$(STIME)
