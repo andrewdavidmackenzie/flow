@@ -128,7 +128,7 @@ test-ide:
 
 book-test:
 	$(STIME)
-	@RUST_LOG=info ./bin/mdbook test
+	./bin/mdbook test
 	$(ETIME)
 
 #################### LIBRARIES ####################
