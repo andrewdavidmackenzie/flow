@@ -103,12 +103,12 @@ flowcompiler:
 	@cargo build -p flowc --quiet
 	$(ETIME)
 
-workspace: flowstdlib/manifest.json
+workspace:
 	$(STIME)
 	@cargo build --all --quiet
 	$(ETIME)
 
-flowr:
+flowrunner:
 	$(STIME)
 	@cargo build -p flowr --quiet
 	$(ETIME)
@@ -170,7 +170,7 @@ copy:
 sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
 # This target must be below sample-flows in the Makefile
-samples: workspace flowr clean-samples
+samples: flowcompiler flowrunner flowstdlib/manifest.json clean-samples
 	$(STIME)
 	@$(MAKE) $(sample_flows)
 	$(ETIME)

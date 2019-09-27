@@ -41,9 +41,7 @@
 - [Test Samples](flowc/tests/samples/README.md)
     - [hello-world](flowc/tests/samples/hello-world/hello-world.md)
     - [line-echo](flowc/tests/samples/line-echo/line-echo.md)
-    - [primitives](flowc/tests/samples/primitives/primitives.md)
     - [print-args](flowc/tests/samples/print-args/print-args.md)
-    - [range](flowc/tests/samples/range/range.md)
 
 - [Samples](samples/README.md)
     - [arrays sample](samples/arrays/DESCRIPTION.md)
@@ -54,6 +52,8 @@
     - [mandlebrot-world sample](samples/mandlebrot/DESCRIPTION.md)
     - [pipeline sample](samples/pipeline/DESCRIPTION.md)
     - [prime sample](samples/prime/DESCRIPTION.md)
+    - [primitives](samples/primitives/DESCRIPTION.md)
+    - [range](samples/range/DESCRIPTION.md)
     - [reverse-echo sample](samples/reverse-echo/DESCRIPTION.md)
     - [router sample](samples/router/DESCRIPTION.md)
 
