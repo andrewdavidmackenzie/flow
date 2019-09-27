@@ -147,7 +147,7 @@ book-test:
 	$(ETIME)
 
 #################### LIBRARIES ####################
-flowstdlib/manifest.json: flowcompiler
+flowstdlib/manifest.json:
 	@mkdir -p target;date '+%s' > target/.flowstdlib ; echo \\n------- Target \'$@\' starting
 	@cargo run -p flowc --quiet -- -v info -l flowstdlib
 	@read st < target/.flowstdlib ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
@@ -170,8 +170,9 @@ copy:
 sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
 # This target must be below sample-flows in the Makefile
-samples: flowcompiler flowrunner flowstdlib/manifest.json clean-samples
+samples: flowrunner flowstdlib/manifest.json
 	$(STIME)
+	@cd samples; $(MAKE) clean
 	@$(MAKE) $(sample_flows)
 	$(ETIME)
 
@@ -203,17 +204,12 @@ publish:
 	$(ETIME)
 
 ################# Clean ################
-clean: clean-flowstdlib clean-samples clean-dumps clean-guide
+clean: clean-dumps clean-guide
+	@cd flowstdlib; $(MAKE) clean
+	@cd samples; $(MAKE) clean
 	@cargo clean --quiet
-	@cd ide && make clean
-	@cd ide-native && make clean
-
-clean-samples:
-	@cd samples; make clean
-
-clean-flowstdlib:
-	@find flowstdlib -name \*.wasm -type f -exec rm -rf {} + ; true
-	@rm -f flowstdlib/manifest.json
+	@cd ide && $(MAKE) clean
+	@cd ide-native && $(MAKE) clean
 
 clean-dumps:
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true
@@ -222,7 +218,7 @@ clean-dumps:
 	@echo "All .dump, .dot and .dot.png files removed"
 
 clean-guide:
-	@rm -rf guide/book
+	@rm -rf target/html
 
 ################# Dot Graphs ################
 dot-graphs:

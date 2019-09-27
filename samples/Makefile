@@ -1,6 +1,6 @@
 clean:
 	@echo ""
-	@echo "------- Target 'samples/clean' starting
+	@echo "------- Target 'samples/clean'" starting
 	@find . -name \*.wasm -exec rm -rf {} + ; true
 	@find . -name test.output -exec rm -rf {} + ; true
 	@find . -name failed.output -exec rm -rf {} + ; true
