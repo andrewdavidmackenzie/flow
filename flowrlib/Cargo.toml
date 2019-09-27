@@ -26,7 +26,7 @@ debugger = []
 logging = []
 
 [dependencies]
-flow_impl = "~0.8.0"
+flow_impl = "~0.8.2"
 multimap = "~0.5"
 log = "0.4.6"
 serde_derive = "~1.0.27"
