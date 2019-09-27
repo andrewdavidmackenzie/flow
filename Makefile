@@ -10,7 +10,7 @@ all:
 
 travis:
 	$(STIME)
-	@$(MAKE) workspace test-workspace samples book-test doc
+	@$(MAKE) test-workspace samples book-test doc
 	$(ETIME)
 
 online := false
@@ -31,7 +31,7 @@ config:
 	cargo install mdbook --root . --git https://github.com/andrewdavidmackenzie/mdbook || true
 	cargo install mdbook-linkcheck --root . || true
 	# install wasm-pack
-	curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
+	# curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
 	# Install chromedriver.
 	#curl --retry 5 -LO https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.zip
 	#unzip chromedriver_linux64.zip
@@ -180,7 +180,7 @@ samples/%/test.output: samples/%/test.input samples/%/test.arguments
 # remove error messages with file path from output messages to make local output match travis output
 	@cat $< | cargo run --quiet --bin flowc -- -g -d $(@D) -- `cat $(@D)/test.arguments` | grep -v "Running" | grep -v "Finished dev" 2> $(@D)/test.err > $@; true
 	@diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && exit $$ret)
-	@echo "Sample '$(@D)' output matches expected.output"
+	@echo "\tSample '$(@D)' output matches expected.output"
 	@rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time
 
 ################# ONLINE SAMPLES ################
@@ -204,27 +204,34 @@ publish:
 	$(ETIME)
 
 ################# Clean ################
-clean: clean-dumps clean-guide
+clean:
+	$(STIME)
+	@$(MAKE) clean-dumps clean-guide
 	@cd flowstdlib; $(MAKE) clean
 	@cd samples; $(MAKE) clean
 	@cargo clean --quiet
 	@cd ide && $(MAKE) clean
 	@cd ide-native && $(MAKE) clean
+	$(STIME)
 
 clean-dumps:
+	$(STIME)
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot.png -type f -exec rm -rf {} + ; true
-	@echo "All .dump, .dot and .dot.png files removed"
+	@echo "\tAll .dump, .dot and .dot.png files removed"
+	$(ETIME)
 
 clean-guide:
+	$(STIME)
 	@rm -rf target/html
+	$(ETIME)
 
 ################# Dot Graphs ################
 dot-graphs:
 ifeq ($(DOT),)
-	@echo "'dot' not available, skipping 'dot-graphs'. Install 'graphviz' to use."
+	@echo "\t'dot' not available, skipping 'dot-graphs'. Install 'graphviz' to use."
 else
 	@find . -name \*.dot -type f -exec dot -Tpng -O {} \;
-	@echo "Generated .png files for all dot graphs found"
+	@echo "\tGenerated .png files for all dot graphs found"
 endif
