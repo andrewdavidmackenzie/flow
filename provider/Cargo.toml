@@ -1,6 +1,6 @@
 [package]
 name = "provider"
-version = "0.8.1"
+version = "0.8.2"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A content provider for 'flow' tools"
 license = "MIT"
@@ -14,9 +14,9 @@ edition = "2018"
 [dependencies]
 flowrlib = "~0.8.1"
 log = "0.4.6"
-url = "~1.6.0"
+url = "~2.1"
 tempdir = "~0.3.5"
-curl = "~0.4.11"
+curl = "~0.4.24"
 simpath = "~1.3"
 glob = "~0.2.11"
 error-chain = "0.12.1"
