@@ -7,6 +7,16 @@ os:
 - osx
 - linux
 
+addons:
+  apt:
+    packages:
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+      - cmake
+      - gcc
+      - binutils-dev
+
 branches:
   only:
     - "master"
@@ -46,7 +56,7 @@ notifications:
 after_success:
   # Coverage report
   - |
-    if [[ "$TRAVIS_OS_NAME" == "osx" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
+    if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
       pip install six &&
       wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
       tar xzf master.tar.gz &&
