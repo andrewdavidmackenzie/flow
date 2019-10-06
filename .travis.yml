@@ -1,9 +1,17 @@
 language: rust
+dist: trusty
+
+cache:
+  cargo: true
+  directories:
+    - ide/node_modules
+    - flowstdlib
+    - bin
 
 rust:
 - stable
 
-sudo: required
+sudo: false
 
 os:
 - osx
@@ -27,13 +35,6 @@ branches:
 before_install:
 - make config
 - export PATH="$PATH:~/.cargo/bin"
-
-cache:
-  cargo: true
-  directories:
-    - ide/node_modules
-    - flowstdlib
-    - bin
 
 script: make travis
 
@@ -65,10 +66,10 @@ after_success: |
     cd build &&
     cmake .. &&
     make &&
-    make install DESTDIR=../../kcov-build &&
+    sudo make install &&
     cd ../.. &&
     rm -rf kcov-master &&
-    for file in target/debug/*.d; do [ -x "${file}" ] || continue; mkdir -p "target/cov/$(basename $file)"; ./kcov-build/usr/local/bin/kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file"; done &&
+    for file in target/debug/*[^\.d]; do mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file"; done &&
     bash <(curl -s https://codecov.io/bash) &&
     echo "Uploaded code coverage"
   fi
