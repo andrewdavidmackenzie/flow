@@ -29,7 +29,7 @@ config:
 	# cargo install wasm-gc || true
 	# install mdbook for generating guides
 	cargo install mdbook --root . --git https://github.com/andrewdavidmackenzie/mdbook || true
-	cargo install mdbook-linkcheck --root . || true
+	#cargo install mdbook-linkcheck --root . || true
 	# install wasm-pack
 	# curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
 	# Install chromedriver.
