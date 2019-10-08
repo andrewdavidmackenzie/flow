@@ -1,5 +1,6 @@
 RUSTUP := $(shell command -v rustup 2> /dev/null)
 DOT := $(shell command -v dot 2> /dev/null)
+KCOV := $(shell command -v kcov 2> /dev/null)
 STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo \\n------- Target \'$@\' starting
 ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 
@@ -36,6 +37,24 @@ config:
 	#curl --retry 5 -LO https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.zip
 	#unzip chromedriver_linux64.zip
 	$(ETIME)
+
+kcov:
+	wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz
+	tar xzf master.tar.gz
+	cd kcov-master
+	mkdir build
+	cd build
+#Mac	cmake -G Xcode ..
+	cmake ..
+#Mac	xcodebuild -configuration Release
+#Mac mv src/Release/kcov ../../bin
+	make
+	sudo make install
+	cd ../..
+	rm -rf kcov-master
+
+config-mac:
+	brew install binutils
 
 config-linux:
 	$(STIME)
@@ -130,6 +149,18 @@ book-test:
 	$(STIME)
 	./bin/mdbook test
 	$(ETIME)
+
+.PHONY: coverage
+coverage:
+ifeq ($(DOT),)
+	@echo "\t'kcov' not available. Building and installing it"
+	$(MAKE) kcov
+else
+	for file in target/debug/*.d; do mkdir -p "target/cov/$(basename $file)"; kcov target/cov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file"; done
+endif
+
+upload-coverage:
+	bash <(curl -s https://codecov.io/bash)
 
 #################### LIBRARIES ####################
 flowstdlib/manifest.json:
