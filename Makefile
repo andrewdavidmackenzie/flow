@@ -87,7 +87,7 @@ trim-guide:
 
 code-docs:
 	$(STIME)
-	@cargo doc --no-deps
+	@cargo doc
 	$(ETIME)
 
 .PHONY: deploy
