@@ -6,8 +6,12 @@ use std::panic::{RefUnwindSafe, UnwindSafe};
 
 use serde_json::Value;
 
+/// Implementations should return a value of type `RunAgain` to indicate if it should be
+/// executed more times in the future.
 pub type RunAgain = bool;
+/// Use `RUN_AGAIN` to indicate that a function can be executed more times
 pub const RUN_AGAIN: RunAgain = true;
+/// Use `DONT_RUN_AGAIN` to indicate that a function should not be executed more times
 pub const DONT_RUN_AGAIN: RunAgain = false;
 
 /// An implementation runs with an array of inputs and returns a value (or null) and a
@@ -54,5 +58,6 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 /// # }
 /// ```
 pub trait Implementation : RefUnwindSafe + UnwindSafe + Sync + Send {
+    /// The `run` method is used to execute the implementation
     fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain);
 }
