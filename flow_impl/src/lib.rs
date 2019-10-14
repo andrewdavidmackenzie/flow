@@ -1,6 +1,6 @@
 #![deny(missing_docs)]
-//! `flow_impl` is a derive macro that inserts code to allow a flow "implementation"
-//! to be called when compiled to wasm32
+//! `flow_impl` is a trait that flow function implementations must implement in order
+//! to be executed as part of a flow.
 //!
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
