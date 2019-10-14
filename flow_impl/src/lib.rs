@@ -1,4 +1,7 @@
-//#![deny(missing_docs)]
+#![deny(missing_docs)]
+//! `flow_impl` is a derive macro that inserts code to allow a flow "implementation"
+//! to be called when compiled to wasm32
+//!
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
 use serde_json::Value;
@@ -12,7 +15,10 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 ///
 /// Any 'implementation' of a function must implement this trait
 ///
-/// Example implementation of this trait:
+/// # Examples
+///
+/// Here is an example implementation of this trait:
+///
 /// ```
 /// extern crate core;
 /// extern crate flow_impl;
