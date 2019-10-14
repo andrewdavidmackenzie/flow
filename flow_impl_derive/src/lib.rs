@@ -1,3 +1,8 @@
+#![deny(missing_docs)]
+//! `flow_impl` is a derive macro that inserts code to allow a flow "implementation"
+//! to be called when compiled to wasm32
+//!
+
 extern crate proc_macro;
 
 use syn;
@@ -7,6 +12,7 @@ use quote::quote;
 use crate::proc_macro::TokenStream;
 
 #[proc_macro_derive(FlowImpl)]
+/// Implement the `FlowImpl` derive macro
 pub fn flow_impl_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
