@@ -1,9 +1,8 @@
 //! MetaProvider is an overall provider that determines which internal content provider to use
 //! based on the URL scheme provided (http, file or lib).
-use url::Url;
-
 use flowrlib::errors::*;
 use flowrlib::provider::Provider;
+use url::Url;
 
 use crate::content::file_provider::FileProvider;
 use crate::content::http_provider::HttpProvider;
@@ -13,16 +12,19 @@ const FILE_PROVIDER: &dyn Provider = &FileProvider as &dyn Provider;
 const LIB_PROVIDER: &dyn Provider = &LibProvider as &dyn Provider;
 const HTTP_PROVIDER: &dyn Provider = &HttpProvider as &dyn Provider;
 
-pub struct MetaProvider {}
+/// The `MetaProvider` implements the `Provider` trait and based on the url and it's
+/// resolution to a real location for content invokes one of the child providers it has
+/// to fetch the content (e.g. File or Http).
+pub struct MetaProvider;
 
-///
-/// // Instantiate MetaProvider and then use the Provider trait methods on it to resolve and fetch
-/// // content depending on the URL scheme.
+/// Instantiate MetaProvider and then use the Provider trait methods on it to resolve and fetch
+/// content depending on the URL scheme.
+/// ```
 /// let meta_provider = MetaProvider{};
 /// let url = "file://directory";
 /// let (resolved_url, lib_ref) = meta_provider.resolve(url, "default.toml")?;
 /// let contents = meta_provider.get(&resolved_url)?;
-///
+/// ```
 impl MetaProvider {
     // Determine which specific provider should be used based on the scheme of the Url of the content
     fn get_provider(url_str: &str) -> Result<&'static dyn Provider> {

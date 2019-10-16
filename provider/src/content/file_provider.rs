@@ -3,11 +3,12 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
 
-use url::Url;
-
 use flowrlib::errors::Result;
 use flowrlib::provider::Provider;
+use url::Url;
 
+/// The `FileProvider` implements the `Provider` trait and takes care of fetching content located
+/// on the local file system.
 pub struct FileProvider;
 
 impl Provider for FileProvider {
@@ -55,10 +56,8 @@ impl Provider for FileProvider {
 }
 
 impl FileProvider {
-    /*
-        Passed a path to a directory, it searches for a file in the directory called 'default_filename'
-        If found, it opens the file and returns its contents as a String in the result
-    */
+    /// Passed a path to a directory, it searches for a file in the directory called 'default_filename'
+    /// If found, it opens the file and returns its contents as a String in the result
     pub fn find_file(dir: &PathBuf, default_filename: &str, extensions: &[&str]) -> Result<String> {
         let mut file = dir.clone();
         file.push(default_filename);
@@ -66,9 +65,7 @@ impl FileProvider {
         Self::file_by_extensions(&file, extensions)
     }
 
-    /*
-        Given a path to a filename, try to find an existing file with any of the allowed extensions
-    */
+    /// Given a path to a filename, try to find an existing file with any of the allowed extensions
     pub fn file_by_extensions(file: &PathBuf, extensions: &[&str]) -> Result<String> {
         let mut file_with_extension = file.clone();
 

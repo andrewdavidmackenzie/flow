@@ -1,3 +1,4 @@
+// TODO #![deny(missing_docs)]
 //! A module to help parse command line arguments for flow URLs and fetch the associated content
 extern crate curl;
 #[macro_use]
