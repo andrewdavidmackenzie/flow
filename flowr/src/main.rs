@@ -1,4 +1,10 @@
 // TODO #![deny(missing_docs)]
+//! `flowr` is the flow runtime or flow runner. It reads a `flow` `Manifest` produced
+//! by a flow compiler, such as `flowc`` that describes the network of collaborating functions
+//! that are executed to execute the flow.
+//!
+//! Use `flowr` or `flowr --help` or `flowr -h` at the comment line to see the command line options
+//!
 extern crate clap;
 #[macro_use]
 extern crate error_chain;

@@ -1,4 +1,11 @@
 // TODO #![deny(missing_docs)]
+//! `flowc` the the "flow compiler" that takes a hierarchical description of flows
+//! and functions and compiles it into a network of functions in a `Manifest` file
+//! for execution by `flowr` or other flow runtimes.
+//!
+//! Execute `flowc` or `flowc --help` or `flowc -h` at the comment line for a
+//! description of the command line options.
+
 extern crate clap;
 #[macro_use]
 extern crate error_chain;
