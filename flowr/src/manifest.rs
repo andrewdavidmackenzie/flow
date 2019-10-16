@@ -3,6 +3,7 @@ use std::sync::Arc;
 use flowrlib::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowrlib::manifest::MetaData;
 
+/// Return the `LibraryManifest` for the runtime functions to be added to `flowr`
 pub fn get_manifest() -> LibraryManifest {
     let metadata = MetaData {
         name: "flowr-runtime".into(),

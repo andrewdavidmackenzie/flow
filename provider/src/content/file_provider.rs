@@ -115,7 +115,7 @@ mod test {
     fn resolve_url_file_not_found() {
         let provider: &dyn Provider = &FileProvider;
         let url = "file://directory";
-        provider.resolve_url(url, "default", &["toml"]);
+        let _ = provider.resolve_url(url, "default", &["toml"]);
     }
 
     #[test]

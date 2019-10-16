@@ -1,3 +1,4 @@
+// TODO #![deny(missing_docs)]
 extern crate clap;
 #[macro_use]
 extern crate error_chain;
@@ -16,23 +17,29 @@ use std::env;
 use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
-use simplog::simplog::SimpleLogger;
-use url::Url;
-
-use cli_debug_client::CLIDebugClient;
 use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::debug_client::DebugClient;
 use flowrlib::info;
 use flowrlib::loader::Loader;
 use provider::args::url_from_string;
 use provider::content::provider::MetaProvider;
+use simplog::simplog::SimpleLogger;
+use url::Url;
 
+use cli_debug_client::CLIDebugClient;
+
+/// Runtime component - for getting command line arguments to a flow
 pub mod args;
+/// Runtime component - for accessing stdio for a flow
 pub mod stdio;
+/// Runtime component - for accessing files for a flow
 pub mod file;
+/// A manifest for the runtime functions to be added to flowr at startup
 pub mod manifest;
 mod cli_debug_client;
 
+/// The name of the environment variables used to pass command line arguments to the function
+/// used to get them.
 pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
 
 const CLI_DEBUG_CLIENT: &dyn DebugClient = &CLIDebugClient {};

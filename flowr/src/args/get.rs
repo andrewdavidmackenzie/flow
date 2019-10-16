@@ -1,12 +1,12 @@
 use std::env;
 
+use flow_impl::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use serde_json::Value;
-
-use flow_impl::implementation::{DONT_RUN_AGAIN, Implementation, RunAgain};
 
 use super::super::FLOW_ARGS_NAME;
 
 #[derive(Debug)]
+/// `Implementation` struct for the `get` function
 pub struct Get;
 
 impl Implementation for Get {
@@ -27,8 +27,7 @@ impl Implementation for Get {
 mod test {
     use std::env;
 
-    use flow_impl::implementation::DONT_RUN_AGAIN;
-    use flow_impl::implementation::Implementation;
+    use flow_impl::{DONT_RUN_AGAIN, Implementation};
 
     use super::Get;
     use super::super::super::FLOW_ARGS_NAME;
