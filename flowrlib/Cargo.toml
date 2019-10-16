@@ -1,6 +1,6 @@
 [package]
 name = "flowrlib"
-version = "0.8.1"
+version = "0.8.2"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 license = "MIT"
 description = "The runtime library for executing 'flow' programs compiled with the 'flowc' compiler"
@@ -26,7 +26,7 @@ debugger = []
 logging = []
 
 [dependencies]
-flow_impl = "~0.8.2"
+flow_impl = "=0.8.3"
 multimap = "~0.5"
 log = "0.4.6"
 serde_derive = "~1.0.27"

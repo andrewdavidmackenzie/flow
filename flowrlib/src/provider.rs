@@ -1,5 +1,8 @@
 use crate::errors::*;
 
+/// A content provider is responsible with interfacing with the environment and doing IO
+/// or what is required to supply content related with flows - isolating other libraries
+/// from the File SSystem or IO. It must implement the `Provider` trait
 pub trait Provider {
     /// Take a URL and uses it to determine a url where actual content can be read from
     /// using some provider specific logic. This may involve looking for default files in a

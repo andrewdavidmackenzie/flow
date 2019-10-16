@@ -1,5 +1,6 @@
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
+/// Return the version number of the `flowrlib` library
 pub fn version() -> &'static str {
     VERSION
 }

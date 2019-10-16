@@ -2,13 +2,14 @@
 use std::fmt;
 use std::sync::Arc;
 
+use flow_impl::{Implementation, RunAgain};
 use serde_json::Value;
-
-use flow_impl::implementation::{Implementation, RunAgain};
 
 use crate::input::Input;
 
 #[derive(Deserialize, Serialize)]
+/// `Function` contains all the information needed about a fubction and its implementation
+/// to be able to execute a flow using it.
 pub struct Function {
     #[cfg(feature = "debugger")]
     #[serde(default, skip_serializing_if = "String::is_empty")]
@@ -65,6 +66,9 @@ impl fmt::Display for Function {
 }
 
 impl Function {
+    /// Create a new `fubction` with the specified `name`, `route`, `implemenation` etc.
+    /// This only needs to be used by compilers or IDE generating `manifests` with functions
+    /// The runtime library `flowrlib` just deserializes them from the `manifest`
     pub fn new(name: String,
                route: String,
                implementation_location: String,
@@ -84,30 +88,31 @@ impl Function {
         }
     }
 
-    /*
-        Reset to initial state
-    */
+    #[cfg(feature = "debugger")]
+    /// Reset a `Function` to initial state. Used by a debugger at runtime to reset a fubction
+    /// as part of a whole flow reset to run it again.
     pub fn reset(&mut self) {
         for input in &mut self.inputs {
             input.reset();
         }
     }
 
+    /// A default `Function` - used in deserialization of a `Manifest`
     pub fn default_implementation() -> Arc<dyn Implementation> {
         Arc::new(super::function::ImplementationNotFound {})
     }
 
+    /// Accessor for a `Functions` `name`
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    /// Accessor for a `Functions` `id`
     pub fn id(&self) -> usize {
         self.id
     }
 
-    /*
-        Initialize all inputs - as they may have initializers
-    */
+    /// Initialize all of a `Functions` `Inputs` - as they may have initializers that need running
     pub fn init_inputs(&mut self, first_time: bool) -> Vec<usize> {
         let mut refilled = vec!();
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
@@ -118,19 +123,20 @@ impl Function {
         refilled
     }
 
+    /// Accessor for a `Functions` `implementation_location`
     pub fn implementation_location(&self) -> &str {
         &self.implementation_location
     }
 
+    /// Accessor for a `Functions` `impure` field
     pub fn is_impure(&self) -> bool { self.impure }
 
-    pub fn is_pure(field: &bool) -> bool { !*field }
+    fn is_pure(field: &bool) -> bool { !*field }
 
-    /*
-        The value being sent maybe an Array of values, in which case if the destination input does
-        not accept Array, then iterate over the contents of the array and send each one to the
-        input individually
-    */
+    /// write a value to a `Functions` input -
+    /// The value being written maybe an Array of values, in which case if the destination input does
+    /// not accept Array, then iterate over the contents of the array and send each one to the
+    /// input individually
     pub fn write_input(&mut self, input_number: usize, input_value: &Value) {
         let input = &mut self.inputs[input_number];
         if input_value.is_array() {
@@ -155,23 +161,27 @@ impl Function {
         }
     }
 
+    /// Accessor for a `Functions` `output_routes` field
     pub fn output_destinations(&self) -> &Vec<(String, usize, usize)> {
         &self.output_routes
     }
 
+    /// Get a clone of the `Functions` `implementation`
     pub fn get_implementation(&self) -> Arc<dyn Implementation> {
         self.implementation.clone()
     }
 
+    /// Set a `Functions` `implementation`
     pub fn set_implementation(&mut self, implementation: Arc<dyn Implementation>) {
         self.implementation = implementation;
     }
 
+    /// Determine if the `Functions` `input` number `input_number` is full or not
     pub fn input_full(&self, input_number: usize) -> bool {
         self.inputs[input_number].full()
     }
 
-    // responds true if all inputs have been satisfied and this function can be run - false otherwise
+    /// Determine if all of the `Functions` `inputs` are full and this function can be run
     pub fn inputs_full(&self) -> bool {
         for input in &self.inputs {
             if !input.full() {
@@ -183,13 +193,12 @@ impl Function {
     }
 
     #[cfg(feature = "debugger")]
+    /// Inpect the values of the `inputs` of a feature. Only used by the `debugger` feature
     pub fn inputs(&self) -> &Vec<Input> {
         &self.inputs
     }
 
-    /*
-        Read the values from the inputs and return them for use in executing the function
-    */
+    /// Read the values from the inputs and return them for use in executing the function
     pub fn take_input_set(&mut self) -> Vec<Vec<Value>> {
         let mut input_set: Vec<Vec<Value>> = Vec::new();
         for input in &mut self.inputs {

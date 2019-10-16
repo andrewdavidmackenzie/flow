@@ -16,7 +16,7 @@ use crate::run_state::{Job, Output};
 use crate::run_state::RunState;
 
 ///
-/// A Sumission is the struct used to send a flow to the Coordinator for execution. It contains
+/// A Submission is the struct used to send a flow to the Coordinator for execution. It contains
 /// all the information encessary to execute it:
 ///
 /// A new Submission is created supplying:
@@ -42,9 +42,9 @@ pub struct Submission {
 }
 
 impl Submission {
-    /*
-        Create a new submission
-    */
+    /// Create a new `Submission` of a `Flow` for execution with the specified `Manifest`
+    /// of `Functions`, executing it with a maximum of `mac_parallel_jobs` running in parallel
+    /// connecting via the optional `DebugClient`
     pub fn new(manifest: Manifest, max_parallel_jobs: usize, display_metrics: bool,
                client: Option<&'static dyn DebugClient>) -> Submission {
         info!("Maximum jobs dispatched in parallel limited to {}", max_parallel_jobs);
@@ -75,7 +75,6 @@ impl Submission {
     }
 }
 
-///
 /// The Coordinator is responsible for coordinating the dispatching of jobs (consisting
 /// of a set of Input values and an Implementation of a Function) for execution,
 /// gathering the resulting Outputs and distributing output values to other connected function's
@@ -83,7 +82,6 @@ impl Submission {
 ///
 /// It accepts Flows to be executed in the form of a Submission struct that has the required
 /// information to execut the flow.
-///
 pub struct Coordinator {
     num_threads: usize,
     job_tx: Sender<Job>,
@@ -97,7 +95,8 @@ pub struct Coordinator {
 /// Instantiate the Coordinator.
 /// Send the Submission to the Coordinator to be executed
 ///
-/// # Example
+/// # Examples
+///
 /// ```
 /// use std::sync::{Arc, Mutex};
 /// use std::io;
@@ -131,6 +130,7 @@ pub struct Coordinator {
 /// ```
 ///
 impl Coordinator {
+    /// Create a new `coordinator` with `num_threads` executor threads
     pub fn new(num_threads: usize) -> Self {
         let (job_tx, job_rx, ) = mpsc::channel();
         let (pure_job_tx, pure_job_rx, ) = mpsc::channel();
@@ -154,9 +154,7 @@ impl Coordinator {
         coordinator
     }
 
-    /*
-        Start execution of a flow, by sending the submission to the looper thread
-    */
+    /// Start execution of a flow, by submitting a `Submission` to the coordinator
     pub fn submit(&mut self, submission: Submission) {
         self.looper(submission);
     }

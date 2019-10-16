@@ -5,7 +5,7 @@ use std::sync::Arc;
 #[cfg(not(target_arch = "wasm32"))]
 use std::sync::Mutex;
 
-use flow_impl::implementation::{Implementation, RunAgain};
+use flow_impl::{Implementation, RunAgain};
 use serde_json::Value;
 #[cfg(not(target_arch = "wasm32"))]
 use wasmi::{ExternVal, ImportsBuilder, MemoryRef, Module, ModuleInstance, ModuleRef,
