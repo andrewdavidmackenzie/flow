@@ -9,20 +9,37 @@ use crate::content::lib_provider::LibProvider;
 
 const HTTP_PROVIDER: &dyn Provider = &HttpProvider as &dyn Provider;
 
+/// The `MetaProvider` implements the `Provider` trait and based on the url and it's
+/// resolution to a real location for content invokes one of the child providers it has
+/// to fetch the content (e.g. File or Http).
 pub struct MetaProvider {
     file_provider: FileProvider,
     lib_provider: LibProvider
 }
 
+/// Instantiate MetaProvider and then use the Provider trait methods on it to resolve and fetch
+/// content depending on the URL scheme.
+/// ```
+/// use nodeprovider::content::provider::MetaProvider;
+/// use flowrlib::provider::Provider;
 ///
-/// // Instantiate MetaProvider and then use the Provider trait methods on it to resolve and fetch
-/// // content depending on the URL scheme.
-/// let meta_provider = MetaProvider{};
+/// let meta_provider = &MetaProvider::new("Fake Contnet".into(), "./".into()) as &dyn Provider;
 /// let url = "file://directory";
-/// let (resolved_url, lib_ref) = meta_provider.resolve(url, "default.toml")?;
-/// let contents = meta_provider.get(&resolved_url)?;
-///
+/// match meta_provider.resolve_url(url, "default", &["toml"]) {
+///     Ok((resolved_url, lib_ref)) => {
+///         match meta_provider.get_contents(&resolved_url) {
+///             Ok(contents) => println!("Content: {:?}", contents),
+///             Err(e) => println!("Got error '{}'", e)
+///         }
+///     },
+///     Err(e) => {
+///         println!("Found error '{}'", e);
+///     }
+/// };
+/// ```
 impl MetaProvider {
+    /// Create a new nodeprovider - which currently takes a String as faked content plus a `Path`
+    /// to be searched (as a String)
     pub fn new(content: String, flow_lib_path: String) -> Self {
         MetaProvider{
             file_provider: FileProvider::new(content),
