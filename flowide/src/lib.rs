@@ -232,7 +232,7 @@ pub fn main_js() -> std::result::Result<(), JsValue> {
 
         let provider = MetaProvider::new(flow_content, flow_lib_path);
 
-        let flow = load_flow(&provider, "file:://Users/andrew/workspace/flow/ide/crate/src/hello_world.toml")
+        let flow = load_flow(&provider, "file:://Users/andrew/workspace/flow/flowide/crate/src/hello_world.toml")
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
         manifest = compile(&flow, true, "/Users/andrew/workflow/flow")
             .map_err(|e| JsValue::from_str(&e.to_string()))?;

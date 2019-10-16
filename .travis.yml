@@ -4,7 +4,7 @@ dist: trusty
 cache:
   cargo: true
   directories:
-    - ide/node_modules
+    - flowide/node_modules
     - flowstdlib
     - bin
 

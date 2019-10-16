@@ -5,7 +5,7 @@ pub struct Readline;
 
 impl Implementation for Readline {
     fn run(&self, _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        // TODO convert to ide sys
+        // TODO convert to flowide sys
         (Some(json!("readline string")), RUN_AGAIN)
     }
 }

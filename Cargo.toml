@@ -55,4 +55,4 @@ default-members = ["flowc"]
 # These libraries are excluded as they must compile for the wasm target
 # independently, and if they are part of the workspace they inherit other
 # dependencies that don't compile for wasm
-exclude = ["ide", "ide-native"]
+exclude = ["flowide", "ide-native"]

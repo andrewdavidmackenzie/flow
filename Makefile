@@ -121,7 +121,7 @@ flowrunner:
 
 ide_build:
 	$(STIME)
-	@cd ide && make build
+	@cd flowide && make build
 	$(ETIME)
 
 ide_native_build:
@@ -142,7 +142,7 @@ test-workspace:
 
 test-ide:
 	$(STIME)
-	@cd ide && make test
+	@cd flowide && make test
 	$(ETIME)
 
 book-test:
