@@ -1,3 +1,4 @@
+// TODO #![deny(missing_docs)]
 extern crate clap;
 #[macro_use]
 extern crate error_chain;
@@ -15,12 +16,11 @@ extern crate url;
 use std::path::PathBuf;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
-use simplog::simplog::SimpleLogger;
-use url::Url;
-
 use flowclib::info;
 use provider::args::url_from_string;
 use provider::content::provider::MetaProvider;
+use simplog::simplog::SimpleLogger;
+use url::Url;
 
 use crate::flow_compile::compile_flow;
 use crate::lib_build::build_lib;
