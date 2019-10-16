@@ -20,10 +20,22 @@ pub struct MetaProvider;
 /// Instantiate MetaProvider and then use the Provider trait methods on it to resolve and fetch
 /// content depending on the URL scheme.
 /// ```
-/// let meta_provider = MetaProvider{};
+/// use provider::content::provider::MetaProvider;
+/// use flowrlib::provider::Provider;
+///
+/// let meta_provider = &MetaProvider{} as &dyn Provider;
 /// let url = "file://directory";
-/// let (resolved_url, lib_ref) = meta_provider.resolve(url, "default.toml")?;
-/// let contents = meta_provider.get(&resolved_url)?;
+/// match meta_provider.resolve_url(url, "default", &["toml"]) {
+///     Ok((resolved_url, lib_ref)) => {
+///         match meta_provider.get_contents(&resolved_url) {
+///             Ok(contents) => println!("Content: {:?}", contents),
+///             Err(e) => println!("Got error '{}'", e)
+///         }
+///     },
+///     Err(e) => {
+///         println!("Found error '{}'", e);
+///     }
+/// };
 /// ```
 impl MetaProvider {
     // Determine which specific provider should be used based on the scheme of the Url of the content
