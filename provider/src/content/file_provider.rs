@@ -15,7 +15,8 @@ impl Provider for FileProvider {
     fn resolve_url(&self, url_str: &str, default_filename: &str, extensions: &[&str]) -> Result<(String, Option<String>)> {
         let url = Url::parse(url_str)
             .map_err(|_| format!("Could not convert '{}' to Url", url_str))?;
-        let mut path = url.to_file_path().unwrap();
+        let mut path = url.to_file_path()
+            .map_err(|_| format!("Could not convert '{}' to a file path", url))?;
         let md_result = fs::metadata(&path)
             .map_err(|_| format!("Error getting file metadata for path: '{}'", path.display()));
 
@@ -23,7 +24,7 @@ impl Provider for FileProvider {
             Ok(md) => {
                 if md.is_dir() {
                     debug!("'{}' is a directory, so attempting to find default file named '{}' in it",
-                          path.display(), default_filename);
+                           path.display(), default_filename);
                     let file_found_url = FileProvider::find_file(&mut path, default_filename, extensions)?;
                     Ok((file_found_url, None))
                 } else {
@@ -108,6 +109,13 @@ mod test {
             }
             _ => assert!(false, "Could not find_file 'context.toml'"),
         }
+    }
+
+    #[test]
+    fn resolve_url_file_not_found() {
+        let provider: &dyn Provider = &FileProvider;
+        let url = "file://directory";
+        provider.resolve_url(url, "default", &["toml"]);
     }
 
     #[test]
