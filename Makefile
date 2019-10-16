@@ -87,7 +87,16 @@ trim-guide:
 
 code-docs:
 	$(STIME)
-	@cargo doc
+	@cd flowc && cargo doc
+	@cd flowclib && cargo doc
+	@cd flowr && cargo doc
+	@cd flowrlib && cargo doc
+	@cd flow_impl && cargo doc
+	@cd flow_impl_derive && cargo doc
+	@cd flowr && cargo doc
+	@cd flowide && cargo doc
+	@cd nodeprovider && cargo doc
+	@cd provider && cargo doc
 	$(ETIME)
 
 .PHONY: deploy
