@@ -1,11 +1,11 @@
 use std::fs::File;
 use std::io::Write;
 
+use flow_impl::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use serde_json::Value;
 
-use flow_impl::implementation::{DONT_RUN_AGAIN, Implementation, RunAgain};
-
 #[derive(Debug)]
+/// `Implementation` struct for the `file_write` function
 pub struct FileWrite;
 
 impl Implementation for FileWrite {

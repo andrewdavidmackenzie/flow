@@ -8,7 +8,7 @@ Here is a summary of the project sub-folders, their purpose and a link to their 
 * [flowr](../../flowr/README.md)
 * [flowrlib](../../flowrlib/README.md)
 * [flowstdlib](../../flowstdlib/flowstdlib.md)
-* [ide](../../ide/README.md)
+* [ide](../../flowide/README.md)
 * [ide-native](../../ide-native/README.md)
 * [nodeprovider](../../nodeprovider/README.md)
 * [provider](../../provider/README.md)

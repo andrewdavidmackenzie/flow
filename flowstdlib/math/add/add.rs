@@ -7,7 +7,7 @@ extern crate serde_json;
 #[cfg(not(test))]
 extern crate serde_json;
 
-use flow_impl::implementation::{Implementation, RUN_AGAIN, RunAgain};
+use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 use serde_json::Value::Number;
@@ -55,7 +55,7 @@ impl Implementation for Add {
 
 #[cfg(test)]
 mod test {
-    use flow_impl::implementation::Implementation;
+    use flow_impl::Implementation;
     use serde_json::Value;
 
     use super::Add;

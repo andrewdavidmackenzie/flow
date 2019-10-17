@@ -1,6 +1,6 @@
 [package]
 name = "flowc"
-version = "0.8.1"
+version = "0.8.2"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A compiler for 'flow' programs"
 license = "MIT"
@@ -21,10 +21,10 @@ online_tests = []
 
 [dependencies]
 clap = "~2"
-flowclib = "~0.8.1"
-flowrlib = "~0.8.1"
-provider = "=0.8.2"
-flowr = "~0.8.1"
+flowclib = "=0.8.2"
+flowrlib = "=0.8.2"
+flowr = "=0.8.2"
+provider = "=0.8.3"
 simplog = "~1.2"
 log = "0.4.6"
 url = "~2.1"

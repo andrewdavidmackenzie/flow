@@ -1,10 +1,10 @@
 use std::io::{self};
 
+use flow_impl::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use serde_json::Value;
 
-use flow_impl::implementation::{DONT_RUN_AGAIN, Implementation, RunAgain};
-
 #[derive(Debug)]
+/// `Implementation` struct for the `readline` function
 pub struct Readline;
 
 impl Implementation for Readline {

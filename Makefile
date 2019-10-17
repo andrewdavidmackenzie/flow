@@ -87,7 +87,16 @@ trim-guide:
 
 code-docs:
 	$(STIME)
-	@cargo doc --no-deps
+	@cd flowc && cargo doc
+	@cd flowclib && cargo doc
+	@cd flowr && cargo doc
+	@cd flowrlib && cargo doc
+	@cd flow_impl && cargo doc
+	@cd flow_impl_derive && cargo doc
+	@cd flowr && cargo doc
+	@cd flowide && cargo doc
+	@cd nodeprovider && cargo doc
+	@cd provider && cargo doc
 	$(ETIME)
 
 .PHONY: deploy
@@ -121,7 +130,7 @@ flowrunner:
 
 ide_build:
 	$(STIME)
-	@cd ide && make build
+	@cd flowide && make build
 	$(ETIME)
 
 ide_native_build:
@@ -142,7 +151,7 @@ test-workspace:
 
 test-ide:
 	$(STIME)
-	@cd ide && make test
+	@cd flowide && make test
 	$(ETIME)
 
 book-test:

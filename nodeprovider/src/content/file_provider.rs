@@ -1,9 +1,6 @@
 use flowrlib::errors::*;
 use flowrlib::provider::Provider;
 
-//use std::io;
-//use std::path::PathBuf;
-
 pub struct FileProvider{
     content: String
 }

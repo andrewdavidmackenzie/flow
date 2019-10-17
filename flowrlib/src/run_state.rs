@@ -3,10 +3,9 @@ use std::collections::VecDeque;
 use std::fmt;
 use std::sync::Arc;
 
+use flow_impl::Implementation;
 use multimap::MultiMap;
 use serde_json::Value;
-
-use flow_impl::implementation::Implementation;
 
 use crate::debugger::Debugger;
 use crate::function::Function;
@@ -225,6 +224,7 @@ impl RunState {
         }
     }
 
+    #[cfg(feature = "debugger")]
     /*
         Reset all values back to inital ones to enable debugging from scracth
     */

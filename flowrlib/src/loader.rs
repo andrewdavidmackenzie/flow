@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use flow_impl::implementation::Implementation;
+use flow_impl::Implementation;
 
 use crate::errors::*;
 use crate::lib_manifest::{ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest};
@@ -10,34 +10,36 @@ use crate::provider::Provider;
 use crate::url;
 use crate::wasm;
 
+/// A `Loader` is responsible for loading a `Flow` from it's `Manifest`, loading the required
+/// libraries needed by the flow and keeping track of the `Function` `Implementations` that
+///will be used to execute it.
 pub struct Loader {
     global_lib_implementations: HashMap<String, Arc<dyn Implementation>>,
 }
 
 impl Loader {
+    /// Create a new `Loader`
     pub fn new() -> Self {
         Loader {
             global_lib_implementations: HashMap::<String, Arc<dyn Implementation>>::new(),
         }
     }
 
-    /*
-        Load all the processes defined in a manifest, and then find all the
-        implementations required for function execution later.
-
-        A flow is dynamically loaded, so none of the implementations it brings can be static,
-        they must all be dynamically loaded from WASM. Each one will be wrapped in a
-        Native "WasmExecutor" implementation to make it present the same interface as a native
-        implementation.
-
-        The runtime that (statically) links this library may provide some native implementations
-        already, before this is called.
-
-        It may have processes that use Implementations in libraries. Those must have been
-        loaded previously. They maybe Native or Wasm implementations, but the Wasm ones will
-        have been wrapped in a Native "WasmExecutor" implementation to make it appear native.
-        Thus, all library implementations found will be Native.
-    */
+    /// Load all the processes defined in a manifest, and then find all the
+    /// implementations required for function execution later.
+    ///
+    /// A flow is dynamically loaded, so none of the implementations it brings can be static,
+    /// they must all be dynamically loaded from WASM. Each one will be wrapped in a
+    /// Native "WasmExecutor" implementation to make it present the same interface as a native
+    /// implementation.
+    ///
+    /// The runtime that (statically) links this library may provide some native implementations
+    /// already, before this is called.
+    ///
+    /// It may have processes that use Implementations in libraries. Those must have been
+    /// loaded previously. They maybe Native or Wasm implementations, but the Wasm ones will
+    /// have been wrapped in a Native "WasmExecutor" implementation to make it appear native.
+    /// Thus, all library implementations found will be Native.
     pub fn load_manifest(&mut self, provider: &dyn Provider, flow_manifest_url: &str) -> Result<Manifest> {
         debug!("Loading flow manifest from '{}'", flow_manifest_url);
         let mut flow_manifest = Manifest::load(provider, flow_manifest_url)?;
@@ -50,9 +52,7 @@ impl Loader {
         Ok(flow_manifest)
     }
 
-    /*
-        Load libraries references referenced in the flows manifest
-    */
+    /// Load libraries references referenced in the flows manifest
     pub fn load_libraries(&mut self, provider: &dyn Provider, manifest: &Manifest) -> Result<()> {
         debug!("Loading libraries used by the flow");
         for library_reference in &manifest.lib_references {
@@ -64,6 +64,7 @@ impl Loader {
         Ok(())
     }
 
+    /// Resolve or "find" all the implementations of functions for a flow
     pub fn resolve_implementations(&mut self, flow_manifest: &mut Manifest, provider: &dyn Provider,
                                    flow_manifest_url: &str) -> Result<String> {
         debug!("Resolving implementations");
@@ -97,11 +98,9 @@ impl Loader {
         Ok("All implementations found".into())
     }
 
-    /*
-        Add a library to the runtime by adding it's ImplementationLocatorTable to the global
-        table for this runtime, so that then when we try to load a flow that references functions
-        in the library, they can be found.
-    */
+    /// Add a library to the runtime by adding it's ImplementationLocatorTable to the global
+    /// table for this runtime, so that then when we try to load a flow that references functions
+    /// in the library, they can be found.
     pub fn add_lib(&mut self, provider: &dyn Provider,
                    lib_manifest: LibraryManifest,
                    lib_manifest_url: &str) -> Result<()> {

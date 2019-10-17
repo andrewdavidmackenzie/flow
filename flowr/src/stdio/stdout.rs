@@ -1,8 +1,8 @@
+use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
-use flow_impl::implementation::{Implementation, RUN_AGAIN, RunAgain};
-
 #[derive(Debug)]
+/// `Implementation` struct for the `stdout` function
 pub struct Stdout;
 
 impl Implementation for Stdout {

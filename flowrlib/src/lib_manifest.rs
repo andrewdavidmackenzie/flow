@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use flow_impl::implementation::Implementation;
+use flow_impl::Implementation;
 
 use crate::errors::*;
 use crate::manifest::MetaData;
 use crate::provider::Provider;
 
+/// The default name used for a Library  Manifest file if none is specified
 pub const DEFAULT_LIB_MANIFEST_FILENAME: &str = "manifest";
 
 /*
@@ -16,9 +17,12 @@ pub const DEFAULT_LIB_MANIFEST_FILENAME: &str = "manifest";
 */
 #[derive(Deserialize, Serialize)]
 #[serde(untagged)]
+/// Used to describe where an implementation can be found, depending on if native or wasm
 pub enum ImplementationLocator {
     #[serde(skip_deserializing, skip_serializing)]
+    /// A `Native` implementation is a reference to a trait object and linked with the library
     Native(Arc<dyn Implementation>),
+    /// A `Wasm` implementation is compiled to wasm and loaded to a file at the path indicated by the `String`
     Wasm(String),
 }
 
@@ -33,16 +37,19 @@ impl PartialEq for ImplementationLocator {
     }
 }
 
-/*
-    Provided by libraries to help load and/or find implementations of processes
-*/
 #[derive(Deserialize, Serialize)]
+/// `LibraryManifest` describes the contents of a Library that can be referenced from a `flowz
+/// It is provided by libraries to help load and/or find implementations of processes
 pub struct LibraryManifest {
+    /// `metadata` about a flow with author, version and usual fields
     pub metadata: MetaData,
+    /// the `locators` map a reference to a function/implementation to the `ImplementationLocator`
+    /// that can be used to load it or reference it
     pub locators: HashMap<String, ImplementationLocator>,
 }
 
 impl LibraryManifest {
+    /// Create a new, empty, `LibraryManifest` with the provided `Metadata`
     pub fn new(metadata: MetaData) -> Self {
         LibraryManifest {
             metadata,
@@ -50,6 +57,7 @@ impl LibraryManifest {
         }
     }
 
+    /// `load` a library from the `source` url, using the `provider` to fetch contents
     pub fn load(provider: &dyn Provider, source: &str) -> Result<(LibraryManifest, String)> {
         let (resolved_url, _) = provider.resolve_url(source,
                                                      DEFAULT_LIB_MANIFEST_FILENAME,
@@ -64,6 +72,7 @@ impl LibraryManifest {
         Ok((manifest, resolved_url))
     }
 
+    /// Add a function's implementation to the library, specifying path to Wasm for it
     pub fn add_to_manifest(&mut self, base_dir: &str, wasm_abs_path: &str, wasm_dir: &str, function_name: &str) {
         let relative_dir = wasm_dir.replace(base_dir, "");
         let lib_reference = format!("lib://{}/{}/{}", self.metadata.name, relative_dir, function_name);

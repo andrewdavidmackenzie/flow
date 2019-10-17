@@ -4,7 +4,7 @@ extern crate flow_impl_derive;
 #[macro_use]
 extern crate serde_json;
 
-use flow_impl::implementation::{Implementation, RUN_AGAIN, RunAgain};
+use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 

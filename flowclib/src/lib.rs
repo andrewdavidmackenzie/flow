@@ -1,3 +1,4 @@
+// TODO #![deny(missing_docs)]
 extern crate erased_serde;
 #[macro_use]
 extern crate error_chain;

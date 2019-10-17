@@ -1,3 +1,11 @@
+// TODO #![deny(missing_docs)]
+//! `flowc` the the "flow compiler" that takes a hierarchical description of flows
+//! and functions and compiles it into a network of functions in a `Manifest` file
+//! for execution by `flowr` or other flow runtimes.
+//!
+//! Execute `flowc` or `flowc --help` or `flowc -h` at the comment line for a
+//! description of the command line options.
+
 extern crate clap;
 #[macro_use]
 extern crate error_chain;
@@ -15,12 +23,11 @@ extern crate url;
 use std::path::PathBuf;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
-use simplog::simplog::SimpleLogger;
-use url::Url;
-
 use flowclib::info;
 use provider::args::url_from_string;
 use provider::content::provider::MetaProvider;
+use simplog::simplog::SimpleLogger;
+use url::Url;
 
 use crate::flow_compile::compile_flow;
 use crate::lib_build::build_lib;

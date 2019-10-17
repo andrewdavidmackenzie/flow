@@ -1,6 +1,6 @@
 [package]
 name = "flowr"
-version = "0.8.1"
+version = "0.8.2"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A runner for compiled 'flow' programs"
 license = "MIT"
@@ -19,9 +19,9 @@ debugger = []
 
 [dependencies]
 clap = "~2"
-flow_impl = "~0.8.2"
-flowrlib = "~0.8.1"
-provider = "=0.8.2"
+flow_impl = "=0.8.3"
+flowrlib = "=0.8.2"
+provider = "=0.8.3"
 simplog = "~1.2"
 log = "0.4.6"
 url = "~2.1"
