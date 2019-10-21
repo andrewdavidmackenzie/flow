@@ -1,13 +1,13 @@
-#![deny(missing_docs)]
+    #![deny(missing_docs)]
 //! `flow_impl` is a trait that flow function implementations must implement in order
 //! to be executed as part of a flow.
 //!
-use std::panic::{RefUnwindSafe, UnwindSafe};
+    use std::panic::{RefUnwindSafe, UnwindSafe};
 
-use serde_json::Value;
+    use serde_json::Value;
 
-/// Implementations should return a value of type `RunAgain` to indicate if it should be
-/// executed more times in the future.
+    /// Implementations should return a value of type `RunAgain` to indicate if it should be
+    /// executed more times in the future.
 pub type RunAgain = bool;
 /// Use `RUN_AGAIN` to indicate that a function can be executed more times
 pub const RUN_AGAIN: RunAgain = true;
