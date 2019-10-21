@@ -1,4 +1,4 @@
-# `flow_impl`s
+# `flow_impl`
 
 See also: [Code docs](../code/doc/flow_impl/index.html)
 
