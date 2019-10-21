@@ -1,4 +1,7 @@
-# flowc
+# `flowc`
+
+See also: [Code docs](../code/doc/flowc/index.html)
+
 `flowc` is the "compiler and linker" for flows and flow libraries, although it is not 
 very similar to what you might be familiar with as a compiler or linked.
 

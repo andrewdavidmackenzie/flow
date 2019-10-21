@@ -1,4 +1,7 @@
-# IDE
+# Flow IDE
+
+See also: [Code docs](../code/doc/flowide/index.html)
+
 This is an IDE for flow that uses WebAssembly compilation of flow libraries, plus web-sys.rs rust crate to 
 interact with the dom from rust, plus wasm-bindgen to generate bindings. Packaged as an electron app.
 

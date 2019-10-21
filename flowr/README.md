@@ -1,14 +1,12 @@
-## Flow Runtime Library
+# `flowr`
 
-This is the runtime library of flow.
+See also: [Code docs](../code/doc/flowr/index.html)
 
-It handles the execution of functions according to the semantics defined.
+`flowr` is a native runtime for flows build using the `flowrlib` library.
 
-### Runtime functions
-Additionally, it provides a number of standard, impure (have side effects or do IO), functions to 
-flows to help them interact with the environment they run in.
+It handles the execution of `Functions` forming a `Flow` according to the defined semantics.
 
-Those functions are organized into the following modules, each with multiple functions:
-* env
-* stdio
-* file
+## Runtime functions
+Additionally, it provides the required runtime functions to flows to help them interact with the environment they run in.
+
+See the [Code docs](../code/doc/flowr/index.html) for more details on those runtime functions.

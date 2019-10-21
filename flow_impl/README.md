@@ -1,4 +1,6 @@
-# flow_impl
+# `flow_impl`s
+
+See also: [Code docs](../code/doc/flow_impl/index.html)
 
 This crate defines a trait that implementations of flow
 'functions' must implement in order for them to be invoked
