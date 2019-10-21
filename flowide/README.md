@@ -1,4 +1,4 @@
-# Flow IDE
+# `flowide`
 
 See also: [Code docs](../code/doc/flowide/index.html)
 

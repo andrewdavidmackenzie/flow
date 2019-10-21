@@ -8,8 +8,10 @@ src = "."
 [build]
 build-dir = "target/html"
 create-missing = false
+use-default-preprocessors = false
 
 [output.html]
+[preprocessor.links]
 
 # the "mdbook-linkcheck" renderer - when enabling change  build-dir back to "target"
 #[output.linkcheck]

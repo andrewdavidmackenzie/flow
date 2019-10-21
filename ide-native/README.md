@@ -1,4 +1,4 @@
-# ide-native
+# `ide-native`
 This is an experimental crate that instead of using WebAssembly, Javascript and Electron
 to build a "native" app, uses ffi to call rust functions directly.
 

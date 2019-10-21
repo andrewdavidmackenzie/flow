@@ -1,4 +1,4 @@
-# Flow Standard Library (//flowstdlib)
+# `flowstdlib`
 A library of commonly used flows and functions.
 
 Sub-modules included:

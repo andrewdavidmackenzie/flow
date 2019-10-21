@@ -7,6 +7,4 @@ See also: [Code docs](../code/doc/flowr/index.html)
 It handles the execution of `Functions` forming a `Flow` according to the defined semantics.
 
 ## Runtime functions
-Additionally, it provides the required runtime functions to flows to help them interact with the environment they run in.
-
-See the [Code docs](../code/doc/flowr/index.html) for more details on those runtime functions.
+Additionally, it implements the required [`runtime` functions](../runtime/README.md).
