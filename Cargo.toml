@@ -8,7 +8,7 @@ debug = true   # Controls whether the compiler passes `-g`
 rpath = false  # Controls whether the compiler passes `-C rpath`
 lto = false    # Controls `-C lto` for binaries and static libs
 debug-assertions = true  # Controls whether debug assertions are enabled
-codegen-units = 1 # Controls whether the compiler passes `-C codegen-units`
+codegen-units = 8 # Controls whether the compiler passes `-C codegen-units`
                   # `codegen-units` is ignored when `lto = true`
 panic = "unwind"
 
@@ -47,7 +47,7 @@ debug = true
 rpath = false
 lto = false
 debug-assertions = true
-codegen-units = 1
+codegen-units = 16
 
 [workspace]
 members = ["flowc", "flowr", "provider", "flowrlib", "flowclib", "flow_impl", "nodeprovider", "flow_impl_derive"]
