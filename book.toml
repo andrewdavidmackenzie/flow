@@ -6,10 +6,10 @@ multilingual = false
 src = "."
 
 [build]
-build-dir = "target"
+build-dir = "target/html"
 create-missing = false
 
 [output.html]
 
-# enable the "mdbook-linkcheck" renderer
-[output.linkcheck]
+# the "mdbook-linkcheck" renderer - when enabling change  build-dir back to "target"
+#[output.linkcheck]

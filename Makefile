@@ -11,7 +11,7 @@ all:
 
 travis:
 	$(STIME)
-	@$(MAKE) workspace test-workspace samples book-test doc
+	@$(MAKE) workspace test-workspace samples book-test docs
 	$(ETIME)
 
 online := false
@@ -62,12 +62,13 @@ config-linux:
 	$(ETIME)
 
 ################### Doc ####################
-doc:
+.PHONY: docs
+docs:
 	$(STIME)
-	@$(MAKE) build_guide trim-guide code-docs
+	@$(MAKE) build-guide trim-guide code-docs
 	$(ETIME)
 
-build_guide:
+build-guide:
 	@RUST_LOG=info time ./bin/mdbook build
 
 trim-guide:
@@ -87,16 +88,9 @@ trim-guide:
 
 code-docs:
 	$(STIME)
-	@cd flowc && cargo doc
-	@cd flowclib && cargo doc
-	@cd flowr && cargo doc
-	@cd flowrlib && cargo doc
-	@cd flow_impl && cargo doc
-	@cd flow_impl_derive && cargo doc
-	@cd flowr && cargo doc
-	@cd flowide && cargo doc
-	@cd nodeprovider && cargo doc
-	@cd provider && cargo doc
+	@cargo doc --all --quiet --no-deps --target-dir=target/html/code
+	@cargo doc --quiet --manifest-path=flowide/Cargo.toml --no-deps --target-dir=target/html/code
+	@cargo doc --quiet --manifest-path=ide-native/Cargo.toml --no-deps --target-dir=target/html/code
 	$(ETIME)
 
 .PHONY: deploy

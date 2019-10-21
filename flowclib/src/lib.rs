@@ -1,4 +1,6 @@
 // TODO #![deny(missing_docs)]
+//! This is the rust `flow` Compiler Library. It can be linked with other code to produce
+//! a flow compiler, such as the `flowc` command line flow compiler.
 extern crate erased_serde;
 #[macro_use]
 extern crate error_chain;

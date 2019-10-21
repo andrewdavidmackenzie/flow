@@ -11,7 +11,7 @@ homepage = "http://andrewdavidmackenzie.github.io/flow/"
 repository = "https://github.com/andrewdavidmackenzie/flow/"
 
 [[bin]]
-name = "ide"
+name = "flowide"
 path = "src/main.rs"
 
 [lib]

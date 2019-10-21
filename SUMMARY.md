@@ -57,22 +57,6 @@
     - [reverse-echo sample](samples/reverse-echo/DESCRIPTION.md)
     - [router sample](samples/router/DESCRIPTION.md)
 
-- [The flow standard library](flowstdlib/flowstdlib.md)
-    - [Control functions](flowstdlib/control/control.md)
-        - [Tap function](flowstdlib/control/tap/tap.md)
-        - [Compare function](flowstdlib/control/compare/compare.md)
-        - [Join function](flowstdlib/control/join/join.md)
-    - [Formatting Functions](flowstdlib/fmt/fmt.md)
-        - [To Number function](flowstdlib/fmt/to_number/to_number.md)
-        - [To String function](flowstdlib/fmt/to_string/to_string.md)
-        - [Reverse function](flowstdlib/fmt/reverse/reverse.md)
-    - [Image Functions](flowstdlib/img/img.md)
-        - [Format PNG function](flowstdlib/img/format_png/format_png.md)
-    - [Math Functions](flowstdlib/math/math.md)
-        - [Add function](flowstdlib/math/add/add.md)
-        - [Subtract function](flowstdlib/math/subtract/subtract.md)
-        - [Divide function](flowstdlib/math/divide/divide.md)
-
 - [The flow runtime functions](runtime/README.md)
     - [Arg functions](runtime/args/args.md)
         - [Arg get function](runtime/args/get.md)
@@ -84,7 +68,12 @@
         - [Standard Output function](runtime/stdio/stdout.md)
         - [Standard Error function](runtime/stdio/stderr.md)
         
-- [Developing 'flow'](docs/developing/overview.md)
+- [Known `flow` libraries](docs/libraries/known-libraries.md)
+    - [The flow standard library](flowstdlib/flowstdlib.md)
+
+--------------------------------------------------------------------------------
+
+- [Developing `flow`](docs/developing/overview.md)
     - [Pre-requisites](docs/developing/prereqs.md)
     - [Project Structure](docs/developing/structure.md)
         - [flow_impl](flow_impl/README.md)
@@ -111,3 +100,4 @@
     - [Flow Loading](docs/internals/flow_loading.md)
     - [Flow Compiling](docs/internals/flow_compiling.md)
     - [Flow Execution](docs/internals/flow_execution.md)
+
