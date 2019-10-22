@@ -34,14 +34,7 @@ use url::Url;
 
 use cli_debug_client::CLIDebugClient;
 
-/// Runtime component - for getting command line arguments to a flow
-pub mod args;
-/// Runtime component - for accessing stdio for a flow
-pub mod stdio;
-/// Runtime component - for accessing files for a flow
-pub mod file;
-/// A manifest for the runtime functions to be added to flowr at startup
-pub mod manifest;
+mod runtime;
 mod cli_debug_client;
 
 /// The name of the environment variables used to pass command line arguments to the function
@@ -95,7 +88,7 @@ fn run() -> Result<()> {
     let provider = MetaProvider {};
 
     // Load this runtime's library of native (statically linked) implementations
-    loader.add_lib(&provider, ::manifest::get_manifest(), "runtime")
+    loader.add_lib(&provider, runtime::manifest::get_manifest(), "runtime")
         .chain_err(|| "Could not add library to loader")?;
 
     let debugger = matches.is_present("debugger");
