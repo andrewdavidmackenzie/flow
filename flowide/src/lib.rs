@@ -1,3 +1,8 @@
+// TODO #![deny(missing_docs)]
+//! `flowide` is a prototype of an IDE for `flow` programs. It  is written in rust
+//! and compiles to WebAssembly for use with JavaScript inside an electron app.
+//! In order to build a WebAssembly module we must compile a dynamic library (without a main())
+//! and `lib.rs` is the root of that crate.
 #[macro_use]
 extern crate error_chain;
 extern crate flow_impl;
@@ -105,6 +110,7 @@ fn compile(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manif
         .chain_err(|| "COuld not compile flow to manifest")
 }
 
+/// Load a `Manifest` from `url` using `provider`
 pub fn load_manifest(provider: &dyn Provider, url: &str) -> Result<Manifest> {
     info!("Loading manifest");
 
@@ -199,13 +205,12 @@ extern "C" {
     fn alert(s: &str);
 }
 
-// exporting a function so that it can be called from JS
-#[wasm_bindgen]
-pub fn export_from_rust(a: u32, b: u32) -> u32 {
-    a + b
-}
-
-// This is like the `main` function, except for JavaScript.
+/// This is like the `main` function, except for JavaScript, called upon 'page' load
+/// It initializes logging, then reads the path where the flow should be loaded from,
+/// and loads it.
+///
+/// If successfully loaded it runs it, displaying `stdout` and `stderr` using the runtime
+/// functions provided.
 #[wasm_bindgen(start)]
 pub fn main_js() -> std::result::Result<(), JsValue> {
     alert("Flow IDE has started!");
