@@ -69,7 +69,7 @@
         - [Standard Error function](runtime/stdio/stderr.md)
         
 - [Known `flow` libraries](docs/libraries/known-libraries.md)
-    - [The flow standard library](flowstdlib/flowstdlib.md)
+    - [The flow standard library](flowstdlib/README.md)
 
 --------------------------------------------------------------------------------
 
@@ -82,7 +82,7 @@
         - [flowclib](flowclib/README.md)
         - [flowr](flowr/README.md)
         - [flowrlib](flowrlib/README.md)
-        - [flowstdlib](flowstdlib/flowstdlib.md)
+        - [flowstdlib](flowstdlib/README.md)
         - [flowide](flowide/README.md)
         - [ide-native](ide-native/README.md)
         - [nodeprovider](nodeprovider/README.md)
