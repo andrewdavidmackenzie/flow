@@ -7,6 +7,7 @@ use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 
 #[derive(FlowImpl)]
+/// The struct for `Tap` implementation
 pub struct Tap;
 
 /*

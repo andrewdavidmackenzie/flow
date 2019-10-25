@@ -1,6 +1,10 @@
+#[cfg(target_arch = "wasm32")]
 extern crate core;
+#[cfg(target_arch = "wasm32")]
 extern crate flow_impl;
+#[cfg(target_arch = "wasm32")]
 extern crate flow_impl_derive;
+#[cfg(target_arch = "wasm32")]
 #[macro_use]
 extern crate serde_json;
 
@@ -9,6 +13,7 @@ use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 
 #[derive(FlowImpl)]
+/// The struct for `Divide` implementation
 pub struct Divide;
 
 impl Implementation for Divide {
@@ -16,7 +21,13 @@ impl Implementation for Divide {
         let dividend = inputs.get(0).unwrap()[0].as_f64().unwrap();
         let divisor = inputs.get(1).unwrap()[0].as_f64().unwrap();
 
-        let output = json!({"dividend:": dividend, "divisor": divisor, "result": dividend/divisor, "remainder": dividend % divisor});
+
+        let mut output_map = serde_json::Map::new();
+        output_map.insert("dividend".into(), Value::Number(serde_json::Number::from_f64(dividend).unwrap()));
+        output_map.insert("divisor".into(), Value::Number(serde_json::Number::from_f64(divisor).unwrap()));
+        output_map.insert("result".into(), Value::Number(serde_json::Number::from_f64(dividend/divisor).unwrap()));
+        output_map.insert("remainder".into(), Value::Number(serde_json::Number::from_f64(dividend % divisor).unwrap()));
+        let output = Value::Object(output_map);
 
         (Some(output), RUN_AGAIN)
     }
@@ -34,8 +45,8 @@ mod test {
         let divide: &dyn Implementation = &Divide{} as &dyn Implementation;
 
         // Create input vector
-        let dividend = json!(99);
-        let divisor = json!(3);
+        let dividend = Value::Number(serde_json::Number::from(99));
+        let divisor = Value::Number(serde_json::Number::from(3));
         let inputs: Vec<Vec<Value>> = vec!(vec!(dividend), vec!(divisor));
 
         divide.run(inputs);

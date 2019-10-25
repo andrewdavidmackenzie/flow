@@ -9,6 +9,7 @@ use serde_json::Value;
 use serde_json::Value::Number;
 
 #[derive(FlowImpl)]
+/// The struct for `Subtract` implementation
 pub struct Subtract;
 
 impl Implementation for Subtract {
