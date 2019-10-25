@@ -1,6 +1,12 @@
 # `flowstdlib`
-A library of commonly used flows and functions.
 
-Documentation is generated and uploaded to github pages and made available
-on-line, as well as being linked from the "Known flow Libraries" section of the 
-[flow guide](http://andrewdavidmackenzie.github.io/flow/docs/libraries/known-libraries.html) 
+See [Code docs](../code/doc/flowstdlib/index.html)
+
+A library of commonly used flows and functions that can be used by other `flows`.
+
+The directory containing this library must be part of `FLOW_LIB_PATH` in order for the compiler to be able to 
+find the library `flow` and `function` definitions.
+
+The chosen runtime to execute your flow must either have it statically linked (a feature) or have it compiled 
+(using `flowc` with `-l` option) and the directory containing the compiled WebAssembly `.wasm` files reachable
+in order to load the functions at run-time.
