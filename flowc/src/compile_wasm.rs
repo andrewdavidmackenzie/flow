@@ -3,10 +3,9 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 
-use tempdir::TempDir;
-
 use flowclib::model::function::Function;
 use provider::args::url_from_string;
+use tempdir::TempDir;
 
 use crate::errors::*;
 
@@ -77,7 +76,6 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool, rele
             }
             wasm_source.push(&wasm_destination.file_name().ok_or("Could not convert filename to str")?);
             let msg = format!("Copying built wasm from '{}' to '{}'", &wasm_source.display(), &wasm_destination.display());
-            info!("{}", msg);
             fs::copy(&wasm_source, &wasm_destination).expect(&msg);
 
             // clean up temp dir

@@ -3,6 +3,7 @@ DOT := $(shell command -v dot 2> /dev/null)
 KCOV := $(shell command -v kcov 2> /dev/null)
 STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo \\n------- Target \'$@\' starting
 ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
+FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
 
 all:
 	$(STIME)
@@ -166,7 +167,7 @@ upload-coverage:
 	bash <(curl -s https://codecov.io/bash)
 
 #################### LIBRARIES ####################
-flowstdlib/manifest.json:
+flowstdlib/manifest.json: $(FLOWSTDLIB_FILES)
 	@mkdir -p target;date '+%s' > target/.flowstdlibtime ; echo \\n------- Target \'$@\' starting
 	@cargo run -p flowc -- -v info -l flowstdlib
 	@read st < target/.flowstdlibtime ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
