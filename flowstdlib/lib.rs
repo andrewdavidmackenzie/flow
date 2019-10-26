@@ -4,7 +4,6 @@
 //! compiled to WebAssembly and loaded from file by the runtime.
 
 /// Use serde_json for data representations of Values passed to/from functions
-#[macro_use]
 extern crate serde_json;
 
 #[cfg(feature = "static")]
