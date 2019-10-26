@@ -14,6 +14,10 @@ edition = "2018"
 name = "flowstdlib"
 path = "lib.rs"
 
+[features]
+default = ["static"]
+static = []
+
 [dependencies]
 flow_impl = "=0.8.3"
 flow_impl_derive = "=0.8.3"
