@@ -1,0 +1,26 @@
+[package]
+name = "flowstdlib"
+version = "0.8.2"
+authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
+description = "The native version of the standard library for 'flow' programs compiled with the 'flowc' compiler"
+license = "MIT"
+documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
+homepage = "http://andrewdavidmackenzie.github.io/flow/"
+repository = "https://github.com/andrewdavidmackenzie/flow/"
+readme = "README.md"
+edition = "2018"
+
+[lib]
+name = "flowstdlib"
+path = "lib.rs"
+
+[features]
+default = ["static"]
+static = []
+
+[dependencies]
+flow_impl = "=0.8.3"
+flow_impl_derive = "=0.8.3"
+serde_json = "1.0"
+image = "0.22.3"
+log = "0.4.6"

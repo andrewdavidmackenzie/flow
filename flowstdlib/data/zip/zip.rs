@@ -1,14 +1,18 @@
 extern crate core;
 extern crate flow_impl;
 extern crate flow_impl_derive;
+#[cfg(target_arch = "wasm32")]
 #[macro_use]
+#[cfg(target_arch = "wasm32")]
 extern crate serde_json;
 
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use flow_impl_derive::FlowImpl;
+use serde_json::json;
 use serde_json::Value;
 
 #[derive(FlowImpl)]
+/// The struct for `Zip` implementation
 pub struct Zip;
 
 impl Implementation for Zip {

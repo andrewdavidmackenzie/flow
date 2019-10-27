@@ -41,7 +41,7 @@ fn impl_flow_impl(ast: &syn::DeriveInput) -> TokenStream {
         }
 
         #[cfg(target_arch = "wasm32")]
-       #[no_mangle]
+        #[no_mangle]
         pub extern "C" fn run_wasm(input_data_ptr: *mut c_void, input_data_length: i32) -> i32 {
             use std::ptr::copy;
             let input_data: Vec<u8> = unsafe {

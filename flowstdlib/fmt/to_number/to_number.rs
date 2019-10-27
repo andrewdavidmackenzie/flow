@@ -8,6 +8,7 @@ use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 
 #[derive(FlowImpl)]
+/// The struct for `ToNumber` implementation
 pub struct ToNumber;
 
 impl Implementation for ToNumber {

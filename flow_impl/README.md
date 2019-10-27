@@ -1,6 +1,6 @@
 # `flow_impl`
 
-See also: [Code docs](../code/doc/flow_impl/index.html)
+See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flow_impl/index.html)
 
 This crate defines a trait that implementations of flow
 'functions' must implement in order for them to be invoked

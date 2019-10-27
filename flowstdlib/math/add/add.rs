@@ -1,6 +1,7 @@
 extern crate core;
 extern crate flow_impl;
 extern crate flow_impl_derive;
+#[cfg(target_arch = "wasm32")]
 #[cfg(test)]
 #[macro_use]
 extern crate serde_json;
@@ -9,11 +10,13 @@ extern crate serde_json;
 
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use flow_impl_derive::FlowImpl;
+
 use serde_json::Value;
 use serde_json::Value::Number;
 use serde_json::Value::String;
 
 #[derive(FlowImpl)]
+/// The struct for `Add` implementation
 pub struct Add;
 
 impl Implementation for Add {
@@ -57,6 +60,7 @@ impl Implementation for Add {
 mod test {
     use flow_impl::Implementation;
     use serde_json::Value;
+    use serde_json::Value::Number;
 
     use super::Add;
 
@@ -86,17 +90,17 @@ mod test {
     #[test]
     fn test_adder() {
         let integer_test_set = vec!(
-            (json!(0), json!(0), Some(json!(0))),
-            (json!(0), json!(-10), Some(json!(-10))),
-            (json!(-10), json!(0), Some(json!(-10))),
-            (json!(0), json!(10), Some(json!(10))),
-            (json!(10), json!(0), Some(json!(10))),
-            (json!(10), json!(20), Some(json!(30))),
-            (json!(-10), json!(-20), Some(json!(-30))),
-            (json!(10), json!(-20), Some(json!(-10))),
-            (json!(-10), json!(20), Some(json!(10))),
-            (json!(4660046610375530309 as i64), json!(7540113804746346429 as i64), None),
-            (json!(-4660046610375530309 as i64), json!(-7540113804746346429 as i64), None),
+            (Number(serde_json::Number::from(0)), Number(serde_json::Number::from(0)), Some(Number(serde_json::Number::from(0)))),
+            (Number(serde_json::Number::from(0)), Number(serde_json::Number::from(-10)), Some(Number(serde_json::Number::from(-10)))),
+            (Number(serde_json::Number::from(-10)), Number(serde_json::Number::from(0)), Some(Number(serde_json::Number::from(-10)))),
+            (Number(serde_json::Number::from(0)), Number(serde_json::Number::from(10)), Some(Number(serde_json::Number::from(10)))),
+            (Number(serde_json::Number::from(10)), Number(serde_json::Number::from(0)), Some(Number(serde_json::Number::from(10)))),
+            (Number(serde_json::Number::from(10)), Number(serde_json::Number::from(20)), Some(Number(serde_json::Number::from(30)))),
+            (Number(serde_json::Number::from(-10)), Number(serde_json::Number::from(-20)), Some(Number(serde_json::Number::from(-30)))),
+            (Number(serde_json::Number::from(10)), Number(serde_json::Number::from(-20)), Some(Number(serde_json::Number::from(-10)))),
+            (Number(serde_json::Number::from(-10)), Number(serde_json::Number::from(20)), Some(Number(serde_json::Number::from(10)))),
+            (Number(serde_json::Number::from(4660046610375530309 as i64)), Number(serde_json::Number::from(7540113804746346429 as i64)), None),
+            (Number(serde_json::Number::from(-4660046610375530309 as i64)), Number(serde_json::Number::from(-7540113804746346429 as i64)), None),
         );
 
         let added = Add {};
