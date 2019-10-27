@@ -12,12 +12,28 @@ use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 
 #[derive(FlowImpl)]
-/// The struct for `Compare` implementation
+/// Compare two input values and output different boolean values depending on if the comparison
+/// is equal, greater than, greater than or equal, less than or less than or equal.
+///
+/// ## Include using
+/// ```toml
+/// [[process]]
+/// alias = "compare"
+/// source = "lib://flowstdlib/control/compare"
+/// ```
+///
+/// ## Inputs
+/// * `left` - left hand input
+/// * `right` - right hand input
+///
+/// ## Outputs
+/// * `equal` [Boolean] - outputs true if the two values are equal
+/// * `lt` [Boolean] - outputs true if the left hand value is less than the right hand value
+/// * `lte` [Boolean] - outputs true if the left hand value is less than or equal to the right hand value
+/// * `gt` [Boolean] - outputs true if the left hand value is greater than the right hand value
+/// * `gte` [Boolean] - outputs true if the left hand value is greater than or equal to the right hand value
 pub struct Compare;
 
-/*
-    A compare operator that takes two numbers (for now) and outputs the comparisons between them
-*/
 impl Implementation for Compare {
     fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let left = inputs[0].remove(0).as_i64().unwrap();

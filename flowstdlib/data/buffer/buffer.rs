@@ -7,7 +7,22 @@ use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 
 #[derive(FlowImpl)]
-/// The struct for `Buffer` implementation
+/// Takes a value on it's input and sends the same value on it's output when it can
+/// run, effectively buffering it until the downstream processs can accept it.
+///
+/// ## Include using
+/// ```toml
+/// [[process]]
+/// alias = "buffer"
+/// source = "lib://flowstdlib/data/buffer"
+/// ```
+///
+///
+/// ## Input
+/// * (default) - the value to buffer
+///
+/// ## Outputs
+/// * the buffered value
 pub struct Buffer;
 
 impl Implementation for Buffer {

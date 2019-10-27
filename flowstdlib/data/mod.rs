@@ -1,3 +1,6 @@
+//! ## Control (//flowstdlib/data)
+//! Some generic Processes that act on data.
+
 /// A module that implements a data buffer
 pub mod buffer;
 /// A module that implements composing an array from a number of elements

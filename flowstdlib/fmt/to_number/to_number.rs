@@ -8,7 +8,20 @@ use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 
 #[derive(FlowImpl)]
-/// The struct for `ToNumber` implementation
+/// Convert a String to a number
+///
+/// ## Include using
+/// ```toml
+/// [[process]]
+/// alias = "to_number"
+/// source = "lib://flowstdlib/fmt/to_number"
+/// ```
+///
+/// ## Input
+/// * The String to convert
+///
+/// ## Output
+/// * The Number equivalent of String input if possible
 pub struct ToNumber;
 
 impl Implementation for ToNumber {

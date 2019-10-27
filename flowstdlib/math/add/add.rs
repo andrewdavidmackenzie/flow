@@ -16,7 +16,21 @@ use serde_json::Value::Number;
 use serde_json::Value::String;
 
 #[derive(FlowImpl)]
-/// The struct for `Add` implementation
+/// Add two inputs to produce a new output
+///
+/// ## Include using
+/// ```toml
+/// [[process]]
+/// alias = "add"
+/// source = "lib://flowstdlib/math/add"
+/// ```
+///
+/// ## Inputs
+/// * `i1` - first input of type `Number`
+/// * `i2` - second input of type `Number`
+///
+/// ## Outputs
+/// * Sum of `i1` and `i2` of type `Number`
 pub struct Add;
 
 impl Implementation for Add {

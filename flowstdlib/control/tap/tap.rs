@@ -7,13 +7,23 @@ use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 
 #[derive(FlowImpl)]
-/// The struct for `Tap` implementation
+/// Control the flow of data (flow or disapear it) based on a boolean control value.
+///
+/// ## Include using
+/// ```toml
+/// [[process]]
+/// alias = "tap"
+/// source = "lib://flowstdlib/control/tap"
+/// ```
+///
+/// ## Inputs
+/// * `data` - the data flow we wish to control the flow if
+/// * `control` - a boolean value to determine in `data` is passed on or not
+///
+/// ## Outputs
+/// * `data` if `control` is true, nothing if `control` is false
 pub struct Tap;
 
-/*
-    A control switch function that outputs the "data" input IF the "control" input is true,
-    otherwise it does not produce any output
-*/
 impl Implementation for Tap {
     fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let mut value = None;
