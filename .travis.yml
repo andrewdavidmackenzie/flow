@@ -36,7 +36,7 @@ before_install:
 - make config
 - export PATH="$PATH:~/.cargo/bin"
 
-script: cargo build -p flowstdlib
+script: make travis
 
 env:
   global:
