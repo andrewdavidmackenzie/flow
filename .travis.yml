@@ -5,7 +5,6 @@ cache:
   cargo: true
   directories:
     - flowide/node_modules
-    - flowstdlib
     - bin
 
 rust:
