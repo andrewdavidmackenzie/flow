@@ -13,7 +13,21 @@ use serde_json::Value;
 use serde_json::Value::String as JsonString;
 
 #[derive(FlowImpl)]
-/// The struct for `Reverse` implementation
+/// Reverse a String
+///
+/// ## Include using
+/// ```toml
+/// [[process]]
+/// alias = "reverse"
+/// source = "lib://flowstdlib/fmt/reverse"
+/// ```
+///
+/// ## Input
+/// * The String to reverse
+///
+/// ## Output
+/// * "original" - The original input string
+/// * "reversed" - The input string reversed
 pub struct Reverse;
 
 impl Implementation for Reverse {
