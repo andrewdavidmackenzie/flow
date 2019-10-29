@@ -104,6 +104,7 @@ impl Loader {
     pub fn add_lib(&mut self, provider: &dyn Provider,
                    lib_manifest: LibraryManifest,
                    lib_manifest_url: &str) -> Result<()> {
+        info!("Loading library named '{}'", lib_manifest.metadata.name);
         for (reference, locator) in lib_manifest.locators {
             // if we don't already have an implementation loaded for that reference
             if self.global_lib_implementations.get(&reference).is_none() {

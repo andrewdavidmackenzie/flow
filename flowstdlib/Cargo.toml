@@ -16,7 +16,7 @@ path = "lib.rs"
 
 [features]
 default = []
-static = []
+native = []
 
 [dependencies]
 flow_impl = "=0.8.3"

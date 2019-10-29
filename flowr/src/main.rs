@@ -92,7 +92,7 @@ fn run() -> Result<()> {
         .chain_err(|| "Could not add 'runtime' library to loader")?;
 
     // If the "static" feature is enabled then load the statically linked flowstdlib
-    #[cfg(feature = "static")]
+    #[cfg(feature = "native")]
     loader.add_lib(&provider, flowstdlib::get_manifest(), "flowstdlib")
         .chain_err(|| "Could not add 'flowstdlib' library to loader")?;
 
@@ -104,7 +104,6 @@ fn run() -> Result<()> {
     let manifest = loader.load_manifest(&provider, &flow_manifest_url.to_string())
         .chain_err(|| format!("Could not load the flow from manifest: '{}'", flow_manifest_url))?;
 
-    // run the flow
     let num_parallel_jobs = num_parallel_jobs(&matches, debugger);
 
     let debug_client = match debugger {

@@ -6,31 +6,35 @@
 /// Use serde_json for data representations of Values passed to/from functions
 extern crate serde_json;
 
+#[cfg(feature = "native")]
 use std::sync::Arc;
 
+#[cfg(feature = "native")]
 use flowrlib::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
+#[cfg(feature = "native")]
 use flowrlib::manifest::MetaData;
 
-#[cfg(feature = "static")]
+#[cfg(feature = "native")]
 /// Control functions
 pub mod control;
 
-#[cfg(feature = "static")]
+#[cfg(feature = "native")]
 /// Data functions
 pub mod data;
 
-#[cfg(feature = "static")]
+#[cfg(feature = "native")]
 /// Formatting functions
 pub mod fmt;
 
-#[cfg(feature = "static")]
+#[cfg(feature = "native")]
 /// Imaging functions
 pub mod img;
 
-#[cfg(feature = "static")]
+#[cfg(feature = "native")]
 /// Maths functions
 pub mod math;
 
+#[cfg(feature = "native")]
 /// Return the `LibraryManifest` for the runtime functions to be added to `flowr`
 pub fn get_manifest() -> LibraryManifest {
     let metadata = MetaData {

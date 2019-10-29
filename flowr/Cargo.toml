@@ -14,9 +14,9 @@ name = "flowr"
 path = "src/main.rs"
 
 [features]
-default = ["debugger", "static"]
+default = ["debugger", "native"]
 debugger = []
-static = []
+native = []
 
 [dependencies]
 clap = "~2"
@@ -32,5 +32,4 @@ serde_json = "1.0"
 num_cpus = "~1.10"
 error-chain = "0.12.1"
 
-#[target.'cfg(feature = "static")'.dependencies]
-flowstdlib = { path = "../flowstdlib", features = [ "static" ] }
+flowstdlib = { path = "../flowstdlib", features = [ "native" ] }
