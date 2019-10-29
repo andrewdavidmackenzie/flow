@@ -89,7 +89,12 @@ fn run() -> Result<()> {
 
     // Load this runtime's library of native (statically linked) implementations
     loader.add_lib(&provider, runtime::manifest::get_manifest(), "runtime")
-        .chain_err(|| "Could not add library to loader")?;
+        .chain_err(|| "Could not add 'runtime' library to loader")?;
+
+    // If the "static" feature is enabled then load the statically linked flowstdlib
+    #[cfg(feature = "static")]
+    loader.add_lib(&provider, flowstdlib::get_manifest(), "flowstdlib")
+        .chain_err(|| "Could not add 'flowstdlib' library to loader")?;
 
     let debugger = matches.is_present("debugger");
     let metrics = matches.is_present("metrics");

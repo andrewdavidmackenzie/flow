@@ -15,7 +15,7 @@ name = "flowstdlib"
 path = "lib.rs"
 
 [features]
-default = ["static"]
+default = []
 static = []
 
 [dependencies]
