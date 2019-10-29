@@ -14,8 +14,9 @@ name = "flowr"
 path = "src/main.rs"
 
 [features]
-default = ["debugger"]
+default = ["debugger", "native"]
 debugger = []
+native = []
 
 [dependencies]
 clap = "~2"
@@ -30,3 +31,5 @@ serde = "~1.0.27"
 serde_json = "1.0"
 num_cpus = "~1.10"
 error-chain = "0.12.1"
+
+flowstdlib = { path = "../flowstdlib", features = [ "native" ] }
