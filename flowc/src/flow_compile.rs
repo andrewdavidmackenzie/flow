@@ -5,10 +5,6 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 
-use simpath::FileType;
-use simpath::Simpath;
-use url::Url;
-
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowclib::dumper::dump_flow;
@@ -19,6 +15,9 @@ use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
 use flowrlib::manifest::DEFAULT_MANIFEST_FILENAME;
 use flowrlib::provider::Provider;
+use simpath::FileType;
+use simpath::Simpath;
+use url::Url;
 
 use crate::compile_wasm;
 use crate::errors::*;
@@ -141,7 +140,8 @@ fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String> {
     info!("Executing flow from manifest in '{}'", filepath.display());
 
     let command = find_executable_path(&get_executable_name())?;
-    let mut command_args = vec!(filepath.to_str().unwrap().to_string());
+    let mut command_args = vec!(filepath.to_str().unwrap().to_string(),
+                                "-n".to_string());
     command_args.append(&mut args);
     debug!("Running flow using '{} {:?}'", &command, &command_args);
     let output = Command::new(&command).args(command_args)

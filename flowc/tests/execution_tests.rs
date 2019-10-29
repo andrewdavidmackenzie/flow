@@ -75,7 +75,7 @@ fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: PathBuf, test_name:
 fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>, input: String) -> String {
     let mut command = Command::new("cargo");
     let mut command_args = vec!("run", "-p", "flowr", "--", filepath.to_str().unwrap(),
-                                "-j", "1", "-t", "0", "--");
+                                "-n", "-j", "1", "-t", "0", "--");
     for test_arg in &test_args {
         command_args.push(test_arg);
     }

@@ -91,10 +91,13 @@ fn run() -> Result<()> {
     loader.add_lib(&provider, runtime::manifest::get_manifest(), "runtime")
         .chain_err(|| "Could not add 'runtime' library to loader")?;
 
-    // If the "static" feature is enabled then load the statically linked flowstdlib
-    #[cfg(feature = "native")]
-    loader.add_lib(&provider, flowstdlib::get_manifest(), "flowstdlib")
-        .chain_err(|| "Could not add 'flowstdlib' library to loader")?;
+    // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
+    if cfg!(feature = "native") {
+        if matches.is_present("native") {
+            loader.add_lib(&provider, flowstdlib::get_manifest(), "flowstdlib")
+                .chain_err(|| "Could not add 'flowstdlib' library to loader")?;
+        }
+    }
 
     let debugger = matches.is_present("debugger");
     let metrics = matches.is_present("metrics");
@@ -188,13 +191,14 @@ fn num_parallel_jobs(matches: &ArgMatches, debugger: bool) -> usize {
     Parse the command line arguments using clap
 */
 fn get_matches<'a>() -> ArgMatches<'a> {
-    App::new(env!("CARGO_PKG_NAME"))
+    let app = App::new(env!("CARGO_PKG_NAME"))
         .setting(AppSettings::TrailingVarArg)
-        .version(env!("CARGO_PKG_VERSION"))
-        .arg(Arg::with_name("flow-manifest")
-            .help("the name of the 'flow' manifest file")
-            .required(true)
-            .index(1))
+        .version(env!("CARGO_PKG_VERSION"));
+
+    let app = app.arg(Arg::with_name("flow-manifest")
+        .help("the name of the 'flow' manifest file")
+        .required(true)
+        .index(1))
         .arg(Arg::with_name("debugger")
             .short("d")
             .long("debugger")
@@ -222,8 +226,16 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .value_name("VERBOSITY_LEVEL")
             .help("Set verbosity level for output (trace, debug, info, warn, error (default))"))
         .arg(Arg::with_name("flow-arguments")
-            .multiple(true))
-        .get_matches()
+            .multiple(true)
+            .help("A list of arguments to pass to the flow when executed. Preceed this list with a '-'"));
+
+    #[cfg(feature = "native")]
+        let app = app.arg(Arg::with_name("native")
+        .short("n")
+        .long("native")
+        .help("Use native libraries when possible"));
+
+    app.get_matches()
 }
 
 /*
@@ -234,8 +246,8 @@ fn parse_args(matches: &ArgMatches) -> Result<Url> {
     // this will not be unique, but it will be used very soon and removed
     if let Some(flow_args) = matches.values_of("flow-arguments") {
         let mut args: Vec<&str> = flow_args.collect();
-    // arg #0 is the flow/package name
-    // TODO fix this to be the name of the flow, not 'flowr'
+        // arg #0 is the flow/package name
+        // TODO fix this to be the name of the flow, not 'flowr'
         args.insert(0, env!("CARGO_PKG_NAME"));
         env::set_var(FLOW_ARGS_NAME, args.join(" "));
         debug!("Setup '{}' with values = '{:?}'", FLOW_ARGS_NAME, args);
