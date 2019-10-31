@@ -1,0 +1,8 @@
+function = "Sqrt"
+implementation = "sqrt.rs"
+
+[[input]]
+type = "Number"
+
+[[output]]
+type = "Number"
