@@ -14,6 +14,9 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 
+use provider::content::provider::MetaProvider;
+use url::Url;
+
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowclib::generator::generate;
@@ -21,8 +24,6 @@ use flowclib::generator::generate::GenerationTables;
 use flowclib::model::flow::Flow;
 use flowclib::model::process::Process;
 use flowclib::model::process::Process::FlowProcess;
-use provider::content::provider::MetaProvider;
-use url::Url;
 
 mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
@@ -179,4 +180,9 @@ fn hello_world() {
 #[test]
 fn echo() {
     execute_test("line-echo");
+}
+
+#[test]
+fn range_of_ranges() {
+    execute_test("range-of-ranges");
 }

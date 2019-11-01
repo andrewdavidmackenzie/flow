@@ -8,8 +8,8 @@ pub struct FlowJsonLoader;
 
 // NOTE: Indexes are one-based
 impl Deserializer for FlowJsonLoader {
-    fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process> {
-        serde_json::from_str(contents).chain_err(|| format!("Error deserializing Json from: '{:?}'", url))
+    fn deserialize(&self, contents: &str) -> Result<Process> {
+        serde_json::from_str(contents).chain_err(|| "Error deserializing Json".to_string())
     }
 
     fn name(&self) -> &'static str { "Json" }
@@ -25,7 +25,7 @@ mod test {
     fn invalid_json() {
         let deserializer = FlowJsonLoader {};
 
-        match deserializer.deserialize("=", None) {
+        match deserializer.deserialize("=") {
             Ok(_) => assert!(false, "Should not have parsed correctly as is invalid JSON"),
             Err(_) => assert!(true, "Should produce syntax error at (1,1)")
         };
@@ -49,7 +49,7 @@ mod test {
     ]
 }";
         let toml = FlowJsonLoader {};
-        let flow = toml.deserialize(&flow_description.replace("'", "\""), None);
+        let flow = toml.deserialize(&flow_description.replace("'", "\""));
         println!("{:?}", flow);
         assert!(flow.is_ok());
     }
@@ -81,7 +81,7 @@ mod test {
     ]
 }";
         let toml = FlowJsonLoader {};
-        let flow = toml.deserialize(&flow_description.replace("'", "\""), None);
+        let flow = toml.deserialize(&flow_description.replace("'", "\""));
         println!("{:?}", flow);
         assert!(flow.is_ok());
     }
@@ -112,7 +112,7 @@ mod test {
     ]
 }";
         let toml = FlowJsonLoader {};
-        let flow = toml.deserialize(&flow_description.replace("'", "\""), None);
+        let flow = toml.deserialize(&flow_description.replace("'", "\""));
         assert!(flow.is_err());
     }
 }

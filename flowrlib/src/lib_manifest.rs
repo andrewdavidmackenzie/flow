@@ -63,7 +63,7 @@ impl LibraryManifest {
                                                      DEFAULT_LIB_MANIFEST_FILENAME,
                                                      &["json"])?;
         let content = provider.get_contents(&resolved_url)
-            .expect(&format!("Could not read contents of Library Manifest from '{}'", resolved_url));
+            .chain_err(|| format!("Could not read contents of Library Manifest from '{}'", resolved_url))?;
 
         let manifest = serde_json::from_str(
             &String::from_utf8(content).chain_err(|| "Could not convert from utf8 to String")?)

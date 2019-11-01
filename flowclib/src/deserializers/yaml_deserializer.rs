@@ -6,8 +6,8 @@ pub struct FlowYamlLoader;
 
 // NOTE: Indexes are one-based
 impl Deserializer for FlowYamlLoader {
-    fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process> {
-        serde_yaml::from_str(contents).chain_err(|| format!("Error deserializing Yaml from: '{:?}'", url))
+    fn deserialize(&self, contents: &str) -> Result<Process> {
+        serde_yaml::from_str(contents).chain_err(|| "Error deserializing Yaml".to_string())
     }
 
     fn name(&self) -> &'static str { "Yaml" }
@@ -24,7 +24,7 @@ mod test {
     fn invalid_yaml() {
         let deserializer = FlowYamlLoader {};
 
-        match deserializer.deserialize("{}", None) {
+        match deserializer.deserialize("{}") {
             Ok(_) => assert!(false, "Should not have parsed correctly as is invalid JSON"),
             Err(_) => assert!(true, "Should produce syntax error at (1,1)")
         };
@@ -41,7 +41,7 @@ author_email: unknown@unknown.com
 ";
 
         let yaml = FlowYamlLoader {};
-        let flow = yaml.deserialize(&flow_description.replace("'", "\""), None);
+        let flow = yaml.deserialize(&flow_description.replace("'", "\""));
         println!("{:?}", flow);
         assert!(flow.is_ok());
     }

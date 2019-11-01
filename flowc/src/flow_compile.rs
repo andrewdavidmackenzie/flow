@@ -5,6 +5,12 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 
+use flowrlib::manifest::DEFAULT_MANIFEST_FILENAME;
+use flowrlib::provider::Provider;
+use simpath::FileType;
+use simpath::Simpath;
+use url::Url;
+
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowclib::dumper::dump_flow;
@@ -13,11 +19,6 @@ use flowclib::generator::generate;
 use flowclib::generator::generate::GenerationTables;
 use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
-use flowrlib::manifest::DEFAULT_MANIFEST_FILENAME;
-use flowrlib::provider::Provider;
-use simpath::FileType;
-use simpath::Simpath;
-use url::Url;
 
 use crate::compile_wasm;
 use crate::errors::*;
@@ -29,10 +30,10 @@ pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bo
                     provided_implementations: bool, out_dir: PathBuf, provider: &dyn Provider, release: bool)
                     -> Result<String> {
     info!("==== Compiler phase: Loading flow");
-    let context = loader::load_context(&url.to_string(), provider).expect("Couldn't load context");
+    let context = loader::load_context(&url.to_string(), provider).chain_err(||"Couldn't load context")?;
     match context {
         FlowProcess(flow) => {
-            let mut tables = compile::compile(&flow).expect("Could not compile flow");
+            let mut tables = compile::compile(&flow).chain_err(||"Could not compile flow")?;
 
             if dump {
                 dump_flow::dump_flow(&flow, &out_dir)
@@ -58,7 +59,7 @@ pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bo
             info!("==== Compiler phase: Executing flow from manifest");
             execute_flow(manifest_path, args)
         }
-        _ => bail!("Process loaded was not of type 'Flow' and cannot be executed")
+        _ => Err("Process loaded was not of type 'Flow' and cannot be executed".into())
     }
 }
 

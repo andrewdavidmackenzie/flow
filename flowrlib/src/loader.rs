@@ -75,13 +75,10 @@ impl Loader {
             match parts[0] {
                 "lib" => {
                     debug!("Looking for implementation for lib reference '{}'", function.implementation_location());
-                    match self.global_lib_implementations.get(function.implementation_location()) {
-                        Some(implementation) => {
-                            debug!("Found implementation");
-                            function.set_implementation(implementation.clone())
-                        },
-                        None => bail!("Did not find implementation for '{}'", implementation_source_url)
-                    }
+                    let implementation = self.global_lib_implementations.get(function.implementation_location())
+                        .chain_err(|| format!("Did not find implementation for '{}'", implementation_source_url))?;
+                    debug!("Found implementation");
+                    function.set_implementation(implementation.clone());
                 }
 
                 /*** These below are not 'lib:' references - hence are supplied implementations ***/

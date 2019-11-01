@@ -1,10 +1,9 @@
 use std::env;
 
-use simpath::Simpath;
-use url::Url;
-
 use flowrlib::errors::*;
 use flowrlib::provider::Provider;
+use simpath::Simpath;
+use url::Url;
 
 use crate::content::file_provider::FileProvider;
 
@@ -51,8 +50,8 @@ impl Provider for LibProvider {
     fn resolve_url(&self, url_str: &str, default_filename: &str, _extensions: &[&str]) -> Result<(String, Option<String>)> {
         let url = Url::parse(url_str)
             .chain_err(|| format!("Could not convert '{}' to valid Url", url_str))?;
-        let lib_name = url.host_str().expect(
-            &format!("'lib_name' could not be extracted from host part of url '{}'", url));
+        let lib_name = url.host_str()
+            .chain_err(|| format!("'lib_name' could not be extracted from host part of url '{}'", url))?;
 
         if let Err(_) = env::var("FLOW_LIB_PATH") {
             let parent_dir = std::env::current_dir().unwrap();

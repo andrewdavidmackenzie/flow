@@ -91,7 +91,7 @@ impl FileProvider {
         info!("Looking for files matching: '{}'", pattern);
 
         // Try to glob for the default file using a pattern
-        for entry in glob(pattern).expect("Failed to read glob pattern") {
+        for entry in glob(pattern).chain_err(||"Failed to read glob pattern")? {
             // return first file found that matches the pattern, or error if none match
             match entry {
                 Ok(context_file) => return Ok(context_file),

@@ -20,7 +20,7 @@ use crate::model::route::SetRoute;
 
 // All deserializers have to implement this method
 pub trait Deserializer {
-    fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process>;
+    fn deserialize(&self, contents: &str) -> Result<Process>;
     fn name(&self) -> &'static str;
 }
 
@@ -81,11 +81,10 @@ fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &dyn Pr
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
 
     let deserializer = get_deserializer(&resolved_url)?;
-    info!("Loading process with alias = '{}'", alias);
+    info!("Loading process using alias = '{}'", alias);
     debug!("Loading from url = '{}' with deserializer: '{}'", resolved_url, deserializer.name());
-    let mut process = deserializer.deserialize(&String::from_utf8(contents).unwrap(),
-                                               Some(url))
-        .chain_err(|| format!("Could not deserialize process from content in '{}'", url))?;
+    let string = &String::from_utf8(contents).chain_err(|| "Could not convert contents to UTF8")?;
+    let mut process = deserializer.deserialize(string)?;
 
     debug!("Deserialized flow, now parsing and loading any sub-processes");
     match process {

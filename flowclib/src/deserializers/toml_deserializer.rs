@@ -9,8 +9,8 @@ pub struct FlowTomelLoader;
 
 // NOTE: Add one to make indexes one-based
 impl Deserializer for FlowTomelLoader {
-    fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process> {
-        toml::from_str(contents).chain_err(|| format!("Error deserializing Toml from: '{:?}'", url))
+    fn deserialize(&self, contents: &str) -> Result<Process> {
+        toml::from_str(contents).chain_err(|| "Error deserializing Toml".to_string())
     }
 
     fn name(&self) -> &'static str { "Toml" }
@@ -28,7 +28,7 @@ mod test {
     fn invalid_toml() {
         let deserializer = FlowTomelLoader {};
 
-        match deserializer.deserialize("{}}}}f dsdsadsa ", None) {
+        match deserializer.deserialize("{}}}}f dsdsadsa ") {
             Ok(_) => assert!(false, "Should not have parsed correctly as is invalid TOML"),
             Err(_) => assert!(true, "Should produce syntax error at (1,1)")
         };
@@ -54,7 +54,7 @@ mod test {
     ";
 
         let toml = FlowTomelLoader {};
-        let flow = toml.deserialize(flow_description, None);
+        let flow = toml.deserialize(flow_description);
         assert!(flow.is_ok());
     }
 
@@ -70,7 +70,7 @@ mod test {
     ";
 
         let toml = FlowTomelLoader {};
-        assert!(toml.deserialize(flow_description, None).is_err());
+        assert!(toml.deserialize(flow_description).is_err());
     }
 
     #[test]
@@ -86,7 +86,7 @@ mod test {
     ";
 
         let toml = FlowTomelLoader {};
-        assert!(toml.deserialize(flow_description, None).is_err());
+        assert!(toml.deserialize(flow_description).is_err());
     }
 
     #[test]
@@ -96,7 +96,7 @@ mod test {
     ";
 
         let toml = FlowTomelLoader {};
-        match toml.deserialize(flow_description, None) {
+        match toml.deserialize(flow_description) {
             Ok(FlowProcess(flow)) => {
                 assert_eq!(flow.version, Flow::default_version());
                 assert_eq!(flow.author_name, Flow::default_author());
@@ -116,7 +116,7 @@ mod test {
     ";
 
         let toml = FlowTomelLoader {};
-        match toml.deserialize(flow_description, None) {
+        match toml.deserialize(flow_description) {
             Ok(FlowProcess(flow)) => {
                 assert_eq!(flow.version, "1.1.1".to_string());
                 assert_eq!(flow.author_name, "tester".to_string());
@@ -137,7 +137,7 @@ mod test {
     ";
 
         let toml = FlowTomelLoader {};
-        assert!(toml.deserialize(flow_description, None).is_ok());
+        assert!(toml.deserialize(flow_description).is_ok());
     }
 
     #[test]
@@ -151,7 +151,7 @@ mod test {
     ";
 
         let toml = FlowTomelLoader {};
-        assert!(toml.deserialize(flow_description, None).is_err());
+        assert!(toml.deserialize(flow_description).is_err());
     }
 
     #[test]
@@ -164,7 +164,7 @@ mod test {
     ";
 
         let toml = FlowTomelLoader {};
-        assert!(toml.deserialize(flow_description, None).is_err());
+        assert!(toml.deserialize(flow_description).is_err());
     }
 
     #[test]
@@ -175,7 +175,7 @@ mod test {
     ";
 
         let toml = FlowTomelLoader {};
-        assert!(toml.deserialize(flow_description, None).is_err());
+        assert!(toml.deserialize(flow_description).is_err());
     }
 
     #[test]
@@ -188,7 +188,7 @@ name = 'stdout'
 type = 'String'";
 
         let toml = FlowTomelLoader {};
-        assert!(toml.deserialize(function_definition, None).is_ok());
+        assert!(toml.deserialize(function_definition).is_ok());
     }
 
     #[test]
@@ -199,6 +199,6 @@ name = 'stdout'
 type = 'String'";
 
         let toml = FlowTomelLoader {};
-        assert!(toml.deserialize(function_definition, None).is_err());
+        assert!(toml.deserialize(function_definition).is_err());
     }
 }
