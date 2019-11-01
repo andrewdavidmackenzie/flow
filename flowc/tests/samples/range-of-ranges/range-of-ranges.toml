@@ -4,8 +4,8 @@ flow = "deadlock"
 [[process]]
 alias = "first-sequence"
 source = "lib://flowstdlib/math/sequence"
-input.start = 1
-input.end = 9
+input.start = {once = 1}
+input.end = {once = 9}
 
 # Generate a sequence of numbers from 2 upto the value from sequence above
 [[process]]
