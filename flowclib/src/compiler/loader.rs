@@ -84,7 +84,8 @@ fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &dyn Pr
     info!("Loading process using alias = '{}'", alias);
     debug!("Loading from url = '{}' with deserializer: '{}'", resolved_url, deserializer.name());
     let string = &String::from_utf8(contents).chain_err(|| "Could not convert contents to UTF8")?;
-    let mut process = deserializer.deserialize(string)?;
+    let mut process = deserializer.deserialize(string)
+        .chain_err(|| format!("Could not deserialize content at: '{}'", resolved_url))?;
 
     debug!("Deserialized flow, now parsing and loading any sub-processes");
     match process {
