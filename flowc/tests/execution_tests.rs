@@ -181,8 +181,3 @@ fn hello_world() {
 fn echo() {
     execute_test("line-echo");
 }
-
-#[test]
-fn range_of_ranges() {
-    execute_test("range-of-ranges");
-}
