@@ -1,48 +1,25 @@
 flow = "deadlock"
 
-# Generate a sequence of two numbers 1, 2
 [[process]]
-alias = "first-sequence"
+alias = "limit-sequence"
 source = "lib://flowstdlib/math/sequence"
 input.start = {once = 1}
 input.end = {once = 9}
 
-# Generate a sequence of numbers from 2 upto the value from sequence above
+# Generate a sequence of numbers from 0 upto the value from sequence above
 [[process]]
 alias = "second-sequence"
 source = "lib://flowstdlib/math/sequence"
-
-[[process]]
-alias = "second-start"
-source = "lib://flowstdlib/data/buffer"
-input.default = {constant = 2}
+input.start = {constant = 0}
 
 [[connection]]
-from = "process/second-start"
-to = "process/second-sequence/start"
-
-[[connection]]
-from = "process/first-sequence/sequence"
+from = "process/limit-sequence/sequence"
 to = "process/second-sequence/end"
-
-[[process]]
-alias = "sum"
-source = "lib://flowstdlib/math/add"
-
-# send the max value directly to sum, and via a less-than comparison
-# both should arrive
-[[connection]]
-from = "process/second-sequence/max"
-to = "process/sum/i1"
-
-[[connection]]
-from = "process/second-sequence/sequence"
-to = "process/sum/i2"
 
 [[process]]
 alias = "print"
 source = "lib://runtime/stdio/stdout"
 
 [[connection]]
-from = "process/sum"
+from = "process/second-sequence/sequence"
 to = "process/print"
