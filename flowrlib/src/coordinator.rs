@@ -52,7 +52,6 @@ impl Submission {
 
         let state = RunState::new(manifest.functions, max_parallel_jobs);
 
-        info!("Creating metrics");
         #[cfg(feature = "metrics")]
             let metrics = Metrics::new(state.num_functions());
 
@@ -201,8 +200,6 @@ impl Coordinator {
                         Ok(output) => {
                             submission.state.job_done(&output);
 
-                            debug!("\tCompleted Job #{} for Function #{} with result = {:?}",
-                                   output.job_id, output.function_id, output.result);
                             if cfg!(feature = "debugger") && display_next_output {
                                 if let Some(ref mut debugger) = submission.debugger {
                                     debugger.job_completed(&output);
@@ -264,7 +261,6 @@ impl Coordinator {
         while let Some(job) = submission.state.next_job() {
             match self.send_job(job, submission) {
                 Ok((display, rest)) => {
-                    debug!("Job sent to Executors");
                     submission.state.job_sent();
                     display_output = display;
                     restart = rest;

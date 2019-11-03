@@ -303,7 +303,7 @@ impl RunState {
                 if destination_id != source_id { // don't block yourself!
                     let destination_function = self.get(destination_id);
                     if destination_function.input_full(io_number) {
-                        debug!("\tAdded block between #{} <-- #{}", destination_id, source_id);
+                        trace!("\tAdded block between #{} <-- #{}", destination_id, source_id);
                         blocks.push_back((destination_id, io_number, source_id));
                         // only put source on the blocked list if it already has it's inputs full
                         if source_has_inputs_full {
@@ -405,17 +405,16 @@ impl RunState {
     */
     fn create_job(&mut self, function_id: usize) -> (Job, bool) {
         let job_id = self.jobs_sent;
-        debug!("Creating Job #{} for Function #{}", self.jobs_sent, function_id);
-
         let function = self.get_mut(function_id);
-
         let input_set = function.take_input_set();
 
-        // refresh any inputs that have constant initializers
+        debug!("Job #{} for Function #{} '{}' ", job_id, function_id, function.name());
+
+        // load any inputs that have initializers on target function for job
         let refilled = function.init_inputs(false);
         let all_refilled = refilled.len() == function.inputs().len();
 
-        debug!("Job #{},  Function #{} '{}', Input set: {:?}", job_id, function_id, function.name(), input_set);
+        debug!("\tInputs: {:?}", input_set);
 
         let implementation = function.get_implementation();
 
@@ -449,7 +448,7 @@ impl RunState {
 
                 // if it produced an output value
                 if let Some(output_v) = output_value {
-                    debug!("\tProcessing output value '{}' from Job #{}", output_v, output.job_id);
+                    debug!("\tOutput: {:?}", output_v);
 
                     for (ref output_route, destination_id, io_number) in &output.destinations {
                         let output_value = output_v.pointer(&output_route).unwrap();
@@ -488,7 +487,7 @@ impl RunState {
         let block;
         let full;
 
-        debug!("\t\tFunction #{} sending value '{}' via output route '{}' to Function #{}:{}",
+        debug!("\t\tFunction #{} sending '{}' via output route '{}' to Function #{}:{}",
                source_id, output_value, output_route, destination_id, io_number);
 
         if let Some(ref mut debugger) = debugger {
@@ -624,7 +623,7 @@ impl RunState {
     */
     fn inputs_now_full(&mut self, id: usize) {
         if self.is_blocked(id) {
-            debug!("\t\t\tFunction #{} inputs are ready, but blocked on output", id);
+            debug!("\t\t\tFunction #{} blocked on output, so added to 'Blocked' list", id);
             self.blocked.insert(id);
         } else {
             debug!("\t\t\tFunction #{} not blocked on output, so added to 'Ready' list", id);
@@ -658,7 +657,7 @@ impl RunState {
 
             for &(blocking_id, blocking_io_number, blocked_id) in &self.blocks {
                 if (blocking_id == blocker_id) && !refilled_inputs.contains(&blocking_io_number) {
-                    debug!("\t\tBlock removed #{}:{} <-- #{}", blocking_id, blocking_io_number, blocked_id);
+                    trace!("\t\tBlock removed #{}:{} <-- #{}", blocking_id, blocking_io_number, blocked_id);
                     unblocked_list.push(blocked_id);
                 }
             }
@@ -693,7 +692,7 @@ impl RunState {
     fn create_block(&mut self, blocking_id: usize, blocking_io_number: usize,
                     blocked_id: usize, debugger: &mut Option<Debugger>) {
         if blocked_id != blocking_id {
-            debug!("\t\t\tProcess #{}:{} <-- Process #{} blocked", &blocking_id,
+            trace!("\t\t\tProcess #{}:{} <-- Process #{} blocked", &blocking_id,
                    &blocking_io_number, &blocked_id);
 
             if !self.blocks.contains(&(blocking_id, blocking_io_number, blocked_id)) {

@@ -75,7 +75,7 @@ impl Loader {
                 "lib" => {
                     let implementation = self.global_lib_implementations.get(function.implementation_location())
                         .chain_err(|| format!("Did not find implementation for '{}'", implementation_source_url))?;
-                    debug!("Found implementation for '{}'", function.implementation_location());
+                    trace!("Found implementation for '{}'", function.implementation_location());
                     function.set_implementation(implementation.clone());
                 }
 
