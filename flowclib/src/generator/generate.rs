@@ -194,7 +194,7 @@ mod test {
     }
 
     #[test]
-    fn function() {
+    fn function_with_default_outout_route() {
         let function = Function::new(
             Name::from("Stdout"),
             false,
@@ -265,7 +265,7 @@ mod test {
     }
 
     #[test]
-    fn function_with_initialized_input() {
+    fn function_with_once_initialized_input() {
         let mut io = IO::new("String", &Route::default());
         io.set_initial_value(&Some(InputInitializer::OneTime(
             OneTimeInputInitializer { once: json!(1) }
@@ -306,7 +306,7 @@ mod test {
     }
 
     #[test]
-    fn function_with_constant_input() {
+    fn function_with_constant_initialized_input() {
         let mut io = IO::new("String", &Route::default());
         io.set_initial_value(&Some(InputInitializer::Constant(
             ConstantInputInitializer { constant: json!(1) }
@@ -433,7 +433,7 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(("0".to_string(), 1, 0)),
+            vec!(("/0".to_string(), 1, 0)),
             0);
 
         let expected = "{
@@ -441,7 +441,7 @@ mod test {
   'implementation_location': 'lib://runtime/stdio/stdout',
   'output_routes': [
     [
-      '0',
+      '/0',
       1,
       0
     ]
