@@ -69,6 +69,8 @@ pub fn get_manifest() -> LibraryManifest {
                              Native(Arc::new(control::compare::compare::Compare)));
     manifest.locators.insert("lib://flowstdlib/math/subtract/Subtract".to_string(),
                              Native(Arc::new(math::subtract::subtract::Subtract)));
+    manifest.locators.insert("lib://flowstdlib/math/sqrt/Sqrt".to_string(),
+                             Native(Arc::new(math::sqrt::sqrt::Sqrt)));
     manifest.locators.insert("lib://flowstdlib/data/compose_array/ComposeArray".to_string(),
                              Native(Arc::new(data::compose_array::compose_array::ComposeArray)));
     manifest.locators.insert("lib://flowstdlib/data/buffer/Buffer".to_string(),

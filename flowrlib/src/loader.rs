@@ -56,8 +56,8 @@ impl Loader {
     pub fn load_libraries(&mut self, provider: &dyn Provider, manifest: &Manifest) -> Result<()> {
         debug!("Loading libraries used by the flow");
         for library_reference in &manifest.lib_references {
+            info!("Attempting to load library reference '{}'", library_reference);
             let (lib_manifest, lib_manifest_url) = LibraryManifest::load(provider, library_reference)?;
-            debug!("Loading library '{}' from '{}'", library_reference, lib_manifest_url);
             self.add_lib(provider, lib_manifest, &lib_manifest_url)?;
         }
 
@@ -99,7 +99,7 @@ impl Loader {
     pub fn add_lib(&mut self, provider: &dyn Provider,
                    lib_manifest: LibraryManifest,
                    lib_manifest_url: &str) -> Result<()> {
-        info!("Loading library named '{}'", lib_manifest.metadata.name);
+        debug!("Loading library '{}' from '{}'", lib_manifest.metadata.name, lib_manifest_url);
         for (reference, locator) in lib_manifest.locators {
             // if we don't already have an implementation loaded for that reference
             if self.global_lib_implementations.get(&reference).is_none() {
@@ -121,6 +121,7 @@ impl Loader {
             }
         }
 
+        info!("Library '{}' loaded.", lib_manifest.metadata.name);
         Ok(())
     }
 }

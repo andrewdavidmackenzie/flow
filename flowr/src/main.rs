@@ -23,16 +23,16 @@ use std::env;
 use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
+use simplog::simplog::SimpleLogger;
+use url::Url;
+
+use cli_debug_client::CLIDebugClient;
 use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::debug_client::DebugClient;
 use flowrlib::info;
 use flowrlib::loader::Loader;
 use provider::args::url_from_string;
 use provider::content::provider::MetaProvider;
-use simplog::simplog::SimpleLogger;
-use url::Url;
-
-use cli_debug_client::CLIDebugClient;
 
 mod runtime;
 mod cli_debug_client;
@@ -256,7 +256,7 @@ fn parse_args(matches: &ArgMatches) -> Result<Url> {
     SimpleLogger::init(matches.value_of("verbosity"));
 
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    info!("'flowrlib' version {}\n", info::version());
+    info!("'flowrlib' version {}", info::version());
 
     url_from_string(matches.value_of("flow-manifest"))
         .chain_err(|| "Unable to parse the URL of the manifest of the flow to run")

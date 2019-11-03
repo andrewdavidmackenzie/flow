@@ -3,9 +3,10 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
 
+use url::Url;
+
 use flowrlib::errors::Result;
 use flowrlib::provider::Provider;
-use url::Url;
 
 /// The `FileProvider` implements the `Provider` trait and takes care of fetching content located
 /// on the local file system.
@@ -23,8 +24,8 @@ impl Provider for FileProvider {
         match md_result {
             Ok(md) => {
                 if md.is_dir() {
-                    debug!("'{}' is a directory, so attempting to find default file named '{}' in it",
-                           path.display(), default_filename);
+                    debug!("'{}' is a directory, so attempting to find default file named '{}' in it with extensions {:?}",
+                           path.display(), default_filename, extensions);
                     let file_found_url = FileProvider::find_file(&mut path, default_filename, extensions)?;
                     Ok((file_found_url, None))
                 } else {

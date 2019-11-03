@@ -1,9 +1,10 @@
 use std::env;
 
-use flowrlib::errors::*;
-use flowrlib::provider::Provider;
 use simpath::Simpath;
 use url::Url;
+
+use flowrlib::errors::*;
+use flowrlib::provider::Provider;
 
 use crate::content::file_provider::FileProvider;
 
@@ -78,8 +79,8 @@ impl Provider for LibProvider {
             }
 
             let provided_implementation_filename = lib_path.file_name().unwrap().to_str().unwrap();
-            debug!("'{:?}' is a directory, so looking inside it for default file name '{}' or provided implemention file '{}' with extensions '{:?}'",
-                   lib_path, default_filename, provided_implementation_filename, _extensions);
+            debug!("'{}' is a directory, so looking inside it for default file name '{}' or provided implemention file '{}' with extensions {:?}",
+                   lib_path.display(), default_filename, provided_implementation_filename, _extensions);
             for filename in [default_filename, provided_implementation_filename].iter() {
                 let file = FileProvider::find_file(&lib_path, filename, _extensions);
                 if let Ok(file_path_as_url) = file {
