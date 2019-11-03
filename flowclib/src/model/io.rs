@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use flowrlib::input::InputInitializer;
 
 use crate::compiler::loader::Validate;
+use crate::errors::*;
 use crate::model::datatype::DataType;
 use crate::model::datatype::HasDataType;
 use crate::model::datatype::TypeCheck;
@@ -13,7 +14,6 @@ use crate::model::route::FindRoute;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
-use crate::errors::*;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub enum IOType {
@@ -80,12 +80,10 @@ impl IO {
     }
 
     pub fn set_route_from_parent(&mut self, parent: &Route, io_type: &IOType) {
-        let name = self.name().clone();
-
-        if name.is_empty() {
+        if self.name.is_empty() {
             self.set_route(&parent, &io_type);
         } else {
-            self.set_route(&Route::from(&format!("{}/{}", parent, name)), &io_type);
+            self.set_route(&Route::from(&format!("{}/{}", parent, self.name)), &io_type);
         }
     }
 
@@ -229,8 +227,7 @@ impl Find for IOSet {
 
                     let mut found = io.clone();
                     found.set_datatype(&io.datatype(1)); // the type within the array
-                    let mut new_route = found.route().clone();
-                    new_route.push(&Route::from(format!("/{}", sub_route)));
+                    let new_route = Route::from(format!("{}/{}", found.route(), sub_route));
                     found.set_route(&new_route, &io.io_type);
                     return Ok(found);
                 }
