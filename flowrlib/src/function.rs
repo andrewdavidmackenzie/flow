@@ -116,6 +116,7 @@ impl Function {
     pub fn init_inputs(&mut self, first_time: bool) -> Vec<usize> {
         let mut refilled = vec!();
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
+            debug!("\t\tInitializing Input #{}", io_number);
             if input.init(first_time) {
                 refilled.push(io_number);
             }

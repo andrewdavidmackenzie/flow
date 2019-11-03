@@ -67,17 +67,15 @@ impl Loader {
     /// Resolve or "find" all the implementations of functions for a flow
     pub fn resolve_implementations(&mut self, flow_manifest: &mut Manifest, provider: &dyn Provider,
                                    flow_manifest_url: &str) -> Result<String> {
-        debug!("Resolving implementations");
         // find in a library, or load the supplied implementation - as specified by the source
         for function in &mut flow_manifest.functions {
             let implementation_source_url = function.implementation_location().to_string();
             let parts: Vec<_> = implementation_source_url.split(":").collect();
             match parts[0] {
                 "lib" => {
-                    debug!("Looking for implementation for lib reference '{}'", function.implementation_location());
                     let implementation = self.global_lib_implementations.get(function.implementation_location())
                         .chain_err(|| format!("Did not find implementation for '{}'", implementation_source_url))?;
-                    debug!("Found implementation");
+                    debug!("Found implementation for '{}'", function.implementation_location());
                     function.set_implementation(implementation.clone());
                 }
 
