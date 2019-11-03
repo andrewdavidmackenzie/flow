@@ -488,7 +488,7 @@ impl RunState {
         let block;
         let full;
 
-        debug!("\t\tJob #{} sending value '{}' via output route '{}' to Function #{}:{}",
+        debug!("\t\tFunction #{} sending value '{}' via output route '{}' to Function #{}:{}",
                source_id, output_value, output_route, destination_id, io_number);
 
         if let Some(ref mut debugger) = debugger {
