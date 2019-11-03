@@ -1,11 +1,12 @@
-use crate::model::route::Route;
-use crate::model::route::HasRoute;
 use std::collections::HashMap;
+
+use crate::errors::*;
 use crate::generator::generate::GenerationTables;
 use crate::model::connection::Connection;
-use crate::model::name::HasName;
 use crate::model::io::IOType;
-use crate::errors::*;
+use crate::model::name::HasName;
+use crate::model::route::HasRoute;
+use crate::model::route::Route;
 
 /*
     Go through all connections, finding:
@@ -60,9 +61,8 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
 */
 pub fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &Route) -> Option<(Route, usize)> {
     let (source_without_index, array_index, is_array_output) = from_route.without_trailing_array_index();
-    let source = source_routes.get(&*source_without_index.to_owned());
 
-    if let Some(&(ref route, function_index)) = source {
+    if let Some(&(ref route, function_index)) = source_routes.get(&*source_without_index.to_owned()) {
         if is_array_output {
             if route.is_empty() {
                 return Some((Route::from(&format!("/{}", array_index)), function_index));
@@ -243,7 +243,6 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
         }
     }
 
-// Print some stats in debug logs
     debug!("Connections between functions: {}", collapsed_connections.len());
 
     collapsed_connections
@@ -253,10 +252,11 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
 mod test {
     use crate::model::connection::Connection;
     use crate::model::io::{IO, IOType};
-    use super::collapse_connections;
-    use crate::model::route::HasRoute;
     use crate::model::name::Name;
+    use crate::model::route::HasRoute;
     use crate::model::route::Route;
+
+    use super::collapse_connections;
 
     #[test]
     fn drop_useless_connections() {
@@ -288,7 +288,7 @@ mod test {
         left_side.from_io.set_flow_io(IOType::FunctionIO);
         left_side.to_io.set_flow_io(IOType::FlowInput);
 
-// This one goes to a flow but then nowhere, so should be dropped
+        // This one goes to a flow but then nowhere, so should be dropped
         let mut extra_one = Connection {
             name: Some(Name::from("unused")),
             from: Route::from("/context/flow2/a"),
