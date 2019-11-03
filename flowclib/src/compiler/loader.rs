@@ -87,7 +87,7 @@ fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &dyn Pr
     let mut process = deserializer.deserialize(string)
         .chain_err(|| format!("Could not deserialize content at: '{}'", resolved_url))?;
 
-    debug!("Deserialized flow, now parsing and loading any sub-processes");
+    debug!("Deserialized process, now parsing and loading any sub-processes");
     match process {
         FlowProcess(ref mut flow) => {
             config_flow(flow, &resolved_url, parent_route, alias, initializations)?;

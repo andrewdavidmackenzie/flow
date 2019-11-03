@@ -273,7 +273,7 @@ impl Flow {
     pub fn build_connections(&mut self) -> Result<()> {
         if self.connections.is_none() { return Ok(()); }
 
-        debug!("Building connections for flow '{}'", self.source_url);
+        debug!("Building connections for flow '{}'", self.name);
 
         let mut error_count = 0;
 

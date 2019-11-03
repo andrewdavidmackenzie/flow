@@ -151,7 +151,7 @@ mod test {
     use super::function_to_runtimefunction;
 
     #[test]
-    fn function_with_sub_route_output_generation() {
+    fn function_with_sub_route_output() {
         let function = Function::new(
             Name::from("Stdout"),
             false,
@@ -194,7 +194,7 @@ mod test {
     }
 
     #[test]
-    fn function_generation() {
+    fn function() {
         let function = Function::new(
             Name::from("Stdout"),
             false,
@@ -229,7 +229,7 @@ mod test {
     }
 
     #[test]
-    fn impure_function_generation() {
+    fn impure_function() {
         let function = Function::new(
             Name::from("Stdout"),
             true,
@@ -265,7 +265,7 @@ mod test {
     }
 
     #[test]
-    fn function_with_initialized_input_generation() {
+    fn function_with_initialized_input() {
         let mut io = IO::new("String", &Route::default());
         io.set_initial_value(&Some(InputInitializer::OneTime(
             OneTimeInputInitializer { once: json!(1) }
@@ -306,7 +306,7 @@ mod test {
     }
 
     #[test]
-    fn function_with_constant_input_generation() {
+    fn function_with_constant_input() {
         let mut io = IO::new("String", &Route::default());
         io.set_initial_value(&Some(InputInitializer::Constant(
             ConstantInputInitializer { constant: json!(1) }
@@ -347,7 +347,7 @@ mod test {
     }
 
     #[test]
-    fn function_with_array_input_generation() {
+    fn function_with_array_input() {
         let io = IO::new("Array/String", &Route::default());
 
         let function = Function::new(
@@ -383,7 +383,7 @@ mod test {
     }
 
     #[test]
-    fn function_to_code_with_debug_generation() {
+    fn function_to_code_with_debug() {
         let function = Function::new(
             Name::from("Stdout"),
             false,
@@ -422,7 +422,7 @@ mod test {
     }
 
     #[test]
-    fn function_with_array_element_output_generation() {
+    fn function_with_array_element_output() {
         let function = Function::new(
             Name::from("Stdout"),
             false,
