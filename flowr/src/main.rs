@@ -39,7 +39,7 @@ mod cli_debug_client;
 
 /// The name of the environment variables used to pass command line arguments to the function
 /// used to get them.
-pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
+pub const FLOW_ARGS: &str = "FLOW_ARGS";
 
 const CLI_DEBUG_CLIENT: &dyn DebugClient = &CLIDebugClient {};
 
@@ -83,7 +83,9 @@ fn main() {
 
 fn run() -> Result<()> {
     let matches = get_matches();
-    let flow_manifest_url = parse_args(&matches)?;
+    SimpleLogger::init(matches.value_of("verbosity"));
+    print_versions();
+    let flow_manifest_url = get_flow_manifest_url(&matches)?;
     let mut loader = Loader::new();
     let provider = MetaProvider {};
 
@@ -113,6 +115,8 @@ fn run() -> Result<()> {
         false => None,
         true => Some(CLI_DEBUG_CLIENT)
     };
+
+    setup_args(&matches, &manifest.metadata.name);
 
     let submission = Submission::new(manifest, num_parallel_jobs, metrics, debug_client);
 
@@ -239,25 +243,34 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 }
 
 /*
-    Parse the command line arguments passed onto the flow itself
+    Print some debugging info about the versions of flowr and flowrlib
 */
-fn parse_args(matches: &ArgMatches) -> Result<Url> {
-    // Set anvironment variable with the args
+fn print_versions() {
+    info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+    info!("'flowrlib' version {}", info::version());
+}
+
+/*
+    Extract the flow-manifest URL from the command line arguments and return as Url
+*/
+fn get_flow_manifest_url(matches: &ArgMatches) -> Result<Url> {
+    url_from_string(matches.value_of("flow-manifest"))
+        .chain_err(|| "Unable to parse the URL of the manifest of the flow to run")
+}
+
+/*
+    Parse out the command line arguments passed onto the flow itself, and then
+    set an anvironment variable with the args. This is then used by the 'args/get' runtime
+    function to fetch the args while the flow is running
+    arg[0[ - is the name of the flow
+    arg[1..] - will be any arguments passed in (after the final '--')
+*/
+fn setup_args(matches: &ArgMatches, flow_name: &str)  {
     // this will not be unique, but it will be used very soon and removed
     if let Some(flow_args) = matches.values_of("flow-arguments") {
         let mut args: Vec<&str> = flow_args.collect();
-        // arg #0 is the flow/package name
-        // TODO fix this to be the name of the flow, not 'flowr'
-        args.insert(0, env!("CARGO_PKG_NAME"));
-        env::set_var(FLOW_ARGS_NAME, args.join(" "));
-        debug!("Setup '{}' with values = '{:?}'", FLOW_ARGS_NAME, args);
+        args.insert(0, flow_name);
+        env::set_var(FLOW_ARGS, args.join(" "));
+        debug!("Setup '{}' with values = '{:?}'", FLOW_ARGS, args);
     }
-
-    SimpleLogger::init(matches.value_of("verbosity"));
-
-    info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    info!("'flowrlib' version {}", info::version());
-
-    url_from_string(matches.value_of("flow-manifest"))
-        .chain_err(|| "Unable to parse the URL of the manifest of the flow to run")
 }
