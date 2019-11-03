@@ -229,12 +229,12 @@ impl Flow {
             bail!("Could not find sub-process named '{}'", subprocess_alias);
         }
 
-        bail!("No sub-processes present");
+        bail!("No sub-processes present")
     }
 
     // TODO consider finding the object first using it's type and name (flow, subflow, value, function)
     // Then from the object find the IO (by name or route, probably route) in common code, maybe using IOSet directly?
-    pub fn get_route_and_type(&mut self, direction: Direction, conn_descriptor: &str,
+    pub fn get_route_and_type(&mut self, direction: Direction, conn_descriptor: &Route,
                               initial_value: &Option<InputInitializer>) -> Result<IO> {
         let mut segments: Vec<&str> = conn_descriptor.split('/').collect();
         if segments.len() < 2 {

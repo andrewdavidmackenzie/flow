@@ -1,12 +1,12 @@
 use std::fmt;
 
 use crate::compiler::loader::Validate;
+use crate::errors::*;
 use crate::model::datatype::TypeCheck;
 use crate::model::io::IO;
 use crate::model::name::Name;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
-use crate::errors::*;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -166,6 +166,12 @@ mod test {
     }
 
     #[test]
+    fn simple_indexed_to_simple_depth_1() {
+        let from_io = IO::new("String", &Route::from("/p1/output/0"));
+        let to_io = IO::new("String", &Route::from("/p2"));
+        assert!(Connection::compatible_types(&from_io, &to_io));
+    }
+    #[test]
     fn simple_to_simple_depth_1_mismatch() {
         let from_io = IO::new("String", &Route::from("/p1/output"));
         let to_io = IO::new("Number", &Route::from("/p2"));
@@ -183,6 +189,13 @@ mod test {
     #[test]
     fn simple_to_array() {
         let from_io = IO::new("String", &Route::from("/p1/output"));
+        let to_io = IO::new("Array/String", &Route::from("/p2"));
+        assert!(Connection::compatible_types(&from_io, &to_io));
+    }
+
+    #[test]
+    fn simple_indexed_to_array() {
+        let from_io = IO::new("String", &Route::from("/p1/output/0"));
         let to_io = IO::new("Array/String", &Route::from("/p2"));
         assert!(Connection::compatible_types(&from_io, &to_io));
     }
