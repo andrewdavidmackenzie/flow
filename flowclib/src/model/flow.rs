@@ -243,14 +243,14 @@ impl Flow {
 
         let object_type = segments.remove(0); // first part is type of object
         let object_name = &Name::from(segments.remove(0)); // second part is the name of it
-        let route = Route::from(segments.join("/"));       // the rest is a sub-route
+        let sub_route = Route::from(segments.join("/"));       // the rest is a sub-route
 
-        debug!("Looking for connection {:?} '{}' called '{}' with route '{}'", direction, object_type, object_name, route);
+        debug!("Looking for connection {:?} '{}' called '{}' with sub-route '{}'", direction, object_type, object_name, sub_route);
 
         match (&direction, object_type) {
             (&Direction::TO, "output") => self.outputs.find_by_name(object_name, &None), // an output from this flow
             (&Direction::FROM, "input") => self.inputs.find_by_name(object_name, &None), // an input to this flow
-            (_, "process") => self.get_io_subprocess(object_name, direction, &route, initial_value), // input or output of a sub-process
+            (_, "process") => self.get_io_subprocess(object_name, direction, &sub_route, initial_value), // input or output of a sub-process
             _ => bail!("Invalid combination of direction '{:?}' and type '{}' used in connection '{}'",
                              direction, object_type, conn_descriptor)
         }
