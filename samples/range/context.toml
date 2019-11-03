@@ -6,20 +6,31 @@ source = "lib://runtime/args/get"
 
 [[connection]]
 from = "process/args/1"
-to = "process/to_number"
+to = "process/arg1_to_number"
+
+[[connection]]
+from = "process/args/2"
+to = "process/arg2_to_number"
 
 [[process]]
-alias = "to_number"
+alias = "arg1_to_number"
+source = "lib://flowstdlib/fmt/to_number"
+
+[[process]]
+alias = "arg2_to_number"
 source = "lib://flowstdlib/fmt/to_number"
 
 [[connection]]
-from = "process/to_number"
+from = "process/arg1_to_number"
+to = "process/sequence/start"
+
+[[connection]]
+from = "process/arg2_to_number"
 to = "process/sequence/end"
 
 [[process]]
 alias = "sequence"
 source = "lib://flowstdlib/math/sequence"
-input.start = {once = 1}
 
 [[process]]
 alias = "to_string"
