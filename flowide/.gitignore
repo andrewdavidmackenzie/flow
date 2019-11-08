@@ -1,6 +1,0 @@
-node_modules/
-release-builds/
-installers/
-pkg/
-target/
-package-lock.json

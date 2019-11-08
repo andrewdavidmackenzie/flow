@@ -83,7 +83,6 @@
         - [flowr](flowr/README.md)
         - [flowrlib](flowrlib/README.md)
         - [flowstdlib](flowstdlib/README.md)
-        - [flowide](flowide/README.md)
         - [ide-native](ide-native/README.md)
         - [nodeprovider](nodeprovider/README.md)
         - [provider](provider/README.md)

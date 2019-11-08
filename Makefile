@@ -91,7 +91,6 @@ code-docs:
 	$(STIME)
 	@cargo doc --all --quiet --no-deps --target-dir=target/html/code
 	@cargo doc --quiet --manifest-path=flowide/Cargo.toml --no-deps --target-dir=target/html/code
-	@cargo doc --quiet --manifest-path=ide-native/Cargo.toml --no-deps --target-dir=target/html/code
 	$(ETIME)
 
 .PHONY: deploy
@@ -126,11 +125,6 @@ flowrunner:
 ide_build:
 	$(STIME)
 	@cd flowide && make build
-	$(ETIME)
-
-ide_native_build:
-	$(STIME)
-	@cd ide-native && make build
 	$(ETIME)
 
 #################### Tests ####################
@@ -228,8 +222,7 @@ clean:
 	@cd flowstdlib; $(MAKE) clean
 	@cd samples; $(MAKE) clean
 	@cargo clean
-	@cd ide && $(MAKE) clean
-	@cd ide-native && $(MAKE) clean
+	@cd flowide && $(MAKE) clean
 	$(STIME)
 
 clean-dumps:
