@@ -1,4 +1,4 @@
-flow = "deadlock"
+flow = "range-of-ranges"
 
 [[process]]
 alias = "limit-sequence"
