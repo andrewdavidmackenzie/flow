@@ -7,10 +7,9 @@ authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 name = "ide_native"
 path = "src/main.rs"
 
-[lib]
-name = "ide_native"
-path = "src/flow.rs"
-crate-type = ["dylib"]
-
 [dependencies]
-flowclib = "~0.8.1"
+flowclib = "=0.8.2"
+flowrlib = "=0.8.2"
+flow_impl = "=0.8.3"
+druid = "0.3.0"
+serde_json = "1.0"
