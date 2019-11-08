@@ -7,11 +7,6 @@ FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
 
 all:
 	$(STIME)
-	@$(MAKE) travis ide_build ide_native_build test-ide
-	$(ETIME)
-
-travis:
-	$(STIME)
 	@$(MAKE) workspace test-workspace samples book-test docs
 	$(ETIME)
 
@@ -90,7 +85,6 @@ trim-guide:
 code-docs:
 	$(STIME)
 	@cargo doc --all --quiet --no-deps --target-dir=target/html/code
-	@cargo doc --quiet --manifest-path=flowide/Cargo.toml --no-deps --target-dir=target/html/code
 	$(ETIME)
 
 .PHONY: deploy
@@ -107,11 +101,6 @@ deploy: build_guide
 	$(ETIME)
 
 #################### Build ####################
-flowcompiler:
-	$(STIME)
-	@cargo build -p flowc
-	$(ETIME)
-
 workspace:
 	$(STIME)
 	@cargo build --all
@@ -122,25 +111,15 @@ flowrunner:
 	@cargo build -p flowr
 	$(ETIME)
 
-ide_build:
-	$(STIME)
-	@cd flowide && make build
-	$(ETIME)
-
 #################### Tests ####################
 test:
 	$(STIME)
-	@$(MAKE) test-workspace test-ide samples book-test
+	@$(MAKE) test-workspace samples book-test
 	$(ETIME)
 
 test-workspace:
 	$(STIME)
 	@cargo test $(features) --all
-	$(ETIME)
-
-test-ide:
-	$(STIME)
-	@cd flowide && make test
 	$(ETIME)
 
 book-test:
@@ -222,7 +201,6 @@ clean:
 	@cd flowstdlib; $(MAKE) clean
 	@cd samples; $(MAKE) clean
 	@cargo clean
-	@cd flowide && $(MAKE) clean
 	$(STIME)
 
 clean-dumps:

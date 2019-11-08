@@ -35,7 +35,7 @@ before_install:
 - make config
 - export PATH="$PATH:~/.cargo/bin"
 
-script: make travis
+script: make all
 
 env:
   global:
