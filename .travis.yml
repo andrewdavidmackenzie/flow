@@ -4,7 +4,6 @@ dist: trusty
 cache:
   cargo: true
   directories:
-    - flowide/node_modules
     - bin
 
 rust:
