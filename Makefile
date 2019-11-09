@@ -31,10 +31,21 @@ ifeq ($(UNAME), Linux)
 	@$(MAKE) config-linux
 endif
 ifeq ($(UNAME), Darwin)
-	@$(MAKE) config-mac
+	@$(MAKE) config-darwin
 endif
 	$(ETIME)
 
+config-darwin:
+	$(STIME)
+	brew install binutils
+	$(ETIME)
+
+config-linux:
+	$(STIME)
+	brew install fakeroot
+	$(ETIME)
+
+################### Coverage ####################
 kcov:
 	wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz
 	tar xzf master.tar.gz
@@ -49,19 +60,6 @@ kcov:
 	sudo make install
 	cd ../..
 	rm -rf kcov-master
-
-config-mac:
-	$(STIME)
-	brew install binutils
-	#brew install cairo
-	brew install gtk+3
-	$(ETIME)
-
-config-linux:
-	$(STIME)
-	brew install fakeroot
-	sudo apt-get install libgtk-3-dev
-	$(ETIME)
 
 ################### Doc ####################
 .PHONY: docs
