@@ -1,6 +1,10 @@
 language: rust
 dist: trusty
 
+cache:
+  cargo: true
+  directories:
+    - bin
 
 rust:
 - stable

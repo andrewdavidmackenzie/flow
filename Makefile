@@ -1,9 +1,9 @@
-RUSTUP := $(shell command -v rustup 2> /dev/null)
 DOT := $(shell command -v dot 2> /dev/null)
 KCOV := $(shell command -v kcov 2> /dev/null)
 STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo \\n------- Target \'$@\' starting
 ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
+UNAME := $(shell uname)
 
 all:
 	$(STIME)
@@ -21,17 +21,18 @@ endif
 ########## Configure Dependencies ############
 config:
 	$(STIME)
+	@echo "Detected OS=$(UNAME)"
 	rustup target add wasm32-unknown-unknown
-	cargo install wasm-bindgen-cli || true
 	# cargo install wasm-gc || true
 	# install mdbook for generating guides
 	cargo install mdbook --root . --git https://github.com/andrewdavidmackenzie/mdbook || true
 	#cargo install mdbook-linkcheck --root . || true
-	# install wasm-pack
-	# curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
-	# Install chromedriver.
-	#curl --retry 5 -LO https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.zip
-	#unzip chromedriver_linux64.zip
+ifeq ($(UNAME), Linux)
+	$(MAKE) config-linux
+endif
+ifeq ($(UNAME), Darwin)
+	$(MAKE) config-mac
+endif
 	$(ETIME)
 
 kcov:
@@ -50,7 +51,10 @@ kcov:
 	rm -rf kcov-master
 
 config-mac:
+	$(STIME)
 	brew install binutils
+	brew install cairo
+	$(ETIME)
 
 config-linux:
 	$(STIME)
