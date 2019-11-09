@@ -28,10 +28,10 @@ config:
 	cargo install mdbook --root . --git https://github.com/andrewdavidmackenzie/mdbook || true
 	#cargo install mdbook-linkcheck --root . || true
 ifeq ($(UNAME), Linux)
-	$(MAKE) config-linux
+	@$(MAKE) config-linux
 endif
 ifeq ($(UNAME), Darwin)
-	$(MAKE) config-mac
+	@$(MAKE) config-mac
 endif
 	$(ETIME)
 
@@ -53,12 +53,14 @@ kcov:
 config-mac:
 	$(STIME)
 	brew install binutils
-	brew install cairo
+	#brew install cairo
+	brew install gtk+3
 	$(ETIME)
 
 config-linux:
 	$(STIME)
 	brew install fakeroot
+	sudo apt-get install libgtk-3-dev
 	$(ETIME)
 
 ################### Doc ####################
