@@ -35,7 +35,7 @@ branches:
     - "master"
 
 before_install:
-- make config
+- make travis-config
 - export PATH="$PATH:~/.cargo/bin"
 
 script: make all

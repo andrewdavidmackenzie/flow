@@ -3,7 +3,6 @@ KCOV := $(shell command -v kcov 2> /dev/null)
 STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo \\n------- Target \'$@\' starting
 ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
-UNAME := $(shell uname)
 
 all:
 	$(STIME)
@@ -21,28 +20,11 @@ endif
 ########## Configure Dependencies ############
 config:
 	$(STIME)
-	@echo "Detected OS=$(UNAME)"
 	rustup target add wasm32-unknown-unknown
 	# cargo install wasm-gc || true
 	# install mdbook for generating guides
 	cargo install mdbook --root . --git https://github.com/andrewdavidmackenzie/mdbook || true
 	#cargo install mdbook-linkcheck --root . || true
-ifeq ($(UNAME), Linux)
-	@$(MAKE) config-linux
-endif
-ifeq ($(UNAME), Darwin)
-	@$(MAKE) config-darwin
-endif
-	$(ETIME)
-
-config-darwin:
-	$(STIME)
-	brew install binutils
-	$(ETIME)
-
-config-linux:
-	$(STIME)
-	brew install fakeroot
 	$(ETIME)
 
 ################### Coverage ####################
