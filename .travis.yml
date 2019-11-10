@@ -32,6 +32,7 @@ addons:
   homebrew:
     packages:
       - gtk+3
+      - cairo
 
 branches:
   only:
@@ -41,7 +42,7 @@ before_install:
 - make travis-config
 - export PATH="$PATH:~/.cargo/bin"
 
-script: PKG_CONFIG_PATH="/usr/local/opt/libffi/lib/pkgconfig" make all
+script: GTK=3.14 make all
 
 env:
   global:
