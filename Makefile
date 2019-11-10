@@ -7,9 +7,7 @@ UNAME := $(shell uname)
 
 all:
 	$(STIME)
-	export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.2/lib/pkgconfig:/usr/lib64/pkgconfig
-	echo $(PKG_CONFIG_PATH)
-	@$(MAKE) workspace test-workspace samples book-test docs
+	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.2/lib/pkgconfig:/usr/lib64/pkgconfig" $(MAKE) workspace test-workspace samples book-test docs
 	$(ETIME)
 
 online := false
@@ -42,12 +40,10 @@ travis-config:
 config-darwin:
 	$(STIME)
 	brew install gtk+3
-	export PKG_CONFIG_PATH=/usr/local/opt/libffi/lib/pkgconfig
 	$(ETIME)
 
 config-linux:
 	$(STIME)
-	export PKG_CONFIG_PATH=/usr/share/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig
 	$(ETIME)
 
 ################### Coverage ####################
