@@ -1,16 +1,17 @@
 #![deny(missing_docs)]
 //! The `ide-native` is a prototype of a native IDE for `flow` programs.
 
-extern crate druid;
 extern crate flow_impl;
 extern crate flowclib;
 extern crate flowrlib;
+extern crate gio;
+extern crate gtk;
 #[macro_use]
 extern crate serde_json;
 
-use druid::{AppLauncher, Data, LocalizedString, MenuDesc, theme, Widget, WindowDesc};
-use druid::piet::Color;
-use druid::widget::{Column, DynLabel, Padding, TextBox};
+use gio::prelude::*;
+use gtk::{Application, ApplicationWindow, Button};
+use gtk::prelude::*;
 
 mod runtime;
 
@@ -18,41 +19,24 @@ fn main() {
     let flowclib_version = flowclib::info::version();
     let flowrlib_version = flowrlib::info::version();
 
-    let window = WindowDesc::new(build_widget).menu(make_main_menu());
+    let application = Application::new(
+        Some("com.github.gtk-rs.examples.basic"),
+        Default::default(),
+    ).expect("failed to initialize GTK application");
 
-    AppLauncher::with_window(window)
-        .configure_env(|env| {
-            env.set(theme::SELECTION_COLOR, Color::rgb8(0xA6, 0xCC, 0xFF));
-            env.set(theme::WINDOW_BACKGROUND_COLOR, Color::WHITE);
-            env.set(theme::LABEL_COLOR, Color::BLACK);
-            env.set(theme::CURSOR_COLOR, Color::BLACK);
-            env.set(theme::BACKGROUND_LIGHT, Color::rgb8(230, 230, 230));
-        })
-        .use_simple_logger()
-        .launch(flowclib_version.to_string())
-        .expect("launch failed");
-}
+    application.connect_activate(|app| {
+        let window = ApplicationWindow::new(app);
+        window.set_title("First GTK+ Program");
+        window.set_default_size(350, 70);
 
-fn build_widget() -> impl Widget<String> {
-    let mut col = Column::new();
+        let button = Button::new_with_label("Click me!");
+        button.connect_clicked(|_| {
+            println!("Clicked!");
+        });
+        window.add(&button);
 
-    let textbox = TextBox::new();
-    let textbox_2 = TextBox::new();
-    let label = DynLabel::new(|data: &String, _env| format!("value: {}", data));
+        window.show_all();
+    });
 
-    col.add_child(Padding::new(5.0, textbox), 1.0);
-    col.add_child(Padding::new(5.0, textbox_2), 1.0);
-    col.add_child(Padding::new(5.0, label), 1.0);
-    col
-}
-
-fn make_main_menu<T: Data>() -> MenuDesc<T> {
-    let edit_menu = MenuDesc::new(LocalizedString::new("common-menu-edit-menu"))
-        .append(druid::menu::sys::common::cut())
-        .append(druid::menu::sys::common::copy())
-        .append(druid::menu::sys::common::paste());
-
-    MenuDesc::platform_default()
-        .unwrap_or(MenuDesc::empty())
-        .append(edit_menu)
+    application.run(&[]);
 }
