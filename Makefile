@@ -7,7 +7,8 @@ UNAME := $(shell uname)
 
 all:
 	$(STIME)
-	echo $PKG_CONFIG_PATH
+	export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.2/lib/pkgconfig:/usr/lib64/pkgconfig
+	echo $(PKG_CONFIG_PATH)
 	@$(MAKE) workspace test-workspace samples book-test docs
 	$(ETIME)
 
@@ -36,7 +37,6 @@ travis-config:
 	# install mdbook for generating guides
 	cargo install mdbook --root . --git https://github.com/andrewdavidmackenzie/mdbook || true
 	#cargo install mdbook-linkcheck --root . || true
-	export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.2/lib/pkgconfig:/usr/lib64/pkgconfig
 	$(ETIME)
 
 config-darwin:
