@@ -9,34 +9,37 @@ extern crate gtk;
 #[macro_use]
 extern crate serde_json;
 
+use std::env::args;
+
 use gio::prelude::*;
-use gtk::{Application, ApplicationWindow, Button};
+use gtk::{Application, ApplicationWindow, Label};
 use gtk::prelude::*;
 
 mod runtime;
 
-fn main() {
-    let flowclib_version = flowclib::info::version();
-    let flowrlib_version = flowrlib::info::version();
+fn build_ui(app: &gtk::Application) {
+    let window = ApplicationWindow::new(app);
+    window.set_title(env!("CARGO_PKG_NAME"));
+    window.set_default_size(350, 70);
 
+    let mut label = Label::new(Some(&format!("flowclib version: {}", flowclib::info::version())));
+    window.add(&label);
+
+    label = Label::new(Some(&format!("flowrlib version: {}", flowrlib::info::version())));
+    window.add(&label);
+
+    window.show_all();
+}
+
+fn main() {
     let application = Application::new(
-        Some("com.github.gtk-rs.examples.basic"),
+        Some("net.mackenzie-serres.flow.ide"),
         Default::default(),
     ).expect("failed to initialize GTK application");
 
     application.connect_activate(|app| {
-        let window = ApplicationWindow::new(app);
-        window.set_title("First GTK+ Program");
-        window.set_default_size(350, 70);
-
-        let button = Button::new_with_label("Click me!");
-        button.connect_clicked(|_| {
-            println!("Clicked!");
-        });
-        window.add(&button);
-
-        window.show_all();
+        build_ui(app);
     });
 
-    application.run(&[]);
+    application.run(&args().collect::<Vec<_>>());
 }
