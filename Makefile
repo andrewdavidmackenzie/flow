@@ -7,6 +7,7 @@ UNAME := $(shell uname)
 
 all:
 	$(STIME)
+	echo $PKG_CONFIG_PATH
 	@$(MAKE) workspace test-workspace samples book-test docs
 	$(ETIME)
 
