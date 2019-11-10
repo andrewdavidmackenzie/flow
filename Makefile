@@ -35,7 +35,7 @@ travis-config:
 	# install mdbook for generating guides
 	cargo install mdbook --root . --git https://github.com/andrewdavidmackenzie/mdbook || true
 	#cargo install mdbook-linkcheck --root . || true
-	export PKG_CONFIG_PATH=/usr/local/opt/libffi/lib/pkgconfig
+	export PKG_CONFIG_PATH=/usr/local/Cellar//glib/2.62.2/lib/pkgconfig
 	$(ETIME)
 
 config-darwin:
