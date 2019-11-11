@@ -1,18 +1,13 @@
-RUSTUP := $(shell command -v rustup 2> /dev/null)
 DOT := $(shell command -v dot 2> /dev/null)
 KCOV := $(shell command -v kcov 2> /dev/null)
 STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo \\n------- Target \'$@\' starting
 ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
+UNAME := $(shell uname)
 
 all:
 	$(STIME)
-	@$(MAKE) travis ide_build ide_native_build test-ide
-	$(ETIME)
-
-travis:
-	$(STIME)
-	@$(MAKE) workspace test-workspace samples book-test docs
+	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.2/lib/pkgconfig:/usr/lib64/pkgconfig" $(MAKE) workspace test-workspace samples book-test docs
 	$(ETIME)
 
 online := false
@@ -24,21 +19,34 @@ features :=
 endif
 
 ########## Configure Dependencies ############
-config:
+config: travis-config
+ifeq ($(UNAME), Linux)
+	@$(MAKE) config-linux
+endif
+ifeq ($(UNAME), Darwin)
+	@$(MAKE) config-darwin
+endif
+
+travis-config:
 	$(STIME)
+	@echo "Detected OS=$(UNAME)"
 	rustup target add wasm32-unknown-unknown
-	cargo install wasm-bindgen-cli || true
 	# cargo install wasm-gc || true
 	# install mdbook for generating guides
 	cargo install mdbook --root . --git https://github.com/andrewdavidmackenzie/mdbook || true
 	#cargo install mdbook-linkcheck --root . || true
-	# install wasm-pack
-	# curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
-	# Install chromedriver.
-	#curl --retry 5 -LO https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.zip
-	#unzip chromedriver_linux64.zip
 	$(ETIME)
 
+config-darwin:
+	$(STIME)
+	brew install gtk+3
+	$(ETIME)
+
+config-linux:
+	$(STIME)
+	$(ETIME)
+
+################### Coverage ####################
 kcov:
 	wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz
 	tar xzf master.tar.gz
@@ -53,14 +61,6 @@ kcov:
 	sudo make install
 	cd ../..
 	rm -rf kcov-master
-
-config-mac:
-	brew install binutils
-
-config-linux:
-	$(STIME)
-	brew install fakeroot
-	$(ETIME)
 
 ################### Doc ####################
 .PHONY: docs
@@ -90,8 +90,6 @@ trim-guide:
 code-docs:
 	$(STIME)
 	@cargo doc --all --quiet --no-deps --target-dir=target/html/code
-	@cargo doc --quiet --manifest-path=flowide/Cargo.toml --no-deps --target-dir=target/html/code
-	@cargo doc --quiet --manifest-path=ide-native/Cargo.toml --no-deps --target-dir=target/html/code
 	$(ETIME)
 
 .PHONY: deploy
@@ -108,11 +106,6 @@ deploy: build_guide
 	$(ETIME)
 
 #################### Build ####################
-flowcompiler:
-	$(STIME)
-	@cargo build -p flowc
-	$(ETIME)
-
 workspace:
 	$(STIME)
 	@cargo build --all
@@ -123,30 +116,15 @@ flowrunner:
 	@cargo build -p flowr
 	$(ETIME)
 
-ide_build:
-	$(STIME)
-	@cd flowide && make build
-	$(ETIME)
-
-ide_native_build:
-	$(STIME)
-	@cd ide-native && make build
-	$(ETIME)
-
 #################### Tests ####################
 test:
 	$(STIME)
-	@$(MAKE) test-workspace test-ide samples book-test
+	@$(MAKE) test-workspace samples book-test
 	$(ETIME)
 
 test-workspace:
 	$(STIME)
 	@cargo test $(features) --all
-	$(ETIME)
-
-test-ide:
-	$(STIME)
-	@cd flowide && make test
 	$(ETIME)
 
 book-test:
@@ -228,8 +206,6 @@ clean:
 	@cd flowstdlib; $(MAKE) clean
 	@cd samples; $(MAKE) clean
 	@cargo clean
-	@cd ide && $(MAKE) clean
-	@cd ide-native && $(MAKE) clean
 	$(STIME)
 
 clean-dumps:

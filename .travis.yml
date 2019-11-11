@@ -1,10 +1,12 @@
 language: rust
 dist: trusty
 
+before_cache:
+  - brew cleanup
+
 cache:
   cargo: true
   directories:
-    - flowide/node_modules
     - bin
 
 rust:
@@ -26,16 +28,21 @@ addons:
       - gcc
       - binutils-dev
       - libiberty-dev
+      - libgtk-3-dev
+  homebrew:
+    packages:
+      - gtk+3
+      - cairo
 
 branches:
   only:
     - "master"
 
 before_install:
-- make config
+- make travis-config
 - export PATH="$PATH:~/.cargo/bin"
 
-script: make travis
+script: GTK=3.14 make all
 
 env:
   global:

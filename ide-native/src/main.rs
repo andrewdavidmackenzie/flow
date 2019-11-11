@@ -1,13 +1,45 @@
 #![deny(missing_docs)]
 //! The `ide-native` is a prototype of a native IDE for `flow` programs.
-//! It  is written in rust and called from JavaScript
-//! `main` will link with it and compile to a binary, although it's the `lib.rs` that is
-//! compiled ro WebAssembly and linked with JavaScript.
 
-mod flow;
+extern crate flow_impl;
+extern crate flowclib;
+extern crate flowrlib;
+extern crate gio;
+extern crate gtk;
+#[macro_use]
+extern crate serde_json;
 
-/// Main function for ide_native - not used in the build with JavaScript
-pub fn main() {
-    let flowclib_version = flow::flowclib_version();
-    println!("Flowclib: {}", flowclib_version);
+use std::env::args;
+
+use gio::prelude::*;
+use gtk::{Application, ApplicationWindow, Label};
+use gtk::prelude::*;
+
+mod runtime;
+
+fn build_ui(app: &gtk::Application) {
+    let window = ApplicationWindow::new(app);
+    window.set_title(env!("CARGO_PKG_NAME"));
+    window.set_default_size(350, 70);
+
+    let mut label = Label::new(Some(&format!("flowclib version: {}", flowclib::info::version())));
+    window.add(&label);
+
+    label = Label::new(Some(&format!("flowrlib version: {}", flowrlib::info::version())));
+    window.add(&label);
+
+    window.show_all();
+}
+
+fn main() {
+    let application = Application::new(
+        Some("net.mackenzie-serres.flow.ide"),
+        Default::default(),
+    ).expect("failed to initialize GTK application");
+
+    application.connect_activate(|app| {
+        build_ui(app);
+    });
+
+    application.run(&args().collect::<Vec<_>>());
 }
