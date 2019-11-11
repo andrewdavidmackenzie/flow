@@ -7,7 +7,8 @@ UNAME := $(shell uname)
 
 all:
 	$(STIME)
-	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.2/lib/pkgconfig:/usr/lib64/pkgconfig" $(MAKE) workspace test-workspace samples book-test docs
+	#@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.2/lib/pkgconfig:/usr/lib64/pkgconfig"
+	$(MAKE) workspace test-workspace samples book-test docs
 	$(ETIME)
 
 online := false
@@ -108,7 +109,7 @@ deploy: build_guide
 #################### Build ####################
 workspace:
 	$(STIME)
-	@cargo build --all
+	@cargo build $(features) --all
 	$(ETIME)
 
 flowrunner:

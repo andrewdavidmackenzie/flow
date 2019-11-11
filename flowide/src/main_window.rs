@@ -198,13 +198,6 @@ fn get_log_level(document: &Document) -> Option<String> {
     log_level_el.text_content()
 }
 
-// Declaring a JS function using wasm_bindgen and doing the rest yourself
-// to be able to call it from rust
-#[wasm_bindgen]
-extern "C" {
-    fn alert(s: &str);
-}
-
 /// This is like the `main` function, except for JavaScript, called upon 'page' load
 /// It initializes logging, then reads the path where the flow should be loaded from,
 /// and loads it.
