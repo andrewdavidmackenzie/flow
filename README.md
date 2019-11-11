@@ -6,13 +6,17 @@ Welcome to my project called `flow` for defining and running parallel, data-depe
 It currently consists of libraries for compiling (`flowclib`) and running (`flowrlib`) flows as 
 well as command line binaries (`flowc` and `flowr`) that use the libraries. 
 
-Those libraries do not interact with the host system and can be compiled to WebAssembly for other types of applications, such as experiments I have started (`ide` and `ide-native`) on using them to create a type of IDE for flows.
+Those libraries do not interact with the host system and can be compiled to WebAssembly for other types of applications, 
+such as experiments I have started (`flowide`) on using them to create a type of IDE for flows.
  
-The project is in its early stages and the current implementation is being used by me as a way to clarify my ideas and also as a way to continue to learn rust.
+The project is in its early stages and the current implementation is being used by me as a way to clarify my ideas 
+and also as a way to continue to learn rust.
  
-Learn more about what it is and why I created it by reading the [Introduction section](docs/introduction/introduction.md), or dive right in and see if you can understand [Your First Flow](docs/first_flow/first_flow.md) with zero previous knowledge and just your programmer's intuition.
+Learn more about what it is and why I created it by reading the [Introduction section](docs/introduction/introduction.md), 
+or dive right in and see if you can understand [Your First Flow](docs/first_flow/first_flow.md) with zero previous knowledge and just your programmer's intuition.
  
-This README.md forms part of the ['flow' Guide](http://andrewdavidmackenzie.github.io/flow/) published on GitHub.io using gh-pages which you can read.
+This README.md forms part of the ['flow' Guide](http://andrewdavidmackenzie.github.io/flow/) published on GitHub.io 
+using gh-pages which you can read.
 
 ## Pre-requisites
 You need [Git](https://git-scm.com) to clone the repo.

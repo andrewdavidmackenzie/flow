@@ -1,7 +1,6 @@
-use std::sync::Arc;
-
 use flowrlib::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowrlib::manifest::MetaData;
+use std::sync::Arc;
 
 pub fn get_manifest() -> LibraryManifest {
     let metadata = MetaData {

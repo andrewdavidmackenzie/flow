@@ -1,5 +1,5 @@
 #![deny(missing_docs)]
-//! The `ide-native` is a prototype of a native IDE for `flow` programs.
+//! The `flowide` is a prototype of a native IDE for `flow` programs.
 
 extern crate flow_impl;
 extern crate flowclib;
@@ -9,11 +9,10 @@ extern crate gtk;
 #[macro_use]
 extern crate serde_json;
 
-use std::env::args;
-
 use gio::prelude::*;
 use gtk::{Application, ApplicationWindow, Label};
 use gtk::prelude::*;
+use std::env::args;
 
 mod runtime;
 

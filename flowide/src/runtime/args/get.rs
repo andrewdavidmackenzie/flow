@@ -6,7 +6,7 @@ pub struct Get;
 impl Implementation for Get {
     fn run(&self, mut _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         // TODO
-        let args_text = "ide-native hi".to_string();
+        let args_text = "flowide hi".to_string();
 
         let flow_args: Vec<&str> = args_text.split(' ').collect();
 
