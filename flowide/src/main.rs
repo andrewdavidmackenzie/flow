@@ -104,7 +104,9 @@ fn menu_bar(window: &ApplicationWindow, extensions: Vec<String>) -> MenuBar {
         let uris = dialog.get_uris();
         dialog.destroy();
 
-        println!("Uris: {:?}", uris.get(0).unwrap().to_string());
+        if let Some(uri) = uris.get(0) {
+            println!("Uri: {:?}", uri.to_string());
+        }
     });
 
     let other_menu = Menu::new();
