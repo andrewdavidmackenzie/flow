@@ -63,15 +63,7 @@ fn about_dialog() -> AboutDialog {
     p
 }
 
-fn build_ui(application: &gtk::Application) {
-    let window = ApplicationWindow::new(application);
-
-    window.set_title(env!("CARGO_PKG_NAME"));
-    window.set_position(WindowPosition::Center);
-    window.set_size_request(400, 400);
-
-    let v_box = gtk::Box::new(gtk::Orientation::Vertical, 10);
-
+fn menu_bar(window: &ApplicationWindow) -> MenuBar {
     let menu = Menu::new();
     let accel_group = AccelGroup::new();
     window.add_accel_group(&accel_group);
@@ -88,6 +80,14 @@ fn build_ui(application: &gtk::Application) {
     let folder_image = Image::new_from_icon_name(Some("folder-music-symbolic"), IconSize::Menu);
     let folder_label = Label::new(Some("Folder"));
     let check_item = CheckMenuItem::new_with_label("Click me!");
+
+    check_item.connect_toggled(|w| {
+        w.set_label(if w.get_active() {
+            "Checked"
+        } else {
+            "Unchecked"
+        });
+    });
 
     file_box.pack_start(&file_image, false, false, 0);
     file_box.pack_start(&file_label, true, true, 0);
@@ -131,27 +131,36 @@ fn build_ui(application: &gtk::Application) {
     let (key, modifier) = gtk::accelerator_parse("<Primary>Q");
     quit.add_accelerator("activate", &accel_group, key, modifier, AccelFlags::VISIBLE);
 
-    let label = Label::new(Some("MenuBar example"));
-
-    v_box.pack_start(&menu_bar, false, false, 0);
-    v_box.pack_start(&label, true, true, 0);
-    window.add(&v_box);
-    window.show_all();
-
+    let window_weak = window.downgrade();
     about.connect_activate(move |_| {
         let ad = about_dialog();
+        let window = upgrade_weak!(window_weak);
         ad.set_transient_for(Some(&window));
         ad.run();
         ad.destroy();
     });
 
-    check_item.connect_toggled(|w| {
-        w.set_label(if w.get_active() {
-            "Checked"
-        } else {
-            "Unchecked"
-        });
-    });
+    menu_bar
+}
+
+fn main_window() -> Label {
+    Label::new(Some("MenuBar example"))
+}
+
+fn build_ui(application: &gtk::Application) {
+    let window = ApplicationWindow::new(application);
+
+    window.set_title(env!("CARGO_PKG_NAME"));
+    window.set_position(WindowPosition::Center);
+    window.set_size_request(400, 400);
+
+    let v_box = gtk::Box::new(gtk::Orientation::Vertical, 10);
+    v_box.pack_start(&menu_bar(&window), false, false, 0);
+    v_box.pack_start(&main_window(), true, true, 0);
+
+    window.add(&v_box);
+
+    window.show_all();
 }
 
 
