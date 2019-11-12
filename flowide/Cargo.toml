@@ -8,7 +8,7 @@ name = "ide_native"
 path = "src/main.rs"
 
 [dependencies]
-flowclib = "=0.8.2"
+flowclib = {path = "../flowclib"}
 flowrlib = "=0.8.2"
 flow_impl = "=0.8.3"
 serde_json = "1.0"

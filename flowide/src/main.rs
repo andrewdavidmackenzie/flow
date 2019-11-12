@@ -11,13 +11,14 @@ extern crate provider;
 #[macro_use]
 extern crate serde_json;
 
+use flowclib::deserializers::deserializer_helper;
 use flowrlib::loader::Loader;
 use flowrlib::provider::Provider;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::*;
 use gtk::{
     AboutDialog, AccelFlags, AccelGroup, Application, ApplicationWindow, FileChooserAction, FileChooserDialog,
-    FileFilter, Label, Menu, MenuBar, MenuItem, ResponseType, WindowPosition
+    FileFilter, Label, Menu, MenuBar, MenuItem, ResponseType, WindowPosition,
 };
 use gtk::prelude::*;
 use provider::content::provider::MetaProvider;
@@ -66,7 +67,7 @@ fn about_dialog() -> AboutDialog {
     p
 }
 
-fn menu_bar(window: &ApplicationWindow, extensions: Vec<String>) -> MenuBar {
+fn menu_bar(window: &ApplicationWindow, extensions: &'static [&'static str]) -> MenuBar {
     let menu = Menu::new();
     let accel_group = AccelGroup::new();
     window.add_accel_group(&accel_group);
@@ -96,7 +97,7 @@ fn menu_bar(window: &ApplicationWindow, extensions: Vec<String>) -> MenuBar {
 
         dialog.set_select_multiple(false);
         let filter = FileFilter::new();
-        for extension in &extensions {
+        for extension in extensions {
             filter.add_pattern(&format!("*.{}", extension));
         }
         dialog.set_filter(&filter);
@@ -153,7 +154,7 @@ fn main_window() -> Label {
     Label::new(Some("MenuBar example"))
 }
 
-fn build_ui(application: &gtk::Application, extensions: Vec<String>) {
+fn build_ui(application: &gtk::Application, extensions: &'static [&'static str]) {
     let window = ApplicationWindow::new(application);
 
     window.set_title(env!("CARGO_PKG_NAME"));
@@ -183,12 +184,11 @@ fn load_libs(loader: &mut Loader, provider: &dyn Provider) -> Result<(), String>
 fn main() {
     let application = Application::new(
         Some("net.mackenzie-serres.flow.ide"),
-        Default::default(),
-    ).expect("failed to initialize GTK application");
+        Default::default()).expect("failed to initialize GTK application");
 
     application.connect_activate(|app| {
-        let extensions = vec!("toml".into(), "json".into(), "yaml".into(), "yml".into());
-        build_ui(app, extensions);
+        let accepted_extensions = deserializer_helper::get_accepted_extensions();
+        build_ui(app, accepted_extensions);
     });
 
     let mut loader = Loader::new();
