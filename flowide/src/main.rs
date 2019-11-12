@@ -171,9 +171,9 @@ fn build_ui(application: &gtk::Application, extensions: &'static [&'static str])
 }
 
 
-fn load_libs(loader: &mut Loader, provider: &dyn Provider) -> Result<(), String> {
+fn load_libs(loader: &mut Loader, provider: &dyn Provider, args: &Vec<String>) -> Result<(), String> {
     // Load this runtime's library of native (statically linked) implementations
-    loader.add_lib(provider, runtime::manifest::get_manifest(), "runtime")
+    loader.add_lib(provider, runtime::manifest::get_manifest(args), "runtime")
         .map_err(|e| e.to_string())?;
 
     // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
@@ -194,7 +194,7 @@ fn main() {
     let mut loader = Loader::new();
     let provider = MetaProvider {};
 
-    let _result = load_libs(&mut loader, &provider);
+    let _result = load_libs(&mut loader, &provider, &args().collect::<Vec<_>>());
 
     application.run(&args().collect::<Vec<_>>());
 }

@@ -1,15 +1,19 @@
 use flow_impl::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use serde_json::Value;
 
-pub struct Get;
+pub struct Get {
+    args: Vec<String>
+}
 
+impl Get {
+    pub fn new(args: &Vec<String>) -> Self {
+        Get {
+            args: args.clone()
+        }
+    }
+}
 impl Implementation for Get {
     fn run(&self, mut _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        // TODO
-        let args_text = "flowide hi".to_string();
-
-        let flow_args: Vec<&str> = args_text.split(' ').collect();
-
-        (Some(json!(flow_args)), DONT_RUN_AGAIN)
+        (Some(json!(self.args)), DONT_RUN_AGAIN)
     }
 }
