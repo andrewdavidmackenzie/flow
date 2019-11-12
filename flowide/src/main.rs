@@ -16,7 +16,7 @@ use flowrlib::provider::Provider;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::*;
 use gtk::{
-    AboutDialog, AccelFlags, AccelGroup, Application, ApplicationWindow, CheckMenuItem, IconSize, Image, Label,
+    AboutDialog, AccelFlags, AccelGroup, Application, ApplicationWindow, Label,
     Menu, MenuBar, MenuItem, WindowPosition
 };
 use gtk::prelude::*;
@@ -39,6 +39,10 @@ macro_rules! upgrade_weak {
     };
 }
 
+fn resource(path: &str) -> String {
+    format!("{}/resources/{}", env!("CARGO_MANIFEST_DIR"), path)
+}
+
 fn about_dialog() -> AboutDialog {
     let p = AboutDialog::new();
     p.set_program_name(env!("CARGO_PKG_NAME"));
@@ -49,8 +53,7 @@ fn about_dialog() -> AboutDialog {
     p.set_comments(Some(&format!("flowclib version: {}\nflowrlib version: {}",
                                  flowclib::info::version(), flowrlib::info::version())));
     println!("pwd {:?}", std::env::current_dir());
-    if let Ok(image) = Pixbuf::new_from_file(format!("{}/resources/icons/png/128x128.png",
-                                env!("CARGO_MANIFEST_DIR"))) {
+    if let Ok(image) = Pixbuf::new_from_file(resource("icons/png/128x128.png")) {
         p.set_logo(Some(&image));
     }
 
@@ -68,36 +71,13 @@ fn menu_bar(window: &ApplicationWindow) -> MenuBar {
     let accel_group = AccelGroup::new();
     window.add_accel_group(&accel_group);
     let menu_bar = MenuBar::new();
+
     let file = MenuItem::new_with_label("File");
+    let open = MenuItem::new_with_label("Open");
     let about = MenuItem::new_with_label("About");
     let quit = MenuItem::new_with_label("Quit");
-    let file_item = MenuItem::new();
-    let file_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-    let file_image = Image::new_from_file("resources/file.png");
-    let file_label = Label::new(Some("File"));
-    let folder_item = MenuItem::new();
-    let folder_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-    let folder_image = Image::new_from_icon_name(Some("folder-music-symbolic"), IconSize::Menu);
-    let folder_label = Label::new(Some("Folder"));
-    let check_item = CheckMenuItem::new_with_label("Click me!");
 
-    check_item.connect_toggled(|w| {
-        w.set_label(if w.get_active() {
-            "Checked"
-        } else {
-            "Unchecked"
-        });
-    });
-
-    file_box.pack_start(&file_image, false, false, 0);
-    file_box.pack_start(&file_label, true, true, 0);
-    file_item.add(&file_box);
-    folder_box.pack_start(&folder_image, false, false, 0);
-    folder_box.pack_start(&folder_label, true, true, 0);
-    folder_item.add(&folder_box);
-    menu.append(&file_item);
-    menu.append(&folder_item);
-    menu.append(&check_item);
+    menu.append(&open);
     menu.append(&about);
     menu.append(&quit);
     file.set_submenu(Some(&menu));
