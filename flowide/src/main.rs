@@ -16,8 +16,8 @@ use flowrlib::provider::Provider;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::*;
 use gtk::{
-    AboutDialog, AccelFlags, AccelGroup, Application, ApplicationWindow, Label,
-    Menu, MenuBar, MenuItem, WindowPosition
+    AboutDialog, AccelFlags, AccelGroup, Application, ApplicationWindow, FileChooserAction, FileChooserDialog,
+    FileFilter, Label, Menu, MenuBar, MenuItem, ResponseType, WindowPosition
 };
 use gtk::prelude::*;
 use provider::content::provider::MetaProvider;
@@ -66,7 +66,7 @@ fn about_dialog() -> AboutDialog {
     p
 }
 
-fn menu_bar(window: &ApplicationWindow) -> MenuBar {
+fn menu_bar(window: &ApplicationWindow, extensions: Vec<String>) -> MenuBar {
     let menu = Menu::new();
     let accel_group = AccelGroup::new();
     window.add_accel_group(&accel_group);
@@ -82,6 +82,30 @@ fn menu_bar(window: &ApplicationWindow) -> MenuBar {
     menu.append(&quit);
     file.set_submenu(Some(&menu));
     menu_bar.append(&file);
+
+    let window_weak = window.downgrade();
+    open.connect_activate(move |_| {
+        let window = upgrade_weak!(window_weak);
+
+        let dialog = FileChooserDialog::new(Some("Choose a file"), Some(&window),
+                                            FileChooserAction::Open);
+        dialog.add_buttons(&[
+            ("Open", ResponseType::Ok),
+            ("Cancel", ResponseType::Cancel)
+        ]);
+
+        dialog.set_select_multiple(false);
+        let filter = FileFilter::new();
+        for extension in &extensions {
+            filter.add_pattern(&format!("*.{}", extension));
+        }
+        dialog.set_filter(&filter);
+        dialog.run();
+        let uris = dialog.get_uris();
+        dialog.destroy();
+
+        println!("Uris: {:?}", uris.get(0).unwrap().to_string());
+    });
 
     let other_menu = Menu::new();
     let sub_other_menu = Menu::new();
@@ -127,7 +151,7 @@ fn main_window() -> Label {
     Label::new(Some("MenuBar example"))
 }
 
-fn build_ui(application: &gtk::Application) {
+fn build_ui(application: &gtk::Application, extensions: Vec<String>) {
     let window = ApplicationWindow::new(application);
 
     window.set_title(env!("CARGO_PKG_NAME"));
@@ -135,7 +159,7 @@ fn build_ui(application: &gtk::Application) {
     window.set_size_request(400, 400);
 
     let v_box = gtk::Box::new(gtk::Orientation::Vertical, 10);
-    v_box.pack_start(&menu_bar(&window), false, false, 0);
+    v_box.pack_start(&menu_bar(&window, extensions), false, false, 0);
     v_box.pack_start(&main_window(), true, true, 0);
 
     window.add(&v_box);
@@ -161,7 +185,8 @@ fn main() {
     ).expect("failed to initialize GTK application");
 
     application.connect_activate(|app| {
-        build_ui(app);
+        let extensions = vec!("toml".into(), "json".into(), "yaml".into(), "yml".into());
+        build_ui(app, extensions);
     });
 
     let mut loader = Loader::new();
