@@ -18,13 +18,18 @@ use gdk_pixbuf::Pixbuf;
 use gio::prelude::*;
 use gtk::{
     AboutDialog, AccelFlags, AccelGroup, Application, ApplicationWindow, FileChooserAction, FileChooserDialog,
-    FileFilter, Label, Menu, MenuBar, MenuItem, ResponseType, WindowPosition,
+    FileFilter, Menu, MenuBar, MenuItem, ResponseType, Stack, TextBuffer, Widget, WidgetExt, WindowPosition
 };
 use gtk::prelude::*;
 use provider::content::provider::MetaProvider;
 use std::env::args;
 
 mod runtime;
+
+struct RuntimeContext {
+    stdout: TextBuffer,
+    stderr: TextBuffer
+}
 
 /// upgrade weak reference or return
 #[macro_export]
@@ -150,11 +155,37 @@ fn menu_bar(window: &ApplicationWindow, extensions: &'static [&'static str]) -> 
     menu_bar
 }
 
-fn main_window() -> Label {
-    Label::new(Some("MenuBar example"))
+fn main_window() -> (Stack, RuntimeContext) {
+    let view_stack = gtk::Stack::new();
+    view_stack.set_border_width(6);
+    view_stack.set_vexpand(true);
+    view_stack.set_hexpand(true);
+
+    let stdout_scroll = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
+    let stdout = gtk::TextView::new();
+    stdout.set_editable(false);
+    let stdout_buffer = stdout.get_buffer().unwrap();
+    stdout_scroll.add(&stdout);
+
+    let stderr_scroll = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
+    let stderr = gtk::TextView::new();
+    stderr.set_editable(false);
+    let stderr_buffer = stderr.get_buffer().unwrap();
+    stderr_scroll.add(&stderr);
+
+    view_stack.add(&stdout_scroll);
+    view_stack.add(&stderr_scroll);
+
+    let context = RuntimeContext {
+        stdout: stdout_buffer,
+        stderr: stderr_buffer
+    };
+    (view_stack, context)
 }
 
-fn build_ui(application: &gtk::Application, extensions: &'static [&'static str]) {
+fn build_ui<W: IsA<Widget>>(application: &gtk::Application,
+            extensions: &'static [&'static str],
+            main_window: &W) {
     let window = ApplicationWindow::new(application);
 
     window.set_title(env!("CARGO_PKG_NAME"));
@@ -163,13 +194,12 @@ fn build_ui(application: &gtk::Application, extensions: &'static [&'static str])
 
     let v_box = gtk::Box::new(gtk::Orientation::Vertical, 10);
     v_box.pack_start(&menu_bar(&window, extensions), false, false, 0);
-    v_box.pack_start(&main_window(), true, true, 0);
+    v_box.pack_start(main_window, true, true, 0);
 
     window.add(&v_box);
 
     window.show_all();
 }
-
 
 fn load_libs(loader: &mut Loader, provider: &dyn Provider, args: &Vec<String>) -> Result<(), String> {
     // Load this runtime's library of native (statically linked) implementations
@@ -186,10 +216,15 @@ fn main() {
         Some("net.mackenzie-serres.flow.ide"),
         Default::default()).expect("failed to initialize GTK application");
 
-    application.connect_activate(|app| {
+    let (main_window, runtime_context) = main_window();
+
+    application.connect_activate(move |app| {
         let accepted_extensions = deserializer_helper::get_accepted_extensions();
-        build_ui(app, accepted_extensions);
+        build_ui(&app, accepted_extensions, &main_window);
     });
+
+    runtime_context.stdout.insert_at_cursor("hello\n");
+    runtime_context.stdout.insert_at_cursor("world\n");
 
     let mut loader = Loader::new();
     let provider = MetaProvider {};
