@@ -26,7 +26,8 @@ use std::env::args;
 
 mod runtime;
 
-struct RuntimeContext {
+/// `RuntimeCOntext` Holds items from the UI that are needed during runnings of a slow.
+pub struct RuntimeContext {
     args: TextBuffer,
     stdout: TextBuffer,
     stderr: TextBuffer
@@ -212,14 +213,22 @@ fn build_ui<W: IsA<Widget>>(application: &gtk::Application,
     window.show_all();
 }
 
-fn load_libs(loader: &mut Loader, provider: &dyn Provider, args: &Vec<String>) -> Result<(), String> {
+fn load_libs(loader: &mut Loader,
+             provider: &dyn Provider,
+             runtime_context: &RuntimeContext) -> Result<(), String> {
     // Load this runtime's library of native (statically linked) implementations
-    loader.add_lib(provider, runtime::manifest::get_manifest(args), "runtime")
+    loader.add_lib(provider, runtime::manifest::create_runtime(runtime_context), "runtime")
         .map_err(|e| e.to_string())?;
 
     // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
     loader.add_lib(provider, flowstdlib::get_manifest(), "flowstdlib")
         .map_err(|e| e.to_string())
+}
+
+fn run_flow(runtime_context: &RuntimeContext) {
+    let mut loader = Loader::new();
+    let provider = MetaProvider {};
+    let _result = load_libs(&mut loader, &provider, &runtime_context);
 }
 
 fn main() {
@@ -236,11 +245,6 @@ fn main() {
 
     runtime_context.stdout.insert_at_cursor("hello\n");
     runtime_context.stdout.insert_at_cursor("world\n");
-
-    let mut loader = Loader::new();
-    let provider = MetaProvider {};
-
-    let _result = load_libs(&mut loader, &provider, &args().collect::<Vec<_>>());
 
     application.run(&args().collect::<Vec<_>>());
 }

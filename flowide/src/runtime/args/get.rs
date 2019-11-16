@@ -1,4 +1,4 @@
-use flow_impl::{DONT_RUN_AGAIN, Implementation, RunAgain};
+use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
 pub struct Get {
@@ -6,14 +6,14 @@ pub struct Get {
 }
 
 impl Get {
-    pub fn new(args: &Vec<String>) -> Self {
+    pub fn new(args: Vec<String>) -> Self {
         Get {
-            args: args.clone()
+            args
         }
     }
 }
 impl Implementation for Get {
     fn run(&self, mut _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        (Some(json!(self.args)), DONT_RUN_AGAIN)
+        (Some(json!(self.args)), RUN_AGAIN)
     }
 }
