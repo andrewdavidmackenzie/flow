@@ -17,8 +17,8 @@ use flowrlib::provider::Provider;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::*;
 use gtk::{
-    AboutDialog, AccelFlags, AccelGroup, Application, ApplicationWindow, FileChooserAction, FileChooserDialog,
-    FileFilter, Menu, MenuBar, MenuItem, ResponseType, Stack, TextBuffer, Widget, WidgetExt, WindowPosition
+    AboutDialog, AccelFlags, AccelGroup, Application, ApplicationWindow, Box, FileChooserAction, FileChooserDialog,
+    FileFilter, Menu, MenuBar, MenuItem, ResponseType, ScrolledWindow, TextBuffer, TextView, Widget, WidgetExt, WindowPosition
 };
 use gtk::prelude::*;
 use provider::content::provider::MetaProvider;
@@ -27,6 +27,7 @@ use std::env::args;
 mod runtime;
 
 struct RuntimeContext {
+    args: TextBuffer,
     stdout: TextBuffer,
     stderr: TextBuffer
 }
@@ -155,32 +156,42 @@ fn menu_bar(window: &ApplicationWindow, extensions: &'static [&'static str]) -> 
     menu_bar
 }
 
-fn main_window() -> (Stack, RuntimeContext) {
-    let view_stack = gtk::Stack::new();
-    view_stack.set_border_width(6);
-    view_stack.set_vexpand(true);
-    view_stack.set_hexpand(true);
+fn args_view() -> (TextView, TextBuffer) {
+    let args_view = gtk::TextView::new();
+    args_view.set_size_request(-1,1); // Want to fill width and be one line high :-(
+    let args_buffer = args_view.get_buffer().unwrap();
+    (args_view, args_buffer)
+}
 
-    let stdout_scroll = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
-    let stdout = gtk::TextView::new();
-    stdout.set_editable(false);
-    let stdout_buffer = stdout.get_buffer().unwrap();
-    stdout_scroll.add(&stdout);
+fn stdio() -> (ScrolledWindow, TextBuffer) {
+    let scroll = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
+    let view = gtk::TextView::new();
+    view.set_editable(false);
+    let buffer = view.get_buffer().unwrap();
+    scroll.add(&view);
+    (scroll, buffer)
+}
 
-    let stderr_scroll = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
-    let stderr = gtk::TextView::new();
-    stderr.set_editable(false);
-    let stderr_buffer = stderr.get_buffer().unwrap();
-    stderr_scroll.add(&stderr);
+fn main_window() -> (Box, RuntimeContext) {
+    let main = gtk::Box::new(gtk::Orientation::Vertical, 10);
+    main.set_border_width(6);
+    main.set_vexpand(true);
+    main.set_hexpand(true);
 
-    view_stack.add(&stdout_scroll);
-    view_stack.add(&stderr_scroll);
+    let (args_view, args_buffer) = args_view();
+    let (stdout_view, stdout_buffer) = stdio();
+    let (stderr_view, stderr_buffer) = stdio();
+
+    main.pack_start(&args_view, true, true, 0);
+    main.pack_start(&stdout_view, true, true, 0);
+    main.pack_start(&stderr_view, true, true, 0);
 
     let context = RuntimeContext {
+        args: args_buffer,
         stdout: stdout_buffer,
         stderr: stderr_buffer
     };
-    (view_stack, context)
+    (main, context)
 }
 
 fn build_ui<W: IsA<Widget>>(application: &gtk::Application,
