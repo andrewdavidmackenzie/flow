@@ -74,23 +74,7 @@ fn about_dialog() -> AboutDialog {
     p
 }
 
-fn menu_bar(window: &ApplicationWindow, extensions: &'static [&'static str]) -> MenuBar {
-    let menu = Menu::new();
-    let accel_group = AccelGroup::new();
-    window.add_accel_group(&accel_group);
-    let menu_bar = MenuBar::new();
-
-    let file = MenuItem::new_with_label("File");
-    let open = MenuItem::new_with_label("Open");
-    let about = MenuItem::new_with_label("About");
-    let quit = MenuItem::new_with_label("Quit");
-
-    menu.append(&open);
-    menu.append(&about);
-    menu.append(&quit);
-    file.set_submenu(Some(&menu));
-    menu_bar.append(&file);
-
+fn file_open_action(window: &ApplicationWindow, open: &MenuItem, extensions: &'static [&'static str]) {
     let window_weak = window.downgrade();
     open.connect_activate(move |_| {
         let window = upgrade_weak!(window_weak);
@@ -116,6 +100,28 @@ fn menu_bar(window: &ApplicationWindow, extensions: &'static [&'static str]) -> 
             println!("Uri: {:?}", uri.to_string());
         }
     });
+}
+
+fn menu_bar(window: &ApplicationWindow, extensions: &'static [&'static str]) -> MenuBar {
+    let menu = Menu::new();
+    let accel_group = AccelGroup::new();
+    window.add_accel_group(&accel_group);
+    let menu_bar = MenuBar::new();
+
+    let file = MenuItem::new_with_label("File");
+    let open = MenuItem::new_with_label("Open");
+    let about = MenuItem::new_with_label("About");
+    let run = MenuItem::new_with_label("Run");
+    let quit = MenuItem::new_with_label("Quit");
+
+    menu.append(&open);
+    menu.append(&about);
+    menu.append(&run);
+    menu.append(&quit);
+    file.set_submenu(Some(&menu));
+    menu_bar.append(&file);
+
+    file_open_action(window, &open, extensions);
 
     let other_menu = Menu::new();
     let sub_other_menu = Menu::new();
