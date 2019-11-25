@@ -1,25 +1,17 @@
 // TODO #![deny(missing_docs)]
 //! This is the rust `flow` Compiler Library. It can be linked with other code to produce
 //! a flow compiler, such as the `flowc` command line flow compiler.
-extern crate erased_serde;
 #[macro_use]
 extern crate error_chain;
-extern crate flowrlib;
 #[macro_use]
 extern crate log;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 #[cfg(test)]
 #[macro_use]
 extern crate serde_json;
-#[cfg(not(test))]
-extern crate serde_json;
-extern crate serde_yaml;
 #[macro_use]
 extern crate shrinkwraprs;
-extern crate strfmt;
-extern crate toml;
 #[cfg(test)]
 extern crate url;
 

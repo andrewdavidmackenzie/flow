@@ -10,18 +10,12 @@
 //!
 #[macro_use]
 extern crate error_chain;
-extern crate flow_impl;
-extern crate instant;
 #[macro_use]
 extern crate log;
-extern crate multimap;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
-#[cfg(not(target_arch = "wasm32"))]
-extern crate wasmi;
 
 /// `info` offers methods to get information about this library
 pub mod info;

@@ -1,9 +1,10 @@
 extern crate serde_json;
 
+use toml;
+
 use crate::compiler::loader::Deserializer;
 use crate::errors::*;
 use crate::model::process::Process;
-use crate::toml;
 
 pub struct FlowTomelLoader;
 

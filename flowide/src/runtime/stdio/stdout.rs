@@ -1,7 +1,25 @@
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
+use gtk::TextBuffer;
 use serde_json::Value;
 
-pub struct Stdout;
+pub struct Stdout {
+    stdout: TextBuffer
+}
+
+impl Stdout {
+    pub fn new() -> Self {
+        Stdout {
+            stdout: TextBuffer::new()
+        }
+    }
+
+    pub fn get_text_buffer(&self) -> &TextBuffer {
+        &self.stdout
+    }
+}
+
+unsafe impl Send for Stdout {}
+unsafe impl Sync for Stdout {}
 
 impl Implementation for Stdout {
     fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {

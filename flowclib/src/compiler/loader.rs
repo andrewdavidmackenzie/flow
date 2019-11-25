@@ -156,8 +156,9 @@ fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &
 
 #[cfg(test)]
 mod test {
+    use toml;
+
     use crate::model::library::Library;
-    use crate::toml;
 
     #[test]
     fn deserialize_library() {

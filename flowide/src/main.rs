@@ -1,13 +1,6 @@
 #![deny(missing_docs)]
 //! The `flowide` is a prototype of a native IDE for `flow` programs.
 
-extern crate flow_impl;
-extern crate flowclib;
-extern crate flowrlib;
-extern crate gdk_pixbuf;
-extern crate gio;
-extern crate gtk;
-extern crate provider;
 #[macro_use]
 extern crate serde_json;
 
@@ -18,20 +11,15 @@ use gdk_pixbuf::Pixbuf;
 use gio::prelude::*;
 use gtk::{
     AboutDialog, AccelFlags, AccelGroup, Application, ApplicationWindow, Box, FileChooserAction, FileChooserDialog,
-    FileFilter, Menu, MenuBar, MenuItem, ResponseType, ScrolledWindow, TextBuffer, TextView, Widget, WidgetExt, WindowPosition
+    FileFilter, Menu, MenuBar, MenuItem, ResponseType, ScrolledWindow, TextBuffer, TextView, WidgetExt, WindowPosition
 };
 use gtk::prelude::*;
 use provider::content::provider::MetaProvider;
+use runtime_context::RuntimeContext;
 use std::env::args;
 
 mod runtime;
-
-/// `RuntimeCOntext` Holds items from the UI that are needed during runnings of a slow.
-pub struct RuntimeContext {
-    args: TextBuffer,
-    stdout: TextBuffer,
-    stderr: TextBuffer
-}
+mod runtime_context;
 
 /// upgrade weak reference or return
 #[macro_export]
@@ -74,11 +62,22 @@ fn about_dialog() -> AboutDialog {
     p
 }
 
-fn file_open_action(window: &ApplicationWindow, open: &MenuItem, extensions: &'static [&'static str]) {
+fn run_flow(runtime_context: &RuntimeContext) {
+    println!("Run");
+}
+
+fn file_run_action(_run: &MenuItem, runtime_context: &RuntimeContext) {
+//        run.connect_activate( |_| {
+        run_flow(runtime_context);
+//    });
+}
+
+fn file_open_action(window: &ApplicationWindow, open: &MenuItem) {
+    let accepted_extensions = deserializer_helper::get_accepted_extensions();
+
     let window_weak = window.downgrade();
     open.connect_activate(move |_| {
         let window = upgrade_weak!(window_weak);
-
         let dialog = FileChooserDialog::new(Some("Choose a file"), Some(&window),
                                             FileChooserAction::Open);
         dialog.add_buttons(&[
@@ -88,7 +87,7 @@ fn file_open_action(window: &ApplicationWindow, open: &MenuItem, extensions: &'s
 
         dialog.set_select_multiple(false);
         let filter = FileFilter::new();
-        for extension in extensions {
+        for extension in accepted_extensions {
             filter.add_pattern(&format!("*.{}", extension));
         }
         dialog.set_filter(&filter);
@@ -102,7 +101,7 @@ fn file_open_action(window: &ApplicationWindow, open: &MenuItem, extensions: &'s
     });
 }
 
-fn menu_bar(window: &ApplicationWindow, extensions: &'static [&'static str]) -> MenuBar {
+fn menu_bar(window: &ApplicationWindow, runtime_context: &RuntimeContext) -> MenuBar {
     let menu = Menu::new();
     let accel_group = AccelGroup::new();
     window.add_accel_group(&accel_group);
@@ -121,7 +120,8 @@ fn menu_bar(window: &ApplicationWindow, extensions: &'static [&'static str]) -> 
     file.set_submenu(Some(&menu));
     menu_bar.append(&file);
 
-    file_open_action(window, &open, extensions);
+    file_open_action(window, &open);
+    file_run_action(&run, runtime_context);
 
     let other_menu = Menu::new();
     let sub_other_menu = Menu::new();
@@ -163,94 +163,81 @@ fn menu_bar(window: &ApplicationWindow, extensions: &'static [&'static str]) -> 
     menu_bar
 }
 
-fn args_view() -> (TextView, TextBuffer) {
+fn args_view(buffer: &TextBuffer) -> TextView {
     let args_view = gtk::TextView::new();
     args_view.set_size_request(-1,1); // Want to fill width and be one line high :-(
-    let args_buffer = args_view.get_buffer().unwrap();
-    (args_view, args_buffer)
+    args_view
 }
 
-fn stdio() -> (ScrolledWindow, TextBuffer) {
+fn stdio(buffer: &TextBuffer) -> ScrolledWindow {
     let scroll = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
     let view = gtk::TextView::new();
     view.set_editable(false);
-    let buffer = view.get_buffer().unwrap();
     scroll.add(&view);
-    (scroll, buffer)
+    scroll
 }
 
-fn main_window() -> (Box, RuntimeContext) {
+fn main_window(runtime_context: RuntimeContext) -> Box {
     let main = gtk::Box::new(gtk::Orientation::Vertical, 10);
     main.set_border_width(6);
     main.set_vexpand(true);
     main.set_hexpand(true);
 
-    let (args_view, args_buffer) = args_view();
-    let (stdout_view, stdout_buffer) = stdio();
-    let (stderr_view, stderr_buffer) = stdio();
+    let args_view = args_view(runtime_context.args);
+    let stdout_view = stdio(runtime_context.stdout);
+    let stderr_view = stdio(runtime_context.stderr);
 
     main.pack_start(&args_view, true, true, 0);
     main.pack_start(&stdout_view, true, true, 0);
     main.pack_start(&stderr_view, true, true, 0);
 
-    let context = RuntimeContext {
-        args: args_buffer,
-        stdout: stdout_buffer,
-        stderr: stderr_buffer
-    };
-    (main, context)
+    main
 }
 
-fn build_ui<W: IsA<Widget>>(application: &gtk::Application,
-            extensions: &'static [&'static str],
-            main_window: &W) {
-    let window = ApplicationWindow::new(application);
+fn build_ui(application: &gtk::Application, runtime_context: RuntimeContext) {
+    let main_window = main_window(runtime_context);
 
-    window.set_title(env!("CARGO_PKG_NAME"));
-    window.set_position(WindowPosition::Center);
-    window.set_size_request(400, 400);
+    let app_window = ApplicationWindow::new(application);
+
+    app_window.set_title(env!("CARGO_PKG_NAME"));
+    app_window.set_position(WindowPosition::Center);
+    app_window.set_size_request(400, 400);
 
     let v_box = gtk::Box::new(gtk::Orientation::Vertical, 10);
-    v_box.pack_start(&menu_bar(&window, extensions), false, false, 0);
-    v_box.pack_start(main_window, true, true, 0);
+    v_box.pack_start(&menu_bar(&app_window, &runtime_context), false, false, 0);
+    v_box.pack_start(&main_window, true, true, 0);
 
-    window.add(&v_box);
+    app_window.add(&v_box);
 
-    window.show_all();
+    app_window.show_all();
 }
 
-fn load_libs(loader: &mut Loader,
-             provider: &dyn Provider,
-             runtime_context: &RuntimeContext) -> Result<(), String> {
+fn load_libs<'a>(loader: &mut Loader, provider: &dyn Provider) -> Result<RuntimeContext<'a>, String> {
+    let (runtime_manifest, runtime_context) = runtime::manifest::create_runtime();
+
     // Load this runtime's library of native (statically linked) implementations
-    loader.add_lib(provider, runtime::manifest::create_runtime(runtime_context), "runtime")
-        .map_err(|e| e.to_string())?;
+    loader.add_lib(provider, runtime_manifest, "runtime").map_err(|e| e.to_string())?;
 
     // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
-    loader.add_lib(provider, flowstdlib::get_manifest(), "flowstdlib")
-        .map_err(|e| e.to_string())
+    loader.add_lib(provider, flowstdlib::get_manifest(), "flowstdlib").map_err(|e| e.to_string())?;
+
+    Ok(runtime_context)
 }
 
-fn run_flow(runtime_context: &RuntimeContext) {
-    let mut loader = Loader::new();
-    let provider = MetaProvider {};
-    let _result = load_libs(&mut loader, &provider, &runtime_context);
-}
+fn main() -> Result<(), String> {
+    let loader = Loader::new();
+    let provider = MetaProvider{};
 
-fn main() {
-    let application = Application::new(
-        Some("net.mackenzie-serres.flow.ide"),
-        Default::default()).expect("failed to initialize GTK application");
+    let runtime_context = load_libs(&mut loader, &provider).map_err(|e| e.to_string())?;
 
-    let (main_window, runtime_context) = main_window();
+    let application = Application::new(Some("net.mackenzie-serres.flow.ide"), Default::default())
+        .expect("failed to initialize GTK application");
 
     application.connect_activate(move |app| {
-        let accepted_extensions = deserializer_helper::get_accepted_extensions();
-        build_ui(&app, accepted_extensions, &main_window);
+        build_ui(&app, runtime_context);
     });
 
-    runtime_context.stdout.insert_at_cursor("hello\n");
-    runtime_context.stdout.insert_at_cursor("world\n");
-
     application.run(&args().collect::<Vec<_>>());
+
+    Ok(())
 }

@@ -5,19 +5,12 @@
 //!
 //! Use `flowr` or `flowr --help` or `flowr -h` at the comment line to see the command line options
 //!
-extern crate clap;
 #[macro_use]
 extern crate error_chain;
-extern crate flow_impl;
-extern crate flowrlib;
 #[macro_use]
 extern crate log;
-extern crate num_cpus;
-extern crate provider;
 #[macro_use]
 extern crate serde_json;
-extern crate simplog;
-extern crate url;
 
 use std::env;
 use std::process::exit;

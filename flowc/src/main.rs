@@ -6,19 +6,10 @@
 //! Execute `flowc` or `flowc --help` or `flowc -h` at the comment line for a
 //! description of the command line options.
 
-extern crate clap;
 #[macro_use]
 extern crate error_chain;
-extern crate flowclib;
-extern crate flowrlib;
 #[macro_use]
 extern crate log;
-extern crate provider;
-extern crate serde_json;
-extern crate simpath;
-extern crate simplog;
-extern crate tempdir;
-extern crate url;
 
 use std::path::PathBuf;
 
