@@ -3,7 +3,7 @@ use std::env;
 use flow_impl::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use serde_json::Value;
 
-use ::FLOW_ARGS_NAME;
+use crate::FLOW_ARGS_NAME;
 
 #[derive(Debug)]
 /// `Implementation` struct for the `get` function

@@ -8,6 +8,7 @@ documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
 homepage = "http://andrewdavidmackenzie.github.io/flow/"
 repository = "https://github.com/andrewdavidmackenzie/flow/"
 readme = "README.md"
+edition = "2018"
 
 [[bin]]
 name = "flowr"
