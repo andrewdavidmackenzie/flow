@@ -8,13 +8,12 @@
 
 #[macro_use]
 extern crate error_chain;
-#[macro_use]
-extern crate log;
 
 use std::path::PathBuf;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
 use flowclib::info;
+use log::debug;
 use provider::args::url_from_string;
 use provider::content::provider::MetaProvider;
 use simplog::simplog::SimpleLogger;

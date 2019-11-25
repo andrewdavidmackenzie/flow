@@ -4,6 +4,7 @@ use std::process::Command;
 use std::process::Stdio;
 
 use flowclib::model::function::Function;
+use log::{debug, error, info, warn};
 use provider::args::url_from_string;
 use tempdir::TempDir;
 

@@ -15,6 +15,7 @@ use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
 use flowrlib::manifest::DEFAULT_MANIFEST_FILENAME;
 use flowrlib::provider::Provider;
+use log::{debug, error, info};
 use simpath::FileType;
 use simpath::Simpath;
 use url::Url;
