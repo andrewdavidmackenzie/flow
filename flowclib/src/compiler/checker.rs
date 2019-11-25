@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
+use error_chain::bail;
+use flowrlib::input::InputInitializer::Constant;
+
 use crate::compiler::connector;
 use crate::errors::*;
-use flowrlib::input::InputInitializer::Constant;
 use crate::generator::generate::GenerationTables;
 use crate::model::connection::Connection;
 use crate::model::flow::Flow;
@@ -126,14 +128,14 @@ fn connection_to(tables: &GenerationTables, input: &Route) -> bool {
 mod test {
     use crate::model::connection::Connection;
     use crate::model::io::IO;
-    use crate::model::route::Route;
     use crate::model::name::Name;
+    use crate::model::route::Route;
 
     use super::remove_duplicates;
 
     /*
-            Test that when two functions are connected doubly, the connection gets reduced to a single one
-        */
+                Test that when two functions are connected doubly, the connection gets reduced to a single one
+            */
     #[test]
     fn collapse_double_connection() {
         let first = Connection {

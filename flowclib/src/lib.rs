@@ -3,17 +3,6 @@
 //! a flow compiler, such as the `flowc` command line flow compiler.
 #[macro_use]
 extern crate error_chain;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde_derive;
-#[cfg(test)]
-#[macro_use]
-extern crate serde_json;
-#[macro_use]
-extern crate shrinkwraprs;
-#[cfg(test)]
-extern crate url;
 
 pub mod deserializers;
 pub mod dumper;

@@ -5,6 +5,7 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 
 use flowrlib::input::InputInitializer::{Constant, OneTime};
+use log::info;
 
 use crate::dumper::helper;
 use crate::generator::generate::GenerationTables;

@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
+use error_chain::bail;
 use flowrlib::input::InputInitializer;
+use serde_derive::{Deserialize, Serialize};
 
 use crate::compiler::loader::Validate;
+use crate::errors::*;
 use crate::model::datatype::DataType;
 use crate::model::datatype::HasDataType;
 use crate::model::datatype::TypeCheck;
@@ -13,7 +16,6 @@ use crate::model::route::FindRoute;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
-use crate::errors::*;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub enum IOType {

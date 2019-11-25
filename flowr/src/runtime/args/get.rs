@@ -1,7 +1,7 @@
 use std::env;
 
 use flow_impl::{DONT_RUN_AGAIN, Implementation, RunAgain};
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::FLOW_ARGS_NAME;
 
@@ -28,6 +28,7 @@ mod test {
     use std::env;
 
     use flow_impl::{DONT_RUN_AGAIN, Implementation};
+    use serde_json::json;
 
     use super::FLOW_ARGS_NAME;
     use super::Get;
@@ -36,7 +37,7 @@ mod test {
     fn test_arg_passing() {
         env::set_var(FLOW_ARGS_NAME, "test");
 
-        let get = Get{};
+        let get = Get {};
         let (value, again) = get.run(vec!());
 
         assert_eq!(json!(["test"]), value.unwrap());

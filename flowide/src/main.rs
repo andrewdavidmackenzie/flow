@@ -1,9 +1,6 @@
 #![deny(missing_docs)]
 //! The `flowide` is a prototype of a native IDE for `flow` programs.
 
-#[macro_use]
-extern crate serde_json;
-
 use flowclib::deserializers::deserializer_helper;
 use flowrlib::loader::Loader;
 use flowrlib::provider::Provider;
@@ -16,6 +13,7 @@ use gtk::{
 use gtk::prelude::*;
 use provider::content::provider::MetaProvider;
 use runtime_context::RuntimeContext;
+use serde_json::json;
 use std::env::args;
 
 mod runtime;

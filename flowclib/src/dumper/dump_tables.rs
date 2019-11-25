@@ -4,6 +4,8 @@ use std::io;
 use std::io::Write;
 use std::path::PathBuf;
 
+use log::info;
+
 use crate::dumper::dump_dot;
 use crate::generator::generate::GenerationTables;
 use crate::model::flow::Flow;

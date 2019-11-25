@@ -5,12 +5,6 @@
 //!
 //! Use `flowr` or `flowr --help` or `flowr -h` at the comment line to see the command line options
 //!
-#[macro_use]
-extern crate error_chain;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde_json;
 
 use std::env;
 use std::process::exit;
@@ -20,12 +14,14 @@ use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::debug_client::DebugClient;
 use flowrlib::info;
 use flowrlib::loader::Loader;
+use log::{debug, error, info};
 use provider::args::url_from_string;
 use provider::content::provider::MetaProvider;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
 use cli_debug_client::CLIDebugClient;
+use error_chain::error_chain;
 
 mod runtime;
 mod cli_debug_client;
@@ -40,8 +36,6 @@ const CLI_DEBUG_CLIENT: &dyn DebugClient = &CLIDebugClient {};
 // this crate will `use errors::*;` to get access to everything
 // `error_chain!` creates.
 mod errors {
-    // Create the Error, ErrorKind, ResultExt, and Result types
-    error_chain! {}
 }
 
 error_chain! {

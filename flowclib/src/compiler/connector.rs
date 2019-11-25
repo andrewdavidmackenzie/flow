@@ -1,11 +1,15 @@
-use crate::model::route::Route;
-use crate::model::route::HasRoute;
 use std::collections::HashMap;
+
+use error_chain::bail;
+use log::debug;
+
+use crate::errors::*;
 use crate::generator::generate::GenerationTables;
 use crate::model::connection::Connection;
-use crate::model::name::HasName;
 use crate::model::io::IOType;
-use crate::errors::*;
+use crate::model::name::HasName;
+use crate::model::route::HasRoute;
+use crate::model::route::Route;
 
 /*
     Go through all connections, finding:
@@ -253,10 +257,11 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
 mod test {
     use crate::model::connection::Connection;
     use crate::model::io::{IO, IOType};
-    use super::collapse_connections;
-    use crate::model::route::HasRoute;
     use crate::model::name::Name;
+    use crate::model::route::HasRoute;
     use crate::model::route::Route;
+
+    use super::collapse_connections;
 
     #[test]
     fn drop_useless_connections() {
