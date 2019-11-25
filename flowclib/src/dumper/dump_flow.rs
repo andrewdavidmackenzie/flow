@@ -14,11 +14,6 @@ use crate::model::process::Process::FlowProcess;
 ///
 /// # Example
 /// ```
-/// extern crate url;
-/// extern crate flowclib;
-/// extern crate tempdir;
-/// extern crate flowrlib;
-///
 /// use std::env;
 /// use url::Url;
 /// use flowrlib::provider::Provider;

@@ -36,10 +36,6 @@ pub trait Validate {
 ///
 /// # Example
 /// ```
-/// extern crate url;
-/// extern crate flowclib;
-/// extern crate flowrlib;
-///
 /// use flowrlib::provider::Provider;
 /// use flowrlib::errors::*;
 /// use std::env;

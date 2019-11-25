@@ -14,11 +14,6 @@ use crate::model::flow::Flow;
 ///
 /// # Example
 /// ```
-/// extern crate url;
-/// extern crate flowclib;
-/// extern crate tempdir;
-/// extern crate flowrlib;
-///
 /// use std::env;
 /// use url::Url;
 /// use flowrlib::provider::Provider;
@@ -91,11 +86,6 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Resul
 ///
 /// # Example
 /// ```
-/// extern crate url;
-/// extern crate flowclib;
-/// extern crate tempdir;
-/// extern crate flowrlib;
-///
 /// use std::env;
 /// use url::Url;
 /// use flowrlib::provider::Provider;

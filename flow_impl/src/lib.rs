@@ -24,13 +24,9 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 /// Here is an example implementation of this trait:
 ///
 /// ```
-/// extern crate core;
-/// extern crate flow_impl;
-/// #[macro_use]
-/// extern crate serde_json;
-///
 /// use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 /// use serde_json::Value;
+/// use serde_json::json;
 ///
 /// pub struct Compare;
 ///

@@ -3,18 +3,6 @@
 //! and compiles to WebAssembly for use with JavaScript inside an electron app.
 //! In order to build a WebAssembly module we must compile a dynamic library (without a main())
 //! and `lib.rs` is the root of that crate.
-#[macro_use]
-extern crate error_chain;
-extern crate flow_impl;
-extern crate flowclib;
-extern crate flowrlib;
-#[macro_use]
-extern crate log;
-extern crate nodeprovider;
-#[macro_use]
-extern crate serde_json;
-extern crate web_sys;
-
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowclib::generator::generate;
