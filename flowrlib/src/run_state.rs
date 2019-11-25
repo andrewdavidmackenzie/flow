@@ -4,6 +4,7 @@ use std::fmt;
 use std::sync::Arc;
 
 use flow_impl::Implementation;
+use log::{debug, error};
 use multimap::MultiMap;
 use serde_json::Value;
 
@@ -746,6 +747,8 @@ mod tests {
 
     /********************************* State Transition Tests *********************************/
     mod state_transitions {
+        use serde_json::json;
+
         use crate::debugger::Debugger;
         use crate::function::Function;
         use crate::input::{ConstantInputInitializer, OneTimeInputInitializer};
@@ -1259,6 +1262,8 @@ mod tests {
 
     /****************************** Miscelaneous tests **************************/
     mod functional_tests {
+        use serde_json::json;
+
         use crate::debugger::Debugger;
         use crate::function::Function;
         use crate::input::ConstantInputInitializer;

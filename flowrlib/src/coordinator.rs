@@ -3,6 +3,7 @@ use std::sync::mpsc::{Receiver, Sender, SendError};
 use std::sync::mpsc;
 use std::time::Duration;
 
+use log::{debug, error, info, log_enabled};
 use log::Level::Debug;
 
 use crate::debug_client::DebugClient;
