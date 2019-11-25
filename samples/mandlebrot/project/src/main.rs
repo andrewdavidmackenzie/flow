@@ -1,12 +1,5 @@
 #![feature(test)]
 
-extern crate dir_diff;
-extern crate image;
-extern crate num;
-extern crate rayon;
-extern crate tempdir;
-extern crate test;
-
 use escapes::_escapes;
 use image::ColorType;
 use image::png::PNGEncoder;

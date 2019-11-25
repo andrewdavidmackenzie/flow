@@ -1,16 +1,10 @@
-extern crate flowclib;
-extern crate flowrlib;
-extern crate provider;
-extern crate url;
-
 use std::env;
 
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowclib::model::process::Process::FlowProcess;
-use url::Url;
-
 use provider::content::provider::MetaProvider;
+use url::Url;
 
 /// flowclib integration tests
 ///

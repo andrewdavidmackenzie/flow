@@ -1,8 +1,3 @@
-#[cfg(target_arch = "wasm32")]
-#[macro_use]
-#[cfg(target_arch = "wasm32")]
-extern crate serde_json;
-
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use flow_impl_derive::FlowImpl;
 use serde_json::json;

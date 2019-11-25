@@ -2,6 +2,7 @@
 //! into URLs (as Strings) with schemes for use with flowlibc and flowlibr.
 use std::env;
 
+use log::info;
 use url::Url;
 
 use crate::errors::*;
@@ -45,8 +46,6 @@ pub fn cwd_as_url() -> Result<Url> {
 
 #[cfg(test)]
 mod test {
-    extern crate url;
-
     use std::path;
 
     use super::cwd_as_url;

@@ -31,8 +31,6 @@ impl Implementation for Buffer {
 
 #[cfg(test)]
 mod test {
-    extern crate serde_json;
-
     use flow_impl::Implementation;
     use serde_json::Value::Number;
 

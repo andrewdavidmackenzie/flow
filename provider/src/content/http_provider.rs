@@ -1,8 +1,8 @@
 use curl::easy::{Easy2, Handler, WriteError};
-use url::Url;
-
 use flowrlib::errors::*;
 use flowrlib::provider::Provider;
+use log::info;
+use url::Url;
 
 pub struct HttpProvider;
 

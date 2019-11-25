@@ -1,10 +1,5 @@
 #[macro_use]
 extern crate error_chain;
-extern crate flowclib;
-extern crate flowrlib;
-extern crate provider;
-extern crate simpath;
-extern crate url;
 
 use std::env;
 use std::fs::File;

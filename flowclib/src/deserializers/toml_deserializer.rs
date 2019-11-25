@@ -1,5 +1,3 @@
-extern crate serde_json;
-
 use toml;
 
 use crate::compiler::loader::Deserializer;

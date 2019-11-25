@@ -1,11 +1,4 @@
-extern crate flowclib;
-extern crate flowrlib;
-extern crate provider;
-extern crate url;
-
 use std::env;
-
-use url::Url;
 
 use flowclib::compiler::loader;
 use flowclib::model::io::IO;
@@ -17,6 +10,7 @@ use flowclib::model::route::HasRoute;
 use flowclib::model::route::Route;
 use flowrlib::input::InputInitializer::OneTime;
 use provider::content::provider::MetaProvider;
+use url::Url;
 
 /// flowclib integration tests
 ///

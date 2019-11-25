@@ -1,15 +1,9 @@
-extern crate flowclib;
-extern crate flowrlib;
-extern crate provider;
-extern crate url;
-
 use std::env;
 
 use flowclib::compiler::loader;
-use url::Url;
-
 use provider::args::url_from_string;
 use provider::content::provider::MetaProvider;
+use url::Url;
 
 fn url_from_rel_path(path: &str) -> String {
     let cwd = Url::from_file_path(env::current_dir().unwrap()).unwrap();
