@@ -20,23 +20,23 @@ use provider::content::provider::MetaProvider;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
-use cli_debug_client::CLIDebugClient;
 use error_chain::error_chain;
+use runtime::runtime_client::RuntimeClient;
 
-mod runtime;
+use crate::cli_debug_client::CLIDebugClient;
+use crate::cli_runtime_client::CLIRuntimeClient;
+use crate::cli_runtime_client::FLOW_ARGS_NAME;
+
 mod cli_debug_client;
-
-/// The name of the environment variables used to pass command line arguments to the function
-/// used to get them.
-pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
+mod cli_runtime_client;
 
 const CLI_DEBUG_CLIENT: &dyn DebugClient = &CLIDebugClient {};
+const CLI_RUNTIME_CLIENT: &dyn RuntimeClient = &CLIRuntimeClient {};
 
 // We'll put our errors in an `errors` module, and other modules in
 // this crate will `use errors::*;` to get access to everything
 // `error_chain!` creates.
-mod errors {
-}
+mod errors {}
 
 error_chain! {
     foreign_links {
@@ -75,7 +75,7 @@ fn run() -> Result<()> {
     let provider = MetaProvider {};
 
     // Load this runtime's library of native (statically linked) implementations
-    loader.add_lib(&provider, runtime::manifest::get_manifest(), "runtime")
+    loader.add_lib(&provider, runtime::manifest::create_runtime(CLI_RUNTIME_CLIENT), "runtime")
         .chain_err(|| "Could not add 'runtime' library to loader")?;
 
     // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so

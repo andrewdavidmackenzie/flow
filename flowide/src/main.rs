@@ -12,11 +12,10 @@ use gtk::{
 };
 use gtk::prelude::*;
 use provider::content::provider::MetaProvider;
+use runtime::{manifest, runtime_client};
 use runtime_context::RuntimeContext;
-use serde_json::json;
 use std::env::args;
 
-mod runtime;
 mod runtime_context;
 
 /// upgrade weak reference or return
@@ -210,8 +209,8 @@ fn build_ui(application: &gtk::Application, runtime_context: RuntimeContext) {
     app_window.show_all();
 }
 
-fn load_libs<'a>(loader: &mut Loader, provider: &dyn Provider) -> Result<RuntimeContext<'a>, String> {
-    let (runtime_manifest, runtime_context) = runtime::manifest::create_runtime();
+fn load_libs<'a>(loader: &mut Loader, provider: &dyn Provider, client: &dyn RuntimeClient) -> Result<RuntimeContext<'a>, String> {
+    let (runtime_manifest, runtime_context) = runtime::manifest::create_runtime(client);
 
     // Load this runtime's library of native (statically linked) implementations
     loader.add_lib(provider, runtime_manifest, "runtime").map_err(|e| e.to_string())?;
@@ -222,11 +221,18 @@ fn load_libs<'a>(loader: &mut Loader, provider: &dyn Provider) -> Result<Runtime
     Ok(runtime_context)
 }
 
+struct IDE {}
+
+impl RuntimeClient for IDE {
+
+}
+
 fn main() -> Result<(), String> {
     let loader = Loader::new();
     let provider = MetaProvider{};
+    let ide = IDE {};
 
-    let runtime_context = load_libs(&mut loader, &provider).map_err(|e| e.to_string())?;
+    let runtime_context = load_libs(&mut loader, &provider, &ide).map_err(|e| e.to_string())?;
 
     let application = Application::new(Some("net.mackenzie-serres.flow.ide"), Default::default())
         .expect("failed to initialize GTK application");

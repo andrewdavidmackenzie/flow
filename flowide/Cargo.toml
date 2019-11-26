@@ -2,6 +2,7 @@
 name = "flowide"
 version = "0.1.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
+edition = "2018"
 
 [[bin]]
 name = "ide_native"
@@ -12,6 +13,7 @@ flowclib = {path = "../flowclib"}
 flowrlib = "=0.8.2"
 flow_impl = "=0.8.3"
 serde_json = "1.0"
+runtime = { path = "../runtime" }
 provider = "=0.8.3"
 flowstdlib = { path = "../flowstdlib", features = [ "native" ] }
 gdk-pixbuf = "=0.7.0"
