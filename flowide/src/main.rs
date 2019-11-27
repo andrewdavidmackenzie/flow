@@ -8,13 +8,17 @@ use gdk_pixbuf::Pixbuf;
 use gio::prelude::*;
 use gtk::{
     AboutDialog, AccelFlags, AccelGroup, Application, ApplicationWindow, Box, FileChooserAction, FileChooserDialog,
-    FileFilter, Menu, MenuBar, MenuItem, ResponseType, ScrolledWindow, TextBuffer, TextView, WidgetExt, WindowPosition
+    FileFilter, Menu, MenuBar, MenuItem, ResponseType, ScrolledWindow, TextBuffer, TextView, WidgetExt, WindowPosition,
 };
 use gtk::prelude::*;
 use provider::content::provider::MetaProvider;
-use runtime::{manifest, runtime_client};
+use runtime::runtime_client::{Command, Response, RuntimeClient};
 use runtime_context::RuntimeContext;
+use std::env;
 use std::env::args;
+use std::fs::File;
+use std::io;
+use std::io::prelude::*;
 
 mod runtime_context;
 
@@ -59,13 +63,13 @@ fn about_dialog() -> AboutDialog {
     p
 }
 
-fn run_flow(runtime_context: &RuntimeContext) {
+fn run_flow(_runtime_context: &RuntimeContext) {
     println!("Run");
 }
 
 fn file_run_action(_run: &MenuItem, runtime_context: &RuntimeContext) {
 //        run.connect_activate( |_| {
-        run_flow(runtime_context);
+    run_flow(runtime_context);
 //    });
 }
 
@@ -162,19 +166,21 @@ fn menu_bar(window: &ApplicationWindow, runtime_context: &RuntimeContext) -> Men
 
 fn args_view(buffer: &TextBuffer) -> TextView {
     let args_view = gtk::TextView::new();
-    args_view.set_size_request(-1,1); // Want to fill width and be one line high :-(
+    args_view.set_buffer(Some(buffer));
+    args_view.set_size_request(-1, 1); // Want to fill width and be one line high :-(
     args_view
 }
 
 fn stdio(buffer: &TextBuffer) -> ScrolledWindow {
     let scroll = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
     let view = gtk::TextView::new();
+    view.set_buffer(Some(buffer));
     view.set_editable(false);
     scroll.add(&view);
     scroll
 }
 
-fn main_window(runtime_context: RuntimeContext) -> Box {
+fn main_window(runtime_context: &RuntimeContext) -> Box {
     let main = gtk::Box::new(gtk::Orientation::Vertical, 10);
     main.set_border_width(6);
     main.set_vexpand(true);
@@ -191,8 +197,8 @@ fn main_window(runtime_context: RuntimeContext) -> Box {
     main
 }
 
-fn build_ui(application: &gtk::Application, runtime_context: RuntimeContext) {
-    let main_window = main_window(runtime_context);
+fn build_ui(application: &gtk::Application, runtime_context: &RuntimeContext) {
+    let main_window = main_window(&runtime_context);
 
     let app_window = ApplicationWindow::new(application);
 
@@ -209,8 +215,9 @@ fn build_ui(application: &gtk::Application, runtime_context: RuntimeContext) {
     app_window.show_all();
 }
 
-fn load_libs<'a>(loader: &mut Loader, provider: &dyn Provider, client: &dyn RuntimeClient) -> Result<RuntimeContext<'a>, String> {
-    let (runtime_manifest, runtime_context) = runtime::manifest::create_runtime(client);
+fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, client: &'a dyn RuntimeClient) -> Result<(), String> {
+    let client_mutex = Arc::new(Mutex::new(client));
+    let runtime_manifest = runtime::manifest::create_runtime(client);
 
     // Load this runtime's library of native (statically linked) implementations
     loader.add_lib(provider, runtime_manifest, "runtime").map_err(|e| e.to_string())?;
@@ -218,27 +225,72 @@ fn load_libs<'a>(loader: &mut Loader, provider: &dyn Provider, client: &dyn Runt
     // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
     loader.add_lib(provider, flowstdlib::get_manifest(), "flowstdlib").map_err(|e| e.to_string())?;
 
-    Ok(runtime_context)
+    Ok(())
 }
 
 struct IDE {}
 
 impl RuntimeClient for IDE {
+    fn init(&self) {}
 
+    // This function is called by the runtime_function to send a commanmd to the runtime_client
+    // so here in the runtime_client, it's more like "process_command"
+    fn send_command(&self, command: Command) -> Response {
+        match command {
+            Command::Stdout(contents) => {
+                println!("{}", contents);
+                Response::Ack
+            }
+            Command::Stderr(contents) => {
+                eprintln!("{}", contents);
+                Response::Ack
+            }
+            Command::Stdin => {
+                let mut buffer = String::new();
+                let stdin = io::stdin();
+                let mut handle = stdin.lock();
+                if let Ok(size) = handle.read_to_string(&mut buffer) {
+                    if size > 0 {
+                        return Response::Stdin(buffer.trim().to_string());
+                    }
+                }
+                return Response::Error("Could not read Stdin".into());
+            }
+            Command::Readline => {
+                let mut input = String::new();
+                match io::stdin().read_line(&mut input) {
+                    Ok(n) if n > 0 => return Response::Readline(input.trim().to_string()),
+                    _ => return Response::Error("Could not read Readline".into())
+                }
+            }
+            Command::Args => {
+                return Response::Args(vec!()); // TODO
+            }
+            Command::Write(filename, bytes) => {
+                let mut file = File::create(filename).unwrap();
+                file.write(bytes.as_slice()).unwrap();
+                return Response::Ack;
+            }
+        }
+    }
 }
 
 fn main() -> Result<(), String> {
-    let loader = Loader::new();
-    let provider = MetaProvider{};
+    let mut loader = Loader::new();
+    let provider = MetaProvider {};
     let ide = IDE {};
 
-    let runtime_context = load_libs(&mut loader, &provider, &ide).map_err(|e| e.to_string())?;
+    load_libs(&mut loader, &provider, &ide).map_err(|e| e.to_string())?;
 
     let application = Application::new(Some("net.mackenzie-serres.flow.ide"), Default::default())
         .expect("failed to initialize GTK application");
 
+    let runtime_context = RuntimeContext::new(&TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE),
+                                                  &TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE),
+                                                  &TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE));
+
     application.connect_activate(move |app| {
-        build_ui(&app, runtime_context);
+        build_ui(&app, &runtime_context);
     });
 
     application.run(&args().collect::<Vec<_>>());

@@ -8,6 +8,7 @@
 
 use std::env;
 use std::process::exit;
+use std::sync::{Arc, Mutex};
 
 use clap::{App, AppSettings, Arg, ArgMatches};
 use flowrlib::coordinator::{Coordinator, Submission};
@@ -75,7 +76,7 @@ fn run() -> Result<()> {
     let provider = MetaProvider {};
 
     // Load this runtime's library of native (statically linked) implementations
-    loader.add_lib(&provider, runtime::manifest::create_runtime(CLI_RUNTIME_CLIENT), "runtime")
+    loader.add_lib(&provider, runtime::manifest::create_runtime(Arc::new(Mutex::new(CLI_RUNTIME_CLIENT))), "runtime")
         .chain_err(|| "Could not add 'runtime' library to loader")?;
 
     // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
