@@ -1,14 +1,14 @@
 use gtk::TextBuffer;
 
 /// `RuntimeCOntext` Holds items from the UI that are needed during runnings of a slow.
-pub struct RuntimeContext<'a> {
-    pub args: &'a TextBuffer,
-    pub stdout: &'a TextBuffer,
-    pub stderr: &'a TextBuffer,
+pub struct RuntimeContext {
+    pub args: TextBuffer,
+    pub stdout: TextBuffer,
+    pub stderr: TextBuffer,
 }
 
-impl<'a> RuntimeContext<'a> {
-    pub fn new(args: &'a TextBuffer, stdout: &'a TextBuffer, stderr: &'a TextBuffer) -> Self {
+impl RuntimeContext {
+    pub fn new(args: TextBuffer, stdout: TextBuffer, stderr: TextBuffer) -> Self {
         RuntimeContext {
             args,
             stdout,

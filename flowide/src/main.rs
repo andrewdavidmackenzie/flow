@@ -19,6 +19,7 @@ use std::env::args;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
+use std::sync::{Arc, Mutex};
 
 mod runtime_context;
 
@@ -35,6 +36,10 @@ macro_rules! upgrade_weak {
         upgrade_weak!($x, ())
     };
 }
+
+struct IDE {}
+
+const IDE_RUNTIME_CLIENT: &dyn RuntimeClient = &IDE {};
 
 fn resource(path: &str) -> String {
     format!("{}/resources/{}", env!("CARGO_MANIFEST_DIR"), path)
@@ -186,9 +191,9 @@ fn main_window(runtime_context: &RuntimeContext) -> Box {
     main.set_vexpand(true);
     main.set_hexpand(true);
 
-    let args_view = args_view(runtime_context.args);
-    let stdout_view = stdio(runtime_context.stdout);
-    let stderr_view = stdio(runtime_context.stderr);
+    let args_view = args_view(&runtime_context.args);
+    let stdout_view = stdio(&runtime_context.stdout);
+    let stderr_view = stdio(&runtime_context.stderr);
 
     main.pack_start(&args_view, true, true, 0);
     main.pack_start(&stdout_view, true, true, 0);
@@ -215,8 +220,7 @@ fn build_ui(application: &gtk::Application, runtime_context: &RuntimeContext) {
     app_window.show_all();
 }
 
-fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, client: &'a dyn RuntimeClient) -> Result<(), String> {
-    let client_mutex = Arc::new(Mutex::new(client));
+fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, client: Arc<Mutex<&'static dyn RuntimeClient>>) -> Result<(), String> {
     let runtime_manifest = runtime::manifest::create_runtime(client);
 
     // Load this runtime's library of native (statically linked) implementations
@@ -227,8 +231,6 @@ fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, client: &'a dy
 
     Ok(())
 }
-
-struct IDE {}
 
 impl RuntimeClient for IDE {
     fn init(&self) {}
@@ -278,16 +280,15 @@ impl RuntimeClient for IDE {
 fn main() -> Result<(), String> {
     let mut loader = Loader::new();
     let provider = MetaProvider {};
-    let ide = IDE {};
 
-    load_libs(&mut loader, &provider, &ide).map_err(|e| e.to_string())?;
+    load_libs(&mut loader, &provider, Arc::new(Mutex::new(IDE_RUNTIME_CLIENT))).map_err(|e| e.to_string())?;
 
     let application = Application::new(Some("net.mackenzie-serres.flow.ide"), Default::default())
         .expect("failed to initialize GTK application");
 
-    let runtime_context = RuntimeContext::new(&TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE),
-                                                  &TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE),
-                                                  &TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE));
+    let runtime_context = RuntimeContext::new(TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE),
+                                              TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE),
+                                              TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE));
 
     application.connect_activate(move |app| {
         build_ui(&app, &runtime_context);
