@@ -242,9 +242,9 @@ fn main() -> Result<(), String> {
     let application = Application::new(Some("net.mackenzie-serres.flow.ide"), Default::default())
         .expect("failed to initialize GTK application");
 
-    let runtime_context = RuntimeContext::new(TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE),
-                                              TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE),
-                                              TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE));
+    let runtime_context = RuntimeContext::new();
+
+    let runtime_clone = runtime_context.clone();
 
     application.connect_activate(move |app| {
         build_ui(&app, &runtime_context);
@@ -252,7 +252,7 @@ fn main() -> Result<(), String> {
 
     // Attach the receiver to the default main context (None) and on every message process the command
     command_receiver.attach(None, move |command| {
-        ide_runtime_client.lock().unwrap().process_command(command);
+        ide_runtime_client.lock().unwrap().process_command(command, &runtime_clone);
 
         // Returning false here would close the receiver and have senders fail
         glib::Continue(true)

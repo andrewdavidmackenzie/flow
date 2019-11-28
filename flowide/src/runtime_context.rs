@@ -1,6 +1,7 @@
 use gtk::TextBuffer;
 
 /// `RuntimeCOntext` Holds items from the UI that are needed during runnings of a slow.
+#[derive(Clone)]
 pub struct RuntimeContext {
     pub args: TextBuffer,
     pub stdout: TextBuffer,
@@ -8,11 +9,11 @@ pub struct RuntimeContext {
 }
 
 impl RuntimeContext {
-    pub fn new(args: TextBuffer, stdout: TextBuffer, stderr: TextBuffer) -> Self {
+    pub fn new() -> Self {
         RuntimeContext {
-            args,
-            stdout,
-            stderr,
+            args: TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE),
+            stdout: TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE),
+            stderr: TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE)
         }
     }
 }
