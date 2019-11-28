@@ -6,7 +6,7 @@ use flowrlib::manifest::MetaData;
 use crate::runtime_client::RuntimeClient;
 
 /// Create the runtime and return a `LibraryManifest` for the runtime functions
-pub fn create_runtime(client: Arc<Mutex<&'static dyn RuntimeClient>>) -> LibraryManifest {
+pub fn create_runtime(client: Arc<Mutex<dyn RuntimeClient>>) -> LibraryManifest {
     let metadata = MetaData {
         name: "flowr-runtime".into(),
         version: "0.1.0".into(),

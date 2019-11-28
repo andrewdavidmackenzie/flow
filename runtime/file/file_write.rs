@@ -6,11 +6,11 @@ use serde_json::Value;
 use super::super::runtime_client::{Command, Response, RuntimeClient};
 
 /// `Implementation` struct for the `file_write` function
-pub struct FileWrite<'a> {
-    pub client: Arc<Mutex<&'a dyn RuntimeClient>>
+pub struct FileWrite {
+    pub client: Arc<Mutex<dyn RuntimeClient>>
 }
 
-impl<'a> Implementation for FileWrite<'a> {
+impl Implementation for FileWrite {
     fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let filename = inputs.remove(0).remove(0);
         let bytes = inputs.remove(0).remove(0);

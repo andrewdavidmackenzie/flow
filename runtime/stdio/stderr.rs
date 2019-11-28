@@ -6,11 +6,11 @@ use serde_json::Value;
 use super::super::runtime_client::{Command, Response, RuntimeClient};
 
 /// `Implementation` struct for the `Stderr` function
-pub struct Stderr<'a> {
-    pub client: Arc<Mutex<&'a dyn RuntimeClient>>
+pub struct Stderr {
+    pub client: Arc<Mutex<dyn RuntimeClient>>
 }
 
-impl<'a> Implementation for Stderr<'a> {
+impl Implementation for Stderr {
     fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let input = inputs.remove(0).remove(0);
 

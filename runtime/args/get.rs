@@ -6,11 +6,11 @@ use serde_json::{json, Value};
 use super::super::runtime_client::{Command, Response, RuntimeClient};
 
 /// `Implementation` struct for the `get` function
-pub struct Get<'a> {
-    pub client: Arc<Mutex<&'a dyn RuntimeClient>>
+pub struct Get {
+    pub client: Arc<Mutex<dyn RuntimeClient>>
 }
 
-impl<'a> Implementation for Get<'a> {
+impl Implementation for Get {
     fn run(&self, mut _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         if let Ok(client) = self.client.lock() {
             match client.send_command(Command::Args) {

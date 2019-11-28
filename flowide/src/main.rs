@@ -1,27 +1,29 @@
 #![deny(missing_docs)]
 //! The `flowide` is a prototype of a native IDE for `flow` programs.
 
-use flowclib::deserializers::deserializer_helper;
+use std::env;
+use std::env::args;
+use std::sync::{Arc, Mutex};
+
 use flowrlib::loader::Loader;
 use flowrlib::provider::Provider;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::*;
+use glib;
 use gtk::{
     AboutDialog, AccelFlags, AccelGroup, Application, ApplicationWindow, Box, FileChooserAction, FileChooserDialog,
     FileFilter, Menu, MenuBar, MenuItem, ResponseType, ScrolledWindow, TextBuffer, TextView, WidgetExt, WindowPosition,
 };
 use gtk::prelude::*;
 use provider::content::provider::MetaProvider;
-use runtime::runtime_client::{Command, Response, RuntimeClient};
+
+use flowclib::deserializers::deserializer_helper;
+use ide_runtime_client::IDERuntimeClient;
+use runtime::runtime_client::RuntimeClient;
 use runtime_context::RuntimeContext;
-use std::env;
-use std::env::args;
-use std::fs::File;
-use std::io;
-use std::io::prelude::*;
-use std::sync::{Arc, Mutex};
 
 mod runtime_context;
+mod ide_runtime_client;
 
 /// upgrade weak reference or return
 #[macro_export]
@@ -36,10 +38,6 @@ macro_rules! upgrade_weak {
         upgrade_weak!($x, ())
     };
 }
-
-struct IDE {}
-
-const IDE_RUNTIME_CLIENT: &dyn RuntimeClient = &IDE {};
 
 fn resource(path: &str) -> String {
     format!("{}/resources/{}", env!("CARGO_MANIFEST_DIR"), path)
@@ -69,7 +67,6 @@ fn about_dialog() -> AboutDialog {
 }
 
 fn run_flow(_runtime_context: &RuntimeContext) {
-    println!("Run");
 }
 
 fn file_run_action(_run: &MenuItem, runtime_context: &RuntimeContext) {
@@ -220,7 +217,7 @@ fn build_ui(application: &gtk::Application, runtime_context: &RuntimeContext) {
     app_window.show_all();
 }
 
-fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, client: Arc<Mutex<&'static dyn RuntimeClient>>) -> Result<(), String> {
+fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, client: Arc<Mutex<dyn RuntimeClient>>) -> Result<(), String> {
     let runtime_manifest = runtime::manifest::create_runtime(client);
 
     // Load this runtime's library of native (statically linked) implementations
@@ -232,56 +229,15 @@ fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, client: Arc<Mu
     Ok(())
 }
 
-impl RuntimeClient for IDE {
-    fn init(&self) {}
-
-    // This function is called by the runtime_function to send a commanmd to the runtime_client
-    // so here in the runtime_client, it's more like "process_command"
-    fn send_command(&self, command: Command) -> Response {
-        match command {
-            Command::Stdout(contents) => {
-                println!("{}", contents);
-                Response::Ack
-            }
-            Command::Stderr(contents) => {
-                eprintln!("{}", contents);
-                Response::Ack
-            }
-            Command::Stdin => {
-                let mut buffer = String::new();
-                let stdin = io::stdin();
-                let mut handle = stdin.lock();
-                if let Ok(size) = handle.read_to_string(&mut buffer) {
-                    if size > 0 {
-                        return Response::Stdin(buffer.trim().to_string());
-                    }
-                }
-                return Response::Error("Could not read Stdin".into());
-            }
-            Command::Readline => {
-                let mut input = String::new();
-                match io::stdin().read_line(&mut input) {
-                    Ok(n) if n > 0 => return Response::Readline(input.trim().to_string()),
-                    _ => return Response::Error("Could not read Readline".into())
-                }
-            }
-            Command::Args => {
-                return Response::Args(vec!()); // TODO
-            }
-            Command::Write(filename, bytes) => {
-                let mut file = File::create(filename).unwrap();
-                file.write(bytes.as_slice()).unwrap();
-                return Response::Ack;
-            }
-        }
-    }
-}
-
 fn main() -> Result<(), String> {
     let mut loader = Loader::new();
     let provider = MetaProvider {};
 
-    load_libs(&mut loader, &provider, Arc::new(Mutex::new(IDE_RUNTIME_CLIENT))).map_err(|e| e.to_string())?;
+    let (command_sender, command_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+
+    let ide_runtime_client = Arc::new(Mutex::new(IDERuntimeClient::new(command_sender)));
+
+    load_libs(&mut loader, &provider, ide_runtime_client.clone()).map_err(|e| e.to_string())?;
 
     let application = Application::new(Some("net.mackenzie-serres.flow.ide"), Default::default())
         .expect("failed to initialize GTK application");
@@ -292,6 +248,14 @@ fn main() -> Result<(), String> {
 
     application.connect_activate(move |app| {
         build_ui(&app, &runtime_context);
+    });
+
+    // Attach the receiver to the default main context (None) and on every message process the command
+    command_receiver.attach(None, move |command| {
+        ide_runtime_client.lock().unwrap().process_command(command);
+
+        // Returning false here would close the receiver and have senders fail
+        glib::Continue(true)
     });
 
     application.run(&args().collect::<Vec<_>>());

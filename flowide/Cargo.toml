@@ -17,6 +17,7 @@ runtime = { path = "../runtime" }
 provider = "=0.8.3"
 flowstdlib = { path = "../flowstdlib", features = [ "native" ] }
 gdk-pixbuf = "=0.7.0"
+glib = "0.8.2"
 
 [dependencies.gtk]
 version = "0.7.0"

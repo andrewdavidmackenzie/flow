@@ -6,11 +6,11 @@ use serde_json::Value;
 use super::super::runtime_client::{Command, Response, RuntimeClient};
 
 /// `Implementation` struct for the `readline` function
-pub struct Readline<'a> {
-    pub client: Arc<Mutex<&'a dyn RuntimeClient>>
+pub struct Readline {
+    pub client: Arc<Mutex<dyn RuntimeClient>>
 }
 
-impl<'a> Implementation for Readline<'a> {
+impl Implementation for Readline {
     fn run(&self, _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         if let Ok(client) = self.client.lock() {
             match client.send_command(Command::Readline) {
