@@ -40,11 +40,12 @@ travis-config:
 
 config-darwin:
 	$(STIME)
-	brew install gtk+3
+	brew install gtk+3 glib
 	$(ETIME)
 
 config-linux:
 	$(STIME)
+	brew upgrade glib
 	$(ETIME)
 
 ################### Coverage ####################
