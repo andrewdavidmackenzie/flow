@@ -66,13 +66,8 @@ fn about_dialog() -> AboutDialog {
     p
 }
 
-fn run_flow(_runtime_context: &RuntimeContext) {
-}
-
-fn file_run_action(_run: &MenuItem, runtime_context: &RuntimeContext) {
-//        run.connect_activate( |_| {
-    run_flow(runtime_context);
-//    });
+fn run_flow() {
+    println!("Run");
 }
 
 fn file_open_action(window: &ApplicationWindow, open: &MenuItem) {
@@ -104,7 +99,7 @@ fn file_open_action(window: &ApplicationWindow, open: &MenuItem) {
     });
 }
 
-fn menu_bar(window: &ApplicationWindow, runtime_context: &RuntimeContext) -> MenuBar {
+fn menu_bar(window: &ApplicationWindow, _runtime_context: &RuntimeContext) -> MenuBar {
     let menu = Menu::new();
     let accel_group = AccelGroup::new();
     window.add_accel_group(&accel_group);
@@ -124,7 +119,7 @@ fn menu_bar(window: &ApplicationWindow, runtime_context: &RuntimeContext) -> Men
     menu_bar.append(&file);
 
     file_open_action(window, &open);
-    file_run_action(&run, runtime_context);
+    run.connect_activate(|_| run_flow() );
 
     let other_menu = Menu::new();
     let sub_other_menu = Menu::new();
@@ -199,7 +194,7 @@ fn main_window(runtime_context: &RuntimeContext) -> Box {
     main
 }
 
-fn build_ui(application: &gtk::Application, runtime_context: &RuntimeContext) {
+fn build_ui(application: &gtk::Application, runtime_context: RuntimeContext) {
     let main_window = main_window(&runtime_context);
 
     let app_window = ApplicationWindow::new(application);
@@ -246,9 +241,9 @@ fn main() -> Result<(), String> {
 
     let runtime_clone = runtime_context.clone();
 
-    application.connect_activate(move |app| {
-        build_ui(&app, &runtime_context);
-    });
+    application.connect_activate(move |app|
+        build_ui(app, runtime_context.clone())
+    );
 
     // Attach the receiver to the default main context (None) and on every message process the command
     command_receiver.attach(None, move |command| {
