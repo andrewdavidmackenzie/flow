@@ -6,6 +6,10 @@ pub struct RuntimeContext {
     pub args: TextBuffer,
     pub stdout: TextBuffer,
     pub stderr: TextBuffer,
+    // TODO Log level elector
+    // TODO log output with a new logger
+    // TODO stdin
+    // TODO flow lib path
 }
 
 impl RuntimeContext {

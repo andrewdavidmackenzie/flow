@@ -5,8 +5,10 @@ use std::env;
 use std::env::args;
 use std::sync::{Arc, Mutex};
 
+use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::loader::Loader;
-use flowrlib::provider::Provider;
+use flowrlib::manifest::Manifest;
+use flowrlib::provider::Provider as Prov;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::*;
 use glib;
@@ -15,9 +17,15 @@ use gtk::{
     FileFilter, Menu, MenuBar, MenuItem, ResponseType, ScrolledWindow, TextBuffer, TextView, WidgetExt, WindowPosition,
 };
 use gtk::prelude::*;
+use log::info;
 use provider::content::provider::MetaProvider;
 
+use flowclib::compiler::compile;
+use flowclib::compiler::loader;
 use flowclib::deserializers::deserializer_helper;
+use flowclib::generator::generate;
+use flowclib::model::flow::Flow;
+use flowclib::model::process::Process::FlowProcess;
 use ide_runtime_client::IDERuntimeClient;
 use runtime::runtime_client::RuntimeClient;
 use runtime_context::RuntimeContext;
@@ -119,7 +127,7 @@ fn menu_bar(window: &ApplicationWindow) -> MenuBar {
     menu_bar.append(&file);
 
     file_open_action(window, &open);
-    run.connect_activate(|_| run_flow() ); // run the flow from run menu item
+    run.connect_activate(|_| run_flow()); // run the flow from run menu item
 
     let other_menu = Menu::new();
     let sub_other_menu = Menu::new();
@@ -212,7 +220,7 @@ fn build_ui(application: &gtk::Application, runtime_context: RuntimeContext) {
     app_window.show_all();
 }
 
-fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, client: Arc<Mutex<dyn RuntimeClient>>) -> Result<(), String> {
+fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Prov, client: Arc<Mutex<dyn RuntimeClient>>) -> Result<(), String> {
     let runtime_manifest = runtime::manifest::create_runtime(client);
 
     // Load this runtime's library of native (statically linked) implementations
@@ -222,6 +230,59 @@ fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, client: Arc<Mu
     loader.add_lib(provider, flowstdlib::get_manifest(), "flowstdlib").map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+/// Load a `Manifest` from `url` using `provider`
+pub fn load_manifest(loader: &mut Loader, provider: &dyn Prov, url: &str) -> Result<Manifest, String> {
+    let mut manifest = loader.load_manifest(provider, url)
+        .map_err(|e| format!("Could not load the manifest: '{}'", e.to_string()))?;
+
+    // This doesn't do anything currently - leaving here for the future
+    // as when this loads libraries from manifest, previous manual adding of
+    // libs will not be needed
+    loader.load_libraries(provider, &manifest)
+        .map_err(|e| format!("Could not load libraries: '{}'", e.to_string()))?;
+
+    info!("resolving implementations");
+    // Find the implementations for all functions in this flow
+    loader.resolve_implementations(&mut manifest, provider, "fake manifest_url")
+        .map_err(|e| format!("Could not resolve implementations of loaded functions: '{}'", e.to_string()))?;
+
+    Ok(manifest)
+}
+
+/*
+    manifest_dir is used as a reference directory for relative paths to project files
+*/
+fn compile(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manifest, String> {
+    info!("Compiling Flow to Manifest");
+    let tables = compile::compile(flow)
+        .map_err(|e| format!("Could not compile flow: '{}'", e.to_string()))?;
+
+    generate::create_manifest(&flow, debug_symbols, &manifest_dir, &tables)
+        .map_err(|e| format!("Could create flow manifest: '{}'", e.to_string()))
+}
+
+fn load_flow(provider: &dyn Prov, url: &str) -> Result<Flow, String> {
+    match loader::load_context(url, provider)
+        .map_err(|e| format!("Could not load flow context: '{}'", e.to_string()))? {
+        FlowProcess(flow) => Ok(flow),
+        _ => Err("Process loaded was not of type 'Flow'".into())
+    }
+}
+
+fn set_panic_hook() {
+    // When the `console_error_panic_hook` feature is enabled, we can call the
+    // `set_panic_hook` function to get better error messages if we ever panic.
+    #[cfg(feature = "console_error_panic_hook")]
+        console_error_panic_hook::set_once();
+}
+
+fn run_submission(submission: Submission) {
+    let mut coordinator = Coordinator::new(0);
+
+    info!("Submitting flow for execution");
+    coordinator.submit(submission);
 }
 
 fn main() -> Result<(), String> {
@@ -244,6 +305,31 @@ fn main() -> Result<(), String> {
     application.connect_activate(move |app|
         build_ui(app, runtime_context.clone())
     );
+
+    // setup
+    //    set_panic_hook();
+//    let log_level_arg = get_log_level(&document);
+//    init_logging(log_level_arg);
+
+    // load a flow definition
+//    let flow_lib_path = get_flow_lib_path(&document).map_err(|e| JsValue::from_str(&e.to_string()))?;
+//    let flow = load_flow(&provider, "file:://Users/andrew/workspace/flow/flowide/src/hello_world.toml")
+//        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    // compile to manifest
+//    manifest = compile(&flow, true, "/Users/andrew/workflow/flow")
+//        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+//    let manifest_content = serde_json::to_string_pretty(&manifest)
+//        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    // or load a manifest from file
+//    manifest = load_manifest(&provider, "file://")
+//        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+//    set_manifest_contents(&document, &manifest_content); SHOW in a widget
+
+    // run
+    // let submission = Submission::new(manifest, 1, false, None);
+    // run_submission(submission);
 
     // Attach the receiver to the default main context (None) and on every message process the command
     command_receiver.attach(None, move |command| {

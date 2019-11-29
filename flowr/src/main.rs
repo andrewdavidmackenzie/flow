@@ -4,7 +4,6 @@
 //! that are executed to execute the flow.
 //!
 //! Use `flowr` or `flowr --help` or `flowr -h` at the comment line to see the command line options
-//!
 
 use std::env;
 use std::process::exit;
@@ -104,7 +103,6 @@ fn run() -> Result<()> {
 
     Ok(coordinator.submit(submission))
 }
-
 
 /*
     Determine the number of threads to use to execute flows, with a default of the number of cores

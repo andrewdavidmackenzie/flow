@@ -56,11 +56,11 @@ impl IDERuntimeClient {
                 Response::Ack
             }
             Command::Stdin => {
-                Response::Stdin("bla bla".to_string())
+                Response::Stdin("bla bla".to_string()) // TODO
 //                Response::Error("Could not read Stdin".into())
             }
             Command::Readline => {
-                Response::Stdin("bla bla".to_string())
+                Response::Stdin("bla bla".to_string())  // TODO
             }
             Command::Args => {
                 let (start, end) = runtime_context.args.get_bounds();
