@@ -29,7 +29,7 @@ addons:
       - binutils-dev
       - libiberty-dev
       - libgtk-3-dev
-      - libglib
+      - libglib2.0-dev
   homebrew:
     packages:
       - gtk+3

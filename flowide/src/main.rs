@@ -99,7 +99,7 @@ fn file_open_action(window: &ApplicationWindow, open: &MenuItem) {
     });
 }
 
-fn menu_bar(window: &ApplicationWindow, _runtime_context: &RuntimeContext) -> MenuBar {
+fn menu_bar(window: &ApplicationWindow) -> MenuBar {
     let menu = Menu::new();
     let accel_group = AccelGroup::new();
     window.add_accel_group(&accel_group);
@@ -119,7 +119,7 @@ fn menu_bar(window: &ApplicationWindow, _runtime_context: &RuntimeContext) -> Me
     menu_bar.append(&file);
 
     file_open_action(window, &open);
-    run.connect_activate(|_| run_flow() );
+    run.connect_activate(|_| run_flow() ); // run the flow from run menu item
 
     let other_menu = Menu::new();
     let sub_other_menu = Menu::new();
@@ -204,7 +204,7 @@ fn build_ui(application: &gtk::Application, runtime_context: RuntimeContext) {
     app_window.set_size_request(400, 400);
 
     let v_box = gtk::Box::new(gtk::Orientation::Vertical, 10);
-    v_box.pack_start(&menu_bar(&app_window, &runtime_context), false, false, 0);
+    v_box.pack_start(&menu_bar(&app_window), false, false, 0);
     v_box.pack_start(&main_window, true, true, 0);
 
     app_window.add(&v_box);
@@ -257,3 +257,5 @@ fn main() -> Result<(), String> {
 
     Ok(())
 }
+
+// TODO Read flow lib path from env and add it as a setting with a dialog to edit it.
