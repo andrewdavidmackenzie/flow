@@ -29,9 +29,11 @@ addons:
       - binutils-dev
       - libiberty-dev
       - libgtk-3-dev
+      - libglib
   homebrew:
     packages:
       - gtk+3
+      - glib
       - cairo
 
 branches:

@@ -30,7 +30,6 @@ endif
 
 travis-config:
 	$(STIME)
-	brew install glib
 	@echo "Detected OS=$(UNAME)"
 	rustup target add wasm32-unknown-unknown
 	# cargo install wasm-gc || true
@@ -41,12 +40,11 @@ travis-config:
 
 config-darwin:
 	$(STIME)
-	brew install gtk+3 glib
+	brew install gtk+3
 	$(ETIME)
 
 config-linux:
 	$(STIME)
-	brew upgrade glib
 	$(ETIME)
 
 ################### Coverage ####################
