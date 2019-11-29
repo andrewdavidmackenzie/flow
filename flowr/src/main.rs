@@ -22,7 +22,6 @@ use simplog::simplog::SimpleLogger;
 use url::Url;
 
 use error_chain::error_chain;
-use runtime::runtime_client::RuntimeClient;
 
 use crate::cli_debug_client::CLIDebugClient;
 use crate::cli_runtime_client::CLIRuntimeClient;
@@ -32,7 +31,6 @@ mod cli_debug_client;
 mod cli_runtime_client;
 
 const CLI_DEBUG_CLIENT: &dyn DebugClient = &CLIDebugClient {};
-const CLI_RUNTIME_CLIENT: &dyn RuntimeClient = &CLIRuntimeClient {};
 
 // We'll put our errors in an `errors` module, and other modules in
 // this crate will `use errors::*;` to get access to everything
@@ -76,7 +74,7 @@ fn run() -> Result<()> {
     let provider = MetaProvider {};
 
     // Load this runtime's library of native (statically linked) implementations
-    loader.add_lib(&provider, runtime::manifest::create_runtime(Arc::new(Mutex::new(CLI_RUNTIME_CLIENT))), "runtime")
+    loader.add_lib(&provider, runtime::manifest::create_runtime(Arc::new(Mutex::new(CLIRuntimeClient {}))), "runtime")
         .chain_err(|| "Could not add 'runtime' library to loader")?;
 
     // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
