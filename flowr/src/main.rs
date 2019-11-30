@@ -111,13 +111,18 @@ fn run() -> Result<()> {
     If debugger=true, then default to 0 threads, unless overridden by an argument
 */
 fn num_threads(matches: &ArgMatches, debugger: bool) -> usize {
+    if debugger {
+        info!("Due to debugger option being set, number of threads has been forced to 1");
+        return 1;
+    }
+
     match matches.value_of("threads") {
         Some(value) => {
             match value.parse::<i32>() {
                 Ok(mut threads) => {
-                    if threads < 0 {
-                        error!("Minimum number of additional threads is '0', so option of has been overridded to be '0'");
-                        threads = 0;
+                    if threads < 1 {
+                        error!("Minimum number of additional threads is '1', so option of has been overridded to be '1'");
+                        threads = 1;
                     }
                     threads as usize
                 }
@@ -127,14 +132,7 @@ fn num_threads(matches: &ArgMatches, debugger: bool) -> usize {
                 }
             }
         }
-        None => {
-            if debugger {
-                info!("Due to debugger option being set, number of threads has defaulted to 0");
-                0
-            } else {
-                num_cpus::get()
-            }
-        }
+        None => num_cpus::get()
     }
 }
 
@@ -142,106 +140,106 @@ fn num_threads(matches: &ArgMatches, debugger: bool) -> usize {
     Determine the number of parallel jobs to be run in parallel based on a default of 2 times
     the number of cores in the device, or any override from the command line.
 */
-fn num_parallel_jobs(matches: &ArgMatches, debugger: bool) -> usize {
-    match matches.value_of("jobs") {
-        Some(value) => {
-            match value.parse::<i32>() {
-                Ok(mut jobs) => {
-                    if jobs < 1 {
-                        error!("Minimum number of parallel jobs is '0', so option of '{}' has been overridded to be '1'",
-                               jobs);
-                        jobs = 1;
-                    }
-                    jobs as usize
-                }
-                Err(_) => {
-                    error!("Error parsing the value for number of parallel jobs '{}'", value);
-                    2 * num_cpus::get()
-                }
-            }
-        }
-        None => {
-            if debugger {
-                info!("Due to debugger option being set, max number of parallel jobs has defaulted to 1");
-                1
-            } else {
-                2 * num_cpus::get()
-            }
-        }
-    }
+fn num_parallel_jobs(matches: & ArgMatches, debugger: bool) -> usize {
+match matches.value_of("jobs") {
+Some(value) => {
+match value.parse::< i32 > () {
+Ok( mut jobs) => {
+if jobs < 1 {
+error ! ("Minimum number of parallel jobs is '0', so option of '{}' has been overridded to be '1'",
+jobs);
+jobs = 1;
+}
+jobs as usize
+}
+Err(_) => {
+error ! ("Error parsing the value for number of parallel jobs '{}'", value);
+2 * num_cpus::get()
+}
+}
+}
+None => {
+if debugger {
+info ! ("Due to debugger option being set, max number of parallel jobs has defaulted to 1");
+1
+} else {
+2 * num_cpus::get()
+}
+}
+}
 }
 
 /*
     Parse the command line arguments using clap
 */
-fn get_matches<'a>() -> ArgMatches<'a> {
-    let app = App::new(env!("CARGO_PKG_NAME"))
-        .setting(AppSettings::TrailingVarArg)
-        .version(env!("CARGO_PKG_VERSION"));
+fn get_matches < 'a > () -> ArgMatches <'a > {
+let app = App::new(env ! ("CARGO_PKG_NAME"))
+.setting(AppSettings::TrailingVarArg)
+.version(env ! ("CARGO_PKG_VERSION"));
 
-    let app = app.arg(Arg::with_name("flow-manifest")
-        .help("the name of the 'flow' manifest file")
-        .required(true)
-        .index(1))
-        .arg(Arg::with_name("debugger")
-            .short("d")
-            .long("debugger")
-            .help("Enable the debugger when running a flow"))
-        .arg(Arg::with_name("metrics")
-            .short("m")
-            .long("metrics")
-            .help("Calculate metrics during flow execution and print them out when done"))
-        .arg(Arg::with_name("jobs")
-            .short("j")
-            .long("jobs")
-            .takes_value(true)
-            .value_name("MAX_JOBS")
-            .help("Set maximum number of jobs that can be running in parallel)"))
-        .arg(Arg::with_name("threads")
-            .short("t")
-            .long("threads")
-            .takes_value(true)
-            .value_name("THREADS")
-            .help("Set number of threads to use to execute jobs (min: 1, default: cores available)"))
-        .arg(Arg::with_name("verbosity")
-            .short("v")
-            .long("verbosity")
-            .takes_value(true)
-            .value_name("VERBOSITY_LEVEL")
-            .help("Set verbosity level for output (trace, debug, info, warn, error (default))"))
-        .arg(Arg::with_name("flow-arguments")
-            .multiple(true)
-            .help("A list of arguments to pass to the flow when executed. Preceed this list with a '-'"));
+let app = app.arg(Arg::with_name("flow-manifest")
+.help("the name of the 'flow' manifest file")
+.required(true)
+.index(1))
+.arg(Arg::with_name("debugger")
+.short("d")
+.long("debugger")
+.help("Enable the debugger when running a flow"))
+.arg(Arg::with_name("metrics")
+.short("m")
+.long("metrics")
+.help("Calculate metrics during flow execution and print them out when done"))
+.arg(Arg::with_name("jobs")
+.short("j")
+.long("jobs")
+.takes_value(true)
+.value_name("MAX_JOBS")
+.help("Set maximum number of jobs that can be running in parallel)"))
+.arg(Arg::with_name("threads")
+.short("t")
+.long("threads")
+.takes_value(true)
+.value_name("THREADS")
+.help("Set number of threads to use to execute jobs (min: 1, default: cores available)"))
+.arg(Arg::with_name("verbosity")
+.short("v")
+.long("verbosity")
+.takes_value(true)
+.value_name("VERBOSITY_LEVEL")
+.help("Set verbosity level for output (trace, debug, info, warn, error (default))"))
+.arg(Arg::with_name("flow-arguments")
+.multiple(true)
+.help("A list of arguments to pass to the flow when executed. Preceed this list with a '-'"));
 
-    #[cfg(feature = "native")]
-        let app = app.arg(Arg::with_name("native")
-        .short("n")
-        .long("native")
-        .help("Use native libraries when possible"));
+# [cfg(feature = "native")]
+let app = app.arg(Arg::with_name("native")
+.short("n")
+.long("native")
+.help("Use native libraries when possible"));
 
-    app.get_matches()
+app.get_matches()
 }
 
 /*
     Parse the command line arguments passed onto the flow itself
 */
-fn parse_args(matches: &ArgMatches) -> Result<Url> {
-    // Set anvironment variable with the args
-    // this will not be unique, but it will be used very soon and removed
-    if let Some(flow_args) = matches.values_of("flow-arguments") {
-        let mut args: Vec<&str> = flow_args.collect();
-        // arg #0 is the flow/package name
-        // TODO fix this to be the name of the flow, not 'flowr'
-        args.insert(0, env!("CARGO_PKG_NAME"));
-        env::set_var(FLOW_ARGS_NAME, args.join(" "));
-        debug!("Setup '{}' with values = '{:?}'", FLOW_ARGS_NAME, args);
-    }
+fn parse_args(matches: & ArgMatches) -> Result< Url > {
+// Set anvironment variable with the args
+// this will not be unique, but it will be used very soon and removed
+if let Some(flow_args) = matches.values_of("flow-arguments") {
+let mut args: Vec < & str > = flow_args.collect();
+// arg #0 is the flow/package name
+// TODO fix this to be the name of the flow, not 'flowr'
+args.insert(0, env ! ("CARGO_PKG_NAME"));
+env::set_var(FLOW_ARGS_NAME, args.join(" "));
+debug ! ("Setup '{}' with values = '{:?}'", FLOW_ARGS_NAME, args);
+}
 
-    SimpleLogger::init(matches.value_of("verbosity"));
+SimpleLogger::init(matches.value_of("verbosity"));
 
-    info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    info!("'flowrlib' version {}\n", info::version());
+info ! ("'{}' version {}", env ! ("CARGO_PKG_NAME"), env ! ("CARGO_PKG_VERSION"));
+info ! ("'flowrlib' version {}\n", info::version());
 
-    url_from_string(matches.value_of("flow-manifest"))
-        .chain_err(|| "Unable to parse the URL of the manifest of the flow to run")
+url_from_string(matches.value_of("flow-manifest"))
+.chain_err( | | "Unable to parse the URL of the manifest of the flow to run")
 }
