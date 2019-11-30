@@ -17,8 +17,7 @@
       "implementation_location": "lib://runtime/stdio/stdout/Stdout",
       "inputs": [
         {}
-      ],
-      "impure": true
+      ]
     },
     {
       "name": "message",
