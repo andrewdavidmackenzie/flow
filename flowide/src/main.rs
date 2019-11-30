@@ -6,9 +6,10 @@ use std::env::args;
 use std::sync::{Arc, Mutex};
 
 use flowrlib::coordinator::{Coordinator, Submission};
+use flowrlib::lib_manifest::LibraryManifest;
 use flowrlib::loader::Loader;
 use flowrlib::manifest::Manifest;
-use flowrlib::provider::Provider as Prov;
+use flowrlib::provider::Provider;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::*;
 use glib;
@@ -29,8 +30,10 @@ use flowclib::model::process::Process::FlowProcess;
 use ide_runtime_client::IDERuntimeClient;
 use runtime::runtime_client::RuntimeClient;
 use runtime_context::RuntimeContext;
+use ui_context::UIContext;
 
 mod runtime_context;
+mod ui_context;
 mod ide_runtime_client;
 
 /// upgrade weak reference or return
@@ -78,7 +81,37 @@ fn run_flow() {
     println!("Run");
 }
 
-fn file_open_action(window: &ApplicationWindow, open: &MenuItem) {
+fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, runtime_manifest: LibraryManifest) -> Result<String, String> {
+    // Load this runtime's library of native (statically linked) implementations
+    loader.add_lib(provider, runtime_manifest, "runtime").map_err(|e| e.to_string())?;
+
+    // Load the native flowstdlib - before it maybe loaded from WASM
+    loader.add_lib(provider, flowstdlib::get_manifest(), "flowstdlib").map_err(|e| e.to_string())?;
+
+    Ok("Added the 'runtime' and 'flowstdlibs'".to_string())
+}
+
+fn load_from_uri(uri: &str, runtime_client: Arc<Mutex<dyn RuntimeClient>>, ui_context: UIContext) -> Result<String, String> {
+    let mut loader = Loader::new();
+    let provider = MetaProvider {};
+    let runtime_manifest = runtime::manifest::create_runtime(runtime_client);
+
+    load_libs(&mut loader, &provider, runtime_manifest).map_err(|e| e.to_string())?;
+
+    let manifest = loader.load_manifest(&provider, uri)
+        .map_err(|e| format!("Could not load the manifest: '{}'", e.to_string()))?;
+
+    set_manifest_contents(&manifest, ui_context).unwrap(); // TODO
+
+    let submission = Submission::new(manifest, 1, false, None);
+    run_submission(submission);
+
+    Ok(format!("Loaded Manifest from URI: {}", uri))
+}
+
+fn file_open_action(window: &ApplicationWindow, open: &MenuItem,
+                    runtime_client: Arc<Mutex<IDERuntimeClient>>,
+                    ui_context: UIContext) {
     let accepted_extensions = deserializer_helper::get_accepted_extensions();
 
     let window_weak = window.downgrade();
@@ -102,12 +135,16 @@ fn file_open_action(window: &ApplicationWindow, open: &MenuItem) {
         dialog.destroy();
 
         if let Some(uri) = uris.get(0) {
-            println!("Uri: {:?}", uri.to_string());
+            load_from_uri(&uri.to_string(),
+                          runtime_client.clone() as Arc<Mutex<dyn RuntimeClient>>,
+                          ui_context.clone()).unwrap(); // TODO
         }
     });
 }
 
-fn menu_bar(window: &ApplicationWindow) -> MenuBar {
+fn menu_bar(window: &ApplicationWindow,
+            runtime_client: Arc<Mutex<IDERuntimeClient>>,
+            ui_context: UIContext) -> MenuBar {
     let menu = Menu::new();
     let accel_group = AccelGroup::new();
     window.add_accel_group(&accel_group);
@@ -126,7 +163,7 @@ fn menu_bar(window: &ApplicationWindow) -> MenuBar {
     file.set_submenu(Some(&menu));
     menu_bar.append(&file);
 
-    file_open_action(window, &open);
+    file_open_action(window, &open, runtime_client, ui_context);
     run.connect_activate(|_| run_flow()); // run the flow from run menu item
 
     let other_menu = Menu::new();
@@ -185,7 +222,16 @@ fn stdio(buffer: &TextBuffer) -> ScrolledWindow {
     scroll
 }
 
-fn main_window(runtime_context: &RuntimeContext) -> Box {
+fn manifest_viewer(buffer: &TextBuffer) -> ScrolledWindow {
+    let scroll = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
+    let view = gtk::TextView::new();
+    view.set_buffer(Some(buffer));
+    view.set_editable(false);
+    scroll.add(&view);
+    scroll
+}
+
+fn main_window(runtime_context: &RuntimeContext, ui_context: &UIContext) -> Box {
     let main = gtk::Box::new(gtk::Orientation::Vertical, 10);
     main.set_border_width(6);
     main.set_vexpand(true);
@@ -194,7 +240,9 @@ fn main_window(runtime_context: &RuntimeContext) -> Box {
     let args_view = args_view(&runtime_context.args);
     let stdout_view = stdio(&runtime_context.stdout);
     let stderr_view = stdio(&runtime_context.stderr);
+    let manifest_view = manifest_viewer(&ui_context.manifest);
 
+    main.pack_start(&manifest_view, true, true, 0);
     main.pack_start(&args_view, true, true, 0);
     main.pack_start(&stdout_view, true, true, 0);
     main.pack_start(&stderr_view, true, true, 0);
@@ -202,8 +250,10 @@ fn main_window(runtime_context: &RuntimeContext) -> Box {
     main
 }
 
-fn build_ui(application: &gtk::Application, runtime_context: RuntimeContext) {
-    let main_window = main_window(&runtime_context);
+fn build_ui(application: &gtk::Application, runtime_context: &RuntimeContext,
+            ide_runtime_client: Arc<Mutex<IDERuntimeClient>>) {
+    let ui_context = UIContext::new();
+    let main_window = main_window(&runtime_context, &ui_context);
 
     let app_window = ApplicationWindow::new(application);
 
@@ -212,7 +262,7 @@ fn build_ui(application: &gtk::Application, runtime_context: RuntimeContext) {
     app_window.set_size_request(400, 400);
 
     let v_box = gtk::Box::new(gtk::Orientation::Vertical, 10);
-    v_box.pack_start(&menu_bar(&app_window), false, false, 0);
+    v_box.pack_start(&menu_bar(&app_window, ide_runtime_client, ui_context), false, false, 0);
     v_box.pack_start(&main_window, true, true, 0);
 
     app_window.add(&v_box);
@@ -220,35 +270,13 @@ fn build_ui(application: &gtk::Application, runtime_context: RuntimeContext) {
     app_window.show_all();
 }
 
-fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Prov, client: Arc<Mutex<dyn RuntimeClient>>) -> Result<(), String> {
-    let runtime_manifest = runtime::manifest::create_runtime(client);
+fn set_manifest_contents(manifest: &Manifest, ui_context: UIContext) -> Result<(), String> {
+    let manifest_content = serde_json::to_string_pretty(&manifest)
+        .map_err(|e| e.to_string())?;
 
-    // Load this runtime's library of native (statically linked) implementations
-    loader.add_lib(provider, runtime_manifest, "runtime").map_err(|e| e.to_string())?;
-
-    // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
-    loader.add_lib(provider, flowstdlib::get_manifest(), "flowstdlib").map_err(|e| e.to_string())?;
+    ui_context.manifest.set_text(&manifest_content);
 
     Ok(())
-}
-
-/// Load a `Manifest` from `url` using `provider`
-pub fn load_manifest(loader: &mut Loader, provider: &dyn Prov, url: &str) -> Result<Manifest, String> {
-    let mut manifest = loader.load_manifest(provider, url)
-        .map_err(|e| format!("Could not load the manifest: '{}'", e.to_string()))?;
-
-    // This doesn't do anything currently - leaving here for the future
-    // as when this loads libraries from manifest, previous manual adding of
-    // libs will not be needed
-    loader.load_libraries(provider, &manifest)
-        .map_err(|e| format!("Could not load libraries: '{}'", e.to_string()))?;
-
-    info!("resolving implementations");
-    // Find the implementations for all functions in this flow
-    loader.resolve_implementations(&mut manifest, provider, "fake manifest_url")
-        .map_err(|e| format!("Could not resolve implementations of loaded functions: '{}'", e.to_string()))?;
-
-    Ok(manifest)
 }
 
 /*
@@ -263,7 +291,7 @@ fn compile(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manif
         .map_err(|e| format!("Could create flow manifest: '{}'", e.to_string()))
 }
 
-fn load_flow(provider: &dyn Prov, url: &str) -> Result<Flow, String> {
+fn load_flow(provider: &dyn Provider, url: &str) -> Result<Flow, String> {
     match loader::load_context(url, provider)
         .map_err(|e| format!("Could not load flow context: '{}'", e.to_string()))? {
         FlowProcess(flow) => Ok(flow),
@@ -279,35 +307,29 @@ fn set_panic_hook() {
 }
 
 fn run_submission(submission: Submission) {
-    let mut coordinator = Coordinator::new(0);
+    let mut coordinator = Coordinator::new(1);
 
     info!("Submitting flow for execution");
     coordinator.submit(submission);
 }
 
 fn main() -> Result<(), String> {
-    let mut loader = Loader::new();
-    let provider = MetaProvider {};
-
     let (command_sender, command_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 
-    let ide_runtime_client = Arc::new(Mutex::new(IDERuntimeClient::new(command_sender)));
-
-    load_libs(&mut loader, &provider, ide_runtime_client.clone()).map_err(|e| e.to_string())?;
+    let ide_runtime_client_arc = Arc::new(Mutex::new(IDERuntimeClient::new(command_sender)));
 
     let application = Application::new(Some("net.mackenzie-serres.flow.ide"), Default::default())
         .expect("failed to initialize GTK application");
 
     let runtime_context = RuntimeContext::new();
-
-    let runtime_clone = runtime_context.clone();
-
+    let context_clone = runtime_context.clone();
+    let client_clone = ide_runtime_client_arc.clone();
     application.connect_activate(move |app|
-        build_ui(app, runtime_context.clone())
+        build_ui(app, &context_clone, client_clone.clone())
     );
 
-    // setup
-    //    set_panic_hook();
+    set_panic_hook();
+
 //    let log_level_arg = get_log_level(&document);
 //    init_logging(log_level_arg);
 
@@ -319,21 +341,12 @@ fn main() -> Result<(), String> {
     // compile to manifest
 //    manifest = compile(&flow, true, "/Users/andrew/workflow/flow")
 //        .map_err(|e| JsValue::from_str(&e.to_string()))?;
-//    let manifest_content = serde_json::to_string_pretty(&manifest)
-//        .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     // or load a manifest from file
-//    manifest = load_manifest(&provider, "file://")
-//        .map_err(|e| JsValue::from_str(&e.to_string()))?;
-//    set_manifest_contents(&document, &manifest_content); SHOW in a widget
-
-    // run
-    // let submission = Submission::new(manifest, 1, false, None);
-    // run_submission(submission);
 
     // Attach the receiver to the default main context (None) and on every message process the command
     command_receiver.attach(None, move |command| {
-        ide_runtime_client.lock().unwrap().process_command(command, &runtime_clone);
+        ide_runtime_client_arc.lock().unwrap().process_command(command, &runtime_context.clone());
 
         // Returning false here would close the receiver and have senders fail
         glib::Continue(true)
