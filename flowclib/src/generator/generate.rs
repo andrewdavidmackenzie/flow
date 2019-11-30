@@ -2,11 +2,12 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 
 use error_chain::bail;
+use log::info;
+use serde_derive::Serialize;
+
 use flowrlib::function::Function as RuntimeFunction;
 use flowrlib::input::Input;
 use flowrlib::manifest::{Manifest, MetaData};
-use log::info;
-use serde_derive::Serialize;
 
 use crate::errors::*;
 use crate::model::connection::Connection;
@@ -113,7 +114,6 @@ fn function_to_runtimefunction(out_dir: &str, function: &Box<Function>, debug_sy
     Ok(RuntimeFunction::new(name,
                             route,
                             implementation_location,
-                            function.is_impure(),
                             runtime_inputs,
                             function.get_id(),
                             function.get_output_routes()))
@@ -143,9 +143,10 @@ fn implementation_location_relative(function: &Function, out_dir: &str) -> Resul
 
 #[cfg(test)]
 mod test {
+    use serde_json::json;
+
     use flowrlib::input::{ConstantInputInitializer, InputInitializer};
     use flowrlib::input::OneTimeInputInitializer;
-    use serde_json::json;
 
     use crate::model::function::Function;
     use crate::model::io::IO;
@@ -222,42 +223,6 @@ mod test {
       0
     ]
   ]
-}";
-
-        let br = Box::new(function) as Box<Function>;
-
-        let process = function_to_runtimefunction("/test", &br, false).unwrap();
-
-        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
-        assert_eq!(serialized_process, expected.replace("'", "\""));
-    }
-
-    #[test]
-    fn impure_function_generation() {
-        let function = Function::new(
-            Name::from("Stdout"),
-            true,
-            Some("lib://runtime/stdio/stdout".to_string()),
-            Name::from("print"),
-            Some(vec!()),
-            Some(vec!(IO::new("String", &Route::default()))),
-            "file:///fake/file",
-            Route::from("/flow0/stdout"),
-            None,
-            vec!(("".to_string(), 1, 0)),
-            0);
-
-        let expected = "{
-  'id': 0,
-  'implementation_location': 'lib://runtime/stdio/stdout',
-  'output_routes': [
-    [
-      '',
-      1,
-      0
-    ]
-  ],
-  'impure': true
 }";
 
         let br = Box::new(function) as Box<Function>;

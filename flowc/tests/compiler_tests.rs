@@ -1,10 +1,11 @@
 use std::env;
 
+use url::Url;
+
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowclib::model::process::Process::FlowProcess;
 use provider::content::provider::MetaProvider;
-use url::Url;
 
 /// flowclib integration tests
 ///
@@ -15,7 +16,7 @@ use url::Url;
 /// io to read them, which cannot be compiled to wasm, as no such concept (as stdio) exists in a
 /// generic wasm execution environment.
 ///
-/// They could be written as pure code (not reading files) and hence in flowclib, but that's quite
+/// They could be written as code (not reading files) and hence in flowclib, but that's quite
 /// a lot of work to construct each flow in code, and so for now I've taken the easy route to write
 /// some test flow toml files and just compile those. Plus that also stresses the deserialization
 /// and parsing.

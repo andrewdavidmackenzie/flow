@@ -3,13 +3,14 @@ use std::io::{self, Read};
 use std::sync::Arc;
 
 use flow_impl::{DONT_RUN_AGAIN, Implementation, RunAgain};
+use serde_json::Value;
+use url::Url;
+
 use flowrlib::function::Function;
 use flowrlib::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowrlib::loader::Loader;
 use flowrlib::manifest::{Manifest, MetaData};
 use provider::content::provider::MetaProvider;
-use serde_json::Value;
-use url::Url;
 
 /// flowrlib integration tests
 ///
@@ -20,7 +21,7 @@ use url::Url;
 /// io to read them, which cannot be compiled to wasm, as no such concept (as stdio) exists in a
 /// generic wasm execution environment.
 ///
-/// They could be written as pure code (not reading files) and hence in flowclib, but that's quite
+/// They could be written as code (not reading files) and hence in flowclib, but that's quite
 /// a lot of work to construct each flow in code, and so for now I've taken the easy route to write
 /// some test flow toml files and just compile those. Plus that also stresses the deserialization
 /// and parsing.
@@ -107,7 +108,6 @@ fn resolve_lib_implementation_test() {
     let f_a = Function::new("fA".to_string(), // name
                             "/context/fA".to_string(),
                             "lib://runtime/stdio/stdin/Stdin".to_string(),
-                            false,
                             vec!(),
                             0,
                             &vec!());
@@ -128,7 +128,6 @@ fn unresolved_lib_functions_test() {
     let f_a = Function::new("fA".to_string(), // name
                             "/context/fA".to_string(),
                             "lib://runtime/stdio/stdin/Foo".to_string(),
-                            false,
                             vec!(),
                             0,
                             &vec!());

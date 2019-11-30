@@ -27,12 +27,6 @@ pub fn get_and_execute_job(job_rx: &Arc<Mutex<Receiver<Job>>>,
     execute(job, output_tx)
 }
 
-pub fn get_and_execute_pure_job(pure_job_rx: &Receiver<Job>,
-                                output_tx: &Sender<Output>) -> Result<()> {
-    let job = pure_job_rx.try_recv().chain_err(|| "Error while receiving pure job for execution")?;
-    execute(job, output_tx)
-}
-
 fn create_executor(name: String, job_rx: Arc<Mutex<Receiver<Job>>>, output_tx: Sender<Output>) {
     let builder = thread::Builder::new().name(name);
     let _ = builder.spawn(move || {
