@@ -10,17 +10,17 @@ use std::process::exit;
 use std::sync::{Arc, Mutex};
 
 use clap::{App, AppSettings, Arg, ArgMatches};
-use flowrlib::coordinator::{Coordinator, Submission};
-use flowrlib::debug_client::DebugClient;
-use flowrlib::info;
-use flowrlib::loader::Loader;
 use log::{debug, error, info};
-use provider::args::url_from_string;
-use provider::content::provider::MetaProvider;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
 use error_chain::error_chain;
+use flowrlib::coordinator::{Coordinator, Submission};
+use flowrlib::debug_client::DebugClient;
+use flowrlib::info;
+use flowrlib::loader::Loader;
+use provider::args::url_from_string;
+use provider::content::provider::MetaProvider;
 
 use crate::cli_debug_client::CLIDebugClient;
 use crate::cli_runtime_client::CLIRuntimeClient;
@@ -202,7 +202,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .long("threads")
             .takes_value(true)
             .value_name("THREADS")
-            .help("Set number of threads to use to execute jobs)"))
+            .help("Set number of threads to use to execute jobs (min: 1, default: cores available)"))
         .arg(Arg::with_name("verbosity")
             .short("v")
             .long("verbosity")
