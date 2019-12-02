@@ -24,7 +24,7 @@ pub struct MetaData {
     pub author_email: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 /// A `flows` `Manifest` describes it and describes all the `Functions` it uses as well as
 /// a list of references to libraries.
 pub struct Manifest {

@@ -10,7 +10,7 @@ use serde_json::Value;
 
 use crate::input::Input;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 /// `Function` contains all the information needed about a fubction and its implementation
 /// to be able to execute a flow using it.
 pub struct Function {

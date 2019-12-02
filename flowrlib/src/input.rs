@@ -32,7 +32,7 @@ pub struct ConstantInputInitializer {
     pub constant: Value,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 /// An `Input` to a `Function`.
 pub struct Input {
     #[serde(default = "default_depth", skip_serializing_if = "is_default_depth")]
