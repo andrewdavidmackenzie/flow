@@ -1,26 +1,24 @@
-use gtk::TextBuffer;
+use glib;
 
 use flowrlib::manifest::Manifest;
+use runtime::runtime_client::Command;
 
-/// `UIContext` Holds items from the UI that are needed during runnings of a flow. But that will
-/// only be written to by the UI, on the UI Thread
-#[derive(Clone)]
+use crate::ide_runtime_client::IDERuntimeClient;
+
 pub struct UIContext {
-    pub flow: TextBuffer,
-    pub manifest_buffer: TextBuffer,
-    pub manifest: Option<Manifest>
-    // TODO Log level elector
-    // TODO log output with a new logger
-    // TODO stdin
-    // TODO flow lib path
+    command_receiver: glib::Receiver<Command>,
+    runtime_client: IDERuntimeClient,
+    pub manifest: Option<Manifest>,
 }
 
 impl UIContext {
     pub fn new() -> Self {
+        let (command_sender, command_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+
         UIContext {
-            flow: TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE),
-            manifest_buffer: TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE),
-            manifest: None
+            command_receiver,
+            runtime_client: IDERuntimeClient::new(command_sender),
+            manifest: None,
         }
     }
 }

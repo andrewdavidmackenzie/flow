@@ -20,6 +20,7 @@ gdk-pixbuf = "=0.7.0"
 glib = "0.8.2"
 log = "0.4.6"
 gtk-fnonce-on-eventloop = {git = "https://github.com/andrewdavidmackenzie/gtk-rs-state" }
+lazy_static = "*"
 
 [dependencies.gtk]
 version = "0.7.0"

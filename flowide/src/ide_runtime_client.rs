@@ -3,12 +3,9 @@ use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Receiver, Sender};
 
-use glib;
-use gtk::TextBufferExt;
-
 use runtime::runtime_client::{Command, Response, RuntimeClient};
 
-use crate::runtime_context::RuntimeContext;
+use crate::widgets::WidgetRefs;
 
 pub struct IDERuntimeClient {
     command_sender: Arc<Mutex<glib::Sender<Command>>>,
@@ -45,28 +42,29 @@ impl IDERuntimeClient {
     /*
         This function should run on the UI thread as it needs to interact with UI Widgets
     */
-    pub fn process_command(&self, command: Command, runtime_context: &RuntimeContext) {
+    pub fn process_command(&self, command: Command, _widgets: &WidgetRefs) {
         let response = match command {
-            Command::Stdout(contents) => {
-                runtime_context.stdout.insert_at_cursor(&contents);
+            Command::Stdout(_contents) => {
+//                runtime_context.stdout.insert_at_cursor(&contents);
                 Response::Ack
             }
-            Command::Stderr(contents) => {
-                runtime_context.stderr.insert_at_cursor(&contents);
+            Command::Stderr(_contents) => {
+//                runtime_context.stderr.insert_at_cursor(&contents);
                 Response::Ack
             }
             Command::Stdin => {
-                Response::Stdin("bla bla".to_string()) // TODO
-//                Response::Error("Could not read Stdin".into())
+//                Response::Stdin("bla bla".to_string()) // TODO
+                Response::Error("Could not read Stdin".into())
             }
             Command::Readline => {
                 Response::Stdin("bla bla".to_string())  // TODO
             }
             Command::Args => {
-                let (start, end) = runtime_context.args.get_bounds();
-                let arg_string = runtime_context.args.get_text(&start, &end, false).unwrap().to_string();
-                let args: Vec<String> = arg_string.split(' ').map(|s| s.to_string()).collect();
-                Response::Args(args)
+//                let (start, end) = runtime_context.args.get_bounds();
+//                let arg_string = runtime_context.args.get_text(&start, &end, false).unwrap().to_string();
+//                let args: Vec<String> = arg_string.split(' ').map(|s| s.to_string()).collect();
+//                Response::Args(args)
+                Response::Args(vec!("yes".to_string()))
             }
             Command::Write(filename, bytes) => {
                 let mut file = File::create(filename).unwrap();
