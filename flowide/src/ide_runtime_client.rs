@@ -1,55 +1,30 @@
 use std::fs::File;
 use std::io::prelude::*;
-use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{channel, Receiver, Sender};
+
+use gtk::TextBufferExt;
 
 use runtime::runtime_client::{Command, Response, RuntimeClient};
 
-use crate::widgets::WidgetRefs;
+use crate::widgets;
 
-pub struct IDERuntimeClient {
-    command_sender: Arc<Mutex<glib::Sender<Command>>>,
-    response_sender: Arc<Mutex<Sender<Response>>>,
-    response_receiver: Arc<Mutex<Receiver<Response>>>
-}
+pub struct IDERuntimeClient;
 
 impl RuntimeClient for IDERuntimeClient {
     fn init(&self) {}
 
     // This function is called by the runtime_function to send a commanmd to the runtime_client
     fn send_command(&self, command: Command) -> Response {
-        self.command_sender.lock().unwrap().send(command).unwrap(); // TODO Result return type
-
-        // wait for response back on the channel from the UI thread and return it to the runtime_function
-        self.response_receiver.lock().unwrap().recv().unwrap() // TODO
-    }
-}
-
-/*
-    This processes a command, interacts with the UI Widgets needed and then returns a response
-*/
-impl IDERuntimeClient {
-    pub fn new(command_sender: glib::Sender<Command>) -> Self {
-        let (response_sender, response_receiver) = channel();
-
-        IDERuntimeClient {
-            command_sender: Arc::new(Mutex::new(command_sender)),
-            response_sender: Arc::new(Mutex::new(response_sender)),
-            response_receiver: Arc::new(Mutex::new(response_receiver)),
-        }
-    }
-
-    /*
-        This function should run on the UI thread as it needs to interact with UI Widgets
-    */
-    pub fn process_command(&self, command: Command, _widgets: &WidgetRefs) {
-        let response = match command {
-            Command::Stdout(_contents) => {
-//                runtime_context.stdout.insert_at_cursor(&contents);
+        match command {
+            Command::Stdout(contents) => {
+                widgets::do_in_gtk_eventloop(|refs| {
+                    refs.stdout().insert_at_cursor(&contents);
+                });
                 Response::Ack
             }
-            Command::Stderr(_contents) => {
-//                runtime_context.stderr.insert_at_cursor(&contents);
+            Command::Stderr(contents) => {
+                widgets::do_in_gtk_eventloop(|refs| {
+                    refs.stderr().insert_at_cursor(&contents);
+                });
                 Response::Ack
             }
             Command::Stdin => {
@@ -71,9 +46,6 @@ impl IDERuntimeClient {
                 file.write(bytes.as_slice()).unwrap();
                 Response::Ack
             }
-        };
-
-        // send response back on the channel to original thread
-        self.response_sender.lock().unwrap().send(response).unwrap(); // TODO
+        }
     }
 }

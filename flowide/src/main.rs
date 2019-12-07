@@ -8,31 +8,21 @@ use gdk_pixbuf::Pixbuf;
 use gio::prelude::*;
 use gtk::{
     AboutDialog, AccelFlags, AccelGroup, Application, ApplicationWindow, Button, FileChooserAction, FileChooserDialog,
-    FileFilter, Menu, MenuBar, MenuItem, ResponseType, ScrolledWindow, TextBuffer, TextView, WidgetExt, WindowPosition,
+    FileFilter, Menu, MenuBar, MenuItem, ResponseType, ScrolledWindow, TextBuffer, TextBufferExt, TextView, WidgetExt, WindowPosition,
 };
 use gtk::prelude::*;
 use gtk_fnonce_on_eventloop::gtk_refs;
-use log::info;
 
-use flowclib::compiler::compile;
-use flowclib::compiler::loader;
 use flowclib::deserializers::deserializer_helper;
-use flowclib::generator::generate;
-use flowclib::model::flow::Flow;
-use flowclib::model::process::Process::FlowProcess;
 use flowrlib::coordinator::{Coordinator, Submission};
-use flowrlib::lib_manifest::LibraryManifest;
-use flowrlib::loader::Loader;
 use flowrlib::manifest::Manifest;
-use flowrlib::provider::Provider;
 use ide_runtime_client::IDERuntimeClient;
 use lazy_static::lazy_static;
-use provider::content::provider::MetaProvider;
-use runtime::runtime_client::RuntimeClient;
 use ui_context::UIContext;
 
 mod ide_runtime_client;
 mod ui_context;
+mod actions;
 
 lazy_static! {
     static ref UICONTEXT: Arc<Mutex<UIContext>> = Arc::new(Mutex::new(UIContext::new()));
@@ -91,39 +81,9 @@ fn about_dialog() -> AboutDialog {
     p
 }
 
-fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, runtime_manifest: LibraryManifest) -> Result<String, String> {
-    // Load this runtime's library of native (statically linked) implementations
-    loader.add_lib(provider, runtime_manifest, "runtime").map_err(|e| e.to_string())?;
-
-    // Load the native flowstdlib - before it maybe loaded from WASM
-    loader.add_lib(provider, flowstdlib::get_manifest(), "flowstdlib").map_err(|e| e.to_string())?;
-
-    Ok("Added the 'runtime' and 'flowstdlibs'".to_string())
-}
-
-
-fn set_manifest_contents(manifest: &Manifest) -> Result<(), String> {
+fn set_manifest_contents(manifest: Manifest) -> Result<(), String> {
     let manifest_content = serde_json::to_string_pretty(&manifest)
         .map_err(|e| e.to_string())?;
-
-    widgets::do_in_gtk_eventloop(|refs|
-        refs.manifest_buffer().set_text(&manifest_content)
-    );
-
-    Ok(())
-}
-
-fn load_from_uri(uri: &str, runtime_client: Arc<Mutex<dyn RuntimeClient>>) -> Result<String, String> {
-    let mut loader = Loader::new();
-    let provider = MetaProvider {};
-    let runtime_manifest = runtime::manifest::create_runtime(runtime_client);
-
-    load_libs(&mut loader, &provider, runtime_manifest).map_err(|e| e.to_string())?;
-
-    let manifest = loader.load_manifest(&provider, uri)
-        .map_err(|e| format!("Could not load the manifest: '{}'", e.to_string()))?;
-
-    set_manifest_contents(&manifest)?;
 
     match UICONTEXT.lock() {
         Ok(mut context) => {
@@ -133,11 +93,14 @@ fn load_from_uri(uri: &str, runtime_client: Arc<Mutex<dyn RuntimeClient>>) -> Re
         Err(_) => {}
     }
 
-    Ok("Manifest loaded successfully".to_string())
+    widgets::do_in_gtk_eventloop(|refs|
+        refs.manifest_buffer().set_text(&manifest_content)
+    );
+
+    Ok(())
 }
 
-fn file_open_action(window: &ApplicationWindow, open: &MenuItem,
-                    runtime_client: Arc<Mutex<IDERuntimeClient>>) {
+fn file_open_action(window: &ApplicationWindow, open: &MenuItem) {
     let accepted_extensions = deserializer_helper::get_accepted_extensions();
 
     let window_weak = window.downgrade();
@@ -161,8 +124,11 @@ fn file_open_action(window: &ApplicationWindow, open: &MenuItem,
         dialog.destroy();
 
         if let Some(uri) = uris.get(0) {
-            load_from_uri(&uri.to_string(),
-                          runtime_client.clone() as Arc<Mutex<dyn RuntimeClient>>).unwrap(); // TODO
+            let runtime_client = Arc::new(Mutex::new(IDERuntimeClient));
+            let manifest = actions::load_from_uri(&uri.to_string(), runtime_client)
+                .unwrap(); // TODO
+
+            set_manifest_contents(manifest).unwrap(); // TODO
         }
     });
 }
@@ -185,7 +151,7 @@ fn run_manifest() -> Result<String, String> {
 }
 
 // run the loaded manifest from run menu item
-fn run_open_action(run: &MenuItem) {
+fn run_action(run: &MenuItem) {
     run.connect_activate(move |_| {
         let _ = run_manifest().unwrap(); // TODO
     });
@@ -210,9 +176,9 @@ fn menu_bar(widget_refs: &widgets::WidgetRefs) -> MenuBar {
     file.set_submenu(Some(&menu));
     menu_bar.append(&file);
 
-    //file_open_action(window, &open, runtime_client, ui_context);
+    file_open_action(&widget_refs.app_window, &open);
 
-    //run_open_action(&run, ui_context);
+    run_action(&run);
     let (key, modifier) = gtk::accelerator_parse("<Primary>R");
     run.add_accelerator("activate", &accel_group, key, modifier, AccelFlags::VISIBLE);
 
@@ -283,7 +249,6 @@ fn main_window(app_window: &ApplicationWindow) -> widgets::WidgetRefs {
         println!("Clicked!");
     });
 
-
     widgets::WidgetRefs {
         app_window: app_window.clone(),
         main_window: main,
@@ -319,26 +284,6 @@ fn build_ui(application: &Application) {
     widgets::init_storage(widget_refs);
 }
 
-/*
-    manifest_dir is used as a reference directory for relative paths to project files
-*/
-fn compile(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manifest, String> {
-    info!("Compiling Flow to Manifest");
-    let tables = compile::compile(flow)
-        .map_err(|e| format!("Could not compile flow: '{}'", e.to_string()))?;
-
-    generate::create_manifest(&flow, debug_symbols, &manifest_dir, &tables)
-        .map_err(|e| format!("Could create flow manifest: '{}'", e.to_string()))
-}
-
-fn load_flow(provider: &dyn Provider, url: &str) -> Result<Flow, String> {
-    match loader::load_context(url, provider)
-        .map_err(|e| format!("Could not load flow context: '{}'", e.to_string()))? {
-        FlowProcess(flow) => Ok(flow),
-        _ => Err("Process loaded was not of type 'Flow'".into())
-    }
-}
-
 fn set_panic_hook() {
     // When the `console_error_panic_hook` feature is enabled, we can call the
     // `set_panic_hook` function to get better error messages if we ever panic.
@@ -351,6 +296,7 @@ fn main() -> Result<(), String> {
         return Err("Failed to initialize GTK.".to_string());
     }
 
+// TODO  read log level from UI or args and log to a logging UI widget?
 //    let log_level_arg = get_log_level(&document);
 //    init_logging(log_level_arg);
 
@@ -362,18 +308,6 @@ fn main() -> Result<(), String> {
     application.connect_activate(move |app|
         build_ui(app)
     );
-
-    // Attach the receiver to the default main context (None) and on every message process the command
-    /*
-    command_receiver.attach(None, move |command| {
-        ide_runtime_client_arc.lock().unwrap().process_command(command, &runtime_context.clone());
-
-        // Returning false here would close the receiver and have senders fail
-        glib::Continue(true)
-    });
-    */
-
-//    gtk::main();
 
     application.run(&std::env::args().collect::<Vec<_>>());
 
@@ -393,10 +327,10 @@ fn some_workfunction() {
         compute();
 
         i += 1;
-        let text = format!("Round {} in {:?}", i, std::thread::current().id());
+        let text = format!("Round {} in {:?}\n", i, std::thread::current().id());
 
         widgets::do_in_gtk_eventloop(|refs| {
-            refs.button1().set_label(&text);
+            refs.stdout().insert_at_cursor(&text);
         });
     }
 }
