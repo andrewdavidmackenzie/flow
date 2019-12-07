@@ -15,7 +15,6 @@ use gtk_fnonce_on_eventloop::gtk_refs;
 
 use flowclib::deserializers::deserializer_helper;
 use flowrlib::coordinator::{Coordinator, Submission};
-use flowrlib::manifest::Manifest;
 use ide_runtime_client::IDERuntimeClient;
 use lazy_static::lazy_static;
 use ui_context::UIContext;
@@ -81,33 +80,25 @@ fn about_dialog() -> AboutDialog {
     p
 }
 
-// Do NOT call on UI thread
-fn set_manifest_contents(manifest: Manifest) -> Result<(), String> {
-    let manifest_content = serde_json::to_string_pretty(&manifest)
-        .map_err(|e| e.to_string())?;
-
-    match UICONTEXT.lock() {
-        Ok(mut context) => {
-            context.manifest = Some(manifest);
-            // TODO enable run action
-        }
-        Err(_) => {}
-    }
-
-    widgets::do_in_gtk_eventloop(|refs|
-        refs.manifest_buffer().set_text(&manifest_content)
-    );
-
-    Ok(())
-}
-
 fn open_manifest(uri: String) {
     std::thread::spawn(move || {
         let runtime_client = Arc::new(Mutex::new(IDERuntimeClient));
         let manifest = actions::load_from_uri(&uri, runtime_client)
             .unwrap(); // TODO
 
-        set_manifest_contents(manifest).unwrap(); // TODO
+        let manifest_content = serde_json::to_string_pretty(&manifest).unwrap(); // TODO
+
+        match UICONTEXT.lock() {
+            Ok(mut context) => {
+                context.manifest = Some(manifest);
+                // TODO enable run action
+            }
+            Err(_) => {}
+        }
+
+        widgets::do_in_gtk_eventloop(|refs|
+            refs.manifest_buffer().set_text(&manifest_content)
+        );
     });
 }
 
@@ -145,9 +136,12 @@ fn run_manifest() -> Result<String, String> {
         Ok(ref mut context) => {
             match &context.manifest {
                 Some(manifest) => {
-                    let submission = Submission::new(manifest.clone(), 1, false, None);
-                    let mut coordinator = Coordinator::new(1);
-                    coordinator.submit(submission);
+                    let manifest_clone = manifest.clone();
+                    std::thread::spawn(move || {
+                        let submission = Submission::new(manifest_clone, 1, false, None);
+                        let mut coordinator = Coordinator::new(1);
+                        coordinator.submit(submission);
+                    });
                     Ok("Submitting flow for execution".to_string()) // TODO useless for now as it's blocked running it
                 }
                 _ => Err("No manifest loaded to run".into())
