@@ -81,6 +81,7 @@ fn about_dialog() -> AboutDialog {
     p
 }
 
+// Do NOT call on UI thread
 fn set_manifest_contents(manifest: Manifest) -> Result<(), String> {
     let manifest_content = serde_json::to_string_pretty(&manifest)
         .map_err(|e| e.to_string())?;
@@ -98,6 +99,16 @@ fn set_manifest_contents(manifest: Manifest) -> Result<(), String> {
     );
 
     Ok(())
+}
+
+fn open_manifest(uri: String) {
+    std::thread::spawn(move || {
+        let runtime_client = Arc::new(Mutex::new(IDERuntimeClient));
+        let manifest = actions::load_from_uri(&uri, runtime_client)
+            .unwrap(); // TODO
+
+        set_manifest_contents(manifest).unwrap(); // TODO
+    });
 }
 
 fn file_open_action(window: &ApplicationWindow, open: &MenuItem) {
@@ -124,11 +135,7 @@ fn file_open_action(window: &ApplicationWindow, open: &MenuItem) {
         dialog.destroy();
 
         if let Some(uri) = uris.get(0) {
-            let runtime_client = Arc::new(Mutex::new(IDERuntimeClient));
-            let manifest = actions::load_from_uri(&uri.to_string(), runtime_client)
-                .unwrap(); // TODO
-
-            set_manifest_contents(manifest).unwrap(); // TODO
+            open_manifest(uri.to_string());
         }
     });
 }
@@ -246,7 +253,6 @@ fn main_window(app_window: &ApplicationWindow) -> widgets::WidgetRefs {
 
     button.connect_clicked(|_| {
         std::thread::spawn(some_workfunction);
-        println!("Clicked!");
     });
 
     widgets::WidgetRefs {
