@@ -182,6 +182,14 @@ fn run_action(run: &MenuItem) {
     });
 }
 
+// compile the loaded flow
+fn compile_action(compile: &MenuItem) {
+    compile.connect_activate(move |_| {
+        // compile_flow(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manifest, String>
+        // TODO capture output and store in manifest and update manifest widget
+    });
+}
+
 fn menu_bar(widget_refs: &widgets::WidgetRefs) -> MenuBar {
     let accel_group = AccelGroup::new();
     widget_refs.app_window.add_accel_group(&accel_group);
@@ -204,9 +212,12 @@ fn menu_bar(widget_refs: &widgets::WidgetRefs) -> MenuBar {
     let flow_menu = Menu::new();
     let flow = MenuItem::new_with_label("Flow");
     let open_flow_menu_item = MenuItem::new_with_label("Open");
+    let compile_flow_menu_item = MenuItem::new_with_label("Compile");
     flow_menu.append(&open_flow_menu_item);
+    flow_menu.append(&compile_flow_menu_item);
     flow.set_submenu(Some(&flow_menu));
     open_action(&widget_refs.app_window, &open_flow_menu_item, open_flow);
+    compile_action(&compile_flow_menu_item);
     menu_bar.append(&flow);
 
     // Manifest Menu

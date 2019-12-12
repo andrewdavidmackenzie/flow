@@ -17,7 +17,7 @@ use runtime::runtime_client::RuntimeClient;
 /*
     manifest_dir is used as a reference directory for relative paths to project files
 */
-pub fn compile(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manifest, String> {
+pub fn compile_flow(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manifest, String> {
     info!("Compiling Flow to Manifest");
     let tables = compile::compile(flow)
         .map_err(|e| format!("Could not compile flow: '{}'", e.to_string()))?;
