@@ -7,11 +7,12 @@ use std::sync::{Arc, Mutex};
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::*;
 use gtk::{
-    AboutDialog, AccelFlags, AccelGroup, Application, ApplicationWindow, Button, FileChooserAction, FileChooserDialog,
+    AboutDialog, AccelFlags, AccelGroup, Application, ApplicationWindow, FileChooserAction, FileChooserDialog,
     FileFilter, Menu, MenuBar, MenuItem, ResponseType, ScrolledWindow, TextBuffer, TextBufferExt, TextView, WidgetExt, WindowPosition,
 };
 use gtk::prelude::*;
 use gtk_fnonce_on_eventloop::gtk_refs;
+use toml;
 
 use flowclib::deserializers::deserializer_helper;
 use flowrlib::coordinator::{Coordinator, Submission};
@@ -46,8 +47,7 @@ gtk_refs!(
     struct WidgetRefs;              // The macro emits a struct with this name containing:
     app_window: gtk::ApplicationWindow,
     main_window: gtk::Box,
-    button1 : gtk::Button,
-    flow: gtk::TextBuffer,
+    flow_buffer: gtk::TextBuffer,
     manifest_buffer: gtk::TextBuffer,
     stdout: gtk::TextBuffer,
     stderr: gtk::TextBuffer
@@ -80,16 +80,39 @@ fn about_dialog() -> AboutDialog {
     p
 }
 
+fn open_flow(uri: String) {
+    std::thread::spawn(move || {
+        let flow = actions::load_flow(&uri).unwrap(); // TODO
+
+        let flow_content = toml::to_string_pretty(&flow).unwrap(); // TODO
+
+        match UICONTEXT.lock() {
+            Ok(mut context) => {
+                context.flow = Some(flow);
+                // TODO enable run action
+                // TODO need to add a method to compile from string contents not a URL?
+                // what about urls pointing to sub parts? need to force save first?
+                // NOT allow editing in IDE, just viewing the url?
+            }
+            Err(_) => { /* TODO */ }
+        }
+
+        widgets::do_in_gtk_eventloop(|refs|
+            refs.flow_buffer().set_text(&flow_content)
+        );
+    });
+}
+
 fn open_manifest(uri: String) {
     std::thread::spawn(move || {
         let runtime_client = Arc::new(Mutex::new(IDERuntimeClient));
-        let manifest = actions::load_from_uri(&uri, runtime_client)
-            .unwrap(); // TODO
+        let (loader, manifest) = actions::load_from_uri(&uri, runtime_client).unwrap(); // TODO
 
         let manifest_content = serde_json::to_string_pretty(&manifest).unwrap(); // TODO
 
         match UICONTEXT.lock() {
             Ok(mut context) => {
+                context.loader = Some(loader);
                 context.manifest = Some(manifest);
                 // TODO enable run action
             }
@@ -102,7 +125,8 @@ fn open_manifest(uri: String) {
     });
 }
 
-fn file_open_action(window: &ApplicationWindow, open: &MenuItem) {
+fn open_action<F: 'static>(window: &ApplicationWindow, open: &MenuItem, func: F)
+    where F: Fn(String) {
     let accepted_extensions = deserializer_helper::get_accepted_extensions();
 
     let window_weak = window.downgrade();
@@ -126,7 +150,7 @@ fn file_open_action(window: &ApplicationWindow, open: &MenuItem) {
         dialog.destroy();
 
         if let Some(uri) = uris.get(0) {
-            open_manifest(uri.to_string());
+            func(uri.to_string());
         }
     });
 }
@@ -159,39 +183,51 @@ fn run_action(run: &MenuItem) {
 }
 
 fn menu_bar(widget_refs: &widgets::WidgetRefs) -> MenuBar {
-    let menu = Menu::new();
     let accel_group = AccelGroup::new();
     widget_refs.app_window.add_accel_group(&accel_group);
     let menu_bar = MenuBar::new();
 
+    // File Menu
+    let file_menu = Menu::new();
     let file = MenuItem::new_with_label("File");
-    let open = MenuItem::new_with_label("Open");
     let about = MenuItem::new_with_label("About");
-    let run = MenuItem::new_with_label("Run");
     let quit = MenuItem::new_with_label("Quit");
-
-    menu.append(&open);
-    menu.append(&about);
-    menu.append(&run);
-    menu.append(&quit);
-    file.set_submenu(Some(&menu));
+    file_menu.append(&about);
+    file_menu.append(&quit);
+    file.set_submenu(Some(&file_menu));
+    // `Primary` is `Ctrl` on Windows and Linux, and `command` on macOS
+    let (key, modifier) = gtk::accelerator_parse("<Primary>Q");
+    quit.add_accelerator("activate", &accel_group, key, modifier, AccelFlags::VISIBLE);
     menu_bar.append(&file);
 
-    file_open_action(&widget_refs.app_window, &open);
+    // Flow Menu
+    let flow_menu = Menu::new();
+    let flow = MenuItem::new_with_label("Flow");
+    let open_flow_menu_item = MenuItem::new_with_label("Open");
+    flow_menu.append(&open_flow_menu_item);
+    flow.set_submenu(Some(&flow_menu));
+    open_action(&widget_refs.app_window, &open_flow_menu_item, open_flow);
+    menu_bar.append(&flow);
 
-    run_action(&run);
+    // Manifest Menu
+    let manifest_menu = Menu::new();
+    let manifest = MenuItem::new_with_label("Manifest");
+    let open_manifest_menu = MenuItem::new_with_label("Open");
+    let run_manifest_menu = MenuItem::new_with_label("Run");
+    manifest_menu.append(&open_manifest_menu);
+    manifest_menu.append(&run_manifest_menu);
+    manifest.set_submenu(Some(&manifest_menu));
+    open_action(&widget_refs.app_window, &open_manifest_menu, open_manifest);
+    run_action(&run_manifest_menu);
     let (key, modifier) = gtk::accelerator_parse("<Primary>R");
-    run.add_accelerator("activate", &accel_group, key, modifier, AccelFlags::VISIBLE);
+    run_manifest_menu.add_accelerator("activate", &accel_group, key, modifier, AccelFlags::VISIBLE);
+    menu_bar.append(&manifest);
 
     let window_weak = widget_refs.app_window.downgrade();
     quit.connect_activate(move |_| {
         let window = upgrade_weak!(window_weak);
         window.destroy();
     });
-
-    // `Primary` is `Ctrl` on Windows and Linux, and `command` on macOS
-    let (key, modifier) = gtk::accelerator_parse("<Primary>Q");
-    quit.add_accelerator("activate", &accel_group, key, modifier, AccelFlags::VISIBLE);
 
     let window_weak = widget_refs.app_window.downgrade();
     about.connect_activate(move |_| {
@@ -219,6 +255,14 @@ fn stdio() -> (ScrolledWindow, TextBuffer) {
     (scroll, view.get_buffer().unwrap())
 }
 
+fn flow_viewer() -> (ScrolledWindow, TextBuffer) {
+    let scroll = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
+    let view = gtk::TextView::new();
+    view.set_editable(false);
+    scroll.add(&view);
+    (scroll, view.get_buffer().unwrap())
+}
+
 fn manifest_viewer() -> (ScrolledWindow, TextBuffer) {
     let scroll = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
     let view = gtk::TextView::new();
@@ -228,32 +272,27 @@ fn manifest_viewer() -> (ScrolledWindow, TextBuffer) {
 }
 
 fn main_window(app_window: &ApplicationWindow) -> widgets::WidgetRefs {
-    let main = gtk::Box::new(gtk::Orientation::Vertical, 10);
-    main.set_border_width(6);
-    main.set_vexpand(true);
-    main.set_hexpand(true);
+    let main_window = gtk::Box::new(gtk::Orientation::Vertical, 10);
+    main_window.set_border_width(6);
+    main_window.set_vexpand(true);
+    main_window.set_hexpand(true);
 
+    let (flow_view, flow_buffer) = flow_viewer();
+    let (manifest_view, manifest_buffer) = manifest_viewer();
     let args_view = args_view();
     let (stdout_view, stdout_buffer) = stdio();
     let (stderr_view, stderr_buffer) = stdio();
-    let (manifest_view, manifest_buffer) = manifest_viewer();
 
-    let button = Button::new_with_label("Spawn another thread!");
-    main.pack_start(&button, true, true, 0);
-    main.pack_start(&manifest_view, true, true, 0);
-    main.pack_start(&args_view, true, true, 0);
-    main.pack_start(&stdout_view, true, true, 0);
-    main.pack_start(&stderr_view, true, true, 0);
-
-    button.connect_clicked(|_| {
-        std::thread::spawn(some_workfunction);
-    });
+    main_window.pack_start(&flow_view, true, true, 0);
+    main_window.pack_start(&manifest_view, true, true, 0);
+    main_window.pack_start(&args_view, true, true, 0);
+    main_window.pack_start(&stdout_view, true, true, 0);
+    main_window.pack_start(&stderr_view, true, true, 0);
 
     widgets::WidgetRefs {
         app_window: app_window.clone(),
-        main_window: main,
-        button1: button.clone(),
-        flow: TextBuffer::new(gtk::NONE_TEXT_TAG_TABLE),
+        main_window,
+        flow_buffer,
         manifest_buffer,
         stdout: stdout_buffer,
         stderr: stderr_buffer,
@@ -312,27 +351,6 @@ fn main() -> Result<(), String> {
     application.run(&std::env::args().collect::<Vec<_>>());
 
     Ok(())
-}
-
-fn compute() {
-    use std::thread::sleep;
-    use std::time::Duration;
-    sleep(Duration::from_secs(1));
-}
-
-fn some_workfunction() {
-    let mut i = 0;
-
-    loop {
-        compute();
-
-        i += 1;
-        let text = format!("Round {} in {:?}\n", i, std::thread::current().id());
-
-        widgets::do_in_gtk_eventloop(|refs| {
-            refs.stdout().insert_at_cursor(&text);
-        });
-    }
 }
 
 // TODO Read flow lib path from env and add it as a setting with a dialog to edit it.

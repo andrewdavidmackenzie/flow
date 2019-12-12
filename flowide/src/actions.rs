@@ -26,8 +26,10 @@ pub fn compile(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<M
         .map_err(|e| format!("Could create flow manifest: '{}'", e.to_string()))
 }
 
-pub fn load_flow(provider: &dyn Provider, url: &str) -> Result<Flow, String> {
-    match loader::load_context(url, provider)
+pub fn load_flow(url: &str) -> Result<Flow, String> {
+    let provider = MetaProvider {};
+
+    match loader::load_context(url, &provider)
         .map_err(|e| format!("Could not load flow context: '{}'", e.to_string()))? {
         FlowProcess(flow) => Ok(flow),
         _ => Err("Process loaded was not of type 'Flow'".into())
@@ -44,12 +46,13 @@ fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, runtime_manife
     Ok("Added the 'runtime' and 'flowstdlibs'".to_string())
 }
 
-pub fn load_from_uri(uri: &str, runtime_client: Arc<Mutex<dyn RuntimeClient>>) -> Result<Manifest, String> {
+pub fn load_from_uri(uri: &str, runtime_client: Arc<Mutex<dyn RuntimeClient>>) -> Result<(Loader, Manifest), String> {
     let mut loader = Loader::new();
     let provider = MetaProvider {};
     let runtime_manifest = runtime::manifest::create_runtime(runtime_client);
 
     load_libs(&mut loader, &provider, runtime_manifest).map_err(|e| e.to_string())?;
-    loader.load_manifest(&provider, uri)
-        .map_err(|e| e.to_string())
+    let manifest = loader.load_manifest(&provider, uri).unwrap(); // TODO
+
+    Ok((loader, manifest))
 }
