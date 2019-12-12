@@ -84,8 +84,9 @@ fn open_flow(uri: String) {
     std::thread::spawn(move || {
         let flow = actions::load_flow(&uri).unwrap(); // TODO
 
-        let flow_content = toml::to_string_pretty(&flow).unwrap(); // TODO
-
+//        let flow_content = toml::to_string_pretty(&flow); // TODO
+        let flow_content =  toml::Value::try_from(&flow).unwrap().to_string();
+        println!("flow_content in toml : {}", flow_content);
         match UICONTEXT.lock() {
             Ok(mut context) => {
                 context.flow = Some(flow);

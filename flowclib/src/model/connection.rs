@@ -19,11 +19,11 @@ pub struct Connection {
     pub to: Route,
 
     // TODO make these references, not clones
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub from_io: IO,
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub to_io: IO,
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub level: usize,
 }
 
