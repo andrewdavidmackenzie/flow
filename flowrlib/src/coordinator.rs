@@ -276,7 +276,7 @@ impl Coordinator {
     /*
         Send a job for execution
     */
-    fn send_job(&self, job: Job, submission: &mut Submission) -> (Result<(bool, bool), SendError<Job>>) {
+    fn send_job(&self, job: Job, submission: &mut Submission) -> Result<(bool, bool), SendError<Job>> {
         let mut debug_options = (false, false);
 
         submission.state.start(&job);

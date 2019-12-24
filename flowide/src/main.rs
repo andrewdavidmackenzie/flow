@@ -50,7 +50,9 @@ gtk_refs!(
     flow_buffer: gtk::TextBuffer,
     manifest_buffer: gtk::TextBuffer,
     stdout: gtk::TextBuffer,
-    stderr: gtk::TextBuffer
+    stderr: gtk::TextBuffer,
+    compile_flow_menu: gtk::MenuItem,
+    run_manifest_menu: gtk::MenuItem
 );
 
 fn resource(path: &str) -> String {
@@ -83,22 +85,19 @@ fn about_dialog() -> AboutDialog {
 fn open_flow(uri: String) {
     std::thread::spawn(move || {
         let flow = actions::load_flow(&uri).unwrap(); // TODO
-        let flow_content =  toml::Value::try_from(&flow).unwrap().to_string(); // TODO
+        let flow_content = toml::Value::try_from(&flow).unwrap().to_string(); // TODO
 
         match UICONTEXT.lock() {
             Ok(mut context) => {
                 context.flow = Some(flow);
-                // TODO enable run action
-                // TODO need to add a method to compile from string contents not a URL?
-                // what about urls pointing to sub parts? need to force save first?
-                // NOT allow editing in IDE, just viewing the url?
             }
             Err(_) => { /* TODO */ }
         }
 
-        widgets::do_in_gtk_eventloop(|refs|
-            refs.flow_buffer().set_text(&flow_content)
-        );
+        widgets::do_in_gtk_eventloop(|refs| {
+            refs.compile_flow_menu().set_sensitive(true);
+            refs.flow_buffer().set_text(&flow_content);
+        });
     });
 }
 
@@ -189,9 +188,8 @@ fn compile_action(compile: &MenuItem) {
     });
 }
 
-fn menu_bar(widget_refs: &widgets::WidgetRefs) -> MenuBar {
-    let accel_group = AccelGroup::new();
-    widget_refs.app_window.add_accel_group(&accel_group);
+fn menu_bar(app_window: &ApplicationWindow) -> (MenuBar, AccelGroup, MenuItem, MenuItem) {
+    let accelerator_group = AccelGroup::new();
     let menu_bar = MenuBar::new();
 
     // File Menu
@@ -204,7 +202,7 @@ fn menu_bar(widget_refs: &widgets::WidgetRefs) -> MenuBar {
     file.set_submenu(Some(&file_menu));
     // `Primary` is `Ctrl` on Windows and Linux, and `command` on macOS
     let (key, modifier) = gtk::accelerator_parse("<Primary>Q");
-    quit.add_accelerator("activate", &accel_group, key, modifier, AccelFlags::VISIBLE);
+    quit.add_accelerator("activate", &accelerator_group, key, modifier, AccelFlags::VISIBLE);
     menu_bar.append(&file);
 
     // Flow Menu
@@ -215,8 +213,9 @@ fn menu_bar(widget_refs: &widgets::WidgetRefs) -> MenuBar {
     flow_menu.append(&open_flow_menu_item);
     flow_menu.append(&compile_flow_menu_item);
     flow.set_submenu(Some(&flow_menu));
-    open_action(&widget_refs.app_window, &open_flow_menu_item, open_flow);
+    open_action(app_window, &open_flow_menu_item, open_flow);
     compile_action(&compile_flow_menu_item);
+    compile_flow_menu_item.set_sensitive(false);
     menu_bar.append(&flow);
 
     // Manifest Menu
@@ -227,19 +226,20 @@ fn menu_bar(widget_refs: &widgets::WidgetRefs) -> MenuBar {
     manifest_menu.append(&open_manifest_menu);
     manifest_menu.append(&run_manifest_menu);
     manifest.set_submenu(Some(&manifest_menu));
-    open_action(&widget_refs.app_window, &open_manifest_menu, open_manifest);
+    open_action(app_window, &open_manifest_menu, open_manifest);
     run_action(&run_manifest_menu);
     let (key, modifier) = gtk::accelerator_parse("<Primary>R");
-    run_manifest_menu.add_accelerator("activate", &accel_group, key, modifier, AccelFlags::VISIBLE);
+    run_manifest_menu.add_accelerator("activate", &accelerator_group, key, modifier, AccelFlags::VISIBLE);
+    run_manifest_menu.set_sensitive(false);
     menu_bar.append(&manifest);
 
-    let window_weak = widget_refs.app_window.downgrade();
+    let window_weak = app_window.downgrade();
     quit.connect_activate(move |_| {
         let window = upgrade_weak!(window_weak);
         window.destroy();
     });
 
-    let window_weak = widget_refs.app_window.downgrade();
+    let window_weak = app_window.downgrade();
     about.connect_activate(move |_| {
         let ad = about_dialog();
         let window = upgrade_weak!(window_weak);
@@ -248,7 +248,7 @@ fn menu_bar(widget_refs: &widgets::WidgetRefs) -> MenuBar {
         ad.destroy();
     });
 
-    menu_bar
+    (menu_bar, accelerator_group, compile_flow_menu_item, run_manifest_menu)
 }
 
 fn args_view() -> TextView {
@@ -281,7 +281,12 @@ fn manifest_viewer() -> (ScrolledWindow, TextBuffer) {
     (scroll, view.get_buffer().unwrap())
 }
 
-fn main_window(app_window: &ApplicationWindow) -> widgets::WidgetRefs {
+fn main_window( app_window: &ApplicationWindow,
+                accelerator_group: AccelGroup,
+                compile_flow_menu: MenuItem,
+                run_manifest_menu: MenuItem) -> widgets::WidgetRefs {
+    app_window.add_accel_group(&accelerator_group);
+
     let main_window = gtk::Box::new(gtk::Orientation::Vertical, 10);
     main_window.set_border_width(6);
     main_window.set_vexpand(true);
@@ -306,6 +311,8 @@ fn main_window(app_window: &ApplicationWindow) -> widgets::WidgetRefs {
         manifest_buffer,
         stdout: stdout_buffer,
         stderr: stderr_buffer,
+        compile_flow_menu,
+        run_manifest_menu
     }
 }
 
@@ -320,10 +327,11 @@ fn build_ui(application: &Application) {
         Inhibit(false)
     });
 
-    let widget_refs = main_window(&app_window);
+    let (menu_bar, accelerator_group, compile_flow_menu, run_manifest_menu) = menu_bar(&app_window);
+    let widget_refs = main_window(&app_window, accelerator_group, compile_flow_menu, run_manifest_menu);
 
     let v_box = gtk::Box::new(gtk::Orientation::Vertical, 10);
-    v_box.pack_start(&menu_bar(&widget_refs), false, false, 0);
+    v_box.pack_start(&menu_bar, false, false, 0);
     v_box.pack_start(&widget_refs.main_window, true, true, 0);
 
     app_window.add(&v_box);
