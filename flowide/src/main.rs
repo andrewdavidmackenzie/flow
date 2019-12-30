@@ -8,7 +8,7 @@ use gdk_pixbuf::Pixbuf;
 use gio::prelude::*;
 use gtk::{
     AboutDialog, AccelFlags, AccelGroup, Application, ApplicationWindow, FileChooserAction, FileChooserDialog,
-    FileFilter, Menu, MenuBar, MenuItem, ResponseType, ScrolledWindow, TextBuffer, TextView, WidgetExt, WindowPosition,
+    FileFilter, Menu, MenuBar, MenuItem, ResponseType, ScrolledWindow, TextBuffer, WidgetExt, WindowPosition,
 };
 use gtk::prelude::*;
 use gtk_fnonce_on_eventloop::gtk_refs;
@@ -111,13 +111,13 @@ fn open_action<F: 'static>(window: &ApplicationWindow, open: &MenuItem, func: F)
 
 fn run_action(run: &MenuItem) {
     run.connect_activate(move |_| {
-        let _ = actions::run_manifest().unwrap(); // TODO
+        actions::run_manifest();
     });
 }
 
 fn compile_action(compile: &MenuItem) {
     compile.connect_activate(move |_| {
-        let _ = actions::compile_flow().unwrap(); // TODO
+        actions::compile_flow();
     });
 }
 
@@ -186,12 +186,6 @@ fn menu_bar(app_window: &ApplicationWindow) -> (MenuBar, AccelGroup, MenuItem, M
     (menu_bar, accelerator_group, compile_flow_menu_item, run_manifest_menu)
 }
 
-fn args_view() -> TextView {
-    let args_view = gtk::TextView::new();
-    args_view.set_size_request(-1, 1); // Want to fill width and be one line high :-(
-    args_view
-}
-
 fn stdio() -> (ScrolledWindow, TextBuffer) {
     let scroll = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
     let view = gtk::TextView::new();
@@ -229,13 +223,11 @@ fn main_window(app_window: &ApplicationWindow,
 
     let (flow_view, flow_buffer) = flow_viewer();
     let (manifest_view, manifest_buffer) = manifest_viewer();
-    let args_view = args_view();
     let (stdout_view, stdout_buffer) = stdio();
     let (stderr_view, stderr_buffer) = stdio();
 
     main_window.pack_start(&flow_view, true, true, 0);
     main_window.pack_start(&manifest_view, true, true, 0);
-    main_window.pack_start(&args_view, true, true, 0);
     main_window.pack_start(&stdout_view, true, true, 0);
     main_window.pack_start(&stderr_view, true, true, 0);
 
@@ -281,6 +273,10 @@ fn set_panic_hook() {
     // `set_panic_hook` function to get better error messages if we ever panic.
     #[cfg(feature = "console_error_panic_hook")]
         console_error_panic_hook::set_once();
+}
+
+pub fn message(message: &str) {
+    println!("UI message: {}", message);
 }
 
 fn main() -> Result<(), String> {

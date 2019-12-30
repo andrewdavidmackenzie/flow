@@ -6,7 +6,6 @@ use toml;
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowclib::generator::generate;
-use flowclib::generator::generate::GenerationTables;
 use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
 use flowrlib::coordinator::{Coordinator, Submission};
@@ -18,53 +17,87 @@ use provider::content::provider::MetaProvider;
 use runtime::runtime_client::RuntimeClient;
 
 use crate::ide_runtime_client::IDERuntimeClient;
+use crate::message;
 use crate::UICONTEXT;
 use crate::widgets;
 
-pub fn compile_flow() -> Result<String, String> {
-    match UICONTEXT.lock() {
-        Ok(ref mut context) => {
-            match &context.flow {
-                Some(ref flow) => {
-                    let flow_clone = flow.clone();
-                    std::thread::spawn(move || {
-                            let tables = compile::compile(&flow_clone).expect("Could not compile flow");
+pub fn compile_flow() {
+    std::thread::spawn(move || {
+        match UICONTEXT.lock() {
+            Ok(ref mut context) => {
+                match &context.flow {
+                    Some(ref flow) => {
+                        let flow_clone = flow.clone();
+                        let tables = compile::compile(&flow_clone).expect("Could not compile flow");
 
-    //                        info!("==== Compiler phase: Compiling provided implementations");
-    //                        compile_supplied_implementations(&mut tables, provided_implementations, release)?;
+                        //                        info!("==== Compiler phase: Compiling provided implementations");
+                        //                        compile_supplied_implementations(&mut tables, provided_implementations, release)?;
 
-                            let manifest_dir = std::env::current_dir().unwrap(); // TODO
-                            let manifet_dir_string = manifest_dir.as_path().to_string_lossy();
-                            let manifest = create_manifest(&flow_clone, true, &manifet_dir_string, &tables)
-                                .unwrap(); // TODO
-                            set_manifest_content(&manifest);
-                        });
-                    Ok("Compiling flow".to_string())
+                        let manifest_dir = std::env::current_dir().unwrap(); // TODO
+                        let manifest_dir_string = manifest_dir.as_path().to_string_lossy();
+                        let manifest = generate::create_manifest(&flow, true, &manifest_dir_string, &tables)
+                            .unwrap(); // TODO
+
+                        set_manifest(manifest);
+                    }
+                    _ => message("No flow loaded to compile")
                 }
-                _ => Err("No flow loaded to compile".into())
             }
+            _ => message("Could not access ui context")
         }
-        _ => Err("Could not access ui context".into())
-    }
+    });
 }
 
-/*
-    Generate a manifest for the flow in JSON that can be used to run it using 'flowr'
-*/
-fn create_manifest(flow: &Flow, debug_symbols: bool, manifest_dir: &str, tables: &GenerationTables) -> Result<String, String> {
-    let manifest = generate::create_manifest(&flow, debug_symbols, manifest_dir, tables)
-        .map_err(|e| e.to_string())?;
-
-    serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())
-}
-
-pub fn load_flow(url: &str) -> Result<Flow, String> {
+fn load_flow_from_url(url: &str) -> Result<Flow, String> {
     let provider = MetaProvider {};
 
     match loader::load_context(url, &provider)
         .map_err(|e| format!("Could not load flow context: '{}'", e.to_string()))? {
         FlowProcess(flow) => Ok(flow),
         _ => Err("Process loaded was not of type 'Flow'".into())
+    }
+}
+
+pub fn open_flow(uri: String) {
+    std::thread::spawn(move || {
+        match load_flow_from_url(&uri) {
+            Ok(flow) => {
+                match toml::Value::try_from(&flow) {
+                    Ok(flow_content) => {
+                        match UICONTEXT.try_lock() {
+                            Ok(mut context) => {
+                                context.flow = Some(flow);
+
+                                widgets::do_in_gtk_eventloop(|refs| {
+                                    refs.compile_flow_menu().set_sensitive(true);
+                                    refs.flow_buffer().set_text(&flow_content.to_string());
+                                });
+                            }
+                            _ => message("Could not get access to uicontext")
+                        }
+                    }
+                    Err(e) => message(&e.to_string())
+                }
+            }
+            Err(e) => message(&e.to_string())
+        }
+    });
+}
+
+fn set_manifest(manifest: Manifest) {
+    let manifest_content = serde_json::to_string_pretty(&manifest).unwrap(); // TODO
+    widgets::do_in_gtk_eventloop(|refs| {
+        refs.run_manifest_menu().set_sensitive(true);
+        refs.manifest_buffer().set_text(&manifest_content);
+    });
+
+    match UICONTEXT.lock() {
+        Ok(mut context) => {
+//            context.loader = Some(loader);
+            context.manifest = Some(manifest);
+            // TODO enable run action
+        }
+        Err(_) => {}
     }
 }
 
@@ -78,77 +111,48 @@ fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, runtime_manife
     Ok("Added the 'runtime' and 'flowstdlibs'".to_string())
 }
 
-pub fn load_from_uri(uri: &str, runtime_client: Arc<Mutex<dyn RuntimeClient>>) -> Result<(Loader, Manifest), String> {
+fn load_manifest_from_uri(uri: &str, runtime_client: Arc<Mutex<dyn RuntimeClient>>) -> Result<(Loader, Manifest), String> {
     let mut loader = Loader::new();
     let provider = MetaProvider {};
     let runtime_manifest = runtime::manifest::create_runtime(runtime_client);
 
-    load_libs(&mut loader, &provider, runtime_manifest).map_err(|e| e.to_string())?;
-    let manifest = loader.load_manifest(&provider, uri).unwrap(); // TODO
+    match load_libs(&mut loader, &provider, runtime_manifest) {
+        Ok(s) => message(&s),
+        Err(e) => message(&e)
+    }
+
+    let manifest = loader.load_manifest(&provider, uri)
+        .map_err(|e| e.to_string())?;
 
     Ok((loader, manifest))
-}
-
-pub fn run_manifest() -> Result<String, String> {
-    match UICONTEXT.lock() {
-        Ok(ref mut context) => {
-            match &context.manifest {
-                Some(manifest) => {
-                    let manifest_clone: Manifest = manifest.clone();
-                    std::thread::spawn(move || {
-                        let submission = Submission::new(manifest_clone, 1, false, None);
-                        let mut coordinator = Coordinator::new(1);
-                        coordinator.submit(submission);
-                    });
-                    Ok("Submitting flow for execution".to_string())
-                }
-                _ => Err("No manifest loaded to run".into())
-            }
-        }
-        _ => Err("Could not access ui context".into())
-    }
-}
-
-pub fn open_flow(uri: String) {
-    std::thread::spawn(move || {
-        let flow = load_flow(&uri).unwrap(); // TODO
-        let flow_content = toml::Value::try_from(&flow).unwrap().to_string(); // TODO
-
-        match UICONTEXT.lock() {
-            Ok(mut context) => context.flow = Some(flow),
-            Err(_) => { /* TODO */ }
-        }
-
-        widgets::do_in_gtk_eventloop(|refs| {
-            refs.compile_flow_menu().set_sensitive(true);
-            refs.flow_buffer().set_text(&flow_content);
-        });
-    });
-}
-
-fn set_manifest_content(manifest_content: &str) {
-    widgets::do_in_gtk_eventloop(|refs| {
-        refs.run_manifest_menu().set_sensitive(true);
-        refs.manifest_buffer().set_text(&manifest_content);
-    });
 }
 
 pub fn open_manifest(uri: String) {
     std::thread::spawn(move || {
         let runtime_client = Arc::new(Mutex::new(IDERuntimeClient));
-        let (loader, manifest) = load_from_uri(&uri, runtime_client).unwrap(); // TODO
-
-        let manifest_content = serde_json::to_string_pretty(&manifest).unwrap(); // TODO
-
-        match UICONTEXT.lock() {
-            Ok(mut context) => {
-                context.loader = Some(loader);
-                context.manifest = Some(manifest);
-                // TODO enable run action
-            }
-            Err(_) => {}
+        match load_manifest_from_uri(&uri, runtime_client) {
+            Ok((_loader, manifest)) => set_manifest(manifest),
+            Err(e) => message(&e)
         }
+    });
+}
 
-        set_manifest_content(&manifest_content);
+pub fn run_manifest() {
+    std::thread::spawn(move || {
+        match UICONTEXT.try_lock() {
+            Ok(ref mut context) => {
+                match &context.manifest {
+                    Some(manifest) => {
+                        let manifest_clone: Manifest = manifest.clone();
+                        let submission = Submission::new(manifest_clone, 1, false, None);
+                        let mut coordinator = Coordinator::new(1);
+                        coordinator.submit(submission);
+                        message("Submitting flow for execution");
+                    }
+                    _ => message("No manifest loaded to run")
+                }
+            }
+            _ => message("Could not get access to uicontext")
+        }
     });
 }
