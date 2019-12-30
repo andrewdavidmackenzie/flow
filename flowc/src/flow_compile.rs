@@ -5,6 +5,11 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 
+use log::{debug, error, info};
+use simpath::FileType;
+use simpath::Simpath;
+use url::Url;
+
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowclib::dumper::dump_flow;
@@ -15,10 +20,6 @@ use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
 use flowrlib::manifest::DEFAULT_MANIFEST_FILENAME;
 use flowrlib::provider::Provider;
-use log::{debug, error, info};
-use simpath::FileType;
-use simpath::Simpath;
-use url::Url;
 
 use crate::compile_wasm;
 use crate::errors::*;
@@ -35,6 +36,9 @@ pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bo
         FlowProcess(flow) => {
             let mut tables = compile::compile(&flow).expect("Could not compile flow");
 
+            info!("==== Compiler phase: Compiling provided implementations");
+            compile_supplied_implementations(&mut tables, provided_implementations, release)?;
+
             if dump {
                 dump_flow::dump_flow(&flow, &out_dir)
                     .chain_err(|| "Failed to dump flow's definition")?;
@@ -44,9 +48,6 @@ pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bo
                     .chain_err(|| "Failed to dump flow's functions")?;
             }
 
-            info!("==== Compiler phase: Compiling provided implementations");
-            compile_supplied_implementations(&mut tables, provided_implementations, release)?;
-
             if skip_generation {
                 return Ok("Manifest generation and flow running skipped".to_string());
             }
@@ -55,7 +56,6 @@ pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bo
             let manifest_path = write_flow_manifest(flow, debug_symbols, out_dir, &tables)
                 .chain_err(|| "Failed to write manifest")?;
 
-            // Append flow arguments at the end of the arguments so that they are passed on it when it's run
             info!("==== Compiler phase: Executing flow from manifest");
             execute_flow(manifest_path, args)
         }

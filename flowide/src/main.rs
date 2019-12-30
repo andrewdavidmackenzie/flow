@@ -8,15 +8,12 @@ use gdk_pixbuf::Pixbuf;
 use gio::prelude::*;
 use gtk::{
     AboutDialog, AccelFlags, AccelGroup, Application, ApplicationWindow, FileChooserAction, FileChooserDialog,
-    FileFilter, Menu, MenuBar, MenuItem, ResponseType, ScrolledWindow, TextBuffer, TextBufferExt, TextView, WidgetExt, WindowPosition,
+    FileFilter, Menu, MenuBar, MenuItem, ResponseType, ScrolledWindow, TextBuffer, TextView, WidgetExt, WindowPosition,
 };
 use gtk::prelude::*;
 use gtk_fnonce_on_eventloop::gtk_refs;
-use toml;
 
 use flowclib::deserializers::deserializer_helper;
-use flowrlib::coordinator::{Coordinator, Submission};
-use ide_runtime_client::IDERuntimeClient;
 use lazy_static::lazy_static;
 use ui_context::UIContext;
 
@@ -82,47 +79,6 @@ fn about_dialog() -> AboutDialog {
     p
 }
 
-fn open_flow(uri: String) {
-    std::thread::spawn(move || {
-        let flow = actions::load_flow(&uri).unwrap(); // TODO
-        let flow_content = toml::Value::try_from(&flow).unwrap().to_string(); // TODO
-
-        match UICONTEXT.lock() {
-            Ok(mut context) => {
-                context.flow = Some(flow);
-            }
-            Err(_) => { /* TODO */ }
-        }
-
-        widgets::do_in_gtk_eventloop(|refs| {
-            refs.compile_flow_menu().set_sensitive(true);
-            refs.flow_buffer().set_text(&flow_content);
-        });
-    });
-}
-
-fn open_manifest(uri: String) {
-    std::thread::spawn(move || {
-        let runtime_client = Arc::new(Mutex::new(IDERuntimeClient));
-        let (loader, manifest) = actions::load_from_uri(&uri, runtime_client).unwrap(); // TODO
-
-        let manifest_content = serde_json::to_string_pretty(&manifest).unwrap(); // TODO
-
-        match UICONTEXT.lock() {
-            Ok(mut context) => {
-                context.loader = Some(loader);
-                context.manifest = Some(manifest);
-                // TODO enable run action
-            }
-            Err(_) => {}
-        }
-
-        widgets::do_in_gtk_eventloop(|refs|
-            refs.manifest_buffer().set_text(&manifest_content)
-        );
-    });
-}
-
 fn open_action<F: 'static>(window: &ApplicationWindow, open: &MenuItem, func: F)
     where F: Fn(String) {
     let accepted_extensions = deserializer_helper::get_accepted_extensions();
@@ -153,38 +109,15 @@ fn open_action<F: 'static>(window: &ApplicationWindow, open: &MenuItem, func: F)
     });
 }
 
-fn run_manifest() -> Result<String, String> {
-    match UICONTEXT.lock() {
-        Ok(ref mut context) => {
-            match &context.manifest {
-                Some(manifest) => {
-                    let manifest_clone = manifest.clone();
-                    std::thread::spawn(move || {
-                        let submission = Submission::new(manifest_clone, 1, false, None);
-                        let mut coordinator = Coordinator::new(1);
-                        coordinator.submit(submission);
-                    });
-                    Ok("Submitting flow for execution".to_string()) // TODO useless for now as it's blocked running it
-                }
-                _ => Err("No manifest loaded to run".into())
-            }
-        }
-        _ => Err("Could not access ui context".into())
-    }
-}
-
-// run the loaded manifest from run menu item
 fn run_action(run: &MenuItem) {
     run.connect_activate(move |_| {
-        let _ = run_manifest().unwrap(); // TODO
+        let _ = actions::run_manifest().unwrap(); // TODO
     });
 }
 
-// compile the loaded flow
 fn compile_action(compile: &MenuItem) {
     compile.connect_activate(move |_| {
-        // compile_flow(flow: &Flow, debug_symbols: bool, manifest_dir: &str) -> Result<Manifest, String>
-        // TODO capture output and store in manifest and update manifest widget
+        let _ = actions::compile_flow().unwrap(); // TODO
     });
 }
 
@@ -210,10 +143,11 @@ fn menu_bar(app_window: &ApplicationWindow) -> (MenuBar, AccelGroup, MenuItem, M
     let flow = MenuItem::new_with_label("Flow");
     let open_flow_menu_item = MenuItem::new_with_label("Open");
     let compile_flow_menu_item = MenuItem::new_with_label("Compile");
+    compile_flow_menu_item.set_sensitive(false);
     flow_menu.append(&open_flow_menu_item);
     flow_menu.append(&compile_flow_menu_item);
     flow.set_submenu(Some(&flow_menu));
-    open_action(app_window, &open_flow_menu_item, open_flow);
+    open_action(app_window, &open_flow_menu_item, actions::open_flow);
     compile_action(&compile_flow_menu_item);
     compile_flow_menu_item.set_sensitive(false);
     menu_bar.append(&flow);
@@ -223,10 +157,11 @@ fn menu_bar(app_window: &ApplicationWindow) -> (MenuBar, AccelGroup, MenuItem, M
     let manifest = MenuItem::new_with_label("Manifest");
     let open_manifest_menu = MenuItem::new_with_label("Open");
     let run_manifest_menu = MenuItem::new_with_label("Run");
+    run_manifest_menu.set_sensitive(false);
     manifest_menu.append(&open_manifest_menu);
     manifest_menu.append(&run_manifest_menu);
     manifest.set_submenu(Some(&manifest_menu));
-    open_action(app_window, &open_manifest_menu, open_manifest);
+    open_action(app_window, &open_manifest_menu, actions::open_manifest);
     run_action(&run_manifest_menu);
     let (key, modifier) = gtk::accelerator_parse("<Primary>R");
     run_manifest_menu.add_accelerator("activate", &accelerator_group, key, modifier, AccelFlags::VISIBLE);
@@ -281,10 +216,10 @@ fn manifest_viewer() -> (ScrolledWindow, TextBuffer) {
     (scroll, view.get_buffer().unwrap())
 }
 
-fn main_window( app_window: &ApplicationWindow,
-                accelerator_group: AccelGroup,
-                compile_flow_menu: MenuItem,
-                run_manifest_menu: MenuItem) -> widgets::WidgetRefs {
+fn main_window(app_window: &ApplicationWindow,
+               accelerator_group: AccelGroup,
+               compile_flow_menu: MenuItem,
+               run_manifest_menu: MenuItem) -> widgets::WidgetRefs {
     app_window.add_accel_group(&accelerator_group);
 
     let main_window = gtk::Box::new(gtk::Orientation::Vertical, 10);
@@ -312,7 +247,7 @@ fn main_window( app_window: &ApplicationWindow,
         stdout: stdout_buffer,
         stderr: stderr_buffer,
         compile_flow_menu,
-        run_manifest_menu
+        run_manifest_menu,
     }
 }
 

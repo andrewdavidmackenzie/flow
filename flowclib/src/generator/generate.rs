@@ -73,15 +73,20 @@ impl From<&IO> for Input {
     }
 }
 
-pub fn create_manifest(flow: &Flow, debug_symbols: bool, out_dir: &str, tables: &GenerationTables)
+/*
+    Paths in the manifest are relative to the location of the manifest file, to make the file
+    and associated files relocatable (and manybe packagable into a ZIP etc). So we use manifest_dir
+    as the root directory other file paths are made relatiove to.
+*/
+pub fn create_manifest(flow: &Flow, debug_symbols: bool, manifest_dir: &str, tables: &GenerationTables)
                        -> Result<Manifest> {
-    info!("Writing flow manifest to '{}'", out_dir);
+    info!("Writing flow manifest to '{}'", manifest_dir);
 
     let mut manifest = Manifest::new(MetaData::from(flow));
 
     // Generate runtime Process struct for each of the functions
     for function in &tables.functions {
-        manifest.add_function(function_to_runtimefunction(&out_dir, function, debug_symbols)?);
+        manifest.add_function(function_to_runtimefunction(&manifest_dir, function, debug_symbols)?);
     }
 
     manifest.lib_references = tables.libs.clone();
@@ -89,7 +94,11 @@ pub fn create_manifest(flow: &Flow, debug_symbols: bool, out_dir: &str, tables: 
     Ok(manifest)
 }
 
-fn function_to_runtimefunction(out_dir: &str, function: &Box<Function>, debug_symbols: bool) -> Result<RuntimeFunction> {
+/*
+    Create a run-time function struct from a compile-time function struct.
+    manifest_dir is the directory that paths will be made relative to.
+*/
+fn function_to_runtimefunction(manifest_dir: &str, function: &Box<Function>, debug_symbols: bool) -> Result<RuntimeFunction> {
     let mut name = function.alias().to_string();
     let mut route = function.route().to_string();
 
@@ -99,7 +108,7 @@ fn function_to_runtimefunction(out_dir: &str, function: &Box<Function>, debug_sy
     }
 
     // make location of implementation relative to the output directory if under it
-    let implementation_location = implementation_location_relative(&function, out_dir)?;
+    let implementation_location = implementation_location_relative(&function, manifest_dir)?;
 
     let mut runtime_inputs = vec!();
     match &function.get_inputs() {
