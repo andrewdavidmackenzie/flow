@@ -17,13 +17,13 @@ impl RuntimeClient for IDERuntimeClient {
         match command {
             Command::Stdout(contents) => {
                 widgets::do_in_gtk_eventloop(|refs| {
-                    refs.stdout().insert_at_cursor(&contents);
+                    refs.stdout().insert_at_cursor(&format!("{}\n", contents));
                 });
                 Response::Ack
             }
             Command::Stderr(contents) => {
                 widgets::do_in_gtk_eventloop(|refs| {
-                    refs.stderr().insert_at_cursor(&contents);
+                    refs.stderr().insert_at_cursor(&format!("{}\n", contents));
                 });
                 Response::Ack
             }
