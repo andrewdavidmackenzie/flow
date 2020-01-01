@@ -66,8 +66,10 @@ impl Loader {
     }
 
     /// Resolve or "find" all the implementations of functions for a flow
+    /// The `root_url` is the url of the manifest or the directory where the manifest is located
+    /// and is used in resolving relative references to other files.
     pub fn resolve_implementations(&mut self, flow_manifest: &mut Manifest, provider: &dyn Provider,
-                                   flow_manifest_url: &str) -> Result<String> {
+                                   root_url: &str) -> Result<String> {
         debug!("Resolving implementations");
         // find in a library, or load the supplied implementation - as specified by the source
         for function in &mut flow_manifest.functions {
@@ -87,7 +89,7 @@ impl Loader {
 
                 /*** These below are not 'lib:' references - hence are supplied implementations ***/
                 _ => {
-                    let full_url = url::join(flow_manifest_url,
+                    let full_url = url::join(root_url,
                                              function.implementation_location());
                     let wasm_executor = wasm::load(provider,
                                                    &full_url)?;

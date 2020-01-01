@@ -14,7 +14,6 @@ use flowrlib::loader::Loader;
 use flowrlib::manifest::Manifest;
 use flowrlib::provider::Provider;
 use provider::content::provider::MetaProvider;
-use runtime::runtime_client::RuntimeClient;
 
 use crate::ide_runtime_client::IDERuntimeClient;
 use crate::message;
@@ -23,7 +22,7 @@ use crate::widgets;
 
 pub fn compile_flow() {
     std::thread::spawn(move || {
-        match UICONTEXT.lock() {
+        match UICONTEXT.try_lock() {
             Ok(ref mut context) => {
                 match &context.flow {
                     Some(ref flow) => {
@@ -35,10 +34,13 @@ pub fn compile_flow() {
 
                         let manifest_dir = std::env::current_dir().unwrap(); // TODO
                         let manifest_dir_string = manifest_dir.as_path().to_string_lossy();
-                        let manifest = generate::create_manifest(&flow, true, &manifest_dir_string, &tables)
-                            .unwrap(); // TODO
-
-                        set_manifest(manifest);
+                        match generate::create_manifest(&flow, true, &manifest_dir_string, &tables) {
+                            Ok(manifest) => {
+                                set_manifest(&manifest);
+                                context.manifest = Some(manifest);
+                            }
+                            Err(e) => message(&e.to_string())
+                        }
                     }
                     _ => message("No flow loaded to compile")
                 }
@@ -84,21 +86,31 @@ pub fn open_flow(uri: String) {
     });
 }
 
-fn set_manifest(manifest: Manifest) {
-    let manifest_content = serde_json::to_string_pretty(&manifest).unwrap(); // TODO
+fn set_manifest(manifest: &Manifest) {
+    let manifest_content = serde_json::to_string_pretty(manifest).unwrap(); // TODO
     widgets::do_in_gtk_eventloop(|refs| {
         refs.run_manifest_menu().set_sensitive(true);
         refs.manifest_buffer().set_text(&manifest_content);
     });
+}
 
-    match UICONTEXT.lock() {
-        Ok(mut context) => {
-//            context.loader = Some(loader);
-            context.manifest = Some(manifest);
-            // TODO enable run action
+pub fn open_manifest(uri: String) {
+    std::thread::spawn(move || {
+        let provider = MetaProvider {};
+        match Manifest::load(&provider, &uri) {
+            Ok(manifest) => {
+                set_manifest(&manifest);
+
+                match UICONTEXT.try_lock() {
+                    Ok(mut context) => {
+                        context.manifest = Some(manifest);
+                    }
+                    Err(_) => message("Could not lock UI Context")
+                }
+            }
+            Err(e) => message(&e.to_string())
         }
-        Err(_) => {}
-    }
+    });
 }
 
 fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, runtime_manifest: LibraryManifest) -> Result<String, String> {
@@ -111,30 +123,29 @@ fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, runtime_manife
     Ok("Added the 'runtime' and 'flowstdlibs'".to_string())
 }
 
-fn load_manifest_from_uri(uri: &str, runtime_client: Arc<Mutex<dyn RuntimeClient>>) -> Result<(Loader, Manifest), String> {
+fn load_manifest(manifest: &mut Manifest) {
     let mut loader = Loader::new();
     let provider = MetaProvider {};
+
+    let runtime_client = Arc::new(Mutex::new(IDERuntimeClient));
     let runtime_manifest = runtime::manifest::create_runtime(runtime_client);
 
+    // Load the 'runtime' library provided by the IDE and the 'flowstdlib' libraries
     match load_libs(&mut loader, &provider, runtime_manifest) {
         Ok(s) => message(&s),
         Err(e) => message(&e)
     }
 
-    let manifest = loader.load_manifest(&provider, uri)
-        .map_err(|e| e.to_string())?;
+    // load any other libraries the flow references - these will be loaded as WASM
+    loader.load_libraries(&provider, &manifest).unwrap(); // TODO
 
-    Ok((loader, manifest))
-}
+    // 'root_dir' is where any relative file paths will be anchored
+    let root_dir = std::env::current_dir().unwrap(); // TODO
+    let root_dir_string = root_dir.as_path().to_string_lossy();
 
-pub fn open_manifest(uri: String) {
-    std::thread::spawn(move || {
-        let runtime_client = Arc::new(Mutex::new(IDERuntimeClient));
-        match load_manifest_from_uri(&uri, runtime_client) {
-            Ok((_loader, manifest)) => set_manifest(manifest),
-            Err(e) => message(&e)
-        }
-    });
+    // Find the implementations for all functions in this flow
+    loader.resolve_implementations(manifest, &provider, &root_dir_string).unwrap();
+    // TODO
 }
 
 pub fn run_manifest() {
@@ -143,11 +154,12 @@ pub fn run_manifest() {
             Ok(ref mut context) => {
                 match &context.manifest {
                     Some(manifest) => {
-                        let manifest_clone: Manifest = manifest.clone();
+                        let mut manifest_clone: Manifest = manifest.clone();
+                        load_manifest(&mut manifest_clone); // TODO
                         let submission = Submission::new(manifest_clone, 1, false, None);
                         let mut coordinator = Coordinator::new(1);
                         coordinator.submit(submission);
-                        message("Submitting flow for execution");
+                        message("Submitted flow for execution");
                     }
                     _ => message("No manifest loaded to run")
                 }

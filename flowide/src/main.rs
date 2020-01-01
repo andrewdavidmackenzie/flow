@@ -79,7 +79,7 @@ fn about_dialog() -> AboutDialog {
     p
 }
 
-fn open_action<F: 'static>(window: &ApplicationWindow, open: &MenuItem, func: F)
+fn open_action<F: 'static>(window: &ApplicationWindow, open: &MenuItem, action_function: F)
     where F: Fn(String) {
     let accepted_extensions = deserializer_helper::get_accepted_extensions();
 
@@ -104,7 +104,7 @@ fn open_action<F: 'static>(window: &ApplicationWindow, open: &MenuItem, func: F)
         dialog.destroy();
 
         if let Some(uri) = uris.get(0) {
-            func(uri.to_string());
+            action_function(uri.to_string());
         }
     });
 }
@@ -239,7 +239,7 @@ fn main_window(app_window: &ApplicationWindow,
         stdout: stdout_buffer,
         stderr: stderr_buffer,
         compile_flow_menu,
-        run_manifest_menu,
+        run_manifest_menu
     }
 }
 
@@ -301,16 +301,3 @@ fn main() -> Result<(), String> {
 
     Ok(())
 }
-
-// TODO Read flow lib path from env and add it as a setting with a dialog to edit it.
-
-// load a flow definition
-//    let flow_lib_path = get_flow_lib_path(&document).map_err(|e| JsValue::from_str(&e.to_string()))?;
-//    let flow = load_flow(&provider, "file:://Users/andrew/workspace/flow/flowide/src/hello_world.toml")
-//        .map_err(|e| JsValue::from_str(&e.to_string()))?;
-
-// compile to manifest
-//    manifest = compile(&flow, true, "/Users/andrew/workflow/flow")
-//        .map_err(|e| JsValue::from_str(&e.to_string()))?;
-
-// or load a manifest from file
