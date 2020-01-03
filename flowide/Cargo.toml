@@ -13,6 +13,7 @@ flowclib = {path = "../flowclib"}
 flowrlib = {path = "../flowrlib"}
 flow_impl = "=0.8.3"
 toml = "0.4"
+url = "~2.1"
 serde_json = "1.0"
 runtime = { path = "../runtime" }
 provider = { path = "../provider" }

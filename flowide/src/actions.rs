@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use gtk::{TextBufferExt, WidgetExt};
 use toml;
+use url::Url;
 
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
@@ -11,7 +12,7 @@ use flowclib::model::process::Process::FlowProcess;
 use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::lib_manifest::LibraryManifest;
 use flowrlib::loader::Loader;
-use flowrlib::manifest::Manifest;
+use flowrlib::manifest::{DEFAULT_MANIFEST_FILENAME, Manifest};
 use flowrlib::provider::Provider;
 use provider::content::provider::MetaProvider;
 
@@ -20,24 +21,32 @@ use crate::message;
 use crate::UICONTEXT;
 use crate::widgets;
 
+fn manifest_url(flow_url_str: &str) -> String {
+    let flow_url = Url::parse(&flow_url_str).unwrap();
+    flow_url.join(DEFAULT_MANIFEST_FILENAME).unwrap().to_string()
+}
+
 pub fn compile_flow() {
     std::thread::spawn(move || {
         match UICONTEXT.try_lock() {
             Ok(ref mut context) => {
-                match &context.flow {
-                    Some(ref flow) => {
+                match (&context.flow, &context.flow_url) {
+                    (Some(ref flow), Some(ref flow_url_str)) => {
                         let flow_clone = flow.clone();
+                        let flow_url_clone = flow_url_str.clone();
+                        message("Compiling flow");
                         let tables = compile::compile(&flow_clone).expect("Could not compile flow");
 
                         //                        info!("==== Compiler phase: Compiling provided implementations");
                         //                        compile_supplied_implementations(&mut tables, provided_implementations, release)?;
 
-                        let manifest_dir = std::env::current_dir().unwrap(); // TODO
-                        let manifest_dir_string = manifest_dir.as_path().to_string_lossy();
-                        match generate::create_manifest(&flow, true, &manifest_dir_string, &tables) {
+                        match generate::create_manifest(&flow, true, &flow_url_clone, &tables) {
                             Ok(manifest) => {
                                 set_manifest(&manifest);
                                 context.manifest = Some(manifest);
+                                let manifest_url_str = manifest_url(&flow_url_clone);
+                                message(&format!("Manifest url set to '{}'", manifest_url_str));
+                                context.manifest_url = Some(manifest_url_str);
                             }
                             Err(e) => message(&e.to_string())
                         }
@@ -60,16 +69,16 @@ fn load_flow_from_url(url: &str) -> Result<Flow, String> {
     }
 }
 
-pub fn open_flow(uri: String) {
+pub fn open_flow(url: String) {
     std::thread::spawn(move || {
-        match load_flow_from_url(&uri) {
+        match load_flow_from_url(&url) {
             Ok(flow) => {
                 match toml::Value::try_from(&flow) {
                     Ok(flow_content) => {
                         match UICONTEXT.try_lock() {
                             Ok(mut context) => {
                                 context.flow = Some(flow);
-
+                                context.flow_url = Some(url);
                                 widgets::do_in_gtk_eventloop(|refs| {
                                     refs.compile_flow_menu().set_sensitive(true);
                                     refs.flow_buffer().set_text(&flow_content.to_string());
@@ -94,16 +103,17 @@ fn set_manifest(manifest: &Manifest) {
     });
 }
 
-pub fn open_manifest(uri: String) {
+pub fn open_manifest(url: String) {
     std::thread::spawn(move || {
         let provider = MetaProvider {};
-        match Manifest::load(&provider, &uri) {
+        match Manifest::load(&provider, &url) {
             Ok(manifest) => {
                 set_manifest(&manifest);
 
                 match UICONTEXT.try_lock() {
                     Ok(mut context) => {
                         context.manifest = Some(manifest);
+                        context.manifest_url = Some(url);
                     }
                     Err(_) => message("Could not lock UI Context")
                 }
@@ -123,7 +133,7 @@ fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, runtime_manife
     Ok("Added the 'runtime' and 'flowstdlibs'".to_string())
 }
 
-fn load_manifest(manifest: &mut Manifest) {
+fn load_manifest(manifest: &mut Manifest, manifest_url: &str) {
     let mut loader = Loader::new();
     let provider = MetaProvider {};
 
@@ -139,12 +149,8 @@ fn load_manifest(manifest: &mut Manifest) {
     // load any other libraries the flow references - these will be loaded as WASM
     loader.load_libraries(&provider, &manifest).unwrap(); // TODO
 
-    // 'root_dir' is where any relative file paths will be anchored
-    let root_dir = std::env::current_dir().unwrap(); // TODO
-    let root_dir_string = root_dir.as_path().to_string_lossy();
-
     // Find the implementations for all functions in this flow
-    loader.resolve_implementations(manifest, &provider, &root_dir_string).unwrap();
+    loader.resolve_implementations(manifest, &provider, manifest_url).unwrap();
     // TODO
 }
 
@@ -152,10 +158,10 @@ pub fn run_manifest() {
     std::thread::spawn(move || {
         match UICONTEXT.try_lock() {
             Ok(ref mut context) => {
-                match &context.manifest {
-                    Some(manifest) => {
+                match (&context.manifest, &context.manifest_url) {
+                    (Some(manifest), Some(manifest_url)) => {
                         let mut manifest_clone: Manifest = manifest.clone();
-                        load_manifest(&mut manifest_clone); // TODO
+                        load_manifest(&mut manifest_clone, manifest_url); // TODO
                         let submission = Submission::new(manifest_clone, 1, false, None);
                         let mut coordinator = Coordinator::new(1);
                         coordinator.submit(submission);
