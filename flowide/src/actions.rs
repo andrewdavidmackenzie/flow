@@ -133,11 +133,13 @@ fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, runtime_manife
     Ok("Added the 'runtime' and 'flowstdlibs'".to_string())
 }
 
-fn load_manifest(manifest: &mut Manifest, manifest_url: &str) {
+fn load_manifest(manifest: &mut Manifest, manifest_url: &str, arg: Vec<String>) {
     let mut loader = Loader::new();
     let provider = MetaProvider {};
 
-    let runtime_client = Arc::new(Mutex::new(IDERuntimeClient));
+    let mut ide_runtime_client = IDERuntimeClient::new();
+    ide_runtime_client.set_args(arg);
+    let runtime_client = Arc::new(Mutex::new(ide_runtime_client));
     let runtime_manifest = runtime::manifest::create_runtime(runtime_client);
 
     // Load the 'runtime' library provided by the IDE and the 'flowstdlib' libraries
@@ -161,7 +163,7 @@ pub fn run_manifest() {
                 match (&context.manifest, &context.manifest_url) {
                     (Some(manifest), Some(manifest_url)) => {
                         let mut manifest_clone: Manifest = manifest.clone();
-                        load_manifest(&mut manifest_clone, manifest_url); // TODO
+                        load_manifest(&mut manifest_clone, manifest_url, vec!());
                         let submission = Submission::new(manifest_clone, 1, false, None);
                         let mut coordinator = Coordinator::new(1);
                         coordinator.submit(submission);

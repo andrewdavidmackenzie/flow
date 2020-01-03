@@ -7,7 +7,19 @@ use runtime::runtime_client::{Command, Response, RuntimeClient};
 
 use crate::widgets;
 
-pub struct IDERuntimeClient;
+pub struct IDERuntimeClient {
+    args: Vec<String>
+}
+
+impl IDERuntimeClient {
+    pub fn new() -> Self {
+        IDERuntimeClient{args: vec!()}
+    }
+
+    pub fn set_args(&mut self, args: Vec<String>) {
+        self.args = args;
+    }
+}
 
 impl RuntimeClient for IDERuntimeClient {
     fn init(&self) {}
@@ -35,11 +47,7 @@ impl RuntimeClient for IDERuntimeClient {
                 Response::Stdin("bla bla".to_string())  // TODO
             }
             Command::Args => {
-//                let (start, end) = runtime_context.args.get_bounds();
-//                let arg_string = runtime_context.args.get_text(&start, &end, false).unwrap().to_string();
-//                let args: Vec<String> = arg_string.split(' ').map(|s| s.to_string()).collect();
-//                Response::Args(args)
-                Response::Args(vec!("yes".to_string()))
+                Response::Args(self.args.clone())
             }
             Command::Write(filename, bytes) => {
                 let mut file = File::create(filename).unwrap();

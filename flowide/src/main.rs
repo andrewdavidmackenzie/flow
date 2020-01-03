@@ -210,6 +210,12 @@ fn manifest_viewer() -> (ScrolledWindow, TextBuffer) {
     (scroll, view.get_buffer().unwrap())
 }
 
+
+//                let (start, end) = runtime_context.args.get_bounds();
+//                let arg_string = runtime_context.args.get_text(&start, &end, false).unwrap().to_string();
+//                let args: Vec<String> = arg_string.split(' ').map(|s| s.to_string()).collect();
+//                Response::Args(args)
+
 fn main_window(app_window: &ApplicationWindow,
                accelerator_group: AccelGroup,
                compile_flow_menu: MenuItem,
