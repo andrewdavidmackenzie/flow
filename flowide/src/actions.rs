@@ -156,14 +156,14 @@ fn load_manifest(manifest: &mut Manifest, manifest_url: &str, arg: Vec<String>) 
     // TODO
 }
 
-pub fn run_manifest() {
+pub fn run_manifest(args: Vec<String>) {
     std::thread::spawn(move || {
         match UICONTEXT.try_lock() {
             Ok(ref mut context) => {
                 match (&context.manifest, &context.manifest_url) {
                     (Some(manifest), Some(manifest_url)) => {
                         let mut manifest_clone: Manifest = manifest.clone();
-                        load_manifest(&mut manifest_clone, manifest_url, vec!());
+                        load_manifest(&mut manifest_clone, manifest_url, args);
                         let submission = Submission::new(manifest_clone, 1, false, None);
                         let mut coordinator = Coordinator::new(1);
                         coordinator.submit(submission);

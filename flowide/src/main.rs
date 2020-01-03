@@ -111,7 +111,8 @@ fn open_action<F: 'static>(window: &ApplicationWindow, open: &MenuItem, action_f
 
 fn run_action(run: &MenuItem) {
     run.connect_activate(move |_| {
-        actions::run_manifest();
+        // TODO open a dialog to get the args to pass to the flow being run
+        actions::run_manifest(vec!());
     });
 }
 
