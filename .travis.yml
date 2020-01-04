@@ -28,7 +28,6 @@ addons:
       - gcc
       - binutils-dev
       - libiberty-dev
-      - libglib2.0-dev
       - libgtk-3-dev
     update: true
   homebrew:
