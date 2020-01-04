@@ -41,7 +41,6 @@ travis-config:
 config-darwin:
 	$(STIME)
 	brew install gtk+3
-	brew info glib
 	$(ETIME)
 
 config-linux:
