@@ -1,5 +1,5 @@
 language: rust
-dist: xenial
+dist: bionic
 
 before_cache:
   - brew cleanup
