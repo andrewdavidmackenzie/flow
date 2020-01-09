@@ -22,12 +22,12 @@ log = "0.4.6"
 gtk-fnonce-on-eventloop = {git = "https://github.com/andrewdavidmackenzie/gtk-rs-state" }
 lazy_static = "*"
 
-gdk-pixbuf = "0.7.0"
+gdk-pixbuf = "0.8.0"
 
 [dependencies.gtk]
-version = "0.7.0"
+version = "0.8.0"
 features = ["v3_16"]
 
 [dependencies.gio]
-version = "0.7.0"
+version = "0.8.0"
 features = ["v2_44"]
