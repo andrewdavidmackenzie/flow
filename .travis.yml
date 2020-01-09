@@ -43,7 +43,7 @@ before_install:
 - make travis-config
 - export PATH="$PATH:~/.cargo/bin"
 
-script: GTK=3.16 make all
+script: make all
 
 env:
   global:
