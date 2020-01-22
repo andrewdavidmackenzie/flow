@@ -146,6 +146,8 @@ upload-coverage:
 	bash <(curl -s https://codecov.io/bash)
 
 #################### LIBRARIES ####################
+flowstdlib: flowstdlib/manifest.json
+
 flowstdlib/manifest.json: $(FLOWSTDLIB_FILES)
 	@mkdir -p target;date '+%s' > target/.flowstdlibtime ; echo \\n------- Target \'$@\' starting
 	@cargo run -p flowc -- -v info -l flowstdlib
