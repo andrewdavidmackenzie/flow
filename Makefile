@@ -180,7 +180,7 @@ samples: flowrunner flowstdlib/manifest.json
 samples/%/test.output: samples/%/test.input samples/%/test.arguments
 # remove error messages with file path from output messages to make local output match travis output
 	@printf "\tSample '$(@D)'"
-	@RUST_BACKTRACE=1 cat $< | cargo run --quiet -p flowc -- -g -d $(@D) -- `cat $(@D)/test.arguments` | grep -v "Running" | grep -v "Finished dev" 2> $(@D)/test.err > $@; true
+	@RUST_BACKTRACE=1 cat $< | cargo run --quiet -p flowc -- -g -d $(@D) -- `cat $(@D)/test.arguments` 2> $(@D)/test.err > $@
 	@diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && exit $$ret)
 	@printf " output matches expected.output\n"
 	@rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time
