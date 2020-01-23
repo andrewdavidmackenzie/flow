@@ -41,8 +41,7 @@ pub mod debug_client;
 #[doc(hidden)]
 pub mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
-    error_chain! {
-    }
+    error_chain! {}
 }
 
 #[cfg(feature = "debugger")]

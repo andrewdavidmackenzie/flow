@@ -22,9 +22,13 @@ pub fn start_executors(number_of_executors: usize,
 }
 
 pub fn get_and_execute_job(job_rx: &Arc<Mutex<Receiver<Job>>>,
-                           output_tx: &Sender<Output>) -> Result<()> {
-    let job = job_rx.lock().unwrap().recv().chain_err(|| "Error while receiving job for execution")?;
-    execute(job, output_tx)
+                           output_tx: &Sender<Output>) -> Result<String> {
+    // TODO write a convert method so I can chain this error too?
+    let guard = job_rx.lock().map_err(|e| e.to_string())?;
+    match guard.recv() {
+        Ok(job) => execute(job, output_tx),
+        Err(_) => Ok("Probably channel closure".into())
+    }
 }
 
 fn create_executor(name: String, job_rx: Arc<Mutex<Receiver<Job>>>, output_tx: Sender<Output>) {
@@ -33,12 +37,12 @@ fn create_executor(name: String, job_rx: Arc<Mutex<Receiver<Job>>>, output_tx: S
         set_panic_hook();
 
         loop {
-            get_and_execute_job(&job_rx, &output_tx).unwrap();
+            let _ = get_and_execute_job(&job_rx, &output_tx);
         }
     });
 }
 
-fn execute(job: Job, output_tx: &Sender<Output>) -> Result<()> {
+fn execute(job: Job, output_tx: &Sender<Output>) -> Result<String> {
     // Run the implementation with the input values and catch the execution result
     let (result, error) = match panic::catch_unwind(|| {
         job.implementation.run(job.input_set.clone())
@@ -58,7 +62,7 @@ fn execute(job: Job, output_tx: &Sender<Output>) -> Result<()> {
 
     output_tx.send(output).unwrap();
 
-    Ok(())
+    Ok("Job Executed".into())
 }
 
 /*
@@ -67,8 +71,14 @@ fn execute(job: Job, output_tx: &Sender<Output>) -> Result<()> {
 */
 pub fn set_panic_hook() {
     panic::set_hook(Box::new(|panic_info| {
+        /* Only available on 'nightly'
+        if let Some(message) = panic_info.message() {
+            error!("Message: {:?}", message);
+        }
+        */
+
         if let Some(location) = panic_info.location() {
-            error!("panic occurred in file '{}' at line {}", location.file(), location.line());
+            error!("Panic in file '{}' at line {}", location.file(), location.line());
         }
     }));
 }
