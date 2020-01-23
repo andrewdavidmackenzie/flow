@@ -177,10 +177,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .setting(AppSettings::TrailingVarArg)
         .version(env!("CARGO_PKG_VERSION"));
 
-    let app = app.arg(Arg::with_name("flow-manifest")
-        .help("the name of the 'flow' manifest file")
-        .required(true)
-        .index(1))
+    let app = app
         .arg(Arg::with_name("debugger")
             .short("d")
             .long("debugger")
@@ -207,9 +204,13 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .takes_value(true)
             .value_name("VERBOSITY_LEVEL")
             .help("Set verbosity level for output (trace, debug, info, warn, error (default))"))
+        .arg(Arg::with_name("flow-manifest")
+            .help("the file path of the 'flow' manifest file")
+            .required(true)
+            .index(1))
         .arg(Arg::with_name("flow-arguments")
             .multiple(true)
-            .help("A list of arguments to pass to the flow when executed. Preceed this list with a '-'"));
+            .help("A list of arguments to pass to the flow when executed."));
 
     #[cfg(feature = "native")]
         let app = app.arg(Arg::with_name("native")
@@ -224,15 +225,15 @@ fn get_matches<'a>() -> ArgMatches<'a> {
     Parse the command line arguments passed onto the flow itself
 */
 fn parse_args(matches: &ArgMatches) -> Result<Url> {
-// Set anvironment variable with the args
-// this will not be unique, but it will be used very soon and removed
-    if let Some(flow_args) = matches.values_of("flow-arguments") {
-        let mut args: Vec<&str> = flow_args.collect();
-// arg #0 is the flow/package name
-// TODO fix this to be the name of the flow, not 'flowr'
-        args.insert(0, env!("CARGO_PKG_NAME"));
-        env::set_var(FLOW_ARGS_NAME, args.join(" "));
-        debug!("Setup '{}' with values = '{:?}'", FLOW_ARGS_NAME, args);
+    // Set anvironment variable with the args
+    // this will not be unique, but it will be used very soon and removed
+    if let Some(fargs) = matches.values_of("flow-arguments") {
+        let mut flow_args: Vec<&str> = fargs.collect();
+        // arg #0 is the flow/package name
+        // TODO fix this to be the name of the flow, not 'flowr'
+        flow_args.insert(0, env!("CARGO_PKG_NAME"));
+        env::set_var(FLOW_ARGS_NAME, flow_args.join(" "));
+        debug!("Setup '{}' with values = '{:?}'", FLOW_ARGS_NAME, flow_args);
     }
 
     SimpleLogger::init(matches.value_of("verbosity"));

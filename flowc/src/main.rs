@@ -141,6 +141,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .required(false)
             .index(1))
         .arg(Arg::with_name("flow_args")
+            .help("Arguments that will get passed onto the flow if it is executed")
             .multiple(true))
         .get_matches()
 }
