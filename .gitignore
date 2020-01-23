@@ -7,6 +7,12 @@ dependencies.png
 failed.output
 target
 cov
-Cargo.lock
+flow_impl/Cargo.lock
+flow_impl_derive/Cargo.lock
+flowclib/Cargo.lock
+flowrlib/Cargo.lock
+flowstdlib/Cargo.lock
+provider/Cargo.lock
+run/Cargo.lock
 .crates.toml
 bin
