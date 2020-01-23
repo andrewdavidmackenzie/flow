@@ -75,7 +75,7 @@ fn main() {
     a message to display to the user if all went OK
 */
 fn run() -> Result<String> {
-    let (lib, url, args, dump, skip_generation, debug_symbols,
+    let (lib, url, flow_args, dump, skip_generation, debug_symbols,
         provided_implementations, base_dir, release)
         = parse_args(get_matches())?;
 
@@ -85,7 +85,7 @@ fn run() -> Result<String> {
         build_lib(url, provided_implementations, base_dir, provider, release)
             .expect("Could not build library");
     } else {
-        compile_flow(url, args, dump, skip_generation, debug_symbols, provided_implementations, base_dir, provider, release)
+        compile_flow(url, flow_args, dump, skip_generation, debug_symbols, provided_implementations, base_dir, provider, release)
             .expect("Could not compile flow");
     }
 
@@ -149,9 +149,9 @@ fn get_matches<'a>() -> ArgMatches<'a> {
     Parse the command line arguments
 */
 fn parse_args(matches: ArgMatches) -> Result<(bool, Url, Vec<String>, bool, bool, bool, bool, PathBuf, bool)> {
-    let mut args: Vec<String> = vec!();
-    if let Some(flow_args) = matches.values_of("flow_args") {
-        args = flow_args.map(|a| a.to_string()).collect();
+    let mut flow_args: Vec<String> = vec!();
+    if let Some(fargs) = matches.values_of("flow_args") {
+        flow_args = fargs.map(|a| a.to_string()).collect();
     }
 
     SimpleLogger::init_prefix(matches.value_of("verbosity"), false);
@@ -172,5 +172,5 @@ fn parse_args(matches: ArgMatches) -> Result<(bool, Url, Vec<String>, bool, bool
     let output_dir = source_arg::get_output_dir(&url, out_dir_option)
         .chain_err(|| "Could not get or create the output directory")?;
 
-    Ok((lib, url, args, dump, skip_generation, debug_symbols, provided_implementations, output_dir, release))
+    Ok((lib, url, flow_args, dump, skip_generation, debug_symbols, provided_implementations, output_dir, release))
 }
