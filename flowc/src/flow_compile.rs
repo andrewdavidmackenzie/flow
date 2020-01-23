@@ -27,7 +27,7 @@ use crate::errors::*;
 /*
     Compile a flow, maybe run it
 */
-pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool,
+pub fn compile_flow(url: Url, flow_args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool,
                     provided_implementations: bool, out_dir: PathBuf, provider: &dyn Provider, release: bool)
                     -> Result<String> {
     info!("==== Compiler phase: Loading flow");
@@ -57,7 +57,7 @@ pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bo
                 .chain_err(|| "Failed to write manifest")?;
 
             info!("==== Compiler phase: Executing flow from manifest");
-            execute_flow(manifest_path, args)
+            execute_flow(manifest_path, flow_args)
         }
         _ => bail!("Process loaded was not of type 'Flow' and cannot be executed")
     }
@@ -137,18 +137,18 @@ fn find_executable_path(name: &str) -> Result<String> {
     If the process exits correctly then just return an Ok() with message and no log
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
-fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String> {
+fn execute_flow(filepath: PathBuf, mut flow_args: Vec<String>) -> Result<String> {
     info!("Executing flow from manifest in '{}'", filepath.display());
 
     let command = find_executable_path(&get_executable_name())?;
     let mut command_args = vec!(filepath.to_str().unwrap().to_string(),
                                 "-n".to_string());
-    command_args.append(&mut args);
+    command_args.append(&mut flow_args);
     debug!("Running flow using '{} {:?}'", &command, &command_args);
     let output = Command::new(&command).args(command_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::inherit())
         .output().chain_err(|| "Error while attempting to spawn command to compile and run flow")?;
     match output.status.code() {
         Some(0) => Ok("Flow ran to completion".to_string()),
