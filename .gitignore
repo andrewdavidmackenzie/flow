@@ -14,5 +14,6 @@ flowrlib/Cargo.lock
 flowstdlib/Cargo.lock
 provider/Cargo.lock
 run/Cargo.lock
+samples/**/Cargo.lock
 .crates.toml
 bin
