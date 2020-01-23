@@ -12,12 +12,13 @@ extern crate error_chain;
 use std::path::PathBuf;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
-use flowclib::info;
 use log::debug;
-use provider::args::url_from_string;
-use provider::content::provider::MetaProvider;
 use simplog::simplog::SimpleLogger;
 use url::Url;
+
+use flowclib::info;
+use provider::args::url_from_string;
+use provider::content::provider::MetaProvider;
 
 use crate::flow_compile::compile_flow;
 use crate::lib_build::build_lib;
