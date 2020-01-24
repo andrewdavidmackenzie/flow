@@ -44,7 +44,7 @@ config-darwin:
 
 config-linux:
 	$(STIME)
-	sudo apt-get -y install libgtk-3-dev=3.22.24 libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev \
+	sudo apt-get -y install libgtk-3-dev libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev \
 	cmake gcc binutils-dev libiberty-dev libgtk-3-dev
 	$(ETIME)
 
