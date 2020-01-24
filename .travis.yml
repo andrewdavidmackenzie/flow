@@ -22,6 +22,11 @@ branches:
   only:
     - "master"
 
+addons:
+  apt:
+    packages:
+      - libgtk-3-dev
+
 before_install:
 - make config
 
