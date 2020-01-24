@@ -10,20 +10,16 @@ cache:
     - bin
     - $HOME/Library/Caches/Homebrew
 
-rust:
-- stable
-
 sudo: required
 
 matrix:
   include:
   - os: linux
     rust: stable
-    env: GTK=3.24 FEATURES=v3_16 # same as gdk travis
-    #    env: GTK=3.24 FEATURES=v3_16
+    env: GTK=3.24 FEATURES=v3_16
   - os: osx
     rust: stable
-    env: GTK=3.14 FEATURES=
+    env: GTK=3.24 FEATURES=v3_16
 
 branches:
   only:
@@ -51,7 +47,9 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew unlink python@2; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libffi gtk+3 cairo atk; fi
 
-script: make all
+script:
+  - rustc --version
+  - make all
 
 env:
   global:
