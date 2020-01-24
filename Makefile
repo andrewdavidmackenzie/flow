@@ -182,8 +182,9 @@ samples/%/test.output: samples/%/test.input samples/%/test.arguments
 	@printf "\tSample '$(@D)'"
 	@RUST_BACKTRACE=1 cat $< | cargo run --quiet -p flowc -- -g -d $(@D) -- `cat $(@D)/test.arguments` 2> $(@D)/test.err > $@
 	@diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && exit $$ret)
-	@printf " output matches expected.output\n"
+	@if [ -s $(@D)/test.err ]; then (printf " has error output in $(@D)/test.err\n"; exit -1); else printf " has no errors\n"; fi;
 	@rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time
+# leave test.err for inspection in case of failure
 
 ################# ONLINE SAMPLES ################
 online-samples:
