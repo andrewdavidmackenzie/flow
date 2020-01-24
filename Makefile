@@ -44,7 +44,7 @@ config-darwin:
 
 config-linux:
 	$(STIME)
-	sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev lib-gtk-3 lib-gdk-3
+	sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev libgtk-3 libgdk-3
 	$(ETIME)
 
 ################### Coverage ####################
