@@ -8,7 +8,7 @@ UNAME := $(shell uname)
 all:
 	$(STIME)
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig"
-	@$(MAKE) workspace test docs
+	@GTK=3.22 $(MAKE) workspace test docs
 	$(ETIME)
 
 online := false
@@ -20,31 +20,32 @@ features :=
 endif
 
 ########## Configure Dependencies ############
-config: travis-config
+config:
+	$(STIME)
+	@echo "Detected OS=$(UNAME)"
+	export PATH="$PATH:~/.cargo/bin"
+	rustup target add wasm32-unknown-unknown
+	# cargo install wasm-gc || true
+	# install mdbook for generating guides
+	cargo install mdbook --root . --git https://github.com/andrewdavidmackenzie/mdbook || true
+	#cargo install mdbook-linkcheck --root . || true
 ifeq ($(UNAME), Linux)
 	@$(MAKE) config-linux
 endif
 ifeq ($(UNAME), Darwin)
 	@$(MAKE) config-darwin
 endif
-
-travis-config:
-	$(STIME)
-	@echo "Detected OS=$(UNAME)"
-	rustup target add wasm32-unknown-unknown
-	# cargo install wasm-gc || true
-	# install mdbook for generating guides
-	cargo install mdbook --root . --git https://github.com/andrewdavidmackenzie/mdbook || true
-	#cargo install mdbook-linkcheck --root . || true
 	$(ETIME)
 
 config-darwin:
 	$(STIME)
-	brew install gtk+3
+	brew install gtk glib cairo
 	$(ETIME)
 
 config-linux:
 	$(STIME)
+	sudo apt-get -y install libgtk-3-dev=3.22.24 libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev \
+	cmake gcc binutils-dev libiberty-dev libgtk-3-dev
 	$(ETIME)
 
 ################### Coverage ####################
