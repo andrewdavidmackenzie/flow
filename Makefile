@@ -20,15 +20,9 @@ features :=
 endif
 
 ########## Configure Dependencies ############
-config:
+config: common-config
 	$(STIME)
 	@echo "Detected OS=$(UNAME)"
-	export PATH="$PATH:~/.cargo/bin"
-	rustup target add wasm32-unknown-unknown
-	# cargo install wasm-gc || true
-	# install mdbook for generating guides
-	cargo install mdbook --root . --git https://github.com/andrewdavidmackenzie/mdbook || true
-	#cargo install mdbook-linkcheck --root . || true
 ifeq ($(UNAME), Linux)
 	@$(MAKE) config-linux
 endif
@@ -36,6 +30,14 @@ ifeq ($(UNAME), Darwin)
 	@$(MAKE) config-darwin
 endif
 	$(ETIME)
+
+common-config:
+	export PATH="$PATH:~/.cargo/bin"
+	rustup target add wasm32-unknown-unknown
+	# cargo install wasm-gc || true
+	# install mdbook for generating guides
+	cargo install mdbook --root . --git https://github.com/andrewdavidmackenzie/mdbook || true
+	#cargo install mdbook-linkcheck --root . || true
 
 config-darwin:
 	$(STIME)
