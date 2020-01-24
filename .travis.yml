@@ -8,6 +8,7 @@ cache:
   cargo: true
   directories:
     - bin
+    - $HOME/Library/Caches/Homebrew
 
 rust:
 - stable
@@ -18,11 +19,11 @@ matrix:
   include:
   - os: linux
     rust: stable
-    env: GTK=3.22 FEATURES=
+    env: GTK=3.24 FEATURES=v3_16 # same as gdk travis
     #    env: GTK=3.24 FEATURES=v3_16
   - os: osx
     rust: stable
-    env: GTK=3.24 FEATURES=
+    env: GTK=3.14 FEATURES=
 
 branches:
   only:
