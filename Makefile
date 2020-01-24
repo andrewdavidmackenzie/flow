@@ -8,7 +8,7 @@ UNAME := $(shell uname)
 all:
 	$(STIME)
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig"
-	@GTK=3.22 $(MAKE) workspace test docs
+	@$(MAKE) workspace test docs
 	$(ETIME)
 
 online := false

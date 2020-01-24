@@ -14,9 +14,15 @@ rust:
 
 sudo: required
 
-os:
-- osx
-- linux
+matrix:
+  include:
+  - os: linux
+    rust: stable
+    env: GTK=3.22 FEATURES=
+    #    env: GTK=3.24 FEATURES=v3_16
+  - os: osx
+    rust: stable
+    env: GTK=3.22 FEATURES=
 
 branches:
   only:
