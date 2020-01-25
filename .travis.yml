@@ -16,10 +16,10 @@ matrix:
   include:
   - os: linux
     rust: stable
-    env: GTK=3.24 FEATURES=v3_16
+    env: GTK=3.24 FEATURES=v3_22
   - os: osx
     rust: stable
-    env: GTK=3.24 FEATURES=v3_16
+    env: GTK=3.24 FEATURES=v3_22
 
 branches:
   only:
