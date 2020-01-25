@@ -11,7 +11,7 @@ use gtk::{
     FileFilter, Menu, MenuBar, MenuItem, ResponseType, ScrolledWindow, TextBuffer, WidgetExt, WindowPosition,
 };
 use gtk::prelude::*;
-use gtk_fnonce_on_eventloop::gtk_refs;
+use gtk_rs_state::gtk_refs;
 
 use flowclib::deserializers::deserializer_helper;
 use lazy_static::lazy_static;

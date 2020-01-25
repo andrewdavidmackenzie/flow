@@ -19,9 +19,8 @@ runtime = { path = "../runtime" }
 provider = { path = "../provider" }
 flowstdlib = { path = "../flowstdlib", features = [ "native" ] }
 log = "0.4.6"
-gtk-fnonce-on-eventloop = {git = "https://github.com/andrewdavidmackenzie/gtk-rs-state" }
-lazy_static = "*"
-
+lazy_static = "1"
+gtk-rs-state = "0.3"
 cairo-rs = "0.8"
 gdk = "0.12"
 gdk-pixbuf = "0.8"
