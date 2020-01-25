@@ -16,10 +16,8 @@ matrix:
   include:
   - os: linux
     rust: stable
-    env: GTK=3.24 FEATURES=v3_22
   - os: osx
     rust: stable
-#    env: GTK=3.24 FEATURES=v3_22
 
 branches:
   only:
@@ -34,12 +32,6 @@ addons:
       - libdw-dev
       - libssl-dev
       - binutils-dev
-  homebrew:
-    packages:
-      - libffi
-      - gtk+3
-      - cairo
-      - atk
 
 before_install:
   - make common-config
