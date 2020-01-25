@@ -332,16 +332,20 @@ dependencies = [
 name = "flowide"
 version = "0.1.0"
 dependencies = [
+ "cairo-rs 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "flow_impl 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "flowclib 0.8.2",
  "flowrlib 0.8.2",
  "flowstdlib 0.8.2",
+ "gdk 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gdk-pixbuf 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gio 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glib 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtk 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtk-fnonce-on-eventloop 0.2.1 (git+https://github.com/andrewdavidmackenzie/gtk-rs-state)",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pango 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "provider 0.8.3",
  "runtime 0.8.2",
  "serde_json 1.0.44 (registry+https://github.com/rust-lang/crates.io-index)",
