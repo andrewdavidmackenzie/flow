@@ -8,6 +8,12 @@ UNAME := $(shell uname)
 all:
 	$(STIME)
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig"
+	@$(MAKE) travis
+	@$(MAKE) flowide
+	$(ETIME)
+
+travis:
+	$(STIME)
 	@$(MAKE) workspace test docs
 	$(ETIME)
 
@@ -109,6 +115,11 @@ deploy: build_guide
 	$(ETIME)
 
 #################### Build ####################
+flowide:
+	$(STIME)
+	@cargo build --manifest-path=flowide/Cargo.toml
+	$(ETIME)
+
 workspace:
 	$(STIME)
 	@cargo build $(features) --all
