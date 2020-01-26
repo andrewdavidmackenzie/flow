@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use flowrlib::input::InputInitializer;
+use serde_derive::{Deserialize, Serialize};
 
 use crate::compiler::loader::Validate;
 use crate::errors::*;
@@ -61,6 +62,7 @@ mod test {
     use flowrlib::input::ConstantInputInitializer;
     use flowrlib::input::InputInitializer;
     use flowrlib::input::InputInitializer::{Constant, OneTime};
+    use serde_json::json;
 
     use crate::model::function::Function;
     use crate::model::name::Name;

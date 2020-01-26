@@ -8,11 +8,10 @@ documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
 homepage = "http://andrewdavidmackenzie.github.io/flow/"
 repository = "https://github.com/andrewdavidmackenzie/flow/"
 readme = "README.md"
-
 edition = "2018"
 
 [dependencies]
-flowrlib = "=0.8.2"
+flowrlib = { path = "../flowrlib" }
 log = "0.4.6"
 url = "~2.1"
 tempdir = "~0.3.5"

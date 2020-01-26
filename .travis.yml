@@ -1,52 +1,46 @@
 language: rust
-dist: trusty
-
-before_cache:
-  - brew cleanup
+dist: bionic
 
 cache:
   cargo: true
   directories:
     - bin
 
-rust:
-- stable
-
-sudo: required
-
-os:
-- osx
-- linux
-
-addons:
-  apt:
-    packages:
-      - libcurl4-openssl-dev
-      - libelf-dev
-      - libdw-dev
-      - cmake
-      - gcc
-      - binutils-dev
-      - libiberty-dev
-      - libgtk-3-dev
-  homebrew:
-    packages:
-      - gtk+3
-      - cairo
+matrix:
+  include:
+  - os: linux
+    rust: stable
+  - os: osx
+    rust: stable
 
 branches:
   only:
     - "master"
 
-before_install:
-- make travis-config
-- export PATH="$PATH:~/.cargo/bin"
+addons:
+  apt:
+    packages:
+      - libgtk-3-dev
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+      - libssl-dev
+      - binutils-dev
 
-script: GTK=3.14 make all
+before_install:
+  - make common-config
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew unlink python@2; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gtk+3 cairo atk; fi
+
+script:
+  - rustc --version
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cargo build --manifest-path=flowide/Cargo.toml; fi
+  - make all
 
 env:
   global:
-  - RUSTFLAGS="-C link-dead-code" FLOW_LIB_PATH=$TRAVIS_BUILD_DIR
+  - FLOW_LIB_PATH=$TRAVIS_BUILD_DIR
   matrix:
     secure: pFjhnkemEkZQd3kVvR5alXYhJ4gzHW59pA3FOy4SwUavTFphiDHU+ERMR3bw9uqHANeey3WZLrYH9x7sEwVbH6/nNxnEiTrRZDK/DJrHaOCczH6sU7yNYc+mjtNR/B8b1zA/WMNehIZJivz88bkl0qXheLdmxofN9776RSRK/ER5SdGpOos1rMCHzz7TtUFxAvUV4klf826hZKb3PLuqKBjv0AqmUHrqFrm93nXFpIz7+LSAG5umWYyTCXBIR30mW7iJdjMwCMe/Js4qlXHs9sUPVD/2ipKPKXI8jn8QzEV2zw93tKVZJQqYGMzKeSoxfzIap3Uql8woQnaJs6W8H3JIv47KNvYWI1uDnIbwPPPDdltcV5XCQUUnHT9itvxX5vYNa3p8BO0PHolqmI8TftmRQNhsFdNmp7FF/3Gi34Nif95FGO2K8zMMk0ReKqMYpqYT51Ci3NHXDOGzletwj3fyIcW02PinSMbLzNj5pUN2KKV1qPKsHeGcwnH9XrQKUoLktZS7cPnpRMb0g3QeAjzMnsy4caRLvY58dHxgBuDijZZm45vG/tXQ59BpAJrYk62VGcCNaTR1BRQR626H83aK2Flc6hOZkbjWzXqZXinRq9JODz5LOArhvwIBzOyc+1mIQcjrD07Zqte1/2fHB8F3gtuXpEhkGYg/8Hy9xfY=
 

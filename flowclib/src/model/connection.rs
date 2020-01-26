@@ -1,12 +1,14 @@
 use std::fmt;
 
+use serde_derive::{Deserialize, Serialize};
+
 use crate::compiler::loader::Validate;
+use crate::errors::*;
 use crate::model::datatype::TypeCheck;
 use crate::model::io::IO;
 use crate::model::name::Name;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
-use crate::errors::*;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -17,11 +19,11 @@ pub struct Connection {
     pub to: Route,
 
     // TODO make these references, not clones
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub from_io: IO,
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub to_io: IO,
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub level: usize,
 }
 

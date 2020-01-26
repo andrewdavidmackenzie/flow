@@ -1,5 +1,8 @@
 use std::fmt;
 
+use error_chain::bail;
+use serde_derive::{Deserialize, Serialize};
+
 use crate::compiler::loader::Validate;
 use crate::errors::*;
 use crate::model::io::{IO, IOType};
@@ -203,6 +206,8 @@ impl Function {
 
 #[cfg(test)]
 mod test {
+    use toml;
+
     use crate::compiler::loader::Validate;
     use crate::model::datatype::DataType;
     use crate::model::io::Find;
@@ -212,7 +217,6 @@ mod test {
     use crate::model::route::HasRoute;
     use crate::model::route::Route;
     use crate::model::route::SetRoute;
-    use crate::toml;
 
     use super::Function;
 

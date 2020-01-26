@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use flowrlib::input::InputInitializer;
 use flowrlib::provider::Provider;
 use flowrlib::url;
+use log::{debug, info};
 
 use crate::deserializers::deserializer_helper::get_deserializer;
 use crate::errors::*;
@@ -35,10 +36,6 @@ pub trait Validate {
 ///
 /// # Example
 /// ```
-/// extern crate url;
-/// extern crate flowclib;
-/// extern crate flowrlib;
-///
 /// use flowrlib::provider::Provider;
 /// use flowrlib::errors::*;
 /// use std::env;
@@ -156,8 +153,9 @@ fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &
 
 #[cfg(test)]
 mod test {
+    use toml;
+
     use crate::model::library::Library;
-    use crate::toml;
 
     #[test]
     fn deserialize_library() {

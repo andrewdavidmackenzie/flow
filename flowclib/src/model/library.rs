@@ -1,3 +1,5 @@
+use serde_derive::{Deserialize, Serialize};
+
 use crate::compiler::loader::Validate;
 use crate::errors::*;
 use crate::model::name::Name;

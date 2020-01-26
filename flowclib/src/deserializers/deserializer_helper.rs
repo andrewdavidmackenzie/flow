@@ -8,7 +8,7 @@ const TOML: &dyn Deserializer = &FlowTomelLoader as &dyn Deserializer;
 const YAML: &dyn Deserializer = &FlowYamlLoader as &dyn Deserializer;
 const JSON: &dyn Deserializer = &FlowJsonLoader as &dyn Deserializer;
 
-pub const ACCEPTED_EXTENSIONS: &'static [&'static str] = &["toml", "yaml", "json"];
+pub const ACCEPTED_EXTENSIONS: &'static [&'static str] = &["toml", "yaml", "json", "yml"];
 
 pub fn get_deserializer(url: &str) -> Result<&'static dyn Deserializer, String> {
     match get_file_extension(url) {
@@ -23,6 +23,10 @@ pub fn get_deserializer(url: &str) -> Result<&'static dyn Deserializer, String> 
         Err(e) => Err(format!("Cannot determine which loader to use ({})", e.to_string())
         )
     }
+}
+
+pub fn get_accepted_extensions() -> &'static [&'static str] {
+    ACCEPTED_EXTENSIONS
 }
 
 fn get_file_extension(url: &str) -> Result<String, String> {

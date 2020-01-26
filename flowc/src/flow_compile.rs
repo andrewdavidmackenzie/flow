@@ -5,6 +5,11 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 
+use log::{debug, error, info};
+use simpath::FileType;
+use simpath::Simpath;
+use url::Url;
+
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowclib::dumper::dump_flow;
@@ -15,9 +20,6 @@ use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
 use flowrlib::manifest::DEFAULT_MANIFEST_FILENAME;
 use flowrlib::provider::Provider;
-use simpath::FileType;
-use simpath::Simpath;
-use url::Url;
 
 use crate::compile_wasm;
 use crate::errors::*;
@@ -25,7 +27,7 @@ use crate::errors::*;
 /*
     Compile a flow, maybe run it
 */
-pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool,
+pub fn compile_flow(url: Url, flow_args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool,
                     provided_implementations: bool, out_dir: PathBuf, provider: &dyn Provider, release: bool)
                     -> Result<String> {
     info!("==== Compiler phase: Loading flow");
@@ -33,6 +35,9 @@ pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bo
     match context {
         FlowProcess(flow) => {
             let mut tables = compile::compile(&flow).expect("Could not compile flow");
+
+            info!("==== Compiler phase: Compiling provided implementations");
+            compile_supplied_implementations(&mut tables, provided_implementations, release)?;
 
             if dump {
                 dump_flow::dump_flow(&flow, &out_dir)
@@ -43,9 +48,6 @@ pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bo
                     .chain_err(|| "Failed to dump flow's functions")?;
             }
 
-            info!("==== Compiler phase: Compiling provided implementations");
-            compile_supplied_implementations(&mut tables, provided_implementations, release)?;
-
             if skip_generation {
                 return Ok("Manifest generation and flow running skipped".to_string());
             }
@@ -54,9 +56,8 @@ pub fn compile_flow(url: Url, args: Vec<String>, dump: bool, skip_generation: bo
             let manifest_path = write_flow_manifest(flow, debug_symbols, out_dir, &tables)
                 .chain_err(|| "Failed to write manifest")?;
 
-            // Append flow arguments at the end of the arguments so that they are passed on it when it's run
             info!("==== Compiler phase: Executing flow from manifest");
-            execute_flow(manifest_path, args)
+            execute_flow(manifest_path, flow_args)
         }
         _ => bail!("Process loaded was not of type 'Flow' and cannot be executed")
     }
@@ -136,18 +137,18 @@ fn find_executable_path(name: &str) -> Result<String> {
     If the process exits correctly then just return an Ok() with message and no log
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
-fn execute_flow(filepath: PathBuf, mut args: Vec<String>) -> Result<String> {
+fn execute_flow(filepath: PathBuf, mut flow_args: Vec<String>) -> Result<String> {
     info!("Executing flow from manifest in '{}'", filepath.display());
 
     let command = find_executable_path(&get_executable_name())?;
     let mut command_args = vec!(filepath.to_str().unwrap().to_string(),
                                 "-n".to_string());
-    command_args.append(&mut args);
+    command_args.append(&mut flow_args);
     debug!("Running flow using '{} {:?}'", &command, &command_args);
     let output = Command::new(&command).args(command_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::inherit())
         .output().chain_err(|| "Error while attempting to spawn command to compile and run flow")?;
     match output.status.code() {
         Some(0) => Ok("Flow ran to completion".to_string()),

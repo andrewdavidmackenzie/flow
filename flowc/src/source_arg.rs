@@ -66,8 +66,6 @@ fn make_writeable(output_dir: PathBuf) -> Result<PathBuf> {
 
 #[cfg(test)]
 mod test {
-    extern crate url;
-
     use std::fs;
     use std::io::Write;
 

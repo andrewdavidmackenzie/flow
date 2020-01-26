@@ -28,7 +28,6 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
 */
 pub struct CLIDebugClient {}
 
-
 fn help() {
     println!("{}", HELP_STRING);
 }

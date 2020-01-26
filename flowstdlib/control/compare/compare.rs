@@ -1,12 +1,3 @@
-#[cfg(target_arch = "wasm32")]
-extern crate core;
-#[cfg(target_arch = "wasm32")]
-extern crate flow_impl;
-#[cfg(target_arch = "wasm32")]
-extern crate flow_impl_derive;
-#[cfg(target_arch = "wasm32")]
-extern crate serde_json;
-
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use flow_impl_derive::FlowImpl;
 use serde_json::Value;
@@ -36,17 +27,19 @@ pub struct Compare;
 
 impl Implementation for Compare {
     fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let left = inputs[0].remove(0).as_i64().unwrap();
-        let right = inputs[1].remove(0).as_i64().unwrap();
+        match (inputs[0].remove(0).as_i64(), inputs[1].remove(0).as_i64()) {
+            (Some(left), Some(right)) => {
+                let mut output_map = serde_json::Map::new();
+                output_map.insert("equal".into(), Value::Bool(left == right));
+                output_map.insert("lt".into(), Value::Bool(left < right));
+                output_map.insert("gt".into(), Value::Bool(left > right));
+                output_map.insert("lte".into(), Value::Bool(left <= right));
+                output_map.insert("gte".into(), Value::Bool(left >= right));
+                let output = Value::Object(output_map);
 
-        let mut output_map = serde_json::Map::new();
-        output_map.insert("equal".into(), Value::Bool(left == right));
-        output_map.insert("lt".into(), Value::Bool(left < right));
-        output_map.insert("gt".into(), Value::Bool(left > right));
-        output_map.insert("lte".into(), Value::Bool(left <= right));
-        output_map.insert("gte".into(), Value::Bool(left >= right));
-        let output = Value::Object(output_map);
-
-        (Some(output), RUN_AGAIN)
+                (Some(output), RUN_AGAIN)
+            }
+            (_, _) => (None, RUN_AGAIN)
+        }
     }
 }

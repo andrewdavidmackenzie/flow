@@ -1,6 +1,8 @@
 #[cfg(feature = "debugger")]
 use std::fmt;
 
+use log::debug;
+use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -30,7 +32,7 @@ pub struct ConstantInputInitializer {
     pub constant: Value,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 /// An `Input` to a `Function`.
 pub struct Input {
     #[serde(default = "default_depth", skip_serializing_if = "is_default_depth")]
@@ -133,6 +135,7 @@ impl Input {
 
 #[cfg(test)]
 mod test {
+    use serde_json::json;
     use serde_json::Value;
 
     use super::Input;

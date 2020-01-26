@@ -2,6 +2,8 @@ use std::io;
 use std::io::Write;
 use std::path::PathBuf;
 
+use log::info;
+
 use crate::dumper::dump_dot;
 use crate::dumper::helper;
 use crate::model::flow::Flow;
@@ -12,11 +14,6 @@ use crate::model::process::Process::FlowProcess;
 ///
 /// # Example
 /// ```
-/// extern crate url;
-/// extern crate flowclib;
-/// extern crate tempdir;
-/// extern crate flowrlib;
-///
 /// use std::env;
 /// use url::Url;
 /// use flowrlib::provider::Provider;

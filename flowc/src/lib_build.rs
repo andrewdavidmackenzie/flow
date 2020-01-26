@@ -2,8 +2,6 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
 
-use url::Url;
-
 use flowclib::compiler::loader;
 use flowclib::deserializers::deserializer_helper::get_deserializer;
 use flowclib::model::name::HasName;
@@ -12,8 +10,11 @@ use flowrlib::lib_manifest::DEFAULT_LIB_MANIFEST_FILENAME;
 use flowrlib::lib_manifest::LibraryManifest;
 use flowrlib::manifest::MetaData;
 use flowrlib::provider::Provider;
-use glob::glob;
+use log::{debug, info};
 use provider::content::file_provider::FileProvider;
+use url::Url;
+
+use glob::glob;
 
 use crate::compile_wasm;
 use crate::errors::*;

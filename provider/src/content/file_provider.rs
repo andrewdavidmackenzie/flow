@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use flowrlib::errors::Result;
 use flowrlib::provider::Provider;
+use log::debug;
 use url::Url;
 
 /// The `FileProvider` implements the `Provider` trait and takes care of fetching content located

@@ -8,6 +8,7 @@ documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
 homepage = "http://andrewdavidmackenzie.github.io/flow/"
 repository = "https://github.com/andrewdavidmackenzie/flow/"
 readme = "README.md"
+edition = "2018"
 
 [[bin]]
 name = "flowr"
@@ -21,8 +22,8 @@ native = []
 [dependencies]
 clap = "~2"
 flow_impl = "=0.8.3"
-flowrlib = "=0.8.2"
-provider = "=0.8.3"
+flowrlib = {path = "../flowrlib"}
+provider = {path = "../provider"}
 simplog = "~1.2"
 log = "0.4.6"
 url = "~2.1"
@@ -32,4 +33,5 @@ serde_json = "1.0"
 num_cpus = "~1.10"
 error-chain = "0.12.1"
 
+runtime = { path = "../runtime" }
 flowstdlib = { path = "../flowstdlib", features = [ "native" ] }

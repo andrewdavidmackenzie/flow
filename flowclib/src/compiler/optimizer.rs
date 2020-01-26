@@ -1,8 +1,10 @@
+use log::debug;
+
 use crate::generator::generate::GenerationTables;
-use crate::model::route::HasRoute;
 use crate::model::connection::Connection;
 use crate::model::function::Function;
 use crate::model::name::HasName;
+use crate::model::route::HasRoute;
 
 /*
     Keep removing dead processes (that have no effect) and any connection that goes

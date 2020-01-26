@@ -4,52 +4,37 @@
 //! that are executed to execute the flow.
 //!
 //! Use `flowr` or `flowr --help` or `flowr -h` at the comment line to see the command line options
-//!
-extern crate clap;
-#[macro_use]
-extern crate error_chain;
-extern crate flow_impl;
-extern crate flowrlib;
-#[macro_use]
-extern crate log;
-extern crate num_cpus;
-extern crate provider;
-#[macro_use]
-extern crate serde_json;
-extern crate simplog;
-extern crate url;
 
 use std::env;
 use std::process::exit;
+use std::sync::{Arc, Mutex};
 
 use clap::{App, AppSettings, Arg, ArgMatches};
+use log::{debug, error, info};
+use simplog::simplog::SimpleLogger;
+use url::Url;
+
+use error_chain::error_chain;
 use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::debug_client::DebugClient;
 use flowrlib::info;
 use flowrlib::loader::Loader;
 use provider::args::url_from_string;
 use provider::content::provider::MetaProvider;
-use simplog::simplog::SimpleLogger;
-use url::Url;
 
-use cli_debug_client::CLIDebugClient;
+use crate::cli_debug_client::CLIDebugClient;
+use crate::cli_runtime_client::CLIRuntimeClient;
+use crate::cli_runtime_client::FLOW_ARGS_NAME;
 
-mod runtime;
 mod cli_debug_client;
-
-/// The name of the environment variables used to pass command line arguments to the function
-/// used to get them.
-pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
+mod cli_runtime_client;
 
 const CLI_DEBUG_CLIENT: &dyn DebugClient = &CLIDebugClient {};
 
 // We'll put our errors in an `errors` module, and other modules in
 // this crate will `use errors::*;` to get access to everything
 // `error_chain!` creates.
-mod errors {
-    // Create the Error, ErrorKind, ResultExt, and Result types
-    error_chain! {}
-}
+mod errors {}
 
 error_chain! {
     foreign_links {
@@ -88,7 +73,7 @@ fn run() -> Result<()> {
     let provider = MetaProvider {};
 
     // Load this runtime's library of native (statically linked) implementations
-    loader.add_lib(&provider, runtime::manifest::get_manifest(), "runtime")
+    loader.add_lib(&provider, runtime::manifest::create_runtime(Arc::new(Mutex::new(CLIRuntimeClient {}))), "runtime")
         .chain_err(|| "Could not add 'runtime' library to loader")?;
 
     // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
@@ -119,7 +104,6 @@ fn run() -> Result<()> {
     Ok(coordinator.submit(submission))
 }
 
-
 /*
     Determine the number of threads to use to execute flows, with a default of the number of cores
     in the device, or any override from the command line.
@@ -127,13 +111,18 @@ fn run() -> Result<()> {
     If debugger=true, then default to 0 threads, unless overridden by an argument
 */
 fn num_threads(matches: &ArgMatches, debugger: bool) -> usize {
+    if debugger {
+        info!("Due to debugger option being set, number of threads has been forced to 1");
+        return 1;
+    }
+
     match matches.value_of("threads") {
         Some(value) => {
             match value.parse::<i32>() {
                 Ok(mut threads) => {
-                    if threads < 0 {
-                        error!("Minimum number of additional threads is '0', so option of has been overridded to be '0'");
-                        threads = 0;
+                    if threads < 1 {
+                        error!("Minimum number of additional threads is '1', so option of has been overridded to be '1'");
+                        threads = 1;
                     }
                     threads as usize
                 }
@@ -143,14 +132,7 @@ fn num_threads(matches: &ArgMatches, debugger: bool) -> usize {
                 }
             }
         }
-        None => {
-            if debugger {
-                info!("Due to debugger option being set, number of threads has defaulted to 0");
-                0
-            } else {
-                num_cpus::get()
-            }
-        }
+        None => num_cpus::get()
     }
 }
 
@@ -195,10 +177,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .setting(AppSettings::TrailingVarArg)
         .version(env!("CARGO_PKG_VERSION"));
 
-    let app = app.arg(Arg::with_name("flow-manifest")
-        .help("the name of the 'flow' manifest file")
-        .required(true)
-        .index(1))
+    let app = app
         .arg(Arg::with_name("debugger")
             .short("d")
             .long("debugger")
@@ -218,16 +197,20 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .long("threads")
             .takes_value(true)
             .value_name("THREADS")
-            .help("Set number of threads to use to execute jobs)"))
+            .help("Set number of threads to use to execute jobs (min: 1, default: cores available)"))
         .arg(Arg::with_name("verbosity")
             .short("v")
             .long("verbosity")
             .takes_value(true)
             .value_name("VERBOSITY_LEVEL")
             .help("Set verbosity level for output (trace, debug, info, warn, error (default))"))
+        .arg(Arg::with_name("flow-manifest")
+            .help("the file path of the 'flow' manifest file")
+            .required(true)
+            .index(1))
         .arg(Arg::with_name("flow-arguments")
             .multiple(true)
-            .help("A list of arguments to pass to the flow when executed. Preceed this list with a '-'"));
+            .help("A list of arguments to pass to the flow when executed."));
 
     #[cfg(feature = "native")]
         let app = app.arg(Arg::with_name("native")
@@ -244,13 +227,13 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 fn parse_args(matches: &ArgMatches) -> Result<Url> {
     // Set anvironment variable with the args
     // this will not be unique, but it will be used very soon and removed
-    if let Some(flow_args) = matches.values_of("flow-arguments") {
-        let mut args: Vec<&str> = flow_args.collect();
+    if let Some(fargs) = matches.values_of("flow-arguments") {
+        let mut flow_args: Vec<&str> = fargs.collect();
         // arg #0 is the flow/package name
         // TODO fix this to be the name of the flow, not 'flowr'
-        args.insert(0, env!("CARGO_PKG_NAME"));
-        env::set_var(FLOW_ARGS_NAME, args.join(" "));
-        debug!("Setup '{}' with values = '{:?}'", FLOW_ARGS_NAME, args);
+        flow_args.insert(0, env!("CARGO_PKG_NAME"));
+        env::set_var(FLOW_ARGS_NAME, flow_args.join(" "));
+        debug!("Setup '{}' with values = '{:?}'", FLOW_ARGS_NAME, flow_args);
     }
 
     SimpleLogger::init(matches.value_of("verbosity"));

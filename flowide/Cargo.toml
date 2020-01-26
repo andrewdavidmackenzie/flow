@@ -2,21 +2,29 @@
 name = "flowide"
 version = "0.1.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
+edition = "2018"
 
 [[bin]]
-name = "ide_native"
+name = "flowide"
 path = "src/main.rs"
 
 [dependencies]
-flowclib = "=0.8.2"
-flowrlib = "=0.8.2"
+flowclib = {path = "../flowclib"}
+flowrlib = {path = "../flowrlib"}
 flow_impl = "=0.8.3"
+toml = "0.4"
+url = "~2.1"
 serde_json = "1.0"
-
-[dependencies.gtk]
-version = "0.7.0"
-features = ["v3_16"]
-
-[dependencies.gio]
-version = "0.7.0"
-features = ["v2_44"]
+runtime = { path = "../runtime" }
+provider = { path = "../provider" }
+flowstdlib = { path = "../flowstdlib", features = [ "native" ] }
+log = "0.4.6"
+lazy_static = "1"
+gtk-rs-state = "0.3"
+cairo-rs = "0.8"
+gdk = "0.12"
+gdk-pixbuf = "0.8"
+gio = "0.8"
+glib = "0.9"
+gtk = "0.8"
+pango = "0.8"

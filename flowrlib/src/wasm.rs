@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use flow_impl::{Implementation, RunAgain};
+use log::{error, info, trace};
 use serde_json::Value;
 #[cfg(not(target_arch = "wasm32"))]
 use wasmi::{ExternVal, ImportsBuilder, MemoryRef, Module, ModuleInstance, ModuleRef,

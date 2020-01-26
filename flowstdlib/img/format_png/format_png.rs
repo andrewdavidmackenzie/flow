@@ -1,8 +1,3 @@
-extern crate core;
-extern crate flow_impl;
-extern crate flow_impl_derive;
-extern crate serde_json;
-
 use std::io::Write;
 
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
@@ -31,7 +26,7 @@ pub struct FormatPNG;
 
 impl Implementation for FormatPNG {
     fn run(&self, mut inputs: Vec<Vec<Value>>)
-        -> (Option<Value>, RunAgain) {
+           -> (Option<Value>, RunAgain) {
         let bytes = inputs.remove(0).remove(0);
 
         // bounds: (usize, usize),

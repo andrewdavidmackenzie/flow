@@ -7,8 +7,8 @@ UNAME := $(shell uname)
 
 all:
 	$(STIME)
-	#@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.2/lib/pkgconfig:/usr/lib64/pkgconfig"
-	$(MAKE) workspace test-workspace samples book-test docs
+	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig"
+	@$(MAKE) workspace test docs
 	$(ETIME)
 
 online := false
@@ -20,31 +20,33 @@ features :=
 endif
 
 ########## Configure Dependencies ############
-config: travis-config
+config: common-config
+	$(STIME)
+	@echo "Detected OS=$(UNAME)"
 ifeq ($(UNAME), Linux)
 	@$(MAKE) config-linux
 endif
 ifeq ($(UNAME), Darwin)
 	@$(MAKE) config-darwin
 endif
+	$(ETIME)
 
-travis-config:
-	$(STIME)
-	@echo "Detected OS=$(UNAME)"
+common-config:
+	export PATH="$PATH:~/.cargo/bin"
 	rustup target add wasm32-unknown-unknown
 	# cargo install wasm-gc || true
 	# install mdbook for generating guides
 	cargo install mdbook --root . --git https://github.com/andrewdavidmackenzie/mdbook || true
 	#cargo install mdbook-linkcheck --root . || true
-	$(ETIME)
 
 config-darwin:
 	$(STIME)
-	brew install gtk+3
+	brew install gtk glib cairo
 	$(ETIME)
 
 config-linux:
 	$(STIME)
+	sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev
 	$(ETIME)
 
 ################### Coverage ####################
@@ -146,6 +148,8 @@ upload-coverage:
 	bash <(curl -s https://codecov.io/bash)
 
 #################### LIBRARIES ####################
+flowstdlib: flowstdlib/manifest.json
+
 flowstdlib/manifest.json: $(FLOWSTDLIB_FILES)
 	@mkdir -p target;date '+%s' > target/.flowstdlibtime ; echo \\n------- Target \'$@\' starting
 	@cargo run -p flowc -- -v info -l flowstdlib
@@ -177,10 +181,12 @@ samples: flowrunner flowstdlib/manifest.json
 
 samples/%/test.output: samples/%/test.input samples/%/test.arguments
 # remove error messages with file path from output messages to make local output match travis output
-	@cat $< | cargo run --quiet --bin flowc -- -g -d $(@D) -- `cat $(@D)/test.arguments` | grep -v "Running" | grep -v "Finished dev" 2> $(@D)/test.err > $@; true
+	@printf "\tSample '$(@D)'"
+	@RUST_BACKTRACE=1 cat $< | cargo run --quiet -p flowc -- -g -d $(@D) -- `cat $(@D)/test.arguments` 2> $(@D)/test.err > $@
 	@diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && exit $$ret)
-	@echo "\tSample '$(@D)' output matches expected.output"
+	@if [ -s $(@D)/test.err ]; then (printf " has error output in $(@D)/test.err\n"; exit -1); else printf " has no errors\n"; fi;
 	@rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time
+# leave test.err for inspection in case of failure
 
 ################# ONLINE SAMPLES ################
 online-samples:

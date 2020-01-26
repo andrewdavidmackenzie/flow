@@ -1,3 +1,5 @@
+use serde_derive::{Deserialize, Serialize};
+
 use crate::model::flow::Flow;
 use crate::model::function::Function;
 

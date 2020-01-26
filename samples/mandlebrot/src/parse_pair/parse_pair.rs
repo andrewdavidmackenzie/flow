@@ -1,6 +1,4 @@
-#[macro_use]
-extern crate serde_json;
-
+use serde_json::json;
 use serde_json::Value;
 use std::str::FromStr;
 

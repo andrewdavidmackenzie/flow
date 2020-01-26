@@ -4,6 +4,7 @@ use std::fmt;
 use std::sync::Arc;
 
 use flow_impl::Implementation;
+use log::{debug, error};
 use multimap::MultiMap;
 use serde_json::Value;
 
@@ -27,8 +28,7 @@ pub struct Job {
     pub function_id: usize,
     pub implementation: Arc<dyn Implementation>,
     pub input_set: Vec<Vec<Value>>,
-    pub destinations: Vec<(String, usize, usize)>,
-    pub impure: bool,
+    pub destinations: Vec<(String, usize, usize)>
 }
 
 #[derive(Debug)]
@@ -79,15 +79,6 @@ pub struct Output {
 ///    - Other functions that send to these initialized inputs will be blocked initially
 /// If all inputs are full then the Function maybe able to run, depending on existence of blocks on
 /// other functions it sends to.
-///
-/// Pure and Impure Functions
-/// =========================
-/// If a function is "pure" then it has no side-effects and for it to be useful in a flow it must
-/// have at least one input and an output.
-///
-/// An "impure" function may produce an output without input, for example by reading from the environment
-/// or standard input, etc. Or it may accept an input and produce no output, instead interacting with
-/// the environment such as writing to a file or standard output.
 ///
 /// One-time Execution or Stopping repetitive execution
 /// ===================================================
@@ -428,7 +419,7 @@ impl RunState {
         let can_create_more_jobs = !function.inputs().is_empty() && function.inputs_full()
             && !all_refilled;
 
-        (Job { job_id, function_id, implementation, input_set, destinations, impure: function.is_impure() },
+        (Job { job_id, function_id, implementation, input_set, destinations },
          can_create_more_jobs)
     }
 
@@ -746,6 +737,8 @@ mod tests {
 
     /********************************* State Transition Tests *********************************/
     mod state_transitions {
+        use serde_json::json;
+
         use crate::debugger::Debugger;
         use crate::function::Function;
         use crate::input::{ConstantInputInitializer, OneTimeInputInitializer};
@@ -763,14 +756,12 @@ mod tests {
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(),
                                     0,
                                     &vec!(("".to_string(), 1, 0)));  // outputs to f_b:0
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1, &None, false)),
                                     1,
                                     &vec!());
@@ -789,7 +780,6 @@ mod tests {
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1,
                                                     &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                                     false)),
@@ -798,7 +788,6 @@ mod tests {
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1, &None, false)),
                                     1,
                                     &vec!());
@@ -817,7 +806,6 @@ mod tests {
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1,
                                                     &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                                     false)),
@@ -844,7 +832,6 @@ mod tests {
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1,
                                                     &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                                     false)),
@@ -853,7 +840,6 @@ mod tests {
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1,
                                                     &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                                     false)),
@@ -875,7 +861,6 @@ mod tests {
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1, &None, false)),
                                     0,
                                     &vec!());
@@ -894,7 +879,6 @@ mod tests {
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1,
                                                     &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                                     false)),
@@ -919,7 +903,6 @@ mod tests {
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1, &None, false)),
                                     0,
                                     &vec!());
@@ -940,7 +923,6 @@ mod tests {
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1,
                                                     &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                                     false)),
@@ -949,7 +931,6 @@ mod tests {
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1,
                                                     &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                                     false)),
@@ -985,7 +966,6 @@ mod tests {
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
                                                     false)),
@@ -1024,7 +1004,6 @@ mod tests {
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1,
                                                     &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                                     false)),
@@ -1064,7 +1043,6 @@ mod tests {
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
                                                     false)),
@@ -1073,7 +1051,6 @@ mod tests {
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1, &None, false)),
                                     1,
                                     &vec!());
@@ -1111,14 +1088,12 @@ mod tests {
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1, &None, false)),
                                     0,
                                     &vec!());
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1, &None, false)),
                                     1,
                                     &vec!(("".into(), 0, 0)));
@@ -1149,14 +1124,12 @@ mod tests {
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1, &None, false)),
                                     0,
                                     &vec!(("".to_string(), 1, 0))); // outputs to fB:0
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
                                                     false)),
@@ -1196,7 +1169,6 @@ mod tests {
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1,
                                                     &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                                     false)),
@@ -1208,7 +1180,6 @@ mod tests {
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1, &None, false)),
                                     1,
                                     &vec!());
@@ -1259,6 +1230,8 @@ mod tests {
 
     /****************************** Miscelaneous tests **************************/
     mod functional_tests {
+        use serde_json::json;
+
         use crate::debugger::Debugger;
         use crate::function::Function;
         use crate::input::ConstantInputInitializer;
@@ -1277,7 +1250,6 @@ mod tests {
             let p0 = Function::new("p0".to_string(), // name
                                    "/context/p0".to_string(),
                                    "/test".to_string(),
-                                   false,
                                    vec!(), // input array
                                    0,    // id
                                    &vec!(("".to_string(), 1, 0), ("".to_string(), 2, 0)), // destinations
@@ -1285,14 +1257,13 @@ mod tests {
             let p1 = Function::new("p1".to_string(),
                                    "/context/p1".to_string(),
                                    "/test".to_string(),
-                                   false,
                                    vec!(Input::new(1, &None, false)), // inputs array
                                    1,    // id
                                    &vec!());
             let p2 = Function::new("p2".to_string(),
                                    "/context/p2".to_string(),
                                    "/test".to_string(),
-                                   false, vec!(Input::new(1, &None, false)), // inputs array
+                                   vec!(Input::new(1, &None, false)), // inputs array
                                    2,    // id
                                    &vec!());
             vec!(p0, p1, p2)
@@ -1422,7 +1393,6 @@ mod tests {
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1,
                                                     &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                                     false)),
@@ -1462,7 +1432,6 @@ mod tests {
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1,
                                                     &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                                     false)),
@@ -1471,7 +1440,6 @@ mod tests {
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
                                                     false)),
@@ -1513,7 +1481,6 @@ mod tests {
             let f_a = Function::new("f_a".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1, &None, false)),
                                     0,
                                     &vec!());
@@ -1541,7 +1508,6 @@ mod tests {
             let f_a = Function::new("f_a".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1, &None, false)),
                                     0,
                                     &vec!());
@@ -1570,7 +1536,6 @@ mod tests {
             let f_a = Function::new("f_a".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
-                                    false,
                                     vec!(Input::new(1, &None, false),
                                          Input::new(1,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })),

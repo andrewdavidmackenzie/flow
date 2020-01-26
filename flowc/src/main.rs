@@ -6,28 +6,19 @@
 //! Execute `flowc` or `flowc --help` or `flowc -h` at the comment line for a
 //! description of the command line options.
 
-extern crate clap;
 #[macro_use]
 extern crate error_chain;
-extern crate flowclib;
-extern crate flowrlib;
-#[macro_use]
-extern crate log;
-extern crate provider;
-extern crate serde_json;
-extern crate simpath;
-extern crate simplog;
-extern crate tempdir;
-extern crate url;
 
 use std::path::PathBuf;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
+use log::debug;
+use simplog::simplog::SimpleLogger;
+use url::Url;
+
 use flowclib::info;
 use provider::args::url_from_string;
 use provider::content::provider::MetaProvider;
-use simplog::simplog::SimpleLogger;
-use url::Url;
 
 use crate::flow_compile::compile_flow;
 use crate::lib_build::build_lib;
@@ -85,7 +76,7 @@ fn main() {
     a message to display to the user if all went OK
 */
 fn run() -> Result<String> {
-    let (lib, url, args, dump, skip_generation, debug_symbols,
+    let (lib, url, flow_args, dump, skip_generation, debug_symbols,
         provided_implementations, base_dir, release)
         = parse_args(get_matches())?;
 
@@ -95,7 +86,7 @@ fn run() -> Result<String> {
         build_lib(url, provided_implementations, base_dir, provider, release)
             .expect("Could not build library");
     } else {
-        compile_flow(url, args, dump, skip_generation, debug_symbols, provided_implementations, base_dir, provider, release)
+        compile_flow(url, flow_args, dump, skip_generation, debug_symbols, provided_implementations, base_dir, provider, release)
             .expect("Could not compile flow");
     }
 
@@ -151,6 +142,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .required(false)
             .index(1))
         .arg(Arg::with_name("flow_args")
+            .help("Arguments that will get passed onto the flow if it is executed")
             .multiple(true))
         .get_matches()
 }
@@ -159,9 +151,9 @@ fn get_matches<'a>() -> ArgMatches<'a> {
     Parse the command line arguments
 */
 fn parse_args(matches: ArgMatches) -> Result<(bool, Url, Vec<String>, bool, bool, bool, bool, PathBuf, bool)> {
-    let mut args: Vec<String> = vec!();
-    if let Some(flow_args) = matches.values_of("flow_args") {
-        args = flow_args.map(|a| a.to_string()).collect();
+    let mut flow_args: Vec<String> = vec!();
+    if let Some(fargs) = matches.values_of("flow_args") {
+        flow_args = fargs.map(|a| a.to_string()).collect();
     }
 
     SimpleLogger::init_prefix(matches.value_of("verbosity"), false);
@@ -182,5 +174,5 @@ fn parse_args(matches: ArgMatches) -> Result<(bool, Url, Vec<String>, bool, bool
     let output_dir = source_arg::get_output_dir(&url, out_dir_option)
         .chain_err(|| "Could not get or create the output directory")?;
 
-    Ok((lib, url, args, dump, skip_generation, debug_symbols, provided_implementations, output_dir, release))
+    Ok((lib, url, flow_args, dump, skip_generation, debug_symbols, provided_implementations, output_dir, release))
 }

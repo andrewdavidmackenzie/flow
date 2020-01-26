@@ -1,0 +1,43 @@
+{
+  "metadata": {
+    "name": "hello world",
+    "version": "0.0.0",
+    "description": "",
+    "author_name": "unknown",
+    "author_email": "unknown@unknown.com"
+  },
+  "lib_references": [
+    "lib://flowstdlib"
+  ],
+  "functions": [
+    {
+      "name": "print",
+      "route": "/context/print",
+      "id": 0,
+      "implementation_location": "lib://runtime/stdio/stdout/Stdout",
+      "inputs": [
+        {}
+      ]
+    },
+    {
+      "name": "message",
+      "route": "/context/hello/message",
+      "id": 1,
+      "implementation_location": "lib://flowstdlib/data/buffer/Buffer",
+      "inputs": [
+        {
+          "initializer": {
+            "once": "Hello World!"
+          }
+        }
+      ],
+      "output_routes": [
+        [
+          "",
+          0,
+          0
+        ]
+      ]
+    }
+  ]
+}
