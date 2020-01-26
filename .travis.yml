@@ -1,18 +1,15 @@
 language: rust
 dist: bionic
-sudo: true
 
 cache:
   cargo: true
 
-jobs:
+matrix:
   include:
   - os: linux
     rust: stable
-  allow_failures:
-    - os: osx
-      rust: stable
-  fast_finish: true
+  - os: osx
+    rust: stable
 
 branches:
   only:
@@ -25,16 +22,18 @@ addons:
       - libcurl4-openssl-dev
       - libelf-dev
       - libdw-dev
-      - libbfd-dev
       - libssl-dev
       - binutils-dev
-      - graphviz
 
 before_install:
   - make common-config
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew unlink python@2; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gtk+3 cairo atk; fi
 
 script:
   - rustc --version
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then RUSTFLAGS="-C link-dead-code" cargo build --manifest-path=flowide/Cargo.toml; fi
   - make
 
 env:
@@ -49,7 +48,6 @@ deploy:
   github-token: $GITHUB_PAGES_TOKEN
   local-dir: target/html
   keep-history: false
-  verbose: true
   on:
     branch: master
 
@@ -62,5 +60,17 @@ codecov:
 
 after_success: |
   if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
-    make coverage
+    wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
+    tar xzf master.tar.gz &&
+    cd kcov-master &&
+    mkdir build &&
+    cd build &&
+    cmake .. &&
+    make &&
+    sudo make install &&
+    cd ../.. &&
+    rm -rf kcov-master &&
+    for file in target/debug/[flow|runtime|provider]*[^\.d]; do mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file"; done &&
+    bash <(curl -s https://codecov.io/bash) &&
+    echo "Uploaded code coverage"
   fi

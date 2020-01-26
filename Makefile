@@ -10,7 +10,13 @@ UNAME := $(shell uname)
 all:
 	$(STIME)
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig"
-	@$(MAKE) -s workspace test docs
+	@$(MAKE) travis
+	@$(MAKE) flowide
+	$(ETIME)
+
+travis:
+	$(STIME)
+	@$(MAKE) workspace test docs
 	$(ETIME)
 
 online := false
@@ -22,15 +28,14 @@ features :=
 endif
 
 ########## Configure Dependencies ############
-config:
+config: common-config
 	$(STIME)
-	@$(MAKE) -s common-config
-	@echo "	Detected OS=$(UNAME)"
+	@echo "Detected OS=$(UNAME)"
 ifeq ($(UNAME), Linux)
-	@$(MAKE) -s config-linux
+	@$(MAKE) config-linux
 endif
 ifeq ($(UNAME), Darwin)
-	@$(MAKE) -s config-darwin
+	@$(MAKE) config-darwin
 endif
 	$(ETIME)
 
