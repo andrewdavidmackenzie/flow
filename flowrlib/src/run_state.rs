@@ -743,6 +743,15 @@ mod test {
         &TestDebugClient {}
     }
 
+    fn test_function_a_to_b_not_init() -> Function {
+        Function::new("fA".to_string(), // name
+                      "/context/fA".to_string(),
+                      "/test".to_string(),
+                      vec!(Input::new(1, &None, false)),
+                      0,
+                      &vec!(("".to_string(), 1, 0))) // outputs to fB:0
+    }
+
     fn test_function_a_to_b() -> Function {
         Function::new("fA".to_string(), // name
                       "/context/fA".to_string(),
@@ -796,6 +805,86 @@ mod test {
         }
     }
 
+    fn error_output(source_function_id: usize, dest_function_id: usize) -> Output {
+        Output {
+            job_id: 1,
+            function_id: source_function_id,
+            input_values: vec!(vec!(json!(1))),
+            result: (None, false),
+            destinations: vec!(("".to_string(), dest_function_id, 0)),
+            error: Some("Some error occurred".to_string()),
+        }
+    }
+
+    mod general_run_state_tests {
+        use std::collections::HashSet;
+
+        use super::super::RunState;
+        use super::super::State;
+
+        #[cfg(any(feature = "logging", feature = "debugger"))]
+        #[test]
+        fn run_state_can_display() {
+            let f_a = super::test_function_a_to_b();
+            let f_b = super::test_function_b_not_init();
+            let functions = vec!(f_a, f_b);
+            let mut state = RunState::new(functions, 1);
+
+            state.init();
+
+            println!("{}", state);
+        }
+
+        #[cfg(any(feature = "debugger"))]
+        #[test]
+        fn debugger_can_display_run_state() {
+            let f_a = super::test_function_a_to_b();
+            let f_b = super::test_function_b_init();
+            let functions = vec!(f_b, f_a);
+            let mut state = RunState::new(functions, 1);
+
+            // Event
+            state.init();
+
+            // Test
+            assert_eq!(2, state.num_functions(), "There should be 2 functions");
+            assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state");
+            assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+            assert_eq!(1, state.number_jobs_ready(), "There should be 1 job running");
+            let mut blocked = HashSet::new();
+            blocked.insert(0);
+
+            // Test
+            assert_eq!(&blocked, state.get_blocked(), "Function with ID = 1 should be in 'blocked' list");
+            state.display_state(0);
+            state.display_state(1);
+
+            // Event
+            let job = state.next_job().unwrap();
+            state.start(&job);
+
+            // Test
+            assert_eq!(State::Running, state.get_state(1), "f_b should be Running");
+            assert_eq!(1, state.number_jobs_running(), "There should be 1 job running");
+            state.display_state(1);
+        }
+
+        #[test]
+        fn jobs_sent_zero_at_init() {
+            let mut state = RunState::new(vec!(), 1);
+            state.init();
+            assert_eq!(0, state.jobs(), "At init jobs() should be 0");
+        }
+
+        #[test]
+        fn jobs_sent_increases() {
+            let mut state = RunState::new(vec!(), 1);
+            state.init();
+            state.job_sent();
+            assert_eq!(1, state.jobs(), "jobs() should have incremented");
+        }
+    }
+
     /********************************* State Transition Tests *********************************/
     mod state_transitions {
         use serde_json::json;
@@ -824,6 +913,24 @@ mod test {
 
             // Test
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(State::Waiting, state.get_state(1), "f_b should be waiting for input");
+        }
+
+        #[test]
+        fn input_blocker() {
+            let f_a = super::test_function_a_to_b_not_init();
+            let f_b = super::test_function_b_not_init();
+            let functions = vec!(f_a, f_b);
+            let mut state = RunState::new(functions, 1);
+
+            // Event
+            state.init();
+
+            // Test
+            assert_eq!(State::Waiting, state.get_state(0), "f_a should be waiting for input");
+            assert_eq!(State::Waiting, state.get_state(1), "f_b should be waiting for input");
+            #[cfg(feature = "debugger")]
+            assert!(state.get_input_blockers(1).contains(&(0, 0)), "f_b should be waiting for input from f_a")
         }
 
         #[test]
@@ -871,7 +978,9 @@ mod test {
 
             // Test
             assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
-            assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state, by fB");
+            assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state");
+            #[cfg(feature = "debugger")]
+            assert!(state.get_output_blockers(0).contains(&(1, 0)), "f_a should be blocked by f_b, input 0");
         }
 
         #[test]
@@ -948,6 +1057,22 @@ mod test {
 
             // Test
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+        }
+
+        #[test]
+        fn process_error_output() {
+            let f_a = super::test_function_a_init();
+            let f_b = super::test_function_b_not_init();
+            let functions = vec!(f_a, f_b);
+            let mut state = RunState::new(functions, 1);
+            let mut metrics = Metrics::new(2);
+            let mut debugger = Some(Debugger::new(test_debug_client()));
+
+            state.init();
+            let output = super::error_output(0, 1);
+            state.process_output(&mut metrics, output, &mut debugger);
+
+            assert_eq!(State::Waiting, state.get_state(1), "f_b should be Waiting");
         }
 
         #[test]
@@ -1089,12 +1214,7 @@ mod test {
 
         #[test]
         fn waiting_to_blocked_on_input() {
-            let f_a = Function::new("fA".to_string(), // name
-                                    "/context/fA".to_string(),
-                                    "/test".to_string(),
-                                    vec!(Input::new(1, &None, false)),
-                                    0,
-                                    &vec!(("".to_string(), 1, 0))); // outputs to fB:0
+            let f_a = super::test_function_a_to_b_not_init();
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
