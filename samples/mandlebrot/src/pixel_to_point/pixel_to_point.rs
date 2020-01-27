@@ -48,7 +48,7 @@ pub extern "C" fn pixel_to_point(mut inputs: Vec<Vec<Value>>) -> (Option<Value>,
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use num::Complex;
     use serde_json::Value;
 

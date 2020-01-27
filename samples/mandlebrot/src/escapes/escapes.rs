@@ -24,7 +24,7 @@ pub extern "C" fn escapes(mut inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) 
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use num::Complex;
     use serde_json::Value;
     use test::Bencher;

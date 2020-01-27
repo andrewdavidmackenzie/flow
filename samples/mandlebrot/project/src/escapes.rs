@@ -23,7 +23,7 @@ pub fn _escapes(c: Complex<f64>, limit: u64) -> u64 {
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use num::Complex;
     use test::Bencher;
 

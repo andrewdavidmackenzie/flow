@@ -23,7 +23,7 @@ pub fn _pixel_to_point(bounds: (usize, usize), pixel: (usize, usize),
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use num::Complex;
 
     use super::_pixel_to_point;

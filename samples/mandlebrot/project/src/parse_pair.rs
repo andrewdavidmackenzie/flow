@@ -19,7 +19,7 @@ pub fn _parse_pair<T: FromStr>(s: &str, separator: &str) -> Option<(T, T)> {
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use super::_parse_pair;
 
     #[test]

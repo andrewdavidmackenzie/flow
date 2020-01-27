@@ -28,7 +28,7 @@ pub struct Job {
     pub function_id: usize,
     pub implementation: Arc<dyn Implementation>,
     pub input_set: Vec<Vec<Value>>,
-    pub destinations: Vec<(String, usize, usize)>
+    pub destinations: Vec<(String, usize, usize)>,
 }
 
 #[derive(Debug)]
@@ -711,10 +711,18 @@ impl fmt::Display for RunState {
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
+    use serde_json::json;
+
     use crate::debug_client::{DebugClient, Event, Response};
     use crate::debug_client::{Command, Param};
+    use crate::function::Function;
+    use crate::input::Input;
+    use crate::input::InputInitializer::OneTime;
+    use crate::input::OneTimeInputInitializer;
     use crate::run_state;
+
+    use super::Output;
 
     // Helpers
     struct TestDebugClient {}
@@ -723,7 +731,7 @@ mod tests {
         fn init(&self) {}
 
         fn get_command(&self, _job_number: Option<usize>) -> Command {
-            Command::Step(Some(run_state::tests::Param::Numeric(1)))
+            Command::Step(Some(run_state::test::Param::Numeric(1)))
         }
 
         fn send_event(&self, _event: Event) {}
@@ -733,6 +741,59 @@ mod tests {
 
     fn test_debug_client() -> &'static dyn DebugClient {
         &TestDebugClient {}
+    }
+
+    fn test_function_a_to_b() -> Function {
+        Function::new("fA".to_string(), // name
+                      "/context/fA".to_string(),
+                      "/test".to_string(),
+                      vec!(Input::new(1,
+                                      &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
+                                      false)),
+                      0,
+                      &vec!(("".to_string(), 1, 0))) // outputs to fB:0
+    }
+
+    fn test_function_a_init() -> Function {
+        Function::new("fA".to_string(), // name
+                      "/context/fA".to_string(),
+                      "/test".to_string(),
+                      vec!(Input::new(1,
+                                      &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
+                                      false)),
+                      0,
+                      &vec!())
+    }
+
+    fn test_function_b_not_init() -> Function {
+        Function::new("fB".to_string(), // name
+                      "/context/fB".to_string(),
+                      "/test".to_string(),
+                      vec!(Input::new(1, &None, false)),
+                      1,
+                      &vec!())
+    }
+
+    fn test_function_b_init() -> Function {
+        Function::new("fB".to_string(), // name
+                      "/context/fB".to_string(),
+                      "/test".to_string(),
+                      vec!(Input::new(1,
+                                      &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
+                                      false)),
+                      1,
+                      &vec!())
+    }
+
+    fn test_output(source_function_id: usize, dest_function_id: usize) -> Output {
+        Output {
+            job_id: 1,
+            function_id: source_function_id,
+            input_values: vec!(vec!(json!(1))),
+            result: (Some(json!(1)), true),
+            destinations: vec!(("".to_string(), dest_function_id, 0)),
+            error: None,
+        }
     }
 
     /********************************* State Transition Tests *********************************/
@@ -753,18 +814,8 @@ mod tests {
 
         #[test]
         fn to_ready_1_on_init() {
-            let f_a = Function::new("fA".to_string(), // name
-                                    "/context/fA".to_string(),
-                                    "/test".to_string(),
-                                    vec!(),
-                                    0,
-                                    &vec!(("".to_string(), 1, 0)));  // outputs to f_b:0
-            let f_b = Function::new("fB".to_string(), // name
-                                    "/context/fB".to_string(),
-                                    "/test".to_string(),
-                                    vec!(Input::new(1, &None, false)),
-                                    1,
-                                    &vec!());
+            let f_a = super::test_function_a_to_b();
+            let f_b = super::test_function_b_not_init();
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
 
@@ -777,20 +828,8 @@ mod tests {
 
         #[test]
         fn to_ready_2_on_init() {
-            let f_a = Function::new("fA".to_string(), // name
-                                    "/context/fA".to_string(),
-                                    "/test".to_string(),
-                                    vec!(Input::new(1,
-                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
-                                                    false)),
-                                    0,
-                                    &vec!(("".to_string(), 1, 0))); // outputs to fB:0
-            let f_b = Function::new("fB".to_string(), // name
-                                    "/context/fB".to_string(),
-                                    "/test".to_string(),
-                                    vec!(Input::new(1, &None, false)),
-                                    1,
-                                    &vec!());
+            let f_a = super::test_function_a_to_b();
+            let f_b = super::test_function_b_not_init();
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
 
@@ -803,14 +842,7 @@ mod tests {
 
         #[test]
         fn to_ready_3_on_init() {
-            let f_a = Function::new("fA".to_string(), // name
-                                    "/context/fA".to_string(),
-                                    "/test".to_string(),
-                                    vec!(Input::new(1,
-                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
-                                                    false)),
-                                    0,
-                                    &vec!());
+            let f_a = super::test_function_a_init();
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 1);
 
@@ -829,22 +861,8 @@ mod tests {
         */
         #[test]
         fn to_blocked_on_init() {
-            let f_a = Function::new("fA".to_string(), // name
-                                    "/context/fA".to_string(),
-                                    "/test".to_string(),
-                                    vec!(Input::new(1,
-                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
-                                                    false)),
-                                    0,
-                                    &vec!(("".to_string(), 1, 0))); // outputs to fB:0
-            let f_b = Function::new("fB".to_string(), // name
-                                    "/context/fB".to_string(),
-                                    "/test".to_string(),
-                                    vec!(Input::new(1,
-                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
-                                                    false)),
-                                    1,
-                                    &vec!());
+            let f_a = super::test_function_a_to_b();
+            let f_b = super::test_function_b_init();
             let functions = vec!(f_b, f_a);
             let mut state = RunState::new(functions, 1);
 
@@ -876,14 +894,7 @@ mod tests {
 
         #[test]
         fn ready_to_running_on_next() {
-            let f_a = Function::new("fA".to_string(), // name
-                                    "/context/fA".to_string(),
-                                    "/test".to_string(),
-                                    vec!(Input::new(1,
-                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
-                                                    false)),
-                                    0,
-                                    &vec!());
+            let f_a = super::test_function_a_init();
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 1);
             state.init();
@@ -920,22 +931,8 @@ mod tests {
 
         #[test]
         fn blocked_to_ready_on_done() {
-            let f_a = Function::new("fA".to_string(), // name
-                                    "/context/fA".to_string(),
-                                    "/test".to_string(),
-                                    vec!(Input::new(1,
-                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
-                                                    false)),
-                                    0,
-                                    &vec!(("".to_string(), 1, 0))); // outputs to fB:0
-            let f_b = Function::new("fB".to_string(), // name
-                                    "/context/fB".to_string(),
-                                    "/test".to_string(),
-                                    vec!(Input::new(1,
-                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
-                                                    false)),
-                                    1,
-                                    &vec!());
+            let f_a = super::test_function_a_to_b();
+            let f_b = super::test_function_b_init();
             let functions = vec!(f_b, f_a); // NOTE the order!
             let mut state = RunState::new(functions, 1);
             let mut metrics = Metrics::new(2);
@@ -946,15 +943,7 @@ mod tests {
             assert_eq!(1, state.next_job().unwrap().function_id, "next() should return function_id=1 (f_b) for running");
 
             // Event
-            let output = Output {
-                job_id: 1,
-                function_id: 1,
-                input_values: vec!(vec!(json!(1))),
-                result: (Some(json!(1)), true),
-                destinations: vec!(),
-                error: None,
-
-            };
+            let output = super::test_output(1, 0);
             state.process_output(&mut metrics, output, &mut debugger);
 
             // Test
@@ -1001,14 +990,7 @@ mod tests {
         // Done: it has one input or more empty, to it can't run
         #[test]
         fn running_to_waiting_on_done() {
-            let f_a = Function::new("fA".to_string(), // name
-                                    "/context/fA".to_string(),
-                                    "/test".to_string(),
-                                    vec!(Input::new(1,
-                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
-                                                    false)),
-                                    0,
-                                    &vec!());
+            let f_a = super::test_function_a_init();
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 1);
             let mut metrics = Metrics::new(1);
@@ -1069,14 +1051,7 @@ mod tests {
             assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
 
             // Event
-            let output = Output {
-                job_id: 1,
-                function_id: 0,
-                input_values: vec!(vec!(json!(1))),
-                result: (Some(json!(1)), true),
-                destinations: vec!(("".to_string(), 1, 0)),
-                error: None,
-            };
+            let output = super::test_output(0, 1);
             state.process_output(&mut metrics, output, &mut debugger);
 
             // Test f_a should transition to Blocked on f_b
@@ -1105,14 +1080,7 @@ mod tests {
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
 
             // Event run f_b which will send to f_a
-            let output = Output {
-                job_id: 1,
-                function_id: 1,
-                input_values: vec!(vec!(json!(1))),
-                result: (Some(json!(1)), true),
-                destinations: vec!(("".to_string(), 0, 0)),
-                error: None,
-            };
+            let output = super::test_output(1, 0);
             state.process_output(&mut metrics, output, &mut debugger);
 
             // Test
@@ -1145,14 +1113,7 @@ mod tests {
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be in Waiting");
 
             // Event run f_b which will send to f_a, but will block f_a due to initialize
-            let output = Output {
-                job_id: 1,
-                function_id: 1,
-                input_values: vec!(vec!(json!(1))),
-                result: (Some(json!(1)), true),
-                destinations: vec!(("".to_string(), 0, 0)),
-                error: None,
-            };
+            let output = super::test_output(1, 0);
             state.process_output(&mut metrics, output, &mut debugger);
 
             // Test
@@ -1237,8 +1198,6 @@ mod tests {
         use crate::input::ConstantInputInitializer;
         use crate::input::Input;
         use crate::input::InputInitializer::Constant;
-        use crate::input::InputInitializer::OneTime;
-        use crate::input::OneTimeInputInitializer;
         use crate::metrics::Metrics;
 
         use super::super::Output;
@@ -1390,14 +1349,7 @@ mod tests {
         */
         #[test]
         fn pure_function_no_destinations() {
-            let f_a = Function::new("fA".to_string(), // name
-                                    "/context/fA".to_string(),
-                                    "/test".to_string(),
-                                    vec!(Input::new(1,
-                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
-                                                    false)),
-                                    0,
-                                    &vec!());
+            let f_a = super::test_function_a_init();
 
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 1);
@@ -1429,14 +1381,7 @@ mod tests {
         */
         #[test]
         fn constant_initializer_not_unblock() {
-            let f_a = Function::new("fA".to_string(), // name
-                                    "/context/fA".to_string(),
-                                    "/test".to_string(),
-                                    vec!(Input::new(1,
-                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
-                                                    false)),
-                                    0,
-                                    &vec!(("".to_string(), 1, 0)));
+            let f_a = super::test_function_a_to_b();
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
