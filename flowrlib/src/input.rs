@@ -94,7 +94,7 @@ impl Input {
         self.received.clear();
     }
 
-    /// Take 'depth' elements from the Input and leave the rest for the next time
+    /// Take 'depth' number of elements from the Input and leave the rest for the next time
     pub fn take(&mut self) -> Vec<Value> {
         self.received.drain(0..self.depth).collect()
     }
