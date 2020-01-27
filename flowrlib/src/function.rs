@@ -403,10 +403,9 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn call_implementation_not_found_panics() {
         let inf = ImplementationNotFound {};
-        inf.run(vec!());
+        assert_eq!((None, false), inf.run(vec!()), "ImplementationNotFound should return (None, false)");
     }
 
     #[cfg(feature = "debugger")]
