@@ -98,12 +98,12 @@ mod test {
 
     #[test]
     fn create() {
-        let manifest = Manifest::new(test_meta_data());
+        let _ = Manifest::new(test_meta_data());
     }
 
     #[test]
     fn add_function() {
-        let mut function = Function::new("test".to_string(),
+        let function = Function::new("test".to_string(),
                                          "/context/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, false)),
