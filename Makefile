@@ -41,29 +41,13 @@ common-config:
 
 config-darwin:
 	$(STIME)
-	brew install gtk glib cairo
+	brew install gtk glib cairo cmake
 	$(ETIME)
 
 config-linux:
 	$(STIME)
 	sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev
 	$(ETIME)
-
-################### Coverage ####################
-kcov:
-	wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz
-	tar xzf master.tar.gz
-	cd kcov-master
-	mkdir build
-	cd build
-#Mac	cmake -G Xcode ..
-	cmake ..
-#Mac	xcodebuild -configuration Release
-#Mac mv src/Release/kcov ../../bin
-	make
-	sudo make install
-	cd ../..
-	rm -rf kcov-master
 
 ################### Doc ####################
 .PHONY: docs
@@ -135,17 +119,36 @@ book-test:
 	./bin/mdbook test
 	$(ETIME)
 
+################### Coverage ####################
 .PHONY: coverage
 coverage:
-ifeq ($(DOT),)
-	@echo "\t'kcov' not available. Building and installing it"
-	$(MAKE) kcov
-else
-	for file in target/debug/*.d; do mkdir -p "target/cov/$(basename $file)"; kcov target/cov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file"; done
+ifeq ($(KCOV),)
+	@echo "'kcov' is not installed. Building and installing it"
+	@$(MAKE) kcov
 endif
+	@echo "Running 'kcov' to measure test coverage"
+	@for file in target/debug/flow*[^\.d]; do echo "Measuring coverage of '$$file'"; mkdir -p target/cov/$$(basename $$file); kcov --exclude-pattern=/.cargo,/usr/lib target/cov/$$(basename $$file) $$file; done
+#	for file in target/debug/runtime-*[^\.d]; do mkdir -p target/cov/$(basename $file); kcov --exclude-pattern=/.cargo,/usr/lib target/cov/$$(basename $$file) $$file; done
+#	for file in target/debug/provider-*[^\.d]; do mkdir -p target/cov/$(basename $file); kcov --exclude-pattern=/.cargo,/usr/lib target/cov/$$(basename $$file) $$file; done
+	@printf "Uploading coverage to https://codecov.io....."
+	@bash <(curl -s https://codecov.io/bash)
+	@printf "....done/n""
 
-upload-coverage:
-	bash <(curl -s https://codecov.io/bash)
+kcov:
+	printd "Building 'kcov' from source...."
+	@wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz
+	@rm -rf kcov-master
+	@tar xzf master.tar.gz
+ifeq ($(UNAME), Linux)
+	@cd kcov-master && rm -rf build && mkdir build && cd build && cmake .. && make && sudo make install
+endif
+ifeq ($(UNAME), Darwin)
+	@cd kcov-master && rm -rf build && mkdir build && cd build && cmake -G Xcode .. &&  xcodebuild -configuration Release§
+	@sudo mv kcov-master/build/src/Debug/kcov /usr/local/bin/kcov
+endif
+	@printf ".....and intalling it"
+	@rm -rf kcov-master
+	@rm -f master.tar.gz*
 
 #################### LIBRARIES ####################
 flowstdlib: flowstdlib/manifest.json
