@@ -141,6 +141,31 @@ mod test {
     use super::Input;
 
     #[test]
+    fn default_depth_is_1() {
+        assert_eq!(super::default_depth(), 1);
+    }
+
+    #[test]
+    fn one_is_default_depth() {
+        assert!(super::is_default_depth(&1));
+    }
+
+    #[test]
+    fn default_initial_value_is_none() {
+        assert!(super::default_initial_value().is_none());
+    }
+
+    #[test]
+    fn default_is_not_array() {
+        assert_eq!(super::default_is_array(), false);
+    }
+
+    #[test]
+    fn is_not_array() {
+        assert!(super::is_not_array(&false));
+    }
+
+    #[test]
     fn no_inputs_initially() {
         let input = Input::new(1, &None, false);
         assert!(input.is_empty());
