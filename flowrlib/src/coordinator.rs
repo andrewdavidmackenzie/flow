@@ -179,6 +179,8 @@ impl Coordinator {
                 display_next_output = debug_check.0;
                 restart = debug_check.1;
 
+                // If debugger request it, exit the inner loop which will cause us to reset state
+                // and restart execution, in the outerloop
                 if restart {
                     break 'inner;
                 }
@@ -292,5 +294,72 @@ impl Coordinator {
         self.job_tx.send(job)?;
 
         Ok(debug_options)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::coordinator::Coordinator;
+    use crate::coordinator::Submission;
+    use crate::debug_client::{DebugClient, Event, Response};
+    use crate::debug_client::Command;
+    use crate::manifest::Manifest;
+    use crate::manifest::MetaData;
+
+    fn test_meta_data() -> MetaData {
+        MetaData {
+            name: "test".into(),
+            version: "0.0.0".into(),
+            description: "a test".into(),
+            author_name: "me".into(),
+            author_email: "me@a.com".into(),
+        }
+    }
+
+    struct TestDebugClient {}
+
+    impl DebugClient for TestDebugClient {
+        fn init(&self) {}
+
+        fn get_command(&self, _job_number: Option<usize>) -> Command {
+            Command::ExitDebugger
+        }
+
+        fn send_event(&self, _event: Event) {}
+
+        fn send_response(&self, _response: Response) {}
+    }
+
+    fn test_debug_client() -> &'static dyn DebugClient {
+        &TestDebugClient {}
+    }
+
+    #[test]
+    fn create_submission() {
+        let meta_data = test_meta_data();
+        let manifest = Manifest::new(meta_data);
+        let _ = Submission::new(manifest, 1, true, None);
+    }
+
+    #[test]
+    fn create_coordinator() {
+        let mut coordinator = Coordinator::new(1);
+
+        let meta_data = test_meta_data();
+        let manifest = Manifest::new(meta_data);
+        let submission = Submission::new(manifest, 1, true, None);
+
+        coordinator.submit(submission);
+    }
+
+    #[test]
+    fn create_coordinator_with_debugger() {
+        let mut coordinator = Coordinator::new(1);
+
+        let meta_data = test_meta_data();
+        let manifest = Manifest::new(meta_data);
+        let submission = Submission::new(manifest, 1, true, Some(test_debug_client()));
+
+        coordinator.submit(submission);
     }
 }
