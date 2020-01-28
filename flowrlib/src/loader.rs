@@ -132,3 +132,13 @@ impl Loader {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::Loader;
+
+    #[test]
+    fn test_create() {
+        let _ = Loader::new();
+    }
+}
