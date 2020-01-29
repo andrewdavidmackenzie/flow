@@ -130,8 +130,9 @@ upload_coverage: measure_coverage
 
 measure_coverage: build-kcov
 	@printf "Running 'kcov' to measure test coverage...."
+# TODO use makr path substitution?
 ifeq ($(UNAME), Linux)
-	cd flow_impl;for file in `find ../target/debug -type f --perm /u+x -depth 1 -name flow_impl-\*`; do echo "Measuring coverage of '$$file'"; mkdir -p ../target/cov/$$(basename $$file); kcov --exclude-pattern=/.cargo,/usr/lib ../target/cov/$$(basename $$file) $$file; done
+	cd flow_impl;for file in `find ../target/debug -type f -executable -depth 1 -name flow_impl-\*`; do echo "Measuring coverage of '$$file'"; mkdir -p ../target/cov/$$(basename $$file); kcov --exclude-pattern=/.cargo,/usr/lib ../target/cov/$$(basename $$file) $$file; done
 endif
 ifeq ($(UNAME), Darwin)
 	cd flow_impl;for file in `find ../target/debug -perm +111 -type f -depth 1 -name flow_impl-\*`; do echo "Measuring coverage of '$$file'"; mkdir -p ../target/cov/$$(basename $$file); kcov --exclude-pattern=/.cargo,/usr/lib ../target/cov/$$(basename $$file) $$file; done
@@ -153,7 +154,7 @@ ifeq ($(UNAME), Darwin)
 	@cd kcov-master && rm -rf build && mkdir build && cd build && cmake -G Xcode .. &&  xcodebuild -configuration Release§
 	@sudo mv kcov-master/build/src/Debug/kcov /usr/local/bin/kcov
 endif
-	@printf ".....and intalling it"
+	@printf ".....and intalling it\n"
 	@rm -rf kcov-master
 	@rm -f master.tar.gz*
 else
@@ -193,7 +194,6 @@ samples: flowrunner flowstdlib/manifest.json
 	$(ETIME)
 
 samples/%/test.output: samples/%/test.input samples/%/test.arguments
-# remove error messages with file path from output messages to make local output match travis output
 	@printf "\tSample '$(@D)'"
 	@RUST_BACKTRACE=1 cat $< | cargo run --quiet -p flowc -- -g -d $(@D) -- `cat $(@D)/test.arguments` 2> $(@D)/test.err > $@
 	@diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && exit $$ret)
