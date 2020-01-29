@@ -114,7 +114,7 @@ fn load_flow(test_dir: &PathBuf, test_name: &str) -> Process {
     let test_flow = format!("{}.toml", test_name);
     let mut flow_file = test_dir.clone();
     flow_file.push(test_flow);
-    loader::load_context(&helper::url_relative_to_flow_route(&flow_file.to_string_lossy()), &MetaProvider {}).unwrap()
+    loader::load_context(&helper::url_relative_to_flow_root(&flow_file.to_string_lossy()), &MetaProvider {}).unwrap()
 }
 
 fn get(test_dir: &PathBuf, file_name: &str) -> String {
