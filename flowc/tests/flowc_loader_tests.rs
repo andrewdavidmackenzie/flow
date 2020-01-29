@@ -32,7 +32,7 @@ use provider::content::provider::MetaProvider;
 fn malformed_connection() {
     helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let path = helper::url_relative_to_flow_root("flowc/tests/test-flows/malformed-connection.toml");
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/malformed-connection.toml");
     let result = loader::load_context(&path, &meta_provider);
     match result {
         Ok(_) => assert!(false, "malformed-connection.toml should not load successfully"),
@@ -44,7 +44,7 @@ fn malformed_connection() {
 fn invalid_toml() {
     helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let path = helper::url_relative_to_flow_root("flowc/tests/test-flows/invalid.toml");
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid.toml");
     let result = loader::load_context(&path, &meta_provider);
     match result {
         Ok(_) => assert!(false, "invalid.toml should not load successfully"),
@@ -56,7 +56,7 @@ fn invalid_toml() {
 fn invalid_process() {
     helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let path = helper::url_relative_to_flow_root("flowc/tests/test-flows/invalid-process.toml");
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid-process.toml");
     let result = loader::load_context(&path, &meta_provider);
     match result {
         Ok(_) => assert!(false, "invalid.toml should not load successfully"),
@@ -68,7 +68,7 @@ fn invalid_process() {
 fn function_input_initialized() {
     helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let url = helper::url_relative_to_flow_root("flowc/tests/test-flows/function_input_init.toml");
+    let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/function_input_init.toml");
 
     match loader::load_context(&url, &meta_provider) {
         Ok(FlowProcess(flow)) => {
@@ -102,7 +102,7 @@ fn flow_input_initialized_and_propogated_to_function() {
     helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     // Relative path from project root to the test file
-    let url = helper::url_relative_to_flow_root("flowc/tests/test-flows/flow_input_init.toml");
+    let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/flow_input_init.toml");
 
     match loader::load_context(&url, &meta_provider) {
         Ok(FlowProcess(flow)) => {
@@ -145,13 +145,12 @@ fn flow_input_initialized_and_propogated_to_function() {
     a sub-flow of that via a connection from the flow input to the function input
 */
 #[test]
-#[ignore] // TODO not clear to me what this is testing - if it should panic, then
-// better if we check the specific failure in a positive sense
+#[ignore]
 fn flow_input_initialized_and_propogated_to_function_in_subflow() {
     helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     // Relative path from project root to the test file
-    let url = helper::url_relative_to_flow_root("flowc/tests/test-flows/subflow_function_input_init.toml");
+    let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/subflow_function_input_init.toml");
 
     match loader::load_context(&url, &meta_provider) {
         Ok(FlowProcess(context)) => {
@@ -159,7 +158,7 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
                 assert_eq!(Name::from("sequence"), *sequence_sub_flow.alias(), "First sub-flow alias is not 'sequence' as expected");
 
                 if let Some(ref sequence_process_refs) = sequence_sub_flow.process_refs {
-                    if let FlowProcess(ref pilte_sub_flow) = sequence_process_refs.get(0).unwrap().process {
+                    if let FlowProcess(ref pilte_sub_flow) = sequence_process_refs.get(1).unwrap().process {
                         assert_eq!(Name::from("pilte"), *pilte_sub_flow.alias(), "Sub-flow alias is not 'pilte' as expected");
 
                         if let Some(ref process_refs) = pilte_sub_flow.process_refs {
@@ -172,7 +171,7 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
                                     let initial_value = in_input.get_initializer();
                                     match initial_value {
                                         Some(OneTime(one_time)) => assert_eq!(one_time.once, 1), // PASS
-                                        _ => panic!("Initializer should have been a OneTime initializer")
+                                        _ => panic!("Initializer should have been a OneTime initializer, was {:?}", initial_value)
                                     }
                                 } else {
                                     panic!("Could not find any inputs");
@@ -200,7 +199,7 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
 
 #[test]
 fn load_library() {
-    let path = helper::url_relative_to_flow_root("flowc/tests/test_libs/Library_test.toml");
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test_libs/Library_test.toml");
     let provider = MetaProvider {};
 
     loader::load_library(&path, &provider).unwrap();
