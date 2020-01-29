@@ -132,7 +132,7 @@ measure_coverage: build-kcov
 	@printf "Running 'kcov' to measure test coverage...."
 # TODO use makr path substitution?
 ifeq ($(UNAME), Linux)
-	cd flow_impl;for file in `find ../target/debug -type f -executable -depth 1 -name flow_impl-\*`; do echo "Measuring coverage of '$$file'"; mkdir -p ../target/cov/$$(basename $$file); kcov --exclude-pattern=/.cargo,/usr/lib ../target/cov/$$(basename $$file) $$file; done
+	cd flow_impl;for file in `find ../target/debug -depth 1 -type f -executable -name flow_impl-\*`; do echo "Measuring coverage of '$$file'"; mkdir -p ../target/cov/$$(basename $$file); kcov --exclude-pattern=/.cargo,/usr/lib ../target/cov/$$(basename $$file) $$file; done
 endif
 ifeq ($(UNAME), Darwin)
 	cd flow_impl;for file in `find ../target/debug -perm +111 -type f -depth 1 -name flow_impl-\*`; do echo "Measuring coverage of '$$file'"; mkdir -p ../target/cov/$$(basename $$file); kcov --exclude-pattern=/.cargo,/usr/lib ../target/cov/$$(basename $$file) $$file; done
