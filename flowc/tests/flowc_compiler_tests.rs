@@ -23,7 +23,6 @@ use provider::content::provider::MetaProvider;
 
 #[test]
 fn args() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/args.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
@@ -36,7 +35,6 @@ fn args() {
 
 #[test]
 fn object_to_array_connection() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/object_to_array_connection.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
@@ -49,7 +47,6 @@ fn object_to_array_connection() {
 
 #[test]
 fn context_with_io() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/context_with_io.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
@@ -66,7 +63,6 @@ fn context_with_io() {
 
 #[test]
 fn same_name_input_and_output() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/same-name-parent.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
@@ -82,7 +78,6 @@ fn same_name_input_and_output() {
 
 #[test]
 fn double_connection() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/double-connection.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
@@ -99,7 +94,6 @@ fn double_connection() {
 
 #[test]
 fn dead_process_removed() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/dead-process.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
@@ -117,7 +111,6 @@ fn dead_process_removed() {
 
 #[test]
 fn dead_process_and_connected_process_removed() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/dead-process-and-connected-process.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
@@ -133,7 +126,6 @@ fn dead_process_and_connected_process_removed() {
 
 #[test]
 fn compile_echo_ok() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let process = loader::load_context(&helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/echo.toml"),
                                        &meta_provider).unwrap();
@@ -146,7 +138,6 @@ fn compile_echo_ok() {
 
 #[test]
 fn compiler_detects_unused_input() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let process = loader::load_context(&helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/unused_input.toml"),
                                        &meta_provider).unwrap();
@@ -159,7 +150,6 @@ fn compiler_detects_unused_input() {
 
 #[test]
 fn compile_double_connection() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let process = loader::load_context(&helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/double.toml"),
                                        &meta_provider).unwrap();
@@ -172,7 +162,6 @@ fn compile_double_connection() {
 
 #[test]
 fn compile_detects_connection_to_initialized_input() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let process = loader::load_context(&helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/connect_to_constant.toml"),
                                        &meta_provider).unwrap();

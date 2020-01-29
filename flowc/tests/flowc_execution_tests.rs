@@ -127,7 +127,6 @@ fn get(test_dir: &PathBuf, file_name: &str) -> String {
 }
 
 fn execute_test(test_name: &str) {
-    helper::set_flow_lib_path();
     let mut test_dir = env::current_dir().unwrap();
     let mut run_dir = test_dir.clone();
     run_dir.pop();

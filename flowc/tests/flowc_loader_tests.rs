@@ -30,7 +30,6 @@ use provider::content::provider::MetaProvider;
 
 #[test]
 fn malformed_connection() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/malformed-connection.toml");
     let result = loader::load_context(&path, &meta_provider);
@@ -42,7 +41,6 @@ fn malformed_connection() {
 
 #[test]
 fn invalid_toml() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid.toml");
     let result = loader::load_context(&path, &meta_provider);
@@ -54,7 +52,6 @@ fn invalid_toml() {
 
 #[test]
 fn invalid_process() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid-process.toml");
     let result = loader::load_context(&path, &meta_provider);
@@ -66,7 +63,6 @@ fn invalid_process() {
 
 #[test]
 fn function_input_initialized() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/function_input_init.toml");
 
@@ -99,7 +95,6 @@ fn function_input_initialized() {
 */
 #[test]
 fn flow_input_initialized_and_propogated_to_function() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/flow_input_init.toml");
@@ -147,7 +142,6 @@ fn flow_input_initialized_and_propogated_to_function() {
 #[test]
 #[ignore]
 fn flow_input_initialized_and_propogated_to_function_in_subflow() {
-    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/subflow_function_input_init.toml");
