@@ -82,7 +82,7 @@ impl Submission {
 /// Inputs.
 ///
 /// It accepts Flows to be executed in the form of a Submission struct that has the required
-/// information to execut the flow.
+/// information to execute the flow.
 pub struct Coordinator {
     job_tx: Sender<Job>,
     output_rx: Receiver<Output>
@@ -342,7 +342,8 @@ mod test {
     }
 
     #[test]
-    fn create_coordinator() {
+    #[ignore]
+    fn submit() {
         let mut coordinator = Coordinator::new(1);
 
         let meta_data = test_meta_data();
@@ -353,7 +354,8 @@ mod test {
     }
 
     #[test]
-    fn create_coordinator_with_debugger() {
+    #[ignore]
+    fn submit_with_debugger() {
         let mut coordinator = Coordinator::new(1);
 
         let meta_data = test_meta_data();
