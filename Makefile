@@ -130,9 +130,8 @@ upload_coverage: measure_coverage
 
 measure_coverage: build-kcov
 	@echo "Running 'kcov' to measure test coverage"
-	for file in find target/debug -perm +111 -type f -depth 1 -name \*-\*; do echo "Measuring coverage of '$$file'"; mkdir -p target/cov/$$(basename $$file); kcov --exclude-pattern=/.cargo,/usr/lib target/cov/$$(basename $$file) $$file; done
-#	for file in target/debug/runtime-*[^\.d]; do mkdir -p target/cov/$(basename $file); kcov --exclude-pattern=/.cargo,/usr/lib target/cov/$$(basename $$file) $$file; done
-#	for file in target/debug/provider-*[^\.d]; do mkdir -p target/cov/$(basename $file); kcov --exclude-pattern=/.cargo,/usr/lib target/cov/$$(basename $$file) $$file; done
+	cd flow_impl;for file in `find ../target/debug -perm +111 -type f -depth 1 -name flow_impl-\*`; do echo "Measuring coverage of '$$file'"; mkdir -p ../target/cov/$$(basename $$file); kcov --exclude-pattern=/.cargo,/usr/lib ../target/cov/$$(basename $$file) $$file; done
+#	cd flowc;for file in `find ../target/debug -perm +111 -type f -depth 1 -name flowc-\*`; do echo "Measuring coverage of '$$file'"; mkdir -p ../target/cov/$$(basename $$file); kcov --exclude-pattern=/.cargo,/usr/lib ../target/cov/$$(basename $$file) $$file; done
 	@printf "....done/n""
 
 build-kcov:
