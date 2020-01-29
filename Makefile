@@ -121,20 +121,23 @@ book-test:
 
 ################### Coverage ####################
 .PHONY: coverage
-coverage:
-ifeq ($(KCOV),)
-	@echo "'kcov' is not installed. Building and installing it"
-	@$(MAKE) kcov
-endif
-	@echo "Running 'kcov' to measure test coverage"
-	@for file in target/debug/flow*[^\.d]; do echo "Measuring coverage of '$$file'"; mkdir -p target/cov/$$(basename $$file); kcov --exclude-pattern=/.cargo,/usr/lib target/cov/$$(basename $$file) $$file; done
-#	for file in target/debug/runtime-*[^\.d]; do mkdir -p target/cov/$(basename $file); kcov --exclude-pattern=/.cargo,/usr/lib target/cov/$$(basename $$file) $$file; done
-#	for file in target/debug/provider-*[^\.d]; do mkdir -p target/cov/$(basename $file); kcov --exclude-pattern=/.cargo,/usr/lib target/cov/$$(basename $$file) $$file; done
+coverage: upload_coverage
+
+upload_coverage: measure_coverage
 	@printf "Uploading coverage to https://codecov.io....."
 	@bash <(curl -s https://codecov.io/bash)
 	@printf "....done/n""
 
-kcov:
+measure_coverage: build-kcov
+	@echo "Running 'kcov' to measure test coverage"
+	for file in find target/debug -perm +111 -type f -depth 1 -name \*-\*; do echo "Measuring coverage of '$$file'"; mkdir -p target/cov/$$(basename $$file); kcov --exclude-pattern=/.cargo,/usr/lib target/cov/$$(basename $$file) $$file; done
+#	for file in target/debug/runtime-*[^\.d]; do mkdir -p target/cov/$(basename $file); kcov --exclude-pattern=/.cargo,/usr/lib target/cov/$$(basename $$file) $$file; done
+#	for file in target/debug/provider-*[^\.d]; do mkdir -p target/cov/$(basename $file); kcov --exclude-pattern=/.cargo,/usr/lib target/cov/$$(basename $$file) $$file; done
+	@printf "....done/n""
+
+build-kcov:
+ifeq ($(KCOV),)
+	@echo "'kcov' is not installed. Building and installing it"
 	@printf "Building 'kcov' from source...."
 	@wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz
 	@rm -rf kcov-master
@@ -149,6 +152,9 @@ endif
 	@printf ".....and intalling it"
 	@rm -rf kcov-master
 	@rm -f master.tar.gz*
+else
+	@echo "'kcov' found on this system, skipping build of it"
+endif
 
 #################### LIBRARIES ####################
 flowstdlib: flowstdlib/manifest.json

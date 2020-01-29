@@ -1,11 +1,9 @@
-use std::env;
-
-use url::Url;
-
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowclib::model::process::Process::FlowProcess;
 use provider::content::provider::MetaProvider;
+
+#[path="helper.rs"] mod helper;
 
 /// flowclib integration tests
 ///
@@ -22,28 +20,12 @@ use provider::content::provider::MetaProvider;
 /// and parsing.
 ///
 /// An interim solution could be so have the files in the code as Strings and parse from there.
-///
-
-// Helper function for tests
-fn url_from_rel_path(path: &str) -> String {
-    let cwd = Url::from_file_path(env::current_dir().unwrap()).unwrap();
-    let source_file = cwd.join(file!()).unwrap();
-    let file = source_file.join(path).unwrap();
-    file.to_string()
-}
-
-fn set_flow_lib_path() {
-    let mut parent_dir = std::env::current_dir().unwrap();
-    parent_dir.pop();
-    println!("Set 'FLOW_LIB_PATH' to '{}'", parent_dir.to_string_lossy().to_string());
-    env::set_var("FLOW_LIB_PATH", parent_dir.to_string_lossy().to_string());
-}
 
 #[test]
 fn args() {
-    set_flow_lib_path();
+    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let path = url_from_rel_path("test-flows/args.toml");
+    let path = helper::url_relative_to_flow_route("flowc/tests/test-flows/args.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let _tables = compile::compile(flow).unwrap();
@@ -54,9 +36,9 @@ fn args() {
 
 #[test]
 fn object_to_array_connection() {
-    set_flow_lib_path();
+    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let path = url_from_rel_path("test-flows/object_to_array_connection.toml");
+    let path = helper::url_relative_to_flow_route("flowc/tests/test-flows/object_to_array_connection.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let _tables = compile::compile(flow).unwrap();
@@ -67,9 +49,9 @@ fn object_to_array_connection() {
 
 #[test]
 fn context_with_io() {
-    set_flow_lib_path();
+    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let path = url_from_rel_path("test-flows/context_with_io.toml");
+    let path = helper::url_relative_to_flow_route("flowc/tests/test-flows/context_with_io.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow);
@@ -84,9 +66,9 @@ fn context_with_io() {
 
 #[test]
 fn same_name_input_and_output() {
-    set_flow_lib_path();
+    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let path = url_from_rel_path("test-flows/same-name-parent.toml");
+    let path = helper::url_relative_to_flow_route("flowc/tests/test-flows/same-name-parent.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow).unwrap();
@@ -100,9 +82,9 @@ fn same_name_input_and_output() {
 
 #[test]
 fn double_connection() {
-    set_flow_lib_path();
+    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let path = url_from_rel_path("test-flows/double-connection.toml");
+    let path = helper::url_relative_to_flow_route("flowc/tests/test-flows/double-connection.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow);
@@ -117,9 +99,9 @@ fn double_connection() {
 
 #[test]
 fn dead_process_removed() {
-    set_flow_lib_path();
+    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let path = url_from_rel_path("test-flows/dead-process.toml");
+    let path = helper::url_relative_to_flow_route("flowc/tests/test-flows/dead-process.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow).unwrap();
@@ -135,9 +117,9 @@ fn dead_process_removed() {
 
 #[test]
 fn dead_process_and_connected_process_removed() {
-    set_flow_lib_path();
+    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let path = url_from_rel_path("test-flows/dead-process-and-connected-process.toml");
+    let path = helper::url_relative_to_flow_route("flowc/tests/test-flows/dead-process-and-connected-process.toml");
     let process = loader::load_context(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow).unwrap();
@@ -151,9 +133,9 @@ fn dead_process_and_connected_process_removed() {
 
 #[test]
 fn compile_echo_ok() {
-    set_flow_lib_path();
+    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let process = loader::load_context(&url_from_rel_path("test-flows/echo.toml"),
+    let process = loader::load_context(&helper::url_relative_to_flow_route("flowc/tests/test-flows/echo.toml"),
                                        &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let _tables = compile::compile(flow).unwrap();
@@ -164,9 +146,9 @@ fn compile_echo_ok() {
 
 #[test]
 fn compiler_detects_unused_input() {
-    set_flow_lib_path();
+    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let process = loader::load_context(&url_from_rel_path("test-flows/unused_input.toml"),
+    let process = loader::load_context(&helper::url_relative_to_flow_route("flowc/tests/test-flows/unused_input.toml"),
                                        &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         assert!(compile::compile(flow).is_err(), "Should not compile due to unused input");
@@ -177,9 +159,9 @@ fn compiler_detects_unused_input() {
 
 #[test]
 fn compile_double_connection() {
-    set_flow_lib_path();
+    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let process = loader::load_context(&url_from_rel_path("test-flows/double.toml"),
+    let process = loader::load_context(&helper::url_relative_to_flow_route("flowc/tests/test-flows/double.toml"),
                                        &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         assert!(compile::compile(flow).is_err(), "Should not compile due to a double connection to an input");
@@ -190,9 +172,9 @@ fn compile_double_connection() {
 
 #[test]
 fn compile_detects_connection_to_initialized_input() {
-    set_flow_lib_path();
+    helper::set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let process = loader::load_context(&url_from_rel_path("test-flows/connect_to_constant.toml"),
+    let process = loader::load_context(&helper::url_relative_to_flow_route("flowc/tests/test-flows/connect_to_constant.toml"),
                                        &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         assert!(compile::compile(flow).is_err(), "Should not compile due to connection to constant initialized input");

@@ -9,8 +9,6 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 
-use url::Url;
-
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowclib::generator::generate;
@@ -19,6 +17,8 @@ use flowclib::model::flow::Flow;
 use flowclib::model::process::Process;
 use flowclib::model::process::Process::FlowProcess;
 use provider::content::provider::MetaProvider;
+
+#[path="helper.rs"] mod helper;
 
 mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
@@ -37,26 +37,13 @@ error_chain! {
 ///
 /// These are a set of System tests that compile a sample flow, and then execute it, capturing
 /// the output and comparing it to the expected output.
-fn url_from_rel_path(path: &str) -> String {
-    let cwd = Url::from_file_path(env::current_dir().unwrap()).unwrap();
-    let source_file = cwd.join(file!()).unwrap();
-    let file = source_file.join(path).unwrap();
-    file.to_string()
-}
-
-fn set_flow_lib_path() {
-    let mut parent_dir = std::env::current_dir().unwrap();
-    parent_dir.pop();
-    println!("Set 'FLOW_LIB_PATH' to '{}'", parent_dir.to_string_lossy().to_string());
-    env::set_var("FLOW_LIB_PATH", parent_dir.to_string_lossy().to_string());
-}
 
 fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: PathBuf, test_name: &str, tables: &GenerationTables)
                   -> Result<PathBuf> {
     let mut filename = out_dir.clone();
     filename.push(&format!("{}.json", test_name));
     let mut manifest_file = File::create(&filename).chain_err(|| "Could not create manifest file")?;
-    let out_dir_path = Url::from_file_path(&filename).unwrap().to_string();
+    let out_dir_path = url::Url::from_file_path(&filename).unwrap().to_string();
 
     let manifest = generate::create_manifest(&flow, debug_symbols, &out_dir_path, tables)?;
 
@@ -127,7 +114,7 @@ fn load_flow(test_dir: &PathBuf, test_name: &str) -> Process {
     let test_flow = format!("{}.toml", test_name);
     let mut flow_file = test_dir.clone();
     flow_file.push(test_flow);
-    loader::load_context(&url_from_rel_path(&flow_file.to_string_lossy()), &MetaProvider {}).unwrap()
+    loader::load_context(&helper::url_relative_to_flow_route(&flow_file.to_string_lossy()), &MetaProvider {}).unwrap()
 }
 
 fn get(test_dir: &PathBuf, file_name: &str) -> String {
@@ -140,7 +127,7 @@ fn get(test_dir: &PathBuf, file_name: &str) -> String {
 }
 
 fn execute_test(test_name: &str) {
-    set_flow_lib_path();
+    helper::set_flow_lib_path();
     let mut test_dir = env::current_dir().unwrap();
     let mut run_dir = test_dir.clone();
     run_dir.pop();

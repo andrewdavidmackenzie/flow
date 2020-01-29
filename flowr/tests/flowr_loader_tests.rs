@@ -142,3 +142,9 @@ fn unresolved_lib_functions_test() {
 
     assert!(loader.resolve_implementations(&mut manifest, &provider, &manifest_url).is_err());
 }
+
+// TODO add a wasm loading test
+// check coverage of flowrlib/loader.rs and wasm.rs
+
+// TODO add a wasm and native execution test
+// check the coverage of execution.rs
