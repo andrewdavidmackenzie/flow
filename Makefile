@@ -135,7 +135,7 @@ endif
 	@printf "....done/n""
 
 kcov:
-	printd "Building 'kcov' from source...."
+	printf "Building 'kcov' from source...."
 	@wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz
 	@rm -rf kcov-master
 	@tar xzf master.tar.gz
