@@ -124,25 +124,23 @@ book-test:
 coverage: upload_coverage
 
 upload_coverage: measure_coverage
-	@printf "Uploading coverage to https://codecov.io....."
-	@bash <(curl -s https://codecov.io/bash)
-	@printf "....done/n""
+	@echo "Uploading coverage to https://codecov.io....."
+	@curl -s https://codecov.io/bash | bash
 
 measure_coverage: build-kcov
-	@printf "Running 'kcov' to measure test coverage...."
+	@echo "Running 'kcov' to measure test coverage."
 # TODO use makr path substitution?
 ifeq ($(UNAME), Linux)
-	@cd flow_impl;for file in `find ../target/debug -depth 1 -type f -executable -name "flow_impl-\*"`; do echo "Measuring coverage of '$file'"; mkdir -p ../target/cov/$(basename $file); kcov --exclude-pattern=/.cargo,/usr/lib ../target/cov/$(basename $file) $file; done
+	@cd flow_impl;for file in `find ../target/debug -depth 1 -type f -executable -name "flow_impl-\*"`; do echo "Measuring coverage of '$(file)'";mkdir -p ../target/cov/$(basename $(file));kcov --exclude-pattern=/.cargo,/usr/lib ../target/cov/$(basename $file) $file;done
 endif
 ifeq ($(UNAME), Darwin)
-	@cd flow_impl;for file in `find ../target/debug -perm +111 -type f -depth 1 -name "flow_impl-\*"`; do echo "Measuring coverage of '$file'"; mkdir -p ../target/cov/$(basename $file); kcov --exclude-pattern=/.cargo,/usr/lib ../target/cov/$(basename $file) $file; done
+	@cd flow_impl;for file in `find ../target/debug -perm +111 -type f -depth 1 -name \"flow_impl-\*\"`;do echo "Measuring coverage of $$(file)";mkdir -p ../target/cov/$$(basename $$file);kcov --exclude-pattern=/.cargo,/usr/lib ../target/cov/$$(basename $$file) $$file;done
 endif
-	@printf "....done/n""
 
 build-kcov:
 ifeq ($(KCOV),)
 	@echo "'kcov' is not installed. Building and installing it"
-	@printf "Building 'kcov' from source...."
+	@printf "Building 'kcov' from source and installing it"
 	@wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz
 	@rm -rf kcov-master
 	@tar xzf master.tar.gz
@@ -153,14 +151,13 @@ ifeq ($(UNAME), Darwin)
 	@cd kcov-master && rm -rf build && mkdir build && cd build && cmake -G Xcode .. &&  xcodebuild -configuration Release§
 	@sudo mv kcov-master/build/src/Debug/kcov /usr/local/bin/kcov
 endif
-	@printf ".....and intalling it\n"
 	@rm -rf kcov-master
 	@rm -f master.tar.gz*
 else
 	@echo "'kcov' found on this system, skipping build of it"
 endif
 
-#################### LIBRARIES ####################
+#################### FLOW LIBRARIES ####################
 flowstdlib: flowstdlib/manifest.json
 
 flowstdlib/manifest.json: $(FLOWSTDLIB_FILES)
@@ -188,9 +185,12 @@ sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcar
 # This target must be below sample-flows in the Makefile
 samples: flowrunner flowstdlib/manifest.json
 	$(STIME)
-	@cd samples; $(MAKE) clean
+#	@cd samples; $(MAKE) clean
 	@$(MAKE) $(sample_flows)
 	$(ETIME)
+
+samples/%: samples/%/test.err
+	$(MAKE) $(@D)/test.output
 
 samples/%/test.output: samples/%/test.input samples/%/test.arguments
 	@printf "\tSample '$(@D)'"
