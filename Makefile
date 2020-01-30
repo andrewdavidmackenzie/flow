@@ -121,21 +121,19 @@ book-test:
 
 ################### Coverage ####################
 .PHONY: coverage
-coverage: upload_coverage
+coverage: build-kcov measure #upload_coverage
 
-upload_coverage: measure_coverage
+COVERAGE_PREFIXES := "flow_impl-*" "runtime-*" "provider-*" "flow_impl_derive-*" "flowc-*" "flowstdlib-*" "flowr-*" "flowrlib-*"
+# flowc_*-* and flowr_*-*
+
+upload_coverage: $(COVERAGE_PREFIXES)
 	@echo "Uploading coverage to https://codecov.io....."
 	@curl -s https://codecov.io/bash | bash
 
-measure_coverage: build-kcov
-	@echo "Running 'kcov' to measure test coverage."
-# TODO use makr path substitution?
-ifeq ($(UNAME), Linux)
-	@cd flow_impl;for file in `find ../target/debug -depth 1 -type f -executable -name "flow_impl-\*"`; do echo "Measuring coverage of '$(file)'";mkdir -p ../target/cov/$(basename $(file));kcov --exclude-pattern=/.cargo,/usr/lib ../target/cov/$(basename $file) $file;done
-endif
-ifeq ($(UNAME), Darwin)
-	@cd flow_impl;for file in `find ../target/debug -perm +111 -type f -depth 1 -name \"flow_impl-\*\"`;do echo "Measuring coverage of $$(file)";mkdir -p ../target/cov/$$(basename $$file);kcov --exclude-pattern=/.cargo,/usr/lib ../target/cov/$$(basename $$file) $$file;done
-endif
+measure: $(COVERAGE_PREFIXES)
+
+$(COVERAGE_PREFIXES):
+	@coverage.sh $@
 
 build-kcov:
 ifeq ($(KCOV),)
@@ -154,7 +152,7 @@ endif
 	@rm -rf kcov-master
 	@rm -f master.tar.gz*
 else
-	@echo "'kcov' found on this system, skipping build of it"
+	@echo "'kcov' found, skipping build of it"
 endif
 
 #################### FLOW LIBRARIES ####################
