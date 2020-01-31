@@ -102,7 +102,6 @@ mod test {
     use super::FileProvider;
 
     #[test]
-    #[ignore] // TODO Fails in kcov
     fn get_default_sample() {
         let mut path = PathBuf::from("../samples/hello-world").canonicalize().unwrap();
         match FileProvider::find_file(&mut path, "context", &["toml"]) {

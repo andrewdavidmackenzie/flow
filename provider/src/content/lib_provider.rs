@@ -121,7 +121,6 @@ mod test {
     use super::LibProvider;
 
     #[test]
-    #[ignore] // TODO fails in kcov
     fn resolve_path() {
         let provider: &dyn Provider = &LibProvider;
         let mut root = env::current_dir().unwrap();

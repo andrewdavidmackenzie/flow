@@ -92,7 +92,6 @@ mod test {
     }
 
     #[test]
-    #[ignore] // TODO fails in kcov
     fn relative_path_in_arg_converted_to_absolute_path_and_scheme_added() {
         // Get the path of this file relative to project root (where Cargo.toml is)
         let relative_path_to_file = file!();

@@ -82,11 +82,3 @@ pub fn set_panic_hook() {
         }
     }));
 }
-
-#[cfg(test)]
-mod test {
-    #[test]
-    fn execute_job() {
-        
-    }
-}

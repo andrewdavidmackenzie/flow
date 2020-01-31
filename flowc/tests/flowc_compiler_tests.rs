@@ -1,9 +1,15 @@
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
+use flowclib::model::name::HasName;
+use flowclib::model::name::Name;
 use flowclib::model::process::Process::FlowProcess;
+use flowclib::model::route::HasRoute;
+use flowclib::model::route::Route;
+use flowrlib::input::InputInitializer::OneTime;
 use provider::content::provider::MetaProvider;
 
-#[path="helper.rs"] mod helper;
+#[path = "helper.rs"]
+mod helper;
 
 /// flowclib integration tests
 ///
@@ -20,7 +26,6 @@ use provider::content::provider::MetaProvider;
 /// and parsing.
 ///
 /// An interim solution could be so have the files in the code as Strings and parse from there.
-
 #[test]
 fn args() {
     let meta_provider = MetaProvider {};
@@ -169,5 +174,41 @@ fn compile_detects_connection_to_initialized_input() {
         assert!(compile::compile(flow).is_err(), "Should not compile due to connection to constant initialized input");
     } else {
         assert!(false, "Process loaded was not a flow");
+    }
+}
+
+
+/*
+    This tests that an initalizer on an input to a flow process is passed onto a function in
+    a sub-flow of that via a connection from the flow input to the function input
+*/
+#[test]
+fn flow_input_initialized_and_propogated_to_function_in_subflow() {
+    let meta_provider = MetaProvider {};
+    // Relative path from project root to the test file
+    let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/subflow_function_input_init.toml");
+
+    match loader::load_context(&url, &meta_provider) {
+        Ok(FlowProcess(context)) => {
+            let tables = compile::compile(&context).unwrap();
+
+            match tables.functions.iter().find(|&f| f.route() == &Route::from("/context/sequence/pilte/tap")) {
+                Some(tap_function) => {
+                    if let Some(inputs) = tap_function.get_inputs() {
+                        let in_input = inputs.get(0).unwrap();
+                        assert_eq!(Name::from("data"), *in_input.alias(), "Input's name is not 'data' as expected");
+                        let initial_value = in_input.get_initializer();
+                        match initial_value {
+                            Some(OneTime(one_time)) => assert_eq!(one_time.once, 1), // PASS
+                            _ => panic!("Initializer should have been a OneTime initializer, was {:?}", initial_value)
+                        }
+                    } else {
+                        panic!("Could not find any inputs");
+                    }
+                }
+                None => panic!("Could not find tap_function at route '/context/sequence/pilte/tap'")
+            }
+        }
+        _ => panic!("Couldn't load the flow from test file at '{}'", url)
     }
 }
