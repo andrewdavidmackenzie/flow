@@ -249,7 +249,7 @@ dependencies = [
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "curl 0.4.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "error-chain 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "flowclib 0.8.5",
+ "flowclib 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "flowr 0.8.2",
  "flowrlib 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "glob 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -279,6 +279,24 @@ dependencies = [
  "tempdir 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "flowclib"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "erased-serde 0.3.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-chain 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "flowrlib 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.44 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_yaml 0.8.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "shrinkwraprs 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "strfmt 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "toml 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1186,6 +1204,7 @@ dependencies = [
 "checksum error-chain 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)" = "3ab49e9dcb602294bc42f9a7dfc9bc6e936fca4418ea300dbfb84fe16de0b7d9"
 "checksum flow_impl 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)" = "4889bed04dbf0dedd647b7e9b0d7676041c77463e42d2b46a1be4bcc5bae243c"
 "checksum flow_impl_derive 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)" = "a923e1174e8bc943e80635a1212915f9251314a8397c1d894f436a329d3ce3f0"
+"checksum flowclib 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)" = "438356aff78ed603b0e802d3185243d3cec670161aa6f0304d1eda517aca8750"
 "checksum flowrlib 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)" = "b13bf4661e5891b2ae01ae0b0e183fcb9688b7cef6197a7c47519ebeeb25e6a5"
 "checksum fuchsia-cprng 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a06f77d526c1a601b7c4cdd98f54b5eaabffc14d5f2f0296febdc7f357c6d3ba"
 "checksum gif 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)" = "471d90201b3b223f3451cd4ad53e34295f16a1df17b1edf3736d47761c3981af"
