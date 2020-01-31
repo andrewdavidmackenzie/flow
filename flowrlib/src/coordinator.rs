@@ -342,7 +342,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn submit() {
         let mut coordinator = Coordinator::new(1);
 

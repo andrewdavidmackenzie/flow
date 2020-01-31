@@ -39,8 +39,8 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                             let destination_input = inputs.get_mut(destination_input_index).unwrap();
                             if destination_input.get_initializer().is_none() {
                                 destination_input.set_initial_value(connection.to_io.get_initializer());
-                                debug!("Set initializer on destination function input at '{}' from connection",
-                                       connection.to_io.route());
+                                debug!("Set initializer on destination function '{}' input at '{}' from connection",
+                                       destination_function.name(), connection.to_io.route());
                             }
                         }
                     }
@@ -247,7 +247,6 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
         }
     }
 
-// Print some stats in debug logs
     debug!("Connections between functions: {}", collapsed_connections.len());
 
     collapsed_connections
