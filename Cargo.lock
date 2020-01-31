@@ -249,7 +249,7 @@ dependencies = [
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "curl 0.4.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "error-chain 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "flowclib 0.8.4",
+ "flowclib 0.8.5",
  "flowr 0.8.2",
  "flowrlib 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "glob 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -264,7 +264,7 @@ dependencies = [
 
 [[package]]
 name = "flowclib"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "erased-serde 0.3.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "error-chain 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
