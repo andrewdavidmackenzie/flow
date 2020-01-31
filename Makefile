@@ -133,7 +133,7 @@ upload_coverage: $(COVERAGE_PREFIXES)
 measure: $(COVERAGE_PREFIXES)
 
 $(COVERAGE_PREFIXES):
-	@coverage.sh $@
+	@./coverage.sh $@
 
 build-kcov:
 ifeq ($(KCOV),)
