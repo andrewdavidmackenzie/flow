@@ -16,7 +16,7 @@ path = "lib.rs"
 
 [dependencies]
 flow_impl = "=0.8.5"
-flowrlib = {path = "../flowrlib"}
+flowrlib = "=0.8.5"
 simplog = "~1.2"
 log = "0.4.6"
 url = "~2.1"

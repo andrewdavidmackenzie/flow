@@ -22,7 +22,7 @@ native = []
 [dependencies]
 clap = "~2"
 flow_impl = "=0.8.5"
-flowrlib = {path = "../flowrlib"}
+flowrlib = "=0.8.5"
 provider = {path = "../provider"}
 simplog = "~1.2"
 log = "0.4.6"
