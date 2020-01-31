@@ -205,16 +205,34 @@ online-samples:
 	$(ETIME)
 
 ################# Packaging ################
-publish:
-	$(STIME)
-	cargo publish --manifest-path=flow_impl/Cargo.toml || true
-	cargo publish --manifest-path=flow_impl_derive/Cargo.toml || true
-	cargo publish --manifest-path=flowrlib/Cargo.toml || true
-	cargo publish --manifest-path=provider/Cargo.toml || true
-	cargo publish --manifest-path=flowclib/Cargo.toml || true
-	cargo publish --manifest-path=flowc/Cargo.toml || true
-	cargo publish --manifest-path=flowr/Cargo.toml || true
-	$(ETIME)
+publish: flowc_publish flowide_publish
+
+flowc_publish: flowr_publish flowclib_publish flowrlib_publish provider_publish
+	cargo publish --manifest-path=flowc/Cargo.toml
+
+flowide_publish: flowclib_publish flowrlib_publish provider_publish flow_impl_publish flowstdlib_publish
+	cargo publish --manifest-path=flowide/Cargo.toml
+
+flowr_publish: provider_publish flow_impl_publish flowstdlib_publish
+	cargo publish --manifest-path=flowr/Cargo.toml
+
+flowstdlib_publish: flow_impl_publish flow_impl_derive_publish flowrlib_publish
+	cargo publish --manifest-path=flowstdlib/Cargo.toml
+
+flowclib_publish: flowrlib_publish
+	cargo publish --manifest-path=flowclib/Cargo.toml
+
+flowrlib_publish: flow_impl_publish
+	cargo publish --manifest-path=flowrlib/Cargo.toml
+
+provider_publish: flowrlib_publish
+	cargo publish --manifest-path=provider/Cargo.toml
+
+flow_impl_publish:
+	cargo publish --manifest-path=flow_impl/Cargo.toml
+
+flow_impl_derive_publish:
+	cargo publish --manifest-path=flow_impl_derive/Cargo.toml
 
 ################# Clean ################
 clean:
