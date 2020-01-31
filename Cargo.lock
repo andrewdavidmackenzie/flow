@@ -213,14 +213,14 @@ dependencies = [
 [[package]]
 name = "flow_impl"
 version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "serde_json 1.0.44 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "flow_impl"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.8.5"
 dependencies = [
  "serde_json 1.0.44 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
