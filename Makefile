@@ -41,29 +41,13 @@ common-config:
 
 config-darwin:
 	$(STIME)
-	brew install gtk glib cairo
+	brew install gtk glib cairo cmake
 	$(ETIME)
 
 config-linux:
 	$(STIME)
 	sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev
 	$(ETIME)
-
-################### Coverage ####################
-kcov:
-	wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz
-	tar xzf master.tar.gz
-	cd kcov-master
-	mkdir build
-	cd build
-#Mac	cmake -G Xcode ..
-	cmake ..
-#Mac	xcodebuild -configuration Release
-#Mac mv src/Release/kcov ../../bin
-	make
-	sudo make install
-	cd ../..
-	rm -rf kcov-master
 
 ################### Doc ####################
 .PHONY: docs
@@ -135,19 +119,43 @@ book-test:
 	./bin/mdbook test
 	$(ETIME)
 
+################### Coverage ####################
 .PHONY: coverage
-coverage:
-ifeq ($(DOT),)
-	@echo "\t'kcov' not available. Building and installing it"
-	$(MAKE) kcov
+coverage: build-kcov measure #upload_coverage
+
+COVERAGE_PREFIXES := "flow_impl-*" "runtime-*" "provider-*" "flow_impl_derive-*" "flowc-*" "flowstdlib-*" "flowr-*" "flowrlib-*"
+# flowc_*-* and flowr_*-*
+
+upload_coverage: $(COVERAGE_PREFIXES)
+	@echo "Uploading coverage to https://codecov.io....."
+	@curl -s https://codecov.io/bash | bash
+
+measure: $(COVERAGE_PREFIXES)
+
+$(COVERAGE_PREFIXES):
+	@./coverage.sh $@
+
+build-kcov:
+ifeq ($(KCOV),)
+	@echo "'kcov' is not installed. Building and installing it"
+	@printf "Building 'kcov' from source and installing it"
+	@wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz
+	@rm -rf kcov-master
+	@tar xzf master.tar.gz
+ifeq ($(UNAME), Linux)
+	@cd kcov-master && rm -rf build && mkdir build && cd build && cmake .. && make && sudo make install
+endif
+ifeq ($(UNAME), Darwin)
+	@cd kcov-master && rm -rf build && mkdir build && cd build && cmake -G Xcode .. &&  xcodebuild -configuration Release§
+	@sudo mv kcov-master/build/src/Debug/kcov /usr/local/bin/kcov
+endif
+	@rm -rf kcov-master
+	@rm -f master.tar.gz*
 else
-	for file in target/debug/*.d; do mkdir -p "target/cov/$(basename $file)"; kcov target/cov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file"; done
+	@echo "'kcov' found, skipping build of it"
 endif
 
-upload-coverage:
-	bash <(curl -s https://codecov.io/bash)
-
-#################### LIBRARIES ####################
+#################### FLOW LIBRARIES ####################
 flowstdlib: flowstdlib/manifest.json
 
 flowstdlib/manifest.json: $(FLOWSTDLIB_FILES)
@@ -175,12 +183,14 @@ sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcar
 # This target must be below sample-flows in the Makefile
 samples: flowrunner flowstdlib/manifest.json
 	$(STIME)
-	@cd samples; $(MAKE) clean
+#	@cd samples; $(MAKE) clean
 	@$(MAKE) $(sample_flows)
 	$(ETIME)
 
+samples/%: samples/%/test.err
+	$(MAKE) $(@D)/test.output
+
 samples/%/test.output: samples/%/test.input samples/%/test.arguments
-# remove error messages with file path from output messages to make local output match travis output
 	@printf "\tSample '$(@D)'"
 	@RUST_BACKTRACE=1 cat $< | cargo run --quiet -p flowc -- -g -d $(@D) -- `cat $(@D)/test.arguments` 2> $(@D)/test.err > $@
 	@diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && exit $$ret)

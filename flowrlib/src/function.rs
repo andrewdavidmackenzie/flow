@@ -34,7 +34,7 @@ pub struct Function {
 
     #[serde(skip)]
     #[serde(default = "Function::default_implementation")]
-    implementation: Arc<dyn Implementation>
+    implementation: Arc<dyn Implementation>,
 }
 
 #[derive(Debug)]
@@ -82,7 +82,7 @@ impl Function {
             implementation_location,
             implementation: Function::default_implementation(),
             output_routes: (*output_routes).clone(),
-            inputs
+            inputs,
         }
     }
 
@@ -203,12 +203,16 @@ impl Function {
 
 #[cfg(test)]
 mod test {
+    use std::sync::Arc;
+
+    use flow_impl::Implementation;
     use serde_json::json;
     use serde_json::value::Value;
 
     use crate::input::Input;
 
     use super::Function;
+    use super::ImplementationNotFound;
 
     /*************** Below are tests for basic json.pointer functionality *************************/
 
@@ -378,5 +382,69 @@ mod test {
         function.init_inputs(true);
         function.write_input(0, &json!(1));
         function.take_input_set().remove(0);
+    }
+
+    fn test_function() -> Function {
+        Function::new("test".to_string(),
+                      "/context/test".to_string(),
+                      "/implementation".to_string(),
+                      vec!(Input::new(2, &None, false)),
+                      1,
+                      &vec!(("/other/input/1".to_string(), 1, 1)))
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn debugger_can_inspect_non_full_input() {
+        let mut function = test_function();
+        function.init_inputs(true);
+        function.write_input(0, &json!(1));
+        assert_eq!(function.inputs().len(), 1, "Could not read incomplete input set");
+    }
+
+    #[test]
+    fn call_implementation_not_found_panics() {
+        let inf = ImplementationNotFound {};
+        assert_eq!((None, false), inf.run(vec!()), "ImplementationNotFound should return (None, false)");
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn can_display_function() {
+        let function = test_function();
+        let _ = format!("{}", function);
+    }
+
+    #[cfg(feature = "debugger")]
+    #[test]
+    fn can_display_function_with_inputs() {
+        let output_route = ("/other/input/1".to_string(), 1, 1);
+        let mut function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(),
+                                         vec!(Input::new(2, &None, false)),
+                                         0,
+                                         &vec!(output_route.clone()));
+        function.init_inputs(true);
+        function.write_input(0, &json!(1));
+        let _ = format!("{}", function);
+        assert_eq!(&vec!(output_route), function.output_destinations(),
+                   "output routes not as originally set");
+    }
+
+    #[test]
+    fn can_get_function_name_and_id_and_location() {
+        let function = test_function();
+        assert_eq!("test".to_string(), function.name());
+        assert_eq!(1, function.id());
+        assert_eq!("/implementation", function.implementation_location());
+    }
+
+    #[test]
+    fn can_set_and_get_implementation() {
+        let mut function = test_function();
+        let inf = Arc::new(ImplementationNotFound {});
+        function.set_implementation(inf);
+        let _ = function.get_implementation();
     }
 }

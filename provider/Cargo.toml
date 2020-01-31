@@ -10,6 +10,10 @@ repository = "https://github.com/andrewdavidmackenzie/flow/"
 readme = "README.md"
 edition = "2018"
 
+[features]
+default = []
+online_tests = []
+
 [dependencies]
 flowrlib = { path = "../flowrlib" }
 log = "0.4.6"

@@ -1,7 +1,3 @@
-use std::env;
-
-use url::Url;
-
 use flowclib::compiler::loader;
 use flowclib::model::io::IO;
 use flowclib::model::name::HasName;
@@ -12,6 +8,8 @@ use flowclib::model::route::HasRoute;
 use flowclib::model::route::Route;
 use flowrlib::input::InputInitializer::OneTime;
 use provider::content::provider::MetaProvider;
+
+#[path="helper.rs"] mod helper;
 
 /// flowclib integration tests
 ///
@@ -30,26 +28,10 @@ use provider::content::provider::MetaProvider;
 /// An interim solution could be so have the files in the code as Strings and parse from there.
 ///
 
-fn set_flow_lib_path() {
-    let mut parent_dir = std::env::current_dir().unwrap();
-    parent_dir.pop();
-    println!("Set 'FLOW_LIB_PATH' to '{}'", parent_dir.to_string_lossy().to_string());
-    env::set_var("FLOW_LIB_PATH", parent_dir.to_string_lossy().to_string());
-}
-
-// Helper function for tests
-fn url_from_rel_path(path: &str) -> String {
-    let cwd = Url::from_file_path(env::current_dir().unwrap()).unwrap();
-    let source_file = cwd.join(file!()).unwrap();
-    let file = source_file.join(path).unwrap();
-    file.to_string()
-}
-
 #[test]
 fn malformed_connection() {
-    set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let path = url_from_rel_path("test-flows/malformed-connection.toml");
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/malformed-connection.toml");
     let result = loader::load_context(&path, &meta_provider);
     match result {
         Ok(_) => assert!(false, "malformed-connection.toml should not load successfully"),
@@ -59,9 +41,8 @@ fn malformed_connection() {
 
 #[test]
 fn invalid_toml() {
-    set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let path = url_from_rel_path("test-flows/invalid.toml");
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid.toml");
     let result = loader::load_context(&path, &meta_provider);
     match result {
         Ok(_) => assert!(false, "invalid.toml should not load successfully"),
@@ -71,9 +52,8 @@ fn invalid_toml() {
 
 #[test]
 fn invalid_process() {
-    set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let path = url_from_rel_path("test-flows/invalid-process.toml");
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid-process.toml");
     let result = loader::load_context(&path, &meta_provider);
     match result {
         Ok(_) => assert!(false, "invalid.toml should not load successfully"),
@@ -83,9 +63,8 @@ fn invalid_process() {
 
 #[test]
 fn function_input_initialized() {
-    set_flow_lib_path();
     let meta_provider = MetaProvider {};
-    let url = url_from_rel_path("test-flows/function_input_init.toml");
+    let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/function_input_init.toml");
 
     match loader::load_context(&url, &meta_provider) {
         Ok(FlowProcess(flow)) => {
@@ -116,10 +95,9 @@ fn function_input_initialized() {
 */
 #[test]
 fn flow_input_initialized_and_propogated_to_function() {
-    set_flow_lib_path();
     let meta_provider = MetaProvider {};
     // Relative path from project root to the test file
-    let url = url_from_rel_path("test-flows/flow_input_init.toml");
+    let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/flow_input_init.toml");
 
     match loader::load_context(&url, &meta_provider) {
         Ok(FlowProcess(flow)) => {
@@ -162,12 +140,11 @@ fn flow_input_initialized_and_propogated_to_function() {
     a sub-flow of that via a connection from the flow input to the function input
 */
 #[test]
-#[should_panic]
+#[ignore]
 fn flow_input_initialized_and_propogated_to_function_in_subflow() {
-    set_flow_lib_path();
     let meta_provider = MetaProvider {};
     // Relative path from project root to the test file
-    let url = url_from_rel_path("test-flows/subflow_function_input_init.toml");
+    let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/subflow_function_input_init.toml");
 
     match loader::load_context(&url, &meta_provider) {
         Ok(FlowProcess(context)) => {
@@ -175,7 +152,7 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
                 assert_eq!(Name::from("sequence"), *sequence_sub_flow.alias(), "First sub-flow alias is not 'sequence' as expected");
 
                 if let Some(ref sequence_process_refs) = sequence_sub_flow.process_refs {
-                    if let FlowProcess(ref pilte_sub_flow) = sequence_process_refs.get(0).unwrap().process {
+                    if let FlowProcess(ref pilte_sub_flow) = sequence_process_refs.get(1).unwrap().process {
                         assert_eq!(Name::from("pilte"), *pilte_sub_flow.alias(), "Sub-flow alias is not 'pilte' as expected");
 
                         if let Some(ref process_refs) = pilte_sub_flow.process_refs {
@@ -187,8 +164,8 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
                                     assert_eq!(Route::from("/context/sequence/pilte/tap/data"), *in_input.route(), "Input's route is not as expected");
                                     let initial_value = in_input.get_initializer();
                                     match initial_value {
-                                        Some(OneTime(one_time)) => assert_eq!(one_time.once, 1),
-                                        _ => panic!("Initializer should have been a OneTime initializer")
+                                        Some(OneTime(one_time)) => assert_eq!(one_time.once, 1), // PASS
+                                        _ => panic!("Initializer should have been a OneTime initializer, was {:?}", initial_value)
                                     }
                                 } else {
                                     panic!("Could not find any inputs");
@@ -216,7 +193,7 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
 
 #[test]
 fn load_library() {
-    let path = url_from_rel_path("test_libs/Library_test.toml");
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test_libs/Library_test.toml");
     let provider = MetaProvider {};
 
     loader::load_library(&path, &provider).unwrap();

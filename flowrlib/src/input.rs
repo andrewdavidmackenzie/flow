@@ -94,7 +94,7 @@ impl Input {
         self.received.clear();
     }
 
-    /// Take 'depth' elements from the Input and leave the rest for the next time
+    /// Take 'depth' number of elements from the Input and leave the rest for the next time
     pub fn take(&mut self) -> Vec<Value> {
         self.received.drain(0..self.depth).collect()
     }
@@ -139,6 +139,31 @@ mod test {
     use serde_json::Value;
 
     use super::Input;
+
+    #[test]
+    fn default_depth_is_1() {
+        assert_eq!(super::default_depth(), 1);
+    }
+
+    #[test]
+    fn one_is_default_depth() {
+        assert!(super::is_default_depth(&1));
+    }
+
+    #[test]
+    fn default_initial_value_is_none() {
+        assert!(super::default_initial_value().is_none());
+    }
+
+    #[test]
+    fn default_is_not_array() {
+        assert_eq!(super::default_is_array(), false);
+    }
+
+    #[test]
+    fn is_not_array() {
+        assert!(super::is_not_array(&false));
+    }
 
     #[test]
     fn no_inputs_initially() {

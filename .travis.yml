@@ -1,5 +1,6 @@
 language: rust
 dist: bionic
+sudo: true
 
 cache:
   cargo: true
@@ -57,19 +58,10 @@ notifications:
   email:
   - andrew@mackenzie-serres.net
 
+codecov:
+  token: 19030176-6eb5-440c-9948-e9eb6a6a2e20
+
 after_success: |
   if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
-    wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
-    tar xzf master.tar.gz &&
-    cd kcov-master &&
-    mkdir build &&
-    cd build &&
-    cmake .. &&
-    make &&
-    sudo make install &&
-    cd ../.. &&
-    rm -rf kcov-master &&
-    for file in target/debug/[flow|runtime|provider]*[^\.d]; do mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file"; done &&
-    bash <(curl -s https://codecov.io/bash) &&
-    echo "Uploaded code coverage"
+    make coverage
   fi

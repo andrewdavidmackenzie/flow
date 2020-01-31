@@ -1,6 +1,7 @@
-use instant::Instant;
-use std::fmt;
 use std::cmp::max;
+use std::fmt;
+
+use instant::Instant;
 
 pub struct Metrics {
     num_functions: usize,
@@ -44,13 +45,36 @@ impl fmt::Display for Metrics {
     }
 }
 
-#[test]
-fn test_metrics_reset() {
-    let mut metrics = Metrics::new(10);
-    metrics.outputs_sent = 10;
-    metrics.max_simultaneous_jobs = 4;
-    metrics.reset();
-    assert_eq!(metrics.outputs_sent, 0);
-    assert_eq!(metrics.num_functions, 10);
-    assert_eq!(metrics.max_simultaneous_jobs, 0);
+#[cfg(test)]
+mod test {
+    use super::Metrics;
+
+    #[test]
+    fn test_metrics_reset() {
+        let mut metrics = Metrics::new(10);
+        metrics.outputs_sent = 10;
+        metrics.max_simultaneous_jobs = 4;
+        metrics.reset();
+        assert_eq!(metrics.outputs_sent, 0);
+        assert_eq!(metrics.num_functions, 10);
+        assert_eq!(metrics.max_simultaneous_jobs, 0);
+    }
+
+    #[test]
+    fn test_max_tracking() {
+        let mut metrics = Metrics::new(10);
+        assert_eq!(metrics.max_simultaneous_jobs, 0);
+
+        metrics.track_max_jobs(2);
+        metrics.track_max_jobs(4);
+        metrics.track_max_jobs(3);
+
+        assert_eq!(metrics.max_simultaneous_jobs, 4);
+    }
+
+    #[test]
+    fn test_metrics_display() {
+        let metrics = Metrics::new(10);
+        println!("{}", metrics);
+    }
 }

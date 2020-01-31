@@ -1,8 +1,10 @@
 use curl::easy::{Easy2, Handler, WriteError};
-use flowrlib::errors::*;
-use flowrlib::provider::Provider;
+use log::debug;
 use log::info;
 use url::Url;
+
+use flowrlib::errors::*;
+use flowrlib::provider::Provider;
 
 pub struct HttpProvider;
 
@@ -16,12 +18,12 @@ impl Handler for Collector {
 }
 
 impl Provider for HttpProvider {
-    fn resolve_url(&self, url_str: &str, _default_filename: &str, _extensions: &[&str]) -> Result<(String, Option<String>)> {
+    fn resolve_url(&self, url_str: &str, default_filename: &str, extensions: &[&str]) -> Result<(String, Option<String>)> {
         let url = Url::parse(url_str)
             .chain_err(|| format!("Could not convert '{}' to valid Url", url_str))?;
         if url.path().ends_with('/') {
-            info!("'{}' is a directory, so attempting to find context file in it", url);
-            Ok((HttpProvider::find_default_file(&url).unwrap(), None))
+            info!("'{}' is a directory, so attempting to find default file in it", url);
+            Ok((HttpProvider::find_resource(url_str, default_filename, extensions)?, None))
         } else {
             Ok((url.to_string(), None))
         }
@@ -41,12 +43,30 @@ impl Provider for HttpProvider {
 }
 
 impl HttpProvider {
-    /*
-        Passed a path to a directory, it searches for the first file it can find fitting the pattern
-        "context.*", for known file extensions
-    */
-    fn find_default_file(_url: &Url) -> Result<String> {
-        bail!("Not implemented yet")
+    pub fn find_resource(dir: &str, default_filename: &str, extensions: &[&str]) -> Result<String> {
+        let mut resource = dir.to_string();
+        resource.push_str(default_filename);
+
+        Self::resource_by_extensions(&resource, extensions)
+    }
+
+    fn resource_by_extensions(resource: &str, extensions: &[&str]) -> Result<String> {
+        // for that file path, try with all the allowed file extensions
+        for extension in extensions {
+            let resource_with_extension = format!("{}.{}", resource, extension);
+            debug!("Looking for resource '{}'", resource_with_extension);
+
+            let mut easy = Easy2::new(Collector(Vec::new()));
+            easy.get(true).unwrap();
+            easy.url(&resource_with_extension).unwrap();
+            easy.perform().unwrap();
+
+            if easy.response_code().unwrap() == 200 {
+                return Ok(resource_with_extension.to_string());
+            }
+        }
+
+        bail!("No resources found at path '{}' with any of these extensions '{:?}'", resource, extensions)
     }
 }
 
@@ -57,10 +77,29 @@ mod test {
     use super::HttpProvider;
 
     #[test]
+    fn resolve() {
+        let provider = HttpProvider {};
+        let folder_url = "https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml";
+        let full_url = provider.resolve_url(folder_url, "context", &[&"toml"]).unwrap().0;
+        assert_eq!(folder_url, &full_url);
+    }
+
+    #[test]
+    #[cfg_attr(not(feature = "online_tests"), ignore)]
+    fn resolve_default() {
+        let provider = HttpProvider {};
+        let folder_url = "https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/";
+        let full_url = provider.resolve_url(folder_url, "context", &[&"toml"]).unwrap().0;
+        let mut expected = folder_url.to_string();
+        expected.push_str("context.toml");
+        assert_eq!(full_url, expected);
+    }
+
+    #[test]
     #[cfg_attr(not(feature = "online_tests"), ignore)]
     fn get_github_sample() {
         let provider: &dyn Provider = &HttpProvider;
-        provider.get_contents("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml").unwrap();
+        provider.get_contents("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml").unwrap();
     }
 
     #[test]

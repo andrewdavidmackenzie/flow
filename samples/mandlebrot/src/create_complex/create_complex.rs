@@ -27,7 +27,7 @@ pub extern "C" fn create_complex(mut inputs: Vec<Vec<Value>>) -> (Option<Value>,
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use serde_json::Value;
 
     #[test]

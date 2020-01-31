@@ -168,11 +168,3 @@ fn check_required_functions(module_ref: &ModuleRef, filename: &str) -> Result<()
 
     Ok(())
 }
-
-/*
-    When the target architecture is wasm - all will be compiled to wasm
-*/
-#[cfg(target_arch = "wasm32")]
-pub fn load(_provider: &dyn Provider, _source_url: &str) -> Result<WasmExecutor> {
-    Ok(WasmExecutor {})
-}

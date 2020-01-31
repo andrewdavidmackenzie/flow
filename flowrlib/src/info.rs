@@ -6,7 +6,7 @@ pub fn version() -> &'static str {
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use super::*;
 
     #[test]

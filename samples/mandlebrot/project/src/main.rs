@@ -85,7 +85,7 @@ fn write_bitmap(filename: &PathBuf, pixels: &[u8], bounds: (usize, usize)) -> Re
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use tempdir::TempDir;
     use test::Bencher;
 

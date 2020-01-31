@@ -56,8 +56,92 @@ impl Manifest {
         let (resolved_url, _) = provider.resolve_url(source, DEFAULT_MANIFEST_FILENAME, &["json"])?;
         let content = provider.get_contents(&resolved_url)?;
 
+        // TODO for now json only
         serde_json::from_str(
             &String::from_utf8(content).chain_err(|| "Could not convert from utf8 to String")?)
             .chain_err(|| format!("Could not create a manifest from '{}'", source))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::errors::*;
+    use crate::function::Function;
+    use crate::input::Input;
+    use crate::provider::Provider;
+
+    use super::{Manifest, MetaData};
+
+    fn test_meta_data() -> MetaData {
+        MetaData {
+            name: "test".into(),
+            version: "0.0.0".into(),
+            description: "a test".into(),
+            author_name: "me".into(),
+            author_email: "me@a.com".into(),
+        }
+    }
+
+    pub struct TestProvider {
+        test_content: &'static str
+    }
+
+    impl Provider for TestProvider {
+        fn resolve_url(&self, source: &str, _default_filename: &str, _extensions: &[&str]) -> Result<(String, Option<String>)> {
+            Ok((source.to_string(), None))
+        }
+
+        fn get_contents(&self, _url: &str) -> Result<Vec<u8>> {
+            Ok(self.test_content.as_bytes().to_owned())
+        }
+    }
+
+    #[test]
+    fn create() {
+        let _ = Manifest::new(test_meta_data());
+    }
+
+    #[test]
+    fn add_function() {
+        let function = Function::new("test".to_string(),
+                                         "/context/test".to_string(),
+                                         "/test".to_string(),
+                                         vec!(Input::new(1, &None, false)),
+                                         0,
+                                         &vec!());
+
+        let mut manifest = Manifest::new(test_meta_data());
+        manifest.add_function(function);
+        assert_eq!(manifest.functions.len(), 1);
+    }
+
+    #[test]
+    fn load_manifest() {
+        let test_content = "{
+            \"metadata\": {
+                \"name\": \"\",
+                \"version\": \"0.1.0\",
+                \"description\": \"\",
+                \"author_name\": \"\",
+                \"author_email\": \"\"
+                },
+            \"lib_references\": [
+                \"lib://flowstdlib\"
+             ],
+            \"functions\": [
+                {
+                    \"name\": \"print\",
+                    \"route\": \"/context/print\",
+                    \"id\": 0,
+                    \"implementation_location\": \"lib://runtime/stdio/stdout/Stdout\",
+                    \"inputs\": [ {} ]
+                }
+             ]
+            }";
+        let provider = TestProvider {
+            test_content
+        };
+
+        assert!(Manifest::load(&provider, "fake source").is_ok());
     }
 }
