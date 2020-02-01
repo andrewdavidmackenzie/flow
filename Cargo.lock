@@ -290,7 +290,7 @@ dependencies = [
  "flow_impl 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "flowrlib 0.8.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "flowruntime 0.8.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "flowstdlib 0.8.5",
+ "flowstdlib 0.8.7",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 1.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "provider 0.8.3",
@@ -361,7 +361,7 @@ dependencies = [
 
 [[package]]
 name = "flowstdlib"
-version = "0.8.5"
+version = "0.8.7"
 dependencies = [
  "flow_impl 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "flow_impl_derive 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
