@@ -10,7 +10,7 @@ path = "src/main.rs"
 
 [dependencies]
 flowclib = "../flowclib"
-flowrlib = "../flowrlib"
+flowrlib = "=0.8.6"
 flow_impl = "=0.8.5"
 flowruntime = { path = "../flowruntime" }
 provider = { path = "../provider" }
