@@ -80,7 +80,7 @@
       "name": "print",
       "route": "/context/print",
       "id": 3,
-      "implementation_source": "lib://runtime/stdio/stdout/Stdout",
+      "implementation_source": "lib://flowruntime/stdio/stdout/Stdout",
       "inputs": [
         {}
       ],

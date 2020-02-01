@@ -1,6 +1,6 @@
-# `runtime`
+# `flowruntime`
 
-Here we define the runtime functions a "runtime" or execution environment 
+Here we define the functions an execution environment 
 (i.e. an app or server where flows are executed using `flowrlib`) must provide.
 
 These "impure" functions that interact with stdio or the file system that 

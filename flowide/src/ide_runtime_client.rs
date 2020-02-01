@@ -1,9 +1,7 @@
+use flowruntime::runtime_client::{Command, Response, RuntimeClient};
+use gtk::TextBufferExt;
 use std::fs::File;
 use std::io::prelude::*;
-
-use gtk::TextBufferExt;
-
-use runtime::runtime_client::{Command, Response, RuntimeClient};
 
 use crate::widgets;
 

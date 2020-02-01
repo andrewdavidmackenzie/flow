@@ -3,7 +3,7 @@ flow = "prime"
 # Generate a list of candidates from 1 up to the max specified in arg 1
 [[process]]
 alias = "args"
-source = "lib://runtime/args/get"
+source = "lib://flowruntime/args/get"
 
 [[process]]
 alias = "generate-candidates"
@@ -32,7 +32,7 @@ to = "process/to_string"
 
 [[process]]
 alias = "print"
-source = "lib://runtime/stdio/stdout"
+source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
 from = "process/to_string"

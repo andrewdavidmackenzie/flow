@@ -31,8 +31,8 @@ pub struct LibProvider;
 */
 impl Provider for LibProvider {
     /*
-        Take the "lib:" Url (such as "lib://runtime/stdio/stdout") and extract the library
-         name ("runtime")
+        Take the "lib:" Url (such as "lib://flowruntime/stdio/stdout") and extract the library
+         name ("flowruntime")
 
         Using the "FLOW_LIB_PATH" environment variable attempt to locate the library's root folder
         in the file system.
@@ -47,7 +47,7 @@ impl Provider for LibProvider {
         to use later to read the content.
 
         Also, construct a string that is a reference to that module in the library, such as:
-            "runtime/stdio/stdout" and return that also.
+            "flowruntime/stdio/stdout" and return that also.
     */
     fn resolve_url(&self, url_str: &str, default_filename: &str, _extensions: &[&str]) -> Result<(String, Option<String>)> {
         let url = Url::parse(url_str)

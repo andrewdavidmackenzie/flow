@@ -2,7 +2,7 @@ flow = "dead-process"
 
 [[process]]
 alias = "args"
-source = "lib://runtime/args/get"
+source = "lib://flowruntime/args/get"
 
 [[process]]
 alias = "dead-process"

@@ -1,8 +1,8 @@
+use crate::generator::generate::GenerationTables;
 use crate::model::flow::Flow;
+use crate::model::function::Function;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
-use crate::generator::generate::GenerationTables;
-use crate::model::function::Function;
 
 /*
     This module is responsible for parsing the flow tree and gathering information into a set of
@@ -36,7 +36,7 @@ pub fn gather_functions_and_connections(flow: &Flow, tables: &mut GenerationTabl
     // Add libraries referenced from this flow to the overall list
     for lib_reference in &flow.lib_references {
         let lib_name = lib_reference.split('/').collect::<Vec<&str>>()[0].to_string();
-        if lib_name != "runtime" {
+        if lib_name != "flowruntime" {
             tables.libs.insert(format!("lib://{}", lib_name));
         }
     }

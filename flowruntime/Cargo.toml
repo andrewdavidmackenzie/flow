@@ -1,5 +1,5 @@
 [package]
-name = "runtime"
+name = "flowruntime"
 version = "0.8.2"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A set of run-time functions 'flow' programs"
@@ -11,12 +11,12 @@ readme = "README.md"
 edition = "2018"
 
 [lib]
-name = "runtime"
+name = "flowruntime"
 path = "lib.rs"
 
 [dependencies]
 flow_impl = "=0.8.5"
-flowrlib = "=0.8.5"
+flowrlib = {path = "../flowrlib"}
 simplog = "~1.2"
 log = "0.4.6"
 url = "~2.1"

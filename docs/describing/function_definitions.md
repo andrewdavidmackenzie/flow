@@ -17,8 +17,8 @@ object implemented.
 * `input`  - zero or more inputs (as per [IO](ios.md))
 * `output` - one or more outputs (as per [IO](ios.md))
 
-### Runtime semantics
-A Function won't be run by the runtime until all its inputs are available.
+### Run-time semantics
+A Function won't be run by the run-time until all its inputs are available.
 When it is run it may produce a data value on it's output.
 
 _TODO_

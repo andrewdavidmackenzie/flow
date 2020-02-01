@@ -9,6 +9,6 @@ Flow libraries may contain:
     and should provide a documentation markdown file explaining what it does and how
     to use it
 * library flow definitions
-    * Flows built from existing functions from the runtime.
-    * Flows built using a combination of functions from the runtime and new ones defined
+    * Flows built from existing functions from the flowruntime.
+    * Flows built using a combination of functions from the flowruntime and new ones defined
      and created in this library 

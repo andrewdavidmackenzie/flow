@@ -2,7 +2,7 @@ flow = "two connections"
 
 [[process]]
 alias = "args"
-source = "lib://runtime/args/get"
+source = "lib://flowruntime/args/get"
 
 [[connection]]
 from = "process/args/1"

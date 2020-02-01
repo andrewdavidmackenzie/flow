@@ -53,4 +53,4 @@ It can also be a URL to a flow context specification somewhere on the web. Curre
 ### Arguments for the flow
 If a flow directory or filename is supplied, then any files after that are assumed to be command line arguments
 for the flow itself. When it starts executing it can retrieve the value of these parameters using functions
-in the runtime.
+in the run-time.

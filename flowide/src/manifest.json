@@ -14,7 +14,7 @@
       "name": "print",
       "route": "/context/print",
       "id": 0,
-      "implementation_location": "lib://runtime/stdio/stdout/Stdout",
+      "implementation_location": "lib://flowruntime/stdio/stdout/Stdout",
       "inputs": [
         {}
       ]

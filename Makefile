@@ -123,7 +123,7 @@ book-test:
 .PHONY: coverage
 coverage: build-kcov measure #upload_coverage
 
-COVERAGE_PREFIXES := "flow_impl-*" "runtime-*" "provider-*" "flow_impl_derive-*" "flowc-*" "flowstdlib-*" "flowr-*" "flowrlib-*"
+COVERAGE_PREFIXES := "flow_impl-*" "flowruntime-*" "provider-*" "flow_impl_derive-*" "flowc-*" "flowstdlib-*" "flowr-*" "flowrlib-*"
 # flowc_*-* and flowr_*-*
 
 upload_coverage: $(COVERAGE_PREFIXES)

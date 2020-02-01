@@ -1,4 +1,4 @@
-/// A runtime command sent from a runtime function to a runtime_client
+/// A run-time command sent from a run-time function to a runtime_client
 pub enum Command {
     /// Command to print a String of contents to stdout
     Stdout(String),
@@ -14,7 +14,7 @@ pub enum Command {
     Write(String, Vec<u8>)
 }
 
-/// A `Response` from the runtime_client to the runtime functions
+/// A `Response` from the runtime_client to the run-time functions
 pub enum Response {
     /// Simple acknowledgement
     Ack,

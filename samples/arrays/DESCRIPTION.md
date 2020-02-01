@@ -3,7 +3,7 @@ arrays
 
 Description
 ===
-Sample to show the capabilities of the runtime mapping:
+Sample to show the capabilities of the run-time mapping:
 * gathering from an output of type object to an input of type object, of a specified depth : p1 --> p2
 * an output of type array of objects to an input that is of type object                    : p2 --> p3
 
@@ -18,5 +18,5 @@ Features Used
 * Setting initial value of a Value at startup
 * Multiple connections into and out of functions and values
 * Library Functions
-* Implicit conversion between arrays of objects and objects done by runtime
+* Implicit conversion between arrays of objects and objects done by run-time
 * Explicit conversion between a stream of objects and an array using the `compose_array` library function

@@ -1,4 +1,4 @@
-## Stdio (//runtime/stdio)
+## Stdio (//flowruntime/stdio)
 Functions to interact with the Environment, related to standard input and output (and error).
 
 The values sent to these functions are read from standard input of the process that launched the flow

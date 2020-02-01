@@ -1,5 +1,5 @@
 // TODO #![deny(missing_docs)]
-//! Runtime library for flow execution. This will be linked with other code to produce a flow runtime
+//! Runtime library for flow execution. This will be linked with other code to produce a
 //! or runner, such as `flowr` command line runner.
 //!
 //! It is responsible for reading a flow definition in a `Manifest` file, loading the required
@@ -32,7 +32,7 @@ pub mod provider;
 pub mod url;
 
 #[cfg(feature = "debugger")]
-/// 'debug_client' is used to connect a debugger to the runtime for debugging of flows
+/// 'debug_client' is used to connect a debugger to the run-time for debugging of flows
 /// and is an optional feature called "debugger"
 pub mod debug_client;
 

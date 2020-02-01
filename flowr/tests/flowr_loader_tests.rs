@@ -93,12 +93,12 @@ pub fn get_manifest() -> LibraryManifest {
     };
     let mut manifest = LibraryManifest::new(metadata);
 
-    manifest.locators.insert("lib://runtime/args/get/Get".to_string(), Native(Arc::new(Fake {})));
-    manifest.locators.insert("lib://runtime/file/file_write/FileWrite".to_string(), Native(Arc::new(Fake {})));
-    manifest.locators.insert("lib://runtime/stdio/readline/Readline".to_string(), Native(Arc::new(Fake {})));
-    manifest.locators.insert("lib://runtime/stdio/stdin/Stdin".to_string(), Native(Arc::new(Fake {})));
-    manifest.locators.insert("lib://runtime/stdio/stdout/Stdout".to_string(), Native(Arc::new(Fake {})));
-    manifest.locators.insert("lib://runtime/stdio/stderr/Stderr".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://flowruntime/args/get/Get".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://flowruntime/file/file_write/FileWrite".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://flowruntime/stdio/readline/Readline".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://flowruntime/stdio/stdin/Stdin".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://flowruntime/stdio/stdout/Stdout".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://flowruntime/stdio/stderr/Stderr".to_string(), Native(Arc::new(Fake {})));
 
     manifest
 }
@@ -107,7 +107,7 @@ pub fn get_manifest() -> LibraryManifest {
 fn resolve_lib_implementation_test() {
     let f_a = Function::new("fA".to_string(), // name
                             "/context/fA".to_string(),
-                            "lib://runtime/stdio/stdin/Stdin".to_string(),
+                            "lib://flowruntime/stdio/stdin/Stdin".to_string(),
                             vec!(),
                             0,
                             &vec!());
@@ -127,7 +127,7 @@ fn resolve_lib_implementation_test() {
 fn unresolved_lib_functions_test() {
     let f_a = Function::new("fA".to_string(), // name
                             "/context/fA".to_string(),
-                            "lib://runtime/stdio/stdin/Foo".to_string(),
+                            "lib://flowruntime/stdio/stdin/Foo".to_string(),
                             vec!(),
                             0,
                             &vec!());

@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 
-use runtime::runtime_client::{Command, Response, RuntimeClient};
+use flowruntime::runtime_client::{Command, Response, RuntimeClient};
 
 pub struct CLIRuntimeClient {}
 
@@ -64,7 +64,7 @@ impl RuntimeClient for CLIRuntimeClient {
 mod test {
     use std::env;
 
-    use runtime::runtime_client::{Command, Response, RuntimeClient};
+    use flowruntime::runtime_client::{Command, Response, RuntimeClient};
 
     use super::CLIRuntimeClient;
     use super::FLOW_ARGS_NAME;

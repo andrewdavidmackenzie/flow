@@ -34,7 +34,7 @@ impl Loader {
     /// Native "WasmExecutor" implementation to make it present the same interface as a native
     /// implementation.
     ///
-    /// The runtime that (statically) links this library may provide some native implementations
+    /// The run-time that (statically) links this library may provide some native implementations
     /// already, before this is called.
     ///
     /// It may have processes that use Implementations in libraries. Those must have been
@@ -101,8 +101,8 @@ impl Loader {
         Ok("All implementations found".into())
     }
 
-    /// Add a library to the runtime by adding it's ImplementationLocatorTable to the global
-    /// table for this runtime, so that then when we try to load a flow that references functions
+    /// Add a library to the run-time by adding it's ImplementationLocators from the manifest to the
+    /// table for this run-time, so that then when we try to load a flow that references functions
     /// in the library, they can be found.
     pub fn add_lib(&mut self, provider: &dyn Provider,
                    lib_manifest: LibraryManifest,
@@ -114,7 +114,7 @@ impl Loader {
                 // create or find the implementation we need
                 let implementation = match locator {
                     Wasm(wasm_source_relative) => {
-                        // Path to the wasm source could be relative to the URL where we loaded the ILT from
+                        // Path to the wasm source could be relative to the URL where we loaded the manifest from
                         let wasm_url = url::join(lib_manifest_url, &wasm_source_relative);
                         debug!("Looking for wasm source: '{}'", wasm_url);
                         // Wasm implementation being added. Wrap it with the Wasm Native Implementation

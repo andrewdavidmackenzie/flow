@@ -20,10 +20,13 @@ debugger = []
 native = []
 
 [dependencies]
-clap = "~2"
 flow_impl = "=0.8.5"
-flowrlib = "=0.8.5"
+flowrlib = {path = "../flowrlib"}
 provider = {path = "../provider"}
+flowruntime = { path = "../flowruntime" }
+flowstdlib = { path = "../flowstdlib", features = [ "native" ] }
+
+clap = "~2"
 simplog = "~1.2"
 log = "0.4.6"
 url = "~2.1"
@@ -32,6 +35,3 @@ serde = "~1.0.27"
 serde_json = "1.0"
 num_cpus = "~1.10"
 error-chain = "0.12.1"
-
-runtime = { path = "../runtime" }
-flowstdlib = { path = "../flowstdlib", features = [ "native" ] }
