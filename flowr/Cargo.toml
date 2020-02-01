@@ -22,8 +22,8 @@ native = []
 [dependencies]
 flow_impl = "=0.8.5"
 flowrlib = "=0.8.6"
+flowruntime = "=0.8.6"
 provider = {path = "../provider"}
-flowruntime = { path = "../flowruntime" }
 flowstdlib = { path = "../flowstdlib", features = [ "native" ] }
 
 clap = "~2"

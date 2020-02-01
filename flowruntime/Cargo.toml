@@ -1,6 +1,6 @@
 [package]
 name = "flowruntime"
-version = "0.8.5"
+version = "0.8.6"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A set of run-time functions 'flow' programs"
 license = "MIT"
