@@ -23,8 +23,8 @@ native = []
 flow_impl = "=0.8.5"
 flowrlib = "=0.8.6"
 flowruntime = "=0.8.6"
-provider = {path = "../provider"}
 flowstdlib = { path = "../flowstdlib", features = [ "native" ] }
+provider = {path = "../provider"}
 
 clap = "~2"
 simplog = "~1.2"

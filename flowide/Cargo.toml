@@ -12,9 +12,9 @@ path = "src/main.rs"
 flowrlib = "=0.8.6"
 flow_impl = "=0.8.5"
 flowruntime = "=0.8.6"
-flowclib = "../flowclib"
-provider = { path = "../provider" }
 flowstdlib = { path = "../flowstdlib", features = [ "native" ] }
+flowclib = { path = "../flowclib" }
+provider = { path = "../provider" }
 
 toml = "0.4"
 url = "~2.1"
