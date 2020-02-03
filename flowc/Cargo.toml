@@ -20,7 +20,7 @@ debugger = []
 online_tests = []
 
 [dependencies]
-flowrlib = {path = "../flowrlib"}
+flowrlib = "=0.8.8"
 provider = {path = "../provider"}
 flowclib = {path = "../flowclib"}
 flowr = {path = "../flowr"}
