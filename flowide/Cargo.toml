@@ -14,7 +14,7 @@ flowrlib = "=0.8.8"
 flowruntime = "=0.8.8"
 flowclib = "=0.8.8"
 flowstdlib = { version = "=0.8.9", features = [ "native" ] }
-provider = { path = "../provider" }
+provider = "=0.8.8"
 
 toml = "0.4"
 url = "~2.1"

@@ -1,6 +1,6 @@
 [package]
 name = "flowr"
-version = "0.8.2"
+version = "0.8.8"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A runner for compiled 'flow' programs"
 license = "MIT"
@@ -24,7 +24,7 @@ flow_impl = "=0.8.5"
 flowrlib = "=0.8.8"
 flowruntime = "=0.8.8"
 flowstdlib = { version = "=0.8.9", features = [ "native" ] }
-provider = {path = "../provider"}
+provider = "=0.8.8"
 
 clap = "~2"
 simplog = "~1.2"
