@@ -9,9 +9,9 @@ name = "flowide"
 path = "src/main.rs"
 
 [dependencies]
-flowrlib = "=0.8.6"
 flow_impl = "=0.8.5"
-flowruntime = "=0.8.6"
+flowrlib =  {path = "../flowrlib"}
+flowruntime = { path = "../flowruntime"}
 flowstdlib = { path = "../flowstdlib", features = [ "native" ] }
 flowclib = { path = "../flowclib" }
 provider = { path = "../provider" }

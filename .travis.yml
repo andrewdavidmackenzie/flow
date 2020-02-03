@@ -13,6 +13,8 @@ matrix:
     rust: stable
   - os: osx
     rust: stable
+  - allow-failures:
+    - os: osx
 
 branches:
   only:

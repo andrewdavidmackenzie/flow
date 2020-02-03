@@ -118,7 +118,7 @@ fn resolve_lib_implementation_test() {
     let manifest_url = url_from_rel_path("manifest.json");
 
     // Load library functions provided
-    loader.add_lib(&provider, get_manifest(), &cwd_as_url().unwrap().to_string()).unwrap();
+    loader.add_lib(&provider, "lib://flowruntime", get_manifest(), &cwd_as_url().unwrap().to_string()).unwrap();
 
     loader.resolve_implementations(&mut manifest, &provider, &manifest_url).unwrap();
 }
@@ -138,7 +138,7 @@ fn unresolved_lib_functions_test() {
     let manifest_url = url_from_rel_path("manifest.json");
 
     // Load library functions provided
-    loader.add_lib(&provider, get_manifest(), &cwd_as_url().unwrap().to_string()).unwrap();
+    loader.add_lib(&provider, "lib://flowruntime", get_manifest(), &cwd_as_url().unwrap().to_string()).unwrap();
 
     assert!(loader.resolve_implementations(&mut manifest, &provider, &manifest_url).is_err());
 }

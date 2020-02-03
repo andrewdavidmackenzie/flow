@@ -159,6 +159,6 @@ fn hello_world() {
 }
 
 #[test]
-fn echo() {
+fn line_echo() {
     execute_test("line-echo");
 }

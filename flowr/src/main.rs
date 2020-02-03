@@ -73,13 +73,13 @@ fn run() -> Result<()> {
     let provider = MetaProvider {};
 
     // Load this run-time's library of native (statically linked) implementations
-    loader.add_lib(&provider, flowruntime::get_manifest(Arc::new(Mutex::new(CLIRuntimeClient {}))), "flowruntime")
+    loader.add_lib(&provider, "lib://flowruntime", flowruntime::get_manifest(Arc::new(Mutex::new(CLIRuntimeClient {}))), "flowruntime")
         .chain_err(|| "Could not add 'flowruntime' library to loader")?;
 
     // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
     if cfg!(feature = "native") {
         if matches.is_present("native") {
-            loader.add_lib(&provider, flowstdlib::get_manifest(), "flowstdlib")
+            loader.add_lib(&provider, "lib://flowstdlib", flowstdlib::get_manifest(), "flowstdlib")
                 .chain_err(|| "Could not add 'flowstdlib' library to loader")?;
         }
     }
