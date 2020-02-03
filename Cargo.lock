@@ -296,7 +296,7 @@ dependencies = [
 
 [[package]]
 name = "flowc"
-version = "0.8.2"
+version = "0.8.8"
 dependencies = [
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "curl 0.4.25 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -353,7 +353,7 @@ dependencies = [
 
 [[package]]
 name = "flowide"
-version = "0.1.0"
+version = "0.8.8"
 dependencies = [
  "cairo-rs 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "flow_impl 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
