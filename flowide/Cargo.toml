@@ -11,9 +11,9 @@ path = "src/main.rs"
 [dependencies]
 flow_impl = "=0.8.5"
 flowrlib = "=0.8.8"
-flowruntime = { path = "../flowruntime"}
+flowruntime = "=0.8.8"
+flowclib = "=0.8.8"
 flowstdlib = { path = "../flowstdlib", features = [ "native" ] }
-flowclib = { path = "../flowclib" }
 provider = { path = "../provider" }
 
 toml = "0.4"

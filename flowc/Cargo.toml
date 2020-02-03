@@ -21,8 +21,8 @@ online_tests = []
 
 [dependencies]
 flowrlib = "=0.8.8"
+flowclib = "=0.8.8"
 provider = {path = "../provider"}
-flowclib = {path = "../flowclib"}
 flowr = {path = "../flowr"}
 
 clap = "~2"
