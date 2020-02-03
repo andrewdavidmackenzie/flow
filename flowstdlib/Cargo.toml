@@ -1,6 +1,6 @@
 [package]
 name = "flowstdlib"
-version = "0.8.8"
+version = "0.8.9"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "The native version of the standard library for 'flow' programs compiled with the 'flowc' compiler"
 license = "MIT"

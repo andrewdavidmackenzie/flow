@@ -360,7 +360,7 @@ dependencies = [
  "flowclib 0.8.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "flowrlib 0.8.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "flowruntime 0.8.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "flowstdlib 0.8.8",
+ "flowstdlib 0.8.9",
  "gdk 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gdk-pixbuf 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gio 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -385,7 +385,7 @@ dependencies = [
  "flow_impl 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "flowrlib 0.8.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "flowruntime 0.8.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "flowstdlib 0.8.8",
+ "flowstdlib 0.8.9",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 1.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "provider 0.8.3",
@@ -456,7 +456,7 @@ dependencies = [
 
 [[package]]
 name = "flowstdlib"
-version = "0.8.8"
+version = "0.8.9"
 dependencies = [
  "flow_impl 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "flow_impl_derive 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
