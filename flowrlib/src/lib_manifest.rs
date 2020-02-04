@@ -13,7 +13,7 @@ use crate::provider::Provider;
 pub const DEFAULT_LIB_MANIFEST_FILENAME: &str = "manifest";
 
 /*
-    Implementations can be of two types - either a native and statically bound function referenced
+    Implementations can be of two types - either a statically linked function referenced
     via a function reference, or WASM bytecode file that is interpreted at run-time that is
     referenced via a string pointing to the .wasm file location
 */
