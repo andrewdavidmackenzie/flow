@@ -41,7 +41,7 @@ to = "process/sum/i2"
 
 [[process]]
 alias = "print"
-source = "lib://runtime/stdio/stdout"
+source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
 from = "process/sum"

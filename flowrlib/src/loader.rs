@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use flow_impl::Implementation;
@@ -15,6 +16,7 @@ use crate::wasm;
 /// libraries needed by the flow and keeping track of the `Function` `Implementations` that
 ///will be used to execute it.
 pub struct Loader {
+    loaded_lib_references: HashSet<String>,
     global_lib_implementations: HashMap<String, Arc<dyn Implementation>>,
 }
 
@@ -22,6 +24,7 @@ impl Loader {
     /// Create a new `Loader`
     pub fn new() -> Self {
         Loader {
+            loaded_lib_references: HashSet::<String>::new(),
             global_lib_implementations: HashMap::<String, Arc<dyn Implementation>>::new(),
         }
     }
@@ -34,7 +37,7 @@ impl Loader {
     /// Native "WasmExecutor" implementation to make it present the same interface as a native
     /// implementation.
     ///
-    /// The runtime that (statically) links this library may provide some native implementations
+    /// The run-time that (statically) links this library may provide some native implementations
     /// already, before this is called.
     ///
     /// It may have processes that use Implementations in libraries. Those must have been
@@ -53,13 +56,15 @@ impl Loader {
         Ok(flow_manifest)
     }
 
-    /// Load libraries references referenced in the flows manifest
+    /// Load libraries references referenced in the flows manifest that are not already loaded
     pub fn load_libraries(&mut self, provider: &dyn Provider, manifest: &Manifest) -> Result<()> {
         debug!("Loading libraries used by the flow");
         for library_reference in &manifest.lib_references {
-            let (lib_manifest, lib_manifest_url) = LibraryManifest::load(provider, library_reference)?;
-            debug!("Loading library '{}' from '{}'", library_reference, lib_manifest_url);
-            self.add_lib(provider, lib_manifest, &lib_manifest_url)?;
+            if !self.loaded_lib_references.contains(library_reference) {
+                let (lib_manifest, lib_manifest_url) = LibraryManifest::load(provider, library_reference)?;
+                debug!("Loading library '{}' from '{}'", library_reference, lib_manifest_url);
+                self.add_lib(provider, library_reference, lib_manifest, &lib_manifest_url)?;
+            }
         }
 
         Ok(())
@@ -82,7 +87,7 @@ impl Loader {
                         Some(implementation) => {
                             debug!("Found implementation");
                             function.set_implementation(implementation.clone())
-                        },
+                        }
                         None => bail!("Did not find implementation for '{}'", implementation_source_url)
                     }
                 }
@@ -101,20 +106,22 @@ impl Loader {
         Ok("All implementations found".into())
     }
 
-    /// Add a library to the runtime by adding it's ImplementationLocatorTable to the global
-    /// table for this runtime, so that then when we try to load a flow that references functions
+    /// Add a library to the run-time by adding it's ImplementationLocators from the manifest to the
+    /// table for this run-time, so that then when we try to load a flow that references functions
     /// in the library, they can be found.
     pub fn add_lib(&mut self, provider: &dyn Provider,
+                   lib_reference: &str,
                    lib_manifest: LibraryManifest,
                    lib_manifest_url: &str) -> Result<()> {
         info!("Loading library named '{}'", lib_manifest.metadata.name);
+        self.loaded_lib_references.insert(lib_reference.to_string());
         for (reference, locator) in lib_manifest.locators {
             // if we don't already have an implementation loaded for that reference
             if self.global_lib_implementations.get(&reference).is_none() {
                 // create or find the implementation we need
                 let implementation = match locator {
                     Wasm(wasm_source_relative) => {
-                        // Path to the wasm source could be relative to the URL where we loaded the ILT from
+                        // Path to the wasm source could be relative to the URL where we loaded the manifest from
                         let wasm_url = url::join(lib_manifest_url, &wasm_source_relative);
                         debug!("Looking for wasm source: '{}'", wasm_url);
                         // Wasm implementation being added. Wrap it with the Wasm Native Implementation

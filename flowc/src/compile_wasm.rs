@@ -3,10 +3,11 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 
-use flowclib::model::function::Function;
 use log::{debug, error, info, warn};
-use provider::args::url_from_string;
 use tempdir::TempDir;
+
+use flowclib::model::function::Function;
+use provider::args::url_from_string;
 
 use crate::errors::*;
 
@@ -33,10 +34,10 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool, rele
     }
 
     // check that a Cargo.toml file exists for compilation
-    let mut cargo_path = implementation_path.clone();
-    cargo_path.set_file_name("Cargo.toml");
-    if !cargo_path.exists() {
-        bail!("No Cargo.toml file could be found at '{}'", cargo_path.display());
+    let mut flow_manifest_path = implementation_path.clone();
+    flow_manifest_path.set_file_name("flow.toml");
+    if !flow_manifest_path.exists() {
+        bail!("No flow.toml file could be found at '{}'", flow_manifest_path.display());
     }
 
     let mut wasm_destination = implementation_path.clone();
@@ -63,10 +64,20 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool, rele
                 .expect("Error creating new TempDir for compiling in")
                 .into_path();
 
+            let mut cargo_manifest_path = flow_manifest_path.clone();
+            cargo_manifest_path.set_file_name("Cargo.toml");
+
+            // Copy 'flow.toml' to 'Cargo.toml' so that 'cargo' will compile it
+            fs::copy(&flow_manifest_path, &cargo_manifest_path)
+                .map_err(|e| format!("Error while trying yo copy '{}' to '{}'\n{}",
+                                     flow_manifest_path.display(),
+                                     cargo_manifest_path.display(),
+                                     e.to_string()))?;
+
             info!("Testing '{}'", implementation_path.display());
-            run_cargo_build(&cargo_path, &build_dir, true, false)?;
+            run_cargo_build(&cargo_manifest_path, &build_dir, true, false)?;
             info!("Compiling '{}'", implementation_path.display());
-            run_cargo_build(&cargo_path, &build_dir, false, release)?;
+            run_cargo_build(&cargo_manifest_path, &build_dir, false, release)?;
 
             // copy compiled wasm output into place where flow's toml file expects it
             let mut wasm_source = build_dir.clone();
@@ -80,13 +91,18 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool, rele
             fs::copy(&wasm_source, &wasm_destination).expect(&msg);
 
             // clean up temp dir
-            fs::remove_dir_all(build_dir).expect("Could not remove temporary build directory");
+            fs::remove_dir_all(&build_dir)
+                .expect(&format!("Could not remove temporary build directory '{}'", build_dir.display()));
+
+            // remove the file we copied
+            fs::remove_file(&cargo_manifest_path)
+                .expect(&format!("Could not remove copied file '{}'", cargo_manifest_path.display()));
 
             built = true;
         }
     } else {
         debug!("wasm at '{}' is up-to-date with source at '{}', so skipping build",
-              wasm_destination.display(), implementation_path.display());
+               wasm_destination.display(), implementation_path.display());
     }
 
     function.set_implementation(&wasm_destination.to_str().ok_or("Could not convert path to string")?);

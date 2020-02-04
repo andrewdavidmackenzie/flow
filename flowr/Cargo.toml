@@ -1,6 +1,6 @@
 [package]
 name = "flowr"
-version = "0.8.2"
+version = "0.8.8"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A runner for compiled 'flow' programs"
 license = "MIT"
@@ -20,10 +20,13 @@ debugger = []
 native = []
 
 [dependencies]
+flow_impl = "=0.8.5"
+flowrlib = "=0.8.8"
+flowruntime = "=0.8.8"
+flowstdlib = { version = "=0.8.9", features = [ "native" ] }
+provider = "=0.8.8"
+
 clap = "~2"
-flow_impl = "=0.8.3"
-flowrlib = {path = "../flowrlib"}
-provider = {path = "../provider"}
 simplog = "~1.2"
 log = "0.4.6"
 url = "~2.1"
@@ -32,6 +35,3 @@ serde = "~1.0.27"
 serde_json = "1.0"
 num_cpus = "~1.10"
 error-chain = "0.12.1"
-
-runtime = { path = "../runtime" }
-flowstdlib = { path = "../flowstdlib", features = [ "native" ] }

@@ -42,7 +42,7 @@ pub enum Command {
     GetFunctionState(usize)
 }
 
-/// A runtime event that the debugger communicates to the debug_client for it to decide
+/// A run-time event that the debugger communicates to the debug_client for it to decide
 /// what to do, or what to request of the user
 pub enum Event {
     /// A `Job` ran to completion by a function
@@ -50,7 +50,7 @@ pub enum Event {
     JobCompleted(usize, usize, Option<Value>),
     /// A `Flow` execution was started - start the debug_client
     Start,
-    /// The runtime is about to send a `Job` for execution - an opportunity to break
+    /// The run-time is about to send a `Job` for execution - an opportunity to break
     /// includes: job_id, function_id
     PriorToSendingJob(usize, usize),
     /// A breakpoint on a `Block` between two functions was encountered
@@ -61,7 +61,7 @@ pub enum Event {
     DataBreakpoint(usize, String, Value, usize, usize),
     /// A panic occured executing a `Flows` `Job` -  includes the output of the job that panicked
     Panic(Output),
-    /// There was an error reported by the runtime
+    /// There was an error reported by the run-time
     RuntimeError(String), // message resulting from the error
     /// End of debug session - debug_client should disconnect
     End,
@@ -72,7 +72,7 @@ pub enum Event {
     SendingValue(usize, Value, usize, usize),
 }
 
-/// A `Response` from the debugger and runtime to a command from the debug_client
+/// A `Response` from the debugger and run-time to a command from the debug_client
 pub enum Response {
     /// Simple acknowledgement
     Ack,
@@ -82,11 +82,11 @@ pub enum Response {
     /// A message for display to the user of the debug_client
     /// includes: A string to be displayed
     Message(String),
-    /// The runtime is resetting the status back to the initial state
+    /// The run-time is resetting the status back to the initial state
     Resetting,
-    /// The debugger/runtime is running
+    /// The debugger/run-time is running
     Running,
-    /// The debugger/runtime is exiting
+    /// The debugger/run-time is exiting
     Exiting
 }
 
@@ -98,6 +98,6 @@ pub trait DebugClient {
     fn get_command(&self, job_number: Option<usize>) -> Command;
     /// Called to send an event to the debug_client
     fn send_event(&self, event: Event);
-    /// Called to send a response from the debug/runtime to the debug_client
+    /// Called to send a response from the debug/run-time to the debug_client
     fn send_response(&self, response: Response);
 }

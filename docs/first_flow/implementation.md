@@ -10,7 +10,7 @@ You can run this first flow and observe its output from the terminal, while in t
 > cargo run -- samples/first
 ```
 
-This should generate the flow and then run it with the runtime, producing a fibonacci series and eventually an
+This should generate the flow and then run it with the run-time, producing a fibonacci series and eventually an
 integer overflow panic when the next number becomes too big to hold in a rust integer, similar to this:
 
 `

@@ -68,7 +68,7 @@ impl fmt::Display for Function {
 impl Function {
     /// Create a new `fubction` with the specified `name`, `route`, `implemenation` etc.
     /// This only needs to be used by compilers or IDE generating `manifests` with functions
-    /// The runtime library `flowrlib` just deserializes them from the `manifest`
+    /// The library `flowrlib` just deserializes them from the `manifest`
     pub fn new(name: String,
                route: String,
                implementation_location: String,
@@ -87,7 +87,7 @@ impl Function {
     }
 
     #[cfg(feature = "debugger")]
-    /// Reset a `Function` to initial state. Used by a debugger at runtime to reset a fubction
+    /// Reset a `Function` to initial state. Used by a debugger at run-time to reset a fubction
     /// as part of a whole flow reset to run it again.
     pub fn reset(&mut self) {
         for input in &mut self.inputs {

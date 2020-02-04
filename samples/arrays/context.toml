@@ -32,4 +32,4 @@ to = "process/p4"
 
 [[process]]
 alias = "p4"
-source = "lib://runtime/stdio/stdout"
+source = "lib://flowruntime/stdio/stdout"

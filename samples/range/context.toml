@@ -2,7 +2,7 @@ flow = "range"
 
 [[process]]
 alias = "args"
-source = "lib://runtime/args/get"
+source = "lib://flowruntime/args/get"
 
 [[connection]]
 from = "process/args/1"
@@ -46,7 +46,7 @@ to = "process/print"
 # Output
 [[process]]
 alias = "print"
-source = "lib://runtime/stdio/stdout"
+source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
 from = "process/to_string"

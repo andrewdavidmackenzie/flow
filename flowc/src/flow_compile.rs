@@ -151,8 +151,10 @@ fn execute_flow(filepath: PathBuf, mut flow_args: Vec<String>) -> Result<String>
         .stderr(Stdio::inherit())
         .output().chain_err(|| "Error while attempting to spawn command to compile and run flow")?;
     match output.status.code() {
-        Some(0) => Ok("Flow ran to completion".to_string()),
+        Some(0) => Ok("'flowr' completed successfully'".to_string()),
         Some(code) => {
+            error!("Execution of 'flowr' failed");
+            error!("Process STDOUT:\n{}", String::from_utf8_lossy(&output.stdout    ));
             error!("Process STDERR:\n{}", String::from_utf8_lossy(&output.stderr));
             bail!("Exited with status code: {}", code)
         }

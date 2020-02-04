@@ -11,8 +11,9 @@ matrix:
   include:
   - os: linux
     rust: stable
-  - os: osx
-    rust: stable
+  - allow-failures:
+    - os: osx
+      rust: stable
 
 branches:
   only:

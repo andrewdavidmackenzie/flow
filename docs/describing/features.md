@@ -28,7 +28,7 @@ This is a complete list of features implemented in the description of flows:
     * Functions with single input can have a connection to it without naming the input
     * Functions with single output can have a connection from it without naming the output
 * Libraries of functions can be built and described, like flowstdlib, and referenced in flows
-* Runtime functions for
+* Run-time functions for
     * Retrieving arguments from the flow's invocation
     * STDIN/STDOUT/STDERR
     * Retrieving the value of Environment Variables

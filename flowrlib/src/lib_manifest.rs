@@ -63,7 +63,9 @@ impl LibraryManifest {
     pub fn load(provider: &dyn Provider, source: &str) -> Result<(LibraryManifest, String)> {
         let (resolved_url, _) = provider.resolve_url(source,
                                                      DEFAULT_LIB_MANIFEST_FILENAME,
-                                                     &["json"])?;
+                                                     &["json"])
+            .chain_err(|| format!("Could not resolve the library manifest file '{}'", source))?;
+
         let content = provider.get_contents(&resolved_url)
             .expect(&format!("Could not read contents of Library Manifest from '{}'", resolved_url));
 

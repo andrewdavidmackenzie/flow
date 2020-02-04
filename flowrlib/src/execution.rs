@@ -67,7 +67,7 @@ fn execute(job: Job, output_tx: &Sender<Output>) -> Result<String> {
 
 /*
     Replace the standard panic hook with one that just outputs the file and line of any process's
-    runtime panic.
+    run-time panic.
 */
 pub fn set_panic_hook() {
     panic::set_hook(Box::new(|panic_info| {

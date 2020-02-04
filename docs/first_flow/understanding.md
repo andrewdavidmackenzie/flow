@@ -18,7 +18,7 @@ In this example there is no sub-flow included (for the sake of simplicity).
 
 ### Interaction with the execution environment
 This top-level defines what the interaction with the surrounding execution environment is,
-such as STDIO, or other inputs/outputs provided by the flow runtime being used.
+such as STDIO, or other inputs/outputs provided by the flow run-time being used.
 
 The only interaction with the execution environment in this example is the use of STDOUT.
 

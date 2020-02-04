@@ -1,5 +1,5 @@
 // TODO #![deny(missing_docs)]
-//! `flowr` is the flow runtime or flow runner. It reads a `flow` `Manifest` produced
+//! `flowr` is the flow runner. It reads a `flow` `Manifest` produced
 //! by a flow compiler, such as `flowc`` that describes the network of collaborating functions
 //! that are executed to execute the flow.
 //!
@@ -72,14 +72,14 @@ fn run() -> Result<()> {
     let mut loader = Loader::new();
     let provider = MetaProvider {};
 
-    // Load this runtime's library of native (statically linked) implementations
-    loader.add_lib(&provider, runtime::manifest::create_runtime(Arc::new(Mutex::new(CLIRuntimeClient {}))), "runtime")
-        .chain_err(|| "Could not add 'runtime' library to loader")?;
+    // Load this run-time's library of native (statically linked) implementations
+    loader.add_lib(&provider, "lib://flowruntime", flowruntime::get_manifest(Arc::new(Mutex::new(CLIRuntimeClient {}))), "flowruntime")
+        .chain_err(|| "Could not add 'flowruntime' library to loader")?;
 
     // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
     if cfg!(feature = "native") {
         if matches.is_present("native") {
-            loader.add_lib(&provider, flowstdlib::get_manifest(), "flowstdlib")
+            loader.add_lib(&provider, "lib://flowstdlib", flowstdlib::get_manifest(), "flowstdlib")
                 .chain_err(|| "Could not add 'flowstdlib' library to loader")?;
         }
     }

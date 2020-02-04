@@ -1,6 +1,6 @@
 [package]
 name = "provider"
-version = "0.8.3"
+version = "0.8.8"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A content provider for 'flow' tools"
 license = "MIT"
@@ -15,7 +15,8 @@ default = []
 online_tests = []
 
 [dependencies]
-flowrlib = { path = "../flowrlib" }
+flowrlib = "=0.8.8"
+
 log = "0.4.6"
 url = "~2.1"
 tempdir = "~0.3.5"

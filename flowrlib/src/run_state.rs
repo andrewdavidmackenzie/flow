@@ -107,7 +107,7 @@ pub struct Output {
 /// should have no affect on the execution of the flow and the optimizer may remove it and all
 /// connections to its input. That in turn may affect other functions which can be removed, until
 /// there are no more left to remove.
-/// Thus at runtime, a pure function with it's output unused is not expected and no special handling
+/// Thus at run-time, a pure function with it's output unused is not expected and no special handling
 /// of that case is taken. If a manifest is read where a pure function has no destinations, then
 /// it will be run (when it received inputs) and it's output discarded.
 /// That is sub-optimal execution but no errors should result. Hence the role of the optimizer at
@@ -118,12 +118,12 @@ pub struct Output {
 /// ==================
 /// If a function's output is used but one or more of it's inputs is unconnected, then the compiler
 /// should throw an error. If for some reason an alternative compiler did not reject this and
-/// generated a manifest with no other function sending to that input, then at runtime that functions
+/// generated a manifest with no other function sending to that input, then at run-time that functions
 /// inputs will never be full and the function will never run. This could produce some form of deadlock
-/// or incomplete execution, but it should not produce any runtime error.
-/// A runtime is within it's rights to discard this function, and then potentially other functions
+/// or incomplete execution, but it should not produce any run-time error.
+/// A run-time is within it's rights to discard this function, and then potentially other functions
 /// connected to it's output and other inputs until no more can be removed.
-/// This runtime does not do that, in order to keep things simple and start-up time to a minimum.
+/// This run-time does not do that, in order to keep things simple and start-up time to a minimum.
 ///
 /// Runtime Rules
 /// =============
@@ -1497,7 +1497,7 @@ mod test {
         /*
             This test checks that a function with a Constant InputInitializer does not unblock others
             blocked sending to it when it runs. This case should not occur but it depends on the
-            compiler enforcing it. Here we wish to ensure the runtime is robust to this circumstance.
+            compiler enforcing it. Here we wish to ensure the run-time is robust to this circumstance.
         */
         #[test]
         fn constant_initializer_not_unblock() {

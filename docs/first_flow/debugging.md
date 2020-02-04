@@ -1,10 +1,10 @@
 ## Debugging your first flow
 When the flow is compiled by flowc, the current implementation is to generate a rust project that is linked with the 
-runtime and together it is built and run, with the runtime library executing the flow according to the generated 
+run-time and together it is built and run, with the run-time library executing the flow according to the generated 
 tables of functions.
 
 NOTE: in the future this implementation will change for being able to generate the functions table in a data file that is loaded and
-run by a single runtime, removing the need to compile and build each time.
+run by a single run-time, removing the need to compile and build each time.
 
 ### Running the generated project
 You can run this generated project for the flow directly from the `rust` subdirectory of the sample.
@@ -40,7 +40,7 @@ ARGS:
 `
 
 ### Getting debug output
-If you want to follow what the runtime is doing in more detail, you can increase the verbosity level (default level is ERROR)
+If you want to follow what the run-time is doing in more detail, you can increase the verbosity level (default level is ERROR)
 using the -v/--verbosity option.
 
 So, if you want to walk through each and every step of the flow's execution, similar to the previous [step by step section](step-by-step.md) 

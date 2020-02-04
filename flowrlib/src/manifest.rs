@@ -46,7 +46,7 @@ impl Manifest {
         }
     }
 
-    /// Add a runtime Function to the manifest for use in serialization
+    /// Add a run-time Function to the manifest for use in serialization
     pub fn add_function(&mut self, function: Function) {
         self.functions.push(function);
     }
@@ -133,7 +133,7 @@ mod test {
                     \"name\": \"print\",
                     \"route\": \"/context/print\",
                     \"id\": 0,
-                    \"implementation_location\": \"lib://runtime/stdio/stdout/Stdout\",
+                    \"implementation_location\": \"lib://flowruntime/stdio/stdout/Stdout\",
                     \"inputs\": [ {} ]
                 }
              ]

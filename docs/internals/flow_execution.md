@@ -90,7 +90,7 @@ Next ready Function is run
 A core goal of 'flow' is to enable parallel execution of programs, with the parallelism being described
 inherently in the flow description, via data dependencies and functions with zero side effects.
 
-Currently, the runtime only executes one function at a time, but that is destined to change as soon
+Currently, the run-time only executes one function at a time, but that is destined to change as soon
 as it can be implemented, both in multiple threads in the same process on one machine, then multiple
 processes on one machine and then across machines across a network.
 

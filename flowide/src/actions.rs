@@ -123,14 +123,14 @@ pub fn open_manifest(url: String) {
     });
 }
 
-fn load_libs<'a>(loader: &'a mut Loader, provider: &dyn Provider, runtime_manifest: LibraryManifest) -> Result<String, String> {
-    // Load this runtime's library of native (statically linked) implementations
-    loader.add_lib(provider, runtime_manifest, "runtime").map_err(|e| e.to_string())?;
+fn load_libs(loader: &mut Loader, provider: &dyn Provider, flowruntime_manifest: LibraryManifest) -> Result<String, String> {
+    // Load this run-time's library of native (statically linked) implementations
+    loader.add_lib(provider, "lib://flowruntime", flowruntime_manifest, "flowruntime").map_err(|e| e.to_string())?;
 
     // Load the native flowstdlib - before it maybe loaded from WASM
-    loader.add_lib(provider, flowstdlib::get_manifest(), "flowstdlib").map_err(|e| e.to_string())?;
+    loader.add_lib(provider, "lib://flowstdlib", flowstdlib::get_manifest(), "flowstdlib").map_err(|e| e.to_string())?;
 
-    Ok("Added the 'runtime' and 'flowstdlibs'".to_string())
+    Ok("Added the 'flowruntime' and 'flowstdlibs' native libraries".to_string())
 }
 
 fn load_manifest(manifest: &mut Manifest, manifest_url: &str, arg: Vec<String>) {
@@ -140,9 +140,9 @@ fn load_manifest(manifest: &mut Manifest, manifest_url: &str, arg: Vec<String>) 
     let mut ide_runtime_client = IDERuntimeClient::new();
     ide_runtime_client.set_args(arg);
     let runtime_client = Arc::new(Mutex::new(ide_runtime_client));
-    let runtime_manifest = runtime::manifest::create_runtime(runtime_client);
+    let runtime_manifest = flowruntime::get_manifest(runtime_client);
 
-    // Load the 'runtime' library provided by the IDE and the 'flowstdlib' libraries
+    // Load the 'run-time' library provided by the IDE and the 'flowstdlib' libraries
     match load_libs(&mut loader, &provider, runtime_manifest) {
         Ok(s) => message(&s),
         Err(e) => message(&e)

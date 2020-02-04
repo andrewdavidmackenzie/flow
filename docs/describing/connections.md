@@ -7,7 +7,7 @@ of a compatible [type](types.md):
 
 The type of a data flow is inferred from the two IOs that it connects (after checking the types match)
 
-### Runtime Semantics
+### Run-time Semantics
 An input IO can receive data from (i.e. be connected to) multiple outputs. 
 
 The first to arrive is the one that will fulfil the input the connection connects to and the

@@ -1,7 +1,7 @@
 ## Flow Libraries
 Functions and Flows can be defined as libraries and shared re-used by other flows.
 
-The runtime includes some basic ones in the `flowrlib` and `flowstdlib` libraries.
+The run-time includes some basic ones in the `flowruntime` and `flowstdlib` libraries.
 
 Others can be shared by developers.
 

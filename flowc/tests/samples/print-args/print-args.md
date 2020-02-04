@@ -9,5 +9,5 @@ output
 Features Used
 ===
 * Context Flow
-* Library Functions used (`args` from `runtime` and `stdout` from `flowstdlib`)
+* Library Functions used (`args` from `flowruntime` and `stdout` from `flowstdlib`)
 * Connections between functions

@@ -2,6 +2,9 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
 
+use log::{debug, info};
+use url::Url;
+
 use flowclib::compiler::loader;
 use flowclib::deserializers::deserializer_helper::get_deserializer;
 use flowclib::model::name::HasName;
@@ -10,11 +13,8 @@ use flowrlib::lib_manifest::DEFAULT_LIB_MANIFEST_FILENAME;
 use flowrlib::lib_manifest::LibraryManifest;
 use flowrlib::manifest::MetaData;
 use flowrlib::provider::Provider;
-use log::{debug, info};
-use provider::content::file_provider::FileProvider;
-use url::Url;
-
 use glob::glob;
+use provider::content::file_provider::FileProvider;
 
 use crate::compile_wasm;
 use crate::errors::*;
@@ -27,7 +27,7 @@ pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn
     let library = loader::load_library(&url.to_string(), provider)
         .expect(&format!("Could not load Library from '{}'", lib_dir.display()));
 
-    info!("Building manifest for '{}'", library.name);
+    info!("Building manifest for library '{}'", library.name);
     let mut lib_manifest = LibraryManifest::new(MetaData::from(&library));
 
     let mut base_dir = lib_dir.display().to_string();
@@ -55,7 +55,7 @@ pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn
                     info!("Library manifest exists, but new manifest has changes, so updating manifest file");
                     write_lib_manifest(&lib_manifest, &manifest_file)?;
                 } else {
-                    info!("Existing manifest file is up to date");
+                    info!("Existing manifest at '{}' is up to date", manifest_file_as_url);
                 }
             } else {
                 info!("Could not load existing Library manifest to compare, so writing new manifest file");

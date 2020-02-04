@@ -37,7 +37,7 @@ mod test {
     'process': [
         {
             'alias': 'print',
-            'source': 'lib://runtime/stdio/stdout.toml',
+            'source': 'lib://flowruntime/stdio/stdout.toml',
             'input': {
                 'default': {
                     'once': 'hello'
@@ -68,7 +68,7 @@ mod test {
         },
         {
             'alias': 'print',
-            'source': 'lib://runtime/stdio/stdout.toml'
+            'source': 'lib://flowruntime/stdio/stdout.toml'
         }
     ],
     'connection': [
@@ -100,7 +100,7 @@ mod test {
         },
         {
             'alias': 'print',
-            'source': 'lib://runtime/stdio/stdout.toml'
+            'source': 'lib://flowruntime/stdio/stdout.toml'
         }
     ],
     'connection': [

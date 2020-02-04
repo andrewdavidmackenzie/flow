@@ -53,7 +53,7 @@ ReadyList = STDOUT(1), SUM(1,1)
 
 Next function with status "ready" is run:
 
-- "STDOUT" runs with input 1. It prints "1" on the stdout of the runtime.
+- "STDOUT" runs with input 1. It prints "1" on the stdout of the run-time.
 > 1
 
 ReadyList = SUM(1,1)
@@ -84,7 +84,7 @@ ReadyList = STDOUT(1), SUM(1,2)
 
 Next function with status "ready" is run:
 
-- "STDOUT" runs with input 1. It prints "1" on the stdout of the runtime.
+- "STDOUT" runs with input 1. It prints "1" on the stdout of the run-time.
 > 1
 
 ReadyList = SUM(1,2)
@@ -111,7 +111,7 @@ ReadyList = STDOUT(2), SUM(2,3), HEAD-1(3)
 
 Next function with status "ready" is run:
 
-- STDOUT(2)) runs. It prints "2" on the stdout of the runtime.
+- STDOUT(2)) runs. It prints "2" on the stdout of the run-time.
 > 2
 
 ReadyList = SUM(2,3)
@@ -142,8 +142,8 @@ ReadyList = STDOUT(3), SUM(3,5)
 
 Next function with status "ready" is run:
 
-- STDOUT(3)) runs. It prints "3" on the stdout of the runtime.
+- STDOUT(3)) runs. It prints "3" on the stdout of the run-time.
 > 3
 
-and so on, and so forth.... producing a fibonacci series on the standard output of the runtime:
+and so on, and so forth.... producing a fibonacci series on the standard output of the run-time:
 > 1, 1, 2, 3, 5, 8 ...

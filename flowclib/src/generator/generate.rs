@@ -84,7 +84,7 @@ pub fn create_manifest(flow: &Flow, debug_symbols: bool, manifest_dir: &str, tab
 
     let mut manifest = Manifest::new(MetaData::from(flow));
 
-    // Generate runtime Process struct for each of the functions
+    // Generate run-time Process struct for each of the functions
     for function in &tables.functions {
         manifest.add_function(function_to_runtimefunction(&manifest_dir, function, debug_symbols)?);
     }
@@ -169,7 +169,7 @@ mod test {
         let function = Function::new(
             Name::from("Stdout"),
             false,
-            Some("lib://runtime/stdio/stdout".to_string()),
+            Some("lib://flowruntime/stdio/stdout".to_string()),
             Name::from("print"),
             Some(vec!()),
             Some(vec!(
@@ -184,7 +184,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_location': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://flowruntime/stdio/stdout',
   'output_routes': [
     [
       '',
@@ -212,7 +212,7 @@ mod test {
         let function = Function::new(
             Name::from("Stdout"),
             false,
-            Some("lib://runtime/stdio/stdout".to_string()),
+            Some("lib://flowruntime/stdio/stdout".to_string()),
             Name::from("print"),
             Some(vec!()),
             Some(vec!(IO::new("String", &Route::default()))),
@@ -224,7 +224,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_location': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://flowruntime/stdio/stdout',
   'output_routes': [
     [
       '',
@@ -252,7 +252,7 @@ mod test {
         let function = Function::new(
             Name::from("Stdout"),
             false,
-            Some("lib://runtime/stdio/stdout".to_string()),
+            Some("lib://flowruntime/stdio/stdout".to_string()),
             Name::from("print"),
             Some(vec!(io)),
             None,
@@ -264,7 +264,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_location': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://flowruntime/stdio/stdout',
   'inputs': [
     {
       'initializer': {
@@ -293,7 +293,7 @@ mod test {
         let function = Function::new(
             Name::from("Stdout"),
             false,
-            Some("lib://runtime/stdio/stdout".to_string()),
+            Some("lib://flowruntime/stdio/stdout".to_string()),
             Name::from("print"),
             Some(vec!(io)),
             None,
@@ -305,7 +305,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_location': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://flowruntime/stdio/stdout',
   'inputs': [
     {
       'initializer': {
@@ -331,7 +331,7 @@ mod test {
         let function = Function::new(
             Name::from("Stdout"),
             false,
-            Some("lib://runtime/stdio/stdout".to_string()),
+            Some("lib://flowruntime/stdio/stdout".to_string()),
             Name::from("print"),
             Some(vec!(io)),
             None,
@@ -343,7 +343,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_location': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://flowruntime/stdio/stdout',
   'inputs': [
     {
       'is_array': true
@@ -365,7 +365,7 @@ mod test {
         let function = Function::new(
             Name::from("Stdout"),
             false,
-            Some("lib://runtime/stdio/stdout".to_string()),
+            Some("lib://flowruntime/stdio/stdout".to_string()),
             Name::from("print"),
             Some(vec!()),
             Some(vec!(
@@ -381,7 +381,7 @@ mod test {
   'name': 'print',
   'route': '/flow0/stdout',
   'id': 0,
-  'implementation_location': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://flowruntime/stdio/stdout',
   'output_routes': [
     [
       '',
@@ -404,7 +404,7 @@ mod test {
         let function = Function::new(
             Name::from("Stdout"),
             false,
-            Some("lib://runtime/stdio/stdout".to_string()),
+            Some("lib://flowruntime/stdio/stdout".to_string()),
             Name::from("print"),
             Some(vec!()),
             Some(vec!(IO::new("Array", &Route::default()))),
@@ -416,7 +416,7 @@ mod test {
 
         let expected = "{
   'id': 0,
-  'implementation_location': 'lib://runtime/stdio/stdout',
+  'implementation_location': 'lib://flowruntime/stdio/stdout',
   'output_routes': [
     [
       '0',

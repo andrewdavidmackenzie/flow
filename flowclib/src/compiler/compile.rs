@@ -50,28 +50,28 @@ mod test {
     use super::compile;
 
     /*
-                            Test for a function that is dead code. It has no connections to it or from it so will
-                            never run. So it should be removed by the optimizer and not fail at check stage.
-                        */
+                                Test for a function that is dead code. It has no connections to it or from it so will
+                                never run. So it should be removed by the optimizer and not fail at check stage.
+                            */
 #[test]
 fn dead_function() {
 let function = Function::new(Name::from("Stdout"),
 false,
-Some("lib://runtime/stdio/stdout.toml".to_string()),
+Some("lib://flowruntime/stdio/stdout.toml".to_string()),
 Name::from("test-function"),
 Some(vec ! (IO::new("String",
 & Route::from("/context/print")))),
 Some(vec ! ()),
-"lib://runtime/stdio/stdout.toml",
+"lib://flowruntime/stdio/stdout.toml",
 Route::from("/context/print"),
-Some("lib://runtime/stdio/stdout.toml".to_string()),
+Some("lib://flowruntime/stdio/stdout.toml".to_string()),
 vec ! (),
 0,
 );
 
 let function_ref = ProcessReference {
 alias: function.alias().to_owned(),
-source: "lib://runtime/stdio/stdout.toml".to_string(),
+source: "lib://flowruntime/stdio/stdout.toml".to_string(),
 initializations: None,
 process: FunctionProcess(function),
 };
