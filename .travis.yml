@@ -1,19 +1,20 @@
 language: rust
 dist: bionic
-sudo: true
+sudo: false
 
 cache:
   cargo: true
   directories:
     - bin
 
-matrix:
+jobs:
   include:
   - os: linux
     rust: stable
-  - allow-failures:
+  allow_failures:
     - os: osx
       rust: stable
+  fast_finish: true
 
 branches:
   only:

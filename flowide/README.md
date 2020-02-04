@@ -1,2 +1,2 @@
 # `flowide`
-This is an experimental crate that builds a native IDE with UI using gtk3.
+This is an experimental crate that builds an IDE with UI using gtk3.

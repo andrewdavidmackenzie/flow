@@ -1,9 +1,10 @@
 //#![deny(missing_docs)]
-//! The `flowide` is a prototype of a native IDE for `flow` programs.
+//! The `flowide` is a prototype of an IDE for `flow` programs.
 
 use std::env;
 use std::sync::{Arc, Mutex};
 
+use flowclib::deserializers::deserializer_helper;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::*;
 use gtk::{
@@ -13,7 +14,6 @@ use gtk::{
 use gtk::prelude::*;
 use gtk_rs_state::gtk_refs;
 
-use flowclib::deserializers::deserializer_helper;
 use lazy_static::lazy_static;
 use ui_context::UIContext;
 

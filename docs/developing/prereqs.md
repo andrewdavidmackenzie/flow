@@ -11,7 +11,7 @@ For building the guide:
 	```mdbook``` and its ```mdbook-linkcheck```
 
 ## Installing pre-requisites
-You have to install rustup, cargo and rust native toolchain yourself, I decided to stop 
+You have to install rustup, cargo and rust toolchain yourself, I decided to stop 
 short of futzing with people's installed compilers via scripts and Makefile targets.
 
 There is a Makefile target 'config' that will attempt to install remaining dependencies most 

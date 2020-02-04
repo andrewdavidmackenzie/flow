@@ -1,9 +1,5 @@
 use std::sync::{Arc, Mutex};
 
-use gtk::{TextBufferExt, WidgetExt};
-use toml;
-use url::Url;
-
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowclib::generator::generate;
@@ -14,7 +10,10 @@ use flowrlib::lib_manifest::LibraryManifest;
 use flowrlib::loader::Loader;
 use flowrlib::manifest::{DEFAULT_MANIFEST_FILENAME, Manifest};
 use flowrlib::provider::Provider;
+use gtk::{TextBufferExt, WidgetExt};
 use provider::content::provider::MetaProvider;
+use toml;
+use url::Url;
 
 use crate::ide_runtime_client::IDERuntimeClient;
 use crate::message;
@@ -124,13 +123,13 @@ pub fn open_manifest(url: String) {
 }
 
 fn load_libs(loader: &mut Loader, provider: &dyn Provider, flowruntime_manifest: LibraryManifest) -> Result<String, String> {
-    // Load this run-time's library of native (statically linked) implementations
+    // Load this run-time's library of function implementations
     loader.add_lib(provider, "lib://flowruntime", flowruntime_manifest, "flowruntime").map_err(|e| e.to_string())?;
 
-    // Load the native flowstdlib - before it maybe loaded from WASM
+    // Load the statically linked flowstdlib - before it maybe loaded from WASM
     loader.add_lib(provider, "lib://flowstdlib", flowstdlib::get_manifest(), "flowstdlib").map_err(|e| e.to_string())?;
 
-    Ok("Added the 'flowruntime' and 'flowstdlibs' native libraries".to_string())
+    Ok("Added the 'flowruntime' and 'flowstdlibs' static libraries".to_string())
 }
 
 fn load_manifest(manifest: &mut Manifest, manifest_url: &str, arg: Vec<String>) {

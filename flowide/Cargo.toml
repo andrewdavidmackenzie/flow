@@ -19,7 +19,7 @@ flow_impl = "=0.8.5"
 flowrlib = "=0.8.8"
 flowruntime = "=0.8.8"
 flowclib = "=0.8.8"
-flowstdlib = { version = "=0.8.9", features = [ "native" ] }
+flowstdlib = "=0.8.9"
 provider = "=0.8.8"
 
 toml = "0.4"

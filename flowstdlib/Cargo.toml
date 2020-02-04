@@ -2,7 +2,7 @@
 name = "flowstdlib"
 version = "0.8.9"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
-description = "The native version of the standard library for 'flow' programs compiled with the 'flowc' compiler"
+description = "The standard library of functions for 'flow' programs"
 license = "MIT"
 documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
 homepage = "http://andrewdavidmackenzie.github.io/flow/"
@@ -15,10 +15,6 @@ exclude = [".gitignore", "Makefile", "Cargo.lock"]
 [lib]
 name = "flowstdlib"
 path = "lib.rs"
-
-[features]
-default = []
-native = []
 
 [dependencies]
 flow_impl = "=0.8.5"
