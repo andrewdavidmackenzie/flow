@@ -77,14 +77,24 @@ impl Function {
                implementation_location: String,
                inputs: Vec<Input>,
                id: usize,
-               output_routes: &Vec<OutputConnection>) -> Function {
+               output_routes: &Vec<OutputConnection>,
+               include_destination_routes: bool) -> Function {
+        let mut routes = (*output_routes).clone();
+
+        // Remove destination routes if not wanted
+        if !include_destination_routes {
+            for mut r in &mut routes {
+                r.route = None;
+            }
+        }
+
         Function {
             name,
             route,
             id,
             implementation_location,
             implementation: Function::default_implementation(),
-            output_routes: (*output_routes).clone(),
+            output_routes: routes,
             inputs,
         }
     }
@@ -249,7 +259,7 @@ mod test {
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, false)),
                                          0,
-                                         &vec!());
+                                         &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!(1));
         assert_eq!(json!(1), function.take_input_set().remove(0).remove(0),
@@ -263,7 +273,7 @@ mod test {
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, true)),
                                          0,
-                                         &vec!());
+                                         &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!([1, 2]));
         assert_eq!(json!([1, 2]), function.take_input_set().remove(0).remove(0),
@@ -277,7 +287,7 @@ mod test {
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, true)),
                                          0,
-                                         &vec!());
+                                         &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!(1));
         assert_eq!(vec!(json!([1])), function.take_input_set().remove(0),
@@ -291,7 +301,7 @@ mod test {
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, false)),
                                          0,
-                                         &vec!());
+                                         &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!([1, 2]));
         assert_eq!(vec!(json!(1)), function.take_input_set().remove(0),
@@ -305,7 +315,7 @@ mod test {
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, false)),
                                          0,
-                                         &vec!());
+                                         &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!(1));
         function.write_input(0, &json!(2));
@@ -323,7 +333,7 @@ mod test {
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, false)),
                                          0,
-                                         &vec!());
+                                         &vec!(), false);
         function.init_inputs(true);
         function.take_input_set().remove(0);
     }
@@ -337,7 +347,7 @@ mod test {
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None, false)),
                                          0,
-                                         &vec!());
+                                         &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!([1, 2]));
         assert_eq!(vec!(json!(1), json!(2)), function.take_input_set().remove(0),
@@ -351,7 +361,7 @@ mod test {
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None, false)),
                                          0,
-                                         &vec!());
+                                         &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!(1));
         function.write_input(0, &json!(2));
@@ -366,7 +376,7 @@ mod test {
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None, true)),
                                          0,
-                                         &vec!());
+                                         &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!([1, 2]));
         function.write_input(0, &json!([3, 4]));
@@ -382,7 +392,7 @@ mod test {
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None, false)),
                                          0,
-                                         &vec!());
+                                         &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!(1));
         function.take_input_set().remove(0);
@@ -395,7 +405,7 @@ mod test {
                       "/implementation".to_string(),
                       vec!(Input::new(2, &None, false)),
                       1,
-                      &vec!(out_conn))
+                      &vec!(out_conn), false)
     }
 
     #[cfg(feature = "debugger")]
@@ -429,7 +439,7 @@ mod test {
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None, false)),
                                          0,
-                                         &vec!(output_route.clone()));
+                                         &vec!(output_route.clone()), false);
         function.init_inputs(true);
         function.write_input(0, &json!(1));
         let _ = format!("{}", function);

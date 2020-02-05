@@ -125,7 +125,8 @@ fn function_to_runtimefunction(manifest_dir: &str, function: &Box<Function>, deb
                             implementation_location,
                             runtime_inputs,
                             function.get_id(),
-                            function.get_output_routes()))
+                            function.get_output_routes(),
+                            debug_symbols))
 }
 
 /*
