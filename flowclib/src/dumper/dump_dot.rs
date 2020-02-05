@@ -4,8 +4,9 @@ use std::io;
 use std::io::prelude::*;
 use std::path::PathBuf;
 
-use flowrlib::input::InputInitializer::{Constant, OneTime};
 use log::info;
+
+use flowrlib::input::InputInitializer::{Constant, OneTime};
 
 use crate::dumper::helper;
 use crate::generator::generate::GenerationTables;
@@ -191,15 +192,15 @@ fn function_to_dot(function: &Function, functions: &Vec<Box<Function>>) -> Strin
     function_string.push_str(&input_initializers(function, &format!("r{}", function.get_id())));
 
     // Add edges for each of the outputs of this function to other ones
-    for &(ref output_route, destination_index, destination_input_index) in function.get_output_routes() {
-        let input_port = INPUT_PORTS[destination_input_index % INPUT_PORTS.len()];
-        let destination_function = &functions[destination_index];
-        let output_port = output_name_to_port(output_route);
+    for destination in function.get_output_routes() {
+        let input_port = INPUT_PORTS[destination.io_number % INPUT_PORTS.len()];
+        let destination_function = &functions[destination.function_id];
+        let output_port = output_name_to_port(&destination.subpath);
         if let Some(inputs) = destination_function.get_inputs() {
-            let input_name = inputs.get(destination_input_index).unwrap().name().to_string();
+            let input_name = inputs.get(destination.io_number).unwrap().name().to_string();
             function_string.push_str(&format!("r{}:{} -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];\n",
-                                              function.get_id(), output_port, destination_index, input_port,
-                                              output_route, input_name));
+                                              function.get_id(), output_port, destination.function_id, input_port,
+                                              destination.subpath, input_name));
         }
     }
 

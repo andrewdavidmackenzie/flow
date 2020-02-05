@@ -11,6 +11,7 @@ use serde_json::Value;
 use crate::debugger::Debugger;
 use crate::function::Function;
 use crate::metrics::Metrics;
+use crate::output_connection::OutputConnection;
 
 #[derive(Debug, PartialEq)]
 pub enum State {
@@ -28,7 +29,7 @@ pub struct Job {
     pub function_id: usize,
     pub implementation: Arc<dyn Implementation>,
     pub input_set: Vec<Vec<Value>>,
-    pub destinations: Vec<(String, usize, usize)>,
+    pub destinations: Vec<OutputConnection>,
 }
 
 #[derive(Debug)]
@@ -37,7 +38,7 @@ pub struct Output {
     pub function_id: usize,
     pub input_values: Vec<Vec<Value>>,
     pub result: (Option<Value>, bool),
-    pub destinations: Vec<(String, usize, usize)>,
+    pub destinations: Vec<OutputConnection>,
     pub error: Option<String>,
 }
 
@@ -290,12 +291,14 @@ impl RunState {
                 source_has_inputs_full = source_function.inputs_full();
                 destinations = source_function.output_destinations().clone();
             }
-            for (_, destination_id, io_number) in destinations {
-                if destination_id != source_id { // don't block yourself!
-                    let destination_function = self.get(destination_id);
-                    if destination_function.input_full(io_number) {
-                        debug!("\tAdded block between #{} <-- #{}", destination_id, source_id);
-                        blocks.push_back((destination_id, io_number, source_id));
+            // (_output_path, destination_id, io_number, _destination_path)
+            for destination in destinations {
+                if destination.function_id != source_id { // don't block yourself!
+                    let destination_function = self.get(destination.function_id);
+                    if destination_function.input_full(destination.io_number) {
+                        debug!("\tAdded block between #{} <-- #{}", destination.function_id, source_id);
+                        blocks.push_back((destination.function_id,
+                                          destination.io_number, source_id));
                         // only put source on the blocked list if it already has it's inputs full
                         if source_has_inputs_full {
                             blocked.insert(source_id);
@@ -442,10 +445,13 @@ impl RunState {
                 if let Some(output_v) = output_value {
                     debug!("\tProcessing output value '{}' from Job #{}", output_v, output.job_id);
 
-                    for (ref output_route, destination_id, io_number) in &output.destinations {
-                        let output_value = output_v.pointer(&output_route).unwrap();
-                        self.send_value(output.function_id, output_route, *destination_id,
-                                        *io_number, output_value, metrics, debugger);
+                    //output_route, destination_id, io_number, _destination_path)
+                    for destination in &output.destinations {
+                        let output_value = output_v.pointer(&destination.subpath).unwrap();
+                        self.send_value(output.function_id,
+                                        &destination.subpath,
+                                        destination.function_id,
+                                        destination.io_number, output_value, metrics, debugger);
                     }
                 }
 
@@ -591,8 +597,10 @@ impl RunState {
                     if !self.ready.contains(&sender_function.id()) {
 
                         // for each output route of sending function, see if it is sending to the target function and input
-                        for (ref _output_route, destination_id, io_number) in sender_function.output_destinations() {
-                            if (*destination_id == target_id) && (*io_number == target_io) {
+                        //(ref _output_route, destination_id, io_number, _destination_path)
+                        for destination in sender_function.output_destinations() {
+                            if (destination.function_id == target_id) &&
+                                (destination.io_number == target_io) {
                                 senders.push((sender_function.id(), target_io));
                             }
                         }
@@ -720,6 +728,7 @@ mod test {
     use crate::input::Input;
     use crate::input::InputInitializer::OneTime;
     use crate::input::OneTimeInputInitializer;
+    use crate::output_connection::OutputConnection;
     use crate::run_state;
 
     use super::Output;
@@ -744,15 +753,17 @@ mod test {
     }
 
     fn test_function_a_to_b_not_init() -> Function {
+        let out_conn = OutputConnection::new("".to_string(), 1, 0, None);
         Function::new("fA".to_string(), // name
                       "/context/fA".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1, &None, false)),
                       0,
-                      &vec!(("".to_string(), 1, 0))) // outputs to fB:0
+                      &vec!(out_conn)) // outputs to fB:0
     }
 
     fn test_function_a_to_b() -> Function {
+        let out_conn = OutputConnection::new("".to_string(), 1, 0, None);
         Function::new("fA".to_string(), // name
                       "/context/fA".to_string(),
                       "/test".to_string(),
@@ -760,7 +771,7 @@ mod test {
                                       &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                       false)),
                       0,
-                      &vec!(("".to_string(), 1, 0))) // outputs to fB:0
+                      &vec!(out_conn)) // outputs to fB:0
     }
 
     fn test_function_a_init() -> Function {
@@ -795,23 +806,25 @@ mod test {
     }
 
     fn test_output(source_function_id: usize, dest_function_id: usize) -> Output {
+        let out_conn = OutputConnection::new("".to_string(), dest_function_id, 0, None);
         Output {
             job_id: 1,
             function_id: source_function_id,
             input_values: vec!(vec!(json!(1))),
             result: (Some(json!(1)), true),
-            destinations: vec!(("".to_string(), dest_function_id, 0)),
+            destinations: vec!(out_conn),
             error: None,
         }
     }
 
     fn error_output(source_function_id: usize, dest_function_id: usize) -> Output {
+        let out_conn = OutputConnection::new("".to_string(), dest_function_id, 0, None);
         Output {
             job_id: 1,
             function_id: source_function_id,
             input_values: vec!(vec!(json!(1))),
             result: (None, false),
-            destinations: vec!(("".to_string(), dest_function_id, 0)),
+            destinations: vec!(out_conn),
             error: Some("Some error occurred".to_string()),
         }
     }
@@ -895,6 +908,7 @@ mod test {
         use crate::input::Input;
         use crate::input::InputInitializer::{Constant, OneTime};
         use crate::metrics::Metrics;
+        use crate::output_connection::OutputConnection;
 
         use super::super::Output;
         use super::super::RunState;
@@ -1147,6 +1161,7 @@ mod test {
         // Done: at least one destination input is full, so can't run  running_to_blocked_on_done
         #[test]
         fn running_to_blocked_on_done() {
+            let out_conn = OutputConnection::new("".to_string(), 1, 0, None);
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
@@ -1154,7 +1169,7 @@ mod test {
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
                                                     false)),
                                     0,
-                                    &vec!(("".to_string(), 1, 0))); // outputs to fB:0
+                                    &vec!(out_conn)); // outputs to fB:0
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
@@ -1191,12 +1206,13 @@ mod test {
                                     vec!(Input::new(1, &None, false)),
                                     0,
                                     &vec!());
+            let out_conn = OutputConnection::new("".into(), 0, 0, None);
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
                                     1,
-                                    &vec!(("".into(), 0, 0)));
+                                    &vec!(out_conn));
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
             let mut metrics = Metrics::new(1);
@@ -1215,6 +1231,7 @@ mod test {
         #[test]
         fn waiting_to_blocked_on_input() {
             let f_a = super::test_function_a_to_b_not_init();
+            let out_conn = OutputConnection::new("".into(), 0, 0, None);
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
@@ -1222,7 +1239,7 @@ mod test {
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
                                                     false)),
                                     1,
-                                    &vec!(("".into(), 0, 0)));
+                                    &vec!(out_conn));
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
             let mut metrics = Metrics::new(1);
@@ -1247,6 +1264,8 @@ mod test {
         */
         #[test]
         fn not_block_on_self() {
+            let out_conn1 = OutputConnection::new("".to_string(), 0, 0, None);
+            let out_conn2 = OutputConnection::new("".to_string(), 1, 0, None);
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
@@ -1255,8 +1274,8 @@ mod test {
                                                     false)),
                                     0,
                                     &vec!(
-                                        ("".to_string(), 0, 0), // outputs to self:0
-                                        ("".to_string(), 1, 0) // outputs to f_b:0
+                                        out_conn1, // outputs to self:0
+                                        out_conn2 // outputs to f_b:0
                                     ));
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
@@ -1274,13 +1293,15 @@ mod test {
 
             assert_eq!(0, state.next_job().unwrap().function_id, "next() should return function_id=0 (f_a) for running");
 
+            let out_conn1 = OutputConnection::new("".into(), 0, 0, None);
+            let out_conn2 = OutputConnection::new("".into(), 1, 0, None);
             // Event: run f_a
             let output = Output {
                 job_id: 0,
                 function_id: 0,
                 input_values: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
-                destinations: vec!(("".into(), 0, 0), ("".into(), 1, 0)),
+                destinations: vec!(out_conn1, out_conn2),
                 error: None,
 
             };
@@ -1319,6 +1340,7 @@ mod test {
         use crate::input::Input;
         use crate::input::InputInitializer::Constant;
         use crate::metrics::Metrics;
+        use crate::output_connection::OutputConnection;
 
         use super::super::Output;
         use super::super::RunState;
@@ -1326,12 +1348,14 @@ mod test {
         use super::test_debug_client;
 
         fn test_functions<'a>() -> Vec<Function> {
+            let out_conn1 = OutputConnection::new("".to_string(), 1, 0, None);
+            let out_conn2 = OutputConnection::new("".to_string(), 2, 0, None);
             let p0 = Function::new("p0".to_string(), // name
                                    "/context/p0".to_string(),
                                    "/test".to_string(),
                                    vec!(), // input array
                                    0,    // id
-                                   &vec!(("".to_string(), 1, 0), ("".to_string(), 2, 0)), // destinations
+                                   &vec!(out_conn1, out_conn2), // destinations
             );    // implementation
             let p1 = Function::new("p1".to_string(),
                                    "/context/p1".to_string(),

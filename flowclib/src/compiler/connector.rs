@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use error_chain::bail;
 use log::debug;
 
+use flowrlib::output_connection::OutputConnection;
+
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
 use crate::model::connection::Connection;
@@ -29,7 +31,11 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                     debug!("Connection: from '{}' to '{}'", &connection.from_io.route(), &connection.to_io.route());
                     debug!("Output: Route = '{}', destination_process_id = {}, destination_input_index = {})",
                            output_route.to_string(), destination_process_id, destination_input_index);
-                    source_function.add_output_route((output_route.to_string(), destination_process_id, destination_input_index));
+                    let output_conn = OutputConnection::new(output_route.to_string(),
+                                                            destination_process_id,
+                                                            destination_input_index,
+                                                            Some(connection.to_io.route().to_string()));
+                    source_function.add_output_route(output_conn);
                 }
 
                 // TODO when connection uses references to real IOs then we maybe able to remove this
@@ -175,7 +181,7 @@ fn find_function_destinations(from_io_route: &Route, from_level: usize, connecti
                 // Can't escape the context!
                 IOType::FlowOutput if from_level > 0 => from_level - 1,
                 IOType::FlowOutput if from_level == 0 => std::usize::MAX,
-                IOType::FlowInput  => from_level + 1,
+                IOType::FlowInput => from_level + 1,
                 _ => from_level
             };
 

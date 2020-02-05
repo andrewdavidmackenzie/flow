@@ -107,7 +107,7 @@ fn function_to_runtimefunction(manifest_dir: &str, function: &Box<Function>, deb
         route = "".to_string();
     }
 
-    // make location of implementation relative to the output directory if under it
+    // make the location of implementation relative to the output directory if it is under it
     let implementation_location = implementation_location_relative(&function, manifest_dir)?;
 
     let mut runtime_inputs = vec!();
@@ -156,6 +156,7 @@ mod test {
 
     use flowrlib::input::{ConstantInputInitializer, InputInitializer};
     use flowrlib::input::OneTimeInputInitializer;
+    use flowrlib::output_connection::OutputConnection;
 
     use crate::model::function::Function;
     use crate::model::io::IO;
@@ -179,23 +180,23 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(("".to_string(), 1, 0), ("sub_route".to_string(), 2, 0)),
+            vec!(OutputConnection::new("".to_string(), 1, 0, None),
+                 OutputConnection::new("sub_route".to_string(), 2, 0, None)),
             0);
 
         let expected = "{
   'id': 0,
   'implementation_location': 'lib://flowruntime/stdio/stdout',
   'output_routes': [
-    [
-      '',
-      1,
-      0
-    ],
-    [
-      'sub_route',
-      2,
-      0
-    ]
+    {
+      'function_id': 1,
+      'io_number': 0
+    },
+    {
+      'subpath': 'sub_route',
+      'function_id': 2,
+      'io_number': 0
+    }
   ]
 }";
 
@@ -219,18 +220,17 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(("".to_string(), 1, 0)),
+            vec!(OutputConnection::new("".to_string(), 1, 0, None)),
             0);
 
         let expected = "{
   'id': 0,
   'implementation_location': 'lib://flowruntime/stdio/stdout',
   'output_routes': [
-    [
-      '',
-      1,
-      0
-    ]
+    {
+      'function_id': 1,
+      'io_number': 0
+    }
   ]
 }";
 
@@ -357,12 +357,11 @@ mod test {
         println!("process {}", process);
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
-        assert_eq!(expected.replace("'", "\""), serialized_process);
+        assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 
-    #[test]
-    fn function_to_code_with_debug_generation() {
-        let function = Function::new(
+    fn test_function() -> Function {
+        Function::new(
             Name::from("Stdout"),
             false,
             Some("lib://flowruntime/stdio/stdout".to_string()),
@@ -374,8 +373,13 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(("".to_string(), 1, 0)),
-            0);
+            vec!(OutputConnection::new("".to_string(), 1, 0, None)),
+            0)
+    }
+
+    #[test]
+    fn function_to_code_with_debug_generation() {
+        let function = test_function();
 
         let expected = "{
   'name': 'print',
@@ -383,11 +387,10 @@ mod test {
   'id': 0,
   'implementation_location': 'lib://flowruntime/stdio/stdout',
   'output_routes': [
-    [
-      '',
-      1,
-      0
-    ]
+    {
+      'function_id': 1,
+      'io_number': 0
+    }
   ]
 }";
 
@@ -411,18 +414,18 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(("0".to_string(), 1, 0)),
+            vec!(OutputConnection::new("0".to_string(), 1, 0, None)),
             0);
 
         let expected = "{
   'id': 0,
   'implementation_location': 'lib://flowruntime/stdio/stdout',
   'output_routes': [
-    [
-      '0',
-      1,
-      0
-    ]
+    {
+      'subpath': '0',
+      'function_id': 1,
+      'io_number': 0
+    }
   ]
 }";
 

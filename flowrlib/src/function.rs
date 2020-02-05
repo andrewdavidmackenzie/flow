@@ -9,6 +9,7 @@ use serde_json::json;
 use serde_json::Value;
 
 use crate::input::Input;
+use crate::output_connection::OutputConnection;
 
 #[derive(Deserialize, Serialize, Clone)]
 /// `Function` contains all the information needed about a fubction and its implementation
@@ -30,7 +31,7 @@ pub struct Function {
     inputs: Vec<Input>,
 
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    output_routes: Vec<(String, usize, usize)>,
+    output_routes: Vec<OutputConnection>,
 
     #[serde(skip)]
     #[serde(default = "Function::default_implementation")]
@@ -59,7 +60,7 @@ impl fmt::Display for Function {
             }
         }
         for output_route in &self.output_routes {
-            write!(f, "\tOutput route '/{}' -> {}:{}\n", output_route.0, output_route.1, output_route.2)?;
+            write!(f, "\t{}\n", output_route)?;
         }
         write!(f, "")
     }
@@ -69,12 +70,14 @@ impl Function {
     /// Create a new `fubction` with the specified `name`, `route`, `implemenation` etc.
     /// This only needs to be used by compilers or IDE generating `manifests` with functions
     /// The library `flowrlib` just deserializes them from the `manifest`
+    /// The Vector of outputs:
+    /// Output sub-path (or ""), destination function id, destination function io number, Optional path of destination
     pub fn new(name: String,
                route: String,
                implementation_location: String,
                inputs: Vec<Input>,
                id: usize,
-               output_routes: &Vec<(String, usize, usize)>) -> Function {
+               output_routes: &Vec<OutputConnection>) -> Function {
         Function {
             name,
             route,
@@ -87,7 +90,7 @@ impl Function {
     }
 
     #[cfg(feature = "debugger")]
-    /// Reset a `Function` to initial state. Used by a debugger at run-time to reset a fubction
+    /// Reset a `Function` to initial state. Used by a debugger at run-time to reset a function
     /// as part of a whole flow reset to run it again.
     pub fn reset(&mut self) {
         for input in &mut self.inputs {
@@ -155,7 +158,7 @@ impl Function {
     }
 
     /// Accessor for a `Functions` `output_routes` field
-    pub fn output_destinations(&self) -> &Vec<(String, usize, usize)> {
+    pub fn output_destinations(&self) -> &Vec<OutputConnection> {
         &self.output_routes
     }
 
@@ -210,6 +213,7 @@ mod test {
     use serde_json::value::Value;
 
     use crate::input::Input;
+    use crate::output_connection::OutputConnection;
 
     use super::Function;
     use super::ImplementationNotFound;
@@ -385,12 +389,13 @@ mod test {
     }
 
     fn test_function() -> Function {
+        let out_conn = OutputConnection::new("/other/input/1".to_string(), 1, 1, None);
         Function::new("test".to_string(),
                       "/context/test".to_string(),
                       "/implementation".to_string(),
                       vec!(Input::new(2, &None, false)),
                       1,
-                      &vec!(("/other/input/1".to_string(), 1, 1)))
+                      &vec!(out_conn))
     }
 
     #[cfg(feature = "debugger")]
@@ -418,7 +423,7 @@ mod test {
     #[cfg(feature = "debugger")]
     #[test]
     fn can_display_function_with_inputs() {
-        let output_route = ("/other/input/1".to_string(), 1, 1);
+        let output_route = OutputConnection::new("/other/input/1".to_string(), 1, 1, None);
         let mut function = Function::new("test".to_string(),
                                          "/context/test".to_string(),
                                          "/test".to_string(),
@@ -428,8 +433,7 @@ mod test {
         function.init_inputs(true);
         function.write_input(0, &json!(1));
         let _ = format!("{}", function);
-        assert_eq!(&vec!(output_route), function.output_destinations(),
-                   "output routes not as originally set");
+        assert_eq!(&vec!(output_route), function.output_destinations(), "output routes not as originally set");
     }
 
     #[test]

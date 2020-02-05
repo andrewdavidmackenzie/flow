@@ -21,10 +21,10 @@ native = []
 
 [dependencies]
 flow_impl = "=0.8.5"
-flowrlib = "=0.8.8"
-flowruntime = "=0.8.8"
-flowstdlib = "=0.8.9"
-provider = "=0.8.8"
+flowrlib = {path = "../flowrlib"}
+flowruntime = {path = "../flowruntime"}
+flowstdlib = {path = "../flowstdlib"}
+provider = {path = "../provider"}
 
 clap = "~2"
 simplog = "~1.2"

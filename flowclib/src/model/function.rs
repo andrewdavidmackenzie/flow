@@ -3,6 +3,8 @@ use std::fmt;
 use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 
+use flowrlib::output_connection::OutputConnection;
+
 use crate::compiler::loader::Validate;
 use crate::errors::*;
 use crate::model::io::{IO, IOType};
@@ -37,7 +39,7 @@ pub struct Function {
     lib_reference: Option<String>,
 
     #[serde(skip_deserializing)]
-    output_routes: Vec<(String, usize, usize)>,
+    output_routes: Vec<OutputConnection>,
     #[serde(skip_deserializing)]
     id: usize,
 }
@@ -78,11 +80,11 @@ impl Function {
         self.outputs.clone()
     }
 
-    pub fn add_output_route(&mut self, output_route: (String, usize, usize)) {
+    pub fn add_output_route(&mut self, output_route: OutputConnection) {
         self.output_routes.push(output_route);
     }
 
-    pub fn get_output_routes(&self) -> &Vec<(String, usize, usize)> {
+    pub fn get_output_routes(&self) -> &Vec<OutputConnection> {
         &self.output_routes
     }
 
@@ -164,7 +166,7 @@ impl Default for Function {
             source_url: Function::default_source_url(),
             route: Route::default(),
             lib_reference: None,
-            output_routes: vec!(("".to_string(), 0, 0)),
+            output_routes: vec!(OutputConnection::new("".to_string(), 0, 0, Some("".to_string()))),
             id: 0,
         }
     }
@@ -208,6 +210,8 @@ impl Function {
 mod test {
     use toml;
 
+    use flowrlib::output_connection::OutputConnection;
+
     use crate::compiler::loader::Validate;
     use crate::model::datatype::DataType;
     use crate::model::io::Find;
@@ -222,7 +226,7 @@ mod test {
 
     impl Function {
         pub fn new(name: Name, impure: bool, implementation: Option<String>, alias: Name, inputs: IOSet, outputs: IOSet, source_url: &str,
-                   route: Route, lib_reference: Option<String>, output_connections: Vec<(String, usize, usize)>,
+                   route: Route, lib_reference: Option<String>, output_connections: Vec<OutputConnection>,
                    id: usize) -> Self {
             Function {
                 name,
@@ -252,7 +256,7 @@ mod test {
             outputs: None,         // No output!
             route: Route::default(),
             lib_reference: None,
-            output_routes: vec!(("test_function".to_string(), 0, 0)),
+            output_routes: vec!(OutputConnection::new("test_function".to_string(), 0, 0, None)),
             id: 0,
         };
 
