@@ -24,7 +24,8 @@ pub struct Debugger {
 
 #[derive(Debug, Clone)]
 enum BlockType {
-    OutputBlocked, // Cannot run and send it's Output as a destination Input is full
+    OutputBlocked,
+    // Cannot run and send it's Output as a destination Input is full
     UnreadySender, // Has to send output to an empty Input for other process to be able to run
 }
 
@@ -222,10 +223,8 @@ impl Debugger {
                     }
                 }
                 Step(param) => {
-                    if state.jobs_sent() > 0 {
-                        self.client.send_response(self.step(state, param));
-                        return (true, false);
-                    }
+                    self.client.send_response(self.step(state, param));
+                    return (true, false);
                 }
             };
         }
@@ -236,7 +235,7 @@ impl Debugger {
         let mut response = String::new();
 
         match param {
-            None => response.push_str("'break' command must specify a process id to break on\n"),
+            None => response.push_str("'break' command must specify a breakpoint\n"),
             Some(Param::Numeric(process_id)) => {
                 if process_id > state.num_functions() {
                     response.push_str(&format!("There is no process with id '{}' to set a breakpoint on\n",

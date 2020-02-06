@@ -38,10 +38,11 @@ fn default_destination_route() -> Option<String> {
 
 impl fmt::Display for OutputConnection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Output Connection from sub-path '/{}' -> Function #{} Input :{}",
-                                 self.subpath,
-                                 self.function_id,
-                                 self.io_number)?;
+        write!(f, "Output Connection")?;
+        if !self.subpath.is_empty() {
+            write!(f, " from sub-path '/{}'", self.subpath)?;
+        }
+        write!(f, " -> Function #{} Input :{}", self.function_id, self.io_number)?;
         if let Some(route) = &self.route {
             write!(f, " @ route '{}'", route)?;
         }

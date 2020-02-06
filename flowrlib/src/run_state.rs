@@ -343,10 +343,10 @@ impl RunState {
 
         for (blocking, blocking_io_number, blocked) in &self.blocks {
             if *blocked == function_id {
-                output.push_str(&format!("\t\tBlocked #{} --> Blocked by #{}:{}\n",
+                output.push_str(&format!("\tBlocked #{} --> Blocked by #{}:{}\n",
                                          blocked, blocking, blocking_io_number));
             } else if *blocking == function_id {
-                output.push_str(&format!("\t\tBlocking #{}:{} <-- Blocked #{}\n",
+                output.push_str(&format!("\tBlocking #{}:{} <-- Blocked #{}\n",
                                          blocking, blocking_io_number, blocked));
             }
         }

@@ -53,7 +53,7 @@ impl Implementation for ImplementationNotFound {
 #[cfg(feature = "debugger")]
 impl fmt::Display for Function {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Function #{}", self.name)?;
+        write!(f, "Function #{}", self.id)?;
         if !self.name.is_empty() {
             write!(f, " '{}'", self.name)?;
         }

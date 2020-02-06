@@ -17,7 +17,7 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
 'i' | 'inspect'              - Run a series of defined 'inspections' to check status of flow
 'l' | 'list'                 - List all breakpoints
 'p' | 'print' [n]            - Print the overall state, or state of process number 'n'
-'r' | 'run' or 'reset'       - run or reset the state back to initial state after starting
+'r' | 'run' or 'reset'       - run the flow or if running already then reset the state to initial state
 's' | 'step' [n]             - Step over the next 'n' jobs (default = 1) then break
 'q' | 'quit'                 - Stop flow execution and exit debugger
 ";
