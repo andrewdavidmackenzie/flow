@@ -48,6 +48,7 @@ pub mod errors {
 
 #[cfg(feature = "debugger")]
 mod debugger;
+
 mod execution;
 mod wasm;
 mod run_state;
