@@ -321,7 +321,7 @@ mod test {
     impl DebugClient for TestDebugClient {
         fn init(&self) {}
 
-        fn get_command(&self, _job_number: Option<usize>) -> Command {
+        fn get_command(&self, _job_number: usize) -> Command {
             Command::ExitDebugger
         }
 

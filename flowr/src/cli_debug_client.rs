@@ -17,7 +17,7 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
 'i' | 'inspect'              - Run a series of defined 'inspections' to check status of flow
 'l' | 'list'                 - List all breakpoints
 'p' | 'print' [n]            - Print the overall state, or state of process number 'n'
-'r' | 'run' or 'reset'       - run or reset the state back to initial state after starting
+'r' | 'run' or 'reset'       - run the flow or if running already then reset the state to initial state
 's' | 'step' [n]             - Step over the next 'n' jobs (default = 1) then break
 'q' | 'quit'                 - Stop flow execution and exit debugger
 ";
@@ -83,12 +83,9 @@ fn read_input(input: &mut String) -> io::Result<usize> {
 impl DebugClient for CLIDebugClient {
     fn init(&self) {}
 
-    fn get_command(&self, job_number: Option<usize>) -> Command {
+    fn get_command(&self, job_number: usize) -> Command {
         loop {
-            match job_number {
-                None => print!("Debug> "),
-                Some(number) => print!("Debug #{}> ", number),
-            };
+            print!("Debug #{}> ", job_number);
             io::stdout().flush().unwrap();
 
             let mut input = String::new();
@@ -97,7 +94,7 @@ impl DebugClient for CLIDebugClient {
                     let (command, param) = parse_command(&input);
                     match command {
                         "b" | "breakpoint" => return Breakpoint(param),
-                        "" | "c" | "continue" => return Continue,
+                        ""  | "c" | "continue" => return Continue,
                         "d" | "delete" => return Delete(param),
                         "e" | "exit" => return ExitDebugger,
                         "h" | "help" => help(),
@@ -118,7 +115,7 @@ impl DebugClient for CLIDebugClient {
     fn send_event(&self, event: Event) {
         match event {
             JobCompleted(job_id, function_id, opt_output) => {
-                println!("Completed Job #{} for Function #{}", job_id, function_id);
+                println!("Job #{} completed by Function #{}", job_id, function_id);
                 if let Some(output) = opt_output {
                     println!("\tOutput value: '{}'", &output);
                 }
@@ -126,7 +123,7 @@ impl DebugClient for CLIDebugClient {
             Start =>
                 println!("Entering Debugger. Use 'h' or 'help' for help on commands"),
             PriorToSendingJob(job_id, function_id) =>
-                println!("About to send Job #{} for Function #{}:", job_id, function_id),
+                println!("About to send Job #{} to Function #{}", job_id, function_id),
             BlockBreakpoint(blocked_id, blocking_id, blocking_io_number) =>
                 println!("Block breakpoint: Function #{} ----- blocked by ----> Function #{}:{}",
                          blocked_id, blocking_id, blocking_io_number),

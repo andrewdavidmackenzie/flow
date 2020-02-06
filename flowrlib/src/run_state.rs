@@ -343,10 +343,10 @@ impl RunState {
 
         for (blocking, blocking_io_number, blocked) in &self.blocks {
             if *blocked == function_id {
-                output.push_str(&format!("\t\tBlocked #{} --> Blocked by #{}:{}\n",
+                output.push_str(&format!("\tBlocked #{} --> Blocked by #{}:{}\n",
                                          blocked, blocking, blocking_io_number));
             } else if *blocking == function_id {
-                output.push_str(&format!("\t\tBlocking #{}:{} <-- Blocked #{}\n",
+                output.push_str(&format!("\tBlocking #{}:{} <-- Blocked #{}\n",
                                          blocking, blocking_io_number, blocked));
             }
         }
@@ -388,6 +388,13 @@ impl RunState {
     */
     pub fn job_sent(&mut self) {
         self.jobs_sent += 1;
+    }
+
+    /*
+        return the number of jobs sent to date
+    */
+    pub fn jobs_sent(&self) -> usize {
+        self.jobs_sent
     }
 
     /*
@@ -739,7 +746,7 @@ mod test {
     impl DebugClient for TestDebugClient {
         fn init(&self) {}
 
-        fn get_command(&self, _job_number: Option<usize>) -> Command {
+        fn get_command(&self, _job_number: usize) -> Command {
             Command::Step(Some(run_state::test::Param::Numeric(1)))
         }
 
