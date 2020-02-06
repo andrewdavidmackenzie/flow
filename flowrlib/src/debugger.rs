@@ -1,14 +1,16 @@
-use crate::debug_client::DebugClient;
-use std::process::exit;
-use crate::run_state::{RunState, Output};
 use std::collections::HashSet;
-use serde_json::Value;
 use std::fmt;
-use crate::debug_client::Param;
+use std::process::exit;
+
+use serde_json::Value;
+
 use crate::debug_client::Command::{*};
-use crate::debug_client::Response;
+use crate::debug_client::DebugClient;
 use crate::debug_client::Event::{*};
+use crate::debug_client::Param;
+use crate::debug_client::Response;
 use crate::debug_client::Response::{*};
+use crate::run_state::{Output, RunState};
 
 pub struct Debugger {
     client: &'static dyn DebugClient,
@@ -75,14 +77,16 @@ impl Debugger {
         self.wait_for_command(state, None)
     }
 
+    /*
+        Called from the flowrlib coordinator to inform the debugger that a job has completed
+        being executed. It is used to inform the debug client of the fact.
+    */
     pub fn job_completed(&self, output: &Output) {
-        self.client.send_event(
-            JobCompleted(output.job_id, output.function_id, output.result.0.clone())
-        );
+        self.client.send_event(JobCompleted(output.job_id, output.function_id, output.result.0.clone()));
     }
 
     /*
-        Check if there is a breakpoint at this job.
+        Check if there is a breakpoint at this job prior to starting executing it.
 
         Return values are (display next output, reset execution)
     */
@@ -98,6 +102,13 @@ impl Debugger {
         (false, false)
     }
 
+    /*
+        Called from flowrlib during execution when it is about to create a block on one function
+        due to not being able to send outputs to another function.
+
+        This allows the debugger to check if we have a breakpoint set on that block. If we do
+        then enter the debugger client and wait for a command.
+    */
     pub fn check_on_block_creation(&mut self, state: &RunState, blocking_id: usize,
                                    blocking_io_number: usize, blocked_id: usize) {
         if self.block_breakpoints.contains(&(blocked_id, blocking_id)) {
@@ -106,6 +117,12 @@ impl Debugger {
         }
     }
 
+    /*
+        Called from flowrlib runtime prior to sending a value to another function,to see if there
+        is a breakpoint on that send.
+
+        If there is, then enter the debug client and wait for a command.
+    */
     pub fn check_prior_to_send(&mut self, state: &RunState, source_process_id: usize, output_route: &str,
                                value: &Value, destination_id: usize, input_number: usize) {
         if self.output_breakpoints.contains(&(source_process_id, output_route.to_string())) ||
@@ -119,11 +136,27 @@ impl Debugger {
         }
     }
 
+    /*
+        An error occurred while executing a flow. Let the debug client know, enter the client
+        and wait for a user command.
+
+        This is useful for debugging a flow that has an error. Without setting any explicit
+        breakpoint it will enter the debugger on an error and let the user inspect the flow's
+        state etc.
+    */
     pub fn error(&mut self, state: &RunState, error_message: String) {
         self.client.send_event(RuntimeError(error_message));
         self.wait_for_command(state, Some(state.jobs()));
     }
 
+    /*
+        A panic occurred while executing a flow. Let the debug client know, enter the client
+        and wait for a user command.
+
+        This is useful for debugging a flow that has an error. Without setting any explicit
+        breakpoint it will enter the debugger on an error and let the user inspect the flow's
+        state etc.
+*/
     pub fn panic(&mut self, state: &RunState, output: Output) {
         self.client.send_event(Panic(output));
         self.wait_for_command(state, Some(state.jobs()));
@@ -179,7 +212,7 @@ impl Debugger {
                         self.client.send_response(Ack);
                         return (false, false);
                     }
-                },
+                }
                 RunReset => {
                     if jobs_sent.is_some() {
                         self.client.send_response(self.reset());
@@ -188,13 +221,13 @@ impl Debugger {
                         self.client.send_response(Running);
                         return (false, false);
                     }
-                },
+                }
                 Step(param) => {
                     if jobs_sent.is_some() {
                         self.client.send_response(self.step(state, param));
                         return (true, false);
                     }
-                },
+                }
             };
         }
     }
@@ -443,7 +476,7 @@ impl Debugger {
             let mut visited_nodes = vec!();
 
             let deadlock_set = self.traverse_blocker_tree(state, &mut visited_nodes,
-                                                              *blocked_process_id, &mut root_node);
+                                                          *blocked_process_id, &mut root_node);
             if deadlock_set.len() > 0 {
                 response.push_str(&format!("{}\n", Self::display_set(&root_node, deadlock_set)));
             }

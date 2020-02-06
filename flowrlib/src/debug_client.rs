@@ -16,25 +16,25 @@ pub enum Param {
     Block((usize, usize)),
 }
 
-/// A debugged command
+/// A debugger command entered by the user in the client and sent to the debugger runtime
 pub enum Command {
-    /// A `breakpoint` was set - with an optional parameter
+    /// Set a `breakpoint` - with an optional parameter
     Breakpoint(Option<Param>),
-    /// The `continue` command
+    /// `continue` execution of the flow
     Continue,
-    /// `delete` breakpoint command - with an optional parameter
+    /// `delete` an existing breakpoint - with an optional parameter
     Delete(Option<Param>),
-    /// `exit` command
+    /// `exit` the debugger and runtime
     ExitDebugger,
-    /// `inspect` command
+    /// `inspect` the current state
     Inspect,
-    /// `list` breakpoints command
+    /// `list` existing breakpoints
     List,
-    /// `print` command to display a function or functions state
+    /// `print` a function or functions state
     Print(Option<Param>),
-    /// `reset` command to go back to initial state
+    /// `reset` flow execution back to the initial state
     RunReset,
-    /// `step` command to execute one `Job`
+    /// `step` forward in flow execution by executing one `Job`
     Step(Option<Param>),
     /// Get the state of the `Flow`
     GetState,

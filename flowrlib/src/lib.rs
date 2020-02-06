@@ -19,6 +19,8 @@ pub mod coordinator;
 pub mod lib_manifest;
 /// `function` defines functions that form part of a flow
 pub mod function;
+/// `output_connection` defines a struct for a function's output connection
+pub mod output_connection;
 /// `manifest` is the struct that specifies the manifest of functions in a flow
 pub mod manifest;
 /// `input` defines the struct for inputs to functions in a flow
@@ -46,6 +48,7 @@ pub mod errors {
 
 #[cfg(feature = "debugger")]
 mod debugger;
+
 mod execution;
 mod wasm;
 mod run_state;

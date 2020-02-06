@@ -110,7 +110,7 @@ fn resolve_lib_implementation_test() {
                             "lib://flowruntime/stdio/stdin/Stdin".to_string(),
                             vec!(),
                             0,
-                            &vec!());
+                            &vec!(), false);
     let functions = vec!(f_a);
     let mut manifest = create_manifest(functions);
     let provider = MetaProvider {};
@@ -130,7 +130,7 @@ fn unresolved_lib_functions_test() {
                             "lib://flowruntime/stdio/stdin/Foo".to_string(),
                             vec!(),
                             0,
-                            &vec!());
+                            &vec!(), false);
     let functions = vec!(f_a);
     let mut manifest = create_manifest(functions);
     let provider = MetaProvider {};
