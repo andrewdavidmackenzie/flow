@@ -27,6 +27,8 @@ pub struct Function {
 
     implementation_location: String,
 
+    // TODO skip serializing this, if the vector ONLY contains objects that can be serialized
+    // to "{}" and hence contain no info. I think the number of inputs is not needed?
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     inputs: Vec<Input>,
 
@@ -51,12 +53,21 @@ impl Implementation for ImplementationNotFound {
 #[cfg(feature = "debugger")]
 impl fmt::Display for Function {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Function #{} '{}'\n", self.id, self.name)?;
+        write!(f, "Function #{}", self.name)?;
+        if !self.name.is_empty() {
+            write!(f, " '{}'", self.name)?;
+        }
+
+        if !self.route.is_empty() {
+            write!(f, " @ route '{}'\n", self.route)?;
+        }
+
+        write!(f, "\n")?;
         for (number, input) in self.inputs.iter().enumerate() {
             if input.is_empty() {
-                write!(f, "\tInput :{} empty\n", number)?;
+                write!(f, "\tInput :{} is empty\n", number)?;
             } else {
-                write!(f, "\tInput :{} {}\n", number, input)?;
+                write!(f, "\tInput :{} has value '{}'\n", number, input)?;
             }
         }
         for output_route in &self.output_routes {

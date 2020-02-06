@@ -22,12 +22,12 @@ impl OutputConnection {
     pub fn new(output_subpath: String,
                destination_function_id: usize,
                destionation_io_number: usize,
-               destination_route: Option<String>,) -> Self {
-        OutputConnection{
+               destination_route: Option<String>, ) -> Self {
+        OutputConnection {
             subpath: output_subpath,
             function_id: destination_function_id,
             io_number: destionation_io_number,
-            route: destination_route
+            route: destination_route,
         }
     }
 }
@@ -38,10 +38,14 @@ fn default_destination_route() -> Option<String> {
 
 impl fmt::Display for OutputConnection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Output Connection '/{}' -> {}:{} at '{:?}'",
-               self.subpath,
-               self.function_id,
-               self.io_number,
-               self.route)
+        write!(f, "Output Connection from sub-path '/{}' -> Function #{} Input :{}",
+                                 self.subpath,
+                                 self.function_id,
+                                 self.io_number)?;
+        if let Some(route) = &self.route {
+            write!(f, " @ route '{}'", route)?;
+        }
+
+        write!(f, "")
     }
 }

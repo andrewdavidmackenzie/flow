@@ -64,7 +64,12 @@ impl Provider for LibProvider {
         let flow_lib_search_path = Simpath::new("FLOW_LIB_PATH");
         let mut lib_path = flow_lib_search_path.find(lib_name)
             .chain_err(|| format!("Could not find lib named '{}' in FLOW_LIB_PATH", lib_name))?;
-        lib_path.push(&url.path()[1..]);
+
+        // Once we've foudn the (file) path where the library resides, append the rest of the
+        // url path to it, to form a path to the directory where the process being loaded resides
+        if url.path().len() > 0 {
+            lib_path.push(&url.path()[1..]);
+        }
 
         // Drop the file extension off the lib definition file path to get a lib reference
         let module = url.join("./").unwrap().join(lib_path.file_stem().unwrap().to_str().unwrap());
