@@ -34,7 +34,7 @@ pub enum Command {
     Print(Option<Param>),
     /// `reset` flow execution back to the initial state
     RunReset,
-    /// `step` forward in flow execution by executing one `Job`
+    /// `step` forward in flow execution by executing one (default) or more `Jobs`
     Step(Option<Param>),
     /// Get the state of the `Flow`
     GetState,
@@ -95,7 +95,7 @@ pub trait DebugClient {
     /// Called at init to initalize the client
     fn init(&self);
     /// Called to fetch the next command from the debug_client
-    fn get_command(&self, job_number: Option<usize>) -> Command;
+    fn get_command(&self, job_number: usize) -> Command;
     /// Called to send an event to the debug_client
     fn send_event(&self, event: Event);
     /// Called to send a response from the debug/run-time to the debug_client

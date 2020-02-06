@@ -24,9 +24,8 @@ pub struct Debugger {
 
 #[derive(Debug, Clone)]
 enum BlockType {
-    OutputBlocked,
-    // Cannot run and send it's Output as a destination Input is full
-    UnreadySender,  // Has to send output to an empty Input for other process to be able to run
+    OutputBlocked, // Cannot run and send it's Output as a destination Input is full
+    UnreadySender, // Has to send output to an empty Input for other process to be able to run
 }
 
 #[derive(Debug, Clone)]
@@ -74,7 +73,7 @@ impl Debugger {
     */
     pub fn start(&mut self, state: &RunState) -> (bool, bool) {
         self.client.send_event(Start);
-        self.wait_for_command(state, None)
+        self.wait_for_command(state)
     }
 
     /*
@@ -95,7 +94,7 @@ impl Debugger {
             self.function_breakpoints.contains(&function_id) {
             self.client.send_event(PriorToSendingJob(next_job_id, function_id));
             self.print(state, Some(Param::Numeric(function_id)));
-            return self.wait_for_command(state, Some(state.jobs()));
+            return self.wait_for_command(state);
         }
 
         // No breakpoint - continue execution
@@ -113,7 +112,7 @@ impl Debugger {
                                    blocking_io_number: usize, blocked_id: usize) {
         if self.block_breakpoints.contains(&(blocked_id, blocking_id)) {
             self.client.send_event(BlockBreakpoint(blocked_id, blocking_id, blocking_io_number));
-            self.wait_for_command(state, Some(state.jobs()));
+            self.wait_for_command(state);
         }
     }
 
@@ -132,7 +131,7 @@ impl Debugger {
 
             self.client.send_event(DataBreakpoint(source_process_id, output_route.to_string(),
                                                   value.clone(), destination_id, input_number));
-            self.wait_for_command(state, Some(state.jobs()));
+            self.wait_for_command(state);
         }
     }
 
@@ -146,7 +145,7 @@ impl Debugger {
     */
     pub fn error(&mut self, state: &RunState, error_message: String) {
         self.client.send_event(RuntimeError(error_message));
-        self.wait_for_command(state, Some(state.jobs()));
+        self.wait_for_command(state);
     }
 
     /*
@@ -159,7 +158,7 @@ impl Debugger {
 */
     pub fn panic(&mut self, state: &RunState, output: Output) {
         self.client.send_event(Panic(output));
-        self.wait_for_command(state, Some(state.jobs()));
+        self.wait_for_command(state);
     }
 
     /*
@@ -168,7 +167,7 @@ impl Debugger {
     pub fn end(&mut self, state: &RunState) -> (bool, bool) {
         self.client.send_event(End);
         self.deadlock_inspection(state);
-        self.wait_for_command(state, None)
+        self.wait_for_command(state)
     }
 
     /*
@@ -181,9 +180,9 @@ impl Debugger {
         When exiting return a tuple for the Coordinaator to determine what to do:
            ()
     */
-    fn wait_for_command(&mut self, state: &RunState, jobs_sent: Option<usize>) -> (bool, bool) {
+    fn wait_for_command(&mut self, state: &RunState) -> (bool, bool) {
         loop {
-            match self.client.get_command(jobs_sent) {
+            match self.client.get_command(state.jobs_sent()) {
                 // *************************      The following are commands that send a response
                 GetState => {
                     // Respond with 'state'
@@ -208,13 +207,13 @@ impl Debugger {
 
                 // **************************      The following commands exit the command loop
                 Continue => {
-                    if jobs_sent.is_some() {
+                    if state.jobs_sent() > 0 {
                         self.client.send_response(Ack);
                         return (false, false);
                     }
                 }
                 RunReset => {
-                    if jobs_sent.is_some() {
+                    if state.jobs_sent() > 0 {
                         self.client.send_response(self.reset());
                         return (false, true);
                     } else {
@@ -223,7 +222,7 @@ impl Debugger {
                     }
                 }
                 Step(param) => {
-                    if jobs_sent.is_some() {
+                    if state.jobs_sent() > 0 {
                         self.client.send_response(self.step(state, param));
                         return (true, false);
                     }

@@ -391,6 +391,13 @@ impl RunState {
     }
 
     /*
+        return the number of jobs sent to date
+    */
+    pub fn jobs_sent(&self) -> usize {
+        self.jobs_sent
+    }
+
+    /*
         Given a function id, prepare a job for execution that contains the input values, the
         implementation and the destination functions the output should be sent to when done
         Return:
@@ -739,7 +746,7 @@ mod test {
     impl DebugClient for TestDebugClient {
         fn init(&self) {}
 
-        fn get_command(&self, _job_number: Option<usize>) -> Command {
+        fn get_command(&self, _job_number: usize) -> Command {
             Command::Step(Some(run_state::test::Param::Numeric(1)))
         }
 
