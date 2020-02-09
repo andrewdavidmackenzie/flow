@@ -1,72 +1,91 @@
 flow = "sequence"
 
-# IO declarations
+# The number the sequence should start at
 [[input]]
 name = "start"
 type = "Number"
 
+# 'end' is the maximum or limit of the sequence - the last we will generate
 [[input]]
 name = "end"
 type = "Number"
 
+# The sequence of numbers we will generate
 [[output]]
 name = "sequence"
 type = "Number"
 
+# Output the maximum number of the sequence for use downstream
 [[output]]
 name = "max"
 type = "Number"
 
+# A boolean output that is set to tru when the sequence has ended
 [[output]]
 name = "done"
 type = "Bool"
 
+# For the first time around, pass the start number of the sequence into the "pass-if-less-than" process
 [[connection]]
 from = "input/start"
 to = "process/pilte/in"
 
+# A buffer to store the number that is the limit of the sequence
 [[process]]
 alias = "limit-store"
 source = "lib://flowstdlib/data/buffer"
 
-[[connection]]
-from = "process/limit-store"
-to = "process/limit-store"
-
+# Put the limit of the sequence from the "end" input into the limit store
 [[connection]]
 from = "input/end"
 to = "process/limit-store"
 
-# pass if less than or equal, add one and loop
+# Refresh the limit store with the same value each time
+[[connection]]
+from = "process/limit-store"
+to = "process/limit-store"
+
+# "pass if less than or equal" process that will pass all numbers that are less than the limit
 [[process]]
 alias = "pilte"
 source = "lib://flowstdlib/control/pass_if_lte"
 
+# An add process to add one to the last outout of the sequence each time
 [[process]]
 alias = "add"
 source = "lib://flowstdlib/math/add"
 input.i2 = {constant = 1}
 
+# Pass the 'limit' to the pailte process to prevent numbers greater than the limit passing
 [[connection]]
 from = "process/limit-store"
 to = "process/pilte/max"
 
+# connect the output of pilte (i.e. numbers that are less than the limit) to the output of this process -
+# the sequence of numbers being generated
 [[connection]]
 from = "process/pilte/passed"
 to = "output/sequence"
 
+# Take the last generated number of the sequence and pass it to the added to add one to it for the next number
+# in the sequence (if less than the limit)
 [[connection]]
 from = "process/pilte/passed"
 to = "process/add/i1"
 
+# After the first iteration, each time take the output of the adder (i.e. possibly the next number in the sequence)
+# and pass it into the pilte flow to pass it thru if it's less than the limit
 [[connection]]
 from = "process/add"
 to = "process/pilte/in"
 
+# When the pilte flow indicated that the number was blocked due to being too large (larger than the limit) then
+# we want that to indicate that the sequence is done
 [[connection]]
 from = "process/pilte/blocked"
 to = "output/done"
 
+# Connect the limit store to the 'max' output so that processes downstream can use it
 [[connection]]
 from = "process/limit-store"
 to = "output/max"
