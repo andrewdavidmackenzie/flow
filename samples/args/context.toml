@@ -1,0 +1,13 @@
+flow = "arg-print"
+
+[[process]]
+alias = "args"
+source = "lib://flowruntime/args/get"
+
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"
+
+[[connection]]
+from = "process/args/2"
+to = "process/print"
