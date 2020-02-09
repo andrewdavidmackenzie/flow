@@ -38,9 +38,10 @@ impl Implementation for FormatPNG {
 
         let mut png_buffer = Vec::new();
         let encoder = PNGEncoder::new(png_buffer.by_ref());
-        encoder.encode(bytes.as_str().unwrap().as_bytes(), width, height, ColorType::Gray(8))
-            .expect("error encoding pixels as PNG");
-
+        match encoder.encode(bytes.as_str().unwrap().as_bytes(), width, height, ColorType::Gray(8))
+        {Ok(_) => {},
+            Err(e) => println!("Error '{}' while encoding bytes as PNG", e)
+        }
 
         // TODO
 //        let string = String::from_utf8_lossy(&png_buffer).to_string();
