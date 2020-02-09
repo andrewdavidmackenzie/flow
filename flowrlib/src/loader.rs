@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use flow_impl::Implementation;
-use log::{debug, info};
+use log::{debug, info, trace};
 
 use crate::errors::*;
 use crate::lib_manifest::{ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest};
@@ -60,6 +60,7 @@ impl Loader {
     pub fn load_libraries(&mut self, provider: &dyn Provider, manifest: &Manifest) -> Result<()> {
         debug!("Loading libraries used by the flow");
         for library_reference in &manifest.lib_references {
+            info!("Attempting to load library reference '{}'", library_reference);
             if !self.loaded_lib_references.contains(library_reference) {
                 let (lib_manifest, lib_manifest_url) = LibraryManifest::load(provider, library_reference)?;
                 debug!("Loading library '{}' from '{}'", library_reference, lib_manifest_url);
@@ -82,14 +83,10 @@ impl Loader {
             let parts: Vec<_> = implementation_source_url.split(":").collect();
             match parts[0] {
                 "lib" => {
-                    debug!("Looking for implementation for lib reference '{}'", function.implementation_location());
-                    match self.global_lib_implementations.get(function.implementation_location()) {
-                        Some(implementation) => {
-                            debug!("Found implementation");
-                            function.set_implementation(implementation.clone())
-                        }
-                        None => bail!("Did not find implementation for '{}'", implementation_source_url)
-                    }
+                    let implementation = self.global_lib_implementations.get(function.implementation_location())
+                        .chain_err(|| format!("Did not find implementation for '{}'", implementation_source_url))?;
+                    trace!("Found implementation for '{}'", function.implementation_location());
+                    function.set_implementation(implementation.clone());
                 }
 
                 /*** These below are not 'lib:' references - hence are supplied implementations ***/
@@ -113,7 +110,7 @@ impl Loader {
                    lib_reference: &str,
                    lib_manifest: LibraryManifest,
                    lib_manifest_url: &str) -> Result<()> {
-        info!("Loading library named '{}'", lib_manifest.metadata.name);
+        debug!("Loading library '{}' from '{}'", lib_manifest.metadata.name, lib_manifest_url);
         self.loaded_lib_references.insert(lib_reference.to_string());
         for (reference, locator) in lib_manifest.locators {
             // if we don't already have an implementation loaded for that reference
@@ -136,6 +133,7 @@ impl Loader {
             }
         }
 
+        info!("Library '{}' loaded.", lib_manifest.metadata.name);
         Ok(())
     }
 }

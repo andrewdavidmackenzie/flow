@@ -2,9 +2,10 @@ use std::fmt;
 use std::mem::replace;
 
 use error_chain::bail;
-use flowrlib::input::InputInitializer;
 use log::{debug, error};
 use serde_derive::{Deserialize, Serialize};
+
+use flowrlib::input::InputInitializer;
 
 use crate::compiler::loader::Validate;
 use crate::errors::*;
@@ -237,7 +238,7 @@ impl Flow {
 
     // TODO consider finding the object first using it's type and name (flow, subflow, value, function)
     // Then from the object find the IO (by name or route, probably route) in common code, maybe using IOSet directly?
-    pub fn get_route_and_type(&mut self, direction: Direction, conn_descriptor: &str,
+    pub fn get_route_and_type(&mut self, direction: Direction, conn_descriptor: &Route,
                               initial_value: &Option<InputInitializer>) -> Result<IO> {
         let mut segments: Vec<&str> = conn_descriptor.split('/').collect();
         if segments.len() < 2 {
@@ -246,14 +247,14 @@ impl Flow {
 
         let object_type = segments.remove(0); // first part is type of object
         let object_name = &Name::from(segments.remove(0)); // second part is the name of it
-        let route = Route::from(segments.join("/"));       // the rest is a sub-route
+        let sub_route = Route::from(segments.join("/"));       // the rest is a sub-route
 
-        debug!("Looking for connection {:?} '{}' called '{}' with route '{}'", direction, object_type, object_name, route);
+        debug!("Looking for connection {:?} '{}' called '{}' with sub-route '{}'", direction, object_type, object_name, sub_route);
 
         match (&direction, object_type) {
             (&Direction::TO, "output") => self.outputs.find_by_name(object_name, &None), // an output from this flow
             (&Direction::FROM, "input") => self.inputs.find_by_name(object_name, &None), // an input to this flow
-            (_, "process") => self.get_io_subprocess(object_name, direction, &route, initial_value), // input or output of a sub-process
+            (_, "process") => self.get_io_subprocess(object_name, direction, &sub_route, initial_value), // input or output of a sub-process
             _ => bail!("Invalid combination of direction '{:?}' and type '{}' used in connection '{}'",
                              direction, object_type, conn_descriptor)
         }
@@ -276,7 +277,7 @@ impl Flow {
     pub fn build_connections(&mut self) -> Result<()> {
         if self.connections.is_none() { return Ok(()); }
 
-        debug!("Building connections for flow '{}'", self.source_url);
+        debug!("Building connections for flow '{}'", self.name);
 
         let mut error_count = 0;
 

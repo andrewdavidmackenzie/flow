@@ -10,6 +10,7 @@
 extern crate error_chain;
 
 use std::path::PathBuf;
+use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
 use log::debug;
@@ -64,9 +65,9 @@ fn main() {
                 println!("backtrace: {:?}", backtrace);
             }
 
-            ::std::process::exit(1);
+            exit(1);
         }
-        Ok(_) => {}
+        Ok(_) => exit(0)
     }
 }
 

@@ -58,7 +58,7 @@ fn main() {
                 println!("backtrace: {:?}", backtrace);
             }
 
-            ::std::process::exit(1);
+            exit(1);
         }
         Ok(_) => {
             exit(0);
