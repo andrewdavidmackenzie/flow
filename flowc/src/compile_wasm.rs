@@ -17,13 +17,14 @@ use crate::errors::*;
 pub fn compile_implementation(function: &mut Function, skip_building: bool, release: bool) -> Result<(PathBuf, bool)> {
     let mut built = false;
     let source = function.get_source_url();
-    let mut implementation_url = url_from_string(Some(&source)).expect("Could not create a url from source url");
+    let mut implementation_url = url_from_string(Some(&source))
+        .chain_err(|| "Could not create a url from source url")?;
     implementation_url = implementation_url.join(&function.get_implementation()
         .ok_or("No implementation specified")?).map_err(|_| "Could not convert Url")?;
 
     // TODO what if not a file url? Copy and build locally?
 
-    let implementation_path = implementation_url.to_file_path().expect("Could not convert source url to file path");
+    let implementation_path = implementation_url.to_file_path().map_err(|_| "Could not convert source url to file path")?;
     if implementation_path.extension().ok_or("No file extension on source file")?.
         to_str().ok_or("Could not convert file extension to String")? != "rs" {
         bail!("Source file at '{}' does not have a '.rs' extension", implementation_path.display());
@@ -61,7 +62,7 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool, rele
             debug!("Building wasm '{}' from source '{}'", wasm_destination.display(), implementation_path.display());
 
             let build_dir = TempDir::new("flow")
-                .expect("Error creating new TempDir for compiling in")
+                .chain_err(|| "Error creating new TempDir for compiling in")?
                 .into_path();
 
             let mut cargo_manifest_path = flow_manifest_path.clone();
@@ -88,15 +89,15 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool, rele
             }
             wasm_source.push(&wasm_destination.file_name().ok_or("Could not convert filename to str")?);
             let msg = format!("Copying built wasm from '{}' to '{}'", &wasm_source.display(), &wasm_destination.display());
-            fs::copy(&wasm_source, &wasm_destination).expect(&msg);
+            fs::copy(&wasm_source, &wasm_destination).chain_err(|| msg)?;
 
             // clean up temp dir
             fs::remove_dir_all(&build_dir)
-                .expect(&format!("Could not remove temporary build directory '{}'", build_dir.display()));
+                .chain_err(|| format!("Could not remove temporary build directory '{}'", build_dir.display()))?;
 
             // remove the file we copied
             fs::remove_file(&cargo_manifest_path)
-                .expect(&format!("Could not remove copied file '{}'", cargo_manifest_path.display()));
+                .chain_err(|| format!("Could not remove copied file '{}'", cargo_manifest_path.display()))?;
 
             built = true;
         }
@@ -154,10 +155,10 @@ fn run_cargo_build(manifest_path: &PathBuf, target_dir: &PathBuf, test: bool, re
 */
 fn out_of_date(source: &PathBuf, derived: &PathBuf) -> Result<bool> {
     let source_last_modified = fs::metadata(source)
-        .expect("Could not get file metadata")
-        .modified().expect("Could not get modified time from file metadata");
+        .chain_err(||"Could not get file metadata")?
+        .modified().chain_err(|| "Could not get modified time from file metadata")?;
     let derived_last_modified = fs::metadata(derived)
-        .expect("Could not get file metadata")
-        .modified().expect("Could not get modified time from file metadata");
+        .chain_err(||"Could not get file metadata")?
+        .modified().chain_err(|| "Could not get modified time from file metadata")?;
     Ok(source_last_modified > derived_last_modified)
 }
