@@ -39,7 +39,8 @@ impl Implementation for FormatPNG {
         let mut png_buffer = Vec::new();
         let encoder = PNGEncoder::new(png_buffer.by_ref());
         match encoder.encode(bytes.as_str().unwrap().as_bytes(), width, height, ColorType::Gray(8))
-        {Ok(_) => {},
+        {
+            Ok(_) => {}
             Err(e) => println!("Error '{}' while encoding bytes as PNG", e)
         }
 
