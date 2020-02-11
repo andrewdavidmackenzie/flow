@@ -23,7 +23,11 @@ pub struct Function {
     #[serde(default, skip_serializing_if = "String::is_empty")]
     route: String,
 
+    /// The unique `id` of this function at run-time
     id: usize,
+
+    /// The unique id of the flow this function was in at definition time
+    flow_id: usize,
 
     implementation_location: String,
 
@@ -87,6 +91,7 @@ impl Function {
                implementation_location: String,
                inputs: Vec<Input>,
                id: usize,
+               flow_id: usize,
                output_routes: &Vec<OutputConnection>,
                include_destination_routes: bool) -> Function {
         let mut routes = (*output_routes).clone();
@@ -102,6 +107,7 @@ impl Function {
             name,
             route,
             id,
+            flow_id,
             implementation_location,
             implementation: Function::default_implementation(),
             output_routes: routes,
@@ -269,7 +275,7 @@ mod test {
                                          "/context/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, false)),
-                                         0,
+                                         0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!(1));
@@ -283,7 +289,7 @@ mod test {
                                          "/context/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, true)),
-                                         0,
+                                         0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!([1, 2]));
@@ -297,7 +303,7 @@ mod test {
                                          "/context/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, true)),
-                                         0,
+                                         0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!(1));
@@ -311,7 +317,7 @@ mod test {
                                          "/context/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, false)),
-                                         0,
+                                         0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!([1, 2]));
@@ -325,7 +331,7 @@ mod test {
                                          "/context/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, false)),
-                                         0,
+                                         0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!(1));
@@ -343,7 +349,7 @@ mod test {
                                          "/context/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, false)),
-                                         0,
+                                         0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
         function.take_input_set().remove(0);
@@ -357,7 +363,7 @@ mod test {
                                          "/context/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None, false)),
-                                         0,
+                                         0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!([1, 2]));
@@ -371,7 +377,7 @@ mod test {
                                          "/context/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None, false)),
-                                         0,
+                                         0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!(1));
@@ -386,7 +392,7 @@ mod test {
                                          "/context/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None, true)),
-                                         0,
+                                         0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!([1, 2]));
@@ -402,7 +408,7 @@ mod test {
                                          "/context/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None, false)),
-                                         0,
+                                         0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
         function.write_input(0, &json!(1));
@@ -415,7 +421,7 @@ mod test {
                       "/context/test".to_string(),
                       "/implementation".to_string(),
                       vec!(Input::new(2, &None, false)),
-                      1,
+                      1, 0,
                       &vec!(out_conn), false)
     }
 
@@ -449,7 +455,7 @@ mod test {
                                          "/context/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None, false)),
-                                         0,
+                                         0, 0,
                                          &vec!(output_route.clone()), false);
         function.init_inputs(true);
         function.write_input(0, &json!(1));

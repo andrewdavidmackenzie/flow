@@ -42,6 +42,8 @@ pub struct Function {
     output_routes: Vec<OutputConnection>,
     #[serde(skip_deserializing)]
     id: usize,
+    #[serde(skip_deserializing)]
+    flow_id: usize,
 }
 
 impl HasName for Function {
@@ -62,6 +64,14 @@ impl Function {
 
     pub fn get_id(&self) -> usize {
         self.id
+    }
+
+    pub fn set_flow_id(&mut self, flow_id: usize) {
+        self.flow_id = flow_id;
+    }
+
+    pub fn get_flow_id(&self) -> usize {
+        self.flow_id
     }
 
     pub fn is_impure(&self) -> bool {
@@ -135,6 +145,7 @@ impl fmt::Display for Function {
         write!(f, "name: \t\t{}\n", self.name)?;
         write!(f, "alias: \t\t{}\n", self.alias)?;
         write!(f, "id: \t\t{}\n", self.id)?;
+        write!(f, "flow_id: \t\t{}\n", self.flow_id)?;
 
         write!(f, "inputs:\n")?;
         if let Some(ref inputs) = self.inputs {
@@ -168,6 +179,7 @@ impl Default for Function {
             lib_reference: None,
             output_routes: vec!(OutputConnection::new("".to_string(), 0, 0, Some("".to_string()))),
             id: 0,
+            flow_id: 0,
         }
     }
 }
@@ -227,7 +239,7 @@ mod test {
     impl Function {
         pub fn new(name: Name, impure: bool, implementation: Option<String>, alias: Name, inputs: IOSet, outputs: IOSet, source_url: &str,
                    route: Route, lib_reference: Option<String>, output_connections: Vec<OutputConnection>,
-                   id: usize) -> Self {
+                   id: usize, flow_id: usize) -> Self {
             Function {
                 name,
                 impure,
@@ -240,6 +252,7 @@ mod test {
                 lib_reference,
                 output_routes: output_connections,
                 id,
+                flow_id,
             }
         }
     }
@@ -258,6 +271,7 @@ mod test {
             lib_reference: None,
             output_routes: vec!(OutputConnection::new("test_function".to_string(), 0, 0, None)),
             id: 0,
+            flow_id: 0,
         };
 
         assert_eq!(fun.validate().is_err(), true);
