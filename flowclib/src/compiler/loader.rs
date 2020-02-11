@@ -89,11 +89,11 @@ fn load_process(parent_route: &Route, alias: &Name, flow_id: usize, url: &str, p
     match process {
         FlowProcess(ref mut flow) => {
             config_flow(flow, &resolved_url, parent_route, alias, flow_id, initializations)?;
-            load_subprocesses(flow, provider)?;
+            load_process_refs(flow, provider)?;
             flow.build_connections()?;
         }
         FunctionProcess(ref mut function) => {
-            config_function(function, &resolved_url, parent_route, alias, flow_id,
+            config_function(function, &resolved_url, parent_route, alias, flow_id - 1,
                             lib_ref,  initializations)?;
         }
     }
@@ -113,23 +113,20 @@ pub fn load_library(url: &str, provider: &dyn Provider) -> Result<Library> {
 }
 
 /*
-    Load all sub-processes referenced from a flow via the process_refs field
+    Load sub-processes from the process_refs in a flow
 */
-fn load_subprocesses(flow: &mut Flow, provider: &dyn Provider) -> Result<()> {
+fn load_process_refs(flow: &mut Flow, provider: &dyn Provider) -> Result<()> {
     if let Some(ref mut process_refs) = flow.process_refs {
-        let mut sub_flow_id = flow.id + 1;
         for process_ref in process_refs {
             let subprocess_url = url::join(&flow.source_url, &process_ref.source);
             process_ref.process = load_process(&flow.route, &process_ref.alias(),
-                                               sub_flow_id, &subprocess_url,
+                                               flow.id + 1, &subprocess_url,
                                                provider, &process_ref.initializations)?;
 
             if let FunctionProcess(ref mut function) = process_ref.process {
                 if let Some(lib_ref) = function.get_lib_reference() {
                     flow.lib_references.push(format!("{}/{}", lib_ref, function.name()));
                 }
-            } else {
-                sub_flow_id += 1;
             }
         }
     }
