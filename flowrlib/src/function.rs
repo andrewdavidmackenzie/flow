@@ -62,7 +62,6 @@ impl fmt::Display for Function {
             write!(f, " @ route '{}'\n", self.route)?;
         }
 
-        write!(f, "\n")?;
         for (number, input) in self.inputs.iter().enumerate() {
             if input.is_empty() {
                 write!(f, "\tInput :{} is empty\n", number)?;
