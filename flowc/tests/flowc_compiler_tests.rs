@@ -82,6 +82,28 @@ fn same_name_input_and_output() {
 }
 
 #[test]
+fn same_name_flow_ids() {
+    let meta_provider = MetaProvider {};
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/same-name-parent.toml");
+    let process = loader::load_context(&path, &meta_provider).unwrap();
+    if let FlowProcess(ref flow) = process {
+        let tables = compile::compile(flow).unwrap();
+
+        // print function in context flow should have flow_id = 0
+        let print_function = tables.functions.iter()
+            .find(|f| f.alias() == &Name::from("print")).unwrap();
+        assert_eq!(print_function.get_flow_id(), 0);
+
+        // buffer function in child flow should have flow_id = 1
+        let buffer_function = tables.functions.iter()
+            .find(|f| f.alias() == &Name::from("buffer")).unwrap();
+        assert_eq!(buffer_function.get_flow_id(), 1);
+    } else {
+        assert!(false, "Process loaded was not a flow");
+    }
+}
+
+#[test]
 fn double_connection() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/double-connection.toml");
