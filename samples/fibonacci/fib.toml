@@ -1,5 +1,9 @@
 flow = "fib"
 
+[[output]]
+name = "series"
+type = "Number"
+
 [[process]]
 alias = "HEAD-1"
 source = "lib://flowstdlib/data/buffer"
@@ -13,10 +17,6 @@ input.default = {once = 1}
 [[process]]
 alias = "sum"
 source = "lib://flowstdlib/math/add"
-
-[[output]]
-name = "series"
-type = "Number"
 
 [[connection]]
 from = "process/HEAD-1"
