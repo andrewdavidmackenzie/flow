@@ -415,7 +415,7 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(OutputConnection::new("0".to_string(), 1, 0, None)),
+            vec!(OutputConnection::new("/0".to_string(), 1, 0, None)),
             0);
 
         let expected = "{
@@ -423,7 +423,7 @@ mod test {
   'implementation_location': 'lib://flowruntime/stdio/stdout',
   'output_routes': [
     {
-      'subpath': '0',
+      'subpath': '/0',
       'function_id': 1,
       'io_number': 0
     }

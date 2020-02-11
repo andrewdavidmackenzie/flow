@@ -4,7 +4,6 @@
 use std::env;
 use std::sync::{Arc, Mutex};
 
-use flowclib::deserializers::deserializer_helper;
 use gdk_pixbuf::Pixbuf;
 use gio::prelude::*;
 use gtk::{
@@ -14,6 +13,7 @@ use gtk::{
 use gtk::prelude::*;
 use gtk_rs_state::gtk_refs;
 
+use flowclib::deserializers::deserializer_helper;
 use lazy_static::lazy_static;
 use ui_context::UIContext;
 
@@ -298,7 +298,7 @@ fn main() -> Result<(), String> {
     set_panic_hook();
 
     let application = Application::new(Some("net.mackenzie-serres.flow.ide"), Default::default())
-        .expect("failed to initialize GTK application");
+        .map_err(|_| "failed to initialize GTK application")?;
 
     application.connect_activate(move |app|
         build_ui(app)

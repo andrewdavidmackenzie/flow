@@ -52,8 +52,8 @@ impl Provider for LibProvider {
     fn resolve_url(&self, url_str: &str, default_filename: &str, _extensions: &[&str]) -> Result<(String, Option<String>)> {
         let url = Url::parse(url_str)
             .chain_err(|| format!("Could not convert '{}' to valid Url", url_str))?;
-        let lib_name = url.host_str().expect(
-            &format!("'lib_name' could not be extracted from host part of url '{}'", url));
+        let lib_name = url.host_str()
+            .chain_err(|| format!("'lib_name' could not be extracted from host part of url '{}'", url))?;
 
         if let Err(_) = env::var("FLOW_LIB_PATH") {
             let parent_dir = std::env::current_dir().unwrap();
@@ -85,8 +85,8 @@ impl Provider for LibProvider {
             }
 
             let provided_implementation_filename = lib_path.file_name().unwrap().to_str().unwrap();
-            debug!("'{:?}' is a directory, so looking inside it for default file name '{}' or provided implemention file '{}' with extensions '{:?}'",
-                   lib_path, default_filename, provided_implementation_filename, _extensions);
+            debug!("'{}' is a directory, so looking inside it for default file name '{}' or provided implemention file '{}' with extensions '{:?}'",
+                   lib_path.display(), default_filename, provided_implementation_filename, _extensions);
             for filename in [default_filename, provided_implementation_filename].iter() {
                 let file = FileProvider::find_file(&lib_path, filename, _extensions);
                 if let Ok(file_path_as_url) = file {

@@ -133,9 +133,9 @@ pub fn load(provider: &dyn Provider, source_url: &str) -> Result<WasmExecutor> {
         .assert_no_start();
 
     let memory = module_ref.export_by_name("memory")
-        .expect("`memory` export not found")
+        .chain_err(|| "`memory` export not found")?
         .as_memory()
-        .expect("export name `memory` is not of memory type")
+        .chain_err(|| "export name `memory` is not of memory type")?
         .to_owned();
 
     check_required_functions(&module_ref, &resolved_url)?;

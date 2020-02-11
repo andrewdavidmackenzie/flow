@@ -5,6 +5,9 @@
 /// A module with functions to compare data elements
 pub mod compare;
 
+/// A module with functions to compare data elements and output a value depending on comparison
+pub mod compare_switch;
+
 /// A module with functions for joining data
 pub mod join;
 

@@ -205,29 +205,43 @@ online-samples:
 	$(ETIME)
 
 ################# Packaging ################
+#### Due to dependencies between packages, they need to be published in a given order. Basically this is a DAG and
+#### you need to publish from the leaves at the bottom, upwards. I have separated into layers as there are some
+#### groups of packages (in same layer) that have same dependencies but are indpendant and they could be published
+#### in parallel. But they both need to be published before the next layer up.
+#### Level 0 - the root
 publish: flowc_publish flowide_publish
 
+#### Level 1 - flowc and flowide - no dependency between them
 flowc_publish: flowr_publish flowclib_publish flowrlib_publish provider_publish
 	cargo publish --manifest-path=flowc/Cargo.toml
 
 flowide_publish: flowclib_publish flowrlib_publish provider_publish flow_impl_publish flowstdlib_publish
 	cargo publish --manifest-path=flowide/Cargo.toml
 
+#### Level 2 - flowr
 flowr_publish: provider_publish flow_impl_publish flowstdlib_publish
 	cargo publish --manifest-path=flowr/Cargo.toml
 
+#### Level 3 - provider
+provider_publish: flowrlib_publish
+	cargo publish --manifest-path=provider/Cargo.toml
+
+#### Level 4 - flowstdlib and flowclib
 flowstdlib_publish: flow_impl_publish flow_impl_derive_publish flowrlib_publish
 	cargo publish --manifest-path=flowstdlib/Cargo.toml
 
 flowclib_publish: flowrlib_publish
 	cargo publish --manifest-path=flowclib/Cargo.toml
 
+#### Level 5 - flowruntime
+flowruntime_publish: flow_impl_publish flowrlib_publish
+
+#### Level 6 - flowrlib
 flowrlib_publish: flow_impl_publish
 	cargo publish --manifest-path=flowrlib/Cargo.toml
 
-provider_publish: flowrlib_publish
-	cargo publish --manifest-path=provider/Cargo.toml
-
+#### Level 7 - flow_impl_publish flow_impl_derive_publish
 flow_impl_publish:
 	cargo publish --manifest-path=flow_impl/Cargo.toml
 

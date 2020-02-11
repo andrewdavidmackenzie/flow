@@ -10,6 +10,7 @@
 extern crate error_chain;
 
 use std::path::PathBuf;
+use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
 use log::debug;
@@ -64,9 +65,9 @@ fn main() {
                 println!("backtrace: {:?}", backtrace);
             }
 
-            ::std::process::exit(1);
+            exit(1);
         }
-        Ok(_) => {}
+        Ok(_) => exit(0)
     }
 }
 
@@ -84,10 +85,10 @@ fn run() -> Result<String> {
 
     if lib {
         build_lib(url, provided_implementations, base_dir, provider, release)
-            .expect("Could not build library");
+            .chain_err(|| "Could not build library")?;
     } else {
         compile_flow(url, flow_args, dump, skip_generation, debug_symbols, provided_implementations, base_dir, provider, release)
-            .expect("Could not compile flow");
+            .chain_err(|| "Could not compile flow")?;
     }
 
     Ok("flowc completed".into())

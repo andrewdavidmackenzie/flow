@@ -1,0 +1,23 @@
+function = "CompareSwitch"
+implementation = "compare_switch.rs"
+
+[[input]]
+name = "left"
+
+[[input]]
+name = "right"
+
+[[output]]
+name = "equal"
+
+[[output]]
+name = "lt"
+
+[[output]]
+name = "lte"
+
+[[output]]
+name = "gt"
+
+[[output]]
+name = "gte"

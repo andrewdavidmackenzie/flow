@@ -31,10 +31,12 @@ pub fn compile_flow(url: Url, flow_args: Vec<String>, dump: bool, skip_generatio
                     provided_implementations: bool, out_dir: PathBuf, provider: &dyn Provider, release: bool)
                     -> Result<String> {
     info!("==== Compiler phase: Loading flow");
-    let context = loader::load_context(&url.to_string(), provider).expect("Couldn't load context");
+    let context = loader::load_context(&url.to_string(), provider)
+        .chain_err(|| "Couldn't load context")?;
     match context {
         FlowProcess(flow) => {
-            let mut tables = compile::compile(&flow).expect("Could not compile flow");
+            let mut tables = compile::compile(&flow)
+                .chain_err(|| "Could not compile flow")?;
 
             info!("==== Compiler phase: Compiling provided implementations");
             compile_supplied_implementations(&mut tables, provided_implementations, release)?;

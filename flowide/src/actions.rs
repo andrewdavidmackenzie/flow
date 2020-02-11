@@ -1,5 +1,9 @@
 use std::sync::{Arc, Mutex};
 
+use gtk::{TextBufferExt, WidgetExt};
+use toml;
+use url::Url;
+
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowclib::generator::generate;
@@ -10,10 +14,7 @@ use flowrlib::lib_manifest::LibraryManifest;
 use flowrlib::loader::Loader;
 use flowrlib::manifest::{DEFAULT_MANIFEST_FILENAME, Manifest};
 use flowrlib::provider::Provider;
-use gtk::{TextBufferExt, WidgetExt};
 use provider::content::provider::MetaProvider;
-use toml;
-use url::Url;
 
 use crate::ide_runtime_client::IDERuntimeClient;
 use crate::message;
@@ -34,18 +35,20 @@ pub fn compile_flow() {
                         let flow_clone = flow.clone();
                         let flow_url_clone = flow_url_str.clone();
                         message("Compiling flow");
-                        let tables = compile::compile(&flow_clone).expect("Could not compile flow");
-
-                        //                        info!("==== Compiler phase: Compiling provided implementations");
-                        //                        compile_supplied_implementations(&mut tables, provided_implementations, release)?;
-
-                        match generate::create_manifest(&flow, true, &flow_url_clone, &tables) {
-                            Ok(manifest) => {
-                                set_manifest(&manifest);
-                                context.manifest = Some(manifest);
-                                let manifest_url_str = manifest_url(&flow_url_clone);
-                                message(&format!("Manifest url set to '{}'", manifest_url_str));
-                                context.manifest_url = Some(manifest_url_str);
+                        match compile::compile(&flow_clone) {
+                            Ok(tables) => {
+                                //                        info!("==== Compiler phase: Compiling provided implementations");
+                                //                        compile_supplied_implementations(&mut tables, provided_implementations, release)?;
+                                match generate::create_manifest(&flow, true, &flow_url_clone, &tables) {
+                                    Ok(manifest) => {
+                                        set_manifest(&manifest);
+                                        context.manifest = Some(manifest);
+                                        let manifest_url_str = manifest_url(&flow_url_clone);
+                                        message(&format!("Manifest url set to '{}'", manifest_url_str));
+                                        context.manifest_url = Some(manifest_url_str);
+                                    }
+                                    Err(e) => message(&e.to_string())
+                                }
                             }
                             Err(e) => message(&e.to_string())
                         }

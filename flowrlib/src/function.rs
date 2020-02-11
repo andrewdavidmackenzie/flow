@@ -3,7 +3,7 @@ use std::fmt;
 use std::sync::Arc;
 
 use flow_impl::{Implementation, RunAgain};
-use log::{debug, error};
+use log::{debug, error, trace};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
@@ -62,7 +62,6 @@ impl fmt::Display for Function {
             write!(f, " @ route '{}'\n", self.route)?;
         }
 
-        write!(f, "\n")?;
         for (number, input) in self.inputs.iter().enumerate() {
             if input.is_empty() {
                 write!(f, "\tInput :{} is empty\n", number)?;
@@ -139,6 +138,7 @@ impl Function {
         let mut refilled = vec!();
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
             if input.init(first_time) {
+                trace!("\t\tInput #{}:{} set from initializer", self.id, io_number);
                 refilled.push(io_number);
             }
         }
