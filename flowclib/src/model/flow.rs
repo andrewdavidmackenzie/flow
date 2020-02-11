@@ -50,6 +50,8 @@ pub struct Flow {
     pub author_email: String,
 
     #[serde(skip)]
+    pub id: usize,
+    #[serde(skip)]
     pub alias: Name,
     #[serde(skip, default = "Flow::default_url")]
     pub source_url: String,
@@ -92,8 +94,8 @@ impl Validate for Flow {
 
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\tname: \t\t\t{}\n\talias: \t\t\t{}\n\tsource_url: \t{}\n\troute: \t\t\t{}\n",
-               self.name, self.alias, self.source_url, self.route).unwrap();
+        write!(f, "\tname: \t\t\t{}\n\tid: \t\t\t{}\n\talias: \t\t\t{}\n\tsource_url: \t{}\n\troute: \t\t\t{}\n",
+               self.name, self.id, self.alias, self.source_url, self.route).unwrap();
 
         write!(f, "\tinputs:\n").unwrap();
         if let Some(ref inputs) = self.inputs {
@@ -131,6 +133,7 @@ impl Default for Flow {
     fn default() -> Flow {
         Flow {
             name: Name::default(),
+            id: 0,
             alias: Name::default(),
             source_url: Flow::default_url(),
             route: Route::default(),
