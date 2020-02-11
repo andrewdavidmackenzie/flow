@@ -107,7 +107,7 @@ mod test {
                                          "/context/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, false)),
-                                         0,
+                                         0, 0,
                                          &vec!(), false);
 
         let mut manifest = Manifest::new(test_meta_data());
@@ -133,6 +133,7 @@ mod test {
                     \"name\": \"print\",
                     \"route\": \"/context/print\",
                     \"id\": 0,
+                    \"flow_id\": 0,
                     \"implementation_location\": \"lib://flowruntime/stdio/stdout/Stdout\",
                     \"inputs\": [ {} ]
                 }

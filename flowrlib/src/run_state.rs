@@ -769,7 +769,7 @@ mod test {
                       "/context/fA".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1, &None, false)),
-                      0,
+                      0, 0,
                       &vec!(out_conn), false) // outputs to fB:0
     }
 
@@ -781,7 +781,7 @@ mod test {
                       vec!(Input::new(1,
                                       &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                       false)),
-                      0,
+                      0, 0,
                       &vec!(out_conn), false) // outputs to fB:0
     }
 
@@ -792,7 +792,7 @@ mod test {
                       vec!(Input::new(1,
                                       &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                       false)),
-                      0,
+                      0, 0,
                       &vec!(), false)
     }
 
@@ -801,7 +801,7 @@ mod test {
                       "/context/fB".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1, &None, false)),
-                      1,
+                      1, 0,
                       &vec!(), false)
     }
 
@@ -812,7 +812,7 @@ mod test {
                       vec!(Input::new(1,
                                       &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                       false)),
-                      1,
+                      1, 0,
                       &vec!(), false)
     }
 
@@ -1014,7 +1014,7 @@ mod test {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
-                                    0,
+                                    0, 0,
                                     &vec!(), false);
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 1);
@@ -1049,7 +1049,7 @@ mod test {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
-                                    0,
+                                    0, 0,
                                     &vec!(), false);
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 1);
@@ -1108,7 +1108,7 @@ mod test {
                                     vec!(Input::new(1,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
                                                     false)),
-                                    0,
+                                    0, 0,
                                     &vec!(), false);
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 1);
@@ -1179,13 +1179,13 @@ mod test {
                                     vec!(Input::new(1,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
                                                     false)),
-                                    0,
+                                    0, 0,
                                     &vec!(out_conn), false); // outputs to fB:0
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
-                                    1,
+                                    1, 0,
                                     &vec!(), false);
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
@@ -1215,14 +1215,14 @@ mod test {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
-                                    0,
+                                    0, 0,
                                     &vec!(), false);
             let out_conn = OutputConnection::new("".into(), 0, 0, None);
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
-                                    1,
+                                    1, 0,
                                     &vec!(out_conn), false);
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
@@ -1249,7 +1249,7 @@ mod test {
                                     vec!(Input::new(1,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
                                                     false)),
-                                    1,
+                                    1, 0,
                                     &vec!(out_conn), false);
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
@@ -1283,7 +1283,7 @@ mod test {
                                     vec!(Input::new(1,
                                                     &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                                     false)),
-                                    0,
+                                    0, 0,
                                     &vec!(
                                         out_conn1, // outputs to self:0
                                         out_conn2 // outputs to f_b:0
@@ -1292,7 +1292,7 @@ mod test {
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
-                                    1,
+                                    1, 0,
                                     &vec!(), false);
             let functions = vec!(f_a, f_b); // NOTE the order!
             let mut state = RunState::new(functions, 1);
@@ -1365,20 +1365,20 @@ mod test {
                                    "/context/p0".to_string(),
                                    "/test".to_string(),
                                    vec!(), // input array
-                                   0,    // id
+                                   0,0,
                                    &vec!(out_conn1, out_conn2) // destinations
                                    , false);    // implementation
             let p1 = Function::new("p1".to_string(),
                                    "/context/p1".to_string(),
                                    "/test".to_string(),
                                    vec!(Input::new(1, &None, false)), // inputs array
-                                   1,    // id
+                                   1, 0,
                                    &vec!(), false);
             let p2 = Function::new("p2".to_string(),
                                    "/context/p2".to_string(),
                                    "/test".to_string(),
                                    vec!(Input::new(1, &None, false)), // inputs array
-                                   2,    // id
+                                   2, 0,
                                    &vec!(), false);
             vec!(p0, p1, p2)
         }
@@ -1543,7 +1543,7 @@ mod test {
                                     vec!(Input::new(1,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
                                                     false)),
-                                    1,
+                                    1, 0,
                                     &vec!(), false);
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
@@ -1582,7 +1582,7 @@ mod test {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
-                                    0,
+                                    0, 0,
                                     &vec!(), false);
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 4);
@@ -1609,7 +1609,7 @@ mod test {
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
-                                    0,
+                                    0, 0,
                                     &vec!(), false);
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 4);
@@ -1640,7 +1640,7 @@ mod test {
                                          Input::new(1,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
                                                     false)),
-                                    0,
+                                    0, 0,
                                     &vec!(), false);
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 4);
