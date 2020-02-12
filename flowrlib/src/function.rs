@@ -139,6 +139,11 @@ impl Function {
         self.id
     }
 
+    /// Accessor for a `Functions` `flow_id`
+    pub fn get_flow_id(&self) -> usize {
+        self.flow_id
+    }
+
     /// Initialize all of a `Functions` `Inputs` - as they may have initializers that need running
     pub fn init_inputs(&mut self, first_time: bool) -> Vec<usize> {
         let mut refilled = vec!();
@@ -416,7 +421,8 @@ mod test {
     }
 
     fn test_function() -> Function {
-        let out_conn = OutputConnection::new("/other/input/1".to_string(), 1, 1, None);
+        let out_conn = OutputConnection::new("/other/input/1".to_string(),
+                                             1, 1, 0, None);
         Function::new("test".to_string(),
                       "/context/test".to_string(),
                       "/implementation".to_string(),
@@ -450,7 +456,8 @@ mod test {
     #[cfg(feature = "debugger")]
     #[test]
     fn can_display_function_with_inputs() {
-        let output_route = OutputConnection::new("/other/input/1".to_string(), 1, 1, None);
+        let output_route = OutputConnection::new("/other/input/1".to_string(),
+                                                 1, 1, 0, None);
         let mut function = Function::new("test".to_string(),
                                          "/context/test".to_string(),
                                          "/test".to_string(),
