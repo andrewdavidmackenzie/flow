@@ -24,7 +24,9 @@ use crate::model::route::Route;
 pub struct GenerationTables {
     pub connections: Vec<Connection>,
     pub source_routes: HashMap<Route, (Route, usize)>,
-    pub destination_routes: HashMap<Route, (usize, usize)>,
+    /// HashMap from "route of the output of a function" --> (output name, source_function_id)
+    pub destination_routes: HashMap<Route, (usize, usize, usize)>,
+    /// HashMap from "route of the input of a function" --> (dest_function_id, input number, flow_id)
     pub collapsed_connections: Vec<Connection>,
     pub functions: Vec<Box<Function>>,
     pub libs: HashSet<String>,
@@ -35,7 +37,7 @@ impl GenerationTables {
         GenerationTables {
             connections: Vec::new(),
             source_routes: HashMap::<Route, (Route, usize)>::new(),
-            destination_routes: HashMap::<Route, (usize, usize)>::new(),
+            destination_routes: HashMap::<Route, (usize, usize, usize)>::new(),
             collapsed_connections: Vec::new(),
             functions: Vec::new(),
             libs: HashSet::new(),
@@ -181,8 +183,8 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(OutputConnection::new("".to_string(), 1, 0, None),
-                 OutputConnection::new("sub_route".to_string(), 2, 0, None)),
+            vec!(OutputConnection::new("".to_string(), 1, 0, 0, None),
+                 OutputConnection::new("sub_route".to_string(), 2, 0, 0, None)),
             0, 0);
 
         let expected = "{
@@ -192,12 +194,14 @@ mod test {
   'output_routes': [
     {
       'function_id': 1,
-      'io_number': 0
+      'io_number': 0,
+      'flow_id': 0
     },
     {
       'subpath': 'sub_route',
       'function_id': 2,
-      'io_number': 0
+      'io_number': 0,
+      'flow_id': 0
     }
   ]
 }";
@@ -222,7 +226,7 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(OutputConnection::new("".to_string(), 1, 0, None)),
+            vec!(OutputConnection::new("".to_string(), 1, 0, 0, None)),
             0, 0);
 
         let expected = "{
@@ -232,7 +236,8 @@ mod test {
   'output_routes': [
     {
       'function_id': 1,
-      'io_number': 0
+      'io_number': 0,
+      'flow_id': 0
     }
   ]
 }";
@@ -379,7 +384,7 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(OutputConnection::new("".to_string(), 1, 0, None)),
+            vec!(OutputConnection::new("".to_string(), 1, 0, 0, None)),
             0, 0)
     }
 
@@ -396,7 +401,8 @@ mod test {
   'output_routes': [
     {
       'function_id': 1,
-      'io_number': 0
+      'io_number': 0,
+      'flow_id': 0
     }
   ]
 }";
@@ -421,7 +427,7 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(OutputConnection::new("/0".to_string(), 1, 0, None)),
+            vec!(OutputConnection::new("/0".to_string(), 1, 0, 0, None)),
             0, 0);
 
         let expected = "{
@@ -432,7 +438,8 @@ mod test {
     {
       'subpath': '/0',
       'function_id': 1,
-      'io_number': 0
+      'io_number': 0,
+      'flow_id': 0
     }
   ]
 }";

@@ -84,7 +84,7 @@ pub struct Output {
 /// One-time Execution or Stopping repetitive execution
 /// ===================================================
 /// It may make sense for some functions to only be ran once, or to stop being executed repeatedly
-/// as some point, so each implementation when run returns a "run again" flag to indicate this.
+/// at some point. So each implementation when ran returns a "run again" flag to indicate this.
 /// An example of functions that may decide to stop running are:
 /// - args: produces arguments from the command line execution of a flow once at start-up
 /// - readline: read a line of input from standard input, until End-of-file (EOF) is detected.
@@ -122,9 +122,11 @@ pub struct Output {
 /// generated a manifest with no other function sending to that input, then at run-time that functions
 /// inputs will never be full and the function will never run. This could produce some form of deadlock
 /// or incomplete execution, but it should not produce any run-time error.
+///
 /// A run-time is within it's rights to discard this function, and then potentially other functions
 /// connected to it's output and other inputs until no more can be removed.
 /// This run-time does not do that, in order to keep things simple and start-up time to a minimum.
+/// It relies on the compiler having done that previously.
 ///
 /// Runtime Rules
 /// =============
@@ -188,19 +190,20 @@ pub struct Output {
 /// launched in parallel. The minimum value for this is 1
 ///
 pub struct RunState {
+    /// The vector of all functions in the flow loaded from manifest
     functions: Vec<Function>,
+    /// blocked: HashSet<function_id> - list of functions by id that are blocked on sending
     blocked: HashSet<usize>,
-    // blocked: HashSet<function_id>
+    /// blocks: Vec<(blocking_id, blocking_io_number, blocked_id)> - a list of blocks between functions
     blocks: VecDeque<(usize, usize, usize)>,
-    // blocking: Vec<(blocking_id, blocking_io_number, blocked_id)>
+    /// ready: Vec<function_id> - a list of functions by id that are ready to run
     ready: VecDeque<usize>,
-    // ready: Vec<function_id>
+    /// running: MultiMap<function_id, job_id> - a list of functions and jobs ids that are running
     running: MultiMap<usize, usize>,
-    // running: MultiMap<function_id, job_id>
+    /// number of jobs sent for execution to date
     jobs_sent: usize,
-    // number of jobs sent to date
-    max_jobs: usize,
-    // limit on the number of jobs to allow to run in parallel
+    /// limit on the number of jobs allowed to be pending to complete (i.e. running in parallel)
+    max_pending_jobs: usize,
 }
 
 impl RunState {
@@ -212,7 +215,7 @@ impl RunState {
             ready: VecDeque::<usize>::new(),
             running: MultiMap::<usize, usize>::new(),
             jobs_sent: 0,
-            max_jobs,
+            max_pending_jobs: max_jobs,
         }
     }
 
@@ -291,7 +294,7 @@ impl RunState {
                 source_has_inputs_full = source_function.inputs_full();
                 destinations = source_function.output_destinations().clone();
             }
-            // (_output_path, destination_id, io_number, _destination_path)
+
             for destination in destinations {
                 if destination.function_id != source_id { // don't block yourself!
                     let destination_function = self.get(destination.function_id);
@@ -312,6 +315,10 @@ impl RunState {
         self.blocked = blocked;
     }
 
+    /*
+        Figure out the state of a function based on it's preence or not in the different control
+        lists
+    */
     fn get_state(&self, function_id: usize) -> State {
         if self.ready.contains(&function_id) {
             State::Ready
@@ -325,6 +332,25 @@ impl RunState {
             }
         }
     }
+
+    // TODO just test implementation
+    /*
+    fn flow_has_running_or_ready(&self, flow_id: usize) -> bool {
+        for (running_id, _) in &self.running {
+            if self.get(*running_id).get_flow_id() == flow_id {
+                return true;
+            }
+        }
+
+        for ready_id in &self.ready {
+            if self.get(*ready_id).get_flow_id() == flow_id {
+                return true;
+            }
+        }
+
+        return false;
+    }
+    */
 
     #[cfg(feature = "debugger")]
     pub fn get_blocked(&self) -> &HashSet<usize> {
@@ -367,7 +393,7 @@ impl RunState {
         too many jobs already running
     */
     pub fn next_job(&mut self) -> Option<Job> {
-        if self.ready.is_empty() || self.number_jobs_running() >= self.max_jobs {
+        if self.ready.is_empty() || self.number_jobs_running() >= self.max_pending_jobs {
             return None;
         }
 
@@ -452,7 +478,6 @@ impl RunState {
                 if let Some(output_v) = output_value {
                     debug!("\tOutputs '{}' from Job #{}", output_v, output.job_id);
 
-                    //output_route, destination_id, io_number, _destination_path)
                     for destination in &output.destinations {
                         let output_value = output_v.pointer(&destination.subpath).unwrap();
                         self.send_value(output.function_id,
@@ -506,7 +531,7 @@ impl RunState {
             destination.write_input(io_number, output_value);
 
             #[cfg(feature = "metrics")]
-                metrics.increment_outputs_sent();
+            metrics.increment_outputs_sent();
 
             block = destination.input_full(io_number);
 
@@ -662,14 +687,19 @@ impl RunState {
         if !self.blocks.is_empty() {
             let mut unblocked_list = vec!();
 
+            // TODO find blocks per input number and just unblock the first one on each input?
+            let mut unblocked_io_numbers = vec!();
+
             for &(blocking_id, blocking_io_number, blocked_id) in &self.blocks {
-                if (blocking_id == blocker_id) && !refilled_inputs.contains(&blocking_io_number) {
+                if (blocking_id == blocker_id) && !refilled_inputs.contains(&blocking_io_number) &&
+                    !unblocked_io_numbers.contains(&blocking_io_number) {
                     trace!("\t\tBlock removed #{}:{} <-- #{}", blocking_id, blocking_io_number, blocked_id);
                     unblocked_list.push(blocked_id);
+                    unblocked_io_numbers.push(blocking_io_number);
                 }
             }
 
-            // retain all  blocks unaffected by removing this one
+            // retain all blocks unaffected by removing this one
             self.blocks.retain(|&(blocking_id, blocking_io_number, _blocked_id)|
                 !((blocking_id == blocker_id) && !refilled_inputs.contains(&blocking_io_number))
             );
@@ -760,7 +790,8 @@ mod test {
     }
 
     fn test_function_a_to_b_not_init() -> Function {
-        let out_conn = OutputConnection::new("".to_string(), 1, 0, None);
+        let out_conn = OutputConnection::new("".to_string(),
+                                             1, 0, 0, None);
         Function::new("fA".to_string(), // name
                       "/context/fA".to_string(),
                       "/test".to_string(),
@@ -770,7 +801,7 @@ mod test {
     }
 
     fn test_function_a_to_b() -> Function {
-        let out_conn = OutputConnection::new("".to_string(), 1, 0, None);
+        let out_conn = OutputConnection::new("".to_string(), 1, 0, 0, None);
         Function::new("fA".to_string(), // name
                       "/context/fA".to_string(),
                       "/test".to_string(),
@@ -813,7 +844,7 @@ mod test {
     }
 
     fn test_output(source_function_id: usize, dest_function_id: usize) -> Output {
-        let out_conn = OutputConnection::new("".to_string(), dest_function_id, 0, None);
+        let out_conn = OutputConnection::new("".to_string(), dest_function_id, 0, 0, None);
         Output {
             job_id: 1,
             function_id: source_function_id,
@@ -825,7 +856,7 @@ mod test {
     }
 
     fn error_output(source_function_id: usize, dest_function_id: usize) -> Output {
-        let out_conn = OutputConnection::new("".to_string(), dest_function_id, 0, None);
+        let out_conn = OutputConnection::new("".to_string(), dest_function_id, 0, 0, None);
         Output {
             job_id: 1,
             function_id: source_function_id,
@@ -1168,7 +1199,7 @@ mod test {
         // Done: at least one destination input is full, so can't run  running_to_blocked_on_done
         #[test]
         fn running_to_blocked_on_done() {
-            let out_conn = OutputConnection::new("".to_string(), 1, 0, None);
+            let out_conn = OutputConnection::new("".to_string(), 1, 0, 0, None);
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
@@ -1213,7 +1244,7 @@ mod test {
                                     vec!(Input::new(1, &None, false)),
                                     0, 0,
                                     &vec!(), false);
-            let out_conn = OutputConnection::new("".into(), 0, 0, None);
+            let out_conn = OutputConnection::new("".into(), 0, 0, 0, None);
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
@@ -1238,7 +1269,7 @@ mod test {
         #[test]
         fn waiting_to_blocked_on_input() {
             let f_a = super::test_function_a_to_b_not_init();
-            let out_conn = OutputConnection::new("".into(), 0, 0, None);
+            let out_conn = OutputConnection::new("".into(), 0, 0, 0, None);
             let f_b = Function::new("fB".to_string(), // name
                                     "/context/fB".to_string(),
                                     "/test".to_string(),
@@ -1271,8 +1302,8 @@ mod test {
         */
         #[test]
         fn not_block_on_self() {
-            let out_conn1 = OutputConnection::new("".to_string(), 0, 0, None);
-            let out_conn2 = OutputConnection::new("".to_string(), 1, 0, None);
+            let out_conn1 = OutputConnection::new("".to_string(), 0, 0, 0, None);
+            let out_conn2 = OutputConnection::new("".to_string(), 1, 0, 0, None);
             let f_a = Function::new("fA".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
@@ -1300,8 +1331,8 @@ mod test {
 
             assert_eq!(0, state.next_job().unwrap().function_id, "next() should return function_id=0 (f_a) for running");
 
-            let out_conn1 = OutputConnection::new("".into(), 0, 0, None);
-            let out_conn2 = OutputConnection::new("".into(), 1, 0, None);
+            let out_conn1 = OutputConnection::new("".into(), 0, 0, 0, None);
+            let out_conn2 = OutputConnection::new("".into(), 1, 0, 0, None);
             // Event: run f_a
             let output = Output {
                 job_id: 0,
@@ -1355,8 +1386,8 @@ mod test {
         use super::test_debug_client;
 
         fn test_functions<'a>() -> Vec<Function> {
-            let out_conn1 = OutputConnection::new("".to_string(), 1, 0, None);
-            let out_conn2 = OutputConnection::new("".to_string(), 2, 0, None);
+            let out_conn1 = OutputConnection::new("".to_string(), 1, 0, 0, None);
+            let out_conn2 = OutputConnection::new("".to_string(), 2, 0, 0, None);
             let p0 = Function::new("p0".to_string(), // name
                                    "/context/p0".to_string(),
                                    "/test".to_string(),
