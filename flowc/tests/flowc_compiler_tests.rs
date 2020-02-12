@@ -75,7 +75,7 @@ fn same_name_input_and_output() {
         let tables = compile::compile(flow).unwrap();
         // If done correctly there should only be two connections
         // args -> buffer, and buffer -> print
-        assert_eq!(2, tables.collapsed_connections.len());
+        assert_eq!(4, tables.collapsed_connections.len());
     } else {
         assert!(false, "Process loaded was not a flow");
     }
@@ -92,12 +92,17 @@ fn same_name_flow_ids() {
         // print function in context flow should have flow_id = 0
         let print_function = tables.functions.iter()
             .find(|f| f.alias() == &Name::from("print")).unwrap();
-        assert_eq!(print_function.get_flow_id(), 0);
+        assert_eq!(print_function.get_flow_id(), 0, "print function in context should have flow_id = 0");
 
-        // buffer function in child flow should have flow_id = 1
+        // buffer function in first child flow should have flow_id = 1
         let buffer_function = tables.functions.iter()
-            .find(|f| f.alias() == &Name::from("buffer")).unwrap();
+            .find(|f| f.route() == &Route::from("/context/child/buffer")).unwrap();
         assert_eq!(buffer_function.get_flow_id(), 1);
+
+        // buffer function in second child flow should have flow_id = 2
+        let buffer2_function = tables.functions.iter()
+            .find(|f| f.route() == &Route::from("/context/child2/buffer")).unwrap();
+        assert_eq!(buffer2_function.get_flow_id(), 2);
     } else {
         assert!(false, "Process loaded was not a flow");
     }

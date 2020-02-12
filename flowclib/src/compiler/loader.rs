@@ -67,10 +67,10 @@ pub trait Validate {
 /// flowclib::compiler::loader::load_context("file:///example.toml", &dummy_provider).unwrap();
 /// ```
 pub fn load_context(url: &str, provider: &dyn Provider) -> Result<Process> {
-    load_process(&Route::from(""), &Name::from("context"), 0, url, provider, &None)
+    load_process(&Route::from(""), &Name::from("context"), 0, &mut 0, url, provider, &None)
 }
 
-fn load_process(parent_route: &Route, alias: &Name, flow_id: usize, url: &str, provider: &dyn Provider,
+fn load_process(parent_route: &Route, alias: &Name, parent_flow_id: usize, flow_count: &mut usize, url: &str, provider: &dyn Provider,
                 initializations: &Option<HashMap<String, InputInitializer>>) -> Result<Process> {
     let (resolved_url, lib_ref) = provider.resolve_url(url, "context", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
@@ -88,13 +88,14 @@ fn load_process(parent_route: &Route, alias: &Name, flow_id: usize, url: &str, p
     debug!("Deserialized flow, now parsing and loading any sub-processes");
     match process {
         FlowProcess(ref mut flow) => {
-            config_flow(flow, &resolved_url, parent_route, alias, flow_id, initializations)?;
-            load_process_refs(flow, provider)?;
+            config_flow(flow, &resolved_url, parent_route, alias, *flow_count, initializations)?;
+            *flow_count += 1;
+            load_process_refs(flow, flow_count, provider)?;
             flow.build_connections()?;
         }
         FunctionProcess(ref mut function) => {
-            config_function(function, &resolved_url, parent_route, alias, flow_id - 1,
-                            lib_ref,  initializations)?;
+            config_function(function, &resolved_url, parent_route, alias, parent_flow_id,
+                            lib_ref, initializations)?;
         }
     }
 
@@ -115,12 +116,12 @@ pub fn load_library(url: &str, provider: &dyn Provider) -> Result<Library> {
 /*
     Load sub-processes from the process_refs in a flow
 */
-fn load_process_refs(flow: &mut Flow, provider: &dyn Provider) -> Result<()> {
+fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Provider) -> Result<()> {
     if let Some(ref mut process_refs) = flow.process_refs {
         for process_ref in process_refs {
             let subprocess_url = url::join(&flow.source_url, &process_ref.source);
             process_ref.process = load_process(&flow.route, &process_ref.alias(),
-                                               flow.id + 1, &subprocess_url,
+                                               flow.id, flow_count, &subprocess_url,
                                                provider, &process_ref.initializations)?;
 
             if let FunctionProcess(ref mut function) = process_ref.process {

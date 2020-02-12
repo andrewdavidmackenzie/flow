@@ -13,8 +13,20 @@ from = "process/args/1"
 to = "process/child/message"
 
 [[process]]
+alias = "child2"
+source = "same-name-child"
+
+[[connection]]
+from = "process/args/1"
+to = "process/child2/message"
+
+[[process]]
 alias = "print"
 source = "lib://flowruntime/stdio/stdout"
+
+[[connection]]
+from = "process/child2/message"
+to = "process/print"
 
 [[connection]]
 from = "process/child/message"
