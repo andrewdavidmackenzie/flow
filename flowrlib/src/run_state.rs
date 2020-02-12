@@ -687,9 +687,8 @@ impl RunState {
         if !self.blocks.is_empty() {
             let mut unblocked_list = vec!();
 
-            // TODO find blocks per input number and just unblock the first one on each input?
+            // Avoid unblocking multiple functions blocked on sending to the same input, just unblock the first
             let mut unblocked_io_numbers = vec!();
-
             for &(blocking_id, blocking_io_number, blocked_id) in &self.blocks {
                 if (blocking_id == blocker_id) && !refilled_inputs.contains(&blocking_io_number) &&
                     !unblocked_io_numbers.contains(&blocking_io_number) {
