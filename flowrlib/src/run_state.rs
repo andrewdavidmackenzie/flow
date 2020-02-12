@@ -662,10 +662,14 @@ impl RunState {
         if !self.blocks.is_empty() {
             let mut unblocked_list = vec!();
 
+            // Avoid unblocking multiple functions blocked on sending to the same input, just unblock the first
+            let mut unblocked_io_numbers = vec!();
             for &(blocking_id, blocking_io_number, blocked_id) in &self.blocks {
-                if (blocking_id == blocker_id) && !refilled_inputs.contains(&blocking_io_number) {
+                if (blocking_id == blocker_id) && !refilled_inputs.contains(&blocking_io_number) &&
+                    !unblocked_io_numbers.contains(&blocking_io_number) {
                     trace!("\t\tBlock removed #{}:{} <-- #{}", blocking_id, blocking_io_number, blocked_id);
                     unblocked_list.push(blocked_id);
+                    unblocked_io_numbers.push(blocking_io_number);
                 }
             }
 
