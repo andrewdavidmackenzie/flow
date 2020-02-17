@@ -27,7 +27,7 @@ use crate::errors::*;
 /*
     Compile a flow, maybe run it
 */
-pub fn compile_flow(url: Url, flow_args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool,
+pub fn compile_flow(url: &Url, flow_args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool,
                     provided_implementations: bool, out_dir: PathBuf, provider: &dyn Provider, release: bool)
                     -> Result<String> {
     info!("==== Compiler phase: Loading flow");
@@ -36,7 +36,7 @@ pub fn compile_flow(url: Url, flow_args: Vec<String>, dump: bool, skip_generatio
     match context {
         FlowProcess(flow) => {
             let mut tables = compile::compile(&flow)
-                .chain_err(|| "Could not compile flow")?;
+                .chain_err(|| format!("Could not compile the flow '{}'", url))?;
 
             info!("==== Compiler phase: Compiling provided implementations");
             compile_supplied_implementations(&mut tables, provided_implementations, release)?;

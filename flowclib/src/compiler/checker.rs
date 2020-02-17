@@ -85,7 +85,8 @@ fn check_for_competing_inputs(tables: &GenerationTables) -> Result<()> {
 
         // check for ConstantInitializer at destination
         match connection.to_io.get_initializer() {
-            Some(Constant(_)) => bail!("Connection to input that also has a Constant Initializer"),
+            Some(Constant(_)) => bail!("Connection from '{}' to input at '{}' that also has a Constant Initializer",
+            connection.from_io.route(), connection.to_io.route() ),
             _ => {}
         }
     }
@@ -142,8 +143,8 @@ mod test {
     use super::remove_duplicates;
 
     /*
-                    Test that when two functions are connected doubly, the connection gets reduced to a single one
-                */
+                            Test that when two functions are connected doubly, the connection gets reduced to a single one
+                        */
     #[test]
     fn collapse_double_connection() {
         let first = Connection {

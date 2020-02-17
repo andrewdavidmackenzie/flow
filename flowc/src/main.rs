@@ -87,8 +87,8 @@ fn run() -> Result<String> {
         build_lib(url, provided_implementations, base_dir, provider, release)
             .chain_err(|| "Could not build library")?;
     } else {
-        compile_flow(url, flow_args, dump, skip_generation, debug_symbols, provided_implementations, base_dir, provider, release)
-            .chain_err(|| "Could not compile flow")?;
+        compile_flow(&url, flow_args, dump, skip_generation, debug_symbols, provided_implementations, base_dir, provider, release)
+            .chain_err(|| format!("Could not compile the flow '{}'", url))?;
     }
 
     Ok("flowc completed".into())
