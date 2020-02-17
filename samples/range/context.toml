@@ -21,13 +21,9 @@ alias = "sequence"
 source = "lib://flowstdlib/math/sequence"
 input.start = {once = 1}
 
-[[process]]
-alias = "to_string"
-source = "lib://flowstdlib/fmt/to_string"
-
 [[connection]]
 from = "process/sequence/sequence"
-to = "process/to_string"
+to = "process/print"
 
 # Output a string to show we're done when the series ends
 [[process]]
@@ -47,7 +43,3 @@ to = "process/print"
 [[process]]
 alias = "print"
 source = "lib://flowruntime/stdio/stdout"
-
-[[connection]]
-from = "process/to_string"
-to = "process/print"

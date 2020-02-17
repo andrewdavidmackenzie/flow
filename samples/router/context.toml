@@ -14,14 +14,6 @@ source = "read_section/read_section"
 
 [[connection]]
 from = "process/read_section"
-to = "process/to_string"
-
-[[process]]
-alias = "to_string"
-source = "lib://flowstdlib/fmt/to_string"
-
-[[connection]]
-from = "process/to_string"
 to = "process/print"
 
 [[process]]
