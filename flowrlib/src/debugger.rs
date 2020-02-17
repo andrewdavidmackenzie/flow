@@ -10,7 +10,7 @@ use crate::debug_client::Event::{*};
 use crate::debug_client::Param;
 use crate::debug_client::Response;
 use crate::debug_client::Response::{*};
-use crate::run_state::{Output, RunState};
+use crate::run_state::{Block, Output, RunState};
 
 pub struct Debugger {
     client: &'static dyn DebugClient,
@@ -31,7 +31,7 @@ enum BlockType {
 
 #[derive(Debug, Clone)]
 struct BlockerNode {
-    process_id: usize,
+    function_id: usize,
     io_number: usize,
     blocktype: BlockType,
     blockers: Vec<BlockerNode>,
@@ -40,7 +40,7 @@ struct BlockerNode {
 impl BlockerNode {
     fn new(process_id: usize, io_number: usize, blocktype: BlockType) -> Self {
         BlockerNode {
-            process_id,
+            function_id: process_id,
             io_number,
             blocktype,
             blockers: vec!(),
@@ -51,8 +51,8 @@ impl BlockerNode {
 impl fmt::Display for BlockerNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.blocktype {
-            BlockType::OutputBlocked => write!(f, " -> #{}", self.process_id),
-            BlockType::UnreadySender => write!(f, " <- #{}", self.process_id)
+            BlockType::OutputBlocked => write!(f, " -> #{}", self.function_id),
+            BlockType::UnreadySender => write!(f, " <- #{}", self.function_id)
         }
     }
 }
@@ -109,10 +109,9 @@ impl Debugger {
         This allows the debugger to check if we have a breakpoint set on that block. If we do
         then enter the debugger client and wait for a command.
     */
-    pub fn check_on_block_creation(&mut self, state: &RunState, blocking_id: usize,
-                                   blocking_io_number: usize, blocked_id: usize) {
-        if self.block_breakpoints.contains(&(blocked_id, blocking_id)) {
-            self.client.send_event(BlockBreakpoint(blocked_id, blocking_id, blocking_io_number));
+    pub fn check_on_block_creation(&mut self, state: &RunState, block: &Block) {
+        if self.block_breakpoints.contains(&(block.blocked_id, block.blocking_id)) {
+            self.client.send_event(BlockBreakpoint(block.clone()));
             self.wait_for_command(state);
         }
     }
@@ -432,16 +431,16 @@ impl Debugger {
     */
     fn traverse_blocker_tree(&self, state: &RunState, visited_nodes: &mut Vec<usize>,
                              root_node_id: usize, node: &mut BlockerNode) -> Vec<BlockerNode> {
-        visited_nodes.push(node.process_id);
-        node.blockers = self.find_blockers(state, node.process_id);
+        visited_nodes.push(node.function_id);
+        node.blockers = self.find_blockers(state, node.function_id);
 
         for blocker in &mut node.blockers {
-            if blocker.process_id == root_node_id {
+            if blocker.function_id == root_node_id {
                 return vec!(blocker.clone()); // add the last node in the loop to end of trail
             }
 
             // if we've visited this blocking node before, then we've detected a loop
-            if !visited_nodes.contains(&blocker.process_id) {
+            if !visited_nodes.contains(&blocker.function_id) {
                 let mut blocker_subtree = self.traverse_blocker_tree(state, visited_nodes,
                                                                      root_node_id, blocker);
                 if blocker_subtree.len() > 0 {
@@ -458,7 +457,7 @@ impl Debugger {
 
     fn display_set(root_node: &BlockerNode, node_set: Vec<BlockerNode>) -> String {
         let mut display_string = String::new();
-        display_string.push_str(&format!("#{}", root_node.process_id));
+        display_string.push_str(&format!("#{}", root_node.function_id));
         for node in node_set {
             display_string.push_str(&format!("{}", node));
         }

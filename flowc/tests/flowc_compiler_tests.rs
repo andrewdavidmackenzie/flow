@@ -125,6 +125,22 @@ fn double_connection() {
 }
 
 #[test]
+fn connection_to_input_with_constant_initializer() {
+    let meta_provider = MetaProvider {};
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/connect_to_constant.toml");
+    let process = loader::load_context(&path, &meta_provider).unwrap();
+    if let FlowProcess(ref flow) = process {
+        let tables = compile::compile(flow);
+        match tables {
+            Ok(_) => assert!(false, "Process should not have loaded due to connection to input with a constant initializer"),
+            Err(_) => { /* Error was detected and reported correctly and didn't crash */ }
+        }
+    } else {
+        assert!(false, "Process loaded was not a flow");
+    }
+}
+
+#[test]
 fn dead_process_removed() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/dead-process.toml");

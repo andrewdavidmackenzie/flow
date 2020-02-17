@@ -54,6 +54,7 @@ fn execute(job: Job, output_tx: &Sender<Output>) -> Result<String> {
     let output = Output {
         job_id: job.job_id,
         function_id: job.function_id,
+        flow_id: job.flow_id,
         input_values: job.input_set,
         result,
         destinations: job.destinations,

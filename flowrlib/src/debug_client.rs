@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use crate::run_state::Output;
+use crate::run_state::{Block, Output};
 
 /// Types of `Params` used in communications between the debugger and the debug_client
 pub enum Param {
@@ -55,7 +55,7 @@ pub enum Event {
     PriorToSendingJob(usize, usize),
     /// A breakpoint on a `Block` between two functions was encountered
     /// includes: blocked_id, blocking_id, blocking_io_number
-    BlockBreakpoint(usize, usize, usize),
+    BlockBreakpoint(Block),
     /// A breakpoint on a `Value` being sent between two functions was encountered
     /// includes: source_process_id, output_route, value, destination_id, input_number));
     DataBreakpoint(usize, String, Value, usize, usize),

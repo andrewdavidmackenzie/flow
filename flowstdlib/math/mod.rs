@@ -7,7 +7,5 @@ pub mod add;
 pub mod divide;
 /// A module with a function to subtract two `Numbers`
 pub mod subtract;
-/// A module with a function to generate a sequence of `Numbers`
-pub mod sequence;
 /// A module with a function to calculate the sqare root of a `Number`
 pub mod sqrt;

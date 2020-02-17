@@ -13,6 +13,3 @@ pub mod join;
 
 /// A module with functions to control the flow of data based on comparisons
 pub mod tap;
-
-/// A module that is just a flow definition for passing a value depending on a control value
-pub mod pass_if_lte;

@@ -148,9 +148,11 @@ impl Function {
     pub fn init_inputs(&mut self, first_time: bool) -> Vec<usize> {
         let mut refilled = vec!();
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
-            if input.init(first_time) {
-                trace!("\t\tInput #{}:{} set from initializer", self.id, io_number);
-                refilled.push(io_number);
+            if input.is_empty() {
+                if input.init(first_time) {
+                    trace!("\t\tInput #{}:{} set from initializer", self.id, io_number);
+                    refilled.push(io_number);
+                }
             }
         }
         refilled
