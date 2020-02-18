@@ -18,14 +18,6 @@ source = "lib://flowstdlib/fmt/to_number"
 
 [[connection]]
 from = "process/to_number"
-to = "process/to_string"
-
-[[process]]
-alias = "to_string"
-source = "lib://flowstdlib/fmt/to_string"
-
-[[connection]]
-from = "process/to_string"
 to = "process/print"
 
 [[process]]
