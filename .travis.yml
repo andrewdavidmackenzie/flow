@@ -38,8 +38,7 @@ before_install:
 
 script:
   - rustc --version
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cargo build --manifest-path=flowide/Cargo.toml; fi
-  - make all
+  - make
 
 env:
   global:

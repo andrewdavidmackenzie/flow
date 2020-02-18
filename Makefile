@@ -32,7 +32,7 @@ endif
 	$(ETIME)
 
 common-config:
-	export PATH="$PATH:~/.cargo/bin"
+	export PATH="$$PATH:~/.cargo/bin"
 	rustup target add wasm32-unknown-unknown
 	# cargo install wasm-gc || true
 	# install mdbook for generating guides
