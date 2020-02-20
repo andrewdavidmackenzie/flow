@@ -27,16 +27,16 @@ to = "process/print"
 
 # Output a string to show we're done when the series ends
 [[process]]
-alias = "tap"
-source = "lib://flowstdlib/control/tap"
+alias = "join"
+source = "lib://flowstdlib/control/join"
 input.data = {constant = "Range done"}
 
 [[connection]]
 from = "process/sequence/done"
-to = "process/tap/control"
+to = "process/join/control"
 
 [[connection]]
-from = "process/tap"
+from = "process/join"
 to = "process/print"
 
 # Output

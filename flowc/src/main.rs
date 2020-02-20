@@ -21,7 +21,7 @@ use flowclib::info;
 use provider::args::url_from_string;
 use provider::content::provider::MetaProvider;
 
-use crate::flow_compile::compile_flow;
+use crate::flow_compile::compile_and_execute_flow;
 use crate::lib_build::build_lib;
 
 mod source_arg;
@@ -87,8 +87,8 @@ fn run() -> Result<String> {
         build_lib(url, provided_implementations, base_dir, provider, release)
             .chain_err(|| "Could not build library")?;
     } else {
-        compile_flow(&url, flow_args, dump, skip_generation, debug_symbols, provided_implementations, base_dir, provider, release)
-            .chain_err(|| format!("Could not compile the flow '{}'", url))?;
+        compile_and_execute_flow(&url, flow_args, dump, skip_generation, debug_symbols, provided_implementations, base_dir, provider, release)
+            .chain_err(|| format!("Could not compile and execute the flow '{}'", url))?;
     }
 
     Ok("flowc completed".into())

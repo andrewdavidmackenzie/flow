@@ -27,9 +27,9 @@ use crate::errors::*;
 /*
     Compile a flow, maybe run it
 */
-pub fn compile_flow(url: &Url, flow_args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool,
-                    provided_implementations: bool, out_dir: PathBuf, provider: &dyn Provider, release: bool)
-                    -> Result<String> {
+pub fn compile_and_execute_flow(url: &Url, flow_args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool,
+                                provided_implementations: bool, out_dir: PathBuf, provider: &dyn Provider, release: bool)
+                                -> Result<String> {
     info!("==== Compiler phase: Loading flow");
     let context = loader::load_context(&url.to_string(), provider)
         .chain_err(|| "Couldn't load context")?;

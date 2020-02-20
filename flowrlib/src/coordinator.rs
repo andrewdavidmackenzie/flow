@@ -53,7 +53,6 @@ impl Submission {
 
         let state = RunState::new(manifest.functions, max_parallel_jobs);
 
-        info!("creating metrics");
         #[cfg(feature = "metrics")]
             let metrics = Metrics::new(state.num_functions());
 

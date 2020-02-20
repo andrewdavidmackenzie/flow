@@ -235,11 +235,11 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
         Ok(FlowProcess(context)) => {
             let tables = compile::compile(&context).unwrap();
 
-            match tables.functions.iter().find(|&f| f.route() == &Route::from("/context/sequence/pilte/tap")) {
+            match tables.functions.iter().find(|&f| f.route() == &Route::from("/context/sequence/compare")) {
                 Some(tap_function) => {
                     if let Some(inputs) = tap_function.get_inputs() {
-                        let in_input = inputs.get(0).unwrap();
-                        assert_eq!(Name::from("data"), *in_input.alias(), "Input's name is not 'data' as expected");
+                        let in_input = inputs.get(1).unwrap();
+                        assert_eq!(Name::from("right"), *in_input.alias(), "Input's name is not 'right' as expected");
                         let initial_value = in_input.get_initializer();
                         match initial_value {
                             Some(OneTime(one_time)) => assert_eq!(one_time.once, 1), // PASS
@@ -249,7 +249,7 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
                         panic!("Could not find any inputs");
                     }
                 }
-                None => panic!("Could not find tap_function at route '/context/sequence/pilte/tap'")
+                None => panic!("Could not find function at route '/context/sequence/compare'")
             }
         }
         _ => panic!("Couldn't load the flow from test file at '{}'", url)

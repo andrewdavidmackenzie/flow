@@ -505,12 +505,15 @@ impl RunState {
                     debug!("\tJob #{} -> Outputs '{}'", output.job_id, output_v);
 
                     for destination in &output.destinations {
-                        let output_value = output_v.pointer(&destination.subpath).unwrap();
-                        self.send_value(output.function_id,
-                                        output.flow_id,
-                                        &destination.subpath,
-                                        destination.function_id,
-                                        destination.io_number, output_value, metrics, debugger);
+                        match output_v.pointer(&destination.subpath) {
+                            Some(output_value) =>
+                                self.send_value(output.function_id,
+                                                output.flow_id,
+                                                &destination.subpath,
+                                                destination.function_id,
+                                                destination.io_number, output_value, metrics, debugger),
+                            _ => trace!("No output value found at '{}'", &destination.subpath)
+                        }
                     }
                 }
 
