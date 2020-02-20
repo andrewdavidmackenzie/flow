@@ -143,8 +143,10 @@ fn execute_flow(filepath: PathBuf, mut flow_args: Vec<String>) -> Result<String>
     info!("Executing flow from manifest in '{}'", filepath.display());
 
     let command = find_executable_path(&get_executable_name())?;
-    let mut command_args = vec!(filepath.to_str().unwrap().to_string(),
-                                "-n".to_string());
+    let mut command_args = vec!(filepath.to_str().unwrap().to_string());
+    if !flow_args.contains(&"-n".to_string()) {
+        command_args.push("-n".to_string());
+    }
     command_args.append(&mut flow_args);
     debug!("Running flow using '{} {:?}'", &command, &command_args);
     let output = Command::new(&command).args(command_args)
