@@ -77,5 +77,9 @@ mod test {
         let (value, run_again) = comparer.run(inputs);
 
         assert_eq!(run_again, RUN_AGAIN);
+        assert!(value.is_some());
+        let value = value.unwrap();
+        let map = value.as_object().unwrap();
+        assert!(map.contains_key("equal"));
     }
 }
