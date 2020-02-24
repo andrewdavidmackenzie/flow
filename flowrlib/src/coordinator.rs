@@ -194,7 +194,7 @@ impl Coordinator {
                                 }
                             }
 
-                            submission.state.process_output(&mut submission.metrics, output, &mut submission.debugger)
+                            submission.state.process_output(&mut submission.metrics, output, &mut submission.debugger);
                         }
                         Err(err) => error!("Error receiving execution result: {}", err)
                     }

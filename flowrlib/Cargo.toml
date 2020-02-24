@@ -20,10 +20,11 @@ bench = true
 doc = true
 
 [features]
-default = ["debugger", "metrics", "logging"]
-metrics = []
-debugger = []
-logging = []
+default = ["debugger", "metrics", "logging", "checks"]
+metrics = [] # Include tracking of metrics during flow execution
+debugger = [] # Include the debugger
+logging = [] # Enable log output during flow execution
+checks = [] # Extra checks are performed during flow execution
 
 [dependencies]
 flow_impl = "=0.8.5"

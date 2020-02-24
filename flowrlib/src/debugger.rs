@@ -128,7 +128,6 @@ impl Debugger {
             self.input_breakpoints.contains(&(destination_id, input_number)) {
             self.client.send_event(SendingValue(
                 source_process_id, value.clone(), destination_id, input_number));
-
             self.client.send_event(DataBreakpoint(source_process_id, output_route.to_string(),
                                                   value.clone(), destination_id, input_number));
             self.wait_for_command(state);

@@ -363,7 +363,7 @@ impl RunState {
         Figure out the state of a function based on it's preence or not in the different control
         lists
     */
-    fn get_state(&self, function_id: usize) -> State {
+    pub fn get_state(&self, function_id: usize) -> State {
         if self.ready.contains(&function_id) {
             State::Ready
         } else {
@@ -536,6 +536,9 @@ impl RunState {
                 }
             }
         }
+
+        #[cfg(feature = "checks")]
+            self.check_invariants();
     }
 
     /*
@@ -613,7 +616,7 @@ impl RunState {
     }
 
     // See if there is any tuple in the vector where the blocked_id is the one we're after
-    fn block_exists(&self, id: usize) -> bool {
+    pub fn block_exists(&self, id: usize) -> bool {
         for block in &self.blocks {
             if block.blocked_id == id {
                 return true;
@@ -724,6 +727,11 @@ impl RunState {
         self.functions.len()
     }
 
+    #[cfg(feature = "checks")]
+    fn runtime_error(&self, message: &str, file: &str, line: u32) {
+        error!("Runtime error: at file: {}, line: {}\n{}", file, line, message)
+    }
+
     /*
         The function blocker_function_id in flow blocked_flow_id has completed execution and so
         is a candidate to send to from other functions that were blocked sending to it previously.
@@ -732,43 +740,94 @@ impl RunState {
         are idle, and hence the flow becomes idle.
     */
     fn unblock_senders(&mut self, blocker_function_id: usize, blocker_flow_id: usize, refilled_inputs: Vec<usize>) {
-        let mut new_pending_unblocks = MultiMap::<usize, (usize, Vec<usize>)>::new();
         trace!("Unblocking senders to Function #{} in Flow #{}", blocker_function_id, blocker_flow_id);
-        // TODO what if multiple jobs for the same function?
 
-        self.busy_flows.retain(|&k, &v| {
-            if k == blocker_flow_id && v == blocker_function_id {
-                // add it to pending unblock list
-                trace!("\tFunction #{} is in Flow #{} which is busy, so adding to to pending unblocks",
-                       blocker_function_id, blocker_flow_id);
-                new_pending_unblocks.insert(blocker_flow_id, (blocker_function_id, refilled_inputs.clone()));
-                false // remove it
-            } else {
-                true // retain it
-            }
+        // Remove this flow-function combination from the busy flow list - assuming only ever one copy running of the same function
+        self.busy_flows.retain(|&_k, &function_id| {
+            function_id != blocker_function_id
         });
-        self.pending_unblocks.extend(new_pending_unblocks);
 
+        #[cfg(feature = "checks-no")]
+        {
+            if self.pending_unblocks.contains_key(&blocker_flow_id) {
+                self.runtime_error(&format!("'runstate.pending_unblocks' already contains a block on {}: [{}, {:?}]",
+                                            blocker_flow_id, blocker_function_id, refilled_inputs.clone()),
+                                   file!(), line!());
+            }
+        }
+
+        // Add this function to the pending unblock list for further down
+        self.pending_unblocks.insert(blocker_flow_id, (blocker_function_id, refilled_inputs.clone()));
+
+        // flow is now idle, so remove any blocks that are sending to functions in it
         if self.busy_flows.get(&blocker_flow_id).is_none() {
             trace!("\tFlow #{} is now idle, so unblocking senders to Function #{}",
                    blocker_flow_id, blocker_function_id);
             // TODO Issue if this function doesn't run again it will block the whole flow?
-            // flow is not busy, so we can perform this unblock
-            self.unblock_senders_to_function(blocker_function_id, refilled_inputs);
 
-            // flow is now idle, so get the unblocks that are pending from when it was busy
             if let Some(unblocks) = self.pending_unblocks.remove(&blocker_flow_id) {
                 trace!("\tRemoving pending unblocks to other functions in Flow #{}", blocker_flow_id);
                 for (unblock_function_id, refilled_ios) in unblocks {
                     self.unblock_senders_to_function(unblock_function_id, refilled_ios);
                 }
             }
-        } else {
-            // flow is busy so note down this unblock for later when the flow does go idle
-            trace!("\tFunction #{} is in Flow #{} which is busy, so adding to to pending unblocks",
-                   blocker_function_id, blocker_flow_id);
-            self.pending_unblocks.insert(blocker_flow_id, (blocker_function_id, refilled_inputs.clone()));
         }
+    }
+
+    /*
+        Check a number of "invariants" i.e. unbreakable rules about the state, and go into debugger
+        if one is found to be broken, with a message explaining it
+    */
+    #[cfg(feature = "checks")]
+    fn check_invariants(&mut self) {
+        let mut num_ready = 0;
+        let mut num_blocked = 0;
+        let mut num_waiting = 0;
+        let mut num_running = 0;
+
+        // check invariants of each functions
+        for function in &self.functions {
+            match self.get_state(function.id()) {
+                State::Ready => {
+                    num_ready += 1;
+                }
+                State::Running => {
+                    num_running += 1;
+                }
+                State::Blocked => {
+                    num_blocked += 1;
+                    // Check if there is a block on this function
+                    if !self.block_exists(function.id()) {
+                        return self.runtime_error(&format!("Function {} is blocked, but no block exists", function.id()),
+                                                  file!(), line!());
+                    }
+                }
+                State::Waiting => {
+                    num_waiting += 1;
+                }
+            }
+        }
+
+        if num_ready + num_blocked + num_waiting + num_running != self.functions.len() {
+            return self.runtime_error(&format!("There are {} functions but the following state counts: \n\
+            Ready: {}\
+            Running: {}\
+            Blocked: {}\
+            Waiting: {}", self.functions.len(), num_ready, num_running, num_blocked, num_waiting),
+                                      file!(), line!());
+        }
+
+        for _blocked_id in &self.blocked {}
+
+        for _block in &self.blocks {}
+
+//        for ready in self.get_ready() {}
+//
+//        for running in state.get_running() {}
+//
+//        for flow in state.get_busy_flows() {}
+//
+//        for unblock in state.get_pending_unblocks() {}
     }
 
     /*
