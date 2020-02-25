@@ -309,6 +309,7 @@ impl RunState {
         self.create_init_blocks();
 
         // Put all functions that have their inputs ready and are not blocked on the `ready` list
+        debug!("\tReadying initial functions: inputs full and not blocked on output");
         for (id, flow_id) in inputs_ready_list {
             self.inputs_now_full(id, flow_id);
         }
@@ -325,7 +326,7 @@ impl RunState {
         let mut blocks = BlockList::new();
         let mut blocked = HashSet::<usize>::new();
 
-        debug!("Creating any initial block entries that are needed");
+        debug!("\tCreating any initial block entries that are needed");
 
         for source_function in &self.functions {
             let source_id;
@@ -343,7 +344,7 @@ impl RunState {
                 if destination.function_id != source_id { // don't block yourself!
                     let destination_function = self.get(destination.function_id);
                     if destination_function.input_full(destination.io_number) {
-                        trace!("\tAdded block between #{} <-- #{}", destination.function_id, source_id);
+                        trace!("\t\tAdded block #{} --> #{}:{}", source_id, destination.function_id, destination.io_number);
                         blocks.push_back(Block::new(destination.function_id, destination.io_number,
                                                     source_id, source_flow_id));
                         // only put source on the blocked list if it already has it's inputs full
@@ -729,7 +730,8 @@ impl RunState {
 
     #[cfg(feature = "checks")]
     fn runtime_error(&self, message: &str, file: &str, line: u32) {
-        error!("Runtime error: at file: {}, line: {}\n{}", file, line, message)
+        error!("Runtime error: at file: {}, line: {}\n\t\t{}", file, line, message);
+        panic!();
     }
 
     /*
@@ -747,19 +749,10 @@ impl RunState {
             function_id != blocker_function_id
         });
 
-        #[cfg(feature = "checks-no")]
-        {
-            if self.pending_unblocks.contains_key(&blocker_flow_id) {
-                self.runtime_error(&format!("'runstate.pending_unblocks' already contains a block on {}: [{}, {:?}]",
-                                            blocker_flow_id, blocker_function_id, refilled_inputs.clone()),
-                                   file!(), line!());
-            }
-        }
-
         // Add this function to the pending unblock list for further down
-        self.pending_unblocks.insert(blocker_flow_id, (blocker_function_id, refilled_inputs.clone()));
+        self.pending_unblocks.insert(blocker_flow_id, (blocker_function_id, refilled_inputs));
 
-        // flow is now idle, so remove any blocks that are sending to functions in it
+        // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
             trace!("\tFlow #{} is now idle, so unblocking senders to Function #{}",
                    blocker_flow_id, blocker_function_id);
