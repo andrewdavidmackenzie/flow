@@ -616,7 +616,7 @@ impl RunState {
         self.running.insert(job.function_id, job.job_id);
     }
 
-    // See if there is any tuple in the vector where the blocked_id is the one we're after
+    // See if there is any block where the source (blocked) function is the id we're looking for
     pub fn block_exists(&self, id: usize) -> bool {
         for block in &self.blocks {
             if block.blocked_id == id {
@@ -834,22 +834,22 @@ impl RunState {
 
         // Avoid unblocking multiple functions blocked on sending to the same input, just unblock the first
         let mut unblock_io_numbers = vec!();
-        for block in &self.blocks {
+
+        trace!("Removing blocks with destination #{}", blocker_function_id);
+        self.blocks.retain(|block| {
             if (block.blocking_id == blocker_function_id) && !refilled_inputs.contains(&block.blocking_io_number) &&
                 !unblock_io_numbers.contains(&block.blocking_io_number) {
-                trace!("\t\tBlock removed {:?}", block);
                 unblock_list.push((block.blocked_id, block.blocked_flow_id));
                 unblock_io_numbers.push(block.blocking_io_number);
+                trace!("\t\tBlock removed {:?}", block);
+                false // remove this block
+            } else {
+                true // retain this block
             }
-        }
+        });
 
-        // retain all blocks unaffected by removing this one
-        self.blocks.retain(|block|
-            !((block.blocking_id == blocker_function_id) && !refilled_inputs.contains(&block.blocking_io_number))
-        );
-
-        // see if the functions unblocked should not be made ready.
-        // Note, they could be blocked on other functions apart from the the one that just unblocked
+        // update state of functions unblocked by removal of blocks
+        // Note: they could be blocked on other functions apart from the the one that just unblocked
         for (unblocked_id, unblocked_flow_id) in unblock_list {
             if self.blocked.contains(&unblocked_id) && !self.block_exists(unblocked_id) {
                 debug!("\t\t\tFunction #{} removed from 'blocked' list", unblocked_id);
