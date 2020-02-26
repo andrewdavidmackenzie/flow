@@ -58,13 +58,13 @@ to = "process/compare/left"
 # connect the /lt output of compare (i.e. numbers that are less than or equal to the limit) to the output of this process -
 # the sequence of numbers being generated
 [[connection]]
-from = "process/compare/lte"
+from = "process/compare/right-lte"
 to = "output/sequence"
 
 # Take the last generated number of the sequence and pass it to the added to add one to it for the next number
 # in the sequence (if less than the limit)
 [[connection]]
-from = "process/compare/lte"
+from = "process/compare/right-lte"
 to = "process/add/i1"
 
 # After the first iteration, each time take the output of the adder (i.e. possibly the next number in the sequence)

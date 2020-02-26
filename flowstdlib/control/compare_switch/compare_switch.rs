@@ -35,19 +35,23 @@ impl Implementation for CompareSwitch {
                 }
 
                 if right < left  {
-                    output_map.insert("lt".into(), Value::Number(serde_json::Number::from(right)));
+                    output_map.insert("right-lt".into(), Value::Number(serde_json::Number::from(right)));
+                    output_map.insert("left-gt".into(), Value::Number(serde_json::Number::from(left)));
                 }
 
                 if right > left {
-                    output_map.insert("gt".into(), Value::Number(serde_json::Number::from(right)));
+                    output_map.insert("right-gt".into(), Value::Number(serde_json::Number::from(right)));
+                    output_map.insert("left-lt".into(), Value::Number(serde_json::Number::from(left)));
                 }
 
                 if right <= left {
-                    output_map.insert("lte".into(), Value::Number(serde_json::Number::from(right)));
+                    output_map.insert("right-lte".into(), Value::Number(serde_json::Number::from(right)));
+                    output_map.insert("left-gte".into(), Value::Number(serde_json::Number::from(left)));
                 }
 
                 if right >= left {
-                    output_map.insert("gte".into(), Value::Number(serde_json::Number::from(right)));
+                    output_map.insert("right-gte".into(), Value::Number(serde_json::Number::from(right)));
+                    output_map.insert("left-lte".into(), Value::Number(serde_json::Number::from(left)));
                 }
 
                 let output = Value::Object(output_map);

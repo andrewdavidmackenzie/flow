@@ -11,13 +11,25 @@ name = "right"
 name = "equal"
 
 [[output]]
-name = "lt"
+name = "right-lt"
 
 [[output]]
-name = "lte"
+name = "right-lte"
 
 [[output]]
-name = "gt"
+name = "right-gt"
 
 [[output]]
-name = "gte"
+name = "right-gte"
+
+[[output]]
+name = "left-lt"
+
+[[output]]
+name = "left-lte"
+
+[[output]]
+name = "left-gt"
+
+[[output]]
+name = "left-gte"
