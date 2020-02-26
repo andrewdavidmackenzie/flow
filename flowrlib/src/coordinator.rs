@@ -131,7 +131,7 @@ impl Coordinator {
         let (job_tx, job_rx, ) = mpsc::channel();
         let (output_tx, output_rx) = mpsc::channel();
 
-        info!("Starting {} additional executor threads", num_threads);
+        info!("Starting {} executor threads", num_threads);
         let shared_job_receiver = Arc::new(Mutex::new(job_rx));
         execution::start_executors(num_threads, &shared_job_receiver, &output_tx);
 
@@ -198,12 +198,13 @@ impl Coordinator {
                         }
                         Err(err) => error!("Error receiving execution result: {}", err)
                     }
+                    trace!("After Job - {}", submission.state);
                 }
-
-                trace!("{}", submission.state);
 
                 if submission.state.number_jobs_running() == 0 &&
                     submission.state.number_jobs_ready() == 0 {
+                    trace!("Final - {}", submission.state);
+
                     // execution is done - but not returning here allows us to go into debugger
                     // at the end of exeution, inspect state and possibly reset and rerun
                     break 'inner;
