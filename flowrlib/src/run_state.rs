@@ -235,7 +235,7 @@ pub struct RunState {
     jobs_sent: usize,
     /// limit on the number of jobs allowed to be pending to complete (i.e. running in parallel)
     max_pending_jobs: usize,
-    /// Track which flow-function combinations are considered "busy" <flow_id, function_id, vec<refilled ios>
+    /// Track which flow-function combinations are considered "busy" <flow_id, function_id>
     busy_flows: MultiMap<usize, usize>,
     /// Track which functions have finished and can be unblocked when flow goes not "busy"
     pending_unblocks: MultiMap<usize, (usize, Vec<usize>)>,
@@ -548,10 +548,6 @@ impl RunState {
     */
     fn send_value(&mut self, source_id: usize, source_flow_id: usize, output_route: &str, destination_id: usize, io_number: usize,
                   output_value: &Value, metrics: &mut Metrics, debugger: &mut Option<Debugger>) {
-        let block;
-        let full;
-        let destination_flow_id;
-
         if output_route.is_empty() {
             debug!("\t\tFunction #{} sending '{}' to Function #{}:{}",
                    source_id, output_value, destination_id, io_number);
@@ -565,21 +561,19 @@ impl RunState {
                                          &output_value, destination_id, io_number);
         }
 
-        {
-            let destination = self.get_mut(destination_id);
-            destination_flow_id = destination.get_flow_id();
-            destination.write_input(io_number, output_value);
+        let destination = self.get_mut(destination_id);
+        let destination_flow_id = destination.get_flow_id();
+        destination.write_input(io_number, output_value);
 
-            #[cfg(feature = "metrics")]
-                metrics.increment_outputs_sent();
+        #[cfg(feature = "metrics")]
+        metrics.increment_outputs_sent();
 
-            block = destination.input_full(io_number);
-
-            // for the case when a function is sending to itself, delay determining if it should
-            // be in the blocked or ready lists until it has sent all it's other outputs
-            // as it might be blocked by another function.
-            full = destination.inputs_full() && (source_id != destination_id);
-        }
+        // for the case when a function is sending to itself:
+        // - avoid blocking on itself
+        // - delay determining if it should be in the blocked or ready lists (by calling inputs_now_full())
+        //   until it has sent all it's other outputs as it might be blocked by another function.
+        let block = destination.input_full(io_number) && (source_id != destination_id);
+        let full = destination.inputs_full() && (source_id != destination_id);
 
         if block {
             self.create_block(destination_id, io_number, source_id, source_flow_id, debugger);
@@ -742,15 +736,21 @@ impl RunState {
         are idle, and hence the flow becomes idle.
     */
     fn unblock_senders(&mut self, blocker_function_id: usize, blocker_flow_id: usize, refilled_inputs: Vec<usize>) {
-        trace!("Unblocking senders to Function #{} in Flow #{}", blocker_function_id, blocker_flow_id);
-
         // Remove this flow-function combination from the busy flow list - assuming only ever one copy running of the same function
-        self.busy_flows.retain(|&_k, &function_id| {
+        self.busy_flows.retain(|&_flow_id, &function_id| {
             function_id != blocker_function_id
         });
 
+        #[cfg(feature = "checks-no")]
+        for (key, value) in self.pending_unblocks.iter() {
+            if key == &blocker_flow_id && value == &(blocker_function_id, refilled_inputs.clone()) {
+                self.runtime_error(&format!("runstate.pending_unblocks already has entry {}: [({}, {:?})]",
+                                            blocker_flow_id, blocker_function_id, refilled_inputs), file!(), line!());
+            }
+        }
+
         // Add this function to the pending unblock list for further down
-        self.pending_unblocks.insert(blocker_flow_id, (blocker_function_id, refilled_inputs));
+        self.pending_unblocks.insert(blocker_flow_id, (blocker_function_id, refilled_inputs.clone()));
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
@@ -764,6 +764,9 @@ impl RunState {
                     self.unblock_senders_to_function(unblock_function_id, refilled_ios);
                 }
             }
+        } else {
+            trace!("\tFlow #{} is still busy, pending unblock added #{}: [({}, {:?})]",
+                   blocker_flow_id, blocker_flow_id, blocker_function_id, refilled_inputs.clone());
         }
     }
 
@@ -869,16 +872,13 @@ impl RunState {
     */
     fn create_block(&mut self, blocking_id: usize, blocking_io_number: usize,
                     blocked_id: usize, blocked_flow_id: usize, debugger: &mut Option<Debugger>) {
-        // Avoid deadlocks caused by a function blocking itself
-        if blocked_id != blocking_id {
-            let block = Block::new(blocking_id, blocking_io_number, blocked_id, blocked_flow_id);
-            trace!("\t\t\tCreating Block {:?}", block);
+        let block = Block::new(blocking_id, blocking_io_number, blocked_id, blocked_flow_id);
+        trace!("\t\t\tCreating Block {:?}", block);
 
-            if !self.blocks.contains(&block) {
-                self.blocks.push_back(block.clone());
-                if let Some(ref mut debugger) = debugger {
-                    debugger.check_on_block_creation(self, &block);
-                }
+        if !self.blocks.contains(&block) {
+            self.blocks.push_back(block.clone());
+            if let Some(ref mut debugger) = debugger {
+                debugger.check_on_block_creation(self, &block);
             }
         }
     }
