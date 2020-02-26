@@ -566,7 +566,7 @@ impl RunState {
         destination.write_input(io_number, output_value);
 
         #[cfg(feature = "metrics")]
-        metrics.increment_outputs_sent();
+            metrics.increment_outputs_sent();
 
         // for the case when a function is sending to itself:
         // - avoid blocking on itself
@@ -741,15 +741,7 @@ impl RunState {
             function_id != blocker_function_id
         });
 
-        #[cfg(feature = "checks-no")]
-        for (key, value) in self.pending_unblocks.iter() {
-            if key == &blocker_flow_id && value == &(blocker_function_id, refilled_inputs.clone()) {
-                self.runtime_error(&format!("runstate.pending_unblocks already has entry {}: [({}, {:?})]",
-                                            blocker_flow_id, blocker_function_id, refilled_inputs), file!(), line!());
-            }
-        }
-
-        // Add this function to the pending unblock list for further down
+        // Add this function to the pending unblock list for further down - if not already there
         self.pending_unblocks.insert(blocker_flow_id, (blocker_function_id, refilled_inputs.clone()));
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
@@ -759,14 +751,14 @@ impl RunState {
             // TODO Issue if this function doesn't run again it will block the whole flow?
 
             if let Some(unblocks) = self.pending_unblocks.remove(&blocker_flow_id) {
-                trace!("\tRemoving pending unblocks to other functions in Flow #{}", blocker_flow_id);
+                trace!("\tRemoving pending unblocks to functions in Flow #{}", blocker_flow_id);
                 for (unblock_function_id, refilled_ios) in unblocks {
                     self.unblock_senders_to_function(unblock_function_id, refilled_ios);
                 }
             }
         } else {
             trace!("\tFlow #{} is still busy, pending unblock added #{}: [({}, {:?})]",
-                   blocker_flow_id, blocker_flow_id, blocker_function_id, refilled_inputs.clone());
+                   blocker_flow_id, blocker_flow_id, blocker_function_id, refilled_inputs);
         }
     }
 
