@@ -15,11 +15,6 @@ type = "Number"
 name = "sequence"
 type = "Number"
 
-# Output the maximum number of the sequence for use downstream
-[[output]]
-name = "max"
-type = "Number"
-
 # A value is output when the sequence has ended
 [[output]]
 name = "done"
@@ -83,8 +78,3 @@ to = "process/compare/right"
 [[connection]]
 from = "process/compare/equal"
 to = "output/done"
-
-# Connect the limit store to the 'max' output so that processes downstream can use it
-[[connection]]
-from = "process/limit-store"
-to = "output/max"
