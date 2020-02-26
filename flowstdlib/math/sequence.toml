@@ -24,20 +24,10 @@ name = "done"
 from = "input/start"
 to = "process/compare/right"
 
-# A buffer to store the number that is the limit of the sequence
-[[process]]
-alias = "limit-store"
-source = "lib://flowstdlib/data/buffer"
-
 # Put the limit of the sequence from the "end" input into the limit store
 [[connection]]
 from = "input/end"
-to = "process/limit-store"
-
-# Refresh the limit store with the same value each time
-[[connection]]
-from = "process/limit-store"
-to = "process/limit-store"
+to = "process/compare/left"
 
 # "pass if less than or equal" process that will pass all numbers that are less than the limit
 [[process]]
@@ -50,16 +40,16 @@ alias = "add"
 source = "lib://flowstdlib/math/add"
 input.i2 = {constant = 1}
 
-# Pass the 'limit' to the compare process to prevent numbers greater than the limit passing
-[[connection]]
-from = "process/limit-store"
-to = "process/compare/left"
-
 # connect the /lt output of compare (i.e. numbers that are less than or equal to the limit) to the output of this process -
 # the sequence of numbers being generated
 [[connection]]
 from = "process/compare/right-lte"
 to = "output/sequence"
+
+# while the sequence is running - feed the left value (limit) back around to compare against next time
+[[connection]]
+from = "process/compare/left-gt"
+to = "process/compare/left"
 
 # Take the last generated number of the sequence and pass it to the added to add one to it for the next number
 # in the sequence (if less than the limit)
