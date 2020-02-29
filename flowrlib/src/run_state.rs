@@ -47,6 +47,7 @@ pub struct Output {
 /// blocks: (blocking_id, blocking_io_number, blocked_id, blocked_flow_id) a blocks between functions
 #[derive(PartialEq, Clone)]
 pub struct Block {
+    pub blocking_flow_id: usize,
     pub blocking_id: usize,
     pub blocking_io_number: usize,
     pub blocked_id: usize,
@@ -54,8 +55,9 @@ pub struct Block {
 }
 
 impl Block {
-    fn new(blocking_id: usize, blocking_io_number: usize, blocked_id: usize, blocked_flow_id: usize) -> Self {
+    fn new(blocking_flow_id: usize, blocking_id: usize, blocking_io_number: usize, blocked_id: usize, blocked_flow_id: usize) -> Self {
         Block {
+            blocking_flow_id,
             blocking_id,
             blocking_io_number,
             blocked_id,
@@ -66,8 +68,8 @@ impl Block {
 
 impl fmt::Debug for Block {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "#{}({}) --> #{}:{}", self.blocked_id, self.blocked_flow_id,
-               self.blocking_id, self.blocking_io_number)
+        write!(f, "#{}({}) --> #{}({}):{}", self.blocked_id, self.blocked_flow_id,
+               self.blocking_id, self.blocking_flow_id, self.blocking_io_number)
     }
 }
 
@@ -345,7 +347,7 @@ impl RunState {
                     let destination_function = self.get(destination.function_id);
                     if destination_function.input_full(destination.io_number) {
                         trace!("\t\tAdded block #{} --> #{}:{}", source_id, destination.function_id, destination.io_number);
-                        blocks.push_back(Block::new(destination.function_id, destination.io_number,
+                        blocks.push_back(Block::new(destination.flow_id, destination.function_id, destination.io_number,
                                                     source_id, source_flow_id));
                         // only put source on the blocked list if it already has it's inputs full
                         if source_has_inputs_full {
@@ -513,7 +515,7 @@ impl RunState {
                                                 &destination.subpath,
                                                 destination.function_id,
                                                 destination.io_number, output_value, metrics, debugger),
-                            _ => trace!("No output value found at '{}'", &destination.subpath)
+                            _ => trace!("\t\tNo output value found at '{}'", &destination.subpath)
                         }
                     }
                 }
@@ -576,7 +578,7 @@ impl RunState {
         let full = destination.inputs_full() && (source_id != destination_id);
 
         if block {
-            self.create_block(destination_id, io_number, source_id, source_flow_id, debugger);
+            self.create_block(destination_flow_id, destination_id, io_number, source_id, source_flow_id, debugger);
         }
 
         if full {
@@ -736,29 +738,93 @@ impl RunState {
         are idle, and hence the flow becomes idle.
     */
     fn unblock_senders(&mut self, blocker_function_id: usize, blocker_flow_id: usize, refilled_inputs: Vec<usize>) {
+        // delete blocks to this function from within the same flow
+        let flow_internal_blocks = |block: &Block| block.blocking_flow_id == block.blocked_flow_id;
+        let any_block = |_block: &Block| true;
+        self.unblock_senders_to_function(blocker_function_id, &refilled_inputs, flow_internal_blocks);
+
         // Remove this flow-function combination from the busy flow list - assuming only ever one copy running of the same function
         self.busy_flows.retain(|&_flow_id, &function_id| {
             function_id != blocker_function_id
         });
+        trace!("\tUpdated busy_flows list to: {:?}", self.busy_flows);
 
         // Add this function to the pending unblock list for further down - if not already there
         self.pending_unblocks.insert(blocker_flow_id, (blocker_function_id, refilled_inputs.clone()));
+        trace!("Added a pending_unblock for #{}({})", blocker_function_id, blocker_flow_id);
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
-            trace!("\tFlow #{} is now idle, so unblocking senders to Function #{}",
-                   blocker_flow_id, blocker_function_id);
-            // TODO Issue if this function doesn't run again it will block the whole flow?
+            trace!("\tFlow #{} is now idle, so removing pending_unblocks for flow #{}",
+                   blocker_flow_id, blocker_flow_id);
 
             if let Some(unblocks) = self.pending_unblocks.remove(&blocker_flow_id) {
                 trace!("\tRemoving pending unblocks to functions in Flow #{}", blocker_flow_id);
                 for (unblock_function_id, refilled_ios) in unblocks {
-                    self.unblock_senders_to_function(unblock_function_id, refilled_ios);
+                    self.unblock_senders_to_function(unblock_function_id, &refilled_ios, any_block);
                 }
             }
-        } else {
-            trace!("\tFlow #{} is still busy, pending unblock added #{}: [({}, {:?})]",
-                   blocker_flow_id, blocker_flow_id, blocker_function_id, refilled_inputs);
+        }
+    }
+
+    /*
+        unblock all functions that were blocked trying to send to blocker_function_id by removing all entries
+        in the `blocks` list where the first value (blocking_id) matches blocker_function_id.
+
+        Once each is unblocked, if it's inputs are full, then it is ready to be run again,
+        so mark as ready
+    */
+    fn unblock_senders_to_function<F>(&mut self, blocker_function_id: usize, refilled_inputs: &Vec<usize>,
+                                   f: F) where F: Fn(&Block) -> bool {
+        let mut unblock_list = vec!();
+
+        // Avoid unblocking multiple functions blocked on sending to the same input, just unblock the first
+        let mut unblock_io_numbers = vec!();
+
+        // don't unblock more than one function sending to each io port
+        trace!("\tRemoving blocks with destination #{}", blocker_function_id);
+        self.blocks.retain(|block| {
+            if (block.blocking_id == blocker_function_id) && !refilled_inputs.contains(&block.blocking_io_number) &&
+                !unblock_io_numbers.contains(&block.blocking_io_number) && f(block)
+            {
+                unblock_list.push((block.blocked_id, block.blocked_flow_id));
+                unblock_io_numbers.push(block.blocking_io_number);
+                trace!("\t\t\tBlock removed {:?}", block);
+                false // remove this block
+            } else {
+                true // retain this block
+            }
+        });
+
+        // update state of functions unblocked
+        // Note: they could be blocked on other functions apart from the the one that just unblocked
+        for (unblocked_id, unblocked_flow_id) in unblock_list {
+            if self.blocked.contains(&unblocked_id) && !self.block_exists(unblocked_id) {
+                debug!("\t\t\t\tFunction #{} removed from 'blocked' list", unblocked_id);
+                self.blocked.remove(&unblocked_id);
+
+                if self.get(unblocked_id).inputs_full() {
+                    debug!("\t\t\t\tFunction #{} has inputs ready, so added to 'ready' list", unblocked_id);
+                    self.mark_ready(unblocked_id, unblocked_flow_id);
+                }
+            }
+        }
+    }
+
+    /*
+        Create a 'block" indicating that function 'blocked_id' cannot run as it has an output
+        destination to an input on function 'blocking_id' that is already full.
+    */
+    fn create_block(&mut self, blocking_flow_id: usize, blocking_id: usize, blocking_io_number: usize,
+                    blocked_id: usize, blocked_flow_id: usize, debugger: &mut Option<Debugger>) {
+        let block = Block::new(blocking_flow_id, blocking_id, blocking_io_number, blocked_id, blocked_flow_id);
+        trace!("\t\t\tCreating Block {:?}", block);
+
+        if !self.blocks.contains(&block) {
+            self.blocks.push_back(block.clone());
+            if let Some(ref mut debugger) = debugger {
+                debugger.check_on_block_creation(self, &block);
+            }
         }
     }
 
@@ -816,63 +882,6 @@ impl RunState {
 //        for flow in state.get_busy_flows() {}
 //
 //        for unblock in state.get_pending_unblocks() {}
-    }
-
-    /*
-        unblock all functions that were blocked trying to send to blocker_function_id by removing all entries
-        in the list where the first value (blocking_id) matches the destination_id
-        when each is unblocked on output, if it's inputs are satisfied, then it is ready to be run
-        again, so put it on the ready queue
-    */
-    fn unblock_senders_to_function(&mut self, blocker_function_id: usize, refilled_inputs: Vec<usize>) {
-        let mut unblock_list = vec!();
-
-        // Avoid unblocking multiple functions blocked on sending to the same input, just unblock the first
-        let mut unblock_io_numbers = vec!();
-
-        trace!("Removing blocks with destination #{}", blocker_function_id);
-        self.blocks.retain(|block| {
-            if (block.blocking_id == blocker_function_id) && !refilled_inputs.contains(&block.blocking_io_number) &&
-                !unblock_io_numbers.contains(&block.blocking_io_number) {
-                unblock_list.push((block.blocked_id, block.blocked_flow_id));
-                unblock_io_numbers.push(block.blocking_io_number);
-                trace!("\t\tBlock removed {:?}", block);
-                false // remove this block
-            } else {
-                true // retain this block
-            }
-        });
-
-        // update state of functions unblocked by removal of blocks
-        // Note: they could be blocked on other functions apart from the the one that just unblocked
-        for (unblocked_id, unblocked_flow_id) in unblock_list {
-            if self.blocked.contains(&unblocked_id) && !self.block_exists(unblocked_id) {
-                debug!("\t\t\tFunction #{} removed from 'blocked' list", unblocked_id);
-                self.blocked.remove(&unblocked_id);
-
-                if self.get(unblocked_id).inputs_full() {
-                    debug!("\t\t\tFunction #{} has inputs ready, so added to 'ready' list", unblocked_id);
-                    self.mark_ready(unblocked_id, unblocked_flow_id);
-                }
-            }
-        }
-    }
-
-    /*
-        Create a 'block" indicating that function 'blocked_id' cannot run as it has an output
-        destination to an input on function 'blocking_id' that is already full.
-    */
-    fn create_block(&mut self, blocking_id: usize, blocking_io_number: usize,
-                    blocked_id: usize, blocked_flow_id: usize, debugger: &mut Option<Debugger>) {
-        let block = Block::new(blocking_id, blocking_io_number, blocked_id, blocked_flow_id);
-        trace!("\t\t\tCreating Block {:?}", block);
-
-        if !self.blocks.contains(&block) {
-            self.blocks.push_back(block.clone());
-            if let Some(ref mut debugger) = debugger {
-                debugger.check_on_block_creation(self, &block);
-            }
-        }
     }
 }
 
@@ -1568,7 +1577,7 @@ mod test {
             let mut debugger = Some(Debugger::new(test_debug_client()));
 
 // Indicate that 0 is blocked by 1 on input 0
-            state.create_block(1, 0, 0, 0, &mut debugger);
+            state.create_block(0, 1, 0, 0, 0, &mut debugger);
             assert!(state.block_exists(0));
         }
 
@@ -1612,7 +1621,7 @@ mod test {
             let mut debugger = Some(Debugger::new(test_debug_client()));
 
 // Indicate that 0 is blocked by 1 on input 0
-            state.create_block(1, 0, 0, 0, &mut debugger);
+            state.create_block(0, 1, 0, 0, 0, &mut debugger);
 
 // Put 0 on the blocked/ready list depending on blocked status
             state.inputs_now_full(0, 0);
@@ -1626,7 +1635,7 @@ mod test {
             let mut debugger = Some(Debugger::new(test_debug_client()));
 
             // Indicate that 0 is blocked by 1 and put 0 on the blocked list
-            state.create_block(1, 0, 0, 0, &mut debugger);
+            state.create_block(0, 1, 0, 0, 0, &mut debugger);
             // 0's inputs are now full, so it would be ready if it weren't blocked on output
             state.inputs_now_full(0, 0);
             // 0 does not show as ready.
@@ -1645,8 +1654,8 @@ mod test {
             let mut debugger = Some(Debugger::new(test_debug_client()));
 
 // Indicate that 0 is blocked by 1 and 2
-            state.create_block(1, 0, 0, 0, &mut debugger);
-            state.create_block(2, 0, 0, 0, &mut debugger);
+            state.create_block(0, 1, 0, 0, 0, &mut debugger);
+            state.create_block(0, 2, 0, 0, 0, &mut debugger);
 
 // Put 0 on the blocked/ready list depending on blocked status
             state.inputs_now_full(0, 0);
