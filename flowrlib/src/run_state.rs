@@ -467,7 +467,7 @@ impl RunState {
 
         debug!("-----------------------Creating Job #{} for Function #{} '{}'", job_id, function_id, function.name());
 
-        // refresh any inputs that have constant initializers
+        // inputs were taken and hence emptied - so refresh any inputs that have constant initializers for next time
         let refilled = function.init_inputs(false);
         let all_refilled = refilled.len() == function.inputs().len();
 
