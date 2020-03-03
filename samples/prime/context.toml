@@ -21,19 +21,10 @@ to = "process/check-if-prime/candidate"
 alias = "check-if-prime"
 source = "check_if_prime"
 
-# Convert any prime that was output to a string and print it
-[[process]]
-alias = "to_string"
-source = "lib://flowstdlib/fmt/to_string"
-
 [[connection]]
 from = "process/check-if-prime/prime"
-to = "process/to_string"
+to = "process/print"
 
 [[process]]
 alias = "print"
 source = "lib://flowruntime/stdio/stdout"
-
-[[connection]]
-from = "process/to_string"
-to = "process/print"

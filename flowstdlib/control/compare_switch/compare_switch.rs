@@ -30,24 +30,28 @@ impl Implementation for CompareSwitch {
         match (inputs[0].remove(0).as_i64(), inputs[1].remove(0).as_i64()) {
             (Some(left), Some(right)) => {
                 let mut output_map = serde_json::Map::new();
-                if left == right {
+                if right == left {
                     output_map.insert("equal".into(), Value::Number(serde_json::Number::from(right)));
                 }
 
-                if left < right {
-                    output_map.insert("lt".into(), Value::Number(serde_json::Number::from(right)));
+                if right < left  {
+                    output_map.insert("right-lt".into(), Value::Number(serde_json::Number::from(right)));
+                    output_map.insert("left-gt".into(), Value::Number(serde_json::Number::from(left)));
                 }
 
-                if left > right {
-                    output_map.insert("gt".into(), Value::Number(serde_json::Number::from(right)));
+                if right > left {
+                    output_map.insert("right-gt".into(), Value::Number(serde_json::Number::from(right)));
+                    output_map.insert("left-lt".into(), Value::Number(serde_json::Number::from(left)));
                 }
 
-                if left <= right {
-                    output_map.insert("lte".into(), Value::Number(serde_json::Number::from(right)));
+                if right <= left {
+                    output_map.insert("right-lte".into(), Value::Number(serde_json::Number::from(right)));
+                    output_map.insert("left-gte".into(), Value::Number(serde_json::Number::from(left)));
                 }
 
-                if left >= right {
-                    output_map.insert("gte".into(), Value::Number(serde_json::Number::from(right)));
+                if right >= left {
+                    output_map.insert("right-gte".into(), Value::Number(serde_json::Number::from(right)));
+                    output_map.insert("left-lte".into(), Value::Number(serde_json::Number::from(left)));
                 }
 
                 let output = Value::Object(output_map);
@@ -56,5 +60,30 @@ impl Implementation for CompareSwitch {
             }
             (_, _) => (None, RUN_AGAIN)
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use flow_impl::{Implementation, RUN_AGAIN};
+    use serde_json::json;
+
+    use super::CompareSwitch;
+
+    #[test]
+    fn equals() {
+        let left = vec!(json!(1));
+        let right = vec!(json!(1));
+        let inputs = vec!(left, right);
+
+        let comparer = &CompareSwitch{} as &dyn Implementation;
+
+        let (value, run_again) = comparer.run(inputs);
+
+        assert_eq!(run_again, RUN_AGAIN);
+        assert!(value.is_some());
+        let value = value.unwrap();
+        let map = value.as_object().unwrap();
+        assert!(map.contains_key("equal"));
     }
 }

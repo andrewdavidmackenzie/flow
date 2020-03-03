@@ -73,13 +73,13 @@ fn run() -> Result<()> {
     let provider = MetaProvider {};
 
     // Load this run-time's library of native (statically linked) implementations
-    loader.add_lib(&provider, "lib://flowruntime", flowruntime::get_manifest(Arc::new(Mutex::new(CLIRuntimeClient {}))), "flowruntime")
+    loader.add_lib(&provider, "lib://flowruntime", flowruntime::get_manifest(Arc::new(Mutex::new(CLIRuntimeClient {}))), "native")
         .chain_err(|| "Could not add 'flowruntime' library to loader")?;
 
     // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
     if cfg!(feature = "native") {
         if matches.is_present("native") {
-            loader.add_lib(&provider, "lib://flowstdlib", flowstdlib::get_manifest(), "flowstdlib")
+            loader.add_lib(&provider, "lib://flowstdlib", flowstdlib::get_manifest(), "native")
                 .chain_err(|| "Could not add 'flowstdlib' library to loader")?;
         }
     }
@@ -239,7 +239,7 @@ fn parse_args(matches: &ArgMatches) -> Result<Url> {
     SimpleLogger::init(matches.value_of("verbosity"));
 
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    info!("'flowrlib' version {}\n", info::version());
+    info!("'flowrlib' version {}", info::version());
 
     url_from_string(matches.value_of("flow-manifest"))
         .chain_err(|| "Unable to parse the URL of the manifest of the flow to run")

@@ -27,16 +27,16 @@ use crate::errors::*;
 /*
     Compile a flow, maybe run it
 */
-pub fn compile_flow(url: Url, flow_args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool,
-                    provided_implementations: bool, out_dir: PathBuf, provider: &dyn Provider, release: bool)
-                    -> Result<String> {
+pub fn compile_and_execute_flow(url: &Url, flow_args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool,
+                                provided_implementations: bool, out_dir: PathBuf, provider: &dyn Provider, release: bool)
+                                -> Result<String> {
     info!("==== Compiler phase: Loading flow");
     let context = loader::load_context(&url.to_string(), provider)
         .chain_err(|| "Couldn't load context")?;
     match context {
         FlowProcess(flow) => {
             let mut tables = compile::compile(&flow)
-                .chain_err(|| "Could not compile flow")?;
+                .chain_err(|| format!("Could not compile the flow '{}'", url))?;
 
             info!("==== Compiler phase: Compiling provided implementations");
             compile_supplied_implementations(&mut tables, provided_implementations, release)?;
@@ -143,8 +143,10 @@ fn execute_flow(filepath: PathBuf, mut flow_args: Vec<String>) -> Result<String>
     info!("Executing flow from manifest in '{}'", filepath.display());
 
     let command = find_executable_path(&get_executable_name())?;
-    let mut command_args = vec!(filepath.to_str().unwrap().to_string(),
-                                "-n".to_string());
+    let mut command_args = vec!(filepath.to_str().unwrap().to_string());
+    if !flow_args.contains(&"-n".to_string()) {
+        command_args.push("-n".to_string());
+    }
     command_args.append(&mut flow_args);
     debug!("Running flow using '{} {:?}'", &command, &command_args);
     let output = Command::new(&command).args(command_args)

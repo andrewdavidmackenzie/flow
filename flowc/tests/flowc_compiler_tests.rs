@@ -75,7 +75,34 @@ fn same_name_input_and_output() {
         let tables = compile::compile(flow).unwrap();
         // If done correctly there should only be two connections
         // args -> buffer, and buffer -> print
-        assert_eq!(2, tables.collapsed_connections.len());
+        assert_eq!(4, tables.collapsed_connections.len());
+    } else {
+        assert!(false, "Process loaded was not a flow");
+    }
+}
+
+#[test]
+fn same_name_flow_ids() {
+    let meta_provider = MetaProvider {};
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/same-name-parent.toml");
+    let process = loader::load_context(&path, &meta_provider).unwrap();
+    if let FlowProcess(ref flow) = process {
+        let tables = compile::compile(flow).unwrap();
+
+        // print function in context flow should have flow_id = 0
+        let print_function = tables.functions.iter()
+            .find(|f| f.alias() == &Name::from("print")).unwrap();
+        assert_eq!(print_function.get_flow_id(), 0, "print function in context should have flow_id = 0");
+
+        // buffer function in first child flow should have flow_id = 1
+        let buffer_function = tables.functions.iter()
+            .find(|f| f.route() == &Route::from("/context/child/buffer")).unwrap();
+        assert_eq!(buffer_function.get_flow_id(), 1);
+
+        // buffer function in second child flow should have flow_id = 2
+        let buffer2_function = tables.functions.iter()
+            .find(|f| f.route() == &Route::from("/context/child2/buffer")).unwrap();
+        assert_eq!(buffer2_function.get_flow_id(), 2);
     } else {
         assert!(false, "Process loaded was not a flow");
     }
@@ -90,6 +117,22 @@ fn double_connection() {
         let tables = compile::compile(flow);
         match tables {
             Ok(_) => assert!(false, "Process should not have loaded due to double connection"),
+            Err(_) => { /* Error was detected and reported correctly and didn't crash */ }
+        }
+    } else {
+        assert!(false, "Process loaded was not a flow");
+    }
+}
+
+#[test]
+fn connection_to_input_with_constant_initializer() {
+    let meta_provider = MetaProvider {};
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/connect_to_constant.toml");
+    let process = loader::load_context(&path, &meta_provider).unwrap();
+    if let FlowProcess(ref flow) = process {
+        let tables = compile::compile(flow);
+        match tables {
+            Ok(_) => assert!(false, "Process should not have loaded due to connection to input with a constant initializer"),
             Err(_) => { /* Error was detected and reported correctly and didn't crash */ }
         }
     } else {
@@ -192,11 +235,11 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
         Ok(FlowProcess(context)) => {
             let tables = compile::compile(&context).unwrap();
 
-            match tables.functions.iter().find(|&f| f.route() == &Route::from("/context/sequence/pilte/tap")) {
+            match tables.functions.iter().find(|&f| f.route() == &Route::from("/context/sequence/compare")) {
                 Some(tap_function) => {
                     if let Some(inputs) = tap_function.get_inputs() {
-                        let in_input = inputs.get(0).unwrap();
-                        assert_eq!(Name::from("data"), *in_input.alias(), "Input's name is not 'data' as expected");
+                        let in_input = inputs.get(1).unwrap();
+                        assert_eq!(Name::from("right"), *in_input.alias(), "Input's name is not 'right' as expected");
                         let initial_value = in_input.get_initializer();
                         match initial_value {
                             Some(OneTime(one_time)) => assert_eq!(one_time.once, 1), // PASS
@@ -206,7 +249,7 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
                         panic!("Could not find any inputs");
                     }
                 }
-                None => panic!("Could not find tap_function at route '/context/sequence/pilte/tap'")
+                None => panic!("Could not find function at route '/context/sequence/compare'")
             }
         }
         _ => panic!("Couldn't load the flow from test file at '{}'", url)

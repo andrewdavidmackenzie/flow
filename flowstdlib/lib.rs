@@ -55,7 +55,7 @@ pub fn get_manifest() -> LibraryManifest {
                              Native(Arc::new(math::add::add::Add)));
     manifest.locators.insert("lib://flowstdlib/control/compare/Compare".to_string(),
                              Native(Arc::new(control::compare::compare::Compare)));
-    manifest.locators.insert("lib://flowstdlib/control/compare/CompareSwitch".to_string(),
+    manifest.locators.insert("lib://flowstdlib/control/compare_switch/CompareSwitch".to_string(),
                              Native(Arc::new(control::compare_switch::compare_switch::CompareSwitch)));
     manifest.locators.insert("lib://flowstdlib/math/subtract/Subtract".to_string(),
                              Native(Arc::new(math::subtract::subtract::Subtract)));

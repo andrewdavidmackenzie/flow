@@ -17,13 +17,9 @@ input.divisor = {once = 2}
 from = "process/sum"
 to = "process/divide/dividend"
 
-[[process]]
-alias = "to_string"
-source = "lib://flowstdlib/fmt/to_string"
-
 [[connection]]
 from = "process/divide/result"
-to = "process/to_string"
+to = "process/print"
 
 [[process]]
 alias = "tap"
@@ -46,7 +42,7 @@ to = "process/compare/left"
 
 [[connection]]
 from = "process/compare/gt"
-to = "process/to_string"
+to = "process/print"
 
 [[process]]
 alias = "print"
@@ -54,8 +50,4 @@ source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
 from = "process/tap"
-to = "process/to_string"
-
-[[connection]]
-from = "process/to_string"
 to = "process/print"

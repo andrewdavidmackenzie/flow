@@ -20,15 +20,16 @@ bench = true
 doc = true
 
 [features]
-default = ["debugger", "metrics", "logging"]
-metrics = []
-debugger = []
-logging = []
+default = ["debugger", "metrics", "logging", "checks"]
+metrics = [] # Include tracking of metrics during flow execution
+debugger = [] # Include the debugger
+logging = [] # Enable log output during flow execution
+checks = [] # Extra checks are performed during flow execution
 
 [dependencies]
 flow_impl = "=0.8.5"
 
-multimap = "~0.5"
+multimap = "~0.8"
 log = "0.4.6"
 serde_derive = "~1.0.27"
 serde = "~1.0.27"

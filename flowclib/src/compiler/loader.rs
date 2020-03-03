@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
+use log::{debug, info};
+
 use flowrlib::input::InputInitializer;
 use flowrlib::provider::Provider;
 use flowrlib::url;
-use log::{debug, info};
 
 use crate::deserializers::deserializer_helper::get_deserializer;
 use crate::errors::*;
@@ -66,10 +67,10 @@ pub trait Validate {
 /// flowclib::compiler::loader::load_context("file:///example.toml", &dummy_provider).unwrap();
 /// ```
 pub fn load_context(url: &str, provider: &dyn Provider) -> Result<Process> {
-    load_process(&Route::from(""), &Name::from("context"), url, provider, &None)
+    load_process(&Route::from(""), &Name::from("context"), 0, &mut 0, url, provider, &None)
 }
 
-fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &dyn Provider,
+fn load_process(parent_route: &Route, alias: &Name, parent_flow_id: usize, flow_count: &mut usize, url: &str, provider: &dyn Provider,
                 initializations: &Option<HashMap<String, InputInitializer>>) -> Result<Process> {
     let (resolved_url, lib_ref) = provider.resolve_url(url, "context", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
@@ -87,13 +88,14 @@ fn load_process(parent_route: &Route, alias: &Name, url: &str, provider: &dyn Pr
     debug!("Deserialized flow, now parsing and loading any sub-processes");
     match process {
         FlowProcess(ref mut flow) => {
-            config_flow(flow, &resolved_url, parent_route, alias, initializations)?;
-            load_subprocesses(flow, provider)?;
+            config_flow(flow, &resolved_url, parent_route, alias, *flow_count, initializations)?;
+            *flow_count += 1;
+            load_process_refs(flow, flow_count, provider)?;
             flow.build_connections()?;
         }
         FunctionProcess(ref mut function) => {
-            config_function(function, &resolved_url, parent_route, alias, lib_ref,
-                            initializations)?;
+            config_function(function, &resolved_url, parent_route, alias, parent_flow_id,
+                            lib_ref, initializations)?;
         }
     }
 
@@ -112,14 +114,15 @@ pub fn load_library(url: &str, provider: &dyn Provider) -> Result<Library> {
 }
 
 /*
-    Load all sub-processes referenced from a flow via the process_refs field
+    Load sub-processes from the process_refs in a flow
 */
-fn load_subprocesses(flow: &mut Flow, provider: &dyn Provider) -> Result<()> {
+fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Provider) -> Result<()> {
     if let Some(ref mut process_refs) = flow.process_refs {
         for process_ref in process_refs {
             let subprocess_url = url::join(&flow.source_url, &process_ref.source);
             process_ref.process = load_process(&flow.route, &process_ref.alias(),
-                                               &subprocess_url, provider, &process_ref.initializations)?;
+                                               flow.id, flow_count, &subprocess_url,
+                                               provider, &process_ref.initializations)?;
 
             if let FunctionProcess(ref mut function) = process_ref.process {
                 if let Some(lib_ref) = function.get_lib_reference() {
@@ -132,8 +135,10 @@ fn load_subprocesses(flow: &mut Flow, provider: &dyn Provider) -> Result<()> {
 }
 
 fn config_function(function: &mut Function, implementation_url: &str, parent_route: &Route, alias: &Name,
+                   flow_id: usize,
                    lib_ref: Option<String>, initializations: &Option<HashMap<String, InputInitializer>>)
                    -> Result<()> {
+    function.set_flow_id(flow_id);
     function.set_alias(alias);
     function.set_implementation_url(implementation_url.clone());
     function.set_lib_reference(lib_ref);
@@ -142,8 +147,9 @@ fn config_function(function: &mut Function, implementation_url: &str, parent_rou
     function.validate()
 }
 
-fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &Name,
+fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &Name, id: usize,
                initializations: &Option<HashMap<String, InputInitializer>>) -> Result<()> {
+    flow.id = id;
     flow.alias = alias.clone();
     flow.source_url = source_url.to_string();
     IO::set_initial_values(flow.inputs_mut(), initializations);

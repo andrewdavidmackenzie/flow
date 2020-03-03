@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use std::fmt;
 
-use flowrlib::input::InputInitializer;
 use serde_derive::{Deserialize, Serialize};
+
+use flowrlib::input::InputInitializer;
 
 use crate::compiler::loader::Validate;
 use crate::errors::*;
@@ -59,10 +60,11 @@ impl fmt::Display for ProcessReference {
 mod test {
     use std::collections::HashMap;
 
+    use serde_json::json;
+
     use flowrlib::input::ConstantInputInitializer;
     use flowrlib::input::InputInitializer;
     use flowrlib::input::InputInitializer::{Constant, OneTime};
-    use serde_json::json;
 
     use crate::model::function::Function;
     use crate::model::name::Name;
@@ -119,7 +121,7 @@ constant = 1
         let function = Function::new(Name::from("function"), true,
                                      None, Name::from("alias"),
                                      None, None, "url",
-                                     Route::from("route"), None, vec!(), 0);
+                                     Route::from("route"), None, vec!(), 0, 0);
         let reference = ProcessReference {
             alias: Name::from("other"),
             source: "other.toml".to_string(),

@@ -109,7 +109,7 @@ fn resolve_lib_implementation_test() {
                             "/context/fA".to_string(),
                             "lib://flowruntime/stdio/stdin/Stdin".to_string(),
                             vec!(),
-                            0,
+                            0, 0,
                             &vec!(), false);
     let functions = vec!(f_a);
     let mut manifest = create_manifest(functions);
@@ -129,7 +129,7 @@ fn unresolved_lib_functions_test() {
                             "/context/fA".to_string(),
                             "lib://flowruntime/stdio/stdin/Foo".to_string(),
                             vec!(),
-                            0,
+                            0, 0,
                             &vec!(), false);
     let functions = vec!(f_a);
     let mut manifest = create_manifest(functions);

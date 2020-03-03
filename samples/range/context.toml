@@ -21,33 +21,25 @@ alias = "sequence"
 source = "lib://flowstdlib/math/sequence"
 input.start = {once = 1}
 
-[[process]]
-alias = "to_string"
-source = "lib://flowstdlib/fmt/to_string"
-
 [[connection]]
 from = "process/sequence/sequence"
-to = "process/to_string"
+to = "process/print"
 
 # Output a string to show we're done when the series ends
 [[process]]
-alias = "tap"
-source = "lib://flowstdlib/control/tap"
-input.data = {constant = "Range done"}
+alias = "join"
+source = "lib://flowstdlib/control/join"
+input.data = {once = "Range done"}
 
 [[connection]]
 from = "process/sequence/done"
-to = "process/tap/control"
+to = "process/join/control"
 
 [[connection]]
-from = "process/tap"
+from = "process/join"
 to = "process/print"
 
 # Output
 [[process]]
 alias = "print"
 source = "lib://flowruntime/stdio/stdout"
-
-[[connection]]
-from = "process/to_string"
-to = "process/print"

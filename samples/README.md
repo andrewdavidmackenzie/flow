@@ -9,6 +9,7 @@ a fibonacci series, and others are in different stages of development and drivin
 primitive functions and flow semantics.
 
 ## List of samples
+* [args](args/DESCRIPTION.md)
 * [arrays](arrays/DESCRIPTION.md)
 * [fibonacci](fibonacci/DESCRIPTION.md)
 * [first](first/DESCRIPTION.md)

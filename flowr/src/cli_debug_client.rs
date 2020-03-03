@@ -124,9 +124,8 @@ impl DebugClient for CLIDebugClient {
                 println!("Entering Debugger. Use 'h' or 'help' for help on commands"),
             PriorToSendingJob(job_id, function_id) =>
                 println!("About to send Job #{} to Function #{}", job_id, function_id),
-            BlockBreakpoint(blocked_id, blocking_id, blocking_io_number) =>
-                println!("Block breakpoint: Function #{} ----- blocked by ----> Function #{}:{}",
-                         blocked_id, blocking_id, blocking_io_number),
+            BlockBreakpoint(block) =>
+                println!("Block breakpoint: {:?}", block),
             DataBreakpoint(source_process_id, output_route, value,
                            destination_id, input_number) =>
                 println!("Data breakpoint: Function #{}{}    ----- {} ----> Function #{}:{}",

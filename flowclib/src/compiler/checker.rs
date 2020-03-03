@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 
 use error_chain::bail;
+
 use flowrlib::input::InputInitializer::Constant;
 
 use crate::compiler::connector;
@@ -56,9 +57,9 @@ fn remove_duplicates(connections: &mut Vec<Connection>) -> Result<()> {
 }
 
 /*
-    Check for two problems that lead to competition for inputs causing input overflow:
-    1) Two functions have output connections to the same input, and one of them is a static value
-    2) A single function has two output connections to the same destination route.
+    Check for a problems that lead to competition for inputs causing input overflow:
+    - A single function has two output connections to the same destination input
+    - a function connects to an input that has a constant initializer
 */
 fn check_for_competing_inputs(tables: &GenerationTables) -> Result<()> {
     // HashMap where key is the Route of the input being sent to
@@ -68,6 +69,7 @@ fn check_for_competing_inputs(tables: &GenerationTables) -> Result<()> {
     let mut used_destinations = HashMap::<Route, usize>::new();
 
     for connection in &tables.collapsed_connections {
+        // Check for double connection
         if let Some((_output_route, sender_id)) = connector::get_source(&tables.source_routes, &connection.from_io.route()) {
             match used_destinations.insert(connection.to_io.route().clone(), sender_id) {
                 Some(other_sender_id) => {
@@ -79,6 +81,13 @@ fn check_for_competing_inputs(tables: &GenerationTables) -> Result<()> {
                 }
                 _ => {}
             }
+        }
+
+        // check for ConstantInitializer at destination
+        match connection.to_io.get_initializer() {
+            Some(Constant(_)) => bail!("Connection from '{}' to input at '{}' that also has a Constant Initializer",
+            connection.from_io.route(), connection.to_io.route() ),
+            _ => {}
         }
     }
 
@@ -134,8 +143,8 @@ mod test {
     use super::remove_duplicates;
 
     /*
-                Test that when two functions are connected doubly, the connection gets reduced to a single one
-            */
+                            Test that when two functions are connected doubly, the connection gets reduced to a single one
+                        */
     #[test]
     fn collapse_double_connection() {
         let first = Connection {

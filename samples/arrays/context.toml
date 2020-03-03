@@ -4,32 +4,32 @@ author_name = "Andrew Mackenzie"
 author_email = "andrew@mackenzie-serres.net"
 
 [[process]]
-alias = "p1"
+alias = "sequence"
 source = "lib://flowstdlib/math/sequence"
 input.start = {once = 1}
 input.end = {once = 20}
 
 [[connection]]
-from = "process/p1/sequence"
-to = "process/p2"
+from = "process/sequence/sequence"
+to = "process/composer"
 
 [[process]]
-alias = "p2"
+alias = "composer"
 source = "lib://flowstdlib/data/compose_array"
 
 [[connection]]
-from = "process/p2"
-to = "process/p3/i1"
+from = "process/composer"
+to = "process/adder/i1"
 
 [[process]]
-alias = "p3"
+alias = "adder"
 source = "lib://flowstdlib/math/add"
 input.i2 = {constant = 1}
 
 [[connection]]
-from = "process/p3"
-to = "process/p4"
+from = "process/adder"
+to = "process/print"
 
 [[process]]
-alias = "p4"
+alias = "print"
 source = "lib://flowruntime/stdio/stdout"

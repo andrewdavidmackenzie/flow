@@ -47,14 +47,6 @@ input.divisor = {constant = 2}
 
 [[connection]]
 from = "process/divide4/result"
-to = "process/to_string"
-
-[[process]]
-alias = "to_string"
-source = "lib://flowstdlib/fmt/to_string"
-
-[[connection]]
-from = "process/to_string"
 to = "process/print"
 
 [[process]]

@@ -15,40 +15,24 @@ type = "Number"
 name = "sequence"
 type = "Number"
 
-# Output the maximum number of the sequence for use downstream
-[[output]]
-name = "max"
-type = "Number"
-
-# A boolean output that is set to tru when the sequence has ended
+# A value is output when the sequence has ended
 [[output]]
 name = "done"
-type = "Bool"
 
-# For the first time around, pass the start number of the sequence into the "pass-if-less-than" process
+# For the first time around, pass the start number of the sequence into the "compare" process
 [[connection]]
 from = "input/start"
-to = "process/pilte/in"
-
-# A buffer to store the number that is the limit of the sequence
-[[process]]
-alias = "limit-store"
-source = "lib://flowstdlib/data/buffer"
+to = "process/compare/right"
 
 # Put the limit of the sequence from the "end" input into the limit store
 [[connection]]
 from = "input/end"
-to = "process/limit-store"
-
-# Refresh the limit store with the same value each time
-[[connection]]
-from = "process/limit-store"
-to = "process/limit-store"
+to = "process/compare/left"
 
 # "pass if less than or equal" process that will pass all numbers that are less than the limit
 [[process]]
-alias = "pilte"
-source = "lib://flowstdlib/control/pass_if_lte"
+alias = "compare"
+source = "lib://flowstdlib/control/compare_switch"
 
 # An add process to add one to the last outout of the sequence each time
 [[process]]
@@ -56,36 +40,31 @@ alias = "add"
 source = "lib://flowstdlib/math/add"
 input.i2 = {constant = 1}
 
-# Pass the 'limit' to the pailte process to prevent numbers greater than the limit passing
-[[connection]]
-from = "process/limit-store"
-to = "process/pilte/max"
-
-# connect the output of pilte (i.e. numbers that are less than the limit) to the output of this process -
+# connect the /lt output of compare (i.e. numbers that are less than or equal to the limit) to the output of this process -
 # the sequence of numbers being generated
 [[connection]]
-from = "process/pilte/passed"
+from = "process/compare/right-lte"
 to = "output/sequence"
+
+# while the sequence is running - feed the left value (limit) back around to compare against next time
+[[connection]]
+from = "process/compare/left-gt"
+to = "process/compare/left"
 
 # Take the last generated number of the sequence and pass it to the added to add one to it for the next number
 # in the sequence (if less than the limit)
 [[connection]]
-from = "process/pilte/passed"
+from = "process/compare/right-lt"
 to = "process/add/i1"
 
 # After the first iteration, each time take the output of the adder (i.e. possibly the next number in the sequence)
 # and pass it into the pilte flow to pass it thru if it's less than the limit
 [[connection]]
 from = "process/add"
-to = "process/pilte/in"
+to = "process/compare/right"
 
-# When the pilte flow indicated that the number was blocked due to being too large (larger than the limit) then
+# When the compare flow indicates that the number was blocked due to being too large (equal to the limit) then
 # we want that to indicate that the sequence is done
 [[connection]]
-from = "process/pilte/blocked"
+from = "process/compare/equal"
 to = "output/done"
-
-# Connect the limit store to the 'max' output so that processes downstream can use it
-[[connection]]
-from = "process/limit-store"
-to = "output/max"

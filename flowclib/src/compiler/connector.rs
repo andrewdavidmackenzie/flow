@@ -26,21 +26,20 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
     debug!("Setting output routes on processes");
     for connection in &tables.collapsed_connections {
         if let Some((output_route, source_id)) = get_source(&tables.source_routes, &connection.from_io.route()) {
-            if let Some(&(destination_process_id, destination_input_index)) = tables.destination_routes.get(connection.to_io.route()) {
+            if let Some(&(destination_function_id, destination_input_index, destination_flow_id)) = tables.destination_routes.get(connection.to_io.route()) {
                 if let Some(source_function) = tables.functions.get_mut(source_id) {
                     debug!("Connection: from '{}' to '{}'", &connection.from_io.route(), &connection.to_io.route());
                     debug!("Output: Route = '{}', destination_process_id = {}, destination_input_index = {})",
-                           output_route.to_string(), destination_process_id, destination_input_index);
+                           output_route.to_string(), destination_function_id, destination_input_index);
                     let output_conn = OutputConnection::new(output_route.to_string(),
-                                                            destination_process_id,
-                                                            destination_input_index,
+                                                            destination_function_id, destination_input_index, destination_flow_id,
                                                             Some(connection.to_io.route().to_string()));
                     source_function.add_output_route(output_conn);
                 }
 
                 // TODO when connection uses references to real IOs then we maybe able to remove this
                 if connection.to_io.get_initializer().is_some() {
-                    if let Some(destination_function) = tables.functions.get_mut(destination_process_id) {
+                    if let Some(destination_function) = tables.functions.get_mut(destination_function_id) {
                         if let Some(ref mut inputs) = destination_function.get_mut_inputs() {
                             let destination_input = inputs.get_mut(destination_input_index).unwrap();
                             if destination_input.get_initializer().is_none() {
@@ -108,7 +107,7 @@ pub fn create_routes_table(tables: &mut GenerationTables) {
         let mut input_index = 0;
         if let Some(ref inputs) = function.get_inputs() {
             for input in inputs {
-                tables.destination_routes.insert(input.route().clone(), (function.get_id(), input_index));
+                tables.destination_routes.insert(input.route().clone(), (function.get_id(), input_index, function.get_flow_id()));
                 input_index += 1;
             }
         }

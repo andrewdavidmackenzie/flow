@@ -12,6 +12,8 @@ pub struct OutputConnection {
     pub function_id: usize,
     /// `io_number` is the IO number the connection is connected to on the destination function
     pub io_number: usize,
+    /// `flow_id` is the flow_id of the target function
+    pub flow_id: usize,
     /// `route` is the full route to the destination input
     #[serde(default = "default_destination_route", skip_serializing_if = "Option::is_none")]
     pub route: Option<String>,
@@ -21,12 +23,14 @@ impl OutputConnection {
     /// Create a new `OutputConnection`
     pub fn new(output_subpath: String,
                destination_function_id: usize,
-               destionation_io_number: usize,
+               destination_io_number: usize,
+               destination_flow_id: usize,
                destination_route: Option<String>, ) -> Self {
         OutputConnection {
             subpath: output_subpath,
             function_id: destination_function_id,
-            io_number: destionation_io_number,
+            io_number: destination_io_number,
+            flow_id: destination_flow_id,
             route: destination_route,
         }
     }
