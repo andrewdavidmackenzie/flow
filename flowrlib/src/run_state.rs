@@ -749,9 +749,9 @@ impl RunState {
         });
         trace!("\tUpdated busy_flows list to: {:?}", self.busy_flows);
 
-        // Add this function to the pending unblock list for further down - if not already there
+        // Add this function to the pending unblock list for further down
         self.pending_unblocks.insert(blocker_flow_id, (blocker_function_id, refilled_inputs.clone()));
-        trace!("Added a pending_unblock for #{}({})", blocker_function_id, blocker_flow_id);
+        trace!("Added a pending_unblock --> #{}({})", blocker_function_id, blocker_flow_id);
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
