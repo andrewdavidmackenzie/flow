@@ -47,15 +47,38 @@ mod test {
 
     use super::Divide;
 
-    #[test]
-    fn test_divide() {
+    fn do_divide(test_data: (u32, u32, f64, u32)) {
         let divide: &dyn Implementation = &Divide{} as &dyn Implementation;
 
         // Create input vector
-        let dividend = Value::Number(serde_json::Number::from(99));
-        let divisor = Value::Number(serde_json::Number::from(3));
+        let dividend = Value::Number(serde_json::Number::from(test_data.0));
+        let divisor = Value::Number(serde_json::Number::from(test_data.1));
         let inputs: Vec<Vec<Value>> = vec!(vec!(dividend), vec!(divisor));
 
-        divide.run(inputs);
+        let (output, run_again) = divide.run(inputs);
+        assert!(run_again);
+
+        let outputs = output.unwrap();
+
+        let dividend = outputs.pointer("/dividend").unwrap();
+        assert_eq!(dividend, &Value::Number(serde_json::Number::from_f64(test_data.0 as f64).unwrap()));
+
+        let divisor = outputs.pointer("/divisor").unwrap();
+        assert_eq!(divisor, &Value::Number(serde_json::Number::from_f64(test_data.1 as f64).unwrap()));
+
+        let result = outputs.pointer("/result").unwrap();
+        assert_eq!(result, &Value::Number(serde_json::Number::from_f64(test_data.2 as f64).unwrap()));
+
+        let remainder = outputs.pointer("/remainder").unwrap();
+        assert_eq!(remainder, &Value::Number(serde_json::Number::from_f64(test_data.3 as f64).unwrap()));
+    }
+
+    #[test]
+    fn test_divide() {
+        let test_set = vec!((100, 3, 33.333333333333336f64, 1), (99, 3, 33f64, 0));
+
+        for test in test_set {
+            do_divide(test);
+        }
     }
 }
