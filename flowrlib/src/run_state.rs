@@ -465,7 +465,7 @@ impl RunState {
         let input_set = function.take_input_set();
         let flow_id = function.get_flow_id();
 
-        debug!("-----------------------Creating Job #{} for Function #{} '{}'", job_id, function_id, function.name());
+        debug!("Job #{} for Function #{} '{}'---------------------------", job_id, function_id, function.name());
 
         // inputs were taken and hence emptied - so refresh any inputs that have constant initializers for next time
         let refilled = function.init_inputs(false);
