@@ -28,7 +28,6 @@ impl Implementation for Divide {
         let dividend = inputs.get(0).unwrap()[0].as_f64().unwrap();
         let divisor = inputs.get(1).unwrap()[0].as_f64().unwrap();
 
-
         let mut output_map = serde_json::Map::new();
         output_map.insert("dividend".into(), Value::Number(serde_json::Number::from_f64(dividend).unwrap()));
         output_map.insert("divisor".into(), Value::Number(serde_json::Number::from_f64(divisor).unwrap()));
