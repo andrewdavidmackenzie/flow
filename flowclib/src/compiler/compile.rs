@@ -36,7 +36,7 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables> {
     Ok(tables)
 }
 
-# [cfg(test)]
+#[cfg(test)]
 mod test {
     use crate::model::flow::Flow;
     use crate::model::function::Function;
@@ -50,38 +50,39 @@ mod test {
     use super::compile;
 
     /*
-                                    Test for a function that is dead code. It has no connections to it or from it so will
-                                    never run. So it should be removed by the optimizer and not fail at check stage.
-                                */
-#[test]
-fn dead_function() {
-let function = Function::new(Name::from("Stdout"),
-false,
-Some("lib://flowruntime/stdio/stdout.toml".to_string()),
-Name::from("test-function"),
-Some(vec ! (IO::new("String",
-& Route::from("/context/print")))),
-Some(vec ! ()),
-"lib://flowruntime/stdio/stdout.toml",
-Route::from("/context/print"),
-Some("lib://flowruntime/stdio/stdout.toml".to_string()),
-vec ! (),
-0,
-    0,
-);
+                                            Test for a function that is dead code. It has no connections to it or from it so will
+                                            never run. So it should be removed by the optimizer and not fail at check stage.
+                                        */
+    #[test]
+    fn dead_function() {
+        let function = Function::new(Name::from("Stdout"),
+                                     false,
+                                     Some("lib://flowruntime/stdio/stdout.toml".to_string()),
+                                     Name::from("test-function"),
+                                     Some(vec!(IO::new("String",
+                                                       &Route::from("/context/print")))),
+                                     Some(vec!()),
+                                     "lib://flowruntime/stdio/stdout.toml",
+                                     Route::from("/context/print"),
+                                     Some("lib://flowruntime/stdio/stdout.toml".to_string()),
+                                     vec!(),
+                                     0,
+                                     0,
+        );
 
-let function_ref = ProcessReference {
-alias: function.alias().to_owned(),
-source: "lib://flowruntime/stdio/stdout.toml".to_string(),
-initializations: None,
-process: FunctionProcess(function),
-};
+        let function_ref = ProcessReference {
+            alias: function.alias().to_owned(),
+            source: "lib://flowruntime/stdio/stdout.toml".to_string(),
+            initializations: None,
+            depths: None,
+            process: FunctionProcess(function),
+        };
 
-let mut flow = Flow::default();
-flow.alias = Name::from("context");
-flow.name = Name::from("test-flow");
-flow.process_refs = Some(vec! (function_ref));
+        let mut flow = Flow::default();
+        flow.alias = Name::from("context");
+        flow.name = Name::from("test-flow");
+        flow.process_refs = Some(vec!(function_ref));
 
-let _tables = compile( & flow).unwrap();
-}
+        let _tables = compile(&flow).unwrap();
+    }
 }

@@ -20,6 +20,8 @@ pub struct ProcessReference {
     pub source: String,
     #[serde(rename = "input")]
     pub initializations: Option<HashMap<String, InputInitializer>>,
+    #[serde(rename = "depth")]
+    pub depths: Option<HashMap<String, usize>>,
     // Map of initializers of inputs for this reference
     #[serde(skip)]
     pub process: Process,
@@ -126,6 +128,7 @@ constant = 1
             alias: Name::from("other"),
             source: "other.toml".to_string(),
             initializations: Some(initializers),
+            depths: None,
             process: Process::FunctionProcess(function),
         };
 

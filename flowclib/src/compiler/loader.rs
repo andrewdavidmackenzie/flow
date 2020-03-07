@@ -67,11 +67,13 @@ pub trait Validate {
 /// flowclib::compiler::loader::load_context("file:///example.toml", &dummy_provider).unwrap();
 /// ```
 pub fn load_context(url: &str, provider: &dyn Provider) -> Result<Process> {
-    load_process(&Route::from(""), &Name::from("context"), 0, &mut 0, url, provider, &None)
+    load_process(&Route::from(""), &Name::from("context"),
+                 0, &mut 0, url, provider, &None, &None)
 }
 
 fn load_process(parent_route: &Route, alias: &Name, parent_flow_id: usize, flow_count: &mut usize, url: &str, provider: &dyn Provider,
-                initializations: &Option<HashMap<String, InputInitializer>>) -> Result<Process> {
+                initializations: &Option<HashMap<String, InputInitializer>>,
+                depths: &Option<HashMap<String, usize>>) -> Result<Process> {
     let (resolved_url, lib_ref) = provider.resolve_url(url, "context", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
     debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
@@ -95,7 +97,7 @@ fn load_process(parent_route: &Route, alias: &Name, parent_flow_id: usize, flow_
         }
         FunctionProcess(ref mut function) => {
             config_function(function, &resolved_url, parent_route, alias, parent_flow_id,
-                            lib_ref, initializations)?;
+                            lib_ref, initializations, depths)?;
         }
     }
 
@@ -122,7 +124,8 @@ fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Pro
             let subprocess_url = url::join(&flow.source_url, &process_ref.source);
             process_ref.process = load_process(&flow.route, &process_ref.alias(),
                                                flow.id, flow_count, &subprocess_url,
-                                               provider, &process_ref.initializations)?;
+                                               provider, &process_ref.initializations,
+                                               &process_ref.depths)?;
 
             if let FunctionProcess(ref mut function) = process_ref.process {
                 if let Some(lib_ref) = function.get_lib_reference() {
@@ -136,7 +139,9 @@ fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Pro
 
 fn config_function(function: &mut Function, implementation_url: &str, parent_route: &Route, alias: &Name,
                    flow_id: usize,
-                   lib_ref: Option<String>, initializations: &Option<HashMap<String, InputInitializer>>)
+                   lib_ref: Option<String>,
+                   initializations: &Option<HashMap<String, InputInitializer>>,
+                   depths: &Option<HashMap<String, usize>>)
                    -> Result<()> {
     function.set_flow_id(flow_id);
     function.set_alias(alias);
@@ -144,6 +149,7 @@ fn config_function(function: &mut Function, implementation_url: &str, parent_rou
     function.set_lib_reference(lib_ref);
     function.set_routes_from_parent(parent_route);
     IO::set_initial_values(&mut function.inputs, initializations);
+    IO::set_depths(&mut function.inputs, depths);
     function.validate()
 }
 
@@ -165,7 +171,7 @@ mod test {
 
     #[test]
     fn deserialize_library() {
-        let contents= include_str!("../../test_libs/Library_test.toml");
+        let contents = include_str!("../../test_libs/Library_test.toml");
         let _: Library = toml::from_str(contents).unwrap();
     }
 }

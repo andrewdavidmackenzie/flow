@@ -263,6 +263,22 @@ impl IO {
             }
         }
     }
+
+    pub fn set_depths(ios: &mut IOSet, input_depths: &Option<HashMap<String, usize>>) {
+        if let Some(depths) = input_depths {
+            if let Some(inputs) = ios {
+                for depth in depths {
+                    // initializer.0 is io name, initializer.1 is the initial value to set it to
+                    for (index, input) in inputs.iter_mut().enumerate() {
+                        if *input.name() == Name::from(depth.0) ||
+                            (depth.0.as_str() == "default" && index == 0) {
+                            input.depth = *depth.1;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]

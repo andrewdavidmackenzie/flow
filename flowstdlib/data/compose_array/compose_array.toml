@@ -3,7 +3,6 @@ implementation = "compose_array.rs"
 
 [[input]]
 type = "Number"
-depth = 4
 
 [[output]]
 type = "Array/Number"
