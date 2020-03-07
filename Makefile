@@ -183,7 +183,7 @@ sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcar
 # This target must be below sample-flows in the Makefile
 samples: flowrunner flowstdlib/manifest.json
 	$(STIME)
-#	@cd samples; $(MAKE) clean
+	@cd samples; $(MAKE) clean
 	@$(MAKE) $(sample_flows)
 	$(ETIME)
 
