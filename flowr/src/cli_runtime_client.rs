@@ -5,6 +5,7 @@ use std::io::prelude::*;
 
 use flowruntime::runtime_client::{Command, Response, RuntimeClient};
 
+#[derive(Debug)]
 pub struct CLIRuntimeClient {}
 
 /// The name of the environment variables used to pass command line arguments to the function

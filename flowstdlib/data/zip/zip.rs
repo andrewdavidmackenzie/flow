@@ -19,6 +19,7 @@ use serde_json::Value;
 ///
 /// ## Outputs
 /// * tuples - the array of tuples of (left, right)
+#[derive(Debug)]
 pub struct Zip;
 
 impl Implementation for Zip {

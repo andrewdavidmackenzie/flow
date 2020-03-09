@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use crate::run_state::{Block, Output};
+use crate::run_state::{Block, Job};
 
 /// Types of `Params` used in communications between the debugger and the debug_client
 pub enum Param {
@@ -60,7 +60,7 @@ pub enum Event {
     /// includes: source_process_id, output_route, value, destination_id, input_number));
     DataBreakpoint(usize, String, Value, usize, usize),
     /// A panic occured executing a `Flows` `Job` -  includes the output of the job that panicked
-    Panic(Output),
+    Panic(Job),
     /// There was an error reported by the run-time
     RuntimeError(String), // message resulting from the error
     /// End of debug session - debug_client should disconnect

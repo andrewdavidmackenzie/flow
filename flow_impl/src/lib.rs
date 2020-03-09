@@ -2,8 +2,9 @@
 //! `flow_impl` is a trait that flow function implementations must implement in order
 //! to be executed as part of a flow.
 //!
-use std::panic::{RefUnwindSafe, UnwindSafe};
 use std::fmt::Debug;
+use std::panic::{RefUnwindSafe, UnwindSafe};
+
 use serde_json::Value;
 
 /// Implementations should return a value of type `RunAgain` to indicate if it should be
@@ -28,6 +29,7 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 /// use serde_json::Value;
 /// use serde_json::json;
 ///
+/// #[derive(Debug)]
 /// pub struct Compare;
 ///
 /// /*

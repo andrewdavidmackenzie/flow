@@ -24,7 +24,7 @@ pub enum State {
     Running,     //is being run somewhere
 }
 
-// TODO combine Job and Output - using Job with Option/Result<Output, Error) - None until run
+#[derive(Debug)]
 pub struct Job {
     pub job_id: usize,
     pub function_id: usize,
@@ -32,18 +32,8 @@ pub struct Job {
     pub input_set: Vec<Vec<Value>>,
     pub destinations: Vec<OutputConnection>,
     pub implementation: Arc<dyn Implementation>,
-}
-
-#[derive(Debug)]
-pub struct Output {
-    pub job_id: usize,
-    pub function_id: usize,
-    pub flow_id: usize,
-    pub input_values: Vec<Vec<Value>>,
-    pub destinations: Vec<OutputConnection>,
-
     pub result: (Option<Value>, bool),
-    pub error: Option<String>,
+    pub error: Option<String>, // TODO combine those two into a Result<>
 }
 
 /// blocks: (blocking_id, blocking_io_number, blocked_id, blocked_flow_id) a blocks between functions
@@ -493,8 +483,18 @@ impl RunState {
         let can_create_more_jobs = !function.inputs().is_empty() && function.inputs_full()
             && !all_refilled;
 
-        (Job { job_id, function_id, flow_id, implementation, input_set, destinations },
-         can_create_more_jobs)
+        let job = Job {
+            job_id,
+            function_id,
+            flow_id,
+            implementation,
+            input_set,
+            destinations,
+            result: (None, false),
+            error: None,
+        };
+
+        (job, can_create_more_jobs)
     }
 
     /*
@@ -507,24 +507,24 @@ impl RunState {
         sent to, marking the source function as blocked because those others must consume the output
         if those other function have all their inputs, then mark them accordingly.
     */
-    pub fn complete_job(&mut self, metrics: &mut Metrics, output: Output, debugger: &mut Option<Debugger>) {
-        trace!("\tJob #{} completed by Function #{}", output.job_id, output.function_id);
-        self.running.retain(|&_, &job_id| job_id != output.job_id);
+    pub fn complete_job(&mut self, metrics: &mut Metrics, job: Job, debugger: &mut Option<Debugger>) {
+        trace!("\tJob #{} completed by Function #{}", job.job_id, job.function_id);
+        self.running.retain(|&_, &job_id| job_id != job.job_id);
 
-        match output.error {
+        match job.error {
             None => {
-                let output_value = output.result.0;
-                let source_can_run_again = output.result.1;
+                let output_value = job.result.0;
+                let source_can_run_again = job.result.1;
 
                 // if it produced an output value
                 if let Some(output_v) = output_value {
-                    debug!("\tJob #{} -> Outputs '{}'", output.job_id, output_v);
+                    debug!("\tJob #{} -> Outputs '{}'", job.job_id, output_v);
 
-                    for destination in &output.destinations {
+                    for destination in &job.destinations {
                         match output_v.pointer(&destination.subpath) {
                             Some(output_value) =>
-                                self.send_value(output.function_id,
-                                                output.flow_id,
+                                self.send_value(job.function_id,
+                                                job.flow_id,
                                                 &destination.subpath,
                                                 destination.function_id,
                                                 destination.io_number, output_value, metrics, debugger),
@@ -536,21 +536,21 @@ impl RunState {
                 // if it wants to run again, and after possibly refreshing any constant inputs, it can
                 // (it's inputs are ready) then add back to the Ready list
                 if source_can_run_again {
-                    let (refilled, full) = self.refill_inputs(output.function_id);
+                    let (refilled, full) = self.refill_inputs(job.function_id);
                     if full {
-                        self.inputs_now_full(output.function_id, output.flow_id);
+                        self.inputs_now_full(job.function_id, job.flow_id);
                     }
 
                     // unblock senders blocked trying to send to this function's empty inputs
-                    self.unblock_senders(output.function_id, output.flow_id, refilled);
+                    self.unblock_senders(job.function_id, job.flow_id, refilled);
                 } else {
-                    self.remove_from_busy(output.job_id);
+                    self.remove_from_busy(job.job_id);
                 }
             }
             Some(_) => {
                 match debugger {
-                    None => error!("Error in Job execution:\n{:#?}", output),
-                    Some(debugger) => debugger.panic(&self, output)
+                    None => error!("Error in Job execution:\n{:#?}", job),
+                    Some(debugger) => debugger.panic(&self, job)
                 }
             }
         }
@@ -962,7 +962,11 @@ impl fmt::Display for RunState {
 
 #[cfg(test)]
 mod test {
+    use std::sync::Arc;
+
+    use flow_impl::Implementation;
     use serde_json::json;
+    use serde_json::Value;
 
     use crate::debug_client::{DebugClient, Event, Response};
     use crate::debug_client::{Command, Param};
@@ -973,7 +977,20 @@ mod test {
     use crate::output_connection::OutputConnection;
     use crate::run_state;
 
-    use super::Output;
+    use super::Job;
+
+    #[derive(Debug)]
+    struct TestImpl {}
+
+    impl Implementation for TestImpl {
+        fn run(&self, _inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
+            unimplemented!()
+        }
+    }
+
+    fn test_impl() -> Arc<dyn Implementation> {
+        Arc::new(TestImpl{})
+    }
 
     // Helpers
     struct TestDebugClient {}
@@ -1052,26 +1069,28 @@ mod test {
                       &vec!(), false)
     }
 
-    fn test_output(source_function_id: usize, dest_function_id: usize) -> Output {
+    fn test_output(source_function_id: usize, dest_function_id: usize) -> Job {
         let out_conn = OutputConnection::new("".to_string(), dest_function_id, 0, 0, None);
-        Output {
+        Job {
             job_id: 1,
             function_id: source_function_id,
             flow_id: 0,
-            input_values: vec!(vec!(json!(1))),
+            implementation: test_impl(),
+            input_set: vec!(vec!(json!(1))),
             result: (Some(json!(1)), true),
             destinations: vec!(out_conn),
             error: None,
         }
     }
 
-    fn error_output(source_function_id: usize, dest_function_id: usize) -> Output {
+    fn error_output(source_function_id: usize, dest_function_id: usize) -> Job {
         let out_conn = OutputConnection::new("".to_string(), dest_function_id, 0, 0, None);
-        Output {
+        Job {
             job_id: 1,
             flow_id: 0,
+            implementation: test_impl(),
             function_id: source_function_id,
-            input_values: vec!(vec!(json!(1))),
+            input_set: vec!(vec!(json!(1))),
             result: (None, false),
             destinations: vec!(out_conn),
             error: Some("Some error occurred".to_string()),
@@ -1159,7 +1178,7 @@ mod test {
         use crate::metrics::Metrics;
         use crate::output_connection::OutputConnection;
 
-        use super::super::Output;
+        use super::super::Job;
         use super::super::RunState;
         use super::super::State;
         use super::test_debug_client;
@@ -1368,16 +1387,17 @@ mod test {
             assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
 
 // Event
-            let output = Output {
+            let job = Job {
                 job_id: 1,
                 function_id: 0,
                 flow_id: 0,
-                input_values: vec!(vec!(json!(1))),
+                implementation: super::test_impl(),
+                input_set: vec!(vec!(json!(1))),
                 result: (None, true),
                 destinations: vec!(),
                 error: None,
             };
-            state.complete_job(&mut metrics, output, &mut debugger);
+            state.complete_job(&mut metrics, job, &mut debugger);
 
 // Test
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready again");
@@ -1400,16 +1420,17 @@ mod test {
             assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
 
 // Event
-            let output = Output {
+            let job = Job {
                 job_id: 0,
                 function_id: 0,
                 flow_id: 0,
-                input_values: vec!(vec!(json!(1))),
+                implementation: super::test_impl(),
+                input_set: vec!(vec!(json!(1))),
                 result: (None, true),
                 destinations: vec!(),
                 error: None,
             };
-            state.complete_job(&mut metrics, output, &mut debugger);
+            state.complete_job(&mut metrics, job, &mut debugger);
 
 // Test
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting again");
@@ -1555,17 +1576,18 @@ mod test {
             let out_conn1 = OutputConnection::new("".into(), 0, 0, 0, None);
             let out_conn2 = OutputConnection::new("".into(), 1, 0, 0, None);
             // Event: run f_a
-            let output = Output {
+            let job = Job {
                 job_id: 0,
                 function_id: 0,
                 flow_id: 0,
-                input_values: vec!(vec!(json!(1))),
+                implementation: super::test_impl(),
+                input_set: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
                 destinations: vec!(out_conn1, out_conn2),
                 error: None,
 
             };
-            state.complete_job(&mut metrics, output, &mut debugger);
+            state.complete_job(&mut metrics, job, &mut debugger);
 
             // Test
             assert_eq!(state.get_state(1), State::Ready, "f_b should be Ready");
@@ -1575,17 +1597,18 @@ mod test {
             assert!(state.next_job().is_none(), "next() should not return any other function able to run");
 
             // Event: Run f_b that was returned
-            let output = Output {
+            let job = Job {
                 job_id: 1,
                 function_id: 1,
                 flow_id: 0,
-                input_values: vec!(vec!(json!(1))),
+                implementation: super::test_impl(),
+                input_set: vec!(vec!(json!(1))),
                 result: (None, true),
                 destinations: vec!(),
                 error: None,
             };
             // this should unblock f_a sending to f_b - so make f_a ready
-            state.complete_job(&mut metrics, output, &mut debugger);
+            state.complete_job(&mut metrics, job, &mut debugger);
 
             // Test
             assert_eq!(state.get_state(0), State::Ready, "f_a should be Ready");
@@ -1604,7 +1627,7 @@ mod test {
         use crate::metrics::Metrics;
         use crate::output_connection::OutputConnection;
 
-        use super::super::Output;
+        use super::super::Job;
         use super::super::RunState;
         use super::super::State;
         use super::test_debug_client;
@@ -1765,18 +1788,19 @@ mod test {
             assert_eq!(state.next_job().unwrap().function_id, 0);
 
 // Event run f_a
-            let output = Output {
+            let job = Job {
                 job_id: 0,
                 function_id: 0,
                 flow_id: 0,
-                input_values: vec!(vec!(json!(1))),
+                implementation: super::test_impl(),
+                input_set: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
                 destinations: vec!(),
                 error: None,
             };
 
 // Test there is no problem producing an Output when no destinations to send it to
-            state.complete_job(&mut metrics, output, &mut debugger);
+            state.complete_job(&mut metrics, job, &mut debugger);
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
         }
 

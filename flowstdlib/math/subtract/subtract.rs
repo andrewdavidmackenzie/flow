@@ -19,6 +19,7 @@ use serde_json::Value::Number;
 ///
 /// ## Outputs
 /// * `i1` minus `i2` of type `Number`
+#[derive(Debug)]
 pub struct Subtract;
 
 impl Implementation for Subtract {

@@ -18,6 +18,7 @@ use serde_json::Value;
 ///
 /// ## Outputs
 /// * type Array of Number (Array/Number)
+#[derive(Debug)]
 pub struct ComposeArray;
 
 impl Implementation for ComposeArray {

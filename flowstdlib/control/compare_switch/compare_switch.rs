@@ -23,6 +23,7 @@ use serde_json::Value;
 /// * `lte` - outputs right hand value if the left hand value is less than or equal to the right hand value
 /// * `gt` - outputs right hand value if the left hand value is greater than the right hand value
 /// * `gte` - outputs right hand value if the left hand value is greater than or equal to the right hand value
+#[derive(Debug)]
 pub struct CompareSwitch;
 
 impl Implementation for CompareSwitch {

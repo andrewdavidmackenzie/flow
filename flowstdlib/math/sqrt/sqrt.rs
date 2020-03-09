@@ -18,6 +18,7 @@ use serde_json::Value::Number;
 ///
 /// ## Outputs
 /// * Square Root of type `Number`
+#[derive(Debug)]
 pub struct Sqrt;
 
 impl Implementation for Sqrt {

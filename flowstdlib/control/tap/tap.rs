@@ -18,6 +18,7 @@ use serde_json::Value;
 ///
 /// ## Outputs
 /// * `data` if `control` is true, nothing if `control` is false
+#[derive(Debug)]
 pub struct Tap;
 
 impl Implementation for Tap {

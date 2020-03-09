@@ -21,6 +21,7 @@ use serde_json::Value;
 /// * `divisor` - re output the `divisor` input, of type `Number`
 /// * `result` - the result of the division, of type `Number`
 /// * `remainder` - the remainder of the division, of type `Number`
+#[derive(Debug)]
 pub struct Divide;
 
 impl Implementation for Divide {

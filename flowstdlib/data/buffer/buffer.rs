@@ -19,6 +19,7 @@ use serde_json::Value;
 ///
 /// ## Outputs
 /// * the buffered value
+#[derive(Debug)]
 pub struct Buffer;
 
 impl Implementation for Buffer {
