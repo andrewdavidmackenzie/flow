@@ -20,6 +20,7 @@ use serde_json::Value::String;
 ///
 /// ## Outputs
 /// * Sum of `i1` and `i2` of type `Number`
+#[derive(Debug)]
 pub struct Add;
 
 impl Implementation for Add {

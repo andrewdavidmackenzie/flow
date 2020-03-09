@@ -20,6 +20,7 @@ use serde_json::Value::String as JsonString;
 /// ## Output
 /// * "original" - The original input string
 /// * "reversed" - The input string reversed
+#[derive(Debug)]
 pub struct Reverse;
 
 impl Implementation for Reverse {

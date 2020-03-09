@@ -21,6 +21,7 @@ use serde_json::Value;
 ///
 /// ## Output
 /// * The String equivalent of the input value
+#[derive(Debug)]
 pub struct ToString;
 
 impl Implementation for ToString {

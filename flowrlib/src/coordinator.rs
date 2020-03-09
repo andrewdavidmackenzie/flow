@@ -13,7 +13,7 @@ use crate::manifest::Manifest;
 use crate::manifest::MetaData;
 #[cfg(feature = "metrics")]
 use crate::metrics::Metrics;
-use crate::run_state::{Job, Output};
+use crate::run_state::Job;
 use crate::run_state::RunState;
 
 ///
@@ -84,7 +84,7 @@ impl Submission {
 /// information to execute the flow.
 pub struct Coordinator {
     job_tx: Sender<Job>,
-    output_rx: Receiver<Output>,
+    job_rx: Receiver<Job>,
 }
 
 /// Create a Submission for a flow to be executed.
@@ -137,7 +137,7 @@ impl Coordinator {
 
         let coordinator = Coordinator {
             job_tx,
-            output_rx,
+            job_rx: output_rx,
         };
 
         coordinator
@@ -187,7 +187,7 @@ impl Coordinator {
                 trace!("After Job Sent - {}", submission.state);
 
                 if submission.state.number_jobs_running() > 0 {
-                    match self.output_rx.recv_timeout(submission.output_timeout) {
+                    match self.job_rx.recv_timeout(submission.output_timeout) {
                         Ok(output) => {
                             if cfg!(feature = "debugger") && display_next_output {
                                 if let Some(ref mut debugger) = submission.debugger {
@@ -195,7 +195,7 @@ impl Coordinator {
                                 }
                             }
 
-                            submission.state.process_output(&mut submission.metrics, output, &mut submission.debugger);
+                            submission.state.complete_job(&mut submission.metrics, output, &mut submission.debugger);
                         }
                         Err(err) => error!("Error receiving execution result: {}", err)
                     }

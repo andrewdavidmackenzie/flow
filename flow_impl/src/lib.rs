@@ -2,6 +2,7 @@
 //! `flow_impl` is a trait that flow function implementations must implement in order
 //! to be executed as part of a flow.
 //!
+use std::fmt::Debug;
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
 use serde_json::Value;
@@ -28,6 +29,7 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 /// use serde_json::Value;
 /// use serde_json::json;
 ///
+/// #[derive(Debug)]
 /// pub struct Compare;
 ///
 /// /*
@@ -53,7 +55,7 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 /// # fn main() {
 /// # }
 /// ```
-pub trait Implementation : RefUnwindSafe + UnwindSafe + Sync + Send {
+pub trait Implementation : RefUnwindSafe + UnwindSafe + Sync + Send + Debug {
     /// The `run` method is used to execute the implementation
     fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain);
 }

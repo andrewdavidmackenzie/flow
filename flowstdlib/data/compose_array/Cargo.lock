@@ -4,14 +4,14 @@
 name = "compose_array"
 version = "0.1.0"
 dependencies = [
- "flow_impl 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "flow_impl 0.8.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "flow_impl_derive 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "flow_impl"
-version = "0.8.5"
+version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "serde_json 1.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -83,7 +83,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [metadata]
-"checksum flow_impl 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)" = "4889bed04dbf0dedd647b7e9b0d7676041c77463e42d2b46a1be4bcc5bae243c"
+"checksum flow_impl 0.8.9 (registry+https://github.com/rust-lang/crates.io-index)" = "a378cc37d96a2cfe8ffea38d8a3058d076333fc9bef1481d029073b562d8dc1d"
 "checksum flow_impl_derive 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)" = "a923e1174e8bc943e80635a1212915f9251314a8397c1d894f436a329d3ce3f0"
 "checksum itoa 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)" = "501266b7edd0174f8530248f87f99c88fbe60ca4ef3dd486835b8d8d53136f7f"
 "checksum proc-macro2 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)" = "3acb317c6ff86a4e579dfa00fc5e6cca91ecbb4e7eb2df0468805b674eb88548"

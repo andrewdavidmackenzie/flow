@@ -6,6 +6,7 @@ use serde_json::Value;
 use super::super::runtime_client::{Command, Response, RuntimeClient};
 
 /// `Implementation` struct for the `file_write` function
+#[derive(Debug)]
 pub struct FileWrite {
     pub client: Arc<Mutex<dyn RuntimeClient>>
 }

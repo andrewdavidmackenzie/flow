@@ -3,7 +3,7 @@ use flow_impl_derive::FlowImpl;
 use serde_json::json;
 use serde_json::Value;
 
-#[derive(FlowImpl)]
+#[derive(FlowImpl, Debug)]
 pub struct Router;
 
 impl Implementation for Router {

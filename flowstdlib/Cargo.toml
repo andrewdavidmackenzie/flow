@@ -17,7 +17,7 @@ name = "flowstdlib"
 path = "lib.rs"
 
 [dependencies]
-flow_impl = "=0.8.5"
+flow_impl = "=0.8.9"
 flow_impl_derive = "=0.8.5"
 flowrlib = {path = "../flowrlib"}
 

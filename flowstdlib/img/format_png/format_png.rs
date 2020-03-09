@@ -22,6 +22,7 @@ use serde_json::Value;
 ///
 /// ## Output
 /// * (default) - The bytes representing the PNG encoding of the image, as a String
+#[derive(Debug)]
 pub struct FormatPNG;
 
 impl Implementation for FormatPNG {

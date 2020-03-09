@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 /// A run-time command sent from a run-time function to a runtime_client
 pub enum Command {
     /// Command to print a String of contents to stdout
@@ -29,7 +31,7 @@ pub enum Response {
 }
 
 /// runtime_clients must implement this trait
-pub trait RuntimeClient: Sync + Send {
+pub trait RuntimeClient: Sync + Send + Debug {
     /// Called at init to initalize the client
     fn init(&self);
     /// Called to send the next command to the runtime_client and get the response

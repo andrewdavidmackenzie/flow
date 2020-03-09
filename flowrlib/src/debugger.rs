@@ -10,7 +10,7 @@ use crate::debug_client::Event::{*};
 use crate::debug_client::Param;
 use crate::debug_client::Response;
 use crate::debug_client::Response::{*};
-use crate::run_state::{Block, Output, RunState};
+use crate::run_state::{Block, Job, RunState};
 
 pub struct Debugger {
     client: &'static dyn DebugClient,
@@ -81,8 +81,8 @@ impl Debugger {
         Called from the flowrlib coordinator to inform the debugger that a job has completed
         being executed. It is used to inform the debug client of the fact.
     */
-    pub fn job_completed(&self, output: &Output) {
-        self.client.send_event(JobCompleted(output.job_id, output.function_id, output.result.0.clone()));
+    pub fn job_completed(&self, job: &Job) {
+        self.client.send_event(JobCompleted(job.job_id, job.function_id, job.result.0.clone()));
     }
 
     /*
@@ -155,8 +155,8 @@ impl Debugger {
         breakpoint it will enter the debugger on an error and let the user inspect the flow's
         state etc.
 */
-    pub fn panic(&mut self, state: &RunState, output: Output) {
-        self.client.send_event(Panic(output));
+    pub fn panic(&mut self, state: &RunState, job: Job) {
+        self.client.send_event(Panic(job));
         self.wait_for_command(state);
     }
 

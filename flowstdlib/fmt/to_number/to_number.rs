@@ -17,6 +17,7 @@ use serde_json::Value;
 ///
 /// ## Output
 /// * The Number equivalent of String input if possible
+#[derive(Debug)]
 pub struct ToNumber;
 
 impl Implementation for ToNumber {

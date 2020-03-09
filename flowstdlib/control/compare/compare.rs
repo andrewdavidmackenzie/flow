@@ -23,6 +23,7 @@ use serde_json::Value;
 /// * `lte` [Boolean] - outputs true if the left hand value is less than or equal to the right hand value
 /// * `gt` [Boolean] - outputs true if the left hand value is greater than the right hand value
 /// * `gte` [Boolean] - outputs true if the left hand value is greater than or equal to the right hand value
+#[derive(Debug)]
 pub struct Compare;
 
 impl Implementation for Compare {

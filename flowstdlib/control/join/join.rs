@@ -18,6 +18,7 @@ use serde_json::Value;
 ///
 /// ## Outputs
 /// * `data`
+#[derive(Debug)]
 pub struct Join;
 
 impl Implementation for Join {

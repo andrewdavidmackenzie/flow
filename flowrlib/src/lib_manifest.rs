@@ -181,6 +181,7 @@ mod test {
 
     #[test]
     fn locators_type_mismatch() {
+        #[derive(Debug)]
         struct TestImpl {};
         impl Implementation for TestImpl {
             fn run(&self, _inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {

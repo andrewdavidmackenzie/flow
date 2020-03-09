@@ -264,14 +264,14 @@ dependencies = [
 
 [[package]]
 name = "flow_impl"
-version = "0.8.5"
+version = "0.8.9"
 dependencies = [
  "serde_json 1.0.47 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "flow_impl"
-version = "0.8.5"
+version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "serde_json 1.0.47 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -338,7 +338,7 @@ name = "flowide"
 version = "0.8.8"
 dependencies = [
  "cairo-rs 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "flow_impl 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "flow_impl 0.8.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "flowclib 0.8.8",
  "flowrlib 0.8.8",
  "flowruntime 0.8.8",
@@ -364,7 +364,7 @@ version = "0.8.8"
 dependencies = [
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "error-chain 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "flow_impl 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "flow_impl 0.8.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "flowrlib 0.8.8",
  "flowruntime 0.8.8",
  "flowstdlib 0.8.9",
@@ -383,7 +383,7 @@ name = "flowrlib"
 version = "0.8.8"
 dependencies = [
  "error-chain 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "flow_impl 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "flow_impl 0.8.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "instant 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "multimap 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -398,7 +398,7 @@ name = "flowruntime"
 version = "0.8.8"
 dependencies = [
  "error-chain 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "flow_impl 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "flow_impl 0.8.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "flowrlib 0.8.8",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.47 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -410,7 +410,7 @@ dependencies = [
 name = "flowstdlib"
 version = "0.8.9"
 dependencies = [
- "flow_impl 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "flow_impl 0.8.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "flow_impl_derive 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "flowrlib 0.8.8",
  "image 0.22.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1536,7 +1536,7 @@ dependencies = [
 "checksum either 1.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "bb1f6b1ce1c140482ea30ddd3335fc0024ac7ee112895426e0a629a6c20adfe3"
 "checksum erased-serde 0.3.10 (registry+https://github.com/rust-lang/crates.io-index)" = "cd7d80305c9bd8cd78e3c753eb9fb110f83621e5211f1a3afffcc812b104daf9"
 "checksum error-chain 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)" = "3ab49e9dcb602294bc42f9a7dfc9bc6e936fca4418ea300dbfb84fe16de0b7d9"
-"checksum flow_impl 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)" = "4889bed04dbf0dedd647b7e9b0d7676041c77463e42d2b46a1be4bcc5bae243c"
+"checksum flow_impl 0.8.9 (registry+https://github.com/rust-lang/crates.io-index)" = "a378cc37d96a2cfe8ffea38d8a3058d076333fc9bef1481d029073b562d8dc1d"
 "checksum flow_impl_derive 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)" = "a923e1174e8bc943e80635a1212915f9251314a8397c1d894f436a329d3ce3f0"
 "checksum fuchsia-cprng 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a06f77d526c1a601b7c4cdd98f54b5eaabffc14d5f2f0296febdc7f357c6d3ba"
 "checksum futures-channel 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "f0c77d04ce8edd9cb903932b608268b3fffec4163dc053b3b402bf47eac1f1a8"

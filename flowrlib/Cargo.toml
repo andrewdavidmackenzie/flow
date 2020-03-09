@@ -27,7 +27,7 @@ logging = [] # Enable log output during flow execution
 checks = [] # Extra checks are performed during flow execution
 
 [dependencies]
-flow_impl = "=0.8.5"
+flow_impl = "=0.8.9"
 
 multimap = "~0.8"
 log = "0.4.6"
