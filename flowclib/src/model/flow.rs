@@ -241,11 +241,11 @@ impl Flow {
 
     // TODO consider finding the object first using it's type and name (flow, subflow, value, function)
     // Then from the object find the IO (by name or route, probably route) in common code, maybe using IOSet directly?
-    pub fn get_route_and_type(&mut self, direction: Direction, conn_descriptor: &Route,
+    pub fn get_route_and_type(&mut self, direction: Direction, route: &Route,
                               initial_value: &Option<InputInitializer>) -> Result<IO> {
-        let mut segments: Vec<&str> = conn_descriptor.split('/').collect();
+        let mut segments: Vec<&str> = route.split('/').collect();
         if segments.len() < 2 {
-            bail!("Invalid route '{}'", conn_descriptor);
+            bail!("Invalid route '{}'", route);
         }
 
         let object_type = segments.remove(0); // first part is type of object
@@ -258,8 +258,8 @@ impl Flow {
             (&Direction::TO, "output") => self.outputs.find_by_name(object_name, &None), // an output from this flow
             (&Direction::FROM, "input") => self.inputs.find_by_name(object_name, &None), // an input to this flow
             (_, "process") => self.get_io_subprocess(object_name, direction, &sub_route, initial_value), // input or output of a sub-process
-            _ => bail!("Invalid combination of direction '{:?}' and type '{}' used in connection '{}'",
-                             direction, object_type, conn_descriptor)
+            _ => bail!("Invalid connection '{:?}' and type '{}' with route '{}'",
+                             direction, object_type, route)
         }
     }
 
@@ -300,7 +300,7 @@ impl Flow {
                                 connection.from_io = from_io;
                                 connection.to_io = to_io;
                             } else {
-                                error!("Type mismatch in flow '{}' connection:\n\nfrom\n\n{:#?}\n\nto\n\n{:#?}",
+                                error!("Type mismatch in flow '{}' connection:\nfrom\n{:#?}\nto\n{:#?}",
                                        self.source_url, from_io, to_io);
                                 error_count += 1;
                             }

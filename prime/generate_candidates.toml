@@ -24,7 +24,7 @@ to = "process/candidates-range/end"
 [[process]]
 alias = "candidates-range"
 source = "lib://flowstdlib/math/sequence"
-input.start = {once = 1}
+input.start = {once = 2}
 
 [[connection]]
 from = "process/candidates-range/sequence"

@@ -3,11 +3,11 @@ flow = "prime"
 # Generate a list of candidates from 1 up to the max specified in arg 1
 [[process]]
 alias = "args"
-source = "lib://flowruntime/args/get"
+source = "lib://flowruntime/args/get.toml"
 
 [[process]]
 alias = "generate-candidates"
-source = "generate_candidates"
+source = "generate_candidates.toml"
 
 [[connection]]
 from = "process/args/1"
@@ -19,7 +19,7 @@ to = "process/check-if-prime/candidate"
 
 [[process]]
 alias = "check-if-prime"
-source = "check_if_prime"
+source = "check_if_prime.toml"
 
 [[connection]]
 from = "process/check-if-prime/prime"

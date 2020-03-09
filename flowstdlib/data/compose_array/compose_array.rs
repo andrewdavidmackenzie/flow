@@ -22,14 +22,7 @@ pub struct ComposeArray;
 
 impl Implementation for ComposeArray {
     fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let mut input_stream = inputs.remove(0);
-        let mut output_vec = Vec::new();
-
-        output_vec.push(input_stream.remove(0));
-        output_vec.push(input_stream.remove(0));
-        output_vec.push(input_stream.remove(0));
-        output_vec.push(input_stream.remove(0));
-
+        let output_vec = inputs.remove(0);
         let output = Value::Array(output_vec);
 
         (Some(output), RUN_AGAIN)

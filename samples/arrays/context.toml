@@ -16,6 +16,7 @@ to = "process/composer"
 [[process]]
 alias = "composer"
 source = "lib://flowstdlib/data/compose_array"
+depth.default = 4
 
 [[connection]]
 from = "process/composer"

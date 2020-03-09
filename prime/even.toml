@@ -1,0 +1,30 @@
+flow = "even"
+
+[[process]]
+alias = "args"
+source = "lib://flowruntime/args/get.toml"
+
+[[process]]
+alias = "to_number"
+source = "lib://flowstdlib/fmt/to_number"
+
+[[connection]]
+from = "process/args/1"
+to = "process/to_number"
+
+[[process]]
+alias = "remainder_zero"
+source = "remainder_zero.toml"
+input.divisor = { constant = 2 }
+
+[[connection]]
+from = "process/to_number"
+to = "process/remainder_zero/dividend"
+
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"
+
+[[connection]]
+from = "process/remainder_zero/has_zero_remainder"
+to = "process/print"

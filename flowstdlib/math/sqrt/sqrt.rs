@@ -57,7 +57,7 @@ mod test {
         let (root, again) = rooter.run(test_81);
 
         println!("root = {:?}", root);
-        assert_eq!(true, again);
+        assert!(again);
         assert_eq!(test_9, root.unwrap());
     }
 }

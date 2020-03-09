@@ -131,7 +131,7 @@ impl Input {
     /// Return true if the `Input` is empty or false otherwise
     pub fn is_empty(&self) -> bool { self.received.is_empty() }
 
-    /// Return true of the `Input` is "full" and it's values can be taken for executing the `Function`
+    /// Return true if the `Input` is "full" and it's values can be taken for executing the `Function`
     pub fn full(&self) -> bool {
         self.received.len() >= self.depth
     }

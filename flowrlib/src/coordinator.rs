@@ -169,7 +169,7 @@ impl Coordinator {
                 submission.metrics.reset();
             }
 
-            debug!("Starting flow execution");
+            debug!("======================== Starting flow execution");
             let mut display_next_output;
             let mut restart;
 
@@ -184,10 +184,11 @@ impl Coordinator {
                     break 'inner;
                 }
 
+                trace!("After Job Sent - {}", submission.state);
+
                 if submission.state.number_jobs_running() > 0 {
                     match self.output_rx.recv_timeout(submission.output_timeout) {
                         Ok(output) => {
-                            submission.state.job_done(&output);
                             if cfg!(feature = "debugger") && display_next_output {
                                 if let Some(ref mut debugger) = submission.debugger {
                                     debugger.job_completed(&output);
@@ -198,13 +199,10 @@ impl Coordinator {
                         }
                         Err(err) => error!("Error receiving execution result: {}", err)
                     }
-                    trace!("After Job - {}", submission.state);
                 }
 
                 if submission.state.number_jobs_running() == 0 &&
                     submission.state.number_jobs_ready() == 0 {
-                    trace!("Final - {}", submission.state);
-
                     // execution is done - but not returning here allows us to go into debugger
                     // at the end of exeution, inspect state and possibly reset and rerun
                     break 'inner;
@@ -228,7 +226,7 @@ impl Coordinator {
     }
 
     fn flow_done(&self, submission: &Submission) {
-        debug!("========================Flow execution ended, no remaining function ready to run");
+        debug!("======================== Flow execution ended, no remaining function ready to run\n");
 
         if cfg!(feature = "logging") && log_enabled!(Debug) {
             debug!("{}", submission.state);

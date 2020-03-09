@@ -3,9 +3,11 @@ implementation = "compare.rs"
 
 [[input]]
 name = "left"
+type = "Number"
 
 [[input]]
 name = "right"
+type = "Number"
 
 [[output]]
 name = "equal"

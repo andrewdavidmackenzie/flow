@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
-use log::error;
+use log::{error, trace};
 
 use crate::errors::*;
 use crate::run_state::{Job, Output};
@@ -21,30 +21,51 @@ pub fn start_executors(number_of_executors: usize,
     }
 }
 
-pub fn get_and_execute_job(job_rx: &Arc<Mutex<Receiver<Job>>>,
-                           output_tx: &Sender<Output>) -> Result<String> {
-    // TODO write a convert method so I can chain this error too?
-    let guard = job_rx.lock().map_err(|e| e.to_string())?;
-    match guard.recv() {
-        Ok(job) => execute(job, output_tx),
-        Err(_) => Ok("Probably channel closure".into())
-    }
+/*
+    Replace the standard panic hook with one that just outputs the file and line of any process's
+    run-time panic.
+*/
+pub fn set_panic_hook() {
+    panic::set_hook(Box::new(|panic_info| {
+        /* Only available on 'nightly'
+        if let Some(message) = panic_info.message() {
+            error!("Message: {:?}", message);
+        }
+        */
+
+        if let Some(location) = panic_info.location() {
+            error!("Panic in file '{}' at line {}", location.file(), location.line());
+        }
+    }));
 }
 
 fn create_executor(name: String, job_rx: Arc<Mutex<Receiver<Job>>>, output_tx: Sender<Output>) {
+    let executor_name = name.clone();
     let builder = thread::Builder::new().name(name);
-    let _ = builder.spawn(move || {
+    let _ = builder.spawn( move || {
         set_panic_hook();
 
         loop {
-            let _ = get_and_execute_job(&job_rx, &output_tx);
+            let _ = get_and_execute_job(&job_rx, &output_tx, &executor_name);
         }
     });
 }
 
-fn execute(job: Job, output_tx: &Sender<Output>) -> Result<String> {
-    // Run the implementation with the input values and catch the execution result
+fn get_and_execute_job(job_rx: &Arc<Mutex<Receiver<Job>>>,
+                       output_tx: &Sender<Output>,
+                       name: &str) -> Result<String> {
+    // TODO write a convert method so I can chain this error too?
+    let guard = job_rx.lock().map_err(|e| e.to_string())?;
+    match guard.recv() {
+        Ok(job) => execute(job, output_tx, name),
+        Err(_) => Ok("Probably channel closure".into())
+    }
+}
+
+fn execute(job: Job, output_tx: &Sender<Output>, name: &str) -> Result<String> {
+    // Run the job and catch the execution result
     let (result, error) = match panic::catch_unwind(|| {
+        trace!("\tJob #{} Executing on '{}'", job.job_id, name);
         job.implementation.run(job.input_set.clone())
     }) {
         Ok(result) => (result, None),
@@ -64,22 +85,4 @@ fn execute(job: Job, output_tx: &Sender<Output>) -> Result<String> {
     output_tx.send(output).unwrap();
 
     Ok("Job Executed".into())
-}
-
-/*
-    Replace the standard panic hook with one that just outputs the file and line of any process's
-    run-time panic.
-*/
-pub fn set_panic_hook() {
-    panic::set_hook(Box::new(|panic_info| {
-        /* Only available on 'nightly'
-        if let Some(message) = panic_info.message() {
-            error!("Message: {:?}", message);
-        }
-        */
-
-        if let Some(location) = panic_info.location() {
-            error!("Panic in file '{}' at line {}", location.file(), location.line());
-        }
-    }));
 }
