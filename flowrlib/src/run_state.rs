@@ -24,6 +24,7 @@ pub enum State {
     Running,     //is being run somewhere
 }
 
+// TODO combine Job and Output - using Job with Option/Result<Output, Error) - None until run
 pub struct Job {
     pub job_id: usize,
     pub function_id: usize,
@@ -39,8 +40,8 @@ pub struct Output {
     pub function_id: usize,
     pub flow_id: usize,
     pub input_values: Vec<Vec<Value>>,
-    pub result: (Option<Value>, bool),
     pub destinations: Vec<OutputConnection>,
+    pub result: (Option<Value>, bool),
     pub error: Option<String>,
 }
 
@@ -67,6 +68,13 @@ impl Block {
 }
 
 impl fmt::Debug for Block {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "#{}({}) --> #{}({}):{}", self.blocked_id, self.blocked_flow_id,
+               self.blocking_id, self.blocking_flow_id, self.blocking_io_number)
+    }
+}
+
+impl fmt::Display for Block {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "#{}({}) --> #{}({}):{}", self.blocked_id, self.blocked_flow_id,
                self.blocking_id, self.blocking_flow_id, self.blocking_io_number)
@@ -465,7 +473,7 @@ impl RunState {
         let input_set = function.take_input_set();
         let flow_id = function.get_flow_id();
 
-        debug!("Job #{} for Function #{} '{}'---------------------------", job_id, function_id, function.name());
+        debug!("---------------------------Job #{} for Function #{} '{}'---------------------------", job_id, function_id, function.name());
 
         // inputs were taken and hence emptied - so refresh any inputs that have constant initializers for next time
         let refilled = function.init_inputs(false);
@@ -498,6 +506,8 @@ impl RunState {
         if those other function have all their inputs, then mark them accordingly.
     */
     pub fn process_output(&mut self, metrics: &mut Metrics, output: Output, debugger: &mut Option<Debugger>) {
+        self.job_done(&output);
+
         match output.error {
             None => {
                 let output_value = output.result.0;
@@ -598,28 +608,8 @@ impl RunState {
         (refilled, function.inputs_full())
     }
 
-    /*
-        Removes any entry from the running list where k=function_id AND v=job_id
-        as there maybe more than one job running with function_id
-    */
-    pub fn job_done(&mut self, output: &Output) {
-        trace!("\tJob #{} completed by Function #{}", output.job_id, output.function_id);
-        self.running.retain(|&k, &v| k != output.function_id || v != output.job_id);
-        self.busy_flows.retain(|&_k, &v| v != output.function_id);
-    }
-
     pub fn start(&mut self, job: &Job) {
         self.running.insert(job.function_id, job.job_id);
-    }
-
-    // See if there is any block where the source (blocked) function is the id we're looking for
-    pub fn block_exists(&self, id: usize) -> bool {
-        for block in &self.blocks {
-            if block.blocked_id == id {
-                return true;
-            }
-        }
-        false
     }
 
     #[cfg(feature = "debugger")]
@@ -711,9 +701,18 @@ impl RunState {
     fn mark_ready(&mut self, function_id: usize, flow_id: usize) {
         if !self.ready.contains(&function_id) {
             self.ready.push_back(function_id);
-
             self.busy_flows.insert(flow_id, function_id);
         }
+    }
+
+    // See if there is any block where the source (blocked) function is the id we're looking for
+    fn block_exists(&self, id: usize) -> bool {
+        for block in &self.blocks {
+            if block.blocked_id == id {
+                return true;
+            }
+        }
+        false
     }
 
     pub fn jobs(&self) -> usize {
@@ -724,10 +723,31 @@ impl RunState {
         self.functions.len()
     }
 
-    #[cfg(feature = "checks")]
-    fn runtime_error(&self, message: &str, file: &str, line: u32) {
-        error!("Runtime error: at file: {}, line: {}\n\t\t{}", file, line, message);
-        panic!();
+    /*
+        Removes any entry from the running list where k=function_id AND v=job_id
+        as there maybe more than one job running with function_id
+    */
+    fn job_done(&mut self, output: &Output) {
+        trace!("\tJob #{} completed by Function #{}", output.job_id, output.function_id);
+        self.running.retain(|&k, &v| k != output.function_id || v != output.job_id);
+
+        // TODO should this be done at all if unblock does similar?
+        // the function may also be in the ready queue for other jobs
+        if !self.ready.contains(&output.function_id) {
+            self.busy_flows.retain(|&_k, &v| v != output.function_id);
+        }
+    }
+
+    // TODO combine these as if also ready, then there should be two entries in busy one for
+    // the running and another for the ready - remove ONLY one, the one that just completed
+    fn remove_from_busy(&mut self, blocker_function_id: usize) {
+        // Remove this flow-function combination from the busy flow list - if it's not also ready for other jobs
+        if !self.ready.contains(&blocker_function_id) {
+            self.busy_flows.retain(|&_flow_id, &function_id| {
+                function_id != blocker_function_id
+            });
+            trace!("\tUpdated busy_flows list to: {:?}", self.busy_flows);
+        }
     }
 
     /*
@@ -742,12 +762,7 @@ impl RunState {
         let flow_internal_blocks = |block: &Block| block.blocking_flow_id == block.blocked_flow_id;
         let any_block = |_block: &Block| true;
         self.unblock_senders_to_function(blocker_function_id, &refilled_inputs, flow_internal_blocks);
-
-        // Remove this flow-function combination from the busy flow list - assuming only ever one copy running of the same function
-        self.busy_flows.retain(|&_flow_id, &function_id| {
-            function_id != blocker_function_id
-        });
-        trace!("\tUpdated busy_flows list to: {:?}", self.busy_flows);
+        self.remove_from_busy(blocker_function_id);
 
         // Add this function to the pending unblock list for further down
         self.pending_unblocks.insert(blocker_flow_id, (blocker_function_id, refilled_inputs.clone()));
@@ -775,14 +790,14 @@ impl RunState {
         so mark as ready
     */
     fn unblock_senders_to_function<F>(&mut self, blocker_function_id: usize, refilled_inputs: &Vec<usize>,
-                                   f: F) where F: Fn(&Block) -> bool {
+                                      f: F) where F: Fn(&Block) -> bool {
         let mut unblock_list = vec!();
 
         // Avoid unblocking multiple functions blocked on sending to the same input, just unblock the first
         let mut unblock_io_numbers = vec!();
 
         // don't unblock more than one function sending to each io port
-        trace!("\tRemoving blocks with destination #{}", blocker_function_id);
+        trace!("\tRemoving blocks to Function #{}", blocker_function_id);
         self.blocks.retain(|block| {
             if (block.blocking_id == blocker_function_id) && !refilled_inputs.contains(&block.blocking_io_number) &&
                 !unblock_io_numbers.contains(&block.blocking_io_number) && f(block)
@@ -828,6 +843,13 @@ impl RunState {
         }
     }
 
+    #[cfg(feature = "checks")]
+    fn runtime_error(&self, message: &str, file: &str, line: u32) {
+        error!("Runtime error: at file: {}, line: {}\n\t\t{}", file, line, message);
+        error!("Error State - {}", self);
+        panic!();
+    }
+
     /*
         Check a number of "invariants" i.e. unbreakable rules about the state, and go into debugger
         if one is found to be broken, with a message explaining it
@@ -844,13 +866,21 @@ impl RunState {
             match self.get_state(function.id()) {
                 State::Ready => {
                     num_ready += 1;
+                    if !self.busy_flows.contains_key(&function.get_flow_id()) {
+                        return self.runtime_error(&format!("Function {} is Ready, but Flow #{} is not busy", function.id(), function.get_flow_id()),
+                                                  file!(), line!());
+                    }
                 }
                 State::Running => {
                     num_running += 1;
+                    // TODO
+                    // if !self.busy_flows.contains_key(&function.get_flow_id()) {
+                    //     return self.runtime_error(&format!("Function {} is Running, but Flow #{} is not busy", function.id(), function.get_flow_id()),
+                    //                               file!(), line!());
+                    // }
                 }
                 State::Blocked => {
                     num_blocked += 1;
-                    // Check if there is a block on this function
                     if !self.block_exists(function.id()) {
                         return self.runtime_error(&format!("Function {} is blocked, but no block exists", function.id()),
                                                   file!(), line!());
@@ -860,8 +890,16 @@ impl RunState {
                     num_waiting += 1;
                 }
             }
+
+            // TODO
+            // if (function.inputs().len() > 0) && function.inputs_full() && !(self.get_state(function.id()) == State::Ready ||
+            //     self.get_state(function.id()) == State::Blocked) {
+            //     return self.runtime_error(&format!("Function {} inputs are full, but it is not Ready or Blocked", function.id()),
+            //                               file!(), line!());
+            // }
         }
 
+        // Check function counts all add up correctly
         if num_ready + num_blocked + num_waiting + num_running != self.functions.len() {
             return self.runtime_error(&format!("There are {} functions but the following state counts: \n\
             Ready: {}\
@@ -871,17 +909,47 @@ impl RunState {
                                       file!(), line!());
         }
 
-        for _blocked_id in &self.blocked {}
+        // Check block invariants
+        for block in &self.blocks {
+            // function should not be blocked on itself
+            if block.blocked_id == block.blocking_id {
+                return self.runtime_error(&format!("Block {} has same Function id as blocked and blocking", block),
+                                          file!(), line!());
+            }
 
-        for _block in &self.blocks {}
+            // For each block on a destination function, then either it's inputs should be full
+            // or it's flow should be busy and there should be a pending unblock on it
+            // TODO
+            // if !(self.functions.get(block.blocking_id).unwrap().inputs_full() ||
+            //     (self.busy_flows.contains_key(&block.blocking_flow_id) && self.pending_unblocks.contains_key(&block.blocking_flow_id))) {
+            //     return self.runtime_error(&format!("Block {} exists for function #{}, but Function #{}'s inputs are not full",
+            //                                        block, block.blocking_id, block.blocking_id),
+            //                               file!(), line!());
+            // }
 
-//        for ready in self.get_ready() {}
-//
-//        for running in state.get_running() {}
-//
-//        for flow in state.get_busy_flows() {}
-//
-//        for unblock in state.get_pending_unblocks() {}
+            // TODO There should be no two blocks the same?
+        }
+
+        // Check pending unblock invariants
+//        for unblock in state.get_pending_unblocks() {
+        // flow it's in must be busy
+        // TODO shouldn't have duplicates? In Array sample I think we do...
+// }
+
+        // Check read process invariants
+//        for ready in self.get_ready() {
+        // inputs full
+        // no block
+// }
+
+        // Check running process invariants
+//        for running in state.get_running() {
+// }
+
+        // Check busy flow invariants
+//        for flow in state.get_busy_flows() {
+        // functions in ready or running - at least one job each
+// }
     }
 }
 
@@ -934,18 +1002,22 @@ mod test {
     }
 
     fn test_function_a_to_b_not_init() -> Function {
-        let out_conn = OutputConnection::new("".to_string(),
-                                             1, 0, 0, Some("/context/fB".to_string()));
+        let connection_to_f1 = OutputConnection::new("".to_string(),
+                                                     1, 0, 0,
+                                                     Some("/context/fB".to_string()));
+
         Function::new("fA".to_string(), // name
                       "/context/fA".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1, &None, false)),
                       0, 0,
-                      &vec!(out_conn), false) // outputs to fB:0
+                      &vec!(connection_to_f1), false) // outputs to fB:0
     }
 
     fn test_function_a_to_b() -> Function {
-        let out_conn = OutputConnection::new("".to_string(), 1, 0, 0, None);
+        let connection_to_f1 = OutputConnection::new("".to_string(),
+                                                     1, 0, 0,
+                                                     Some("/context/fB".to_string()));
         Function::new("fA".to_string(), // name
                       "/context/fA".to_string(),
                       "/test".to_string(),
@@ -953,7 +1025,7 @@ mod test {
                                       &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
                                       false)),
                       0, 0,
-                      &vec!(out_conn), false) // outputs to fB:0
+                      &vec!(connection_to_f1), false) // outputs to fB:0
     }
 
     fn test_function_a_init() -> Function {
@@ -1218,7 +1290,7 @@ mod test {
 
         #[test]
         fn unready_not_to_running_on_next() {
-            let f_a = Function::new("fA".to_string(), // name
+            let f_a = Function::new("fA".to_string(),
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
@@ -1240,18 +1312,24 @@ mod test {
         fn blocked_to_ready_on_done() {
             let f_a = super::test_function_a_to_b();
             let f_b = super::test_function_b_init();
-            let functions = vec!(f_b, f_a); // NOTE the order!
+            let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
             let mut metrics = Metrics::new(2);
             let mut debugger = Some(Debugger::new(test_debug_client()));
+
+            // Initial state
             state.init();
             assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
             assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state, by f_b");
-            assert_eq!(1, state.next_job().unwrap().function_id, "next() should return function_id=1 (f_b) for running");
+
+            // First job
+            let job = state.next_job().unwrap();
+            assert_eq!(1, job.function_id, "next() should return function_id=1 (f_b) for running");
+            state.start(&job);
+            assert_eq!(State::Running, state.get_state(1), "f_b should be Running");
 
 // Event
             let output = super::test_output(1, 0);
-            state.job_done(&output);
             state.process_output(&mut metrics, output, &mut debugger);
 
 // Test
@@ -1269,7 +1347,6 @@ mod test {
 
             state.init();
             let output = super::error_output(0, 1);
-            state.job_done(&output);
             state.process_output(&mut metrics, output, &mut debugger);
 
             assert_eq!(State::Waiting, state.get_state(1), "f_b should be Waiting");
@@ -1307,7 +1384,6 @@ mod test {
                 destinations: vec!(),
                 error: None,
             };
-            state.job_done(&output);
             state.process_output(&mut metrics, output, &mut debugger);
 
 // Test
@@ -1340,7 +1416,6 @@ mod test {
                 destinations: vec!(),
                 error: None,
             };
-            state.job_done(&output);
             state.process_output(&mut metrics, output, &mut debugger);
 
 // Test
@@ -1381,7 +1456,6 @@ mod test {
 
 // Event
             let output = super::test_output(0, 1);
-            state.job_done(&output);
             state.process_output(&mut metrics, output, &mut debugger);
 
 // Test f_a should transition to Blocked on f_b
@@ -1412,7 +1486,6 @@ mod test {
 
 // Event run f_b which will send to f_a
             let output = super::test_output(1, 0);
-            state.job_done(&output);
             state.process_output(&mut metrics, output, &mut debugger);
 
 // Test
@@ -1442,7 +1515,6 @@ mod test {
 
             // create output from f_b as if it had run - will send to f_a
             let output = super::test_output(1, 0);
-            state.job_done(&output);
             state.process_output(&mut metrics, output, &mut debugger);
 
             // Test
@@ -1500,7 +1572,6 @@ mod test {
                 error: None,
 
             };
-            state.job_done(&output);
             state.process_output(&mut metrics, output, &mut debugger);
 
             // Test

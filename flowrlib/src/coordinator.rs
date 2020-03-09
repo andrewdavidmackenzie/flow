@@ -169,7 +169,7 @@ impl Coordinator {
                 submission.metrics.reset();
             }
 
-            debug!("Starting flow execution");
+            debug!("======================== Starting flow execution");
             let mut display_next_output;
             let mut restart;
 
@@ -189,7 +189,6 @@ impl Coordinator {
                 if submission.state.number_jobs_running() > 0 {
                     match self.output_rx.recv_timeout(submission.output_timeout) {
                         Ok(output) => {
-                            submission.state.job_done(&output);
                             if cfg!(feature = "debugger") && display_next_output {
                                 if let Some(ref mut debugger) = submission.debugger {
                                     debugger.job_completed(&output);
@@ -200,7 +199,6 @@ impl Coordinator {
                         }
                         Err(err) => error!("Error receiving execution result: {}", err)
                     }
-//                    trace!("After Processing Output - {}", submission.state);
                 }
 
                 if submission.state.number_jobs_running() == 0 &&
@@ -228,7 +226,7 @@ impl Coordinator {
     }
 
     fn flow_done(&self, submission: &Submission) {
-        debug!("========================Flow execution ended, no remaining function ready to run\n");
+        debug!("======================== Flow execution ended, no remaining function ready to run\n");
 
         if cfg!(feature = "logging") && log_enabled!(Debug) {
             debug!("{}", submission.state);

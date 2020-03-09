@@ -44,6 +44,7 @@
     - [print-args](flowc/tests/samples/print-args/print-args.md)
 
 - [Samples](samples/README.md)
+    - [args sample](samples/args/DESCRIPTION.md)
     - [arrays sample](samples/arrays/DESCRIPTION.md)
     - [fibonacci sample](samples/fibonacci/DESCRIPTION.md)
     - [first sample](samples/first/DESCRIPTION.md)
@@ -51,9 +52,10 @@
     - [hello-world-include sample](samples/hello-world-include/DESCRIPTION.md)
     - [mandlebrot-world sample](samples/mandlebrot/DESCRIPTION.md)
     - [pipeline sample](samples/pipeline/DESCRIPTION.md)
-    - [prime sample](samples/prime/DESCRIPTION.md)
-    - [primitives](samples/primitives/DESCRIPTION.md)
+    - [primitives sample](samples/primitives/DESCRIPTION.md)
+    - [prime sample](prime/DESCRIPTION.md)
     - [range](samples/range/DESCRIPTION.md)
+    - [range-of-ranges](samples/range-of-ranges/DESCRIPTION.md)
     - [reverse-echo sample](samples/reverse-echo/DESCRIPTION.md)
     - [router sample](samples/router/DESCRIPTION.md)
 

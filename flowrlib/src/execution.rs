@@ -65,7 +65,7 @@ fn get_and_execute_job(job_rx: &Arc<Mutex<Receiver<Job>>>,
 fn execute(job: Job, output_tx: &Sender<Output>, name: &str) -> Result<String> {
     // Run the job and catch the execution result
     let (result, error) = match panic::catch_unwind(|| {
-        trace!("Job #{} Executing on Executor '{}'", job.job_id, name);
+        trace!("\tJob #{} Executing on '{}'", job.job_id, name);
         job.implementation.run(job.input_set.clone())
     }) {
         Ok(result) => (result, None),
