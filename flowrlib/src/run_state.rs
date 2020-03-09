@@ -29,9 +29,9 @@ pub struct Job {
     pub job_id: usize,
     pub function_id: usize,
     pub flow_id: usize,
-    pub implementation: Arc<dyn Implementation>,
     pub input_set: Vec<Vec<Value>>,
     pub destinations: Vec<OutputConnection>,
+    pub implementation: Arc<dyn Implementation>,
 }
 
 #[derive(Debug)]
@@ -41,6 +41,7 @@ pub struct Output {
     pub flow_id: usize,
     pub input_values: Vec<Vec<Value>>,
     pub destinations: Vec<OutputConnection>,
+
     pub result: (Option<Value>, bool),
     pub error: Option<String>,
 }
@@ -497,7 +498,8 @@ impl RunState {
     }
 
     /*
-        Take an output produced by a function and modify the runlist accordingly
+        Complete a Job by takingits output and updating the runlist accordingly.
+
         If other functions were blocked trying to send to this one - we can now unblock them
         as it has consumed it's inputs and they are free to be sent to again.
 
@@ -505,7 +507,7 @@ impl RunState {
         sent to, marking the source function as blocked because those others must consume the output
         if those other function have all their inputs, then mark them accordingly.
     */
-    pub fn process_output(&mut self, metrics: &mut Metrics, output: Output, debugger: &mut Option<Debugger>) {
+    pub fn complete_job(&mut self, metrics: &mut Metrics, output: Output, debugger: &mut Option<Debugger>) {
         trace!("\tJob #{} completed by Function #{}", output.job_id, output.function_id);
         self.running.retain(|&_, &job_id| job_id != output.job_id);
 
@@ -1321,7 +1323,7 @@ mod test {
 
 // Event
             let output = super::test_output(1, 0);
-            state.process_output(&mut metrics, output, &mut debugger);
+            state.complete_job(&mut metrics, output, &mut debugger);
 
 // Test
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
@@ -1338,7 +1340,7 @@ mod test {
 
             state.init();
             let output = super::error_output(0, 1);
-            state.process_output(&mut metrics, output, &mut debugger);
+            state.complete_job(&mut metrics, output, &mut debugger);
 
             assert_eq!(State::Waiting, state.get_state(1), "f_b should be Waiting");
         }
@@ -1375,7 +1377,7 @@ mod test {
                 destinations: vec!(),
                 error: None,
             };
-            state.process_output(&mut metrics, output, &mut debugger);
+            state.complete_job(&mut metrics, output, &mut debugger);
 
 // Test
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready again");
@@ -1407,7 +1409,7 @@ mod test {
                 destinations: vec!(),
                 error: None,
             };
-            state.process_output(&mut metrics, output, &mut debugger);
+            state.complete_job(&mut metrics, output, &mut debugger);
 
 // Test
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting again");
@@ -1447,7 +1449,7 @@ mod test {
 
 // Event
             let output = super::test_output(0, 1);
-            state.process_output(&mut metrics, output, &mut debugger);
+            state.complete_job(&mut metrics, output, &mut debugger);
 
 // Test f_a should transition to Blocked on f_b
             assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked");
@@ -1477,7 +1479,7 @@ mod test {
 
 // Event run f_b which will send to f_a
             let output = super::test_output(1, 0);
-            state.process_output(&mut metrics, output, &mut debugger);
+            state.complete_job(&mut metrics, output, &mut debugger);
 
 // Test
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
@@ -1506,7 +1508,7 @@ mod test {
 
             // create output from f_b as if it had run - will send to f_a
             let output = super::test_output(1, 0);
-            state.process_output(&mut metrics, output, &mut debugger);
+            state.complete_job(&mut metrics, output, &mut debugger);
 
             // Test
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
@@ -1563,7 +1565,7 @@ mod test {
                 error: None,
 
             };
-            state.process_output(&mut metrics, output, &mut debugger);
+            state.complete_job(&mut metrics, output, &mut debugger);
 
             // Test
             assert_eq!(state.get_state(1), State::Ready, "f_b should be Ready");
@@ -1583,7 +1585,7 @@ mod test {
                 error: None,
             };
             // this should unblock f_a sending to f_b - so make f_a ready
-            state.process_output(&mut metrics, output, &mut debugger);
+            state.complete_job(&mut metrics, output, &mut debugger);
 
             // Test
             assert_eq!(state.get_state(0), State::Ready, "f_a should be Ready");
@@ -1774,7 +1776,7 @@ mod test {
             };
 
 // Test there is no problem producing an Output when no destinations to send it to
-            state.process_output(&mut metrics, output, &mut debugger);
+            state.complete_job(&mut metrics, output, &mut debugger);
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
         }
 
