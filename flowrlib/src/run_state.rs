@@ -731,11 +731,8 @@ impl RunState {
         trace!("\tJob #{} completed by Function #{}", output.job_id, output.function_id);
         self.running.retain(|&k, &v| k != output.function_id || v != output.job_id);
 
-        // TODO should this be done at all if unblock does similar?
-        // the function may also be in the ready queue for other jobs
-        if !self.ready.contains(&output.function_id) {
-            self.busy_flows.retain(|&_k, &v| v != output.function_id);
-        }
+        // TODO why is this needed here if done in unblock also???
+        self.remove_from_busy(output.job_id);
     }
 
     // TODO combine these as if also ready, then there should be two entries in busy one for
@@ -762,6 +759,7 @@ impl RunState {
         let flow_internal_blocks = |block: &Block| block.blocking_flow_id == block.blocked_flow_id;
         let any_block = |_block: &Block| true;
         self.unblock_senders_to_function(blocker_function_id, &refilled_inputs, flow_internal_blocks);
+        // TODO why is this needed here AND in job_done() ??
         self.remove_from_busy(blocker_function_id);
 
         // Add this function to the pending unblock list for further down
