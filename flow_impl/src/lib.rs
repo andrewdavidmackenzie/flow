@@ -3,7 +3,7 @@
 //! to be executed as part of a flow.
 //!
 use std::panic::{RefUnwindSafe, UnwindSafe};
-
+use std::fmt::Debug;
 use serde_json::Value;
 
 /// Implementations should return a value of type `RunAgain` to indicate if it should be
@@ -53,7 +53,7 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 /// # fn main() {
 /// # }
 /// ```
-pub trait Implementation : RefUnwindSafe + UnwindSafe + Sync + Send {
+pub trait Implementation : RefUnwindSafe + UnwindSafe + Sync + Send + Debug {
     /// The `run` method is used to execute the implementation
     fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain);
 }
