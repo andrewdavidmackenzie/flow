@@ -1,0 +1,45 @@
+flow = "check if prime"
+
+# Inputs and Outputs
+[[input]]
+name = "candidate"
+type = "Number"
+
+[[output]]
+name = "prime"
+type = "Number"
+
+############# Generate a series of possible divisors of the candidate, from 2 up to candidate
+[[process]]
+alias = "lowest-divisor"
+source = "lib://flowstdlib/data/buffer"
+input.default = {constant = 2}
+
+[[process]]
+alias = "divisor-sequence"
+source = "lib://flowstdlib/math/sequence"
+
+[[connection]]
+from = "process/lowest-divisor"
+to = "process/divisor-sequence/start"
+
+[[connection]]
+from = "input/candidate"
+to = "process/divisor-sequence/end"
+
+############# divide the candidate by the divisor from the sequence
+[[process]]
+alias = "remainder_zero"
+source = "remainder_zero.toml"
+
+[[connection]]
+from = "input/candidate"
+to = "process/remainder_zero/dividend"
+
+[[connection]]
+from = "process/divisor-sequence/sequence"
+to = "process/remainder_zero/divisor"
+
+[[connection]]
+from = "process/remainder_zero/has_zero_remainder"
+to = "output/prime"

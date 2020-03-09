@@ -1,0 +1,31 @@
+flow = "generate candidates"
+
+# Generate a list of candidates from 1 up to the max specified in arg 1
+[[input]]
+name = "limit"
+type = "String"
+
+[[output]]
+name = "candidates"
+type = "Number"
+
+[[connection]]
+from = "input/limit"
+to = "process/to_number"
+
+[[process]]
+alias = "to_number"
+source = "lib://flowstdlib/fmt/to_number"
+
+[[connection]]
+from = "process/to_number"
+to = "process/candidates-range/end"
+
+[[process]]
+alias = "candidates-range"
+source = "lib://flowstdlib/math/sequence"
+input.start = {once = 2}
+
+[[connection]]
+from = "process/candidates-range/sequence"
+to = "output/candidates"
