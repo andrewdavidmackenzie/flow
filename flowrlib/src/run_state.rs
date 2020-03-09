@@ -506,7 +506,8 @@ impl RunState {
         if those other function have all their inputs, then mark them accordingly.
     */
     pub fn process_output(&mut self, metrics: &mut Metrics, output: Output, debugger: &mut Option<Debugger>) {
-        self.job_done(&output);
+        trace!("\tJob #{} completed by Function #{}", output.job_id, output.function_id);
+        self.running.retain(|&_, &job_id| job_id != output.job_id);
 
         match output.error {
             None => {
@@ -540,6 +541,8 @@ impl RunState {
 
                     // unblock senders blocked trying to send to this function's empty inputs
                     self.unblock_senders(output.function_id, output.flow_id, refilled);
+                } else {
+                    self.remove_from_busy(output.job_id);
                 }
             }
             Some(_) => {
@@ -723,18 +726,6 @@ impl RunState {
         self.functions.len()
     }
 
-    /*
-        Removes any entry from the running list where k=function_id AND v=job_id
-        as there maybe more than one job running with function_id
-    */
-    fn job_done(&mut self, output: &Output) {
-        trace!("\tJob #{} completed by Function #{}", output.job_id, output.function_id);
-        self.running.retain(|&k, &v| k != output.function_id || v != output.job_id);
-
-        // TODO why is this needed here if done in unblock also???
-        self.remove_from_busy(output.job_id);
-    }
-
     // TODO combine these as if also ready, then there should be two entries in busy one for
     // the running and another for the ready - remove ONLY one, the one that just completed
     fn remove_from_busy(&mut self, blocker_function_id: usize) {
@@ -758,9 +749,11 @@ impl RunState {
         // delete blocks to this function from within the same flow
         let flow_internal_blocks = |block: &Block| block.blocking_flow_id == block.blocked_flow_id;
         let any_block = |_block: &Block| true;
-        self.unblock_senders_to_function(blocker_function_id, &refilled_inputs, flow_internal_blocks);
-        // TODO why is this needed here AND in job_done() ??
+
         self.remove_from_busy(blocker_function_id);
+
+        // TODO moved from above
+        self.unblock_senders_to_function(blocker_function_id, &refilled_inputs, flow_internal_blocks);
 
         // Add this function to the pending unblock list for further down
         self.pending_unblocks.insert(blocker_flow_id, (blocker_function_id, refilled_inputs.clone()));
@@ -1590,7 +1583,6 @@ mod test {
                 error: None,
             };
             // this should unblock f_a sending to f_b - so make f_a ready
-            state.job_done(&output);
             state.process_output(&mut metrics, output, &mut debugger);
 
             // Test
@@ -1782,7 +1774,6 @@ mod test {
             };
 
 // Test there is no problem producing an Output when no destinations to send it to
-            state.job_done(&output);
             state.process_output(&mut metrics, output, &mut debugger);
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
         }
