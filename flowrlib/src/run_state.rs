@@ -760,11 +760,20 @@ impl RunState {
         }
     }
 
+    /*
+        Remove ONE entry of <flow_id, function_id> from the busy_flows multimap
+    */
     fn remove_from_busy(&mut self, blocker_function_id: usize) {
         // Remove this flow-function combination from the busy flow list - if it's not also ready for other jobs
         if !self.ready.contains(&blocker_function_id) {
+            let mut count = 0;
             self.busy_flows.retain(|&_flow_id, &function_id| {
-                function_id != blocker_function_id
+                if function_id == blocker_function_id && count == 0 {
+                    count += 1;
+                    false // remove it
+                } else {
+                    true // retain it
+                }
             });
             trace!("\tUpdated busy_flows list to: {:?}", self.busy_flows);
         }
