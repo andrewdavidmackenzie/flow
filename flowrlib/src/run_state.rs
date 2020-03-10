@@ -511,6 +511,7 @@ impl RunState {
     pub fn complete_job(&mut self, metrics: &mut Metrics, job: Job, debugger: &mut Option<Debugger>) {
         trace!("Job #{}:\tCompleted by Function #{}", job.job_id, job.function_id);
         self.running.retain(|&_, &job_id| job_id != job.job_id);
+        let job_id = job.job_id;
 
         match job.error {
             None => {
@@ -557,7 +558,7 @@ impl RunState {
         }
 
         #[cfg(feature = "checks")]
-            self.check_invariants();
+            self.check_invariants(job_id);
     }
 
     /*
@@ -570,7 +571,7 @@ impl RunState {
             debug!("\t\tFunction #{} sending '{}' to Function #{}:{}",
                    source_id, output_value, destination_id, io_number);
         } else {
-            debug!("\t\tFunction #{} sending '{}' via output route '{}' to Function #{}:{}",
+            debug!("\t\t\t\tFunction #{} sending '{}' via output route '{}' to Function #{}:{}",
                    source_id, output_value, output_route, destination_id, io_number);
         }
 
@@ -606,7 +607,7 @@ impl RunState {
         Refresh any inputs that have initializers on them
     */
     fn refill_inputs(&mut self, id: usize) -> (Vec<usize>, bool) {
-        trace!("\tRefilling the inputs of Function #{}", id);
+        trace!("\t\t\tRefilling the inputs of Function #{}", id);
         let function = self.get_mut(id);
 
         // refresh any constant inputs it may have
@@ -746,7 +747,7 @@ impl RunState {
 
         // Add this function to the pending unblock list for further down
         self.pending_unblocks.insert(blocker_flow_id, (blocker_function_id, refilled_inputs.clone()));
-        trace!("Added a pending_unblock --> #{}({})", blocker_function_id, blocker_flow_id);
+        trace!("\t\tAdded a pending_unblock --> #{}({})", blocker_function_id, blocker_flow_id);
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
@@ -777,7 +778,7 @@ impl RunState {
                     true // retain it
                 }
             });
-            trace!("\tUpdated busy_flows list to: {:?}", self.busy_flows);
+            trace!("\t\t\tUpdated busy_flows list to: {:?}", self.busy_flows);
         }
     }
 
@@ -796,7 +797,7 @@ impl RunState {
         let mut unblock_io_numbers = vec!();
 
         // don't unblock more than one function sending to each io port
-        trace!("\tRemoving blocks to Function #{}", blocker_function_id);
+        trace!("\t\t\tRemoving blocks to Function #{}", blocker_function_id);
         self.blocks.retain(|block| {
             if (block.blocking_id == blocker_function_id) && !refilled_inputs.contains(&block.blocking_io_number) &&
                 !unblock_io_numbers.contains(&block.blocking_io_number) && f(block)
@@ -832,7 +833,7 @@ impl RunState {
     fn create_block(&mut self, blocking_flow_id: usize, blocking_id: usize, blocking_io_number: usize,
                     blocked_id: usize, blocked_flow_id: usize, debugger: &mut Option<Debugger>) {
         let block = Block::new(blocking_flow_id, blocking_id, blocking_io_number, blocked_id, blocked_flow_id);
-        trace!("\t\t\tCreating Block {:?}", block);
+        trace!("\t\t\t\t\tCreating Block {:?}", block);
 
         if !self.blocks.contains(&block) {
             self.blocks.push_back(block.clone());
@@ -843,9 +844,9 @@ impl RunState {
     }
 
     #[cfg(feature = "checks")]
-    fn runtime_error(&self, message: &str, file: &str, line: u32) {
-        error!("Runtime error: at file: {}, line: {}\n\t\t{}", file, line, message);
-        error!("Error State - {}", self);
+    fn runtime_error(&self, job_id: usize, message: &str, file: &str, line: u32) {
+        error!("Job #{}: Runtime error: at file: {}, line: {}\n\t\t{}", job_id, file, line, message);
+        error!("Job #{}: Error State - {}", job_id, self);
         panic!();
     }
 
@@ -854,7 +855,7 @@ impl RunState {
         if one is found to be broken, with a message explaining it
     */
     #[cfg(feature = "checks")]
-    fn check_invariants(&mut self) {
+    fn check_invariants(&mut self, job_id: usize) {
         let mut num_ready = 0;
         let mut num_blocked = 0;
         let mut num_waiting = 0;
@@ -866,22 +867,21 @@ impl RunState {
                 State::Ready => {
                     num_ready += 1;
                     if !self.busy_flows.contains_key(&function.get_flow_id()) {
-                        return self.runtime_error(&format!("Function {} is Ready, but Flow #{} is not busy", function.id(), function.get_flow_id()),
+                        return self.runtime_error(job_id, &format!("Function {} is Ready, but Flow #{} is not busy", function.id(), function.get_flow_id()),
                                                   file!(), line!());
                     }
                 }
                 State::Running => {
                     num_running += 1;
-                    // TODO fails in Arrays
                     if !self.busy_flows.contains_key(&function.get_flow_id()) {
-                        return self.runtime_error(&format!("Function {} is Running, but Flow #{} is not busy", function.id(), function.get_flow_id()),
+                        return self.runtime_error(job_id, &format!("Function {} is Running, but Flow #{} is not busy", function.id(), function.get_flow_id()),
                                                   file!(), line!());
                     }
                 }
                 State::Blocked => {
                     num_blocked += 1;
                     if !self.block_exists(function.id()) {
-                        return self.runtime_error(&format!("Function {} is blocked, but no block exists", function.id()),
+                        return self.runtime_error(job_id, &format!("Function {} is blocked, but no block exists", function.id()),
                                                   file!(), line!());
                     }
                 }
@@ -896,14 +896,14 @@ impl RunState {
             if (function.inputs().len() > 0) && function.inputs_full() &&
                 !(state == State::Ready || state == State::Blocked || state == State::Running) {
                 error!("{}", function);
-                return self.runtime_error(&format!("Function {} inputs are full, but it is not Ready or Blocked", function.id()),
+                return self.runtime_error(job_id, &format!("Function {} inputs are full, but it is not Ready or Blocked", function.id()),
                                           file!(), line!());
             }
         }
 
         // Check function counts all add up correctly
         if num_ready + num_blocked + num_waiting + num_running != self.functions.len() {
-            return self.runtime_error(&format!("There are {} functions but the following state counts: \n\
+            return self.runtime_error(job_id, &format!("There are {} functions but the following state counts: \n\
             Ready: {}\
             Running: {}\
             Blocked: {}\
@@ -915,19 +915,19 @@ impl RunState {
         for block in &self.blocks {
             // function should not be blocked on itself
             if block.blocked_id == block.blocking_id {
-                return self.runtime_error(&format!("Block {} has same Function id as blocked and blocking", block),
+                return self.runtime_error(job_id, &format!("Block {} has same Function id as blocked and blocking", block),
                                           file!(), line!());
             }
 
-            // For each block on a destination function, then either it's inputs should be full
+            // For each block on a destination function, then either that input should be full
             // or it's flow should be busy and there should be a pending unblock on it
             // TODO fails in range-of-ranges
-            // if !(self.functions.get(block.blocking_id).unwrap().inputs_full() ||
-            //     (self.busy_flows.contains_key(&block.blocking_flow_id) && self.pending_unblocks.contains_key(&block.blocking_flow_id))) {
-            //     return self.runtime_error(&format!("Block {} exists for function #{}, but Function #{}'s inputs are not full",
-            //                                        block, block.blocking_id, block.blocking_id),
-            //                               file!(), line!());
-            // }
+            if !(self.functions.get(block.blocking_id).unwrap().input_full(block.blocking_io_number) ||
+                (self.busy_flows.contains_key(&block.blocking_flow_id) && self.pending_unblocks.contains_key(&block.blocking_flow_id))) {
+                return self.runtime_error(job_id, &format!("Block {} exists for function #{}, but Function #{}'s inputs are not full",
+                                                   block, block.blocking_id, block.blocking_id),
+                                          file!(), line!());
+            }
 
             // TODO There should be no two blocks the same?
         }
