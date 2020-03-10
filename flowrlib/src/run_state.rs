@@ -873,10 +873,10 @@ impl RunState {
                 State::Running => {
                     num_running += 1;
                     // TODO fails in Arrays
-                    // if !self.busy_flows.contains_key(&function.get_flow_id()) {
-                    //     return self.runtime_error(&format!("Function {} is Running, but Flow #{} is not busy", function.id(), function.get_flow_id()),
-                    //                               file!(), line!());
-                    // }
+                    if !self.busy_flows.contains_key(&function.get_flow_id()) {
+                        return self.runtime_error(&format!("Function {} is Running, but Flow #{} is not busy", function.id(), function.get_flow_id()),
+                                                  file!(), line!());
+                    }
                 }
                 State::Blocked => {
                     num_blocked += 1;
