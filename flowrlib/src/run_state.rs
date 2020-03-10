@@ -533,6 +533,8 @@ impl RunState {
                     }
                 }
 
+                self.remove_from_busy(job.function_id);
+
                 // if it wants to run again, and after possibly refreshing any constant inputs, it can
                 // (it's inputs are ready) then add back to the Ready list
                 if source_can_run_again {
@@ -543,8 +545,6 @@ impl RunState {
 
                     // unblock senders blocked trying to send to this function's empty inputs
                     self.unblock_senders(job.function_id, job.flow_id, refilled);
-                } else {
-                    self.remove_from_busy(job.job_id);
                 }
             }
             Some(_) => {
@@ -728,18 +728,6 @@ impl RunState {
         self.functions.len()
     }
 
-    // TODO combine these as if also ready, then there should be two entries in busy one for
-    // the running and another for the ready - remove ONLY one, the one that just completed
-    fn remove_from_busy(&mut self, blocker_function_id: usize) {
-        // Remove this flow-function combination from the busy flow list - if it's not also ready for other jobs
-        if !self.ready.contains(&blocker_function_id) {
-            self.busy_flows.retain(|&_flow_id, &function_id| {
-                function_id != blocker_function_id
-            });
-            trace!("\tUpdated busy_flows list to: {:?}", self.busy_flows);
-        }
-    }
-
     /*
         The function blocker_function_id in flow blocked_flow_id has completed execution and so
         is a candidate to send to from other functions that were blocked sending to it previously.
@@ -752,9 +740,6 @@ impl RunState {
         let flow_internal_blocks = |block: &Block| block.blocking_flow_id == block.blocked_flow_id;
         let any_block = |_block: &Block| true;
 
-        self.remove_from_busy(blocker_function_id);
-
-        // TODO moved from above
         self.unblock_senders_to_function(blocker_function_id, &refilled_inputs, flow_internal_blocks);
 
         // Add this function to the pending unblock list for further down
@@ -772,6 +757,16 @@ impl RunState {
                     self.unblock_senders_to_function(unblock_function_id, &refilled_ios, any_block);
                 }
             }
+        }
+    }
+
+    fn remove_from_busy(&mut self, blocker_function_id: usize) {
+        // Remove this flow-function combination from the busy flow list - if it's not also ready for other jobs
+        if !self.ready.contains(&blocker_function_id) {
+            self.busy_flows.retain(|&_flow_id, &function_id| {
+                function_id != blocker_function_id
+            });
+            trace!("\tUpdated busy_flows list to: {:?}", self.busy_flows);
         }
     }
 
@@ -866,7 +861,7 @@ impl RunState {
                 }
                 State::Running => {
                     num_running += 1;
-                    // TODO
+                    // TODO fails in Arrays
                     // if !self.busy_flows.contains_key(&function.get_flow_id()) {
                     //     return self.runtime_error(&format!("Function {} is Running, but Flow #{} is not busy", function.id(), function.get_flow_id()),
                     //                               file!(), line!());
@@ -884,7 +879,7 @@ impl RunState {
                 }
             }
 
-            // TODO
+            // TODO fails in range-of-ranges
             // if (function.inputs().len() > 0) && function.inputs_full() && !(self.get_state(function.id()) == State::Ready ||
             //     self.get_state(function.id()) == State::Blocked) {
             //     return self.runtime_error(&format!("Function {} inputs are full, but it is not Ready or Blocked", function.id()),
@@ -912,7 +907,7 @@ impl RunState {
 
             // For each block on a destination function, then either it's inputs should be full
             // or it's flow should be busy and there should be a pending unblock on it
-            // TODO
+            // TODO fails in range-of-ranges
             // if !(self.functions.get(block.blocking_id).unwrap().inputs_full() ||
             //     (self.busy_flows.contains_key(&block.blocking_flow_id) && self.pending_unblocks.contains_key(&block.blocking_flow_id))) {
             //     return self.runtime_error(&format!("Block {} exists for function #{}, but Function #{}'s inputs are not full",
