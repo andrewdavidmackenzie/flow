@@ -919,10 +919,11 @@ impl RunState {
                                           file!(), line!());
             }
 
-            // For each block on a destination function, then either that input should be full
+            // For each block on a destination function, then either that input should be full or
+            // the function is running in parallel with the one that just completed
             // or it's flow should be busy and there should be a pending unblock on it
-            // TODO fails in range-of-ranges
             if !(self.functions.get(block.blocking_id).unwrap().input_full(block.blocking_io_number) ||
+                self.get_state(block.blocking_id) == State::Running ||
                 (self.busy_flows.contains_key(&block.blocking_flow_id) && self.pending_unblocks.contains_key(&block.blocking_flow_id))) {
                 return self.runtime_error(job_id,
                                           &format!("Block {} exists for function #{}, but Function #{}:{} input is not full",
