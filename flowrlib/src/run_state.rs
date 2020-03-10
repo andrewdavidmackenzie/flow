@@ -37,7 +37,7 @@ pub struct Job {
 }
 
 /// blocks: (blocking_id, blocking_io_number, blocked_id, blocked_flow_id) a blocks between functions
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Hash, Eq)]
 pub struct Block {
     pub blocking_flow_id: usize,
     pub blocking_id: usize,
@@ -71,8 +71,6 @@ impl fmt::Display for Block {
                self.blocking_id, self.blocking_flow_id, self.blocking_io_number)
     }
 }
-
-type BlockList = Vec<Block>;
 
 ///
 /// RunList is a structure that maintains the state of all the functions in the currently
@@ -227,7 +225,7 @@ pub struct RunState {
     /// blocked: HashSet<function_id> - list of functions by id that are blocked on sending
     blocked: HashSet<usize>,
     /// blocks: Vec<(blocking_id, blocking_io_number, blocked_id, blocked_flow_id)> - a list of blocks between functions
-    blocks: BlockList,
+    blocks: HashSet<Block>,
     /// ready: Vec<function_id> - a list of functions by id that are ready to run
     ready: VecDeque<usize>,
     /// running: MultiMap<function_id, job_id> - a list of functions and jobs ids that are running
@@ -247,7 +245,7 @@ impl RunState {
         RunState {
             functions,
             blocked: HashSet::<usize>::new(),
-            blocks: BlockList::new(),
+            blocks: HashSet::<Block>::new(),
             ready: VecDeque::<usize>::new(),
             running: MultiMap::<usize, usize>::new(),
             jobs_sent: 0,
@@ -324,7 +322,7 @@ impl RunState {
         list.
     */
     fn create_init_blocks(&mut self) {
-        let mut blocks = BlockList::new();
+        let mut blocks = HashSet::<Block>::new();
         let mut blocked = HashSet::<usize>::new();
 
         debug!("Init:\tCreating any initial block entries that are needed");
@@ -346,7 +344,7 @@ impl RunState {
                     let destination_function = self.get(destination.function_id);
                     if destination_function.input_full(destination.io_number) {
                         trace!("Init:\t\tAdded block #{} --> #{}:{}", source_id, destination.function_id, destination.io_number);
-                        blocks.push(Block::new(destination.flow_id, destination.function_id, destination.io_number,
+                        blocks.insert(Block::new(destination.flow_id, destination.function_id, destination.io_number,
                                                     source_id, source_flow_id));
                         // only put source on the blocked list if it already has it's inputs full
                         if source_has_inputs_full {
@@ -836,7 +834,7 @@ impl RunState {
         trace!("\t\t\t\t\tCreating Block {:?}", block);
 
         if !self.blocks.contains(&block) {
-            self.blocks.push(block.clone());
+            self.blocks.insert(block.clone());
             if let Some(ref mut debugger) = debugger {
                 debugger.check_on_block_creation(self, &block);
             }
@@ -930,8 +928,6 @@ impl RunState {
                                                    block, block.blocking_id, block.blocking_id, block.blocking_io_number),
                                           file!(), line!());
             }
-
-            // TODO There should be no two blocks the same?
         }
 
         // Check pending unblock invariants
