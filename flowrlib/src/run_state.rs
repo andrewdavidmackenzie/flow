@@ -298,7 +298,7 @@ impl RunState {
         let mut inputs_ready_list = Vec::<(usize, usize)>::new();
 
         for function in &mut self.functions {
-            debug!("\tInitializing Function #{} '{}' in Flow #{}",
+            debug!("Init:\tInitializing Function #{} '{}' in Flow #{}",
                    function.id(), function.name(), function.get_flow_id());
             function.init_inputs(true);
             if function.inputs_full() {
@@ -310,12 +310,12 @@ impl RunState {
         self.create_init_blocks();
 
         // Put all functions that have their inputs ready and are not blocked on the `ready` list
-        debug!("\tReadying initial functions: inputs full and not blocked on output");
+        debug!("Init:\tReadying initial functions: inputs full and not blocked on output");
         for (id, flow_id) in inputs_ready_list {
             self.inputs_now_full(id, flow_id);
         }
 
-        trace!("{}", self)
+        trace!("Init: State - {}", self)
     }
 
     /*
@@ -327,7 +327,7 @@ impl RunState {
         let mut blocks = BlockList::new();
         let mut blocked = HashSet::<usize>::new();
 
-        debug!("\tCreating any initial block entries that are needed");
+        debug!("Init:\tCreating any initial block entries that are needed");
 
         for source_function in &self.functions {
             let source_id;
@@ -345,7 +345,7 @@ impl RunState {
                 if destination.function_id != source_id { // don't block yourself!
                     let destination_function = self.get(destination.function_id);
                     if destination_function.input_full(destination.io_number) {
-                        trace!("\t\tAdded block #{} --> #{}:{}", source_id, destination.function_id, destination.io_number);
+                        trace!("Init:\t\tAdded block #{} --> #{}:{}", source_id, destination.function_id, destination.io_number);
                         blocks.push_back(Block::new(destination.flow_id, destination.function_id, destination.io_number,
                                                     source_id, source_flow_id));
                         // only put source on the blocked list if it already has it's inputs full
@@ -438,8 +438,9 @@ impl RunState {
     /*
         Track the number of jobs sent to date
     */
-    pub fn job_sent(&mut self) {
+    pub fn job_sent(&mut self, job_id: usize) {
         self.jobs_sent += 1;
+        trace!("Job #{}:\tSent - {}", job_id, self);
     }
 
     /*
@@ -464,13 +465,13 @@ impl RunState {
         let input_set = function.take_input_set();
         let flow_id = function.get_flow_id();
 
-        debug!("---------------------------Job #{} for Function #{} '{}'---------------------------", job_id, function_id, function.name());
+        debug!("Job #{}:\t Creating for Function #{} '{}' ---------------------------", job_id, function_id, function.name());
 
         // inputs were taken and hence emptied - so refresh any inputs that have constant initializers for next time
         let refilled = function.init_inputs(false);
         let all_refilled = refilled.len() == function.inputs().len();
 
-        debug!("\tInputs: {:?}", input_set);
+        debug!("Job #{}:\tInputs: {:?}", job_id, input_set);
 
         let implementation = function.get_implementation();
 
@@ -508,7 +509,7 @@ impl RunState {
         if those other function have all their inputs, then mark them accordingly.
     */
     pub fn complete_job(&mut self, metrics: &mut Metrics, job: Job, debugger: &mut Option<Debugger>) {
-        trace!("\tJob #{} completed by Function #{}", job.job_id, job.function_id);
+        trace!("Job #{}:\tCompleted by Function #{}", job.job_id, job.function_id);
         self.running.retain(|&_, &job_id| job_id != job.job_id);
 
         match job.error {
@@ -518,7 +519,7 @@ impl RunState {
 
                 // if it produced an output value
                 if let Some(output_v) = output_value {
-                    debug!("\tJob #{} -> Outputs '{}'", job.job_id, output_v);
+                    debug!("Job #{}:\tOutputs '{}'", job.job_id, output_v);
 
                     for destination in &job.destinations {
                         match output_v.pointer(&destination.subpath) {
@@ -528,7 +529,7 @@ impl RunState {
                                                 &destination.subpath,
                                                 destination.function_id,
                                                 destination.io_number, output_value, metrics, debugger),
-                            _ => trace!("\t\tNo output value found at '{}'", &destination.subpath)
+                            _ => trace!("Job #{}:\t\tNo output value found at '{}'", job.job_id, &destination.subpath)
                         }
                     }
                 }
@@ -549,7 +550,7 @@ impl RunState {
             }
             Some(_) => {
                 match debugger {
-                    None => error!("Error in Job execution:\n{:#?}", job),
+                    None => error!("Job #{}:\tError in Job execution:\n{:#?}", job.job_id, job),
                     Some(debugger) => debugger.panic(&self, job)
                 }
             }
@@ -605,6 +606,7 @@ impl RunState {
         Refresh any inputs that have initializers on them
     */
     fn refill_inputs(&mut self, id: usize) -> (Vec<usize>, bool) {
+        trace!("\tRefilling the inputs of Function #{}", id);
         let function = self.get_mut(id);
 
         // refresh any constant inputs it may have
@@ -888,12 +890,15 @@ impl RunState {
                 }
             }
 
-            // TODO fails in range-of-ranges
-            // if (function.inputs().len() > 0) && function.inputs_full() && !(self.get_state(function.id()) == State::Ready ||
-            //     self.get_state(function.id()) == State::Blocked) {
-            //     return self.runtime_error(&format!("Function {} inputs are full, but it is not Ready or Blocked", function.id()),
-            //                               file!(), line!());
-            // }
+            // State::Running is because functions with initializers auto-refill when sent to run
+            // So they will show as inputs full, but not Ready or Blocked
+            let state = self.get_state(function.id());
+            if (function.inputs().len() > 0) && function.inputs_full() &&
+                !(state == State::Ready || state == State::Blocked || state == State::Running) {
+                error!("{}", function);
+                return self.runtime_error(&format!("Function {} inputs are full, but it is not Ready or Blocked", function.id()),
+                                          file!(), line!());
+            }
         }
 
         // Check function counts all add up correctly
@@ -1165,7 +1170,7 @@ mod test {
         fn jobs_sent_increases() {
             let mut state = RunState::new(vec!(), 1);
             state.init();
-            state.job_sent();
+            state.job_sent(0);
             assert_eq!(1, state.jobs(), "jobs() should have incremented");
         }
     }

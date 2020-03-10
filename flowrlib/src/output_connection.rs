@@ -46,7 +46,7 @@ impl fmt::Display for OutputConnection {
         if !self.subpath.is_empty() {
             write!(f, " from sub-path '/{}'", self.subpath)?;
         }
-        write!(f, " -> Function #{} Input :{}", self.function_id, self.io_number)?;
+        write!(f, " -> Function #{}({}):{}", self.function_id, self.flow_id, self.io_number)?;
         if let Some(route) = &self.route {
             write!(f, " @ route '{}'", route)?;
         }

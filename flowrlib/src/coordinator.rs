@@ -3,7 +3,7 @@ use std::sync::mpsc::{Receiver, Sender, SendError};
 use std::sync::mpsc;
 use std::time::Duration;
 
-use log::{debug, error, info, log_enabled, trace};
+use log::{debug, error, info, log_enabled};
 use log::Level::Debug;
 
 use crate::debug_client::DebugClient;
@@ -169,7 +169,7 @@ impl Coordinator {
                 submission.metrics.reset();
             }
 
-            debug!("======================== Starting flow execution");
+            debug!("===========================    Starting flow execution =============================");
             let mut display_next_output;
             let mut restart;
 
@@ -184,18 +184,16 @@ impl Coordinator {
                     break 'inner;
                 }
 
-                trace!("After Job Sent - {}", submission.state);
-
                 if submission.state.number_jobs_running() > 0 {
                     match self.job_rx.recv_timeout(submission.output_timeout) {
-                        Ok(output) => {
+                        Ok(job) => {
                             if cfg!(feature = "debugger") && display_next_output {
                                 if let Some(ref mut debugger) = submission.debugger {
-                                    debugger.job_completed(&output);
+                                    debugger.job_completed(&job);
                                 }
                             }
 
-                            submission.state.complete_job(&mut submission.metrics, output, &mut submission.debugger);
+                            submission.state.complete_job(&mut submission.metrics, job, &mut submission.debugger);
                         }
                         Err(err) => error!("Error receiving execution result: {}", err)
                     }
@@ -226,7 +224,7 @@ impl Coordinator {
     }
 
     fn flow_done(&self, submission: &Submission) {
-        debug!("======================== Flow execution ended, no remaining function ready to run\n");
+        debug!("=========================== Flow execution ended ======================================");
 
         if cfg!(feature = "logging") && log_enabled!(Debug) {
             debug!("{}", submission.state);
@@ -248,9 +246,10 @@ impl Coordinator {
         let mut restart = false;
 
         while let Some(job) = submission.state.next_job() {
+            let id = job.job_id;
             match self.send_job(job, submission) {
                 Ok((display, rest)) => {
-                    submission.state.job_sent();
+                    submission.state.job_sent(id);
                     display_output = display;
                     restart = rest;
                 }
@@ -286,7 +285,7 @@ impl Coordinator {
 
         let job_id = job.job_id;
         self.job_tx.send(job)?;
-        debug!("\tJob #{} sent for execution", job_id);
+        debug!("Job #{}:\tSent for execution", job_id);
 
         Ok(debug_options)
     }
