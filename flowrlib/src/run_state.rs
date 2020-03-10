@@ -465,7 +465,7 @@ impl RunState {
         let input_set = function.take_input_set();
         let flow_id = function.get_flow_id();
 
-        debug!("Job #{}:\t Creating for Function #{} '{}' ---------------------------", job_id, function_id, function.name());
+        debug!("Job #{}:\tCreating for Function #{} '{}' ---------------------------", job_id, function_id, function.name());
 
         // inputs were taken and hence emptied - so refresh any inputs that have constant initializers for next time
         let refilled = function.init_inputs(false);
@@ -546,7 +546,7 @@ impl RunState {
                     }
 
                     // unblock senders blocked trying to send to this function's empty inputs
-                    self.unblock_senders(job.function_id, job.flow_id, refilled);
+                    self.unblock_senders(job.job_id, job.function_id, job.flow_id, refilled);
                 }
             }
             Some(_) => {
@@ -738,7 +738,7 @@ impl RunState {
         But we don't want to unblock them to send to it, until all other functions inside this flow
         are idle, and hence the flow becomes idle.
     */
-    fn unblock_senders(&mut self, blocker_function_id: usize, blocker_flow_id: usize, refilled_inputs: Vec<usize>) {
+    fn unblock_senders(&mut self, job_id: usize, blocker_function_id: usize, blocker_flow_id: usize, refilled_inputs: Vec<usize>) {
         // delete blocks to this function from within the same flow
         let flow_internal_blocks = |block: &Block| block.blocking_flow_id == block.blocked_flow_id;
         let any_block = |_block: &Block| true;
@@ -747,15 +747,15 @@ impl RunState {
 
         // Add this function to the pending unblock list for further down
         self.pending_unblocks.insert(blocker_flow_id, (blocker_function_id, refilled_inputs.clone()));
-        trace!("\t\tAdded a pending_unblock --> #{}({})", blocker_function_id, blocker_flow_id);
+        trace!("Job #{}:\t\tAdded a pending_unblock --> #{}({})", job_id, blocker_function_id, blocker_flow_id);
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
-            trace!("\tFlow #{} is now idle, so removing pending_unblocks for flow #{}",
-                   blocker_flow_id, blocker_flow_id);
+            trace!("Job #{}:\tFlow #{} is now idle, so removing pending_unblocks for flow #{}",
+                   job_id, blocker_flow_id, blocker_flow_id);
 
             if let Some(unblocks) = self.pending_unblocks.remove(&blocker_flow_id) {
-                trace!("\tRemoving pending unblocks to functions in Flow #{}", blocker_flow_id);
+                trace!("Job #{}:\tRemoving pending unblocks to functions in Flow #{}", job_id, blocker_flow_id);
                 for (unblock_function_id, refilled_ios) in unblocks {
                     self.unblock_senders_to_function(unblock_function_id, &refilled_ios, any_block);
                 }
@@ -924,8 +924,9 @@ impl RunState {
             // TODO fails in range-of-ranges
             if !(self.functions.get(block.blocking_id).unwrap().input_full(block.blocking_io_number) ||
                 (self.busy_flows.contains_key(&block.blocking_flow_id) && self.pending_unblocks.contains_key(&block.blocking_flow_id))) {
-                return self.runtime_error(job_id, &format!("Block {} exists for function #{}, but Function #{}'s inputs are not full",
-                                                   block, block.blocking_id, block.blocking_id),
+                return self.runtime_error(job_id,
+                                          &format!("Block {} exists for function #{}, but Function #{}:{} input is not full",
+                                                   block, block.blocking_id, block.blocking_id, block.blocking_io_number),
                                           file!(), line!());
             }
 
@@ -998,7 +999,7 @@ mod test {
     }
 
     fn test_impl() -> Arc<dyn Implementation> {
-        Arc::new(TestImpl{})
+        Arc::new(TestImpl {})
     }
 
     // Helpers
@@ -1737,7 +1738,7 @@ mod test {
             assert!(state.next_job().is_none());
 
             // now unblock senders to 1 (i.e. 0)
-            state.unblock_senders(1, 0, vec!());
+            state.unblock_senders(0, 1, 0, vec!());
 
             // Now function with id 0 should be ready and served up by next
             assert_eq!(state.next_job().unwrap().function_id, 0);
@@ -1758,7 +1759,7 @@ mod test {
             assert!(state.next_job().is_none());
 
 // now unblock 0 by 1
-            state.unblock_senders(1, 0, vec!());
+            state.unblock_senders(0, 1, 0, vec!());
 
 // Now function with id 0 should still not be ready as still blocked on 2
             assert!(state.next_job().is_none());
