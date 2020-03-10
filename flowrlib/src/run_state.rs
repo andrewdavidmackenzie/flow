@@ -72,7 +72,7 @@ impl fmt::Display for Block {
     }
 }
 
-type BlockList = VecDeque<Block>;
+type BlockList = Vec<Block>;
 
 ///
 /// RunList is a structure that maintains the state of all the functions in the currently
@@ -346,7 +346,7 @@ impl RunState {
                     let destination_function = self.get(destination.function_id);
                     if destination_function.input_full(destination.io_number) {
                         trace!("Init:\t\tAdded block #{} --> #{}:{}", source_id, destination.function_id, destination.io_number);
-                        blocks.push_back(Block::new(destination.flow_id, destination.function_id, destination.io_number,
+                        blocks.push(Block::new(destination.flow_id, destination.function_id, destination.io_number,
                                                     source_id, source_flow_id));
                         // only put source on the blocked list if it already has it's inputs full
                         if source_has_inputs_full {
@@ -690,7 +690,7 @@ impl RunState {
         to run (if not blocked sending on it's output)
     */
     fn inputs_now_full(&mut self, id: usize, flow_id: usize) {
-        if self.block_exists(id) {
+        if self.blocked_sending(id) {
             // It has inputs and could run, if it weren't blocked on output
             debug!("\t\t\tFunction #{}, inputs full, but blocked on output. Added to blocked list", id);
             // so put it on the blocked list
@@ -713,8 +713,8 @@ impl RunState {
         }
     }
 
-    // See if there is any block where the source (blocked) function is the id we're looking for
-    fn block_exists(&self, id: usize) -> bool {
+    // See if there is any block where the blocked function is the one we're looking for
+    fn  blocked_sending(&self, id: usize) -> bool {
         for block in &self.blocks {
             if block.blocked_id == id {
                 return true;
@@ -814,7 +814,7 @@ impl RunState {
         // update state of functions unblocked
         // Note: they could be blocked on other functions apart from the the one that just unblocked
         for (unblocked_id, unblocked_flow_id) in unblock_list {
-            if self.blocked.contains(&unblocked_id) && !self.block_exists(unblocked_id) {
+            if self.blocked.contains(&unblocked_id) && !self.blocked_sending(unblocked_id) {
                 debug!("\t\t\t\tFunction #{} removed from 'blocked' list", unblocked_id);
                 self.blocked.remove(&unblocked_id);
 
@@ -836,7 +836,7 @@ impl RunState {
         trace!("\t\t\t\t\tCreating Block {:?}", block);
 
         if !self.blocks.contains(&block) {
-            self.blocks.push_back(block.clone());
+            self.blocks.push(block.clone());
             if let Some(ref mut debugger) = debugger {
                 debugger.check_on_block_creation(self, &block);
             }
@@ -880,8 +880,8 @@ impl RunState {
                 }
                 State::Blocked => {
                     num_blocked += 1;
-                    if !self.block_exists(function.id()) {
-                        return self.runtime_error(job_id, &format!("Function {} is blocked, but no block exists", function.id()),
+                    if !self.blocked_sending(function.id()) {
+                        return self.runtime_error(job_id, &format!("Function {} is in Blocked state, but no block exists", function.id()),
                                                   file!(), line!());
                     }
                 }
@@ -1675,7 +1675,7 @@ mod test {
 
 // Indicate that 0 is blocked by 1 on input 0
             state.create_block(0, 1, 0, 0, 0, &mut debugger);
-            assert!(state.block_exists(0));
+            assert!(state.blocked_sending(0));
         }
 
         #[test]
