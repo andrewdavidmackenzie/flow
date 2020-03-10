@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::collections::VecDeque;
 use std::fmt;
 use std::sync::Arc;
@@ -72,7 +72,6 @@ impl fmt::Display for Block {
     }
 }
 
-///
 /// RunList is a structure that maintains the state of all the functions in the currently
 /// executing flow.
 ///
@@ -237,7 +236,7 @@ pub struct RunState {
     /// Track which flow-function combinations are considered "busy" <flow_id, function_id>
     busy_flows: MultiMap<usize, usize>,
     /// Track which functions have finished and can be unblocked when flow goes not "busy"
-    pending_unblocks: MultiMap<usize, (usize, Vec<usize>)>,
+    pending_unblocks: HashMap<usize, HashSet<(usize, Vec<usize>)>>,
 }
 
 impl RunState {
@@ -251,7 +250,7 @@ impl RunState {
             jobs_sent: 0,
             max_pending_jobs: max_jobs,
             busy_flows: MultiMap::<usize, usize>::new(),
-            pending_unblocks: MultiMap::<usize, (usize, Vec<usize>)>::new(),
+            pending_unblocks: HashMap::<usize, HashSet<(usize, Vec<usize>)>>::new(),
         }
     }
 
@@ -345,7 +344,7 @@ impl RunState {
                     if destination_function.input_full(destination.io_number) {
                         trace!("Init:\t\tAdded block #{} --> #{}:{}", source_id, destination.function_id, destination.io_number);
                         blocks.insert(Block::new(destination.flow_id, destination.function_id, destination.io_number,
-                                                    source_id, source_flow_id));
+                                                 source_id, source_flow_id));
                         // only put source on the blocked list if it already has it's inputs full
                         if source_has_inputs_full {
                             blocked.insert(source_id);
@@ -712,7 +711,7 @@ impl RunState {
     }
 
     // See if there is any block where the blocked function is the one we're looking for
-    fn  blocked_sending(&self, id: usize) -> bool {
+    fn blocked_sending(&self, id: usize) -> bool {
         for block in &self.blocks {
             if block.blocked_id == id {
                 return true;
@@ -743,8 +742,11 @@ impl RunState {
 
         self.unblock_senders_to_function(blocker_function_id, &refilled_inputs, flow_internal_blocks);
 
-        // Add this function to the pending unblock list for further down
-        self.pending_unblocks.insert(blocker_flow_id, (blocker_function_id, refilled_inputs.clone()));
+        // Add this function to the pending unblock list for further down - ensure entry is unique
+        let mut new_set = HashSet::new();
+        new_set.insert((blocker_function_id, refilled_inputs.clone()));
+        let set = self.pending_unblocks.entry(blocker_flow_id).or_insert(new_set);
+        set.insert((blocker_function_id, refilled_inputs.clone()));
         trace!("Job #{}:\t\tAdded a pending_unblock --> #{}({})", job_id, blocker_function_id, blocker_flow_id);
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
@@ -795,10 +797,13 @@ impl RunState {
         let mut unblock_io_numbers = vec!();
 
         // don't unblock more than one function sending to each io port
+        // don't unblock functions sending to an io port that was previously refilled
         trace!("\t\t\tRemoving blocks to Function #{}", blocker_function_id);
         self.blocks.retain(|block| {
-            if (block.blocking_id == blocker_function_id) && !refilled_inputs.contains(&block.blocking_io_number) &&
-                !unblock_io_numbers.contains(&block.blocking_io_number) && f(block)
+            if (block.blocking_id == blocker_function_id) &&
+                !refilled_inputs.contains(&block.blocking_io_number) &&
+                !unblock_io_numbers.contains(&block.blocking_io_number) &&
+                f(block)
             {
                 unblock_list.push((block.blocked_id, block.blocked_flow_id));
                 unblock_io_numbers.push(block.blocking_io_number);
@@ -931,10 +936,9 @@ impl RunState {
         }
 
         // Check pending unblock invariants
-//        for unblock in state.get_pending_unblocks() {
-        // flow it's in must be busy
-        // TODO shouldn't have duplicates? In Array sample I think we do...
-// }
+        // for pending_unblock in self.get_pending_unblocks() {
+        //     // flow it's in must be busy
+        // }
 
         // Check read process invariants
 //        for ready in self.get_ready() {
