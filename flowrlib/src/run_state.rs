@@ -859,37 +859,28 @@ impl RunState {
     */
     #[cfg(feature = "checks")]
     fn check_invariants(&mut self, job_id: usize) {
-        let mut num_ready = 0;
-        let mut num_blocked = 0;
-        let mut num_waiting = 0;
-        let mut num_running = 0;
-
         // check invariants of each functions
         for function in &self.functions {
             match self.get_state(function.id()) {
                 State::Ready => {
-                    num_ready += 1;
                     if !self.busy_flows.contains_key(&function.get_flow_id()) {
                         return self.runtime_error(job_id, &format!("Function {} is Ready, but Flow #{} is not busy", function.id(), function.get_flow_id()),
                                                   file!(), line!());
                     }
                 }
                 State::Running => {
-                    num_running += 1;
                     if !self.busy_flows.contains_key(&function.get_flow_id()) {
                         return self.runtime_error(job_id, &format!("Function {} is Running, but Flow #{} is not busy", function.id(), function.get_flow_id()),
                                                   file!(), line!());
                     }
                 }
                 State::Blocked => {
-                    num_blocked += 1;
                     if !self.blocked_sending(function.id()) {
                         return self.runtime_error(job_id, &format!("Function {} is in Blocked state, but no block exists", function.id()),
                                                   file!(), line!());
                     }
                 }
                 State::Waiting => {
-                    num_waiting += 1;
                 }
             }
 
@@ -902,16 +893,6 @@ impl RunState {
                 return self.runtime_error(job_id, &format!("Function {} inputs are full, but it is not Ready or Blocked", function.id()),
                                           file!(), line!());
             }
-        }
-
-        // Check function counts all add up correctly
-        if num_ready + num_blocked + num_waiting + num_running != self.functions.len() {
-            return self.runtime_error(job_id, &format!("There are {} functions but the following state counts: \n\
-            Ready: {}\
-            Running: {}\
-            Blocked: {}\
-            Waiting: {}", self.functions.len(), num_ready, num_running, num_blocked, num_waiting),
-                                      file!(), line!());
         }
 
         // Check block invariants
@@ -939,16 +920,6 @@ impl RunState {
         // for pending_unblock in self.get_pending_unblocks() {
         //     // flow it's in must be busy
         // }
-
-        // Check read process invariants
-//        for ready in self.get_ready() {
-        // inputs full
-        // no block
-// }
-
-        // Check running process invariants
-//        for running in state.get_running() {
-// }
 
         // Check busy flow invariants
 //        for flow in state.get_busy_flows() {
