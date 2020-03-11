@@ -236,6 +236,7 @@ pub struct RunState {
     /// Track which flow-function combinations are considered "busy" <flow_id, function_id>
     busy_flows: MultiMap<usize, usize>,
     /// Track which functions have finished and can be unblocked when flow goes not "busy"
+    /// HashMap< <flow_id>, (function_id, vector of refilled io numbers of that function)>
     pending_unblocks: HashMap<usize, HashSet<(usize, Vec<usize>)>>,
 }
 
@@ -545,6 +546,9 @@ impl RunState {
                     // unblock senders blocked trying to send to this function's empty inputs
                     self.unblock_senders(job.job_id, job.function_id, job.flow_id, refilled);
                 }
+
+                // need to do flow unblocks as that could affect other functions even if this one cannot run again
+                self.unblock_flows(job.flow_id, job.job_id);
             }
             Some(_) => {
                 match debugger {
@@ -604,7 +608,6 @@ impl RunState {
         Refresh any inputs that have initializers on them
     */
     fn refill_inputs(&mut self, id: usize) -> (Vec<usize>, bool) {
-        trace!("\t\t\tRefilling the inputs of Function #{}", id);
         let function = self.get_mut(id);
 
         // refresh any constant inputs it may have
@@ -738,16 +741,22 @@ impl RunState {
     fn unblock_senders(&mut self, job_id: usize, blocker_function_id: usize, blocker_flow_id: usize, refilled_inputs: Vec<usize>) {
         // delete blocks to this function from within the same flow
         let flow_internal_blocks = |block: &Block| block.blocking_flow_id == block.blocked_flow_id;
-        let any_block = |_block: &Block| true;
 
         self.unblock_senders_to_function(blocker_function_id, &refilled_inputs, flow_internal_blocks);
 
-        // Add this function to the pending unblock list for further down - ensure entry is unique
+        // Add this function to the pending unblock list for later when flow goes idle - ensure entry is unique
         let mut new_set = HashSet::new();
         new_set.insert((blocker_function_id, refilled_inputs.clone()));
         let set = self.pending_unblocks.entry(blocker_flow_id).or_insert(new_set);
         set.insert((blocker_function_id, refilled_inputs.clone()));
         trace!("Job #{}:\t\tAdded a pending_unblock --> #{}({})", job_id, blocker_function_id, blocker_flow_id);
+    }
+
+    /*
+        Detect which flows have gone inactive and remove pending unblocks for functions in it
+    */
+    fn unblock_flows(&mut self, blocker_flow_id: usize, job_id: usize) {
+        let any_block = |_block: &Block| true;
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
@@ -880,8 +889,7 @@ impl RunState {
                                                   file!(), line!());
                     }
                 }
-                State::Waiting => {
-                }
+                State::Waiting => {}
             }
 
             // State::Running is because functions with initializers auto-refill when sent to run
@@ -917,8 +925,12 @@ impl RunState {
         }
 
         // Check pending unblock invariants
-        // for pending_unblock in self.get_pending_unblocks() {
+        // for pending_unblock_flow_id in self.pending_unblocks.keys() {
         //     // flow it's in must be busy
+        //     if !self.busy_flows.contains_key(pending_unblock_flow_id) {
+        //         return self.runtime_error(job_id, &format!("Pending Unblock exists for Flow {}, but it is not busy", pending_unblock_flow_id),
+        //                                   file!(), line!());
+        //     }
         // }
 
         // Check busy flow invariants
