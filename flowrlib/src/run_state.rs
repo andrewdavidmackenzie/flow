@@ -934,9 +934,14 @@ impl RunState {
         }
 
         // Check busy flow invariants
-//        for flow in state.get_busy_flows() {
-        // functions in ready or running - at least one job each
-// }
+        for (flow_id, function_id) in self.busy_flows.iter() {
+            let state = self.get_state(*function_id);
+            if !(state == State::Ready || state == State::Running) {
+                return self.runtime_error(job_id, &format!("Busy flow entry exists for Function #{} in Flow #{} but it's state is {:?}",
+                                                           function_id, flow_id, state),
+                                          file!(), line!());
+            }
+        }
     }
 }
 
