@@ -925,13 +925,13 @@ impl RunState {
         }
 
         // Check pending unblock invariants
-        // for pending_unblock_flow_id in self.pending_unblocks.keys() {
-        //     // flow it's in must be busy
-        //     if !self.busy_flows.contains_key(pending_unblock_flow_id) {
-        //         return self.runtime_error(job_id, &format!("Pending Unblock exists for Flow {}, but it is not busy", pending_unblock_flow_id),
-        //                                   file!(), line!());
-        //     }
-        // }
+        for pending_unblock_flow_id in self.pending_unblocks.keys() {
+            // flow it's in must be busy
+            if !self.busy_flows.contains_key(pending_unblock_flow_id) {
+                return self.runtime_error(job_id, &format!("Pending Unblock exists for Flow {}, but it is not busy", pending_unblock_flow_id),
+                                          file!(), line!());
+            }
+        }
 
         // Check busy flow invariants
 //        for flow in state.get_busy_flows() {
