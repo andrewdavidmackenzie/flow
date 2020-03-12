@@ -43,6 +43,10 @@ pub fn get_manifest() -> LibraryManifest {
                              Native(Arc::new(img::format_png::format_png::FormatPNG)));
     manifest.locators.insert("lib://flowstdlib/math/divide/Divide".to_string(),
                              Native(Arc::new(math::divide::divide::Divide)));
+    manifest.locators.insert("lib://flowstdlib/math/sqrt/Sqrt".to_string(),
+                             Native(Arc::new(math::sqrt::sqrt::Sqrt)));
+    manifest.locators.insert("lib://flowstdlib/math/multiply/Multiply".to_string(),
+                             Native(Arc::new(math::multiply::multiply::Multiply)));
     manifest.locators.insert("lib://flowstdlib/control/join/Join".to_string(),
                              Native(Arc::new(control::join::join::Join)));
     manifest.locators.insert("lib://flowstdlib/control/tap/Tap".to_string(),
