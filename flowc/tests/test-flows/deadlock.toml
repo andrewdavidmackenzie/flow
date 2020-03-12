@@ -1,16 +1,18 @@
 flow = "deadlock"
 
-# Generate a sequence of two numbers 1, 2
+# Generate a sequence of two numbers
 [[process]]
 alias = "first-sequence"
 source = "lib://flowstdlib/math/sequence"
 input.start = 1
 input.end = 9
+input.step = {constant = 1}
 
 # Generate a sequence of numbers from 2 upto the value from sequence above
 [[process]]
 alias = "second-sequence"
 source = "lib://flowstdlib/math/sequence"
+input.step = {constant = 1}
 
 [[process]]
 alias = "second-start"

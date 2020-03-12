@@ -10,6 +10,11 @@ type = "Number"
 name = "end"
 type = "Number"
 
+# 'step' is the amount to add each time
+[[input]]
+name = "step"
+type = "Number"
+
 # The sequence of numbers we will generate
 [[output]]
 name = "sequence"
@@ -38,7 +43,10 @@ source = "lib://flowstdlib/control/compare_switch"
 [[process]]
 alias = "add"
 source = "lib://flowstdlib/math/add"
-input.i2 = {constant = 1}
+
+[[connection]]
+from = "input/step"
+to = "process/add/i2"
 
 # connect the /lt output of compare (i.e. numbers that are less than or equal to the limit) to the output of this process -
 # the sequence of numbers being generated
