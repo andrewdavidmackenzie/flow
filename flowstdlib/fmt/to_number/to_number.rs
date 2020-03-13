@@ -30,6 +30,11 @@ impl Implementation for ToNumber {
                 if let Ok(number) = string.parse::<i64>() {
                     let number = Value::Number(serde_json::Number::from(number));
                     value = Some(number);
+                } else {
+                    if let Ok(number) = string.parse::<f64>() {
+                        let number = Value::Number(serde_json::Number::from_f64(number).unwrap());
+                        value = Some(number);
+                    }
                 }
             },
             _ => {}
