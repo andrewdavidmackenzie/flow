@@ -74,5 +74,5 @@ to = "process/compare/right"
 # When the compare flow indicates that the number was blocked due to being too large (equal to the limit) then
 # we want that to indicate that the sequence is done
 [[connection]]
-from = "process/compare/equal"
+from = "process/compare/right-gte"
 to = "output/done"
