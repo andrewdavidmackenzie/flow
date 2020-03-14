@@ -51,6 +51,10 @@ pub fn get_manifest() -> LibraryManifest {
                              Native(Arc::new(control::join::join::Join)));
     manifest.locators.insert("lib://flowstdlib/control/tap/Tap".to_string(),
                              Native(Arc::new(control::tap::tap::Tap)));
+    manifest.locators.insert("lib://flowstdlib/control/route/Route".to_string(),
+                             Native(Arc::new(control::route::route::Route)));
+    manifest.locators.insert("lib://flowstdlib/control/select/Select".to_string(),
+                             Native(Arc::new(control::select::select::Select)));
     manifest.locators.insert("lib://flowstdlib/fmt/reverse/Reverse".to_string(),
                              Native(Arc::new(fmt::reverse::reverse::Reverse)));
     manifest.locators.insert("lib://flowstdlib/fmt/to_number/ToNumber".to_string(),

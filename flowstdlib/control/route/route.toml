@@ -1,0 +1,11 @@
+function = "Route"
+implementation = "route.rs"
+
+[[input]]
+name = "data"
+
+[[input]]
+name = "control"
+type = "Bool"
+
+[[output]]
