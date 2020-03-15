@@ -1,15 +1,16 @@
 flow = "flow_input_init"
 
 [[process]]
-alias = "pass-if-lte"
-source = "lib://flowstdlib/control/pass_if_lte"
-input.in = {once = 1}
-input.max = {once = 10}
+alias = "count"
+source = "lib://flowstdlib/math/sequence"
+input.start = {once = 1}
+input.end = {once = 10}
+input.step = {constant = 1}
 
 [[process]]
 alias = "print"
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
-from = "process/pass-if-lte/passed"
+from = "process/count/sequence"
 to = "process/print"
