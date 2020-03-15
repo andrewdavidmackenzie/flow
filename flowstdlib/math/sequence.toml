@@ -44,8 +44,28 @@ source = "lib://flowstdlib/control/compare_switch"
 alias = "add"
 source = "lib://flowstdlib/math/add"
 
+# refresh the value of step each time during the sequence
+[[process]]
+alias = "join"
+source = "lib://flowstdlib/control/join"
+
 [[connection]]
 from = "input/step"
+to = "process/join/data"
+
+# loop back
+[[connection]]
+from = "process/join"
+to = "process/join/data"
+
+# control variable for join
+[[connection]]
+from = "process/compare/left-gt"
+to = "process/join/control"
+
+# pass step value onto adder
+[[connection]]
+from = "process/join"
 to = "process/add/i2"
 
 # connect the /lt output of compare (i.e. numbers that are less than or equal to the limit) to the output of this process -
