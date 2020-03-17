@@ -140,7 +140,7 @@ impl DebugClient for CLIDebugClient {
             Deadlock(message) =>
                 println!("Deadlock detected{}", message),
             SendingValue(source_process_id, value, destination_id, input_number) =>
-                println!("Job #{} sending '{}' to {}:{}",
+                println!("Function #{} sending '{}' to {}:{}",
                          source_process_id, value, destination_id, input_number),
         }
     }
