@@ -2,6 +2,8 @@
 use std::fmt;
 
 use log::debug;
+#[cfg(feature = "checks")]
+use log::error;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -84,7 +86,7 @@ impl Input {
             depth,
             initializer: initial_value.clone(),
             received: Vec::with_capacity(depth),
-            is_array
+            is_array,
         }
     }
 
@@ -126,6 +128,20 @@ impl Input {
     /// Add a value to this `Input`
     pub fn push(&mut self, value: Value) {
         self.received.push(value);
+
+        #[cfg(feature = "checks")]
+            {
+                if self.received.len() > self.depth {
+                    error!("Input overrun error: at file: {}, line: {}", file!(), line!());
+                }
+            }
+    }
+
+    /// Add an array of values to this `Input`
+    pub fn push_array<'a, I>(&mut self, iter: I) where I: Iterator<Item = &'a Value>{
+        for value in iter {
+            self.received.push(value.clone());
+        }
     }
 
     /// Return true if the `Input` is empty or false otherwise
