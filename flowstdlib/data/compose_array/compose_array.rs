@@ -10,7 +10,7 @@ use serde_json::Value;
 /// ```toml
 /// [[process]]
 /// alias = "compose_array"
-/// source = "lib://flowstdlib/data/compose_array/compose_array"
+/// source = "lib://flowstdlib/data/compose_array"
 /// ```
 ///
 /// ## Input

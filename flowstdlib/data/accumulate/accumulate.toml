@@ -1,0 +1,23 @@
+function = "Accumulate"
+implementation = "accumulate.rs"
+
+[[input]]
+name = "values"
+
+[[input]]
+name = "partial"
+
+[[input]]
+name = "limit"
+
+[[output]]
+name = "chunk"
+type = "Array"
+
+[[output]]
+name = "partial"
+type = "Array"
+
+[[output]]
+name = "limit"
+type = "Number"

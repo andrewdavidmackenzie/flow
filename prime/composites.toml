@@ -9,7 +9,7 @@ name = "composites"
 type = "Number"
 
 [[output]]
-name = "composites-last"
+name = "last"
 type = "Number"
 
 # Generate a set of divisors from 2 .. SQRT(limit)
@@ -85,7 +85,7 @@ to = "process/compare/right"
 
 [[connection]]
 from = "process/compare/equal"
-to = "output/composites-last"
+to = "output/last"
 
 
 

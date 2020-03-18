@@ -1,0 +1,33 @@
+flow = "all_numbers"
+
+# Generate the range of numbers from 1..20
+[[process]]
+alias = "numbers"
+source = "lib://flowstdlib/math/sequence"
+input.start = {once = 1}
+input.step = {once = 1}
+input.end = {once = 20}
+
+[[process]]
+alias = "array"
+source = "lib://flowstdlib/data/accumulate"
+input.limit = {constant = 20}
+input.partial = {once = []}
+
+[[connection]]
+from = "process/numbers/sequence"
+to = "process/array/values"
+
+[[connection]]
+from = "process/array/partial"
+to = "process/array/partial"
+
+####### Output
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"
+
+[[connection]]
+from = "process/numbers/sequence"
+to = "process/print"
+

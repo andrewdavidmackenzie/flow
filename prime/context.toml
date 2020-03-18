@@ -14,17 +14,6 @@ to = "process/to_number"
 alias = "to_number"
 source = "lib://flowstdlib/fmt/to_number"
 
-[[connection]]
-from = "process/to_number"
-to = "process/candidates/end"
-
-# Generate the range of numbers from 1..limit of possible primes
-[[process]]
-alias = "candidates"
-source = "lib://flowstdlib/math/sequence"
-input.start = {once = 1}
-input.step = {once = 1}
-
 ####### Composites
 [[process]]
 alias = "composites"
@@ -34,12 +23,37 @@ source = "composites.toml"
 from = "process/to_number"
 to = "process/composites/limit"
 
+####### All numbers
+# Generate the range of numbers from 1..limit of possible primes
+[[process]]
+alias = "candidates"
+source = "lib://flowstdlib/math/sequence"
+input.start = {once = 1}
+input.step = {once = 1}
+
+[[connection]]
+from = "process/to_number"
+to = "process/candidates/end"
+
+[[process]]
+alias = "array"
+source = "lib://flowstdlib/data/compose_array"
+depth.default = 20
+
+[[connection]]
+from = "process/candidates/sequence"
+to = "process/array"
+
 ####### Output
-# Output result to stdout
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"
+
 [[connection]]
 from = "process/composites/composites"
 to = "process/print"
 
-[[process]]
-alias = "print"
-source = "lib://flowruntime/stdio/stdout"
+#[[connection]]
+#from = "process/composites/last"
+#to = "process/print"
+
