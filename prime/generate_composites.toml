@@ -1,0 +1,64 @@
+flow = "generate_composites"
+
+[[input]]
+name = "limit"
+type = "Number"
+
+[[input]]
+name = "start"
+type = "Number"
+
+[[output]]
+name = "composites"
+type = "Number"
+
+[[output]]
+name = "subsequence-end"
+type = "Number"
+
+# Multiply start by 2
+[[process]]
+alias = "multiply"
+source = "lib://flowstdlib/math/multiply"
+input.i2 = {constant = 2}
+
+[[connection]]
+from = "input/start"
+to = "process/multiply/i1"
+
+[[process]]
+alias = "composite-sequence"
+source = "lib://flowstdlib/math/sequence"
+
+[[connection]]
+from = "input/limit"
+to = "process/limit-buffer"
+
+[[process]]
+alias = "limit-buffer"
+source = "lib://flowstdlib/data/buffer"
+
+# auto-refill each time used
+[[connection]]
+from = "process/limit-buffer"
+to = "process/limit-buffer"
+
+[[connection]]
+from = "process/limit-buffer"
+to = "process/composite-sequence/end"
+
+[[connection]]
+from = "process/multiply"
+to = "process/composite-sequence/start"
+
+[[connection]]
+from = "input/start"
+to = "process/composite-sequence/step"
+
+[[connection]]
+from = "process/composite-sequence/sequence"
+to = "output/composites"
+
+[[connection]]
+from = "process/composite-sequence/last"
+to = "output/subsequence-end"
