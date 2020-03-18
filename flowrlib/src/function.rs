@@ -331,7 +331,7 @@ mod test {
     }
 
     #[test]
-    fn can_oversend_inputs() {
+    fn second_value_overwrites_on_oversend() {
         let mut function = Function::new("test".to_string(),
                                          "/context/test".to_string(),
                                          "/test".to_string(),
@@ -341,8 +341,6 @@ mod test {
         function.init_inputs(true);
         function.write_input(0, &json!(1));
         function.write_input(0, &json!(2));
-        assert_eq!(json!(1), function.take_input_set().remove(0).remove(0),
-                   "Value from input set wasn't what was expected");
         assert_eq!(json!(2), function.take_input_set().remove(0).remove(0),
                    "Value from input set wasn't what was expected");
     }
