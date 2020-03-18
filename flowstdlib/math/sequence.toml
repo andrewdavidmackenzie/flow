@@ -22,7 +22,7 @@ type = "Number"
 
 # A value is output when the sequence has ended
 [[output]]
-name = "done"
+name = "last"
 
 # For the first time around, pass the start number of the sequence into the "compare" process
 [[connection]]
@@ -95,4 +95,4 @@ to = "process/compare/right"
 # we want that to indicate that the sequence is done
 [[connection]]
 from = "process/compare/right-gte"
-to = "output/done"
+to = "output/last"
