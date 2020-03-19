@@ -46,7 +46,31 @@ impl Implementation for Remove {
 
 #[cfg(test)]
 mod test {
-    fn remove_1() {
+    use flow_impl::Implementation;
+    use serde_json::{Number, Value};
 
+    #[test]
+    fn remove_1() {
+        let array: Vec<Value> = vec!(Value::Array(vec!(Value::Number(Number::from(1)),
+                                                       Value::Number(Number::from(2)))));
+        let value = vec!(Value::Number(Number::from(1)));
+
+        let remover = super::Remove{};
+        let (result, _) = remover.run(vec!(value, array));
+
+        assert_eq!(result.unwrap(), Value::Array(vec!(Value::Number(Number::from(2)))));
+    }
+
+    #[test]
+    fn not_remove_3() {
+        let array: Vec<Value> = vec!(Value::Array(vec!(Value::Number(Number::from(1)),
+                                                       Value::Number(Number::from(2)))));
+        let value = vec!(Value::Number(Number::from(3)));
+
+        let remover = super::Remove{};
+        let (result, _) = remover.run(vec!(value, array));
+
+        assert_eq!(result.unwrap(), Value::Array(vec!(Value::Number(Number::from(1)),
+                                                      Value::Number(Number::from(2)))));
     }
 }
