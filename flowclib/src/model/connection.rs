@@ -59,11 +59,14 @@ impl Connection {
     /*
         Determine if the type of the source of a connection and the type of the destination are
         compatible, and a Connection can be formed that can be implemented by the run-time
+
+        TODO: have .datatype() return an Option and if .is_none() is equivalent to Generic?
     */
     pub fn compatible_types(from: &IO, to: &IO) -> bool {
         from.datatype(0) == to.datatype(0) ||
             from.datatype(0).is_generic() ||
             to.datatype(0).is_generic() ||
+            from.datatype(0).is_array() && from.datatype(1).is_generic() ||
             from.datatype(0).is_array() && from.datatype(1) == to.datatype(0) ||
             to.datatype(0).is_array() && to.datatype(1) == from.datatype(0) ||
             to.datatype(0).is_array() && to.datatype(1).is_generic()

@@ -6,17 +6,19 @@ name = "values"
 
 [[input]]
 name = "partial"
+type = "Array/Json"
 
 [[input]]
-name = "limit"
+name = "chunk_size"
+type = "Number"
 
 [[output]]
 name = "chunk"
-type = "Array"
+type = "Array/Json"
 
 [[output]]
 name = "partial"
-type = "Array"
+type = "Array/Json"
 
 [[output]]
 name = "limit"

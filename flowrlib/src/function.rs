@@ -172,7 +172,7 @@ impl Function {
         if input_value.is_array() {
             // Serialize Array value into the non-Array input
             if !input.is_array {
-                debug!("Serializing Array value to non-Array input");
+                debug!("\t\tSerializing Array value to non-Array input");
                 input.push_array(input_value.as_array().unwrap().iter());
             } else {
                 // Send Array value to the Array input

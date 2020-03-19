@@ -11,7 +11,7 @@ input.end = {once = 20}
 [[process]]
 alias = "array"
 source = "lib://flowstdlib/data/accumulate"
-input.limit = {constant = 20}
+input.chunk_size = {constant = 20}
 input.partial = {once = []}
 
 [[connection]]
@@ -28,6 +28,6 @@ alias = "print"
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
-from = "process/numbers/sequence"
+from = "process/array/chunk"
 to = "process/print"
 
