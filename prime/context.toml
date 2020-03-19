@@ -1,6 +1,5 @@
 flow = "prime"
 
-####### All numbers
 # Read the limit from the command line
 [[process]]
 alias = "args"
@@ -23,7 +22,7 @@ source = "composites.toml"
 from = "process/to_number"
 to = "process/composites/limit"
 
-####### All numbers
+####### All numbers - Sequence
 # Generate the range of numbers from 1..limit of possible primes
 [[process]]
 alias = "candidates"
@@ -35,25 +34,52 @@ input.step = {once = 1}
 from = "process/to_number"
 to = "process/candidates/end"
 
+######## All numbers - Array
 [[process]]
-alias = "array"
-source = "lib://flowstdlib/data/compose_array"
-depth.default = 20
+alias = "all-numbers"
+source = "lib://flowstdlib/data/accumulate"
+input.partial = {once = []}
 
 [[connection]]
 from = "process/candidates/sequence"
-to = "process/array"
+to = "process/all-numbers/values"
+
+[[connection]]
+from = "process/to_number"
+to = "process/all-numbers/chunk_size"
+
+[[connection]] # loop-back
+from = "process/all-numbers/chunk_size"
+to = "process/all-numbers/chunk_size"
+
+[[connection]]
+from = "process/all-numbers/partial"
+to = "process/all-numbers/partial"
+
+###### Remove composites from entire list
+[[process]]
+alias = "subtract"
+source = "lib://flowstdlib/data/remove"
+
+[[connection]]
+from = "process/all-numbers/chunk"
+to = "process/subtract/array"
+
+[[connection]]
+from = "process/composites/composites"
+to = "process/subtract/value"
+
+[[connection]]
+from = "process/subtract"
+to = "process/subtract/array"
+
+#### debug
+[[connection]]
+from = "process/composites/composites"
+to = "process/print"
 
 ####### Output
 [[process]]
 alias = "print"
 source = "lib://flowruntime/stdio/stdout"
-
-[[connection]]
-from = "process/composites/composites"
-to = "process/print"
-
-#[[connection]]
-#from = "process/composites/last"
-#to = "process/print"
 
