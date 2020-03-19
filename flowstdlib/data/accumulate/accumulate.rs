@@ -62,7 +62,7 @@ impl Implementation for Accumulate {
             output_map.insert("partial".into(), Value::Array(accumulated.clone()));
         }
 
-        output_map.insert("limit".into(), limit);
+        output_map.insert("chunk_size".into(), limit);
 
         let output = Value::Object(output_map);
 

@@ -51,12 +51,14 @@ pub fn get_manifest() -> LibraryManifest {
                              Native(Arc::new(control::tap::tap::Tap)));
 
     // Data
+    manifest.locators.insert("lib://flowstdlib/data/accumulate/Accumulate".to_string(),
+                             Native(Arc::new(data::accumulate::accumulate::Accumulate)));
     manifest.locators.insert("lib://flowstdlib/data/buffer/Buffer".to_string(),
                              Native(Arc::new(data::buffer::buffer::Buffer)));
     manifest.locators.insert("lib://flowstdlib/data/compose_array/ComposeArray".to_string(),
                              Native(Arc::new(data::compose_array::compose_array::ComposeArray)));
-    manifest.locators.insert("lib://flowstdlib/data/accumulate/Accumulate".to_string(),
-                             Native(Arc::new(data::accumulate::accumulate::Accumulate)));
+    manifest.locators.insert("lib://flowstdlib/data/remove/Remove".to_string(),
+                             Native(Arc::new(data::remove::remove::Remove)));
     manifest.locators.insert("lib://flowstdlib/data/zip/Zip".to_string(),
                              Native(Arc::new(data::zip::zip::Zip)));
 

@@ -21,5 +21,5 @@ name = "partial"
 type = "Array/Json"
 
 [[output]]
-name = "limit"
+name = "chunk_size"
 type = "Number"

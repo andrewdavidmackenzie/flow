@@ -9,3 +9,5 @@ pub mod compose_array;
 pub mod accumulate;
 /// A module that zips two sets of data into a set of tuples of data
 pub mod zip;
+/// A module that removes elements from an array
+pub mod remove;
