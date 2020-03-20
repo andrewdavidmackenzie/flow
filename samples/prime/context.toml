@@ -34,7 +34,7 @@ input.step = {once = 1}
 from = "process/to_number"
 to = "process/candidates/end"
 
-######## All numbers - Array
+######### All numbers - Array
 [[process]]
 alias = "all-numbers"
 source = "lib://flowstdlib/data/accumulate"
@@ -56,10 +56,11 @@ to = "process/all-numbers/chunk_size"
 from = "process/all-numbers/partial"
 to = "process/all-numbers/partial"
 
-###### Remove composites from entire list
+####### Remove composites from entire list
 [[process]]
 alias = "subtract"
 source = "lib://flowstdlib/data/remove"
+input.value = { once = 9 }
 
 [[connection]]
 from = "process/all-numbers/chunk"
