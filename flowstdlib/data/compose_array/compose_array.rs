@@ -29,3 +29,22 @@ impl Implementation for ComposeArray {
         (Some(output), RUN_AGAIN)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use flow_impl::Implementation;
+    use serde_json::{Number, Value};
+
+    #[ignore]
+    #[test]
+    fn remove_1() {
+        let array: Vec<Value> = vec!(Value::Array(vec!(Value::Number(Number::from(1)),
+                                                       Value::Number(Number::from(2)))));
+        let value = vec!(Value::Number(Number::from(1)));
+
+        let composer = super::ComposeArray {};
+        let (result, _) = composer.run(vec!(value, array));
+
+        assert_eq!(result.unwrap(), Value::Array(vec!(Value::Number(Number::from(2)))));
+    }
+}
