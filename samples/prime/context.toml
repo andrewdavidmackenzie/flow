@@ -13,15 +13,6 @@ to = "process/to_number"
 alias = "to_number"
 source = "lib://flowstdlib/fmt/to_number"
 
-####### Composites
-[[process]]
-alias = "composites"
-source = "composites.toml"
-
-[[connection]]
-from = "process/to_number"
-to = "process/composites/limit"
-
 ####### All numbers - Sequence
 # Generate the range of numbers from 1..limit of possible primes
 [[process]]
@@ -34,7 +25,7 @@ input.step = {once = 1}
 from = "process/to_number"
 to = "process/candidates/end"
 
-######### All numbers - Array
+######### All numbers - gather into an Array
 [[process]]
 alias = "all-numbers"
 source = "lib://flowstdlib/data/accumulate"
@@ -55,6 +46,15 @@ to = "process/all-numbers/chunk_size"
 [[connection]]
 from = "process/all-numbers/partial"
 to = "process/all-numbers/partial"
+
+####### Composites
+[[process]]
+alias = "composites"
+source = "composites.toml"
+
+[[connection]]
+from = "process/to_number"
+to = "process/composites/limit"
 
 ####### Remove composites from entire list
 [[process]]
