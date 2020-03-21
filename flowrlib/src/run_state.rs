@@ -1808,7 +1808,7 @@ mod test {
             then get multiple jobs for execution for the same function
         */
         #[test]
-        fn can_create_multiple_jobs() {
+        fn can_create_multiple_jobs_from_array_of_inputs() {
             let f_a = Function::new("f_a".to_string(), // name
                                     "/context/fA".to_string(),
                                     "/test".to_string(),
@@ -1821,9 +1821,8 @@ mod test {
             let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
 
-// Send multiple inputs to f_a
-            state.send_value(1, 0, "/", 0, 0, &json!(1), &mut metrics, &mut debugger);
-            state.send_value(1, 0, "/", 0, 0, &json!(1), &mut metrics, &mut debugger);
+// Send array inputs to f_a
+            state.send_value(1, 0, "/", 0, 0, &json!([1, 2]), &mut metrics, &mut debugger);
 
 // Test
             assert_eq!(0, state.next_job().unwrap().function_id, "next() should return a job for function_id=0 (f_a) for running");

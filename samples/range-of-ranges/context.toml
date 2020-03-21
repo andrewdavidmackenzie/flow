@@ -6,6 +6,7 @@ alias = "limit-sequence"
 source = "lib://flowstdlib/math/sequence"
 input.start = {once = 1}
 input.end = {once = 9}
+input.step = {once = 1}
 
 [[process]]
 alias = "start-of-each"
@@ -24,6 +25,7 @@ to = "process/sequence-of-sequences/start"
 [[process]]
 alias = "sequence-of-sequences"
 source = "lib://flowstdlib/math/sequence"
+input.step = {once = 1}
 
 # Connect the list of limits to use for each sequence to the generator of the sequence of sequences
 [[connection]]

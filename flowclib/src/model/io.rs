@@ -72,6 +72,7 @@ impl IO {
         self.io_type = io_type;
     }
 
+    // TODO have this return an Option<DataType> as it's possible that one is not found
     pub fn datatype(&self, level: usize) -> DataType {
         let type_levels: Vec<&str> = self.datatype.split('/').collect();
         DataType::from(type_levels[level])

@@ -195,7 +195,16 @@ impl Coordinator {
 
                             submission.state.complete_job(&mut submission.metrics, job, &mut submission.debugger);
                         }
-                        Err(err) => error!("Error receiving execution result: {}", err)
+                        Err(err) => {
+                            if cfg!(feature = "debugger") {
+                                if let Some(ref mut debugger) = submission.debugger {
+                                    debugger.error(&submission.state,
+                                                   format!("Error in job reception: '{}'", err));
+                                }
+                            } else {
+                                error!("\tError in Job reception");
+                            }
+                        }
                     }
                 }
 

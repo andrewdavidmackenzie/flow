@@ -44,7 +44,7 @@ impl fmt::Display for OutputConnection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Output Connection")?;
         if !self.subpath.is_empty() {
-            write!(f, " from sub-path '/{}'", self.subpath)?;
+            write!(f, " from sub-path '{}'", self.subpath)?;
         }
         write!(f, " -> Function #{}({}):{}", self.function_id, self.flow_id, self.io_number)?;
         if let Some(route) = &self.route {

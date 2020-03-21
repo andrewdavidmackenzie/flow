@@ -7,7 +7,10 @@ pub struct FlowYamlLoader;
 // NOTE: Indexes are one-based
 impl Deserializer for FlowYamlLoader {
     fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process> {
-        serde_yaml::from_str(contents).chain_err(|| format!("Error deserializing Yaml from: '{:?}'", url))
+        serde_yaml::from_str(contents)
+            .chain_err(|| format!("Error deserializing Yaml from: '{}'",
+                                  url.or_else(|| { Some("URL unknown") } ).unwrap()))
+
     }
 
     fn name(&self) -> &'static str { "Yaml" }

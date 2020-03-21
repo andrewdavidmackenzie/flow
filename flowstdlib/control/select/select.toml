@@ -1,0 +1,18 @@
+function = "Select"
+implementation = "select.rs"
+
+[[input]]
+name = "i1"
+
+[[input]]
+name = "i2"
+
+[[input]]
+name = "control"
+type = "Bool"
+
+[[output]]
+name = "select_i1"
+
+[[output]]
+name = "select_i2"

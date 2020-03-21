@@ -3,7 +3,8 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
-use log::{error, trace};
+use log::error;
+use log::trace;
 
 use crate::errors::*;
 use crate::run_state::Job;

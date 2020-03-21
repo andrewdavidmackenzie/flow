@@ -44,6 +44,7 @@ impl Implementation for Add {
                 } else if a.is_f64() || b.is_f64() {
                     Some(Value::Number(serde_json::Number::from_f64(a.as_f64().unwrap() + b.as_f64().unwrap()).unwrap()))
                 } else {
+                    println!("Unsupported input value types");
                     None
                 };
             }

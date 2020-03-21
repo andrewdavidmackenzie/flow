@@ -1,0 +1,12 @@
+function = "Remove"
+implementation = "remove.rs"
+
+[[input]]
+name = "value"
+
+[[input]]
+name = "array"
+type = "Array/Json"
+
+[[output]]
+type = "Array/Json"

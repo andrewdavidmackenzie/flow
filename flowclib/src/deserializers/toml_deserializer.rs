@@ -9,7 +9,9 @@ pub struct FlowTomelLoader;
 // NOTE: Add one to make indexes one-based
 impl Deserializer for FlowTomelLoader {
     fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process> {
-        toml::from_str(contents).chain_err(|| format!("Error deserializing Toml from: '{:?}'", url))
+        toml::from_str(contents)
+            .chain_err(|| format!("Error deserializing Toml from: '{}'",
+                                  url.or_else(|| { Some("URL unknown") } ).unwrap()))
     }
 
     fn name(&self) -> &'static str { "Toml" }

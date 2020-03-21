@@ -3,7 +3,7 @@ use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 
 #[derive(FlowImpl)]
-/// Compare two input values and output different the right hand value at different output routes
+/// Compare two input values and output different the right hand value at different output route
 /// corresponding to is equal, greater than, greater than or equal, less than or less than or equal.
 ///
 /// ## Include using
@@ -28,38 +28,37 @@ pub struct CompareSwitch;
 
 impl Implementation for CompareSwitch {
     fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        match (inputs[0].remove(0).as_i64(), inputs[1].remove(0).as_i64()) {
-            (Some(left), Some(right)) => {
+        let left = inputs[0].remove(0);
+        let right = inputs[1].remove(0);
+        match (left.as_f64(), right.as_f64()) {
+            (Some(lhs), Some(rhs)) => {
                 let mut output_map = serde_json::Map::new();
-                if right == left {
-                    output_map.insert("equal".into(), Value::Number(serde_json::Number::from(right)));
-                }
-
-                if right < left  {
-                    output_map.insert("right-lt".into(), Value::Number(serde_json::Number::from(right)));
-                    output_map.insert("left-gt".into(), Value::Number(serde_json::Number::from(left)));
-                }
-
-                if right > left {
-                    output_map.insert("right-gt".into(), Value::Number(serde_json::Number::from(right)));
-                    output_map.insert("left-lt".into(), Value::Number(serde_json::Number::from(left)));
-                }
-
-                if right <= left {
-                    output_map.insert("right-lte".into(), Value::Number(serde_json::Number::from(right)));
-                    output_map.insert("left-gte".into(), Value::Number(serde_json::Number::from(left)));
-                }
-
-                if right >= left {
-                    output_map.insert("right-gte".into(), Value::Number(serde_json::Number::from(right)));
-                    output_map.insert("left-lte".into(), Value::Number(serde_json::Number::from(left)));
+                if rhs == lhs {
+                    output_map.insert("equal".into(), right.clone());
+                    output_map.insert("right-lte".into(), right.clone());
+                    output_map.insert("left-gte".into(), left.clone());
+                    output_map.insert("right-gte".into(), right.clone());
+                    output_map.insert("left-lte".into(), left.clone());
+                } else if rhs < lhs {
+                    output_map.insert("right-lt".into(), right.clone());
+                    output_map.insert("left-gt".into(), left.clone());
+                    output_map.insert("right-lte".into(), right.clone());
+                    output_map.insert("left-gte".into(), left.clone());
+                } else  if rhs > lhs {
+                    output_map.insert("right-gt".into(), right.clone());
+                    output_map.insert("left-lt".into(), left.clone());
+                    output_map.insert("right-gte".into(), right.clone());
+                    output_map.insert("left-lte".into(), left.clone());
                 }
 
                 let output = Value::Object(output_map);
 
                 (Some(output), RUN_AGAIN)
             }
-            (_, _) => (None, RUN_AGAIN)
+            (_, _) => {
+                println!("Unsupported types in compare_switch");
+                (None, RUN_AGAIN)
+            }
         }
     }
 }
@@ -72,9 +71,26 @@ mod test {
     use super::CompareSwitch;
 
     #[test]
-    fn equals() {
+    fn integer_equals() {
         let left = vec!(json!(1));
         let right = vec!(json!(1));
+        let inputs = vec!(left, right);
+
+        let comparer = &CompareSwitch{} as &dyn Implementation;
+
+        let (value, run_again) = comparer.run(inputs);
+
+        assert_eq!(run_again, RUN_AGAIN);
+        assert!(value.is_some());
+        let value = value.unwrap();
+        let map = value.as_object().unwrap();
+        assert!(map.contains_key("equal"));
+    }
+
+    #[test]
+    fn float_equals() {
+        let left = vec!(json!(1.0));
+        let right = vec!(json!(1.0));
         let inputs = vec!(left, right);
 
         let comparer = &CompareSwitch{} as &dyn Implementation;

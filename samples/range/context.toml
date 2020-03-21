@@ -20,6 +20,7 @@ to = "process/sequence/end"
 alias = "sequence"
 source = "lib://flowstdlib/math/sequence"
 input.start = {once = 1}
+input.step = {once = 1}
 
 [[connection]]
 from = "process/sequence/sequence"
@@ -32,7 +33,7 @@ source = "lib://flowstdlib/control/join"
 input.data = {once = "Range done"}
 
 [[connection]]
-from = "process/sequence/done"
+from = "process/sequence/last"
 to = "process/join/control"
 
 [[connection]]

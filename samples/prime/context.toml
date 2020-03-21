@@ -1,0 +1,86 @@
+flow = "prime"
+
+# Read the limit from the command line
+[[process]]
+alias = "args"
+source = "lib://flowruntime/args/get.toml"
+
+[[connection]]
+from = "process/args/1"
+to = "process/to_number"
+
+[[process]]
+alias = "to_number"
+source = "lib://flowstdlib/fmt/to_number"
+
+####### All numbers - Sequence
+# Generate the range of numbers from 1..limit of possible primes
+[[process]]
+alias = "candidates"
+source = "lib://flowstdlib/math/sequence"
+input.start = {once = 1}
+input.step = {once = 1}
+
+[[connection]]
+from = "process/to_number"
+to = "process/candidates/end"
+
+######### All numbers - gather into an Array
+[[process]]
+alias = "all-numbers"
+source = "lib://flowstdlib/data/accumulate"
+input.partial = {once = []}
+
+[[connection]]
+from = "process/candidates/sequence"
+to = "process/all-numbers/values"
+
+[[connection]]
+from = "process/to_number"
+to = "process/all-numbers/chunk_size"
+
+[[connection]] # loop-back
+from = "process/all-numbers/chunk_size"
+to = "process/all-numbers/chunk_size"
+
+[[connection]]
+from = "process/all-numbers/partial"
+to = "process/all-numbers/partial"
+
+####### Composites
+[[process]]
+alias = "composites"
+source = "composites.toml"
+
+[[connection]]
+from = "process/to_number"
+to = "process/composites/limit"
+
+####### Remove composites from entire list
+[[process]]
+alias = "subtract"
+source = "lib://flowstdlib/data/remove"
+input.value = { once = 9 }
+
+[[connection]]
+from = "process/all-numbers/chunk"
+to = "process/subtract/array"
+
+[[connection]]
+from = "process/composites/composites"
+to = "process/subtract/value"
+
+[[connection]]
+from = "process/subtract"
+to = "process/subtract/array"
+
+#### debug
+[[connection]]
+from = "process/composites/composites"
+to = "process/print"
+
+####### Output
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"
+

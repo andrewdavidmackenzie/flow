@@ -53,7 +53,7 @@
     - [mandlebrot-world sample](samples/mandlebrot/DESCRIPTION.md)
     - [pipeline sample](samples/pipeline/DESCRIPTION.md)
     - [primitives sample](samples/primitives/DESCRIPTION.md)
-    - [prime sample](prime/DESCRIPTION.md)
+    - [prime sample](samples/prime/DESCRIPTION.md)
     - [range](samples/range/DESCRIPTION.md)
     - [range-of-ranges](samples/range-of-ranges/DESCRIPTION.md)
     - [reverse-echo sample](samples/reverse-echo/DESCRIPTION.md)

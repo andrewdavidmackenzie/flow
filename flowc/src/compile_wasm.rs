@@ -75,7 +75,7 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool, rele
                                      cargo_manifest_path.display(),
                                      e.to_string()))?;
 
-            info!("Testing '{}'", implementation_path.display());
+            info!("Testing   '{}'", implementation_path.display());
             run_cargo_build(&cargo_manifest_path, &build_dir, true, false)?;
             info!("Compiling '{}'", implementation_path.display());
             run_cargo_build(&cargo_manifest_path, &build_dir, false, release)?;

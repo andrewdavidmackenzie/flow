@@ -8,18 +8,24 @@ alias = "sequence"
 source = "lib://flowstdlib/math/sequence"
 input.start = {once = 1}
 input.end = {once = 20}
+input.step = {once = 1}
 
 [[connection]]
 from = "process/sequence/sequence"
-to = "process/composer"
+to = "process/accumulator/values"
 
 [[process]]
-alias = "composer"
-source = "lib://flowstdlib/data/compose_array"
-depth.default = 4
+alias = "accumulator"
+source = "lib://flowstdlib/data/accumulate"
+input.partial = {once = []}
+input.chunk_size = {constant = 4}
 
 [[connection]]
-from = "process/composer"
+from = "process/accumulator/partial"
+to = "process/accumulator/partial"
+
+[[connection]]
+from = "process/accumulator/chunk"
 to = "process/adder/i1"
 
 [[process]]

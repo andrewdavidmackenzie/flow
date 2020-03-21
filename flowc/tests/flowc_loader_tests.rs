@@ -102,18 +102,18 @@ fn flow_input_initialized_and_propogated_to_function() {
     match loader::load_context(&url, &meta_provider) {
         Ok(FlowProcess(flow)) => {
             if let FlowProcess(ref pilte_sub_flow) = flow.process_refs.unwrap()[0].process {
-                assert_eq!(Name::from("pass-if-lte"), *pilte_sub_flow.alias(), "Flow alias is not 'pass-if-lte' as expected");
+                assert_eq!(Name::from("count"), *pilte_sub_flow.alias(), "Flow alias is not 'count' as expected");
 
                 if let Some(ref process_refs) = pilte_sub_flow.process_refs {
                     if let FunctionProcess(ref tap_function) = process_refs.get(0).unwrap().process {
-                        assert_eq!(Name::from("tap"), *tap_function.alias(), "Function alias is not 'tap' as expected");
+                        assert_eq!(Name::from("compare"), *tap_function.alias(), "Function alias is not 'compare' as expected");
                         if let Some(inputs) = tap_function.get_inputs() {
                             let in_input = inputs.get(0).unwrap();
-                            assert_eq!(Name::from("data"), *in_input.alias(), "Input's name is not 'data' as expected");
-                            assert_eq!(Route::from("/context/pass-if-lte/tap/data"), *in_input.route(), "Input's route is not as expected");
+                            assert_eq!(Name::from("left"), *in_input.alias(), "Input's name is not 'left' as expected");
+                            assert_eq!(Route::from("/context/count/compare/left"), *in_input.route(), "Input's route is not as expected");
                             let initial_value = in_input.get_initializer();
                             match initial_value {
-                                Some(OneTime(one_time)) => assert_eq!(one_time.once, 1),
+                                Some(OneTime(one_time)) => assert_eq!(one_time.once, 10),
                                 _ => panic!("Initializer should have been a OneTime initializer")
                             }
                         } else {

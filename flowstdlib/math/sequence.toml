@@ -10,6 +10,11 @@ type = "Number"
 name = "end"
 type = "Number"
 
+# 'step' is the amount to add each time
+[[input]]
+name = "step"
+type = "Number"
+
 # The sequence of numbers we will generate
 [[output]]
 name = "sequence"
@@ -17,7 +22,7 @@ type = "Number"
 
 # A value is output when the sequence has ended
 [[output]]
-name = "done"
+name = "last"
 
 # For the first time around, pass the start number of the sequence into the "compare" process
 [[connection]]
@@ -38,7 +43,30 @@ source = "lib://flowstdlib/control/compare_switch"
 [[process]]
 alias = "add"
 source = "lib://flowstdlib/math/add"
-input.i2 = {constant = 1}
+
+# refresh the value of step each time during the sequence
+[[process]]
+alias = "join"
+source = "lib://flowstdlib/control/join"
+
+[[connection]]
+from = "input/step"
+to = "process/join/data"
+
+# loop back
+[[connection]]
+from = "process/join"
+to = "process/join/data"
+
+# control variable for join
+[[connection]]
+from = "process/compare/left-gt"
+to = "process/join/control"
+
+# pass step value onto adder
+[[connection]]
+from = "process/join"
+to = "process/add/i2"
 
 # connect the /lt output of compare (i.e. numbers that are less than or equal to the limit) to the output of this process -
 # the sequence of numbers being generated
@@ -66,5 +94,5 @@ to = "process/compare/right"
 # When the compare flow indicates that the number was blocked due to being too large (equal to the limit) then
 # we want that to indicate that the sequence is done
 [[connection]]
-from = "process/compare/equal"
-to = "output/done"
+from = "process/compare/right-gte"
+to = "output/last"

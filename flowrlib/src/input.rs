@@ -84,7 +84,7 @@ impl Input {
             depth,
             initializer: initial_value.clone(),
             received: Vec::with_capacity(depth),
-            is_array
+            is_array,
         }
     }
 
@@ -125,7 +125,20 @@ impl Input {
 
     /// Add a value to this `Input`
     pub fn push(&mut self, value: Value) {
-        self.received.push(value);
+        self.received.push(value.clone());
+
+        // HACK to allow external flow value to overwrite a self-refresh
+        // See https://github.com/andrewdavidmackenzie/flow/issues/547
+        if self.received.len() > self.depth {
+            self.received.remove(0);
+        }
+    }
+
+    /// Add an array of values to this `Input`
+    pub fn push_array<'a, I>(&mut self, iter: I) where I: Iterator<Item=&'a Value> {
+        for value in iter {
+            self.received.push(value.clone());
+        }
     }
 
     /// Return true if the `Input` is empty or false otherwise
@@ -183,6 +196,13 @@ mod test {
     }
 
     #[test]
+    fn accepts_array() {
+        let mut input = Input::new(1, &None, false);
+        input.push_array(vec!(json!(5), json!(10), json!(15)).iter());
+        assert!(!input.is_empty());
+    }
+
+    #[test]
     fn gets_full() {
         let mut input = Input::new(1, &None, false);
         input.push(Value::Null);
@@ -232,11 +252,7 @@ mod test {
     #[test]
     fn can_take_from_more_than_depth() {
         let mut input = Input::new(2, &None, false);
-        input.push(json!(5));
-        input.push(json!(10));
-        input.push(json!(15));
-        input.push(json!(20));
-        input.push(json!(25));
+        input.push_array(vec!(json!(5), json!(10), json!(15), json!(20), json!(25)).iter());
         assert!(input.full());
         let mut next_set = input.take();
         assert_eq!(vec!(json!(5), json!(10)), next_set);

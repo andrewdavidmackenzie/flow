@@ -7,7 +7,9 @@ pub struct FlowJsonLoader;
 // NOTE: Indexes are one-based
 impl Deserializer for FlowJsonLoader {
     fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process> {
-        serde_json::from_str(contents).chain_err(|| format!("Error deserializing Json from: '{:?}'", url))
+        serde_json::from_str(contents)
+            .chain_err(|| format!("Error deserializing Json from: '{}'",
+                                  url.or_else(|| { Some("URL unknown") } ).unwrap()))
     }
 
     fn name(&self) -> &'static str { "Json" }
