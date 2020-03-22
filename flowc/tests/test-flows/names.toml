@@ -1,0 +1,5 @@
+flow = "names"
+
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"

@@ -89,6 +89,19 @@ fn function_input_initialized() {
     }
 }
 
+
+#[test]
+fn root_flow_takes_name_from_file() {
+    let meta_provider = MetaProvider {};
+    // Relative path from project root to the test file
+    let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/names.toml");
+
+    match loader::load_context(&url, &meta_provider) {
+        Ok(FlowProcess(flow)) => assert_eq!(flow.name, Name::from("names")),
+        _ => panic!("Flow could not be loaded")
+    }
+}
+
 /*
     This tests that an initalizer on an input to a flow process is passed onto function processes
     inside the flow, via a connection from the flow input to the function input
