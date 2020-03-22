@@ -68,7 +68,8 @@ fn main() {
 
 fn run() -> Result<()> {
     let matches = get_matches();
-    let flow_manifest_url = parse_args(&matches)?;
+    SimpleLogger::init(matches.value_of("verbosity"));
+    let flow_manifest_url = parse_flow_url(&matches)?;
     let mut loader = Loader::new();
     let provider = MetaProvider {};
 
@@ -98,6 +99,8 @@ fn run() -> Result<()> {
         false => None,
         true => Some(CLI_DEBUG_CLIENT)
     };
+
+    pass_flow_args(&matches, &manifest.metadata.name);
 
     let submission = Submission::new(manifest, num_parallel_jobs, metrics, debug_client);
 
@@ -224,23 +227,27 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 /*
     Parse the command line arguments passed onto the flow itself
 */
-fn parse_args(matches: &ArgMatches) -> Result<Url> {
-    // Set anvironment variable with the args
-    // this will not be unique, but it will be used very soon and removed
-    if let Some(fargs) = matches.values_of("flow-arguments") {
-        let mut flow_args: Vec<&str> = fargs.collect();
-        // arg #0 is the flow/package name
-        // TODO fix this to be the name of the flow, not 'flowr'
-        flow_args.insert(0, env!("CARGO_PKG_NAME"));
-        env::set_var(FLOW_ARGS_NAME, flow_args.join(" "));
-        debug!("Setup '{}' with values = '{:?}'", FLOW_ARGS_NAME, flow_args);
-    }
-
-    SimpleLogger::init(matches.value_of("verbosity"));
-
+fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     info!("'flowrlib' version {}", info::version());
 
     url_from_string(matches.value_of("flow-manifest"))
         .chain_err(|| "Unable to parse the URL of the manifest of the flow to run")
+}
+
+/*
+    Set environment variable with the args this will not be unique, but it will be used very
+    soon and removed
+*/
+fn pass_flow_args(matches: &ArgMatches, flow_name: &str) {
+    // arg #0 is the flow name
+    let mut flow_args: Vec<&str> = vec!(flow_name);
+
+    // append any other arguments for the flow passed from the command line
+    if let Some(fargs) = matches.values_of("flow-arguments") {
+        flow_args.extend(fargs);
+    }
+
+    env::set_var(FLOW_ARGS_NAME, flow_args.join(" "));
+    debug!("Setup '{}' with values = '{:?}'", FLOW_ARGS_NAME, flow_args);
 }
