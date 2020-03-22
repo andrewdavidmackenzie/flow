@@ -1,4 +1,4 @@
-flow = "hello world include"
+flow = "hello-world-include"
 
 [[process]]
 alias = "print"
