@@ -53,7 +53,7 @@ config-linux:
 .PHONY: docs
 docs:
 	$(STIME)
-	@$(MAKE) build-guide trim-guide code-docs
+	@$(MAKE) dot-graphs build-guide trim-guide code-docs
 	$(ETIME)
 
 build-guide:

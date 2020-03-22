@@ -1,4 +1,4 @@
-flow = "reverse echo"
+flow = "reverse-echo"
 
 [[process]]
 alias = "read"

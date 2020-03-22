@@ -112,10 +112,10 @@ fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IO
     let to_port = input_name_to_port(connection.to_io.name());
 
     if array_index {
-        format!("\n\t\"{}(I)\":{} -> \"{}(O)\":{} [labeldistance=\"3\", taillabel=\"{}[{}]\", headlabel=\"{}\"];",
+        format!("\n\t\"{}\":{} -> \"{}\":{} [labeldistance=\"3\", taillabel=\"{}[{}]\", headlabel=\"{}\"];",
                 from_node, from_port, to_node, to_port, from_label, number, to_label)
     } else {
-        format!("\n\t\"{}(I)\":{} -> \"{}(O)\":{} [labeldistance=\"3\", taillabel=\"{}\", headlabel=\"{}\"];",
+        format!("\n\t\"{}\":{} -> \"{}\":{} [labeldistance=\"3\", taillabel=\"{}\", headlabel=\"{}\"];",
                 from_node, from_port, to_node, to_port, from_label, to_label)
     }
 }
@@ -256,12 +256,12 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
             // Avoid creating extra points to connect to for default input
             if input.route() != to {
                 // Add an entry for each input using it's route
-                string.push_str(&format!("\t\"{}(I)\" [label=\"{}\", shape=house, style=filled, fillcolor=white];\n",
+                string.push_str(&format!("\t\"{}\" [label=\"{}\", shape=house, style=filled, fillcolor=white];\n",
                                          input.route(), input.name()));
 
                 if connect_subflow {
                     // and connect the input to the sub-flow
-                    string.push_str(&format!("\t\"{}(I)\" -> \"{}\":n [style=invis, headtooltip=\"{}\"];\n",
+                    string.push_str(&format!("\t\"{}\" -> \"{}\":n [style=invis, headtooltip=\"{}\"];\n",
                                              input.route(), to, input.name()));
                 }
             }
@@ -283,13 +283,13 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
             // Only add output if it's not got the same route as it's function i.e. it's not the default output
             if output.route() != from {
                 // Add an entry for each output using it's route
-                string.push_str(&format!("\t\"{}(O)\" [label=\"{}\", rank=sink, shape=invhouse, style=filled, fillcolor=black, fontcolor=white];\n",
+                string.push_str(&format!("\t\"{}\" [label=\"{}\", rank=sink, shape=invhouse, style=filled, fillcolor=black, fontcolor=white];\n",
                                          output.route(), output.name()));
 
                 if connect_subflow {
                     // and connect the output to the sub-flow
                     let output_port = output_name_to_port(output.name());
-                    string.push_str(&format!("\t\"{}(O)\":{} -> \"{}\"[style=invis, headtooltip=\"{}\"];\n",
+                    string.push_str(&format!("\t\"{}\":{} -> \"{}\"[style=invis, headtooltip=\"{}\"];\n",
                                              from, output_port, output.route(), output.name()));
                 }
             }
