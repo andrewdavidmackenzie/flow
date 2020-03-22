@@ -14,12 +14,12 @@ source = "lib://flowstdlib/math/divide"
 input.divisor = {once = 2}
 
 [[connection]]
-from = "process/sum"
-to = "process/divide/dividend"
+from = "sum"
+to = "divide/dividend"
 
 [[connection]]
-from = "process/divide/result"
-to = "process/print"
+from = "divide/result"
+to = "print"
 
 [[process]]
 alias = "tap"
@@ -33,21 +33,21 @@ source = "lib://flowstdlib/control/compare"
 input.right = {once = 1}
 
 [[connection]]
-from = "process/divide/result"
-to = "process/tap/data"
+from = "divide/result"
+to = "tap/data"
 
 [[connection]]
-from = "process/divide/result"
-to = "process/compare/left"
+from = "divide/result"
+to = "compare/left"
 
 [[connection]]
-from = "process/compare/gt"
-to = "process/print"
+from = "compare/gt"
+to = "print"
 
 [[process]]
 alias = "print"
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
-from = "process/tap"
-to = "process/print"
+from = "tap"
+to = "print"

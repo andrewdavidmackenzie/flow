@@ -12,5 +12,5 @@ alias = "print"
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
-from = "process/count/sequence"
-to = "process/print"
+from = "count/sequence"
+to = "print"

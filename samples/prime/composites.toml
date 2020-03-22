@@ -19,7 +19,7 @@ source = "lib://flowstdlib/math/sqrt"
 
 [[connection]]
 from = "input/limit"
-to = "process/sqrt"
+to = "sqrt"
 
 [[process]]
 alias = "divisors"
@@ -28,23 +28,23 @@ input.start = {once = 2}
 input.step = {once = 1}
 
 [[connection]]
-from = "process/sqrt"
-to = "process/divisors/end"
+from = "sqrt"
+to = "divisors/end"
 
 [[process]]
 alias = "generate_composites"
 source = "generate_composites.toml"
 
 [[connection]]
-from = "process/divisors/sequence"
-to = "process/generate_composites/start"
+from = "divisors/sequence"
+to = "generate_composites/start"
 
 [[connection]]
 from = "input/limit"
-to = "process/generate_composites/limit"
+to = "generate_composites/limit"
 
 [[connection]]
-from = "process/generate_composites/composites"
+from = "generate_composites/composites"
 to = "output/composites"
 
 # accumulate a count of sub-sequences generated so we know when we're done - adding an extra 1
@@ -54,8 +54,8 @@ source = "lib://flowstdlib/control/join"
 input.data = { constant = 1 }
 
 [[connection]]
-from = "process/generate_composites/subsequence-end"
-to = "process/join/control"
+from = "generate_composites/subsequence-end"
+to = "join/control"
 
 [[process]]
 alias = "subsequence-count"
@@ -63,12 +63,12 @@ source = "lib://flowstdlib/math/add"
 input.i1 = { once = 1 }
 
 [[connection]]
-from = "process/join"
-to = "process/subsequence-count/i2"
+from = "join"
+to = "subsequence-count/i2"
 
 [[connection]]
-from = "process/subsequence-count"
-to = "process/subsequence-count/i1"
+from = "subsequence-count"
+to = "subsequence-count/i1"
 
 # compare the count of subsequences to how many we expect
 [[process]]
@@ -76,15 +76,15 @@ alias = "compare"
 source = "lib://flowstdlib/control/compare_switch"
 
 [[connection]]
-from = "process/divisors/last"
-to = "process/compare/left"
+from = "divisors/last"
+to = "compare/left"
 
 [[connection]]
-from = "process/subsequence-count"
-to = "process/compare/right"
+from = "subsequence-count"
+to = "compare/right"
 
 [[connection]]
-from = "process/compare/equal"
+from = "compare/equal"
 to = "output/last"
 
 

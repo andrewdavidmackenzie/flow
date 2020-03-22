@@ -6,8 +6,8 @@ alias = "args"
 source = "lib://flowruntime/args/get.toml"
 
 [[connection]]
-from = "process/args/1"
-to = "process/to_number"
+from = "args/1"
+to = "to_number"
 
 # convert command line arg to number
 [[process]]
@@ -25,16 +25,16 @@ source = "lib://flowstdlib/math/subtract"
 input.i2 = { constant = 1 }
 
 [[connection]]
-from = "process/to_number"
-to = "process/multiply/i2"
+from = "to_number"
+to = "multiply/i2"
 
 [[connection]]
-from = "process/to_number"
-to = "process/sub/i1"
+from = "to_number"
+to = "sub/i1"
 
 [[connection]]
-from = "process/multiply"
-to = "process/multiply/i1"
+from = "multiply"
+to = "multiply/i1"
 
 [[process]]
 alias = "compare"
@@ -46,41 +46,41 @@ alias = "n-tap"
 source = "lib://flowstdlib/control/tap"
 
 [[connection]]
-from = "process/sub"
-to = "process/n-tap/data"
+from = "sub"
+to = "n-tap/data"
 
 [[connection]]
-from = "process/sub"
-to = "process/compare/left"
+from = "sub"
+to = "compare/left"
 
 [[connection]]
-from = "process/compare/gt"
-to = "process/n-tap/control"
+from = "compare/gt"
+to = "n-tap/control"
 
 [[connection]]
-from = "process/n-tap"
-to = "process/multiply/i2"
+from = "n-tap"
+to = "multiply/i2"
 
 [[connection]]
-from = "process/n-tap"
-to = "process/sub/i1"
+from = "n-tap"
+to = "sub/i1"
 
 [[process]]
 alias = "result-tap"
 source = "lib://flowstdlib/control/tap"
 
 [[connection]]
-from = "process/compare/lte"
-to = "process/result-tap/control"
+from = "compare/lte"
+to = "result-tap/control"
 
 [[connection]]
-from = "process/multiply"
-to = "process/result-tap/data"
+from = "multiply"
+to = "result-tap/data"
 
 [[process]]
 alias = "print"
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
-from = "process/result-tap"
-to = "process/print"
+from = "result-tap"
+to = "print"

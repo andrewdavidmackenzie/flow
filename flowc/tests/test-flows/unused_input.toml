@@ -6,8 +6,8 @@ source = "lib://flowstdlib/math/add"
 input.i1 = { once = 1 }
 
 [[connection]]
-from = "process/sum"
-to = "process/print"
+from = "sum"
+to = "print"
 
 [[process]]
 alias = "print"

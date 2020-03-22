@@ -10,5 +10,5 @@ source = "../hello-world/flow1"
 
 [[connection]]
 name = "message"
-from = "process/hello/out"
-to = "process/print"
+from = "hello/out"
+to = "print"

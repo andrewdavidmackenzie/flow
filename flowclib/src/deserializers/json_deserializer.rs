@@ -75,8 +75,8 @@ mod test {
     ],
     'connection': [
         {\
-            'from': 'process/message',
-            'to': 'process/print'
+            'from': 'message',
+            'to': 'print'
         }
     ]
 }";
@@ -107,7 +107,7 @@ mod test {
     ],
     'connection': [
         {\
-            'from': 'process/message'
+            'from': 'message'
         }
     ]
 }";

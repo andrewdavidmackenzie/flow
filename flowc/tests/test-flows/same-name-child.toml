@@ -12,8 +12,8 @@ source = "lib://flowstdlib/data/buffer"
 
 [[connection]]
 from = "input/message"
-to = "process/buffer"
+to = "buffer"
 
 [[connection]]
-from = "process/buffer"
+from = "buffer"
 to = "output/message"

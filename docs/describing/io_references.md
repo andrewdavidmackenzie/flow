@@ -12,8 +12,8 @@ Inside a flow:
 - `value/{value_name}`
 
 Referenced from a flow:  
-- `process/{flow_alias|flow_name}/{output_name}`
-- `process/{function_alias|function_name}/{output_name}`
+- `{flow_alias|flow_name}/{output_name}`
+- `{function_alias|function_name}/{output_name}`
 
 ### Data sinks
 Sinks for data which are valid for the *to* field of a connection are:
@@ -23,8 +23,8 @@ Inside a flow:
 - `value/{value_name}`
 
 Referenced from a flow:  
-- `process/{flow_alias|flow_name}/{input_name}`
-- `process/{function_alias|function_name}/{input_name}`
+- `{flow_alias|flow_name}/{input_name}`
+- `{function_alias|function_name}/{input_name}`
 
 TODO 
 

@@ -11,8 +11,8 @@ input.end = {once = 20}
 input.step = {once = 1}
 
 [[connection]]
-from = "process/range/sequence"
-to = "process/add1/i1"
+from = "range/sequence"
+to = "add1/i1"
 
 [[process]]
 alias = "add1"
@@ -20,8 +20,8 @@ source = "lib://flowstdlib/math/add"
 input.i2 = {constant = 1}
 
 [[connection]]
-from = "process/add1"
-to = "process/divide2/dividend"
+from = "add1"
+to = "divide2/dividend"
 
 [[process]]
 alias = "divide2"
@@ -29,8 +29,8 @@ source = "lib://flowstdlib/math/divide"
 input.divisor = {constant = 2}
 
 [[connection]]
-from = "process/divide2/result"
-to = "process/add2/i1"
+from = "divide2/result"
+to = "add2/i1"
 
 [[process]]
 alias = "add2"
@@ -38,8 +38,8 @@ source = "lib://flowstdlib/math/add"
 input.i2 = {constant = 2}
 
 [[connection]]
-from = "process/add2"
-to = "process/divide4/dividend"
+from = "add2"
+to = "divide4/dividend"
 
 [[process]]
 alias = "divide4"
@@ -47,8 +47,8 @@ source = "lib://flowstdlib/math/divide"
 input.divisor = {constant = 2}
 
 [[connection]]
-from = "process/divide4/result"
-to = "process/print"
+from = "divide4/result"
+to = "print"
 
 [[process]]
 alias = "print"

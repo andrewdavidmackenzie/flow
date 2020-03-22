@@ -10,4 +10,4 @@ source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
 from = "blabla"
-to = "process/print"
+to = "print"

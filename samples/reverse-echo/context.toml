@@ -14,10 +14,10 @@ source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
 name = "normal"
-from = "process/read"
-to = "process/reverse"
+from = "read"
+to = "reverse"
 
 [[connection]]
 name = "reversed"
-from = "process/reverse/reversed"
-to = "process/print"
+from = "reverse/reversed"
+to = "print"

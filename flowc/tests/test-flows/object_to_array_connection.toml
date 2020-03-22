@@ -9,17 +9,17 @@ alias = "zip"
 source = "lib://flowstdlib/data/zip"
 
 [[connection]]
-from = "process/args/1"
-to = "process/zip/left"
+from = "args/1"
+to = "zip/left"
 
 [[connection]]
-from = "process/args/2"
-to = "process/zip/right"
+from = "args/2"
+to = "zip/right"
 
 [[process]]
 alias = "print"
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
-from = "process/zip/tuples"
-to = "process/print"
+from = "zip/tuples"
+to = "print"
