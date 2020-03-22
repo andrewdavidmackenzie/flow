@@ -110,7 +110,7 @@ fn flow_input_initialized_and_propogated_to_function() {
                         if let Some(inputs) = tap_function.get_inputs() {
                             let in_input = inputs.get(0).unwrap();
                             assert_eq!(Name::from("left"), *in_input.alias(), "Input's name is not 'left' as expected");
-                            assert_eq!(Route::from("/context/count/compare/left"), *in_input.route(), "Input's route is not as expected");
+                            assert_eq!(Route::from("/flow_input_init/count/compare/left"), *in_input.route(), "Input's route is not as expected");
                             let initial_value = in_input.get_initializer();
                             match initial_value {
                                 Some(OneTime(one_time)) => assert_eq!(one_time.once, 10),

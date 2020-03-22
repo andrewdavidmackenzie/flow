@@ -106,7 +106,7 @@ pub fn get_manifest() -> LibraryManifest {
 #[test]
 fn resolve_lib_implementation_test() {
     let f_a = Function::new("fA".to_string(), // name
-                            "/context/fA".to_string(),
+                            "/fA".to_string(),
                             "lib://flowruntime/stdio/stdin/Stdin".to_string(),
                             vec!(),
                             0, 0,
@@ -126,7 +126,7 @@ fn resolve_lib_implementation_test() {
 #[test]
 fn unresolved_lib_functions_test() {
     let f_a = Function::new("fA".to_string(), // name
-                            "/context/fA".to_string(),
+                            "/fA".to_string(),
                             "lib://flowruntime/stdio/stdin/Foo".to_string(),
                             vec!(),
                             0, 0,

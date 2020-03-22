@@ -67,7 +67,7 @@ pub trait Validate {
 /// flowclib::compiler::loader::load_context("file:///example.toml", &dummy_provider).unwrap();
 /// ```
 pub fn load_context(url: &str, provider: &dyn Provider) -> Result<Process> {
-    load_process(&Route::from(""), &Name::from("context"),
+    load_process(&Route::from(""), &Name::from(""),
                  0, &mut 0, url, provider, &None, &None)
 }
 
@@ -156,7 +156,11 @@ fn config_function(function: &mut Function, implementation_url: &str, parent_rou
 fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &Name, id: usize,
                initializations: &Option<HashMap<String, InputInitializer>>) -> Result<()> {
     flow.id = id;
-    flow.alias = alias.clone();
+    if alias.is_empty() {
+        flow.alias = flow.name.clone();
+    } else {
+        flow.alias = alias.clone();
+    }
     flow.source_url = source_url.to_string();
     IO::set_initial_values(flow.inputs_mut(), initializations);
     flow.set_routes_from_parent(parent_route);

@@ -96,12 +96,12 @@ fn same_name_flow_ids() {
 
         // buffer function in first child flow should have flow_id = 1
         let buffer_function = tables.functions.iter()
-            .find(|f| f.route() == &Route::from("/context/child/buffer")).unwrap();
+            .find(|f| f.route() == &Route::from("/parent/child/buffer")).unwrap();
         assert_eq!(buffer_function.get_flow_id(), 1);
 
         // buffer function in second child flow should have flow_id = 2
         let buffer2_function = tables.functions.iter()
-            .find(|f| f.route() == &Route::from("/context/child2/buffer")).unwrap();
+            .find(|f| f.route() == &Route::from("/parent/child2/buffer")).unwrap();
         assert_eq!(buffer2_function.get_flow_id(), 2);
     } else {
         assert!(false, "Process loaded was not a flow");
@@ -235,7 +235,7 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
         Ok(FlowProcess(context)) => {
             let tables = compile::compile(&context).unwrap();
 
-            match tables.functions.iter().find(|&f| f.route() == &Route::from("/context/sequence/compare")) {
+            match tables.functions.iter().find(|&f| f.route() == &Route::from("/subflow_function_input_init/sequence/compare")) {
                 Some(tap_function) => {
                     if let Some(inputs) = tap_function.get_inputs() {
                         let in_input = inputs.get(1).unwrap();
@@ -249,7 +249,7 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
                         panic!("Could not find any inputs");
                     }
                 }
-                None => panic!("Could not find function at route '/context/sequence/compare'")
+                None => panic!("Could not find function at route '/subflow_function_input_init/sequence/compare'")
             }
         }
         _ => panic!("Couldn't load the flow from test file at '{}'", url)

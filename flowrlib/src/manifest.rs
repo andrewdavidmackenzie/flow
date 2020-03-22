@@ -104,7 +104,7 @@ mod test {
     #[test]
     fn add_function() {
         let function = Function::new("test".to_string(),
-                                         "/context/test".to_string(),
+                                         "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, false)),
                                          0, 0,
@@ -131,7 +131,7 @@ mod test {
             \"functions\": [
                 {
                     \"name\": \"print\",
-                    \"route\": \"/context/print\",
+                    \"route\": \"/print\",
                     \"id\": 0,
                     \"flow_id\": 0,
                     \"implementation_location\": \"lib://flowruntime/stdio/stdout/Stdout\",
