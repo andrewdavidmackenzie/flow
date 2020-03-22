@@ -1,0 +1,11 @@
+flow = "subflow"
+
+[[output]]
+name = "out"
+
+[[process]]
+source = "lib://flowruntime/stdio/stdin"
+
+[[connection]]
+from = "stdin"
+to = "output/out"
