@@ -27,9 +27,7 @@ Some crates depend on `open-ssl` and so you may need to install SSL Development 
 to be able to compile them. This was fixed with `sudo apt install libssl-dev` on Linux boxes (Raspberry Pi)
 where I found the problem. Seems that `brew install openssl` should do it for Mac.
 
-The `ide` module requires:
-* [Node.js](https://nodejs.org/en/download/) (which includes [npm](http://npmjs.com))
-* 'wasm-bindgen' install with `cargo install wasm-bindgen` 
+The `ide` module requires GTK3+.
 
 There is a make target `config` to install pre-requisites (e.g. mdbook and mdbook-linkcheck), so try `make config` *after* cloning the repo (see below).
 
@@ -52,7 +50,7 @@ make
 ## Run your first 'flow'
 Run the 'first' sample flow using:
 
-```cargo run -p flowc -- samples/first```
+```cargo run -- samples/first```
 
 You should get a series of numbers output to the terminal.
 
