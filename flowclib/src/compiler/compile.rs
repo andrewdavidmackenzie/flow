@@ -50,9 +50,9 @@ mod test {
     use super::compile;
 
     /*
-                                            Test for a function that is dead code. It has no connections to it or from it so will
-                                            never run. So it should be removed by the optimizer and not fail at check stage.
-                                        */
+                                                Test for a function that is dead code. It has no connections to it or from it so will
+                                                never run. So it should be removed by the optimizer and not fail at check stage.
+                                            */
     #[test]
     fn dead_function() {
         let function = Function::new(Name::from("Stdout"),
@@ -60,10 +60,10 @@ mod test {
                                      Some("lib://flowruntime/stdio/stdout.toml".to_string()),
                                      Name::from("test-function"),
                                      Some(vec!(IO::new("String",
-                                                       &Route::from("/context/print")))),
+                                                       &Route::from("/print")))),
                                      Some(vec!()),
                                      "lib://flowruntime/stdio/stdout.toml",
-                                     Route::from("/context/print"),
+                                     Route::from("/print"),
                                      Some("lib://flowruntime/stdio/stdout.toml".to_string()),
                                      vec!(),
                                      0,

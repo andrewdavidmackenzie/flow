@@ -89,6 +89,19 @@ fn function_input_initialized() {
     }
 }
 
+
+#[test]
+fn root_flow_takes_name_from_file() {
+    let meta_provider = MetaProvider {};
+    // Relative path from project root to the test file
+    let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/names.toml");
+
+    match loader::load_context(&url, &meta_provider) {
+        Ok(FlowProcess(flow)) => assert_eq!(flow.name, Name::from("names")),
+        _ => panic!("Flow could not be loaded")
+    }
+}
+
 /*
     This tests that an initalizer on an input to a flow process is passed onto function processes
     inside the flow, via a connection from the flow input to the function input
@@ -110,7 +123,7 @@ fn flow_input_initialized_and_propogated_to_function() {
                         if let Some(inputs) = tap_function.get_inputs() {
                             let in_input = inputs.get(0).unwrap();
                             assert_eq!(Name::from("left"), *in_input.alias(), "Input's name is not 'left' as expected");
-                            assert_eq!(Route::from("/context/count/compare/left"), *in_input.route(), "Input's route is not as expected");
+                            assert_eq!(Route::from("/flow_input_init/count/compare/left"), *in_input.route(), "Input's route is not as expected");
                             let initial_value = in_input.get_initializer();
                             match initial_value {
                                 Some(OneTime(one_time)) => assert_eq!(one_time.once, 10),

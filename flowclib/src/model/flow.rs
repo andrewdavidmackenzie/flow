@@ -64,12 +64,6 @@ pub struct Flow {
 impl Validate for Flow {
     // check the correctness of all the fields in this flow, prior to loading sub-elements
     fn validate(&self) -> Result<()> {
-        if let Some(ref process_refs) = self.process_refs {
-            for process_ref in process_refs {
-                process_ref.validate()?;
-            }
-        }
-
         if let Some(ref inputs) = self.inputs {
             for input in inputs {
                 input.validate()?;
@@ -168,7 +162,11 @@ impl HasRoute for Flow {
 
 impl SetRoute for Flow {
     fn set_routes_from_parent(&mut self, parent_route: &Route) {
-        self.route = Route::from(format!("{}/{}", parent_route, self.alias));
+        if parent_route.is_empty() {
+            self.route = Route::from(format!("/{}", self.alias));
+        } else {
+            self.route = Route::from(format!("{}/{}", parent_route, self.alias));
+        }
         self.inputs.set_io_routes_from_parent(&self.route, IOType::FlowInput);
         self.outputs.set_io_routes_from_parent(&self.route, IOType::FlowOutput);
     }
@@ -193,6 +191,14 @@ impl Flow {
 
     pub fn default_email() -> String {
         "unknown@unknown.com".to_string()
+    }
+
+    pub fn set_alias(&mut self, alias: &Name) {
+        if alias.is_empty() {
+            self.alias = self.name.clone();
+        } else {
+            self.alias = alias.clone();
+        }
     }
 
     pub fn inputs(&self) -> &IOSet {
@@ -253,14 +259,14 @@ impl Flow {
         match (&direction, segments[0]) {
             (&Direction::FROM, "input")  if segments.len() == 2 => {
                 self.inputs.find_by_name(&Name::from(segments[1]), &None)
-            }, // an input to this flow
-            (&Direction::TO,   "output") if segments.len() == 2 => {
+            } // an input to this flow
+            (&Direction::TO, "output") if segments.len() == 2 => {
                 self.outputs.find_by_name(&Name::from(segments[1]), &None)
-            }, // an output from this flow
-            (&Direction::TO,   _) | (&Direction::FROM, _) => {
+            } // an output from this flow
+            (&Direction::TO, _) | (&Direction::FROM, _) => {
                 let sub_route = Route::from(segments[1..].join("/"));
                 self.get_io_subprocess(&Name::from(segments[0]), direction, &sub_route, initial_value)
-            }, // input or output of a sub-process
+            } // input or output of a sub-process
         }
     }
 

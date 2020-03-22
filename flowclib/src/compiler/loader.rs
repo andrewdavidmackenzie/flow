@@ -67,7 +67,7 @@ pub trait Validate {
 /// flowclib::compiler::loader::load_context("file:///example.toml", &dummy_provider).unwrap();
 /// ```
 pub fn load_context(url: &str, provider: &dyn Provider) -> Result<Process> {
-    load_process(&Route::from(""), &Name::from("context"),
+    load_process(&Route::default(), &Name::default(),
                  0, &mut 0, url, provider, &None, &None)
 }
 
@@ -127,6 +127,16 @@ fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Pro
                                                provider, &process_ref.initializations,
                                                &process_ref.depths)?;
 
+            // if loaded by the defaul alias in the process ref then set the alias to be the name of the loaded process
+            if process_ref.alias.is_empty() {
+                process_ref.alias = Name::from(match process_ref.process {
+                    FlowProcess(ref mut flow) => flow.name().to_lowercase(),
+                    FunctionProcess(ref mut function) => {
+                        function.name().to_lowercase()
+                    }
+                });
+            }
+
             if let FunctionProcess(ref mut function) = process_ref.process {
                 if let Some(lib_ref) = function.get_lib_reference() {
                     flow.lib_references.push(format!("{}/{}", lib_ref, function.name()));
@@ -153,10 +163,10 @@ fn config_function(function: &mut Function, implementation_url: &str, parent_rou
     function.validate()
 }
 
-fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias: &Name, id: usize,
+fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias_from_reference: &Name, id: usize,
                initializations: &Option<HashMap<String, InputInitializer>>) -> Result<()> {
     flow.id = id;
-    flow.alias = alias.clone();
+    flow.set_alias(alias_from_reference);
     flow.source_url = source_url.to_string();
     IO::set_initial_values(flow.inputs_mut(), initializations);
     flow.set_routes_from_parent(parent_route);

@@ -277,7 +277,7 @@ mod test {
     #[test]
     fn can_send_simple_object() {
         let mut function = Function::new("test".to_string(),
-                                         "/context/test".to_string(),
+                                         "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, false)),
                                          0, 0,
@@ -291,7 +291,7 @@ mod test {
     #[test]
     fn can_send_array_object() {
         let mut function = Function::new("test".to_string(),
-                                         "/context/test".to_string(),
+                                         "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, true)),
                                          0, 0,
@@ -305,7 +305,7 @@ mod test {
     #[test]
     fn can_send_simple_object_to_array_input() {
         let mut function = Function::new("test".to_string(),
-                                         "/context/test".to_string(),
+                                         "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, true)),
                                          0, 0,
@@ -319,7 +319,7 @@ mod test {
     #[test]
     fn can_send_array_to_simple_object_depth_1() {
         let mut function = Function::new("test".to_string(),
-                                         "/context/test".to_string(),
+                                         "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, false)),
                                          0, 0,
@@ -333,7 +333,7 @@ mod test {
     #[test]
     fn second_value_overwrites_on_oversend() {
         let mut function = Function::new("test".to_string(),
-                                         "/context/test".to_string(),
+                                         "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, false)),
                                          0, 0,
@@ -349,7 +349,7 @@ mod test {
     #[should_panic]
     fn cannot_take_input_set_if_not_full() {
         let mut function = Function::new("test".to_string(),
-                                         "/context/test".to_string(),
+                                         "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None, false)),
                                          0, 0,
@@ -363,7 +363,7 @@ mod test {
     #[test]
     fn can_send_array_to_simple_object_depth_2() {
         let mut function = Function::new("test".to_string(),
-                                         "/context/test".to_string(),
+                                         "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None, false)),
                                          0, 0,
@@ -377,7 +377,7 @@ mod test {
     #[test]
     fn can_send_simple_object_when_depth_more_than_1() {
         let mut function = Function::new("test".to_string(),
-                                         "/context/test".to_string(),
+                                         "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None, false)),
                                          0, 0,
@@ -392,7 +392,7 @@ mod test {
     #[test]
     fn can_send_array_objects_when_input_depth_more_than_1() {
         let mut function = Function::new("test".to_string(),
-                                         "/context/test".to_string(),
+                                         "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None, true)),
                                          0, 0,
@@ -408,7 +408,7 @@ mod test {
     #[should_panic]
     fn cannot_take_input_set_if_not_full_depth_2() {
         let mut function = Function::new("test".to_string(),
-                                         "/context/test".to_string(),
+                                         "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None, false)),
                                          0, 0,
@@ -422,7 +422,7 @@ mod test {
         let out_conn = OutputConnection::new("/other/input/1".to_string(),
                                              1, 1, 0, None);
         Function::new("test".to_string(),
-                      "/context/test".to_string(),
+                      "/test".to_string(),
                       "/implementation".to_string(),
                       vec!(Input::new(2, &None, false)),
                       1, 0,
@@ -457,7 +457,7 @@ mod test {
         let output_route = OutputConnection::new("/other/input/1".to_string(),
                                                  1, 1, 0, None);
         let mut function = Function::new("test".to_string(),
-                                         "/context/test".to_string(),
+                                         "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None, false)),
                                          0, 0,

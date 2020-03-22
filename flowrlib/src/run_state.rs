@@ -1013,10 +1013,10 @@ mod test {
     fn test_function_a_to_b_not_init() -> Function {
         let connection_to_f1 = OutputConnection::new("".to_string(),
                                                      1, 0, 0,
-                                                     Some("/context/fB".to_string()));
+                                                     Some("/fB".to_string()));
 
         Function::new("fA".to_string(), // name
-                      "/context/fA".to_string(),
+                      "/fA".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1, &None, false)),
                       0, 0,
@@ -1026,9 +1026,9 @@ mod test {
     fn test_function_a_to_b() -> Function {
         let connection_to_f1 = OutputConnection::new("".to_string(),
                                                      1, 0, 0,
-                                                     Some("/context/fB".to_string()));
+                                                     Some("/fB".to_string()));
         Function::new("fA".to_string(), // name
-                      "/context/fA".to_string(),
+                      "/fA".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1,
                                       &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
@@ -1039,7 +1039,7 @@ mod test {
 
     fn test_function_a_init() -> Function {
         Function::new("fA".to_string(), // name
-                      "/context/fA".to_string(),
+                      "/fA".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1,
                                       &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
@@ -1050,7 +1050,7 @@ mod test {
 
     fn test_function_b_not_init() -> Function {
         Function::new("fB".to_string(), // name
-                      "/context/fB".to_string(),
+                      "/fB".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1, &None, false)),
                       1, 0,
@@ -1059,7 +1059,7 @@ mod test {
 
     fn test_function_b_init() -> Function {
         Function::new("fB".to_string(), // name
-                      "/context/fB".to_string(),
+                      "/fB".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1,
                                       &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
@@ -1267,7 +1267,7 @@ mod test {
         #[test]
         fn to_waiting_on_init() {
             let f_a = Function::new("fA".to_string(), // name
-                                    "/context/fA".to_string(),
+                                    "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
                                     0, 0,
@@ -1302,7 +1302,7 @@ mod test {
         #[test]
         fn unready_not_to_running_on_next() {
             let f_a = Function::new("fA".to_string(),
-                                    "/context/fA".to_string(),
+                                    "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
                                     0, 0,
@@ -1366,7 +1366,7 @@ mod test {
         #[test]
         fn running_to_ready_on_done() {
             let f_a = Function::new("fA".to_string(), // name
-                                    "/context/fA".to_string(),
+                                    "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
@@ -1440,7 +1440,7 @@ mod test {
         fn running_to_blocked_on_done() {
             let out_conn = OutputConnection::new("".to_string(), 1, 0, 0, None);
             let f_a = Function::new("fA".to_string(), // name
-                                    "/context/fA".to_string(),
+                                    "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
@@ -1448,7 +1448,7 @@ mod test {
                                     0, 0,
                                     &vec!(out_conn), false); // outputs to fB:0
             let f_b = Function::new("fB".to_string(), // name
-                                    "/context/fB".to_string(),
+                                    "/fB".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
                                     1, 0,
@@ -1478,14 +1478,14 @@ mod test {
         #[test]
         fn waiting_to_ready_on_input() {
             let f_a = Function::new("fA".to_string(), // name
-                                    "/context/fA".to_string(),
+                                    "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
                                     0, 0,
                                     &vec!(), false);
             let out_conn = OutputConnection::new("".into(), 0, 0, 0, None);
             let f_b = Function::new("fB".to_string(), // name
-                                    "/context/fB".to_string(),
+                                    "/fB".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
                                     1, 0,
@@ -1510,7 +1510,7 @@ mod test {
             let f_a = super::test_function_a_to_b_not_init();
             let out_conn = OutputConnection::new("".into(), 0, 0, 0, None);
             let f_b = Function::new("fB".to_string(), // name
-                                    "/context/fB".to_string(),
+                                    "/fB".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
@@ -1544,7 +1544,7 @@ mod test {
             let out_conn0 = OutputConnection::new("".to_string(), 0, 0, 0, None);
             let out_conn1 = OutputConnection::new("".to_string(), 1, 0, 0, None);
             let f_a = Function::new("fA".to_string(), // name
-                                    "/context/fA".to_string(),
+                                    "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1,
                                                     &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
@@ -1555,7 +1555,7 @@ mod test {
                                         out_conn1 // outputs to f_b:0
                                     ), false);
             let f_b = Function::new("fB".to_string(), // name
-                                    "/context/fB".to_string(),
+                                    "/fB".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
                                     1, 0,
@@ -1635,20 +1635,20 @@ mod test {
             let out_conn1 = OutputConnection::new("".to_string(), 1, 0, 0, None);
             let out_conn2 = OutputConnection::new("".to_string(), 2, 0, 0, None);
             let p0 = Function::new("p0".to_string(), // name
-                                   "/context/p0".to_string(),
+                                   "/p0".to_string(),
                                    "/test".to_string(),
                                    vec!(), // input array
                                    0, 0,
                                    &vec!(out_conn1, out_conn2) // destinations
                                    , false);    // implementation
             let p1 = Function::new("p1".to_string(),
-                                   "/context/p1".to_string(),
+                                   "/p1".to_string(),
                                    "/test".to_string(),
                                    vec!(Input::new(1, &None, false)), // inputs array
                                    1, 0,
                                    &vec!(), false);
             let p2 = Function::new("p2".to_string(),
-                                   "/context/p2".to_string(),
+                                   "/p2".to_string(),
                                    "/test".to_string(),
                                    vec!(Input::new(1, &None, false)), // inputs array
                                    2, 0,
@@ -1810,7 +1810,7 @@ mod test {
         #[test]
         fn can_create_multiple_jobs_from_array_of_inputs() {
             let f_a = Function::new("f_a".to_string(), // name
-                                    "/context/fA".to_string(),
+                                    "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
                                     0, 0,
@@ -1836,7 +1836,7 @@ mod test {
         #[test]
         fn can_create_multiple_jobs_from_array() {
             let f_a = Function::new("f_a".to_string(), // name
-                                    "/context/fA".to_string(),
+                                    "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false)),
                                     0, 0,
@@ -1864,7 +1864,7 @@ mod test {
         #[test]
         fn can_create_multiple_jobs_with_initializer() {
             let f_a = Function::new("f_a".to_string(), // name
-                                    "/context/fA".to_string(),
+                                    "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None, false),
                                          Input::new(1,

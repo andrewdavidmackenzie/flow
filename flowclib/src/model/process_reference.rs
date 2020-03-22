@@ -16,6 +16,7 @@ use crate::model::route::Route;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct ProcessReference {
+    #[serde(default = "Name::default")]
     pub alias: Name,
     pub source: String,
     #[serde(rename = "input")]

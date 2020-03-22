@@ -1,0 +1,13 @@
+flow = "names"
+
+## DO NOT run this flow in tests as the subflow hangs on stdin
+
+[[process]] # Flow process_ref
+source = "subflow.toml"
+
+[[process]] # Function process_ref
+source = "lib://flowruntime/stdio/stdout"
+
+[[connection]]
+from = "subflow/out"
+to = "stdout"

@@ -44,6 +44,12 @@ impl From<&str> for Name {
     }
 }
 
+impl From<String> for Name {
+    fn from(string: String) -> Self {
+        Name(string)
+    }
+}
+
 impl From<&String> for Name {
     fn from(string: &String) -> Self {
         Name(string.to_string())
