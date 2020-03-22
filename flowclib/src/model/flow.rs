@@ -243,23 +243,28 @@ impl Flow {
     // Then from the object find the IO (by name or route, probably route) in common code, maybe using IOSet directly?
     pub fn get_route_and_type(&mut self, direction: Direction, route: &Route,
                               initial_value: &Option<InputInitializer>) -> Result<IO> {
-        let mut segments: Vec<&str> = route.split('/').collect();
-        if segments.len() < 2 {
-            bail!("Invalid route '{}'", route);
+        let segments: Vec<&str> = route.split('/').collect();
+        if segments.len() < 1 {
+            bail!("Invalid connection {:?} '{}'", direction, route);
         }
 
-        let object_type = segments.remove(0); // first part is type of object
-        let object_name = &Name::from(segments.remove(0)); // second part is the name of it
-        let sub_route = Route::from(segments.join("/"));       // the rest is a sub-route
+        debug!("Looking for connection {:?} '{}'", direction, route);
 
-        debug!("Looking for connection {:?} '{}' called '{}' with sub-route '{}'", direction, object_type, object_name, sub_route);
-
-        match (&direction, object_type) {
-            (&Direction::TO, "output") => self.outputs.find_by_name(object_name, &None), // an output from this flow
-            (&Direction::FROM, "input") => self.inputs.find_by_name(object_name, &None), // an input to this flow
-            (_, "process") => self.get_io_subprocess(object_name, direction, &sub_route, initial_value), // input or output of a sub-process
-            _ => bail!("Invalid connection '{:?}' and type '{}' with route '{}'",
-                             direction, object_type, route)
+        match (&direction, segments[0]) {
+            (&Direction::FROM, "input")  if segments.len() == 2 => {
+                self.inputs.find_by_name(&Name::from(segments[1]), &None)
+            }, // an input to this flow
+            (&Direction::TO,   "output") if segments.len() == 2 => {
+                self.outputs.find_by_name(&Name::from(segments[1]), &None)
+            }, // an output from this flow
+            (&Direction::TO,   "process") | (&Direction::FROM, "process") if segments.len() >= 2 => {
+                let sub_route = Route::from(segments[2..].join("/"));
+                self.get_io_subprocess(&Name::from(segments[1]), direction, &sub_route, initial_value)
+            }, // input or output of a sub-process
+            (&Direction::TO,   _) | (&Direction::FROM, _) => {
+                let sub_route = Route::from(segments[1..].join("/"));
+                self.get_io_subprocess(&Name::from(segments[0]), direction, &sub_route, initial_value)
+            }, // input or output of a sub-process
         }
     }
 
