@@ -15,12 +15,12 @@ input.chunk_size = {constant = 20}
 input.partial = {once = []}
 
 [[connection]]
-from = "process/numbers/sequence"
-to = "process/array/values"
+from = "numbers/sequence"
+to = "array/values"
 
 [[connection]]
-from = "process/array/partial"
-to = "process/array/partial"
+from = "array/partial"
+to = "array/partial"
 
 ####### Output
 [[process]]
@@ -28,6 +28,6 @@ alias = "print"
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
-from = "process/array/chunk"
-to = "process/print"
+from = "array/chunk"
+to = "print"
 

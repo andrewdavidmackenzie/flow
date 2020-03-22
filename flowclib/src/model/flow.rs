@@ -257,10 +257,6 @@ impl Flow {
             (&Direction::TO,   "output") if segments.len() == 2 => {
                 self.outputs.find_by_name(&Name::from(segments[1]), &None)
             }, // an output from this flow
-            (&Direction::TO,   "process") | (&Direction::FROM, "process") if segments.len() >= 2 => {
-                let sub_route = Route::from(segments[2..].join("/"));
-                self.get_io_subprocess(&Name::from(segments[1]), direction, &sub_route, initial_value)
-            }, // input or output of a sub-process
             (&Direction::TO,   _) | (&Direction::FROM, _) => {
                 let sub_route = Route::from(segments[1..].join("/"));
                 self.get_io_subprocess(&Name::from(segments[0]), direction, &sub_route, initial_value)
@@ -273,12 +269,11 @@ impl Flow {
         in the process ensuring they exist, that direction is correct and types match
 
         Connection to/from Formats:
-            "value/message"
             "input/input_name"
             "output/output_name"
 
-            "/flow_name/io_name"
-            "process/function_name/io_name"
+            "flow_name/io_name"
+            "function_name/io_name"
 
         Propogate any initializers on a flow input into the input (subflow or funcion) it is connected to
     */

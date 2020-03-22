@@ -19,11 +19,11 @@ source = "lib://flowstdlib/math/divide"
 
 [[connection]]
 from = "input/dividend"
-to = "process/divide/dividend"
+to = "divide/dividend"
 
 [[connection]]
 from = "input/divisor"
-to = "process/divide/divisor"
+to = "divide/divisor"
 
 ############check if the remainder is equal to 0
 [[process]]
@@ -32,8 +32,8 @@ source = "lib://flowstdlib/control/compare"
 input.left = { constant = 0 }
 
 [[connection]]
-from = "process/divide/remainder"
-to = "process/compare/right"
+from = "divide/remainder"
+to = "compare/right"
 
 # if the remainder was 0 then let the dividend pass to output
 [[process]]
@@ -41,13 +41,13 @@ alias = "tap"
 source = "lib://flowstdlib/control/tap"
 
 [[connection]]
-from = "process/compare/equal"
-to = "process/tap/control"
+from = "compare/equal"
+to = "tap/control"
 
 [[connection]]
-from = "process/divide/dividend"
-to = "process/tap/data"
+from = "divide/dividend"
+to = "tap/data"
 
 [[connection]]
-from = "process/tap"
+from = "tap"
 to = "output/has_zero_remainder"

@@ -11,8 +11,8 @@ input.end = {once = 20}
 input.step = {once = 1}
 
 [[connection]]
-from = "process/sequence/sequence"
-to = "process/accumulator/values"
+from = "sequence/sequence"
+to = "accumulator/values"
 
 [[process]]
 alias = "accumulator"
@@ -21,12 +21,12 @@ input.partial = {once = []}
 input.chunk_size = {constant = 4}
 
 [[connection]]
-from = "process/accumulator/partial"
-to = "process/accumulator/partial"
+from = "accumulator/partial"
+to = "accumulator/partial"
 
 [[connection]]
-from = "process/accumulator/chunk"
-to = "process/adder/i1"
+from = "accumulator/chunk"
+to = "adder/i1"
 
 [[process]]
 alias = "adder"
@@ -34,8 +34,8 @@ source = "lib://flowstdlib/math/add"
 input.i2 = {constant = 1}
 
 [[connection]]
-from = "process/adder"
-to = "process/print"
+from = "adder"
+to = "print"
 
 [[process]]
 alias = "print"

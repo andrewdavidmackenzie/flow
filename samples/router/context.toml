@@ -5,16 +5,16 @@ alias = "readline"
 source = "lib://flowruntime/stdio/readline"
 
 [[connection]]
-from = "process/readline"
-to = "process/read_section"
+from = "readline"
+to = "read_section"
 
 [[process]]
 alias = "read_section"
 source = "read_section/read_section"
 
 [[connection]]
-from = "process/read_section"
-to = "process/print"
+from = "read_section"
+to = "print"
 
 [[process]]
 alias = "print"

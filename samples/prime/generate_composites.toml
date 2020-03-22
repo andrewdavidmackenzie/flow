@@ -24,7 +24,7 @@ input.i2 = {constant = 2}
 
 [[connection]]
 from = "input/start"
-to = "process/multiply/i1"
+to = "multiply/i1"
 
 [[process]]
 alias = "composite-sequence"
@@ -32,7 +32,7 @@ source = "lib://flowstdlib/math/sequence"
 
 [[connection]]
 from = "input/limit"
-to = "process/limit-buffer"
+to = "limit-buffer"
 
 [[process]]
 alias = "limit-buffer"
@@ -40,25 +40,25 @@ source = "lib://flowstdlib/data/buffer"
 
 # auto-refill each time used
 [[connection]]
-from = "process/limit-buffer"
-to = "process/limit-buffer"
+from = "limit-buffer"
+to = "limit-buffer"
 
 [[connection]]
-from = "process/limit-buffer"
-to = "process/composite-sequence/end"
+from = "limit-buffer"
+to = "composite-sequence/end"
 
 [[connection]]
-from = "process/multiply"
-to = "process/composite-sequence/start"
+from = "multiply"
+to = "composite-sequence/start"
 
 [[connection]]
 from = "input/start"
-to = "process/composite-sequence/step"
+to = "composite-sequence/step"
 
 [[connection]]
-from = "process/composite-sequence/sequence"
+from = "composite-sequence/sequence"
 to = "output/composites"
 
 [[connection]]
-from = "process/composite-sequence/last"
+from = "composite-sequence/last"
 to = "output/subsequence-end"

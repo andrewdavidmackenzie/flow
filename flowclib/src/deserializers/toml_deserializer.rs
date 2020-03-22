@@ -50,8 +50,8 @@ mod test {
         source = 'lib://flowruntime/stdio/stdout.toml'
 
         [[connection]]
-        from = 'process/message'
-        to = 'process/print'
+        from = 'message'
+        to = 'print'
     ";
 
         let toml = FlowTomelLoader {};

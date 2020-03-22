@@ -17,12 +17,12 @@ source = "lib://flowstdlib/data/buffer/buffer"
 input.default = {constant = "x"}
 
 [[connection]]
-from = "process/args/2"
-to = "process/parse_bounds/input"
+from = "args/2"
+to = "parse_bounds/input"
 
 [[connection]]
-from = "process/bounds_separator"
-to = "process/parse_bounds/separator"
+from = "bounds_separator"
+to = "parse_bounds/separator"
 
 #
 
@@ -38,12 +38,12 @@ alias = "parse_upper_left"
 source = "src/parse_pair/parse_pair"
 
 [[connection]]
-from = "process/point_separator"
-to = "process/parse_upper_left/separator"
+from = "point_separator"
+to = "parse_upper_left/separator"
 
 [[connection]]
-from = "process/args/3"
-to = "process/parse_upper_left/input"
+from = "args/3"
+to = "parse_upper_left/input"
 
 #
 
@@ -53,12 +53,12 @@ alias = "parse_lower_right"
 source = "src/parse_pair/parse_pair"
 
 [[connection]]
-from = "process/point_separator"
-to = "process/parse_lower_right/separator"
+from = "point_separator"
+to = "parse_lower_right/separator"
 
 [[connection]]
-from = "process/args/4"
-to = "process/parse_lower_right/input"
+from = "args/4"
+to = "parse_lower_right/input"
 
 
 # Subflow 'render'
@@ -67,16 +67,16 @@ alias = "render"
 source = "render"
 
 [[connection]]
-from = "process/parse_bounds"
-to = "process/render/bounds"
+from = "parse_bounds"
+to = "render/bounds"
 
 [[connection]]
-from = "process/parse_upper_left"
-to = "process/render/upper_left"
+from = "parse_upper_left"
+to = "render/upper_left"
 
 [[connection]]
-from = "process/parse_lower_right"
-to = "process/render/lower_right"
+from = "parse_lower_right"
+to = "render/lower_right"
 
 #
 
@@ -86,12 +86,12 @@ to = "process/render/lower_right"
 #source = "lib://flowstdlib/img/format_png"
 
 #[[connection]]
-#from = "process/render/bitmap_bounds"
-#to = "process/format_bitmap/bounds"
+#from = "render/bitmap_bounds"
+#to = "format_bitmap/bounds"
 
 #[[connection]]
-#from = "process/render/bytes"
-#to = "process/format_bitmap/bytes"
+#from = "render/bytes"
+#to = "format_bitmap/bytes"
 
 
 # Write Bitmap to a file
@@ -100,9 +100,9 @@ to = "process/render/lower_right"
 #source = "lib://flowruntime/file/file_write"
 
 #[[connection]]
-#from = "process/args/0"
-#to = "process/write_file/filename"
+#from = "args/0"
+#to = "write_file/filename"
 
 #[[connection]]
-#from = "process/format_bitmap"
-#to = "process/write_file/bytes"
+#from = "format_bitmap"
+#to = "write_file/bytes"

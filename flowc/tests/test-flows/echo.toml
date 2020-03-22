@@ -10,5 +10,5 @@ source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
 name = "echo"
-from = "process/stdin"
-to = "process/print"
+from = "stdin"
+to = "print"

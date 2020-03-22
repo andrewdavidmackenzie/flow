@@ -9,5 +9,5 @@ alias = "print"
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
-from = "process/args/1"
-to = "process/print"
+from = "args/1"
+to = "print"

@@ -9,5 +9,5 @@ alias = "dead-process"
 source = "lib://flowstdlib/data/buffer"
 
 [[connection]]
-from = "process/source-process"
-to = "process/dead-process"
+from = "source-process"
+to = "dead-process"

@@ -6,8 +6,8 @@ alias = "args"
 source = "lib://flowruntime/args/get.toml"
 
 [[connection]]
-from = "process/args/1"
-to = "process/to_number"
+from = "args/1"
+to = "to_number"
 
 [[process]]
 alias = "to_number"
@@ -22,8 +22,8 @@ input.start = {once = 1}
 input.step = {once = 1}
 
 [[connection]]
-from = "process/to_number"
-to = "process/candidates/end"
+from = "to_number"
+to = "candidates/end"
 
 ######### All numbers - gather into an Array
 [[process]]
@@ -32,20 +32,20 @@ source = "lib://flowstdlib/data/accumulate"
 input.partial = {once = []}
 
 [[connection]]
-from = "process/candidates/sequence"
-to = "process/all-numbers/values"
+from = "candidates/sequence"
+to = "all-numbers/values"
 
 [[connection]]
-from = "process/to_number"
-to = "process/all-numbers/chunk_size"
+from = "to_number"
+to = "all-numbers/chunk_size"
 
 [[connection]] # loop-back
-from = "process/all-numbers/chunk_size"
-to = "process/all-numbers/chunk_size"
+from = "all-numbers/chunk_size"
+to = "all-numbers/chunk_size"
 
 [[connection]]
-from = "process/all-numbers/partial"
-to = "process/all-numbers/partial"
+from = "all-numbers/partial"
+to = "all-numbers/partial"
 
 ####### Composites
 [[process]]
@@ -53,8 +53,8 @@ alias = "composites"
 source = "composites.toml"
 
 [[connection]]
-from = "process/to_number"
-to = "process/composites/limit"
+from = "to_number"
+to = "composites/limit"
 
 ####### Remove composites from entire list
 [[process]]
@@ -63,21 +63,21 @@ source = "lib://flowstdlib/data/remove"
 input.value = { once = 9 }
 
 [[connection]]
-from = "process/all-numbers/chunk"
-to = "process/subtract/array"
+from = "all-numbers/chunk"
+to = "subtract/array"
 
 [[connection]]
-from = "process/composites/composites"
-to = "process/subtract/value"
+from = "composites/composites"
+to = "subtract/value"
 
 [[connection]]
-from = "process/subtract"
-to = "process/subtract/array"
+from = "subtract"
+to = "subtract/array"
 
 #### debug
 [[connection]]
-from = "process/composites/composites"
-to = "process/print"
+from = "composites/composites"
+to = "print"
 
 ####### Output
 [[process]]

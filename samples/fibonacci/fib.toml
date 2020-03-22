@@ -19,21 +19,21 @@ alias = "sum"
 source = "lib://flowstdlib/math/add"
 
 [[connection]]
-from = "process/HEAD-1"
-to = "process/sum/i1"
+from = "HEAD-1"
+to = "sum/i1"
 
 [[connection]]
-from = "process/HEAD"
-to = "process/HEAD-1"
+from = "HEAD"
+to = "HEAD-1"
 
 [[connection]]
-from = "process/HEAD"
-to = "process/sum/i2"
+from = "HEAD"
+to = "sum/i2"
 
 [[connection]]
-from = "process/sum"
-to = "process/HEAD"
+from = "sum"
+to = "HEAD"
 
 [[connection]]
-from = "process/HEAD-1"
+from = "HEAD-1"
 to = "output/series"
