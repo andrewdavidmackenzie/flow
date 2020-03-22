@@ -1,4 +1,4 @@
-flow = "echo args"
+flow = "echo-args"
 
 [[process]]
 alias = "args"
