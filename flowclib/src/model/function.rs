@@ -202,7 +202,11 @@ impl Function {
     }
 
     pub fn set_alias(&mut self, alias: &Name) {
-        self.alias = alias.clone();
+        if alias.is_empty() {
+            self.alias = self.name.clone();
+        } else {
+            self.alias = alias.clone();
+        }
     }
 
     pub fn set_implementation_url(&mut self, source: &str) {

@@ -64,12 +64,6 @@ pub struct Flow {
 impl Validate for Flow {
     // check the correctness of all the fields in this flow, prior to loading sub-elements
     fn validate(&self) -> Result<()> {
-        if let Some(ref process_refs) = self.process_refs {
-            for process_ref in process_refs {
-                process_ref.validate()?;
-            }
-        }
-
         if let Some(ref inputs) = self.inputs {
             for input in inputs {
                 input.validate()?;
@@ -197,6 +191,14 @@ impl Flow {
 
     pub fn default_email() -> String {
         "unknown@unknown.com".to_string()
+    }
+
+    pub fn set_alias(&mut self, alias: &Name) {
+        if alias.is_empty() {
+            self.alias = self.name.clone();
+        } else {
+            self.alias = alias.clone();
+        }
     }
 
     pub fn inputs(&self) -> &IOSet {
