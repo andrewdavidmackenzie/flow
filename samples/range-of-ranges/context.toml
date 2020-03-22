@@ -14,8 +14,8 @@ source = "lib://flowstdlib/data/buffer"
 input.default = {constant = 0}
 
 [[connection]]
-from = "process/start-of-each"
-to = "process/sequence-of-sequences/start"
+from = "start-of-each"
+to = "sequence-of-sequences/start"
 
 # Generate a sequence of numbers from 0 upto the value from sequence above
 # 0 1
@@ -29,8 +29,8 @@ input.step = {once = 1}
 
 # Connect the list of limits to use for each sequence to the generator of the sequence of sequences
 [[connection]]
-from = "process/limit-sequence/sequence"
-to = "process/sequence-of-sequences/end"
+from = "limit-sequence/sequence"
+to = "sequence-of-sequences/end"
 
 # We will be printing out the sequence-of-sequences of numbers
 [[process]]
@@ -39,5 +39,5 @@ source = "lib://flowruntime/stdio/stdout"
 
 # Connect the sequence-of-sequences to the print function
 [[connection]]
-from = "process/sequence-of-sequences/sequence"
-to = "process/print"
+from = "sequence-of-sequences/sequence"
+to = "print"

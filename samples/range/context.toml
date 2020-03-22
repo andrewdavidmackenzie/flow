@@ -5,16 +5,16 @@ alias = "args"
 source = "lib://flowruntime/args/get"
 
 [[connection]]
-from = "process/args/1"
-to = "process/to_number"
+from = "args/1"
+to = "to_number"
 
 [[process]]
 alias = "to_number"
 source = "lib://flowstdlib/fmt/to_number"
 
 [[connection]]
-from = "process/to_number"
-to = "process/sequence/end"
+from = "to_number"
+to = "sequence/end"
 
 [[process]]
 alias = "sequence"
@@ -23,8 +23,8 @@ input.start = {once = 1}
 input.step = {once = 1}
 
 [[connection]]
-from = "process/sequence/sequence"
-to = "process/print"
+from = "sequence/sequence"
+to = "print"
 
 # Output a string to show we're done when the series ends
 [[process]]
@@ -33,12 +33,12 @@ source = "lib://flowstdlib/control/join"
 input.data = {once = "Range done"}
 
 [[connection]]
-from = "process/sequence/last"
-to = "process/join/control"
+from = "sequence/last"
+to = "join/control"
 
 [[connection]]
-from = "process/join"
-to = "process/print"
+from = "join"
+to = "print"
 
 # Output
 [[process]]

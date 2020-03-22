@@ -277,7 +277,7 @@ impl Flow {
             "input/input_name"
             "output/output_name"
 
-            "process/flow_name/io_name"
+            "/flow_name/io_name"
             "process/function_name/io_name"
 
         Propogate any initializers on a flow input into the input (subflow or funcion) it is connected to

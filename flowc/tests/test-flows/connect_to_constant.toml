@@ -5,8 +5,8 @@ alias = "args"
 source = "lib://flowruntime/args/get"
 
 [[connection]]
-from = "process/args/1"
-to = "process/to_number"
+from = "args/1"
+to = "to_number"
 
 [[process]]
 alias = "to_number"
@@ -14,8 +14,8 @@ source = "lib://flowstdlib/fmt/to_number"
 input.default = { constant = 1}
 
 [[connection]]
-from = "process/to_number"
-to = "process/print"
+from = "to_number"
+to = "print"
 
 [[process]]
 alias = "print"

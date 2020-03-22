@@ -9,25 +9,25 @@ alias = "child"
 source = "same-name-child"
 
 [[connection]]
-from = "process/args/1"
-to = "process/child/message"
+from = "args/1"
+to = "child/message"
 
 [[process]]
 alias = "child2"
 source = "same-name-child"
 
 [[connection]]
-from = "process/args/1"
-to = "process/child2/message"
+from = "args/1"
+to = "child2/message"
 
 [[process]]
 alias = "print"
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
-from = "process/child2/message"
-to = "process/print"
+from = "child2/message"
+to = "print"
 
 [[connection]]
-from = "process/child/message"
-to = "process/print"
+from = "child/message"
+to = "print"
