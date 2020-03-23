@@ -1595,7 +1595,6 @@ mod test {
         use crate::debugger::Debugger;
         use crate::function::Function;
         use crate::input::Input;
-        use crate::input::InputInitializer::Constant;
         use crate::metrics::Metrics;
         use crate::output_connection::OutputConnection;
 
