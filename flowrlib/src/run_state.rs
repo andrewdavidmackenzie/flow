@@ -572,7 +572,7 @@ impl RunState {
             debug!("\t\tFunction #{} sending '{}' to Function #{}:{}",
                    source_id, output_value, destination_id, io_number);
         } else {
-            debug!("\t\t\t\tFunction #{} sending '{}' via output route '{}' to Function #{}:{}",
+            debug!("\t\tFunction #{} sending '{}' via output route '{}' to Function #{}:{}",
                    source_id, output_value, output_route, destination_id, io_number);
         }
 
@@ -692,25 +692,22 @@ impl RunState {
     fn inputs_now_full(&mut self, id: usize, flow_id: usize) {
         if self.blocked_sending(id) {
             // It has inputs and could run, if it weren't blocked on output
-            debug!("\t\t\tFunction #{}, inputs full, but blocked on output. Added to blocked list", id);
+            debug!("\t\t\t\tFunction #{}, inputs full, but blocked on output. Added to blocked list", id);
             // so put it on the blocked list
             self.blocked.insert(id);
         } else {
             // It has inputs, and is not blocked on output, so it can run! Mark as ready to run.
-            debug!("\t\t\tFunction #{} not blocked on output, so added to 'Ready' list", id);
+            debug!("\t\t\t\tFunction #{} not blocked on output, so added to 'Ready' list", id);
             self.mark_ready(id, flow_id);
         }
     }
 
     /*
-        If a function is not marked already a "ready" to run, then do so, by adding it's id to
-        the ready list
+        Mark a function "ready" to run, by adding it's id to the ready list
     */
     fn mark_ready(&mut self, function_id: usize, flow_id: usize) {
-        if !self.ready.contains(&function_id) {
-            self.ready.push_back(function_id);
-            self.busy_flows.insert(flow_id, function_id);
-        }
+        self.ready.push_back(function_id);
+        self.busy_flows.insert(flow_id, function_id);
     }
 
     // See if there is any block where the blocked function is the one we're looking for
@@ -873,19 +870,19 @@ impl RunState {
             match self.get_state(function.id()) {
                 State::Ready => {
                     if !self.busy_flows.contains_key(&function.get_flow_id()) {
-                        return self.runtime_error(job_id, &format!("Function {} is Ready, but Flow #{} is not busy", function.id(), function.get_flow_id()),
+                        return self.runtime_error(job_id, &format!("Function #{} is Ready, but Flow #{} is not busy", function.id(), function.get_flow_id()),
                                                   file!(), line!());
                     }
                 }
                 State::Running => {
                     if !self.busy_flows.contains_key(&function.get_flow_id()) {
-                        return self.runtime_error(job_id, &format!("Function {} is Running, but Flow #{} is not busy", function.id(), function.get_flow_id()),
+                        return self.runtime_error(job_id, &format!("Function #{} is Running, but Flow #{} is not busy", function.id(), function.get_flow_id()),
                                                   file!(), line!());
                     }
                 }
                 State::Blocked => {
                     if !self.blocked_sending(function.id()) {
-                        return self.runtime_error(job_id, &format!("Function {} is in Blocked state, but no block exists", function.id()),
+                        return self.runtime_error(job_id, &format!("Function #{} is in Blocked state, but no block exists", function.id()),
                                                   file!(), line!());
                     }
                 }
@@ -898,7 +895,7 @@ impl RunState {
             if (function.inputs().len() > 0) && function.inputs_full() &&
                 !(state == State::Ready || state == State::Blocked || state == State::Running) {
                 error!("{}", function);
-                return self.runtime_error(job_id, &format!("Function {} inputs are full, but it is not Ready or Blocked", function.id()),
+                return self.runtime_error(job_id, &format!("Function #{} inputs are full, but it is not Ready or Blocked", function.id()),
                                           file!(), line!());
             }
         }
@@ -912,7 +909,7 @@ impl RunState {
             }
 
             // For each block on a destination function, then either that input should be full or
-            // the function is running in parallel with the one that just completed
+            // the function should be running in parallel with the one that just completed
             // or it's flow should be busy and there should be a pending unblock on it
             if !(self.functions.get(block.blocking_id).unwrap().input_full(block.blocking_io_number) ||
                 self.get_state(block.blocking_id) == State::Running ||
@@ -928,7 +925,7 @@ impl RunState {
         for pending_unblock_flow_id in self.pending_unblocks.keys() {
             // flow it's in must be busy
             if !self.busy_flows.contains_key(pending_unblock_flow_id) {
-                return self.runtime_error(job_id, &format!("Pending Unblock exists for Flow {}, but it is not busy", pending_unblock_flow_id),
+                return self.runtime_error(job_id, &format!("Pending Unblock exists for Flow #{}, but it is not busy", pending_unblock_flow_id),
                                           file!(), line!());
             }
         }
