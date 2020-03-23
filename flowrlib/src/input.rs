@@ -2,6 +2,7 @@
 use std::fmt;
 
 use log::debug;
+use log::warn;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -130,6 +131,7 @@ impl Input {
         // HACK to allow external flow value to overwrite a self-refresh
         // See https://github.com/andrewdavidmackenzie/flow/issues/547
         if self.received.len() > self.depth {
+            warn!("Input received values exceeds depth");
             self.received.remove(0);
         }
     }
