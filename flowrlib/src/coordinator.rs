@@ -242,7 +242,7 @@ impl Coordinator {
         if submission.display_metrics {
             #[cfg(feature = "metrics")]
             println!("\nMetrics: \n {}", submission.metrics);
-            println!("\t\tJobs processed: \t{}\n", submission.state.jobs());
+            println!("\t\tJobs processed: {}\n", submission.state.jobs());
         }
     }
 

@@ -422,8 +422,17 @@ impl RunState {
         }
 
         // create a job for the function_id at the head of the ready list
-        let function_id = self.ready.remove(0).unwrap();
-        Some(self.create_job(function_id))
+        match self.ready.remove(0) {
+            Some(function_id) => {
+                let job = self.create_job(function_id);
+
+                // unblock senders blocked trying to send to this function's empty inputs
+                self.unblock_senders(job.job_id, job.function_id, job.flow_id);
+
+                Some(job)
+            }
+            None => None
+        }
     }
 
     /*
@@ -521,9 +530,6 @@ impl RunState {
                     if self.refill_inputs(job.function_id) {
                         self.inputs_now_full(job.function_id, job.flow_id);
                     }
-
-                    // unblock senders blocked trying to send to this function's empty inputs
-                    self.unblock_senders(job.job_id, job.function_id, job.flow_id);
                 }
 
                 // need to do flow unblocks as that could affect other functions even if this one cannot run again
@@ -714,7 +720,7 @@ impl RunState {
         But we don't want to unblock them to send to it, until all other functions inside this flow
         are idle, and hence the flow becomes idle.
     */
-    fn unblock_senders(&mut self, job_id: usize, blocker_function_id: usize, blocker_flow_id: usize) {
+    pub fn unblock_senders(&mut self, job_id: usize, blocker_function_id: usize, blocker_flow_id: usize) {
         // delete blocks to this function from within the same flow
         let flow_internal_blocks = |block: &Block| block.blocking_flow_id == block.blocked_flow_id;
 
@@ -797,7 +803,7 @@ impl RunState {
             }
         });
 
-        // update state of functions unblocked
+        // update the state of the functions that have been unblocked
         // Note: they could be blocked on other functions apart from the the one that just unblocked
         for (unblocked_id, unblocked_flow_id) in unblock_list {
             if self.blocked.contains(&unblocked_id) && !self.blocked_sending(unblocked_id) {
@@ -889,7 +895,6 @@ impl RunState {
             // the function should be running in parallel with the one that just completed
             // or it's flow should be busy and there should be a pending unblock on it
             if !(self.functions.get(block.blocking_id).unwrap().input_full(block.blocking_io_number) ||
-                self.get_state(block.blocking_id) == State::Running ||
                 (self.busy_flows.contains_key(&block.blocking_flow_id) && self.pending_unblocks.contains_key(&block.blocking_flow_id))) {
                 return self.runtime_error(job_id,
                                           &format!("Block {} exists for function #{}, but Function #{}:{} input is not full",
@@ -1479,10 +1484,14 @@ mod test {
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
         }
 
+        /*
+            fA (#0) has an input but not initialized, outputs to #1 (fB)
+            fB (#1) has an input with a ConstantInitializer, outputs back to #0 (fA)
+        */
         #[test]
         fn waiting_to_blocked_on_input() {
             let f_a = super::test_function_a_to_b_not_init();
-            let out_conn = OutputConnection::new("".into(), 0, 0, 0, None);
+            let connection_to_f0 = OutputConnection::new("".into(), 0, 0, 0, None);
             let f_b = Function::new("fB".to_string(), // name
                                     "/fB".to_string(),
                                     "/test".to_string(),
@@ -1490,22 +1499,24 @@ mod test {
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
                                                     false)),
                                     1, 0,
-                                    &vec!(out_conn), false);
+                                    &vec!(connection_to_f0), false);
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
             let mut metrics = Metrics::new(1);
             let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
 
-            assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
-            assert_eq!(State::Waiting, state.get_state(0), "f_a should be in Waiting");
+            assert_eq!(state.get_state(1), State::Ready, "f_b should be Ready");
+            assert_eq!(state.get_state(0), State::Waiting, "f_a should be in Waiting");
+
+            assert_eq!(state.next_job().unwrap().function_id, 1, "next() should return function_id=1 (f_b) for running");
 
             // create output from f_b as if it had run - will send to f_a
             let output = super::test_output(1, 0);
             state.complete_job(&mut metrics, output, &mut debugger);
 
             // Test
-            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+            assert_eq!(state.get_state(0), State::Ready, "f_a should be Ready");
         }
 
         /*
@@ -1515,8 +1526,9 @@ mod test {
         */
         #[test]
         fn not_block_on_self() {
-            let out_conn0 = OutputConnection::new("".to_string(), 0, 0, 0, None);
-            let out_conn1 = OutputConnection::new("".to_string(), 1, 0, 0, None);
+            let connection_to_0 = OutputConnection::new("".to_string(), 0, 0, 0, None);
+            let connection_to_1 = OutputConnection::new("".to_string(), 1, 0, 0, None);
+
             let f_a = Function::new("fA".to_string(), // name
                                     "/fA".to_string(),
                                     "/test".to_string(),
@@ -1525,8 +1537,8 @@ mod test {
                                                     false)),
                                     0, 0,
                                     &vec!(
-                                        out_conn0, // outputs to self:0
-                                        out_conn1 // outputs to f_b:0
+                                        connection_to_0.clone(), // outputs to self:0
+                                        connection_to_1.clone() // outputs to f_b:0
                                     ), false);
             let f_b = Function::new("fB".to_string(), // name
                                     "/fB".to_string(),
@@ -1545,9 +1557,6 @@ mod test {
 
             assert_eq!(state.next_job().unwrap().function_id, 0, "next() should return function_id=0 (f_a) for running");
 
-            // run f_a that was returned
-            let out_conn1 = OutputConnection::new("".into(), 0, 0, 0, None);
-            let out_conn2 = OutputConnection::new("".into(), 1, 0, 0, None);
             // Event: run f_a
             let job = Job {
                 job_id: 0,
@@ -1556,7 +1565,7 @@ mod test {
                 implementation: super::test_impl(),
                 input_set: vec!(vec!(json!(1))),
                 result: (Some(json!(1)), true),
-                destinations: vec!(out_conn1, out_conn2),
+                destinations: vec!(connection_to_0, connection_to_1),
                 error: None,
 
             };
@@ -1566,25 +1575,14 @@ mod test {
             assert_eq!(state.get_state(1), State::Ready, "f_b should be Ready");
             assert_eq!(state.get_state(0), State::Blocked, "f_a should be Blocked on f_b");
 
-            assert_eq!(state.next_job().unwrap().function_id, 1, "next() should return function_id=1 (f_b) for running");
-            assert!(state.next_job().is_none(), "next() should not return any other function able to run");
-
-            // Event: Run f_b that was returned
-            let job = Job {
-                job_id: 1,
-                function_id: 1,
-                flow_id: 0,
-                implementation: super::test_impl(),
-                input_set: vec!(vec!(json!(1))),
-                result: (None, true),
-                destinations: vec!(),
-                error: None,
-            };
-            // this should unblock f_a sending to f_b - so make f_a ready
+            let job = state.next_job().unwrap();
+            assert_eq!(job.function_id, 1, "next() should return function_id=1 (f_b) for running");
             state.complete_job(&mut metrics, job, &mut debugger);
 
-            // Test
-            assert_eq!(state.get_state(0), State::Ready, "f_a should be Ready");
+            let job = state.next_job().unwrap();
+            assert_eq!(job.function_id, 0, "next() should return function_id=0 (f_a) for running");
+            state.complete_job(&mut metrics, job, &mut debugger);
+
         }
     }
 
