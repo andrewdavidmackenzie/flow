@@ -503,7 +503,7 @@ impl RunState {
         match job.error {
             None => {
                 let output_value = job.result.0;
-                let source_can_run_again = job.result.1;
+                let function_can_run_again = job.result.1;
 
                 // if it produced an output value
                 if let Some(output_v) = output_value {
@@ -524,12 +524,9 @@ impl RunState {
 
                 self.remove_from_busy(job.function_id);
 
-                // if it wants to run again, and after possibly refreshing any constant inputs, it can
-                // (it's inputs are ready) then add back to the Ready list
-                if source_can_run_again {
-                    if self.refill_inputs(job.function_id) {
-                        self.inputs_now_full(job.function_id, job.flow_id);
-                    }
+                // if it wants to run again, it can p then add back to the Ready list
+                if function_can_run_again {
+                    self.refill_inputs(job.function_id, job.flow_id);
                 }
 
                 // need to do flow unblocks as that could affect other functions even if this one cannot run again
@@ -590,15 +587,19 @@ impl RunState {
     }
 
     /*
-        Refresh any inputs that have initializers on them
+        Refresh any inputs that have initializers on them, and return true if there are now enough
+        input values to create a job for the function.
     */
-    fn refill_inputs(&mut self, id: usize) -> bool {
-        let function = self.get_mut(id);
+    fn refill_inputs(&mut self, function_id: usize, flow_id: usize) {
+        // TODO see if we can find a way to avoid accessing the function here, just update the
+        // ready status of the id of the function and pickup the inputs when we create the job
+        let function = self.get_mut(function_id);
 
-        // refresh any constant inputs it may have
         function.init_inputs(false);
 
-        function.inputs_full()
+        if function.inputs_full() {
+            self.inputs_now_full(function_id, flow_id);
+        }
     }
 
     pub fn start(&mut self, job: &Job) {
@@ -748,7 +749,7 @@ impl RunState {
             if let Some(unblocks) = self.pending_unblocks.remove(&blocker_flow_id) {
                 trace!("Job #{}:\tRemoving pending unblocks to functions in Flow #{}", job_id, blocker_flow_id);
                 for unblock_function_id in unblocks {
-                    self.unblock_senders_to_function(unblock_function_id,any_block);
+                    self.unblock_senders_to_function(unblock_function_id, any_block);
                 }
             }
         }
@@ -1582,7 +1583,6 @@ mod test {
             let job = state.next_job().unwrap();
             assert_eq!(job.function_id, 0, "next() should return function_id=0 (f_a) for running");
             state.complete_job(&mut metrics, job, &mut debugger);
-
         }
     }
 
