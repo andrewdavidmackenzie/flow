@@ -27,8 +27,8 @@ use serde_json::Value;
 pub struct Compare;
 
 impl Implementation for Compare {
-    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        match (inputs[0].remove(0).as_f64(), inputs[1].remove(0).as_f64()) {
+    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+        match (inputs[0][0].as_f64(), inputs[1][0].as_f64()) {
             (Some(left), Some(right)) => {
                 let mut output_map = serde_json::Map::new();
                 output_map.insert("equal".into(), Value::Bool(left == right));

@@ -22,9 +22,9 @@ use serde_json::Value;
 pub struct Multiply;
 
 impl Implementation for Multiply {
-    fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let i1 = inputs.get(0).unwrap()[0].as_u64().unwrap();
-        let i2 = inputs.get(1).unwrap()[0].as_u64().unwrap();
+    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+        let i1 = inputs[0][0].as_u64().unwrap();
+        let i2 = inputs[1][0].as_u64().unwrap();
 
         let result = i1 * i2;
         let output = Value::Number(serde_json::Number::from(result));
@@ -48,7 +48,7 @@ mod test {
         let i2 = Value::Number(serde_json::Number::from(test_data.1));
         let inputs: Vec<Vec<Value>> = vec!(vec!(i1), vec!(i2));
 
-        let (output, run_again) = multiplier.run(inputs);
+        let (output, run_again) = multiplier.run(&inputs);
         assert!(run_again);
 
         let value = output.unwrap();

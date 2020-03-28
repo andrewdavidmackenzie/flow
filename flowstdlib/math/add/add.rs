@@ -24,11 +24,11 @@ use serde_json::Value::String;
 pub struct Add;
 
 impl Implementation for Add {
-    fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let mut sum = None;
 
-        let input_a = inputs.get(0).unwrap();
-        let input_b = inputs.get(1).unwrap();
+        let input_a = &inputs[0];
+        let input_b = &inputs[1];
 
         let mut output_map = serde_json::Map::new();
 
@@ -125,7 +125,7 @@ mod test {
 
         for ref test in integer_test_set {
             println!("Testing add of {:?}", test);
-            let (output, again) = added.run(get_inputs(test));
+            let (output, again) = added.run(&get_inputs(test));
 
             assert_eq!(true, again);
 

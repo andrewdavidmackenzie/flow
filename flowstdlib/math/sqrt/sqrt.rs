@@ -22,8 +22,8 @@ use serde_json::Value::Number;
 pub struct Sqrt;
 
 impl Implementation for Sqrt {
-    fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let input = inputs.get(0).unwrap();
+    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+        let input = &inputs[0];
         let mut value = None;
 
         match input[0] {
@@ -55,7 +55,7 @@ mod test {
 
         let test_81 = vec!(vec!(serde_json::Value::Number(serde_json::Number::from(81))));
         let test_9 = serde_json::Value::Number(serde_json::Number::from_f64(9.0).unwrap());
-        let (root, again) = rooter.run(test_81);
+        let (root, again) = rooter.run(&test_81);
 
         println!("root = {:?}", root);
         assert!(again);

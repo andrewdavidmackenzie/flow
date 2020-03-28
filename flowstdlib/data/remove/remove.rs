@@ -28,17 +28,18 @@ use serde_json::Value;
 pub struct Remove;
 
 impl Implementation for Remove {
-    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         // Inputs
-        let value = inputs.remove(0).remove(0);
-        let mut input1 = inputs.remove(0).remove(0);
-        let array = input1.as_array_mut().unwrap();
+        let value = &inputs[0][0];
+        let input1 = &inputs[1][0];
+        let mut input_array = input1.clone();
+        let array = input_array.as_array_mut().unwrap();
 
         // Operation
-        array.retain(|val| val != &value);
+        array.retain(|val| val != value);
 
         // Output
-        let output = Value::Array(array.clone());
+        let output = Value::Array(array.to_vec());
 
         (Some(output), RUN_AGAIN)
     }
@@ -56,7 +57,7 @@ mod test {
         let value = vec!(Value::Number(Number::from(1)));
 
         let remover = super::Remove{};
-        let (result, _) = remover.run(vec!(value, array));
+        let (result, _) = remover.run(&vec!(value, array));
 
         assert_eq!(result.unwrap(), Value::Array(vec!(Value::Number(Number::from(2)))));
     }
@@ -68,7 +69,7 @@ mod test {
         let value = vec!(Value::Number(Number::from(3)));
 
         let remover = super::Remove{};
-        let (result, _) = remover.run(vec!(value, array));
+        let (result, _) = remover.run(&vec!(value, array));
 
         assert_eq!(result.unwrap(), Value::Array(vec!(Value::Number(Number::from(1)),
                                                       Value::Number(Number::from(2)))));

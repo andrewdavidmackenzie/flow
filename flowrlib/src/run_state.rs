@@ -962,7 +962,7 @@ mod test {
     struct TestImpl {}
 
     impl Implementation for TestImpl {
-        fn run(&self, _inputs: Vec<Vec<Value>>) -> (Option<Value>, bool) {
+        fn run(&self, _inputs: &Vec<Vec<Value>>) -> (Option<Value>, bool) {
             unimplemented!()
         }
     }

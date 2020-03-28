@@ -27,9 +27,9 @@ use serde_json::Value;
 pub struct CompareSwitch;
 
 impl Implementation for CompareSwitch {
-    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let left = inputs[0].remove(0);
-        let right = inputs[1].remove(0);
+    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+        let left = &inputs[0][0];
+        let right = &inputs[1][0];
         match (left.as_f64(), right.as_f64()) {
             (Some(lhs), Some(rhs)) => {
                 let mut output_map = serde_json::Map::new();
@@ -78,7 +78,7 @@ mod test {
 
         let comparer = &CompareSwitch{} as &dyn Implementation;
 
-        let (value, run_again) = comparer.run(inputs);
+        let (value, run_again) = comparer.run(&inputs);
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());
@@ -95,7 +95,7 @@ mod test {
 
         let comparer = &CompareSwitch{} as &dyn Implementation;
 
-        let (value, run_again) = comparer.run(inputs);
+        let (value, run_again) = comparer.run(&inputs);
 
         assert_eq!(run_again, RUN_AGAIN);
         assert!(value.is_some());

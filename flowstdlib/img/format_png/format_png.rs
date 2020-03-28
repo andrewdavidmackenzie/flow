@@ -26,12 +26,12 @@ use serde_json::Value;
 pub struct FormatPNG;
 
 impl Implementation for FormatPNG {
-    fn run(&self, mut inputs: Vec<Vec<Value>>)
+    fn run(&self, inputs: &Vec<Vec<Value>>)
            -> (Option<Value>, RunAgain) {
-        let bytes = inputs.remove(0).remove(0);
+        let bytes = &inputs[0][0];
 
         // bounds: (usize, usize),
-        let bounds = inputs.remove(0).remove(0);
+        let bounds = &inputs[1][0];
         let width = bounds["width"].as_u64().unwrap() as u32;
         let height = bounds["height"].as_u64().unwrap() as u32;
 

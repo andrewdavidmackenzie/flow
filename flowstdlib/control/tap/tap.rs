@@ -22,12 +22,12 @@ use serde_json::Value;
 pub struct Tap;
 
 impl Implementation for Tap {
-    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let mut value = None;
-        let data = inputs[0].remove(0);
-        let control = inputs[1].remove(0).as_bool().unwrap();
-        if control {
-            value = Some(data);
+        let data = &inputs[0][0];
+        let control = &inputs[1][0].as_bool().unwrap();
+        if *control {
+            value = Some(data.clone());
         }
 
         (value, RUN_AGAIN)

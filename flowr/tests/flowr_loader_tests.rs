@@ -66,7 +66,7 @@ fn create_manifest(functions: Vec<Function>) -> Manifest {
 struct Fake;
 
 impl Implementation for Fake {
-    fn run(&self, mut _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, mut _inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let mut value = None;
 
         let mut buffer = String::new();

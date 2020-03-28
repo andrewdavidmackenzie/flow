@@ -23,9 +23,9 @@ use serde_json::Value::Number;
 pub struct Subtract;
 
 impl Implementation for Subtract {
-    fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let input_a = inputs.get(0).unwrap();
-        let input_b = inputs.get(1).unwrap();
+    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+        let input_a = &inputs[0];
+        let input_b = &inputs[1];
         let mut value = None;
 
         match (&input_a[0], &input_b[0]) {

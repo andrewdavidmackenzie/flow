@@ -12,8 +12,8 @@ pub struct Stderr {
 }
 
 impl Implementation for Stderr {
-    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let input = inputs.remove(0).remove(0);
+    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+        let input = &inputs[0][0];
 
         if let Ok(client) = self.client.lock() {
             match input {
