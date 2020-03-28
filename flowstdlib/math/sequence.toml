@@ -88,7 +88,7 @@ to = "add/i1"
 # After the first iteration, each time take the output of the adder (i.e. possibly the next number in the sequence)
 # and pass it into the pilte flow to pass it thru if it's less than the limit
 [[connection]]
-from = "add"
+from = "add/sum"
 to = "compare/right"
 
 # When the compare flow indicates that the number was blocked due to being too large (equal to the limit) then

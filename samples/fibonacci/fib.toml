@@ -15,12 +15,12 @@ source = "lib://flowstdlib/data/buffer"
 input.default = {once = 1}
 
 [[process]]
-alias = "sum"
+alias = "add"
 source = "lib://flowstdlib/math/add"
 
 [[connection]]
 from = "HEAD-1"
-to = "sum/i1"
+to = "add/i1"
 
 [[connection]]
 from = "HEAD"
@@ -28,10 +28,10 @@ to = "HEAD-1"
 
 [[connection]]
 from = "HEAD"
-to = "sum/i2"
+to = "add/i2"
 
 [[connection]]
-from = "sum"
+from = "add/sum"
 to = "HEAD"
 
 [[connection]]

@@ -16,7 +16,7 @@ input.default = {once = 1}
 
 # The function "add" from the standard library is used, but aliased to be able to reference it using "sum"
 [[process]]
-alias = "sum"
+alias = "add"
 source = "lib://flowstdlib/math/add"
 
 # The function "stdout" from the standard library is used, but aliased to be able to reference it using "print"
@@ -27,7 +27,7 @@ source = "lib://flowruntime/stdio/stdout"
 # All the required connections between functions and values to create the flow follow, as per diagram
 [[connection]]
 from = "HEAD-1"
-to = "sum/i1"
+to = "add/i1"
 
 [[connection]]
 from = "HEAD"
@@ -35,10 +35,10 @@ to = "HEAD-1"
 
 [[connection]]
 from = "HEAD"
-to = "sum/i2"
+to = "add/i2"
 
 [[connection]]
-from = "sum"
+from = "add/sum"
 to = "HEAD"
 
 [[connection]]
