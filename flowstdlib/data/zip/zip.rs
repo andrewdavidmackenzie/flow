@@ -23,9 +23,9 @@ use serde_json::Value;
 pub struct Zip;
 
 impl Implementation for Zip {
-    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let left = inputs.remove(0);
-        let right = inputs.remove(0);
+    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+        let left = &inputs[0];
+        let right = &inputs[1];
 
         let tuples = left.iter().zip(right.iter());
 

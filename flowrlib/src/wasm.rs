@@ -66,15 +66,13 @@ fn send_byte_array(instance: &ModuleRef, memory: &MemoryRef, bytes: &[u8]) -> u3
 
 #[cfg(not(target_arch = "wasm32"))]
 impl Implementation for WasmExecutor {
-    fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         #[cfg(not(target_arch = "wasm32"))]
             let module_ref = self.module.lock().unwrap();
         let memory_ref = self.memory.lock().unwrap();
 
         // setup module memory with the serde serialization of `inputs: Vec<Vec<Value>>`
         let input_data = serde_json::to_vec(&inputs).unwrap();
-
-        trace!("Running the exported function 'run_wasm' on input_data '{}'", String::from_utf8(input_data.clone()).unwrap());
 
         // Allocate a string for the input data inside wasm module
         let input_data_wasm_ptr = send_byte_array(&module_ref, &memory_ref, &input_data);

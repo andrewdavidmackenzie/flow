@@ -66,7 +66,7 @@ fn get_and_execute_job(job_rx: &Arc<Mutex<Receiver<Job>>>,
 fn execute(mut job: Job, job_tx: &Sender<Job>, name: &str) -> Result<String> {
     // Run the job and catch the execution result
     trace!("Job #{}:\tExecuting on '{}'", job.job_id, name);
-    let result = job.implementation.run(job.input_set.clone());
+    let result = job.implementation.run(&job.input_set);
 
     job.result = result;
     job_tx.send(job).unwrap();

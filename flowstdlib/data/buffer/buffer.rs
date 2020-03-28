@@ -23,8 +23,8 @@ use serde_json::Value;
 pub struct Buffer;
 
 impl Implementation for Buffer {
-    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let buffered_value = Some(inputs.remove(0).remove(0));
+    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+        let buffered_value = Some(inputs[0][0].clone());
         (buffered_value, RUN_AGAIN)
     }
 }
@@ -42,7 +42,7 @@ mod test {
         let value: Vec<Vec<serde_json::Value>> = vec!(vec!(Number(serde_json::Number::from(42))));
 
         let buffer = Buffer {};
-        let buffered_value = buffer.run(value).0.unwrap();
+        let buffered_value = buffer.run(&value).0.unwrap();
         assert_eq!(buffered_value, 42, "Did not return the value passed in");
     }
 
@@ -51,7 +51,7 @@ mod test {
         let value: Vec<Vec<serde_json::Value>> = vec!(vec!(Number(serde_json::Number::from(42))));
 
         let buffer = Buffer {};
-        let runs_again = buffer.run(value).1;
+        let runs_again = buffer.run(&value).1;
         assert_eq!(runs_again, true, "Buffer should always be available to run again");
     }
 }

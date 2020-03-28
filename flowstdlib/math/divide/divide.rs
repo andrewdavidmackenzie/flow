@@ -25,9 +25,9 @@ use serde_json::Value;
 pub struct Divide;
 
 impl Implementation for Divide {
-    fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let dividend = inputs.get(0).unwrap()[0].as_f64().unwrap();
-        let divisor = inputs.get(1).unwrap()[0].as_f64().unwrap();
+    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+        let dividend = inputs[0][0].as_f64().unwrap();
+        let divisor = inputs[1][0].as_f64().unwrap();
 
         let mut output_map = serde_json::Map::new();
         output_map.insert("dividend".into(), Value::Number(serde_json::Number::from_f64(dividend).unwrap()));
@@ -55,7 +55,7 @@ mod test {
         let divisor = Value::Number(serde_json::Number::from(test_data.1));
         let inputs: Vec<Vec<Value>> = vec!(vec!(dividend), vec!(divisor));
 
-        let (output, run_again) = divide.run(inputs);
+        let (output, run_again) = divide.run(&inputs);
         assert!(run_again);
 
         let outputs = output.unwrap();

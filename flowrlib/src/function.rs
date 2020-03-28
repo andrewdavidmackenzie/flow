@@ -48,7 +48,7 @@ pub struct Function {
 struct ImplementationNotFound;
 
 impl Implementation for ImplementationNotFound {
-    fn run(&self, _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, _inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         error!("Implementation not found");
         (None, false)
     }
@@ -438,7 +438,7 @@ mod test {
     #[test]
     fn call_implementation_not_found_panics() {
         let inf = ImplementationNotFound {};
-        assert_eq!((None, false), inf.run(vec!()), "ImplementationNotFound should return (None, false)");
+        assert_eq!((None, false), inf.run(&vec!()), "ImplementationNotFound should return (None, false)");
     }
 
     #[cfg(feature = "debugger")]

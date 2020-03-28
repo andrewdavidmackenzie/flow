@@ -12,9 +12,9 @@ pub struct FileWrite {
 }
 
 impl Implementation for FileWrite {
-    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let filename = inputs.remove(0).remove(0);
-        let bytes = inputs.remove(0).remove(0);
+    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+        let filename = &inputs[0][0];
+        let bytes = &inputs[1][0];
 
         if let Ok(client) = self.client.lock() {
             match client.send_command(Command::Write(filename.to_string(),

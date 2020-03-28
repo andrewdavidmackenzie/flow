@@ -22,8 +22,8 @@ use serde_json::Value;
 pub struct ComposeArray;
 
 impl Implementation for ComposeArray {
-    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let output_vec = inputs.remove(0);
+    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+        let output_vec = inputs[0].clone();
         let output = Value::Array(output_vec);
 
         (Some(output), RUN_AGAIN)
@@ -43,7 +43,7 @@ mod test {
         let value = vec!(Value::Number(Number::from(1)));
 
         let composer = super::ComposeArray {};
-        let (result, _) = composer.run(vec!(value, array));
+        let (result, _) = composer.run(&vec!(value, array));
 
         assert_eq!(result.unwrap(), Value::Array(vec!(Value::Number(Number::from(2)))));
     }

@@ -44,11 +44,11 @@ use serde_json::Value;
 pub struct Accumulate;
 
 impl Implementation for Accumulate {
-    fn run(&self, mut inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let mut values = inputs.remove(0);
-        let mut input1 = inputs.remove(0).remove(0);
+    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+        let mut values = inputs[0].clone();
+        let mut input1 = inputs[1][0].clone();
         let accumulated = input1.as_array_mut().unwrap();
-        let limit = inputs.remove(0).remove(0);
+        let limit = inputs[2][0].clone();
         accumulated.append(&mut values);
 
         let mut output_map = serde_json::Map::new();
@@ -62,7 +62,7 @@ impl Implementation for Accumulate {
             output_map.insert("partial".into(), Value::Array(accumulated.clone()));
         }
 
-        output_map.insert("chunk_size".into(), limit);
+        output_map.insert("chunk_size".into(), limit.clone());
 
         let output = Value::Object(output_map);
 
@@ -83,7 +83,7 @@ mod test {
         let value = vec!(Value::Number(Number::from(1)));
 
         let accumulator = super::Accumulate {};
-        let (result, _) = accumulator.run(vec!(value, array));
+        let (result, _) = accumulator.run(&vec!(value, array));
 
         assert_eq!(result.unwrap(), Value::Array(vec!(Value::Number(Number::from(2)))));
     }
