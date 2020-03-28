@@ -38,6 +38,9 @@ fn impl_flow_impl(ast: &syn::DeriveInput) -> TokenStream {
             return ptr as *mut c_void;
         }
 
+        /*
+            Wrapper function for running a wasm implementation
+        */
         #[cfg(target_arch = "wasm32")]
         #[no_mangle]
         pub extern "C" fn run_wasm(input_data_ptr: *mut c_void, input_data_length: i32) -> i32 {
@@ -49,7 +52,7 @@ fn impl_flow_impl(ast: &syn::DeriveInput) -> TokenStream {
 
             let inputs = serde_json::from_slice(&input_data).unwrap();
             let object = #name {};
-            let result = object.run(inputs);
+            let result = object.run(&inputs);
 
             let return_data = serde_json::to_vec(&result).unwrap();
 
