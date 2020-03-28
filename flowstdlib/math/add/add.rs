@@ -131,8 +131,9 @@ mod test {
 
             match output {
                 Some(outputs) => {
-                    let sum = outputs.pointer("/sum");
-                    assert_eq!(sum, test.2.as_ref());
+                    assert_eq!(outputs.pointer("/i1").unwrap(), &test.0);
+                    assert_eq!(outputs.pointer("/i2").unwrap(), &test.1);
+                    assert_eq!(outputs.pointer("/sum"), test.2.as_ref());
                 }
                 None => {
                     assert!(test.2.is_none())
