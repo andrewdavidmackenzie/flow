@@ -44,28 +44,13 @@ source = "lib://flowstdlib/control/compare_switch"
 alias = "add"
 source = "lib://flowstdlib/math/add"
 
-# refresh the value of step each time during the sequence
-[[process]]
-alias = "join"
-source = "lib://flowstdlib/control/join"
-
 [[connection]]
 from = "input/step"
-to = "join/data"
+to = "add/i2"
 
-# loop back
+# loop back the 'step' value to use in each iteration
 [[connection]]
-from = "join"
-to = "join/data"
-
-# control variable for join
-[[connection]]
-from = "compare/left-gt"
-to = "join/control"
-
-# pass step value onto adder
-[[connection]]
-from = "join"
+from = "add/i2"
 to = "add/i2"
 
 # connect the /lt output of compare (i.e. numbers that are less than or equal to the limit) to the output of this process -
@@ -88,7 +73,7 @@ to = "add/i1"
 # After the first iteration, each time take the output of the adder (i.e. possibly the next number in the sequence)
 # and pass it into the pilte flow to pass it thru if it's less than the limit
 [[connection]]
-from = "add"
+from = "add/sum"
 to = "compare/right"
 
 # When the compare flow indicates that the number was blocked due to being too large (equal to the limit) then

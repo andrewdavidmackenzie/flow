@@ -236,8 +236,8 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
             let tables = compile::compile(&context).unwrap();
 
             match tables.functions.iter().find(|&f| f.route() == &Route::from("/subflow_function_input_init/sequence/compare")) {
-                Some(tap_function) => {
-                    if let Some(inputs) = tap_function.get_inputs() {
+                Some(compare_switch_function) => {
+                    if let Some(inputs) = compare_switch_function.get_inputs() {
                         let in_input = inputs.get(1).unwrap();
                         assert_eq!(Name::from("right"), *in_input.alias(), "Input's name is not 'right' as expected");
                         let initial_value = in_input.get_initializer();

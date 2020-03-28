@@ -28,23 +28,23 @@ from = "first-sequence/sequence"
 to = "second-sequence/end"
 
 [[process]]
-alias = "sum"
+alias = "add"
 source = "lib://flowstdlib/math/add"
 
 # send the max value directly to sum, and via a less-than comparison
 # both should arrive
 [[connection]]
 from = "second-sequence/max"
-to = "sum/i1"
+to = "add/i1"
 
 [[connection]]
 from = "second-sequence/sequence"
-to = "sum/i2"
+to = "add/i2"
 
 [[process]]
 alias = "print"
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
-from = "sum"
+from = "add/sum"
 to = "print"

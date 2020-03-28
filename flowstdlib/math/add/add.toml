@@ -10,4 +10,13 @@ name = "i2"
 type = "Number"
 
 [[output]]
+name = "sum"
+type = "Number"
+
+[[output]]
+name = "i1"
+type = "Number"
+
+[[output]]
+name = "i2"
 type = "Number"

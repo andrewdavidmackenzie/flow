@@ -20,7 +20,7 @@ source = "lib://flowstdlib/math/add"
 input.i2 = {constant = 1}
 
 [[connection]]
-from = "add1"
+from = "add1/sum"
 to = "divide2/dividend"
 
 [[process]]
@@ -38,7 +38,7 @@ source = "lib://flowstdlib/math/add"
 input.i2 = {constant = 2}
 
 [[connection]]
-from = "add2"
+from = "add2/sum"
 to = "divide4/dividend"
 
 [[process]]

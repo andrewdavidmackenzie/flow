@@ -1,12 +1,12 @@
 flow = "unused input"
 
 [[process]]
-alias = "sum"
+alias = "add"
 source = "lib://flowstdlib/math/add"
 input.i1 = { once = 1 }
 
 [[connection]]
-from = "sum"
+from = "add/sum"
 to = "print"
 
 [[process]]

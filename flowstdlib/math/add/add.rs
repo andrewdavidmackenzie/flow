@@ -19,19 +19,22 @@ use serde_json::Value::String;
 /// * `i2` - second input of type `Number`
 ///
 /// ## Outputs
-/// * Sum of `i1` and `i2` of type `Number`
+/// * `sum` of `i1` and `i2` of type `Number`
 #[derive(Debug)]
 pub struct Add;
 
 impl Implementation for Add {
     fn run(&self, inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let mut value = None;
+        let mut sum = None;
 
         let input_a = inputs.get(0).unwrap();
         let input_b = inputs.get(1).unwrap();
+
+        let mut output_map = serde_json::Map::new();
+
         match (&input_a[0], &input_b[0]) {
             (&Number(ref a), &Number(ref b)) => {
-                value = if a.is_i64() && b.is_i64() {
+                sum = if a.is_i64() && b.is_i64() {
                     match a.as_i64().unwrap().checked_add(b.as_i64().unwrap()) {
                         Some(result) => Some(Value::Number(serde_json::Number::from(result))),
                         None => None
@@ -52,12 +55,22 @@ impl Implementation for Add {
                 let i1 = a.parse::<i64>().unwrap();
                 let i2 = b.parse::<i64>().unwrap();
                 let o1 = i1 + i2;
-                value = Some(Value::String(o1.to_string()));
+                sum = Some(Value::String(o1.to_string()));
             }
             (_, _) => println!("Unsupported input value types")
         }
 
-        (value, RUN_AGAIN)
+        if sum.is_some() {
+            output_map.insert("sum".into(), sum.unwrap());
+            output_map.insert("i1".into(), input_a[0].clone());
+            output_map.insert("i2".into(), input_b[0].clone());
+
+            let output = Value::Object(output_map);
+
+            (Some(output), RUN_AGAIN)
+        } else {
+            (None, RUN_AGAIN)
+        }
     }
 }
 
@@ -112,10 +125,20 @@ mod test {
 
         for ref test in integer_test_set {
             println!("Testing add of {:?}", test);
-            let (value, again) = added.run(get_inputs(test));
+            let (output, again) = added.run(get_inputs(test));
 
             assert_eq!(true, again);
-            assert_eq!(test.2, value);
+
+            match output {
+                Some(outputs) => {
+                    assert_eq!(outputs.pointer("/i1").unwrap(), &test.0);
+                    assert_eq!(outputs.pointer("/i2").unwrap(), &test.1);
+                    assert_eq!(outputs.pointer("/sum"), test.2.as_ref());
+                }
+                None => {
+                    assert!(test.2.is_none())
+                }
+            }
         }
     }
 }

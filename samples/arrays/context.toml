@@ -26,15 +26,15 @@ to = "accumulator/partial"
 
 [[connection]]
 from = "accumulator/chunk"
-to = "adder/i1"
+to = "add/i1"
 
 [[process]]
-alias = "adder"
+alias = "add"
 source = "lib://flowstdlib/math/add"
 input.i2 = {constant = 1}
 
 [[connection]]
-from = "adder"
+from = "add/sum"
 to = "print"
 
 [[process]]

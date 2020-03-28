@@ -2,7 +2,7 @@ flow = "primitives"
 
 # 1 plus 2 = 3
 [[process]]
-alias = "sum"
+alias = "add"
 source = "lib://flowstdlib/math/add"
 input.i1 = {once = 2}
 input.i2 = {once = 1}
@@ -14,7 +14,7 @@ source = "lib://flowstdlib/math/divide"
 input.divisor = {once = 2}
 
 [[connection]]
-from = "sum"
+from = "add/sum"
 to = "divide/dividend"
 
 [[connection]]
