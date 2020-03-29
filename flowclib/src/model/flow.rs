@@ -261,7 +261,7 @@ impl Flow {
                 self.inputs.find_by_name(&Name::from(segments[1]), &None)
             } // an input to this flow
             (&Direction::TO, "output") if segments.len() == 2 => {
-                self.outputs.find_by_name(&Name::from(segments[1]), &None)
+                self.outputs.find_by_name(&Name::from(segments[1]), initial_value)
             } // an output from this flow
             (&Direction::TO, _) | (&Direction::FROM, _) => {
                 let sub_route = Route::from(segments[1..].join("/"));
@@ -312,7 +312,7 @@ impl Flow {
                             }
                         }
                         Err(error) => {
-                            error!("Did not find connection destination: '{}' specified in flow '{}'\n\t\t{}",
+                            error!("Did not find connection destination: '{}' in flow '{}'\n\t\t{}",
                                    connection.to, self.source_url, error);
                             error_count += 1;
                         }

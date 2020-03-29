@@ -1,0 +1,11 @@
+flow = "subflow_short_circuit"
+
+[[input]]
+name = "a"
+
+[[output]]
+name = "output"
+
+[[connection]]
+from = "input/a"
+to = "output/output"

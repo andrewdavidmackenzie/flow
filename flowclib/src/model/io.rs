@@ -100,7 +100,7 @@ impl IO {
         &self.initializer
     }
 
-    pub fn set_initial_value(&mut self, initial_value: &Option<InputInitializer>) {
+    pub fn set_initializer(&mut self, initial_value: &Option<InputInitializer>) {
         // Avoid overwriting a possibly Some() value with a None value
         if initial_value.is_some() {
             self.initializer = initial_value.clone();
@@ -218,7 +218,7 @@ impl Find for IOSet {
         if let Some(ref mut ios) = self {
             for io in ios {
                 if io.name() == name {
-                    io.set_initial_value(initial_value);
+                    io.set_initializer(initial_value);
                     return Ok(io.clone());
                 }
             }
@@ -234,7 +234,7 @@ impl Find for IOSet {
             for io in ios {
                 let (array_route, _num, array_index) = sub_route.without_trailing_array_index();
                 if array_index && (io.datatype(0).is_array()) && (Route::from(io.name()) == array_route.into_owned()) {
-                    io.set_initial_value(initial_value);
+                    io.set_initializer(initial_value);
 
                     let mut found = io.clone();
                     found.set_datatype(&io.datatype(1)); // the type within the array
@@ -244,7 +244,7 @@ impl Find for IOSet {
                 }
 
                 if Route::from(io.name()) == *sub_route {
-                    io.set_initial_value(initial_value);
+                    io.set_initializer(initial_value);
                     return Ok(io.clone());
                 }
             }

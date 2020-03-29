@@ -253,7 +253,7 @@ mod test {
     #[test]
     fn function_with_initialized_input_generation() {
         let mut io = IO::new("String", &Route::default());
-        io.set_initial_value(&Some(InputInitializer::OneTime(
+        io.set_initializer(&Some(InputInitializer::OneTime(
             OneTimeInputInitializer { once: json!(1) }
         )));
 
@@ -295,7 +295,7 @@ mod test {
     #[test]
     fn function_with_constant_input_generation() {
         let mut io = IO::new("String", &Route::default());
-        io.set_initial_value(&Some(InputInitializer::Constant(
+        io.set_initializer(&Some(InputInitializer::Constant(
             ConstantInputInitializer { constant: json!(1) }
         )));
 

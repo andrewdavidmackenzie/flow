@@ -61,7 +61,7 @@ pub fn compile_and_execute_flow(url: &Url, flow_args: Vec<String>, dump: bool, s
                                 provided_implementations: bool, out_dir: PathBuf, provider: &dyn Provider, release: bool)
                                 -> Result<String> {
     info!("==== Compiler phase: Loading flow");
-    let context = loader::load_root(&url.to_string(), provider)
+    let context = loader::load(&url.to_string(), provider)
         .chain_err(|| "Couldn't load context")?;
     match context {
         FlowProcess(flow) => {

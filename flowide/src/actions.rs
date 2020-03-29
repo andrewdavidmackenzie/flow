@@ -64,7 +64,7 @@ pub fn compile_flow() {
 fn load_flow_from_url(url: &str) -> Result<Flow, String> {
     let provider = MetaProvider {};
 
-    match loader::load_root(url, &provider)
+    match loader::load(url, &provider)
         .map_err(|e| format!("Could not load flow context: '{}'", e.to_string()))? {
         FlowProcess(flow) => Ok(flow),
         _ => Err("Process loaded was not of type 'Flow'".into())

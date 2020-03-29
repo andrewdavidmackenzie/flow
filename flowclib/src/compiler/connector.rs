@@ -43,7 +43,7 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                         if let Some(ref mut inputs) = destination_function.get_mut_inputs() {
                             let destination_input = inputs.get_mut(destination_input_index).unwrap();
                             if destination_input.get_initializer().is_none() {
-                                destination_input.set_initial_value(connection.to_io.get_initializer());
+                                destination_input.set_initializer(connection.to_io.get_initializer());
                                 debug!("Set initializer on destination function '{}' input at '{}' from connection",
                                        destination_function.name(), connection.to_io.route());
                             }
@@ -229,26 +229,29 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
     debug!("Working on {} flow hierarchy connections", original_connections.len());
 
     for connection in original_connections {
-        // Try to collapse connections that start at a Function
-        if *connection.from_io.io_type() == IOType::FunctionIO {
-            debug!("Trying to create connection from function output at '{}' (level={})",
-                   connection.from_io.route(), connection.level);
-            if *connection.to_io.io_type() == IOType::FunctionIO {
-                debug!("\tFound direct connection to function input at '{}'", connection.to_io.route());
-                collapsed_connections.push(connection.clone());
-            } else {
-                // If the connection enters or leaves this flow, then follow it to function destinations
-                for final_destination in find_function_destinations(&connection.to_io.route(),
-                                                                    connection.level, original_connections) {
-                    let mut collapsed_connection = connection.clone();
-                    collapsed_connection.to_io.set_route(&final_destination, &IOType::FunctionIO);
-                    collapsed_connection.to = final_destination;
-                    debug!("\tIndirect connection {}", collapsed_connection);
-                    collapsed_connections.push(collapsed_connection);
+        match connection.from_io.io_type() {
+            // connection starts at a Function
+            &IOType::FunctionIO => {
+                debug!("Trying to create connection from function output at '{}' (level={})",
+                       connection.from_io.route(), connection.level);
+                if *connection.to_io.io_type() == IOType::FunctionIO {
+                    debug!("\tFound direct connection to function input at '{}'", connection.to_io.route());
+                    collapsed_connections.push(connection.clone());
+                } else {
+                    // If the connection enters or leaves this flow, then follow it to function destinations
+                    for final_destination in find_function_destinations(&connection.to_io.route(),
+                                                                        connection.level, original_connections) {
+                        let mut collapsed_connection = connection.clone();
+                        collapsed_connection.to_io.set_route(&final_destination, &IOType::FunctionIO);
+                        collapsed_connection.to = final_destination;
+                        debug!("\tIndirect connection {}", collapsed_connection);
+                        collapsed_connections.push(collapsed_connection);
+                    }
                 }
             }
-        } else {
-            debug!("Skipping connection from flow at '{}'", connection.from_io.route());
+            _ => {
+                debug!("Skipping connection from/to flow input/output at '{}'", connection.from_io.route());
+            }
         }
     }
 
