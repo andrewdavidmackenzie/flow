@@ -1,0 +1,13 @@
+flow = "print_subflow_output"
+
+[[process]]
+alias = "subflow"
+source = "initialize_flow_output.toml"
+
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"
+
+[[connection]]
+from = "subflow"
+to = "print"

@@ -36,13 +36,13 @@ pub struct IO {
     datatype: DataType,
     #[serde(default = "default_depth")]
     depth: usize,
+    #[serde(rename = "value")]
+    initializer: Option<InputInitializer>,
 
     #[serde(skip_deserializing)]
     route: Route,
     #[serde(skip_deserializing, default = "default_io_type")]
     io_type: IOType,
-    #[serde(skip_deserializing)]
-    initializer: Option<InputInitializer>,
 }
 
 impl IO {

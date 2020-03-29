@@ -247,6 +247,43 @@ fn flow_input_propogated_backout() {
 }
 
 /*
+    This tests that an initalizer on an output of a sub-process is passed propogated out and set on destination
+*/
+#[test]
+fn initialized_output_propogated() {
+    let meta_provider = MetaProvider {};
+    // Relative path from project root to the test file
+    let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/print_subflow_output.toml");
+
+    match loader::load(&url, &meta_provider) {
+        Ok(FlowProcess(context)) => {
+            match compile::compile(&context) {
+                Ok(tables) => {
+                    match tables.functions.iter().find(|&f| f.route() == &Route::from("/print_subflow_output/print")) {
+                        Some(print_function) => {
+                            if let Some(inputs) = print_function.get_inputs() {
+                                let in_input = inputs.get(0).unwrap();
+                                let initial_value = in_input.get_initializer();
+                                match initial_value {
+                                    Some(OneTime(one_time)) => assert_eq!(one_time.once, "message"), // PASS
+                                    _ => panic!("Initializer should have been a OneTime initializer, was {:?}", initial_value)
+                                }
+                            } else {
+                                panic!("Could not find any inputs");
+                            }
+                        }
+                        None => panic!("Could not find function at route '/print_subflow_output/print'")
+                    }
+                }
+                Err(error) => panic!("Couldn't compile the flow from test file at '{}'\n{}", url, error)
+            }
+        },
+        Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{}'", url),
+        Err(error) => panic!("Couldn't load the flow from test file at '{}'.\n{}", url, error)
+    }
+}
+
+/*
     This tests that an initalizer on an input to a flow process is passed onto a function in
     a sub-flow of that via a connection from the flow input to the function input
 */

@@ -1,0 +1,4 @@
+flow = "initialize_flow_output"
+
+[[output]]
+value = { once = "Hello" }

@@ -1,0 +1,14 @@
+flow = "multiply_matrices"
+
+[[input]]
+name = "a"
+
+[[input]]
+name = "b"
+
+[[output]]
+name = "product"
+
+[[connection]]
+from = "input/a"
+to = "output/product"
