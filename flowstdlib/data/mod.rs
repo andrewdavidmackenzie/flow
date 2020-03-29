@@ -11,3 +11,5 @@ pub mod accumulate;
 pub mod zip;
 /// A module that removes elements from an array
 pub mod remove;
+/// A module with a function for transposing a Matrix
+pub mod transpose;

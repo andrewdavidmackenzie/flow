@@ -59,6 +59,8 @@ pub fn get_manifest() -> LibraryManifest {
                              Native(Arc::new(data::compose_array::compose_array::ComposeArray)));
     manifest.locators.insert("lib://flowstdlib/data/remove/Remove".to_string(),
                              Native(Arc::new(data::remove::remove::Remove)));
+    manifest.locators.insert("lib://flowstdlib/data/transpose/Transpose".to_string(),
+                             Native(Arc::new(data::transpose::transpose::Transpose)));
     manifest.locators.insert("lib://flowstdlib/data/zip/Zip".to_string(),
                              Native(Arc::new(data::zip::zip::Zip)));
 
