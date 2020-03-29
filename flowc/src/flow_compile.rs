@@ -17,6 +17,7 @@ use flowclib::dumper::dump_tables;
 use flowclib::generator::generate;
 use flowclib::generator::generate::GenerationTables;
 use flowclib::model::flow::Flow;
+use flowclib::model::name::HasName;
 use flowclib::model::process::Process::FlowProcess;
 use flowrlib::manifest::DEFAULT_MANIFEST_FILENAME;
 use flowrlib::provider::Provider;
@@ -25,21 +26,51 @@ use crate::compile_wasm;
 use crate::errors::*;
 
 /*
+    Check root process fits the rules for a Context and being a runnable flow
+*/
+fn check_root(flow: &Flow) -> bool {
+    let mut runnable = true;
+
+    if let Some(inputs) = flow.inputs() {
+        if !inputs.is_empty() {
+            error!("Root process '{}' has inputs:", flow.name);
+            for input in inputs {
+                error!("\t'{}'", input.name());
+            }
+            runnable = false
+        }
+    }
+
+    if let Some(outputs) = flow.outputs() {
+        if !outputs.is_empty() {
+            error!("Root process '{}' has outputs:", flow.name);
+            for output in outputs {
+                error!("\t'{}'", output.name());
+            }
+            runnable = false
+        }
+    }
+
+    runnable
+}
+
+/*
     Compile a flow, maybe run it
 */
 pub fn compile_and_execute_flow(url: &Url, flow_args: Vec<String>, dump: bool, skip_generation: bool, debug_symbols: bool,
                                 provided_implementations: bool, out_dir: PathBuf, provider: &dyn Provider, release: bool)
                                 -> Result<String> {
     info!("==== Compiler phase: Loading flow");
-    let context = loader::load_context(&url.to_string(), provider)
+    let context = loader::load_root(&url.to_string(), provider)
         .chain_err(|| "Couldn't load context")?;
     match context {
         FlowProcess(flow) => {
             let mut tables = compile::compile(&flow)
                 .chain_err(|| format!("Could not compile the flow '{}'", url))?;
 
-            info!("==== Compiler phase: Compiling provided implementations");
             compile_supplied_implementations(&mut tables, provided_implementations, release)?;
+
+            let runnable = check_root(&flow);
 
             if dump {
                 dump_flow::dump_flow(&flow, &out_dir)
@@ -50,8 +81,12 @@ pub fn compile_and_execute_flow(url: &Url, flow_args: Vec<String>, dump: bool, s
                     .chain_err(|| "Failed to dump flow's functions")?;
             }
 
+            if !runnable {
+                return Ok("Flow not runnable, so Manifest generation and execution skipped".to_string());
+            }
+
             if skip_generation {
-                return Ok("Manifest generation and flow running skipped".to_string());
+                return Ok("Manifest generation and execution skipped".to_string());
             }
 
             info!("==== Compiler phase: Generating Manifest");
@@ -155,10 +190,10 @@ fn execute_flow(filepath: PathBuf, mut flow_args: Vec<String>) -> Result<String>
         .stderr(Stdio::inherit())
         .output().chain_err(|| "Error while attempting to spawn command to compile and run flow")?;
     match output.status.code() {
-        Some(0) => Ok("'flowr' completed successfully'".to_string()),
+        Some(0) => Ok("".into()),
         Some(code) => {
             error!("Execution of 'flowr' failed");
-            error!("Process STDOUT:\n{}", String::from_utf8_lossy(&output.stdout    ));
+            error!("Process STDOUT:\n{}", String::from_utf8_lossy(&output.stdout));
             error!("Process STDERR:\n{}", String::from_utf8_lossy(&output.stderr));
             bail!("Exited with status code: {}", code)
         }

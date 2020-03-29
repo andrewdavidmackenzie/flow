@@ -38,7 +38,7 @@ use crate::model::flow::Flow;
 ///     println!("url = {:?}", url);
 ///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
 ///
-///     if let FlowProcess(mut flow) = flowclib::compiler::loader::load_context(&url.to_string(),
+///     if let FlowProcess(mut flow) = flowclib::compiler::loader::load_root(&url.to_string(),
 ///                                                           &dummy_provider).unwrap() {
 ///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///         let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
@@ -111,7 +111,7 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Resul
 ///     println!("url = {:?}", url);
 ///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
 ///
-///     if let FlowProcess(mut flow) = flowclib::compiler::loader::load_context(&url.to_string(),
+///     if let FlowProcess(mut flow) = flowclib::compiler::loader::load_root(&url.to_string(),
 ///                                                           &dummy_provider).unwrap() {
 ///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///         let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();

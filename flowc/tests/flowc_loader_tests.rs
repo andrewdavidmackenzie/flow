@@ -32,7 +32,7 @@ use provider::content::provider::MetaProvider;
 fn malformed_connection() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/malformed-connection.toml");
-    let result = loader::load_context(&path, &meta_provider);
+    let result = loader::load_root(&path, &meta_provider);
     match result {
         Ok(_) => assert!(false, "malformed-connection.toml should not load successfully"),
         Err(_) => { /* error was correctly detected but didn't cause a crash */ }
@@ -43,7 +43,7 @@ fn malformed_connection() {
 fn invalid_toml() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid.toml");
-    let result = loader::load_context(&path, &meta_provider);
+    let result = loader::load_root(&path, &meta_provider);
     match result {
         Ok(_) => assert!(false, "invalid.toml should not load successfully"),
         Err(_) => { /* error was correctly detected but didn't cause a crash */ }
@@ -54,7 +54,7 @@ fn invalid_toml() {
 fn invalid_process() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid-process.toml");
-    let result = loader::load_context(&path, &meta_provider);
+    let result = loader::load_root(&path, &meta_provider);
     match result {
         Ok(_) => assert!(false, "invalid.toml should not load successfully"),
         Err(_) => { /* error was correctly detected but didn't cause a crash */ }
@@ -66,7 +66,7 @@ fn function_input_initialized() {
     let meta_provider = MetaProvider {};
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/function_input_init.toml");
 
-    match loader::load_context(&url, &meta_provider) {
+    match loader::load_root(&url, &meta_provider) {
         Ok(FlowProcess(flow)) => {
             if let FunctionProcess(ref print_function) = flow.process_refs.unwrap()[0].process {
                 assert_eq!(*print_function.alias(), Name::from("print"), "Function alias does not match");
@@ -96,7 +96,7 @@ fn root_flow_takes_name_from_file() {
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/names.toml");
 
-    match loader::load_context(&url, &meta_provider) {
+    match loader::load_root(&url, &meta_provider) {
         Ok(FlowProcess(flow)) => assert_eq!(flow.name, Name::from("names")),
         _ => panic!("Flow could not be loaded")
     }
@@ -112,7 +112,7 @@ fn flow_input_initialized_and_propogated_to_function() {
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/flow_input_init.toml");
 
-    match loader::load_context(&url, &meta_provider) {
+    match loader::load_root(&url, &meta_provider) {
         Ok(FlowProcess(flow)) => {
             if let FlowProcess(ref pilte_sub_flow) = flow.process_refs.unwrap()[0].process {
                 assert_eq!(Name::from("count"), *pilte_sub_flow.alias(), "Flow alias is not 'count' as expected");
