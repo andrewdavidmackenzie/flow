@@ -1,3 +1,5 @@
+use serde_json::json;
+
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
 use flowclib::model::name::HasName;
@@ -265,7 +267,7 @@ fn initialized_output_propogated() {
                                 let in_input = inputs.get(0).unwrap();
                                 let initial_value = in_input.get_initializer();
                                 match initial_value {
-                                    Some(OneTime(one_time)) => assert_eq!(one_time.once, "message"), // PASS
+                                    Some(OneTime(one_time)) => assert_eq!(one_time.once, json!("Hello")), // PASS
                                     _ => panic!("Initializer should have been a OneTime initializer, was {:?}", initial_value)
                                 }
                             } else {
