@@ -14,8 +14,6 @@ use super::optimizer;
 pub fn compile(flow: &Flow) -> Result<GenerationTables> {
     let mut tables = GenerationTables::new();
 
-    info!("==== Compiler phase: Checking Context");
-    checker::check_context(flow)?;
     info!("==== Compiler phase: Gathering");
     gatherer::gather_functions_and_connections(flow, &mut tables, 0);
     info!("==== Compiler phase: Collapsing connections");
@@ -50,9 +48,9 @@ mod test {
     use super::compile;
 
     /*
-                                                Test for a function that is dead code. It has no connections to it or from it so will
-                                                never run. So it should be removed by the optimizer and not fail at check stage.
-                                            */
+                                                    Test for a function that is dead code. It has no connections to it or from it so will
+                                                    never run. So it should be removed by the optimizer and not fail at check stage.
+                                                */
     #[test]
     fn dead_function() {
         let function = Function::new(Name::from("Stdout"),

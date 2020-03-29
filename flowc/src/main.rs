@@ -67,7 +67,12 @@ fn main() {
 
             exit(1);
         }
-        Ok(_) => exit(0)
+        Ok(msg) => {
+            if !msg.is_empty() {
+                println!("{}", msg);
+            }
+            exit(0)
+        }
     }
 }
 
@@ -85,13 +90,11 @@ fn run() -> Result<String> {
 
     if lib {
         build_lib(url, provided_implementations, base_dir, provider, release)
-            .chain_err(|| "Could not build library")?;
+            .chain_err(|| "Could not build library")
     } else {
         compile_and_execute_flow(&url, flow_args, dump, skip_generation, debug_symbols, provided_implementations, base_dir, provider, release)
-            .chain_err(|| format!("Could not compile and execute the flow '{}'", url))?;
+            .chain_err(|| format!("Could not compile and execute the flow '{}'", url))
     }
-
-    Ok("flowc completed".into())
 }
 
 

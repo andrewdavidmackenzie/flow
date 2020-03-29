@@ -40,7 +40,7 @@ impl GenerationTables {
             destination_routes: HashMap::<Route, (usize, usize, usize)>::new(),
             collapsed_connections: Vec::new(),
             functions: Vec::new(),
-            libs: HashSet::new(),
+            libs: HashSet::new()
         }
     }
 }

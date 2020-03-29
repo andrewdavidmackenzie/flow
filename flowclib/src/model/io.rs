@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fmt;
 
 use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
@@ -22,7 +23,7 @@ use crate::model::route::SetIORoutes;
 pub enum IOType {
     FunctionIO,
     FlowInput,
-    FlowOutput
+    FlowOutput,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -117,6 +118,12 @@ impl Default for IO {
             io_type: IOType::FunctionIO,
             initializer: None,
         }
+    }
+}
+
+impl fmt::Display for IO {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "'{}' @ '{}'", self.name, self.route)
     }
 }
 
@@ -429,7 +436,7 @@ mod test {
         let io0 = IO {
             name: Name::from("io_name"),
             datatype: DataType::from("String"),
-            route:Route::default(),
+            route: Route::default(),
             depth: 1,
             io_type: IOType::FunctionIO,
             initializer: None,

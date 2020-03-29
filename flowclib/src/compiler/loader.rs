@@ -64,9 +64,9 @@ pub trait Validate {
 /// let dummy_provider = DummyProvider{};
 ///
 /// // load the flow from `url = file:///example.toml` using the `dummy_provider`
-/// flowclib::compiler::loader::load_context("file:///example.toml", &dummy_provider).unwrap();
+/// flowclib::compiler::loader::load_root("file:///example.toml", &dummy_provider).unwrap();
 /// ```
-pub fn load_context(url: &str, provider: &dyn Provider) -> Result<Process> {
+pub fn load_root(url: &str, provider: &dyn Provider) -> Result<Process> {
     load_process(&Route::default(), &Name::default(),
                  0, &mut 0, url, provider, &None, &None)
 }

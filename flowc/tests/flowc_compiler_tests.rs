@@ -30,7 +30,7 @@ mod helper;
 fn args() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/args.toml");
-    let process = loader::load_context(&path, &meta_provider).unwrap();
+    let process = loader::load_root(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let _tables = compile::compile(flow).unwrap();
     } else {
@@ -42,7 +42,7 @@ fn args() {
 fn object_to_array_connection() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/object_to_array_connection.toml");
-    let process = loader::load_context(&path, &meta_provider).unwrap();
+    let process = loader::load_root(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let _tables = compile::compile(flow).unwrap();
     } else {
@@ -54,11 +54,15 @@ fn object_to_array_connection() {
 fn context_with_io() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/context_with_io.toml");
-    let process = loader::load_context(&path, &meta_provider).unwrap();
+    let process = loader::load_root(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow);
         match tables {
-            Ok(_) => assert!(false, "Process should not have loaded due to double connection"),
+            Ok(_) => {
+                // flow loaded, but has ios
+                assert!(flow.inputs().as_ref().unwrap().len() > 0);
+                assert!(flow.outputs().as_ref().unwrap().len() > 0);
+            }
             Err(_) => { /* Error was detected and reported correctly and didn't crash */ }
         }
     } else {
@@ -70,7 +74,7 @@ fn context_with_io() {
 fn same_name_input_and_output() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/same-name-parent.toml");
-    let process = loader::load_context(&path, &meta_provider).unwrap();
+    let process = loader::load_root(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow).unwrap();
         // If done correctly there should only be two connections
@@ -85,7 +89,7 @@ fn same_name_input_and_output() {
 fn same_name_flow_ids() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/same-name-parent.toml");
-    let process = loader::load_context(&path, &meta_provider).unwrap();
+    let process = loader::load_root(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow).unwrap();
 
@@ -112,7 +116,7 @@ fn same_name_flow_ids() {
 fn double_connection() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/double-connection.toml");
-    let process = loader::load_context(&path, &meta_provider).unwrap();
+    let process = loader::load_root(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow);
         match tables {
@@ -128,7 +132,7 @@ fn double_connection() {
 fn connection_to_input_with_constant_initializer() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/connect_to_constant.toml");
-    let process = loader::load_context(&path, &meta_provider).unwrap();
+    let process = loader::load_root(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow);
         match tables {
@@ -144,7 +148,7 @@ fn connection_to_input_with_constant_initializer() {
 fn dead_process_removed() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/dead-process.toml");
-    let process = loader::load_context(&path, &meta_provider).unwrap();
+    let process = loader::load_root(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow).unwrap();
         // Dead value should be removed - currently can't assume that args function can be removed
@@ -161,7 +165,7 @@ fn dead_process_removed() {
 fn dead_process_and_connected_process_removed() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/dead-process-and-connected-process.toml");
-    let process = loader::load_context(&path, &meta_provider).unwrap();
+    let process = loader::load_root(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow).unwrap();
         assert!(tables.functions.is_empty(), "Incorrect number of functions after optimization");
@@ -175,8 +179,8 @@ fn dead_process_and_connected_process_removed() {
 #[test]
 fn compile_echo_ok() {
     let meta_provider = MetaProvider {};
-    let process = loader::load_context(&helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/echo.toml"),
-                                       &meta_provider).unwrap();
+    let process = loader::load_root(&helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/echo.toml"),
+                                    &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         let _tables = compile::compile(flow).unwrap();
     } else {
@@ -187,8 +191,8 @@ fn compile_echo_ok() {
 #[test]
 fn compiler_detects_unused_input() {
     let meta_provider = MetaProvider {};
-    let process = loader::load_context(&helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/unused_input.toml"),
-                                       &meta_provider).unwrap();
+    let process = loader::load_root(&helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/unused_input.toml"),
+                                    &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         assert!(compile::compile(flow).is_err(), "Should not compile due to unused input");
     } else {
@@ -199,8 +203,8 @@ fn compiler_detects_unused_input() {
 #[test]
 fn compile_double_connection() {
     let meta_provider = MetaProvider {};
-    let process = loader::load_context(&helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/double.toml"),
-                                       &meta_provider).unwrap();
+    let process = loader::load_root(&helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/double.toml"),
+                                    &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         assert!(compile::compile(flow).is_err(), "Should not compile due to a double connection to an input");
     } else {
@@ -211,8 +215,8 @@ fn compile_double_connection() {
 #[test]
 fn compile_detects_connection_to_initialized_input() {
     let meta_provider = MetaProvider {};
-    let process = loader::load_context(&helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/connect_to_constant.toml"),
-                                       &meta_provider).unwrap();
+    let process = loader::load_root(&helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/connect_to_constant.toml"),
+                                    &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
         assert!(compile::compile(flow).is_err(), "Should not compile due to connection to constant initialized input");
     } else {
@@ -231,7 +235,7 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/subflow_function_input_init.toml");
 
-    match loader::load_context(&url, &meta_provider) {
+    match loader::load_root(&url, &meta_provider) {
         Ok(FlowProcess(context)) => {
             let tables = compile::compile(&context).unwrap();
 
