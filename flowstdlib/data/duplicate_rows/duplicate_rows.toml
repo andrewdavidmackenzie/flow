@@ -4,5 +4,9 @@ implementation = "duplicate_rows.rs"
 [[input]]
 type = "Array"
 
+[[input]]
+name = "factor"
+type = "Number"
+
 [[output]]
 type = "Array"
