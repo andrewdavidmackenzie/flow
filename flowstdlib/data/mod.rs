@@ -7,6 +7,8 @@ pub mod accumulate;
 pub mod buffer;
 /// A module that implements composing an array from a number of elements
 pub mod compose_array;
+/// A module that duplicates the rows in an array
+pub mod duplicate_rows;
 /// A module with a function to get info about a Value
 pub mod info;
 /// A module that removes elements from an array
