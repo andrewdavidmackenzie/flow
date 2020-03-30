@@ -82,7 +82,7 @@ mod test {
 
         assert_eq!(output_map.pointer("/type").unwrap(), &json!("Number"));
         assert_eq!(output_map.pointer("/rows").unwrap(), &json!(1));
-        assert_eq!(output_map.pointer("/cols").unwrap(), &json!(1));
+        assert_eq!(output_map.pointer("/columns").unwrap(), &json!(1));
     }
 
     #[test]
@@ -94,7 +94,7 @@ mod test {
 
         assert_eq!(output_map.pointer("/type").unwrap(), &json!("Boolean"));
         assert_eq!(output_map.pointer("/rows").unwrap(), &json!(1));
-        assert_eq!(output_map.pointer("/cols").unwrap(), &json!(1));
+        assert_eq!(output_map.pointer("/columns").unwrap(), &json!(1));
     }
 
     #[test]
@@ -106,7 +106,7 @@ mod test {
 
         assert_eq!(output_map.pointer("/type").unwrap(), &json!("String"));
         assert_eq!(output_map.pointer("/rows").unwrap(), &json!(1));
-        assert_eq!(output_map.pointer("/cols").unwrap(), &json!(5));
+        assert_eq!(output_map.pointer("/columns").unwrap(), &json!(5));
     }
 
     #[test]
@@ -118,7 +118,7 @@ mod test {
 
         assert_eq!(output_map.pointer("/type").unwrap(), &json!("Null"));
         assert_eq!(output_map.pointer("/rows").unwrap(), &json!(0));
-        assert_eq!(output_map.pointer("/cols").unwrap(), &json!(0));
+        assert_eq!(output_map.pointer("/columns").unwrap(), &json!(0));
     }
 
     #[test]
@@ -130,7 +130,7 @@ mod test {
 
         assert_eq!(output_map.pointer("/type").unwrap(), &json!("Array/Number"));
         assert_eq!(output_map.pointer("/rows").unwrap(), &json!(1));
-        assert_eq!(output_map.pointer("/cols").unwrap(), &json!(3));
+        assert_eq!(output_map.pointer("/columns").unwrap(), &json!(3));
     }
 
     #[test]
@@ -142,7 +142,7 @@ mod test {
 
         assert_eq!(output_map.pointer("/type").unwrap(), &json!("Array/Array/Number"));
         assert_eq!(output_map.pointer("/rows").unwrap(), &json!(2));
-        assert_eq!(output_map.pointer("/cols").unwrap(), &json!(3));
+        assert_eq!(output_map.pointer("/columns").unwrap(), &json!(3));
     }
 
     #[test]
@@ -157,7 +157,7 @@ mod test {
 
         assert_eq!(output_map.pointer("/type").unwrap(), &json!("Map/Number"));
         assert_eq!(output_map.pointer("/rows").unwrap(), &json!(2));
-        assert_eq!(output_map.pointer("/cols").unwrap(), &json!(2));
+        assert_eq!(output_map.pointer("/columns").unwrap(), &json!(2));
     }
 
     #[test]
@@ -172,6 +172,6 @@ mod test {
 
         assert_eq!(output_map.pointer("/type").unwrap(), &json!("Map/Array/Number"));
         assert_eq!(output_map.pointer("/rows").unwrap(), &json!(2));
-        assert_eq!(output_map.pointer("/cols").unwrap(), &json!(2));
+        assert_eq!(output_map.pointer("/columns").unwrap(), &json!(2));
     }
 }
