@@ -3,7 +3,7 @@ use std::fmt;
 use std::sync::Arc;
 
 use flow_impl::{Implementation, RunAgain};
-use log::{debug, error, trace};
+use log::{error, trace};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
@@ -161,27 +161,38 @@ impl Function {
     }
 
     /// write a value to a `Functions` input -
-    /// The value being written maybe an Array of values, in which case if the destination input does
-    /// not accept Array, then iterate over the contents of the array and send each one to the
-    /// input individually
-    pub fn write_input(&mut self, input_number: usize, input_value: &Value) {
+    /// 1) `input` is `Array`
+    ///    - `value` is `Array`
+    ///         --> Send `value` as-is to `input`
+    ///    - `value` is not array
+    ///         --> Wrap `value` in an `Array` and send it
+    /// 2) `input` is not `Array`
+    ///     - The value is an `Array`
+    ///         --> Serialize the elements in `value` to `input` using `push_array`
+    /// 3) `input` is generic
+    ///         --> Send `value` to `input`, no matter what type value is
+    pub fn write_input(&mut self, input_number: usize, value: &Value) {
         let input = &mut self.inputs[input_number];
-        if input_value.is_array() {
-            // Serialize Array value into the non-Array input
-            if !input.is_array {
-                debug!("\t\tSerializing Array value to non-Array input");
-                input.push_array(input_value.as_array().unwrap().iter());
-            } else {
-                // Send Array value to the Array input
-                input.push(input_value.clone());
-            }
+        if input.is_generic {
+            trace!("Sending value to generic input");
+            input.push(value.clone());
         } else {
-            if input.is_array {
-                // Send Non-Array value to the Array input
-                input.push(json!([input_value]));
+            if value.is_array() {
+                if input.is_array {
+                    trace!("Sending Array value to an Array input");
+                    input.push(value.clone());
+                } else {
+                    trace!("\t\tSerializing Array value to non-Array input");
+                    input.push_array(value.as_array().unwrap().iter());
+                }
             } else {
-                // Send Non-Array value to Non-Array input
-                input.push(input_value.clone());
+                if input.is_array {
+                    trace!("Sending Non-Array value to the Array input - converting it to an Array");
+                    input.push(json!([value]));
+                } else {
+                    trace!("Sending Non-Array value to Non-Array input");
+                    input.push(value.clone());
+                }
             }
         }
     }
@@ -276,7 +287,7 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(1, &None, false)),
+                                         vec!(Input::new(1, &None, false, false)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
@@ -290,7 +301,7 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(1, &None, true)),
+                                         vec!(Input::new(1, &None, true, false)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
@@ -304,7 +315,7 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(1, &None, true)),
+                                         vec!(Input::new(1, &None, true, false)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
@@ -318,7 +329,7 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(1, &None, false)),
+                                         vec!(Input::new(1, &None, false, false)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
@@ -332,7 +343,7 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(1, &None, false)),
+                                         vec!(Input::new(1, &None, false, false)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
@@ -348,7 +359,7 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(1, &None, false)),
+                                         vec!(Input::new(1, &None, false, false)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
@@ -362,7 +373,7 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(2, &None, false)),
+                                         vec!(Input::new(2, &None, false, false)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
@@ -376,7 +387,7 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(2, &None, false)),
+                                         vec!(Input::new(2, &None, false, false)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
@@ -391,7 +402,7 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(2, &None, true)),
+                                         vec!(Input::new(2, &None, true, false)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
@@ -407,7 +418,7 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(2, &None, false)),
+                                         vec!(Input::new(2, &None, false, false)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
@@ -421,7 +432,7 @@ mod test {
         Function::new("test".to_string(),
                       "/test".to_string(),
                       "/implementation".to_string(),
-                      vec!(Input::new(2, &None, false)),
+                      vec!(Input::new(2, &None, false, false)),
                       1, 0,
                       &vec!(out_conn), false)
     }
@@ -456,7 +467,7 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(2, &None, false)),
+                                         vec!(Input::new(2, &None, false, false)),
                                          0, 0,
                                          &vec!(output_route.clone()), false);
         function.init_inputs(true);

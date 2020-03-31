@@ -3,12 +3,12 @@ implementation = "zip.rs"
 
 [[input]]
 name = "left"
-type = "Array/Json"
+type = "Array/Value"
 
 [[input]]
 name = "right"
-type = "Array/Json"
+type = "Array/Value"
 
 [[output]]
 name = "tuples"
-type = "Array/Json"
+type = "Array/Value"

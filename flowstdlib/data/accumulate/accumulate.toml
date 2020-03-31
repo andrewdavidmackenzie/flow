@@ -6,7 +6,7 @@ name = "values"
 
 [[input]]
 name = "partial"
-type = "Array/Json"
+type = "Array/Value"
 
 [[input]]
 name = "chunk_size"
@@ -14,11 +14,11 @@ type = "Number"
 
 [[output]]
 name = "chunk"
-type = "Array/Json"
+type = "Array/Value"
 
 [[output]]
 name = "partial"
-type = "Array/Json"
+type = "Array/Value"
 
 [[output]]
 name = "chunk_size"

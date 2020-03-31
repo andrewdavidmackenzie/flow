@@ -11,6 +11,8 @@ pub mod compose_array;
 pub mod duplicate_rows;
 /// A module with a function to get info about a Value
 pub mod info;
+/// A module that does matrix row multiplication
+pub mod multiply_row;
 /// A module that removes elements from an array
 pub mod remove;
 /// A module with a function for transposing a Matrix

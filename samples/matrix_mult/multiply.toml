@@ -9,6 +9,94 @@ name = "b"
 [[output]]
 name = "product"
 
+[[process]]
+alias = "b_info"
+source = "lib://flowstdlib/data/info"
+
+[[connection]]
+from = "input/b"
+to ="b_info"
+
+[[process]]
+alias = "a_info"
+source = "lib://flowstdlib/data/info"
+
 [[connection]]
 from = "input/a"
+to ="a_info"
+
+[[process]]
+alias = "duplicate"
+source = "lib://flowstdlib/data/duplicate_rows"
+
+[[connection]]
+from = "input/a"
+to = "duplicate"
+
+[[process]]
+alias = "transpose"
+source = "lib://flowstdlib/data/transpose"
+
+[[connection]]
+from = "input/b"
+to = "transpose"
+
+[[process]]
+alias = "second_b"
+source = "lib://flowstdlib/data/buffer"
+
+[[connection]]
+from = "transpose"
+to = "second_b"
+
+[[connection]]
+from = "b_info/columns"
+to = "duplicate/factor"
+
+[[process]]
+alias = "multiply"
+source = "lib://flowstdlib/data/multiply_row"
+
+[[connection]]
+from = "duplicate"
+to = "multiply/a"
+
+[[connection]]
+from = "transpose"
+to = "multiply/b"
+
+[[connection]]
+from = "second_b"
+to = "multiply/b"
+
+[[process]]
+alias = "compose_rows"
+source = "lib://flowstdlib/data/compose_array"
+depth.default = 2
+
+[[connection]]
+from = "multiply"
+to = "compose_rows"
+
+# TODO
+#[[connection]]
+#from = "b_info/columns"
+#to = "compose_array/factor"
+
+[[process]]
+alias = "compose_array"
+source = "lib://flowstdlib/data/compose_array"
+depth.default = 2
+
+[[connection]]
+from = "compose_rows"
+to = "compose_array"
+
+# TODO
+#[[connection]]
+#from = "a_info/rows"
+#to = "compose_array/factor"
+
+[[connection]]
+from = "compose_array"
 to = "output/product"

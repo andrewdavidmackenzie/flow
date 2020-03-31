@@ -35,7 +35,6 @@ pub fn get_manifest() -> LibraryManifest {
     };
     let mut manifest = LibraryManifest::new(metadata);
 
-
     // Control
     manifest.locators.insert("lib://flowstdlib/control/compare/Compare".to_string(),
                              Native(Arc::new(control::compare::compare::Compare)));
@@ -61,6 +60,8 @@ pub fn get_manifest() -> LibraryManifest {
                              Native(Arc::new(data::duplicate_rows::duplicate_rows::DuplicateRows)));
     manifest.locators.insert("lib://flowstdlib/data/info/Info".to_string(),
                              Native(Arc::new(data::info::info::Info)));
+    manifest.locators.insert("lib://flowstdlib/data/multiply_row/MultiplyRow".to_string(),
+                             Native(Arc::new(data::multiply_row::multiply_row::MultiplyRow)));
     manifest.locators.insert("lib://flowstdlib/data/remove/Remove".to_string(),
                              Native(Arc::new(data::remove::remove::Remove)));
     manifest.locators.insert("lib://flowstdlib/data/transpose/Transpose".to_string(),

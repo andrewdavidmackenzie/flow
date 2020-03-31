@@ -2,3 +2,4 @@ function = "Stderr"
 impure = true
 
 [[input]]
+type = "Value"

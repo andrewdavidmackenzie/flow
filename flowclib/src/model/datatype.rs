@@ -2,11 +2,12 @@ use std::fmt;
 
 use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
+use serde_json::Value;
 use shrinkwraprs::Shrinkwrap;
 
 use crate::errors::*;
 
-const DATATYPES: &[&str] = &["String", "Json", "Number", "Bool", "Map", "Array"];
+const DATATYPES: &[&str] = &["String", "Value", "Number", "Bool", "Map", "Array", "Null"];
 
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct DataType(String);
@@ -33,6 +34,19 @@ pub trait TypeCheck {
     fn is_generic(&self) -> bool;
 }
 
+/// Take a json data value and return the type string for it, recursively
+/// going down when the type is a container type (Array or Map(Object))
+pub fn type_string(value: &Value) -> String {
+    match value {
+        Value::String(_) => "String".into(),
+        Value::Bool(_) => "Boolean".into(),
+        Value::Number(_) => "Number".into(),
+        Value::Array(array) => format!("Array/{}", type_string(&array[0])),
+        Value::Object(map) => format!("Map/{}", type_string(&map.values().cloned().next().unwrap())),
+        Value::Null => "Null".into()
+    }
+}
+
 impl TypeCheck for DataType {
     fn valid(&self) -> Result<()> {
         // Split the type hierarchy and check all levels are valid
@@ -51,7 +65,7 @@ impl TypeCheck for DataType {
     }
 
     fn is_generic(&self) -> bool {
-        self == &DataType::from("Json")
+        self == &DataType::from("Value")
     }
 }
 
@@ -63,7 +77,7 @@ fn valid_data_string_type() {
 
 #[test]
 fn valid_data_json_type() {
-    let json_type = DataType::from("Json");
+    let json_type = DataType::from("Value");
     json_type.valid().unwrap();
 }
 

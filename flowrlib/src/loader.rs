@@ -60,11 +60,12 @@ impl Loader {
     pub fn load_libraries(&mut self, provider: &dyn Provider, manifest: &Manifest) -> Result<()> {
         debug!("Loading libraries used by the flow");
         for library_reference in &manifest.lib_references {
-            info!("Attempting to load library reference '{}'", library_reference);
             if !self.loaded_lib_references.contains(library_reference) {
+                info!("Attempting to load library reference '{}'", library_reference);
                 let (lib_manifest, lib_manifest_url) = LibraryManifest::load(provider, library_reference)?;
                 debug!("Loading library '{}' from '{}'", library_reference, lib_manifest_url);
                 self.add_lib(provider, library_reference, lib_manifest, &lib_manifest_url)?;
+                info!("Library loaded");
             }
         }
 

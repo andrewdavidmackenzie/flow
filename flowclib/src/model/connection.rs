@@ -138,7 +138,7 @@ mod test {
         let input_str = "
         name = 'input'
         foo = 'extra token'
-        type = 'Json'
+        type = 'Value'
         ";
 
         let _connection: Connection = toml::from_str(input_str).unwrap();

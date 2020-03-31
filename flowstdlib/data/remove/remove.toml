@@ -6,7 +6,7 @@ name = "value"
 
 [[input]]
 name = "array"
-type = "Array/Json"
+type = "Array/Value"
 
 [[output]]
-type = "Array/Json"
+type = "Array/Value"

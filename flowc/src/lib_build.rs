@@ -27,7 +27,7 @@ pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn
     let library = loader::load_library(&url.to_string(), provider)
         .chain_err(|| format!("Could not load Library from '{}'", lib_dir.display()))?;
 
-    info!("Building manifest for library '{}'", library.name);
+    info!("Building manifest for '{}' library", library.name);
     let mut lib_manifest = LibraryManifest::new(MetaData::from(&library));
 
     let mut base_dir = lib_dir.display().to_string();

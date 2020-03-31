@@ -145,7 +145,7 @@ impl HasRoute for IO {
 }
 
 fn default_type() -> DataType {
-    DataType::from("Json")
+    DataType::from("Value")
 }
 
 fn default_depth() -> usize {
@@ -308,7 +308,7 @@ mod test {
 
         let output: IO = toml::from_str(input_str).unwrap();
         output.validate().unwrap();
-        assert_eq!(output.datatype, DataType::from("Json"));
+        assert_eq!(output.datatype, DataType::from("Value"));
         assert_eq!(output.name, Name::default());
     }
 
@@ -372,7 +372,7 @@ mod test {
     fn deserialize_valid_json_type() {
         let input_str = "
         name = 'input'
-        type = 'Json'
+        type = 'Value'
         ";
 
         let input: IO = toml::from_str(input_str).unwrap();
@@ -385,7 +385,7 @@ mod test {
         let input_str = "
         name = 'input'
         foo = 'extra token'
-        type = 'Json'
+        type = 'Value'
         ";
 
         let input: IO = toml::from_str(input_str).unwrap();

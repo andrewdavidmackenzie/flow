@@ -173,7 +173,7 @@ impl Default for Function {
             implementation: None,
             alias: Name::default(),
             inputs: None,
-            outputs: Some(vec!(IO::new("Json", &Route::default()))),
+            outputs: Some(vec!(IO::new("Value", &Route::default()))),
             source_url: Function::default_source_url(),
             route: Route::default(),
             lib_reference: None,
@@ -285,7 +285,7 @@ mod test {
     #[should_panic]
     fn deserialize_missing_name() {
         let function_str = "
-        type = 'Json'
+        type = 'Value'
         ";
 
         let _function: Function = toml::from_str(function_str).unwrap();

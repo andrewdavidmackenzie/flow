@@ -24,11 +24,9 @@ pub struct Buffer;
 
 impl Implementation for Buffer {
     fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let buffered_value = Some(inputs[0][0].clone());
-        (buffered_value, RUN_AGAIN)
+        (Some(inputs[0][0].clone()), RUN_AGAIN)
     }
 }
-
 
 #[cfg(test)]
 mod test {

@@ -2,5 +2,7 @@ function = "Transpose"
 implementation = "transpose.rs"
 
 [[input]]
+type = "Array/Array/Number"
 
 [[output]]
+type = "Array/Array/Number"

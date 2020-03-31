@@ -71,7 +71,10 @@ impl From<&Library> for MetaData {
 
 impl From<&IO> for Input {
     fn from(io: &IO) -> Self {
-        Input::new(io.depth(), io.get_initializer(), io.datatype(0).is_array())
+        Input::new(io.depth(),
+                   io.get_initializer(),
+                   io.datatype(0).is_array(),
+                   io.datatype(0).is_generic())
     }
 }
 
@@ -177,7 +180,7 @@ mod test {
             Name::from("print"),
             Some(vec!()),
             Some(vec!(
-                IO::new("Json", &Route::default()),
+                IO::new("Value", &Route::default()),
                 IO::new("String", &Route::default())
             )),
             "file:///fake/file",

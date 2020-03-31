@@ -17,15 +17,11 @@ impl Implementation for Stderr {
 
         if let Ok(client) = self.client.lock() {
             match input {
+                Value::Null => client.send_command(Command::Stdout("Null".into())),
                 Value::String(string) => client.send_command(Command::Stderr(format!("{}", string))),
                 Value::Bool(boolean) => client.send_command(Command::Stderr(boolean.to_string())),
                 Value::Number(number) => client.send_command(Command::Stderr(number.to_string())),
-                Value::Array(array) => {
-                    for entry in array {
-                        client.send_command(Command::Stderr(format!("{}", entry)));
-                    }
-                    Response::Ack
-                }
+                Value::Array(_array) => client.send_command(Command::Stdout(input.to_string())),
                 _ => Response::Error("Cannot Print this type".into())
             };
         }

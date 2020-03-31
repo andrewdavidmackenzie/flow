@@ -62,7 +62,7 @@ pub fn compile_and_execute_flow(url: &Url, flow_args: Vec<String>, dump: bool, s
                                 -> Result<String> {
     info!("==== Compiler phase: Loading flow");
     let context = loader::load(&url.to_string(), provider)
-        .chain_err(|| "Couldn't load context")?;
+        .chain_err(|| "load() of flow failed")?;
     match context {
         FlowProcess(flow) => {
             let mut tables = compile::compile(&flow)

@@ -2,5 +2,7 @@ function = "Buffer"
 implementation = "buffer.rs"
 
 [[input]]
+type = "Value"
 
 [[output]]
+type = "Value"
