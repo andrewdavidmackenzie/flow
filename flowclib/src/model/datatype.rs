@@ -25,7 +25,7 @@ impl fmt::Display for DataType {
 }
 
 pub trait HasDataType {
-    fn datatype(&self, level: usize) -> DataType;
+    fn datatype(&self) -> &DataType;
 }
 
 pub trait TypeCheck {
@@ -47,6 +47,20 @@ pub fn type_string(value: &Value) -> String {
     }
 }
 
+impl DataType {
+    /// Determine if this data type is an array of the other
+    pub fn array_of(&self, second: &Self) -> bool {
+        &DataType::from(format!("Array/{}", second).as_str()) == self
+    }
+
+    /// Get the data type the array holds
+    pub fn within_array(&self) -> Self {
+        let mut subtype = self.to_string();
+        subtype.replace_range(0.."Array/".len(), "");
+        Self::from(subtype.as_str())
+    }
+}
+
 impl TypeCheck for DataType {
     fn valid(&self) -> Result<()> {
         // Split the type hierarchy and check all levels are valid
@@ -61,7 +75,7 @@ impl TypeCheck for DataType {
     }
 
     fn is_array(&self) -> bool {
-        self == &DataType::from("Array")
+        self.starts_with("Array")
     }
 
     fn is_generic(&self) -> bool {

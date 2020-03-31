@@ -2,9 +2,12 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 
+use flowrlib::output_connection::Conversion;
+use flowrlib::output_connection::Conversion::{ArraySerialize, WrapAsArray};
+
 use crate::compiler::loader::Validate;
 use crate::errors::*;
-use crate::model::datatype::TypeCheck;
+use crate::model::datatype::{DataType, TypeCheck};
 use crate::model::io::IO;
 use crate::model::name::Name;
 use crate::model::route::HasRoute;
@@ -25,6 +28,8 @@ pub struct Connection {
     pub to_io: IO,
     #[serde(skip)]
     pub level: usize,
+    #[serde(skip)]
+    pub conversion: Option<Conversion>
 }
 
 #[derive(Debug)]
@@ -58,18 +63,44 @@ impl Validate for Connection {
 impl Connection {
     /*
         Determine if the type of the source of a connection and the type of the destination are
-        compatible, and a Connection can be formed that can be implemented by the run-time
-
-        TODO: have .datatype() return an Option and if .is_none() is equivalent to Generic?
+        compatible, what type of conversion maybe required and if a Connection can be formed
     */
-    pub fn compatible_types(from: &IO, to: &IO) -> bool {
-        from.datatype(0) == to.datatype(0) ||
-            from.datatype(0).is_generic() ||
-            to.datatype(0).is_generic() ||
-            from.datatype(0).is_array() && from.datatype(1).is_generic() ||
-            from.datatype(0).is_array() && from.datatype(1) == to.datatype(0) ||
-            to.datatype(0).is_array() && to.datatype(1) == from.datatype(0) ||
-            to.datatype(0).is_array() && to.datatype(1).is_generic()
+    pub fn compatible_types(from: &IO, to: &IO) -> Result<Option<Conversion>> {
+        if from.datatype() == to.datatype() {
+            return Ok(None);
+        }
+
+        if !from.datatype().is_array() && to.datatype().is_generic() {
+            return Ok(None);
+        }
+
+        if to.datatype().array_of(from.datatype()) {
+            return Ok(Some(WrapAsArray));
+        }
+
+        if to.datatype().array_of(&DataType::from("Value")) {
+            return Ok(Some(WrapAsArray));
+        }
+
+        if from.datatype().is_array() && to.datatype().is_generic() {
+            return Ok(Some(ArraySerialize));
+        }
+
+        if from.datatype().array_of(to.datatype()) {
+            return Ok(Some(ArraySerialize));
+        }
+
+        // Faith for now!
+        if from.datatype().is_generic() && !to.datatype().array_of(&DataType::from("Value")) {
+            return Ok(None)
+        }
+
+        // Faith for now!
+        if from.datatype().array_of(&DataType::from("Value")) && !to.datatype().is_array() {
+            return Ok(Some(ArraySerialize));
+        }
+
+        bail!("Types cannot be connected: '{}' --> '{}'", from.datatype(), to.datatype())
     }
 }
 
@@ -167,28 +198,28 @@ mod test {
     fn simple_to_simple_depth_1() {
         let from_io = IO::new("String", &Route::from("/p1/output"));
         let to_io = IO::new("String", &Route::from("/p2"));
-        assert!(Connection::compatible_types(&from_io, &to_io));
+        assert!(Connection::compatible_types(&from_io, &to_io).is_ok());
     }
 
     #[test]
     fn simple_indexed_to_simple_depth_1() {
         let from_io = IO::new("String", &Route::from("/p1/output/0"));
         let to_io = IO::new("String", &Route::from("/p2"));
-        assert!(Connection::compatible_types(&from_io, &to_io));
+        assert!(Connection::compatible_types(&from_io, &to_io).is_ok());
     }
 
     #[test]
     fn simple_to_simple_depth_1_mismatch() {
         let from_io = IO::new("String", &Route::from("/p1/output"));
         let to_io = IO::new("Number", &Route::from("/p2"));
-        assert!(!Connection::compatible_types(&from_io, &to_io));
+        assert!(Connection::compatible_types(&from_io, &to_io).is_err());
     }
 
     #[test]
     fn simple_indexed_to_array() {
         let from_io = IO::new("String", &Route::from("/p1/output/0"));
         let to_io = IO::new("Array/String", &Route::from("/p2"));
-        assert!(Connection::compatible_types(&from_io, &to_io));
+        assert!(Connection::compatible_types(&from_io, &to_io).is_ok());
     }
 
     #[test]
@@ -196,28 +227,28 @@ mod test {
         let from_io = IO::new("String", &Route::from("/p1/output"));
         let mut to_io = IO::new("String", &Route::from("/p2"));
         to_io.set_depth(2);
-        assert!(Connection::compatible_types(&from_io, &to_io));
+        assert!(Connection::compatible_types(&from_io, &to_io).is_ok());
     }
 
     #[test]
     fn simple_to_array() {
         let from_io = IO::new("String", &Route::from("/p1/output"));
         let to_io = IO::new("Array/String", &Route::from("/p2"));
-        assert!(Connection::compatible_types(&from_io, &to_io));
+        assert!(Connection::compatible_types(&from_io, &to_io).is_ok());
     }
 
     #[test]
     fn simple_to_array_mismatch() {
         let from_io = IO::new("String", &Route::from("/p1/output"));
         let to_io = IO::new("Array/Number", &Route::from("/p2"));
-        assert!(!Connection::compatible_types(&from_io, &to_io));
+        assert!(Connection::compatible_types(&from_io, &to_io).is_err());
     }
 
     #[test]
     fn array_to_array_depth_1() {
         let from_io = IO::new("Array", &Route::from("/p1/output"));
         let to_io = IO::new("Array", &Route::from("/p2"));
-        assert!(Connection::compatible_types(&from_io, &to_io));
+        assert!(Connection::compatible_types(&from_io, &to_io).is_ok());
     }
 
     #[test]
@@ -225,21 +256,21 @@ mod test {
         let from_io = IO::new("Array", &Route::from("/p1/output"));
         let mut to_io = IO::new("Array", &Route::from("/p2"));
         to_io.set_depth(2);
-        assert!(Connection::compatible_types(&from_io, &to_io));
+        assert!(Connection::compatible_types(&from_io, &to_io).is_ok());
     }
 
     #[test]
     fn array_to_simple_depth_1() {
         let from_io = IO::new("Array/String", &Route::from("/p1/output"));
         let to_io = IO::new("String", &Route::from("/p2"));
-        assert!(Connection::compatible_types(&from_io, &to_io));
+        assert!(Connection::compatible_types(&from_io, &to_io).is_ok());
     }
 
     #[test]
     fn array_to_simple_depth_1_mismatch() {
         let from_io = IO::new("Array/Number", &Route::from("/p1/output"));
         let to_io = IO::new("String", &Route::from("/p2"));
-        assert!(!Connection::compatible_types(&from_io, &to_io));
+        assert!(Connection::compatible_types(&from_io, &to_io).is_err());
     }
 
     #[test]
@@ -247,6 +278,6 @@ mod test {
         let from_io = IO::new("Array/String", &Route::from("/p1/output"));
         let mut to_io = IO::new("String", &Route::from("/p2"));
         to_io.set_depth(2);
-        assert!(Connection::compatible_types(&from_io, &to_io));
+        assert!(Connection::compatible_types(&from_io, &to_io).is_ok());
     }
 }

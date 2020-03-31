@@ -11,7 +11,6 @@ use flowrlib::manifest::{Manifest, MetaData};
 
 use crate::errors::*;
 use crate::model::connection::Connection;
-use crate::model::datatype::TypeCheck;
 use crate::model::flow::Flow;
 use crate::model::function::Function;
 use crate::model::io::IO;
@@ -72,9 +71,7 @@ impl From<&Library> for MetaData {
 impl From<&IO> for Input {
     fn from(io: &IO) -> Self {
         Input::new(io.depth(),
-                   io.get_initializer(),
-                   io.datatype(0).is_array(),
-                   io.datatype(0).is_generic())
+                   io.get_initializer())
     }
 }
 
@@ -162,7 +159,7 @@ mod test {
 
     use flowrlib::input::{ConstantInputInitializer, InputInitializer};
     use flowrlib::input::OneTimeInputInitializer;
-    use flowrlib::output_connection::OutputConnection;
+    use flowrlib::output_connection::{Conversion, OutputConnection};
 
     use crate::model::function::Function;
     use crate::model::io::IO;
@@ -186,8 +183,8 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(OutputConnection::new("".to_string(), 1, 0, 0, None),
-                 OutputConnection::new("sub_route".to_string(), 2, 0, 0, None)),
+            vec!(OutputConnection::new("".to_string(), 1, 0, 0, None, None),
+                 OutputConnection::new("sub_route".to_string(), 2, 0, 0, None, None)),
             0, 0);
 
         let expected = "{
@@ -229,7 +226,7 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(OutputConnection::new("".to_string(), 1, 0, 0, None)),
+            vec!(OutputConnection::new("".to_string(), 1, 0, 0, None, None)),
             0, 0);
 
         let expected = "{
@@ -241,6 +238,44 @@ mod test {
       'function_id': 1,
       'io_number': 0,
       'flow_id': 0
+    }
+  ]
+}";
+
+        let br = Box::new(function) as Box<Function>;
+
+        let process = function_to_runtimefunction("/test", &br, false).unwrap();
+
+        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        assert_eq!(serialized_process, expected.replace("'", "\""));
+    }
+
+    #[test]
+    fn function_generation_with_conversion() {
+        let function = Function::new(
+            Name::from("Stdout"),
+            false,
+            Some("lib://flowruntime/stdio/stdout".to_string()),
+            Name::from("print"),
+            Some(vec!()),
+            Some(vec!(IO::new("String", &Route::default()))),
+            "file:///fake/file",
+            Route::from("/flow0/stdout"),
+            None,
+            vec!(OutputConnection::new("".to_string(), 1, 0, 0,
+                                       Some(Conversion::ArraySerialize), None)),
+            0, 0);
+
+        let expected = "{
+  'id': 0,
+  'flow_id': 0,
+  'implementation_location': 'lib://flowruntime/stdio/stdout',
+  'output_routes': [
+    {
+      'function_id': 1,
+      'io_number': 0,
+      'flow_id': 0,
+      'conversion': 'ArraySerialize'
     }
   ]
 }";
@@ -359,9 +394,7 @@ mod test {
   'flow_id': 0,
   'implementation_location': 'lib://flowruntime/stdio/stdout',
   'inputs': [
-    {
-      'is_array': true
-    }
+    {}
   ]
 }";
 
@@ -387,7 +420,7 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(OutputConnection::new("".to_string(), 1, 0, 0, None)),
+            vec!(OutputConnection::new("".to_string(), 1, 0, 0, None, None)),
             0, 0)
     }
 
@@ -430,7 +463,7 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(OutputConnection::new("/0".to_string(), 1, 0, 0, None)),
+            vec!(OutputConnection::new("/0".to_string(), 1, 0, 0, None, None)),
             0, 0);
 
         let expected = "{

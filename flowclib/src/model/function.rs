@@ -177,7 +177,7 @@ impl Default for Function {
             source_url: Function::default_source_url(),
             route: Route::default(),
             lib_reference: None,
-            output_routes: vec!(OutputConnection::new("".to_string(), 0, 0, 0, Some("".to_string()))),
+            output_routes: vec!(OutputConnection::new("".to_string(), 0, 0, 0, None,  Some("".to_string()))),
             id: 0,
             flow_id: 0,
         }
@@ -273,7 +273,7 @@ mod test {
             outputs: None,         // No output!
             route: Route::default(),
             lib_reference: None,
-            output_routes: vec!(OutputConnection::new("test_function".to_string(), 0, 0, 0, None)),
+            output_routes: vec!(OutputConnection::new("test_function".to_string(), 0, 0, 0, None, None)),
             id: 0,
             flow_id: 0,
         };
@@ -340,7 +340,7 @@ mod test {
         assert!(function.outputs.is_some());
         let output = &function.outputs.unwrap()[0];
         assert_eq!(*output.name(), Name::default());
-        assert_eq!(output.datatype(0), DataType::from("String"));
+        assert_eq!(output.datatype(), &DataType::from("String"));
     }
 
     #[test]
@@ -357,7 +357,7 @@ mod test {
         assert!(function.outputs.is_some());
         let output = &function.outputs.unwrap()[0];
         assert_eq!(*output.name(), Name::from("sub_output"));
-        assert_eq!(output.datatype(0), DataType::from("String"));
+        assert_eq!(output.datatype(), &DataType::from("String"));
     }
 
     #[test]
@@ -379,10 +379,10 @@ mod test {
         assert_eq!(outputs.len(), 2);
         let output0 = &outputs[0];
         assert_eq!(*output0.name(), Name::from("sub_output"));
-        assert_eq!(output0.datatype(0), DataType::from("String"));
+        assert_eq!(output0.datatype(), &DataType::from("String"));
         let output1 = &outputs[1];
         assert_eq!(*output1.name(), Name::from("other_output"));
-        assert_eq!(output1.datatype(0), DataType::from("Number"));
+        assert_eq!(output1.datatype(), &DataType::from("Number"));
     }
 
     #[test]

@@ -73,10 +73,8 @@ impl IO {
         self.io_type = io_type;
     }
 
-    // TODO have this return an Option<DataType> as it's possible that one is not found
-    pub fn datatype(&self, level: usize) -> DataType {
-        let type_levels: Vec<&str> = self.datatype.split('/').collect();
-        DataType::from(type_levels[level])
+    pub fn datatype(&self) -> &DataType {
+        &self.datatype
     }
 
     pub fn set_route(&mut self, route: &Route, io_type: &IOType) {
@@ -133,8 +131,8 @@ impl HasName for IO {
 }
 
 impl HasDataType for IO {
-    fn datatype(&self, level: usize) -> DataType {
-        self.datatype(level)
+    fn datatype(&self) -> &DataType {
+        &self.datatype
     }
 }
 
@@ -233,11 +231,11 @@ impl Find for IOSet {
         if let Some(ref mut ios) = self {
             for io in ios {
                 let (array_route, _num, array_index) = sub_route.without_trailing_array_index();
-                if array_index && (io.datatype(0).is_array()) && (Route::from(io.name()) == array_route.into_owned()) {
+                if array_index && (io.datatype().is_array()) && (Route::from(io.name()) == array_route.into_owned()) {
                     io.set_initializer(initial_value);
 
                     let mut found = io.clone();
-                    found.set_datatype(&io.datatype(1)); // the type within the array
+                    found.set_datatype(&io.datatype.within_array()); // the type within the array
                     let new_route = Route::from(format!("{}/{}", found.route(), sub_route));
                     found.set_route(&new_route, &io.io_type);
                     return Ok(found);
@@ -365,7 +363,7 @@ mod test {
 
         let input: IO = toml::from_str(input_str).unwrap();
         assert_eq!(Name::from("input"), *input.name());
-        assert_eq!(DataType::from("String"), input.datatype(0));
+        assert_eq!(&DataType::from("String"), input.datatype());
     }
 
     #[test]

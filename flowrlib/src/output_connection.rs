@@ -2,6 +2,14 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 
+/// The `Conversion` enum defines what type of run-time conversaion of types is to be done
+#[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
+pub enum Conversion {
+    WrapAsArray,
+    // Take value and send it wrapped in an array
+    ArraySerialize,  // Serialize an Array, sending each element as a separate value
+}
+
 #[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
 /// `OutputConnection` contains information about a function's output connection to another function
 pub struct OutputConnection {
@@ -14,6 +22,9 @@ pub struct OutputConnection {
     pub io_number: usize,
     /// `flow_id` is the flow_id of the target function
     pub flow_id: usize,
+    /// `conversion` determines what type conversion should be done when sending to this destination
+    #[serde(default = "default_conversion", skip_serializing_if = "Option::is_none")]
+    pub conversion: Option<Conversion>,
     /// `route` is the full route to the destination input
     #[serde(default = "default_destination_route", skip_serializing_if = "Option::is_none")]
     pub route: Option<String>,
@@ -21,19 +32,25 @@ pub struct OutputConnection {
 
 impl OutputConnection {
     /// Create a new `OutputConnection`
-    pub fn new(output_subpath: String,
-               destination_function_id: usize,
-               destination_io_number: usize,
-               destination_flow_id: usize,
-               destination_route: Option<String>, ) -> Self {
+    pub fn new(subpath: String,
+               function_id: usize,
+               io_number: usize,
+               flow_id: usize,
+               conversion: Option<Conversion>,
+               route: Option<String>, ) -> Self {
         OutputConnection {
-            subpath: output_subpath,
-            function_id: destination_function_id,
-            io_number: destination_io_number,
-            flow_id: destination_flow_id,
-            route: destination_route,
+            subpath,
+            function_id,
+            io_number,
+            flow_id,
+            conversion,
+            route,
         }
     }
+}
+
+fn default_conversion() -> Option<Conversion> {
+    None
 }
 
 fn default_destination_route() -> Option<String> {
