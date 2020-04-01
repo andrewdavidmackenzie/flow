@@ -39,7 +39,7 @@ impl fmt::Display for Metrics {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let elapsed = self.start_time.elapsed();
         write!(f, "\t   Number of Functions: {}\n", self.num_functions)?;
-        write!(f, "\t          Outputs sent: {}\n", self.outputs_sent)?;
+        write!(f, "\t           Values sent: {}\n", self.outputs_sent)?;
         write!(f, "\t       Elapsed time(s): {:.*}\n", 6, elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9)?;
         write!(f, "\t  Max Jobs in Parallel: {}", self.max_simultaneous_jobs)
     }
