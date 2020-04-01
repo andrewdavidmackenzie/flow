@@ -3,6 +3,7 @@ implementation = "accumulate.rs"
 
 [[input]]
 name = "values"
+type = "Value"
 
 [[input]]
 name = "partial"

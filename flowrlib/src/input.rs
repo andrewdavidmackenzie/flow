@@ -1,8 +1,7 @@
 #[cfg(feature = "debugger")]
 use std::fmt;
 
-use log::debug;
-use log::warn;
+use log::{debug, trace, warn};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -129,6 +128,7 @@ impl Input {
     /// Add an array of values to this `Input`, by pushing them one by one
     pub fn push_array<'a, I>(&mut self, iter: I) where I: Iterator<Item=&'a Value> {
         for value in iter {
+            trace!("\t\t\tPushing array element '{}'", value);
             self.received.push(value.clone());
         }
     }
@@ -163,7 +163,7 @@ mod test {
     fn default_initial_value_is_none() {
         assert!(super::default_initial_value().is_none());
     }
-    
+
     #[test]
     fn no_inputs_initially() {
         let input = Input::new(1, &None);

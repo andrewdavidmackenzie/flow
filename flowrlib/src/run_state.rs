@@ -547,6 +547,7 @@ impl RunState {
         match &destination.conversion {
             None => function.send(destination.io_number, output_value),
             Some(conversion) => {
+                debug!("\t\tApplying Conversion: '{:?}'", conversion);
                 match conversion {
                     Conversion::WrapAsArray => function.send(destination.io_number, &json!([output_value])),
                     Conversion::ArraySerialize => function.send_iter(destination.io_number, output_value)

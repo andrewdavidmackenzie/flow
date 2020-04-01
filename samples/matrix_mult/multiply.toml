@@ -42,12 +42,12 @@ from = "input/b"
 to = "transpose"
 
 [[process]]
-alias = "second_b"
-source = "lib://flowstdlib/data/buffer"
+alias = "transpose_again"
+source = "lib://flowstdlib/data/transpose"
 
 [[connection]]
-from = "transpose"
-to = "second_b"
+from = "input/b"
+to = "transpose_again"
 
 [[connection]]
 from = "b_info/columns"
@@ -66,37 +66,51 @@ from = "transpose"
 to = "multiply/b"
 
 [[connection]]
-from = "second_b"
+from = "transpose_again"
 to = "multiply/b"
 
 [[process]]
 alias = "compose_rows"
-source = "lib://flowstdlib/data/compose_array"
-depth.default = 2
+source = "lib://flowstdlib/data/accumulate"
+input.partial = { once = [] }
+
+[[connection]]
+from = "compose_rows/partial"
+to = "compose_rows/partial"
+
+[[connection]]
+from = "compose_rows/chunk_size"
+to = "compose_rows/chunk_size"
 
 [[connection]]
 from = "multiply"
-to = "compose_rows"
+to = "compose_rows/values"
 
-# TODO
-#[[connection]]
-#from = "b_info/columns"
-#to = "compose_array/factor"
+[[connection]]
+from = "b_info/columns"
+to = "compose_rows/chunk_size"
 
 [[process]]
-alias = "compose_array"
-source = "lib://flowstdlib/data/compose_array"
-depth.default = 2
+alias = "compose_matrix"
+source = "lib://flowstdlib/data/accumulate"
+input.partial = { once = [] }
 
 [[connection]]
-from = "compose_rows"
-to = "compose_array"
-
-# TODO
-#[[connection]]
-#from = "a_info/rows"
-#to = "compose_array/factor"
+from = "compose_matrix/partial"
+to = "compose_matrix/partial"
 
 [[connection]]
-from = "compose_array"
+from = "compose_matrix/chunk_size"
+to = "compose_matrix/chunk_size"
+
+[[connection]]
+from = "compose_rows/chunk"
+to = "compose_matrix/values"
+
+[[connection]]
+from = "a_info/rows"
+to = "compose_matrix/chunk_size"
+
+[[connection]]
+from = "compose_matrix/chunk"
 to = "output/product"
