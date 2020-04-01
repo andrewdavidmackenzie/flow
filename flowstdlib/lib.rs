@@ -58,6 +58,8 @@ pub fn get_manifest() -> LibraryManifest {
                              Native(Arc::new(data::compose_array::compose_array::ComposeArray)));
     manifest.locators.insert("lib://flowstdlib/data/duplicate_rows/DuplicateRows".to_string(),
                              Native(Arc::new(data::duplicate_rows::duplicate_rows::DuplicateRows)));
+    manifest.locators.insert("lib://flowstdlib/data/duplicate/Duplicate".to_string(),
+                             Native(Arc::new(data::duplicate::duplicate::Duplicate)));
     manifest.locators.insert("lib://flowstdlib/data/info/Info".to_string(),
                              Native(Arc::new(data::info::info::Info)));
     manifest.locators.insert("lib://flowstdlib/data/multiply_row/MultiplyRow".to_string(),
