@@ -1,6 +1,5 @@
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use flow_impl_derive::FlowImpl;
-use log::trace;
 use serde_json::Value;
 
 #[derive(FlowImpl)]
@@ -48,14 +47,10 @@ pub struct Accumulate;
 impl Implementation for Accumulate {
     fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let mut values = inputs[0].clone();
-        trace!("values = {:?}", values);
         let mut partial_input = inputs[1][0].clone();
-        trace!("partial_input = {}", partial_input);
         let chunk_size = inputs[2][0].clone();
-        trace!("chunk_size = {}", chunk_size);
 
         let partial = partial_input.as_array_mut().unwrap();
-        trace!("partial = {:?}", partial);
         partial.append(&mut values);
 
         let mut output_map = serde_json::Map::new();
