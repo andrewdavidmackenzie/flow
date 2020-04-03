@@ -11,7 +11,7 @@ use serde_json::{json, Value};
 use crate::debugger::Debugger;
 use crate::function::Function;
 use crate::metrics::Metrics;
-use crate::output_connection::{Conversion, OutputConnection};
+use crate::output_connection::OutputConnection;
 
 #[derive(Debug, PartialEq)]
 pub enum State {
@@ -543,15 +543,30 @@ impl RunState {
             self.check_invariants(job_id);
     }
 
-    fn type_convert_and_send(function: &mut Function, destination: &OutputConnection, output_value: &Value) {
-        match &destination.conversion {
-            None => function.send(destination.io_number, output_value),
-            Some(conversion) => {
-                debug!("\t\tApplying Conversion: '{:?}'", conversion);
-                match conversion {
-                    Conversion::WrapAsArray => function.send(destination.io_number, &json!([output_value])),
-                    Conversion::ArraySerialize => function.send_iter(destination.io_number, output_value)
+    // Take a json data value and return the array order for it
+    fn array_order(value: &Value) -> i32 {
+        match value {
+            Value::Array(array) if !array.is_empty() => 1 + Self::array_order(&array[0]),
+            Value::Array(array) if array.is_empty() => 1,
+            _ => 0
+        }
+    }
+
+    fn type_convert_and_send(function: &mut Function, destination: &OutputConnection, value: &Value) {
+        if destination.is_generic() {
+            function.send(destination.io_number, value);
+        } else {
+            match Self::array_order(value) - destination.array_order {
+                0 => function.send(destination.io_number, value),
+                1 => function.send_iter(destination.io_number, value),
+                2 => {
+                    for array in value.as_array().unwrap().iter() {
+                        function.send_iter(destination.io_number, array)
+                    }
                 }
+                -1 => function.send(destination.io_number, &json!([value])),
+                // -2 => function.send(destination.io_number, &json!(vec!(valu))),
+                _ => error!("Unable to handle difference in array order")
             }
         }
     }
@@ -567,13 +582,17 @@ impl RunState {
                   output_value: &Value,
                   metrics: &mut Metrics,
                   debugger: &mut Option<Debugger>) {
-        if destination.subpath.is_empty() {
-            debug!("\t\tFunction #{} sending '{}' to Function #{}:{}",
-                   source_id, output_value, destination.function_id, destination.io_number);
+        let route_str = if destination.subpath.is_empty() { "".to_string() } else {
+            format!(" via output route '{}'", destination.subpath)
+        };
+
+        let destination_str = if source_id == destination.function_id {
+            format!("to Self:{}", destination.io_number)
         } else {
-            debug!("\t\tFunction #{} sending '{}' via output route '{}' to Function #{}:{}",
-                   source_id, output_value, destination.subpath, destination.function_id, destination.io_number);
-        }
+            format!("to Function #{}:{}", destination.function_id, destination.io_number)
+        };
+
+        debug!("\t\tFunction #{} sending '{}'{} {}", source_id, output_value, route_str, destination_str);
 
         if let Some(ref mut debugger) = debugger {
             debugger.check_prior_to_send(self, source_id, &destination.subpath,
@@ -1011,7 +1030,7 @@ mod test {
     fn test_function_a_to_b_not_init() -> Function {
         let connection_to_f1 = OutputConnection::new("".to_string(),
                                                      1, 0, 0,
-                                                     None, Some("/fB".to_string()));
+                                                     0, false, Some("/fB".to_string()));
 
         Function::new("fA".to_string(), // name
                       "/fA".to_string(),
@@ -1024,7 +1043,7 @@ mod test {
     fn test_function_a_to_b() -> Function {
         let connection_to_f1 = OutputConnection::new("".to_string(),
                                                      1, 0, 0,
-                                                     None, Some("/fB".to_string()));
+                                                     0, false, Some("/fB".to_string()));
         Function::new("fA".to_string(), // name
                       "/fA".to_string(),
                       "/test".to_string(),
@@ -1064,7 +1083,7 @@ mod test {
     }
 
     fn test_output(source_function_id: usize, dest_function_id: usize) -> Job {
-        let out_conn = OutputConnection::new("".to_string(), dest_function_id, 0, 0, None, None);
+        let out_conn = OutputConnection::new("".to_string(), dest_function_id, 0, 0, 0, false, None);
         Job {
             job_id: 1,
             function_id: source_function_id,
@@ -1078,7 +1097,7 @@ mod test {
     }
 
     fn error_output(source_function_id: usize, dest_function_id: usize) -> Job {
-        let out_conn = OutputConnection::new("".to_string(), dest_function_id, 0, 0, None, None);
+        let out_conn = OutputConnection::new("".to_string(), dest_function_id, 0, 0, 0, false, None);
         Job {
             job_id: 1,
             flow_id: 0,
@@ -1432,7 +1451,7 @@ mod test {
         // Done: at least one destination input is full, so can't run  running_to_blocked_on_done
         #[test]
         fn running_to_blocked_on_done() {
-            let out_conn = OutputConnection::new("".to_string(), 1, 0, 0, None, None);
+            let out_conn = OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None);
             let f_a = Function::new("fA".to_string(), // name
                                     "/fA".to_string(),
                                     "/test".to_string(),
@@ -1476,7 +1495,7 @@ mod test {
                                     vec!(Input::new(1, &None)),
                                     0, 0,
                                     &vec!(), false);
-            let out_conn = OutputConnection::new("".into(), 0, 0, 0, None, None);
+            let out_conn = OutputConnection::new("".into(), 0, 0, 0, 0, false, None);
             let f_b = Function::new("fB".to_string(), // name
                                     "/fB".to_string(),
                                     "/test".to_string(),
@@ -1505,7 +1524,7 @@ mod test {
         #[test]
         fn waiting_to_blocked_on_input() {
             let f_a = super::test_function_a_to_b_not_init();
-            let connection_to_f0 = OutputConnection::new("".into(), 0, 0, 0, None, None);
+            let connection_to_f0 = OutputConnection::new("".into(), 0, 0, 0, 0, false, None);
             let f_b = Function::new("fB".to_string(), // name
                                     "/fB".to_string(),
                                     "/test".to_string(),
@@ -1539,8 +1558,8 @@ mod test {
         */
         #[test]
         fn not_block_on_self() {
-            let connection_to_0 = OutputConnection::new("".to_string(), 0, 0, 0, None, None);
-            let connection_to_1 = OutputConnection::new("".to_string(), 1, 0, 0, None, None);
+            let connection_to_0 = OutputConnection::new("".to_string(), 0, 0, 0, 0, false, None);
+            let connection_to_1 = OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None);
 
             let f_a = Function::new("fA".to_string(), // name
                                     "/fA".to_string(),
@@ -1613,8 +1632,8 @@ mod test {
         use super::test_debug_client;
 
         fn test_functions<'a>() -> Vec<Function> {
-            let out_conn1 = OutputConnection::new("".to_string(), 1, 0, 0, None, None);
-            let out_conn2 = OutputConnection::new("".to_string(), 2, 0, 0, None, None);
+            let out_conn1 = OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None);
+            let out_conn2 = OutputConnection::new("".to_string(), 2, 0, 0, 0, false, None);
             let p0 = Function::new("p0".to_string(), // name
                                    "/p0".to_string(),
                                    "/test".to_string(),

@@ -177,7 +177,7 @@ impl Default for Function {
             source_url: Function::default_source_url(),
             route: Route::default(),
             lib_reference: None,
-            output_routes: vec!(OutputConnection::new("".to_string(), 0, 0, 0, None,  Some("".to_string()))),
+            output_routes: vec!(OutputConnection::new("".to_string(), 0, 0, 0, 0,  false, Some("".to_string()))),
             id: 0,
             flow_id: 0,
         }
@@ -273,7 +273,7 @@ mod test {
             outputs: None,         // No output!
             route: Route::default(),
             lib_reference: None,
-            output_routes: vec!(OutputConnection::new("test_function".to_string(), 0, 0, 0, None, None)),
+            output_routes: vec!(OutputConnection::new("test_function".to_string(), 0, 0, 0, 0, false, None)),
             id: 0,
             flow_id: 0,
         };

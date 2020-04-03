@@ -7,7 +7,7 @@ type = "Value"
 
 [[input]]
 name = "partial"
-type = "Array/Value"
+type = "Value"
 
 [[input]]
 name = "chunk_size"
@@ -19,7 +19,7 @@ type = "Array/Value"
 
 [[output]]
 name = "partial"
-type = "Array/Value"
+type = "Value"
 
 [[output]]
 name = "chunk_size"

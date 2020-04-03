@@ -2,6 +2,7 @@ function = "ToString"
 implementation = "to_string.rs"
 
 [[input]]
+type = "Value"
 
 [[output]]
 type = "String"

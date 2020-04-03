@@ -33,7 +33,7 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                            output_route.to_string(), destination_function_id, destination_input_index);
                     let output_conn = OutputConnection::new(output_route.to_string(),
                                                             destination_function_id, destination_input_index, destination_flow_id,
-                                                            connection.conversion.clone(), Some(connection.to_io.route().to_string()));
+                                                            connection.to_io.datatype().array_order(), connection.to_io.datatype().is_generic(), Some(connection.to_io.route().to_string()));
                     source_function.add_output_route(output_conn);
                 }
 
@@ -279,7 +279,6 @@ mod test {
             from_io: IO::new("String", &Route::from("/f1/a")),
             to_io: IO::new("String", &Route::from("/f2/a")),
             level: 0,
-            conversion: None
         };
         unused.to_io.set_flow_io(IOType::FlowInput);
 
@@ -297,7 +296,6 @@ mod test {
             from_io: IO::new("String", &Route::from("/function1")),
             to_io: IO::new("String", &Route::from("/flow2/a")),
             level: 0,
-            conversion: None
         };
         left_side.from_io.set_flow_io(IOType::FunctionIO);
         left_side.to_io.set_flow_io(IOType::FlowInput);
@@ -310,7 +308,6 @@ mod test {
             from_io: IO::new("String", &Route::from("/flow2/a")),
             to_io: IO::new("String", &Route::from("/flow2/f4/a")),
             level: 1,
-            conversion: None
         };
         extra_one.from_io.set_flow_io(IOType::FlowInput);
         extra_one.to_io.set_flow_io(IOType::FlowInput); // /flow2/f4 doesn't exist
@@ -322,7 +319,6 @@ mod test {
             from_io: IO::new("String", &Route::from("/flow2/a")),
             to_io: IO::new("String", &Route::from("/flow2/function3")),
             level: 1,
-            conversion: None
         };
         right_side.from_io.set_flow_io(IOType::FlowInput);
         right_side.to_io.set_flow_io(IOType::FunctionIO);
@@ -350,7 +346,6 @@ mod test {
             from_io: IO::new("String", &Route::from("/f1")),
             to_io: IO::new("String", &Route::from("/f2/a")),
             level: 0,
-            conversion: None
         };
         left_side.from_io.set_flow_io(IOType::FunctionIO);
         left_side.to_io.set_flow_io(IOType::FlowInput);
@@ -362,7 +357,6 @@ mod test {
             from_io: IO::new("String", &Route::from("/f2/a")),
             to_io: IO::new("String", &Route::from("/f2/value1")),
             level: 1,
-            conversion: None
         };
         right_side_one.from_io.set_flow_io(IOType::FlowInput);
         right_side_one.to_io.set_flow_io(IOType::FunctionIO);
@@ -374,7 +368,6 @@ mod test {
             from_io: IO::new("String", &Route::from("/f2/a")),
             to_io: IO::new("String", &Route::from("/f2/value2")),
             level: 1,
-            conversion: None
         };
         right_side_two.from_io.set_flow_io(IOType::FlowInput);
         right_side_two.to_io.set_flow_io(IOType::FunctionIO);
@@ -399,7 +392,6 @@ mod test {
             from_io: IO::new("String", &Route::from("/value")),
             to_io: IO::new("String", &Route::from("/flow1/a")),
             level: 0,
-            conversion: None
         };
         first_level.from_io.set_flow_io(IOType::FunctionIO);
         first_level.to_io.set_flow_io(IOType::FlowInput);
@@ -411,7 +403,6 @@ mod test {
             from_io: IO::new("String", &Route::from("/flow1/a")),
             to_io: IO::new("String", &Route::from("/flow1/flow2/a")),
             level: 1,
-            conversion: None
         };
         second_level.from_io.set_flow_io(IOType::FlowInput);
         second_level.to_io.set_flow_io(IOType::FlowInput);
@@ -423,7 +414,6 @@ mod test {
             from_io: IO::new("String", &Route::from("/flow1/flow2/a")),
             to_io: IO::new("String", &Route::from("/flow1/flow2/func/in")),
             level: 2,
-            conversion: None
         };
         third_level.from_io.set_flow_io(IOType::FlowInput);
         third_level.to_io.set_flow_io(IOType::FunctionIO);
@@ -447,7 +437,6 @@ mod test {
             from_io: IO::new("String", &Route::from("/f1/a")),
             to_io: IO::new("String", &Route::from("/f2/a")),
             level: 0,
-            conversion: None
         };
 
         let other = Connection {
@@ -457,7 +446,6 @@ mod test {
             from_io: IO::new("String", &Route::from("/f3/a")),
             to_io: IO::new("String", &Route::from("/f4/a")),
             level: 0,
-            conversion: None
         };
 
         let connections = vec!(one, other);

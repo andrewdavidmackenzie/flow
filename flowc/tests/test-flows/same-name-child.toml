@@ -1,9 +1,11 @@
 flow = "child"
 
 [[input]]
+type = "String"
 name = "message"
 
 [[output]]
+type = "String"
 name = "message"
 
 [[process]]

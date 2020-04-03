@@ -11,7 +11,6 @@ use crate::compiler::loader::Validate;
 use crate::errors::*;
 use crate::model::datatype::DataType;
 use crate::model::datatype::HasDataType;
-use crate::model::datatype::TypeCheck;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::route::FindRoute;

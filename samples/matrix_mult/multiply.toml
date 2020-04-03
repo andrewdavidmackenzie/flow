@@ -2,12 +2,15 @@ flow = "multiply_matrices"
 
 [[input]]
 name = "a"
+type = "Array/Array/Number"
 
 [[input]]
 name = "b"
+type = "Array/Array/Number"
 
 [[output]]
 name = "product"
+type = "Array/Array/Number"
 
 [[process]]
 alias = "b_info"
@@ -26,12 +29,12 @@ from = "input/a"
 to ="a_info"
 
 [[process]]
-alias = "duplicate"
+alias = "duplicate_rows"
 source = "lib://flowstdlib/data/duplicate_rows"
 
 [[connection]]
 from = "input/a"
-to = "duplicate"
+to = "duplicate_rows"
 
 [[process]]
 alias = "transpose"
@@ -42,31 +45,31 @@ from = "input/b"
 to = "transpose"
 
 [[process]]
-alias = "transpose_again"
-source = "lib://flowstdlib/data/transpose"
+alias = "duplicate"
+source = "lib://flowstdlib/data/duplicate"
 
 [[connection]]
-from = "input/b"
-to = "transpose_again"
+from = "transpose"
+to = "duplicate/value"
 
 [[connection]]
 from = "b_info/columns"
 to = "duplicate/factor"
+
+[[connection]]
+from = "b_info/columns"
+to = "duplicate_rows/factor"
 
 [[process]]
 alias = "multiply"
 source = "lib://flowstdlib/data/multiply_row"
 
 [[connection]]
-from = "duplicate"
+from = "duplicate_rows"
 to = "multiply/a"
 
 [[connection]]
-from = "transpose"
-to = "multiply/b"
-
-[[connection]]
-from = "transpose_again"
+from = "duplicate"
 to = "multiply/b"
 
 [[process]]

@@ -165,7 +165,7 @@ impl Function {
         input.push(value.clone());
     }
 
-    /// write a set of values to a `Function`'s input
+    /// write an array of values to a `Function`'s input
     pub fn send_iter(&mut self, input_number: usize, value: &Value) {
         let input = &mut self.inputs[input_number];
         input.push_array(value.as_array().unwrap().iter());
@@ -363,7 +363,7 @@ mod test {
 
     fn test_function() -> Function {
         let out_conn = OutputConnection::new("/other/input/1".to_string(),
-                                             1, 1, 0, None, None);
+                                             1, 1, 0, 0, false, None);
         Function::new("test".to_string(),
                       "/test".to_string(),
                       "/implementation".to_string(),
@@ -398,7 +398,7 @@ mod test {
     #[test]
     fn can_display_function_with_inputs() {
         let output_route = OutputConnection::new("/other/input/1".to_string(),
-                                                 1, 1, 0, None, None);
+                                                 1, 1, 0, 0, false, None);
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),

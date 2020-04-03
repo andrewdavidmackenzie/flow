@@ -2,6 +2,7 @@ flow = "subflow"
 
 [[output]]
 name = "out"
+type = "String"
 
 [[process]]
 source = "lib://flowruntime/stdio/stdin"

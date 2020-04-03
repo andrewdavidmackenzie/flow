@@ -3,9 +3,11 @@ implementation = "select.rs"
 
 [[input]]
 name = "i1"
+type = "Value"
 
 [[input]]
 name = "i2"
+type = "Value"
 
 [[input]]
 name = "control"
@@ -13,6 +15,8 @@ type = "Bool"
 
 [[output]]
 name = "select_i1"
+type = "Value"
 
 [[output]]
 name = "select_i2"
+type = "Value"

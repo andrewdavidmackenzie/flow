@@ -2,7 +2,7 @@ function = "ComposeArray"
 implementation = "compose_array.rs"
 
 [[input]]
-type = "Number"
+type = "Value"
 
 [[output]]
-type = "Array/Number"
+type = "Array/Value"

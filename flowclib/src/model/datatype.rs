@@ -28,41 +28,8 @@ pub trait HasDataType {
     fn datatype(&self) -> &DataType;
 }
 
-pub trait TypeCheck {
-    fn valid(&self) -> Result<()>;
-    fn is_array(&self) -> bool;
-    fn is_generic(&self) -> bool;
-}
-
-/// Take a json data value and return the type string for it, recursively
-/// going down when the type is a container type (Array or Map(Object))
-pub fn type_string(value: &Value) -> String {
-    match value {
-        Value::String(_) => "String".into(),
-        Value::Bool(_) => "Boolean".into(),
-        Value::Number(_) => "Number".into(),
-        Value::Array(array) => format!("Array/{}", type_string(&array[0])),
-        Value::Object(map) => format!("Map/{}", type_string(&map.values().cloned().next().unwrap())),
-        Value::Null => "Null".into()
-    }
-}
-
 impl DataType {
-    /// Determine if this data type is an array of the other
-    pub fn array_of(&self, second: &Self) -> bool {
-        &DataType::from(format!("Array/{}", second).as_str()) == self
-    }
-
-    /// Get the data type the array holds
-    pub fn within_array(&self) -> Self {
-        let mut subtype = self.to_string();
-        subtype.replace_range(0.."Array/".len(), "");
-        Self::from(subtype.as_str())
-    }
-}
-
-impl TypeCheck for DataType {
-    fn valid(&self) -> Result<()> {
+    pub fn valid(&self) -> Result<()> {
         // Split the type hierarchy and check all levels are valid
         let type_levels = self.split('/');
 
@@ -74,12 +41,46 @@ impl TypeCheck for DataType {
         return Ok(());
     }
 
-    fn is_array(&self) -> bool {
+    pub fn is_array(&self) -> bool {
         self.starts_with("Array")
     }
 
-    fn is_generic(&self) -> bool {
+    pub fn is_generic(&self) -> bool {
         self == &DataType::from("Value")
+    }
+
+    /// Determine if this data type is an array of the other
+    pub fn array_of(&self, second: &Self) -> bool {
+        &DataType::from(format!("Array/{}", second).as_str()) == self
+    }
+
+    /// Get the data type the array holds
+    pub fn within_array(&self) -> Self {
+        let mut subtype = self.to_string();
+        subtype.replace_range(0.."Array/".len(), "");
+        Self::from(subtype.as_str())
+    }
+
+    /// Take a json data value and return the type string for it, recursively
+    /// going down when the type is a container type (Array or Map(Object))
+    pub fn type_string(value: &Value) -> String {
+        match value {
+            Value::String(_) => "String".into(),
+            Value::Bool(_) => "Boolean".into(),
+            Value::Number(_) => "Number".into(),
+            Value::Array(array) => format!("Array/{}", Self::type_string(&array[0])),
+            Value::Object(map) => format!("Map/{}", Self::type_string(&map.values().cloned().next().unwrap())),
+            Value::Null => "Null".into()
+        }
+    }
+
+    /// Take a string description of a DataType and determine how deeply nested in arrays it is
+    pub fn array_order(&self) -> i32 {
+        if self.is_array() {
+            1 + self.within_array().array_order()
+        } else {
+            0
+        }
     }
 }
 

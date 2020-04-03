@@ -159,7 +159,7 @@ mod test {
 
     use flowrlib::input::{ConstantInputInitializer, InputInitializer};
     use flowrlib::input::OneTimeInputInitializer;
-    use flowrlib::output_connection::{Conversion, OutputConnection};
+    use flowrlib::output_connection::OutputConnection;
 
     use crate::model::function::Function;
     use crate::model::io::IO;
@@ -183,8 +183,8 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(OutputConnection::new("".to_string(), 1, 0, 0, None, None),
-                 OutputConnection::new("sub_route".to_string(), 2, 0, 0, None, None)),
+            vec!(OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None),
+                 OutputConnection::new("sub_route".to_string(), 2, 0, 0, 0, false, None)),
             0, 0);
 
         let expected = "{
@@ -226,7 +226,7 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(OutputConnection::new("".to_string(), 1, 0, 0, None, None)),
+            vec!(OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None)),
             0, 0);
 
         let expected = "{
@@ -251,7 +251,7 @@ mod test {
     }
 
     #[test]
-    fn function_generation_with_conversion() {
+    fn function_generation_with_array_order() {
         let function = Function::new(
             Name::from("Stdout"),
             false,
@@ -263,7 +263,7 @@ mod test {
             Route::from("/flow0/stdout"),
             None,
             vec!(OutputConnection::new("".to_string(), 1, 0, 0,
-                                       Some(Conversion::ArraySerialize), None)),
+                                       1, false, None)),
             0, 0);
 
         let expected = "{
@@ -275,7 +275,7 @@ mod test {
       'function_id': 1,
       'io_number': 0,
       'flow_id': 0,
-      'conversion': 'ArraySerialize'
+      'array_order': 1
     }
   ]
 }";
@@ -420,7 +420,7 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(OutputConnection::new("".to_string(), 1, 0, 0, None, None)),
+            vec!(OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None)),
             0, 0)
     }
 
@@ -463,7 +463,7 @@ mod test {
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             None,
-            vec!(OutputConnection::new("/0".to_string(), 1, 0, 0, None, None)),
+            vec!(OutputConnection::new("/0".to_string(), 1, 0, 0, 0, false, None)),
             0, 0);
 
         let expected = "{

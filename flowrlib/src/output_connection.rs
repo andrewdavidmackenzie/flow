@@ -22,12 +22,31 @@ pub struct OutputConnection {
     pub io_number: usize,
     /// `flow_id` is the flow_id of the target function
     pub flow_id: usize,
-    /// `conversion` determines what type conversion should be done when sending to this destination
-    #[serde(default = "default_conversion", skip_serializing_if = "Option::is_none")]
-    pub conversion: Option<Conversion>,
+    /// `array_order` defines how many levels of arrays of non-array values does the destination accept
+    #[serde(default = "default_array_order", skip_serializing_if = "is_default_array_order")]
+    pub array_order: i32,
+    /// `generic` defines if the input accepts generic "Value"s
+    #[serde(default = "default_generic", skip_serializing_if = "is_not_generic")]
+    pub generic: bool,
     /// `route` is the full route to the destination input
     #[serde(default = "default_destination_route", skip_serializing_if = "Option::is_none")]
     pub route: Option<String>,
+}
+
+fn default_array_order() -> i32 {
+    0
+}
+
+fn is_default_array_order(order: &i32) -> bool {
+    *order == 0
+}
+
+fn default_generic() -> bool {
+    false
+}
+
+fn is_not_generic(generic: &bool) -> bool {
+    !*generic
 }
 
 impl OutputConnection {
@@ -36,21 +55,24 @@ impl OutputConnection {
                function_id: usize,
                io_number: usize,
                flow_id: usize,
-               conversion: Option<Conversion>,
+               array_order: i32,
+               generic: bool,
                route: Option<String>, ) -> Self {
         OutputConnection {
             subpath,
             function_id,
             io_number,
             flow_id,
-            conversion,
+            array_order,
+            generic,
             route,
         }
     }
-}
 
-fn default_conversion() -> Option<Conversion> {
-    None
+    /// Does the destination IO accept generic "Value" types
+    pub fn is_generic(&self) -> bool {
+        self.generic
+    }
 }
 
 fn default_destination_route() -> Option<String> {

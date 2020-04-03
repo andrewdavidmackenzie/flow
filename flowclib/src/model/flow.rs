@@ -301,11 +301,10 @@ impl Flow {
                     match self.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {
                         Ok(to_io) => {
                             debug!("Found connection destination:\n{:#?}", to_io);
-                            if let Ok(conversion) = Connection::type_conversion(&from_io.datatype(), &to_io.datatype()) {
+                            if Connection::compatible_types(&from_io.datatype(), &to_io.datatype()) {
                                 debug!("Connection built from '{}' to '{}' with runtime conversion ''", from_io.route(), to_io.route());
                                 connection.from_io = from_io;
                                 connection.to_io = to_io;
-                                connection.conversion = conversion;
                             } else {
                                 error!("In flow '{}' cannot connect types:\nfrom\n{:#?}\nto\n{:#?}",
                                        self.source_url, from_io, to_io);

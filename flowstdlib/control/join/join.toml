@@ -3,8 +3,11 @@ implementation = "join.rs"
 
 [[input]]
 name = "data"
+type = "Value"
 
 [[input]]
 name = "control"
+type = "Value"
 
 [[output]]
+type = "Value"
