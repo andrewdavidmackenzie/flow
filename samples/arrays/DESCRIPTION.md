@@ -28,3 +28,8 @@ Features Used
 * Library Functions
 * Implicit conversion between arrays of objects and objects done by run-time
 * Explicit conversion between a stream of objects and an array using the `compose_array` library function
+
+Functions Diagram
+===
+This diagram shows the exploded diagram of all functions in all flows, and their connections.
+![Full functions diagram](functions.dot.png)

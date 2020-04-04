@@ -13,3 +13,7 @@ Features Used
 ===
 TBD
 
+Functions Diagram
+===
+This diagram shows the exploded diagram of all functions in all flows, and their connections.
+![Full functions diagram](functions.dot.png)

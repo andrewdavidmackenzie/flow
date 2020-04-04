@@ -24,3 +24,8 @@ Features Used
     * `switch` function to stop or pass a data flow based on another one
     * `ToString` to convert Numbers to Strings
     * `stdout` to print a String to standard output
+    
+Functions Diagram
+===
+This diagram shows the exploded diagram of all functions in all flows, and their connections.
+![Full functions diagram](functions.dot.png)

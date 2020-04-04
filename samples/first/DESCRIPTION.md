@@ -8,6 +8,8 @@ step-by-step by a human.
 
 It generates a series of numbers and prints it out on `stdout`, as per diagram below:
 
+![First flow](first-flow.dot.png)
+
 See the 'Understanding it' section in the guide to understand
 what this flow does and a 'step-by-step walkthrough' of its execution.
 
@@ -21,3 +23,8 @@ Features Used
 * Use of aliases to refer to functions with different names
 * Connections between functions and values
 * Referring to a function's input by name in connections
+
+Functions Diagram
+===
+This diagram shows the exploded diagram of all functions in all flows, and their connections.
+![Full functions diagram](functions.dot.png)

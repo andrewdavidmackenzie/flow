@@ -12,3 +12,8 @@ Features Used
 * Library Functions used (`stdout` from `flowstdlib`)
 * Library Flows used (`sequence` from `flowstdlib`)
 * Connections between functions
+
+Functions Diagram
+===
+This diagram shows the exploded diagram of all functions in all flows, and their connections.
+![Full functions diagram](functions.dot.png)

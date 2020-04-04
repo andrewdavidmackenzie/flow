@@ -13,3 +13,8 @@ Features Used
 * Selecting a specific indexed entry of an `Array` output
 * Library Flows used (`args/get` from `flowstdlib`)
 * Connections between functions
+
+Functions Diagram
+===
+This diagram shows the exploded diagram of all functions in all flows, and their connections.
+![Full functions diagram](functions.dot.png)

@@ -21,3 +21,8 @@ Features Used
 * Two functions of the same name in the same flow, distinguished by `alias`
 * `switch` function to stop or pass a data flow based on another one
 * `compare` function to produce outputs based on comparing two input values
+
+Functions Diagram
+===
+This diagram shows the exploded diagram of all functions in all flows, and their connections.
+![Full functions diagram](functions.dot.png)
