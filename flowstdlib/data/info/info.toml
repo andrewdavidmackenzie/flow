@@ -1,0 +1,16 @@
+function = "Info"
+implementation = "info.rs"
+
+[[input]]
+
+[[output]]
+name = "type"
+type = "String"
+
+[[output]]
+name = "rows"
+type = "Number"
+
+[[output]]
+name = "columns"
+type = "Number"

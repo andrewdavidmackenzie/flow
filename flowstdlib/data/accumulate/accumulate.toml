@@ -3,10 +3,11 @@ implementation = "accumulate.rs"
 
 [[input]]
 name = "values"
+type = "Value"
 
 [[input]]
 name = "partial"
-type = "Array/Json"
+type = "Value"
 
 [[input]]
 name = "chunk_size"
@@ -14,11 +15,11 @@ type = "Number"
 
 [[output]]
 name = "chunk"
-type = "Array/Json"
+type = "Array/Value"
 
 [[output]]
 name = "partial"
-type = "Array/Json"
+type = "Value"
 
 [[output]]
 name = "chunk_size"

@@ -2,3 +2,4 @@ function = "Stdout"
 impure = true
 
 [[input]]
+type = "Value"

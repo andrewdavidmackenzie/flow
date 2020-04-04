@@ -1,0 +1,13 @@
+function = "Duplicate"
+implementation = "duplicate.rs"
+
+[[input]]
+name = "value"
+type = "Value"
+
+[[input]]
+name = "factor"
+type = "Number"
+
+[[output]]
+type = "Array/Value"

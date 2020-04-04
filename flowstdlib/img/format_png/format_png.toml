@@ -6,7 +6,7 @@ name = "bytes"
 
 [[input]]
 name = "bounds"
-type = "Json"
+type = "Value"
 
 [[output]]
 type = "Array"

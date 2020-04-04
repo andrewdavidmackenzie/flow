@@ -3,33 +3,44 @@ implementation = "compare_switch.rs"
 
 [[input]]
 name = "left"
+type = "Number"
 
 [[input]]
 name = "right"
+type = "Number"
 
 [[output]]
 name = "equal"
+type = "Number"
 
 [[output]]
 name = "right-lt"
+type = "Number"
 
 [[output]]
 name = "right-lte"
+type = "Number"
 
 [[output]]
 name = "right-gt"
+type = "Number"
 
 [[output]]
 name = "right-gte"
+type = "Number"
 
 [[output]]
 name = "left-lt"
+type = "Number"
 
 [[output]]
 name = "left-lte"
+type = "Number"
 
 [[output]]
 name = "left-gt"
+type = "Number"
 
 [[output]]
 name = "left-gte"
+type = "Number"

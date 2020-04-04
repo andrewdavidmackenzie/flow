@@ -33,7 +33,7 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                            output_route.to_string(), destination_function_id, destination_input_index);
                     let output_conn = OutputConnection::new(output_route.to_string(),
                                                             destination_function_id, destination_input_index, destination_flow_id,
-                                                            Some(connection.to_io.route().to_string()));
+                                                            connection.to_io.datatype().array_order(), connection.to_io.datatype().is_generic(), Some(connection.to_io.route().to_string()));
                     source_function.add_output_route(output_conn);
                 }
 

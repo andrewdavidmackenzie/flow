@@ -6,7 +6,7 @@ use std::sync::Arc;
 use flow_impl::Implementation;
 use log::{debug, error, trace};
 use multimap::MultiMap;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::debugger::Debugger;
 use crate::function::Function;
@@ -462,7 +462,7 @@ impl RunState {
         let input_set = function.take_input_set();
         let flow_id = function.get_flow_id();
 
-        debug!("Job #{}:\tCreating for Function #{} '{}' ---------------------------", job_id, function_id, function.name());
+        debug!("Job #{}:-------Creating for Function #{} '{}' ---------------------------", job_id, function_id, function.name());
 
         // inputs were taken and hence emptied - so refresh any inputs that have constant initializers for next time
         function.init_inputs(false);
@@ -514,9 +514,8 @@ impl RunState {
                             Some(output_value) =>
                                 self.send_value(job.function_id,
                                                 job.flow_id,
-                                                &destination.subpath,
-                                                destination.function_id,
-                                                destination.io_number, output_value, metrics, debugger),
+                                                &destination,
+                                                output_value, metrics, debugger),
                             _ => trace!("Job #{}:\t\tNo output value found at '{}'", job.job_id, &destination.subpath)
                         }
                     }
@@ -544,28 +543,64 @@ impl RunState {
             self.check_invariants(job_id);
     }
 
+    // Take a json data value and return the array order for it
+    fn array_order(value: &Value) -> i32 {
+        match value {
+            Value::Array(array) if !array.is_empty() => 1 + Self::array_order(&array[0]),
+            Value::Array(array) if array.is_empty() => 1,
+            _ => 0
+        }
+    }
+
+    fn type_convert_and_send(function: &mut Function, destination: &OutputConnection, value: &Value) {
+        if destination.is_generic() {
+            function.send(destination.io_number, value);
+        } else {
+            match Self::array_order(value) - destination.array_order {
+                0 => function.send(destination.io_number, value),
+                1 => function.send_iter(destination.io_number, value),
+                2 => {
+                    for array in value.as_array().unwrap().iter() {
+                        function.send_iter(destination.io_number, array)
+                    }
+                }
+                -1 => function.send(destination.io_number, &json!([value])),
+                // -2 => function.send(destination.io_number, &json!(vec!(valu))),
+                _ => error!("Unable to handle difference in array order")
+            }
+        }
+    }
+
     /*
         Send a value produced as part of an output of running a job to a destination function on
         a specific input, update the metrics and potentially enter the debugger
     */
-    fn send_value(&mut self, source_id: usize, source_flow_id: usize, output_route: &str, destination_id: usize, io_number: usize,
-                  output_value: &Value, metrics: &mut Metrics, debugger: &mut Option<Debugger>) {
-        if output_route.is_empty() {
-            debug!("\t\tFunction #{} sending '{}' to Function #{}:{}",
-                   source_id, output_value, destination_id, io_number);
+    fn send_value(&mut self,
+                  source_id: usize,
+                  source_flow_id: usize,
+                  destination: &OutputConnection,
+                  output_value: &Value,
+                  metrics: &mut Metrics,
+                  debugger: &mut Option<Debugger>) {
+        let route_str = if destination.subpath.is_empty() { "".to_string() } else {
+            format!(" via output route '{}'", destination.subpath)
+        };
+
+        let destination_str = if source_id == destination.function_id {
+            format!("to Self:{}", destination.io_number)
         } else {
-            debug!("\t\tFunction #{} sending '{}' via output route '{}' to Function #{}:{}",
-                   source_id, output_value, output_route, destination_id, io_number);
-        }
+            format!("to Function #{}:{}", destination.function_id, destination.io_number)
+        };
+
+        debug!("\t\tFunction #{} sending '{}'{} {}", source_id, output_value, route_str, destination_str);
 
         if let Some(ref mut debugger) = debugger {
-            debugger.check_prior_to_send(self, source_id, output_route,
-                                         &output_value, destination_id, io_number);
+            debugger.check_prior_to_send(self, source_id, &destination.subpath,
+                                         &output_value, destination.function_id, destination.io_number);
         }
 
-        let destination = self.get_mut(destination_id);
-        let destination_flow_id = destination.get_flow_id();
-        destination.write_input(io_number, output_value);
+        let function = self.get_mut(destination.function_id);
+        Self::type_convert_and_send(function, destination, output_value);
 
         #[cfg(feature = "metrics")]
             metrics.increment_outputs_sent();
@@ -574,15 +609,17 @@ impl RunState {
         // - avoid blocking on itself
         // - delay determining if it should be in the blocked or ready lists (by calling inputs_now_full())
         //   until it has sent all it's other outputs as it might be blocked by another function.
-        let block = destination.input_full(io_number) && (source_id != destination_id);
-        let full = destination.inputs_full() && (source_id != destination_id);
+        let block = function.input_full(destination.io_number) && (source_id != destination.function_id);
+        let full = function.inputs_full() && (source_id != destination.function_id);
 
         if block {
-            self.create_block(destination_flow_id, destination_id, io_number, source_id, source_flow_id, debugger);
+            // TODO pass in destination and combine Block and OutputConnection?
+            self.create_block(destination.flow_id, destination.function_id,
+                              destination.io_number, source_id, source_flow_id, debugger);
         }
 
         if full {
-            self.inputs_now_full(destination_id, destination_flow_id);
+            self.inputs_now_full(destination.function_id, destination.flow_id);
         }
     }
 
@@ -678,12 +715,12 @@ impl RunState {
     fn inputs_now_full(&mut self, id: usize, flow_id: usize) {
         if self.blocked_sending(id) {
             // It has inputs and could run, if it weren't blocked on output
-            debug!("\t\t\t\tFunction #{}, inputs full, but blocked on output. Added to blocked list", id);
+            debug!("\t\tFunction #{}, inputs full, but blocked on output. Added to blocked list", id);
             // so put it on the blocked list
             self.blocked.insert(id);
         } else {
             // It has inputs, and is not blocked on output, so it can run! Mark as ready to run.
-            debug!("\t\t\t\tFunction #{} not blocked on output, so added to 'Ready' list", id);
+            debug!("\t\tFunction #{} not blocked on output, so added to 'Ready' list", id);
             self.mark_ready(id, flow_id);
         }
     }
@@ -993,12 +1030,12 @@ mod test {
     fn test_function_a_to_b_not_init() -> Function {
         let connection_to_f1 = OutputConnection::new("".to_string(),
                                                      1, 0, 0,
-                                                     Some("/fB".to_string()));
+                                                     0, false, Some("/fB".to_string()));
 
         Function::new("fA".to_string(), // name
                       "/fA".to_string(),
                       "/test".to_string(),
-                      vec!(Input::new(1, &None, false)),
+                      vec!(Input::new(1, &None)),
                       0, 0,
                       &vec!(connection_to_f1), false) // outputs to fB:0
     }
@@ -1006,13 +1043,12 @@ mod test {
     fn test_function_a_to_b() -> Function {
         let connection_to_f1 = OutputConnection::new("".to_string(),
                                                      1, 0, 0,
-                                                     Some("/fB".to_string()));
+                                                     0, false, Some("/fB".to_string()));
         Function::new("fA".to_string(), // name
                       "/fA".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1,
-                                      &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
-                                      false)),
+                                      &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                       0, 0,
                       &vec!(connection_to_f1), false) // outputs to fB:0
     }
@@ -1022,8 +1058,7 @@ mod test {
                       "/fA".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1,
-                                      &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
-                                      false)),
+                                      &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                       0, 0,
                       &vec!(), false)
     }
@@ -1032,7 +1067,7 @@ mod test {
         Function::new("fB".to_string(), // name
                       "/fB".to_string(),
                       "/test".to_string(),
-                      vec!(Input::new(1, &None, false)),
+                      vec!(Input::new(1, &None)),
                       1, 0,
                       &vec!(), false)
     }
@@ -1042,14 +1077,13 @@ mod test {
                       "/fB".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1,
-                                      &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
-                                      false)),
+                                      &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                       1, 0,
                       &vec!(), false)
     }
 
     fn test_output(source_function_id: usize, dest_function_id: usize) -> Job {
-        let out_conn = OutputConnection::new("".to_string(), dest_function_id, 0, 0, None);
+        let out_conn = OutputConnection::new("".to_string(), dest_function_id, 0, 0, 0, false, None);
         Job {
             job_id: 1,
             function_id: source_function_id,
@@ -1063,7 +1097,7 @@ mod test {
     }
 
     fn error_output(source_function_id: usize, dest_function_id: usize) -> Job {
-        let out_conn = OutputConnection::new("".to_string(), dest_function_id, 0, 0, None);
+        let out_conn = OutputConnection::new("".to_string(), dest_function_id, 0, 0, 0, false, None);
         Job {
             job_id: 1,
             flow_id: 0,
@@ -1249,7 +1283,7 @@ mod test {
             let f_a = Function::new("fA".to_string(), // name
                                     "/fA".to_string(),
                                     "/test".to_string(),
-                                    vec!(Input::new(1, &None, false)),
+                                    vec!(Input::new(1, &None)),
                                     0, 0,
                                     &vec!(), false);
             let functions = vec!(f_a);
@@ -1284,7 +1318,7 @@ mod test {
             let f_a = Function::new("fA".to_string(),
                                     "/fA".to_string(),
                                     "/test".to_string(),
-                                    vec!(Input::new(1, &None, false)),
+                                    vec!(Input::new(1, &None)),
                                     0, 0,
                                     &vec!(), false);
             let functions = vec!(f_a);
@@ -1349,8 +1383,7 @@ mod test {
                                     "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1,
-                                                    &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
-                                                    false)),
+                                                    &Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
                                     0, 0,
                                     &vec!(), false);
             let functions = vec!(f_a);
@@ -1418,19 +1451,18 @@ mod test {
         // Done: at least one destination input is full, so can't run  running_to_blocked_on_done
         #[test]
         fn running_to_blocked_on_done() {
-            let out_conn = OutputConnection::new("".to_string(), 1, 0, 0, None);
+            let out_conn = OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None);
             let f_a = Function::new("fA".to_string(), // name
                                     "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1,
-                                                    &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
-                                                    false)),
+                                                    &Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
                                     0, 0,
                                     &vec!(out_conn), false); // outputs to fB:0
             let f_b = Function::new("fB".to_string(), // name
                                     "/fB".to_string(),
                                     "/test".to_string(),
-                                    vec!(Input::new(1, &None, false)),
+                                    vec!(Input::new(1, &None)),
                                     1, 0,
                                     &vec!(), false);
             let functions = vec!(f_a, f_b);
@@ -1460,14 +1492,14 @@ mod test {
             let f_a = Function::new("fA".to_string(), // name
                                     "/fA".to_string(),
                                     "/test".to_string(),
-                                    vec!(Input::new(1, &None, false)),
+                                    vec!(Input::new(1, &None)),
                                     0, 0,
                                     &vec!(), false);
-            let out_conn = OutputConnection::new("".into(), 0, 0, 0, None);
+            let out_conn = OutputConnection::new("".into(), 0, 0, 0, 0, false, None);
             let f_b = Function::new("fB".to_string(), // name
                                     "/fB".to_string(),
                                     "/test".to_string(),
-                                    vec!(Input::new(1, &None, false)),
+                                    vec!(Input::new(1, &None)),
                                     1, 0,
                                     &vec!(out_conn), false);
             let functions = vec!(f_a, f_b);
@@ -1492,13 +1524,12 @@ mod test {
         #[test]
         fn waiting_to_blocked_on_input() {
             let f_a = super::test_function_a_to_b_not_init();
-            let connection_to_f0 = OutputConnection::new("".into(), 0, 0, 0, None);
+            let connection_to_f0 = OutputConnection::new("".into(), 0, 0, 0, 0, false, None);
             let f_b = Function::new("fB".to_string(), // name
                                     "/fB".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1,
-                                                    &Some(Constant(ConstantInputInitializer { constant: json!(1) })),
-                                                    false)),
+                                                    &Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
                                     1, 0,
                                     &vec!(connection_to_f0), false);
             let functions = vec!(f_a, f_b);
@@ -1527,15 +1558,14 @@ mod test {
         */
         #[test]
         fn not_block_on_self() {
-            let connection_to_0 = OutputConnection::new("".to_string(), 0, 0, 0, None);
-            let connection_to_1 = OutputConnection::new("".to_string(), 1, 0, 0, None);
+            let connection_to_0 = OutputConnection::new("".to_string(), 0, 0, 0, 0, false, None);
+            let connection_to_1 = OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None);
 
             let f_a = Function::new("fA".to_string(), // name
                                     "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1,
-                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })),
-                                                    false)),
+                                                    &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                                     0, 0,
                                     &vec!(
                                         connection_to_0.clone(), // outputs to self:0
@@ -1544,7 +1574,7 @@ mod test {
             let f_b = Function::new("fB".to_string(), // name
                                     "/fB".to_string(),
                                     "/test".to_string(),
-                                    vec!(Input::new(1, &None, false)),
+                                    vec!(Input::new(1, &None)),
                                     1, 0,
                                     &vec!(), false);
             let functions = vec!(f_a, f_b); // NOTE the order!
@@ -1602,8 +1632,8 @@ mod test {
         use super::test_debug_client;
 
         fn test_functions<'a>() -> Vec<Function> {
-            let out_conn1 = OutputConnection::new("".to_string(), 1, 0, 0, None);
-            let out_conn2 = OutputConnection::new("".to_string(), 2, 0, 0, None);
+            let out_conn1 = OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None);
+            let out_conn2 = OutputConnection::new("".to_string(), 2, 0, 0, 0, false, None);
             let p0 = Function::new("p0".to_string(), // name
                                    "/p0".to_string(),
                                    "/test".to_string(),
@@ -1614,13 +1644,13 @@ mod test {
             let p1 = Function::new("p1".to_string(),
                                    "/p1".to_string(),
                                    "/test".to_string(),
-                                   vec!(Input::new(1, &None, false)), // inputs array
+                                   vec!(Input::new(1, &None)), // inputs array
                                    1, 0,
                                    &vec!(), false);
             let p2 = Function::new("p2".to_string(),
                                    "/p2".to_string(),
                                    "/test".to_string(),
-                                   vec!(Input::new(1, &None, false)), // inputs array
+                                   vec!(Input::new(1, &None)), // inputs array
                                    2, 0,
                                    &vec!(), false);
             vec!(p0, p1, p2)
@@ -1771,6 +1801,54 @@ mod test {
 // Test there is no problem producing an Output when no destinations to send it to
             state.complete_job(&mut metrics, job, &mut debugger);
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
+        }
+
+        // TODO equivalent tests now
+        #[test]
+        #[ignore]
+        fn can_send_array_to_simple_object_depth_1() {
+            let mut function = Function::new("test".to_string(),
+                                             "/test".to_string(),
+                                             "/test".to_string(),
+                                             vec!(Input::new(1, &None)),
+                                             0, 0,
+                                             &vec!(), false);
+            function.init_inputs(true);
+            function.send(0, &json!([1, 2]));
+            assert_eq!(vec!(json!(1)), function.take_input_set().remove(0),
+                       "Value from input set wasn't what was expected");
+        }
+
+
+        #[test]
+        #[ignore]
+        fn can_send_array_to_simple_object_depth_2() {
+            let mut function = Function::new("test".to_string(),
+                                             "/test".to_string(),
+                                             "/test".to_string(),
+                                             vec!(Input::new(2, &None)),
+                                             0, 0,
+                                             &vec!(), false);
+            function.init_inputs(true);
+            function.send(0, &json!([1, 2]));
+            assert_eq!(vec!(json!(1), json!(2)), function.take_input_set().remove(0),
+                       "Value from input set wasn't what was expected");
+        }
+
+        #[test]
+        #[ignore]
+        fn can_send_simple_object_to_array_input() {
+            let mut function = Function::new("test".to_string(),
+                                             "/test".to_string(),
+                                             "/test".to_string(),
+                                             // vec!(Input::new(1, &None, true, false)),
+                                             vec!(Input::new(1, &None)),
+                                             0, 0,
+                                             &vec!(), false);
+            function.init_inputs(true);
+            function.send(0, &json!(1));
+            assert_eq!(vec!(json!([1])), function.take_input_set().remove(0),
+                       "Value from input set wasn't what was expected");
         }
     }
 }

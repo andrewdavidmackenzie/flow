@@ -3,9 +3,11 @@ implementation = "tap.rs"
 
 [[input]]
 name = "data"
+type = "Value"
 
 [[input]]
 name = "control"
 type = "Bool"
 
 [[output]]
+type = "Value"

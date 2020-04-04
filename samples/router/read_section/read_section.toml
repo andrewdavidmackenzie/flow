@@ -6,3 +6,4 @@ type = "String"
 depth = 3
 
 [[output]]
+type = "Array/Number"

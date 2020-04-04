@@ -23,6 +23,7 @@ type = "Number"
 # A value is output when the sequence has ended
 [[output]]
 name = "last"
+type = "Number"
 
 # For the first time around, pass the start number of the sequence into the "compare" process
 [[connection]]

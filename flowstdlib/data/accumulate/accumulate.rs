@@ -14,6 +14,7 @@ use serde_json::Value;
 ///
 /// ## Input
 /// name = "values"
+/// type = "Value"
 /// * The stream of input values to accumulate into an array
 ///
 /// ## Input
@@ -46,23 +47,24 @@ pub struct Accumulate;
 impl Implementation for Accumulate {
     fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let mut values = inputs[0].clone();
-        let mut input1 = inputs[1][0].clone();
-        let accumulated = input1.as_array_mut().unwrap();
-        let limit = inputs[2][0].clone();
-        accumulated.append(&mut values);
+        let mut partial_input = inputs[1][0].clone();
+        let chunk_size = inputs[2][0].clone();
+
+        let partial = partial_input.as_array_mut().unwrap();
+        partial.append(&mut values);
 
         let mut output_map = serde_json::Map::new();
 
-        if accumulated.len() >= limit.as_u64().unwrap() as usize {
+        if partial.len() >= chunk_size.as_u64().unwrap() as usize {
             // TODO could pass on any extra elements beyond chunk size in 'partial'
             // and also force chunk size to be exact....
-            output_map.insert("chunk".into(), Value::Array(accumulated.clone()));
+            output_map.insert("chunk".into(), Value::Array(partial.clone()));
             output_map.insert("partial".into(), Value::Array(vec!()));
         } else {
-            output_map.insert("partial".into(), Value::Array(accumulated.clone()));
+            output_map.insert("partial".into(), Value::Array(partial.clone()));
         }
 
-        output_map.insert("chunk_size".into(), limit.clone());
+        output_map.insert("chunk_size".into(), chunk_size.clone());
 
         let output = Value::Object(output_map);
 

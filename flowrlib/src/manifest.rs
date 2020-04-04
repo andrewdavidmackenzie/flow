@@ -106,7 +106,7 @@ mod test {
         let function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(1, &None, false)),
+                                         vec!(Input::new(1, &None)),
                                          0, 0,
                                          &vec!(), false);
 

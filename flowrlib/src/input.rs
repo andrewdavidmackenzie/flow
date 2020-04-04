@@ -1,8 +1,7 @@
 #[cfg(feature = "debugger")]
 use std::fmt;
 
-use log::debug;
-use log::warn;
+use log::{debug, trace, warn};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -43,9 +42,6 @@ pub struct Input {
     #[serde(default = "default_initial_value", skip_serializing_if = "Option::is_none")]
     /// An optional `InputInitializer` associated with this input
     pub initializer: Option<InputInitializer>,
-    #[serde(default = "default_is_array", skip_serializing_if = "is_not_array")]
-    /// `is_array` is used for implicit Object to Array of Objects conversion
-    pub is_array: bool,
     #[serde(skip)]
     received: Vec<Value>,
 }
@@ -59,12 +55,6 @@ impl fmt::Display for Input {
         write!(f, "")
     }
 }
-
-fn is_not_array(is_array: &bool) -> bool {
-    !*is_array
-}
-
-fn default_is_array() -> bool { false }
 
 fn is_default_depth(depth: &usize) -> bool {
     *depth == default_depth()
@@ -80,12 +70,11 @@ fn default_initial_value() -> Option<InputInitializer> {
 
 impl Input {
     /// Create a new `Input` with an optional `InputInitializer`
-    pub fn new(depth: usize, initial_value: &Option<InputInitializer>, is_array: bool) -> Self {
+    pub fn new(depth: usize, initial_value: &Option<InputInitializer>) -> Self {
         Input {
             depth,
             initializer: initial_value.clone(),
-            received: Vec::with_capacity(depth),
-            is_array,
+            received: Vec::with_capacity(depth)
         }
     }
 
@@ -136,9 +125,10 @@ impl Input {
         }
     }
 
-    /// Add an array of values to this `Input`
+    /// Add an array of values to this `Input`, by pushing them one by one
     pub fn push_array<'a, I>(&mut self, iter: I) where I: Iterator<Item=&'a Value> {
         for value in iter {
+            trace!("\t\t\tPushing array element '{}'", value);
             self.received.push(value.clone());
         }
     }
@@ -175,45 +165,35 @@ mod test {
     }
 
     #[test]
-    fn default_is_not_array() {
-        assert_eq!(super::default_is_array(), false);
-    }
-
-    #[test]
-    fn is_not_array() {
-        assert!(super::is_not_array(&false));
-    }
-
-    #[test]
     fn no_inputs_initially() {
-        let input = Input::new(1, &None, false);
+        let input = Input::new(1, &None);
         assert!(input.is_empty());
     }
 
     #[test]
     fn accepts_value() {
-        let mut input = Input::new(1, &None, false);
+        let mut input = Input::new(1, &None);
         input.push(Value::Null);
         assert!(!input.is_empty());
     }
 
     #[test]
     fn accepts_array() {
-        let mut input = Input::new(1, &None, false);
+        let mut input = Input::new(1, &None);
         input.push_array(vec!(json!(5), json!(10), json!(15)).iter());
         assert!(!input.is_empty());
     }
 
     #[test]
     fn gets_full() {
-        let mut input = Input::new(1, &None, false);
+        let mut input = Input::new(1, &None);
         input.push(Value::Null);
         assert!(input.full());
     }
 
     #[test]
     fn take_empties() {
-        let mut input = Input::new(1, &None, false);
+        let mut input = Input::new(1, &None);
         input.push(json!(10));
         assert!(!input.is_empty());
         input.take();
@@ -223,7 +203,7 @@ mod test {
     #[cfg(feature = "debugger")]
     #[test]
     fn reset_empties() {
-        let mut input = Input::new(1, &None, false);
+        let mut input = Input::new(1, &None);
         input.push(json!(10));
         assert!(!input.is_empty());
         input.reset();
@@ -232,7 +212,7 @@ mod test {
 
     #[test]
     fn depth_works() {
-        let mut input = Input::new(2, &None, false);
+        let mut input = Input::new(2, &None);
         input.push(json!(5));
         assert!(!input.full());
         input.push(json!(10));
@@ -242,7 +222,7 @@ mod test {
 
     #[test]
     fn can_hold_more_than_depth() {
-        let mut input = Input::new(2, &None, false);
+        let mut input = Input::new(2, &None);
         input.push(json!(5));
         input.push(json!(10));
         input.push(json!(15));
@@ -253,7 +233,7 @@ mod test {
 
     #[test]
     fn can_take_from_more_than_depth() {
-        let mut input = Input::new(2, &None, false);
+        let mut input = Input::new(2, &None);
         input.push_array(vec!(json!(5), json!(10), json!(15), json!(20), json!(25)).iter());
         assert!(input.full());
         let mut next_set = input.take();

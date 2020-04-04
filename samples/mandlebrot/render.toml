@@ -11,6 +11,7 @@ name = "lower_right"
 
 [[output]]
 name = "bytes"
+type = "String"
 
 [[output]]
 name = "bounds"

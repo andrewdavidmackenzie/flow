@@ -1,0 +1,12 @@
+function = "DuplicateRows"
+implementation = "duplicate_rows.rs"
+
+[[input]]
+type = "Array/Array/Number"
+
+[[input]]
+name = "factor"
+type = "Number"
+
+[[output]]
+type = "Array/Array/Number"

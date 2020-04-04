@@ -2,11 +2,12 @@ use std::fmt;
 
 use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
+use serde_json::Value;
 use shrinkwraprs::Shrinkwrap;
 
 use crate::errors::*;
 
-const DATATYPES: &[&str] = &["String", "Json", "Number", "Bool", "Map", "Array"];
+const DATATYPES: &[&str] = &["String", "Value", "Number", "Bool", "Map", "Array", "Null"];
 
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct DataType(String);
@@ -24,17 +25,11 @@ impl fmt::Display for DataType {
 }
 
 pub trait HasDataType {
-    fn datatype(&self, level: usize) -> DataType;
+    fn datatype(&self) -> &DataType;
 }
 
-pub trait TypeCheck {
-    fn valid(&self) -> Result<()>;
-    fn is_array(&self) -> bool;
-    fn is_generic(&self) -> bool;
-}
-
-impl TypeCheck for DataType {
-    fn valid(&self) -> Result<()> {
+impl DataType {
+    pub fn valid(&self) -> Result<()> {
         // Split the type hierarchy and check all levels are valid
         let type_levels = self.split('/');
 
@@ -46,12 +41,46 @@ impl TypeCheck for DataType {
         return Ok(());
     }
 
-    fn is_array(&self) -> bool {
-        self == &DataType::from("Array")
+    pub fn is_array(&self) -> bool {
+        self.starts_with("Array")
     }
 
-    fn is_generic(&self) -> bool {
-        self == &DataType::from("Json")
+    pub fn is_generic(&self) -> bool {
+        self == &DataType::from("Value")
+    }
+
+    /// Determine if this data type is an array of the other
+    pub fn array_of(&self, second: &Self) -> bool {
+        &DataType::from(format!("Array/{}", second).as_str()) == self
+    }
+
+    /// Get the data type the array holds
+    pub fn within_array(&self) -> Self {
+        let mut subtype = self.to_string();
+        subtype.replace_range(0.."Array/".len(), "");
+        Self::from(subtype.as_str())
+    }
+
+    /// Take a json data value and return the type string for it, recursively
+    /// going down when the type is a container type (Array or Map(Object))
+    pub fn type_string(value: &Value) -> String {
+        match value {
+            Value::String(_) => "String".into(),
+            Value::Bool(_) => "Boolean".into(),
+            Value::Number(_) => "Number".into(),
+            Value::Array(array) => format!("Array/{}", Self::type_string(&array[0])),
+            Value::Object(map) => format!("Map/{}", Self::type_string(&map.values().cloned().next().unwrap())),
+            Value::Null => "Null".into()
+        }
+    }
+
+    /// Take a string description of a DataType and determine how deeply nested in arrays it is
+    pub fn array_order(&self) -> i32 {
+        if self.is_array() {
+            1 + self.within_array().array_order()
+        } else {
+            0
+        }
     }
 }
 
@@ -63,7 +92,7 @@ fn valid_data_string_type() {
 
 #[test]
 fn valid_data_json_type() {
-    let json_type = DataType::from("Json");
+    let json_type = DataType::from("Value");
     json_type.valid().unwrap();
 }
 

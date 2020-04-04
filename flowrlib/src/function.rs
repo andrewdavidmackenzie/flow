@@ -3,9 +3,8 @@ use std::fmt;
 use std::sync::Arc;
 
 use flow_impl::{Implementation, RunAgain};
-use log::{debug, error, trace};
+use log::{error, trace};
 use serde_derive::{Deserialize, Serialize};
-use serde_json::json;
 use serde_json::Value;
 
 use crate::input::Input;
@@ -160,30 +159,16 @@ impl Function {
         &self.implementation_location
     }
 
-    /// write a value to a `Functions` input -
-    /// The value being written maybe an Array of values, in which case if the destination input does
-    /// not accept Array, then iterate over the contents of the array and send each one to the
-    /// input individually
-    pub fn write_input(&mut self, input_number: usize, input_value: &Value) {
+    /// write a value to a `Function`'s input
+    pub fn send(&mut self, input_number: usize, value: &Value) {
         let input = &mut self.inputs[input_number];
-        if input_value.is_array() {
-            // Serialize Array value into the non-Array input
-            if !input.is_array {
-                debug!("\t\tSerializing Array value to non-Array input");
-                input.push_array(input_value.as_array().unwrap().iter());
-            } else {
-                // Send Array value to the Array input
-                input.push(input_value.clone());
-            }
-        } else {
-            if input.is_array {
-                // Send Non-Array value to the Array input
-                input.push(json!([input_value]));
-            } else {
-                // Send Non-Array value to Non-Array input
-                input.push(input_value.clone());
-            }
-        }
+        input.push(value.clone());
+    }
+
+    /// write an array of values to a `Function`'s input
+    pub fn send_iter(&mut self, input_number: usize, value: &Value) {
+        let input = &mut self.inputs[input_number];
+        input.push_array(value.as_array().unwrap().iter());
     }
 
     /// Accessor for a `Functions` `output_routes` field
@@ -276,11 +261,11 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(1, &None, false)),
+                                         vec!(Input::new(1, &None)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
-        function.write_input(0, &json!(1));
+        function.send(0, &json!(1));
         assert_eq!(json!(1), function.take_input_set().remove(0).remove(0),
                    "Value from input set wasn't what was expected");
     }
@@ -290,40 +275,13 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(1, &None, true)),
+                                         // vec!(Input::new(1, &None, true, false)),
+                                         vec!(Input::new(1, &None)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
-        function.write_input(0, &json!([1, 2]));
+        function.send(0, &json!([1, 2]));
         assert_eq!(json!([1, 2]), function.take_input_set().remove(0).remove(0),
-                   "Value from input set wasn't what was expected");
-    }
-
-    #[test]
-    fn can_send_simple_object_to_array_input() {
-        let mut function = Function::new("test".to_string(),
-                                         "/test".to_string(),
-                                         "/test".to_string(),
-                                         vec!(Input::new(1, &None, true)),
-                                         0, 0,
-                                         &vec!(), false);
-        function.init_inputs(true);
-        function.write_input(0, &json!(1));
-        assert_eq!(vec!(json!([1])), function.take_input_set().remove(0),
-                   "Value from input set wasn't what was expected");
-    }
-
-    #[test]
-    fn can_send_array_to_simple_object_depth_1() {
-        let mut function = Function::new("test".to_string(),
-                                         "/test".to_string(),
-                                         "/test".to_string(),
-                                         vec!(Input::new(1, &None, false)),
-                                         0, 0,
-                                         &vec!(), false);
-        function.init_inputs(true);
-        function.write_input(0, &json!([1, 2]));
-        assert_eq!(vec!(json!(1)), function.take_input_set().remove(0),
                    "Value from input set wasn't what was expected");
     }
 
@@ -332,12 +290,12 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(1, &None, false)),
+                                         vec!(Input::new(1, &None)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
-        function.write_input(0, &json!(1));
-        function.write_input(0, &json!(2));
+        function.send(0, &json!(1));
+        function.send(0, &json!(2));
         assert_eq!(json!(2), function.take_input_set().remove(0).remove(0),
                    "Value from input set wasn't what was expected");
     }
@@ -348,7 +306,7 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(1, &None, false)),
+                                         vec!(Input::new(1, &None)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
@@ -357,31 +315,18 @@ mod test {
 
     /*************** Below are tests for inputs with depth > 1 ***********************/
 
-    #[test]
-    fn can_send_array_to_simple_object_depth_2() {
-        let mut function = Function::new("test".to_string(),
-                                         "/test".to_string(),
-                                         "/test".to_string(),
-                                         vec!(Input::new(2, &None, false)),
-                                         0, 0,
-                                         &vec!(), false);
-        function.init_inputs(true);
-        function.write_input(0, &json!([1, 2]));
-        assert_eq!(vec!(json!(1), json!(2)), function.take_input_set().remove(0),
-                   "Value from input set wasn't what was expected");
-    }
 
     #[test]
     fn can_send_simple_object_when_depth_more_than_1() {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(2, &None, false)),
+                                         vec!(Input::new(2, &None)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
-        function.write_input(0, &json!(1));
-        function.write_input(0, &json!(2));
+        function.send(0, &json!(1));
+        function.send(0, &json!(2));
         assert_eq!(vec!(json!(1), json!(2)), function.take_input_set().remove(0),
                    "Value from input set wasn't the array of numbers expected");
     }
@@ -391,12 +336,13 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(2, &None, true)),
+                                         // vec!(Input::new(2, &None, true, false)),
+                                         vec!(Input::new(2, &None)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
-        function.write_input(0, &json!([1, 2]));
-        function.write_input(0, &json!([3, 4]));
+        function.send(0, &json!([1, 2]));
+        function.send(0, &json!([3, 4]));
         assert_eq!(vec!(json!([1, 2]), json!([3, 4])), function.take_input_set().remove(0),
                    "Value from input set wasn't what was expected");
     }
@@ -407,21 +353,21 @@ mod test {
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(2, &None, false)),
+                                         vec!(Input::new(2, &None)),
                                          0, 0,
                                          &vec!(), false);
         function.init_inputs(true);
-        function.write_input(0, &json!(1));
+        function.send(0, &json!(1));
         function.take_input_set().remove(0);
     }
 
     fn test_function() -> Function {
         let out_conn = OutputConnection::new("/other/input/1".to_string(),
-                                             1, 1, 0, None);
+                                             1, 1, 0, 0, false, None);
         Function::new("test".to_string(),
                       "/test".to_string(),
                       "/implementation".to_string(),
-                      vec!(Input::new(2, &None, false)),
+                      vec!(Input::new(2, &None)),
                       1, 0,
                       &vec!(out_conn), false)
     }
@@ -431,7 +377,7 @@ mod test {
     fn debugger_can_inspect_non_full_input() {
         let mut function = test_function();
         function.init_inputs(true);
-        function.write_input(0, &json!(1));
+        function.send(0, &json!(1));
         assert_eq!(function.inputs().len(), 1, "Could not read incomplete input set");
     }
 
@@ -452,15 +398,15 @@ mod test {
     #[test]
     fn can_display_function_with_inputs() {
         let output_route = OutputConnection::new("/other/input/1".to_string(),
-                                                 1, 1, 0, None);
+                                                 1, 1, 0, 0, false, None);
         let mut function = Function::new("test".to_string(),
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(2, &None, false)),
+                                         vec!(Input::new(2, &None)),
                                          0, 0,
                                          &vec!(output_route.clone()), false);
         function.init_inputs(true);
-        function.write_input(0, &json!(1));
+        function.send(0, &json!(1));
         let _ = format!("{}", function);
         assert_eq!(&vec!(output_route), function.output_destinations(), "output routes not as originally set");
     }
