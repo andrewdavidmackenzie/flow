@@ -19,7 +19,7 @@
     - [Step-by-Step](docs/first_flow/step-by-step.md)
     - [Debugging your first flow](docs/first_flow/debugging.md)
 
-- [Describing Flows](docs/describing/definition_overview.md)
+- [Describing flows](docs/describing/definition_overview.md)
     - [Names](docs/describing/names.md)
     - [Flow IOs](docs/describing/ios.md)
     - [Process References](docs/describing/process_references.md)
@@ -76,7 +76,7 @@
 
 --------------------------------------------------------------------------------
 
-- [Developing `flow`](docs/developing/overview.md)
+- [Developing flow](docs/developing/overview.md)
     - [Pre-requisites](docs/developing/prereqs.md)
     - [Project Structure](docs/developing/structure.md)
         - [flow_impl](flow_impl/README.md)
@@ -97,7 +97,7 @@
         - [Developing a sample](samples/sample_development.md)
         - [Continuous Integration Tests](docs/developing/ci.md)
         
-- [Internals of 'flow](docs/internals/overview.md)
+- [Internals of flow](docs/internals/overview.md)
     - [Flow Loading](docs/internals/flow_loading.md)
     - [Flow Compiling](docs/internals/flow_compiling.md)
     - [Flow Execution](docs/internals/flow_execution.md)
