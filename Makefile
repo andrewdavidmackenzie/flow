@@ -36,7 +36,7 @@ common-config:
 	rustup target add wasm32-unknown-unknown
 	# cargo install wasm-gc || true
 	# install mdbook for generating guides
-	cargo install mdbook --root . --git https://github.com/andrewdavidmackenzie/mdbook || true
+	cargo install mdbook --root . || true
 	#cargo install mdbook-linkcheck --root . || true
 
 config-darwin:
