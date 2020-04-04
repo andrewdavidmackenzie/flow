@@ -11,6 +11,10 @@ It generates a series of numbers and prints it out on `stdout`, as per diagram b
 See the 'Understanding it' section in the guide to understand
 what this flow does and a 'step-by-step walkthrough' of its execution.
 
+Context Diagram
+===
+![Context diagram](first-flow.dot.svg)
+
 Features Used
 ===
 * Context Flow
@@ -21,3 +25,8 @@ Features Used
 * Use of aliases to refer to functions with different names
 * Connections between functions and values
 * Referring to a function's input by name in connections
+
+Functions Diagram
+===
+This diagram shows the exploded diagram of all functions in all flows, and their connections.
+![Full functions diagram](functions.dot.svg)

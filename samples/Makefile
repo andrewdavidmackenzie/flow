@@ -8,5 +8,5 @@ clean:
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true
 	@find . -name \*.txt -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot -type f -exec rm -rf {} + ; true
-	@find . -name \*.dot.png -type f -exec rm -rf {} + ; true
+	@find . -name \*.dot.svg -type f -exec rm -rf {} + ; true
 	@echo "------- Target 'samples/clean'" done

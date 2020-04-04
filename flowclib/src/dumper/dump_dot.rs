@@ -19,12 +19,11 @@ use crate::model::name::Name;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 use crate::model::process_reference::ProcessReference;
-use crate::model::route::FindRoute;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
 
-static INPUT_PORTS: &[&str] = &["n", "ne", "nw"];
-static OUTPUT_PORTS: &[&str] = &["s", "se", "sw"];
+static INPUT_PORTS: &[&str] = &["n", "ne", "nw", "w"];
+static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
 
 pub fn flow_to_dot(flow: &Flow, dot_file: &mut dyn Write) -> io::Result<String> {
     dot_file.write_all(digraph_wrapper_start(flow).as_bytes())?;
@@ -103,19 +102,43 @@ fn output_name_to_port<T: Hash>(t: &T) -> &str {
     OUTPUT_PORTS[index_from_name(t, OUTPUT_PORTS.len())]
 }
 
+/*
+    Determine if it's a given route is in this IOSet
+*/
+fn find(io_set: &IOSet, route: &Route) -> bool {
+    if let Some(ios) = io_set {
+        for io in ios {
+            if io.route() == route {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IOSet) -> String {
     let (from_route, number, array_index) = connection.from_io.route().without_trailing_array_index();
 
     let (from_node, from_label) = node_from_io_route(&from_route, connection.from_io.name(), input_set);
     let (to_node, to_label) = node_from_io_route(&connection.to_io.route(), &connection.to_io.name(), output_set);
-    let from_port = output_name_to_port(connection.from_io.name());
-    let to_port = input_name_to_port(connection.to_io.name());
+
+    let from_port = if connection.from_io.flow_io() {
+        "s"
+    } else {
+        output_name_to_port(connection.from_io.name())
+    };
+
+    let to_port = if connection.to_io.flow_io() {
+        "n"}
+    else {
+        input_name_to_port(connection.to_io.name())
+    };
 
     if array_index {
-        format!("\n\t\"{}\":{} -> \"{}\":{} [labeldistance=\"3\", taillabel=\"{}[{}]\", headlabel=\"{}\"];",
+        format!("\n\t\"{}\":{} -> \"{}\":{} [xlabel=\"{}[{}]\", headlabel=\"{}\"];",
                 from_node, from_port, to_node, to_port, from_label, number, to_label)
     } else {
-        format!("\n\t\"{}\":{} -> \"{}\":{} [labeldistance=\"3\", taillabel=\"{}\", headlabel=\"{}\"];",
+        format!("\n\t\"{}\":{} -> \"{}\":{} [xlabel=\"{}\", headlabel=\"{}\"];",
                 from_node, from_port, to_node, to_port, from_label, to_label)
     }
 }
@@ -130,11 +153,11 @@ fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IO
 */
 fn node_from_io_route(route: &Route, name: &Name, io_set: &IOSet) -> (String, String) {
     let mut label = "".to_string();
-    if !io_set.find(route) {
+    if !find(io_set, route) {
         label = name.to_string();
     }
 
-    if name.is_empty() || io_set.find(route) {
+    if name.is_empty() || find(io_set, route) {
         return (route.clone().to_string(), label);
     } else {
         let length_without_io_name = route.len() - name.len() - 1; // 1 for '/'
@@ -150,9 +173,6 @@ fn digraph_wrapper_start(flow: &Flow) -> String {
     wrapper.push_str(&format!("\tlabel=\"{}\";\n", flow.alias));
     wrapper.push_str("\tlabelloc=t;\n");
     wrapper.push_str("\tmargin=0.4;\n");
-    wrapper.push_str("\tcompound=true;\n");
-    wrapper.push_str("\tmodel=mds;\n");
-    wrapper.push_str("\tnodesep=1.0;\n");
 
     wrapper
 }
@@ -283,7 +303,7 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
             // Only add output if it's not got the same route as it's function i.e. it's not the default output
             if output.route() != from {
                 // Add an entry for each output using it's route
-                string.push_str(&format!("\t\"{}\" [label=\"{}\", rank=sink, shape=invhouse, style=filled, fillcolor=black, fontcolor=white];\n",
+                string.push_str(&format!("\t\"{}\" [label=\"{}\", shape=invhouse, style=filled, fillcolor=black, fontcolor=white];\n",
                                          output.route(), output.name()));
 
                 if connect_subflow {

@@ -5,6 +5,10 @@ Description
 ===
 A flow that generates a Fibonacci series of numbers and prints it out on `stdout`.
 
+Context Diagram
+===
+![Context diagram](fibonacci.dot.svg)
+
 Features Used
 ===
 * Context Flow
@@ -16,3 +20,8 @@ Features Used
 * Library Functions used (`toString` and `add` from `flowstdlib`) to convert Number to String and to add numbers
 * Use of aliases to refer to functions with different names inside a flow
 * Connections between flows, functions and values
+
+Functions Diagram
+===
+This diagram shows the exploded diagram of all functions in all flows, and their connections.
+![Full functions diagram](functions.dot.svg)

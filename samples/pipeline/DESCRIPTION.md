@@ -11,6 +11,10 @@ Using command line options (-j, -t) the flow can be invoked with just one worker
 becomes sequential. The metrics of how many jobs were able to be processed in parallel can
 be viewed using the -m command line option.
 
+Context Diagram
+===
+![Context diagram](pipeline.dot.svg)
+
 Features Used
 ===
 * Context Flow
@@ -20,3 +24,8 @@ Features Used
 * Use of aliases to refer to functions with different names
 * Connections between functions and values
 * Referring to a function's input by name in connections
+
+Functions Diagram
+===
+This diagram shows the exploded diagram of all functions in all flows, and their connections.
+![Full functions diagram](functions.dot.svg)

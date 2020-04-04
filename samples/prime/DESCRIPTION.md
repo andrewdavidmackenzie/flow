@@ -7,6 +7,14 @@ Description
 ===
 A flow that finds prime numbers upto the maximum specified in the input arguments
 
+Context Diagram
+===
+![Context diagram](prime.dot.svg)
+!['candidates' flow](candidates.dot.svg)
+!['composites' diagram](composites.dot.svg)
+!['divisors' diagram](divisors.dot.svg)
+!['generate_composites' diagram](generate_composites.dot.svg)
+
 Features Used
 ===
 * Context Flow
@@ -24,3 +32,8 @@ Features Used
     * `switch` function to stop or pass a data flow based on another one
     * `ToString` to convert Numbers to Strings
     * `stdout` to print a String to standard output
+    
+Functions Diagram
+===
+This diagram shows the exploded diagram of all functions in all flows, and their connections.
+![Full functions diagram](functions.dot.svg)

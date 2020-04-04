@@ -12,6 +12,10 @@ and the functions are made available as functions to the Flow project that is de
 in the toml files alongside - showing how native code can live alongside and be used by 
 the flow.
 
+Context Diagram
+===
+![Context diagram](mandlebrot.dot.svg)
+
 Features Used
 ===
 * Context Flow
@@ -23,3 +27,8 @@ Features Used
 * Library Functions used (`toString` and `add` from `flowstdlib`) to convert Number to String and to add numbers
 * Use of aliases to refer to functions with different names inside a flow
 * Connections between flows, functions and values
+
+Functions Diagram
+===
+This diagram shows the exploded diagram of all functions in all flows, and their connections.
+![Full functions diagram](functions.dot.svg)

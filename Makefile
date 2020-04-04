@@ -261,8 +261,8 @@ clean-dumps:
 	$(STIME)
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot -type f -exec rm -rf {} + ; true
-	@find . -name \*.dot.png -type f -exec rm -rf {} + ; true
-	@echo "\tAll .dump, .dot and .dot.png files removed"
+	@find . -name \*.dot.svg -type f -exec rm -rf {} + ; true
+	@echo "\tAll .dump, .dot and .dot.svg files removed"
 	$(ETIME)
 
 clean-guide:
@@ -275,6 +275,6 @@ dot-graphs:
 ifeq ($(DOT),)
 	@echo "\t'dot' not available, skipping 'dot-graphs'. Install 'graphviz' to use."
 else
-	@find . -name \*.dot -type f -exec dot -Tpng -O {} \;
-	@echo "\tGenerated .png files for all dot graphs found"
+	@find . -name \*.dot -type f -exec dot -Tsvg -O {} \;
+	@echo "\tGenerated .svg files for all dot graphs found"
 endif

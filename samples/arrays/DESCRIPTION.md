@@ -20,6 +20,10 @@ a job for each Number. You can see this by using the `-j` option of the runtime 
 jobs and the `-m` options to dump metrics after execution. The "Max Number of Parallel Jobs" should be similar or
 greater than 4, which is the size of the Array of Numbers formed.
 
+Context Diagram
+===
+![Context diagram](arrays.dot.svg)
+
 Features Used
 ===
 * Context Flow
@@ -28,3 +32,8 @@ Features Used
 * Library Functions
 * Implicit conversion between arrays of objects and objects done by run-time
 * Explicit conversion between a stream of objects and an array using the `compose_array` library function
+
+Functions Diagram
+===
+This diagram shows the exploded diagram of all functions in all flows, and their connections.
+![Full functions diagram](functions.dot.svg)

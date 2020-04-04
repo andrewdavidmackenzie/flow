@@ -5,6 +5,10 @@ Description
 ===
 A flow that calculates the factorial of a number and prints it out on `stdout`.
 
+Context Diagram
+===
+![Context diagram](factorial.dot.svg)
+
 Features Used
 ===
 * Context Flow
@@ -15,3 +19,8 @@ Features Used
 * Library Functions `to_number`, `multiply`, `subtract` from `flowstdlib`
 * Library Functions `tap`, `compare` from `flowstdlib`
 * Use of aliases to refer to functions with different names inside a flow
+
+Functions Diagram
+===
+This diagram shows the exploded diagram of all functions in all flows, and their connections.
+![Full functions diagram](functions.dot.svg)

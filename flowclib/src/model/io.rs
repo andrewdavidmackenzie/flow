@@ -13,7 +13,6 @@ use crate::model::datatype::DataType;
 use crate::model::datatype::HasDataType;
 use crate::model::name::HasName;
 use crate::model::name::Name;
-use crate::model::route::FindRoute;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
@@ -176,22 +175,6 @@ impl Validate for IOSet {
             }
         }
         Ok(())
-    }
-}
-
-impl FindRoute for IOSet {
-    /*
-        Determine if it's a given route is in this IOSet
-    */
-    fn find(&self, route: &Route) -> bool {
-        if let Some(ios) = self {
-            for io in ios {
-                if io.route() == route {
-                    return true;
-                }
-            }
-        }
-        false
     }
 }
 
