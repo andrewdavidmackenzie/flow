@@ -5,6 +5,10 @@ Description
 ===
 A flow that generates a Fibonacci series of numbers and prints it out on `stdout`.
 
+Context Diagram
+===
+![Context diagram](fibonacci.dot.png)
+
 Features Used
 ===
 * Context Flow

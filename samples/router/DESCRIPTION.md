@@ -9,6 +9,10 @@ This sample implements the algorithm (as described here https://github.com/andre
 calculating the shortest route from a start-point to an end-point through a simplified road 
 network.
 
+Context Diagram
+===
+![Context diagram](router.dot.png)
+
 Features Used
 ===
 TBD

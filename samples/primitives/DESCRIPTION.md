@@ -11,6 +11,10 @@ if it is greater or equal to it.
 The purpose is not to do anything useful, but just to show the use of and stress the semantics 
 of a number of the primitives.
 
+Context Diagram
+===
+![Context diagram](primitives.dot.png)
+
 Features Used
 ===
 * Context Flow

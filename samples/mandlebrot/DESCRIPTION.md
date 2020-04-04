@@ -12,6 +12,10 @@ and the functions are made available as functions to the Flow project that is de
 in the toml files alongside - showing how native code can live alongside and be used by 
 the flow.
 
+Context Diagram
+===
+![Context diagram](mandlebrot.dot.png)
+
 Features Used
 ===
 * Context Flow

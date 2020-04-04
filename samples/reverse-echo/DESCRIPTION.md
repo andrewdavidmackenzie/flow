@@ -5,6 +5,10 @@ Description
 ===
 Trivial flow that takes a line on `stdin`, reverses it and then prints it on `stdout`
 
+Context Diagram
+===
+![Context diagram](reverse-echo.dot.png)
+
 Features Used
 ===
 * Context Flow

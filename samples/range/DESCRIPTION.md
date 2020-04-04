@@ -5,6 +5,10 @@ Description
 ===
 A flow that generates a series of output numbers in a range between two input numbers
 
+Context Diagram
+===
+![Context diagram](range.dot.png)
+
 Features Used
 ===
 * Context Flow

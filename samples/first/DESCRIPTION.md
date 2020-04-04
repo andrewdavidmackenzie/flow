@@ -8,10 +8,12 @@ step-by-step by a human.
 
 It generates a series of numbers and prints it out on `stdout`, as per diagram below:
 
-![First flow](first-flow.dot.png)
-
 See the 'Understanding it' section in the guide to understand
 what this flow does and a 'step-by-step walkthrough' of its execution.
+
+Context Diagram
+===
+![Context diagram](first-flow.dot.png)
 
 Features Used
 ===

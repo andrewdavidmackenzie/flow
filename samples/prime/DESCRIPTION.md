@@ -7,6 +7,14 @@ Description
 ===
 A flow that finds prime numbers upto the maximum specified in the input arguments
 
+Context Diagram
+===
+![Context diagram](prime.dot.png)
+!['candidates' flow](candidates.dot.png)
+!['composites' diagram](composites.dot.png)
+!['divisors' diagram](divisors.dot.png)
+!['generate_composites' diagram](generate_composites.dot.png)
+
 Features Used
 ===
 * Context Flow

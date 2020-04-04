@@ -5,6 +5,12 @@ Description
 ===
 A flow that calculates the matrix product of two matrices.
 
+Context Diagram
+===
+![Context diagram](matrix_mult.dot.png)
+
+!['multiply' flow](multiply.dot.png)
+
 Features Used
 ===
 * Context Flow

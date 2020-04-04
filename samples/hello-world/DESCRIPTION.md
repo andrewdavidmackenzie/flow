@@ -5,6 +5,10 @@ Description
 ===
 A simple flow that prints "Hello World!" on `stdout`
 
+Context Diagram
+===
+![Context diagram](hello-world.dot.png)
+
 Features Used
 ===
 * Context Flow

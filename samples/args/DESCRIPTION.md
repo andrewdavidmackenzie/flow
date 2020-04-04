@@ -5,6 +5,10 @@ Description
 ===
 A flow that shows how arguments can be passed into a flow when executed and are available to functions at run-time.
 
+Context Diagram
+===
+![Context diagram](arg-print.dot.png)
+
 Features Used
 ===
 * Context Flow

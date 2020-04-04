@@ -11,6 +11,10 @@ Using command line options (-j, -t) the flow can be invoked with just one worker
 becomes sequential. The metrics of how many jobs were able to be processed in parallel can
 be viewed using the -m command line option.
 
+Context Diagram
+===
+![Context diagram](pipeline.dot.png)
+
 Features Used
 ===
 * Context Flow
