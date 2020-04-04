@@ -1,5 +1,6 @@
 **/manifest.json
 *.png
+*.svg
 *.wasm
 test.output
 test.err

@@ -13,7 +13,7 @@ of a number of the primitives.
 
 Context Diagram
 ===
-![Context diagram](primitives.dot.png)
+![Context diagram](primitives.dot.svg)
 
 Features Used
 ===
@@ -29,4 +29,4 @@ Features Used
 Functions Diagram
 ===
 This diagram shows the exploded diagram of all functions in all flows, and their connections.
-![Full functions diagram](functions.dot.png)
+![Full functions diagram](functions.dot.svg)

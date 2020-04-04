@@ -7,7 +7,7 @@ A simple flow that prints "Hello World!" on `stdout` using a sub-flow from anoth
 
 Context Diagram
 ===
-![Context diagram](hello-world-include.dot.png)
+![Context diagram](hello-world-include.dot.svg)
 
 Features Used
 ===
@@ -20,4 +20,4 @@ Features Used
 Functions Diagram
 ===
 This diagram shows the exploded diagram of all functions in all flows, and their connections.
-![Full functions diagram](functions.dot.png)
+![Full functions diagram](functions.dot.svg)

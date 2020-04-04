@@ -7,7 +7,7 @@ A flow that shows how arguments can be passed into a flow when executed and are 
 
 Context Diagram
 ===
-![Context diagram](arg-print.dot.png)
+![Context diagram](arg-print.dot.svg)
 
 Features Used
 ===
@@ -21,4 +21,4 @@ Features Used
 Functions Diagram
 ===
 This diagram shows the exploded diagram of all functions in all flows, and their connections.
-![Full functions diagram](functions.dot.png)
+![Full functions diagram](functions.dot.svg)

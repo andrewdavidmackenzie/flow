@@ -22,7 +22,7 @@ greater than 4, which is the size of the Array of Numbers formed.
 
 Context Diagram
 ===
-![Context diagram](arrays.dot.png)
+![Context diagram](arrays.dot.svg)
 
 Features Used
 ===
@@ -36,4 +36,4 @@ Features Used
 Functions Diagram
 ===
 This diagram shows the exploded diagram of all functions in all flows, and their connections.
-![Full functions diagram](functions.dot.png)
+![Full functions diagram](functions.dot.svg)

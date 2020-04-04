@@ -7,9 +7,9 @@ A flow that calculates the matrix product of two matrices.
 
 Context Diagram
 ===
-![Context diagram](matrix_mult.dot.png)
+![Context diagram](matrix_mult.dot.svg)
 
-!['multiply' flow](multiply.dot.png)
+!['multiply' flow](multiply.dot.svg)
 
 Features Used
 ===
@@ -27,4 +27,4 @@ Array/Array/Number (i.e. Matrix)
 Functions Diagram
 ===
 This diagram shows the exploded diagram of all functions in all flows, and their connections.
-![Full functions diagram](functions.dot.png)
+![Full functions diagram](functions.dot.svg)

@@ -7,7 +7,7 @@ A flow that generates a Fibonacci series of numbers and prints it out on `stdout
 
 Context Diagram
 ===
-![Context diagram](fibonacci.dot.png)
+![Context diagram](fibonacci.dot.svg)
 
 Features Used
 ===
@@ -24,4 +24,4 @@ Features Used
 Functions Diagram
 ===
 This diagram shows the exploded diagram of all functions in all flows, and their connections.
-![Full functions diagram](functions.dot.png)
+![Full functions diagram](functions.dot.svg)

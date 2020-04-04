@@ -13,7 +13,7 @@ be viewed using the -m command line option.
 
 Context Diagram
 ===
-![Context diagram](pipeline.dot.png)
+![Context diagram](pipeline.dot.svg)
 
 Features Used
 ===
@@ -28,4 +28,4 @@ Features Used
 Functions Diagram
 ===
 This diagram shows the exploded diagram of all functions in all flows, and their connections.
-![Full functions diagram](functions.dot.png)
+![Full functions diagram](functions.dot.svg)

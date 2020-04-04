@@ -11,7 +11,7 @@ network.
 
 Context Diagram
 ===
-![Context diagram](router.dot.png)
+![Context diagram](router.dot.svg)
 
 Features Used
 ===
@@ -20,4 +20,4 @@ TBD
 Functions Diagram
 ===
 This diagram shows the exploded diagram of all functions in all flows, and their connections.
-![Full functions diagram](functions.dot.png)
+![Full functions diagram](functions.dot.svg)
