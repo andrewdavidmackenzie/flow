@@ -121,14 +121,24 @@ fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IO
 
     let (from_node, from_label) = node_from_io_route(&from_route, connection.from_io.name(), input_set);
     let (to_node, to_label) = node_from_io_route(&connection.to_io.route(), &connection.to_io.name(), output_set);
-    let from_port = output_name_to_port(connection.from_io.name());
-    let to_port = input_name_to_port(connection.to_io.name());
+
+    let from_port = if connection.from_io.flow_io() {
+        "s"
+    } else {
+        output_name_to_port(connection.from_io.name())
+    };
+
+    let to_port = if connection.to_io.flow_io() {
+        "n"}
+    else {
+        input_name_to_port(connection.to_io.name())
+    };
 
     if array_index {
-        format!("\n\t\"{}\":{} -> \"{}\":{} [labeldistance=\"3\", taillabel=\"{}[{}]\", headlabel=\"{}\"];",
+        format!("\n\t\"{}\":{} -> \"{}\":{} [xlabel=\"{}[{}]\", headlabel=\"{}\"];",
                 from_node, from_port, to_node, to_port, from_label, number, to_label)
     } else {
-        format!("\n\t\"{}\":{} -> \"{}\":{} [labeldistance=\"3\", taillabel=\"{}\", headlabel=\"{}\"];",
+        format!("\n\t\"{}\":{} -> \"{}\":{} [xlabel=\"{}\", headlabel=\"{}\"];",
                 from_node, from_port, to_node, to_port, from_label, to_label)
     }
 }
@@ -163,9 +173,6 @@ fn digraph_wrapper_start(flow: &Flow) -> String {
     wrapper.push_str(&format!("\tlabel=\"{}\";\n", flow.alias));
     wrapper.push_str("\tlabelloc=t;\n");
     wrapper.push_str("\tmargin=0.4;\n");
-    wrapper.push_str("\tcompound=true;\n");
-    wrapper.push_str("\tmodel=mds;\n");
-    wrapper.push_str("\tnodesep=1.0;\n");
 
     wrapper
 }
