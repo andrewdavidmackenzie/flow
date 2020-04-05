@@ -38,6 +38,17 @@
     - [Standard Input and Output](docs/running/stdio.md)
     - [Exceptions and Panics](docs/running/panics.md)
 
+- [The flowruntime functions](flowruntime/README.md)
+    - [Arg functions](flowruntime/args/args.md)
+        - [Arg get function](flowruntime/args/get.md)
+    - [File functions](flowruntime/file/file.md)
+        - [File Write function](flowruntime/file/file_write.md)
+    - [Standard IO functions](flowruntime/stdio/stdio.md)
+        - [Readlin function](flowruntime/stdio/readline.md)
+        - [Standard Input function](flowruntime/stdio/stdin.md)
+        - [Standard Output function](flowruntime/stdio/stdout.md)
+        - [Standard Error function](flowruntime/stdio/stderr.md)
+
 - [Test Samples](flowc/tests/samples/README.md)
     - [hello-world](flowc/tests/samples/hello-world/hello-world.md)
     - [line-echo](flowc/tests/samples/line-echo/line-echo.md)
@@ -60,17 +71,6 @@
     - [reverse-echo sample](samples/reverse-echo/DESCRIPTION.md)
     - [router sample](samples/router/DESCRIPTION.md)
 
-- [The flowruntime functions](flowruntime/README.md)
-    - [Arg functions](flowruntime/args/args.md)
-        - [Arg get function](flowruntime/args/get.md)
-    - [File functions](flowruntime/file/file.md)
-        - [File Write function](flowruntime/file/file_write.md)
-    - [Standard IO functions](flowruntime/stdio/stdio.md)
-        - [Readlin function](flowruntime/stdio/readline.md)
-        - [Standard Input function](flowruntime/stdio/stdin.md)
-        - [Standard Output function](flowruntime/stdio/stdout.md)
-        - [Standard Error function](flowruntime/stdio/stderr.md)
-        
 - [Known `flow` libraries](docs/libraries/known-libraries.md)
     - [The flow standard library](flowstdlib/README.md)
 
