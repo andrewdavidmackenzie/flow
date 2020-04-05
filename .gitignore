@@ -6,6 +6,5 @@
 cov
 .crates.toml
 bin
-flowstdlib/manifest.json
 **/*.wasm
 **/*.rs.bk
