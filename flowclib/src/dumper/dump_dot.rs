@@ -198,7 +198,7 @@ fn fn_to_dot(function: &Function) -> String {
 
 
 // Given a Function as used in the code generation - generate a "dot" format string to draw it
-fn function_to_dot(function: &Function, functions: &Vec<Box<Function>>) -> String {
+fn function_to_dot(function: &Function, functions: &[Function]) -> String {
     let mut function_string = String::new();
 
     function_string.push_str(&format!("r{}[style=filled, fillcolor=coral, label=\"{} (#{})\"];\n",
@@ -336,7 +336,7 @@ fn process_reference_to_dot(process_ref: &ProcessReference) -> String {
 fn output_compiled_function(route: &Route, tables: &GenerationTables, output: &mut String) {
     for function in &tables.functions {
         if function.route() == route {
-            output.push_str(&function_to_dot(&**function, &tables.functions));
+            output.push_str(&function_to_dot(function, &tables.functions));
         }
     }
 }

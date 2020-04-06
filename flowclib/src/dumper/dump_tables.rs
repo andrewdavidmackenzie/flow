@@ -32,22 +32,20 @@ use crate::model::flow::Flow;
 ///     }
 /// }
 ///
-/// fn main() {
-///     let dummy_provider = DummyProvider {};
-///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-///     println!("url = {:?}", url);
-///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
+/// let dummy_provider = DummyProvider {};
+/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// println!("url = {:?}", url);
+/// url = url.join("samples/hello-world-simple/context.toml").unwrap();
 ///
-///     if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url.to_string(),
+/// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url.to_string(),
 ///                                                           &dummy_provider).unwrap() {
-///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
-///         let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
+///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
+///     let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///
-///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
-///         let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
+///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
+///     let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
 ///
-///         flowclib::dumper::dump_tables::dump_tables(&tables, &output_dir).unwrap();
-///     }
+///     flowclib::dumper::dump_tables::dump_tables(&tables, &output_dir).unwrap();
 /// }
 /// ```
 ///
@@ -95,19 +93,17 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Resul
 ///     }
 /// }
 ///
-/// fn main() {
-///     let dummy_provider = DummyProvider {};
-///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-///     println!("url = {:?}", url);
-///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
+/// let dummy_provider = DummyProvider {};
+/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// println!("url = {:?}", url);
+/// url = url.join("samples/hello-world-simple/context.toml").unwrap();
 ///
-///     if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url.to_string(),
+/// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url.to_string(),
 ///                                                           &dummy_provider).unwrap() {
-///         let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
-///         let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
+///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
+///     let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///
-///         flowclib::dumper::dump_tables::dump_functions(&flow, &tables, &output_dir).unwrap();
-///     }
+///     flowclib::dumper::dump_tables::dump_functions(&flow, &tables, &output_dir).unwrap();
 /// }
 /// ```
 pub fn dump_functions(flow: &Flow, tables: &GenerationTables, output_dir: &PathBuf) -> io::Result<String> {

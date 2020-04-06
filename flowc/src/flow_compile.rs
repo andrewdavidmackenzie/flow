@@ -172,7 +172,7 @@ fn find_executable_path(name: &str) -> Result<String> {
     If the process exits correctly then just return an Ok() with message and no log
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
-fn execute_flow(filepath: &PathBuf, flow_args: &Vec<String>) -> Result<String> {
+fn execute_flow(filepath: &PathBuf, flow_args: &[String]) -> Result<String> {
     info!("Executing flow from manifest in '{}'", filepath.display());
 
     let command = find_executable_path(&get_executable_name())?;
@@ -180,7 +180,7 @@ fn execute_flow(filepath: &PathBuf, flow_args: &Vec<String>) -> Result<String> {
     if !flow_args.contains(&"-n".to_string()) {
         command_args.push("-n".to_string());
     }
-    command_args.append(&mut flow_args.clone());
+    command_args.append(&mut flow_args.to_vec());
     debug!("Running flow using '{} {:?}'", &command, &command_args);
     let output = Command::new(&command).args(command_args)
         .stdin(Stdio::inherit())

@@ -32,18 +32,15 @@ use crate::model::process::Process::FlowProcess;
 ///     }
 /// }
 ///
-/// fn main() {
+/// let dummy_provider = DummyProvider {};
+/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
+/// url = url.join("samples/hello-world-simple/context.toml").unwrap();
 ///
-///     let dummy_provider = DummyProvider {};
-///     let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-///     url = url.join("samples/hello-world-simple/context.toml").unwrap();
+/// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url.to_string(),
+///                                                    &dummy_provider).unwrap() {
+///     let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
 ///
-///     if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url.to_string(),
-///                                                       &dummy_provider).unwrap() {
-///         let output_dir = tempdir::TempDir::new("dumper").unwrap().into_path();
-///
-///         flowclib::dumper::dump_flow::dump_flow(&flow, &output_dir).unwrap();
-///     }
+///     flowclib::dumper::dump_flow::dump_flow(&flow, &output_dir).unwrap();
 /// }
 /// ```
 pub fn dump_flow(flow: &Flow, output_dir: &PathBuf) -> io::Result<String> {

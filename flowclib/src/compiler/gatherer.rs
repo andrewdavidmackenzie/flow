@@ -27,7 +27,7 @@ pub fn gather_functions_and_connections(flow: &Flow, tables: &mut GenerationTabl
                 }
                 FunctionProcess(ref function) => {
                     // Add Functions from this flow to the table of functions
-                    tables.functions.push(Box::new(function.clone()));
+                    tables.functions.push(function.clone());
                 }
             }
         }
@@ -44,7 +44,7 @@ pub fn gather_functions_and_connections(flow: &Flow, tables: &mut GenerationTabl
     Give each function a unique index that will later be used to indicate where outputs get sent
     to, and used in code generation.
 */
-pub fn index_functions(functions: &mut Vec<Box<Function>>) {
+pub fn index_functions(functions: &mut Vec<Function>) {
     for (index, function) in functions.into_iter().enumerate() {
         function.set_id(index);
     }
