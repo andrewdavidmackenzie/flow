@@ -92,9 +92,9 @@ impl Function {
                inputs: Vec<Input>,
                id: usize,
                flow_id: usize,
-               output_routes: &Vec<OutputConnection>,
-               include_destination_routes: bool) -> Function {
-        let mut routes = (*output_routes).clone();
+               output_routes: &[OutputConnection],
+               include_destination_routes: bool) -> Self {
+        let mut routes = output_routes.to_vec();
 
         // Remove destination routes if not wanted
         if !include_destination_routes {
