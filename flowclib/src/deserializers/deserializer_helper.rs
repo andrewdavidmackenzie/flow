@@ -8,7 +8,7 @@ const TOML: &dyn Deserializer = &FlowTomelLoader as &dyn Deserializer;
 const YAML: &dyn Deserializer = &FlowYamlLoader as &dyn Deserializer;
 const JSON: &dyn Deserializer = &FlowJsonLoader as &dyn Deserializer;
 
-pub const ACCEPTED_EXTENSIONS: &'static [&'static str] = &["toml", "yaml", "json", "yml"];
+pub const ACCEPTED_EXTENSIONS: &[&str] = &["toml", "yaml", "json", "yml"];
 
 pub fn get_deserializer(url: &str) -> Result<&'static dyn Deserializer, String> {
     match get_file_extension(url) {
@@ -20,7 +20,7 @@ pub fn get_deserializer(url: &str) -> Result<&'static dyn Deserializer, String> 
                 _ => Err("Unknown file extension so cannot determine which loader to use".to_string())
             }
         }
-        Err(e) => Err(format!("Cannot determine which loader to use ({})", e.to_string())
+        Err(e) => Err(format!("Cannot determine which loader to use ({})", e)
         )
     }
 }
@@ -30,7 +30,7 @@ pub fn get_accepted_extensions() -> &'static [&'static str] {
 }
 
 fn get_file_extension(url: &str) -> Result<String, String> {
-    let segments = url.split("/");
+    let segments = url.split('/');
     let last_segment = segments.last().ok_or_else(|| "no segments")?;
     let splits: Vec<&str> = last_segment.split('.').collect();
     if splits.len() < 2 {

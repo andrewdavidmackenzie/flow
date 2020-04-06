@@ -142,22 +142,22 @@ impl Validate for Function {
 
 impl fmt::Display for Function {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "name: \t\t{}\n", self.name)?;
-        write!(f, "alias: \t\t{}\n", self.alias)?;
-        write!(f, "id: \t\t{}\n", self.id)?;
-        write!(f, "flow_id: \t\t{}\n", self.flow_id)?;
+        writeln!(f, "name: \t\t{}", self.name)?;
+        writeln!(f, "alias: \t\t{}", self.alias)?;
+        writeln!(f, "id: \t\t{}", self.id)?;
+        writeln!(f, "flow_id: \t\t{}", self.flow_id)?;
 
-        write!(f, "inputs:\n")?;
+        writeln!(f, "inputs:")?;
         if let Some(ref inputs) = self.inputs {
             for input in inputs {
-                write!(f, "\t{:#?}\n", input)?;
+                writeln!(f, "\t{:#?}", input)?;
             }
         }
 
-        write!(f, "outputs:\n")?;
+        writeln!(f, "outputs:")?;
         if let Some(ref outputs) = self.outputs {
             for output in outputs {
-                write!(f, "\t{:#?}\n", output)?;
+                writeln!(f, "\t{:#?}", output)?;
             }
         }
 

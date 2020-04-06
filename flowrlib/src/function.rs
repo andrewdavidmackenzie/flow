@@ -62,18 +62,18 @@ impl fmt::Display for Function {
         }
 
         if !self.route.is_empty() {
-            write!(f, " @ route '{}'\n", self.route)?;
+            writeln!(f, " @ route '{}'", self.route)?;
         }
 
         for (number, input) in self.inputs.iter().enumerate() {
             if input.is_empty() {
-                write!(f, "\tInput :{} is empty\n", number)?;
+                writeln!(f, "\tInput :{} is empty", number)?;
             } else {
-                write!(f, "\tInput :{} has value '{}'\n", number, input)?;
+                writeln!(f, "\tInput :{} has value '{}'", number, input)?;
             }
         }
         for output_route in &self.output_routes {
-            write!(f, "\t{}\n", output_route)?;
+            writeln!(f, "\t{}", output_route)?;
         }
         write!(f, "")
     }
@@ -146,10 +146,8 @@ impl Function {
     /// Initialize all of a `Functions` `Inputs` - as they may have initializers that need running
     pub fn init_inputs(&mut self, first_time: bool) {
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
-            if input.is_empty() {
-                if input.init(first_time) {
-                    trace!("\t\tInput #{}:{} set from initializer", self.id, io_number);
-                }
+            if input.is_empty() && input.init(first_time) {
+                trace!("\t\tInput #{}:{} set from initializer", self.id, io_number);
             }
         }
     }
@@ -199,7 +197,7 @@ impl Function {
             }
         }
 
-        return true;
+        true
     }
 
     #[cfg(feature = "debugger")]

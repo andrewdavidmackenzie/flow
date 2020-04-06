@@ -26,7 +26,7 @@ pub fn url_from_string(string: Option<&str>) -> Result<Url> {
     match string {
         None => {
             info!("No url specified, so using: '{}'", parent);
-            Ok(parent.clone())
+            Ok(parent)
         }
         Some(url_string) => {
             parent.join(url_string)

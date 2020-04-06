@@ -165,7 +165,7 @@ impl Validate for IOSet {
             for io in ios {
                 io.validate()?;
 
-                if io.name.is_empty() && ios.len() > 0 {
+                if io.name.is_empty() && !ios.is_empty() {
                     bail!("Cannot have empty IO name when there are multiple IOs");
                 }
 
@@ -180,8 +180,8 @@ impl Validate for IOSet {
 
 impl SetIORoutes for IOSet {
     fn set_io_routes_from_parent(&mut self, parent: &Route, io_type: IOType) {
-        if let &mut Some(ref mut ios) = self {
-            for ref mut io in ios {
+        if let Some(ref mut ios) = *self {
+            for io in ios {
                 io.set_route_from_parent(parent, &io_type)
             }
         }

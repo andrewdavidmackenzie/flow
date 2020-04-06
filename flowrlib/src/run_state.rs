@@ -366,14 +366,12 @@ impl RunState {
     pub fn get_state(&self, function_id: usize) -> State {
         if self.ready.contains(&function_id) {
             State::Ready
+        } else if self.blocked.contains(&function_id) {
+            State::Blocked
+        } else if self.running.contains_key(&function_id) {
+            State::Running
         } else {
-            if self.blocked.contains(&function_id) {
-                State::Blocked
-            } else if self.running.contains_key(&function_id) {
-                State::Running
-            } else {
-                State::Waiting
-            }
+            State::Waiting
         }
     }
 
@@ -913,7 +911,7 @@ impl RunState {
             // State::Running is because functions with initializers auto-refill when sent to run
             // So they will show as inputs full, but not Ready or Blocked
             let state = self.get_state(function.id());
-            if (function.inputs().len() > 0) && function.inputs_full() &&
+            if (!function.inputs().is_empty()) && function.inputs_full() &&
                 !(state == State::Ready || state == State::Blocked || state == State::Running) {
                 error!("{}", function);
                 return self.runtime_error(job_id, &format!("Function #{} inputs are full, but it is not Ready or Blocked", function.id()),
@@ -965,13 +963,13 @@ impl RunState {
 #[cfg(any(feature = "logging", feature = "debugger"))]
 impl fmt::Display for RunState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "RunState:\n")?;
-        write!(f, "    Jobs Executed: {}\n", self.jobs_sent)?;
-        write!(f, "Functions Blocked: {:?}\n", self.blocked)?;
-        write!(f, "           Blocks: {:?}\n", self.blocks)?;
-        write!(f, "  Functions Ready: {:?}\n", self.ready)?;
-        write!(f, "Functions Running: {:?}\n", self.running)?;
-        write!(f, "       Flows Busy: {:?}\n", self.busy_flows)?;
+        writeln!(f, "RunState:")?;
+        writeln!(f, "    Jobs Executed: {}", self.jobs_sent)?;
+        writeln!(f, "Functions Blocked: {:?}", self.blocked)?;
+        writeln!(f, "           Blocks: {:?}", self.blocks)?;
+        writeln!(f, "  Functions Ready: {:?}", self.ready)?;
+        writeln!(f, "Functions Running: {:?}", self.running)?;
+        writeln!(f, "       Flows Busy: {:?}", self.busy_flows)?;
         write!(f, " Pending Unblocks: {:?}", self.pending_unblocks)
     }
 }

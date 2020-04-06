@@ -81,7 +81,7 @@ impl Loader {
         // find in a library, or load the supplied implementation - as specified by the source
         for function in &mut flow_manifest.functions {
             let implementation_source_url = function.implementation_location().to_string();
-            let parts: Vec<_> = implementation_source_url.split(":").collect();
+            let parts: Vec<_> = implementation_source_url.split(':').collect();
             match parts[0] {
                 "lib" => {
                     let implementation = self.global_lib_implementations.get(function.implementation_location())

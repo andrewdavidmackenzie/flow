@@ -101,13 +101,13 @@ pub fn create_manifest(flow: &Flow, debug_symbols: bool, manifest_dir: &str, tab
     manifest_dir is the directory that paths will be made relative to.
 */
 fn function_to_runtimefunction(manifest_dir: &str, function: &Box<Function>, debug_symbols: bool) -> Result<RuntimeFunction> {
-    let mut name = function.alias().to_string();
-    let mut route = function.route().to_string();
+    let name = if debug_symbols {
+        function.alias().to_string()
+    } else { "".to_string() };
 
-    if !debug_symbols {
-        name = "".to_string();
-        route = "".to_string();
-    }
+    let route = if debug_symbols {
+        function.route().to_string()
+    } else { "".to_string() };
 
     // make the location of implementation relative to the output directory if it is under it
     let implementation_location = implementation_location_relative(&function, manifest_dir)?;

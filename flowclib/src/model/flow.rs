@@ -88,34 +88,34 @@ impl Validate for Flow {
 
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\tname: \t\t\t{}\n\tid: \t\t\t{}\n\talias: \t\t\t{}\n\tsource_url: \t{}\n\troute: \t\t\t{}\n",
+        writeln!(f, "\tname: \t\t\t{}\n\tid: \t\t\t{}\n\talias: \t\t\t{}\n\tsource_url: \t{}\n\troute: \t\t\t{}",
                self.name, self.id, self.alias, self.source_url, self.route).unwrap();
 
-        write!(f, "\tinputs:\n").unwrap();
+        writeln!(f, "\tinputs:").unwrap();
         if let Some(ref inputs) = self.inputs {
             for input in inputs {
-                write!(f, "\t\t\t\t\t{:#?}\n", input).unwrap();
+                writeln!(f, "\t\t\t\t\t{:#?}", input).unwrap();
             }
         }
 
-        write!(f, "\touputs:\n").unwrap();
+        writeln!(f, "\touputs:").unwrap();
         if let Some(ref outputs) = self.outputs {
             for output in outputs {
-                write!(f, "\t\t\t\t\t{:#?}\n", output).unwrap();
+                writeln!(f, "\t\t\t\t\t{:#?}", output).unwrap();
             }
         }
 
-        write!(f, "\tprocesses:\n").unwrap();
+        writeln!(f, "\tprocesses:").unwrap();
         if let Some(ref process_refs) = self.process_refs {
             for flow_ref in process_refs {
-                write!(f, "\t{}\n", flow_ref).unwrap();
+                writeln!(f, "\t{}", flow_ref).unwrap();
             }
         }
 
-        write!(f, "\tconnections: \t\n").unwrap();
+        writeln!(f, "\tconnections:").unwrap();
         if let Some(ref connections) = self.connections {
             for connection in connections {
-                write!(f, "\t\t\t\t\t{}\n", connection).unwrap();
+                writeln!(f, "\t\t\t\t\t{}", connection).unwrap();
             }
         }
 
@@ -250,7 +250,7 @@ impl Flow {
     pub fn get_route_and_type(&mut self, direction: Direction, route: &Route,
                               initial_value: &Option<InputInitializer>) -> Result<IO> {
         let segments: Vec<&str> = route.split('/').collect();
-        if segments.len() < 1 {
+        if segments.is_empty() {
             bail!("Invalid connection {:?} '{}'", direction, route);
         }
 

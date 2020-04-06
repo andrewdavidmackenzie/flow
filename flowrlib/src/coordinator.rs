@@ -135,12 +135,10 @@ impl Coordinator {
         let shared_job_receiver = Arc::new(Mutex::new(job_rx));
         execution::start_executors(num_threads, &shared_job_receiver, &output_tx);
 
-        let coordinator = Coordinator {
+        Coordinator {
             job_tx,
             job_rx: output_rx,
-        };
-
-        coordinator
+        }
     }
 
     /// Start execution of a flow, by submitting a `Submission` to the coordinator
@@ -225,7 +223,7 @@ impl Coordinator {
                 }
 
                 if !restart {
-                    self.flow_done(&mut submission);
+                    self.flow_done(&submission);
                     return;
                 }
             }

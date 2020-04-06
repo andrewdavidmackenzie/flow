@@ -24,7 +24,7 @@ pub fn get_output_dir(url: &Url, option: Option<&str>) -> Result<PathBuf> {
             "file" => {
                 let dir = url.to_file_path()
                     .map_err(|_| format!("Error converting url to file path\nurl = '{}'", url))?;
-                output_dir = dir.clone();
+                output_dir = dir;
                 if output_dir.is_file() {
                     output_dir.pop(); // remove trailing filename
                 }
@@ -32,7 +32,7 @@ pub fn get_output_dir(url: &Url, option: Option<&str>) -> Result<PathBuf> {
             // If not from a file, then create a dir with flow name under a temp dir
             _ => {
                 let dir = TempDir::new("flow")
-                    .chain_err(|| format!("Error creating new TempDir"))?;
+                    .chain_err(|| "Error creating new TempDir".to_string())?;
                 output_dir = dir.into_path();
             }
         }

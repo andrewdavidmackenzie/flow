@@ -18,29 +18,29 @@ use provider::content::file_provider::FileProvider;
 
 use crate::compile_wasm;
 use crate::errors::*;
+use crate::Options;
 
 /*
     Compile a Library
 */
-pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn Provider, release: bool)
-    -> Result<String> {
-    let library = loader::load_library(&url.to_string(), provider)
-        .chain_err(|| format!("Could not load Library from '{}'", lib_dir.display()))?;
+pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
+    let library = loader::load_library(&options.url.to_string(), provider)
+        .chain_err(|| format!("Could not load Library from '{}'", options.output_dir.display()))?;
 
     info!("Building manifest for '{}' library", library.name);
     let mut lib_manifest = LibraryManifest::new(MetaData::from(&library));
 
-    let mut base_dir = lib_dir.display().to_string();
+    let mut base_dir = options.output_dir.display().to_string();
     // ensure basedir always ends in '/'
-    if !base_dir.ends_with("/") {
+    if !base_dir.ends_with('/') {
         base_dir = format!("{}/", base_dir);
     }
 
     let build_count = compile_implementations(&mut lib_manifest, &base_dir, provider,
-                                              skip_building, release)
+                                              options.skip_generation, options.release)
         .chain_err(|| "Could not build library")?;
 
-    let manifest_file = manifest_file(lib_dir);
+    let manifest_file = manifest_file(&options.output_dir);
     let manifest_exists = manifest_file.exists() && manifest_file.is_file();
 
     if manifest_exists {
@@ -48,7 +48,7 @@ pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn
             info!("Library manifest exists, but implementations were built, so updating manifest file");
             write_lib_manifest(&lib_manifest, &manifest_file)?;
         } else {
-            let provider = &FileProvider{} as &dyn Provider;
+            let provider = &FileProvider {} as &dyn Provider;
             let manifest_file_as_url = Url::from_file_path(&manifest_file).unwrap().to_string();
             if let Ok((existing_manifest, _)) = LibraryManifest::load(provider, &manifest_file_as_url) {
                 if existing_manifest != lib_manifest {
@@ -68,10 +68,10 @@ pub fn build_lib(url: Url, skip_building: bool, lib_dir: PathBuf, provider: &dyn
         write_lib_manifest(&lib_manifest, &manifest_file)?;
     }
 
-    Ok(format!("Library '{}' built successfully", url.to_string()))
+    Ok(format!("Library '{}' built successfully", options.url.to_string()))
 }
 
-fn manifest_file(base_dir: PathBuf) -> PathBuf {
+fn manifest_file(base_dir: &PathBuf) -> PathBuf {
     let mut filename = base_dir.clone();
     filename.push(DEFAULT_LIB_MANIFEST_FILENAME.to_string());
     filename.set_extension("json");

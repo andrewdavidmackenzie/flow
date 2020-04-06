@@ -155,7 +155,7 @@ fn config_function(function: &mut Function, implementation_url: &str, parent_rou
                    -> Result<()> {
     function.set_flow_id(flow_id);
     function.set_alias(alias);
-    function.set_implementation_url(implementation_url.clone());
+    function.set_implementation_url(implementation_url);
     function.set_lib_reference(lib_ref);
     function.set_routes_from_parent(parent_route);
     IO::set_initial_values(&mut function.inputs, initializations);

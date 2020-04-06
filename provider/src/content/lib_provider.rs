@@ -55,7 +55,7 @@ impl Provider for LibProvider {
         let lib_name = url.host_str()
             .chain_err(|| format!("'lib_name' could not be extracted from host part of url '{}'", url))?;
 
-        if let Err(_) = env::var("FLOW_LIB_PATH") {
+        if env::var("FLOW_LIB_PATH").is_err() {
             let parent_dir = std::env::current_dir().unwrap();
             debug!("Setting 'FLOW_LIB_PATH' to '{}'", parent_dir.to_string_lossy().to_string());
             env::set_var("FLOW_LIB_PATH", parent_dir.to_string_lossy().to_string());
@@ -67,7 +67,7 @@ impl Provider for LibProvider {
 
         // Once we've foudn the (file) path where the library resides, append the rest of the
         // url path to it, to form a path to the directory where the process being loaded resides
-        if url.path().len() > 0 {
+        if !url.path().is_empty() {
             lib_path.push(&url.path()[1..]);
         }
 
@@ -81,7 +81,7 @@ impl Provider for LibProvider {
                 // It's a file and it exists, so just return the path
                 let lib_path_url = Url::from_file_path(&lib_path)
                     .map_err(|_| format!("Could not create Url from '{:?}'", &lib_path))?;
-                return Ok((lib_path_url.to_string(), Some(lib_ref.to_string())));
+                return Ok((lib_path_url.to_string(), Some(lib_ref)));
             }
 
             let provided_implementation_filename = lib_path.file_name().unwrap().to_str().unwrap();
@@ -90,7 +90,7 @@ impl Provider for LibProvider {
             for filename in [default_filename, provided_implementation_filename].iter() {
                 let file = FileProvider::find_file(&lib_path, filename, _extensions);
                 if let Ok(file_path_as_url) = file {
-                    return Ok(( file_path_as_url, Some(lib_ref.to_string())));
+                    return Ok(( file_path_as_url, Some(lib_ref)));
                 }
             }
 
@@ -103,7 +103,7 @@ impl Provider for LibProvider {
             if implementation_path.exists() {
                 let lib_path_url = Url::from_file_path(&implementation_path)
                     .map_err(|_| format!("Could not create Url from '{:?}'", &implementation_path))?;
-                return Ok((lib_path_url.to_string(), Some(lib_ref.to_string())));
+                return Ok((lib_path_url.to_string(), Some(lib_ref)));
             }
             bail!("Could not locate a folder called '{}' or an implementation file called '{}' in 'FLOW_LIB_PATH'",
             lib_path.display(), implementation_path.display())

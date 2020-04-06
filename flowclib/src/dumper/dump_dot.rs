@@ -82,7 +82,7 @@ pub fn functions_to_dot(flow: &Flow, tables: &GenerationTables, output_dir: &Pat
 
     dot_file.write_all(functions.as_bytes())?;
 
-    dot_file.write_all("}".as_bytes())?;
+    dot_file.write_all(b"}")?;
 
     Ok("Dot file written".to_string())
 }
@@ -152,16 +152,13 @@ fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IO
     route and return that.
 */
 fn node_from_io_route(route: &Route, name: &Name, io_set: &IOSet) -> (String, String) {
-    let mut label = "".to_string();
-    if !find(io_set, route) {
-        label = name.to_string();
-    }
+    let label = if !find(io_set, route) { name.to_string() } else { "".to_string() };
 
     if name.is_empty() || find(io_set, route) {
-        return (route.clone().to_string(), label);
+        (route.clone().to_string(), label)
     } else {
         let length_without_io_name = route.len() - name.len() - 1; // 1 for '/'
-        return (route.clone()[..length_without_io_name].to_string(), label);
+        (route.clone()[..length_without_io_name].to_string(), label)
     }
 }
 
@@ -188,7 +185,7 @@ fn fn_to_dot(function: &Function) -> String {
     let name = if function.name() == function.alias() {
         "".to_string()
     } else {
-        format!("\\n({})", function.name()).to_string()
+        format!("\\n({})", function.name())
     };
 
     dot_string.push_str(&format!("\t\"{}\" [style=filled, fillcolor=coral, label=\"{}{}\"]; // function @ route, label = function name \n",

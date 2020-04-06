@@ -386,7 +386,7 @@ impl Debugger {
     }
 
     fn step(&mut self, state: &RunState, steps: Option<Param>) -> Response {
-        return match steps {
+        match steps {
             None => {
                 self.break_at_job = state.jobs() + 1;
                 Ack
@@ -398,7 +398,7 @@ impl Debugger {
             _ => {
                 Error("Did not understand step command parameter\n".into())
             }
-        };
+        }
     }
 
 
@@ -442,7 +442,7 @@ impl Debugger {
             if !visited_nodes.contains(&blocker.function_id) {
                 let mut blocker_subtree = self.traverse_blocker_tree(state, visited_nodes,
                                                                      root_node_id, blocker);
-                if blocker_subtree.len() > 0 {
+                if !blocker_subtree.is_empty() {
                     // insert this node at the head of the list of blocking nodes
                     blocker_subtree.insert(0, blocker.clone());
                     return blocker_subtree;
@@ -473,7 +473,7 @@ impl Debugger {
 
             let deadlock_set = self.traverse_blocker_tree(state, &mut visited_nodes,
                                                           *blocked_process_id, &mut root_node);
-            if deadlock_set.len() > 0 {
+            if !deadlock_set.is_empty() {
                 response.push_str(&format!("{}\n", Self::display_set(&root_node, deadlock_set)));
             }
         }

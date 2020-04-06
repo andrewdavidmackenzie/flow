@@ -56,6 +56,7 @@ impl fmt::Display for Input {
     }
 }
 
+#[allow(clippy::trivially_copy_pass_by_ref)] // As this is imposed on us by serde
 fn is_default_depth(depth: &usize) -> bool {
     *depth == default_depth()
 }
@@ -115,7 +116,7 @@ impl Input {
 
     /// Add a value to this `Input`
     pub fn push(&mut self, value: Value) {
-        self.received.push(value.clone());
+        self.received.push(value);
 
         // HACK to allow external flow value to overwrite a self-refresh
         // See https://github.com/andrewdavidmackenzie/flow/issues/547

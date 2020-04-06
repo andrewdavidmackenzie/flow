@@ -74,19 +74,17 @@ pub fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &R
     if let Some(&(ref route, function_index)) = source {
         if is_array_output {
             if route.is_empty() {
-                return Some((Route::from(&format!("/{}", array_index)), function_index));
+                Some((Route::from(&format!("/{}", array_index)), function_index))
             } else {
-                return Some((Route::from(&format!("/{}/{}", route, array_index)), function_index));
+                Some((Route::from(&format!("/{}/{}", route, array_index)), function_index))
             }
+        } else if route.is_empty() {
+            Some((route.clone(), function_index))
         } else {
-            if route.is_empty() {
-                return Some((route.clone(), function_index));
-            } else {
-                return Some((Route::from(&format!("/{}", route.to_string())), function_index));
-            }
+            Some((Route::from(&format!("/{}", route.to_string())), function_index))
         }
     } else {
-        return None;
+        None
     }
 }
 
@@ -229,9 +227,9 @@ pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Conne
     debug!("Working on {} flow hierarchy connections", original_connections.len());
 
     for connection in original_connections {
-        match connection.from_io.io_type() {
+        match *connection.from_io.io_type() {
             // connection starts at a Function
-            &IOType::FunctionIO => {
+            IOType::FunctionIO => {
                 debug!("Trying to create connection from function output at '{}' (level={})",
                        connection.from_io.route(), connection.level);
                 if *connection.to_io.io_type() == IOType::FunctionIO {

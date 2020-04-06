@@ -62,7 +62,7 @@ impl HttpProvider {
             easy.perform().unwrap();
 
             if easy.response_code().unwrap() == 200 {
-                return Ok(resource_with_extension.to_string());
+                return Ok(resource_with_extension);
             }
         }
 

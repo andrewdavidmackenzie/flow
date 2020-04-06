@@ -38,7 +38,7 @@ impl DataType {
                 bail!("Type '{}' is invalid", &self);
             }
         }
-        return Ok(());
+        Ok(())
     }
 
     pub fn is_array(&self) -> bool {

@@ -50,6 +50,18 @@ error_chain! {
     }
 }
 
+pub struct Options {
+    lib: bool,
+    url: Url,
+    flow_args: Vec<String>,
+    dump: bool,
+    skip_generation: bool,
+    debug_symbols: bool,
+    provided_implementations: bool,
+    output_dir: PathBuf,
+    release: bool
+}
+
 fn main() {
     match run() {
         Err(ref e) => {
@@ -82,21 +94,16 @@ fn main() {
     a message to display to the user if all went OK
 */
 fn run() -> Result<String> {
-    let (lib, url, flow_args, dump, skip_generation, debug_symbols,
-        provided_implementations, base_dir, release)
-        = parse_args(get_matches())?;
+    let options = parse_args(get_matches())?;
 
     let provider = &MetaProvider {};
 
-    if lib {
-        build_lib(url, provided_implementations, base_dir, provider, release)
-            .chain_err(|| "Could not build library")
+    if options.lib {
+        build_lib(&options, provider).chain_err(|| "Could not build library")
     } else {
-        compile_and_execute_flow(&url, flow_args, dump, skip_generation, debug_symbols, provided_implementations, base_dir, provider, release)
-            .chain_err(|| format!("Could not compile and execute the flow '{}'", url))
+        compile_and_execute_flow(&options, provider).chain_err(|| format!("Could not compile and execute the flow '{}'", &options.url))
     }
 }
-
 
 /*
     Parse the command line arguments using clap
@@ -154,7 +161,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 /*
     Parse the command line arguments
 */
-fn parse_args(matches: ArgMatches) -> Result<(bool, Url, Vec<String>, bool, bool, bool, bool, PathBuf, bool)> {
+fn parse_args(matches: ArgMatches) -> Result<Options> {
     let mut flow_args: Vec<String> = vec!();
     if let Some(fargs) = matches.values_of("flow_args") {
         flow_args = fargs.map(|a| a.to_string()).collect();
@@ -168,15 +175,18 @@ fn parse_args(matches: ArgMatches) -> Result<(bool, Url, Vec<String>, bool, bool
     let url = url_from_string(matches.value_of("FLOW"))
         .chain_err(|| "Could not create a url for flow from the 'FLOW' command line parameter")?;
 
-    let lib = matches.is_present("lib");
-    let dump = matches.is_present("dump");
-    let skip_generation = matches.is_present("skip");
-    let release = matches.is_present("release");
-    let debug_symbols = matches.is_present("symbols");
-    let provided_implementations = matches.is_present("provided");
-    let out_dir_option = matches.value_of("OUTPUT_DIR");
-    let output_dir = source_arg::get_output_dir(&url, out_dir_option)
+    let output_dir = source_arg::get_output_dir(&url, matches.value_of("OUTPUT_DIR"))
         .chain_err(|| "Could not get or create the output directory")?;
 
-    Ok((lib, url, flow_args, dump, skip_generation, debug_symbols, provided_implementations, output_dir, release))
+    Ok(Options {
+        lib: matches.is_present("lib"),
+        url,
+        flow_args,
+        dump: matches.is_present("dump"),
+        skip_generation: matches.is_present("skip"),
+        release: matches.is_present("release"),
+        debug_symbols: matches.is_present("symbols"),
+        provided_implementations: matches.is_present("provided"),
+        output_dir
+    })
 }

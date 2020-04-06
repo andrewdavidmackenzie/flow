@@ -86,7 +86,7 @@ impl From<&String> for Route {
 
 impl From<String> for Route {
     fn from(string: String) -> Self {
-        Route(string.to_string())
+        Route(string)
     }
 }
 
