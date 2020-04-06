@@ -62,18 +62,18 @@ impl fmt::Display for Function {
         }
 
         if !self.route.is_empty() {
-            write!(f, " @ route '{}'\n", self.route)?;
+            writeln!(f, " @ route '{}'", self.route)?;
         }
 
         for (number, input) in self.inputs.iter().enumerate() {
             if input.is_empty() {
-                write!(f, "\tInput :{} is empty\n", number)?;
+                writeln!(f, "\tInput :{} is empty", number)?;
             } else {
-                write!(f, "\tInput :{} has value '{}'\n", number, input)?;
+                writeln!(f, "\tInput :{} has value '{}'", number, input)?;
             }
         }
         for output_route in &self.output_routes {
-            write!(f, "\t{}\n", output_route)?;
+            writeln!(f, "\t{}", output_route)?;
         }
         write!(f, "")
     }
@@ -85,15 +85,16 @@ impl Function {
     /// The library `flowrlib` just deserializes them from the `manifest`
     /// The Vector of outputs:
     /// Output sub-path (or ""), destination function id, destination function io number, Optional path of destination
+    #[allow(clippy::too_many_arguments)]
     pub fn new(name: String,
                route: String,
                implementation_location: String,
                inputs: Vec<Input>,
                id: usize,
                flow_id: usize,
-               output_routes: &Vec<OutputConnection>,
-               include_destination_routes: bool) -> Function {
-        let mut routes = (*output_routes).clone();
+               output_routes: &[OutputConnection],
+               include_destination_routes: bool) -> Self {
+        let mut routes = output_routes.to_vec();
 
         // Remove destination routes if not wanted
         if !include_destination_routes {
@@ -146,10 +147,8 @@ impl Function {
     /// Initialize all of a `Functions` `Inputs` - as they may have initializers that need running
     pub fn init_inputs(&mut self, first_time: bool) {
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
-            if input.is_empty() {
-                if input.init(first_time) {
-                    trace!("\t\tInput #{}:{} set from initializer", self.id, io_number);
-                }
+            if input.is_empty() && input.init(first_time) {
+                trace!("\t\tInput #{}:{} set from initializer", self.id, io_number);
             }
         }
     }
@@ -199,7 +198,7 @@ impl Function {
             }
         }
 
-        return true;
+        true
     }
 
     #[cfg(feature = "debugger")]
@@ -263,7 +262,7 @@ mod test {
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None)),
                                          0, 0,
-                                         &vec!(), false);
+                                         &mut vec!(), false);
         function.init_inputs(true);
         function.send(0, &json!(1));
         assert_eq!(json!(1), function.take_input_set().remove(0).remove(0),

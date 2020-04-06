@@ -24,7 +24,7 @@ impl Validate for Name {
         }
 
         // Names cannot be numbers as they can be confused with array indexes for Array outputs
-        if let Ok(_) = self.parse::<usize>() {
+        if self.parse::<usize>().is_ok() {
             bail!("Name '{}' cannot be a number, they are reserved for array indexes", self);
         }
 

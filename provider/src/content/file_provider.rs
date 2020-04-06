@@ -17,7 +17,7 @@ impl Provider for FileProvider {
     fn resolve_url(&self, url_str: &str, default_filename: &str, extensions: &[&str]) -> Result<(String, Option<String>)> {
         let url = Url::parse(url_str)
             .map_err(|_| format!("Could not convert '{}' to Url", url_str))?;
-        let mut path = url.to_file_path()
+        let path = url.to_file_path()
             .map_err(|_| format!("Could not convert '{}' to a file path", url))?;
         let md_result = fs::metadata(&path)
             .map_err(|_| format!("Error getting file metadata for path: '{}'", path.display()));
@@ -27,20 +27,18 @@ impl Provider for FileProvider {
                 if md.is_dir() {
                     trace!("'{}' is a directory, so attempting to find default file named '{}' in it",
                            path.display(), default_filename);
-                    let file_found_url = FileProvider::find_file(&mut path, default_filename, extensions)?;
+                    let file_found_url = FileProvider::find_file(&path, default_filename, extensions)?;
                     Ok((file_found_url, None))
+                } else if md.is_file() {
+                    Ok((url.to_string(), None))
                 } else {
-                    if md.is_file() {
-                        return Ok((url.to_string(), None));
-                    } else {
-                        let file_found_url = FileProvider::file_by_extensions(&path, extensions)?;
-                        return Ok((file_found_url, None));
-                    }
+                    let file_found_url = FileProvider::file_by_extensions(&path, extensions)?;
+                    Ok((file_found_url, None))
                 }
             }
             _ => { // doesn't exist
                 let file_found_url = FileProvider::file_by_extensions(&path, extensions)?;
-                return Ok((file_found_url, None));
+                Ok((file_found_url, None))
             }
         }
     }

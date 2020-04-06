@@ -74,19 +74,17 @@ pub fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &R
     if let Some(&(ref route, function_index)) = source {
         if is_array_output {
             if route.is_empty() {
-                return Some((Route::from(&format!("/{}", array_index)), function_index));
+                Some((Route::from(&format!("/{}", array_index)), function_index))
             } else {
-                return Some((Route::from(&format!("/{}/{}", route, array_index)), function_index));
+                Some((Route::from(&format!("/{}/{}", route, array_index)), function_index))
             }
+        } else if route.is_empty() {
+            Some((route.clone(), function_index))
         } else {
-            if route.is_empty() {
-                return Some((route.clone(), function_index));
-            } else {
-                return Some((Route::from(&format!("/{}", route.to_string())), function_index));
-            }
+            Some((Route::from(&format!("/{}", route.to_string())), function_index))
         }
     } else {
-        return None;
+        None
     }
 }
 
@@ -168,7 +166,7 @@ pub fn create_routes_table(tables: &mut GenerationTables) {
          8    Flow Input (from parent)  Flow Input (subflow)    Enters flow from higher level into a Sub-flow
          9    Flow Input (from parent)  Flow Output             A pass-thru connection within a flow
 */
-fn find_function_destinations(from_io_route: &Route, from_level: usize, connections: &Vec<Connection>) -> Vec<Route> {
+fn find_function_destinations(from_io_route: &Route, from_level: usize, connections: &[Connection]) -> Vec<Route> {
     let mut destinations = vec!();
 
     debug!("\tLooking for connections from '{}' on level={}", from_io_route, from_level);
@@ -223,15 +221,15 @@ fn find_function_destinations(from_io_route: &Route, from_level: usize, connecti
     to the table of "collapsed" connections which will be used to configure the outputs of the
     functions.
 */
-pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Connection> {
+pub fn collapse_connections(original_connections: &[Connection]) -> Vec<Connection> {
     let mut collapsed_connections: Vec<Connection> = Vec::new();
 
     debug!("Working on {} flow hierarchy connections", original_connections.len());
 
     for connection in original_connections {
-        match connection.from_io.io_type() {
+        match *connection.from_io.io_type() {
             // connection starts at a Function
-            &IOType::FunctionIO => {
+            IOType::FunctionIO => {
                 debug!("Trying to create connection from function output at '{}' (level={})",
                        connection.from_io.route(), connection.level);
                 if *connection.to_io.io_type() == IOType::FunctionIO {

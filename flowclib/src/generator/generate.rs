@@ -19,7 +19,7 @@ use crate::model::name::HasName;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
 
-#[derive(Serialize)]
+#[derive(Serialize, Default)]
 pub struct GenerationTables {
     pub connections: Vec<Connection>,
     pub source_routes: HashMap<Route, (Route, usize)>,
@@ -27,7 +27,7 @@ pub struct GenerationTables {
     pub destination_routes: HashMap<Route, (usize, usize, usize)>,
     /// HashMap from "route of the input of a function" --> (dest_function_id, input number, flow_id)
     pub collapsed_connections: Vec<Connection>,
-    pub functions: Vec<Box<Function>>,
+    pub functions: Vec<Function>,
     pub libs: HashSet<String>,
 }
 
@@ -100,14 +100,14 @@ pub fn create_manifest(flow: &Flow, debug_symbols: bool, manifest_dir: &str, tab
     Create a run-time function struct from a compile-time function struct.
     manifest_dir is the directory that paths will be made relative to.
 */
-fn function_to_runtimefunction(manifest_dir: &str, function: &Box<Function>, debug_symbols: bool) -> Result<RuntimeFunction> {
-    let mut name = function.alias().to_string();
-    let mut route = function.route().to_string();
+fn function_to_runtimefunction(manifest_dir: &str, function: &Function, debug_symbols: bool) -> Result<RuntimeFunction> {
+    let name = if debug_symbols {
+        function.alias().to_string()
+    } else { "".to_string() };
 
-    if !debug_symbols {
-        name = "".to_string();
-        route = "".to_string();
-    }
+    let route = if debug_symbols {
+        function.route().to_string()
+    } else { "".to_string() };
 
     // make the location of implementation relative to the output directory if it is under it
     let implementation_location = implementation_location_relative(&function, manifest_dir)?;

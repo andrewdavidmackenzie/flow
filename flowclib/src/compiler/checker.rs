@@ -51,23 +51,18 @@ fn check_for_competing_inputs(tables: &GenerationTables) -> Result<()> {
     for connection in &tables.collapsed_connections {
         // Check for double connection
         if let Some((_output_route, sender_id)) = connector::get_source(&tables.source_routes, &connection.from_io.route()) {
-            match used_destinations.insert(connection.to_io.route().clone(), sender_id) {
-                Some(other_sender_id) => {
-                    // The same function is already sending to this route!
-                    if other_sender_id == sender_id {
-                        bail!("The function #{} has multiple outputs sending to the route '{}'",
+            if let Some(other_sender_id) = used_destinations.insert(connection.to_io.route().clone(), sender_id) {                    // The same function is already sending to this route!
+                if other_sender_id == sender_id {
+                    bail!("The function #{} has multiple outputs sending to the route '{}'",
                                            sender_id, connection.to_io.route());
-                    }
                 }
-                _ => {}
             }
         }
 
         // check for ConstantInitializer at destination
-        match connection.to_io.get_initializer() {
-            Some(Constant(_)) => bail!("Connection from '{}' to input at '{}' that also has a Constant Initializer",
-            connection.from_io.route(), connection.to_io.route() ),
-            _ => {}
+        if let Some(Constant(_)) = connection.to_io.get_initializer() {
+            bail!("Connection from '{}' to input at '{}' that also has a Constant Initializer",
+            connection.from_io.route(), connection.to_io.route() );
         }
     }
 
@@ -123,8 +118,8 @@ mod test {
     use super::remove_duplicates;
 
     /*
-                                        Test that when two functions are connected doubly, the connection gets reduced to a single one
-                                    */
+                                                    Test that when two functions are connected doubly, the connection gets reduced to a single one
+                                                */
     #[test]
     fn collapse_double_connection() {
         let first = Connection {

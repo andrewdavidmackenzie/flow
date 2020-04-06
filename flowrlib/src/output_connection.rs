@@ -37,6 +37,7 @@ fn default_array_order() -> i32 {
     0
 }
 
+#[allow(clippy::trivially_copy_pass_by_ref)] // As this is imposed on us by serde
 fn is_default_array_order(order: &i32) -> bool {
     *order == 0
 }
@@ -45,6 +46,7 @@ fn default_generic() -> bool {
     false
 }
 
+#[allow(clippy::trivially_copy_pass_by_ref)] // As this is imposed on us by serde
 fn is_not_generic(generic: &bool) -> bool {
     !*generic
 }
