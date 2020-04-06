@@ -61,11 +61,11 @@ fn remove_dead_processes(tables: &mut GenerationTables) -> bool {
 /*
     A function is "dead" or has no effect if it is pure and has no connection to the output
 */
-fn dead_function(connections: &Vec<Connection>, function: &Function) -> bool {
+fn dead_function(connections: &[Connection], function: &Function) -> bool {
     !function.is_impure() && !connection_from_function(connections, function)
 }
 
-fn connection_from_function(connections: &Vec<Connection>, function: &Function) -> bool {
+fn connection_from_function(connections: &[Connection], function: &Function) -> bool {
     if let Some(outputs) = function.get_outputs() {
         for output in outputs {
             let route = output.route();

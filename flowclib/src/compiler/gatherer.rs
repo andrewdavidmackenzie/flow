@@ -45,7 +45,7 @@ pub fn gather_functions_and_connections(flow: &Flow, tables: &mut GenerationTabl
     to, and used in code generation.
 */
 pub fn index_functions(functions: &mut Vec<Function>) {
-    for (index, function) in functions.into_iter().enumerate() {
+    for (index, function) in functions.iter_mut().enumerate() {
         function.set_id(index);
     }
 }

@@ -36,7 +36,7 @@ fn get_file_extension(url: &str) -> Result<String, String> {
     if splits.len() < 2 {
         Err("No file extension".to_string())
     } else {
-        Ok(splits.last().unwrap().to_string())
+        Ok((*splits.last().unwrap()).to_string())
     }
 }
 

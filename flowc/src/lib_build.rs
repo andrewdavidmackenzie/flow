@@ -105,36 +105,31 @@ fn compile_implementations(lib_manifest: &mut LibraryManifest, base_dir: &str, p
 
     debug!("Searching for process definitions using search pattern: '{}'", search_pattern);
     for entry in glob(&search_pattern).chain_err(|| "Failed to read glob pattern")? {
-        match entry {
-            Ok(ref toml_path) => {
-                let resolved_url = Url::from_file_path(&toml_path)
-                    .map_err(|_| format!("Could not create url from file path '{}'",
-                                         toml_path.to_str().unwrap()))?.to_string();
-                debug!("Inspecting '{}' for function definition", resolved_url);
-                let contents = provider.get_contents(&resolved_url)
-                    .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
-                let deserializer = get_deserializer(&resolved_url)?;
-                match deserializer.deserialize(&String::from_utf8(contents).unwrap(), Some(&resolved_url)) {
-                    Ok(FunctionProcess(ref mut function)) => {
-                        function.set_implementation_url(&resolved_url);
-                        let (wasm_abs_path, built) = compile_wasm::compile_implementation(function,
-                                                                                          skip_building, release)?;
-                        let wasm_dir = wasm_abs_path.parent()
-                            .chain_err(|| "Could not get parent directory of wasm path")?;
-                        lib_manifest.add_to_manifest(base_dir,
-                                                     wasm_abs_path.to_str()
-                                                         .chain_err(|| "Could not convert wasm_path to str")?,
-                                                     wasm_dir.to_str()
-                                                         .chain_err(|| "Could not convert wasm_dir to str")?,
-                                                     function.name() as &str);
-                        if built {
-                            build_count += 1;
-                        }
-                    }
-                    _ => { /* Ignore errors and valid flow definitions */ }
+        if let Ok(ref toml_path) = entry {
+            let resolved_url = Url::from_file_path(&toml_path)
+                .map_err(|_| format!("Could not create url from file path '{}'",
+                                     toml_path.to_str().unwrap()))?.to_string();
+            debug!("Inspecting '{}' for function definition", resolved_url);
+            let contents = provider.get_contents(&resolved_url)
+                .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
+            let deserializer = get_deserializer(&resolved_url)?;
+
+            if let Ok(FunctionProcess(ref mut function)) = deserializer.deserialize(&String::from_utf8(contents).unwrap(), Some(&resolved_url)) {
+                function.set_implementation_url(&resolved_url);
+                let (wasm_abs_path, built) = compile_wasm::compile_implementation(function,
+                                                                                  skip_building, release)?;
+                let wasm_dir = wasm_abs_path.parent()
+                    .chain_err(|| "Could not get parent directory of wasm path")?;
+                lib_manifest.add_to_manifest(base_dir,
+                                             wasm_abs_path.to_str()
+                                                 .chain_err(|| "Could not convert wasm_path to str")?,
+                                             wasm_dir.to_str()
+                                                 .chain_err(|| "Could not convert wasm_dir to str")?,
+                                             function.name() as &str);
+                if built {
+                    build_count += 1;
                 }
             }
-            Err(_) => { /* Skipping unreadable files */ }
         }
     }
 

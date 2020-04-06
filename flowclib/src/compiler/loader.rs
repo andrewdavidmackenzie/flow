@@ -71,6 +71,7 @@ pub fn load(url: &str, provider: &dyn Provider) -> Result<Process> {
                  0, &mut 0, url, provider, &None, &None)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn load_process(parent_route: &Route, alias: &Name, parent_flow_id: usize, flow_count: &mut usize, url: &str, provider: &dyn Provider,
                 initializations: &Option<HashMap<String, InputInitializer>>,
                 depths: &Option<HashMap<String, usize>>) -> Result<Process> {
@@ -147,6 +148,7 @@ fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Pro
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn config_function(function: &mut Function, implementation_url: &str, parent_route: &Route, alias: &Name,
                    flow_id: usize,
                    lib_ref: Option<String>,

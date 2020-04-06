@@ -85,6 +85,7 @@ impl Function {
     /// The library `flowrlib` just deserializes them from the `manifest`
     /// The Vector of outputs:
     /// Output sub-path (or ""), destination function id, destination function io number, Optional path of destination
+    #[allow(clippy::too_many_arguments)]
     pub fn new(name: String,
                route: String,
                implementation_location: String,
@@ -261,7 +262,7 @@ mod test {
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None)),
                                          0, 0,
-                                         &vec!(), false);
+                                         &mut vec!(), false);
         function.init_inputs(true);
         function.send(0, &json!(1));
         assert_eq!(json!(1), function.take_input_set().remove(0).remove(0),

@@ -61,11 +61,8 @@ fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<Str
     // Dump sub-flows
     if let Some(ref flow_refs) = flow.process_refs {
         for flow_ref in flow_refs {
-            match flow_ref.process {
-                FlowProcess(ref subflow) => {
-                    _dump_flow(subflow, level + 1, output_dir)?;
-                }
-                _ => {}
+            if let FlowProcess(ref subflow) = flow_ref.process {
+                _dump_flow(subflow, level + 1, output_dir)?;
             }
         }
     }

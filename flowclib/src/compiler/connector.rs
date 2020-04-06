@@ -166,7 +166,7 @@ pub fn create_routes_table(tables: &mut GenerationTables) {
          8    Flow Input (from parent)  Flow Input (subflow)    Enters flow from higher level into a Sub-flow
          9    Flow Input (from parent)  Flow Output             A pass-thru connection within a flow
 */
-fn find_function_destinations(from_io_route: &Route, from_level: usize, connections: &Vec<Connection>) -> Vec<Route> {
+fn find_function_destinations(from_io_route: &Route, from_level: usize, connections: &[Connection]) -> Vec<Route> {
     let mut destinations = vec!();
 
     debug!("\tLooking for connections from '{}' on level={}", from_io_route, from_level);
@@ -221,7 +221,7 @@ fn find_function_destinations(from_io_route: &Route, from_level: usize, connecti
     to the table of "collapsed" connections which will be used to configure the outputs of the
     functions.
 */
-pub fn collapse_connections(original_connections: &Vec<Connection>) -> Vec<Connection> {
+pub fn collapse_connections(original_connections: &[Connection]) -> Vec<Connection> {
     let mut collapsed_connections: Vec<Connection> = Vec::new();
 
     debug!("Working on {} flow hierarchy connections", original_connections.len());
