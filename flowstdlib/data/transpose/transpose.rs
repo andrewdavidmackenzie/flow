@@ -21,6 +21,7 @@ use serde_json::Value;
 pub struct Transpose;
 
 impl Implementation for Transpose {
+    #[allow(clippy::needless_range_loop)]
     fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
         let matrix = inputs[0][0].as_array().unwrap();
 
