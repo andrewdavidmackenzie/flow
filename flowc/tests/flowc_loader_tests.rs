@@ -9,7 +9,8 @@ use flowclib::model::route::Route;
 use flowrlib::input::InputInitializer::OneTime;
 use provider::content::provider::MetaProvider;
 
-#[path="helper.rs"] mod helper;
+#[path = "helper.rs"]
+mod helper;
 
 /// flowclib integration tests
 ///
@@ -27,15 +28,12 @@ use provider::content::provider::MetaProvider;
 ///
 /// An interim solution could be so have the files in the code as Strings and parse from there.
 ///
-
 #[test]
 fn malformed_connection() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/malformed-connection.toml");
-    let result = loader::load(&path, &meta_provider);
-    match result {
-        Ok(_) => assert!(false, "malformed-connection.toml should not load successfully"),
-        Err(_) => { /* error was correctly detected but didn't cause a crash */ }
+    if loader::load(&path, &meta_provider).is_ok() {
+        panic!("malformed-connection.toml should not load successfully");
     }
 }
 
@@ -43,10 +41,8 @@ fn malformed_connection() {
 fn invalid_toml() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid.toml");
-    let result = loader::load(&path, &meta_provider);
-    match result {
-        Ok(_) => assert!(false, "invalid.toml should not load successfully"),
-        Err(_) => { /* error was correctly detected but didn't cause a crash */ }
+    if loader::load(&path, &meta_provider).is_ok() {
+        panic!("invalid.toml should not load successfully");
     }
 }
 
@@ -54,10 +50,8 @@ fn invalid_toml() {
 fn invalid_process() {
     let meta_provider = MetaProvider {};
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid-process.toml");
-    let result = loader::load(&path, &meta_provider);
-    match result {
-        Ok(_) => assert!(false, "invalid.toml should not load successfully"),
-        Err(_) => { /* error was correctly detected but didn't cause a crash */ }
+    if loader::load(&path, &meta_provider).is_ok() {
+        panic!("invalid.toml should not load successfully");
     }
 }
 

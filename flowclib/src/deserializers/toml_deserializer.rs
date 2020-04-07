@@ -27,9 +27,8 @@ mod test {
     fn invalid_toml() {
         let deserializer = FlowTomelLoader {};
 
-        match deserializer.deserialize("{}}}}f dsdsadsa ", None) {
-            Ok(_) => assert!(false, "Should not have parsed correctly as is invalid TOML"),
-            Err(_) => assert!(true, "Should produce syntax error at (1,1)")
+        if deserializer.deserialize("{}}}}f dsdsadsa ", None).is_ok() {
+            panic!("Should not have parsed correctly as is invalid TOML");
         };
     }
 
@@ -101,7 +100,7 @@ mod test {
                 assert_eq!(flow.author_name, Flow::default_author());
                 assert_eq!(flow.author_email, Flow::default_email());
             }
-            _ => assert!(false)
+            _ => panic!()
         }
     }
 
@@ -121,7 +120,7 @@ mod test {
                 assert_eq!(flow.author_name, "tester".to_string());
                 assert_eq!(flow.author_email, "tester@test.com".to_string());
             }
-            _ => assert!(false)
+            _ => panic!()
         }
     }
 

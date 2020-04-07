@@ -40,7 +40,7 @@ error_chain! {
 
 fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: PathBuf, test_name: &str, tables: &GenerationTables)
                   -> Result<PathBuf> {
-    let mut filename = out_dir.clone();
+    let mut filename = out_dir;
     filename.push(&format!("{}.json", test_name));
     let mut manifest_file = File::create(&filename).chain_err(|| "Could not create manifest file")?;
     let out_dir_path = url::Url::from_file_path(&filename).unwrap().to_string();

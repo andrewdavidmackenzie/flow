@@ -96,7 +96,7 @@ deploy: build_guide
 workspace:
 	$(STIME)
 	@cargo build $(features) --all
-	@cargo clippy --all
+	@cargo clippy --all --all-targets --all-features -- -D warnings
 	$(ETIME)
 
 flowrunner:

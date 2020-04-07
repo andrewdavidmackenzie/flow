@@ -108,7 +108,7 @@ mod test {
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None)),
                                          0, 0,
-                                         &vec!(), false);
+                                         &[], false);
 
         let mut manifest = Manifest::new(test_meta_data());
         manifest.add_function(function);

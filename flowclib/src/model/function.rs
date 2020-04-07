@@ -224,8 +224,6 @@ impl Function {
 
 #[cfg(test)]
 mod test {
-    use toml;
-
     use flowrlib::output_connection::OutputConnection;
 
     use crate::compiler::loader::Validate;
@@ -241,6 +239,7 @@ mod test {
     use super::Function;
 
     impl Function {
+        #[allow(clippy::too_many_arguments)]
         pub fn new(name: Name, impure: bool, implementation: Option<String>, alias: Name, inputs: IOSet, outputs: IOSet, source_url: &str,
                    route: Route, lib_reference: Option<String>, output_connections: Vec<OutputConnection>,
                    id: usize, flow_id: usize) -> Self {

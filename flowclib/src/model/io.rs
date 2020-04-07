@@ -271,8 +271,6 @@ impl IO {
 
 #[cfg(test)]
 mod test {
-    use toml;
-
     use crate::compiler::loader::Validate;
     use crate::model::datatype::DataType;
     use crate::model::io::IOType;
