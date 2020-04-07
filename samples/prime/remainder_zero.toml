@@ -28,7 +28,7 @@ to = "divide/divisor"
 ############check if the remainder is equal to 0
 [[process]]
 alias = "compare"
-source = "lib://flowstdlib/control/compare"
+source = "lib://flowstdlib/math/compare"
 input.left = { constant = 0 }
 
 [[connection]]

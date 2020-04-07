@@ -48,7 +48,37 @@ mod test {
     use serde_json::json;
 
     #[test]
-    fn transpose() {
+    fn transpose_empty() {
+        let matrix = Value::Array(vec!(Value::Array(vec!())));
+
+        let inputs = vec!(vec!(matrix));
+
+        let transposer = super::Transpose {};
+        let (result, _) = transposer.run(&inputs);
+
+        let new_matrix = result.unwrap();
+
+        assert_eq!(new_matrix, Value::Array(vec!()));
+    }
+
+    #[test]
+    fn transpose_1x1() {
+        let row0 = Value::Array(vec!(json!(1)));
+        let matrix = Value::Array(vec!(row0));
+
+        let inputs = vec!(vec!(matrix));
+
+        let transposer = super::Transpose {};
+        let (result, _) = transposer.run(&inputs);
+
+        let new_matrix = result.unwrap();
+        let new_row0 = new_matrix[0].clone();
+
+        assert_eq!(new_row0, Value::Array(vec!(Value::Number(Number::from(1)))));
+    }
+
+    #[test]
+    fn transpose_2x2() {
         let row0 = Value::Array(vec!(json!(1), json!(2)));
         let row1 = Value::Array(vec!(json!(3), json!(4)));
         let matrix = Value::Array(vec!(row0, row1));
@@ -64,5 +94,26 @@ mod test {
 
         assert_eq!(new_row0, Value::Array(vec!(Value::Number(Number::from(1)), Value::Number(Number::from(3)))));
         assert_eq!(new_row1, Value::Array(vec!(Value::Number(Number::from(2)), Value::Number(Number::from(4)))));
+    }
+
+    #[test]
+    fn transpose_2x3() {
+        let row0 = Value::Array(vec!(json!(1), json!(2), json!(3)));
+        let row1 = Value::Array(vec!(json!(4), json!(5), json!(6)));
+        let matrix = Value::Array(vec!(row0, row1));
+
+        let inputs = vec!(vec!(matrix));
+
+        let transposer = super::Transpose {};
+        let (result, _) = transposer.run(&inputs);
+
+        let new_matrix = result.unwrap();
+        let new_row0 = new_matrix[0].clone();
+        let new_row1 = new_matrix[1].clone();
+        let new_row2 = new_matrix[2].clone();
+
+        assert_eq!(new_row0, Value::Array(vec!(Value::Number(Number::from(1)), Value::Number(Number::from(4)))));
+        assert_eq!(new_row1, Value::Array(vec!(Value::Number(Number::from(2)), Value::Number(Number::from(5)))));
+        assert_eq!(new_row2, Value::Array(vec!(Value::Number(Number::from(3)), Value::Number(Number::from(6)))));
     }
 }
