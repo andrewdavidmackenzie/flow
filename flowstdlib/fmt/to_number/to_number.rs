@@ -25,19 +25,14 @@ impl Implementation for ToNumber {
         let mut value = None;
         let input = &inputs[0][0];
 
-        match input {
-            Value::String(string) => {
-                if let Ok(number) = string.parse::<i64>() {
-                    let number = Value::Number(serde_json::Number::from(number));
-                    value = Some(number);
-                } else {
-                    if let Ok(number) = string.parse::<f64>() {
-                        let number = Value::Number(serde_json::Number::from_f64(number).unwrap());
-                        value = Some(number);
-                    }
-                }
-            },
-            _ => {}
+        if let Value::String(string) = input {
+            if let Ok(number) = string.parse::<i64>() {
+                let number = Value::Number(serde_json::Number::from(number));
+                value = Some(number);
+            } else if let Ok(number) = string.parse::<f64>() {
+                let number = Value::Number(serde_json::Number::from_f64(number).unwrap());
+                value = Some(number);
+            }
         };
 
         (value, RUN_AGAIN)

@@ -10,7 +10,7 @@ use serde_json::Value;
 /// ```toml
 /// [[process]]
 /// alias = "compare"
-/// source = "lib://flowstdlib/control/compare"
+/// source = "lib://flowstdlib/math/compare"
 /// ```
 ///
 /// ## Inputs
@@ -31,7 +31,7 @@ impl Implementation for Compare {
         match (inputs[0][0].as_f64(), inputs[1][0].as_f64()) {
             (Some(left), Some(right)) => {
                 let mut output_map = serde_json::Map::new();
-                output_map.insert("equal".into(), Value::Bool(left == right));
+                output_map.insert("equal".into(), Value::Bool((left - right).abs() < std::f64::EPSILON));
                 output_map.insert("lt".into(), Value::Bool(left < right));
                 output_map.insert("gt".into(), Value::Bool(left > right));
                 output_map.insert("lte".into(), Value::Bool(left <= right));

@@ -36,7 +36,7 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 ///     A compare operator that takes two numbers and outputs the comparisons between them
 /// */
 /// impl Implementation for Compare {
-///     fn run(&self, mut inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+///     fn run(&self, mut inputs: &[Vec<Value>]) -> (Option<Value>, RunAgain) {
 ///         let left = inputs[0][0].as_i64().unwrap();
 ///         let right = inputs[1][0].as_i64().unwrap();
 ///
@@ -51,11 +51,8 @@ pub const DONT_RUN_AGAIN: RunAgain = false;
 ///         (None, RUN_AGAIN)
 ///     }
 /// }
-///
-/// # fn main() {
-/// # }
 /// ```
 pub trait Implementation : RefUnwindSafe + UnwindSafe + Sync + Send + Debug {
     /// The `run` method is used to execute the implementation
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain);
+    fn run(&self, inputs: &[Vec<Value>]) -> (Option<Value>, RunAgain);
 }

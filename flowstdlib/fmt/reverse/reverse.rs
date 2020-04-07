@@ -28,14 +28,11 @@ impl Implementation for Reverse {
         let mut value = None;
 
         let input = &inputs[0][0];
-        match input {
-            JsonString(ref s) => {
-                value = Some(json!({
+        if let JsonString(ref s) = input {
+            value = Some(json!({
                     "reversed" : s.chars().rev().collect::<String>(),
                     "original": s
                 }));
-            }
-            _ => {}
         }
 
         (value, RUN_AGAIN)

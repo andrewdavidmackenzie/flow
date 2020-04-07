@@ -247,7 +247,7 @@ mod test {
         let locator = lib_manifest.locators.get("//flowrlib/test-dyn-lib/add2").unwrap();
         match locator {
             Wasm(source) => assert_eq!(source, "add2.wasm"),
-            _ => assert!(false, "Expected type 'Wasm' but found another type")
+            _ => panic!("Expected type 'Wasm' but found another type")
         }
     }
 

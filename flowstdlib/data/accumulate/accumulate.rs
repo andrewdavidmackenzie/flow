@@ -64,7 +64,7 @@ impl Implementation for Accumulate {
             output_map.insert("partial".into(), Value::Array(partial.clone()));
         }
 
-        output_map.insert("chunk_size".into(), chunk_size.clone());
+        output_map.insert("chunk_size".into(), chunk_size);
 
         let output = Value::Object(output_map);
 

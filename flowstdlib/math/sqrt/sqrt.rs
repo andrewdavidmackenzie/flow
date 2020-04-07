@@ -26,18 +26,11 @@ impl Implementation for Sqrt {
         let input = &inputs[0];
         let mut value = None;
 
-        match input[0] {
-            Number(ref a) => {
-                if a.is_i64() {
-                    value = Some(Value::Number(serde_json::Number::from_f64(a.as_f64().unwrap().sqrt()).unwrap()));
-                } else if a.is_u64() {
-                    value = Some(Value::Number(serde_json::Number::from_f64(a.as_f64().unwrap().sqrt()).unwrap()));
-                } else if a.is_f64() {
-                    value = Some(Value::Number(serde_json::Number::from_f64(a.as_f64().unwrap().sqrt()).unwrap()));
-                }
+        if let Number(ref a) = input[0] {
+            if a.is_i64() || a.is_u64() || a.is_f64() {
+                value = Some(Value::Number(serde_json::Number::from_f64(a.as_f64().unwrap().sqrt()).unwrap()));
             }
-            _ => {}
-        }
+        };
 
         (value, RUN_AGAIN)
     }

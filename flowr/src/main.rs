@@ -78,11 +78,9 @@ fn run() -> Result<()> {
         .chain_err(|| "Could not add 'flowruntime' library to loader")?;
 
     // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
-    if cfg!(feature = "native") {
-        if matches.is_present("native") {
-            loader.add_lib(&provider, "lib://flowstdlib", flowstdlib::get_manifest(), "native")
-                .chain_err(|| "Could not add 'flowstdlib' library to loader")?;
-        }
+    if cfg!(feature = "native") && matches.is_present("native") {
+        loader.add_lib(&provider, "lib://flowstdlib", flowstdlib::get_manifest(), "native")
+            .chain_err(|| "Could not add 'flowstdlib' library to loader")?;
     }
 
     let debugger = matches.is_present("debugger");
@@ -95,16 +93,15 @@ fn run() -> Result<()> {
 
     let num_parallel_jobs = num_parallel_jobs(&matches, debugger);
 
-    let debug_client = match debugger {
-        false => None,
-        true => Some(CLI_DEBUG_CLIENT)
-    };
+    let debug_client = if debugger { Some(CLI_DEBUG_CLIENT) } else { None };
 
     pass_flow_args(&matches, &manifest.metadata.name);
 
     let submission = Submission::new(manifest, num_parallel_jobs, metrics, debug_client);
 
-    Ok(coordinator.submit(submission))
+    coordinator.submit(submission);
+
+    Ok(())
 }
 
 /*

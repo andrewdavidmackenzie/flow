@@ -60,8 +60,8 @@ impl Implementation for Add {
             (_, _) => println!("Unsupported input value types")
         }
 
-        if sum.is_some() {
-            output_map.insert("sum".into(), sum.unwrap());
+        if let Some(total) = sum {
+            output_map.insert("sum".into(), total);
             output_map.insert("i1".into(), input_a[0].clone());
             output_map.insert("i2".into(), input_b[0].clone());
 
@@ -117,13 +117,13 @@ mod test {
             (Number(serde_json::Number::from(-10)), Number(serde_json::Number::from(-20)), Some(Number(serde_json::Number::from(-30)))),
             (Number(serde_json::Number::from(10)), Number(serde_json::Number::from(-20)), Some(Number(serde_json::Number::from(-10)))),
             (Number(serde_json::Number::from(-10)), Number(serde_json::Number::from(20)), Some(Number(serde_json::Number::from(10)))),
-            (Number(serde_json::Number::from(4660046610375530309 as i64)), Number(serde_json::Number::from(7540113804746346429 as i64)), None),
-            (Number(serde_json::Number::from(-4660046610375530309 as i64)), Number(serde_json::Number::from(-7540113804746346429 as i64)), None),
+            (Number(serde_json::Number::from(4_660_046_610_375_530_309 as i64)), Number(serde_json::Number::from(7_540_113_804_746_346_429 as i64)), None),
+            (Number(serde_json::Number::from(-4_660_046_610_375_530_309 as i64)), Number(serde_json::Number::from(-7_540_113_804_746_346_429 as i64)), None),
         );
 
         let added = Add {};
 
-        for ref test in integer_test_set {
+        for test in &integer_test_set {
             println!("Testing add of {:?}", test);
             let (output, again) = added.run(&get_inputs(test));
 

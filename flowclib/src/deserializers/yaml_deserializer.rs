@@ -27,9 +27,8 @@ mod test {
     fn invalid_yaml() {
         let deserializer = FlowYamlLoader {};
 
-        match deserializer.deserialize("{}", None) {
-            Ok(_) => assert!(false, "Should not have parsed correctly as is invalid JSON"),
-            Err(_) => assert!(true, "Should produce syntax error at (1,1)")
+        if deserializer.deserialize("{}", None).is_ok() {
+            panic!("Should not have parsed correctly as is invalid JSON");
         };
     }
 

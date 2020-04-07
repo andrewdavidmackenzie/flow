@@ -29,7 +29,7 @@ input.control = {once = false}
 #compare result (1.5) to 1
 [[process]]
 alias = "compare"
-source = "lib://flowstdlib/control/compare"
+source = "lib://flowstdlib/math/compare"
 input.right = {once = 1}
 
 [[connection]]

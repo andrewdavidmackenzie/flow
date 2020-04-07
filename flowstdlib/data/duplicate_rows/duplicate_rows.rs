@@ -30,7 +30,7 @@ impl Implementation for DuplicateRows {
         let factor = &inputs[1][0];
         let mut output_matrix: Vec<Value> = vec!();
 
-        for row in matrix.into_iter() {
+        for row in matrix.iter() {
             for _i in 0..factor.as_i64().unwrap() {
                 output_matrix.push(row.clone());
             }

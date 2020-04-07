@@ -133,12 +133,12 @@ mod test {
         let root_str: String = root.as_os_str().to_str().unwrap().to_string();
         env::set_var("FLOW_LIB_PATH", &root_str);
         let lib_url = "lib://flowstdlib/control/tap";
-        match provider.resolve_url(&lib_url, "".into(), &["toml"]) {
+        match provider.resolve_url(&lib_url, "", &["toml"]) {
             Ok((url, lib_ref)) => {
                 assert_eq!(url, format!("file://{}/flowstdlib/control/tap/tap.toml", root_str));
                 assert_eq!(lib_ref, Some("flowstdlib/control/tap".to_string()));
             }
-            Err(e) => assert!(false, e.to_string())
+            Err(e) => panic!(e.to_string())
         }
     }
 }

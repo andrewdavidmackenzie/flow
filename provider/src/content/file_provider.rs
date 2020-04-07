@@ -101,13 +101,13 @@ mod test {
 
     #[test]
     fn get_default_sample() {
-        let mut path = PathBuf::from("../samples/hello-world").canonicalize().unwrap();
-        match FileProvider::find_file(&mut path, "context", &["toml"]) {
+        let path = PathBuf::from("../samples/hello-world").canonicalize().unwrap();
+        match FileProvider::find_file(&path, "context", &["toml"]) {
             Ok(path_string) => {
                 let path = Path::new(&path_string);
                 assert_eq!(Some(OsStr::new("context.toml")), path.file_name());
             }
-            _ => assert!(false, "Could not find_file 'context.toml'"),
+            _ => panic!("Could not find_file 'context.toml'"),
         }
     }
 

@@ -177,8 +177,6 @@ fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias_fr
 
 #[cfg(test)]
 mod test {
-    use toml;
-
     use crate::model::library::Library;
 
     #[test]

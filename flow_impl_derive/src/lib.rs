@@ -3,8 +3,6 @@
 //! to be called when compiled to wasm32
 extern crate proc_macro;
 
-use syn;
-
 use quote::quote;
 
 use crate::proc_macro::TokenStream;

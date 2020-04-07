@@ -76,27 +76,22 @@ mod test {
     #[test]
     fn does_not_validate_when_empty() {
         let name = Name::default();
-        match name.validate() {
-            Err(_) => {}
-            Ok(_) => { assert!(false) }
+        if name.validate().is_ok() {
+            panic!()
         }
     }
 
     #[test]
     fn number_does_not_validate() {
         let name = Name::from("123");
-        match name.validate() {
-            Err(_) => {}
-            Ok(_) => { assert!(false) }
+        if name.validate().is_ok() {
+            panic!();
         }
     }
 
     #[test]
     fn validates_when_has_value() {
         let name: Name = Name::from("test");
-        match name.validate() {
-            Ok(_) => {}
-            Err(_) => { assert!(false) }
-        }
+        name.validate().unwrap();
     }
 }

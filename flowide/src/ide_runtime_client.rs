@@ -52,7 +52,7 @@ impl RuntimeClient for IDERuntimeClient {
             }
             Command::Write(filename, bytes) => {
                 let mut file = File::create(filename).unwrap();
-                file.write(bytes.as_slice()).unwrap();
+                file.write_all(bytes.as_slice()).unwrap();
                 Response::Ack
             }
         }

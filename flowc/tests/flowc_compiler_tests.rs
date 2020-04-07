@@ -36,7 +36,7 @@ fn args() {
     if let FlowProcess(ref flow) = process {
         let _tables = compile::compile(flow).unwrap();
     } else {
-        assert!(false, "Process loaded was not a flow");
+        panic!("Process loaded was not a flow");
     }
 }
 
@@ -48,7 +48,7 @@ fn object_to_array_connection() {
     if let FlowProcess(ref flow) = process {
         let _tables = compile::compile(flow).unwrap();
     } else {
-        assert!(false, "Process loaded was not a flow");
+        panic!("Process loaded was not a flow");
     }
 }
 
@@ -58,17 +58,13 @@ fn context_with_io() {
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/context_with_io.toml");
     let process = loader::load(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
-        let tables = compile::compile(flow);
-        match tables {
-            Ok(_) => {
-                // flow loaded, but has ios
-                assert!(flow.inputs().as_ref().unwrap().len() > 0);
-                assert!(flow.outputs().as_ref().unwrap().len() > 0);
-            }
-            Err(_) => { /* Error was detected and reported correctly and didn't crash */ }
+        if compile::compile(flow).is_ok() {
+            // flow loaded, but has ios
+            assert!(!flow.inputs().as_ref().unwrap().is_empty());
+            assert!(!flow.outputs().as_ref().unwrap().is_empty());
         }
     } else {
-        assert!(false, "Process loaded was not a flow");
+        panic!("Process loaded was not a flow");
     }
 }
 
@@ -83,7 +79,7 @@ fn same_name_input_and_output() {
         // args -> buffer, and buffer -> print
         assert_eq!(4, tables.collapsed_connections.len());
     } else {
-        assert!(false, "Process loaded was not a flow");
+        panic!("Process loaded was not a flow");
     }
 }
 
@@ -110,7 +106,7 @@ fn same_name_flow_ids() {
             .find(|f| f.route() == &Route::from("/parent/child2/buffer")).unwrap();
         assert_eq!(buffer2_function.get_flow_id(), 2);
     } else {
-        assert!(false, "Process loaded was not a flow");
+        panic!("Process loaded was not a flow");
     }
 }
 
@@ -120,13 +116,11 @@ fn double_connection() {
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/double-connection.toml");
     let process = loader::load(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
-        let tables = compile::compile(flow);
-        match tables {
-            Ok(_) => assert!(false, "Process should not have loaded due to double connection"),
-            Err(_) => { /* Error was detected and reported correctly and didn't crash */ }
+        if compile::compile(flow).is_ok() {
+            panic!("Process should not have loaded due to double connection");
         }
     } else {
-        assert!(false, "Process loaded was not a flow");
+        panic!("Process loaded was not a flow");
     }
 }
 
@@ -136,13 +130,11 @@ fn connection_to_input_with_constant_initializer() {
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/connect_to_constant.toml");
     let process = loader::load(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
-        let tables = compile::compile(flow);
-        match tables {
-            Ok(_) => assert!(false, "Process should not have loaded due to connection to input with a constant initializer"),
-            Err(_) => { /* Error was detected and reported correctly and didn't crash */ }
+        if compile::compile(flow).is_ok() {
+            panic!("Process should not have loaded due to connection to input with a constant initializer");
         }
     } else {
-        assert!(false, "Process loaded was not a flow");
+        panic!("Process loaded was not a flow");
     }
 }
 
@@ -159,7 +151,7 @@ fn dead_process_removed() {
         // And the connection to it also
         assert_eq!(tables.collapsed_connections.len(), 0, "Incorrect number of connections after optimization");
     } else {
-        assert!(false, "Process loaded was not a flow");
+        panic!("Process loaded was not a flow");
     }
 }
 
@@ -174,7 +166,7 @@ fn dead_process_and_connected_process_removed() {
         // And the connection are all gone also
         assert_eq!(tables.collapsed_connections.len(), 0, "Incorrect number of connections after optimization");
     } else {
-        assert!(false, "Process loaded was not a flow");
+        panic!("Process loaded was not a flow");
     }
 }
 
@@ -186,7 +178,7 @@ fn compile_echo_ok() {
     if let FlowProcess(ref flow) = process {
         let _tables = compile::compile(flow).unwrap();
     } else {
-        assert!(false, "Process loaded was not a flow");
+        panic!("Process loaded was not a flow");
     }
 }
 
@@ -198,7 +190,7 @@ fn compiler_detects_unused_input() {
     if let FlowProcess(ref flow) = process {
         assert!(compile::compile(flow).is_err(), "Should not compile due to unused input");
     } else {
-        assert!(false, "Process loaded was not a flow");
+        panic!("Process loaded was not a flow");
     }
 }
 
@@ -210,7 +202,7 @@ fn compile_double_connection() {
     if let FlowProcess(ref flow) = process {
         assert!(compile::compile(flow).is_err(), "Should not compile due to a double connection to an input");
     } else {
-        assert!(false, "Process loaded was not a flow");
+        panic!("Process loaded was not a flow");
     }
 }
 
@@ -222,7 +214,7 @@ fn compile_detects_connection_to_initialized_input() {
     if let FlowProcess(ref flow) = process {
         assert!(compile::compile(flow).is_err(), "Should not compile due to connection to constant initialized input");
     } else {
-        assert!(false, "Process loaded was not a flow");
+        panic!("Process loaded was not a flow");
     }
 }
 
@@ -242,7 +234,7 @@ fn flow_input_propogated_backout() {
                 Ok(_tables) => {}
                 Err(error) => panic!("Couldn't compile the flow from test file at '{}'\n{}", url, error)
             }
-        },
+        }
         Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{}'", url),
         Err(error) => panic!("Couldn't load the flow from test file at '{}'.\n{}", url, error)
     }
@@ -279,7 +271,7 @@ fn initialized_output_propogated() {
                 }
                 Err(error) => panic!("Couldn't compile the flow from test file at '{}'\n{}", url, error)
             }
-        },
+        }
         Ok(FunctionProcess(_)) => panic!("Unexpected compile result from test file at '{}'", url),
         Err(error) => panic!("Couldn't load the flow from test file at '{}'.\n{}", url, error)
     }

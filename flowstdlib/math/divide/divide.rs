@@ -75,7 +75,7 @@ mod test {
 
     #[test]
     fn test_divide() {
-        let test_set = vec!((100, 3, 33.333333333333336f64, 1), (99, 3, 33f64, 0));
+        let test_set = vec!((100, 3, 33.333_333_333_333_336_f64, 1), (99, 3, 33f64, 0));
 
         for test in test_set {
             do_divide(test);
