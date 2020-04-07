@@ -86,7 +86,10 @@ impl Function {
     /// The Vector of outputs:
     /// Output sub-path (or ""), destination function id, destination function io number, Optional path of destination
     #[allow(clippy::too_many_arguments)]
-    pub fn new(name: String,
+    pub fn new(
+               #[cfg(feature = "debugger")]
+               name: String,
+               #[cfg(feature = "debugger")]
                route: String,
                implementation_location: String,
                inputs: Vec<Input>,
@@ -104,7 +107,9 @@ impl Function {
         }
 
         Function {
+            #[cfg(feature = "debugger")]
             name,
+            #[cfg(feature = "debugger")]
             route,
             id,
             flow_id,
@@ -130,6 +135,7 @@ impl Function {
     }
 
     /// Accessor for a `Functions` `name`
+    #[cfg(feature = "debugger")]
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -257,7 +263,10 @@ mod test {
 
     #[test]
     fn can_send_simple_object() {
-        let mut function = Function::new("test".to_string(),
+        let mut function = Function::new(
+                                    #[cfg(feature = "debugger")]
+                                          "test".to_string(),
+                                         #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None)),
@@ -271,7 +280,10 @@ mod test {
 
     #[test]
     fn can_send_array_object() {
-        let mut function = Function::new("test".to_string(),
+        let mut function = Function::new(
+                                    #[cfg(feature = "debugger")]
+                                        "test".to_string(),
+                                         #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
                                          // vec!(Input::new(1, &None, true, false)),
@@ -286,7 +298,10 @@ mod test {
 
     #[test]
     fn second_value_overwrites_on_oversend() {
-        let mut function = Function::new("test".to_string(),
+        let mut function = Function::new(
+            #[cfg(feature = "debugger")]
+                                    "test".to_string(),
+            #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None)),
@@ -302,7 +317,10 @@ mod test {
     #[test]
     #[should_panic]
     fn cannot_take_input_set_if_not_full() {
-        let mut function = Function::new("test".to_string(),
+        let mut function = Function::new(
+            #[cfg(feature = "debugger")]
+                                        "test".to_string(),
+            #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None)),
@@ -317,7 +335,10 @@ mod test {
 
     #[test]
     fn can_send_simple_object_when_depth_more_than_1() {
-        let mut function = Function::new("test".to_string(),
+        let mut function = Function::new(
+            #[cfg(feature = "debugger")]
+                                        "test".to_string(),
+            #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None)),
@@ -332,7 +353,10 @@ mod test {
 
     #[test]
     fn can_send_array_objects_when_input_depth_more_than_1() {
-        let mut function = Function::new("test".to_string(),
+        let mut function = Function::new(
+            #[cfg(feature = "debugger")]
+                                            "test".to_string(),
+            #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
                                          // vec!(Input::new(2, &None, true, false)),
@@ -349,7 +373,10 @@ mod test {
     #[test]
     #[should_panic]
     fn cannot_take_input_set_if_not_full_depth_2() {
-        let mut function = Function::new("test".to_string(),
+        let mut function = Function::new(
+            #[cfg(feature = "debugger")]
+                                    "test".to_string(),
+            #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None)),
@@ -363,8 +390,11 @@ mod test {
     fn test_function() -> Function {
         let out_conn = OutputConnection::new("/other/input/1".to_string(),
                                              1, 1, 0, 0, false, None);
-        Function::new("test".to_string(),
-                      "/test".to_string(),
+        Function::new(
+            #[cfg(feature = "debugger")]
+                    "test".to_string(),
+            #[cfg(feature = "debugger")]
+                        "/test".to_string(),
                       "/implementation".to_string(),
                       vec!(Input::new(2, &None)),
                       1, 0,
@@ -398,7 +428,10 @@ mod test {
     fn can_display_function_with_inputs() {
         let output_route = OutputConnection::new("/other/input/1".to_string(),
                                                  1, 1, 0, 0, false, None);
-        let mut function = Function::new("test".to_string(),
+        let mut function = Function::new(
+            #[cfg(feature = "debugger")]
+                                        "test".to_string(),
+            #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(2, &None)),
@@ -413,6 +446,7 @@ mod test {
     #[test]
     fn can_get_function_name_and_id_and_location() {
         let function = test_function();
+        #[cfg(feature = "debugger")]
         assert_eq!("test".to_string(), function.name());
         assert_eq!(1, function.id());
         assert_eq!("/implementation", function.implementation_location());

@@ -103,7 +103,10 @@ mod test {
 
     #[test]
     fn add_function() {
-        let function = Function::new("test".to_string(),
+        let function = Function::new(
+            #[cfg(feature = "debugger")]
+                                        "test".to_string(),
+            #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
                                          vec!(Input::new(1, &None)),
