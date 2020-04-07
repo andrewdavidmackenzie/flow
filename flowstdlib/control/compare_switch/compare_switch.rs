@@ -33,7 +33,7 @@ impl Implementation for CompareSwitch {
         match (left.as_f64(), right.as_f64()) {
             (Some(lhs), Some(rhs)) => {
                 let mut output_map = serde_json::Map::new();
-                if rhs == lhs {
+                if (rhs - lhs).abs() < std::f64::EPSILON {
                     output_map.insert("equal".into(), right.clone());
                     output_map.insert("right-lte".into(), right.clone());
                     output_map.insert("left-gte".into(), left.clone());

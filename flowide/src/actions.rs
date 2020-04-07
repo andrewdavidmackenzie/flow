@@ -1,7 +1,6 @@
 use std::sync::{Arc, Mutex};
 
 use gtk::{TextBufferExt, WidgetExt};
-use toml;
 use url::Url;
 
 use flowclib::compiler::compile;
@@ -92,7 +91,7 @@ pub fn open_flow(url: String) {
                     Err(e) => message(&e.to_string())
                 }
             }
-            Err(e) => message(&e.to_string())
+            Err(e) => message(&e)
         }
     });
 }

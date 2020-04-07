@@ -32,7 +32,7 @@ fn help() {
     println!("{}", HELP_STRING);
 }
 
-fn parse_command(input: &String) -> (&str, Option<Param>) {
+fn parse_command(input: &str) -> (&str, Option<Param>) {
     let parts: Vec<&str> = input.trim().split(' ').collect();
     let command = parts[0];
 
@@ -41,19 +41,16 @@ fn parse_command(input: &String) -> (&str, Option<Param>) {
             return (command, Some(Param::Wildcard));
         }
 
-        match parts[1].parse::<usize>() {
-            Ok(integer) => return (command, Some(Param::Numeric(integer))),
-            Err(_) => { /* not an integer - fall through */ }
+        if let Ok(integer) = parts[1].parse::<usize>() {
+            return (command, Some(Param::Numeric(integer)))
         }
 
-        if parts[1].contains("/") { // is an output specified
+        if parts[1].contains('/') { // is an output specified
             let sub_parts: Vec<&str> = parts[1].split('/').collect();
-            match sub_parts[0].parse::<usize>() {
-                Ok(source_process_id) =>
-                    return (command, Some(Param::Output((source_process_id, sub_parts[1].to_string())))),
-                Err(_) => { /* couldn't parse source process id */ }
+            if let Ok(source_process_id) = sub_parts[0].parse::<usize>() {
+                    return (command, Some(Param::Output((source_process_id, sub_parts[1].to_string()))));
             }
-        } else if parts[1].contains(":") { // is an input specifier
+        } else if parts[1].contains(':') { // is an input specifier
             let sub_parts: Vec<&str> = parts[1].split(':').collect();
             match (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
                 (Ok(dest_process_id), Ok(dest_input_number)) =>

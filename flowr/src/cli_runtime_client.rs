@@ -37,25 +37,25 @@ impl RuntimeClient for CLIRuntimeClient {
                         return Response::Stdin(buffer.trim().to_string());
                     }
                 }
-                return Response::Error("Could not read Stdin".into());
+                Response::Error("Could not read Stdin".into())
             }
             Command::Readline => {
                 let mut input = String::new();
                 match io::stdin().read_line(&mut input) {
-                    Ok(n) if n > 0 => return Response::Readline(input.trim().to_string()),
-                    _ => return Response::Error("Could not read Readline".into())
+                    Ok(n) if n > 0 => Response::Readline(input.trim().to_string()),
+                    _ => Response::Error("Could not read Readline".into())
                 }
             }
             Command::Args => {
                 let args = env::var(FLOW_ARGS_NAME).unwrap();
                 env::remove_var(FLOW_ARGS_NAME); // so another invocation later won't use it by mistake
                 let flow_args: Vec<String> = args.split(' ').map(|s| s.to_string()).collect();
-                return Response::Args(flow_args);
+                Response::Args(flow_args)
             }
             Command::Write(filename, bytes) => {
                 let mut file = File::create(filename).unwrap();
-                file.write(bytes.as_slice()).unwrap();
-                return Response::Ack;
+                file.write_all(bytes.as_slice()).unwrap();
+                Response::Ack
             }
         }
     }
