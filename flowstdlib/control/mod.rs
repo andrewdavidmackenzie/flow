@@ -2,9 +2,6 @@
 //! ## Control (//flowstdlib/control)
 //! Functions to control the flow of data on connections between other processing functions
 
-/// A module with functions to compare data elements
-pub mod compare;
-
 /// A module with functions to compare data elements and output a value depending on comparison
 pub mod compare_switch;
 

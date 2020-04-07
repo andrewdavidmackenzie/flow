@@ -60,8 +60,8 @@ impl Implementation for Add {
             (_, _) => println!("Unsupported input value types")
         }
 
-        if sum.is_some() {
-            output_map.insert("sum".into(), sum.unwrap());
+        if let Some(total) = sum {
+            output_map.insert("sum".into(), total);
             output_map.insert("i1".into(), input_a[0].clone());
             output_map.insert("i2".into(), input_b[0].clone());
 

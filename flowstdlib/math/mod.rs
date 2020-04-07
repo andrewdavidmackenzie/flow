@@ -1,6 +1,8 @@
 //! ## Math (//flowstdlib/math)
 //! Math Functions
 
+/// A module with functions to compare data elements
+pub mod compare;
 /// A module with a function to add two `Numbers`
 pub mod add;
 /// A module with a function to divide two `Numbers`

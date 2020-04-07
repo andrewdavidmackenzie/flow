@@ -36,8 +36,8 @@ pub fn get_manifest() -> LibraryManifest {
     let mut manifest = LibraryManifest::new(metadata);
 
     // Control
-    manifest.locators.insert("lib://flowstdlib/control/compare/Compare".to_string(),
-                             Native(Arc::new(control::compare::compare::Compare)));
+    manifest.locators.insert("lib://flowstdlib/math/compare/Compare".to_string(),
+                             Native(Arc::new(math::compare::compare::Compare)));
     manifest.locators.insert("lib://flowstdlib/control/compare_switch/CompareSwitch".to_string(),
                              Native(Arc::new(control::compare_switch::compare_switch::CompareSwitch)));
     manifest.locators.insert("lib://flowstdlib/control/join/Join".to_string(),

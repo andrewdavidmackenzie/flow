@@ -10,7 +10,7 @@ use serde_json::Value;
 /// ```toml
 /// [[process]]
 /// alias = "compare"
-/// source = "lib://flowstdlib/control/compare"
+/// source = "lib://flowstdlib/math/compare"
 /// ```
 ///
 /// ## Inputs
