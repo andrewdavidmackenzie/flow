@@ -63,6 +63,7 @@
     - [hello-world sample](samples/hello-world/DESCRIPTION.md)
     - [hello-world-include sample](samples/hello-world-include/DESCRIPTION.md)
     - [mandlebrot-world sample](samples/mandlebrot/DESCRIPTION.md)
+    - [matrix multiplication sample](samples/matrix_mult/DESCRIPTION.md)
     - [pipeline sample](samples/pipeline/DESCRIPTION.md)
     - [prime sample](samples/prime/DESCRIPTION.md)
     - [primitives sample](samples/primitives/DESCRIPTION.md)

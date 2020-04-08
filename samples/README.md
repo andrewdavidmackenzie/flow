@@ -9,19 +9,22 @@ a fibonacci series, and others are in different stages of development and drivin
 primitive functions and flow semantics.
 
 ## List of samples
-* [args](args/DESCRIPTION.md)
-* [arrays](arrays/DESCRIPTION.md)
-* [fibonacci](fibonacci/DESCRIPTION.md)
-* [first](first/DESCRIPTION.md)
-* [hello-world](hello-world/DESCRIPTION.md)
-* [hello-world-include](hello-world-include/DESCRIPTION.md)
-* [mandlebrot](mandlebrot/DESCRIPTION.md) (WIP)
-* [pipeline](pipeline/DESCRIPTION.md)
-* [prime](prime/DESCRIPTION.md) (WIP)
-* [primitives](primitives/DESCRIPTION.md)
-* [range](range/DESCRIPTION.md)
-* [reverse-echo](reverse-echo/DESCRIPTION.md)
-* [router](router/DESCRIPTION.md) (WIP)
+- [args sample](args/DESCRIPTION.md)
+- [arrays sample](arrays/DESCRIPTION.md)
+- [factorial sample](factorial/DESCRIPTION.md)
+- [fibonacci sample](fibonacci/DESCRIPTION.md)
+- [first sample](first/DESCRIPTION.md)
+- [hello-world sample](hello-world/DESCRIPTION.md)
+- [hello-world-include sample](hello-world-include/DESCRIPTION.md)
+- [mandlebrot sample](mandlebrot/DESCRIPTION.md) (WIP)
+- [matrix multiplication sample](matrix_mult/DESCRIPTION.md)
+- [pipeline sample](pipeline/DESCRIPTION.md)
+- [prime sample](prime/DESCRIPTION.md) (WIP)
+- [primitives sample](primitives/DESCRIPTION.md)
+- [range](range/DESCRIPTION.md)
+- [range-of-ranges](range-of-ranges/DESCRIPTION.md)
+- [reverse-echo sample](reverse-echo/DESCRIPTION.md)
+- [router sample](router/DESCRIPTION.md) (WIP)
 
 ## Structure of each sample
 Each sample directory contains:
