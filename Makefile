@@ -78,7 +78,8 @@ trim-docs:
 	@find target/html -name \*.lock  | xargs rm -rf {}
 	@cd target/html;rm -f Makefile .crates.toml .DS_Store .gitignore .mdbookignore .travis.yml coverage.sh
 	@cd target/html;rm -rf bin
-#	@rm -rf target/html/flowc/tests
+	@rm -rf target/html/flowc/tests/test-flows
+	@rm -rf target/html/flowc/tests/test-libs
 	@rm -rf target/html/code/debug
 	@find target/html -type d -empty -depth -delete
 	$(ETIME)
@@ -95,7 +96,7 @@ pages: docs deploy-pages
 deploy-pages:
 	$(STIME)
 	@echo "====> deploying guide to github"
-	@git worktree prune
+	git worktree prune
 	@rm -rf /tmp/guide
 	git worktree add /tmp/guide gh-pages
 	rm -rf /tmp/guide/*
