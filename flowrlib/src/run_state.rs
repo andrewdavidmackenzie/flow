@@ -8,11 +8,14 @@ use log::{debug, error, trace};
 use multimap::MultiMap;
 use serde_json::{json, Value};
 
+#[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 use crate::function::Function;
+#[cfg(feature = "metrics")]
 use crate::metrics::Metrics;
 use crate::output_connection::OutputConnection;
 
+#[cfg(any(feature = "checks", feature = "debugger", test))]
 #[derive(Debug, PartialEq)]
 pub enum State {
     Ready,
@@ -291,13 +294,18 @@ impl RunState {
 
     */
     pub fn init(&mut self) {
+        #[cfg(feature = "debugger")]
         self.reset();
 
         let mut inputs_ready_list = Vec::<(usize, usize)>::new();
 
         for function in &mut self.functions {
+            #[cfg(feature = "debugger")]
             debug!("Init:\tInitializing Function #{} '{}' in Flow #{}",
                    function.id(), function.name(), function.get_flow_id());
+            #[cfg(not(feature = "debugger"))]
+            debug!("Init:\tInitializing Function #{} in Flow #{}",
+                   function.id(), function.get_flow_id());
             function.init_inputs(true);
             if function.inputs_full() {
                 inputs_ready_list.push((function.id(), function.get_flow_id()));
@@ -363,6 +371,7 @@ impl RunState {
         Figure out the state of a function based on it's preence or not in the different control
         lists
     */
+    #[cfg(any(feature = "checks", feature = "debugger", test))]
     pub fn get_state(&self, function_id: usize) -> State {
         if self.ready.contains(&function_id) {
             State::Ready
@@ -444,6 +453,7 @@ impl RunState {
     /*
         return the number of jobs sent to date
     */
+    #[cfg(feature = "metrics")]
     pub fn jobs_sent(&self) -> usize {
         self.jobs_sent
     }
@@ -460,7 +470,10 @@ impl RunState {
         let input_set = function.take_input_set();
         let flow_id = function.get_flow_id();
 
+        #[cfg(feature = "debugger")]
         debug!("Job #{}:-------Creating for Function #{} '{}' ---------------------------", job_id, function_id, function.name());
+        #[cfg(not(feature = "debugger"))]
+        debug!("Job #{}:-------Creating for Function #{} ---------------------------", job_id, function_id);
 
         // inputs were taken and hence emptied - so refresh any inputs that have constant initializers for next time
         function.init_inputs(false);
@@ -493,9 +506,16 @@ impl RunState {
         sent to, marking the source function as blocked because those others must consume the output
         if those other function have all their inputs, then mark them accordingly.
     */
-    pub fn complete_job(&mut self, metrics: &mut Metrics, job: Job, debugger: &mut Option<Debugger>) {
+    pub fn complete_job(&mut self,
+                        #[cfg(feature = "metrics")]
+                        metrics: &mut Metrics,
+                        job: Job,
+                        #[cfg(feature = "debugger")]
+                        debugger: &mut Option<Debugger>
+                        ) {
         trace!("Job #{}:\tCompleted by Function #{}", job.job_id, job.function_id);
         self.running.retain(|&_, &job_id| job_id != job.job_id);
+        #[cfg(feature = "checks")]
         let job_id = job.job_id;
 
         match job.error {
@@ -513,7 +533,12 @@ impl RunState {
                                 self.send_value(job.function_id,
                                                 job.flow_id,
                                                 &destination,
-                                                output_value, metrics, debugger),
+                                                output_value,
+                                                #[cfg(feature = "metrics")]
+                                                metrics,
+                                                #[cfg(feature = "debugger")]
+                                                debugger
+                                                ),
                             _ => trace!("Job #{}:\t\tNo output value found at '{}'", job.job_id, &destination.subpath)
                         }
                     }
@@ -530,6 +555,7 @@ impl RunState {
                 self.unblock_flows(job.flow_id, job.job_id);
             }
             Some(_) => {
+                #[cfg(feature = "debugger")]
                 match debugger {
                     None => error!("Job #{}:\tError in Job execution:\n{:#?}", job.job_id, job),
                     Some(debugger) => debugger.panic(&self, job)
@@ -578,8 +604,11 @@ impl RunState {
                   source_flow_id: usize,
                   destination: &OutputConnection,
                   output_value: &Value,
+                  #[cfg(feature = "metrics")]
                   metrics: &mut Metrics,
-                  debugger: &mut Option<Debugger>) {
+                  #[cfg(feature = "debugger")]
+                  debugger: &mut Option<Debugger>
+                    ) {
         let route_str = if destination.subpath.is_empty() { "".to_string() } else {
             format!(" via output route '{}'", destination.subpath)
         };
@@ -592,9 +621,11 @@ impl RunState {
 
         debug!("\t\tFunction #{} sending '{}'{} {}", source_id, output_value, route_str, destination_str);
 
-        if let Some(ref mut debugger) = debugger {
-            debugger.check_prior_to_send(self, source_id, &destination.subpath,
-                                         &output_value, destination.function_id, destination.io_number);
+        if cfg!(feature = "debugger") {
+            if let Some(ref mut debugger) = debugger {
+                debugger.check_prior_to_send(self, source_id, &destination.subpath,
+                                             &output_value, destination.function_id, destination.io_number);
+            }
         }
 
         let function = self.get_mut(destination.function_id);
@@ -613,7 +644,10 @@ impl RunState {
         if block {
             // TODO pass in destination and combine Block and OutputConnection?
             self.create_block(destination.flow_id, destination.function_id,
-                              destination.io_number, source_id, source_flow_id, debugger);
+                              destination.io_number, source_id, source_flow_id,
+                              #[cfg(feature = "debugger")]
+                              debugger
+                            );
         }
 
         if full {
@@ -745,6 +779,7 @@ impl RunState {
         self.jobs_sent
     }
 
+    #[cfg(feature = "metrics")]
     pub fn num_functions(&self) -> usize {
         self.functions.len()
     }
@@ -859,14 +894,19 @@ impl RunState {
         destination to an input on function 'blocking_id' that is already full.
     */
     fn create_block(&mut self, blocking_flow_id: usize, blocking_id: usize, blocking_io_number: usize,
-                    blocked_id: usize, blocked_flow_id: usize, debugger: &mut Option<Debugger>) {
+                    blocked_id: usize, blocked_flow_id: usize,
+                    #[cfg(feature = "debugger")]
+                    debugger: &mut Option<Debugger>
+                    ) {
         let block = Block::new(blocking_flow_id, blocking_id, blocking_io_number, blocked_id, blocked_flow_id);
         trace!("\t\t\t\t\tCreating Block {:?}", block);
 
         if !self.blocks.contains(&block) {
             self.blocks.insert(block.clone());
-            if let Some(ref mut debugger) = debugger {
-                debugger.check_on_block_creation(self, &block);
+            if cfg!(feature = "debugger") {
+                if let Some(ref mut debugger) = debugger {
+                    debugger.check_on_block_creation(self, &block);
+                }
             }
         }
     }
@@ -960,7 +1000,6 @@ impl RunState {
     }
 }
 
-#[cfg(any(feature = "logging", feature = "debugger"))]
 impl fmt::Display for RunState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "RunState:")?;
@@ -982,13 +1021,16 @@ mod test {
     use serde_json::json;
     use serde_json::Value;
 
+    #[cfg(feature = "debugger")]
     use crate::debug_client::{DebugClient, Event, Response};
+    #[cfg(feature = "debugger")]
     use crate::debug_client::{Command, Param};
     use crate::function::Function;
     use crate::input::Input;
     use crate::input::InputInitializer::OneTime;
     use crate::input::OneTimeInputInitializer;
     use crate::output_connection::OutputConnection;
+    #[cfg(any(feature = "debugger", feature = "checks"))]
     use crate::run_state;
 
     use super::Job;
@@ -1007,8 +1049,10 @@ mod test {
     }
 
     // Helpers
+    #[cfg(feature = "debugger")]
     struct TestDebugClient {}
 
+    #[cfg(feature = "debugger")]
     impl DebugClient for TestDebugClient {
         fn init(&self) {}
 
@@ -1021,6 +1065,7 @@ mod test {
         fn send_response(&self, _response: Response) {}
     }
 
+    #[cfg(feature = "debugger")]
     fn test_debug_client() -> &'static dyn DebugClient {
         &TestDebugClient {}
     }
@@ -1030,7 +1075,10 @@ mod test {
                                                      1, 0, 0,
                                                      0, false, Some("/fB".to_string()));
 
-        Function::new("fA".to_string(), // name
+        Function::new(
+            #[cfg(feature = "debugger")]
+                "fA".to_string(), // name
+            #[cfg(feature = "debugger")]
                       "/fA".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1, &None)),
@@ -1042,7 +1090,10 @@ mod test {
         let connection_to_f1 = OutputConnection::new("".to_string(),
                                                      1, 0, 0,
                                                      0, false, Some("/fB".to_string()));
-        Function::new("fA".to_string(), // name
+        Function::new(
+            #[cfg(feature = "debugger")]
+                    "fA".to_string(), // name
+            #[cfg(feature = "debugger")]
                       "/fA".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1,
@@ -1052,7 +1103,10 @@ mod test {
     }
 
     fn test_function_a_init() -> Function {
-        Function::new("fA".to_string(), // name
+        Function::new(
+            #[cfg(feature = "debugger")]
+                    "fA".to_string(), // name
+            #[cfg(feature = "debugger")]
                       "/fA".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1,
@@ -1062,7 +1116,10 @@ mod test {
     }
 
     fn test_function_b_not_init() -> Function {
-        Function::new("fB".to_string(), // name
+        Function::new(
+            #[cfg(feature = "debugger")]
+                    "fB".to_string(), // name
+            #[cfg(feature = "debugger")]
                       "/fB".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1, &None)),
@@ -1071,7 +1128,10 @@ mod test {
     }
 
     fn test_function_b_init() -> Function {
-        Function::new("fB".to_string(), // name
+        Function::new(
+            #[cfg(feature = "debugger")]
+                    "fB".to_string(), // name
+            #[cfg(feature = "debugger")]
                       "/fB".to_string(),
                       "/test".to_string(),
                       vec!(Input::new(1,
@@ -1109,12 +1169,14 @@ mod test {
     }
 
     mod general_run_state_tests {
+        #[cfg(any(feature = "debugger"))]
         use std::collections::HashSet;
 
         use super::super::RunState;
+        #[cfg(feature = "debugger")]
         use super::super::State;
 
-        #[cfg(any(feature = "logging", feature = "debugger"))]
+        #[cfg(feature = "debugger")]
         #[test]
         fn run_state_can_display() {
             let f_a = super::test_function_a_to_b();
@@ -1181,17 +1243,20 @@ mod test {
     mod state_transitions {
         use serde_json::json;
 
+        #[cfg(feature = "debugger")]
         use crate::debugger::Debugger;
         use crate::function::Function;
         use crate::input::{ConstantInputInitializer, OneTimeInputInitializer};
         use crate::input::Input;
         use crate::input::InputInitializer::{Constant, OneTime};
+        #[cfg(feature = "metrics")]
         use crate::metrics::Metrics;
         use crate::output_connection::OutputConnection;
 
         use super::super::Job;
         use super::super::RunState;
         use super::super::State;
+        #[cfg(feature = "debugger")]
         use super::test_debug_client;
 
         #[test]
@@ -1278,7 +1343,10 @@ mod test {
 
         #[test]
         fn to_waiting_on_init() {
-            let f_a = Function::new("fA".to_string(), // name
+            let f_a = Function::new(
+                #[cfg(feature = "debugger")]
+                                    "fA".to_string(), // name
+                #[cfg(feature = "debugger")]
                                     "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None)),
@@ -1313,7 +1381,10 @@ mod test {
 
         #[test]
         fn unready_not_to_running_on_next() {
-            let f_a = Function::new("fA".to_string(),
+            let f_a = Function::new(
+                #[cfg(feature = "debugger")]
+                                    "fA".to_string(),
+                #[cfg(feature = "debugger")]
                                     "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None)),
@@ -1337,7 +1408,9 @@ mod test {
             let f_b = super::test_function_b_init();
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
+            #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(2);
+            #[cfg(feature = "debugger")]
             let mut debugger = Some(Debugger::new(test_debug_client()));
 
             // Initial state
@@ -1353,7 +1426,13 @@ mod test {
 
 // Event
             let output = super::test_output(1, 0);
-            state.complete_job(&mut metrics, output, &mut debugger);
+            state.complete_job(
+                #[cfg(feature = "metrics")]
+                &mut metrics,
+                output,
+                #[cfg(feature = "debugger")]
+                &mut debugger
+            );
 
 // Test
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
@@ -1365,19 +1444,30 @@ mod test {
             let f_b = super::test_function_b_not_init();
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
+            #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(2);
+            #[cfg(feature = "debugger")]
             let mut debugger = Some(Debugger::new(test_debug_client()));
 
             state.init();
             let output = super::error_output(0, 1);
-            state.complete_job(&mut metrics, output, &mut debugger);
+            state.complete_job(
+                #[cfg(feature = "metrics")]
+                &mut metrics,
+                output,
+                #[cfg(feature = "debugger")]
+                &mut debugger
+            );
 
             assert_eq!(State::Waiting, state.get_state(1), "f_b should be Waiting");
         }
 
         #[test]
         fn running_to_ready_on_done() {
-            let f_a = Function::new("fA".to_string(), // name
+            let f_a = Function::new(
+                #[cfg(feature = "debugger")]
+                                            "fA".to_string(), // name
+                #[cfg(feature = "debugger")]
                                     "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1,
@@ -1386,7 +1476,9 @@ mod test {
                                     &[], false);
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 1);
+            #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
+            #[cfg(feature = "debugger")]
             let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
@@ -1407,7 +1499,13 @@ mod test {
                 destinations: vec!(),
                 error: None,
             };
-            state.complete_job(&mut metrics, job, &mut debugger);
+            state.complete_job(
+                #[cfg(feature = "metrics")]
+                &mut metrics,
+                job,
+                #[cfg(feature = "debugger")]
+                &mut debugger
+            );
 
 // Test
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready again");
@@ -1419,7 +1517,9 @@ mod test {
             let f_a = super::test_function_a_init();
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 1);
+            #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
+            #[cfg(feature = "debugger")]
             let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
@@ -1440,7 +1540,13 @@ mod test {
                 destinations: vec!(),
                 error: None,
             };
-            state.complete_job(&mut metrics, job, &mut debugger);
+            state.complete_job(
+                #[cfg(feature = "metrics")]
+                &mut metrics,
+                job,
+                #[cfg(feature = "debugger")]
+                &mut debugger
+            );
 
 // Test
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting again");
@@ -1450,14 +1556,20 @@ mod test {
         #[test]
         fn running_to_blocked_on_done() {
             let out_conn = OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None);
-            let f_a = Function::new("fA".to_string(), // name
+            let f_a = Function::new(
+                #[cfg(feature = "debugger")]
+                                    "fA".to_string(), // name
+                #[cfg(feature = "debugger")]
                                     "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
                                     0, 0,
                                     &[out_conn], false); // outputs to fB:0
-            let f_b = Function::new("fB".to_string(), // name
+            let f_b = Function::new(
+                #[cfg(feature = "debugger")]
+                                        "fB".to_string(), // name
+                #[cfg(feature = "debugger")]
                                     "/fB".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None)),
@@ -1465,7 +1577,9 @@ mod test {
                                     &[], false);
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
+            #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
+            #[cfg(feature = "debugger")]
             let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
 
@@ -1479,7 +1593,13 @@ mod test {
 
 // Event
             let output = super::test_output(0, 1);
-            state.complete_job(&mut metrics, output, &mut debugger);
+            state.complete_job(
+                #[cfg(feature = "metrics")]
+                &mut metrics,
+                output,
+                #[cfg(feature = "debugger")]
+                &mut debugger
+            );
 
 // Test f_a should transition to Blocked on f_b
             assert_eq!(State::Blocked, state.get_state(0), "f_a should be Blocked");
@@ -1487,14 +1607,20 @@ mod test {
 
         #[test]
         fn waiting_to_ready_on_input() {
-            let f_a = Function::new("fA".to_string(), // name
+            let f_a = Function::new(
+                #[cfg(feature = "debugger")]
+                                    "fA".to_string(), // name
+                #[cfg(feature = "debugger")]
                                     "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None)),
                                     0, 0,
                                     &[], false);
             let out_conn = OutputConnection::new("".into(), 0, 0, 0, 0, false, None);
-            let f_b = Function::new("fB".to_string(), // name
+            let f_b = Function::new(
+                #[cfg(feature = "debugger")]
+                                    "fB".to_string(), // name
+                #[cfg(feature = "debugger")]
                                     "/fB".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None)),
@@ -1502,14 +1628,22 @@ mod test {
                                     &[out_conn], false);
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
+            #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
+            #[cfg(feature = "debugger")]
             let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
 
 // Event run f_b which will send to f_a
             let output = super::test_output(1, 0);
-            state.complete_job(&mut metrics, output, &mut debugger);
+            state.complete_job(
+                #[cfg(feature = "metrics")]
+                &mut metrics,
+                output,
+                #[cfg(feature = "debugger")]
+                &mut debugger
+            );
 
 // Test
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
@@ -1523,7 +1657,10 @@ mod test {
         fn waiting_to_blocked_on_input() {
             let f_a = super::test_function_a_to_b_not_init();
             let connection_to_f0 = OutputConnection::new("".into(), 0, 0, 0, 0, false, None);
-            let f_b = Function::new("fB".to_string(), // name
+            let f_b = Function::new(
+                #[cfg(feature = "debugger")]
+                                            "fB".to_string(), // name
+                #[cfg(feature = "debugger")]
                                     "/fB".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1,
@@ -1532,7 +1669,9 @@ mod test {
                                     &[connection_to_f0], false);
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(functions, 1);
+            #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
+            #[cfg(feature = "debugger")]
             let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
 
@@ -1543,7 +1682,13 @@ mod test {
 
             // create output from f_b as if it had run - will send to f_a
             let output = super::test_output(1, 0);
-            state.complete_job(&mut metrics, output, &mut debugger);
+            state.complete_job(
+                #[cfg(feature = "metrics")]
+                &mut metrics,
+                output,
+                #[cfg(feature = "debugger")]
+                &mut debugger)
+            ;
 
             // Test
             assert_eq!(state.get_state(0), State::Ready, "f_a should be Ready");
@@ -1559,7 +1704,10 @@ mod test {
             let connection_to_0 = OutputConnection::new("".to_string(), 0, 0, 0, 0, false, None);
             let connection_to_1 = OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None);
 
-            let f_a = Function::new("fA".to_string(), // name
+            let f_a = Function::new(
+                #[cfg(feature = "debugger")]
+                                    "fA".to_string(), // name
+                #[cfg(feature = "debugger")]
                                     "/fA".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1,
@@ -1569,7 +1717,10 @@ mod test {
                                         connection_to_0.clone(), // outputs to self:0
                                         connection_to_1.clone() // outputs to f_b:0
                                     ], false);
-            let f_b = Function::new("fB".to_string(), // name
+            let f_b = Function::new(
+                #[cfg(feature = "debugger")]
+                                            "fB".to_string(), // name
+                #[cfg(feature = "debugger")]
                                     "/fB".to_string(),
                                     "/test".to_string(),
                                     vec!(Input::new(1, &None)),
@@ -1577,7 +1728,9 @@ mod test {
                                     &[], false);
             let functions = vec!(f_a, f_b); // NOTE the order!
             let mut state = RunState::new(functions, 1);
+            #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(2);
+            #[cfg(feature = "debugger")]
             let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
 
@@ -1598,7 +1751,12 @@ mod test {
                 error: None,
 
             };
-            state.complete_job(&mut metrics, job, &mut debugger);
+            state.complete_job(
+                #[cfg(feature = "metrics")]
+                &mut metrics,
+                job,
+                #[cfg(feature = "debugger")]
+                &mut debugger);
 
             // Test
             assert_eq!(state.get_state(1), State::Ready, "f_b should be Ready");
@@ -1606,11 +1764,23 @@ mod test {
 
             let job = state.next_job().unwrap();
             assert_eq!(job.function_id, 1, "next() should return function_id=1 (f_b) for running");
-            state.complete_job(&mut metrics, job, &mut debugger);
+            state.complete_job(
+                #[cfg(feature = "metrics")]
+                &mut metrics,
+                job,
+                #[cfg(feature = "debugger")]
+                &mut debugger
+            );
 
             let job = state.next_job().unwrap();
             assert_eq!(job.function_id, 0, "next() should return function_id=0 (f_a) for running");
-            state.complete_job(&mut metrics, job, &mut debugger);
+            state.complete_job(
+                #[cfg(feature = "metrics")]
+                &mut metrics,
+                job,
+                #[cfg(feature = "debugger")]
+                &mut debugger
+            );
         }
     }
 
@@ -1618,34 +1788,46 @@ mod test {
     mod functional_tests {
         use serde_json::json;
 
+        #[cfg(feature = "debugger")]
         use crate::debugger::Debugger;
         use crate::function::Function;
         use crate::input::Input;
+        #[cfg(feature = "metrics")]
         use crate::metrics::Metrics;
         use crate::output_connection::OutputConnection;
 
         use super::super::Job;
         use super::super::RunState;
         use super::super::State;
+        #[cfg(feature = "debugger")]
         use super::test_debug_client;
 
         fn test_functions() -> Vec<Function> {
             let out_conn1 = OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None);
             let out_conn2 = OutputConnection::new("".to_string(), 2, 0, 0, 0, false, None);
-            let p0 = Function::new("p0".to_string(), // name
+            let p0 = Function::new(
+                #[cfg(feature = "debugger")]
+                                    "p0".to_string(), // name
+                #[cfg(feature = "debugger")]
                                    "/p0".to_string(),
                                    "/test".to_string(),
                                    vec!(), // input array
                                    0, 0,
                                    &[out_conn1, out_conn2] // destinations
                                    , false);    // implementation
-            let p1 = Function::new("p1".to_string(),
+            let p1 = Function::new(
+                #[cfg(feature = "debugger")]
+                                    "p1".to_string(),
+                #[cfg(feature = "debugger")]
                                    "/p1".to_string(),
                                    "/test".to_string(),
                                    vec!(Input::new(1, &None)), // inputs array
                                    1, 0,
                                    &[], false);
-            let p2 = Function::new("p2".to_string(),
+            let p2 = Function::new(
+                #[cfg(feature = "debugger")]
+                                    "p2".to_string(),
+                #[cfg(feature = "debugger")]
                                    "/p2".to_string(),
                                    "/test".to_string(),
                                    vec!(Input::new(1, &None)), // inputs array
@@ -1657,10 +1839,13 @@ mod test {
         #[test]
         fn blocked_works() {
             let mut state = RunState::new(test_functions(), 1);
+            #[cfg(feature = "debugger")]
             let mut debugger = Some(Debugger::new(test_debug_client()));
 
 // Indicate that 0 is blocked by 1 on input 0
-            state.create_block(0, 1, 0, 0, 0, &mut debugger);
+            state.create_block(0, 1, 0, 0, 0,
+                               #[cfg(feature = "debugger")]
+                               &mut debugger);
             assert!(state.blocked_sending(0));
         }
 
@@ -1701,10 +1886,13 @@ mod test {
         #[test]
         fn blocked_is_not_ready() {
             let mut state = RunState::new(test_functions(), 1);
+            #[cfg(feature = "debugger")]
             let mut debugger = Some(Debugger::new(test_debug_client()));
 
 // Indicate that 0 is blocked by 1 on input 0
-            state.create_block(0, 1, 0, 0, 0, &mut debugger);
+            state.create_block(0, 1, 0, 0, 0,
+                               #[cfg(feature = "debugger")]
+                               &mut debugger);
 
 // Put 0 on the blocked/ready list depending on blocked status
             state.inputs_now_full(0, 0);
@@ -1715,10 +1903,13 @@ mod test {
         #[test]
         fn unblocking_makes_ready() {
             let mut state = RunState::new(test_functions(), 1);
+            #[cfg(feature = "debugger")]
             let mut debugger = Some(Debugger::new(test_debug_client()));
 
             // Indicate that 0 is blocked by 1 and put 0 on the blocked list
-            state.create_block(0, 1, 0, 0, 0, &mut debugger);
+            state.create_block(0, 1, 0, 0, 0,
+                               #[cfg(feature = "debugger")]
+                               &mut debugger);
             // 0's inputs are now full, so it would be ready if it weren't blocked on output
             state.inputs_now_full(0, 0);
             // 0 does not show as ready.
@@ -1734,11 +1925,16 @@ mod test {
         #[test]
         fn unblocking_doubly_blocked_functions_not_ready() {
             let mut state = RunState::new(test_functions(), 1);
+            #[cfg(feature = "debugger")]
             let mut debugger = Some(Debugger::new(test_debug_client()));
 
 // Indicate that 0 is blocked by 1 and 2
-            state.create_block(0, 1, 0, 0, 0, &mut debugger);
-            state.create_block(0, 2, 0, 0, 0, &mut debugger);
+            state.create_block(0, 1, 0, 0, 0,
+                               #[cfg(feature = "debugger")]
+                               &mut debugger);
+            state.create_block(0, 2, 0, 0, 0,
+                               #[cfg(feature = "debugger")]
+                               &mut debugger);
 
 // Put 0 on the blocked/ready list depending on blocked status
             state.inputs_now_full(0, 0);
@@ -1778,7 +1974,9 @@ mod test {
 
             let functions = vec!(f_a);
             let mut state = RunState::new(functions, 1);
+            #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(1);
+            #[cfg(feature = "debugger")]
             let mut debugger = Some(Debugger::new(test_debug_client()));
             state.init();
 
@@ -1797,7 +1995,13 @@ mod test {
             };
 
 // Test there is no problem producing an Output when no destinations to send it to
-            state.complete_job(&mut metrics, job, &mut debugger);
+            state.complete_job(
+                #[cfg(feature = "metrics")]
+                &mut metrics,
+                job,
+                #[cfg(feature = "debugger")]
+                &mut debugger
+            );
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
         }
 
@@ -1805,7 +2009,10 @@ mod test {
         #[test]
         #[ignore]
         fn can_send_array_to_simple_object_depth_1() {
-            let mut function = Function::new("test".to_string(),
+            let mut function = Function::new(
+                #[cfg(feature = "debugger")]
+                                                    "test".to_string(),
+                #[cfg(feature = "debugger")]
                                              "/test".to_string(),
                                              "/test".to_string(),
                                              vec!(Input::new(1, &None)),
@@ -1821,7 +2028,10 @@ mod test {
         #[test]
         #[ignore]
         fn can_send_array_to_simple_object_depth_2() {
-            let mut function = Function::new("test".to_string(),
+            let mut function = Function::new(
+                #[cfg(feature = "debugger")]
+                                                    "test".to_string(),
+                #[cfg(feature = "debugger")]
                                              "/test".to_string(),
                                              "/test".to_string(),
                                              vec!(Input::new(2, &None)),
@@ -1836,7 +2046,10 @@ mod test {
         #[test]
         #[ignore]
         fn can_send_simple_object_to_array_input() {
-            let mut function = Function::new("test".to_string(),
+            let mut function = Function::new(
+                #[cfg(feature = "debugger")]
+                                                    "test".to_string(),
+                #[cfg(feature = "debugger")]
                                              "/test".to_string(),
                                              "/test".to_string(),
                                              // vec!(Input::new(1, &None, true, false)),

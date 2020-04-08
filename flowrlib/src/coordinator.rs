@@ -3,10 +3,11 @@ use std::sync::mpsc::{Receiver, Sender, SendError};
 use std::sync::mpsc;
 use std::time::Duration;
 
-use log::{debug, error, info, log_enabled};
-use log::Level::Debug;
+use log::{debug, error, info};
 
+#[cfg(feature = "debugger")]
 use crate::debug_client::DebugClient;
+#[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 use crate::execution;
 use crate::manifest::Manifest;
@@ -46,8 +47,12 @@ impl Submission {
     /// Create a new `Submission` of a `Flow` for execution with the specified `Manifest`
     /// of `Functions`, executing it with a maximum of `mac_parallel_jobs` running in parallel
     /// connecting via the optional `DebugClient`
-    pub fn new(manifest: Manifest, max_parallel_jobs: usize, display_metrics: bool,
-               client: Option<&'static dyn DebugClient>) -> Submission {
+    pub fn new(manifest: Manifest,
+               max_parallel_jobs: usize,
+               display_metrics: bool,
+               #[cfg(feature = "debugger")]
+               client: Option<&'static dyn DebugClient>,
+    ) -> Submission {
         info!("Maximum jobs dispatched in parallel limited to {}", max_parallel_jobs);
         let output_timeout = Duration::from_secs(1);
 
@@ -100,8 +105,11 @@ pub struct Coordinator {
 /// use flowrlib::coordinator::{Coordinator, Submission};
 /// use std::process::exit;
 /// use flowrlib::manifest::{Manifest, MetaData};
+/// #[cfg(any(feature = "debugger"))]
 /// use flowrlib::debug_client::{Command, Param};
+/// #[cfg(any(feature = "debugger"))]
 /// use flowrlib::debug_client::Event;
+/// #[cfg(any(feature = "debugger"))]
 /// use flowrlib::debug_client::Response;
 ///
 /// let meta_data = MetaData {
@@ -116,7 +124,9 @@ pub struct Coordinator {
 /// let mut submission = Submission::new(manifest,
 ///                                     1 /* num_parallel_jobs */,
 ///                                     false /* display_metrics */,
-///                                     None /* debug client*/);
+/// #[cfg(any(feature = "debugger"))]
+///                                     None /* debug client*/
+///                                     );
 ///
 /// let mut coordinator = Coordinator::new( 1 /* num_threads */, );
 ///
@@ -163,9 +173,8 @@ impl Coordinator {
                 }
             }
 
-            if cfg!(feature = "metrics") {
+            #[cfg(feature = "metrics")]
                 submission.metrics.reset();
-            }
 
             debug!("===========================    Starting flow execution =============================");
             let mut display_next_output;
@@ -185,23 +194,30 @@ impl Coordinator {
                 if submission.state.number_jobs_running() > 0 {
                     match self.job_rx.recv_timeout(submission.output_timeout) {
                         Ok(job) => {
-                            if cfg!(feature = "debugger") && display_next_output {
+                            if display_next_output && cfg!(feature = "debugger") {
                                 if let Some(ref mut debugger) = submission.debugger {
                                     debugger.job_completed(&job);
                                 }
                             }
 
-                            submission.state.complete_job(&mut submission.metrics, job, &mut submission.debugger);
+                            submission.state.complete_job(
+                                #[cfg(feature = "metrics")]
+                                    &mut submission.metrics,
+                                job,
+                                #[cfg(feature = "debugger")]
+                                    &mut submission.debugger,
+                            );
                         }
+                        #[cfg(feature = "debugger")]
                         Err(err) => {
-                            if cfg!(feature = "debugger") {
-                                if let Some(ref mut debugger) = submission.debugger {
-                                    debugger.error(&submission.state,
-                                                   format!("Error in job reception: '{}'", err));
-                                }
-                            } else {
-                                error!("\tError in Job reception");
+                            if let Some(ref mut debugger) = submission.debugger {
+                                debugger.error(&submission.state,
+                                               format!("Error in job reception: '{}'", err));
                             }
+                        }
+                        #[cfg(not(feature = "debugger"))]
+                        Err(_) => {
+                            error!("\tError in Job reception");
                         }
                     }
                 }
@@ -232,10 +248,7 @@ impl Coordinator {
 
     fn flow_done(&self, submission: &Submission) {
         debug!("=========================== Flow execution ended ======================================");
-
-        if cfg!(feature = "logging") && log_enabled!(Debug) {
-            debug!("{}", submission.state);
-        }
+        debug!("{}", submission.state);
 
         if submission.display_metrics {
             #[cfg(feature = "metrics")]
@@ -264,8 +277,10 @@ impl Coordinator {
                     error!("Error sending on 'job_tx': {}", err.to_string());
                     debug!("{}", submission.state);
 
-                    if let Some(ref mut debugger) = submission.debugger {
-                        debugger.error(&submission.state, err.to_string());
+                    if cfg!(feature = "debugger") {
+                        if let Some(ref mut debugger) = submission.debugger {
+                            debugger.error(&submission.state, err.to_string());
+                        }
                     }
                 }
             }
@@ -278,7 +293,10 @@ impl Coordinator {
         Send a job for execution
     */
     fn send_job(&self, job: Job, submission: &mut Submission) -> Result<(bool, bool), SendError<Job>> {
-        let mut debug_options = (false, false);
+        #[cfg(feature = "debugger")]
+            let mut debug_options = (false, false);
+        #[cfg(not(feature = "debugger"))]
+            let debug_options = (false, false);
 
         submission.state.start(&job);
         #[cfg(feature = "metrics")]
@@ -302,7 +320,9 @@ impl Coordinator {
 mod test {
     use crate::coordinator::Coordinator;
     use crate::coordinator::Submission;
+    #[cfg(feature = "debugger")]
     use crate::debug_client::{DebugClient, Event, Response};
+    #[cfg(feature = "debugger")]
     use crate::debug_client::Command;
     use crate::manifest::Manifest;
     use crate::manifest::MetaData;
@@ -317,8 +337,10 @@ mod test {
         }
     }
 
+    #[cfg(feature = "debugger")]
     struct TestDebugClient {}
 
+    #[cfg(feature = "debugger")]
     impl DebugClient for TestDebugClient {
         fn init(&self) {}
 
@@ -331,6 +353,7 @@ mod test {
         fn send_response(&self, _response: Response) {}
     }
 
+    #[cfg(feature = "debugger")]
     fn test_debug_client() -> &'static dyn DebugClient {
         &TestDebugClient {}
     }
@@ -339,7 +362,9 @@ mod test {
     fn create_submission() {
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);
-        let _ = Submission::new(manifest, 1, true, None);
+        let _ = Submission::new(manifest, 1, true,
+                                #[cfg(feature = "debugger")]
+                                    None);
     }
 
     #[test]
@@ -348,19 +373,24 @@ mod test {
 
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);
-        let submission = Submission::new(manifest, 1, true, None);
+        let submission = Submission::new(manifest, 1, true,
+                                         #[cfg(feature = "debugger")]
+                                             None);
 
         coordinator.submit(submission);
     }
 
     #[test]
     #[ignore]
+    #[cfg(feature = "debugger")]
     fn submit_with_debugger() {
         let mut coordinator = Coordinator::new(1);
 
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);
-        let submission = Submission::new(manifest, 1, true, Some(test_debug_client()));
+        let submission = Submission::new(manifest, 1, true,
+                                         #[cfg(feature = "debugger")]
+                                             Some(test_debug_client()));
 
         coordinator.submit(submission);
     }
