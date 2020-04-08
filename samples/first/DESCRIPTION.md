@@ -18,7 +18,6 @@ Context Diagram
 Features Used
 ===
 * Context Flow
-* Values to store intermediate values
 * Setting initial value of a Value at startup
 * Multiple connections into and out of functions and values
 * Library Functions used (`stdout` and `add` from `flowstdlib`) to print a value and to add two numbers

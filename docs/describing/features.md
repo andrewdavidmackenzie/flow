@@ -7,10 +7,6 @@ This is a complete list of features implemented in the description of flows:
     * Can contain elements directly inside the context flow description
     * Child flow inclusion from description in its own flow file in current project or different project
     * Named outputs from child flow, referenced by parent flow for connections
-* Values to store intermediate values
-    * Setting initial value of a Value at startup
-    * By default Values contents are consumer when read
-    * 'static' Value who's contents are not consumed when read
 * Functions
     * With just inputs
     * With just outputs
