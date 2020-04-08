@@ -9,6 +9,10 @@ Context Diagram
 ===
 ![Context diagram](fibonacci.dot.svg)
 
+Fib sub-flow diagram
+====
+![fib sub-flow](fib.dot.svg)
+
 Features Used
 ===
 * Context Flow

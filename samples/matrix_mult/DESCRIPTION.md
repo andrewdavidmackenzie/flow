@@ -9,6 +9,8 @@ Context Diagram
 ===
 ![Context diagram](matrix_mult.dot.svg)
 
+Multiply sub-flow diagram
+====
 !['multiply' flow](multiply.dot.svg)
 
 Features Used
