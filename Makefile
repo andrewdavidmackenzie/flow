@@ -62,16 +62,25 @@ build-guide:
 trim-guide:
 	$(STIME)
 	@find target/html -name target -type d | xargs rm -rf {}
-	@find target/html -name node_modules | xargs rm -rf {}
 	@find target/html -name .idea | xargs rm -rf {}
+	@find target/html -name \*.iml | xargs rm -rf {}
 	@find target/html -name .git | xargs rm -rf {}
+	@find target/html -name .sh | xargs rm -rf {}
 	@find target/html -name assets | xargs rm -rf {}
+	@find target/html -name Cargo.toml | xargs rm -rf {}
+	@find target/html -name manifest.json | xargs rm -rf {}
+	@find target/html -name test.err | xargs rm -rf {}
 	@find target/html -name \*.rs | xargs rm -rf {}
 	@find target/html -name pkg | xargs rm -rf {}
 	@find target/html -name \*.dump | xargs rm -rf {}
 	@find target/html -name \*.dot | xargs rm -rf {}
 	@find target/html -name \*.wasm | xargs rm -rf {}
 	@find target/html -name \*.lock  | xargs rm -rf {}
+	@cd target/html;rm -f Makefile .crates.toml .DS_Store .gitignore .mdbookignore .travis.yml coverage.sh
+	@cd target/html;rm -rf bin
+	@rm -rf target/html/flowc/tests
+	@rm -rf target/html/code/debug
+	@find target/html -type d -empty -depth -delete
 	$(ETIME)
 
 code-docs:
