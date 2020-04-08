@@ -51,8 +51,8 @@ impl Submission {
                max_parallel_jobs: usize,
                display_metrics: bool,
                #[cfg(feature = "debugger")]
-               client: Option<&'static dyn DebugClient>
-                ) -> Submission {
+               client: Option<&'static dyn DebugClient>,
+    ) -> Submission {
         info!("Maximum jobs dispatched in parallel limited to {}", max_parallel_jobs);
         let output_timeout = Duration::from_secs(1);
 
@@ -167,13 +167,14 @@ impl Coordinator {
             debug!("Resetting stats and initializing all functions");
             submission.state.init();
 
-            #[cfg(feature = "debugger")]
-            if let Some(ref mut debugger) = submission.debugger {
-                debugger.start(&submission.state);
+            if cfg!(feature = "debugger") {
+                if let Some(ref mut debugger) = submission.debugger {
+                    debugger.start(&submission.state);
+                }
             }
 
             #[cfg(feature = "metrics")]
-            submission.metrics.reset();
+                submission.metrics.reset();
 
             debug!("===========================    Starting flow execution =============================");
             let mut display_next_output;
@@ -193,20 +194,19 @@ impl Coordinator {
                 if submission.state.number_jobs_running() > 0 {
                     match self.job_rx.recv_timeout(submission.output_timeout) {
                         Ok(job) => {
-                            if display_next_output {
-                                #[cfg(feature = "debugger")]
+                            if display_next_output && cfg!(feature = "debugger") {
                                 if let Some(ref mut debugger) = submission.debugger {
                                     debugger.job_completed(&job);
                                 }
                             }
 
                             submission.state.complete_job(
-                                                          #[cfg(feature = "metrics")]
-                                                          &mut submission.metrics,
-                                                          job,
-                                                          #[cfg(feature = "debugger")]
-                                                          &mut submission.debugger
-                                                        );
+                                #[cfg(feature = "metrics")]
+                                    &mut submission.metrics,
+                                job,
+                                #[cfg(feature = "debugger")]
+                                    &mut submission.debugger,
+                            );
                         }
                         #[cfg(feature = "debugger")]
                         Err(err) => {
@@ -231,10 +231,11 @@ impl Coordinator {
             }
 
             if !restart {
-                #[cfg(feature = "debugger")]
-                if let Some(ref mut debugger) = submission.debugger {
-                    let check = debugger.end(&submission.state);
-                    restart = check.1;
+                if cfg!(feature = "debugger") {
+                    if let Some(ref mut debugger) = submission.debugger {
+                        let check = debugger.end(&submission.state);
+                        restart = check.1;
+                    }
                 }
 
                 if !restart {
@@ -276,9 +277,10 @@ impl Coordinator {
                     error!("Error sending on 'job_tx': {}", err.to_string());
                     debug!("{}", submission.state);
 
-                    #[cfg(feature = "debugger")]
-                    if let Some(ref mut debugger) = submission.debugger {
-                        debugger.error(&submission.state, err.to_string());
+                    if cfg!(feature = "debugger") {
+                        if let Some(ref mut debugger) = submission.debugger {
+                            debugger.error(&submission.state, err.to_string());
+                        }
                     }
                 }
             }
@@ -292,17 +294,18 @@ impl Coordinator {
     */
     fn send_job(&self, job: Job, submission: &mut Submission) -> Result<(bool, bool), SendError<Job>> {
         #[cfg(feature = "debugger")]
-        let mut debug_options = (false, false);
+            let mut debug_options = (false, false);
         #[cfg(not(feature = "debugger"))]
-        let debug_options = (false, false);
+            let debug_options = (false, false);
 
         submission.state.start(&job);
         #[cfg(feature = "metrics")]
             submission.metrics.track_max_jobs(submission.state.number_jobs_running());
 
-        #[cfg(feature = "debugger")]
-        if let Some(ref mut debugger) = submission.debugger {
-            debug_options = debugger.check_prior_to_job(&submission.state, job.job_id, job.function_id);
+        if cfg!(feature = "debugger") {
+            if let Some(ref mut debugger) = submission.debugger {
+                debug_options = debugger.check_prior_to_job(&submission.state, job.job_id, job.function_id);
+            }
         }
 
         let job_id = job.job_id;
@@ -361,7 +364,7 @@ mod test {
         let manifest = Manifest::new(meta_data);
         let _ = Submission::new(manifest, 1, true,
                                 #[cfg(feature = "debugger")]
-                                None);
+                                    None);
     }
 
     #[test]
@@ -372,7 +375,7 @@ mod test {
         let manifest = Manifest::new(meta_data);
         let submission = Submission::new(manifest, 1, true,
                                          #[cfg(feature = "debugger")]
-                                         None);
+                                             None);
 
         coordinator.submit(submission);
     }
@@ -387,7 +390,7 @@ mod test {
         let manifest = Manifest::new(meta_data);
         let submission = Submission::new(manifest, 1, true,
                                          #[cfg(feature = "debugger")]
-                                         Some(test_debug_client()));
+                                             Some(test_debug_client()));
 
         coordinator.submit(submission);
     }

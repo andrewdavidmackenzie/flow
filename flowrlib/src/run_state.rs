@@ -621,10 +621,11 @@ impl RunState {
 
         debug!("\t\tFunction #{} sending '{}'{} {}", source_id, output_value, route_str, destination_str);
 
-        #[cfg(feature = "debugger")]
-        if let Some(ref mut debugger) = debugger {
-            debugger.check_prior_to_send(self, source_id, &destination.subpath,
-                                         &output_value, destination.function_id, destination.io_number);
+        if cfg!(feature = "debugger") {
+            if let Some(ref mut debugger) = debugger {
+                debugger.check_prior_to_send(self, source_id, &destination.subpath,
+                                             &output_value, destination.function_id, destination.io_number);
+            }
         }
 
         let function = self.get_mut(destination.function_id);
@@ -902,9 +903,10 @@ impl RunState {
 
         if !self.blocks.contains(&block) {
             self.blocks.insert(block.clone());
-            #[cfg(feature = "debugger")]
-            if let Some(ref mut debugger) = debugger {
-                debugger.check_on_block_creation(self, &block);
+            if cfg!(feature = "debugger") {
+                if let Some(ref mut debugger) = debugger {
+                    debugger.check_on_block_creation(self, &block);
+                }
             }
         }
     }
