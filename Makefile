@@ -53,13 +53,13 @@ config-linux:
 .PHONY: docs
 docs:
 	$(STIME)
-	@$(MAKE) dot-graphs build-guide trim-guide code-docs
+	@$(MAKE) dot-graphs build-guide code-docs trim-docs
 	$(ETIME)
 
 build-guide:
 	@RUST_LOG=info time ./bin/mdbook build
 
-trim-guide:
+trim-docs:
 	$(STIME)
 	@find target/html -name target -type d | xargs rm -rf {}
 	@find target/html -name .idea | xargs rm -rf {}
@@ -78,27 +78,32 @@ trim-guide:
 	@find target/html -name \*.lock  | xargs rm -rf {}
 	@cd target/html;rm -f Makefile .crates.toml .DS_Store .gitignore .mdbookignore .travis.yml coverage.sh
 	@cd target/html;rm -rf bin
-	@rm -rf target/html/flowc/tests
+#	@rm -rf target/html/flowc/tests
 	@rm -rf target/html/code/debug
 	@find target/html -type d -empty -depth -delete
 	$(ETIME)
 
 code-docs:
 	$(STIME)
-	@cargo doc --all --quiet --no-deps --target-dir=target/html/code
+	@cargo doc --workspace --quiet --all-features --no-deps --target-dir=target/html/code
 	$(ETIME)
 
-.PHONY: deploy
-deploy: build_guide
+.PHONY: pages
+pages: docs deploy-pages
+
+.PHONY: deploy-pages
+deploy-pages:
 	$(STIME)
 	@echo "====> deploying guide to github"
+	@git worktree prune
+	@rm -rf /tmp/guide
 	git worktree add /tmp/guide gh-pages
 	rm -rf /tmp/guide/*
-	cp -rp target/guide/html/* /tmp/guide/
+	cp -rp target/html/* /tmp/guide/
 	cd /tmp/guide && \
 		git add -A && \
 		git commit -m "deployed on $(shell date) by ${USER}" && \
-		git push origin gh-pages
+		git push --force origin gh-pages
 	$(ETIME)
 
 #################### Build ####################
