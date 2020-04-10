@@ -62,7 +62,7 @@
     - [first sample](samples/first/DESCRIPTION.md)
     - [hello-world sample](samples/hello-world/DESCRIPTION.md)
     - [hello-world-include sample](samples/hello-world-include/DESCRIPTION.md)
-    - [mandlebrot-world sample](samples/mandlebrot/DESCRIPTION.md)
+    - [mandlebrot-world sample](samples/mandlebrot/DESCRIPTION.md) (WIP)
     - [matrix multiplication sample](samples/matrix_mult/DESCRIPTION.md)
     - [pipeline sample](samples/pipeline/DESCRIPTION.md)
     - [prime sample](samples/prime/DESCRIPTION.md)
@@ -70,7 +70,8 @@
     - [range](samples/range/DESCRIPTION.md)
     - [range-of-ranges](samples/range-of-ranges/DESCRIPTION.md)
     - [reverse-echo sample](samples/reverse-echo/DESCRIPTION.md)
-    - [router sample](samples/router/DESCRIPTION.md)
+    - [router sample](samples/router/DESCRIPTION.md) (WIP)
+    - [tokenizer sample](samples/tokenizer/DESCRIPTION.md)
 
 - [Known `flow` libraries](docs/libraries/known-libraries.md)
     - [The flow standard library](flowstdlib/README.md)
