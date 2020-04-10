@@ -4,19 +4,25 @@
 Welcome to my project called `flow` for defining and running parallel, data-dependency-defined 'programs'.
 
 It currently consists of libraries for compiling (`flowclib`) and running (`flowrlib`) flows as 
-well as command line binaries (`flowc` and `flowr`) that use the libraries. 
+well as command line binaries (`flowc` and `flowr`) that use the libraries.
 
-Those libraries do not interact with the host system and can be compiled to WebAssembly for other types of applications, 
-such as experiments I have started (`flowide`) on using them to create a type of IDE for flows.
+As data-dependency (or data flow?) programming fits very well with a visualization of
+processes operating on data flowing from other processes, a visual programming method
+would be great. But I've only touched the surface of an IDE, disaapointed by the current state of
+of cross-platform UI programming. That's potentially a great (but massive) project 
+in itself.
  
-The project is in its early stages and the current implementation is being used by me as a way to clarify my ideas 
-and also as a way to continue to learn rust.
+In this project I work on the programming "semantics" as I implement some sample programs.
+It's a journey of discovery of writing something like this (for me), learning 
+rust in the process and learning how such a paradigm could work.
  
 Learn more about what it is and why I created it by reading the [Introduction section](docs/introduction/introduction.md), 
 or dive right in and see if you can understand [Your First Flow](docs/first_flow/first_flow.md) with zero previous knowledge and just your programmer's intuition.
  
 This README.md forms part of the ['flow' Guide](http://andrewdavidmackenzie.github.io/flow/) published on GitHub.io 
 using gh-pages which you can read.
+
+If you want to encourage me then you can ["patreonize me"](https://www.patreon.com/andrewmackenzie) :-)
 
 ## Pre-requisites
 You need [Git](https://git-scm.com) to clone the repo.
@@ -65,8 +71,6 @@ After a PR is merged, and the build of `master` succeeds, the guide is rebuilt a
 MIT
 
 ## Project structure
-The Project is structured into a number of sub-folders, many of which are also rust crates with their own 
-`Cargo.toml` file. There is a "workspace manifest" `Cargo.toml` in the root that includes many of them, but not
-all.
-
+The Project is structured into a number of rust crates that form part of a rust cargo "workspace".
+ 
 See the [Structure section](docs/developing/structure.md) of the Guide for more details.
