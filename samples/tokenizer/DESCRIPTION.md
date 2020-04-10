@@ -4,9 +4,7 @@ tokenizer
 Description
 ===
 Sample to show the possible parallelization (depending on the runtime implementation) of splitting a string into
-tokens based on a separator.
-
-
+tokens using the string splitter function from the flowstdlib.
 
 Context Diagram
 ===
