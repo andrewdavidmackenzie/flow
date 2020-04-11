@@ -34,7 +34,7 @@
 <!-- /range/sequence -->
 <g id="node3" class="node">
 <title>/range/sequence</title>
-<g id="a_node3"><a xlink:href="lib://flowstdlib/math/sequence.dot" xlink:title="sequence">
+<g id="a_node3"><a xlink:href="lib://flowstdlib/math/sequence.dot.svg" xlink:title="sequence">
 <ellipse fill="aquamarine" stroke="black" cx="187.2" cy="-260.82" rx="72" ry="72"/>
 <text text-anchor="middle" x="187.2" y="-256.62" font-family="Times,serif" font-size="14.00">sequence</text>
 </a>

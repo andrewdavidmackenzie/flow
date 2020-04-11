@@ -13,7 +13,7 @@
 <!-- /fibonacci/fib -->
 <g id="node1" class="node">
 <title>/fibonacci/fib</title>
-<g id="a_node1"><a xlink:href="fib.dot" xlink:title="fib">
+<g id="a_node1"><a xlink:href="fib.dot.svg" xlink:title="fib">
 <ellipse fill="aquamarine" stroke="black" cx="72" cy="-158.91" rx="72" ry="72"/>
 <text text-anchor="middle" x="72" y="-154.71" font-family="Times,serif" font-size="14.00">fib</text>
 </a>

@@ -32,7 +32,7 @@
 <!-- /prime/composites/generate_composites -->
 <g id="node6" class="node">
 <title>/prime/composites/generate_composites</title>
-<g id="a_node6"><a xlink:href="generate_composites.toml.dot" xlink:title="generate_composites">
+<g id="a_node6"><a xlink:href="generate_composites.toml.dot.svg" xlink:title="generate_composites">
 <ellipse fill="aquamarine" stroke="black" cx="88.07" cy="-434.74" rx="72" ry="72"/>
 <text text-anchor="middle" x="88.07" y="-430.54" font-family="Times,serif" font-size="14.00">generate_composites</text>
 </a>
@@ -60,7 +60,7 @@
 <!-- /prime/composites/divisors -->
 <g id="node5" class="node">
 <title>/prime/composites/divisors</title>
-<g id="a_node5"><a xlink:href="lib://flowstdlib/math/sequence.dot" xlink:title="divisors">
+<g id="a_node5"><a xlink:href="lib://flowstdlib/math/sequence.dot.svg" xlink:title="divisors">
 <ellipse fill="aquamarine" stroke="black" cx="188.07" cy="-615.74" rx="72" ry="72"/>
 <text text-anchor="middle" x="188.07" y="-611.54" font-family="Times,serif" font-size="14.00">divisors</text>
 </a>

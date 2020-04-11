@@ -28,7 +28,7 @@
 <!-- /hello&#45;world/hello -->
 <g id="node3" class="node">
 <title>/hello&#45;world/hello</title>
-<g id="a_node3"><a xlink:href="flow1.dot" xlink:title="hello">
+<g id="a_node3"><a xlink:href="flow1.dot.svg" xlink:title="hello">
 <ellipse fill="aquamarine" stroke="black" cx="321.71" cy="-172.91" rx="72" ry="72"/>
 <text text-anchor="middle" x="321.71" y="-168.71" font-family="Times,serif" font-size="14.00">hello</text>
 </a>

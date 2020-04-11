@@ -13,7 +13,7 @@
 <!-- /matrix_mult/multiply -->
 <g id="node1" class="node">
 <title>/matrix_mult/multiply</title>
-<g id="a_node1"><a xlink:href="multiply.toml.dot" xlink:title="multiply">
+<g id="a_node1"><a xlink:href="multiply.toml.dot.svg" xlink:title="multiply">
 <ellipse fill="aquamarine" stroke="black" cx="72" cy="-158.91" rx="72" ry="72"/>
 <text text-anchor="middle" x="72" y="-154.71" font-family="Times,serif" font-size="14.00">multiply</text>
 </a>

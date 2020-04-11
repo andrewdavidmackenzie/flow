@@ -65,7 +65,7 @@
 <!-- /mandlebrot/render -->
 <g id="node9" class="node">
 <title>/mandlebrot/render</title>
-<g id="a_node9"><a xlink:href="render.dot" xlink:title="render">
+<g id="a_node9"><a xlink:href="render.dot.svg" xlink:title="render">
 <ellipse fill="aquamarine" stroke="black" cx="757.4" cy="-72" rx="72" ry="72"/>
 <text text-anchor="middle" x="757.4" y="-67.8" font-family="Times,serif" font-size="14.00">render</text>
 </a>
