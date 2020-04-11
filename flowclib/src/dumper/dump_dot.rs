@@ -321,11 +321,11 @@ fn process_reference_to_dot(process_ref: &ProcessReference) -> String {
 
     match process_ref.process {
         FlowProcess(ref flow) => {
-            dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot\"];\n",
+            dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot.svg\"];\n",
                                          flow.route(), process_ref.alias, process_ref.source));
         }
         FunctionProcess(ref function) => {
-            dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot\"];\n",
+            dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot.svg\"];\n",
                                          function.route(), process_ref.alias, process_ref.source));
         }
     }
