@@ -1,0 +1,24 @@
+flow = "tokenizer"
+
+[[process]]
+source = "lib://flowruntime/stdio/readline"
+
+[[process]]
+source = "lib://flowstdlib/data/split"
+input.separator = { constant = " " }
+
+[[connection]]
+from = "readline"
+to = "split/string"
+
+[[connection]]
+from = "split/partial"
+to = "split/string"
+
+[[process]]
+source = "lib://flowruntime/stdio/stdout"
+
+[[connection]]
+from = "split/token"
+to = "stdout"
+

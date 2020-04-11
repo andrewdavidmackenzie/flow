@@ -17,6 +17,8 @@ pub mod info;
 pub mod multiply_row;
 /// A module that removes elements from an array
 pub mod remove;
+/// A module that splits a String into an Array of Strings
+pub mod split;
 /// A module with a function for transposing a Matrix
 pub mod transpose;
 /// A module that zips two sets of data into a set of tuples of data

@@ -1,0 +1,18 @@
+function = "Split"
+implementation = "split.rs"
+
+[[input]]
+name = "string"
+type = "String"
+
+[[input]]
+name = "separator"
+type = "String"
+
+[[output]]
+name = "partial"
+type = "Array/String"
+
+[[output]]
+name = "token"
+type = "String"
