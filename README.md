@@ -1,8 +1,9 @@
 [![Build Status](https://travis-ci.org/andrewdavidmackenzie/flow.svg?branch=master)](https://travis-ci.org/andrewdavidmackenzie/flow)
 [![codecov.io](https://codecov.io/gh/andrewdavidmackenzie/flow/coverage.svg?branch=master)](https://codecov.io/gh/andrewdavidmackenzie/flow/branch/master)
 # Welcome!
-Welcome to my project called `flow` for defining and running parallel, data-dependency-defined 'programs'.
+Welcome to my project called `flow` for defining and running parallel, data-dependency-defined 'programs' like this one:
 
+![First flow](samples/first/first-flow.dot.svg)
 It currently consists of libraries for compiling (`flowclib`) and running (`flowrlib`) flows as 
 well as command line binaries (`flowc` and `flowr`) that use the libraries.
 
