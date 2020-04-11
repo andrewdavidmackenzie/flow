@@ -8,6 +8,7 @@ A simple flow that prints "Hello World!" on `stdout`
 Context Diagram
 ===
 ![Context diagram](hello-world.dot.svg)
+<a href="hello-world.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
 
 Features Used
 ===

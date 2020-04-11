@@ -8,10 +8,7 @@ A flow that calculates the matrix product of two matrices.
 Context Diagram
 ===
 ![Context diagram](matrix_mult.dot.svg)
-
-Multiply sub-flow diagram
-====
-!['multiply' flow](multiply.dot.svg)
+<a href="matrix_mult.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
 
 Features Used
 ===

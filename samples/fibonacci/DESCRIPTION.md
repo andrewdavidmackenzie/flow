@@ -8,10 +8,7 @@ A flow that generates a Fibonacci series of numbers and prints it out on `stdout
 Context Diagram
 ===
 ![Context diagram](fibonacci.dot.svg)
-
-Fib sub-flow diagram
-====
-![fib sub-flow](fib.dot.svg)
+<a href="fibonacci.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
 
 Features Used
 ===
@@ -20,7 +17,8 @@ Features Used
 * Connections between Input/Outputs of parent/child flows
 * Setting initial value of a Value at startup
 * Multiple connections into and out of functions and values
-* Library Functions used (`toString` and `add` from `flowstdlib`) to convert Number to String and to add numbers
+* Runtime Functions used (`stdout` from `flowruntime`)
+* Library Functions used (`buffer` and `add` from `flowstdlib`)
 * Use of aliases to refer to functions with different names inside a flow
 * Connections between flows, functions and values
 

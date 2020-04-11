@@ -14,6 +14,7 @@ be viewed using the -m command line option.
 Context Diagram
 ===
 ![Context diagram](pipeline.dot.svg)
+<a href="pipeline.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
 
 Features Used
 ===

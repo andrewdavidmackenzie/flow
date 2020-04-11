@@ -15,6 +15,7 @@ the flow.
 Context Diagram
 ===
 ![Context diagram](mandlebrot.dot.svg)
+<a href="mandlebrot.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
 
 Features Used
 ===

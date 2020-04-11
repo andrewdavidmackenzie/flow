@@ -9,6 +9,7 @@ This is intended as a test case for an issue with two linked flows like 'sequenc
 Context Diagram
 ===
 ![Context diagram](range-of-ranges.dot.svg)
+<a href="range.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
 
 Features Used
 ===
