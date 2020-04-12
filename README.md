@@ -43,15 +43,13 @@ There is a make target `config` to install pre-requisites (e.g. mdbook and mdboo
 From your command line:
 
 ```bash
-# Clone this repository
 git clone https://github.com/andrewdavidmackenzie/flow.git
 ```
 
 ## Build and test
-With pre-requisites installed, from your command line:
+To build and test, including building and testing docs and running the samples and checking their output is correct:
 
 ```bash
-# Build and test, including building and testing docs and guide and running supplied samples and checking their output is correct
 make
 ```
 
