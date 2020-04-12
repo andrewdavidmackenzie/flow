@@ -13,16 +13,22 @@
 <!-- /reverse&#45;echo/read -->
 <g id="node1" class="node">
 <title>/reverse&#45;echo/read</title>
+<g id="a_node1"><a xlink:href="../../flowruntime/stdio/readline.toml" xlink:title="read\n(Readline)">
 <ellipse fill="coral" stroke="black" cx="53.09" cy="-199.28" rx="53.18" ry="25.41"/>
 <text text-anchor="middle" x="53.09" y="-202.08" font-family="Times,serif" font-size="14.00">read</text>
 <text text-anchor="middle" x="53.09" y="-188.08" font-family="Times,serif" font-size="14.00">(Readline)</text>
+</a>
+</g>
 </g>
 <!-- /reverse&#45;echo/reverse -->
 <g id="node2" class="node">
 <title>/reverse&#45;echo/reverse</title>
+<g id="a_node2"><a xlink:href="../../samples/reverse-echo/reverse/reverse.toml" xlink:title="reverse\n(Reverse)">
 <ellipse fill="coral" stroke="black" cx="156.09" cy="-112.37" rx="49.58" ry="25.41"/>
 <text text-anchor="middle" x="156.09" y="-115.17" font-family="Times,serif" font-size="14.00">reverse</text>
 <text text-anchor="middle" x="156.09" y="-101.17" font-family="Times,serif" font-size="14.00">(Reverse)</text>
+</a>
+</g>
 </g>
 <!-- /reverse&#45;echo/read&#45;&gt;/reverse&#45;echo/reverse -->
 <g id="edge1" class="edge">
@@ -33,9 +39,12 @@
 <!-- /reverse&#45;echo/print -->
 <g id="node3" class="node">
 <title>/reverse&#45;echo/print</title>
+<g id="a_node3"><a xlink:href="../../flowruntime/stdio/stdout.toml" xlink:title="print\n(Stdout)">
 <ellipse fill="coral" stroke="black" cx="250.09" cy="-25.46" rx="43.53" ry="25.41"/>
 <text text-anchor="middle" x="250.09" y="-28.26" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="250.09" y="-14.26" font-family="Times,serif" font-size="14.00">(Stdout)</text>
+</a>
+</g>
 </g>
 <!-- /reverse&#45;echo/reverse&#45;&gt;/reverse&#45;echo/print -->
 <g id="edge2" class="edge">

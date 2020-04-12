@@ -3,7 +3,8 @@
 # Welcome!
 Welcome to my project called `flow` for defining and running parallel, data-dependency-defined 'programs' like this one:
 
-![First flow](samples/first/first-flow.dot.svg)
+![First flow](samples/first/context.dot.svg)
+
 It currently consists of libraries for compiling (`flowclib`) and running (`flowrlib`) flows as 
 well as command line binaries (`flowc` and `flowr`) that use the libraries.
 
@@ -42,15 +43,13 @@ There is a make target `config` to install pre-requisites (e.g. mdbook and mdboo
 From your command line:
 
 ```bash
-# Clone this repository
 git clone https://github.com/andrewdavidmackenzie/flow.git
 ```
 
 ## Build and test
-With pre-requisites installed, from your command line:
+To build and test, including building and testing docs and running the samples and checking their output is correct:
 
 ```bash
-# Build and test, including building and testing docs and guide and running supplied samples and checking their output is correct
 make
 ```
 

@@ -1,4 +1,5 @@
 function = "Get"
+implementation = "get.rs"
 impure = true
 
 [[output]]

@@ -13,14 +13,20 @@
 <!-- /tokenizer/Readline -->
 <g id="node1" class="node">
 <title>/tokenizer/Readline</title>
+<g id="a_node1"><a xlink:href="../../flowruntime/stdio/readline.toml" xlink:title="Readline">
 <ellipse fill="coral" stroke="black" cx="41.54" cy="-177" rx="41.58" ry="18"/>
 <text text-anchor="middle" x="41.54" y="-172.8" font-family="Times,serif" font-size="14.00">Readline</text>
+</a>
+</g>
 </g>
 <!-- /tokenizer/Split -->
 <g id="node2" class="node">
 <title>/tokenizer/Split</title>
+<g id="a_node2"><a xlink:href="../../flowstdlib/data/split/split.toml" xlink:title="Split">
 <ellipse fill="coral" stroke="black" cx="172.54" cy="-91" rx="27" ry="18"/>
 <text text-anchor="middle" x="172.54" y="-86.8" font-family="Times,serif" font-size="14.00">Split</text>
+</a>
+</g>
 </g>
 <!-- /tokenizer/Readline&#45;&gt;/tokenizer/Split -->
 <g id="edge2" class="edge">
@@ -40,8 +46,11 @@
 <!-- /tokenizer/Stdout -->
 <g id="node4" class="node">
 <title>/tokenizer/Stdout</title>
+<g id="a_node4"><a xlink:href="../../flowruntime/stdio/stdout.toml" xlink:title="Stdout">
 <ellipse fill="coral" stroke="black" cx="206.54" cy="-18" rx="33.41" ry="18"/>
 <text text-anchor="middle" x="206.54" y="-13.8" font-family="Times,serif" font-size="14.00">Stdout</text>
+</a>
+</g>
 </g>
 <!-- /tokenizer/Split&#45;&gt;/tokenizer/Stdout -->
 <g id="edge4" class="edge">

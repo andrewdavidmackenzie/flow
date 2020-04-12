@@ -9,24 +9,9 @@ A flow that finds prime numbers upto the maximum specified in the input argument
 
 Context Diagram
 ===
-![Context diagram](prime.dot.svg)
+<a href="context.dot.svg" target="_blank"><img src="context.dot.svg"></a>
 
-Candidates sub-flow diagram
-====
-
-!['candidates' flow](candidates.dot.svg)
-
-Composites sub-flow diagram
-====
-!['composites' diagram](composites.dot.svg)
-
-Divisors sub-flow diagram
-====
-!['divisors' diagram](divisors.dot.svg)
-
-Generate_composites sub-flow diagram
-====
-!['generate_composites' diagram](generate_composites.dot.svg)
+Click image to navigate flow hierarchy.
 
 Features Used
 ===
@@ -49,4 +34,6 @@ Features Used
 Functions Diagram
 ===
 This diagram shows the exploded diagram of all functions in all flows, and their connections.
-![Full functions diagram](functions.dot.svg)
+<a href="functions.dot.svg" target="_blank"><img src="functions.dot.svg"></a>
+
+Click image to view functions graph.

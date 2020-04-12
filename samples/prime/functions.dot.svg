@@ -38,14 +38,20 @@
 <!-- r0 -->
 <g id="node1" class="node">
 <title>r0</title>
+<g id="a_node1"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/args/get.toml" xlink:title="args (#0)">
 <ellipse fill="coral" stroke="black" cx="1046" cy="-814" rx="41.76" ry="18"/>
 <text text-anchor="middle" x="1046" y="-809.8" font-family="Times,serif" font-size="14.00">args (#0)</text>
+</a>
+</g>
 </g>
 <!-- r1 -->
 <g id="node2" class="node">
 <title>r1</title>
+<g id="a_node2"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/fmt/to_number/to_number.toml" xlink:title="to_number (#1)">
 <ellipse fill="coral" stroke="black" cx="1029" cy="-699" rx="65.23" ry="18"/>
 <text text-anchor="middle" x="1029" y="-694.8" font-family="Times,serif" font-size="14.00">to_number (#1)</text>
+</a>
+</g>
 </g>
 <!-- r0&#45;&gt;r1 -->
 <g id="edge1" class="edge">
@@ -57,8 +63,11 @@
 <!-- r2 -->
 <g id="node3" class="node">
 <title>r2</title>
+<g id="a_node3"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/control/compare_switch/compare_switch.toml" xlink:title="compare (#2)">
 <ellipse fill="coral" stroke="black" cx="1791" cy="-541" rx="57.49" ry="18"/>
 <text text-anchor="middle" x="1791" y="-536.8" font-family="Times,serif" font-size="14.00">compare (#2)</text>
+</a>
+</g>
 </g>
 <!-- r1&#45;&gt;r2 -->
 <g id="edge2" class="edge">
@@ -70,8 +79,11 @@
 <!-- r4 -->
 <g id="node4" class="node">
 <title>r4</title>
+<g id="a_node4"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/accumulate/accumulate.toml" xlink:title="all&#45;numbers (#4)">
 <ellipse fill="coral" stroke="black" cx="1609" cy="-455" rx="69.08" ry="18"/>
 <text text-anchor="middle" x="1609" y="-450.8" font-family="Times,serif" font-size="14.00">all&#45;numbers (#4)</text>
+</a>
+</g>
 </g>
 <!-- r1&#45;&gt;r4 -->
 <g id="edge3" class="edge">
@@ -83,8 +95,11 @@
 <!-- r5 -->
 <g id="node5" class="node">
 <title>r5</title>
+<g id="a_node5"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/sqrt/sqrt.toml" xlink:title="sqrt (#5)">
 <ellipse fill="coral" stroke="black" cx="661" cy="-541" rx="40.13" ry="18"/>
 <text text-anchor="middle" x="661" y="-536.8" font-family="Times,serif" font-size="14.00">sqrt (#5)</text>
+</a>
+</g>
 </g>
 <!-- r1&#45;&gt;r5 -->
 <g id="edge4" class="edge">
@@ -95,8 +110,11 @@
 <!-- r11 -->
 <g id="node6" class="node">
 <title>r11</title>
+<g id="a_node6"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/buffer/buffer.toml" xlink:title="limit&#45;buffer (#11)">
 <ellipse fill="coral" stroke="black" cx="363" cy="-327" rx="72.5" ry="18"/>
 <text text-anchor="middle" x="363" y="-322.8" font-family="Times,serif" font-size="14.00">limit&#45;buffer (#11)</text>
+</a>
+</g>
 </g>
 <!-- r1&#45;&gt;r11 -->
 <g id="edge5" class="edge">
@@ -123,8 +141,11 @@
 <!-- r3 -->
 <g id="node8" class="node">
 <title>r3</title>
+<g id="a_node8"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/add/add.toml" xlink:title="add (#3)">
 <ellipse fill="coral" stroke="black" cx="1808" cy="-455" rx="39.64" ry="18"/>
 <text text-anchor="middle" x="1808" y="-450.8" font-family="Times,serif" font-size="14.00">add (#3)</text>
+</a>
+</g>
 </g>
 <!-- r2&#45;&gt;r3 -->
 <g id="edge9" class="edge">
@@ -153,8 +174,11 @@
 <!-- r14 -->
 <g id="node11" class="node">
 <title>r14</title>
+<g id="a_node11"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/remove/remove.toml" xlink:title="subtract (#14)">
 <ellipse fill="coral" stroke="black" cx="608" cy="-126" rx="59.43" ry="18"/>
 <text text-anchor="middle" x="608" y="-121.8" font-family="Times,serif" font-size="14.00">subtract (#14)</text>
+</a>
+</g>
 </g>
 <!-- r4&#45;&gt;r14 -->
 <g id="edge16" class="edge">
@@ -167,8 +191,11 @@
 <!-- r6 -->
 <g id="node12" class="node">
 <title>r6</title>
+<g id="a_node12"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/control/compare_switch/compare_switch.toml" xlink:title="compare (#6)">
 <ellipse fill="coral" stroke="black" cx="967" cy="-455" rx="57.49" ry="18"/>
 <text text-anchor="middle" x="967" y="-450.8" font-family="Times,serif" font-size="14.00">compare (#6)</text>
+</a>
+</g>
 </g>
 <!-- r5&#45;&gt;r6 -->
 <g id="edge17" class="edge">
@@ -186,8 +213,11 @@
 <!-- r9 -->
 <g id="node19" class="node">
 <title>r9</title>
+<g id="a_node19"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/control/compare_switch/compare_switch.toml" xlink:title="compare (#9)">
 <ellipse fill="coral" stroke="black" cx="550" cy="-212" rx="57.49" ry="18"/>
 <text text-anchor="middle" x="550" y="-207.8" font-family="Times,serif" font-size="14.00">compare (#9)</text>
+</a>
+</g>
 </g>
 <!-- r11&#45;&gt;r9 -->
 <g id="edge36" class="edge">
@@ -254,8 +284,11 @@
 <!-- r8 -->
 <g id="node14" class="node">
 <title>r8</title>
+<g id="a_node14"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/multiply/multiply.toml" xlink:title="multiply (#8)">
 <ellipse fill="coral" stroke="black" cx="1122" cy="-327" rx="57.05" ry="18"/>
 <text text-anchor="middle" x="1122" y="-322.8" font-family="Times,serif" font-size="14.00">multiply (#8)</text>
+</a>
+</g>
 </g>
 <!-- r6&#45;&gt;r8 -->
 <g id="edge19" class="edge">
@@ -268,8 +301,11 @@
 <!-- r10 -->
 <g id="node15" class="node">
 <title>r10</title>
+<g id="a_node15"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/add/add.toml" xlink:title="add (#10)">
 <ellipse fill="coral" stroke="black" cx="931" cy="-327" rx="44.48" ry="18"/>
 <text text-anchor="middle" x="931" y="-322.8" font-family="Times,serif" font-size="14.00">add (#10)</text>
+</a>
+</g>
 </g>
 <!-- r6&#45;&gt;r10 -->
 <g id="edge20" class="edge">
@@ -282,8 +318,11 @@
 <!-- r7 -->
 <g id="node16" class="node">
 <title>r7</title>
+<g id="a_node16"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/add/add.toml" xlink:title="add (#7)">
 <ellipse fill="coral" stroke="black" cx="757" cy="-327" rx="39.64" ry="18"/>
 <text text-anchor="middle" x="757" y="-322.8" font-family="Times,serif" font-size="14.00">add (#7)</text>
+</a>
+</g>
 </g>
 <!-- r6&#45;&gt;r7 -->
 <g id="edge22" class="edge">
@@ -383,8 +422,11 @@
 <!-- r15 -->
 <g id="node20" class="node">
 <title>r15</title>
+<g id="a_node20"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/stdout.toml" xlink:title="print (#15)">
 <ellipse fill="coral" stroke="black" cx="428" cy="-126" rx="48.35" ry="18"/>
 <text text-anchor="middle" x="428" y="-121.8" font-family="Times,serif" font-size="14.00">print (#15)</text>
+</a>
+</g>
 </g>
 <!-- r9&#45;&gt;r15 -->
 <g id="edge29" class="edge">
@@ -396,8 +438,11 @@
 <!-- r12 -->
 <g id="node21" class="node">
 <title>r12</title>
+<g id="a_node21"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/control/join/join.toml" xlink:title="join (#12)">
 <ellipse fill="coral" stroke="black" cx="263" cy="-126" rx="45.46" ry="18"/>
 <text text-anchor="middle" x="263" y="-121.8" font-family="Times,serif" font-size="14.00">join (#12)</text>
+</a>
+</g>
 </g>
 <!-- r9&#45;&gt;r12 -->
 <g id="edge32" class="edge">
@@ -410,8 +455,11 @@
 <!-- r13 -->
 <g id="node23" class="node">
 <title>r13</title>
+<g id="a_node23"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/add/add.toml" xlink:title="subsequence&#45;count (#13)">
 <ellipse fill="coral" stroke="black" cx="203" cy="-34" rx="98.52" ry="18"/>
 <text text-anchor="middle" x="203" y="-29.8" font-family="Times,serif" font-size="14.00">subsequence&#45;count (#13)</text>
+</a>
+</g>
 </g>
 <!-- r12&#45;&gt;r13 -->
 <g id="edge38" class="edge">

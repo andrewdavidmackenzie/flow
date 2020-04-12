@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-use error_chain::bail;
 use log::info;
 use serde_derive::Serialize;
 
@@ -39,7 +38,7 @@ impl GenerationTables {
             destination_routes: HashMap::<Route, (usize, usize, usize)>::new(),
             collapsed_connections: Vec::new(),
             functions: Vec::new(),
-            libs: HashSet::new()
+            libs: HashSet::new(),
         }
     }
 }
@@ -138,18 +137,12 @@ fn implementation_location_relative(function: &Function, out_dir: &str) -> Resul
     if let Some(ref lib_reference) = function.get_lib_reference() {
         Ok(format!("lib://{}/{}", lib_reference, &function.name()))
     } else {
-        match &function.get_implementation() {
-            Some(implementation_path) => {
-                info!("Out_dir = '{}'", out_dir);
-                info!("Absolute implementation path = '{}'", implementation_path);
-                let relative_path = implementation_path.replace(out_dir, "");
-                info!("Absolute implementation path = '{}'", relative_path);
-                Ok(relative_path)
-            }
-            None => {
-                bail!("Function '{}' is not a lib reference but no implementation is provided", function.name())
-            }
-        }
+        let implementation_path = function.get_implementation();
+        info!("Out_dir = '{}'", out_dir);
+        info!("Absolute implementation path = '{}'", implementation_path);
+        let relative_path = implementation_path.replace(out_dir, "");
+        info!("Absolute implementation path = '{}'", relative_path);
+        Ok(relative_path)
     }
 }
 
@@ -173,7 +166,7 @@ mod test {
         let function = Function::new(
             Name::from("Stdout"),
             false,
-            Some("lib://flowruntime/stdio/stdout".to_string()),
+            "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
             Some(vec!()),
             Some(vec!(
@@ -219,7 +212,7 @@ mod test {
         let function = Function::new(
             Name::from("Stdout"),
             false,
-            Some("lib://flowruntime/stdio/stdout".to_string()),
+            "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
             Some(vec!()),
             Some(vec!(IO::new("String", &Route::default()))),
@@ -255,7 +248,7 @@ mod test {
         let function = Function::new(
             Name::from("Stdout"),
             false,
-            Some("lib://flowruntime/stdio/stdout".to_string()),
+            "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
             Some(vec!()),
             Some(vec!(IO::new("String", &Route::default()))),
@@ -298,7 +291,7 @@ mod test {
         let function = Function::new(
             Name::from("Stdout"),
             false,
-            Some("lib://flowruntime/stdio/stdout".to_string()),
+            "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
             Some(vec!(io)),
             None,
@@ -340,7 +333,7 @@ mod test {
         let function = Function::new(
             Name::from("Stdout"),
             false,
-            Some("lib://flowruntime/stdio/stdout".to_string()),
+            "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
             Some(vec!(io)),
             None,
@@ -379,7 +372,7 @@ mod test {
         let function = Function::new(
             Name::from("Stdout"),
             false,
-            Some("lib://flowruntime/stdio/stdout".to_string()),
+            "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
             Some(vec!(io)),
             None,
@@ -411,7 +404,7 @@ mod test {
         Function::new(
             Name::from("Stdout"),
             false,
-            Some("lib://flowruntime/stdio/stdout".to_string()),
+            "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
             Some(vec!()),
             Some(vec!(
@@ -456,7 +449,7 @@ mod test {
         let function = Function::new(
             Name::from("Stdout"),
             false,
-            Some("lib://flowruntime/stdio/stdout".to_string()),
+            "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
             Some(vec!()),
             Some(vec!(IO::new("Array", &Route::default()))),

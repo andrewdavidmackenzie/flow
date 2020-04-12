@@ -13,9 +13,12 @@
 <!-- /hello&#45;world/print -->
 <g id="node1" class="node">
 <title>/hello&#45;world/print</title>
+<g id="a_node1"><a xlink:href="../../flowruntime/stdio/stdout.toml" xlink:title="print\n(Stdout)">
 <ellipse fill="coral" stroke="black" cx="262.71" cy="-25.46" rx="43.53" ry="25.41"/>
 <text text-anchor="middle" x="262.71" y="-28.26" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="262.71" y="-14.26" font-family="Times,serif" font-size="14.00">(Stdout)</text>
+</a>
+</g>
 </g>
 <!-- initializer/hello&#45;world/print_0 -->
 <!-- initializer/hello&#45;world/print_0&#45;&gt;/hello&#45;world/print -->
@@ -28,7 +31,7 @@
 <!-- /hello&#45;world/hello -->
 <g id="node3" class="node">
 <title>/hello&#45;world/hello</title>
-<g id="a_node3"><a xlink:href="flow1.dot" xlink:title="hello">
+<g id="a_node3"><a xlink:href="flow1.dot.svg" xlink:title="hello">
 <ellipse fill="aquamarine" stroke="black" cx="321.71" cy="-172.91" rx="72" ry="72"/>
 <text text-anchor="middle" x="321.71" y="-168.71" font-family="Times,serif" font-size="14.00">hello</text>
 </a>

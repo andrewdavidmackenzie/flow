@@ -13,14 +13,20 @@
 <!-- r0 -->
 <g id="node1" class="node">
 <title>r0</title>
+<g id="a_node1"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/buffer/buffer.toml" xlink:title="HEAD&#45;1 (#0)">
 <ellipse fill="coral" stroke="black" cx="401.2" cy="-177" rx="58.96" ry="18"/>
 <text text-anchor="middle" x="401.2" y="-172.8" font-family="Times,serif" font-size="14.00">HEAD&#45;1 (#0)</text>
+</a>
+</g>
 </g>
 <!-- r2 -->
 <g id="node3" class="node">
 <title>r2</title>
+<g id="a_node3"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/add/add.toml" xlink:title="add (#2)">
 <ellipse fill="coral" stroke="black" cx="232.2" cy="-104" rx="39.64" ry="18"/>
 <text text-anchor="middle" x="232.2" y="-99.8" font-family="Times,serif" font-size="14.00">add (#2)</text>
+</a>
+</g>
 </g>
 <!-- r0&#45;&gt;r2 -->
 <g id="edge2" class="edge">
@@ -32,8 +38,11 @@
 <!-- r3 -->
 <g id="node4" class="node">
 <title>r3</title>
+<g id="a_node4"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/stdout.toml" xlink:title="print (#3)">
 <ellipse fill="coral" stroke="black" cx="539.2" cy="-104" rx="43.51" ry="18"/>
 <text text-anchor="middle" x="539.2" y="-99.8" font-family="Times,serif" font-size="14.00">print (#3)</text>
+</a>
+</g>
 </g>
 <!-- r0&#45;&gt;r3 -->
 <g id="edge3" class="edge">
@@ -52,8 +61,11 @@
 <!-- r1 -->
 <g id="node5" class="node">
 <title>r1</title>
+<g id="a_node5"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/buffer/buffer.toml" xlink:title="HEAD (#1)">
 <ellipse fill="coral" stroke="black" cx="209.2" cy="-18" rx="51.73" ry="18"/>
 <text text-anchor="middle" x="209.2" y="-13.8" font-family="Times,serif" font-size="14.00">HEAD (#1)</text>
+</a>
+</g>
 </g>
 <!-- r2&#45;&gt;r1 -->
 <g id="edge7" class="edge">

@@ -50,21 +50,26 @@ use crate::model::flow::Flow;
 /// ```
 ///
 pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Result<String> {
-    info!("==== Dumper: Dumping tables to '{}'", output_dir.display());
+    info!("=== Dumper: Dumping tables to '{}'", output_dir.display());
 
     let mut writer = create_output_file(&output_dir, "connections", "dump")?;
+    info!("\tGenerating connections.dump");
     writer.write_all(serde_json::to_string_pretty(&tables.connections)?.as_bytes())?;
 
     writer = create_output_file(&output_dir, "source_routes", "dump")?;
+    info!("\tGenerating source_routes.dump");
     writer.write_all(serde_json::to_string_pretty(&tables.source_routes)?.as_bytes())?;
 
     writer = create_output_file(&output_dir, "destination_routes", "dump")?;
+    info!("\tGenerating destination_routes.dump");
     writer.write_all(serde_json::to_string_pretty(&tables.destination_routes)?.as_bytes())?;
 
     writer = create_output_file(&output_dir, "collapsed_connections", "dump")?;
+    info!("\tGenerating collapsed_connections.dump");
     writer.write_all(serde_json::to_string_pretty(&tables.collapsed_connections)?.as_bytes())?;
 
     writer = create_output_file(&output_dir, "libs", "dump")?;
+    info!("\tGenerating libs.dump");
     writer.write_all(serde_json::to_string_pretty(&tables.libs).unwrap().as_bytes())?;
     Ok("All tables dumped".to_string())
 }
@@ -110,7 +115,7 @@ pub fn dump_functions(flow: &Flow, tables: &GenerationTables, output_dir: &PathB
     dump_dot::functions_to_dot(flow, tables, output_dir)?;
 
     let mut writer = create_output_file(&output_dir, "functions", "dump")?;
-    info!("==== Dumper: Dumping functions to functions.dump file in '{}'", output_dir.display());
+    info!("\tGenerating functions.dump");
     dump_table(tables.functions.iter(), &mut writer)?;
     Ok("Functions dumped".to_string())
 }

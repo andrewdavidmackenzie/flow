@@ -122,7 +122,7 @@ constant = 1
         let mut initializers = HashMap::<String, InputInitializer>::new();
         initializers.insert("input1".to_string(), input_initializer);
         let function = Function::new(Name::from("function"), true,
-                                     None, Name::from("alias"),
+                                     "".to_owned(), Name::from("alias"),
                                      None, None, "url",
                                      Route::from("route"), None, vec!(), 0, 0);
         let reference = ProcessReference {

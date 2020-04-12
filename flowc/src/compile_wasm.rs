@@ -19,8 +19,8 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool, rele
     let source = function.get_source_url();
     let mut implementation_url = url_from_string(Some(&source))
         .chain_err(|| "Could not create a url from source url")?;
-    implementation_url = implementation_url.join(&function.get_implementation()
-        .ok_or("No implementation specified")?).map_err(|_| "Could not convert Url")?;
+    implementation_url = implementation_url.join(&function.get_implementation())
+        .map_err(|_| "Could not convert Url")?;
 
     // TODO what if not a file url? Copy and build locally?
 

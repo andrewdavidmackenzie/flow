@@ -19,9 +19,12 @@
 <!-- /matrix_mult/multiply/a_info -->
 <g id="node6" class="node">
 <title>/matrix_mult/multiply/a_info</title>
+<g id="a_node6"><a xlink:href="../../flowstdlib/data/info/info.toml" xlink:title="a_info\n(Info)">
 <ellipse fill="coral" stroke="black" cx="241.73" cy="-489.1" rx="36.71" ry="25.41"/>
 <text text-anchor="middle" x="241.73" y="-491.9" font-family="Times,serif" font-size="14.00">a_info</text>
 <text text-anchor="middle" x="241.73" y="-477.9" font-family="Times,serif" font-size="14.00">(Info)</text>
+</a>
+</g>
 </g>
 <!-- /matrix_mult/multiply/a&#45;&gt;/matrix_mult/multiply/a_info -->
 <g id="edge8" class="edge">
@@ -32,9 +35,12 @@
 <!-- /matrix_mult/multiply/duplicate_rows -->
 <g id="node8" class="node">
 <title>/matrix_mult/multiply/duplicate_rows</title>
+<g id="a_node8"><a xlink:href="../../flowstdlib/data/duplicate_rows/duplicate_rows.toml" xlink:title="duplicate_rows\n(DuplicateRows)">
 <ellipse fill="coral" stroke="black" cx="555.73" cy="-388.19" rx="78.89" ry="25.41"/>
 <text text-anchor="middle" x="555.73" y="-390.99" font-family="Times,serif" font-size="14.00">duplicate_rows</text>
 <text text-anchor="middle" x="555.73" y="-376.99" font-family="Times,serif" font-size="14.00">(DuplicateRows)</text>
+</a>
+</g>
 </g>
 <!-- /matrix_mult/multiply/a&#45;&gt;/matrix_mult/multiply/duplicate_rows -->
 <g id="edge9" class="edge">
@@ -51,9 +57,12 @@
 <!-- /matrix_mult/multiply/b_info -->
 <g id="node4" class="node">
 <title>/matrix_mult/multiply/b_info</title>
+<g id="a_node4"><a xlink:href="../../flowstdlib/data/info/info.toml" xlink:title="b_info\n(Info)">
 <ellipse fill="coral" stroke="black" cx="981.73" cy="-489.1" rx="37.32" ry="25.41"/>
 <text text-anchor="middle" x="981.73" y="-491.9" font-family="Times,serif" font-size="14.00">b_info</text>
 <text text-anchor="middle" x="981.73" y="-477.9" font-family="Times,serif" font-size="14.00">(Info)</text>
+</a>
+</g>
 </g>
 <!-- /matrix_mult/multiply/b&#45;&gt;/matrix_mult/multiply/b_info -->
 <g id="edge7" class="edge">
@@ -64,9 +73,12 @@
 <!-- /matrix_mult/multiply/transpose -->
 <g id="node10" class="node">
 <title>/matrix_mult/multiply/transpose</title>
+<g id="a_node10"><a xlink:href="../../flowstdlib/data/transpose/transpose.toml" xlink:title="transpose\n(Transpose)">
 <ellipse fill="coral" stroke="black" cx="829.73" cy="-489.1" rx="58.5" ry="25.41"/>
 <text text-anchor="middle" x="829.73" y="-491.9" font-family="Times,serif" font-size="14.00">transpose</text>
 <text text-anchor="middle" x="829.73" y="-477.9" font-family="Times,serif" font-size="14.00">(Transpose)</text>
+</a>
+</g>
 </g>
 <!-- /matrix_mult/multiply/b&#45;&gt;/matrix_mult/multiply/transpose -->
 <g id="edge10" class="edge">
@@ -91,9 +103,12 @@
 <!-- /matrix_mult/multiply/duplicate -->
 <g id="node12" class="node">
 <title>/matrix_mult/multiply/duplicate</title>
+<g id="a_node12"><a xlink:href="../../flowstdlib/data/duplicate/duplicate.toml" xlink:title="duplicate\n(Duplicate)">
 <ellipse fill="coral" stroke="black" cx="877.73" cy="-388.19" rx="56.28" ry="25.41"/>
 <text text-anchor="middle" x="877.73" y="-390.99" font-family="Times,serif" font-size="14.00">duplicate</text>
 <text text-anchor="middle" x="877.73" y="-376.99" font-family="Times,serif" font-size="14.00">(Duplicate)</text>
+</a>
+</g>
 </g>
 <!-- /matrix_mult/multiply/b_info&#45;&gt;/matrix_mult/multiply/duplicate -->
 <g id="edge12" class="edge">
@@ -106,9 +121,12 @@
 <!-- /matrix_mult/multiply/compose_rows -->
 <g id="node14" class="node">
 <title>/matrix_mult/multiply/compose_rows</title>
+<g id="a_node14"><a xlink:href="../../flowstdlib/data/accumulate/accumulate.toml" xlink:title="compose_rows\n(Accumulate)">
 <ellipse fill="coral" stroke="black" cx="669.73" cy="-199.37" rx="70.9" ry="25.41"/>
 <text text-anchor="middle" x="669.73" y="-202.17" font-family="Times,serif" font-size="14.00">compose_rows</text>
 <text text-anchor="middle" x="669.73" y="-188.17" font-family="Times,serif" font-size="14.00">(Accumulate)</text>
+</a>
+</g>
 </g>
 <!-- /matrix_mult/multiply/b_info&#45;&gt;/matrix_mult/multiply/compose_rows -->
 <g id="edge19" class="edge">
@@ -129,9 +147,12 @@
 <!-- /matrix_mult/multiply/compose_matrix -->
 <g id="node16" class="node">
 <title>/matrix_mult/multiply/compose_matrix</title>
+<g id="a_node16"><a xlink:href="../../flowstdlib/data/accumulate/accumulate.toml" xlink:title="compose_matrix\n(Accumulate)">
 <ellipse fill="coral" stroke="black" cx="377.73" cy="-98.46" rx="77.09" ry="25.41"/>
 <text text-anchor="middle" x="377.73" y="-101.26" font-family="Times,serif" font-size="14.00">compose_matrix</text>
 <text text-anchor="middle" x="377.73" y="-87.26" font-family="Times,serif" font-size="14.00">(Accumulate)</text>
+</a>
+</g>
 </g>
 <!-- /matrix_mult/multiply/a_info&#45;&gt;/matrix_mult/multiply/compose_matrix -->
 <g id="edge23" class="edge">
@@ -152,9 +173,12 @@
 <!-- /matrix_mult/multiply/multiply -->
 <g id="node13" class="node">
 <title>/matrix_mult/multiply/multiply</title>
+<g id="a_node13"><a xlink:href="../../flowstdlib/data/multiply_row/multiply_row.toml" xlink:title="multiply\n(MultiplyRow)">
 <ellipse fill="coral" stroke="black" cx="526.73" cy="-300.28" rx="71.02" ry="25.41"/>
 <text text-anchor="middle" x="526.73" y="-303.08" font-family="Times,serif" font-size="14.00">multiply</text>
 <text text-anchor="middle" x="526.73" y="-289.08" font-family="Times,serif" font-size="14.00">(MultiplyRow)</text>
+</a>
+</g>
 </g>
 <!-- /matrix_mult/multiply/duplicate_rows&#45;&gt;/matrix_mult/multiply/multiply -->
 <g id="edge14" class="edge">

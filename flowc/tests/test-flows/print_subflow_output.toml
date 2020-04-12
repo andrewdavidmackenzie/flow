@@ -2,7 +2,7 @@ flow = "print_subflow_output"
 
 [[process]]
 alias = "subflow"
-source = "initialize_flow_output.toml"
+source = "initialize_flow_output"
 
 [[process]]
 alias = "print"

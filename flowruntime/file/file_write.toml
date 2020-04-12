@@ -1,4 +1,5 @@
 function = "FileWrite"
+implementation = "file_write.rs"
 impure = true
 
 [[input]]

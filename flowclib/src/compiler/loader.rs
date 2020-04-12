@@ -149,7 +149,7 @@ fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Pro
 }
 
 #[allow(clippy::too_many_arguments)]
-fn config_function(function: &mut Function, implementation_url: &str, parent_route: &Route, alias: &Name,
+fn config_function(function: &mut Function, source_url: &str, parent_route: &Route, alias: &Name,
                    flow_id: usize,
                    lib_ref: Option<String>,
                    initializations: &Option<HashMap<String, InputInitializer>>,
@@ -157,7 +157,7 @@ fn config_function(function: &mut Function, implementation_url: &str, parent_rou
                    -> Result<()> {
     function.set_flow_id(flow_id);
     function.set_alias(alias);
-    function.set_implementation_url(implementation_url);
+    function.set_source_url(source_url);
     function.set_lib_reference(lib_ref);
     function.set_routes_from_parent(parent_route);
     IO::set_initial_values(&mut function.inputs, initializations);

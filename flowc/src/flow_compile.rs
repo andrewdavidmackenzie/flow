@@ -59,8 +59,7 @@ fn check_root(flow: &Flow) -> bool {
 */
 pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> Result<String> {
     info!("==== Compiler phase: Loading flow");
-    let context = loader::load(&options.url.to_string(), provider)
-        .chain_err(|| "load() of flow failed")?;
+    let context = loader::load(&options.url.to_string(), provider).chain_err(|| "load() of flow failed")?;
     match context {
         FlowProcess(flow) => {
             let mut tables = compile::compile(&flow)
@@ -104,9 +103,9 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
 */
 fn compile_supplied_implementations(tables: &mut GenerationTables, skip_building: bool, release: bool) -> Result<String> {
     for function in &mut tables.functions {
-        if function.get_implementation().is_some() {
+        if function.get_lib_reference().is_none() {
             compile_wasm::compile_implementation(function, skip_building, release)?;
-        };
+        }
     }
 
     Ok("All supplied implementations compiled successfully".into())

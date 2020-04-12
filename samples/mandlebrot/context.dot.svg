@@ -13,16 +13,22 @@
 <!-- /mandlebrot/args -->
 <g id="node1" class="node">
 <title>/mandlebrot/args</title>
+<g id="a_node1"><a xlink:href="../../flowruntime/args/get.toml" xlink:title="args\n(Get)">
 <ellipse fill="coral" stroke="black" cx="679.4" cy="-294.37" rx="32.4" ry="25.41"/>
 <text text-anchor="middle" x="679.4" y="-297.17" font-family="Times,serif" font-size="14.00">args</text>
 <text text-anchor="middle" x="679.4" y="-283.17" font-family="Times,serif" font-size="14.00">(Get)</text>
+</a>
+</g>
 </g>
 <!-- /mandlebrot/parse_bounds -->
 <g id="node2" class="node">
 <title>/mandlebrot/parse_bounds</title>
+<g id="a_node2"><a xlink:href="../../samples/mandlebrot/src/parse_pair/parse_pair.toml" xlink:title="parse_bounds\n(ParsePair)">
 <ellipse fill="coral" stroke="black" cx="506.4" cy="-206.46" rx="65.5" ry="25.41"/>
 <text text-anchor="middle" x="506.4" y="-209.26" font-family="Times,serif" font-size="14.00">parse_bounds</text>
 <text text-anchor="middle" x="506.4" y="-195.26" font-family="Times,serif" font-size="14.00">(ParsePair)</text>
+</a>
+</g>
 </g>
 <!-- /mandlebrot/args&#45;&gt;/mandlebrot/parse_bounds -->
 <g id="edge3" class="edge">
@@ -35,9 +41,12 @@
 <!-- /mandlebrot/parse_upper_left -->
 <g id="node7" class="node">
 <title>/mandlebrot/parse_upper_left</title>
+<g id="a_node7"><a xlink:href="../../samples/mandlebrot/src/parse_pair/parse_pair.toml" xlink:title="parse_upper_left\n(ParsePair)">
 <ellipse fill="coral" stroke="black" cx="852.4" cy="-206.46" rx="77.66" ry="25.41"/>
 <text text-anchor="middle" x="852.4" y="-209.26" font-family="Times,serif" font-size="14.00">parse_upper_left</text>
 <text text-anchor="middle" x="852.4" y="-195.26" font-family="Times,serif" font-size="14.00">(ParsePair)</text>
+</a>
+</g>
 </g>
 <!-- /mandlebrot/args&#45;&gt;/mandlebrot/parse_upper_left -->
 <g id="edge6" class="edge">
@@ -50,9 +59,12 @@
 <!-- /mandlebrot/parse_lower_right -->
 <g id="node8" class="node">
 <title>/mandlebrot/parse_lower_right</title>
+<g id="a_node8"><a xlink:href="../../samples/mandlebrot/src/parse_pair/parse_pair.toml" xlink:title="parse_lower_right\n(ParsePair)">
 <ellipse fill="coral" stroke="black" cx="673.4" cy="-206.46" rx="83.17" ry="25.41"/>
 <text text-anchor="middle" x="673.4" y="-209.26" font-family="Times,serif" font-size="14.00">parse_lower_right</text>
 <text text-anchor="middle" x="673.4" y="-195.26" font-family="Times,serif" font-size="14.00">(ParsePair)</text>
+</a>
+</g>
 </g>
 <!-- /mandlebrot/args&#45;&gt;/mandlebrot/parse_lower_right -->
 <g id="edge8" class="edge">
@@ -65,7 +77,7 @@
 <!-- /mandlebrot/render -->
 <g id="node9" class="node">
 <title>/mandlebrot/render</title>
-<g id="a_node9"><a xlink:href="render.dot" xlink:title="render">
+<g id="a_node9"><a xlink:href="render.dot.svg" xlink:title="render">
 <ellipse fill="aquamarine" stroke="black" cx="757.4" cy="-72" rx="72" ry="72"/>
 <text text-anchor="middle" x="757.4" y="-67.8" font-family="Times,serif" font-size="14.00">render</text>
 </a>
@@ -81,9 +93,12 @@
 <!-- /mandlebrot/bounds_separator -->
 <g id="node3" class="node">
 <title>/mandlebrot/bounds_separator</title>
+<g id="a_node3"><a xlink:href="../../flowstdlib/data/buffer/buffer.toml" xlink:title="bounds_separator\n(Buffer)">
 <ellipse fill="coral" stroke="black" cx="315.4" cy="-294.37" rx="81.28" ry="25.41"/>
 <text text-anchor="middle" x="315.4" y="-297.17" font-family="Times,serif" font-size="14.00">bounds_separator</text>
 <text text-anchor="middle" x="315.4" y="-283.17" font-family="Times,serif" font-size="14.00">(Buffer)</text>
+</a>
+</g>
 </g>
 <!-- /mandlebrot/bounds_separator&#45;&gt;/mandlebrot/parse_bounds -->
 <g id="edge4" class="edge">
@@ -103,9 +118,12 @@
 <!-- /mandlebrot/point_separator -->
 <g id="node5" class="node">
 <title>/mandlebrot/point_separator</title>
+<g id="a_node5"><a xlink:href="../../flowstdlib/data/buffer/buffer.toml" xlink:title="point_separator\n(Buffer)">
 <ellipse fill="coral" stroke="black" cx="556.4" cy="-294.37" rx="72.78" ry="25.41"/>
 <text text-anchor="middle" x="556.4" y="-297.17" font-family="Times,serif" font-size="14.00">point_separator</text>
 <text text-anchor="middle" x="556.4" y="-283.17" font-family="Times,serif" font-size="14.00">(Buffer)</text>
+</a>
+</g>
 </g>
 <!-- /mandlebrot/point_separator&#45;&gt;/mandlebrot/parse_upper_left -->
 <g id="edge5" class="edge">

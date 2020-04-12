@@ -13,14 +13,20 @@
 <!-- r0 -->
 <g id="node1" class="node">
 <title>r0</title>
+<g id="a_node1"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/readline.toml" xlink:title="Readline (#0)">
 <ellipse fill="coral" stroke="black" cx="251.2" cy="-177" rx="58.46" ry="18"/>
 <text text-anchor="middle" x="251.2" y="-172.8" font-family="Times,serif" font-size="14.00">Readline (#0)</text>
+</a>
+</g>
 </g>
 <!-- r1 -->
 <g id="node2" class="node">
 <title>r1</title>
+<g id="a_node2"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/split/split.toml" xlink:title="Split (#1)">
 <ellipse fill="coral" stroke="black" cx="207.2" cy="-91" rx="43.53" ry="18"/>
 <text text-anchor="middle" x="207.2" y="-86.8" font-family="Times,serif" font-size="14.00">Split (#1)</text>
+</a>
+</g>
 </g>
 <!-- r0&#45;&gt;r1 -->
 <g id="edge1" class="edge">
@@ -40,8 +46,11 @@
 <!-- r2 -->
 <g id="node4" class="node">
 <title>r2</title>
+<g id="a_node4"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/stdout.toml" xlink:title="Stdout (#2)">
 <ellipse fill="coral" stroke="black" cx="207.2" cy="-18" rx="50.3" ry="18"/>
 <text text-anchor="middle" x="207.2" y="-13.8" font-family="Times,serif" font-size="14.00">Stdout (#2)</text>
+</a>
+</g>
 </g>
 <!-- r1&#45;&gt;r2 -->
 <g id="edge4" class="edge">

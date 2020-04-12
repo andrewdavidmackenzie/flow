@@ -18,14 +18,20 @@
 <!-- r0 -->
 <g id="node1" class="node">
 <title>r0</title>
+<g id="a_node1"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/info/info.toml" xlink:title="b_info (#0)">
 <ellipse fill="coral" stroke="black" cx="478.1" cy="-438" rx="50.28" ry="18"/>
 <text text-anchor="middle" x="478.1" y="-433.8" font-family="Times,serif" font-size="14.00">b_info (#0)</text>
+</a>
+</g>
 </g>
 <!-- r4 -->
 <g id="node3" class="node">
 <title>r4</title>
+<g id="a_node3"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/duplicate/duplicate.toml" xlink:title="duplicate (#4)">
 <ellipse fill="coral" stroke="black" cx="356.1" cy="-352" rx="59.43" ry="18"/>
 <text text-anchor="middle" x="356.1" y="-347.8" font-family="Times,serif" font-size="14.00">duplicate (#4)</text>
+</a>
+</g>
 </g>
 <!-- r0&#45;&gt;r4 -->
 <g id="edge2" class="edge">
@@ -38,8 +44,11 @@
 <!-- r2 -->
 <g id="node4" class="node">
 <title>r2</title>
+<g id="a_node4"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/duplicate_rows/duplicate_rows.toml" xlink:title="duplicate_rows (#2)">
 <ellipse fill="coral" stroke="black" cx="143.1" cy="-352" rx="81.16" ry="18"/>
 <text text-anchor="middle" x="143.1" y="-347.8" font-family="Times,serif" font-size="14.00">duplicate_rows (#2)</text>
+</a>
+</g>
 </g>
 <!-- r0&#45;&gt;r2 -->
 <g id="edge3" class="edge">
@@ -52,8 +61,11 @@
 <!-- r6 -->
 <g id="node5" class="node">
 <title>r6</title>
+<g id="a_node5"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/accumulate/accumulate.toml" xlink:title="compose_rows (#6)">
 <ellipse fill="coral" stroke="black" cx="152.1" cy="-193" rx="80.21" ry="18"/>
 <text text-anchor="middle" x="152.1" y="-188.8" font-family="Times,serif" font-size="14.00">compose_rows (#6)</text>
+</a>
+</g>
 </g>
 <!-- r0&#45;&gt;r6 -->
 <g id="edge4" class="edge">
@@ -74,8 +86,11 @@
 <!-- r5 -->
 <g id="node10" class="node">
 <title>r5</title>
+<g id="a_node10"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/multiply_row/multiply_row.toml" xlink:title="multiply (#5)">
 <ellipse fill="coral" stroke="black" cx="291.1" cy="-279" rx="57.05" ry="18"/>
 <text text-anchor="middle" x="291.1" y="-274.8" font-family="Times,serif" font-size="14.00">multiply (#5)</text>
+</a>
+</g>
 </g>
 <!-- r4&#45;&gt;r5 -->
 <g id="edge11" class="edge">
@@ -110,8 +125,11 @@
 <!-- r7 -->
 <g id="node8" class="node">
 <title>r7</title>
+<g id="a_node8"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/accumulate/accumulate.toml" xlink:title="compose_matrix (#7)">
 <ellipse fill="coral" stroke="black" cx="440.1" cy="-107" rx="85.99" ry="18"/>
 <text text-anchor="middle" x="440.1" y="-102.8" font-family="Times,serif" font-size="14.00">compose_matrix (#7)</text>
+</a>
+</g>
 </g>
 <!-- r6&#45;&gt;r7 -->
 <g id="edge16" class="edge">
@@ -124,8 +142,11 @@
 <!-- r1 -->
 <g id="node6" class="node">
 <title>r1</title>
+<g id="a_node6"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/info/info.toml" xlink:title="a_info (#1)">
 <ellipse fill="coral" stroke="black" cx="372.1" cy="-193" rx="49.79" ry="18"/>
 <text text-anchor="middle" x="372.1" y="-188.8" font-family="Times,serif" font-size="14.00">a_info (#1)</text>
+</a>
+</g>
 </g>
 <!-- r1&#45;&gt;r7 -->
 <g id="edge6" class="edge">
@@ -162,8 +183,11 @@
 <!-- r8 -->
 <g id="node15" class="node">
 <title>r8</title>
+<g id="a_node15"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/stdout.toml" xlink:title="print (#8)">
 <ellipse fill="coral" stroke="black" cx="440.1" cy="-34" rx="43.51" ry="18"/>
 <text text-anchor="middle" x="440.1" y="-29.8" font-family="Times,serif" font-size="14.00">print (#8)</text>
+</a>
+</g>
 </g>
 <!-- r7&#45;&gt;r8 -->
 <g id="edge20" class="edge">
@@ -190,8 +214,11 @@
 <!-- r3 -->
 <g id="node11" class="node">
 <title>r3</title>
+<g id="a_node11"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/transpose/transpose.toml" xlink:title="transpose (#3)">
 <ellipse fill="coral" stroke="black" cx="295.1" cy="-438" rx="60.4" ry="18"/>
 <text text-anchor="middle" x="295.1" y="-433.8" font-family="Times,serif" font-size="14.00">transpose (#3)</text>
+</a>
+</g>
 </g>
 <!-- r3&#45;&gt;r4 -->
 <g id="edge10" class="edge">

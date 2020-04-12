@@ -1,4 +1,5 @@
 function = "Stdout"
+implementation = "stdout.rs"
 impure = true
 
 [[input]]

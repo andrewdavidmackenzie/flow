@@ -8,6 +8,7 @@ use super::super::runtime_client::{Command, Response, RuntimeClient};
 /// `Implementation` struct for the `readline` function
 #[derive(Debug)]
 pub struct Readline {
+    /// It holds a reference to the runtime client in order to read input
     pub client: Arc<Mutex<dyn RuntimeClient>>
 }
 
