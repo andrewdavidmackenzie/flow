@@ -1,4 +1,5 @@
 function = "Stdin"
+implementation = "stdin.rs"
 impure = true
 
 [[output]]

@@ -1,4 +1,5 @@
 function = "Stderr"
+implementation = "stderr.rs"
 impure = true
 
 [[input]]

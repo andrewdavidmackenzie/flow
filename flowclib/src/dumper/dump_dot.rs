@@ -201,8 +201,9 @@ fn fn_to_dot(function: &Function) -> String {
 fn function_to_dot(function: &Function, functions: &[Function]) -> String {
     let mut function_string = String::new();
 
-    function_string.push_str(&format!("r{}[style=filled, fillcolor=coral, label=\"{} (#{})\"];\n",
+    function_string.push_str(&format!("r{}[style=filled, fillcolor=coral, URL=\"{}\", label=\"{} (#{})\"];\n",
                                       function.get_id(),
+                                        function.alias(), // HERE
                                       function.alias(),
                                       function.get_id()));
 

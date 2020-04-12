@@ -104,9 +104,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
 */
 fn compile_supplied_implementations(tables: &mut GenerationTables, skip_building: bool, release: bool) -> Result<String> {
     for function in &mut tables.functions {
-        if function.get_implementation().is_some() {
-            compile_wasm::compile_implementation(function, skip_building, release)?;
-        };
+        compile_wasm::compile_implementation(function, skip_building, release)?;
     }
 
     Ok("All supplied implementations compiled successfully".into())

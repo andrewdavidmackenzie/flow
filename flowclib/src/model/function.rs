@@ -23,7 +23,7 @@ pub struct Function {
     name: Name,
     #[serde(default = "Function::default_impure")]
     impure: bool,
-    implementation: Option<String>,
+    implementation: String,
     #[serde(rename = "input")]
     pub inputs: IOSet,
     #[serde(rename = "output")]
@@ -98,12 +98,12 @@ impl Function {
         &self.output_routes
     }
 
-    pub fn get_implementation(&self) -> Option<String> {
-        self.implementation.clone()
+    pub fn get_implementation(&self) -> &str {
+        &self.implementation
     }
 
     pub fn set_implementation(&mut self, implementation: &str) {
-        self.implementation = Some(implementation.to_owned());
+        self.implementation = implementation.to_owned();
     }
 
     pub fn get_source_url(&self) -> String {
@@ -170,7 +170,7 @@ impl Default for Function {
         Function {
             name: Name::default(),
             impure: false,
-            implementation: None,
+            implementation: "".to_owned(),
             alias: Name::default(),
             inputs: None,
             outputs: Some(vec!(IO::new("Value", &Route::default()))),
@@ -240,7 +240,7 @@ mod test {
 
     impl Function {
         #[allow(clippy::too_many_arguments)]
-        pub fn new(name: Name, impure: bool, implementation: Option<String>, alias: Name, inputs: IOSet, outputs: IOSet, source_url: &str,
+        pub fn new(name: Name, impure: bool, implementation: String, alias: Name, inputs: IOSet, outputs: IOSet, source_url: &str,
                    route: Route, lib_reference: Option<String>, output_connections: Vec<OutputConnection>,
                    id: usize, flow_id: usize) -> Self {
             Function {
@@ -265,7 +265,7 @@ mod test {
         let fun = Function {
             name: Name::from("test_function"),
             impure: false,
-            implementation: None,
+            implementation: "".to_owned(),
             alias: Name::from("test_function"),
             source_url: Function::default_source_url(),
             inputs: Some(vec!()), // No inputs!
@@ -305,6 +305,8 @@ mod test {
     fn deserialize_output_empty() {
         let function_str = "
         function = 'test_function'
+        implementation = 'test.rs'
+
         [[output]]
         ";
 
@@ -318,6 +320,7 @@ mod test {
     fn deserialize_extra_field_fails() {
         let function_str = "
         function = 'test_function'
+        implementation = 'test.rs'
         [[output]]
         foo = 'true'
         ";
@@ -330,6 +333,7 @@ mod test {
     fn deserialize_default_output() {
         let function_str = "
         function = 'test_function'
+        implementation = 'test.rs'
         [[output]]
         type = 'String'
         ";
@@ -346,6 +350,8 @@ mod test {
     fn deserialize_output_specified() {
         let function_str = "
         function = 'test_function'
+        implementation = 'test.rs'
+
         [[output]]
         name = 'sub_output'
         type = 'String'
@@ -363,6 +369,8 @@ mod test {
     fn deserialize_two_outputs_specified() {
         let function_str = "
         function = 'test_function'
+        implementation = 'test.rs'
+
         [[output]]
         name = 'sub_output'
         type = 'String'
@@ -388,6 +396,8 @@ mod test {
     fn set_routes() {
         let function_str = "
         function = 'test_function'
+        implementation = 'test.rs'
+
         [[output]]
         name = 'sub_output'
         type = 'String'
@@ -419,6 +429,8 @@ mod test {
         // Create a function where the output is an Array of String
         let function_str = "
         function = 'test_function'
+        implementation = 'test.rs'
+
         [[output]]
         type = 'Array/String'
         ";

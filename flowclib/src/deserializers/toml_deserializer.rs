@@ -180,7 +180,7 @@ mod test {
     fn function_parses() {
         let function_definition = "\
 function = 'stdout'
-
+implementation = 'stdout.rs'
 [[input]]
 name = 'stdout'
 type = 'String'";
@@ -192,6 +192,19 @@ type = 'String'";
     #[test]
     fn function_lacks_name() {
         let function_definition = "\
+implementation = 'stdout.rs'
+[[input]]
+name = 'stdout'
+type = 'String'";
+
+        let toml = FlowTomelLoader {};
+        assert!(toml.deserialize(function_definition, None).is_err());
+    }
+
+    #[test]
+    fn function_lacks_implementation() {
+        let function_definition = "\
+function = 'stdout'
 [[input]]
 name = 'stdout'
 type = 'String'";
