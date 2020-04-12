@@ -13,14 +13,20 @@
 <!-- r0 -->
 <g id="node1" class="node">
 <title>r0</title>
+<g id="a_node1"><a xlink:href="readline" xlink:title="readline (#0)">
 <ellipse fill="coral" stroke="black" cx="55.53" cy="-162" rx="55.56" ry="18"/>
 <text text-anchor="middle" x="55.53" y="-157.8" font-family="Times,serif" font-size="14.00">readline (#0)</text>
+</a>
+</g>
 </g>
 <!-- r1 -->
 <g id="node2" class="node">
 <title>r1</title>
+<g id="a_node2"><a xlink:href="read_section" xlink:title="read_section (#1)">
 <ellipse fill="coral" stroke="black" cx="111.53" cy="-90" rx="71.98" ry="18"/>
 <text text-anchor="middle" x="111.53" y="-85.8" font-family="Times,serif" font-size="14.00">read_section (#1)</text>
+</a>
+</g>
 </g>
 <!-- r0&#45;&gt;r1 -->
 <g id="edge1" class="edge">
@@ -31,8 +37,11 @@
 <!-- r2 -->
 <g id="node3" class="node">
 <title>r2</title>
+<g id="a_node3"><a xlink:href="print" xlink:title="print (#2)">
 <ellipse fill="coral" stroke="black" cx="183.53" cy="-18" rx="43.51" ry="18"/>
 <text text-anchor="middle" x="183.53" y="-13.8" font-family="Times,serif" font-size="14.00">print (#2)</text>
+</a>
+</g>
 </g>
 <!-- r1&#45;&gt;r2 -->
 <g id="edge2" class="edge">

@@ -13,14 +13,20 @@
 <!-- r0 -->
 <g id="node1" class="node">
 <title>r0</title>
+<g id="a_node1"><a xlink:href="args" xlink:title="args (#0)">
 <ellipse fill="coral" stroke="black" cx="82.37" cy="-568" rx="41.76" ry="18"/>
 <text text-anchor="middle" x="82.37" y="-563.8" font-family="Times,serif" font-size="14.00">args (#0)</text>
+</a>
+</g>
 </g>
 <!-- r1 -->
 <g id="node2" class="node">
 <title>r1</title>
+<g id="a_node2"><a xlink:href="to_number" xlink:title="to_number (#1)">
 <ellipse fill="coral" stroke="black" cx="65.37" cy="-495" rx="65.23" ry="18"/>
 <text text-anchor="middle" x="65.37" y="-490.8" font-family="Times,serif" font-size="14.00">to_number (#1)</text>
+</a>
+</g>
 </g>
 <!-- r0&#45;&gt;r1 -->
 <g id="edge1" class="edge">
@@ -32,8 +38,11 @@
 <!-- r2 -->
 <g id="node3" class="node">
 <title>r2</title>
+<g id="a_node3"><a xlink:href="multiply" xlink:title="multiply (#2)">
 <ellipse fill="coral" stroke="black" cx="344.37" cy="-164" rx="57.05" ry="18"/>
 <text text-anchor="middle" x="344.37" y="-159.8" font-family="Times,serif" font-size="14.00">multiply (#2)</text>
+</a>
+</g>
 </g>
 <!-- r1&#45;&gt;r2 -->
 <g id="edge2" class="edge">
@@ -45,8 +54,11 @@
 <!-- r3 -->
 <g id="node4" class="node">
 <title>r3</title>
+<g id="a_node4"><a xlink:href="sub" xlink:title="sub (#3)">
 <ellipse fill="coral" stroke="black" cx="345.37" cy="-409" rx="39.17" ry="18"/>
 <text text-anchor="middle" x="345.37" y="-404.8" font-family="Times,serif" font-size="14.00">sub (#3)</text>
+</a>
+</g>
 </g>
 <!-- r1&#45;&gt;r3 -->
 <g id="edge3" class="edge">
@@ -65,8 +77,11 @@
 <!-- r6 -->
 <g id="node6" class="node">
 <title>r6</title>
+<g id="a_node6"><a xlink:href="result-tap" xlink:title="result&#45;tap (#6)">
 <ellipse fill="coral" stroke="black" cx="519.37" cy="-91" rx="60.39" ry="18"/>
 <text text-anchor="middle" x="519.37" y="-86.8" font-family="Times,serif" font-size="14.00">result&#45;tap (#6)</text>
+</a>
+</g>
 </g>
 <!-- r2&#45;&gt;r6 -->
 <g id="edge6" class="edge">
@@ -78,8 +93,11 @@
 <!-- r5 -->
 <g id="node8" class="node">
 <title>r5</title>
+<g id="a_node8"><a xlink:href="n-tap" xlink:title="n&#45;tap (#5)">
 <ellipse fill="coral" stroke="black" cx="250.37" cy="-250" rx="45.44" ry="18"/>
 <text text-anchor="middle" x="250.37" y="-245.8" font-family="Times,serif" font-size="14.00">n&#45;tap (#5)</text>
+</a>
+</g>
 </g>
 <!-- r3&#45;&gt;r5 -->
 <g id="edge8" class="edge">
@@ -91,8 +109,11 @@
 <!-- r4 -->
 <g id="node9" class="node">
 <title>r4</title>
+<g id="a_node9"><a xlink:href="compare" xlink:title="compare (#4)">
 <ellipse fill="coral" stroke="black" cx="579.37" cy="-323" rx="57.49" ry="18"/>
 <text text-anchor="middle" x="579.37" y="-318.8" font-family="Times,serif" font-size="14.00">compare (#4)</text>
+</a>
+</g>
 </g>
 <!-- r3&#45;&gt;r4 -->
 <g id="edge9" class="edge">
@@ -112,8 +133,11 @@
 <!-- r7 -->
 <g id="node11" class="node">
 <title>r7</title>
+<g id="a_node11"><a xlink:href="print" xlink:title="print (#7)">
 <ellipse fill="coral" stroke="black" cx="580.37" cy="-18" rx="43.51" ry="18"/>
 <text text-anchor="middle" x="580.37" y="-13.8" font-family="Times,serif" font-size="14.00">print (#7)</text>
+</a>
+</g>
 </g>
 <!-- r6&#45;&gt;r7 -->
 <g id="edge15" class="edge">
