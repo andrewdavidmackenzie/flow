@@ -1,7 +1,7 @@
 flow = "subflow_input_init"
 
 [[process]]
-source = "subflow_short_circuit.toml"
+source = "subflow_short_circuit"
 input.a = { once = "OK" }
 
 [[process]]

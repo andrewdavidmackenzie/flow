@@ -3,7 +3,7 @@ flow = "factorial"
 # Read 'n' from the command line
 [[process]]
 alias = "args"
-source = "lib://flowruntime/args/get.toml"
+source = "lib://flowruntime/args/get"
 
 [[connection]]
 from = "args/1"

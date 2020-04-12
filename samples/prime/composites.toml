@@ -32,8 +32,7 @@ from = "sqrt"
 to = "divisors/end"
 
 [[process]]
-alias = "generate_composites"
-source = "generate_composites.toml"
+source = "generate_composites"
 
 [[connection]]
 from = "divisors/sequence"

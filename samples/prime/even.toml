@@ -2,7 +2,7 @@ flow = "even"
 
 [[process]]
 alias = "args"
-source = "lib://flowruntime/args/get.toml"
+source = "lib://flowruntime/args/get"
 
 [[process]]
 alias = "to_number"
@@ -13,8 +13,7 @@ from = "args/1"
 to = "to_number"
 
 [[process]]
-alias = "remainder_zero"
-source = "remainder_zero.toml"
+source = "remainder_zero"
 input.divisor = { constant = 2 }
 
 [[connection]]
