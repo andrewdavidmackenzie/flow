@@ -9,8 +9,8 @@ A flow that finds prime numbers upto the maximum specified in the input argument
 
 Context Diagram
 ===
-![Context diagram](prime.dot.svg)
-<a href="prime.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
+![Context diagram](context.dot.svg)
+<a href="context.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
 
 Features Used
 ===

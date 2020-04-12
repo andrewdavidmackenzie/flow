@@ -7,8 +7,8 @@ A simple flow that prints "Hello World!" on `stdout`
 
 Context Diagram
 ===
-![Context diagram](hello-world.dot.svg)
-<a href="hello-world.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
+![Context diagram](context.dot.svg)
+<a href="context.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
 
 Features Used
 ===
@@ -17,6 +17,7 @@ Features Used
 * A String value that is initialized at start-up
 * Library Functions used (`stdout` from `flowstdlib`)
 * Connection between a named output of the sub-flow and the function's input
+* Initialization of a flow's output in [flow1](flow1.toml)
 
 Functions Diagram
 ===

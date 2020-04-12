@@ -7,7 +7,7 @@ Trivial flow that takes a line on `stdin`, reverses it and then prints it on `st
 
 Context Diagram
 ===
-![Context diagram](reverse-echo.dot.svg)
+![Context diagram](context.dot.svg)
 
 Features Used
 ===

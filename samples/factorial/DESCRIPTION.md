@@ -7,7 +7,7 @@ A flow that calculates the factorial of a number and prints it out on `stdout`.
 
 Context Diagram
 ===
-![Context diagram](factorial.dot.svg)
+![Context diagram](context.dot.svg)
 
 Features Used
 ===

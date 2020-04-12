@@ -22,7 +22,7 @@ greater than 4, which is the size of the Array of Numbers formed.
 
 Context Diagram
 ===
-![Context diagram](arrays.dot.svg)
+![Context diagram](context.dot.svg)
 
 Features Used
 ===

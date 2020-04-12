@@ -7,8 +7,8 @@ A simple flow that prints "Hello World!" on `stdout` using a sub-flow from anoth
 
 Context Diagram
 ===
-![Context diagram](hello-world-include.dot.svg)
-<a href="hello-world-include.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
+![Context diagram](context.dot.svg)
+<a href="context.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
 
 Features Used
 ===

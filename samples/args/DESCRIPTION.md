@@ -7,7 +7,7 @@ A flow that shows how arguments can be passed into a flow when executed and are 
 
 Context Diagram
 ===
-![Context diagram](arg-print.dot.svg)
+![Context diagram](context.dot.svg)
 
 Features Used
 ===

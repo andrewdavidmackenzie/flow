@@ -7,8 +7,8 @@ A flow that generates a Fibonacci series of numbers and prints it out on `stdout
 
 Context Diagram
 ===
-![Context diagram](fibonacci.dot.svg)
-<a href="fibonacci.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
+![Context diagram](context.dot.svg)
+<a href="context.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
 
 Features Used
 ===

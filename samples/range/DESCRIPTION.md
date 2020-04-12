@@ -7,8 +7,8 @@ A flow that generates a series of output numbers in a range between two input nu
 
 Context Diagram
 ===
-![Context diagram](range.dot.svg)
-<a href="range.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
+![Context diagram](context.dot.svg)
+<a href="context.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
 
 Features Used
 ===

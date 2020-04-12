@@ -8,7 +8,7 @@ tokens using the string splitter function from the flowstdlib.
 
 Context Diagram
 ===
-![Context diagram](tokenizer.dot.svg)
+![Context diagram](context.dot.svg)
 
 Features Used
 ===

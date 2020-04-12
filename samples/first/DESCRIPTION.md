@@ -13,7 +13,7 @@ what this flow does and a 'step-by-step walkthrough' of its execution.
 
 Context Diagram
 ===
-![Context diagram](first-flow.dot.svg)
+![Context diagram](context.dot.svg)
 
 Features Used
 ===

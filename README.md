@@ -3,7 +3,7 @@
 # Welcome!
 Welcome to my project called `flow` for defining and running parallel, data-dependency-defined 'programs' like this one:
 
-![First flow](samples/first/first-flow.dot.svg)
+![First flow](samples/first/context.dot.svg)
 
 It currently consists of libraries for compiling (`flowclib`) and running (`flowrlib`) flows as 
 well as command line binaries (`flowc` and `flowr`) that use the libraries.

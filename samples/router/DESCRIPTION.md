@@ -11,7 +11,7 @@ network.
 
 Context Diagram
 ===
-![Context diagram](router.dot.svg)
+![Context diagram](context.dot.svg)
 
 Features Used
 ===

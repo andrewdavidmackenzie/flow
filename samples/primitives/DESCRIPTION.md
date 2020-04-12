@@ -13,7 +13,7 @@ of a number of the primitives.
 
 Context Diagram
 ===
-![Context diagram](primitives.dot.svg)
+![Context diagram](context.dot.svg)
 
 Features Used
 ===

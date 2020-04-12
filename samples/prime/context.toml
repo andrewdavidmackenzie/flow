@@ -3,7 +3,7 @@ flow = "prime"
 # Read the limit from the command line
 [[process]]
 alias = "args"
-source = "lib://flowruntime/args/get.toml"
+source = "lib://flowruntime/args/get"
 
 [[connection]]
 from = "args/1"
@@ -50,7 +50,7 @@ to = "all-numbers/partial"
 ####### Composites
 [[process]]
 alias = "composites"
-source = "composites.toml"
+source = "composites"
 
 [[connection]]
 from = "to_number"
