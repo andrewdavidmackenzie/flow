@@ -19,9 +19,12 @@
 <!-- /pipeline/range/compare -->
 <g id="node6" class="node">
 <title>/pipeline/range/compare</title>
+<g id="a_node6"><a xlink:href="../../flowstdlib/control/compare_switch/compare_switch.toml" xlink:title="compare\n(CompareSwitch)">
 <ellipse fill="coral" stroke="black" cx="530.1" cy="-180.37" rx="81.89" ry="25.41"/>
 <text text-anchor="middle" x="530.1" y="-183.17" font-family="Times,serif" font-size="14.00">compare</text>
 <text text-anchor="middle" x="530.1" y="-169.17" font-family="Times,serif" font-size="14.00">(CompareSwitch)</text>
+</a>
+</g>
 </g>
 <!-- /pipeline/range/start&#45;&gt;/pipeline/range/compare -->
 <g id="edge4" class="edge">
@@ -52,9 +55,12 @@
 <!-- /pipeline/range/add -->
 <g id="node9" class="node">
 <title>/pipeline/range/add</title>
+<g id="a_node9"><a xlink:href="../../flowstdlib/math/add/add.toml" xlink:title="add\n(Add)">
 <ellipse fill="coral" stroke="black" cx="331.1" cy="-79.46" rx="34.91" ry="25.41"/>
 <text text-anchor="middle" x="331.1" y="-82.26" font-family="Times,serif" font-size="14.00">add</text>
 <text text-anchor="middle" x="331.1" y="-68.26" font-family="Times,serif" font-size="14.00">(Add)</text>
+</a>
+</g>
 </g>
 <!-- /pipeline/range/step&#45;&gt;/pipeline/range/add -->
 <g id="edge6" class="edge">

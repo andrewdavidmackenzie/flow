@@ -8,6 +8,7 @@ use super::super::runtime_client::{Command, Response, RuntimeClient};
 /// `Implementation` struct for the `Stdout` function
 #[derive(Debug)]
 pub struct Stdout {
+    /// It holds a reference to the runtime client in order to write output
     pub client: Arc<Mutex<dyn RuntimeClient>>
 }
 

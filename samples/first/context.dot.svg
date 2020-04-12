@@ -13,16 +13,22 @@
 <!-- /first&#45;flow/HEAD&#45;1 -->
 <g id="node1" class="node">
 <title>/first&#45;flow/HEAD&#45;1</title>
+<g id="a_node1"><a xlink:href="../../flowstdlib/data/buffer/buffer.toml" xlink:title="HEAD&#45;1\n(Buffer)">
 <ellipse fill="coral" stroke="black" cx="304.74" cy="-214.28" rx="47.11" ry="25.41"/>
 <text text-anchor="middle" x="304.74" y="-217.08" font-family="Times,serif" font-size="14.00">HEAD&#45;1</text>
 <text text-anchor="middle" x="304.74" y="-203.08" font-family="Times,serif" font-size="14.00">(Buffer)</text>
+</a>
+</g>
 </g>
 <!-- /first&#45;flow/add -->
 <g id="node5" class="node">
 <title>/first&#45;flow/add</title>
+<g id="a_node5"><a xlink:href="../../flowstdlib/math/add/add.toml" xlink:title="add\n(Add)">
 <ellipse fill="coral" stroke="black" cx="426.74" cy="-126.37" rx="34.91" ry="25.41"/>
 <text text-anchor="middle" x="426.74" y="-129.17" font-family="Times,serif" font-size="14.00">add</text>
 <text text-anchor="middle" x="426.74" y="-115.17" font-family="Times,serif" font-size="14.00">(Add)</text>
+</a>
+</g>
 </g>
 <!-- /first&#45;flow/HEAD&#45;1&#45;&gt;/first&#45;flow/add -->
 <g id="edge3" class="edge">
@@ -34,9 +40,12 @@
 <!-- /first&#45;flow/print -->
 <g id="node6" class="node">
 <title>/first&#45;flow/print</title>
+<g id="a_node6"><a xlink:href="../../flowruntime/stdio/stdout.toml" xlink:title="print\n(Stdout)">
 <ellipse fill="coral" stroke="black" cx="329.74" cy="-126.37" rx="43.53" ry="25.41"/>
 <text text-anchor="middle" x="329.74" y="-129.17" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="329.74" y="-115.17" font-family="Times,serif" font-size="14.00">(Stdout)</text>
+</a>
+</g>
 </g>
 <!-- /first&#45;flow/HEAD&#45;1&#45;&gt;/first&#45;flow/print -->
 <g id="edge7" class="edge">
@@ -55,9 +64,12 @@
 <!-- /first&#45;flow/HEAD -->
 <g id="node3" class="node">
 <title>/first&#45;flow/HEAD</title>
+<g id="a_node3"><a xlink:href="../../flowstdlib/data/buffer/buffer.toml" xlink:title="HEAD\n(Buffer)">
 <ellipse fill="coral" stroke="black" cx="250.74" cy="-25.46" rx="43.64" ry="25.41"/>
 <text text-anchor="middle" x="250.74" y="-28.26" font-family="Times,serif" font-size="14.00">HEAD</text>
 <text text-anchor="middle" x="250.74" y="-14.26" font-family="Times,serif" font-size="14.00">(Buffer)</text>
+</a>
+</g>
 </g>
 <!-- /first&#45;flow/HEAD&#45;&gt;/first&#45;flow/HEAD&#45;1 -->
 <g id="edge4" class="edge">

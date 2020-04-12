@@ -47,7 +47,7 @@ use crate::model::process::Process::FlowProcess;
 /// }
 /// ```
 pub fn dump_flow(flow: &Flow, output_dir: &PathBuf) -> io::Result<String> {
-    info!("==== Dumper: Dumping flow hierarchy to '{}'", output_dir.display());
+    info!("=== Dumper: Dumping flow hierarchy to '{}'", output_dir.display());
     _dump_flow(flow, 0, output_dir)
 }
 
@@ -65,7 +65,8 @@ fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<Str
     writer.write_all(format!("\nLevel={}\n{}", level, flow).as_bytes())?;
 
     writer = helper::create_output_file(&output_dir, filename, "dot")?;
-    dump_dot::flow_to_dot(flow, &mut writer)?;
+    info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
+    dump_dot::write_flow_to_dot(flow, &mut writer, output_dir)?;
 
     // Dump sub-flows
     if let Some(ref flow_refs) = flow.process_refs {

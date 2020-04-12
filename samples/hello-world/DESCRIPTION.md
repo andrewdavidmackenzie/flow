@@ -7,8 +7,9 @@ A simple flow that prints "Hello World!" on `stdout`
 
 Context Diagram
 ===
-![Context diagram](context.dot.svg)
-<a href="context.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
+<a href="context.dot.svg" target="_blank"><img src="context.dot.svg"></a>
+
+Click image to navigate flow hierarchy.
 
 Features Used
 ===
@@ -22,4 +23,6 @@ Features Used
 Functions Diagram
 ===
 This diagram shows the exploded diagram of all functions in all flows, and their connections.
-![Full functions diagram](functions.dot.svg)
+<a href="functions.dot.svg" target="_blank"><img src="functions.dot.svg"></a>
+
+Click image to view functions graph.

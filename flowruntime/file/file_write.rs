@@ -8,6 +8,7 @@ use super::super::runtime_client::{Command, Response, RuntimeClient};
 /// `Implementation` struct for the `file_write` function
 #[derive(Debug)]
 pub struct FileWrite {
+    /// It holds a reference to the runtime client in order to get file contents
     pub client: Arc<Mutex<dyn RuntimeClient>>
 }
 

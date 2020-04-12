@@ -12,11 +12,11 @@ use crate::runtime_client::RuntimeClient;
 /// `runtime_client` is a trait for clients connectibe to the run-time must implement
 pub mod runtime_client;
 /// `args` is a module to interact with a programs arguments
-mod args;
+pub mod args;
 /// `file` is a module to interact with the file system
-mod file;
+pub mod file;
 /// `stdio` is a module to interact with standard IO
-mod stdio;
+pub mod stdio;
 
 /// Return a `LibraryManifest` for the run-time functions
 pub fn get_manifest(client: Arc<Mutex<dyn RuntimeClient>>) -> LibraryManifest {

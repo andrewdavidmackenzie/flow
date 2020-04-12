@@ -13,14 +13,20 @@
 <!-- /arg&#45;print/Get -->
 <g id="node1" class="node">
 <title>/arg&#45;print/Get</title>
+<g id="a_node1"><a xlink:href="../../flowruntime/args/get.toml" xlink:title="Get">
 <ellipse fill="coral" stroke="black" cx="27" cy="-90" rx="27" ry="18"/>
 <text text-anchor="middle" x="27" y="-85.8" font-family="Times,serif" font-size="14.00">Get</text>
+</a>
+</g>
 </g>
 <!-- /arg&#45;print/Stdout -->
 <g id="node2" class="node">
 <title>/arg&#45;print/Stdout</title>
+<g id="a_node2"><a xlink:href="../../flowruntime/stdio/stdout.toml" xlink:title="Stdout">
 <ellipse fill="coral" stroke="black" cx="88" cy="-18" rx="33.41" ry="18"/>
 <text text-anchor="middle" x="88" y="-13.8" font-family="Times,serif" font-size="14.00">Stdout</text>
+</a>
+</g>
 </g>
 <!-- /arg&#45;print/Get&#45;&gt;/arg&#45;print/Stdout -->
 <g id="edge1" class="edge">

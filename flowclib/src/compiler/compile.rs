@@ -14,21 +14,21 @@ use super::optimizer;
 pub fn compile(flow: &Flow) -> Result<GenerationTables> {
     let mut tables = GenerationTables::new();
 
-    info!("==== Compiler phase: Gathering");
+    info!("=== Compiler phase: Gathering");
     gatherer::gather_functions_and_connections(flow, &mut tables, 0);
-    info!("==== Compiler phase: Collapsing connections");
+    info!("=== Compiler phase: Collapsing connections");
     tables.collapsed_connections = connector::collapse_connections(&tables.connections);
-    info!("==== Compiler phase: Optimizing");
+    info!("=== Compiler phase: Optimizing");
     optimizer::optimize(&mut tables);
-    info!("==== Compiler phase: Indexing");
+    info!("=== Compiler phase: Indexing");
     gatherer::index_functions(&mut tables.functions);
-    info!("==== Compiler phase: Calculating routes tables");
+    info!("=== Compiler phase: Calculating routes tables");
     connector::create_routes_table(&mut tables);
-    info!("==== Compiler phase: Checking connections");
+    info!("=== Compiler phase: Checking connections");
     checker::check_connections(&mut tables)?;
-    info!("==== Compiler phase: Checking processes");
+    info!("=== Compiler phase: Checking processes");
     checker::check_function_inputs(&mut tables)?;
-    info!("==== Compiler phase: Preparing functions connections");
+    info!("=== Compiler phase: Preparing functions connections");
     connector::prepare_function_connections(&mut tables)?;
 
     Ok(tables)
@@ -48,9 +48,9 @@ mod test {
     use super::compile;
 
     /*
-                                                        Test for a function that is dead code. It has no connections to it or from it so will
-                                                        never run. So it should be removed by the optimizer and not fail at check stage.
-                                                    */
+                                                            Test for a function that is dead code. It has no connections to it or from it so will
+                                                            never run. So it should be removed by the optimizer and not fail at check stage.
+                                                        */
     #[test]
     fn dead_function() {
         let function = Function::new(Name::from("Stdout"),

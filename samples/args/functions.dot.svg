@@ -13,7 +13,7 @@
 <!-- r0 -->
 <g id="node1" class="node">
 <title>r0</title>
-<g id="a_node1"><a xlink:href="Get" xlink:title="Get (#0)">
+<g id="a_node1"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/args/get.toml" xlink:title="Get (#0)">
 <ellipse fill="coral" stroke="black" cx="39.82" cy="-90" rx="39.64" ry="18"/>
 <text text-anchor="middle" x="39.82" y="-85.8" font-family="Times,serif" font-size="14.00">Get (#0)</text>
 </a>
@@ -22,7 +22,7 @@
 <!-- r1 -->
 <g id="node2" class="node">
 <title>r1</title>
-<g id="a_node2"><a xlink:href="Stdout" xlink:title="Stdout (#1)">
+<g id="a_node2"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/stdout.toml" xlink:title="Stdout (#1)">
 <ellipse fill="coral" stroke="black" cx="79.82" cy="-18" rx="50.3" ry="18"/>
 <text text-anchor="middle" x="79.82" y="-13.8" font-family="Times,serif" font-size="14.00">Stdout (#1)</text>
 </a>

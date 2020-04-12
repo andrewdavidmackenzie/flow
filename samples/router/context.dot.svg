@@ -13,16 +13,22 @@
 <!-- /router/readline -->
 <g id="node1" class="node">
 <title>/router/readline</title>
+<g id="a_node1"><a xlink:href="../../flowruntime/stdio/readline.toml" xlink:title="readline\n(Readline)">
 <ellipse fill="coral" stroke="black" cx="53.09" cy="-199.28" rx="53.18" ry="25.41"/>
 <text text-anchor="middle" x="53.09" y="-202.08" font-family="Times,serif" font-size="14.00">readline</text>
 <text text-anchor="middle" x="53.09" y="-188.08" font-family="Times,serif" font-size="14.00">(Readline)</text>
+</a>
+</g>
 </g>
 <!-- /router/read_section -->
 <g id="node2" class="node">
 <title>/router/read_section</title>
+<g id="a_node2"><a xlink:href="../../samples/router/read_section/read_section.toml" xlink:title="read_section\n(ReadSection)">
 <ellipse fill="coral" stroke="black" cx="174.09" cy="-112.37" rx="67.88" ry="25.41"/>
 <text text-anchor="middle" x="174.09" y="-115.17" font-family="Times,serif" font-size="14.00">read_section</text>
 <text text-anchor="middle" x="174.09" y="-101.17" font-family="Times,serif" font-size="14.00">(ReadSection)</text>
+</a>
+</g>
 </g>
 <!-- /router/readline&#45;&gt;/router/read_section -->
 <g id="edge1" class="edge">
@@ -33,9 +39,12 @@
 <!-- /router/print -->
 <g id="node3" class="node">
 <title>/router/print</title>
+<g id="a_node3"><a xlink:href="../../flowruntime/stdio/stdout.toml" xlink:title="print\n(Stdout)">
 <ellipse fill="coral" stroke="black" cx="286.09" cy="-25.46" rx="43.53" ry="25.41"/>
 <text text-anchor="middle" x="286.09" y="-28.26" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="286.09" y="-14.26" font-family="Times,serif" font-size="14.00">(Stdout)</text>
+</a>
+</g>
 </g>
 <!-- /router/read_section&#45;&gt;/router/print -->
 <g id="edge2" class="edge">

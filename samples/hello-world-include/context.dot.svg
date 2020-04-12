@@ -13,9 +13,12 @@
 <!-- /hello&#45;world&#45;include/print -->
 <g id="node1" class="node">
 <title>/hello&#45;world&#45;include/print</title>
+<g id="a_node1"><a xlink:href="../../flowruntime/stdio/stdout.toml" xlink:title="print\n(Stdout)">
 <ellipse fill="coral" stroke="black" cx="305.68" cy="-25.46" rx="43.53" ry="25.41"/>
 <text text-anchor="middle" x="305.68" y="-28.26" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="305.68" y="-14.26" font-family="Times,serif" font-size="14.00">(Stdout)</text>
+</a>
+</g>
 </g>
 <!-- initializer/hello&#45;world&#45;include/print_0 -->
 <!-- initializer/hello&#45;world&#45;include/print_0&#45;&gt;/hello&#45;world&#45;include/print -->

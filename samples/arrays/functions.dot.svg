@@ -18,7 +18,7 @@
 <!-- r0 -->
 <g id="node1" class="node">
 <title>r0</title>
-<g id="a_node1"><a xlink:href="compare" xlink:title="compare (#0)">
+<g id="a_node1"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/control/compare_switch/compare_switch.toml" xlink:title="compare (#0)">
 <ellipse fill="coral" stroke="black" cx="442.2" cy="-263" rx="57.49" ry="18"/>
 <text text-anchor="middle" x="442.2" y="-258.8" font-family="Times,serif" font-size="14.00">compare (#0)</text>
 </a>
@@ -35,7 +35,7 @@
 <!-- r2 -->
 <g id="node4" class="node">
 <title>r2</title>
-<g id="a_node4"><a xlink:href="accumulator" xlink:title="accumulator (#2)">
+<g id="a_node4"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/accumulate/accumulate.toml" xlink:title="accumulator (#2)">
 <ellipse fill="coral" stroke="black" cx="433.2" cy="-177" rx="70.51" ry="18"/>
 <text text-anchor="middle" x="433.2" y="-172.8" font-family="Times,serif" font-size="14.00">accumulator (#2)</text>
 </a>
@@ -52,7 +52,7 @@
 <!-- r1 -->
 <g id="node5" class="node">
 <title>r1</title>
-<g id="a_node5"><a xlink:href="add" xlink:title="add (#1)">
+<g id="a_node5"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/add/add.toml" xlink:title="add (#1)">
 <ellipse fill="coral" stroke="black" cx="232.2" cy="-177" rx="39.64" ry="18"/>
 <text text-anchor="middle" x="232.2" y="-172.8" font-family="Times,serif" font-size="14.00">add (#1)</text>
 </a>
@@ -93,7 +93,7 @@
 <!-- r3 -->
 <g id="node9" class="node">
 <title>r3</title>
-<g id="a_node9"><a xlink:href="add" xlink:title="add (#3)">
+<g id="a_node9"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/add/add.toml" xlink:title="add (#3)">
 <ellipse fill="coral" stroke="black" cx="104.2" cy="-91" rx="39.64" ry="18"/>
 <text text-anchor="middle" x="104.2" y="-86.8" font-family="Times,serif" font-size="14.00">add (#3)</text>
 </a>
@@ -150,7 +150,7 @@
 <!-- r4 -->
 <g id="node11" class="node">
 <title>r4</title>
-<g id="a_node11"><a xlink:href="print" xlink:title="print (#4)">
+<g id="a_node11"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/stdout.toml" xlink:title="print (#4)">
 <ellipse fill="coral" stroke="black" cx="120.2" cy="-18" rx="43.51" ry="18"/>
 <text text-anchor="middle" x="120.2" y="-13.8" font-family="Times,serif" font-size="14.00">print (#4)</text>
 </a>

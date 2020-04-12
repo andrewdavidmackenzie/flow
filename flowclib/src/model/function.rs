@@ -106,8 +106,36 @@ impl Function {
         self.implementation = implementation.to_owned();
     }
 
-    pub fn get_source_url(&self) -> String {
-        self.source_url.clone()
+    pub fn get_source_url(&self) -> &str {
+        &self.source_url
+    }
+
+    pub fn set_source_url(&mut self, source: &str) {
+        self.source_url = source.to_owned();
+    }
+
+    fn default_source_url() -> String {
+        "file:///".to_string()
+    }
+
+    fn default_impure() -> bool {
+        false
+    }
+
+    pub fn set_alias(&mut self, alias: &Name) {
+        if alias.is_empty() {
+            self.alias = self.name.clone();
+        } else {
+            self.alias = alias.clone();
+        }
+    }
+
+    pub fn set_lib_reference(&mut self, lib_reference: Option<String>) {
+        self.lib_reference = lib_reference
+    }
+
+    pub fn get_lib_reference(&self) -> &Option<String> {
+        &self.lib_reference
     }
 }
 
@@ -189,36 +217,6 @@ impl SetRoute for Function {
         self.route = Route::from(format!("{}/{}", parent_route, self.alias));
         self.inputs.set_io_routes_from_parent(&self.route, IOType::FunctionIO);
         self.outputs.set_io_routes_from_parent(&self.route, IOType::FunctionIO);
-    }
-}
-
-impl Function {
-    fn default_source_url() -> String {
-        "file:///".to_string()
-    }
-
-    fn default_impure() -> bool {
-        false
-    }
-
-    pub fn set_alias(&mut self, alias: &Name) {
-        if alias.is_empty() {
-            self.alias = self.name.clone();
-        } else {
-            self.alias = alias.clone();
-        }
-    }
-
-    pub fn set_implementation_url(&mut self, source: &str) {
-        self.source_url = source.to_owned();
-    }
-
-    pub fn set_lib_reference(&mut self, lib_reference: Option<String>) {
-        self.lib_reference = lib_reference
-    }
-
-    pub fn get_lib_reference(&self) -> &Option<String> {
-        &self.lib_reference
     }
 }
 

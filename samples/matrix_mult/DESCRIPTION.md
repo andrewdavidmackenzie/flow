@@ -7,8 +7,9 @@ A flow that calculates the matrix product of two matrices.
 
 Context Diagram
 ===
-![Context diagram](context.dot.svg)
-<a href="context.dot.svg" target="_blank">Navigate Flow Hierarchy in new tab</a>
+<a href="context.dot.svg" target="_blank"><img src="context.dot.svg"></a>
+
+Click image to navigate flow hierarchy.
 
 Features Used
 ===
@@ -26,4 +27,6 @@ Array/Array/Number (i.e. Matrix)
 Functions Diagram
 ===
 This diagram shows the exploded diagram of all functions in all flows, and their connections.
-![Full functions diagram](functions.dot.svg)
+<a href="functions.dot.svg" target="_blank"><img src="functions.dot.svg"></a>
+
+Click image to view functions graph.

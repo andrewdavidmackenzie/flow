@@ -23,7 +23,7 @@
 <!-- r0 -->
 <g id="node1" class="node">
 <title>r0</title>
-<g id="a_node1"><a xlink:href="compare" xlink:title="compare (#0)">
+<g id="a_node1"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/control/compare_switch/compare_switch.toml" xlink:title="compare (#0)">
 <ellipse fill="coral" stroke="black" cx="686" cy="-226" rx="57.49" ry="18"/>
 <text text-anchor="middle" x="686" y="-221.8" font-family="Times,serif" font-size="14.00">compare (#0)</text>
 </a>
@@ -40,7 +40,7 @@
 <!-- r3 -->
 <g id="node4" class="node">
 <title>r3</title>
-<g id="a_node4"><a xlink:href="compare" xlink:title="compare (#3)">
+<g id="a_node4"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/control/compare_switch/compare_switch.toml" xlink:title="compare (#3)">
 <ellipse fill="coral" stroke="black" cx="497" cy="-120" rx="57.49" ry="18"/>
 <text text-anchor="middle" x="497" y="-115.8" font-family="Times,serif" font-size="14.00">compare (#3)</text>
 </a>
@@ -57,7 +57,7 @@
 <!-- r1 -->
 <g id="node5" class="node">
 <title>r1</title>
-<g id="a_node5"><a xlink:href="add" xlink:title="add (#1)">
+<g id="a_node5"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/add/add.toml" xlink:title="add (#1)">
 <ellipse fill="coral" stroke="black" cx="687" cy="-120" rx="39.64" ry="18"/>
 <text text-anchor="middle" x="687" y="-115.8" font-family="Times,serif" font-size="14.00">add (#1)</text>
 </a>
@@ -98,7 +98,7 @@
 <!-- r5 -->
 <g id="node9" class="node">
 <title>r5</title>
-<g id="a_node9"><a xlink:href="print" xlink:title="print (#5)">
+<g id="a_node9"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/stdout.toml" xlink:title="print (#5)">
 <ellipse fill="coral" stroke="black" cx="252" cy="-120" rx="43.51" ry="18"/>
 <text text-anchor="middle" x="252" y="-115.8" font-family="Times,serif" font-size="14.00">print (#5)</text>
 </a>
@@ -114,7 +114,7 @@
 <!-- r4 -->
 <g id="node10" class="node">
 <title>r4</title>
-<g id="a_node10"><a xlink:href="add" xlink:title="add (#4)">
+<g id="a_node10"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/add/add.toml" xlink:title="add (#4)">
 <ellipse fill="coral" stroke="black" cx="238" cy="-34" rx="39.64" ry="18"/>
 <text text-anchor="middle" x="238" y="-29.8" font-family="Times,serif" font-size="14.00">add (#4)</text>
 </a>
@@ -155,7 +155,7 @@
 <!-- r2 -->
 <g id="node7" class="node">
 <title>r2</title>
-<g id="a_node7"><a xlink:href="start-of-each" xlink:title="start&#45;of&#45;each (#2)">
+<g id="a_node7"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/buffer/buffer.toml" xlink:title="start&#45;of&#45;each (#2)">
 <ellipse fill="coral" stroke="black" cx="292" cy="-226" rx="71.96" ry="18"/>
 <text text-anchor="middle" x="292" y="-221.8" font-family="Times,serif" font-size="14.00">start&#45;of&#45;each (#2)</text>
 </a>

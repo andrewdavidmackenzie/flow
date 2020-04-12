@@ -8,6 +8,7 @@ use super::super::runtime_client::{Command, Response, RuntimeClient};
 /// `Implementation` struct for the `get` function
 #[derive(Debug)]
 pub struct Get {
+    /// It holds a reference to the runtime client in order to Get the Args
     pub client: Arc<Mutex<dyn RuntimeClient>>
 }
 

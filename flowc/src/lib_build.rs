@@ -115,7 +115,7 @@ fn compile_implementations(lib_manifest: &mut LibraryManifest, base_dir: &str, p
             let deserializer = get_deserializer(&resolved_url)?;
 
             if let Ok(FunctionProcess(ref mut function)) = deserializer.deserialize(&String::from_utf8(contents).unwrap(), Some(&resolved_url)) {
-                function.set_implementation_url(&resolved_url);
+                function.set_source_url(&resolved_url);
                 let (wasm_abs_path, built) = compile_wasm::compile_implementation(function,
                                                                                   skip_building, release)?;
                 let wasm_dir = wasm_abs_path.parent()

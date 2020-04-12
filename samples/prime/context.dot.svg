@@ -13,16 +13,22 @@
 <!-- /prime/args -->
 <g id="node1" class="node">
 <title>/prime/args</title>
+<g id="a_node1"><a xlink:href="../../flowruntime/args/get.toml" xlink:title="args\n(Get)">
 <ellipse fill="coral" stroke="black" cx="32.2" cy="-496.19" rx="32.4" ry="25.41"/>
 <text text-anchor="middle" x="32.2" y="-498.99" font-family="Times,serif" font-size="14.00">args</text>
 <text text-anchor="middle" x="32.2" y="-484.99" font-family="Times,serif" font-size="14.00">(Get)</text>
+</a>
+</g>
 </g>
 <!-- /prime/to_number -->
 <g id="node2" class="node">
 <title>/prime/to_number</title>
+<g id="a_node2"><a xlink:href="../../flowstdlib/fmt/to_number/to_number.toml" xlink:title="to_number\n(ToNumber)">
 <ellipse fill="coral" stroke="black" cx="126.2" cy="-408.28" rx="60.8" ry="25.41"/>
 <text text-anchor="middle" x="126.2" y="-411.08" font-family="Times,serif" font-size="14.00">to_number</text>
 <text text-anchor="middle" x="126.2" y="-397.08" font-family="Times,serif" font-size="14.00">(ToNumber)</text>
+</a>
+</g>
 </g>
 <!-- /prime/args&#45;&gt;/prime/to_number -->
 <g id="edge3" class="edge">
@@ -50,9 +56,12 @@
 <!-- /prime/all&#45;numbers -->
 <g id="node4" class="node">
 <title>/prime/all&#45;numbers</title>
+<g id="a_node4"><a xlink:href="../../flowstdlib/data/accumulate/accumulate.toml" xlink:title="all&#45;numbers\n(Accumulate)">
 <ellipse fill="coral" stroke="black" cx="277.2" cy="-126.37" rx="65.96" ry="25.41"/>
 <text text-anchor="middle" x="277.2" y="-129.17" font-family="Times,serif" font-size="14.00">all&#45;numbers</text>
 <text text-anchor="middle" x="277.2" y="-115.17" font-family="Times,serif" font-size="14.00">(Accumulate)</text>
+</a>
+</g>
 </g>
 <!-- /prime/to_number&#45;&gt;/prime/all&#45;numbers -->
 <g id="edge6" class="edge">
@@ -104,9 +113,12 @@
 <!-- /prime/subtract -->
 <g id="node7" class="node">
 <title>/prime/subtract</title>
+<g id="a_node7"><a xlink:href="../../flowstdlib/data/remove/remove.toml" xlink:title="subtract\n(Remove)">
 <ellipse fill="coral" stroke="black" cx="417.2" cy="-25.46" rx="50.79" ry="25.41"/>
 <text text-anchor="middle" x="417.2" y="-28.26" font-family="Times,serif" font-size="14.00">subtract</text>
 <text text-anchor="middle" x="417.2" y="-14.26" font-family="Times,serif" font-size="14.00">(Remove)</text>
+</a>
+</g>
 </g>
 <!-- /prime/all&#45;numbers&#45;&gt;/prime/subtract -->
 <g id="edge10" class="edge">
@@ -135,9 +147,12 @@
 <!-- /prime/print -->
 <g id="node9" class="node">
 <title>/prime/print</title>
+<g id="a_node9"><a xlink:href="../../flowruntime/stdio/stdout.toml" xlink:title="print\n(Stdout)">
 <ellipse fill="coral" stroke="black" cx="719.2" cy="-126.37" rx="43.53" ry="25.41"/>
 <text text-anchor="middle" x="719.2" y="-129.17" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="719.2" y="-115.17" font-family="Times,serif" font-size="14.00">(Stdout)</text>
+</a>
+</g>
 </g>
 <!-- /prime/composites&#45;&gt;/prime/print -->
 <g id="edge13" class="edge">

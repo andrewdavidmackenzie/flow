@@ -22,9 +22,12 @@
 <!-- /matrix_mult/print -->
 <g id="node2" class="node">
 <title>/matrix_mult/print</title>
+<g id="a_node2"><a xlink:href="../../flowruntime/stdio/stdout.toml" xlink:title="print\n(Stdout)">
 <ellipse fill="coral" stroke="black" cx="116" cy="-25.46" rx="43.53" ry="25.41"/>
 <text text-anchor="middle" x="116" y="-28.26" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="116" y="-14.26" font-family="Times,serif" font-size="14.00">(Stdout)</text>
+</a>
+</g>
 </g>
 <!-- /matrix_mult/multiply&#45;&gt;/matrix_mult/print -->
 <g id="edge1" class="edge">

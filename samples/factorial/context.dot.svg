@@ -13,16 +13,22 @@
 <!-- /factorial/args -->
 <g id="node1" class="node">
 <title>/factorial/args</title>
+<g id="a_node1"><a xlink:href="../../flowruntime/args/get.toml" xlink:title="args\n(Get)">
 <ellipse fill="coral" stroke="black" cx="243.65" cy="-679.84" rx="32.4" ry="25.41"/>
 <text text-anchor="middle" x="243.65" y="-682.64" font-family="Times,serif" font-size="14.00">args</text>
 <text text-anchor="middle" x="243.65" y="-668.64" font-family="Times,serif" font-size="14.00">(Get)</text>
+</a>
+</g>
 </g>
 <!-- /factorial/to_number -->
 <g id="node2" class="node">
 <title>/factorial/to_number</title>
+<g id="a_node2"><a xlink:href="../../flowstdlib/fmt/to_number/to_number.toml" xlink:title="to_number\n(ToNumber)">
 <ellipse fill="coral" stroke="black" cx="337.65" cy="-591.93" rx="60.8" ry="25.41"/>
 <text text-anchor="middle" x="337.65" y="-594.73" font-family="Times,serif" font-size="14.00">to_number</text>
 <text text-anchor="middle" x="337.65" y="-580.73" font-family="Times,serif" font-size="14.00">(ToNumber)</text>
+</a>
+</g>
 </g>
 <!-- /factorial/args&#45;&gt;/factorial/to_number -->
 <g id="edge4" class="edge">
@@ -34,9 +40,12 @@
 <!-- /factorial/multiply -->
 <g id="node3" class="node">
 <title>/factorial/multiply</title>
+<g id="a_node3"><a xlink:href="../../flowstdlib/math/multiply/multiply.toml" xlink:title="multiply\n(Multiply)">
 <ellipse fill="coral" stroke="black" cx="438.65" cy="-201.28" rx="52.62" ry="25.41"/>
 <text text-anchor="middle" x="438.65" y="-204.08" font-family="Times,serif" font-size="14.00">multiply</text>
 <text text-anchor="middle" x="438.65" y="-190.08" font-family="Times,serif" font-size="14.00">(Multiply)</text>
+</a>
+</g>
 </g>
 <!-- /factorial/to_number&#45;&gt;/factorial/multiply -->
 <g id="edge5" class="edge">
@@ -48,9 +57,12 @@
 <!-- /factorial/sub -->
 <g id="node5" class="node">
 <title>/factorial/sub</title>
+<g id="a_node5"><a xlink:href="../../flowstdlib/math/subtract/subtract.toml" xlink:title="sub\n(Subtract)">
 <ellipse fill="coral" stroke="black" cx="304.65" cy="-491.01" rx="50.79" ry="25.41"/>
 <text text-anchor="middle" x="304.65" y="-493.81" font-family="Times,serif" font-size="14.00">sub</text>
 <text text-anchor="middle" x="304.65" y="-479.81" font-family="Times,serif" font-size="14.00">(Subtract)</text>
+</a>
+</g>
 </g>
 <!-- /factorial/to_number&#45;&gt;/factorial/sub -->
 <g id="edge6" class="edge">
@@ -69,9 +81,12 @@
 <!-- /factorial/result&#45;tap -->
 <g id="node10" class="node">
 <title>/factorial/result&#45;tap</title>
+<g id="a_node10"><a xlink:href="../../flowstdlib/control/tap/tap.toml" xlink:title="result&#45;tap\n(Tap)">
 <ellipse fill="coral" stroke="black" cx="299.65" cy="-113.37" rx="48.9" ry="25.41"/>
 <text text-anchor="middle" x="299.65" y="-116.17" font-family="Times,serif" font-size="14.00">result&#45;tap</text>
 <text text-anchor="middle" x="299.65" y="-102.17" font-family="Times,serif" font-size="14.00">(Tap)</text>
+</a>
+</g>
 </g>
 <!-- /factorial/multiply&#45;&gt;/factorial/result&#45;tap -->
 <g id="edge14" class="edge">
@@ -91,9 +106,12 @@
 <!-- /factorial/compare -->
 <g id="node7" class="node">
 <title>/factorial/compare</title>
+<g id="a_node7"><a xlink:href="../../flowstdlib/math/compare/compare.toml" xlink:title="compare\n(Compare)">
 <ellipse fill="coral" stroke="black" cx="240.65" cy="-390.1" rx="54.39" ry="25.41"/>
 <text text-anchor="middle" x="240.65" y="-392.9" font-family="Times,serif" font-size="14.00">compare</text>
 <text text-anchor="middle" x="240.65" y="-378.9" font-family="Times,serif" font-size="14.00">(Compare)</text>
+</a>
+</g>
 </g>
 <!-- /factorial/sub&#45;&gt;/factorial/compare -->
 <g id="edge9" class="edge">
@@ -105,9 +123,12 @@
 <!-- /factorial/n&#45;tap -->
 <g id="node9" class="node">
 <title>/factorial/n&#45;tap</title>
+<g id="a_node9"><a xlink:href="../../flowstdlib/control/tap/tap.toml" xlink:title="n&#45;tap\n(Tap)">
 <ellipse fill="coral" stroke="black" cx="333.65" cy="-302.19" rx="32.71" ry="25.41"/>
 <text text-anchor="middle" x="333.65" y="-304.99" font-family="Times,serif" font-size="14.00">n&#45;tap</text>
 <text text-anchor="middle" x="333.65" y="-290.99" font-family="Times,serif" font-size="14.00">(Tap)</text>
+</a>
+</g>
 </g>
 <!-- /factorial/sub&#45;&gt;/factorial/n&#45;tap -->
 <g id="edge8" class="edge">
@@ -165,9 +186,12 @@
 <!-- /factorial/print -->
 <g id="node11" class="node">
 <title>/factorial/print</title>
+<g id="a_node11"><a xlink:href="../../flowruntime/stdio/stdout.toml" xlink:title="print\n(Stdout)">
 <ellipse fill="coral" stroke="black" cx="392.65" cy="-25.46" rx="43.53" ry="25.41"/>
 <text text-anchor="middle" x="392.65" y="-28.26" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="392.65" y="-14.26" font-family="Times,serif" font-size="14.00">(Stdout)</text>
+</a>
+</g>
 </g>
 <!-- /factorial/result&#45;tap&#45;&gt;/factorial/print -->
 <g id="edge15" class="edge">

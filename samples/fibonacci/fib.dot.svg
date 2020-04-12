@@ -19,16 +19,22 @@
 <!-- /fibonacci/fib/buffer -->
 <g id="node2" class="node">
 <title>/fibonacci/fib/buffer</title>
+<g id="a_node2"><a xlink:href="../../flowstdlib/data/buffer/buffer.toml" xlink:title="buffer\n(Buffer)">
 <ellipse fill="coral" stroke="black" cx="166.73" cy="-79.46" rx="43.64" ry="25.41"/>
 <text text-anchor="middle" x="166.73" y="-82.26" font-family="Times,serif" font-size="14.00">buffer</text>
 <text text-anchor="middle" x="166.73" y="-68.26" font-family="Times,serif" font-size="14.00">(Buffer)</text>
+</a>
+</g>
 </g>
 <!-- /fibonacci/fib/add -->
 <g id="node3" class="node">
 <title>/fibonacci/fib/add</title>
+<g id="a_node3"><a xlink:href="../../flowstdlib/math/add/add.toml" xlink:title="add\n(Add)">
 <ellipse fill="coral" stroke="black" cx="245.73" cy="-167.37" rx="34.91" ry="25.41"/>
 <text text-anchor="middle" x="245.73" y="-170.17" font-family="Times,serif" font-size="14.00">add</text>
 <text text-anchor="middle" x="245.73" y="-156.17" font-family="Times,serif" font-size="14.00">(Add)</text>
+</a>
+</g>
 </g>
 <!-- /fibonacci/fib/buffer&#45;&gt;/fibonacci/fib/add -->
 <g id="edge5" class="edge">

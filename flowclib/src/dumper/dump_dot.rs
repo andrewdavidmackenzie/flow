@@ -2,7 +2,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::io;
 use std::io::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use log::info;
 
@@ -18,14 +18,27 @@ use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
-use crate::model::process_reference::ProcessReference;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw", "w"];
 static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
 
-pub fn flow_to_dot(flow: &Flow, dot_file: &mut dyn Write) -> io::Result<String> {
+fn absolute_to_relative(absolute: String, current_dir: &PathBuf) -> String {
+    let root_path = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+    let mut current_path = current_dir.clone();
+    let mut path_to_root = String::new();
+    // figure out relative path to get to root from output_dir
+    while current_path.as_path() != root_path {
+        path_to_root.push_str("../");
+        current_path.pop();
+    }
+    let project_root = root_path.to_str().unwrap();
+
+    absolute.replace(&format!("file://{}/", project_root), &path_to_root)
+}
+
+pub fn write_flow_to_dot(flow: &Flow, dot_file: &mut dyn Write, output_dir: &PathBuf) -> io::Result<String> {
     dot_file.write_all(digraph_wrapper_start(flow).as_bytes())?;
 
     let mut contents = String::new();
@@ -38,14 +51,17 @@ pub fn flow_to_dot(flow: &Flow, dot_file: &mut dyn Write) -> io::Result<String> 
 
     // Process References
     if let Some(process_refs) = &flow.process_refs {
+        contents.push_str("\n\t// Process Referencess\n");
         for flow_ref in process_refs {
             match flow_ref.process {
-                FunctionProcess(ref function) => {
-                    contents.push_str(&fn_to_dot(function));
+                FlowProcess(ref flow) => {
+                    let relative_path = absolute_to_relative(flow_ref.source.to_owned(),output_dir);
+                    let flow = format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot.svg\"];\n",
+                                       flow.route(), flow_ref.alias, relative_path);
+                    contents.push_str(&flow);
                 }
-                FlowProcess(ref _flow) => {
-                    contents.push_str("\n\t// Sub-Flows\n");
-                    contents.push_str(&process_reference_to_dot(flow_ref));
+                FunctionProcess(ref function) => {
+                    contents.push_str(&fn_to_dot(function, output_dir));
                 }
             }
         }
@@ -71,14 +87,13 @@ pub fn flow_to_dot(flow: &Flow, dot_file: &mut dyn Write) -> io::Result<String> 
 */
 pub fn functions_to_dot(flow: &Flow, tables: &GenerationTables, output_dir: &PathBuf)
                         -> io::Result<String> {
-    info!("==== Dumper: Dumping functions to functions.dot file in '{}'", output_dir.display());
+    info!("=== Dumper: Dumping functions to '{}'", output_dir.display());
     let mut dot_file = helper::create_output_file(&output_dir, "functions", "dot")?;
-    info!("Generating Functions dot file {}, Use \"dotty\" to view it", output_dir.display());
+    info!("\tGenerating functions.dot, Use \"dotty\" to view it");
     dot_file.write_all(format!("digraph {} {{\nnodesep=1.0\n", str::replace(&flow.alias.to_string(), "-", "_")).as_bytes())?;
     dot_file.write_all(&format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
 
-
-    let functions = process_refs_to_dot(flow, tables)?;
+    let functions = process_refs_to_dot(flow, tables, output_dir)?;
 
     dot_file.write_all(functions.as_bytes())?;
 
@@ -129,8 +144,8 @@ fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IO
     };
 
     let to_port = if connection.to_io.flow_io() {
-        "n"}
-    else {
+        "n"
+    } else {
         input_name_to_port(connection.to_io.name())
     };
 
@@ -179,7 +194,7 @@ fn digraph_wrapper_end() -> String {
 } // close digraph\n".to_string()
 }
 
-fn fn_to_dot(function: &Function) -> String {
+fn fn_to_dot(function: &Function, output_dir: &PathBuf) -> String {
     let mut dot_string = String::new();
 
     let name = if function.name() == function.alias() {
@@ -188,22 +203,26 @@ fn fn_to_dot(function: &Function) -> String {
         format!("\\n({})", function.name())
     };
 
-    dot_string.push_str(&format!("\t\"{}\" [style=filled, fillcolor=coral, label=\"{}{}\"]; // function @ route, label = function name \n",
-                                 function.route(), function.alias(), name));
+    let relative_path = absolute_to_relative(function.get_source_url().to_owned(),output_dir);
+
+    dot_string.push_str(&format!("\t\"{}\" [style=filled, fillcolor=coral, URL=\"{}\", label=\"{}{}\"]; // function @ route, label = function name \n",
+                                 function.route(),
+                                 relative_path,
+                                 function.alias(),
+                                 name));
 
     dot_string.push_str(&input_initializers(function, &function.route().to_string()));
 
     dot_string
 }
 
-
 // Given a Function as used in the code generation - generate a "dot" format string to draw it
-fn function_to_dot(function: &Function, functions: &[Function]) -> String {
+fn function_to_dot(function: &Function, functions: &[Function], _output_dir: &PathBuf) -> String {
     let mut function_string = String::new();
 
     function_string.push_str(&format!("r{}[style=filled, fillcolor=coral, URL=\"{}\", label=\"{} (#{})\"];\n",
                                       function.get_id(),
-                                        function.alias(), // HERE
+                                      function.get_source_url(), // HERE
                                       function.alias(),
                                       function.get_id()));
 
@@ -317,32 +336,15 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
     string
 }
 
-fn process_reference_to_dot(process_ref: &ProcessReference) -> String {
-    let mut dot_string = String::new();
-
-    match process_ref.process {
-        FlowProcess(ref flow) => {
-            dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot.svg\"];\n",
-                                         flow.route(), process_ref.alias, process_ref.source));
-        }
-        FunctionProcess(ref function) => {
-            dot_string.push_str(&format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot.svg\"];\n",
-                                         function.route(), process_ref.alias, process_ref.source));
-        }
-    }
-    dot_string
-}
-
-// TODO use a map as functions list to avoid lookup each time
-fn output_compiled_function(route: &Route, tables: &GenerationTables, output: &mut String) {
+fn output_compiled_function(route: &Route, tables: &GenerationTables, output: &mut String, output_dir: &PathBuf) {
     for function in &tables.functions {
         if function.route() == route {
-            output.push_str(&function_to_dot(function, &tables.functions));
+            output.push_str(&function_to_dot(function, &tables.functions, output_dir));
         }
     }
 }
 
-fn process_refs_to_dot(flow: &Flow, tables: &GenerationTables) -> io::Result<String> {
+fn process_refs_to_dot(flow: &Flow, tables: &GenerationTables, output_dir: &PathBuf) -> io::Result<String> {
     let mut output = String::new();
 
     // Do the same for all subprocesses referenced from this one
@@ -354,13 +356,13 @@ fn process_refs_to_dot(flow: &Flow, tables: &GenerationTables) -> io::Result<Str
                     output.push_str(&format!("\nsubgraph cluster_{} {{\n", str::replace(&subflow.alias.to_string(), "-", "_")));
                     output.push_str(&format!("label = \"{}\";", subflow.route()));
 
-                    output.push_str(&process_refs_to_dot(subflow, tables)?); // recurse
+                    output.push_str(&process_refs_to_dot(subflow, tables, output_dir)?); // recurse
 
                     // close cluster
                     output.push_str("}\n");
                 }
                 FunctionProcess(ref function) => {
-                    output_compiled_function(function.route(), tables, &mut output);
+                    output_compiled_function(function.route(), tables, &mut output, output_dir);
                 }
             }
         }
