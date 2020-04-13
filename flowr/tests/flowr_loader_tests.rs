@@ -46,7 +46,7 @@ fn cwd_as_url() -> Result<Url, String> {
 
 fn create_manifest(functions: Vec<Function>) -> Manifest {
     let metadata = MetaData {
-        name: "test manifest".into(),
+        library_name: "test manifest".into(),
         description: "test manifest".into(),
         version: "0.0".into(),
         author_name: "me".into(),
@@ -85,7 +85,7 @@ impl Implementation for Fake {
 
 pub fn get_manifest() -> LibraryManifest {
     let metadata = MetaData {
-        name: "".to_string(),
+        library_name: "".to_string(),
         description: "".into(),
         version: "0.1.0".into(),
         author_name: "".into(),

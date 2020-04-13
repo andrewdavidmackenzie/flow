@@ -113,7 +113,7 @@ pub struct Coordinator {
 /// use flowrlib::debug_client::Response;
 ///
 /// let meta_data = MetaData {
-///                     name: "test".into(),
+///                     library_name: "test".into(),
 ///                     description: "Test submission".into(),
 ///                     version: "0.0.1".into(),
 ///                     author_name: "test user".into(),
@@ -329,7 +329,7 @@ mod test {
 
     fn test_meta_data() -> MetaData {
         MetaData {
-            name: "test".into(),
+            library_name: "test".into(),
             version: "0.0.0".into(),
             description: "a test".into(),
             author_name: "me".into(),

@@ -95,7 +95,7 @@ fn run() -> Result<()> {
 
     let debug_client = if debugger { Some(CLI_DEBUG_CLIENT) } else { None };
 
-    pass_flow_args(&matches, &manifest.metadata.name);
+    pass_flow_args(&matches, &manifest.metadata.library_name);
 
     let submission = Submission::new(manifest, num_parallel_jobs, metrics, debug_client);
 

@@ -8,10 +8,9 @@ use url::Url;
 use flowclib::compiler::loader;
 use flowclib::deserializers::deserializer_helper::get_deserializer;
 use flowclib::model::name::HasName;
-use flowclib::model::process::Process::FunctionProcess;
+use flowclib::model::process::Process::{FunctionProcess, FlowProcess};
 use flowrlib::lib_manifest::DEFAULT_LIB_MANIFEST_FILENAME;
 use flowrlib::lib_manifest::LibraryManifest;
-use flowrlib::manifest::MetaData;
 use flowrlib::provider::Provider;
 use glob::glob;
 use provider::content::file_provider::FileProvider;
@@ -20,15 +19,14 @@ use crate::compile_wasm;
 use crate::errors::*;
 use crate::Options;
 
-/*
-    Compile a Library
-*/
+/// Build a library from source and generate a manifest for it so it can be used at runtime when
+/// a flow referencing it is loaded and ran
 pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
-    let library = loader::load_library(&options.url.to_string(), provider)
+    let metadata = loader::load_metadata(&options.url.to_string(), provider)
         .chain_err(|| format!("Could not load Library from '{}'", options.output_dir.display()))?;
 
-    info!("Building manifest for '{}' library", library.name);
-    let mut lib_manifest = LibraryManifest::new(MetaData::from(&library));
+    info!("Building manifest for '{}' library", metadata.library_name);
+    let mut lib_manifest = LibraryManifest::new(metadata);
 
     let mut base_dir = options.output_dir.display().to_string();
     // ensure basedir always ends in '/'
@@ -114,21 +112,25 @@ fn compile_implementations(lib_manifest: &mut LibraryManifest, base_dir: &str, p
                 .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
             let deserializer = get_deserializer(&resolved_url)?;
 
-            if let Ok(FunctionProcess(ref mut function)) = deserializer.deserialize(&String::from_utf8(contents).unwrap(), Some(&resolved_url)) {
-                function.set_source_url(&resolved_url);
-                let (wasm_abs_path, built) = compile_wasm::compile_implementation(function,
-                                                                                  skip_building, release)?;
-                let wasm_dir = wasm_abs_path.parent()
-                    .chain_err(|| "Could not get parent directory of wasm path")?;
-                lib_manifest.add_to_manifest(base_dir,
-                                             wasm_abs_path.to_str()
-                                                 .chain_err(|| "Could not convert wasm_path to str")?,
-                                             wasm_dir.to_str()
-                                                 .chain_err(|| "Could not convert wasm_dir to str")?,
-                                             function.name() as &str);
-                if built {
-                    build_count += 1;
-                }
+            match deserializer.deserialize(&String::from_utf8(contents).unwrap(), Some(&resolved_url)) {
+                Ok(FunctionProcess(ref mut function)) => {
+                    function.set_source_url(&resolved_url);
+                    let (wasm_abs_path, built) = compile_wasm::compile_implementation(function,
+                                                                                      skip_building, release)?;
+                    let wasm_dir = wasm_abs_path.parent()
+                        .chain_err(|| "Could not get parent directory of wasm path")?;
+                    lib_manifest.add_to_manifest(base_dir,
+                                                 wasm_abs_path.to_str()
+                                                     .chain_err(|| "Could not convert wasm_path to str")?,
+                                                 wasm_dir.to_str()
+                                                     .chain_err(|| "Could not convert wasm_dir to str")?,
+                                                 function.name() as &str);
+                    if built {
+                        build_count += 1;
+                    }
+                },
+                Ok(FlowProcess(ref _flow)) => {},
+                Err(_) => debug!("Skipping file '{}'", resolved_url)
             }
         }
     }

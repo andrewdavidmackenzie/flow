@@ -5,13 +5,13 @@ use log::{debug, info};
 use flowrlib::input::InputInitializer;
 use flowrlib::provider::Provider;
 use flowrlib::url;
+use flowrlib::manifest::MetaData;
 
 use crate::deserializers::deserializer_helper::get_deserializer;
 use crate::errors::*;
 use crate::model::flow::Flow;
 use crate::model::function::Function;
 use crate::model::io::IO;
-use crate::model::library::Library;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::process::Process;
@@ -20,12 +20,16 @@ use crate::model::process::Process::FunctionProcess;
 use crate::model::route::Route;
 use crate::model::route::SetRoute;
 
-// All deserializers have to implement this method
+/// All deserializers have to implement this trait for content deserialization, plus a method
+/// to return their name to be aable to inform the user of which deserializer was used
 pub trait Deserializer {
     fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process>;
     fn name(&self) -> &'static str;
 }
 
+/// Many structs in the model implement the `Validate` method which is used to check the
+/// description deserialized from file obeys some additional constraints that cannot be expressed
+/// in the struct definition in `serde`
 pub trait Validate {
     fn validate(&self) -> Result<()>;
 }
@@ -105,7 +109,10 @@ fn load_process(parent_route: &Route, alias: &Name, parent_flow_id: usize, flow_
     Ok(process)
 }
 
-pub fn load_library(url: &str, provider: &dyn Provider) -> Result<Library> {
+/// load library metadata from the given url using the provider.
+/// At the moment this assumes the Library manifest is in Toml format until we add support
+/// for deserializing from other formats.
+pub fn load_metadata(url: &str, provider: &dyn Provider) -> Result<MetaData> {
     let (resolved_url, _) = provider.resolve_url(url, "Library", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
     debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
@@ -177,11 +184,11 @@ fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias_fr
 
 #[cfg(test)]
 mod test {
-    use crate::model::library::Library;
+    use flowrlib::manifest::MetaData;
 
     #[test]
     fn deserialize_library() {
         let contents = include_str!("../../test_libs/Library_test.toml");
-        let _: Library = toml::from_str(contents).unwrap();
+        let _: MetaData = toml::from_str(contents).unwrap();
     }
 }
