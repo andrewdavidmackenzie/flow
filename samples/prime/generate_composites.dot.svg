@@ -58,7 +58,7 @@
 <!-- /prime/composites/generate_composites/composite&#45;sequence -->
 <g id="node7" class="node">
 <title>/prime/composites/generate_composites/composite&#45;sequence</title>
-<g id="a_node7"><a xlink:href="lib://flowstdlib/math/sequence.dot.svg" xlink:title="composite&#45;sequence">
+<g id="a_node7"><a xlink:href="../../flowstdlib/math/sequence.dot.svg" xlink:title="composite&#45;sequence">
 <ellipse fill="aquamarine" stroke="black" cx="187.14" cy="-145" rx="72" ry="72"/>
 <text text-anchor="middle" x="187.14" y="-140.8" font-family="Times,serif" font-size="14.00">composite&#45;sequence</text>
 </a>

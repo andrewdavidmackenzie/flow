@@ -1,13 +1,16 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::io;
+use std::io::{Error, ErrorKind};
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
 use log::info;
 
 use flowrlib::input::InputInitializer::{Constant, OneTime};
+use flowrlib::provider::Provider;
 
+use crate::deserializers::deserializer_helper::get_file_extension;
 use crate::dumper::helper;
 use crate::generator::generate::GenerationTables;
 use crate::model::connection::Connection;
@@ -38,7 +41,7 @@ fn absolute_to_relative(absolute: String, current_dir: &PathBuf) -> String {
     absolute.replace(&format!("file://{}/", project_root), &path_to_root)
 }
 
-pub fn write_flow_to_dot(flow: &Flow, dot_file: &mut dyn Write, output_dir: &PathBuf) -> io::Result<String> {
+pub fn write_flow_to_dot(flow: &Flow, dot_file: &mut dyn Write, output_dir: &PathBuf, provider: &dyn Provider) -> io::Result<String> {
     dot_file.write_all(digraph_wrapper_start(flow).as_bytes())?;
 
     let mut contents = String::new();
@@ -55,7 +58,20 @@ pub fn write_flow_to_dot(flow: &Flow, dot_file: &mut dyn Write, output_dir: &Pat
         for flow_ref in process_refs {
             match flow_ref.process {
                 FlowProcess(ref flow) => {
-                    let relative_path = absolute_to_relative(flow_ref.source.to_owned(),output_dir);
+                    let mut flow_source = if flow_ref.source.starts_with("lib:") {
+                        let (source, _lib_ref) = provider.resolve_url(&flow_ref.source, "", &[""])
+                            .map_err(|_| Error::new(ErrorKind::Other, "Could not find the true source of a library defined flow"))?;
+                        source
+                    } else {
+                        flow_ref.source.to_owned()
+                    };
+
+                    // remove file extension when forming URL as is of form {file_stem}.dot.svg
+                    if let Some(extension) = get_file_extension(&flow_source) {
+                        flow_source.truncate(flow_source.len() - (extension.len() + 1));
+                    }
+
+                    let relative_path = absolute_to_relative(flow_source,output_dir);
                     let flow = format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot.svg\"];\n",
                                        flow.route(), flow_ref.alias, relative_path);
                     contents.push_str(&flow);

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use log::{debug, info};
 
 use flowrlib::input::InputInitializer;
+use flowrlib::manifest::MetaData;
 use flowrlib::provider::Provider;
 use flowrlib::url;
 
@@ -11,7 +12,6 @@ use crate::errors::*;
 use crate::model::flow::Flow;
 use crate::model::function::Function;
 use crate::model::io::IO;
-use crate::model::library::Library;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::process::Process;
@@ -20,12 +20,16 @@ use crate::model::process::Process::FunctionProcess;
 use crate::model::route::Route;
 use crate::model::route::SetRoute;
 
-// All deserializers have to implement this method
+/// All deserializers have to implement this trait for content deserialization, plus a method
+/// to return their name to be aable to inform the user of which deserializer was used
 pub trait Deserializer {
     fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process>;
     fn name(&self) -> &'static str;
 }
 
+/// Many structs in the model implement the `Validate` method which is used to check the
+/// description deserialized from file obeys some additional constraints that cannot be expressed
+/// in the struct definition in `serde`
 pub trait Validate {
     fn validate(&self) -> Result<()>;
 }
@@ -82,7 +86,9 @@ fn load_process(parent_route: &Route, alias: &Name, parent_flow_id: usize, flow_
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
 
     let deserializer = get_deserializer(&resolved_url)?;
-    info!("Loading process with alias = '{}'", alias);
+    if !alias.is_empty() {
+        info!("Loading process with alias = '{}'", alias);
+    }
     debug!("Loading from url = '{}' with deserializer: '{}'", resolved_url, deserializer.name());
     let mut process = deserializer.deserialize(&String::from_utf8(contents).unwrap(),
                                                Some(url))
@@ -105,7 +111,10 @@ fn load_process(parent_route: &Route, alias: &Name, parent_flow_id: usize, flow_
     Ok(process)
 }
 
-pub fn load_library(url: &str, provider: &dyn Provider) -> Result<Library> {
+/// load library metadata from the given url using the provider.
+/// At the moment this assumes the Library manifest is in Toml format until we add support
+/// for deserializing from other formats.
+pub fn load_metadata(url: &str, provider: &dyn Provider) -> Result<MetaData> {
     let (resolved_url, _) = provider.resolve_url(url, "Library", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
     debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
@@ -114,6 +123,19 @@ pub fn load_library(url: &str, provider: &dyn Provider) -> Result<Library> {
 
     toml::from_str(&String::from_utf8(contents).unwrap())
         .chain_err(|| format!("Error deserializing Toml from: '{:?}'", resolved_url))
+}
+
+/*
+    Configure a flow with additional information after it is deserialized from file
+*/
+fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias_from_reference: &Name, id: usize,
+               initializations: &Option<HashMap<String, InputInitializer>>) -> Result<()> {
+    flow.id = id;
+    flow.set_alias(alias_from_reference);
+    flow.source_url = source_url.to_string();
+    IO::set_initial_values(flow.inputs_mut(), initializations);
+    flow.set_routes_from_parent(parent_route);
+    flow.validate()
 }
 
 /*
@@ -128,7 +150,7 @@ fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Pro
                                                provider, &process_ref.initializations,
                                                &process_ref.depths)?;
 
-            // if loaded by the defaul alias in the process ref then set the alias to be the name of the loaded process
+            // if loaded by the default alias in the process ref then set the alias to be the name of the loaded process
             if process_ref.alias.is_empty() {
                 process_ref.alias = Name::from(match process_ref.process {
                     FlowProcess(ref mut flow) => flow.name().to_lowercase(),
@@ -138,6 +160,8 @@ fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Pro
                 });
             }
 
+            // runtime needs references to library functions to be able to load the implementations at load time
+            // library flow definitions are "compiled down" to just library function references at compile time.
             if let FunctionProcess(ref mut function) = process_ref.process {
                 if let Some(lib_ref) = function.get_lib_reference() {
                     flow.lib_references.push(format!("{}/{}", lib_ref, function.name()));
@@ -165,23 +189,13 @@ fn config_function(function: &mut Function, source_url: &str, parent_route: &Rou
     function.validate()
 }
 
-fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias_from_reference: &Name, id: usize,
-               initializations: &Option<HashMap<String, InputInitializer>>) -> Result<()> {
-    flow.id = id;
-    flow.set_alias(alias_from_reference);
-    flow.source_url = source_url.to_string();
-    IO::set_initial_values(flow.inputs_mut(), initializations);
-    flow.set_routes_from_parent(parent_route);
-    flow.validate()
-}
-
 #[cfg(test)]
 mod test {
-    use crate::model::library::Library;
+    use flowrlib::manifest::MetaData;
 
     #[test]
     fn deserialize_library() {
         let contents = include_str!("../../test_libs/Library_test.toml");
-        let _: Library = toml::from_str(contents).unwrap();
+        let _: MetaData = toml::from_str(contents).unwrap();
     }
 }

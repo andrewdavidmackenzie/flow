@@ -26,7 +26,7 @@ pub mod math;
 /// Return the `LibraryManifest` for the functions in the library
 pub fn get_manifest() -> LibraryManifest {
     let metadata = MetaData {
-        name: "flowstdlib".into(),
+        library_name: "flowstdlib".into(),
         version: env!("CARGO_PKG_VERSION").into(),
         description: "Flow Standard Library".into(),
         author_name: "Andrew Mackenzie".into(),

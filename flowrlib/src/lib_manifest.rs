@@ -79,7 +79,7 @@ impl LibraryManifest {
     /// Add a function's implementation to the library, specifying path to Wasm for it
     pub fn add_to_manifest(&mut self, base_dir: &str, wasm_abs_path: &str, wasm_dir: &str, function_name: &str) {
         let relative_dir = wasm_dir.replace(base_dir, "");
-        let lib_reference = format!("lib://{}/{}/{}", self.metadata.name, relative_dir, function_name);
+        let lib_reference = format!("lib://{}/{}/{}", self.metadata.library_name, relative_dir, function_name);
 
         let implementation_relative_location = wasm_abs_path.replace(base_dir, "");
         debug!("Adding implementation to manifest: \n'{}'  --> '{}'", lib_reference, implementation_relative_location);
@@ -130,7 +130,7 @@ mod test {
 
     fn test_meta_data() -> MetaData {
         MetaData {
-            name: "test".into(),
+            library_name: "test".into(),
             version: "0.0.0".into(),
             description: "a test".into(),
             author_name: "me".into(),
@@ -140,7 +140,7 @@ mod test {
 
     fn test_meta_data2() -> MetaData {
         MetaData {
-            name: "different".into(),
+            library_name: "different".into(),
             version: "0.0.0".into(),
             description: "a test".into(),
             author_name: "me".into(),
@@ -197,7 +197,7 @@ mod test {
     #[test]
     fn serialize() {
         let metadata = MetaData {
-            name: "".to_string(),
+            library_name: "".to_string(),
             description: "".into(),
             version: "0.1.0".into(),
             author_name: "".into(),
@@ -210,7 +210,7 @@ mod test {
         let serialized = serde_json::to_string_pretty(&manifest).unwrap();
         let expected = "{
   \"metadata\": {
-    \"name\": \"\",
+    \"library_name\": \"\",
     \"version\": \"0.1.0\",
     \"description\": \"\",
     \"author_name\": \"\",
@@ -227,7 +227,7 @@ mod test {
     fn load_dyn_library() {
         let test_content = "{
   \"metadata\": {
-    \"name\": \"\",
+    \"library_name\": \"\",
     \"version\": \"0.1.0\",
     \"description\": \"\",
     \"author_name\": \"\",

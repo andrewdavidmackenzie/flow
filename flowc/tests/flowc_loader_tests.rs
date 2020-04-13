@@ -146,5 +146,5 @@ fn load_library() {
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test_libs/Library_test.toml");
     let provider = MetaProvider {};
 
-    loader::load_library(&path, &provider).unwrap();
+    loader::load_metadata(&path, &provider).unwrap();
 }

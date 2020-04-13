@@ -6,12 +6,12 @@ use log::{debug, info};
 use url::Url;
 
 use flowclib::compiler::loader;
-use flowclib::deserializers::deserializer_helper::get_deserializer;
+use flowclib::compiler::loader::load;
+use flowclib::dumper::dump_flow;
 use flowclib::model::name::HasName;
-use flowclib::model::process::Process::FunctionProcess;
+use flowclib::model::process::Process::{FlowProcess, FunctionProcess};
 use flowrlib::lib_manifest::DEFAULT_LIB_MANIFEST_FILENAME;
 use flowrlib::lib_manifest::LibraryManifest;
-use flowrlib::manifest::MetaData;
 use flowrlib::provider::Provider;
 use glob::glob;
 use provider::content::file_provider::FileProvider;
@@ -20,15 +20,14 @@ use crate::compile_wasm;
 use crate::errors::*;
 use crate::Options;
 
-/*
-    Compile a Library
-*/
+/// Build a library from source and generate a manifest for it so it can be used at runtime when
+/// a flow referencing it is loaded and ran
 pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
-    let library = loader::load_library(&options.url.to_string(), provider)
-        .chain_err(|| format!("Could not load Library from '{}'", options.output_dir.display()))?;
+    let metadata = loader::load_metadata(&options.url.to_string(), provider)
+        .chain_err(|| format!("Could not load Library metadata from '{}'", options.output_dir.display()))?;
 
-    info!("Building manifest for '{}' library", library.name);
-    let mut lib_manifest = LibraryManifest::new(MetaData::from(&library));
+    info!("Building manifest for '{}' library", metadata.library_name);
+    let mut lib_manifest = LibraryManifest::new(metadata);
 
     let mut base_dir = options.output_dir.display().to_string();
     // ensure basedir always ends in '/'
@@ -36,7 +35,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
         base_dir = format!("{}/", base_dir);
     }
 
-    let build_count = compile_implementations(&mut lib_manifest, &base_dir, provider,
+    let build_count = compile_implementations(options, &mut lib_manifest, &base_dir, provider,
                                               options.skip_generation, options.release)
         .chain_err(|| "Could not build library")?;
 
@@ -98,7 +97,8 @@ fn write_lib_manifest(lib_manifest: &LibraryManifest, filename: &PathBuf) -> Res
     the wasm file is up-to-date with the source and if not compile it, and add them all to the
     manifest struct
 */
-fn compile_implementations(lib_manifest: &mut LibraryManifest, base_dir: &str, provider: &dyn Provider,
+fn compile_implementations(options: &Options, lib_manifest: &mut LibraryManifest,
+                           base_dir: &str, provider: &dyn Provider,
                            skip_building: bool, release: bool) -> Result<i32> {
     let mut build_count = 0;
     let search_pattern = format!("{}**/*.toml", base_dir);
@@ -106,29 +106,41 @@ fn compile_implementations(lib_manifest: &mut LibraryManifest, base_dir: &str, p
     debug!("Searching for process definitions using search pattern: '{}'", search_pattern);
     for entry in glob(&search_pattern).chain_err(|| "Failed to read glob pattern")? {
         if let Ok(ref toml_path) = entry {
-            let resolved_url = Url::from_file_path(&toml_path)
+            let url = Url::from_file_path(&toml_path)
                 .map_err(|_| format!("Could not create url from file path '{}'",
                                      toml_path.to_str().unwrap()))?.to_string();
-            debug!("Inspecting '{}' for function definition", resolved_url);
-            let contents = provider.get_contents(&resolved_url)
-                .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
-            let deserializer = get_deserializer(&resolved_url)?;
-
-            if let Ok(FunctionProcess(ref mut function)) = deserializer.deserialize(&String::from_utf8(contents).unwrap(), Some(&resolved_url)) {
-                function.set_source_url(&resolved_url);
-                let (wasm_abs_path, built) = compile_wasm::compile_implementation(function,
-                                                                                  skip_building, release)?;
-                let wasm_dir = wasm_abs_path.parent()
-                    .chain_err(|| "Could not get parent directory of wasm path")?;
-                lib_manifest.add_to_manifest(base_dir,
-                                             wasm_abs_path.to_str()
-                                                 .chain_err(|| "Could not convert wasm_path to str")?,
-                                             wasm_dir.to_str()
-                                                 .chain_err(|| "Could not convert wasm_dir to str")?,
-                                             function.name() as &str);
-                if built {
-                    build_count += 1;
+            debug!("Trying to load library process from '{}'", url);
+            match load(&url, provider) {
+                Ok(FunctionProcess(ref mut function)) => {
+                    let (wasm_abs_path, built) = compile_wasm::compile_implementation(function,
+                                                                                      skip_building, release)?;
+                    let wasm_dir = wasm_abs_path.parent()
+                        .chain_err(|| "Could not get parent directory of wasm path")?;
+                    lib_manifest.add_to_manifest(base_dir,
+                                                 wasm_abs_path.to_str()
+                                                     .chain_err(|| "Could not convert wasm_path to str")?,
+                                                 wasm_dir.to_str()
+                                                     .chain_err(|| "Could not convert wasm_dir to str")?,
+                                                 function.name() as &str);
+                    if built {
+                        build_count += 1;
+                    }
                 }
+                Ok(FlowProcess(ref mut flow)) => {
+                    if options.dump {
+                        // Dump the dot file alongside the definition file
+                        let source_url = Url::parse(&flow.source_url)
+                            .chain_err(|| "Could not convert flow's source_url to Url")?;
+                        let source_path = source_url.to_file_path()
+                            .map_err(|_| "Could not convert flow's source_url Url to a Path".to_string())?;
+                        let output_dir = source_path.parent()
+                            .chain_err(|| "Could not get parent directory of flow's source_url")?;
+
+                        dump_flow::dump_flow(&flow, &output_dir.to_path_buf(), provider)
+                            .chain_err(|| "Failed to dump flow's definition")?;
+                    }
+                }
+                Err(_) => debug!("Skipping file '{}'", url)
             }
         }
     }

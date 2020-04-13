@@ -6,4 +6,4 @@ This crate defines a trait that implementations of flow 'functions' must impleme
 by the flowrlib (or other) run-time library.
 
 An example of a function implementing the `Implementation` trait can be found in the
-docs for [`Implementation`](../code/doc/flow_impl/trait.Implementation.html)
+docs for [`Implementation`](http://andrewdavidmackenzie.github.io/flow/code/doc/flow_impl/trait.Implementation.html)

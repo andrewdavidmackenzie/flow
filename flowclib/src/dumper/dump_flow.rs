@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 
 use log::info;
 
+use flowrlib::provider::Provider;
+
 use crate::dumper::dump_dot;
 use crate::dumper::helper;
 use crate::model::flow::Flow;
@@ -43,19 +45,19 @@ use crate::model::process::Process::FlowProcess;
 ///     let output_dir = url.join("./").unwrap().to_file_path().unwrap();
 ///
 ///     // dump the flows compiler data and dot graph into files alongside the 'context.toml'
-///     flowclib::dumper::dump_flow::dump_flow(&flow, &output_dir).unwrap();
+///     flowclib::dumper::dump_flow::dump_flow(&flow, &output_dir, &dummy_provider).unwrap();
 /// }
 /// ```
-pub fn dump_flow(flow: &Flow, output_dir: &PathBuf) -> io::Result<String> {
+pub fn dump_flow(flow: &Flow, output_dir: &PathBuf, provider: &dyn Provider) -> io::Result<String> {
     info!("=== Dumper: Dumping flow hierarchy to '{}'", output_dir.display());
-    _dump_flow(flow, 0, output_dir)
+    _dump_flow(flow, 0, output_dir, provider)
 }
 
 /*
     dump the flow definition recursively, tracking what level we are at as we go down
 */
 #[allow(clippy::or_fun_call)]
-fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<String> {
+fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf, provider: &dyn Provider) -> io::Result<String> {
     let filename = Path::new(&flow.source_url).file_stem()
         .ok_or(Error::new(ErrorKind::Other, "Could not get file_stem of flow definition filename"))?
         .to_str()
@@ -66,13 +68,13 @@ fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf) -> io::Result<Str
 
     writer = helper::create_output_file(&output_dir, filename, "dot")?;
     info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
-    dump_dot::write_flow_to_dot(flow, &mut writer, output_dir)?;
+    dump_dot::write_flow_to_dot(flow, &mut writer, output_dir, provider)?;
 
     // Dump sub-flows
     if let Some(ref flow_refs) = flow.process_refs {
         for flow_ref in flow_refs {
             if let FlowProcess(ref subflow) = flow_ref.process {
-                _dump_flow(subflow, level + 1, output_dir)?;
+                _dump_flow(subflow, level + 1, output_dir, provider)?;
             }
         }
     }

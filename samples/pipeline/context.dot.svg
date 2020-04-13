@@ -13,7 +13,7 @@
 <!-- /pipeline/range -->
 <g id="node1" class="node">
 <title>/pipeline/range</title>
-<g id="a_node1"><a xlink:href="lib://flowstdlib/math/sequence.dot.svg" xlink:title="range">
+<g id="a_node1"><a xlink:href="../../flowstdlib/math/sequence.dot.svg" xlink:title="range">
 <ellipse fill="aquamarine" stroke="black" cx="296.43" cy="-563.56" rx="72" ry="72"/>
 <text text-anchor="middle" x="296.43" y="-559.36" font-family="Times,serif" font-size="14.00">range</text>
 </a>

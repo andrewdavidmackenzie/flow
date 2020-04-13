@@ -8,36 +8,35 @@ const TOML: &dyn Deserializer = &FlowTomelLoader as &dyn Deserializer;
 const YAML: &dyn Deserializer = &FlowYamlLoader as &dyn Deserializer;
 const JSON: &dyn Deserializer = &FlowJsonLoader as &dyn Deserializer;
 
-pub const ACCEPTED_EXTENSIONS: &[&str] = &["toml", "yaml", "json", "yml"];
+const ACCEPTED_EXTENSIONS: [&str; 4] = ["toml", "yaml", "json", "yml"];
 
 pub fn get_deserializer(url: &str) -> Result<&'static dyn Deserializer, String> {
     match get_file_extension(url) {
-        Ok(ext) => {
+        Some(ext) => {
             match ext.as_ref() {
                 "toml" => Ok(TOML),
                 "yaml" | "yml" => Ok(YAML),
                 "json" => Ok(JSON),
-                _ => Err("Unknown file extension so cannot determine which loader to use".to_string())
+                _ => Err("Unknown file extension so cannot determine which deserializer to use".to_string())
             }
         }
-        Err(e) => Err(format!("Cannot determine which loader to use ({})", e)
-        )
+        None => Err("No file extension so cannot determine which deserializer to use".to_string())
     }
 }
 
 pub fn get_accepted_extensions() -> &'static [&'static str] {
-    ACCEPTED_EXTENSIONS
+    &ACCEPTED_EXTENSIONS
 }
 
-fn get_file_extension(url: &str) -> Result<String, String> {
+pub fn get_file_extension(url: &str) -> Option<String> {
     let segments = url.split('/');
-    let last_segment = segments.last().ok_or_else(|| "no segments")?;
-    let splits: Vec<&str> = last_segment.split('.').collect();
-    if splits.len() < 2 {
-        Err("No file extension".to_string())
-    } else {
-        Ok((*splits.last().unwrap()).to_string())
+    if let Some(last_segment) = segments.last() {
+        let splits: Vec<&str> = last_segment.split('.').collect();
+        if splits.len() >= 2 {
+            return Some((*splits.last().unwrap()).to_string());
+        }
     }
+    None
 }
 
 #[cfg(test)]
@@ -47,7 +46,7 @@ mod test {
 
     #[test]
     fn no_extension() {
-        assert!(get_file_extension("file:///no_extension").is_err(),
+        assert!(get_file_extension("file:///no_extension").is_none(),
                 "No file extension should not find a deserializer");
     }
 

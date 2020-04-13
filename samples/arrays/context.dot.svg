@@ -13,7 +13,7 @@
 <!-- /arrays/sequence -->
 <g id="node1" class="node">
 <title>/arrays/sequence</title>
-<g id="a_node1"><a xlink:href="lib://flowstdlib/math/sequence.dot.svg" xlink:title="sequence">
+<g id="a_node1"><a xlink:href="../../flowstdlib/math/sequence.dot.svg" xlink:title="sequence">
 <ellipse fill="aquamarine" stroke="black" cx="72" cy="-361.74" rx="72" ry="72"/>
 <text text-anchor="middle" x="72" y="-357.54" font-family="Times,serif" font-size="14.00">sequence</text>
 </a>

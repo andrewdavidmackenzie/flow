@@ -11,17 +11,27 @@ pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest";
 
 #[derive(Clone, Deserialize, Serialize, PartialEq)]
 /// `MetaData` about a `flow` that will be used in the flow's `Manifest`
+#[serde(deny_unknown_fields)]
 pub struct MetaData {
     /// The human readable `name` of a `flow`
-    pub name: String,
+    #[serde(default = "default_metadata")]
+    pub library_name: String,
     /// Semantic versioning version number of the flow
+    #[serde(default = "default_metadata")]
     pub version: String,
     /// A description for humans
+    #[serde(default = "default_metadata")]
     pub description: String,
     /// The name of the person who wrote the flow
+    #[serde(default = "default_metadata")]
     pub author_name: String,
     /// The email of the person who wrote the flow
+    #[serde(default = "default_metadata")]
     pub author_email: String,
+}
+
+fn default_metadata() -> String {
+    "".into()
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -74,7 +84,7 @@ mod test {
 
     fn test_meta_data() -> MetaData {
         MetaData {
-            name: "test".into(),
+            library_name: "test".into(),
             version: "0.0.0".into(),
             description: "a test".into(),
             author_name: "me".into(),
@@ -122,7 +132,7 @@ mod test {
     fn load_manifest() {
         let test_content = "{
             \"metadata\": {
-                \"name\": \"\",
+                \"library_name\": \"\",
                 \"version\": \"0.1.0\",
                 \"description\": \"\",
                 \"author_name\": \"\",

@@ -70,7 +70,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
             let runnable = check_root(&flow);
 
             if options.dump {
-                dump_flow::dump_flow(&flow, &options.output_dir)
+                dump_flow::dump_flow(&flow, &options.output_dir, provider)
                     .chain_err(|| "Failed to dump flow's definition")?;
                 dump_tables::dump_tables(&tables, &options.output_dir)
                     .chain_err(|| "Failed to dump flow's tables")?;

@@ -63,7 +63,7 @@
 <!-- /prime/composites/divisors -->
 <g id="node5" class="node">
 <title>/prime/composites/divisors</title>
-<g id="a_node5"><a xlink:href="lib://flowstdlib/math/sequence.dot.svg" xlink:title="divisors">
+<g id="a_node5"><a xlink:href="../../flowstdlib/math/sequence.dot.svg" xlink:title="divisors">
 <ellipse fill="aquamarine" stroke="black" cx="188.07" cy="-615.74" rx="72" ry="72"/>
 <text text-anchor="middle" x="188.07" y="-611.54" font-family="Times,serif" font-size="14.00">divisors</text>
 </a>

@@ -13,7 +13,7 @@
 <!-- /range&#45;of&#45;ranges/limit&#45;sequence -->
 <g id="node1" class="node">
 <title>/range&#45;of&#45;ranges/limit&#45;sequence</title>
-<g id="a_node1"><a xlink:href="lib://flowstdlib/math/sequence.dot.svg" xlink:title="limit&#45;sequence">
+<g id="a_node1"><a xlink:href="../../flowstdlib/math/sequence.dot.svg" xlink:title="limit&#45;sequence">
 <ellipse fill="aquamarine" stroke="black" cx="72" cy="-340.91" rx="72" ry="72"/>
 <text text-anchor="middle" x="72" y="-336.71" font-family="Times,serif" font-size="14.00">limit&#45;sequence</text>
 </a>
@@ -22,7 +22,7 @@
 <!-- /range&#45;of&#45;ranges/sequence&#45;of&#45;sequences -->
 <g id="node4" class="node">
 <title>/range&#45;of&#45;ranges/sequence&#45;of&#45;sequences</title>
-<g id="a_node4"><a xlink:href="lib://flowstdlib/math/sequence.dot.svg" xlink:title="sequence&#45;of&#45;sequences">
+<g id="a_node4"><a xlink:href="../../flowstdlib/math/sequence.dot.svg" xlink:title="sequence&#45;of&#45;sequences">
 <ellipse fill="aquamarine" stroke="black" cx="131" cy="-159.91" rx="73.27" ry="72"/>
 <text text-anchor="middle" x="131" y="-155.71" font-family="Times,serif" font-size="14.00">sequence&#45;of&#45;sequences</text>
 </a>
