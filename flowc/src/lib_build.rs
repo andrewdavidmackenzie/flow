@@ -136,7 +136,7 @@ fn compile_implementations(options: &Options, lib_manifest: &mut LibraryManifest
                         let output_dir = source_path.parent()
                             .chain_err(|| "Could not get parent directory of flow's source_url")?;
 
-                        dump_flow::dump_flow(&flow, &output_dir.to_path_buf())
+                        dump_flow::dump_flow(&flow, &output_dir.to_path_buf(), provider)
                             .chain_err(|| "Failed to dump flow's definition")?;
                     }
                 }
