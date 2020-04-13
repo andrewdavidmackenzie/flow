@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use log::{debug, info};
 
 use flowrlib::input::InputInitializer;
+use flowrlib::manifest::MetaData;
 use flowrlib::provider::Provider;
 use flowrlib::url;
-use flowrlib::manifest::MetaData;
 
 use crate::deserializers::deserializer_helper::get_deserializer;
 use crate::errors::*;
@@ -86,7 +86,9 @@ fn load_process(parent_route: &Route, alias: &Name, parent_flow_id: usize, flow_
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
 
     let deserializer = get_deserializer(&resolved_url)?;
-    info!("Loading process with alias = '{}'", alias);
+    if !alias.is_empty() {
+        info!("Loading process with alias = '{}'", alias);
+    }
     debug!("Loading from url = '{}' with deserializer: '{}'", resolved_url, deserializer.name());
     let mut process = deserializer.deserialize(&String::from_utf8(contents).unwrap(),
                                                Some(url))
@@ -124,6 +126,19 @@ pub fn load_metadata(url: &str, provider: &dyn Provider) -> Result<MetaData> {
 }
 
 /*
+    Configure a flow with additional information after it is deserialized from file
+*/
+fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias_from_reference: &Name, id: usize,
+               initializations: &Option<HashMap<String, InputInitializer>>) -> Result<()> {
+    flow.id = id;
+    flow.set_alias(alias_from_reference);
+    flow.source_url = source_url.to_string();
+    IO::set_initial_values(flow.inputs_mut(), initializations);
+    flow.set_routes_from_parent(parent_route);
+    flow.validate()
+}
+
+/*
     Load sub-processes from the process_refs in a flow
 */
 fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Provider) -> Result<()> {
@@ -135,7 +150,7 @@ fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Pro
                                                provider, &process_ref.initializations,
                                                &process_ref.depths)?;
 
-            // if loaded by the defaul alias in the process ref then set the alias to be the name of the loaded process
+            // if loaded by the default alias in the process ref then set the alias to be the name of the loaded process
             if process_ref.alias.is_empty() {
                 process_ref.alias = Name::from(match process_ref.process {
                     FlowProcess(ref mut flow) => flow.name().to_lowercase(),
@@ -145,6 +160,8 @@ fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Pro
                 });
             }
 
+            // runtime needs references to library functions to be able to load the implementations at load time
+            // library flow definitions are "compiled down" to just library function references at compile time.
             if let FunctionProcess(ref mut function) = process_ref.process {
                 if let Some(lib_ref) = function.get_lib_reference() {
                     flow.lib_references.push(format!("{}/{}", lib_ref, function.name()));
@@ -170,16 +187,6 @@ fn config_function(function: &mut Function, source_url: &str, parent_route: &Rou
     IO::set_initial_values(&mut function.inputs, initializations);
     IO::set_depths(&mut function.inputs, depths);
     function.validate()
-}
-
-fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias_from_reference: &Name, id: usize,
-               initializations: &Option<HashMap<String, InputInitializer>>) -> Result<()> {
-    flow.id = id;
-    flow.set_alias(alias_from_reference);
-    flow.source_url = source_url.to_string();
-    IO::set_initial_values(flow.inputs_mut(), initializations);
-    flow.set_routes_from_parent(parent_route);
-    flow.validate()
 }
 
 #[cfg(test)]

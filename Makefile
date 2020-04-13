@@ -176,7 +176,7 @@ flowstdlib: flowstdlib/manifest.json
 
 flowstdlib/manifest.json: $(FLOWSTDLIB_FILES)
 	@mkdir -p target;date '+%s' > target/.flowstdlibtime ; echo \\n------- Target \'$@\' starting
-	@cargo run -p flowc -- -v info -l flowstdlib
+	@cargo run -p flowc -- -v info -l -g -d flowstdlib
 	@read st < target/.flowstdlibtime ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 
 #################### Raspberry Pi ####################
