@@ -1,102 +1,101 @@
 ## Debugging your first flow
-When the flow is compiled by flowc, the current implementation is to generate a rust project that is linked with the 
-run-time and together it is built and run, with the run-time library executing the flow according to the generated 
-tables of functions.
 
-NOTE: in the future this implementation will change for being able to generate the functions table in a data file that is loaded and
-run by a single run-time, removing the need to compile and build each time.
+### Command line options to `flowc`
+When running `flowc` using `cargo run` you should add `--` to mark the end of the options passed to cargo, 
+and the start of the options passed to `flowc`
 
-### Running the generated project
-You can run this generated project for the flow directly from the `rust` subdirectory of the sample.
-So, from the project root:
-* `cd samples/first/rust`
-* `cargo run`
+You can see what they are using `--help` producing output similar to this:
 
-### Command line options to generated project
-The generated project uses `clap` to parse command line options, and you can see what they are using `--help`.
-
-When running the project via `cargo run` you should add `--` to mark the end of the options passed to cargo, 
-and the start of the options passed to the executable run by cargo.
-
-```shell script
-> cargo run -- --help
-    Finished dev [unoptimized + debuginfo] target(s) in 0.13s
-     Running `target/debug/root --help`
-```
-flowrlib
+```bash
+cargo run -- --help                         
+    Finished dev [unoptimized + debuginfo] target(s) in 0.12s
+     Running 'target/debug/flowc --help'
+flowc 0.8.8
 
 USAGE:
-    root [OPTIONS] [flow_args]...
+    flowc [FLAGS] [OPTIONS] [ARGS]
 
 FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+    -d, --dump        Dump the flow to .dump files after loading it
+    -h, --help        Prints help information
+    -l, --lib         Compile a flow library
+    -p, --provided    Provided function implementations should NOT be compiled from source
+    -r, --release     Build supplied and library implementations with release profile
+    -s, --skip        Skip manifest generation and running of flow
+    -g, --symbols     Generate debug symbols (like process names and full routes)
+    -V, --version     Prints version information
 
 OPTIONS:
-    -v, --verbosity <VERBOSITY_LEVEL> Set verbosity level for output (trace, debug, info, warn, error (default))
+    -o, --output <OUTPUT_DIR>            Specify the output directory for generated manifest
+    -v, --verbosity <VERBOSITY_LEVEL>    Set verbosity level for output (trace, debug, info, warn, error (default))
 
 ARGS:
-    <flow_args>...
-`
+    <FLOW>            the name of the 'flow' definition file to compile
+    <flow_args>...    Arguments that will get passed onto the flow if it is executed
+```
+
+### Command line options to `flowr`
+By default `flowc` uses `flowr` to run the flow once it has compiled it.
+
+In order to pass command line options on to `flowr` you separate them from the options to `flowc` after another `--` separator.
+
+`flowr` accepts the same verbosity options as `flowc`.
 
 ### Getting debug output
 If you want to follow what the run-time is doing in more detail, you can increase the verbosity level (default level is ERROR)
-using the -v/--verbosity option.
+using the `-v/--verbosity` option.
 
 So, if you want to walk through each and every step of the flow's execution, similar to the previous [step by step section](step-by-step.md) 
-then you can do so by using `-v DEBUG` and piping the output to `more` (as there is a lot of output!) ```cargo run -- -v DEBUG | more```
+then you can do so by using `-v debug` and piping the output to `more` (as there is a lot of output!):
+ 
+ `cargo run -- samples/fibonacci -- -v debug| more`
 
 which should produce output similar to this:
 
-`
-INFO    - 'flowrlib' version '0.5.0'
-DEBUG   - Panic hook set to catch panics in functions
-DEBUG   - Initializing all functions
-DEBUG   -       Initializing function #0 'HEAD-1'
-DEBUG   -               Function initialized by writing 'Number(1)' to input
-DEBUG   -                       Function #0 inputs are ready
-DEBUG   -                       Function #0 not blocked on output, so added to end of 'Ready' list
-DEBUG   -       Initializing function #1 'HEAD'
-DEBUG   -               Value initialized by writing 'Number(1)' to input
-DEBUG   -                       Function #1 inputs are ready
-DEBUG   -                       Function #1 not blocked on output, so added to end of 'Ready' list
-DEBUG   -       Initializing function #2 'sum'
-DEBUG   -       Initializing function #3 'print'
-DEBUG   - Starting execution loop
-DEBUG   - -----------------------------------------------------------------
-DEBUG   - Dispatch count: 0
-DEBUG   -        Can Run: {1, 0}
-DEBUG   -       Blocking: []
-DEBUG   -       Ready: [0, 1]
-DEBUG   - -------------------------------------
-DEBUG   - Function #0 'HEAD-1' dispatched
-DEBUG   -       Function #0 consumed its inputs, removing from the 'Can Run' list
-DEBUG   -       Function #0 'HEAD-1' running with inputs: [[Number(1)]]
-DEBUG   -               Function #0 'HEAD-1' sending output '1' to Function #2 'sum' input #0
-DEBUG   -                       Function #0 is now blocked on output by Function #2
-DEBUG   -               Function #0 'HEAD-1' sending output '1' to Function #3 'print' input #0
-DEBUG   -                       Function #0 is now blocked on output by Function #3
-DEBUG   -                       Function #3 inputs are ready
-DEBUG   -                       Function #3 not blocked on output, so added to end of 'Ready' list
-DEBUG   -       Function #0 'HEAD-1' completed
-DEBUG   - Dispatch count: 1
-DEBUG   -        Can Run: {1, 3}
-DEBUG   -       Blocking: [(2, 0), (3, 0)]
-DEBUG   -       Ready: [1, 3]
-DEBUG   - -------------------------------------
-DEBUG   - Function #1 'HEAD' dispatched
-DEBUG   -       Function #1 consumed its inputs, removing from the 'Can Run' list
-DEBUG   -       Function #1 'HEAD' running with inputs: [[Number(1)]]
-DEBUG   -               Function #1 'HEAD' sending output '1' to Function #0 'HEAD-1' input #0
-DEBUG   -                       Function #1 is now blocked on output by Function #0
-DEBUG   -                       Function #0 inputs are ready
-DEBUG   -               Function #1 'HEAD' sending output '1' to Function #2 'sum' input #1
-DEBUG   -                       Function #1 is now blocked on output by Function #2
-DEBUG   -                       Function #2 inputs are ready
-DEBUG   -                       Function #2 not blocked on output, so added to end of 'Ready' list
-DEBUG   -       Function #1 'HEAD' completed
-DEBUG   - Dispatch count: 2
-DEBUG   -        Can Run: {3, 2, 0}
-DEBUG   -       Blocking: [(2, 0), (3, 0), (0, 1), (2, 1)]
-DEBUG   -       Ready: [3, 2]
-`
+```bash
+INFO    - 'flowr' version 0.8.8
+INFO    - 'flowrlib' version 0.8.8
+DEBUG   - Loading library 'flowruntime' from 'native'
+INFO    - Library 'flowruntime' loaded.
+DEBUG   - Loading library 'flowstdlib' from 'native'
+INFO    - Library 'flowstdlib' loaded.
+INFO    - Starting 4 executor threads
+DEBUG   - Loading flow manifest from 'file:///Users/andrew/workspace/flow/samples/fibonacci/manifest.json'
+DEBUG   - Loading libraries used by the flow
+DEBUG   - Resolving implementations
+DEBUG   - Setup 'FLOW_ARGS' with values = '["my-first-flow"]'
+INFO    - Maximum jobs dispatched in parallel limited to 8
+DEBUG   - Resetting stats and initializing all functions
+DEBUG   - Init: Initializing Function #0 '' in Flow #0
+DEBUG   -               Input initialized with 'Number(0)'
+DEBUG   -               Input initialized with 'Number(1)'
+DEBUG   - Init: Initializing Function #1 '' in Flow #0
+DEBUG   - Init: Creating any initial block entries that are needed
+DEBUG   - Init: Readying initial functions: inputs full and not blocked on output
+DEBUG   -               Function #0 not blocked on output, so added to 'Ready' list
+DEBUG   - ===========================    Starting flow execution =============================
+DEBUG   - Job #0:-------Creating for Function #0 '' ---------------------------
+DEBUG   - Job #0:       Inputs: [[Number(0)], [Number(1)]]
+DEBUG   - Job #0:       Sent for execution
+DEBUG   - Job #0:       Outputs '{"i1":0,"i2":1,"sum":1}'
+DEBUG   -               Function #0 sending '1' via output route '/sum' to Self:1
+DEBUG   -               Function #0 sending '1' via output route '/sum' to Function #1:0
+DEBUG   -               Function #1 not blocked on output, so added to 'Ready' list
+DEBUG   -               Function #0 sending '1' via output route '/i2' to Self:0
+DEBUG   -               Function #0, inputs full, but blocked on output. Added to blocked list
+DEBUG   - Job #1:-------Creating for Function #1 '' ---------------------------
+DEBUG   - Job #1:       Inputs: [[Number(1)]]
+DEBUG   -                               Function #0 removed from 'blocked' list
+DEBUG   -                               Function #0 has inputs ready, so added to 'ready' list
+DEBUG   - Job #1:       Sent for execution
+DEBUG   - Job #2:-------Creating for Function #0 '' ---------------------------
+DEBUG   - Job #2:       Inputs: [[Number(1)], [Number(1)]]
+1
+DEBUG   - Job #2:       Sent for execution
+DEBUG   - Job #2:       Outputs '{"i1":1,"i2":1,"sum":2}'
+DEBUG   -               Function #0 sending '2' via output route '/sum' to Self:1
+DEBUG   -               Function #0 sending '2' via output route '/sum' to Function #1:0
+DEBUG   -               Function #1 not blocked on output, so added to 'Ready' list
+DEBUG   -               Function #0 sending '1' via output route '/i2' to Self:0
+DEBUG   -               Function #0, inputs full, but blocked on output. Added to blocked list
+```

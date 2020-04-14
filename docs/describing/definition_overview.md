@@ -1,4 +1,4 @@
-## Flow Definition
+## Defining Flows
 
 A flow can define the entities external to the program with which it interacts and should be provided by the run-time, 
 or bundled via a library. i.e. they are not included in the flow, but the flow interacts with them as part of it's
