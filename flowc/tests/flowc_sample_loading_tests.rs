@@ -11,20 +11,6 @@ fn load_hello_world_from_context() {
 }
 
 #[test]
-fn load_hello_world_include() {
-    let meta_provider = MetaProvider {};
-    loader::load(&helper::absolute_file_url_from_relative_path("samples/hello-world-include/context.toml"),
-                 &meta_provider).unwrap();
-}
-
-#[test]
-fn load_hello_world_flow1() {
-    let meta_provider = MetaProvider {};
-    loader::load(&helper::absolute_file_url_from_relative_path("samples/hello-world/flow1.toml"),
-                 &meta_provider).unwrap();
-}
-
-#[test]
 fn load_reverse_echo_from_toml() {
     let meta_provider = MetaProvider {};
     loader::load(&helper::absolute_file_url_from_relative_path("samples/reverse-echo/context.toml"),

@@ -60,7 +60,6 @@
     - [factorial sample](samples/factorial/DESCRIPTION.md)
     - [fibonacci sample](samples/fibonacci/DESCRIPTION.md)
     - [hello-world sample](samples/hello-world/DESCRIPTION.md)
-    - [hello-world-include sample](samples/hello-world-include/DESCRIPTION.md)
     - [mandlebrot-world sample](samples/mandlebrot/DESCRIPTION.md) (WIP)
     - [matrix multiplication sample](samples/matrix_mult/DESCRIPTION.md)
     - [pipeline sample](samples/pipeline/DESCRIPTION.md)
