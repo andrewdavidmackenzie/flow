@@ -9,13 +9,13 @@ type = "String"
 name = "message"
 
 [[process]]
-alias = "buffer"
-source = "lib://flowstdlib/data/buffer"
+alias = "intermediate"
+source = "lib://flowstdlib/fmt/to_string"
 
 [[connection]]
 from = "input/message"
-to = "buffer"
+to = "intermediate"
 
 [[connection]]
-from = "buffer"
+from = "intermediate"
 to = "output/message"
