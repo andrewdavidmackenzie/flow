@@ -1,6 +1,0 @@
-flow = "flow1"
-
-[[output]]
-name = "out"
-type = "String"
-value = {once = "Hello World!"}
