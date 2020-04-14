@@ -1,16 +1,25 @@
-flow = "fibonacci"
+flow = "my-first-flow"
 version = "0.8.0"
 author_name = "Andrew Mackenzie"
 author_email = "andrew@mackenzie-serres.net"
 
 [[process]]
-alias = "fib"
-source="fib"
-
-[[process]]
-alias = "print"
-source = "lib://flowruntime/stdio/stdout"
+alias = "add"
+source = "lib://flowstdlib/math/add"
+input.i1 = { once = 0 }
+input.i2 = { once = 1 }
 
 [[connection]]
-from = "fib/series"
-to = "print"
+from = "add/sum"
+to = "add/i2"
+
+[[connection]]
+from = "add/sum"
+to = "stdout"
+
+[[connection]]
+from = "add/i2"
+to = "add/i1"
+
+[[process]]
+source = "lib://flowruntime/stdio/stdout"

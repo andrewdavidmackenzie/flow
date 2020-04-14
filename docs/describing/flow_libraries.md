@@ -6,7 +6,7 @@ The run-time includes some basic ones in the `flowruntime` and `flowstdlib` libr
 Others can be shared by developers.
 
 The references to flows or functions specify a source, that will be searched for in a defined
-FLOWLOADPATH, that currently uses relative paths to the current flow's CWD.
+FLOW_LIB_PATH, that currently uses relative paths to the current flow's CWD.
 
 If the specified name is not found there, the load path will be searched for it.
 

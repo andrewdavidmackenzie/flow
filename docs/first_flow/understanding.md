@@ -8,32 +8,32 @@ section [Describing Flows](../describing/definition_overview.md)
 
 ### Top Level - Context
 The top-level, or root, of a flow is called the Context. This term is stolen from 
-"Structured Analysis" (see [Inspirations section](../introduction/inspirations.md)) and it's
+"Structured Analysis" (see [Inspirations section](../introduction/inspirations.md)) and its
 purpose is to define what the interaction with the surrounding execution environment is.
 
 Other flows can be included under this level, via references to separate flow description files,
-to enable encapsulation and sub-flow reuse.
+to enable encapsulation and flow reuse.
 
 In this example there is no sub-flow included (for the sake of simplicity).
 
 ### Interaction with the execution environment
-This top-level defines what the interaction with the surrounding execution environment is,
-such as STDIO, or other inputs/outputs provided by the flow run-time being used.
+The top-level defines what the interaction with the surrounding execution environment is,
+such as `stdout`, or other inputs/outputs provided by the flow runtime being used.
 
-The only interaction with the execution environment in this example is the use of STDOUT.
+The only interaction with the execution environment in this example is the use of `stdout`.
 
-STDOUT (Standard Output) is an output (input to a function) defined in the flow standard library (flowstdlib), 
-to which output can be sent for display.
+`stdout` (Standard Output) is a function defined in the `flowruntime`, to which output can be sent for display.
 
-When executing a flow using `flowc`, STDOUT is printed sent to the standard output of 
+When executing a flow using `flowc`, `stdout` is printed sent to the standard output of 
 the process running `flowc`, hence is displayed in the terminal when running from the command line.
 
-### Values
-The boxes labelled "HEAD" and "HEAD-1" in this example are examples of values. They store a simple
-value. In this example they are both initialized with the integer value 1. Initialization of all
-initialized values happens before flow execution starts.
+Other runtime environments (e.g. `flowide`) may display the output in some other way.
 
 ### Functions
+This flow uses two functions: `stdout` from `flowruntime` as described above, plus `add` from the flow library
+called `flowstdlib` to add two integers together.
 
 ### Connections
-
+Connections take the output of a function and send it to the input of another. When all the inputs of a function
+have a value the function can run, and produce outputs for others (or not produce outputs, as in the case of the 
+impure `stdout` function).

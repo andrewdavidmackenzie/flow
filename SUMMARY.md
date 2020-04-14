@@ -19,7 +19,7 @@
     - [Step-by-Step](docs/first_flow/step-by-step.md)
     - [Debugging your first flow](docs/first_flow/debugging.md)
 
-- [Describing flows](docs/describing/definition_overview.md)
+- [Defining flows](docs/describing/definition_overview.md)
     - [Names](docs/describing/names.md)
     - [Flow IOs](docs/describing/ios.md)
     - [Process References](docs/describing/process_references.md)
@@ -59,7 +59,6 @@
     - [arrays sample](samples/arrays/DESCRIPTION.md)
     - [factorial sample](samples/factorial/DESCRIPTION.md)
     - [fibonacci sample](samples/fibonacci/DESCRIPTION.md)
-    - [first sample](samples/first/DESCRIPTION.md)
     - [hello-world sample](samples/hello-world/DESCRIPTION.md)
     - [hello-world-include sample](samples/hello-world-include/DESCRIPTION.md)
     - [mandlebrot-world sample](samples/mandlebrot/DESCRIPTION.md) (WIP)
