@@ -50,6 +50,13 @@ use serde_json::{json, Value};
 /// it will be output as `token`
 ///
 /// * token - a String that cannot be sub-divided further.
+///
+/// * delta - this is a Number that indicates if this job reduced (-1) or increased (+1) the number
+/// of pending jobs to complete the split task. e.g. it consumes the input string, ot there is one
+/// less to process. If it outputs a token then the delta to pending work is -1 (-1 input consumed
+/// -0 partials for further splitting). If the input string
+/// is split into two partial strings that are output for further splitting, then the delta to
+/// pending work is +1 (+2 partials -1 input)
 #[derive(Debug)]
 pub struct Split;
 
@@ -61,9 +68,12 @@ impl Implementation for Split {
         let (partial, token) = split(string, separator);
 
         let mut output_map = serde_json::Map::new();
-        output_map.insert("partial".into(), json!(partial));
         if let Some(tok) = token {
             output_map.insert("token".into(), json!(tok));
+            output_map.insert("delta".into(), json!(-1));
+        } else {
+            output_map.insert("partial".into(), json!(partial));
+            output_map.insert("delta".into(), json!(1));
         }
 
         let output = Value::Object(output_map);
@@ -114,7 +124,7 @@ mod test {
     #[test]
     fn basic_tests() {
         #[allow(clippy::type_complexity)]
-        let test_cases: Vec<(&str, (Vec<&str>, Option<String>))> = vec!(
+            let test_cases: Vec<(&str, (Vec<&str>, Option<String>))> = vec!(
             // empty string case
             ("", (vec!(), None)),
 
@@ -187,9 +197,11 @@ mod test {
             if let Some(token) = output.pointer("/token") {
                 output_vector.push(token.clone());
             }
-            let split_values = output.pointer("/partial").unwrap().as_array().unwrap().iter();
-            for value in split_values {
-                input_strings.push(value.clone());
+
+            if let Some(split_values) = output.pointer("/partial") {
+                for value in split_values.as_array().unwrap().iter() {
+                    input_strings.push(value.clone());
+                }
             }
         }
 
