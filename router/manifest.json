@@ -1,0 +1,60 @@
+{
+  "metadata": {
+    "library_name": "router",
+    "version": "0.0.0",
+    "description": "",
+    "author_name": "unknown",
+    "author_email": "unknown@unknown.com"
+  },
+  "lib_references": [
+    "lib://flowruntime"
+  ],
+  "functions": [
+    {
+      "name": "readline",
+      "route": "/router/readline",
+      "id": 0,
+      "flow_id": 0,
+      "implementation_location": "lib://flowruntime/stdio/readline/Readline",
+      "output_routes": [
+        {
+          "function_id": 1,
+          "io_number": 0,
+          "flow_id": 0,
+          "route": "/router/read_section"
+        }
+      ]
+    },
+    {
+      "name": "read_section",
+      "route": "/router/read_section",
+      "id": 1,
+      "flow_id": 0,
+      "implementation_location": "/read_section/read_section.wasm",
+      "inputs": [
+        {
+          "depth": 3
+        }
+      ],
+      "output_routes": [
+        {
+          "function_id": 2,
+          "io_number": 0,
+          "flow_id": 0,
+          "generic": true,
+          "route": "/router/print"
+        }
+      ]
+    },
+    {
+      "name": "print",
+      "route": "/router/print",
+      "id": 2,
+      "flow_id": 0,
+      "implementation_location": "lib://flowruntime/stdio/stdout/Stdout",
+      "inputs": [
+        {}
+      ]
+    }
+  ]
+}
