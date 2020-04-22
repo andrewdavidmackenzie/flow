@@ -69,12 +69,14 @@ impl Implementation for Split {
 
         let mut output_map = serde_json::Map::new();
 
+        let mut work_delta: i32 = -1; // we have consumed a string, so one down
         if let Some(partial) = partial {
+            // but we have generated some new strings to be processed by other jobs
+            work_delta += partial.len() as i32;
             output_map.insert("partial".into(), json!(partial));
-            output_map.insert("delta".into(), json!(1));
-        } else {
-            output_map.insert("delta".into(), json!(-1));
         }
+
+        output_map.insert("delta".into(), json!(work_delta));
 
         if let Some(tok) = token {
             output_map.insert("token".into(), json!(tok));
@@ -216,7 +218,22 @@ mod test {
     }
 
     #[test]
-    fn partial_work_delta() {
+    fn no_partials_no_token_work_delta() {
+        let test = (json!("  "), 1);
+
+        let separator = vec!(json!(" "));
+
+        let splitter = super::Split {};
+        let (result, _) = splitter.run(&vec!(vec!(test.0), separator));
+
+        let output = result.unwrap();
+        assert!(output.pointer("/token").is_none());
+        assert!(output.pointer("/partial").is_none());
+        assert_eq!(output.pointer("/delta").unwrap(), &json!(-1));
+    }
+
+    #[test]
+    fn two_partials_no_token_work_delta() {
         let test = (json!("the quick brown fox jumped over the lazy dog"), 1);
 
         let separator = vec!(json!(" "));
@@ -231,7 +248,22 @@ mod test {
     }
 
     #[test]
-    fn token_work_delta() {
+    fn one_partial_one_token_work_delta() {
+        let test = (json!("the quick brown fox-jumped-over-the-lazy-dog"), 1);
+
+        let separator = vec!(json!(" "));
+
+        let splitter = super::Split {};
+        let (result, _) = splitter.run(&vec!(vec!(test.0), separator));
+
+        let output = result.unwrap();
+        assert_eq!(output.pointer("/token").unwrap(), "fox-jumped-over-the-lazy-dog");
+        assert_eq!(output.pointer("/partial").unwrap(), &json!(["the quick brown"]));
+        assert_eq!(output.pointer("/delta").unwrap(), &json!(0));
+    }
+
+    #[test]
+    fn no_partials_one_token_work_delta() {
         let test = (json!("the"), -1);
 
         let separator = vec!(json!(" "));
