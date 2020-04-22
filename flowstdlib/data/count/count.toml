@@ -1,0 +1,18 @@
+function = "Count"
+implementation = "count.rs"
+
+[[input]]
+name = "data"
+type = "Value"
+
+[[input]]
+name = "count"
+type = "Value"
+
+[[input]]
+name = "data"
+type = "Value"
+
+[[output]]
+name = "count"
+type = "Value"
