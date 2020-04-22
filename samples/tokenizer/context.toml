@@ -16,9 +16,42 @@ from = "split/partial"
 to = "split/string"
 
 [[process]]
+source = "lib://flowstdlib/math/add"
+input.i2 = { once = 1}
+
+[[connection]]
+from = "split/delta"
+to = "add/i1"
+
+[[connection]]
+from = "add/sum"
+to = "add/i2"
+
+[[process]]
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
 from = "split/token"
 to = "stdout"
 
+[[process]]
+source = "lib://flowstdlib/control/compare_switch"
+alias = "compare_switch"
+input.left = { constant = 0 }
+
+[[connection]]
+from = "add/sum"
+to = "compare_switch/right"
+
+[[process]]
+alias = "join"
+source = "lib://flowstdlib/control/join"
+input.data = {once = "done"}
+
+[[connection]]
+from = "compare_switch/equal"
+to = "join/control"
+
+[[connection]]
+from = "join"
+to = "stdout"
