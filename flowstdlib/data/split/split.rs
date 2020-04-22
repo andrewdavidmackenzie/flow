@@ -70,6 +70,7 @@ impl Implementation for Split {
         let mut output_map = serde_json::Map::new();
 
         let mut work_delta: i32 = -1; // we have consumed a string, so one down
+
         if let Some(partial) = partial {
             // but we have generated some new strings to be processed by other jobs
             work_delta += partial.len() as i32;
