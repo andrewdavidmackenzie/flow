@@ -16,3 +16,7 @@ type = "Array/String"
 [[output]]
 name = "token"
 type = "String"
+
+[[output]]
+name = "delta"
+type = "Number"
