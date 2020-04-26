@@ -93,7 +93,7 @@ impl Input {
     /// Initialize an input with the InputInitializer if it has one.
     /// When called at start-up    it will initialize      if it's a OneTime or Constant initializer
     /// When called after start-up it will initialize only if it's a            Constant initializer
-    pub fn init(&mut self, first_time: bool) -> bool {
+    pub fn init(&mut self, first_time: bool, io_number: usize) -> bool {
         if self.full() {
             return false;
         }
@@ -107,7 +107,7 @@ impl Input {
         match init_value {
             Some(value) => {
                 debug!("\t\tInput initialized with '{:?}'", value);
-                self.push(value);
+                self.push(value, io_number);
                 true
             }
             _ => false
@@ -115,13 +115,13 @@ impl Input {
     }
 
     /// Add a value to this `Input`
-    pub fn push(&mut self, value: Value) {
+    pub fn push(&mut self, value: Value, input_number: usize) {
         self.received.push(value);
 
         // HACK to allow external flow value to overwrite a self-refresh
         // See https://github.com/andrewdavidmackenzie/flow/issues/547
         if self.received.len() > self.depth {
-            warn!("Input received values exceeds depth");
+            warn!("Input #{} received values exceeds depth. Input values = {:?}", input_number, self.received);
             self.received.remove(0);
         }
     }
@@ -174,7 +174,7 @@ mod test {
     #[test]
     fn accepts_value() {
         let mut input = Input::new(1, &None);
-        input.push(Value::Null);
+        input.push(Value::Null, 0);
         assert!(!input.is_empty());
     }
 
@@ -188,14 +188,14 @@ mod test {
     #[test]
     fn gets_full() {
         let mut input = Input::new(1, &None);
-        input.push(Value::Null);
+        input.push(Value::Null, 0);
         assert!(input.full());
     }
 
     #[test]
     fn take_empties() {
         let mut input = Input::new(1, &None);
-        input.push(json!(10));
+        input.push(json!(10), 0);
         assert!(!input.is_empty());
         input.take();
         assert!(input.is_empty());
@@ -205,7 +205,7 @@ mod test {
     #[test]
     fn reset_empties() {
         let mut input = Input::new(1, &None);
-        input.push(json!(10));
+        input.push(json!(10), 0);
         assert!(!input.is_empty());
         input.reset();
         assert!(input.is_empty());
@@ -214,9 +214,9 @@ mod test {
     #[test]
     fn depth_works() {
         let mut input = Input::new(2, &None);
-        input.push(json!(5));
+        input.push(json!(5), 0);
         assert!(!input.full());
-        input.push(json!(10));
+        input.push(json!(10), 0);
         assert!(input.full());
         assert_eq!(input.take().len(), 2);
     }
@@ -224,11 +224,11 @@ mod test {
     #[test]
     fn can_hold_more_than_depth() {
         let mut input = Input::new(2, &None);
-        input.push(json!(5));
-        input.push(json!(10));
-        input.push(json!(15));
-        input.push(json!(20));
-        input.push(json!(25));
+        input.push(json!(5), 0);
+        input.push(json!(10), 0);
+        input.push(json!(15), 0);
+        input.push(json!(20), 0);
+        input.push(json!(25), 0);
         assert!(input.full());
     }
 

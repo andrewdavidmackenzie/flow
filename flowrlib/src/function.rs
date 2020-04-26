@@ -153,7 +153,7 @@ impl Function {
     /// Initialize all of a `Functions` `Inputs` - as they may have initializers that need running
     pub fn init_inputs(&mut self, first_time: bool) {
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
-            if input.is_empty() && input.init(first_time) {
+            if input.is_empty() && input.init(first_time, io_number) {
                 trace!("\t\tInput #{}:{} set from initializer", self.id, io_number);
             }
         }
@@ -167,7 +167,7 @@ impl Function {
     /// write a value to a `Function`'s input
     pub fn send(&mut self, input_number: usize, value: &Value) {
         let input = &mut self.inputs[input_number];
-        input.push(value.clone());
+        input.push(value.clone(), input_number);
     }
 
     /// write an array of values to a `Function`'s input
