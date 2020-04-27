@@ -1,57 +1,80 @@
 flow = "tokenizer"
 
-[[process]]
+[[process]] # Read a single line of inputs text into a stringn
 source = "lib://flowruntime/stdio/readline"
 
-[[process]]
+[[process]] # Split a string on the space (" ") separator
 source = "lib://flowstdlib/data/split"
 input.separator = { constant = " " }
 
-[[connection]]
+[[connection]] # Take the inout string and pass it to splitter
 from = "readline"
 to = "split/string"
 
-[[connection]]
+[[connection]] # Loop back partial splits to be split further
 from = "split/partial"
 to = "split/string"
 
-[[process]]
+[[process]] # Added to track pending work
 source = "lib://flowstdlib/math/add"
-input.i2 = { once = 1}
+input.i2 = { once = 1 }
 
-[[connection]]
+[[connection]] # Pass the change in amount of work pending to the work counter
 from = "split/delta"
 to = "add/i1"
 
-[[connection]]
+[[connection]] # Loop back the sum to accumulate the pending work count
+name = "pending-work"
 from = "add/sum"
 to = "add/i2"
 
-[[process]]
-source = "lib://flowruntime/stdio/stdout"
+[[process]] # Token counter
+source = "lib://flowstdlib/data/count"
+input.count = { once = 0 }
 
-[[connection]]
+[[connection]] # Loop back to count up
+name = "token-count"
+from = "count/count"
+to = "count/count"
+
+[[connection]] # Count the tokens passing thru 'count'
+name = "tokens"
 from = "split/token"
-to = "stdout"
+to = "count/data"
 
-[[process]]
-source = "lib://flowstdlib/control/compare_switch"
-alias = "compare_switch"
+#[[process]] # A Tap to limit output of count until we are done
+#source = "lib://flowstdlib/control/tap"
+#input.data = { constant = "Done" }
+
+#[[connection]] # Pass the token count to the tap
+#name = "token-count"
+#from = "count/count"
+#to = "tap/data"
+
+#[[connection]] # DEBUG
+#name = "token-count"
+#from = "count/count"
+#to = "stdout"
+
+[[process]] # compare pending work to zero
+source = "lib://flowstdlib/math/compare"
 input.left = { constant = 0 }
 
-[[connection]]
+[[connection]] # compare pending work to zero
+name = "pending-work"
 from = "add/sum"
-to = "compare_switch/right"
+to = "compare/right"
 
-[[process]]
-alias = "join"
-source = "lib://flowstdlib/control/join"
-input.data = {once = "done"}
-
-[[connection]]
-from = "compare_switch/equal"
-to = "join/control"
-
-[[connection]]
-from = "join"
+[[connection]] # Open tap when we are done!
+name = "done"
+from = "compare/equal"
+#to = "tap/control"
 to = "stdout"
+
+[[process]] # stdout for showing text
+source = "lib://flowruntime/stdio/stdout"
+
+#[[connection]] # output the token count when done
+#name = "last-token-count"
+#from = "tap"
+#to = "stdout"
