@@ -434,9 +434,11 @@ impl RunState {
                 let job = self.create_job(function_id);
 
                 // unblock senders blocked trying to send to this function's empty inputs
-                self.unblock_senders(job.job_id, job.function_id, job.flow_id);
+                if let Some(ref j) = job {
+                    self.unblock_senders(j.job_id, j.function_id, j.flow_id);
+                }
 
-                Some(job)
+                job
             }
             None => None
         }
@@ -461,7 +463,7 @@ impl RunState {
         Given a function id, prepare a job for execution that contains the input values, the
         implementation and the destination functions the output should be sent to when done
     */
-    fn create_job(&mut self, function_id: usize) -> Job {
+    fn create_job(&mut self, function_id: usize) -> Option<Job> {
         let job_id = self.jobs_sent;
 
         let function = self.get_mut(function_id);
@@ -483,7 +485,7 @@ impl RunState {
 
         let destinations = function.output_destinations().clone();
 
-        Job {
+        Some(Job {
             job_id,
             function_id,
             flow_id,
@@ -492,7 +494,7 @@ impl RunState {
             destinations,
             result: (None, false),
             error: None,
-        }
+        })
     }
 
     /*

@@ -216,8 +216,8 @@ impl Function {
     /// Read the values from the inputs and return them for use in executing the function
     pub fn take_input_set(&mut self) -> Vec<Vec<Value>> {
         let mut input_set: Vec<Vec<Value>> = Vec::new();
-        for input in &mut self.inputs {
-            input_set.push(input.take());
+        for (number, input) in &mut self.inputs.iter_mut().enumerate() {
+            input_set.push(input.take(number));
         }
         input_set
     }
@@ -315,8 +315,7 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
-    fn cannot_take_input_set_if_not_full() {
+    fn empty_input_set_if_not_full() {
         let mut function = Function::new(
             #[cfg(feature = "debugger")]
                                         "test".to_string(),
@@ -327,7 +326,7 @@ mod test {
                                          0, 0,
                                          &[], false);
         function.init_inputs(true);
-        function.take_input_set().remove(0);
+        assert_eq!(function.take_input_set().remove(0), Vec::<Value>::new());
     }
 
     /*************** Below are tests for inputs with depth > 1 ***********************/
@@ -371,8 +370,7 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
-    fn cannot_take_input_set_if_not_full_depth_2() {
+    fn empty_input_set_if_not_full_depth_2() {
         let mut function = Function::new(
             #[cfg(feature = "debugger")]
                                     "test".to_string(),
@@ -384,7 +382,7 @@ mod test {
                                          &[], false);
         function.init_inputs(true);
         function.send(0, &json!(1));
-        function.take_input_set().remove(0);
+        assert_eq!(function.take_input_set().remove(0), Vec::<Value>::new());
     }
 
     fn test_function() -> Function {
