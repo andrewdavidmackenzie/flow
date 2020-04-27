@@ -2008,9 +2008,7 @@ mod test {
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
         }
 
-        // TODO equivalent tests now
         #[test]
-        #[ignore]
         fn can_send_array_to_simple_object_depth_1() {
             let mut function = Function::new(
                 #[cfg(feature = "debugger")]
@@ -2023,45 +2021,7 @@ mod test {
                                              &[], false);
             function.init_inputs(true);
             function.send(0, &json!([1, 2]));
-            assert_eq!(vec!(json!(1)), function.take_input_set().remove(0),
-                       "Value from input set wasn't what was expected");
-        }
-
-
-        #[test]
-        #[ignore]
-        fn can_send_array_to_simple_object_depth_2() {
-            let mut function = Function::new(
-                #[cfg(feature = "debugger")]
-                                                    "test".to_string(),
-                #[cfg(feature = "debugger")]
-                                             "/test".to_string(),
-                                             "/test".to_string(),
-                                             vec!(Input::new(2, &None)),
-                                             0, 0,
-                                             &[], false);
-            function.init_inputs(true);
-            function.send(0, &json!([1, 2]));
-            assert_eq!(vec!(json!(1), json!(2)), function.take_input_set().remove(0),
-                       "Value from input set wasn't what was expected");
-        }
-
-        #[test]
-        #[ignore]
-        fn can_send_simple_object_to_array_input() {
-            let mut function = Function::new(
-                #[cfg(feature = "debugger")]
-                                                    "test".to_string(),
-                #[cfg(feature = "debugger")]
-                                             "/test".to_string(),
-                                             "/test".to_string(),
-                                             // vec!(Input::new(1, &None, true, false)),
-                                             vec!(Input::new(1, &None)),
-                                             0, 0,
-                                             &[], false);
-            function.init_inputs(true);
-            function.send(0, &json!(1));
-            assert_eq!(vec!(json!([1])), function.take_input_set().remove(0),
+            assert_eq!(function.take_input_set().remove(0), vec!(json!([1, 2])),
                        "Value from input set wasn't what was expected");
         }
     }
