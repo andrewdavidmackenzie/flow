@@ -6,8 +6,9 @@ source = "lib://flowruntime/stdio/readline"
 [[process]] # Split a string on the space (" ") separator
 source = "lib://flowstdlib/data/split"
 input.separator = { constant = " " }
+#input.string = { once = "the quick brown fox jumped over the lazy dog" }
 
-[[connection]] # Take the inout string and pass it to splitter
+[[connection]] # Take the input string and pass it to splitter
 from = "readline"
 to = "split/string"
 
@@ -32,15 +33,15 @@ to = "add/i2"
 source = "lib://flowstdlib/data/count"
 input.count = { once = 0 }
 
-[[connection]] # Loop back to count up
-name = "token-count"
-from = "count/count"
-to = "count/count"
-
 [[connection]] # Count the tokens passing thru 'count'
 name = "tokens"
 from = "split/token"
 to = "count/data"
+
+[[connection]] # Loop back to count up
+name = "token-count"
+from = "count/count"
+to = "count/count"
 
 #[[process]] # A Tap to limit output of count until we are done
 #source = "lib://flowstdlib/control/tap"
