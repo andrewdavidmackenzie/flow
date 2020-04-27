@@ -447,7 +447,7 @@ impl RunState {
     */
     pub fn job_sent(&mut self, job_id: usize) {
         self.jobs_sent += 1;
-        trace!("Job #{}:\tSent - {}", job_id, self);
+        trace!("Job #{}:\tSent", job_id);
     }
 
     /*
@@ -816,9 +816,10 @@ impl RunState {
             trace!("Job #{}:\tFlow #{} is now idle, so removing pending_unblocks for flow #{}",
                    job_id, blocker_flow_id, blocker_flow_id);
 
-            if let Some(unblocks) = self.pending_unblocks.remove(&blocker_flow_id) {
-                trace!("Job #{}:\tRemoving pending unblocks to functions in Flow #{}", job_id, blocker_flow_id);
-                for unblock_function_id in unblocks {
+            if let Some(pending_unblocks) = self.pending_unblocks.remove(&blocker_flow_id) {
+                trace!("Job #{}:\tRemoving pending unblocks to functions in Flow #{} from other flows", job_id, blocker_flow_id);
+                for unblock_function_id in pending_unblocks {
+                    // HERE
                     self.unblock_senders_to_function(unblock_function_id, any_block);
                 }
             }
@@ -878,7 +879,8 @@ impl RunState {
         // Note: they could be blocked on other functions apart from the the one that just unblocked
         for (unblocked_id, unblocked_flow_id) in unblock_list {
             if self.blocked.contains(&unblocked_id) && !self.blocked_sending(unblocked_id) {
-                debug!("\t\t\t\tFunction #{} removed from 'blocked' list", unblocked_id);
+                debug!("\t\t\t\tFunction #{} \
+                removed from 'blocked' list", unblocked_id);
                 self.blocked.remove(&unblocked_id);
 
                 if self.get(unblocked_id).inputs_full() {
