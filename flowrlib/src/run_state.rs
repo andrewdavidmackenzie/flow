@@ -466,13 +466,13 @@ impl RunState {
 
         let function = self.get_mut(function_id);
 
-        let input_set = function.take_input_set();
-        let flow_id = function.get_flow_id();
-
         #[cfg(feature = "debugger")]
         debug!("Job #{}:-------Creating for Function #{} '{}' ---------------------------", job_id, function_id, function.name());
         #[cfg(not(feature = "debugger"))]
         debug!("Job #{}:-------Creating for Function #{} ---------------------------", job_id, function_id);
+
+        let input_set = function.take_input_set();
+        let flow_id = function.get_flow_id();
 
         // inputs were taken and hence emptied - so refresh any inputs that have constant initializers for next time
         function.init_inputs(false);
