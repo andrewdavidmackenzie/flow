@@ -52,10 +52,10 @@ to = "count/count"
 #from = "count/count"
 #to = "tap/data"
 
-#[[connection]] # DEBUG
-#name = "token-count"
-#from = "count/count"
-#to = "stdout"
+[[connection]] # DEBUG
+name = "token-count"
+from = "count/count"
+to = "stdout"
 
 [[process]] # compare pending work to zero
 source = "lib://flowstdlib/math/compare"
@@ -66,11 +66,11 @@ name = "pending-work"
 from = "add/sum"
 to = "compare/right"
 
-[[connection]] # Open tap when we are done!
-name = "done"
-from = "compare/equal"
-#to = "tap/control"
-to = "stdout"
+#[[connection]] # Open tap when we are done!
+#name = "done"
+#from = "compare/equal"
+##to = "tap/control"
+#to = "stdout"
 
 [[process]] # stdout for showing text
 source = "lib://flowruntime/stdio/stdout"
