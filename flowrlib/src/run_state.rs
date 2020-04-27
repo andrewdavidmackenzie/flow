@@ -810,8 +810,7 @@ impl RunState {
         Detect which flows have gone inactive and remove pending unblocks for functions in it
     */
     fn unblock_flows(&mut self, blocker_flow_id: usize, job_id: usize) {
-        // let any_block = |_block: &Block| true;
-        // HERE
+        // let any_block = |_block: &Block| true; // unblock all and any blocks
         let flow_external_blocks = |block: &Block| block.blocking_flow_id != block.blocked_flow_id;
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
@@ -822,7 +821,6 @@ impl RunState {
             if let Some(pending_unblocks) = self.pending_unblocks.remove(&blocker_flow_id) {
                 trace!("Job #{}:\tRemoving pending unblocks to functions in Flow #{} from other flows", job_id, blocker_flow_id);
                 for unblock_function_id in pending_unblocks {
-                    // HERE
                     self.unblock_senders_to_function(unblock_function_id, flow_external_blocks);
                 }
             }
