@@ -1,7 +1,7 @@
 #[cfg(feature = "debugger")]
 use std::fmt;
 
-use log::{debug, trace, warn};
+use log::{debug, error, trace, warn};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -75,7 +75,7 @@ impl Input {
         Input {
             depth,
             initializer: initial_value.clone(),
-            received: Vec::with_capacity(depth)
+            received: Vec::with_capacity(depth),
         }
     }
 
@@ -86,8 +86,14 @@ impl Input {
     }
 
     /// Take 'depth' number of elements from the Input and leave the rest for the next time
-    pub fn take(&mut self) -> Vec<Value> {
-        self.received.drain(0..self.depth).collect()
+    pub fn take(&mut self, input_number: usize) -> Vec<Value> {
+        if self.received.len() < self.depth {
+            error!("Input #{} underflow. Contains {} elements, attempting to take {}",
+                   input_number, self.received.len(), self.depth);
+            vec!()
+        } else {
+            self.received.drain(0..self.depth).collect()
+        }
     }
 
     /// Initialize an input with the InputInitializer if it has one.
@@ -197,7 +203,7 @@ mod test {
         let mut input = Input::new(1, &None);
         input.push(json!(10), 0);
         assert!(!input.is_empty());
-        input.take();
+        input.take(0);
         assert!(input.is_empty());
     }
 
@@ -218,7 +224,7 @@ mod test {
         assert!(!input.full());
         input.push(json!(10), 0);
         assert!(input.full());
-        assert_eq!(input.take().len(), 2);
+        assert_eq!(input.take(0).len(), 2);
     }
 
     #[test]
@@ -237,10 +243,10 @@ mod test {
         let mut input = Input::new(2, &None);
         input.push_array(vec!(json!(5), json!(10), json!(15), json!(20), json!(25)).iter());
         assert!(input.full());
-        let mut next_set = input.take();
+        let mut next_set = input.take(0);
         assert_eq!(vec!(json!(5), json!(10)), next_set);
         assert!(input.full());
-        next_set = input.take();
+        next_set = input.take(0);
         assert_eq!(vec!(json!(15), json!(20)), next_set);
         assert!(!input.full());
     }
