@@ -445,9 +445,8 @@ impl RunState {
     /*
         Track the number of jobs sent to date
     */
-    pub fn job_sent(&mut self, job_id: usize) {
+    pub fn job_sent(&mut self) {
         self.jobs_sent += 1;
-        trace!("Job #{}:\tSent", job_id);
     }
 
     /*
@@ -809,7 +808,9 @@ impl RunState {
         Detect which flows have gone inactive and remove pending unblocks for functions in it
     */
     fn unblock_flows(&mut self, blocker_flow_id: usize, job_id: usize) {
-        let any_block = |_block: &Block| true;
+        // let any_block = |_block: &Block| true;
+        // HERE
+        let flow_external_blocks = |block: &Block| block.blocking_flow_id != block.blocked_flow_id;
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
@@ -820,7 +821,7 @@ impl RunState {
                 trace!("Job #{}:\tRemoving pending unblocks to functions in Flow #{} from other flows", job_id, blocker_flow_id);
                 for unblock_function_id in pending_unblocks {
                     // HERE
-                    self.unblock_senders_to_function(unblock_function_id, any_block);
+                    self.unblock_senders_to_function(unblock_function_id, flow_external_blocks);
                 }
             }
         }
@@ -1236,7 +1237,7 @@ mod test {
         fn jobs_sent_increases() {
             let mut state = RunState::new(vec!(), 1);
             state.init();
-            state.job_sent(0);
+            state.job_sent();
             assert_eq!(1, state.jobs(), "jobs() should have incremented");
         }
     }
