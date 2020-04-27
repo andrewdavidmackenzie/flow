@@ -9,7 +9,7 @@ type = "Value"
 name = "count"
 type = "Value"
 
-[[input]]
+[[output]]
 name = "data"
 type = "Value"
 
