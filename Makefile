@@ -1,5 +1,7 @@
 DOT := $(shell command -v dot 2> /dev/null)
 KCOV := $(shell command -v kcov 2> /dev/null)
+APTGET := $(shell command -v apt-get 2> /dev/null)
+YUM := $(shell command -v yum 2> /dev/null)
 STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo \\n------- Target \'$@\' starting
 ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
@@ -41,12 +43,20 @@ common-config:
 
 config-darwin:
 	$(STIME)
-	brew install gtk glib cairo cmake
+	brew install gtk glib cairo cmake graphviz
 	$(ETIME)
 
 config-linux:
 	$(STIME)
-	sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev
+ifneq ($(YUM),)
+	@echo "Detected $(YUM) for installing dependencies"
+	sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel graphviz gtk3-devel
+else ifneq ($(DNF),)
+	@echo "Detected $(APTGET) for installing dependencies"
+	sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev graphviz libgtk-3-dev
+else
+	echo "Neither apt-get nor dnf detected for installing dependencies"
+endif
 	$(ETIME)
 
 ################### Doc ####################
