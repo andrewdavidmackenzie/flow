@@ -118,9 +118,13 @@ deploy-pages:
 	$(ETIME)
 
 #################### Build ####################
-workspace:
+workspace: clippy
 	$(STIME)
 	@cargo build $(features) --all
+	$(ETIME)
+
+clippy:
+	$(STIME)
 	@cargo clippy --all --all-targets --all-features -- -D warnings
 	$(ETIME)
 

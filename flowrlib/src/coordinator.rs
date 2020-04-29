@@ -3,7 +3,7 @@ use std::sync::mpsc::{Receiver, Sender, SendError};
 use std::sync::mpsc;
 use std::time::Duration;
 
-use log::{debug, error, info};
+use log::{debug, error, info, trace};
 
 #[cfg(feature = "debugger")]
 use crate::debug_client::DebugClient;
@@ -181,6 +181,8 @@ impl Coordinator {
             let mut restart;
 
             'inner: loop {
+                trace!("{}", submission.state);
+
                 let debug_check = self.send_jobs(&mut submission);
                 display_next_output = debug_check.0;
                 restart = debug_check.1;
@@ -266,10 +268,9 @@ impl Coordinator {
         let mut restart = false;
 
         while let Some(job) = submission.state.next_job() {
-            let id = job.job_id;
             match self.send_job(job, submission) {
                 Ok((display, rest)) => {
-                    submission.state.job_sent(id);
+                    submission.state.job_sent();
                     display_output = display;
                     restart = rest;
                 }

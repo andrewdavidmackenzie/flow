@@ -434,9 +434,11 @@ impl RunState {
                 let job = self.create_job(function_id);
 
                 // unblock senders blocked trying to send to this function's empty inputs
-                self.unblock_senders(job.job_id, job.function_id, job.flow_id);
+                if let Some(ref j) = job {
+                    self.unblock_senders(j.job_id, j.function_id, j.flow_id);
+                }
 
-                Some(job)
+                job
             }
             None => None
         }
@@ -445,9 +447,8 @@ impl RunState {
     /*
         Track the number of jobs sent to date
     */
-    pub fn job_sent(&mut self, job_id: usize) {
+    pub fn job_sent(&mut self) {
         self.jobs_sent += 1;
-        trace!("Job #{}:\tSent - {}", job_id, self);
     }
 
     /*
@@ -462,18 +463,18 @@ impl RunState {
         Given a function id, prepare a job for execution that contains the input values, the
         implementation and the destination functions the output should be sent to when done
     */
-    fn create_job(&mut self, function_id: usize) -> Job {
+    fn create_job(&mut self, function_id: usize) -> Option<Job> {
         let job_id = self.jobs_sent;
 
         let function = self.get_mut(function_id);
-
-        let input_set = function.take_input_set();
-        let flow_id = function.get_flow_id();
 
         #[cfg(feature = "debugger")]
         debug!("Job #{}:-------Creating for Function #{} '{}' ---------------------------", job_id, function_id, function.name());
         #[cfg(not(feature = "debugger"))]
         debug!("Job #{}:-------Creating for Function #{} ---------------------------", job_id, function_id);
+
+        let input_set = function.take_input_set();
+        let flow_id = function.get_flow_id();
 
         // inputs were taken and hence emptied - so refresh any inputs that have constant initializers for next time
         function.init_inputs(false);
@@ -484,7 +485,7 @@ impl RunState {
 
         let destinations = function.output_destinations().clone();
 
-        Job {
+        Some(Job {
             job_id,
             function_id,
             flow_id,
@@ -493,7 +494,7 @@ impl RunState {
             destinations,
             result: (None, false),
             error: None,
-        }
+        })
     }
 
     /*
@@ -809,17 +810,17 @@ impl RunState {
         Detect which flows have gone inactive and remove pending unblocks for functions in it
     */
     fn unblock_flows(&mut self, blocker_flow_id: usize, job_id: usize) {
-        let any_block = |_block: &Block| true;
+        let flow_external_blocks = |block: &Block| block.blocking_flow_id != block.blocked_flow_id;
 
         // if flow is now idle, remove any blocks on sending to functions in the flow
         if self.busy_flows.get(&blocker_flow_id).is_none() {
             trace!("Job #{}:\tFlow #{} is now idle, so removing pending_unblocks for flow #{}",
                    job_id, blocker_flow_id, blocker_flow_id);
 
-            if let Some(unblocks) = self.pending_unblocks.remove(&blocker_flow_id) {
-                trace!("Job #{}:\tRemoving pending unblocks to functions in Flow #{}", job_id, blocker_flow_id);
-                for unblock_function_id in unblocks {
-                    self.unblock_senders_to_function(unblock_function_id, any_block);
+            if let Some(pending_unblocks) = self.pending_unblocks.remove(&blocker_flow_id) {
+                trace!("Job #{}:\tRemoving pending unblocks to functions in Flow #{} from other flows", job_id, blocker_flow_id);
+                for unblock_function_id in pending_unblocks {
+                    self.unblock_senders_to_function(unblock_function_id, flow_external_blocks);
                 }
             }
         }
@@ -878,7 +879,8 @@ impl RunState {
         // Note: they could be blocked on other functions apart from the the one that just unblocked
         for (unblocked_id, unblocked_flow_id) in unblock_list {
             if self.blocked.contains(&unblocked_id) && !self.blocked_sending(unblocked_id) {
-                debug!("\t\t\t\tFunction #{} removed from 'blocked' list", unblocked_id);
+                debug!("\t\t\t\tFunction #{} \
+                removed from 'blocked' list", unblocked_id);
                 self.blocked.remove(&unblocked_id);
 
                 if self.get(unblocked_id).inputs_full() {
@@ -1234,7 +1236,7 @@ mod test {
         fn jobs_sent_increases() {
             let mut state = RunState::new(vec!(), 1);
             state.init();
-            state.job_sent(0);
+            state.job_sent();
             assert_eq!(1, state.jobs(), "jobs() should have incremented");
         }
     }
@@ -2005,9 +2007,7 @@ mod test {
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
         }
 
-        // TODO equivalent tests now
         #[test]
-        #[ignore]
         fn can_send_array_to_simple_object_depth_1() {
             let mut function = Function::new(
                 #[cfg(feature = "debugger")]
@@ -2020,45 +2020,7 @@ mod test {
                                              &[], false);
             function.init_inputs(true);
             function.send(0, &json!([1, 2]));
-            assert_eq!(vec!(json!(1)), function.take_input_set().remove(0),
-                       "Value from input set wasn't what was expected");
-        }
-
-
-        #[test]
-        #[ignore]
-        fn can_send_array_to_simple_object_depth_2() {
-            let mut function = Function::new(
-                #[cfg(feature = "debugger")]
-                                                    "test".to_string(),
-                #[cfg(feature = "debugger")]
-                                             "/test".to_string(),
-                                             "/test".to_string(),
-                                             vec!(Input::new(2, &None)),
-                                             0, 0,
-                                             &[], false);
-            function.init_inputs(true);
-            function.send(0, &json!([1, 2]));
-            assert_eq!(vec!(json!(1), json!(2)), function.take_input_set().remove(0),
-                       "Value from input set wasn't what was expected");
-        }
-
-        #[test]
-        #[ignore]
-        fn can_send_simple_object_to_array_input() {
-            let mut function = Function::new(
-                #[cfg(feature = "debugger")]
-                                                    "test".to_string(),
-                #[cfg(feature = "debugger")]
-                                             "/test".to_string(),
-                                             "/test".to_string(),
-                                             // vec!(Input::new(1, &None, true, false)),
-                                             vec!(Input::new(1, &None)),
-                                             0, 0,
-                                             &[], false);
-            function.init_inputs(true);
-            function.send(0, &json!(1));
-            assert_eq!(vec!(json!([1])), function.take_input_set().remove(0),
+            assert_eq!(function.take_input_set().remove(0), vec!(json!([1, 2])),
                        "Value from input set wasn't what was expected");
         }
     }

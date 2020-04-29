@@ -1,24 +1,75 @@
 flow = "tokenizer"
 
-[[process]]
+[[process]] # Read a single line of inputs text into a stringn
 source = "lib://flowruntime/stdio/readline"
 
-[[process]]
+[[process]] # Split a string on the space (" ") separator
 source = "lib://flowstdlib/data/split"
 input.separator = { constant = " " }
+#input.string = { once = "the quick brown fox jumped over the lazy dog" }
 
-[[connection]]
+[[connection]] # Take the input string and pass it to splitter
 from = "readline"
 to = "split/string"
 
-[[connection]]
+[[connection]] # Loop back partial splits to be split further
 from = "split/partial"
 to = "split/string"
 
-[[process]]
+[[process]] # Adder to track pending work
+alias = "work-counter"
+source = "lib://flowstdlib/math/add"
+input.i2 = { once = 1 }
+
+[[process]] # Adder to count tokens
+alias = "token-counter"
+source = "lib://flowstdlib/math/add"
+input.i2 = { once = 0 }
+
+[[connection]] # Pass the change in amount of work pending to the work counter
+from = "split/delta"
+to = "work-counter/i1"
+
+[[connection]] # Loop back the sum to accumulate the pending work count
+name = "pending-work"
+from = "work-counter/sum"
+to = "work-counter/i2"
+
+[[connection]] # Count the tokens passing thru 'count'
+name = "tokens"
+from = "split/token-count"
+to = "token-counter/i1"
+
+[[connection]] # Loop back to count token total
+from = "token-counter/sum"
+to = "token-counter/i2"
+
+[[process]] # A Tap to limit output of count until we are done
+source = "lib://flowstdlib/control/tap"
+
+[[connection]] # Pass the token count to the tap
+name = "token-count"
+from = "token-counter/sum"
+to = "tap/data"
+
+[[process]] # compare pending work to zero
+source = "lib://flowstdlib/math/compare"
+input.left = { constant = 0 }
+
+[[connection]] # compare pending work to zero
+name = "pending-work"
+from = "work-counter/sum"
+to = "compare/right"
+
+[[connection]] # Open tap when we are done!
+name = "done"
+from = "compare/equal"
+to = "tap/control"
+
+[[process]] # stdout for showing text
 source = "lib://flowruntime/stdio/stdout"
 
-[[connection]]
-from = "split/token"
+[[connection]] # output the last token count when done
+name = "last-token-count"
+from = "tap"
 to = "stdout"
-

@@ -50,6 +50,16 @@ use serde_json::{json, Value};
 /// it will be output as `token`
 ///
 /// * token - a String that cannot be sub-divided further.
+///
+/// * delta - this is a Number that indicates if this job reduced (-1) or increased (+1) the number
+/// of pending jobs to complete the split task. e.g. it consumes the input string, ot there is one
+/// less to process. If it outputs a token then the delta to pending work is -1 (-1 input consumed
+/// -0 partials for further splitting). If the input string
+/// is split into two partial strings that are output for further splitting, then the delta to
+/// pending work is +1 (+2 partials -1 input)
+///
+/// * token-count - the number of tokens emitted, can be used to count tokens generated
+///
 #[derive(Debug)]
 pub struct Split;
 
@@ -61,9 +71,22 @@ impl Implementation for Split {
         let (partial, token) = split(string, separator);
 
         let mut output_map = serde_json::Map::new();
-        output_map.insert("partial".into(), json!(partial));
+
+        let mut work_delta: i32 = -1; // we have consumed a string, so one down
+
+        if let Some(partial) = partial {
+            // but we have generated some new strings to be processed by other jobs
+            work_delta += partial.len() as i32;
+            output_map.insert("partial".into(), json!(partial));
+        }
+
+        output_map.insert("delta".into(), json!(work_delta));
+
         if let Some(tok) = token {
             output_map.insert("token".into(), json!(tok));
+            output_map.insert("token-count".into(), json!(1));
+        } else {
+            output_map.insert("token-count".into(), json!(0));
         }
 
         let output = Value::Object(output_map);
@@ -73,15 +96,15 @@ impl Implementation for Split {
 }
 
 // Separate an array of text at a separator string close to the center, dividing in two if possible
-fn split(input: &str, separator: &str) -> (Vec<String>, Option<String>) {
+fn split(input: &str, separator: &str) -> (Option<Vec<String>>, Option<String>) {
     let text = input.trim();
 
     if text.is_empty() {
-        return (Vec::new(), None);
+        return (None, None);
     }
 
     if text.len() < 3 {
-        return (Vec::new(), Some(text.to_string()));
+        return (None, Some(text.to_string()));
     }
 
     let start = 0;
@@ -91,19 +114,21 @@ fn split(input: &str, separator: &str) -> (Vec<String>, Option<String>) {
     // try and find a separator from middle towards the end
     for point in middle..end { // cannot have separator at end
         if text.get(point..point + 1).unwrap() == separator {
-            return (vec!(text[0..point].to_string(), text[point + 1..text.len()].to_string()), None);
+            return (Some(vec!(text[0..point].to_string(), text[point + 1..text.len()].to_string())), None);
         }
     }
 
     // try and find a separator from middle backwards towards the start
     for point in (start..middle).rev() {
         if text.get(point..point + 1).unwrap() == separator {
-            return (vec!(text[0..point].to_string()), Some(text[point + 1..text.len()].to_string()));
+            // If we find one return the string upto that  point for further splitting, plus the string from
+            // there to the end as a token
+            return (Some(vec!(text[0..point].to_string())), Some(text[point + 1..text.len()].to_string()));
         }
     }
 
     // No separator found - return entire string as one entry in the vector
-    (Vec::new(), Some(text.to_string()))
+    (None, Some(text.to_string()))
 }
 
 #[cfg(test)]
@@ -114,43 +139,46 @@ mod test {
     #[test]
     fn basic_tests() {
         #[allow(clippy::type_complexity)]
-        let test_cases: Vec<(&str, (Vec<&str>, Option<String>))> = vec!(
+            let test_cases: Vec<(&str, (Option<Vec<String>>, Option<String>))> = vec!(
             // empty string case
-            ("", (vec!(), None)),
+            ("", (None, None)),
 
             // just separators
-            (" ", (vec!(), None)),   // 1
-            ("  ", (vec!(), None)),  // 2
-            ("   ", (vec!(), None)), // 3
+            (" ", (None, None)),   // 1
+            ("  ", (None, None)),  // 2
+            ("   ", (None, None)), // 3
 
             // one letter words
-            ("a", (vec!(), Some("a".into()))),   // no separator
-            (" a", (vec!(), Some("a".into()))),  // separator before
-            ("a ", (vec!(), Some("a".into()))),  // separator after
-            (" a ", (vec!(), Some("a".into()))), // separator before and after
+            ("a", (None, Some("a".into()))),   // no separator
+            (" a", (None, Some("a".into()))),  // separator before
+            ("a ", (None, Some("a".into()))),  // separator after
+            (" a ", (None, Some("a".into()))), // separator before and after
 
             // two letter words
-            ("aa", (vec!(), Some("aa".into()))),   // no separator
-            (" aa", (vec!(), Some("aa".into()))),  // separator before
-            ("aa ", (vec!(), Some("aa".into()))),  // separator after
-            (" aa ", (vec!(), Some("aa".into()))), // separator before and after
+            ("aa", (None, Some("aa".into()))),   // no separator
+            (" aa", (None, Some("aa".into()))),  // separator before
+            ("aa ", (None, Some("aa".into()))),  // separator after
+            (" aa ", (None, Some("aa".into()))), // separator before and after
 
             // One word texts
-            ("text", (vec!(), Some("text".into()))),   // no separator
-            (" text", (vec!(), Some("text".into()))),  // separator before
-            ("text ", (vec!(), Some("text".into()))),  // separator after
-            (" text ", (vec!(), Some("text".into()))), // separator before and after
+            ("text", (None, Some("text".into()))),   // no separator
+            (" text", (None, Some("text".into()))),  // separator before
+            ("text ", (None, Some("text".into()))),  // separator after
+            (" text ", (None, Some("text".into()))), // separator before and after
 
             // Two word texts
-            ("some text", (vec!("some", "text"), None)),   // separator in middle
-            ("some text ", (vec!("some", "text"), None)),  // separator in middle and after
-            (" some text", (vec!("some", "text"), None)),  // separator before, middle
-            (" some text ", (vec!("some", "text"), None)), // separator before, middle and after
+            ("some text", (Some(vec!("some".into(), "text".into())), None)),   // separator in middle
+            ("some text ", (Some(vec!("some".into(), "text".into())), None)),  // separator in middle and after
+            (" some text", (Some(vec!("some".into(), "text".into())), None)),  // separator before, middle
+            (" some text ", (Some(vec!("some".into(), "text".into())), None)), // separator before, middle and after
 
             // longer texts
-            ("the quick brown fox jumped over the lazy dog", (vec!("the quick brown fox jumped", "over the lazy dog"), None)),
-            ("the quick brown fox jumped-over-the-lazy-dog", (vec!("the quick brown fox"), Some("jumped-over-the-lazy-dog".into()))),
-            ("the-quick-brown-fox-jumped-over-the-lazy-dog", (vec!(), Some("the-quick-brown-fox-jumped-over-the-lazy-dog".into()))),
+            ("the quick brown fox jumped over the lazy dog",
+             (Some(vec!("the quick brown fox jumped".into(), "over the lazy dog".into())), None)),
+            ("the quick brown fox jumped-over-the-lazy-dog",
+             (Some(vec!("the quick brown fox".into())), Some("jumped-over-the-lazy-dog".into()))),
+            ("the-quick-brown-fox-jumped-over-the-lazy-dog",
+             (None, Some("the-quick-brown-fox-jumped-over-the-lazy-dog".into()))),
         );
 
         for test in test_cases {
@@ -187,12 +215,76 @@ mod test {
             if let Some(token) = output.pointer("/token") {
                 output_vector.push(token.clone());
             }
-            let split_values = output.pointer("/partial").unwrap().as_array().unwrap().iter();
-            for value in split_values {
-                input_strings.push(value.clone());
+
+            if let Some(split_values) = output.pointer("/partial") {
+                for value in split_values.as_array().unwrap().iter() {
+                    input_strings.push(value.clone());
+                }
             }
         }
+    }
 
-        println!("output vector = {:?}", output_vector);
+    #[test]
+    fn no_partials_no_token_work_delta() {
+        let test = (json!("  "), 1);
+
+        let separator = vec!(json!(" "));
+
+        let splitter = super::Split {};
+        let (result, _) = splitter.run(&vec!(vec!(test.0), separator));
+
+        let output = result.unwrap();
+        assert!(output.pointer("/token").is_none());
+        assert_eq!(output.pointer("/token-count").unwrap(), &json!(0));
+        assert!(output.pointer("/partial").is_none());
+        assert_eq!(output.pointer("/delta").unwrap(), &json!(-1));
+    }
+
+    #[test]
+    fn two_partials_no_token_work_delta() {
+        let test = (json!("the quick brown fox jumped over the lazy dog"), 1);
+
+        let separator = vec!(json!(" "));
+
+        let splitter = super::Split {};
+        let (result, _) = splitter.run(&vec!(vec!(test.0), separator));
+
+        let output = result.unwrap();
+        assert!(output.pointer("/token").is_none());
+        assert_eq!(output.pointer("/token-count").unwrap(), &json!(0));
+        assert_eq!(output.pointer("/partial").unwrap(), &json!(["the quick brown fox jumped", "over the lazy dog"]));
+        assert_eq!(output.pointer("/delta").unwrap(), &json!(1));
+    }
+
+    #[test]
+    fn one_partial_one_token_work_delta() {
+        let test = (json!("the quick brown fox-jumped-over-the-lazy-dog"), 1);
+
+        let separator = vec!(json!(" "));
+
+        let splitter = super::Split {};
+        let (result, _) = splitter.run(&vec!(vec!(test.0), separator));
+
+        let output = result.unwrap();
+        assert_eq!(output.pointer("/token").unwrap(), "fox-jumped-over-the-lazy-dog");
+        assert_eq!(output.pointer("/token-count").unwrap(), &json!(1));
+        assert_eq!(output.pointer("/partial").unwrap(), &json!(["the quick brown"]));
+        assert_eq!(output.pointer("/delta").unwrap(), &json!(0));
+    }
+
+    #[test]
+    fn no_partials_one_token_work_delta() {
+        let test = (json!("the"), -1);
+
+        let separator = vec!(json!(" "));
+
+        let splitter = super::Split {};
+        let (result, _) = splitter.run(&vec!(vec!(test.0), separator));
+
+        let output = result.unwrap();
+        assert!(output.pointer("/partial").is_none());
+        assert_eq!(output.pointer("/token").unwrap(), &json!("the"));
+        assert_eq!(output.pointer("/token-count").unwrap(), &json!(1));
+        assert_eq!(output.pointer("/delta").unwrap(), &json!(-1));
     }
 }
