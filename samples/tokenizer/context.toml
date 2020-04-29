@@ -16,46 +16,41 @@ to = "split/string"
 from = "split/partial"
 to = "split/string"
 
-[[process]] # Added to track pending work
+[[process]] # Adder to track pending work
+alias = "work-counter"
 source = "lib://flowstdlib/math/add"
 input.i2 = { once = 1 }
 
+[[process]] # Adder to count tokens
+alias = "token-counter"
+source = "lib://flowstdlib/math/add"
+input.i2 = { once = 0 }
+
 [[connection]] # Pass the change in amount of work pending to the work counter
 from = "split/delta"
-to = "add/i1"
+to = "work-counter/i1"
 
 [[connection]] # Loop back the sum to accumulate the pending work count
 name = "pending-work"
-from = "add/sum"
-to = "add/i2"
-
-[[process]] # Token counter
-source = "lib://flowstdlib/data/count"
-input.count = { once = 0 }
+from = "work-counter/sum"
+to = "work-counter/i2"
 
 [[connection]] # Count the tokens passing thru 'count'
 name = "tokens"
-from = "split/token"
-to = "count/data"
+from = "split/token-count"
+to = "token-counter/i1"
 
-[[connection]] # Loop back to count up
+[[connection]] # Loop back to count token total
+from = "token-counter/sum"
+to = "token-counter/i2"
+
+[[process]] # A Tap to limit output of count until we are done
+source = "lib://flowstdlib/control/tap"
+
+[[connection]] # Pass the token count to the tap
 name = "token-count"
-from = "count/count"
-to = "count/count"
-
-#[[process]] # A Tap to limit output of count until we are done
-#source = "lib://flowstdlib/control/tap"
-#input.data = { constant = "Done" }
-
-#[[connection]] # Pass the token count to the tap
-#name = "token-count"
-#from = "count/count"
-#to = "tap/data"
-
-[[connection]] # DEBUG
-name = "token-count"
-from = "count/count"
-to = "stdout"
+from = "token-counter/sum"
+to = "tap/data"
 
 [[process]] # compare pending work to zero
 source = "lib://flowstdlib/math/compare"
@@ -63,19 +58,18 @@ input.left = { constant = 0 }
 
 [[connection]] # compare pending work to zero
 name = "pending-work"
-from = "add/sum"
+from = "work-counter/sum"
 to = "compare/right"
 
-#[[connection]] # Open tap when we are done!
-#name = "done"
-#from = "compare/equal"
-##to = "tap/control"
-#to = "stdout"
+[[connection]] # Open tap when we are done!
+name = "done"
+from = "compare/equal"
+to = "tap/control"
 
 [[process]] # stdout for showing text
 source = "lib://flowruntime/stdio/stdout"
 
-#[[connection]] # output the token count when done
-#name = "last-token-count"
-#from = "tap"
-#to = "stdout"
+[[connection]] # output the last token count when done
+name = "last-token-count"
+from = "tap"
+to = "stdout"
