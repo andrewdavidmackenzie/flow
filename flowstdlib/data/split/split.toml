@@ -14,6 +14,10 @@ name = "partial"
 type = "Array/String"
 
 [[output]]
+name = "token-count"
+type = "Number"
+
+[[output]]
 name = "token"
 type = "String"
 

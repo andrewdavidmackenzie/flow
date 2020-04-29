@@ -57,6 +57,9 @@ use serde_json::{json, Value};
 /// -0 partials for further splitting). If the input string
 /// is split into two partial strings that are output for further splitting, then the delta to
 /// pending work is +1 (+2 partials -1 input)
+///
+/// * token-count - the number of tokens emitted, can be used to count tokens generated
+///
 #[derive(Debug)]
 pub struct Split;
 
@@ -81,6 +84,9 @@ impl Implementation for Split {
 
         if let Some(tok) = token {
             output_map.insert("token".into(), json!(tok));
+            output_map.insert("token-count".into(), json!(1));
+        } else {
+            output_map.insert("token-count".into(), json!(0));
         }
 
         let output = Value::Object(output_map);
@@ -229,6 +235,7 @@ mod test {
 
         let output = result.unwrap();
         assert!(output.pointer("/token").is_none());
+        assert_eq!(output.pointer("/token-count").unwrap(), &json!(0));
         assert!(output.pointer("/partial").is_none());
         assert_eq!(output.pointer("/delta").unwrap(), &json!(-1));
     }
@@ -244,6 +251,7 @@ mod test {
 
         let output = result.unwrap();
         assert!(output.pointer("/token").is_none());
+        assert_eq!(output.pointer("/token-count").unwrap(), &json!(0));
         assert_eq!(output.pointer("/partial").unwrap(), &json!(["the quick brown fox jumped", "over the lazy dog"]));
         assert_eq!(output.pointer("/delta").unwrap(), &json!(1));
     }
@@ -259,6 +267,7 @@ mod test {
 
         let output = result.unwrap();
         assert_eq!(output.pointer("/token").unwrap(), "fox-jumped-over-the-lazy-dog");
+        assert_eq!(output.pointer("/token-count").unwrap(), &json!(1));
         assert_eq!(output.pointer("/partial").unwrap(), &json!(["the quick brown"]));
         assert_eq!(output.pointer("/delta").unwrap(), &json!(0));
     }
@@ -275,6 +284,7 @@ mod test {
         let output = result.unwrap();
         assert!(output.pointer("/partial").is_none());
         assert_eq!(output.pointer("/token").unwrap(), &json!("the"));
+        assert_eq!(output.pointer("/token-count").unwrap(), &json!(1));
         assert_eq!(output.pointer("/delta").unwrap(), &json!(-1));
     }
 }
