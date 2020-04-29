@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/andrewdavidmackenzie/flow.svg?branch=master)](https://travis-ci.org/andrewdavidmackenzie/flow)
 [![codecov.io](https://codecov.io/gh/andrewdavidmackenzie/flow/coverage.svg?branch=master)](https://codecov.io/gh/andrewdavidmackenzie/flow/branch/master)
 # Welcome!
-Welcome to my project called `flow` for defining and running parallel, data-flow 'programs' like this one:
+Welcome to my project called `flow` for defining and running parallel, [dataflow programs](https://en.wikipedia.org/wiki/Dataflow_programming) like this one:
 
 ![First flow](samples/fibonacci/context.dot.svg)
 
