@@ -64,9 +64,9 @@ use serde_json::{json, Value};
 pub struct Split;
 
 impl Implementation for Split {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let string = inputs[0][0].as_str().unwrap();
-        let separator = inputs[1][0].as_str().unwrap();
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+        let string = inputs[0].as_str().unwrap();
+        let separator = inputs[1].as_str().unwrap();
 
         let (partial, token) = split(string, separator);
 
@@ -197,7 +197,7 @@ mod test {
     #[test]
     fn iterate_until_done() {
         let string = json!("the quick brown fox jumped over the lazy dog");
-        let separator = vec!(json!(" "));
+        let separator = json!(" ");
         let mut output_vector = vec!();
         let mut input_strings = vec!(string);
 
@@ -209,7 +209,7 @@ mod test {
 
             let this_input = input_strings.pop().unwrap();
             let splitter = super::Split {};
-            let (result, _) = splitter.run(&vec!(vec!(this_input), separator.clone()));
+            let (result, _) = splitter.run(&[this_input, separator.clone()]);
 
             let output = result.unwrap();
             if let Some(token) = output.pointer("/token") {
@@ -227,11 +227,10 @@ mod test {
     #[test]
     fn no_partials_no_token_work_delta() {
         let test = (json!("  "), 1);
-
-        let separator = vec!(json!(" "));
+        let separator = json!(" ");
 
         let splitter = super::Split {};
-        let (result, _) = splitter.run(&vec!(vec!(test.0), separator));
+        let (result, _) = splitter.run(&[test.0, separator]);
 
         let output = result.unwrap();
         assert!(output.pointer("/token").is_none());
@@ -243,11 +242,10 @@ mod test {
     #[test]
     fn two_partials_no_token_work_delta() {
         let test = (json!("the quick brown fox jumped over the lazy dog"), 1);
-
-        let separator = vec!(json!(" "));
+        let separator = json!(" ");
 
         let splitter = super::Split {};
-        let (result, _) = splitter.run(&vec!(vec!(test.0), separator));
+        let (result, _) = splitter.run(&[test.0, separator]);
 
         let output = result.unwrap();
         assert!(output.pointer("/token").is_none());
@@ -259,11 +257,10 @@ mod test {
     #[test]
     fn one_partial_one_token_work_delta() {
         let test = (json!("the quick brown fox-jumped-over-the-lazy-dog"), 1);
-
-        let separator = vec!(json!(" "));
+        let separator = json!(" ");
 
         let splitter = super::Split {};
-        let (result, _) = splitter.run(&vec!(vec!(test.0), separator));
+        let (result, _) = splitter.run(&[test.0, separator]);
 
         let output = result.unwrap();
         assert_eq!(output.pointer("/token").unwrap(), "fox-jumped-over-the-lazy-dog");
@@ -275,11 +272,10 @@ mod test {
     #[test]
     fn no_partials_one_token_work_delta() {
         let test = (json!("the"), -1);
-
-        let separator = vec!(json!(" "));
+        let separator = json!(" ");
 
         let splitter = super::Split {};
-        let (result, _) = splitter.run(&vec!(vec!(test.0), separator));
+        let (result, _) = splitter.run(&[test.0, separator]);
 
         let output = result.unwrap();
         assert!(output.pointer("/partial").is_none());

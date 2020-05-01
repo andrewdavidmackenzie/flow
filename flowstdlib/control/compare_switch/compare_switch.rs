@@ -27,9 +27,9 @@ use serde_json::Value;
 pub struct CompareSwitch;
 
 impl Implementation for CompareSwitch {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let left = &inputs[0][0];
-        let right = &inputs[1][0];
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+        let left = &inputs[0];
+        let right = &inputs[1];
         match (left.as_f64(), right.as_f64()) {
             (Some(lhs), Some(rhs)) => {
                 let mut output_map = serde_json::Map::new();
@@ -56,7 +56,7 @@ impl Implementation for CompareSwitch {
                 (Some(output), RUN_AGAIN)
             }
             (_, _) => {
-                println!("Unsupported types in compare_switch");
+                println!("Unsupported input types in 'compare_switch': {:?}", inputs);
                 (None, RUN_AGAIN)
             }
         }
@@ -72,8 +72,8 @@ mod test {
 
     #[test]
     fn integer_equals() {
-        let left = vec!(json!(1));
-        let right = vec!(json!(1));
+        let left = json!(1);
+        let right = json!(1);
         let inputs = vec!(left, right);
 
         let comparer = &CompareSwitch{} as &dyn Implementation;
@@ -89,8 +89,8 @@ mod test {
 
     #[test]
     fn float_equals() {
-        let left = vec!(json!(1.0));
-        let right = vec!(json!(1.0));
+        let left = json!(1.0);
+        let right = json!(1.0);
         let inputs = vec!(left, right);
 
         let comparer = &CompareSwitch{} as &dyn Implementation;

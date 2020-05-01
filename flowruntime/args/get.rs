@@ -13,7 +13,7 @@ pub struct Get {
 }
 
 impl Implementation for Get {
-    fn run(&self, mut _inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, mut _inputs: &[Value]) -> (Option<Value>, RunAgain) {
         if let Ok(client) = self.client.lock() {
             match client.send_command(Command::Args) {
                 Response::Args(arg_vec) => {

@@ -25,9 +25,9 @@ use serde_json::Value;
 pub struct DuplicateRows;
 
 impl Implementation for DuplicateRows {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let matrix = inputs[0][0].as_array().unwrap();
-        let factor = &inputs[1][0];
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+        let matrix = inputs[0].as_array().unwrap();
+        let factor = &inputs[1];
         let mut output_matrix: Vec<Value> = vec!();
 
         for row in matrix.iter() {
@@ -48,11 +48,11 @@ mod test {
 
     #[test]
     fn duplicate_2() {
-        let row0 = Value::Array(vec!(json!(1), json!(2)));
-        let row1 = Value::Array(vec!(json!(3), json!(4)));
+        let row0 = json!([1, 2]);
+        let row1 = json!([3, 4]);
         let matrix = Value::Array(vec!(row0, row1));
 
-        let inputs = vec!(vec!(matrix), vec!(json!(2)));
+        let inputs = vec!(matrix, json!(2));
 
         let duplicator = super::DuplicateRows {};
         let (result, _) = duplicator.run(&inputs);
@@ -71,11 +71,11 @@ mod test {
 
     #[test]
     fn duplicate_3() {
-        let row0 = Value::Array(vec!(json!(1), json!(2)));
-        let row1 = Value::Array(vec!(json!(3), json!(4)));
+        let row0 = json!([1, 2]);
+        let row1 = json!([3, 4]);
         let matrix = Value::Array(vec!(row0, row1));
 
-        let inputs = vec!(vec!(matrix), vec!(json!(3)));
+        let inputs = vec!(matrix, json!(3));
 
         let duplicator = super::DuplicateRows {};
         let (result, _) = duplicator.run(&inputs);
@@ -88,11 +88,11 @@ mod test {
         let new_row4 = new_matrix[4].clone();
         let new_row5 = new_matrix[5].clone();
 
-        assert_eq!(new_row0, Value::Array(vec!(Value::Number(Number::from(1)), Value::Number(Number::from(2)))));
-        assert_eq!(new_row1, Value::Array(vec!(Value::Number(Number::from(1)), Value::Number(Number::from(2)))));
-        assert_eq!(new_row2, Value::Array(vec!(Value::Number(Number::from(1)), Value::Number(Number::from(2)))));
-        assert_eq!(new_row3, Value::Array(vec!(Value::Number(Number::from(3)), Value::Number(Number::from(4)))));
-        assert_eq!(new_row4, Value::Array(vec!(Value::Number(Number::from(3)), Value::Number(Number::from(4)))));
-        assert_eq!(new_row5, Value::Array(vec!(Value::Number(Number::from(3)), Value::Number(Number::from(4)))));
+        assert_eq!(new_row0, json!([1, 2]));
+        assert_eq!(new_row1, json!([1, 2]));
+        assert_eq!(new_row2, json!([1, 2]));
+        assert_eq!(new_row3, json!([3, 4]));
+        assert_eq!(new_row4, json!([3, 4]));
+        assert_eq!(new_row5, json!([3, 4]));
     }
 }

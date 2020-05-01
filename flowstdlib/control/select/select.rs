@@ -24,10 +24,10 @@ use serde_json::Value;
 pub struct Select;
 
 impl Implementation for Select {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let i1 = &inputs[0][0];
-        let i2 = &inputs[1][0];
-        let control = &inputs[2][0].as_bool().unwrap();
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+        let i1 = &inputs[0];
+        let i2 = &inputs[1];
+        let control = &inputs[2].as_bool().unwrap();
 
         let mut output_map = serde_json::Map::new();
         if *control {

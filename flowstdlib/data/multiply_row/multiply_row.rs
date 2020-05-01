@@ -26,9 +26,9 @@ use serde_json::{json, Value};
 pub struct MultiplyRow;
 
 impl Implementation for MultiplyRow {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let row0 = inputs[0][0].as_array().unwrap();
-        let row1 = inputs[1][0].as_array().unwrap();
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+        let row0 = inputs[0].as_array().unwrap();
+        let row1 = inputs[1].as_array().unwrap();
 
         let mut product = 0;
         for index in 0..row0.len() {
@@ -50,7 +50,7 @@ mod test {
         let row0 = Value::Array(vec!(json!(1), json!(2)));
         let row1 = Value::Array(vec!(json!(3), json!(4)));
 
-        let inputs = vec!(vec!(row0), vec!(row1));
+        let inputs = vec!(row0, row1);
 
         let multiplier = super::MultiplyRow {};
         let (result, _) = multiplier.run(&inputs);

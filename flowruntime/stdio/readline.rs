@@ -13,7 +13,7 @@ pub struct Readline {
 }
 
 impl Implementation for Readline {
-    fn run(&self, _inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, _inputs: &[Value]) -> (Option<Value>, RunAgain) {
         if let Ok(client) = self.client.lock() {
             match client.send_command(Command::Readline) {
                 Response::Readline(contents) => return (Some(Value::String(contents)), RUN_AGAIN),

@@ -24,7 +24,7 @@ use serde_json::Value::String;
 pub struct Add;
 
 impl Implementation for Add {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
         let mut sum = None;
 
         let input_a = &inputs[0];
@@ -32,7 +32,7 @@ impl Implementation for Add {
 
         let mut output_map = serde_json::Map::new();
 
-        match (&input_a[0], &input_b[0]) {
+        match (&input_a, &input_b) {
             (&Number(ref a), &Number(ref b)) => {
                 sum = if a.is_i64() && b.is_i64() {
                     match a.as_i64().unwrap().checked_add(b.as_i64().unwrap()) {
@@ -47,7 +47,7 @@ impl Implementation for Add {
                 } else if a.is_f64() || b.is_f64() {
                     Some(Value::Number(serde_json::Number::from_f64(a.as_f64().unwrap() + b.as_f64().unwrap()).unwrap()))
                 } else {
-                    println!("Unsupported input value types");
+                    println!("Unsupported input types in 'add': {:?}", inputs);
                     None
                 };
             }
@@ -57,13 +57,13 @@ impl Implementation for Add {
                 let o1 = i1 + i2;
                 sum = Some(Value::String(o1.to_string()));
             }
-            (_, _) => println!("Unsupported input value types")
+            (_, _) => println!("Unsupported input types in 'add': {:?}", inputs)
         }
 
         if let Some(total) = sum {
             output_map.insert("sum".into(), total);
-            output_map.insert("i1".into(), input_a[0].clone());
-            output_map.insert("i2".into(), input_b[0].clone());
+            output_map.insert("i1".into(), input_a.clone());
+            output_map.insert("i2".into(), input_b.clone());
 
             let output = Value::Object(output_map);
 
@@ -82,8 +82,8 @@ mod test {
 
     use super::Add;
 
-    fn get_inputs(pair: &(Value, Value, Option<Value>)) -> Vec<Vec<Value>> {
-        vec!(vec!(pair.0.clone()), vec!(pair.1.clone()))
+    fn get_inputs(pair: &(Value, Value, Option<Value>)) -> Vec<Value> {
+        vec!(pair.0.clone(), pair.1.clone())
     }
 
     // 0 plus 0

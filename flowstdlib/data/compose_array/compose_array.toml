@@ -1,8 +1,0 @@
-function = "ComposeArray"
-implementation = "compose_array.rs"
-
-[[input]]
-type = "Value"
-
-[[output]]
-type = "Array/Value"

@@ -119,7 +119,7 @@ mod test {
             #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(1, &None)),
+                                         vec!(Input::new(None, &None)),
                                          0, 0,
                                          &[], false);
 

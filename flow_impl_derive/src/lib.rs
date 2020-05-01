@@ -48,7 +48,7 @@ fn impl_flow_impl(ast: &syn::DeriveInput) -> TokenStream {
                                       input_data_length as usize, input_data_length as usize)
             };
 
-            let inputs = serde_json::from_slice(&input_data).unwrap();
+            let inputs: Vec<Value> = serde_json::from_slice(&input_data).unwrap();
             let object = #name {};
             let result = object.run(&inputs);
 

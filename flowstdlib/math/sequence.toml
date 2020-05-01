@@ -54,8 +54,7 @@ to = "add/i2"
 from = "add/i2"
 to = "add/i2"
 
-# connect the /lt output of compare (i.e. numbers that are less than or equal to the limit) to the output of this process -
-# the sequence of numbers being generated
+# connect the /right-lte output of compare_switch to the output of this process - the sequence of numbers being generated
 [[connection]]
 from = "compare/right-lte"
 to = "output/sequence"
@@ -71,8 +70,8 @@ to = "compare/left"
 from = "compare/right-lt"
 to = "add/i1"
 
-# After the first iteration, each time take the output of the adder (i.e. possibly the next number in the sequence)
-# and pass it into the pilte flow to pass it thru if it's less than the limit
+# After the first iteration, each time take the sum from the adder (i.e. possibly the next number in the sequence)
+# and pass it into the compare_switch function to pass it thru if it's less than the limit
 [[connection]]
 from = "add/sum"
 to = "compare/right"

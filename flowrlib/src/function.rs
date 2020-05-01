@@ -47,7 +47,7 @@ pub struct Function {
 struct ImplementationNotFound;
 
 impl Implementation for ImplementationNotFound {
-    fn run(&self, _inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, _inputs: &[Value]) -> (Option<Value>, RunAgain) {
         error!("Implementation not found");
         (None, false)
     }
@@ -167,7 +167,7 @@ impl Function {
     /// write a value to a `Function`'s input
     pub fn send(&mut self, input_number: usize, value: &Value) {
         let input = &mut self.inputs[input_number];
-        input.push(value.clone(), input_number);
+        input.push(value.clone());
     }
 
     /// write an array of values to a `Function`'s input
@@ -199,7 +199,7 @@ impl Function {
     /// Determine if all of the `Functions` `inputs` are full and this function can be run
     pub fn inputs_full(&self) -> bool {
         for input in &self.inputs {
-            if !input.full() {
+            if input.is_empty() {
                 return false;
             }
         }
@@ -214,10 +214,10 @@ impl Function {
     }
 
     /// Read the values from the inputs and return them for use in executing the function
-    pub fn take_input_set(&mut self) -> Vec<Vec<Value>> {
-        let mut input_set: Vec<Vec<Value>> = Vec::new();
-        for (number, input) in &mut self.inputs.iter_mut().enumerate() {
-            input_set.push(input.take(number));
+    pub fn take_input_set(&mut self) -> Vec<Value> {
+        let mut input_set: Vec<Value> = Vec::new();
+        for input in &mut self.inputs {
+            input_set.push(input.take());
         }
         input_set
     }
@@ -269,12 +269,12 @@ mod test {
                                          #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(1, &None)),
+                                         vec!(Input::new(None, &None)),
                                          0, 0,
                                          &[], false);
         function.init_inputs(true);
         function.send(0, &json!(1));
-        assert_eq!(json!(1), function.take_input_set().remove(0).remove(0),
+        assert_eq!(json!(1), function.take_input_set().remove(0),
                    "Value from input set wasn't what was expected");
     }
 
@@ -287,103 +287,16 @@ mod test {
                                          "/test".to_string(),
                                          "/test".to_string(),
                                          // vec!(Input::new(1, &None, true, false)),
-                                         vec!(Input::new(1, &None)),
+                                         vec!(Input::new(None, &None)),
                                          0, 0,
                                          &[], false);
         function.init_inputs(true);
         function.send(0, &json!([1, 2]));
-        assert_eq!(json!([1, 2]), function.take_input_set().remove(0).remove(0),
+        assert_eq!(json!([1, 2]), function.take_input_set().remove(0),
                    "Value from input set wasn't what was expected");
-    }
-
-    #[test]
-    fn second_value_overwrites_on_oversend() {
-        let mut function = Function::new(
-            #[cfg(feature = "debugger")]
-                                    "test".to_string(),
-            #[cfg(feature = "debugger")]
-                                         "/test".to_string(),
-                                         "/test".to_string(),
-                                         vec!(Input::new(1, &None)),
-                                         0, 0,
-                                         &[], false);
-        function.init_inputs(true);
-        function.send(0, &json!(1));
-        function.send(0, &json!(2));
-        assert_eq!(json!(2), function.take_input_set().remove(0).remove(0),
-                   "Value from input set wasn't what was expected");
-    }
-
-    #[test]
-    fn empty_input_set_if_not_full() {
-        let mut function = Function::new(
-            #[cfg(feature = "debugger")]
-                                        "test".to_string(),
-            #[cfg(feature = "debugger")]
-                                         "/test".to_string(),
-                                         "/test".to_string(),
-                                         vec!(Input::new(1, &None)),
-                                         0, 0,
-                                         &[], false);
-        function.init_inputs(true);
-        assert_eq!(function.take_input_set().remove(0), Vec::<Value>::new());
     }
 
     /*************** Below are tests for inputs with depth > 1 ***********************/
-
-
-    #[test]
-    fn can_send_simple_object_when_depth_more_than_1() {
-        let mut function = Function::new(
-            #[cfg(feature = "debugger")]
-                                        "test".to_string(),
-            #[cfg(feature = "debugger")]
-                                         "/test".to_string(),
-                                         "/test".to_string(),
-                                         vec!(Input::new(2, &None)),
-                                         0, 0,
-                                         &[], false);
-        function.init_inputs(true);
-        function.send(0, &json!(1));
-        function.send(0, &json!(2));
-        assert_eq!(vec!(json!(1), json!(2)), function.take_input_set().remove(0),
-                   "Value from input set wasn't the array of numbers expected");
-    }
-
-    #[test]
-    fn can_send_array_objects_when_input_depth_more_than_1() {
-        let mut function = Function::new(
-            #[cfg(feature = "debugger")]
-                                            "test".to_string(),
-            #[cfg(feature = "debugger")]
-                                         "/test".to_string(),
-                                         "/test".to_string(),
-                                         // vec!(Input::new(2, &None, true, false)),
-                                         vec!(Input::new(2, &None)),
-                                         0, 0,
-                                         &[], false);
-        function.init_inputs(true);
-        function.send(0, &json!([1, 2]));
-        function.send(0, &json!([3, 4]));
-        assert_eq!(vec!(json!([1, 2]), json!([3, 4])), function.take_input_set().remove(0),
-                   "Value from input set wasn't what was expected");
-    }
-
-    #[test]
-    fn empty_input_set_if_not_full_depth_2() {
-        let mut function = Function::new(
-            #[cfg(feature = "debugger")]
-                                    "test".to_string(),
-            #[cfg(feature = "debugger")]
-                                         "/test".to_string(),
-                                         "/test".to_string(),
-                                         vec!(Input::new(2, &None)),
-                                         0, 0,
-                                         &[], false);
-        function.init_inputs(true);
-        function.send(0, &json!(1));
-        assert_eq!(function.take_input_set().remove(0), Vec::<Value>::new());
-    }
 
     fn test_function() -> Function {
         let out_conn = OutputConnection::new("/other/input/1".to_string(),
@@ -394,7 +307,7 @@ mod test {
             #[cfg(feature = "debugger")]
                         "/test".to_string(),
                       "/implementation".to_string(),
-                      vec!(Input::new(2, &None)),
+                      vec!(Input::new(None, &None)),
                       1, 0,
                       &[out_conn], false)
     }
@@ -411,7 +324,7 @@ mod test {
     #[test]
     fn call_implementation_not_found_panics() {
         let inf = ImplementationNotFound {};
-        assert_eq!((None, false), inf.run(&vec!()), "ImplementationNotFound should return (None, false)");
+        assert_eq!((None, false), inf.run(&[]), "ImplementationNotFound should return (None, false)");
     }
 
     #[cfg(feature = "debugger")]
@@ -432,7 +345,7 @@ mod test {
             #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(2, &None)),
+                                         vec!(Input::new(None, &None)),
                                          0, 0,
                                          &[output_route.clone()], false);
         function.init_inputs(true);
