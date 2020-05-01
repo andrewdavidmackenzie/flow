@@ -112,6 +112,11 @@ impl Input {
     /// Add a value to this `Input`
     pub fn push(&mut self, value: Value) {
         self.received.push(value);
+        if let Some(max) = self.depth {
+            if self.received.len() > max {
+                self.received.drain(0..1); // remove head to reduce number back to depth
+            }
+        }
     }
 
     /// Add an array of values to this `Input`, by pushing them one by one

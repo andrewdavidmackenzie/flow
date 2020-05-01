@@ -56,7 +56,7 @@ impl From<&Flow> for MetaData {
 
 impl From<&IO> for Input {
     fn from(io: &IO) -> Self {
-        Input::new(None, io.get_initializer())
+        Input::new(io.depth(), io.get_initializer())
     }
 }
 

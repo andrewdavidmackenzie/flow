@@ -256,10 +256,10 @@ impl IO {
         if let Some(depths) = input_depths {
             if let Some(inputs) = ios {
                 for depth in depths {
-                    // initializer.0 is io name, initializer.1 is the initial value to set it to
+                    // depth.0 is io name, depth.1 is the desired depth for that IO
                     for (index, input) in inputs.iter_mut().enumerate() {
                         if *input.name() == Name::from(depth.0) ||
-                            (depth.0.as_str() == "default" && index == 0) {
+                            (depth.0.as_str() == "default" && index == 0) { // reserved 'name' for single, unnamed input
                             input.depth = *depth.1;
                         }
                     }
