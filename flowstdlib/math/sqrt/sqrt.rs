@@ -22,11 +22,11 @@ use serde_json::Value::Number;
 pub struct Sqrt;
 
 impl Implementation for Sqrt {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
         let input = &inputs[0];
         let mut value = None;
 
-        if let Number(ref a) = input[0] {
+        if let Number(ref a) = input {
             if a.is_i64() || a.is_u64() || a.is_f64() {
                 value = Some(Value::Number(serde_json::Number::from_f64(a.as_f64().unwrap().sqrt()).unwrap()));
             }
@@ -39,6 +39,7 @@ impl Implementation for Sqrt {
 #[cfg(test)]
 mod test {
     use flow_impl::Implementation;
+    use serde_json::json;
 
     use super::Sqrt;
 
@@ -46,11 +47,10 @@ mod test {
     fn test_81() {
         let rooter = Sqrt {};
 
-        let test_81 = vec!(vec!(serde_json::Value::Number(serde_json::Number::from(81))));
-        let test_9 = serde_json::Value::Number(serde_json::Number::from_f64(9.0).unwrap());
-        let (root, again) = rooter.run(&test_81);
+        let test_81 = json!(81);
+        let test_9 = json!(9.0);
+        let (root, again) = rooter.run(&[test_81]);
 
-        println!("root = {:?}", root);
         assert!(again);
         assert_eq!(test_9, root.unwrap());
     }

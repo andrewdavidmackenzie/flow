@@ -24,10 +24,10 @@ use serde_json::Value::String as JsonString;
 pub struct Reverse;
 
 impl Implementation for Reverse {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
         let mut value = None;
 
-        let input = &inputs[0][0];
+        let input = &inputs[0];
         if let JsonString(ref s) = input {
             value = Some(json!({
                     "reversed" : s.chars().rev().collect::<String>(),

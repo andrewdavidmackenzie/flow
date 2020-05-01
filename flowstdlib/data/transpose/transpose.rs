@@ -22,8 +22,8 @@ pub struct Transpose;
 
 impl Implementation for Transpose {
     #[allow(clippy::needless_range_loop)]
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let matrix = inputs[0][0].as_array().unwrap();
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+        let matrix = inputs[0].as_array().unwrap();
 
         let rows = matrix.len();
         let cols = matrix[0].as_array().unwrap().len();
@@ -45,14 +45,14 @@ impl Implementation for Transpose {
 #[cfg(test)]
 mod test {
     use flow_impl::Implementation;
-    use serde_json::{Number, Value};
     use serde_json::json;
+    use serde_json::Value;
 
     #[test]
     fn transpose_empty() {
         let matrix = Value::Array(vec!(Value::Array(vec!())));
 
-        let inputs = vec!(vec!(matrix));
+        let inputs = vec!(matrix);
 
         let transposer = super::Transpose {};
         let (result, _) = transposer.run(&inputs);
@@ -64,10 +64,10 @@ mod test {
 
     #[test]
     fn transpose_1x1() {
-        let row0 = Value::Array(vec!(json!(1)));
+        let row0 = json!([1]);
         let matrix = Value::Array(vec!(row0));
 
-        let inputs = vec!(vec!(matrix));
+        let inputs = vec!(matrix);
 
         let transposer = super::Transpose {};
         let (result, _) = transposer.run(&inputs);
@@ -75,16 +75,16 @@ mod test {
         let new_matrix = result.unwrap();
         let new_row0 = new_matrix[0].clone();
 
-        assert_eq!(new_row0, Value::Array(vec!(Value::Number(Number::from(1)))));
+        assert_eq!(new_row0, json!([1]));
     }
 
     #[test]
     fn transpose_2x2() {
-        let row0 = Value::Array(vec!(json!(1), json!(2)));
-        let row1 = Value::Array(vec!(json!(3), json!(4)));
+        let row0 = json!([1, 2]);
+        let row1 = json!([3, 4]);
         let matrix = Value::Array(vec!(row0, row1));
 
-        let inputs = vec!(vec!(matrix));
+        let inputs = vec!(matrix);
 
         let transposer = super::Transpose {};
         let (result, _) = transposer.run(&inputs);
@@ -93,17 +93,17 @@ mod test {
         let new_row0 = new_matrix[0].clone();
         let new_row1 = new_matrix[1].clone();
 
-        assert_eq!(new_row0, Value::Array(vec!(Value::Number(Number::from(1)), Value::Number(Number::from(3)))));
-        assert_eq!(new_row1, Value::Array(vec!(Value::Number(Number::from(2)), Value::Number(Number::from(4)))));
+        assert_eq!(new_row0, json!([1, 3]));
+        assert_eq!(new_row1, json!([2, 4]));
     }
 
     #[test]
     fn transpose_2x3() {
-        let row0 = Value::Array(vec!(json!(1), json!(2), json!(3)));
-        let row1 = Value::Array(vec!(json!(4), json!(5), json!(6)));
+        let row0 = json!([1, 2, 3]);
+        let row1 = json!([4, 5, 6]);
         let matrix = Value::Array(vec!(row0, row1));
 
-        let inputs = vec!(vec!(matrix));
+        let inputs = vec!(matrix);
 
         let transposer = super::Transpose {};
         let (result, _) = transposer.run(&inputs);
@@ -113,8 +113,8 @@ mod test {
         let new_row1 = new_matrix[1].clone();
         let new_row2 = new_matrix[2].clone();
 
-        assert_eq!(new_row0, Value::Array(vec!(Value::Number(Number::from(1)), Value::Number(Number::from(4)))));
-        assert_eq!(new_row1, Value::Array(vec!(Value::Number(Number::from(2)), Value::Number(Number::from(5)))));
-        assert_eq!(new_row2, Value::Array(vec!(Value::Number(Number::from(3)), Value::Number(Number::from(6)))));
+        assert_eq!(new_row0, json!([1, 4]));
+        assert_eq!(new_row1, json!([2, 5]));
+        assert_eq!(new_row2, json!([3, 6]));
     }
 }

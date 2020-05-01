@@ -1,5 +1,6 @@
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use flow_impl_derive::FlowImpl;
+use serde_json::json;
 use serde_json::Value;
 
 #[derive(FlowImpl)]
@@ -21,13 +22,13 @@ use serde_json::Value;
 pub struct ToNumber;
 
 impl Implementation for ToNumber {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
         let mut value = None;
-        let input = &inputs[0][0];
+        let input = &inputs[0];
 
         if let Value::String(string) = input {
             if let Ok(number) = string.parse::<i64>() {
-                let number = Value::Number(serde_json::Number::from(number));
+                let number = json!(number);
                 value = Some(number);
             } else if let Ok(number) = string.parse::<f64>() {
                 let number = Value::Number(serde_json::Number::from_f64(number).unwrap());

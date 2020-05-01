@@ -25,8 +25,8 @@ use serde_json::Value;
 pub struct ToString;
 
 impl Implementation for ToString {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let input = &inputs[0][0];
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+        let input = &inputs[0];
         match input {
             Value::String(_) => (Some(input.clone()), RUN_AGAIN),
             Value::Bool(boolean) => (Some(Value::String(boolean.to_string())), RUN_AGAIN),

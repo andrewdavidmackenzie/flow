@@ -22,7 +22,7 @@ pub struct ProcessReference {
     #[serde(rename = "input")]
     pub initializations: Option<HashMap<String, InputInitializer>>,
     #[serde(rename = "depth")]
-    pub depths: Option<HashMap<String, usize>>,
+    pub depths: Option<HashMap<String, Option<usize>>>,
     // Map of initializers of inputs for this reference
     #[serde(skip)]
     pub process: Process,

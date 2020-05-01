@@ -44,10 +44,10 @@ fn type_string(value: &Value) -> String {
 }
 
 impl Implementation for Info {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
         let mut output_map = serde_json::Map::new();
 
-        let (rows, cols) = match &inputs[0][0] {
+        let (rows, cols) = match &inputs[0] {
             Value::String(string) => (1, string.len()),
             Value::Bool(_boolean) => (1, 1),
             Value::Number(_number) => (1, 1),
@@ -61,7 +61,7 @@ impl Implementation for Info {
 
         output_map.insert("rows".into(), json!(rows));
         output_map.insert("columns".into(), json!(cols));
-        output_map.insert("type".into(), json!(type_string(& inputs[0][0])));
+        output_map.insert("type".into(), json!(type_string(& inputs[0])));
 
         (Some(Value::Object(output_map)), RUN_AGAIN)
     }
@@ -75,7 +75,7 @@ mod test {
 
     #[test]
     fn info_on_number() {
-        let inputs = vec!(vec!(json!(1)));
+        let inputs = vec!(json!(1));
         let info = super::Info {};
         let (result, _) = info.run(&inputs);
         let output_map = result.unwrap();
@@ -87,7 +87,7 @@ mod test {
 
     #[test]
     fn info_on_boolean() {
-        let inputs = vec!(vec!(json!(true)));
+        let inputs = vec!(json!(true));
         let info = super::Info {};
         let (result, _) = info.run(&inputs);
         let output_map = result.unwrap();
@@ -99,9 +99,9 @@ mod test {
 
     #[test]
     fn info_on_string() {
-        let inputs = vec!(vec!(json!("Hello")));
+        let string = json!("Hello");
         let info = super::Info {};
-        let (result, _) = info.run(&inputs);
+        let (result, _) = info.run(&[string]);
         let output_map = result.unwrap();
 
         assert_eq!(output_map.pointer("/type").unwrap(), &json!("String"));
@@ -111,7 +111,7 @@ mod test {
 
     #[test]
     fn info_on_null() {
-        let inputs = vec!(vec!(Value::Null));
+        let inputs = vec!(Value::Null);
         let info = super::Info {};
         let (result, _) = info.run(&inputs);
         let output_map = result.unwrap();
@@ -123,7 +123,7 @@ mod test {
 
     #[test]
     fn info_on_array_of_number() {
-        let inputs = vec!(vec!(json!([1, 2, 3])));
+        let inputs = vec!(json!([1, 2, 3]));
         let info = super::Info {};
         let (result, _) = info.run(&inputs);
         let output_map = result.unwrap();
@@ -135,9 +135,9 @@ mod test {
 
     #[test]
     fn info_on_array_of_array_of_number() {
-        let inputs = vec!(vec!(json!([ [1, 2, 3], [4, 5, 6] ])));
+        let array_array_numbers = json!([ [1, 2, 3], [4, 5, 6] ]);
         let info = super::Info {};
-        let (result, _) = info.run(&inputs);
+        let (result, _) = info.run(&[array_array_numbers]);
         let output_map = result.unwrap();
 
         assert_eq!(output_map.pointer("/type").unwrap(), &json!("Array/Array/Number"));
@@ -150,7 +150,7 @@ mod test {
         let mut map = Map::new();
         map.insert("0".into(), json!(1));
         map.insert("1".into(), json!(2));
-        let inputs = vec!(vec!(Value::Object(map)));
+        let inputs = vec!(Value::Object(map));
         let info = super::Info {};
         let (result, _) = info.run(&inputs);
         let output_map = result.unwrap();
@@ -165,7 +165,7 @@ mod test {
         let mut map = Map::new();
         map.insert("0".into(), json!([1, 2]));
         map.insert("1".into(), json!([3, 4]));
-        let inputs = vec!(vec!(Value::Object(map)));
+        let inputs = vec!(Value::Object(map));
         let info = super::Info {};
         let (result, _) = info.run(&inputs);
         let output_map = result.unwrap();

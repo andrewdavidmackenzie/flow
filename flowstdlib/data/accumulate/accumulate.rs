@@ -45,13 +45,13 @@ use serde_json::Value;
 pub struct Accumulate;
 
 impl Implementation for Accumulate {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let mut values = inputs[0].clone(); // One or more input values to accumulate in array
-        let mut partial_input = inputs[1][0].clone(); // A partial array to append the values to
-        let chunk_size = inputs[2][0].clone(); // how many elements desired in the output array
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+        let value = inputs[0].clone(); // input value to accumulate in array
+        let mut partial_input = inputs[1].clone(); // A partial array to append the values to
+        let chunk_size = inputs[2].clone(); // how many elements desired in the output array
 
         let partial = partial_input.as_array_mut().unwrap();
-        partial.append(&mut values);
+        partial.push(value);
 
         let mut output_map = serde_json::Map::new();
 
@@ -79,24 +79,24 @@ mod test {
 
     #[test]
     fn accumulate_start_and_finish() {
-        let value= vec!(json!(1));
-        let partial = vec!(json!([]));
-        let chunk_size = vec!(json!(1));
+        let value= json!(1);
+        let partial = json!([]);
+        let chunk_size = json!(1);
 
         let accumulator = super::Accumulate {};
-        let (result, _) = accumulator.run(&vec!(value, partial, chunk_size));
+        let (result, _) = accumulator.run(&[value, partial, chunk_size]);
         let output = result.unwrap();
         assert_eq!(output.pointer("/chunk").unwrap(), &json!([1]));
     }
 
     #[test]
     fn accumulate_start_not_finish() {
-        let value= vec!(json!(1));
-        let partial = vec!(json!([]));
-        let chunk_size = vec!(json!(2));
+        let value= json!(1);
+        let partial = json!([]);
+        let chunk_size = json!(2);
 
         let accumulator = super::Accumulate {};
-        let (result, _) = accumulator.run(&vec!(value, partial, chunk_size));
+        let (result, _) = accumulator.run(&[value, partial, chunk_size]);
         let output = result.unwrap();
         assert_eq!(output.pointer("/chunk"), None);
         assert_eq!(output.pointer("/partial").unwrap(), &json!([1]));
@@ -104,12 +104,12 @@ mod test {
 
     #[test]
     fn accumulate_started_then_finish() {
-        let value= vec!(json!(2));
-        let partial = vec!(json!([1]));
-        let chunk_size = vec!(json!(2));
+        let value= json!(2);
+        let partial = json!([1]);
+        let chunk_size = json!(2);
 
         let accumulator = super::Accumulate {};
-        let (result, _) = accumulator.run(&vec!(value, partial, chunk_size));
+        let (result, _) = accumulator.run(&[value, partial, chunk_size]);
         let output = result.unwrap();
         assert_eq!(output.pointer("/chunk").unwrap(), &json!([1, 2]));
     }

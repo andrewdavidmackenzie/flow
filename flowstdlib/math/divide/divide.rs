@@ -25,9 +25,9 @@ use serde_json::Value;
 pub struct Divide;
 
 impl Implementation for Divide {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let dividend = inputs[0][0].as_f64().unwrap();
-        let divisor = inputs[1][0].as_f64().unwrap();
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+        let dividend = inputs[0].as_f64().unwrap();
+        let divisor = inputs[1].as_f64().unwrap();
 
         let mut output_map = serde_json::Map::new();
         output_map.insert("dividend".into(), Value::Number(serde_json::Number::from_f64(dividend).unwrap()));
@@ -43,7 +43,7 @@ impl Implementation for Divide {
 #[cfg(test)]
 mod test {
     use flow_impl::Implementation;
-    use serde_json::Value;
+    use serde_json::{json, Value};
 
     use super::Divide;
 
@@ -51,9 +51,9 @@ mod test {
         let divide: &dyn Implementation = &Divide{} as &dyn Implementation;
 
         // Create input vector
-        let dividend = Value::Number(serde_json::Number::from(test_data.0));
-        let divisor = Value::Number(serde_json::Number::from(test_data.1));
-        let inputs: Vec<Vec<Value>> = vec!(vec!(dividend), vec!(divisor));
+        let dividend = json!(test_data.0);
+        let divisor = json!(test_data.1);
+        let inputs: Vec<Value> = vec!(dividend, divisor);
 
         let (output, run_again) = divide.run(&inputs);
         assert!(run_again);

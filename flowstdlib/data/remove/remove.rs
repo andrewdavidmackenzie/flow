@@ -28,10 +28,10 @@ use serde_json::Value;
 pub struct Remove;
 
 impl Implementation for Remove {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
         // Inputs
-        let value = &inputs[0][0];
-        let input1 = &inputs[1][0];
+        let value = &inputs[0];
+        let input1 = &inputs[1];
         let mut input_array = input1.clone();
         let array = input_array.as_array_mut().unwrap();
 
@@ -48,30 +48,27 @@ impl Implementation for Remove {
 #[cfg(test)]
 mod test {
     use flow_impl::Implementation;
-    use serde_json::{Number, Value};
+    use serde_json::{json, Value};
 
     #[test]
     fn remove_1() {
-        let array: Vec<Value> = vec!(Value::Array(vec!(Value::Number(Number::from(1)),
-                                                       Value::Number(Number::from(2)))));
-        let value = vec!(Value::Number(Number::from(1)));
+        let array: Value = json!([1, 2]);
+        let value = json!(1);
 
         let remover = super::Remove{};
-        let (result, _) = remover.run(&vec!(value, array));
+        let (result, _) = remover.run(&[value, array]);
 
-        assert_eq!(result.unwrap(), Value::Array(vec!(Value::Number(Number::from(2)))));
+        assert_eq!(result.unwrap(), json!([2]));
     }
 
     #[test]
     fn not_remove_3() {
-        let array: Vec<Value> = vec!(Value::Array(vec!(Value::Number(Number::from(1)),
-                                                       Value::Number(Number::from(2)))));
-        let value = vec!(Value::Number(Number::from(3)));
+        let array: Value = json!([1, 2]);
+        let value = json!(3);
 
         let remover = super::Remove{};
-        let (result, _) = remover.run(&vec!(value, array));
+        let (result, _) = remover.run(&[value, array]);
 
-        assert_eq!(result.unwrap(), Value::Array(vec!(Value::Number(Number::from(1)),
-                                                      Value::Number(Number::from(2)))));
+        assert_eq!(result.unwrap(), json!([1, 2]));
     }
 }

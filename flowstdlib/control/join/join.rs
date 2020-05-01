@@ -22,8 +22,8 @@ use serde_json::Value;
 pub struct Join;
 
 impl Implementation for Join {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let data = Some(inputs[0][0].clone());
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+        let data = Some(inputs[0].clone());
 
         (data, RUN_AGAIN)
     }

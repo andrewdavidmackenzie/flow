@@ -66,7 +66,7 @@ fn send_byte_array(instance: &ModuleRef, memory: &MemoryRef, bytes: &[u8]) -> u3
 
 #[cfg(not(target_arch = "wasm32"))]
 impl Implementation for WasmExecutor {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
         #[cfg(not(target_arch = "wasm32"))]
             let module_ref = self.module.lock().unwrap();
         let memory_ref = self.memory.lock().unwrap();

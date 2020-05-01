@@ -25,9 +25,9 @@ use serde_json::Value;
 pub struct Duplicate;
 
 impl Implementation for Duplicate {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let value = &inputs[0][0];
-        let factor = inputs[1][0].as_i64().unwrap();
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+        let value = &inputs[0];
+        let factor = inputs[1].as_i64().unwrap();
 
         let mut output_array = vec!();
 
@@ -48,9 +48,9 @@ mod test {
 
     #[test]
     fn duplicate_number() {
-        let value = vec!(json!(42));
-        let factor = vec!(json!(2));
-        let inputs: Vec<Vec<serde_json::Value>> = vec!(value, factor);
+        let value = json!(42);
+        let factor = json!(2);
+        let inputs: Vec<serde_json::Value> = vec!(value, factor);
 
         let duplicator = Duplicate {};
         let (output, _) = duplicator.run(&inputs);
@@ -60,9 +60,9 @@ mod test {
 
     #[test]
     fn duplicate_row_of_numbers() {
-        let value = vec!(json!([1, 2, 3]));
-        let factor = vec!(json!(2));
-        let inputs: Vec<Vec<serde_json::Value>> = vec!(value, factor);
+        let value = json!([1, 2, 3]);
+        let factor = json!(2);
+        let inputs: Vec<serde_json::Value> = vec!(value, factor);
 
         let duplicator = Duplicate {};
         let (output, _) = duplicator.run(&inputs);
@@ -72,9 +72,9 @@ mod test {
 
     #[test]
     fn duplicate_matrix() {
-        let value = vec!(json!([[1, 2, 3], [4, 5, 6], [7, 8, 9]]));
-        let factor = vec!(json!(2));
-        let inputs: Vec<Vec<serde_json::Value>> = vec!(value, factor);
+        let value = json!([[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
+        let factor = json!(2);
+        let inputs: Vec<serde_json::Value> = vec!(value, factor);
 
         let duplicator = Duplicate {};
         let (output, _) = duplicator.run(&inputs);

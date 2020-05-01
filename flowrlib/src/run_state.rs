@@ -32,7 +32,7 @@ pub struct Job {
     pub job_id: usize,
     pub function_id: usize,
     pub flow_id: usize,
-    pub input_set: Vec<Vec<Value>>,
+    pub input_set: Vec<Value>,
     pub destinations: Vec<OutputConnection>,
     pub implementation: Arc<dyn Implementation>,
     pub result: (Option<Value>, bool),
@@ -1041,7 +1041,7 @@ mod test {
     struct TestImpl {}
 
     impl Implementation for TestImpl {
-        fn run(&self, _inputs: &Vec<Vec<Value>>) -> (Option<Value>, bool) {
+        fn run(&self, _inputs: &[Value]) -> (Option<Value>, bool) {
             unimplemented!()
         }
     }
@@ -1083,7 +1083,7 @@ mod test {
             #[cfg(feature = "debugger")]
                       "/fA".to_string(),
                       "/test".to_string(),
-                      vec!(Input::new(1, &None)),
+                      vec!(Input::new(None, &None)),
                       0, 0,
                       &[connection_to_f1], false) // outputs to fB:0
     }
@@ -1098,7 +1098,7 @@ mod test {
             #[cfg(feature = "debugger")]
                       "/fA".to_string(),
                       "/test".to_string(),
-                      vec!(Input::new(1,
+                      vec!(Input::new(None,
                                       &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                       0, 0,
                       &[connection_to_f1], false) // outputs to fB:0
@@ -1111,7 +1111,7 @@ mod test {
             #[cfg(feature = "debugger")]
                       "/fA".to_string(),
                       "/test".to_string(),
-                      vec!(Input::new(1,
+                      vec!(Input::new(None,
                                       &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                       0, 0,
                       &[], false)
@@ -1124,7 +1124,7 @@ mod test {
             #[cfg(feature = "debugger")]
                       "/fB".to_string(),
                       "/test".to_string(),
-                      vec!(Input::new(1, &None)),
+                      vec!(Input::new(None, &None)),
                       1, 0,
                       &[], false)
     }
@@ -1136,7 +1136,7 @@ mod test {
             #[cfg(feature = "debugger")]
                       "/fB".to_string(),
                       "/test".to_string(),
-                      vec!(Input::new(1,
+                      vec!(Input::new(None,
                                       &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                       1, 0,
                       &[], false)
@@ -1149,7 +1149,7 @@ mod test {
             function_id: source_function_id,
             flow_id: 0,
             implementation: test_impl(),
-            input_set: vec!(vec!(json!(1))),
+            input_set: vec!(json!(1)),
             result: (Some(json!(1)), true),
             destinations: vec!(out_conn),
             error: None,
@@ -1163,7 +1163,7 @@ mod test {
             flow_id: 0,
             implementation: test_impl(),
             function_id: source_function_id,
-            input_set: vec!(vec!(json!(1))),
+            input_set: vec!(json!(1)),
             result: (None, false),
             destinations: vec!(out_conn),
             error: Some("Some error occurred".to_string()),
@@ -1351,7 +1351,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                                     "/fA".to_string(),
                                     "/test".to_string(),
-                                    vec!(Input::new(1, &None)),
+                                    vec!(Input::new(None, &None)),
                                     0, 0,
                                     &[], false);
             let functions = vec!(f_a);
@@ -1389,7 +1389,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                                     "/fA".to_string(),
                                     "/test".to_string(),
-                                    vec!(Input::new(1, &None)),
+                                    vec!(Input::new(None, &None)),
                                     0, 0,
                                     &[], false);
             let functions = vec!(f_a);
@@ -1472,7 +1472,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                                     "/fA".to_string(),
                                     "/test".to_string(),
-                                    vec!(Input::new(1,
+                                    vec!(Input::new(None,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
                                     0, 0,
                                     &[], false);
@@ -1496,7 +1496,7 @@ mod test {
                 function_id: 0,
                 flow_id: 0,
                 implementation: super::test_impl(),
-                input_set: vec!(vec!(json!(1))),
+                input_set: vec!(json!(1)),
                 result: (None, true),
                 destinations: vec!(),
                 error: None,
@@ -1537,7 +1537,7 @@ mod test {
                 function_id: 0,
                 flow_id: 0,
                 implementation: super::test_impl(),
-                input_set: vec!(vec!(json!(1))),
+                input_set: vec!(json!(1)),
                 result: (None, true),
                 destinations: vec!(),
                 error: None,
@@ -1564,7 +1564,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                                     "/fA".to_string(),
                                     "/test".to_string(),
-                                    vec!(Input::new(1,
+                                    vec!(Input::new(None,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
                                     0, 0,
                                     &[out_conn], false); // outputs to fB:0
@@ -1574,7 +1574,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                                     "/fB".to_string(),
                                     "/test".to_string(),
-                                    vec!(Input::new(1, &None)),
+                                    vec!(Input::new(None, &None)),
                                     1, 0,
                                     &[], false);
             let functions = vec!(f_a, f_b);
@@ -1615,7 +1615,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                                     "/fA".to_string(),
                                     "/test".to_string(),
-                                    vec!(Input::new(1, &None)),
+                                    vec!(Input::new(None, &None)),
                                     0, 0,
                                     &[], false);
             let out_conn = OutputConnection::new("".into(), 0, 0, 0, 0, false, None);
@@ -1625,7 +1625,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                                     "/fB".to_string(),
                                     "/test".to_string(),
-                                    vec!(Input::new(1, &None)),
+                                    vec!(Input::new(None, &None)),
                                     1, 0,
                                     &[out_conn], false);
             let functions = vec!(f_a, f_b);
@@ -1665,7 +1665,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                                     "/fB".to_string(),
                                     "/test".to_string(),
-                                    vec!(Input::new(1,
+                                    vec!(Input::new(None,
                                                     &Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
                                     1, 0,
                                     &[connection_to_f0], false);
@@ -1712,7 +1712,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                                     "/fA".to_string(),
                                     "/test".to_string(),
-                                    vec!(Input::new(1,
+                                    vec!(Input::new(None,
                                                     &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
                                     0, 0,
                                     &[
@@ -1725,7 +1725,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                                     "/fB".to_string(),
                                     "/test".to_string(),
-                                    vec!(Input::new(1, &None)),
+                                    vec!(Input::new(None, &None)),
                                     1, 0,
                                     &[], false);
             let functions = vec!(f_a, f_b); // NOTE the order!
@@ -1747,7 +1747,7 @@ mod test {
                 function_id: 0,
                 flow_id: 0,
                 implementation: super::test_impl(),
-                input_set: vec!(vec!(json!(1))),
+                input_set: vec!(json!(1)),
                 result: (Some(json!(1)), true),
                 destinations: vec!(connection_to_0, connection_to_1),
                 error: None,
@@ -1823,7 +1823,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                                    "/p1".to_string(),
                                    "/test".to_string(),
-                                   vec!(Input::new(1, &None)), // inputs array
+                                   vec!(Input::new(None, &None)), // inputs array
                                    1, 0,
                                    &[], false);
             let p2 = Function::new(
@@ -1832,7 +1832,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                                    "/p2".to_string(),
                                    "/test".to_string(),
-                                   vec!(Input::new(1, &None)), // inputs array
+                                   vec!(Input::new(None, &None)), // inputs array
                                    2, 0,
                                    &[], false);
             vec!(p0, p1, p2)
@@ -1990,7 +1990,7 @@ mod test {
                 function_id: 0,
                 flow_id: 0,
                 implementation: super::test_impl(),
-                input_set: vec!(vec!(json!(1))),
+                input_set: vec!(json!(1)),
                 result: (Some(json!(1)), true),
                 destinations: vec!(),
                 error: None,
@@ -2015,12 +2015,12 @@ mod test {
                 #[cfg(feature = "debugger")]
                                              "/test".to_string(),
                                              "/test".to_string(),
-                                             vec!(Input::new(1, &None)),
+                                             vec!(Input::new(None, &None)),
                                              0, 0,
                                              &[], false);
             function.init_inputs(true);
             function.send(0, &json!([1, 2]));
-            assert_eq!(function.take_input_set().remove(0), vec!(json!([1, 2])),
+            assert_eq!(function.take_input_set().remove(0), json!([1, 2]),
                        "Value from input set wasn't what was expected");
         }
     }

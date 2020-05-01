@@ -29,9 +29,9 @@ use serde_json::Value;
 pub struct Count;
 
 impl Implementation for Count {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let data = inputs[0][0].clone();
-        let mut count = inputs[1][0].as_i64().unwrap();
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+        let data = inputs[0].clone();
+        let mut count = inputs[1].as_i64().unwrap();
         count += 1;
 
         let mut output_map = serde_json::Map::new();
@@ -54,8 +54,8 @@ mod test {
 
     #[test]
     fn count_returns_value() {
-        let data = vec!(json!(42));
-        let count = vec!(json!(0));
+        let data = json!(42);
+        let count = json!(0);
         let inputs = vec!(data, count);
 
         let counter = Count {};

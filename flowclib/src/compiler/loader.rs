@@ -78,7 +78,7 @@ pub fn load(url: &str, provider: &dyn Provider) -> Result<Process> {
 #[allow(clippy::too_many_arguments)]
 fn load_process(parent_route: &Route, alias: &Name, parent_flow_id: usize, flow_count: &mut usize, url: &str, provider: &dyn Provider,
                 initializations: &Option<HashMap<String, InputInitializer>>,
-                depths: &Option<HashMap<String, usize>>) -> Result<Process> {
+                depths: &Option<HashMap<String, Option<usize>>>) -> Result<Process> {
     let (resolved_url, lib_ref) = provider.resolve_url(url, "context", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
     debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
@@ -177,7 +177,7 @@ fn config_function(function: &mut Function, source_url: &str, parent_route: &Rou
                    flow_id: usize,
                    lib_ref: Option<String>,
                    initializations: &Option<HashMap<String, InputInitializer>>,
-                   depths: &Option<HashMap<String, usize>>)
+                   depths: &Option<HashMap<String, Option<usize>>>)
                    -> Result<()> {
     function.set_flow_id(flow_id);
     function.set_alias(alias);

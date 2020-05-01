@@ -3,7 +3,6 @@ implementation = "read_section.rs"
 
 [[input]]
 type = "String"
-depth = 3
 
 [[output]]
 type = "Array/Number"

@@ -23,9 +23,9 @@ use serde_json::Value;
 pub struct Route;
 
 impl Implementation for Route {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let data = &inputs[0][0];
-        let control = &inputs[1][0].as_bool().unwrap();
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+        let data = &inputs[0];
+        let control = &inputs[1].as_bool().unwrap();
 
         let mut output_map = serde_json::Map::new();
         if *control {

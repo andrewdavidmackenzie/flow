@@ -20,7 +20,7 @@ debugger = []
 native = []
 
 [dependencies]
-flow_impl = "=0.9.0"
+flow_impl = "=0.10.0"
 flowrlib = {path = "../flowrlib"}
 flowruntime = {path = "../flowruntime"}
 flowstdlib = {path = "../flowstdlib"}

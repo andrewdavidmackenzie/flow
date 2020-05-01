@@ -8,7 +8,7 @@ input.start = {once = 1}
 input.end = {once = 9}
 input.step = {once = 1}
 
-[[process]]
+[[process]] # a Buffer between the constant starting point of 0 and the 'start' input to avoid priority issues for the input
 alias = "start-of-each"
 source = "lib://flowstdlib/data/buffer"
 input.default = {constant = 0}

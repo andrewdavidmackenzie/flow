@@ -8,10 +8,10 @@ use serde_json::Value::String as JsonString;
 pub struct Reverser;
 
 impl Implementation for Reverser {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, bool) {
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, bool) {
         let mut value = None;
 
-        let input = &inputs[0][0];
+        let input = &inputs[0];
         match input {
             JsonString(ref s) => {
                 value = Some(json!({

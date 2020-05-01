@@ -10,9 +10,6 @@ pub mod buffer;
 /// A module that counts data passed thru it
 #[path = "count/count.rs"]
 pub mod count;
-/// A module that implements composing an array from a number of elements
-#[path = "compose_array/compose_array.rs"]
-pub mod compose_array;
 /// A module that duplicates objects into an array of them
 #[path = "duplicate/duplicate.rs"]
 pub mod duplicate;

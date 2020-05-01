@@ -13,8 +13,8 @@ pub struct Stdout {
 }
 
 impl Implementation for Stdout {
-    fn run(&self, inputs: &Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        let input = &inputs[0][0];
+    fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
+        let input = &inputs[0];
 
         // Gain sole access to send to the client to avoid mixing output from other functions
         if let Ok(client) = self.client.lock() {

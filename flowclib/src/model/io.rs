@@ -33,7 +33,7 @@ pub struct IO {
     #[serde(rename = "type", default = "default_type")]
     datatype: DataType,
     #[serde(default = "default_depth")]
-    depth: usize,
+    depth: Option<usize>,
     #[serde(rename = "value")]
     initializer: Option<InputInitializer>,
 
@@ -51,12 +51,12 @@ impl IO {
         io
     }
 
-    pub fn depth(&self) -> usize {
+    pub fn depth(&self) -> Option<usize> {
         self.depth
     }
 
     pub fn set_depth(&mut self, depth: usize) {
-        self.depth = depth
+        self.depth = Some(depth)
     }
 
     pub fn flow_io(&self) -> bool {
@@ -144,8 +144,8 @@ fn default_type() -> DataType {
     DataType::from("Value")
 }
 
-fn default_depth() -> usize {
-    1
+fn default_depth() -> Option<usize> {
+    None
 }
 
 fn default_io_type() -> IOType { IOType::FunctionIO }
@@ -252,14 +252,14 @@ impl IO {
         }
     }
 
-    pub fn set_depths(ios: &mut IOSet, input_depths: &Option<HashMap<String, usize>>) {
+    pub fn set_depths(ios: &mut IOSet, input_depths: &Option<HashMap<String, Option<usize>>>) {
         if let Some(depths) = input_depths {
             if let Some(inputs) = ios {
                 for depth in depths {
-                    // initializer.0 is io name, initializer.1 is the initial value to set it to
+                    // depth.0 is io name, depth.1 is the desired depth for that IO
                     for (index, input) in inputs.iter_mut().enumerate() {
                         if *input.name() == Name::from(depth.0) ||
-                            (depth.0.as_str() == "default" && index == 0) {
+                            (depth.0.as_str() == "default" && index == 0) { // reserved 'name' for single, unnamed input
                             input.depth = *depth.1;
                         }
                     }
@@ -376,7 +376,7 @@ mod test {
             name: Name::from("io_name"),
             datatype: DataType::from("String"),
             route: Route::default(),
-            depth: 1,
+            depth: None,
             io_type: IOType::FunctionIO,
             initializer: None,
         };
@@ -384,7 +384,7 @@ mod test {
             name: Name::from("different_name"),
             datatype: DataType::from("String"),
             route: Route::default(),
-            depth: 1,
+            depth: None,
             io_type: IOType::FunctionIO,
             initializer: None,
         };
@@ -399,7 +399,7 @@ mod test {
             name: Name::from("io_name"),
             datatype: DataType::from("String"),
             route: Route::default(),
-            depth: 1,
+            depth: None,
             io_type: IOType::FunctionIO,
             initializer: None,
         };
@@ -415,7 +415,7 @@ mod test {
             name: Name::from("io_name"),
             datatype: DataType::from("String"),
             route: Route::default(),
-            depth: 1,
+            depth: None,
             io_type: IOType::FunctionIO,
             initializer: None,
         };
@@ -423,7 +423,7 @@ mod test {
             name: Name::default(),
             datatype: DataType::from("String"),
             route: Route::default(),
-            depth: 1,
+            depth: None,
             io_type: IOType::FunctionIO,
             initializer: None,
         };
