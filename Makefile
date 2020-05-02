@@ -36,10 +36,10 @@ endif
 common-config:
 	export PATH="$$PATH:~/.cargo/bin"
 	rustup target add wasm32-unknown-unknown
-	# cargo install wasm-gc || true
-	# install mdbook for generating guides
-	cargo install mdbook --root . || true
-	#cargo install mdbook-linkcheck --root . || true
+# cargo install wasm-gc || true
+# install mdbook and it's linkcheck linter for generating the guide
+	cargo install mdbook
+	cargo install mdbook-linkcheck
 
 config-darwin:
 	$(STIME)
@@ -67,7 +67,7 @@ docs:
 	$(ETIME)
 
 build-guide:
-	@RUST_LOG=info time ./bin/mdbook build
+	@RUST_LOG=info time mdbook build
 
 trim-docs:
 	$(STIME)
@@ -91,7 +91,7 @@ trim-docs:
 	@rm -rf target/html/flowc/tests/test-flows
 	@rm -rf target/html/flowc/tests/test-libs
 	@rm -rf target/html/code/debug
-	@find target/html -type d -empty -depth -delete
+	@find target/html -depth -type d -empty -delete
 	$(ETIME)
 
 code-docs:
@@ -146,7 +146,7 @@ test-workspace:
 
 book-test:
 	$(STIME)
-	./bin/mdbook test
+	mdbook test
 	$(ETIME)
 
 ################### Coverage ####################

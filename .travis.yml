@@ -4,8 +4,6 @@ sudo: false
 
 cache:
   cargo: true
-  directories:
-    - bin
 
 jobs:
   include:
