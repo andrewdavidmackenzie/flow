@@ -51,11 +51,11 @@ config-linux:
 ifneq ($(YUM),)
 	@echo "Detected $(YUM) for installing dependencies"
 	sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel graphviz gtk3-devel
-else ifneq ($(DNF),)
+else ifneq ($(APTGET),)
 	@echo "Detected $(APTGET) for installing dependencies"
 	sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev graphviz libgtk-3-dev
 else
-	echo "Neither apt-get nor dnf detected for installing dependencies"
+	echo "Neither apt-get nor yum detected for installing dependencies"
 endif
 	$(ETIME)
 
