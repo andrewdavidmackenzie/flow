@@ -18,6 +18,9 @@ branches:
   only:
     - "master"
 
+before_install:
+  - make config
+
 script:
   - rustc --version
   - make
