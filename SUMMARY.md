@@ -23,7 +23,6 @@
     - [Names](docs/describing/names.md)
     - [Flow IOs](docs/describing/ios.md)
     - [Process References](docs/describing/process_references.md)
-    - [Value Definitions](docs/describing/value_definitions.md)
     - [Function Definitions](docs/describing/function_definitions.md)
     - [Types](docs/describing/types.md)
     - [Connections](docs/describing/connections.md)

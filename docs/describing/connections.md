@@ -1,7 +1,7 @@
 ## Connection
 Connections connect a source of data (via an IO Reference) to a sink of data (via an IO Reference) 
 of a compatible [type](types.md):
-* `name` [Optional] - an Optional name for the flow
+* `name` (Optional) - an Optional name for the flow
 * `from` = [IO Reference](io_references.md) to the Data source that this connection comes from
 * `to` = [IO Reference](io_references.md) to a Data sink that this connection goes to
 
