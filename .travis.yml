@@ -18,15 +18,6 @@ branches:
   only:
     - "master"
 
-before_install:
-  - make config
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew unlink python@2; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gtk+3 cairo atk; fi
-
-before_script:
-  - rustup component add clippy
-
 script:
   - rustc --version
   - make
