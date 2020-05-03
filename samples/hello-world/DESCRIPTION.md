@@ -15,7 +15,6 @@ Features Used
 ===
 * Context Flow
 * Library Functions used (`stdout` from `flowstdlib`)
-* Initialization of a flow's output in [flow1](flow1.toml)
 
 Functions Diagram
 ===

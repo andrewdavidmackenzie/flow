@@ -2,7 +2,7 @@ DOT := $(shell command -v dot 2> /dev/null)
 KCOV := $(shell command -v kcov 2> /dev/null)
 APTGET := $(shell command -v apt-get 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
-STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo \\n------- Target \'$@\' starting
+STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo ------- Target \'$@\' starting
 ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
 UNAME := $(shell uname)
@@ -10,7 +10,7 @@ UNAME := $(shell uname)
 all:
 	$(STIME)
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig"
-	@$(MAKE) workspace test docs
+	@$(MAKE) -s workspace test docs
 	$(ETIME)
 
 online := false
@@ -22,40 +22,49 @@ features :=
 endif
 
 ########## Configure Dependencies ############
-config: common-config
+config:
 	$(STIME)
-	@echo "Detected OS=$(UNAME)"
+	@$(MAKE) -s common-config
+	@echo "	Detected OS=$(UNAME)"
 ifeq ($(UNAME), Linux)
-	@$(MAKE) config-linux
+	@$(MAKE) -s config-linux
 endif
 ifeq ($(UNAME), Darwin)
-	@$(MAKE) config-darwin
+	@$(MAKE) -s config-darwin
 endif
 	$(ETIME)
 
 common-config:
-	export PATH="$$PATH:~/.cargo/bin"
-	rustup target add wasm32-unknown-unknown
-	# cargo install wasm-gc || true
-	# install mdbook for generating guides
-	cargo install mdbook --root . || true
-	#cargo install mdbook-linkcheck --root . || true
+	$(STIME)
+	@echo "	Installing wasm32 target and clippy command using rustup"
+	@export PATH="$$PATH:~/.cargo/bin"
+	@rustup --quiet target add wasm32-unknown-unknown
+	@rustup --quiet component add clippy
+# cargo install wasm-gc || true
+# install mdbook and it's linkcheck linter for generating the guide
+	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
+	@cargo install mdbook
+	@cargo install mdbook-linkcheck
+	$(ETIME)
 
 config-darwin:
 	$(STIME)
-	brew install gtk glib cairo cmake graphviz
+	@echo "	Installing macos specific dependencies using brew"
+	@brew install gtk+3 glib cairo atk cmake graphviz
 	$(ETIME)
 
 config-linux:
 	$(STIME)
 ifneq ($(YUM),)
-	@echo "Detected $(YUM) for installing dependencies"
-	sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel graphviz gtk3-devel
-else ifneq ($(DNF),)
-	@echo "Detected $(APTGET) for installing dependencies"
-	sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev graphviz libgtk-3-dev
+	@echo "	Installing linux specific dependencies using $(YUM)"
+	@sudo yum --color=auto --quiet install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel
+	@sudo yum --color=auto --quiet install graphviz gtk3-devel || true
+else ifneq ($(APTGET),)
+	@echo "	Installing linux specific dependencies using $(APTGET)"
+	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev
+	@sudo apt-get -y install graphviz libgtk-3-dev || true
 else
-	echo "Neither apt-get nor dnf detected for installing dependencies"
+	@echo "	Neither apt-get nor yum detected for installing linux specific dependencies"
 endif
 	$(ETIME)
 
@@ -67,7 +76,7 @@ docs:
 	$(ETIME)
 
 build-guide:
-	@RUST_LOG=info time ./bin/mdbook build
+	@RUST_LOG=info time mdbook build
 
 trim-docs:
 	$(STIME)
@@ -91,7 +100,7 @@ trim-docs:
 	@rm -rf target/html/flowc/tests/test-flows
 	@rm -rf target/html/flowc/tests/test-libs
 	@rm -rf target/html/code/debug
-	@find target/html -type d -empty -depth -delete
+	@find target/html -depth -type d -empty -delete
 	$(ETIME)
 
 code-docs:
@@ -146,7 +155,7 @@ test-workspace:
 
 book-test:
 	$(STIME)
-	./bin/mdbook test
+	mdbook test
 	$(ETIME)
 
 ################### Coverage ####################
