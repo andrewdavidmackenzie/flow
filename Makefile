@@ -43,8 +43,8 @@ common-config:
 # cargo install wasm-gc || true
 # install mdbook and it's linkcheck linter for generating the guide
 	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
-	@cargo --quiet install mdbook
-	@cargo --quiet install mdbook-linkcheck
+	@cargo install mdbook
+	@cargo install mdbook-linkcheck
 	$(ETIME)
 
 config-darwin:
