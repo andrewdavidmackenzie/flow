@@ -1,38 +1,26 @@
-#[cfg(not(target_arch = "wasm32"))]
 use std::cmp::max;
-#[cfg(not(target_arch = "wasm32"))]
 use std::sync::Arc;
-#[cfg(not(target_arch = "wasm32"))]
 use std::sync::Mutex;
 
 use flow_impl::{Implementation, RunAgain};
 use log::{error, info, trace};
 use serde_json::Value;
-#[cfg(not(target_arch = "wasm32"))]
 use wasmi::{ExternVal, ImportsBuilder, MemoryRef, Module, ModuleInstance, ModuleRef,
             NopExternals, RuntimeValue, Signature, ValueType};
 
 use crate::errors::*;
 use crate::provider::Provider;
 
-#[cfg(not(target_arch = "wasm32"))]
 const DEFAULT_WASM_FILENAME: &str = "module";
 
-#[cfg(not(target_arch = "wasm32"))]
 const MAX_RESULT_SIZE: i32 = 1024;
 
-#[cfg(target_arch = "wasm32")]
-#[derive(Debug)]
-pub struct WasmExecutor;
-
-#[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug)]
 pub struct WasmExecutor {
     module: Arc<Mutex<ModuleRef>>,
     memory: Arc<Mutex<MemoryRef>>,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl WasmExecutor {
     pub fn new(module_ref: ModuleRef, memory: MemoryRef) -> Self {
         WasmExecutor {
@@ -48,7 +36,6 @@ unsafe impl Sync for WasmExecutor {}
 /*
     Allocate memory for array of bytes inside the wasm module and copy the array of bytes into it
 */
-#[cfg(not(target_arch = "wasm32"))]
 fn send_byte_array(instance: &ModuleRef, memory: &MemoryRef, bytes: &[u8]) -> u32 {
     let alloc_size = max(bytes.len() as i32, MAX_RESULT_SIZE);
     let result = instance
@@ -64,10 +51,8 @@ fn send_byte_array(instance: &ModuleRef, memory: &MemoryRef, bytes: &[u8]) -> u3
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl Implementation for WasmExecutor {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        #[cfg(not(target_arch = "wasm32"))]
             let module_ref = self.module.lock().unwrap();
         let memory_ref = self.memory.lock().unwrap();
 
@@ -109,17 +94,7 @@ impl Implementation for WasmExecutor {
     }
 }
 
-#[cfg(target_arch = "wasm32")]
-impl Implementation for WasmExecutor {
-    fn run(&self, _inputs: Vec<Vec<Value>>) -> (Option<Value>, RunAgain) {
-        (None, false)
-    }
-}
-
-/*
-    load a Wasm module from the specified Url.
-*/
-#[cfg(not(target_arch = "wasm32"))]
+/// load a Wasm module from the specified Url.
 pub fn load(provider: &dyn Provider, source_url: &str) -> Result<WasmExecutor> {
     let (resolved_url, _) = provider.resolve_url(&source_url, DEFAULT_WASM_FILENAME, &["wasm"])?;
     let content = provider.get_contents(&resolved_url)?;
@@ -143,7 +118,6 @@ pub fn load(provider: &dyn Provider, source_url: &str) -> Result<WasmExecutor> {
     Ok(WasmExecutor::new(module_ref, memory))
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 fn check_required_functions(module_ref: &ModuleRef, filename: &str) -> Result<()> {
     let required_wasm_functions = vec!(
         ("alloc", Signature::new(&[ValueType::I32][..], Some(ValueType::I32))),
