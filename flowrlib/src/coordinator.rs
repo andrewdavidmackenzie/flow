@@ -152,6 +152,8 @@ impl Coordinator {
         let (job_tx, job_rx, ) = mpsc::channel();
         let (output_tx, output_rx) = mpsc::channel();
 
+        execution::set_panic_hook();
+
         info!("Starting {} executor threads", num_threads);
         let shared_job_receiver = Arc::new(Mutex::new(job_rx));
         execution::start_executors(num_threads, &shared_job_receiver, &output_tx);
@@ -169,7 +171,6 @@ impl Coordinator {
     pub fn init(&mut self) {
         #[cfg(feature = "debugger")]
         self.capture_control_c();
-        execution::set_panic_hook();
     }
 
     #[cfg(feature = "debugger")]
