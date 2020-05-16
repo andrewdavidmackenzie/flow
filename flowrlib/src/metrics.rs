@@ -1,7 +1,6 @@
 use std::cmp::max;
 use std::fmt;
-
-use instant::Instant;
+use std::time::Instant;
 
 pub struct Metrics {
     num_functions: usize,
