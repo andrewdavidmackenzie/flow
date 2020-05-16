@@ -70,10 +70,6 @@ fn parse_command(input: &str) -> (&str, Option<Param>) {
     (command, None)
 }
 
-fn read_input(input: &mut String) -> io::Result<usize> {
-    io::stdin().read_line(input)
-}
-
 /*
     Implement a client for the debugger that reads and writes to standard input and output
 */
@@ -86,7 +82,8 @@ impl DebugClient for CLIDebugClient {
             io::stdout().flush().unwrap();
 
             let mut input = String::new();
-            match read_input(&mut input) {
+            match io::stdin().read_line(&mut input) {
+                Ok(0) => return ExitDebugger,
                 Ok(_n) => {
                     let (command, param) = parse_command(&input);
                     match command {
@@ -117,7 +114,7 @@ impl DebugClient for CLIDebugClient {
                     println!("\tOutput value: '{}'", &output);
                 }
             }
-            Start =>
+            Enter =>
                 println!("Entering Debugger. Use 'h' or 'help' for help on commands"),
             PriorToSendingJob(job_id, function_id) =>
                 println!("About to send Job #{} to Function #{}", job_id, function_id),
@@ -130,8 +127,8 @@ impl DebugClient for CLIDebugClient {
                          destination_id, input_number),
             Panic(output) =>
                 println!("Function panicked - Job: {:#?}", output),
-            RuntimeError(error_message) =>
-                println!("Error occurred: Message = '{}'", error_message),
+            JobError(job) =>
+                println!("Error occurred executing a Job: \n'{:?}'", job),
             End =>
                 println!("Execution has ended."),
             Deadlock(message) =>

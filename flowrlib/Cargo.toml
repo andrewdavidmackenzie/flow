@@ -20,14 +20,13 @@ bench = true
 doc = true
 
 [features]
-default = ["debugger", "metrics", "checks"]
-metrics = [] # Include tracking of metrics during flow execution
-debugger = [] # Include the debugger
-checks = [] # Extra checks are performed during flow execution
+default = []  # Don't include any extra features by default
+metrics = []  # feature for tracking of metrics during execution
+debugger = [] # feature to add the debugger
+checks = []   # feature to perform extra checks during flow execution
 
 [dependencies]
 flow_impl = "=0.10.0"
-
 multimap = "~0.8"
 log = "0.4.6"
 serde_derive = "~1.0.27"
@@ -36,5 +35,5 @@ serde_json = "1.0"
 error-chain = "0.12.2"
 # A std::Instant compatible crate that also supports wasm
 instant = { version = "0.1", features = [ "now", "wasm-bindgen" ] }
-
+ctrlc = "3.1.4"
 wasmi = "0.4.5"

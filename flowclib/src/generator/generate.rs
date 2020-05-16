@@ -14,6 +14,7 @@ use crate::model::flow::Flow;
 use crate::model::function::Function;
 use crate::model::io::IO;
 use crate::model::name::HasName;
+#[cfg(feature = "debugger")]
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
 
@@ -86,10 +87,12 @@ pub fn create_manifest(flow: &Flow, debug_symbols: bool, manifest_dir: &str, tab
     manifest_dir is the directory that paths will be made relative to.
 */
 fn function_to_runtimefunction(manifest_dir: &str, function: &Function, debug_symbols: bool) -> Result<RuntimeFunction> {
+    #[cfg(feature = "debugger")]
     let name = if debug_symbols {
         function.alias().to_string()
     } else { "".to_string() };
 
+    #[cfg(feature = "debugger")]
     let route = if debug_symbols {
         function.route().to_string()
     } else { "".to_string() };
@@ -107,7 +110,10 @@ fn function_to_runtimefunction(manifest_dir: &str, function: &Function, debug_sy
         }
     };
 
-    Ok(RuntimeFunction::new(name,
+    Ok(RuntimeFunction::new(
+                            #[cfg(feature = "debugger")]
+                            name,
+                            #[cfg(feature = "debugger")]
                             route,
                             implementation_location,
                             runtime_inputs,

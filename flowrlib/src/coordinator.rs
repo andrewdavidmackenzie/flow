@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender, SendError};
 use std::sync::mpsc;
 use std::time::Duration;
@@ -17,7 +18,6 @@ use crate::metrics::Metrics;
 use crate::run_state::Job;
 use crate::run_state::RunState;
 
-///
 /// A Submission is the struct used to send a flow to the Coordinator for execution. It contains
 /// all the information encessary to execute it:
 ///
@@ -31,16 +31,17 @@ use crate::run_state::RunState;
 ///                                     1 /* num_parallel_jobs */,
 ///                                     false /* display_metrics */,
 ///                                     None /* debug client */);
-///
 pub struct Submission {
     _metadata: MetaData,
     display_metrics: bool,
     #[cfg(feature = "metrics")]
     metrics: Metrics,
-    output_timeout: Duration,
+    job_timeout: Duration,
     state: RunState,
     #[cfg(feature = "debugger")]
-    debugger: Option<Debugger>,
+    debugger: Debugger,
+    #[cfg(feature = "debugger")]
+    enter_debugger: bool,
 }
 
 impl Submission {
@@ -51,7 +52,9 @@ impl Submission {
                max_parallel_jobs: usize,
                display_metrics: bool,
                #[cfg(feature = "debugger")]
-               client: Option<&'static dyn DebugClient>,
+               client: &'static dyn DebugClient,
+               #[cfg(feature = "debugger")]
+               enter_debugger: bool,
     ) -> Submission {
         info!("Maximum jobs dispatched in parallel limited to {}", max_parallel_jobs);
         let output_timeout = Duration::from_secs(1);
@@ -61,21 +64,17 @@ impl Submission {
         #[cfg(feature = "metrics")]
             let metrics = Metrics::new(state.num_functions());
 
-        #[cfg(feature = "debugger")]
-            let debugger = match client {
-            Some(client) => Some(Debugger::new(client)),
-            None => None
-        };
-
         Submission {
             _metadata: manifest.metadata,
             display_metrics,
             #[cfg(feature = "metrics")]
             metrics,
-            output_timeout,
+            job_timeout: output_timeout,
             state,
             #[cfg(feature = "debugger")]
-            debugger,
+            debugger: Debugger::new(client),
+            #[cfg(feature = "debugger")]
+            enter_debugger,
         }
     }
 }
@@ -88,8 +87,12 @@ impl Submission {
 /// It accepts Flows to be executed in the form of a Submission struct that has the required
 /// information to execute the flow.
 pub struct Coordinator {
+    /// A channel used to send Jobs out for execution
     job_tx: Sender<Job>,
+    /// A channel used to receive Jobs back after execution (now including the job's output)
     job_rx: Receiver<Job>,
+    /// A flag that indeicates a request to enter the debugger has been made
+    debug_requested: Arc<AtomicBool>,
 }
 
 /// Create a Submission for a flow to be executed.
@@ -106,11 +109,7 @@ pub struct Coordinator {
 /// use std::process::exit;
 /// use flowrlib::manifest::{Manifest, MetaData};
 /// #[cfg(any(feature = "debugger"))]
-/// use flowrlib::debug_client::{Command, Param};
-/// #[cfg(any(feature = "debugger"))]
-/// use flowrlib::debug_client::Event;
-/// #[cfg(any(feature = "debugger"))]
-/// use flowrlib::debug_client::Response;
+/// use flowrlib::debug_client::{DebugClient, Command, Param, Event, Response, Command::ExitDebugger};
 ///
 /// let meta_data = MetaData {
 ///                     library_name: "test".into(),
@@ -121,14 +120,26 @@ pub struct Coordinator {
 ///                 };
 /// let manifest = Manifest::new(meta_data);
 ///
+/// impl DebugClient for ExampleDebugClient {
+///     fn init(&self) {}
+///
+///     fn get_command(&self, job_number: usize) -> Command { ExitDebugger }
+///
+///     fn send_event(&self, event: Event) {}
+///
+///     fn send_response(&self, response: Response) {}
+/// }
+///
 /// let mut submission = Submission::new(manifest,
 ///                                     1 /* num_parallel_jobs */,
 ///                                     false /* display_metrics */,
 /// #[cfg(any(feature = "debugger"))]
-///                                     None /* debug client*/
+///                                     Debugger::new(ExampleDebugClient),
+///                                     true
 ///                                     );
 ///
 /// let mut coordinator = Coordinator::new( 1 /* num_threads */, );
+/// coordinator.init();
 ///
 /// coordinator.submit(submission);
 ///
@@ -141,6 +152,8 @@ impl Coordinator {
         let (job_tx, job_rx, ) = mpsc::channel();
         let (output_tx, output_rx) = mpsc::channel();
 
+        execution::set_panic_hook();
+
         info!("Starting {} executor threads", num_threads);
         let shared_job_receiver = Arc::new(Mutex::new(job_rx));
         execution::start_executors(num_threads, &shared_job_receiver, &output_tx);
@@ -148,7 +161,27 @@ impl Coordinator {
         Coordinator {
             job_tx,
             job_rx: output_rx,
+            debug_requested: Arc::new(AtomicBool::new(false)),
         }
+    }
+
+    /// Initialize the Coordinator
+    /// - Setup a control-c signal capture to enter the debugger
+    /// - Setup panic hook
+    pub fn init(&mut self) {
+        #[cfg(feature = "debugger")]
+        self.capture_control_c();
+    }
+
+    #[cfg(feature = "debugger")]
+    fn capture_control_c(&self) {
+        // Get a reference to the shared control variable that will be moved into the closure
+        let requested = self.debug_requested.clone();
+        ctrlc::set_handler(move || {
+            // Set the flag requesting to enter into the debugger to true
+            requested.store(true, Ordering::SeqCst);
+        }).expect("Error setting Ctrl-C handler");
+        debug!("Control-C capture setup to enter debugger");
     }
 
     /// Start execution of a flow, by submitting a `Submission` to the coordinator
@@ -157,8 +190,6 @@ impl Coordinator {
     }
 
     fn looper(&mut self, mut submission: Submission) {
-        execution::set_panic_hook();
-
         /*
             This outer loop is just a way of restarting execution from scratch if the debugger
             requests it.
@@ -167,24 +198,32 @@ impl Coordinator {
             debug!("Resetting stats and initializing all functions");
             submission.state.init();
 
-            if cfg!(feature = "debugger") {
-                if let Some(ref mut debugger) = submission.debugger {
-                    debugger.start(&submission.state);
-                }
+            #[cfg(feature = "debugger")]
+            if submission.enter_debugger {
+                submission.debugger.enter(&submission.state);
             }
 
             #[cfg(feature = "metrics")]
                 submission.metrics.reset();
 
             debug!("===========================    Starting flow execution =============================");
-            let mut display_next_output;
+            #[cfg(feature = "debugger")]
+                let mut display_next_output;
             let mut restart;
 
             'inner: loop {
                 trace!("{}", submission.state);
+                #[cfg(feature = "debugger")]
+                if self.debug_requested.load(Ordering::SeqCst) {
+                    self.debug_requested.store(false, Ordering::SeqCst); // reset to avoid re-entering
+                    submission.debugger.enter(&submission.state);
+                }
 
                 let debug_check = self.send_jobs(&mut submission);
-                display_next_output = debug_check.0;
+                #[cfg(feature = "debugger")]
+                    {
+                        display_next_output = debug_check.0;
+                    }
                 restart = debug_check.1;
 
                 // If debugger request it, exit the inner loop which will cause us to reset state
@@ -194,13 +233,14 @@ impl Coordinator {
                 }
 
                 if submission.state.number_jobs_running() > 0 {
-                    match self.job_rx.recv_timeout(submission.output_timeout) {
+                    match self.job_rx.recv_timeout(submission.job_timeout) {
                         Ok(job) => {
-                            if display_next_output && cfg!(feature = "debugger") {
-                                if let Some(ref mut debugger) = submission.debugger {
-                                    debugger.job_completed(&job);
+                            #[cfg(feature = "debugger")]
+                                {
+                                    if display_next_output {
+                                        submission.debugger.job_completed(&job);
+                                    }
                                 }
-                            }
 
                             submission.state.complete_job(
                                 #[cfg(feature = "metrics")]
@@ -210,15 +250,11 @@ impl Coordinator {
                                     &mut submission.debugger,
                             );
                         }
-                        #[cfg(feature = "debugger")]
                         Err(err) => {
-                            if let Some(ref mut debugger) = submission.debugger {
-                                debugger.error(&submission.state,
-                                               format!("Error in job reception: '{}'", err));
-                            }
-                        }
-                        #[cfg(not(feature = "debugger"))]
-                        Err(_) => {
+                            #[cfg(feature = "debugger")]
+                                submission.debugger.panic(&submission.state,
+                                                          format!("Error in job reception: '{}'", err));
+                            #[cfg(not(feature = "debugger"))]
                             error!("\tError in Job reception");
                         }
                     }
@@ -232,13 +268,15 @@ impl Coordinator {
                 }
             }
 
+            #[allow(clippy::collapsible_if)]
             if !restart {
-                if cfg!(feature = "debugger") {
-                    if let Some(ref mut debugger) = submission.debugger {
-                        let check = debugger.end(&submission.state);
-                        restart = check.1;
+                #[cfg(feature = "debugger")]
+                    {
+                        if submission.enter_debugger {
+                            let check = submission.debugger.end(&submission.state);
+                            restart = check.1;
+                        }
                     }
-                }
 
                 if !restart {
                     self.flow_done(&submission);
@@ -268,7 +306,7 @@ impl Coordinator {
         let mut restart = false;
 
         while let Some(job) = submission.state.next_job() {
-            match self.send_job(job, submission) {
+            match self.send_job(job.clone(), submission) {
                 Ok((display, rest)) => {
                     submission.state.job_sent();
                     display_output = display;
@@ -278,11 +316,8 @@ impl Coordinator {
                     error!("Error sending on 'job_tx': {}", err.to_string());
                     debug!("{}", submission.state);
 
-                    if cfg!(feature = "debugger") {
-                        if let Some(ref mut debugger) = submission.debugger {
-                            debugger.error(&submission.state, err.to_string());
-                        }
-                    }
+                    #[cfg(feature = "debuggers")]
+                        submission.debugger.error(&submission.state, job);
                 }
             }
         }
@@ -294,8 +329,6 @@ impl Coordinator {
         Send a job for execution
     */
     fn send_job(&self, job: Job, submission: &mut Submission) -> Result<(bool, bool), SendError<Job>> {
-        #[cfg(feature = "debugger")]
-            let mut debug_options = (false, false);
         #[cfg(not(feature = "debugger"))]
             let debug_options = (false, false);
 
@@ -303,11 +336,8 @@ impl Coordinator {
         #[cfg(feature = "metrics")]
             submission.metrics.track_max_jobs(submission.state.number_jobs_running());
 
-        if cfg!(feature = "debugger") {
-            if let Some(ref mut debugger) = submission.debugger {
-                debug_options = debugger.check_prior_to_job(&submission.state, job.job_id, job.function_id);
-            }
-        }
+        #[cfg(feature = "debugger")]
+            let debug_options = submission.debugger.check_prior_to_job(&submission.state, job.job_id, job.function_id);
 
         let job_id = job.job_id;
         self.job_tx.send(job)?;
@@ -365,18 +395,25 @@ mod test {
         let manifest = Manifest::new(meta_data);
         let _ = Submission::new(manifest, 1, true,
                                 #[cfg(feature = "debugger")]
-                                    None);
+                                    test_debug_client(),
+                                #[cfg(feature = "debugger")]
+                                    true,
+        );
     }
 
     #[test]
     fn submit() {
         let mut coordinator = Coordinator::new(1);
+        coordinator.init();
 
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);
         let submission = Submission::new(manifest, 1, true,
                                          #[cfg(feature = "debugger")]
-                                             None);
+                                             test_debug_client(),
+                                         #[cfg(feature = "debugger")]
+                                             true,
+        );
 
         coordinator.submit(submission);
     }
@@ -386,12 +423,16 @@ mod test {
     #[cfg(feature = "debugger")]
     fn submit_with_debugger() {
         let mut coordinator = Coordinator::new(1);
+        coordinator.init();
 
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);
         let submission = Submission::new(manifest, 1, true,
                                          #[cfg(feature = "debugger")]
-                                             Some(test_debug_client()));
+                                             test_debug_client(),
+                                         #[cfg(feature = "debugger")]
+                                             true,
+        );
 
         coordinator.submit(submission);
     }

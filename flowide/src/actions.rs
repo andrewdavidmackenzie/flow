@@ -165,8 +165,12 @@ pub fn run_manifest(args: Vec<String>) {
                     (Some(manifest), Some(manifest_url)) => {
                         let mut manifest_clone: Manifest = manifest.clone();
                         load_manifest(&mut manifest_clone, manifest_url, args);
-                        let submission = Submission::new(manifest_clone, 1, false, None);
+                        let submission = Submission::new(manifest_clone,
+                                                         1,
+                                                         false);
                         let mut coordinator = Coordinator::new(1);
+                        coordinator.init();
+
                         coordinator.submit(submission);
                         message("Submitted flow for execution");
                     }

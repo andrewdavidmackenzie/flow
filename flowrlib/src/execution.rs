@@ -55,7 +55,6 @@ fn create_executor(name: String, job_rx: Arc<Mutex<Receiver<Job>>>, job_tx: Send
 fn get_and_execute_job(job_rx: &Arc<Mutex<Receiver<Job>>>,
                        job_tx: &Sender<Job>,
                        name: &str) -> Result<String> {
-    // TODO write a convert method so I can chain this error too?
     let guard = job_rx.lock().map_err(|e| e.to_string())?;
     match guard.recv() {
         Ok(job) => execute(job, job_tx, name),

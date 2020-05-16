@@ -129,12 +129,12 @@ deploy-pages:
 #################### Build ####################
 workspace: clippy
 	$(STIME)
-	@cargo build $(features) --all
+	@cargo build
 	$(ETIME)
 
 clippy:
 	$(STIME)
-	@cargo clippy --all --all-targets --all-features -- -D warnings
+	@cargo clippy -- -D warnings
 	$(ETIME)
 
 flowrunner:
@@ -150,7 +150,7 @@ test:
 
 test-workspace:
 	$(STIME)
-	@cargo test $(features) --all
+	@cargo test $(features)
 	$(ETIME)
 
 book-test:
