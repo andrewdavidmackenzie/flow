@@ -16,12 +16,11 @@ path = "src/main.rs"
 
 [dependencies]
 flow_impl = "=0.10.0"
-flowrlib = {path = "../flowrlib"}
+flowrlib = { path = "../flowrlib", default-features = false } # No debugger etc for now
 flowruntime = {path = "../flowruntime"}
-flowclib = {path = "../flowclib"}
+flowclib = {path = "../flowclib", default-features = false }  # No debugger etc for now
 flowstdlib = {path = "../flowstdlib"}
 provider = {path = "../provider"}
-
 toml = "0.4"
 url = "~2.1"
 serde_json = "1.0"

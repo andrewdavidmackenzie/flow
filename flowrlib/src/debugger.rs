@@ -1,7 +1,10 @@
 use std::collections::HashSet;
 use std::fmt;
 use std::process::exit;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
+use log::debug;
 use serde_json::Value;
 
 use crate::debug_client::Command::{*};
@@ -20,6 +23,7 @@ pub struct Debugger {
     output_breakpoints: HashSet<(usize, String)>,
     break_at_job: usize,
     function_breakpoints: HashSet<usize>,
+    debug_requested: Arc<AtomicBool>
 }
 
 #[derive(Debug, Clone)]
@@ -66,28 +70,44 @@ impl Debugger {
             output_breakpoints: HashSet::<(usize, String)>::new(),
             break_at_job: std::usize::MAX,
             function_breakpoints: HashSet::<usize>::new(),
+            debug_requested: Arc::new(AtomicBool::new(false)),
         }
+    }
+
+    /*
+        Initialize the debugger. This does not enter the debugger it just prepares the Control-C
+        capture to later be able to enter the debugger from it.
+     */
+    pub fn init(&mut self) {
+        self.capture_control_c();
+        debug!("Control-C capture setup to enter debugger");
     }
 
     /*
         Return values are (display next output, reset execution)
     */
-    pub fn start(&mut self, state: &RunState) -> (bool, bool) {
-        self.client.send_event(Start);
+    pub fn enter(&mut self, state: &RunState) -> (bool, bool) {
+        self.client.send_event(Enter);
         self.wait_for_command(state)
     }
 
     /*
         Called from the flowrlib coordinator to inform the debugger that a job has completed
         being executed. It is used to inform the debug client of the fact.
+        Return values are (display next output, reset execution)
     */
-    pub fn job_completed(&self, job: &Job) {
+    pub fn job_completed(&mut self, state: &RunState, job: &Job) -> (bool, bool) {
         self.client.send_event(JobCompleted(job.job_id, job.function_id, job.result.0.clone()));
+
+        if self.debug_requested.load(Ordering::SeqCst) {
+            self.wait_for_command(state)
+        } else {
+            (false, false)
+        }
     }
 
     /*
         Check if there is a breakpoint at this job prior to starting executing it.
-
         Return values are (display next output, reset execution)
     */
     pub fn check_prior_to_job(&mut self, state: &RunState, next_job_id: usize, function_id: usize) -> (bool, bool) {
@@ -98,8 +118,12 @@ impl Debugger {
             return self.wait_for_command(state);
         }
 
-        // No breakpoint - continue execution
-        (false, false)
+        if self.debug_requested.load(Ordering::SeqCst) {
+            self.wait_for_command(state)
+        } else {
+            // No breakpoint - continue execution
+            (false, false)
+        }
     }
 
     /*
@@ -112,6 +136,10 @@ impl Debugger {
     pub fn check_on_block_creation(&mut self, state: &RunState, block: &Block) {
         if self.block_breakpoints.contains(&(block.blocked_id, block.blocking_id)) {
             self.client.send_event(BlockBreakpoint(block.clone()));
+            self.wait_for_command(state);
+        }
+
+        if self.debug_requested.load(Ordering::SeqCst) {
             self.wait_for_command(state);
         }
     }
@@ -132,6 +160,10 @@ impl Debugger {
                                                   value.clone(), destination_id, input_number));
             self.wait_for_command(state);
         }
+
+        if self.debug_requested.load(Ordering::SeqCst) {
+            self.wait_for_command(state);
+        }
     }
 
     /*
@@ -142,8 +174,8 @@ impl Debugger {
         breakpoint it will enter the debugger on an error and let the user inspect the flow's
         state etc.
     */
-    pub fn error(&mut self, state: &RunState, error_message: String) {
-        self.client.send_event(RuntimeError(error_message));
+    pub fn error(&mut self, state: &RunState, job: Job) {
+        self.client.send_event(JobError(job));
         self.wait_for_command(state);
     }
 
@@ -154,9 +186,9 @@ impl Debugger {
         This is useful for debugging a flow that has an error. Without setting any explicit
         breakpoint it will enter the debugger on an error and let the user inspect the flow's
         state etc.
-*/
-    pub fn panic(&mut self, state: &RunState, job: Job) {
-        self.client.send_event(Panic(job));
+    */
+    pub fn panic(&mut self, state: &RunState, error_message: String) {
+        self.client.send_event(Panic(error_message));
         self.wait_for_command(state);
     }
 
@@ -170,6 +202,19 @@ impl Debugger {
     }
 
     /*
+        Setup a control-c signal capture. When captured set the debug_requested flag to true.
+        That is checked in calls to the debugger on certain runtime events. When the true is
+        detected we will enter the debugger command line
+     */
+    fn capture_control_c(&mut self) {
+        let requested = self.debug_requested.clone();
+
+        ctrlc::set_handler(move || {
+            requested.store(true, Ordering::SeqCst);
+        }).expect("Error setting Ctrl-C handler");
+    }
+
+    /*
         The execution flow has entered the debugged based on some event.
 
         Now wait for and process commands from the DebugClient
@@ -177,7 +222,7 @@ impl Debugger {
            - some commands will cause the command loop to exit.
 
         When exiting return a tuple for the Coordinaator to determine what to do:
-           ()
+           (display next output, reset execution)
     */
     fn wait_for_command(&mut self, state: &RunState) -> (bool, bool) {
         loop {
@@ -199,6 +244,7 @@ impl Debugger {
                     self.client.send_response(self.list_breakpoints()),
                 Print(param) =>
                     self.client.send_response(self.print(state, param)),
+                EnterDebugger => { /* Not needed as we are already in the debugger */ }
                 ExitDebugger => {
                     self.client.send_response(Exiting);
                     exit(1);
@@ -228,7 +274,11 @@ impl Debugger {
         }
     }
 
-    /*************************************** Commands ****************************************/
+    /****************************** Implementations of Debugger Commands *************************/
+
+    /*
+        Add a breakpoint to the debugger according to the Optional `Param`
+     */
     fn add_breakpoint(&mut self, state: &RunState, param: Option<Param>) -> Response {
         let mut response = String::new();
 
@@ -267,6 +317,9 @@ impl Debugger {
         Message(response)
     }
 
+    /*
+        Delete debugger breakpoints related to Jobs or Blocks, etc according to the Spec.
+     */
     fn delete_breakpoint(&mut self, param: Option<Param>) -> Response {
         let mut response = String::new();
 
@@ -302,6 +355,9 @@ impl Debugger {
         Message(response)
     }
 
+    /*
+        List all debugger breakpoints of all types.
+     */
     fn list_breakpoints(&self) -> Response {
         let mut response = String::new();
 
@@ -345,6 +401,10 @@ impl Debugger {
         Message(response)
     }
 
+    /*
+        Run inspections on the current flow execution state to possibly detect issues.
+        Currently deadlock inspection is the only inspection that exists.s
+     */
     fn inspect(&self, state: &RunState) -> Response {
         let mut response = String::new();
 
@@ -355,6 +415,10 @@ impl Debugger {
         Message(response)
     }
 
+    /*
+        Print out a debugger value according to the Optional `Param` passed.
+        If no `Param` is passed then print the entire state
+     */
     fn print(&self, state: &RunState, param: Option<Param>) -> Response {
         let mut response = String::new();
 
@@ -378,13 +442,19 @@ impl Debugger {
         Message(response)
     }
 
+    /*
+        Get ready to start execution (and debugging) from scratch at the start of the flow
+     */
     fn reset(&mut self) -> Response {
         // Leave all the breaakpoints untouch for the repeat run
-        // But set the job breakpoint to be 0, so we will enter debugger again when we restart
         self.break_at_job = std::usize::MAX;
         Resetting
     }
 
+    /*
+        Take one step (execute one more job) in the flow. Do this by setting a breakpoint at the
+        next job execution and then returning - flow execution will continue until breakpoint fires
+     */
     fn step(&mut self, state: &RunState, steps: Option<Param>) -> Response {
         match steps {
             None => {
@@ -400,9 +470,6 @@ impl Debugger {
             }
         }
     }
-
-
-    /***************************** Private Functions *****************************************/
 
     /*
         Return a vector of all the processes preventing process_id from running, which can be:

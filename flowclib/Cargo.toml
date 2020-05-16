@@ -21,12 +21,11 @@ bench = true
 doc = true
 
 [features]
-default = ["debugger"]
+default = []
 debugger = []
 
 [dependencies]
-flowrlib = {path = "../flowrlib"}
-
+flowrlib = { path = "../flowrlib"}
 serde_yaml = "~0.8"
 toml = "0.4"
 serde_derive = "~1.0.27"

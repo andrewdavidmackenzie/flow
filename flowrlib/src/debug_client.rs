@@ -24,6 +24,8 @@ pub enum Command {
     Continue,
     /// `delete` an existing breakpoint - with an optional parameter
     Delete(Option<Param>),
+    /// `enter` the debugger at the next opportunity the runtime has
+    EnterDebugger,
     /// `exit` the debugger and runtime
     ExitDebugger,
     /// `inspect` the current state
@@ -48,8 +50,8 @@ pub enum Event {
     /// A `Job` ran to completion by a function
     /// includes:  job_id, function_id
     JobCompleted(usize, usize, Option<Value>),
-    /// A `Flow` execution was started - start the debug_client
-    Start,
+    /// A `Flow` execution was started - entering the debug_client
+    Enter,
     /// The run-time is about to send a `Job` for execution - an opportunity to break
     /// includes: job_id, function_id
     PriorToSendingJob(usize, usize),
@@ -60,9 +62,9 @@ pub enum Event {
     /// includes: source_process_id, output_route, value, destination_id, input_number));
     DataBreakpoint(usize, String, Value, usize, usize),
     /// A panic occured executing a `Flows` `Job` -  includes the output of the job that panicked
-    Panic(Job),
-    /// There was an error reported by the run-time
-    RuntimeError(String), // message resulting from the error
+    Panic(String),
+    /// There was an error executing the Job
+    JobError(Job),
     /// End of debug session - debug_client should disconnect
     End,
     /// A check has detected that there is a deadlock between functions impeding more execution

@@ -117,7 +117,7 @@ impl DebugClient for CLIDebugClient {
                     println!("\tOutput value: '{}'", &output);
                 }
             }
-            Start =>
+            Enter =>
                 println!("Entering Debugger. Use 'h' or 'help' for help on commands"),
             PriorToSendingJob(job_id, function_id) =>
                 println!("About to send Job #{} to Function #{}", job_id, function_id),
@@ -130,8 +130,8 @@ impl DebugClient for CLIDebugClient {
                          destination_id, input_number),
             Panic(output) =>
                 println!("Function panicked - Job: {:#?}", output),
-            RuntimeError(error_message) =>
-                println!("Error occurred: Message = '{}'", error_message),
+            JobError(job) =>
+                println!("Error occurred executing a Job: \n'{:?}'", job),
             End =>
                 println!("Execution has ended."),
             Deadlock(message) =>

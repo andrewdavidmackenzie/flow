@@ -93,11 +93,15 @@ fn run() -> Result<()> {
 
     let num_parallel_jobs = num_parallel_jobs(&matches, debugger);
 
-    let debug_client = if debugger { Some(CLI_DEBUG_CLIENT) } else { None };
+    let debug_client = CLI_DEBUG_CLIENT;
 
     pass_flow_args(&matches, &manifest.metadata.library_name);
 
-    let submission = Submission::new(manifest, num_parallel_jobs, metrics, debug_client);
+    let submission = Submission::new(manifest,
+                                     num_parallel_jobs,
+                                     metrics,
+                                     debug_client,
+                                     debugger);
 
     coordinator.submit(submission);
 

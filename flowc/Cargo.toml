@@ -20,11 +20,10 @@ debugger = []
 online_tests = []
 
 [dependencies]
-flowrlib = {path = "../flowrlib"}
-flowclib = {path = "../flowclib"}
+flowrlib = {path = "../flowrlib", features = ["debugger", "metrics", "checks"] }
+flowclib = {path = "../flowclib", features = ["debugger"] }
 provider = {path = "../provider"}
 flowr = {path = "../flowr"}
-
 clap = "~2"
 simplog = "~1.2"
 log = "0.4.6"
