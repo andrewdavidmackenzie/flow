@@ -1,9 +1,8 @@
 use std::collections::HashSet;
 use std::fmt;
 use std::process::exit;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
 
+#[cfg(not(feature = "debugger"))]
 use log::debug;
 use serde_json::Value;
 
@@ -23,7 +22,6 @@ pub struct Debugger {
     output_breakpoints: HashSet<(usize, String)>,
     break_at_job: usize,
     function_breakpoints: HashSet<usize>,
-    debug_requested: Arc<AtomicBool>
 }
 
 #[derive(Debug, Clone)]
@@ -70,17 +68,7 @@ impl Debugger {
             output_breakpoints: HashSet::<(usize, String)>::new(),
             break_at_job: std::usize::MAX,
             function_breakpoints: HashSet::<usize>::new(),
-            debug_requested: Arc::new(AtomicBool::new(false)),
         }
-    }
-
-    /*
-        Initialize the debugger. This does not enter the debugger it just prepares the Control-C
-        capture to later be able to enter the debugger from it.
-     */
-    pub fn init(&mut self) {
-        self.capture_control_c();
-        debug!("Control-C capture setup to enter debugger");
     }
 
     /*
@@ -96,14 +84,9 @@ impl Debugger {
         being executed. It is used to inform the debug client of the fact.
         Return values are (display next output, reset execution)
     */
-    pub fn job_completed(&mut self, state: &RunState, job: &Job) -> (bool, bool) {
+    pub fn job_completed(&mut self, job: &Job) -> (bool, bool) {
         self.client.send_event(JobCompleted(job.job_id, job.function_id, job.result.0.clone()));
-
-        if self.debug_requested.load(Ordering::SeqCst) {
-            self.wait_for_command(state)
-        } else {
-            (false, false)
-        }
+        (false, false)
     }
 
     /*
@@ -118,12 +101,7 @@ impl Debugger {
             return self.wait_for_command(state);
         }
 
-        if self.debug_requested.load(Ordering::SeqCst) {
-            self.wait_for_command(state)
-        } else {
-            // No breakpoint - continue execution
-            (false, false)
-        }
+        (false, false)
     }
 
     /*
@@ -136,10 +114,6 @@ impl Debugger {
     pub fn check_on_block_creation(&mut self, state: &RunState, block: &Block) {
         if self.block_breakpoints.contains(&(block.blocked_id, block.blocking_id)) {
             self.client.send_event(BlockBreakpoint(block.clone()));
-            self.wait_for_command(state);
-        }
-
-        if self.debug_requested.load(Ordering::SeqCst) {
             self.wait_for_command(state);
         }
     }
@@ -158,10 +132,6 @@ impl Debugger {
                 source_process_id, value.clone(), destination_id, input_number));
             self.client.send_event(DataBreakpoint(source_process_id, output_route.to_string(),
                                                   value.clone(), destination_id, input_number));
-            self.wait_for_command(state);
-        }
-
-        if self.debug_requested.load(Ordering::SeqCst) {
             self.wait_for_command(state);
         }
     }
@@ -199,19 +169,6 @@ impl Debugger {
         self.client.send_event(End);
         self.deadlock_inspection(state);
         self.wait_for_command(state)
-    }
-
-    /*
-        Setup a control-c signal capture. When captured set the debug_requested flag to true.
-        That is checked in calls to the debugger on certain runtime events. When the true is
-        detected we will enter the debugger command line
-     */
-    fn capture_control_c(&mut self) {
-        let requested = self.debug_requested.clone();
-
-        ctrlc::set_handler(move || {
-            requested.store(true, Ordering::SeqCst);
-        }).expect("Error setting Ctrl-C handler");
     }
 
     /*
@@ -258,12 +215,12 @@ impl Debugger {
                     }
                 }
                 RunReset => {
-                    if state.jobs_sent() > 0 {
+                    return if state.jobs_sent() > 0 {
                         self.client.send_response(self.reset());
-                        return (false, true);
+                        (false, true)
                     } else {
                         self.client.send_response(Running);
-                        return (false, false);
+                        (false, false)
                     }
                 }
                 Step(param) => {

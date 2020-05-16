@@ -86,6 +86,7 @@ fn run() -> Result<()> {
     let debugger = matches.is_present("debugger");
     let metrics = matches.is_present("metrics");
     let mut coordinator = Coordinator::new(num_threads(&matches, debugger));
+    coordinator.init();
 
     // Load the flow to run from the manifest
     let manifest = loader.load_manifest(&provider, &flow_manifest_url.to_string())

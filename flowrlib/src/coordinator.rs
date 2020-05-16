@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender, SendError};
 use std::sync::mpsc;
 use std::time::Duration;
@@ -90,6 +91,8 @@ pub struct Coordinator {
     job_tx: Sender<Job>,
     /// A channel used to receive Jobs back after execution (now including the job's output)
     job_rx: Receiver<Job>,
+    /// A flag that indeicates a request to enter the debugger has been made
+    debug_requested: Arc<AtomicBool>,
 }
 
 /// Create a Submission for a flow to be executed.
@@ -136,6 +139,7 @@ pub struct Coordinator {
 ///                                     );
 ///
 /// let mut coordinator = Coordinator::new( 1 /* num_threads */, );
+/// coordinator.init();
 ///
 /// coordinator.submit(submission);
 ///
@@ -155,7 +159,28 @@ impl Coordinator {
         Coordinator {
             job_tx,
             job_rx: output_rx,
+            debug_requested: Arc::new(AtomicBool::new(false)),
         }
+    }
+
+    /// Initialize the Coordinator
+    /// - Setup a control-c signal capture to enter the debugger
+    /// - Setup panic hook
+    pub fn init(&mut self) {
+        #[cfg(feature = "debugger")]
+        self.capture_control_c();
+        execution::set_panic_hook();
+    }
+
+    #[cfg(feature = "debugger")]
+    fn capture_control_c(&self) {
+        // Get a reference to the shared control variable that will be moved into the closure
+        let requested = self.debug_requested.clone();
+        ctrlc::set_handler(move || {
+            // Set the flag requesting to enter into the debugger to true
+            requested.store(true, Ordering::SeqCst);
+        }).expect("Error setting Ctrl-C handler");
+        debug!("Control-C capture setup to enter debugger");
     }
 
     /// Start execution of a flow, by submitting a `Submission` to the coordinator
@@ -164,10 +189,6 @@ impl Coordinator {
     }
 
     fn looper(&mut self, mut submission: Submission) {
-        execution::set_panic_hook();
-        #[cfg(feature = "debugger")]
-            submission.debugger.init();
-
         /*
             This outer loop is just a way of restarting execution from scratch if the debugger
             requests it.
@@ -177,28 +198,31 @@ impl Coordinator {
             submission.state.init();
 
             #[cfg(feature = "debugger")]
-                {
-                    if submission.enter_debugger {
-                        submission.debugger.enter(&submission.state);
-                    }
-                }
+            if submission.enter_debugger {
+                submission.debugger.enter(&submission.state);
+            }
 
             #[cfg(feature = "metrics")]
                 submission.metrics.reset();
 
             debug!("===========================    Starting flow execution =============================");
             #[cfg(feature = "debugger")]
-            let mut display_next_output;
+                let mut display_next_output;
             let mut restart;
 
             'inner: loop {
                 trace!("{}", submission.state);
+                #[cfg(feature = "debugger")]
+                if self.debug_requested.load(Ordering::SeqCst) {
+                    self.debug_requested.store(false, Ordering::SeqCst); // reset to avoid re-entering
+                    submission.debugger.enter(&submission.state);
+                }
 
                 let debug_check = self.send_jobs(&mut submission);
                 #[cfg(feature = "debugger")]
-                {
-                    display_next_output = debug_check.0;
-                }
+                    {
+                        display_next_output = debug_check.0;
+                    }
                 restart = debug_check.1;
 
                 // If debugger request it, exit the inner loop which will cause us to reset state
@@ -213,7 +237,7 @@ impl Coordinator {
                             #[cfg(feature = "debugger")]
                                 {
                                     if display_next_output {
-                                        submission.debugger.job_completed(&submission.state, &job);
+                                        submission.debugger.job_completed(&job);
                                     }
                                 }
 
@@ -225,13 +249,11 @@ impl Coordinator {
                                     &mut submission.debugger,
                             );
                         }
-                        #[cfg(feature = "debugger")]
                         Err(err) => {
-                            submission.debugger.panic(&submission.state,
-                                                      format!("Error in job reception: '{}'", err));
-                        }
-                        #[cfg(not(feature = "debugger"))]
-                        Err(_) => {
+                            #[cfg(feature = "debugger")]
+                                submission.debugger.panic(&submission.state,
+                                                          format!("Error in job reception: '{}'", err));
+                            #[cfg(not(feature = "debugger"))]
                             error!("\tError in Job reception");
                         }
                     }
@@ -381,6 +403,7 @@ mod test {
     #[test]
     fn submit() {
         let mut coordinator = Coordinator::new(1);
+        coordinator.init();
 
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);
@@ -399,6 +422,7 @@ mod test {
     #[cfg(feature = "debugger")]
     fn submit_with_debugger() {
         let mut coordinator = Coordinator::new(1);
+        coordinator.init();
 
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);

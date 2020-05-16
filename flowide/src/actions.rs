@@ -169,6 +169,8 @@ pub fn run_manifest(args: Vec<String>) {
                                                          1,
                                                          false);
                         let mut coordinator = Coordinator::new(1);
+                        coordinator.init();
+
                         coordinator.submit(submission);
                         message("Submitted flow for execution");
                     }
