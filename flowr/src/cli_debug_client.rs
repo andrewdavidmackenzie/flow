@@ -70,10 +70,6 @@ fn parse_command(input: &str) -> (&str, Option<Param>) {
     (command, None)
 }
 
-fn read_input(input: &mut String) -> io::Result<usize> {
-    io::stdin().read_line(input)
-}
-
 /*
     Implement a client for the debugger that reads and writes to standard input and output
 */
@@ -86,7 +82,8 @@ impl DebugClient for CLIDebugClient {
             io::stdout().flush().unwrap();
 
             let mut input = String::new();
-            match read_input(&mut input) {
+            match io::stdin().read_line(&mut input) {
+                Ok(0) => return ExitDebugger,
                 Ok(_n) => {
                     let (command, param) = parse_command(&input);
                     match command {
