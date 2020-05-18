@@ -118,7 +118,7 @@ pub struct Coordinator {
 ///                     author_name: "test user".into(),
 ///                     author_email: "me@acme.com".into()
 ///                 };
-/// let manifest = Manifest::new(meta_data);
+/// let manifest = Manifest::new(meta_data, "fake_dir");
 ///
 /// impl DebugClient for ExampleDebugClient {
 ///     fn init(&self) {}
@@ -392,7 +392,7 @@ mod test {
     #[test]
     fn create_submission() {
         let meta_data = test_meta_data();
-        let manifest = Manifest::new(meta_data);
+        let manifest = Manifest::new(meta_data, "fake dir");
         let _ = Submission::new(manifest, 1, true,
                                 #[cfg(feature = "debugger")]
                                     test_debug_client(),
@@ -407,7 +407,7 @@ mod test {
         coordinator.init();
 
         let meta_data = test_meta_data();
-        let manifest = Manifest::new(meta_data);
+        let manifest = Manifest::new(meta_data, "fake dir");
         let submission = Submission::new(manifest, 1, true,
                                          #[cfg(feature = "debugger")]
                                              test_debug_client(),
@@ -426,7 +426,7 @@ mod test {
         coordinator.init();
 
         let meta_data = test_meta_data();
-        let manifest = Manifest::new(meta_data);
+        let manifest = Manifest::new(meta_data, "fake dir");
         let submission = Submission::new(manifest, 1, true,
                                          #[cfg(feature = "debugger")]
                                              test_debug_client(),

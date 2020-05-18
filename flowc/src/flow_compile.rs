@@ -8,6 +8,7 @@ use std::process::Stdio;
 use log::{debug, error, info};
 use simpath::FileType;
 use simpath::Simpath;
+use url::Url;
 
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
@@ -114,14 +115,16 @@ fn compile_supplied_implementations(tables: &mut GenerationTables, skip_building
 /*
     Generate a manifest for the flow in JSON that can be used to run it using 'flowr'
 */
-fn write_flow_manifest(flow: Flow, debug_symbols: bool, out_dir_path: &PathBuf, tables: &GenerationTables)
+// TODO this is tied to being a file:// - generalize this to write to a URL, moving the code
+// TODO into the provider and implementingn for file and http
+fn write_flow_manifest(flow: Flow, debug_symbols: bool, destination: &PathBuf, tables: &GenerationTables)
                        -> Result<PathBuf> {
-    let mut filename = out_dir_path.clone();
+    let mut filename = destination.clone();
     filename.push(DEFAULT_MANIFEST_FILENAME.to_string());
     filename.set_extension("json");
     let mut manifest_file = File::create(&filename).chain_err(|| "Could not create manifest file")?;
-    let manifest = generate::create_manifest(&flow, debug_symbols, out_dir_path.to_str()
-        .ok_or("Could not convert output directory to string")?, tables)
+    let manifest_url = Url::from_file_path(&filename).unwrap();
+    let manifest = generate::create_manifest(&flow, debug_symbols, manifest_url.as_str(), tables)
         .chain_err(|| "Could not create manifest from parsed flow and compiler tables")?;
 
     manifest_file.write_all(serde_json::to_string_pretty(&manifest)

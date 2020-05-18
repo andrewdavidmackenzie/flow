@@ -3,6 +3,7 @@ use std::collections::HashSet;
 
 use log::info;
 use serde_derive::Serialize;
+use url::Url;
 
 use flowrlib::function::Function as RuntimeFunction;
 use flowrlib::input::Input;
@@ -63,18 +64,18 @@ impl From<&IO> for Input {
 
 /*
     Paths in the manifest are relative to the location of the manifest file, to make the file
-    and associated files relocatable (and manybe packagable into a ZIP etc). So we use manifest_dir
-    as the root directory other file paths are made relatiove to.
+    and associated files relocatable (and manybe packagable into a ZIP etc). So we use manifest_url
+    as the location other file paths are made relative to.
 */
-pub fn create_manifest(flow: &Flow, debug_symbols: bool, manifest_dir: &str, tables: &GenerationTables)
+pub fn create_manifest(flow: &Flow, debug_symbols: bool, manifest_url: &str, tables: &GenerationTables)
                        -> Result<Manifest> {
-    info!("Writing flow manifest to '{}'", manifest_dir);
+    info!("Writing flow manifest to '{}'", manifest_url);
 
     let mut manifest = Manifest::new(MetaData::from(flow));
 
     // Generate run-time Process struct for each of the functions
     for function in &tables.functions {
-        manifest.add_function(function_to_runtimefunction(&manifest_dir, function, debug_symbols)?);
+        manifest.add_function(function_to_runtimefunction(&manifest_url, function, debug_symbols)?);
     }
 
     manifest.lib_references = tables.libs.clone();
@@ -86,7 +87,7 @@ pub fn create_manifest(flow: &Flow, debug_symbols: bool, manifest_dir: &str, tab
     Create a run-time function struct from a compile-time function struct.
     manifest_dir is the directory that paths will be made relative to.
 */
-fn function_to_runtimefunction(manifest_dir: &str, function: &Function, debug_symbols: bool) -> Result<RuntimeFunction> {
+fn function_to_runtimefunction(manifest_url: &str, function: &Function, debug_symbols: bool) -> Result<RuntimeFunction> {
     #[cfg(feature = "debugger")]
     let name = if debug_symbols {
         function.alias().to_string()
@@ -98,7 +99,7 @@ fn function_to_runtimefunction(manifest_dir: &str, function: &Function, debug_sy
     } else { "".to_string() };
 
     // make the location of implementation relative to the output directory if it is under it
-    let implementation_location = implementation_location_relative(&function, manifest_dir)?;
+    let implementation_location = implementation_location_relative(&function, manifest_url)?;
 
     let mut runtime_inputs = vec!();
     match &function.get_inputs() {
@@ -125,14 +126,23 @@ fn function_to_runtimefunction(manifest_dir: &str, function: &Function, debug_sy
 /*
     Get the location of the implementation - relative to the Manifest if it is a provided implementation
 */
-fn implementation_location_relative(function: &Function, out_dir: &str) -> Result<String> {
+// TODO generalize this for Urls, not just files - will require changing the function.get_implementaion()
+fn implementation_location_relative(function: &Function, manifest_url: &str) -> Result<String> {
     if let Some(ref lib_reference) = function.get_lib_reference() {
         Ok(format!("lib://{}/{}", lib_reference, &function.name()))
     } else {
         let implementation_path = function.get_implementation();
-        info!("Out_dir = '{}'", out_dir);
+        let implementation_url = Url::from_file_path(implementation_path).unwrap().to_string();
+
+        let mut manifest_base_url = Url::parse(manifest_url)
+            .map_err(|e| e.to_string())?;
+        manifest_base_url.path_segments_mut()
+            .map_err(|_| "cannot be base")?
+            .pop();
+
+        info!("Manifest base = '{}'", manifest_base_url.to_string());
         info!("Absolute implementation path = '{}'", implementation_path);
-        let relative_path = implementation_path.replace(out_dir, "");
+        let relative_path = implementation_url.replace(&format!("{}/", manifest_base_url.as_str()), "");
         info!("Absolute implementation path = '{}'", relative_path);
         Ok(relative_path)
     }

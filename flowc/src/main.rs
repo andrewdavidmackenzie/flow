@@ -101,7 +101,8 @@ fn run() -> Result<String> {
     if options.lib {
         build_lib(&options, provider).chain_err(|| "Could not build library")
     } else {
-        compile_and_execute_flow(&options, provider).chain_err(|| format!("Could not compile and execute the flow '{}'", &options.url))
+        compile_and_execute_flow(&options, provider)
+            .chain_err(|| format!("Could not compile and execute the flow '{}'", &options.url))
     }
 }
 
