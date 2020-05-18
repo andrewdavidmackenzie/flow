@@ -62,14 +62,16 @@ impl Manifest {
     }
 
     /// Load, or Deserialize, a manifest from a `source` Url using `provider`
-    pub fn load(provider: &dyn Provider, source: &str) -> Result<Manifest> {
+    pub fn load(provider: &dyn Provider, source: &str) -> Result<(Manifest, String)> {
         let (resolved_url, _) = provider.resolve_url(source, DEFAULT_MANIFEST_FILENAME, &["json"])?;
         let content = provider.get_contents(&resolved_url)?;
 
         // TODO for now json only
-        serde_json::from_str(
+        let manifest = serde_json::from_str(
             &String::from_utf8(content).chain_err(|| "Could not convert from utf8 to String")?)
-            .chain_err(|| format!("Could not create a manifest from '{}'", source))
+            .chain_err(|| format!("Could not create a manifest from '{}'", source))?;
+
+        Ok((manifest, resolved_url))
     }
 }
 
@@ -108,7 +110,7 @@ mod test {
 
     #[test]
     fn create() {
-        let _ = Manifest::new(test_meta_data());
+        let _ = Manifest::new(test_meta_data(), "fake dir");
     }
 
     #[test]
@@ -123,7 +125,7 @@ mod test {
                                          0, 0,
                                          &[], false);
 
-        let mut manifest = Manifest::new(test_meta_data());
+        let mut manifest = Manifest::new(test_meta_data(), "fake dir");
         manifest.add_function(function);
         assert_eq!(manifest.functions.len(), 1);
     }
@@ -138,6 +140,7 @@ mod test {
                 \"author_name\": \"\",
                 \"author_email\": \"\"
                 },
+            \"manifest_dir\": \"fake dir\",
             \"lib_references\": [
                 \"lib://flowstdlib\"
              ],

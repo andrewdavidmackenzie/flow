@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use log::{debug, info};
+use url::Url;
 
 use flowrlib::input::InputInitializer;
 use flowrlib::manifest::MetaData;
 use flowrlib::provider::Provider;
-use flowrlib::url;
 
 use crate::deserializers::deserializer_helper::get_deserializer;
 use crate::errors::*;
@@ -144,9 +144,12 @@ fn config_flow(flow: &mut Flow, source_url: &str, parent_route: &Route, alias_fr
 fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Provider) -> Result<()> {
     if let Some(ref mut process_refs) = flow.process_refs {
         for process_ref in process_refs {
-            let subprocess_url = url::join(&flow.source_url, &process_ref.source);
+            let subprocess_url = Url::parse(&flow.source_url)
+                .map_err(|e| e.to_string())?
+                .join(&process_ref.source)
+                .map_err(|e| e.to_string())?;
             process_ref.process = load_process(&flow.route, &process_ref.alias(),
-                                               flow.id, flow_count, &subprocess_url,
+                                               flow.id, flow_count, subprocess_url.as_str(),
                                                provider, &process_ref.initializations,
                                                &process_ref.depths)?;
 

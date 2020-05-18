@@ -4,12 +4,12 @@ use std::sync::Arc;
 
 use flow_impl::Implementation;
 use log::{debug, info, trace};
+use url::Url;
 
 use crate::errors::*;
 use crate::lib_manifest::{ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest};
 use crate::manifest::Manifest;
 use crate::provider::Provider;
-use crate::url;
 use crate::wasm;
 
 /// A `Loader` is responsible for loading a `Flow` from it's `Manifest`, loading the required
@@ -47,12 +47,12 @@ impl Loader {
     /// Thus, all library implementations found will be Native.
     pub fn load_manifest(&mut self, provider: &dyn Provider, flow_manifest_url: &str) -> Result<Manifest> {
         debug!("Loading flow manifest from '{}'", flow_manifest_url);
-        let mut flow_manifest = Manifest::load(provider, flow_manifest_url)?;
+        let (mut flow_manifest, resolved_url) = Manifest::load(provider, flow_manifest_url)?;
 
         self.load_libraries(provider, &flow_manifest)?;
 
         // Find the implementations for all functions in this flow
-        self.resolve_implementations(&mut flow_manifest, provider, flow_manifest_url)?;
+        self.resolve_implementations(&mut flow_manifest, &resolved_url, provider)?;
 
         Ok(flow_manifest)
     }
@@ -76,8 +76,7 @@ impl Loader {
     /// Resolve or "find" all the implementations of functions for a flow
     /// The `root_url` is the url of the manifest or the directory where the manifest is located
     /// and is used in resolving relative references to other files.
-    pub fn resolve_implementations(&mut self, flow_manifest: &mut Manifest, provider: &dyn Provider,
-                                   root_url: &str) -> Result<String> {
+    pub fn resolve_implementations(&mut self, flow_manifest: &mut Manifest, manifest_url: &str, provider: &dyn Provider) -> Result<String> {
         debug!("Resolving implementations");
         // find in a library, or load the supplied implementation - as specified by the source
         for function in &mut flow_manifest.functions {
@@ -93,10 +92,12 @@ impl Loader {
 
                 /*** These below are not 'lib:' references - hence are supplied implementations ***/
                 _ => {
-                    let full_url = url::join(root_url,
-                                             function.implementation_location());
+                    let full_url = Url::parse(manifest_url)
+                        .map_err(|e| e.to_string())?
+                        .join(function.implementation_location())
+                        .map_err(|_| format!("Could not join '{}' to Url", function.implementation_location()))?;
                     let wasm_executor = wasm::load(provider,
-                                                   &full_url)?;
+                                                   full_url.as_str())?;
                     function.set_implementation(Arc::new(wasm_executor) as Arc<dyn Implementation>);
                 }
             }
@@ -121,10 +122,13 @@ impl Loader {
                 let implementation = match locator {
                     Wasm(wasm_source_relative) => {
                         // Path to the wasm source could be relative to the URL where we loaded the manifest from
-                        let wasm_url = url::join(lib_manifest_url, &wasm_source_relative);
+                        let wasm_url = Url::parse(lib_manifest_url)
+                            .map_err(|e| e.to_string())?
+                            .join(&wasm_source_relative)
+                            .map_err(|e| e.to_string())?;
                         debug!("Looking for wasm source: '{}'", wasm_url);
                         // Wasm implementation being added. Wrap it with the Wasm Native Implementation
-                        let wasm_executor = wasm::load(provider, &wasm_url)?;
+                        let wasm_executor = wasm::load(provider, wasm_url.as_str())?;
                         Arc::new(wasm_executor) as Arc<dyn Implementation>
                     }
 

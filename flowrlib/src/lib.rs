@@ -30,8 +30,6 @@ pub mod loader;
 /// `provider` is a trait that is implemented to provide content to flowrlib in different environments
 /// it runs in
 pub mod provider;
-/// A module with some utility functions related to urls
-pub mod url;
 
 #[cfg(feature = "debugger")]
 /// 'debug_client' is used to connect a debugger to the run-time for debugging of flows

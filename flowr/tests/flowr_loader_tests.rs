@@ -120,7 +120,7 @@ fn resolve_lib_implementation_test() {
     // Load library functions provided
     loader.add_lib(&provider, "lib://flowruntime", get_manifest(), &cwd_as_url().unwrap().to_string()).unwrap();
 
-    loader.resolve_implementations(&mut manifest, &provider, &manifest_url).unwrap();
+    loader.resolve_implementations(&mut manifest, &manifest_url, &provider).unwrap();
 }
 
 #[test]
@@ -140,7 +140,7 @@ fn unresolved_lib_functions_test() {
     // Load library functions provided
     loader.add_lib(&provider, "lib://flowruntime", get_manifest(), &cwd_as_url().unwrap().to_string()).unwrap();
 
-    assert!(loader.resolve_implementations(&mut manifest, &provider, &manifest_url).is_err());
+    assert!(loader.resolve_implementations(&mut manifest, &manifest_url, &provider).is_err());
 }
 
 // TODO add a wasm loading test
