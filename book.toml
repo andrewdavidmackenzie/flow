@@ -1,12 +1,12 @@
 [book]
 title = "The 'flow' Guide"
 authors = ["Andrew Mackenzie"]
-description = "A guide to what 'flow' is and how to use it"
+description = "A guide to 'flow': what it is and how to use it"
 multilingual = false
 src = "."
 
 [build]
-build-dir = "target/html"
+build-dir = "target"
 create-missing = false
 use-default-preprocessors = false
 
