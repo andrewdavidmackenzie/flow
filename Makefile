@@ -160,33 +160,44 @@ book-test:
 
 ################### Coverage ####################
 .PHONY: coverage
-coverage: build-kcov measure #upload_coverage
+coverage: build-kcov measure upload_coverage
 
-COVERAGE_PREFIXES := "flow_impl-*" "flowruntime-*" "provider-*" "flow_impl_derive-*" "flowc-*" "flowstdlib-*" "flowr-*" "flowrlib-*"
-# flowc_*-* and flowr_*-*
-
-upload_coverage: $(COVERAGE_PREFIXES)
+upload_coverage:
 	@echo "Uploading coverage to https://codecov.io....."
 	@curl -s https://codecov.io/bash | bash
 
-measure: $(COVERAGE_PREFIXES)
-
-$(COVERAGE_PREFIXES):
-	@./coverage.sh $@
+#flow and provider .d
+measure:
+	@echo "Measuring coverage using 'kcov'"
+	@for file in `find target/debug -name "flow*.d"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
 
 build-kcov:
 ifeq ($(KCOV),)
 	@echo "'kcov' is not installed. Building and installing it"
-	@printf "Building 'kcov' from source and installing it"
+	@cd target
+	@echo "Downloading kcov source code"
 	@wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz
 	@rm -rf kcov-master
+	@echo "Untarring downloaded kcov tarball"
 	@tar xzf master.tar.gz
+	@echo "Building kcov from source"
 ifeq ($(UNAME), Linux)
 	@cd kcov-master && rm -rf build && mkdir build && cd build && cmake .. && make && sudo make install
 endif
 ifeq ($(UNAME), Darwin)
-	@cd kcov-master && rm -rf build && mkdir build && cd build && cmake -G Xcode .. &&  xcodebuild -configuration Release§
-	@sudo mv kcov-master/build/src/Debug/kcov /usr/local/bin/kcov
+	@echo "installing 'openssl' and 'binutils' with brew"
+	@brew install binutils
+	@# Remove python 2 to avoid dependency issue on osx
+	@# https://askubuntu.com/questions/981663/python2-7-broken-by-weakref-import-error-please-help
+	@brew remove python@2 --ignore-dependencies 2>/dev/null; true
+	@echo "Installing required python packages: 'six'"
+	@pip3 install --ignore-installed six
+	@# Link openssl to a place where the compiler looks for it
+	@ln -s /usr/local/opt/openssl/include/openssl /usr/local/include 2>/dev/null; true
+	@ln -s /usr/local/Cellar/openssl@1.1/1.1.1f/include/openssl /usr/bin/openssl 2>/dev/null; true
+	@ln -s /usr/local/opt/openssl/lib/libssl.1.1.1.dylib /usr/local/lib/ 2>/dev/null; true
+	@cd kcov-master && mkdir build && cd build && cmake -G Xcode .. &&  xcodebuild -configuration Release
+	@sudo mv src/Release/kcov /usr/local/bin/kcov
 endif
 	@rm -rf kcov-master
 	@rm -f master.tar.gz*
