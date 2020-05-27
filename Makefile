@@ -169,7 +169,8 @@ upload_coverage:
 #flow and provider .d
 measure:
 	@echo "Measuring coverage using 'kcov'"
-	@for file in `find target/debug -name "flow*.d"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
+	@for file in `find target/debug -name "flow*.d"`; do ls -l $$file; mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
+	#@for file in `find target/debug -name "provider*.d"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
 
 build-kcov:
 ifeq ($(KCOV),)
@@ -190,11 +191,14 @@ ifeq ($(UNAME), Darwin)
 	@brew remove python@2 --ignore-dependencies 2>/dev/null; true
 	@echo "Installing required python packages: 'six'"
 	@pip3 -q install six 2>/dev/null
-	@# Link openssl to a place where the compiler looks for it
+	@echo "Linking openssl to a place where the compiler looks for it"
 	@ln -s /usr/local/opt/openssl/include/openssl /usr/local/include 2>/dev/null; true
-	@ln -s /usr/local/Cellar/openssl@1.1/1.1.1f/include/openssl /usr/bin/openssl 2>/dev/null; true
+	@ln -s /usr/local/Cellar/openssl@1.1/1.1.1g/include/openssl /usr/bin/openssl 2>/dev/null; true
 	@ln -s /usr/local/opt/openssl/lib/libssl.1.1.1.dylib /usr/local/lib/ 2>/dev/null; true
+	#ln -s /usr/local/Cellar/openssl@1.1/1.1.1g/lib/libssl.dylib /usr/local/lib/
+	#ln -s /usr/local/Cellar/openssl@1.1/1.1.1g/lib/libcrypto.1.1.dylib /usr/local/lib/
 	@cd target/kcov-master && mkdir build && cd build && cmake -G Xcode .. &&  xcodebuild -configuration Release
+	#@cd target/kcov-master && mkdir build && cd build && cmake .. && make && xcodebuild -configuration Release
 	@sudo mv src/Release/kcov /usr/local/bin/kcov
 endif
 	@rm -rf kcov-master
