@@ -169,7 +169,7 @@ upload_coverage:
 #flow and provider .d
 measure:
 	@echo "Measuring coverage using 'kcov'"
-	@for file in `find target/debug -name "flow*.d"`; do ls -l $$file; mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
+	@for file in `find target/debug -name "flow*.d"`; do ls -l $$file; mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" $$file; done
 	#@for file in `find target/debug -name "provider*.d"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
 
 build-kcov:
@@ -185,20 +185,20 @@ ifeq ($(UNAME), Linux)
 endif
 ifeq ($(UNAME), Darwin)
 	@echo "Installing 'openssl' and 'binutils' with brew"
-	@brew install binutils 2>/dev/null; true
+	@brew -q install binutils 2>/dev/null; true
 	@# Remove python 2 to avoid dependency issue on osx
 	@# https://askubuntu.com/questions/981663/python2-7-broken-by-weakref-import-error-please-help
-	@brew remove python@2 --ignore-dependencies 2>/dev/null; true
+	@brew -q remove python@2 --ignore-dependencies 2>/dev/null; true
 	@echo "Installing required python packages: 'six'"
 	@pip3 -q install six 2>/dev/null
 	@echo "Linking openssl to a place where the compiler looks for it"
 	@ln -s /usr/local/opt/openssl/include/openssl /usr/local/include 2>/dev/null; true
 	@ln -s /usr/local/Cellar/openssl@1.1/1.1.1g/include/openssl /usr/bin/openssl 2>/dev/null; true
 	@ln -s /usr/local/opt/openssl/lib/libssl.1.1.1.dylib /usr/local/lib/ 2>/dev/null; true
-	#ln -s /usr/local/Cellar/openssl@1.1/1.1.1g/lib/libssl.dylib /usr/local/lib/
-	#ln -s /usr/local/Cellar/openssl@1.1/1.1.1g/lib/libcrypto.1.1.dylib /usr/local/lib/
+	@#ln -s /usr/local/Cellar/openssl@1.1/1.1.1g/lib/libssl.dylib /usr/local/lib/
+	@#ln -s /usr/local/Cellar/openssl@1.1/1.1.1g/lib/libcrypto.1.1.dylib /usr/local/lib/
 	@cd target/kcov-master && mkdir build && cd build && cmake -G Xcode .. &&  xcodebuild -configuration Release
-	#@cd target/kcov-master && mkdir build && cd build && cmake .. && make && xcodebuild -configuration Release
+	@#cd target/kcov-master && mkdir build && cd build && cmake .. && make && xcodebuild -configuration Release
 	@sudo mv src/Release/kcov /usr/local/bin/kcov
 endif
 	@rm -rf kcov-master
