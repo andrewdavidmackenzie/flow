@@ -185,10 +185,10 @@ ifeq ($(UNAME), Linux)
 endif
 ifeq ($(UNAME), Darwin)
 	@echo "Installing 'openssl' and 'binutils' with brew"
-	@brew -q install binutils 2>/dev/null; true
+	@brew install binutils 2>/dev/null; true
 	@# Remove python 2 to avoid dependency issue on osx
 	@# https://askubuntu.com/questions/981663/python2-7-broken-by-weakref-import-error-please-help
-	@brew -q remove python@2 --ignore-dependencies 2>/dev/null; true
+	@brew remove python@2 --ignore-dependencies 2>/dev/null; true
 	@echo "Installing required python packages: 'six'"
 	@pip3 -q install six 2>/dev/null
 	@echo "Linking openssl to a place where the compiler looks for it"
