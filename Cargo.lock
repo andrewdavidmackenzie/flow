@@ -295,7 +295,6 @@ name = "flowc"
 version = "0.8.8"
 dependencies = [
  "clap 2.33.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "curl 0.4.29 (registry+https://github.com/rust-lang/crates.io-index)",
  "error-chain 0.12.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "flowclib 0.8.8",
  "flowr 0.8.8",
