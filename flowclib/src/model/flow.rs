@@ -327,7 +327,7 @@ impl Flow {
         }
 
         // put connections back into self
-        replace(&mut self.connections, Some(connections));
+        let _ = replace(&mut self.connections, Some(connections));
 
         if error_count == 0 {
             debug!("All connections inside flow '{}' successfully built", self.source_url);
