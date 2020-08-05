@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex};
+#[cfg(feature = "debugger")]
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender, SendError};
 use std::sync::mpsc;
@@ -92,6 +93,7 @@ pub struct Coordinator {
     /// A channel used to receive Jobs back after execution (now including the job's output)
     job_rx: Receiver<Job>,
     /// A flag that indeicates a request to enter the debugger has been made
+    #[cfg(feature = "debugger")]
     debug_requested: Arc<AtomicBool>,
 }
 
@@ -161,6 +163,7 @@ impl Coordinator {
         Coordinator {
             job_tx,
             job_rx: output_rx,
+            #[cfg(feature = "debugger")]
             debug_requested: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -250,13 +253,13 @@ impl Coordinator {
                                     &mut submission.debugger,
                             );
                         }
+                        #[cfg(feature = "debugger")]
                         Err(err) => {
-                            #[cfg(feature = "debugger")]
                                 submission.debugger.panic(&submission.state,
                                                           format!("Error in job reception: '{}'", err));
-                            #[cfg(not(feature = "debugger"))]
-                            error!("\tError in Job reception");
                         }
+                        #[cfg(not(feature = "debugger"))]
+                        Err(_) => error!("\tError in Job reception")
                     }
                 }
 
