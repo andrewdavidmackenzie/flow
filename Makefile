@@ -166,10 +166,9 @@ upload_coverage:
 	@echo "Uploading coverage to https://codecov.io....."
 	@curl -s https://codecov.io/bash | bash
 
-#flow and provider .d
 measure:
 	@echo "Measuring coverage using 'kcov'"
-	@for file in `find target/debug -name "flow*.d"`; do ls -l $$file; mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" $$file; done
+	@for file in `find target/debug -name "flow*.d"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" $$file; done
 	#@for file in `find target/debug -name "provider*.d"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
 
 build-kcov:
@@ -201,8 +200,8 @@ ifeq ($(UNAME), Darwin)
 	@#cd target/kcov-master && mkdir build && cd build && cmake -G Xcode .. &&  xcodebuild -configuration Release
 	@cd target/kcov-master && mkdir build && cd build && cmake .. && make && xcodebuild -configuration Release 2>/dev/null; true
 	@sudo mv target/kcov-master/build/src/kcov /usr/local/bin/kcov
-	@echo "'kcov' install to `which kcov`"
 endif
+	@echo "'kcov' install to `which kcov`"
 	@rm -rf kcov-master
 	@rm -f master.tar.gz*
 else
@@ -210,9 +209,15 @@ else
 endif
 
 #################### FLOW LIBRARIES ####################
-flowstdlib: flowstdlib/manifest.json
+flowstdlib: flowstdlibtest flowstdlib/manifest.json
 
-flowstdlib/manifest.json: $(FLOWSTDLIB_FILES)
+# Make sure all tests in functions in flowstdlib pass - native
+flowstdlibtest:
+	@mkdir -p target;date '+%s' > target/.flowstdlibtesttime ; echo \\n------- Target \'$@\' starting
+	@cargo test -p flowstdlib
+	@read st < target/.flowstdlibtesttime ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
+
+flowstdlib/manifest.json:
 	@mkdir -p target;date '+%s' > target/.flowstdlibtime ; echo \\n------- Target \'$@\' starting
 	@cargo run -p flowc -- -v info -l -g -d flowstdlib
 	@read st < target/.flowstdlibtime ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds

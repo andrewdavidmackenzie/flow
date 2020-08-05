@@ -36,7 +36,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
     }
 
     let build_count = compile_implementations(options, &mut lib_manifest, &base_dir, provider,
-                                              options.skip_generation, options.release)
+                                              options.skip_generation)
         .chain_err(|| "Could not build library")?;
 
     let manifest_file = manifest_file(&options.output_dir);
@@ -99,7 +99,7 @@ fn write_lib_manifest(lib_manifest: &LibraryManifest, filename: &PathBuf) -> Res
 */
 fn compile_implementations(options: &Options, lib_manifest: &mut LibraryManifest,
                            base_dir: &str, provider: &dyn Provider,
-                           skip_building: bool, release: bool) -> Result<i32> {
+                           skip_building: bool) -> Result<i32> {
     let mut build_count = 0;
     let search_pattern = format!("{}**/*.toml", base_dir);
 
@@ -113,7 +113,7 @@ fn compile_implementations(options: &Options, lib_manifest: &mut LibraryManifest
             match load(&url, provider) {
                 Ok(FunctionProcess(ref mut function)) => {
                     let (wasm_abs_path, built) = compile_wasm::compile_implementation(function,
-                                                                                      skip_building, release)?;
+                                                                                      skip_building)?;
                     let wasm_dir = wasm_abs_path.parent()
                         .chain_err(|| "Could not get parent directory of wasm path")?;
                     lib_manifest.add_to_manifest(base_dir,
