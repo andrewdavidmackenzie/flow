@@ -58,8 +58,7 @@ pub struct Options {
     skip_generation: bool,
     debug_symbols: bool,
     provided_implementations: bool,
-    output_dir: PathBuf,
-    release: bool
+    output_dir: PathBuf
 }
 
 fn main() {
@@ -117,10 +116,6 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .short("s")
             .long("skip")
             .help("Skip manifest generation and running of flow"))
-        .arg(Arg::with_name("release")
-            .short("r")
-            .long("release")
-            .help("Build supplied and library implementations with release profile"))
         .arg(Arg::with_name("lib")
             .short("l")
             .long("lib")
@@ -185,7 +180,6 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         flow_args,
         dump: matches.is_present("dump"),
         skip_generation: matches.is_present("skip"),
-        release: matches.is_present("release"),
         debug_symbols: matches.is_present("symbols"),
         provided_implementations: matches.is_present("provided"),
         output_dir
