@@ -2,7 +2,7 @@
 name = "flowc"
 version = "0.8.8"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
-description = "A compiler for 'flow' programs"
+description = "A compiler and library for compiling 'flow' programs"
 license = "MIT"
 documentation = "https://github.com/andrewdavidmackenzie/flow/README.md"
 homepage = "http://andrewdavidmackenzie.github.io/flow/"
@@ -14,6 +14,10 @@ edition = "2018"
 name = "flowc"
 path = "src/main.rs"
 
+[lib]
+name = "flowclib"
+path = "src/lib.rs"
+
 [features]
 default = ["debugger"]
 debugger = []
@@ -21,7 +25,6 @@ online_tests = []
 
 [dependencies]
 flowrlib = {path = "../flowrlib", features = ["debugger", "metrics", "checks"] }
-flowclib = {path = "../flowclib", features = ["debugger"] }
 provider = {path = "../provider"}
 flowr = {path = "../flowr"}
 clap = "~2"
@@ -33,3 +36,13 @@ simpath = "~1.3"
 glob = "~0.2.11"
 serde_json = "1.0"
 error-chain = "0.12.2"
+serde_yaml = "~0.8"
+toml = "0.4"
+serde_derive = "~1.0.27"
+serde = "~1.0.27"
+erased-serde = "0.3.9"
+strfmt = "0.1.5"
+shrinkwraprs = "0.2.1"
+
+[dev-dependencies]
+tempdir = "~0.3.5"

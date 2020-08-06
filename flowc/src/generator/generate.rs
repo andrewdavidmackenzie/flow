@@ -132,7 +132,9 @@ fn implementation_location_relative(function: &Function, manifest_url: &str) -> 
         Ok(format!("lib://{}/{}", lib_reference, &function.name()))
     } else {
         let implementation_path = function.get_implementation();
-        let implementation_url = Url::from_file_path(implementation_path).unwrap().to_string();
+        let implementation_url = Url::from_file_path(implementation_path)
+                                    .map_err(|_| format!("Could not create Url from file path: {}", implementation_path))?
+                                    .to_string();
 
         let mut manifest_base_url = Url::parse(manifest_url)
             .map_err(|e| e.to_string())?;
@@ -177,7 +179,7 @@ mod test {
             )),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
-            None,
+            Some("flowruntime/stdio/stdout".to_string()),
             vec!(OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None),
                  OutputConnection::new("sub_route".to_string(), 2, 0, 0, 0, false, None)),
             0, 0);
@@ -185,7 +187,7 @@ mod test {
         let expected = "{
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://flowruntime/stdio/stdout',
+  'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
   'output_routes': [
     {
       'function_id': 1,
@@ -220,14 +222,14 @@ mod test {
             Some(vec!(IO::new("String", &Route::default()))),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
-            None,
+            Some("flowruntime/stdio/stdout".to_string()),
             vec!(OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None)),
             0, 0);
 
         let expected = "{
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://flowruntime/stdio/stdout',
+  'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
   'output_routes': [
     {
       'function_id': 1,
@@ -256,7 +258,7 @@ mod test {
             Some(vec!(IO::new("String", &Route::default()))),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
-            None,
+            Some("flowruntime/stdio/stdout".to_string()),
             vec!(OutputConnection::new("".to_string(), 1, 0, 0,
                                        1, false, None)),
             0, 0);
@@ -264,7 +266,7 @@ mod test {
         let expected = "{
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://flowruntime/stdio/stdout',
+  'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
   'output_routes': [
     {
       'function_id': 1,
@@ -299,14 +301,14 @@ mod test {
             None,
             "file:///fake/file",
             Route::from("/flow0/stdout"),
-            None,
+            Some("flowruntime/stdio/stdout".to_string()),
             vec!(),
             0, 0);
 
         let expected = "{
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://flowruntime/stdio/stdout',
+  'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
   'inputs': [
     {
       'initializer': {
@@ -341,14 +343,14 @@ mod test {
             None,
             "file:///fake/file",
             Route::from("/flow0/stdout"),
-            None,
+            Some("flowruntime/stdio/stdout".to_string()),
             vec!(),
             0, 0);
 
         let expected = "{
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://flowruntime/stdio/stdout',
+  'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
   'inputs': [
     {
       'initializer': {
@@ -380,14 +382,14 @@ mod test {
             None,
             "file:///fake/file",
             Route::from("/flow0/stdout"),
-            None,
+            Some("flowruntime/stdio/stdout".to_string()),
             vec!(),
             0, 0);
 
         let expected = "{
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://flowruntime/stdio/stdout',
+  'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
   'inputs': [
     {}
   ]
@@ -414,7 +416,7 @@ mod test {
             )),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
-            None,
+            Some("flowruntime/stdio/stdout".to_string()),
             vec!(OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None)),
             0, 0)
     }
@@ -428,7 +430,7 @@ mod test {
   'route': '/flow0/stdout',
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://flowruntime/stdio/stdout',
+  'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
   'output_routes': [
     {
       'function_id': 1,
@@ -457,14 +459,14 @@ mod test {
             Some(vec!(IO::new("Array", &Route::default()))),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
-            None,
+            Some("flowruntime/stdio/stdout".to_string()),
             vec!(OutputConnection::new("/0".to_string(), 1, 0, 0, 0, false, None)),
             0, 0);
 
         let expected = "{
   'id': 0,
   'flow_id': 0,
-  'implementation_location': 'lib://flowruntime/stdio/stdout',
+  'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
   'output_routes': [
     {
       'subpath': '/0',
