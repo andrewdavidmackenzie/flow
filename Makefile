@@ -272,10 +272,10 @@ online-samples:
 publish: flowc_publish flowide_publish
 
 #### Level 1 - flowc and flowide - no dependency between them
-flowc_publish: flowr_publish flowclib_publish flowrlib_publish provider_publish
+flowc_publish: flowr_publish flowrlib_publish provider_publish
 	cargo publish --manifest-path=flowc/Cargo.toml
 
-flowide_publish: flowclib_publish flowrlib_publish provider_publish flow_impl_publish flowstdlib_publish
+flowide_publish: flowc_publish flowrlib_publish provider_publish flow_impl_publish flowstdlib_publish
 	cargo publish --manifest-path=flowide/Cargo.toml
 
 #### Level 2 - flowr
@@ -286,12 +286,9 @@ flowr_publish: provider_publish flow_impl_publish flowstdlib_publish
 provider_publish: flowrlib_publish
 	cargo publish --manifest-path=provider/Cargo.toml
 
-#### Level 4 - flowstdlib and flowclib
+#### Level 4 - flowstdlib
 flowstdlib_publish: flow_impl_publish flow_impl_derive_publish flowrlib_publish
 	cargo publish --manifest-path=flowstdlib/Cargo.toml
-
-flowclib_publish: flowrlib_publish
-	cargo publish --manifest-path=flowclib/Cargo.toml
 
 #### Level 5 - flowruntime
 flowruntime_publish: flow_impl_publish flowrlib_publish

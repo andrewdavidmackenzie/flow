@@ -1,5 +1,4 @@
 # `flowc`
-
 See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowc/index.html)
 
 `flowc` is the "compiler and linker" for flows and flow libraries, although it is not 
@@ -21,3 +20,9 @@ it is up to date and built).
 
 Most of the compilation and linking logic is in the `flowclib` library, which can be used
 to build other command line utilities for compiling, or an IDE.
+
+# `flowclib`
+See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowclib/index.html)
+
+This is the rust `flow` Compiler Library. It can be linked with other code to produce
+a flow compiler, such as the `flowc` command line flow compiler.
