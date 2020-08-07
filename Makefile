@@ -142,6 +142,11 @@ clippy:
 	@cargo clippy -- -D warnings
 	$(ETIME)
 
+flowide:
+	$(STIME)
+	@cargo build --manifest-path=flowide/Cargo.toml
+	$(ETIME)
+
 flowrunner:
 	$(STIME)
 	@cargo build -p flowr
