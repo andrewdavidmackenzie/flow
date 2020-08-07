@@ -23,8 +23,11 @@ default = ["debugger"]
 debugger = []
 online_tests = []
 
+[dependencies.flowrlib]
+path = "../flowrlib"
+features = ["debugger", "metrics", "checks"]
+
 [dependencies]
-flowrlib = {path = "../flowrlib", features = ["debugger", "metrics", "checks"] }
 provider = {path = "../provider"}
 flowr = {path = "../flowr"}
 clap = "~2"

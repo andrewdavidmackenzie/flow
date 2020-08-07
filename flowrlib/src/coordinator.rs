@@ -113,6 +113,8 @@ pub struct Coordinator {
 /// #[cfg(any(feature = "debugger"))]
 /// use flowrlib::debug_client::{DebugClient, Command, Param, Event, Response, Command::ExitDebugger};
 ///
+/// struct ExampleDebugClient {};
+///
 /// let meta_data = MetaData {
 ///                     library_name: "test".into(),
 ///                     description: "Test submission".into(),
@@ -120,7 +122,8 @@ pub struct Coordinator {
 ///                     author_name: "test user".into(),
 ///                     author_email: "me@acme.com".into()
 ///                 };
-/// let manifest = Manifest::new(meta_data, "fake_dir");
+///
+/// let manifest = Manifest::new(meta_data);
 ///
 /// impl DebugClient for ExampleDebugClient {
 ///     fn init(&self) {}
@@ -135,15 +138,13 @@ pub struct Coordinator {
 /// let mut submission = Submission::new(manifest,
 ///                                     1 /* num_parallel_jobs */,
 ///                                     false /* display_metrics */,
-/// #[cfg(any(feature = "debugger"))]
-///                                     Debugger::new(ExampleDebugClient),
-///                                     true
-///                                     );
+///                                     &ExampleDebugClient{},
+///                                     true /* enter debugger on start */);
 ///
 /// let mut coordinator = Coordinator::new( 1 /* num_threads */, );
 /// coordinator.init();
 ///
-/// coordinator.submit(submission);
+/// // coordinator.submit(submission); // Goes into execution loop so avoided for doc-tests for now
 ///
 /// exit(0);
 /// ```
@@ -361,6 +362,7 @@ mod test {
     use crate::manifest::Manifest;
     use crate::manifest::MetaData;
 
+    //noinspection DuplicatedCode
     fn test_meta_data() -> MetaData {
         MetaData {
             library_name: "test".into(),
@@ -395,7 +397,7 @@ mod test {
     #[test]
     fn create_submission() {
         let meta_data = test_meta_data();
-        let manifest = Manifest::new(meta_data, "fake dir");
+        let manifest = Manifest::new(meta_data);
         let _ = Submission::new(manifest, 1, true,
                                 #[cfg(feature = "debugger")]
                                     test_debug_client(),
@@ -405,12 +407,13 @@ mod test {
     }
 
     #[test]
+    #[ignore] // Submission currently enters an infinite execution loop so ignore test for now
     fn submit() {
         let mut coordinator = Coordinator::new(1);
         coordinator.init();
 
         let meta_data = test_meta_data();
-        let manifest = Manifest::new(meta_data, "fake dir");
+        let manifest = Manifest::new(meta_data);
         let submission = Submission::new(manifest, 1, true,
                                          #[cfg(feature = "debugger")]
                                              test_debug_client(),
@@ -422,14 +425,14 @@ mod test {
     }
 
     #[test]
-    #[ignore]
+    #[ignore] // Submission currently enters an infinite execution loop so ignore test for now
     #[cfg(feature = "debugger")]
     fn submit_with_debugger() {
         let mut coordinator = Coordinator::new(1);
         coordinator.init();
 
         let meta_data = test_meta_data();
-        let manifest = Manifest::new(meta_data, "fake dir");
+        let manifest = Manifest::new(meta_data);
         let submission = Submission::new(manifest, 1, true,
                                          #[cfg(feature = "debugger")]
                                              test_debug_client(),

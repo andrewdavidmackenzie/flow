@@ -322,7 +322,7 @@ mod test {
     }
 
     #[test]
-    fn call_implementation_not_found_panics() {
+    fn implementation_not_found() {
         let inf = ImplementationNotFound {};
         assert_eq!((None, false), inf.run(&[]), "ImplementationNotFound should return (None, false)");
     }

@@ -6,22 +6,15 @@ STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo ------- Target \'$@\
 ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
 UNAME := $(shell uname)
+ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 > /dev/null)
 
 all:
 	$(STIME)
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig"
-	@$(MAKE) travis
-	@$(MAKE) flowide
-	$(ETIME)
-
-travis:
-	$(STIME)
 	@$(MAKE) workspace test docs
 	$(ETIME)
 
-online := false
-
-ifeq ($(online),true)
+ifeq ($(ONLINE),true)
 features := --features "online_tests"
 else
 features :=
@@ -30,7 +23,7 @@ endif
 ########## Configure Dependencies ############
 config: common-config
 	$(STIME)
-	@echo "Detected OS=$(UNAME)"
+	@echo "Detected $(UNAME)"
 ifeq ($(UNAME), Linux)
 	@$(MAKE) config-linux
 endif
@@ -140,11 +133,6 @@ workspace: clippy
 clippy:
 	$(STIME)
 	@cargo clippy -- -D warnings
-	$(ETIME)
-
-flowide:
-	$(STIME)
-	@cargo build --manifest-path=flowide/Cargo.toml
 	$(ETIME)
 
 flowrunner:
@@ -279,7 +267,7 @@ online-samples:
 #### groups of packages (in same layer) that have same dependencies but are indpendant and they could be published
 #### in parallel. But they both need to be published before the next layer up.
 #### Level 0 - the root
-publish: flowc_publish flowide_publish
+publish: flowc_publish flowr_publish flowide_publish
 
 #### Level 1 - flowc and flowide - no dependency between them
 flowc_publish: flowr_publish flowrlib_publish provider_publish
