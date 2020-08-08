@@ -92,7 +92,7 @@ trim-docs:
 	@find target/html -name \*.dot | xargs rm -rf {}
 	@find target/html -name \*.wasm | xargs rm -rf {}
 	@find target/html -name \*.lock  | xargs rm -rf {}
-	@cd target/html;rm -f Makefile .crates.toml .DS_Store .gitignore .mdbookignore .travis.yml coverage.sh
+	@cd target/html;rm -f Makefile .crates.toml .DS_Store .gitignore .mdbookignore .travis.yml
 	@cd target/html;rm -rf bin
 	@rm -rf target/html/flowc/tests/test-flows
 	@rm -rf target/html/flowc/tests/test-libs
@@ -165,12 +165,22 @@ upload_coverage:
 
 measure:
 	@echo "Measuring coverage using 'kcov'"
+ifeq ($(UNAME), Linux)
 	for file in `find target/debug/build -name "flow*-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" $$file; done
 # repeat for target/debug/deps
 	for file in `find target/debug/build -name "provider-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
 # repeat for target/debug/deps
-	for file in `find target/debug/build -name "runtime-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; echo "Testing $$file"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
+	for file in `find target/debug/build -name "flowruntime-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; echo "Testing $$file"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
 # repeat for target/debug/deps
+endif
+ifeq ($(UNAME), Darwin)
+	for file in `find target/debug/build -perm +111 -type f -name "flow*-*"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" $$file; done
+# repeat for target/debug/deps
+	for file in `find target/debug/build -perm +111 -type f -name "provider-*"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
+# repeat for target/debug/deps
+	for file in `find target/debug/build -perm +111 -type f -name "flowruntime-*"`; do mkdir -p "target/cov/$(basename $$file)"; echo "Testing $$file"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
+# repeat for target/debug/deps
+endif
 
 build-kcov:
 ifeq ($(KCOV),)
