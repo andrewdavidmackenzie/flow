@@ -25,9 +25,10 @@ addons:
       - libssl-dev
       - binutils-dev # Required by kcov for code coverage
       - libbfd-dev # Required by kcov for code coverage
+      - graphviz
 
 before_install:
-  - make config
+  - make common-config
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew unlink python@2; fi
 
