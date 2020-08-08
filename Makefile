@@ -39,7 +39,6 @@ common-config:
 	@rustup --quiet target add wasm32-unknown-unknown
 	@rustup --quiet component add clippy
 # cargo install wasm-gc || true
-# install mdbook and it's linkcheck linter for generating the guide
 	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
 	@cargo install mdbook
 	@cargo install mdbook-linkcheck
@@ -48,7 +47,7 @@ common-config:
 config-darwin:
 	$(STIME)
 	@echo "	Installing macos specific dependencies using brew"
-	@brew install gtk+3 glib cairo atk cmake graphviz
+	@brew install gtk+3 glib cairo atk cmake # graphviz
 	$(ETIME)
 
 config-linux:
