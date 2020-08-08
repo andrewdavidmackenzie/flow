@@ -277,15 +277,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb1f6b1ce1c140482ea30ddd3335fc0024ac7ee112895426e0a629a6c20adfe3"
 
 [[package]]
-name = "erased-serde"
-version = "0.3.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ca8b296792113e1500fd935ae487be6e00ce318952a6880555554824d6ebf38"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "error-chain"
 version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -334,7 +325,6 @@ name = "flowc"
 version = "0.8.8"
 dependencies = [
  "clap",
- "erased-serde",
  "error-chain",
  "flowr",
  "flowrlib",
@@ -348,7 +338,6 @@ dependencies = [
  "shrinkwraprs",
  "simpath",
  "simplog",
- "strfmt",
  "tempdir",
  "toml",
  "url",
@@ -424,7 +413,6 @@ dependencies = [
  "flowrlib",
  "log",
  "serde_json",
- "simplog",
  "url",
 ]
 
@@ -1116,10 +1104,8 @@ dependencies = [
  "curl",
  "error-chain",
  "flowrlib",
- "glob",
  "log",
  "simpath",
- "tempdir",
  "url",
 ]
 
@@ -1337,12 +1323,6 @@ dependencies = [
  "redox_syscall",
  "winapi",
 ]
-
-[[package]]
-name = "strfmt"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b278b244ef7aa5852b277f52dd0c6cac3a109919e1f6d699adde63251227a30f"
 
 [[package]]
 name = "strsim"
