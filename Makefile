@@ -166,11 +166,11 @@ upload_coverage:
 
 measure:
 	@echo "Measuring coverage using 'kcov'"
-#	@for file in `find target/debug/build -name "flow*-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" $$file; done
+	for file in `find target/debug/build -name "flow*-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" $$file; done
 # repeat for target/debug/deps
-#	@for file in `find target/debug/build -name "provider-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
+	for file in `find target/debug/build -name "provider-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
 # repeat for target/debug/deps
-	@for file in `find target/debug/build -name "runtime-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
+	for file in `find target/debug/build -name "runtime-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; echo "Testing $$file"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
 # repeat for target/debug/deps
 
 build-kcov:
