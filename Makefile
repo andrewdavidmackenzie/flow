@@ -47,7 +47,7 @@ common-config:
 config-darwin:
 	$(STIME)
 	@echo "	Installing macos specific dependencies using brew"
-	@brew install gtk+3 glib cairo atk cmake # graphviz
+	@brew install gtk+3 glib cairo atk cmake graphviz
 	$(ETIME)
 
 config-linux:

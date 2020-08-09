@@ -26,12 +26,20 @@ addons:
       - binutils-dev # Required by kcov for code coverage
       - libbfd-dev # Required by kcov for code coverage
       - graphviz
+  homebrew:
+    packages:
+      - gtk+3
+      - glib
+      - cairo
+      - atk
+      - cmake
+      - graphviz
 
 before_install:
   - make common-config
 #  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew unlink python@2; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then make config-darwin; fi
+#  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then make config-darwin; fi
 
 script:
   - rustc --version
