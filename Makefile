@@ -6,31 +6,29 @@ STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo ------- Target \'$@\
 ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
 UNAME := $(shell uname)
+ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 > /dev/null)
 
 all:
 	$(STIME)
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig"
-	@$(MAKE) -s workspace test docs
+	@$(MAKE) workspace test docs
 	$(ETIME)
 
-online := false
-
-ifeq ($(online),true)
+ifeq ($(ONLINE),true)
 features := --features "online_tests"
 else
 features :=
 endif
 
 ########## Configure Dependencies ############
-config:
+config: common-config
 	$(STIME)
-	@$(MAKE) -s common-config
-	@echo "	Detected OS=$(UNAME)"
+	@echo "Detected $(UNAME)"
 ifeq ($(UNAME), Linux)
-	@$(MAKE) -s config-linux
+	@$(MAKE) config-linux
 endif
 ifeq ($(UNAME), Darwin)
-	@$(MAKE) -s config-darwin
+	@$(MAKE) config-darwin
 endif
 	$(ETIME)
 
@@ -41,7 +39,6 @@ common-config:
 	@rustup --quiet target add wasm32-unknown-unknown
 	@rustup --quiet component add clippy
 # cargo install wasm-gc || true
-# install mdbook and it's linkcheck linter for generating the guide
 	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
 	@cargo install mdbook
 	@cargo install mdbook-linkcheck
@@ -95,7 +92,7 @@ trim-docs:
 	@find target/html -name \*.dot | xargs rm -rf {}
 	@find target/html -name \*.wasm | xargs rm -rf {}
 	@find target/html -name \*.lock  | xargs rm -rf {}
-	@cd target/html;rm -f Makefile .crates.toml .DS_Store .gitignore .mdbookignore .travis.yml coverage.sh
+	@cd target/html;rm -f Makefile .crates.toml .DS_Store .gitignore .mdbookignore .travis.yml
 	@cd target/html;rm -rf bin
 	@rm -rf target/html/flowc/tests/test-flows
 	@rm -rf target/html/flowc/tests/test-libs
@@ -168,8 +165,17 @@ upload_coverage:
 
 measure:
 	@echo "Measuring coverage using 'kcov'"
-	@for file in `find target/debug -name "flow*.d"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" $$file; done
-	#@for file in `find target/debug -name "provider*.d"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
+ifeq ($(UNAME), Linux)
+	for file in `find target/debug -name "flow*-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" $$file; done
+# avoid flowide executable?
+	for file in `find target/debug -name "provider-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
+	for file in `find target/debug -name "helper-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
+endif
+ifeq ($(UNAME), Darwin)
+	for file in `find target/debug -perm +111 -type f -name "flow*-*"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" $$file; done
+	for file in `find target/debug -perm +111 -type f -name "provider-*"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
+	for file in `find target/debug -perm +111 -type f -name "helper-*"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
+endif
 
 build-kcov:
 ifeq ($(KCOV),)
@@ -269,7 +275,7 @@ online-samples:
 #### groups of packages (in same layer) that have same dependencies but are indpendant and they could be published
 #### in parallel. But they both need to be published before the next layer up.
 #### Level 0 - the root
-publish: flowc_publish flowide_publish
+publish: flowc_publish flowr_publish flowide_publish
 
 #### Level 1 - flowc and flowide - no dependency between them
 flowc_publish: flowr_publish flowrlib_publish provider_publish

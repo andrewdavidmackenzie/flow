@@ -9,16 +9,20 @@ use flowclib::generator::generate;
 use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
 use flowrlib::coordinator::{Coordinator, Submission};
+use flowrlib::debug_client::DebugClient;
 use flowrlib::lib_manifest::LibraryManifest;
 use flowrlib::loader::Loader;
 use flowrlib::manifest::{DEFAULT_MANIFEST_FILENAME, Manifest};
 use flowrlib::provider::Provider;
 use provider::content::provider::MetaProvider;
 
+use crate::cli_debug_client::CLIDebugClient;
 use crate::ide_runtime_client::IDERuntimeClient;
 use crate::message;
 use crate::UICONTEXT;
 use crate::widgets;
+
+const CLI_DEBUG_CLIENT: &dyn DebugClient = &CLIDebugClient {};
 
 fn manifest_url(flow_url_str: &str) -> String {
     let flow_url = Url::parse(&flow_url_str).unwrap();
@@ -108,7 +112,7 @@ pub fn open_manifest(url: String) {
     std::thread::spawn(move || {
         let provider = MetaProvider {};
         match Manifest::load(&provider, &url) {
-            Ok(manifest) => {
+            Ok((manifest, _)) => {
                 set_manifest(&manifest);
 
                 match UICONTEXT.try_lock() {
@@ -153,7 +157,7 @@ fn load_manifest(manifest: &mut Manifest, manifest_url: &str, arg: Vec<String>) 
     loader.load_libraries(&provider, &manifest).unwrap(); // TODO
 
     // Find the implementations for all functions in this flow
-    loader.resolve_implementations(manifest, &provider, manifest_url).unwrap();
+    loader.resolve_implementations(manifest, manifest_url, &provider).unwrap();
     // TODO
 }
 
@@ -165,9 +169,11 @@ pub fn run_manifest(args: Vec<String>) {
                     (Some(manifest), Some(manifest_url)) => {
                         let mut manifest_clone: Manifest = manifest.clone();
                         load_manifest(&mut manifest_clone, manifest_url, args);
+                        let debug_client = CLI_DEBUG_CLIENT;
                         let submission = Submission::new(manifest_clone,
                                                          1,
-                                                         false);
+                                                         false,
+                                                         debug_client, false);
                         let mut coordinator = Coordinator::new(1);
                         coordinator.init();
 

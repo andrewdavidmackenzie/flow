@@ -51,4 +51,3 @@ codegen-units = 16
 
 [workspace]
 members = ["flowruntime", "flowc", "flowr", "provider", "flowrlib", "flow_impl", "flow_impl_derive", "flowstdlib", "flowide"]
-default-members = ["flowc"]

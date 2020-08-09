@@ -110,7 +110,7 @@ mod test {
 
     #[test]
     fn create() {
-        let _ = Manifest::new(test_meta_data(), "fake dir");
+        let _ = Manifest::new(test_meta_data());
     }
 
     #[test]
@@ -125,7 +125,7 @@ mod test {
                                          0, 0,
                                          &[], false);
 
-        let mut manifest = Manifest::new(test_meta_data(), "fake dir");
+        let mut manifest = Manifest::new(test_meta_data());
         manifest.add_function(function);
         assert_eq!(manifest.functions.len(), 1);
     }

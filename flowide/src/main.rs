@@ -1,4 +1,3 @@
-//#![deny(missing_docs)]
 //! The `flowide` is a prototype of an IDE for `flow` programs.
 
 use std::env;
@@ -12,14 +11,16 @@ use gtk::{
 };
 use gtk::prelude::*;
 use gtk_rs_state::gtk_refs;
+use lazy_static::lazy_static;
 
 use flowclib::deserializers::deserializer_helper;
-use lazy_static::lazy_static;
 use ui_context::UIContext;
 
 mod ide_runtime_client;
+
 mod ui_context;
 mod actions;
+mod cli_debug_client;//#![deny(missing_docs)]
 
 lazy_static! {
     static ref UICONTEXT: Arc<Mutex<UIContext>> = Arc::new(Mutex::new(UIContext::new()));
