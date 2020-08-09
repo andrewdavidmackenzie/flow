@@ -3,6 +3,11 @@ dist: bionic
 
 cache:
   cargo: true
+  pip: true
+  directories:
+    - /usr/local/Cellar/gtk+3
+    - /usr/local/Cellar/cairo
+    - /usr/local/Cellar/graphviz
 
 matrix:
   include:
@@ -30,10 +35,7 @@ addons:
     update: true
     packages:
       - gtk+3
-      - glib
       - cairo
-      - atk
-      - cmake
       - graphviz
 
 before_install:
