@@ -134,11 +134,6 @@ clippy:
 	@cargo clippy -- -D warnings
 	$(ETIME)
 
-flowrunner:
-	$(STIME)
-	@cargo build -p flowr
-	$(ETIME)
-
 #################### Tests ####################
 test:
 	$(STIME)
@@ -215,15 +210,13 @@ else
 endif
 
 #################### FLOW LIBRARIES ####################
-flowstdlib: flowstdlibtest flowstdlib/manifest.json
-
 # Make sure all tests in functions in flowstdlib pass - native
 flowstdlibtest:
 	@mkdir -p target;date '+%s' > target/.flowstdlibtesttime ; echo \\n------- Target \'$@\' starting
 	@cargo test -p flowstdlib
 	@read st < target/.flowstdlibtesttime ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 
-flowstdlib/manifest.json:
+flowstdlib/manifest.json: flowstdlibtest
 	@mkdir -p target;date '+%s' > target/.flowstdlibtime ; echo \\n------- Target \'$@\' starting
 	@cargo run -p flowc -- -v info -l -g -d flowstdlib
 	@read st < target/.flowstdlibtime ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
@@ -246,7 +239,7 @@ copy:
 sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
 # This target must be below sample-flows in the Makefile
-samples: flowrunner flowstdlib/manifest.json
+samples: workspace flowstdlib/manifest.json
 	$(STIME)
 	@cd samples; $(MAKE) clean
 	@$(MAKE) $(sample_flows)
