@@ -80,7 +80,7 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool) -> R
 
             // copy compiled wasm output into place where flow's toml file expects it
             let mut wasm_source = build_dir.clone();
-            wasm_source.push("wasm32-unknown-unknown/release/");
+            wasm_source.push("wasm32-unknown-unknown/debug/");
             wasm_source.push(&wasm_destination.file_name().ok_or("Could not convert filename to str")?);
             let msg = format!("Copying built wasm from '{}' to '{}'", &wasm_source.display(), &wasm_destination.display());
             fs::copy(&wasm_source, &wasm_destination).chain_err(|| msg)?;
