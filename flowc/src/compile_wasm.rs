@@ -112,7 +112,7 @@ fn run_cargo_build(manifest_path: &PathBuf, target_dir: &PathBuf) -> Result<Stri
     debug!("Building into temporary directory '{}'", target_dir.display());
 
     let command = "cargo";
-    let mut command_args = vec!("build", "--quiet", "--release", "--lib", "--target=wasm32-unknown-unknown");
+    let mut command_args = vec!("build", "--quiet", "--lib", "--target=wasm32-unknown-unknown");
     let manifest = format!("--manifest-path={}", &manifest_path.display());
     command_args.push(&manifest);
     let target = format!("--target-dir={}", &target_dir.display());
