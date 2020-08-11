@@ -11,9 +11,9 @@ cache:
 
 matrix:
   include:
-  - os: linux
-    rust: stable
-  - os: osx
+    - os: osx
+      rust: stable
+    - os: linux
     rust: stable
   allow_failures:
     - os: osx
