@@ -32,16 +32,20 @@ addons:
       - libssl-dev
       - binutils-dev # Required by kcov for code coverage
       - libbfd-dev # Required by kcov for code coverage
-      - graphviz
+      - graphviz # Required to build graphs for the book for gh_pages
   homebrew:
     update: true
     packages:
       - gtk+3
       - cairo
-      - graphviz
+# graphs for book are only needed on the last matrix build - linux      - graphviz
 
 before_install:
-  - make common-config
+  - make travis-config
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
+      # The book is only needed by gh_pages provider on last matrix build - linux-stable
+      make book-config
+    fi
 
 script:
   - rustc --version

@@ -32,17 +32,26 @@ ifeq ($(UNAME), Darwin)
 endif
 	$(ETIME)
 
-common-config:
+clippy-config:
 	$(STIME)
 	@echo "	Installing wasm32 target and clippy command using rustup"
 	@export PATH="$$PATH:~/.cargo/bin"
-	@rustup --quiet target add wasm32-unknown-unknown
 	@rustup --quiet component add clippy
+
+wasm-config:
+	@rustup --quiet target add wasm32-unknown-unknown
 # cargo install wasm-gc || true
+
+book-config:
 	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
 	@cargo install mdbook
 	@cargo install mdbook-linkcheck
 	$(ETIME)
+
+common-config: clippy-config wasm-config book-config
+
+# avoid always installing and building mdbook on all matrix builds in travis
+travis-config: clippy-config wasm-config
 
 config-darwin:
 	$(STIME)
