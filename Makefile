@@ -8,10 +8,15 @@ FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 > /dev/null)
 
-all:
+travis:
 	$(STIME)
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig"
-	@$(MAKE) workspace test docs
+	@$(MAKE) workspace test
+	$(ETIME)
+
+all:
+	$(STIME)
+	@$(MAKE) travis docs
 	$(ETIME)
 
 ifeq ($(ONLINE),true)
