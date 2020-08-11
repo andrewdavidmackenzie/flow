@@ -3,7 +3,7 @@
 # Welcome!
 Welcome to my project called `flow` for defining and running parallel, [dataflow programs](https://en.wikipedia.org/wiki/Dataflow_programming) like this one:
 
-![First flow](samples/fibonacci/context.dot.svg)
+![First flow](http://andrewdavidmackenzie.github.io/flow/samples/fibonacci/context.dot.svg)
 
 It currently consists of libraries for compiling (`flowclib`) and running (`flowrlib`) flows as 
 well as command line binaries (`flowc` and `flowr`) that use the libraries.
