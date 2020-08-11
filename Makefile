@@ -210,7 +210,7 @@ else
 endif
 
 #################### FLOW LIBRARIES ####################
-# Make sure all tests in functions in flowstdlib pass - native
+# Make sure all tests in functions in flowstdlib pass - ran as native not WASM for build speed
 flowstdlibtest:
 	@mkdir -p target;date '+%s' > target/.flowstdlibtesttime ; echo \\n------- Target \'$@\' starting
 	@cargo test -p flowstdlib
@@ -218,7 +218,7 @@ flowstdlibtest:
 
 flowstdlib/manifest.json: flowstdlibtest
 	@mkdir -p target;date '+%s' > target/.flowstdlibtime ; echo \\n------- Target \'$@\' starting
-	@cargo run -p flowc -- -v info -l -g -d flowstdlib
+	cargo run -p flowc -- -v info -l -g -d flowstdlib
 	@read st < target/.flowstdlibtime ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
 
 #################### Raspberry Pi ####################
