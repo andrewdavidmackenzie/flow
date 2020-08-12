@@ -8,6 +8,11 @@ FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 > /dev/null)
 
+all:
+	$(STIME)
+	@$(MAKE) travis docs
+	$(ETIME)
+
 travis:
 	$(STIME)
 	@$(MAKE) workspace test
@@ -16,11 +21,6 @@ ifeq ($(TRAVIS_RUST_VERSION"), "stable")
 	@$(MAKE) docs
 endif
 endif
-	$(ETIME)
-
-all:
-	$(STIME)
-	@$(MAKE) travis docs
 	$(ETIME)
 
 ifeq ($(ONLINE),true)
@@ -103,7 +103,6 @@ docs:
 build-book:
 	$(STIME)
 	@RUST_LOG=info time mdbook build
-	@mdbook test
 	$(ETIME)
 
 trim-docs:
