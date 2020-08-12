@@ -12,6 +12,11 @@ travis:
 	$(STIME)
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig"
 	@$(MAKE) workspace test
+ifeq ($(TRAVIS_OS_NAME), "linux")
+ifeq ($(TRAVIS_RUST_VERSION"), "stable")
+	@$(MAKE) docs
+endif
+endif
 	$(ETIME)
 
 all:
@@ -45,7 +50,6 @@ clippy-config:
 
 wasm-config:
 	@rustup --quiet target add wasm32-unknown-unknown
-# cargo install wasm-gc || true
 
 book-config:
 	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
@@ -55,8 +59,12 @@ book-config:
 
 common-config: clippy-config wasm-config book-config
 
-# avoid always installing and building mdbook on all matrix builds in travis
 travis-config: clippy-config wasm-config
+ifeq ($(TRAVIS_OS_NAME), "linux")
+ifeq ($(TRAVIS_RUST_VERSION), "stable")
+	@$(MAKE) book-config
+endif
+endif
 
 config-darwin:
 	$(STIME)

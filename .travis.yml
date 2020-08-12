@@ -40,12 +40,10 @@ addons:
 
 before_install:
   - make travis-config
-  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then; make book-config; fi
 
 script:
   - rustc --version
   - make travis
-  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then; make docs; fi
 
 env:
   global:
