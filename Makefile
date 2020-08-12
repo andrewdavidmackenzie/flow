@@ -10,7 +10,7 @@ ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 > /dev/null)
 
 travis:
 	$(STIME)
-	rustc --version
+	@rustc --version
 	@$(MAKE) travis-config
 	@$(MAKE) workspace test
 ifeq ($(TRAVIS_OS_NAME), "linux")
