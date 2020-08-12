@@ -37,21 +37,18 @@ addons:
     packages:
       - gtk+3
       - cairo
-# graphs for book are only needed on the last matrix build - linux      - graphviz
 
 before_install:
   - make travis-config
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
-      # The book is only needed by gh_pages provider on last matrix build - linux-stable
-      make book-config
+      make book-config # The book is only needed by gh_pages provider on last matrix build - linux-stable
     fi
 
 script:
   - rustc --version
   - make travis
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
-      # Avoid making docs when not on linux-stable
-      make docs
+      make docs # Only make docs on linux-stable
     fi
 
 env:
