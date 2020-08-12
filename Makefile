@@ -8,9 +8,9 @@ FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 > /dev/null)
 
-travis:
+travis: travis-config
 	$(STIME)
-	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig"
+	rustc --version
 	@$(MAKE) workspace test
 ifeq ($(TRAVIS_OS_NAME), "linux")
 ifeq ($(TRAVIS_RUST_VERSION"), "stable")
@@ -47,11 +47,13 @@ clippy-config:
 	@echo "	Installing wasm32 target and clippy command using rustup"
 	@export PATH="$$PATH:~/.cargo/bin"
 	@rustup --quiet component add clippy
+	$(ETIME)
 
 wasm-config:
 	@rustup --quiet target add wasm32-unknown-unknown
 
 book-config:
+	$(STIME)
 	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
 	@cargo install mdbook
 	@cargo install mdbook-linkcheck
