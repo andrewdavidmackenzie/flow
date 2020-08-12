@@ -37,6 +37,7 @@ addons:
     packages:
       - gtk+3
       - cairo
+      - pango
 
 before_install:
   - make travis-config
