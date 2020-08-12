@@ -7,7 +7,6 @@ cache:
   directories:
     - /usr/local/Cellar/gtk+3
     - /usr/local/Cellar/cairo
-    - /usr/local/Cellar/graphviz
 
 matrix:
   include:
