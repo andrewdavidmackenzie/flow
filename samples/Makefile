@@ -1,6 +1,6 @@
 clean:
 	@echo ""
-	@echo "------- Target 'samples/clean'" starting
+	@echo "<------ Target 'samples/clean'" starting
 	@find . -name \*.wasm -exec rm -rf {} + ; true
 	@find . -name test.output -exec rm -rf {} + ; true
 	@find . -name failed.output -exec rm -rf {} + ; true
@@ -9,4 +9,4 @@ clean:
 	@find . -name \*.txt -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot.svg -type f -exec rm -rf {} + ; true
-	@echo "------- Target 'samples/clean'" done
+	@echo "------> Target 'samples/clean'" done

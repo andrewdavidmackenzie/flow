@@ -38,6 +38,9 @@ addons:
       - gtk+3
       - cairo
 
+before_install:
+  - make travis-config
+
 script:
   - make travis
 

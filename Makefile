@@ -2,16 +2,14 @@ DOT := $(shell command -v dot 2> /dev/null)
 KCOV := $(shell command -v kcov 2> /dev/null)
 APTGET := $(shell command -v apt-get 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
-STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo ------- Target \'$@\' starting
-ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
+STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo "<------ Target '$@' starting"
+ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo "------> Target '$@' done in $$st seconds"
 FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 > /dev/null)
 
 travis:
 	$(STIME)
-	@rustc --version
-	@$(MAKE) travis-config
 	@$(MAKE) workspace test
 ifeq ($(TRAVIS_OS_NAME), "linux")
 ifeq ($(TRAVIS_RUST_VERSION"), "stable")
@@ -45,13 +43,16 @@ endif
 
 clippy-config:
 	$(STIME)
-	@echo "	Installing wasm32 target and clippy command using rustup"
+	@echo "	Installing clippy command using rustup"
 	@export PATH="$$PATH:~/.cargo/bin"
 	@rustup --quiet component add clippy
 	$(ETIME)
 
 wasm-config:
+	$(STIME)
+	@echo "	Installing wasm32 target using rustup"
 	@rustup --quiet target add wasm32-unknown-unknown
+	$(ETIME)
 
 book-config:
 	$(STIME)
@@ -63,11 +64,13 @@ book-config:
 common-config: clippy-config wasm-config book-config
 
 travis-config: clippy-config wasm-config
+	$(STIME)
 ifeq ($(TRAVIS_OS_NAME), "linux")
 ifeq ($(TRAVIS_RUST_VERSION), "stable")
 	@$(MAKE) book-config
 endif
 endif
+	$(ETIME)
 
 config-darwin:
 	$(STIME)
@@ -94,11 +97,14 @@ endif
 .PHONY: docs
 docs:
 	$(STIME)
-	@$(MAKE) dot-graphs build-guide code-docs trim-docs
+	@$(MAKE) dot-graphs build-book code-docs trim-docs
 	$(ETIME)
 
-build-guide:
+build-book:
+	$(STIME)
 	@RUST_LOG=info time mdbook build
+	@mdbook test
+	$(ETIME)
 
 trim-docs:
 	$(STIME)
@@ -162,7 +168,7 @@ clippy:
 #################### Tests ####################
 test:
 	$(STIME)
-	@$(MAKE) test-workspace samples book-test
+	@$(MAKE) test-workspace samples
 	$(ETIME)
 
 test-workspace:
@@ -170,20 +176,18 @@ test-workspace:
 	@cargo test $(features)
 	$(ETIME)
 
-book-test:
-	$(STIME)
-	mdbook test
-	$(ETIME)
-
 ################### Coverage ####################
 .PHONY: coverage
 coverage: build-kcov measure upload_coverage
 
 upload_coverage:
+	$(STIME)
 	@echo "Uploading coverage to https://codecov.io....."
 	@curl -s https://codecov.io/bash | bash
+	$(ETIME)
 
 measure:
+	$(STIME)
 	@echo "Measuring coverage using 'kcov'"
 ifeq ($(UNAME), Linux)
 	for file in `find target/debug -name "flow*-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" $$file; done
@@ -196,8 +200,10 @@ ifeq ($(UNAME), Darwin)
 	for file in `find target/debug -perm +111 -type f -name "provider-*"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
 	for file in `find target/debug -perm +111 -type f -name "helper-*"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
 endif
+	$(ETIME)
 
 build-kcov:
+	$(STIME)
 ifeq ($(KCOV),)
 	@echo "'kcov' is not installed. Building and installing it"
 	@echo "Downloading kcov source code"
@@ -233,18 +239,19 @@ endif
 else
 	@echo "'kcov' found at `which kcov`"
 endif
+	$(ETIME)
 
 #################### FLOW LIBRARIES ####################
 # Make sure all tests in functions in flowstdlib pass - ran as native not WASM for build speed
 flowstdlibtest:
-	@mkdir -p target;date '+%s' > target/.flowstdlibtesttime ; echo \\n------- Target \'$@\' starting
+	$(STIME)
 	@cargo test -p flowstdlib
-	@read st < target/.flowstdlibtesttime ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
+	$(ETIME)
 
 flowstdlib/manifest.json: flowstdlibtest
-	@mkdir -p target;date '+%s' > target/.flowstdlibtime ; echo \\n------- Target \'$@\' starting
-	cargo run -p flowc -- -v info -l -g -d flowstdlib
-	@read st < target/.flowstdlibtime ; st=$$((`date '+%s'`-$$st)) ; echo ------- Target \'$@\' done in $$st seconds
+	@mkdir -p target;date '+%s' > target/.flowstdlibtime ; echo "\n<------ Target '$@' starting"
+	@cargo run -p flowc -- -v info -l -g -d flowstdlib
+	@read st < target/.flowstdlibtime ; st=$$((`date '+%s'`-$$st)) ; echo "------> Target '$@' done in $$st seconds"
 
 #################### Raspberry Pi ####################
 pi:
