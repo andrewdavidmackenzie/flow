@@ -8,9 +8,10 @@ FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 > /dev/null)
 
-travis: travis-config
+travis:
 	$(STIME)
 	rustc --version
+	@$(MAKE) travis-config
 	@$(MAKE) workspace test
 ifeq ($(TRAVIS_OS_NAME), "linux")
 ifeq ($(TRAVIS_RUST_VERSION"), "stable")
