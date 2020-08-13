@@ -15,7 +15,7 @@ all:
 
 travis:
 	$(STIME)
-	@$(MAKE) workspace test
+	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig" $(MAKE) workspace test
 ifeq ($(TRAVIS_OS_NAME), "linux")
 ifeq ($(TRAVIS_RUST_VERSION"), "stable")
 	@$(MAKE) docs
