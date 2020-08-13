@@ -4,9 +4,6 @@ dist: bionic
 cache:
   cargo: true
   pip: true
-  directories:
-    - /usr/local/Cellar/gtk+3
-    - /usr/local/Cellar/cairo
 
 matrix:
   include:
