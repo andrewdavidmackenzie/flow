@@ -16,8 +16,8 @@ all:
 travis:
 	$(STIME)
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig" $(MAKE) workspace test
-ifeq ($(TRAVIS_OS_NAME), "linux")
-ifeq ($(TRAVIS_RUST_VERSION"), "stable")
+ifeq ($(OS), "linux")
+ifeq ($(VERSION"), "stable")
 	@$(MAKE) docs
 else
 	@echo "        Doc generation skipped when not building linux-stable"
@@ -69,8 +69,8 @@ common-config: clippy-config wasm-config book-config
 
 travis-config: clippy-config wasm-config
 	$(STIME)
-ifeq ($(TRAVIS_OS_NAME), "linux")
-ifeq ($(TRAVIS_RUST_VERSION), "stable")
+ifeq ($(OS), "linux")
+ifeq ($(VERSION), "stable")
 	@$(MAKE) book-config
 else
 	@echo "        Doc config skipped when not building linux-stable"

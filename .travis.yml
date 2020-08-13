@@ -37,10 +37,10 @@ addons:
       - pango
 
 before_install:
-  - make travis-config
+  - OS=$TRAVIS_OS_NAME VERSION=$TRAVIS_RUST_VERSION make travis-config
 
 script:
-  - make travis
+  - OS=$TRAVIS_OS_NAME VERSION=$TRAVIS_RUST_VERSION make travis
 
 env:
   global:
