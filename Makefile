@@ -19,7 +19,11 @@ travis:
 ifeq ($(TRAVIS_OS_NAME), "linux")
 ifeq ($(TRAVIS_RUST_VERSION"), "stable")
 	@$(MAKE) docs
+else
+	@echo "        Doc generation skipped when not building linux-stable"
 endif
+else
+	@echo "        Doc generation skipped when not building linux-stable"
 endif
 	$(ETIME)
 
@@ -68,7 +72,11 @@ travis-config: clippy-config wasm-config
 ifeq ($(TRAVIS_OS_NAME), "linux")
 ifeq ($(TRAVIS_RUST_VERSION), "stable")
 	@$(MAKE) book-config
+else
+	@echo "        Doc config skipped when not building linux-stable"
 endif
+else
+	@echo "        Doc config skipped when not building linux-stable"
 endif
 	$(ETIME)
 
