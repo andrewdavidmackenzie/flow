@@ -3,6 +3,7 @@ dist: bionic
 
 cache:
   cargo: true
+  pip: true
 
 matrix:
   include:
@@ -41,14 +42,12 @@ addons:
       - pango
 
 before_install: |
-  make no-book-config
-  if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
+  make no-book-config; if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
     make book-config
   fi
 
 script: |
-  make clippy build test samples
-  if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
+  make clippy build test samples; if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
     make docs
   fi
 
