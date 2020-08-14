@@ -3,7 +3,6 @@ dist: bionic
 
 cache:
   cargo: true
-  pip: true
 
 matrix:
   include:
@@ -59,7 +58,7 @@ deploy:
   keep-history: false
   on:
     branch: master
-    os: linux
+    condition: $TRAVIS_OS_NAME == linux
 
 notifications:
   email:
