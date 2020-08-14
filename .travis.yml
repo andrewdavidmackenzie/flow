@@ -3,7 +3,6 @@ dist: bionic
 
 cache:
   cargo: true
-  pip: true
 
 matrix:
   include:
@@ -13,6 +12,11 @@ matrix:
     rust: stable
   allow_failures:
     - os: osx
+
+env:
+  global:
+    - FLOW_LIB_PATH=$TRAVIS_BUILD_DIR
+    - secure: pFjhnkemEkZQd3kVvR5alXYhJ4gzHW59pA3FOy4SwUavTFphiDHU+ERMR3bw9uqHANeey3WZLrYH9x7sEwVbH6/nNxnEiTrRZDK/DJrHaOCczH6sU7yNYc+mjtNR/B8b1zA/WMNehIZJivz88bkl0qXheLdmxofN9776RSRK/ER5SdGpOos1rMCHzz7TtUFxAvUV4klf826hZKb3PLuqKBjv0AqmUHrqFrm93nXFpIz7+LSAG5umWYyTCXBIR30mW7iJdjMwCMe/Js4qlXHs9sUPVD/2ipKPKXI8jn8QzEV2zw93tKVZJQqYGMzKeSoxfzIap3Uql8woQnaJs6W8H3JIv47KNvYWI1uDnIbwPPPDdltcV5XCQUUnHT9itvxX5vYNa3p8BO0PHolqmI8TftmRQNhsFdNmp7FF/3Gi34Nif95FGO2K8zMMk0ReKqMYpqYT51Ci3NHXDOGzletwj3fyIcW02PinSMbLzNj5pUN2KKV1qPKsHeGcwnH9XrQKUoLktZS7cPnpRMb0g3QeAjzMnsy4caRLvY58dHxgBuDijZZm45vG/tXQ59BpAJrYk62VGcCNaTR1BRQR626H83aK2Flc6hOZkbjWzXqZXinRq9JODz5LOArhvwIBzOyc+1mIQcjrD07Zqte1/2fHB8F3gtuXpEhkGYg/8Hy9xfY=
 
 branches:
   only:
@@ -36,17 +40,17 @@ addons:
       - cairo
       - pango
 
-before_install:
-  - OS=$TRAVIS_OS_NAME VERSION=$TRAVIS_RUST_VERSION make travis-config
+before_install: |
+  make no-book-config
+  if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
+    make book-config
+  fi
 
-script:
-  - OS=$TRAVIS_OS_NAME VERSION=$TRAVIS_RUST_VERSION make travis
-
-env:
-  global:
-  - FLOW_LIB_PATH=$TRAVIS_BUILD_DIR
-  matrix:
-    secure: pFjhnkemEkZQd3kVvR5alXYhJ4gzHW59pA3FOy4SwUavTFphiDHU+ERMR3bw9uqHANeey3WZLrYH9x7sEwVbH6/nNxnEiTrRZDK/DJrHaOCczH6sU7yNYc+mjtNR/B8b1zA/WMNehIZJivz88bkl0qXheLdmxofN9776RSRK/ER5SdGpOos1rMCHzz7TtUFxAvUV4klf826hZKb3PLuqKBjv0AqmUHrqFrm93nXFpIz7+LSAG5umWYyTCXBIR30mW7iJdjMwCMe/Js4qlXHs9sUPVD/2ipKPKXI8jn8QzEV2zw93tKVZJQqYGMzKeSoxfzIap3Uql8woQnaJs6W8H3JIv47KNvYWI1uDnIbwPPPDdltcV5XCQUUnHT9itvxX5vYNa3p8BO0PHolqmI8TftmRQNhsFdNmp7FF/3Gi34Nif95FGO2K8zMMk0ReKqMYpqYT51Ci3NHXDOGzletwj3fyIcW02PinSMbLzNj5pUN2KKV1qPKsHeGcwnH9XrQKUoLktZS7cPnpRMb0g3QeAjzMnsy4caRLvY58dHxgBuDijZZm45vG/tXQ59BpAJrYk62VGcCNaTR1BRQR626H83aK2Flc6hOZkbjWzXqZXinRq9JODz5LOArhvwIBzOyc+1mIQcjrD07Zqte1/2fHB8F3gtuXpEhkGYg/8Hy9xfY=
+script: |
+  make clippy build test samples
+  if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
+    make docs
+  fi
 
 deploy:
   provider: pages

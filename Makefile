@@ -8,30 +8,13 @@ FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 > /dev/null)
 
-all:
-	$(STIME)
-	@$(MAKE) travis docs
-	$(ETIME)
-
-travis:
-	$(STIME)
-	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig" $(MAKE) workspace test
-ifeq ($(OS), "linux")
-ifeq ($(VERSION"), "stable")
-	@$(MAKE) docs
-else
-	@echo "        Doc generation skipped when not building linux-stable"
-endif
-else
-	@echo "        Doc generation skipped when not building linux-stable"
-endif
-	$(ETIME)
-
 ifeq ($(ONLINE),true)
 features := --features "online_tests"
 else
 features :=
 endif
+
+all: clippy build test samples docs
 
 ########## Configure Dependencies ############
 config: common-config
@@ -65,20 +48,9 @@ book-config:
 	@cargo install mdbook-linkcheck
 	$(ETIME)
 
-common-config: clippy-config wasm-config book-config
+common-config: no-book-config book-config
 
-travis-config: clippy-config wasm-config
-	$(STIME)
-ifeq ($(OS), "linux")
-ifeq ($(VERSION), "stable")
-	@$(MAKE) book-config
-else
-	@echo "        Doc config skipped when not building linux-stable"
-endif
-else
-	@echo "        Doc config skipped when not building linux-stable"
-endif
-	$(ETIME)
+no-book-config: clippy-config wasm-config
 
 config-darwin:
 	$(STIME)
@@ -162,9 +134,9 @@ deploy-pages:
 	$(ETIME)
 
 #################### Build ####################
-workspace: clippy
+build:
 	$(STIME)
-	@cargo build
+	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig" cargo build
 	$(ETIME)
 
 clippy:
@@ -174,11 +146,6 @@ clippy:
 
 #################### Tests ####################
 test:
-	$(STIME)
-	@$(MAKE) test-workspace samples
-	$(ETIME)
-
-test-workspace:
 	$(STIME)
 	@cargo test $(features)
 	$(ETIME)
@@ -278,7 +245,7 @@ copy:
 sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
 # This target must be below sample-flows in the Makefile
-samples: workspace flowstdlib/manifest.json
+samples: build flowstdlib/manifest.json
 	$(STIME)
 	@cd samples; $(MAKE) clean
 	@$(MAKE) $(sample_flows)
@@ -349,7 +316,7 @@ clean:
 	@cd flowstdlib; $(MAKE) clean
 	@cd samples; $(MAKE) clean
 	@cargo clean
-	$(STIME)
+	$(ETIME)
 
 clean-dumps:
 	$(STIME)
@@ -366,9 +333,11 @@ clean-guide:
 
 ################# Dot Graphs ################
 dot-graphs:
+	$(STIME)
 ifeq ($(DOT),)
 	@echo "\t'dot' not available, skipping 'dot-graphs'. Install 'graphviz' to use."
 else
 	@find . -name \*.dot -type f -exec dot -Tsvg -O {} \;
 	@echo "\tGenerated .svg files for all dot graphs found"
 endif
+	$(ETIME)
