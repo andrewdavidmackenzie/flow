@@ -321,12 +321,10 @@ flow_impl_derive_publish:
 
 ################# Clean ################
 clean:
-	$(STIME)
 	@$(MAKE) clean-dumps clean-guide
 	@cd flowstdlib; $(MAKE) clean
 	@cd samples; $(MAKE) clean
 	@cargo clean
-	$(ETIME)
 
 clean-dumps:
 	$(STIME)
