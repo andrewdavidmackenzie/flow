@@ -52,7 +52,6 @@ script: |
 
 deploy:
   provider: pages
-  skip-cleanup: true
   github-token: $GITHUB_PAGES_TOKEN
   local-dir: target/html
   keep-history: false
@@ -63,9 +62,6 @@ deploy:
 notifications:
   email:
   - andrew@mackenzie-serres.net
-
-codecov:
-  token: 19030176-6eb5-440c-9948-e9eb6a6a2e20
 
 after_success: |
   if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
