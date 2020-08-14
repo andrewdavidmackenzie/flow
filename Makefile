@@ -164,15 +164,10 @@ measure:
 	$(STIME)
 	@echo "Measuring coverage using 'kcov'"
 ifeq ($(UNAME), Linux)
-	for file in `find target/debug -name "flow*-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" $$file; done
-# avoid flowide executable?
-	for file in `find target/debug -name "provider-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
-	for file in `find target/debug -name "helper-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
+	for file in `find target/debug/deps -name "flow*-*" -name "provider*-*" -name "helper*-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" $$file; done
 endif
 ifeq ($(UNAME), Darwin)
-	for file in `find target/debug -perm +111 -type f -name "flow*-*"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" $$file; done
-	for file in `find target/debug -perm +111 -type f -name "provider-*"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
-	for file in `find target/debug -perm +111 -type f -name "helper-*"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" "$$file"; done
+	for file in `find target/debug/deps -perm +111 -type f -name "flow*-*" -name "provider*-*" -name "helper*-*"`; do mkdir -p "target/cov/$(basename $$file)"; kcov --exclude-pattern=/.cargo,/usr/lib "target/cov/$(basename $$file)" $$file; done
 endif
 	$(ETIME)
 
@@ -203,8 +198,8 @@ ifeq ($(UNAME), Darwin)
 	@sudo ln -s /usr/local/Cellar/openssl@1.1/1.1.1g/lib/libcrypto.1.1.dylib /usr/local/lib/libcrypto.dylib 2>/dev/null; true
 	@#sudo ln -s /usr/local/Cellar/openssl@1.1/1.1.1g/lib/libssl.dylib /usr/local/lib/
 	@# Issue with cmake not being able to generage xcode files: "Xcode 1.5 not supported"
-	@#cd target/kcov-master && mkdir build && cd build && cmake -G Xcode .. &&  xcodebuild -configuration Release
-	@cd target/kcov-master && mkdir build && cd build && cmake .. && make && xcodebuild -configuration Release 2>/dev/null; true
+	@#cd target/kcov-master && mkdir build && cd build && cmake -G Xcode .. && xcodebuild -configuration Release
+	@cd target/kcov-master && mkdir build && cd build && cmake .. && make
 	@sudo mv target/kcov-master/build/src/kcov /usr/local/bin/kcov
 endif
 	@echo "'kcov' install to `which kcov`"
