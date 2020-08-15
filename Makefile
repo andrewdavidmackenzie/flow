@@ -149,9 +149,10 @@ clippy:
 	$(ETIME)
 
 #################### Tests ####################
+#@cargo test $(features)
 test:
 	$(STIME)
-	@cargo test $(features)
+	@cargo test --all-features
 	$(ETIME)
 
 ################### Coverage ####################
