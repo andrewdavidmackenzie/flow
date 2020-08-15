@@ -198,7 +198,7 @@ mod test {
 
     #[test]
     fn deserialize_library() {
-        let contents = include_str!("../../test_libs/Library_test.toml");
+        let contents = include_str!("../../tests/test_libs/Library_test.toml");
         let _: MetaData = toml::from_str(contents).unwrap();
     }
 }
