@@ -129,6 +129,7 @@ mod test {
     fn resolve_path() {
         let provider: &dyn Provider = &LibProvider;
         let mut root = env::current_dir().unwrap();
+        println!("Root = {}", root.display());
         root.pop();
         let root_str: String = root.as_os_str().to_str().unwrap().to_string();
         env::set_var("FLOW_LIB_PATH", &root_str);

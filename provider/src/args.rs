@@ -94,12 +94,14 @@ mod test {
     #[test]
     fn relative_path_in_arg_converted_to_absolute_path_and_scheme_added() {
         // Get the path of this file relative to project root (where Cargo.toml is)
-        let relative_path_to_file = file!();
-        let dir = path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let relative_path_to_file = "src/args.rs";
+        println!("relative_path_to_file = {}, CWD = {}", relative_path_to_file, std::env::current_dir().unwrap().display());
+        let root = path::PathBuf::from(format!("{}/{}", env!("FLOW_LIB_PATH"), "provider"));
 
         let url = url_from_string(Some(&relative_path_to_file)).unwrap();
 
-        let abs_path = format!("{}/{}", &dir.display(), relative_path_to_file);
+        let abs_path = format!("{}/{}", &root.display(), relative_path_to_file);
+        println!("abs_path = {}", abs_path);
         assert_eq!(url.scheme(), "file");
         assert_eq!(url.path(), abs_path);
     }

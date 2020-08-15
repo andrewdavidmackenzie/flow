@@ -53,8 +53,8 @@ gtk_refs!(
     run_manifest_menu: gtk::MenuItem
 );
 
-fn resource(path: &str) -> String {
-    format!("{}/resources/{}", env!("CARGO_MANIFEST_DIR"), path)
+fn resource(root: &str, path: &str) -> String {
+    format!("{}/resources/{}", root, path)
 }
 
 fn about_dialog() -> AboutDialog {
@@ -67,7 +67,7 @@ fn about_dialog() -> AboutDialog {
     p.set_comments(Some(&format!("flowclib version: {}\nflowrlib version: {}",
                                  flowclib::info::version(), flowrlib::info::version())));
     println!("pwd {:?}", std::env::current_dir());
-    if let Ok(image) = Pixbuf::new_from_file(resource("icons/png/128x128.png")) {
+    if let Ok(image) = Pixbuf::new_from_file(resource(env!("CARGO_MANIFEST_DIR"), "icons/png/128x128.png")) {
         p.set_logo(Some(&image));
     }
 
