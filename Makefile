@@ -229,13 +229,7 @@ endif
 	$(ETIME)
 
 #################### FLOW LIBRARIES ####################
-# Make sure all tests in functions in flowstdlib pass - ran as native not WASM for build speed
-flowstdlibtest:
-	$(STIME)
-	@cargo test -p flowstdlib
-	$(ETIME)
-
-flowstdlib/manifest.json: flowstdlibtest
+flowstdlib/manifest.json:
 	@mkdir -p target;date '+%s' > target/.flowstdlibtime ; echo "\n<------ Target '$@' starting"
 	@cargo run -p flowc -- -v info -l -g -d flowstdlib
 	@read st < target/.flowstdlibtime ; st=$$((`date '+%s'`-$$st)) ; echo "------> Target '$@' done in $$st seconds"
