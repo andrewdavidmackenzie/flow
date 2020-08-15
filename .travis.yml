@@ -51,6 +51,7 @@ script: |
 deploy:
   provider: pages
   github-token: $GITHUB_PAGES_TOKEN
+  skip_cleanup: true
   local-dir: target/html
   keep-history: false
   on:
