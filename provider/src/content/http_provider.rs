@@ -103,10 +103,9 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     #[cfg_attr(not(feature = "online_tests"), ignore)]
     fn online_get_contents_file_not_found() {
         let provider: &dyn Provider = &HttpProvider;
-        provider.get_contents("http://google.com/no-such-file").unwrap();
+        assert!(provider.get_contents("http://google.com/no-such-file").is_err());
     }
 }

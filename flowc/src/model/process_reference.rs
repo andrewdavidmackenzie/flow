@@ -208,7 +208,6 @@ constant = 1
     }
 
     #[test]
-    #[should_panic]
     fn deserialize_extra_field_fails() {
         let input_str = "
         alias = 'other'
@@ -216,6 +215,7 @@ constant = 1
         foo = 'extra token'
         ";
 
-        let _reference: ProcessReference = toml::from_str(input_str).unwrap();
+        let reference: Result<ProcessReference, _> = toml::from_str(input_str);
+        assert!(reference.is_err());
     }
 }

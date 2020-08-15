@@ -301,14 +301,13 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn deserialize_invalid_type() {
         let input_str = "
         type = 'Unknown'
         ";
 
         let output: IO = toml::from_str(input_str).unwrap();
-        output.validate().unwrap();
+        assert!(output.validate().is_err());
     }
 
     #[test]
@@ -358,7 +357,6 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn deserialize_extra_field_fails() {
         let input_str = "
         name = 'input'
@@ -366,8 +364,8 @@ mod test {
         type = 'Value'
         ";
 
-        let input: IO = toml::from_str(input_str).unwrap();
-        input.validate().unwrap();
+        let input: Result<IO, _> = toml::from_str(input_str);
+        assert!(input.is_err());
     }
 
     #[test]
@@ -393,7 +391,6 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn non_unique_io_names_wont_validate() {
         let io0 = IO {
             name: Name::from("io_name"),
@@ -405,11 +402,10 @@ mod test {
         };
         let io1 = io0.clone();
         let ioset = Some(vec!(io0, io1));
-        ioset.validate().unwrap()
+        assert!(ioset.validate().is_err());
     }
 
     #[test]
-    #[should_panic]
     fn multiple_inputs_empty_name_not_allowed() {
         let io0 = IO {
             name: Name::from("io_name"),
@@ -428,6 +424,6 @@ mod test {
             initializer: None,
         };
         let ioset = Some(vec!(io0, io1));
-        ioset.validate().unwrap()
+        assert!(ioset.validate().is_err());
     }
 }

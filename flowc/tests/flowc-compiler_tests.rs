@@ -31,6 +31,7 @@ mod helper;
 #[test]
 fn args() {
     let meta_provider = MetaProvider {};
+    println!("Test '{}()' at {}, line {}, CWD={}, loading: {}", "args", file!(), line!(), std::env::current_dir().unwrap().display(), "flowc/tests/test-flows/args.toml");
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/args.toml");
     let process = loader::load(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {

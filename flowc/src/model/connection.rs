@@ -186,7 +186,6 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn deserialize_extra_field_fails() {
         let input_str = "
         name = 'input'
@@ -194,7 +193,8 @@ mod test {
         type = 'Value'
         ";
 
-        let _connection: Connection = toml::from_str(input_str).unwrap();
+        let connection: Result<Connection, _> = toml::from_str(input_str);
+        assert!(connection.is_err());
     }
 
     /******************** Tests for compatible_types ********************/

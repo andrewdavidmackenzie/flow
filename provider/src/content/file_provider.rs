@@ -119,9 +119,8 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn get_contents_file_not_found() {
         let provider: &dyn Provider = &FileProvider;
-        provider.get_contents("file:///no-such-file").unwrap();
+        assert!(provider.get_contents("file:///no-such-file").is_err());
     }
 }

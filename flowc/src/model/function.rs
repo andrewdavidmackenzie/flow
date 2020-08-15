@@ -279,24 +279,23 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn deserialize_missing_name() {
         let function_str = "
         type = 'Value'
         ";
 
-        let _function: Function = toml::from_str(function_str).unwrap();
+        let r_f: Result<Function, _> = toml::from_str(function_str);
+        assert!(r_f.is_err());
     }
 
     #[test]
-    #[should_panic]
     fn deserialize_invalid() {
         let function_str = "
         name = 'test_function'
         ";
 
-        let function: Function = toml::from_str(function_str).unwrap();
-        function.validate().unwrap();
+        let function: Result<Function, _> = toml::from_str(function_str);
+        assert!(function.is_err());
     }
 
     #[test]
@@ -314,7 +313,6 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn deserialize_extra_field_fails() {
         let function_str = "
         function = 'test_function'
@@ -323,8 +321,8 @@ mod test {
         foo = 'true'
         ";
 
-        let function: Function = toml::from_str(function_str).unwrap();
-        function.validate().unwrap();
+        let function: Result<Function, _> = toml::from_str(function_str);
+        assert!(function.is_err());
     }
 
     #[test]

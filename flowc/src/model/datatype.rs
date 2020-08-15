@@ -97,10 +97,9 @@ fn valid_data_json_type() {
 }
 
 #[test]
-#[should_panic]
 fn invalid_data_type() {
     let string_type = DataType::from("foo");
-    string_type.valid().unwrap();
+    assert!(string_type.valid().is_err());
 }
 
 #[test]

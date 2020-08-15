@@ -6,6 +6,7 @@ use provider::content::provider::MetaProvider;
 #[test]
 fn load_hello_world_from_context() {
     let meta_provider = MetaProvider {};
+    println!("Test '{}()' at {}, line {}, CWD={}, loading: {}", "load_hello_world_from_context", file!(), line!(), std::env::current_dir().unwrap().display(), "samples/hello-world/context.toml");
     loader::load(&helper::absolute_file_url_from_relative_path("samples/hello-world/context.toml"),
                  &meta_provider).unwrap();
 }
