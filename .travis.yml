@@ -63,5 +63,5 @@ notifications:
 
 after_success: |
   if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
-    make coverage
+    FLOW_LIB_PATH=$TRAVIS_BUILD_DIR make coverage
   fi
