@@ -87,7 +87,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "online_tests"), ignore)]
     fn resolve_default() {
         let provider = HttpProvider {};
         let folder_url = "https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/";
@@ -98,14 +97,13 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "online_tests"), ignore)]
     fn get_github_sample() {
         let provider: &dyn Provider = &HttpProvider;
-        provider.get_contents("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml").unwrap();
+        let found = provider.get_contents("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml");
+        assert!(found.is_ok());
     }
 
     #[test]
-    #[cfg_attr(not(feature = "online_tests"), ignore)]
     fn online_get_contents_file_not_found() {
         let provider: &dyn Provider = &HttpProvider;
         let not_found = provider.get_contents("http://foo.com/no-such-file");
