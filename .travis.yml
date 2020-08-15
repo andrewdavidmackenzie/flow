@@ -10,8 +10,6 @@ matrix:
     rust: stable
   - os: linux
     rust: stable
-  allow_failures:
-    - os: osx
 
 env:
   global:
