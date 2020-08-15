@@ -31,14 +31,16 @@ impl Provider for HttpProvider {
 
     fn get_contents(&self, url: &str) -> Result<Vec<u8>> {
         let mut easy = Easy2::new(Collector(Vec::new()));
-        easy.get(true).unwrap();
-        easy.url(url).unwrap();
-        easy.perform().unwrap();
-
-        // TODO catch and return error string with details
-        assert_eq!(easy.response_code().unwrap(), 200);
-        let contents = easy.get_ref();
-        Ok(contents.0.clone())
+        easy.get(true).map_err(|_| "Could not perform GET action on content source")?;
+        easy.url(url).map_err(|_| "Could not set the url of the content source")?;
+        easy.perform().map_err(|_| "Could not perform the action")?;
+        match easy.response_code() {
+            Ok(200) => {
+                let contents = easy.get_ref();
+                Ok(contents.0.clone())
+            },
+            _ => bail!("Did not get 200 response code from content source")
+        }
     }
 }
 
@@ -106,6 +108,7 @@ mod test {
     #[cfg_attr(not(feature = "online_tests"), ignore)]
     fn online_get_contents_file_not_found() {
         let provider: &dyn Provider = &HttpProvider;
-        assert!(provider.get_contents("http://google.com/no-such-file").is_err());
+        let not_found = provider.get_contents("http://foo.com/no-such-file");
+        assert!(not_found.is_err());
     }
 }
