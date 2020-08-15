@@ -177,7 +177,7 @@ ifeq ($(UNAME), Linux)
 	@for file in `find target/debug/deps -name "flowr-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "target/cov/$(basename $$file)" $$file; done; true
 	@for file in `find target/debug/deps -name "flowrlib-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "target/cov/$(basename $$file)" $$file; done; true
 	@for file in `find target/debug/deps -name "flowruntime-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "target/cov/$(basename $$file)" $$file; done; true
-	@for file in `find target/debug/deps -name "provider-*" -executable`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; cd provider && kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" ../$$file; done; true
+	@cd provider && for file in `find ../target/debug/deps -name "provider-*" -executable`; do mkdir -p "../target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" $$file; done; true
 endif
 ifeq ($(UNAME), Darwin)
 	@for file in `find target/debug/deps -perm +111 -type f -name "flowc-*"`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; cd flowc && kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" ../$$file; done; true

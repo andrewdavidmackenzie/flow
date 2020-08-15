@@ -1,5 +1,5 @@
 #![deny(missing_docs)]
-//! `flow_impl` is a derive macro that inserts code to allow a flow "implementation"
+//! `flow_impl_derive` is a derive macro that inserts code to allow a flow "implementation"
 //! to be called when compiled to wasm32
 extern crate proc_macro;
 
