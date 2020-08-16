@@ -100,8 +100,8 @@ trim-docs:
 	@find target/html -name \*.dot | xargs rm -rf {}
 	@find target/html -name \*.wasm | xargs rm -rf {}
 	@find target/html -name \*.lock  | xargs rm -rf {}
-	@cd target/html;rm -f Makefile .crates.toml .DS_Store .gitignore .mdbookignore .travis.yml
-	@cd target/html;rm -rf bin
+	@cd target/html && rm -f Makefile .crates.toml .DS_Store .gitignore .mdbookignore .travis.yml
+	@cd target/html && rm -rf bin
 	@rm -rf target/html/flowc/tests/test-flows
 	@rm -rf target/html/flowc/tests/test-libs
 	@rm -rf target/html/code/debug
@@ -249,7 +249,7 @@ sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcar
 # This target must be below sample-flows in the Makefile
 samples: build flowstdlib/manifest.json
 	$(STIME)
-	@cd samples; $(MAKE) clean
+	@$(MAKE) -f samples/makefile clean
 	@$(MAKE) $(sample_flows)
 	$(ETIME)
 
