@@ -4,4 +4,3 @@ test.output
 test.err
 # sub-projects may generate a Cargo.lock when compiled by flowc
 Cargo.lock
-**/*.dot.svg
