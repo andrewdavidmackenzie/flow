@@ -171,16 +171,9 @@ ifeq ($(UNAME), Linux)
 	@cd flowrlib    && for file in `find ../target/debug/deps -name "flowrlib-*"    -executable`; do mkdir -p "../target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" $$file; done; true
 	@cd flowruntime && for file in `find ../target/debug/deps -name "flowruntime-*" -executable`; do mkdir -p "../target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" $$file; done; true
 	@cd provider    && for file in `find ../target/debug/deps -name "provider-*"    -executable`; do mkdir -p "../target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" $$file; done; true
-endif
-ifeq ($(UNAME), Darwin)
-	@for file in `find target/debug/deps -perm +111 -type f -name "flowc-*"`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; cd flowc && kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" ../$$file; done; true
-	@for file in `find target/debug/deps -perm +111 -type f -name "flowclib-*"`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "target/cov/$(basename $$file)" $$file; done; true
-	@for file in `find target/debug/deps -perm +111 -type f -name "flowstdlib-*"`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "target/cov/$(basename $$file)" $$file; done; true
-	@for file in `find target/debug/deps -perm +111 -type f -name "flow_impl-*"`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "target/cov/$(basename $$file)" $$file; done; true
-	@for file in `find target/debug/deps -perm +111 -type f -name "flowr-*"`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "target/cov/$(basename $$file)" $$file; done; true
-	@for file in `find target/debug/deps -perm +111 -type f -name "flowrlib-*"`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "target/cov/$(basename $$file)" $$file; done; true
-	@for file in `find target/debug/deps -perm +111 -type f -name "flowruntime-*"`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "target/cov/$(basename $$file)" $$file; done; true
-	@for file in `find target/debug/deps -perm +111 -type f -name "provider-*"`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; cd provider && kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" ../$$file; done; true
+else
+	@echo "Coverage measurement is only available on Linux"
+	@false
 endif
 	$(ETIME)
 
