@@ -150,3 +150,33 @@ fn out_of_date(source: &PathBuf, derived: &PathBuf) -> Result<bool> {
         .modified().chain_err(|| "Could not get modified time from file metadata")?;
     Ok(source_last_modified > derived_last_modified)
 }
+
+#[cfg(test)]
+mod test {
+    use std::fs::write;
+    use std::thread::sleep;
+    use std::time::Duration;
+
+    use tempdir;
+
+    use super::out_of_date;
+
+    #[test]
+    fn out_of_date_test() {
+        let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
+
+        // make older file
+        let older = output_dir.join("older");
+        let derived = older.clone();
+        write(older, "older").unwrap();
+
+        sleep(Duration::from_secs(1));
+
+        // make second/newer file
+        let newer = output_dir.join("newer");
+        let source = newer.clone();
+        write(newer, "newer").unwrap();
+
+        assert!(out_of_date(&source, &derived).unwrap());
+    }
+}
