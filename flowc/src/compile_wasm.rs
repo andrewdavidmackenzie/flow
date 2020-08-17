@@ -22,8 +22,6 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool) -> R
     implementation_url = implementation_url.join(&function.get_implementation())
         .map_err(|_| "Could not convert Url")?;
 
-    // TODO what if not a file url? Copy and build locally?
-
     let implementation_path = implementation_url.to_file_path().map_err(|_| "Could not convert source url to file path")?;
     if implementation_path.extension().ok_or("No file extension on source file")?.
         to_str().ok_or("Could not convert file extension to String")? != "rs" {
