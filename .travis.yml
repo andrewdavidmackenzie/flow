@@ -38,13 +38,17 @@ addons:
       - cairo
       - pango
 
-before_install: |
-  make no-book-config; if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
+before_install:
+  - make no-book-config
+  - |
+    if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
     make book-config
   fi
 
-script: |
-  make clippy build test samples; if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
+script:
+  - make clippy build test samples
+  - |
+    if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
     make docs
   fi
 
