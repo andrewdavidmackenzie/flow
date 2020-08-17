@@ -33,6 +33,7 @@ addons:
       - libbfd-dev # Required by kcov for code coverage
       - graphviz # Required to build graphs for the book for gh_pages
   homebrew:
+    update: true # if not then pango lib for gtk3 won't build
     packages:
       - gtk+3
       - cairo
