@@ -19,7 +19,7 @@
 <!-- /prime/composites/generate_composites/limit&#45;buffer -->
 <g id="node8" class="node">
 <title>/prime/composites/generate_composites/limit&#45;buffer</title>
-<g id="a_node8"><a xlink:href="../../flowstdlib/data/buffer/buffer.toml" xlink:title="limit&#45;buffer\n(Buffer)">
+<g id="a_node8"><a xlink:href="../../flowstdlib/data/buffer/buffer.html" xlink:title="limit&#45;buffer\n(Buffer)">
 <ellipse fill="coral" stroke="black" cx="91.55" cy="-352.61" rx="56.64" ry="26.74"/>
 <text text-anchor="middle" x="91.55" y="-356.41" font-family="Times,serif" font-size="14.00">limit&#45;buffer</text>
 <text text-anchor="middle" x="91.55" y="-341.41" font-family="Times,serif" font-size="14.00">(Buffer)</text>
@@ -41,7 +41,7 @@
 <!-- /prime/composites/generate_composites/multiply -->
 <g id="node5" class="node">
 <title>/prime/composites/generate_composites/multiply</title>
-<g id="a_node5"><a xlink:href="../../flowstdlib/math/multiply/multiply.toml" xlink:title="multiply\n(Multiply)">
+<g id="a_node5"><a xlink:href="../../flowstdlib/math/multiply/multiply.html" xlink:title="multiply\n(Multiply)">
 <ellipse fill="coral" stroke="black" cx="482.55" cy="-280.87" rx="52.15" ry="26.74"/>
 <text text-anchor="middle" x="482.55" y="-284.67" font-family="Times,serif" font-size="14.00">multiply</text>
 <text text-anchor="middle" x="482.55" y="-269.67" font-family="Times,serif" font-size="14.00">(Multiply)</text>

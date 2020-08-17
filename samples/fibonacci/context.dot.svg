@@ -13,7 +13,7 @@
 <!-- /my&#45;first&#45;flow/add -->
 <g id="node1" class="node">
 <title>/my&#45;first&#45;flow/add</title>
-<g id="a_node1"><a xlink:href="../../flowstdlib/math/add/add.toml" xlink:title="add\n(Add)">
+<g id="a_node1"><a xlink:href="../../flowstdlib/math/add/add.html" xlink:title="add\n(Add)">
 <ellipse fill="coral" stroke="black" cx="251.64" cy="-99.87" rx="34.8" ry="26.74"/>
 <text text-anchor="middle" x="251.64" y="-103.67" font-family="Times,serif" font-size="14.00">add</text>
 <text text-anchor="middle" x="251.64" y="-88.67" font-family="Times,serif" font-size="14.00">(Add)</text>
@@ -39,7 +39,7 @@
 <!-- /my&#45;first&#45;flow/Stdout -->
 <g id="node4" class="node">
 <title>/my&#45;first&#45;flow/Stdout</title>
-<g id="a_node4"><a xlink:href="../../flowruntime/stdio/stdout.toml" xlink:title="Stdout">
+<g id="a_node4"><a xlink:href="../../flowruntime/stdio/stdout.html" xlink:title="Stdout">
 <ellipse fill="coral" stroke="black" cx="264.64" cy="-18" rx="33.6" ry="18"/>
 <text text-anchor="middle" x="264.64" y="-14.3" font-family="Times,serif" font-size="14.00">Stdout</text>
 </a>

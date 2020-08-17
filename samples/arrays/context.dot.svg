@@ -22,7 +22,7 @@
 <!-- /arrays/accumulator -->
 <g id="node2" class="node">
 <title>/arrays/accumulator</title>
-<g id="a_node2"><a xlink:href="../../flowstdlib/data/accumulate/accumulate.toml" xlink:title="accumulator\n(Accumulate)">
+<g id="a_node2"><a xlink:href="../../flowstdlib/data/accumulate/accumulate.html" xlink:title="accumulator\n(Accumulate)">
 <ellipse fill="coral" stroke="black" cx="285" cy="-222.35" rx="65.11" ry="26.74"/>
 <text text-anchor="middle" x="285" y="-226.15" font-family="Times,serif" font-size="14.00">accumulator</text>
 <text text-anchor="middle" x="285" y="-211.15" font-family="Times,serif" font-size="14.00">(Accumulate)</text>
@@ -48,7 +48,7 @@
 <!-- /arrays/add -->
 <g id="node5" class="node">
 <title>/arrays/add</title>
-<g id="a_node5"><a xlink:href="../../flowstdlib/math/add/add.toml" xlink:title="add\n(Add)">
+<g id="a_node5"><a xlink:href="../../flowstdlib/math/add/add.html" xlink:title="add\n(Add)">
 <ellipse fill="coral" stroke="black" cx="435" cy="-117.61" rx="34.8" ry="26.74"/>
 <text text-anchor="middle" x="435" y="-121.41" font-family="Times,serif" font-size="14.00">add</text>
 <text text-anchor="middle" x="435" y="-106.41" font-family="Times,serif" font-size="14.00">(Add)</text>
@@ -82,7 +82,7 @@
 <!-- /arrays/print -->
 <g id="node7" class="node">
 <title>/arrays/print</title>
-<g id="a_node7"><a xlink:href="../../flowruntime/stdio/stdout.toml" xlink:title="print\n(Stdout)">
+<g id="a_node7"><a xlink:href="../../flowruntime/stdio/stdout.html" xlink:title="print\n(Stdout)">
 <ellipse fill="coral" stroke="black" cx="458" cy="-26.87" rx="43.27" ry="26.74"/>
 <text text-anchor="middle" x="458" y="-30.67" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="458" y="-15.67" font-family="Times,serif" font-size="14.00">(Stdout)</text>

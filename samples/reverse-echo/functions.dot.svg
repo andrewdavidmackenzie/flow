@@ -13,7 +13,7 @@
 <!-- r0 -->
 <g id="node1" class="node">
 <title>r0</title>
-<g id="a_node1"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/readline.toml" xlink:title="read (#0)">
+<g id="a_node1"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/readline.html" xlink:title="read (#0)">
 <ellipse fill="coral" stroke="black" cx="42.9" cy="-162" rx="42.79" ry="18"/>
 <text text-anchor="middle" x="42.9" y="-158.3" font-family="Times,serif" font-size="14.00">read (#0)</text>
 </a>
@@ -22,7 +22,7 @@
 <!-- r1 -->
 <g id="node2" class="node">
 <title>r1</title>
-<g id="a_node2"><a xlink:href="file:///Users/andrew/workspace/flow/samples/reverse-echo/reverse/reverse.toml" xlink:title="reverse (#1)">
+<g id="a_node2"><a xlink:href="file:///Users/andrew/workspace/flow/samples/reverse-echo/reverse/reverse.html" xlink:title="reverse (#1)">
 <ellipse fill="coral" stroke="black" cx="85.9" cy="-90" rx="53.09" ry="18"/>
 <text text-anchor="middle" x="85.9" y="-86.3" font-family="Times,serif" font-size="14.00">reverse (#1)</text>
 </a>
@@ -37,7 +37,7 @@
 <!-- r2 -->
 <g id="node3" class="node">
 <title>r2</title>
-<g id="a_node3"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/stdout.toml" xlink:title="print (#2)">
+<g id="a_node3"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/stdout.html" xlink:title="print (#2)">
 <ellipse fill="coral" stroke="black" cx="139.9" cy="-18" rx="44.39" ry="18"/>
 <text text-anchor="middle" x="139.9" y="-14.3" font-family="Times,serif" font-size="14.00">print (#2)</text>
 </a>

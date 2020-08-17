@@ -13,7 +13,7 @@
 <!-- r0 -->
 <g id="node1" class="node">
 <title>r0</title>
-<g id="a_node1"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/readline.toml" xlink:title="Readline (#0)">
+<g id="a_node1"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/readline.html" xlink:title="Readline (#0)">
 <ellipse fill="coral" stroke="black" cx="474.44" cy="-425" rx="59.29" ry="18"/>
 <text text-anchor="middle" x="474.44" y="-421.3" font-family="Times,serif" font-size="14.00">Readline (#0)</text>
 </a>
@@ -22,7 +22,7 @@
 <!-- r1 -->
 <g id="node2" class="node">
 <title>r1</title>
-<g id="a_node2"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/split/split.toml" xlink:title="Split (#1)">
+<g id="a_node2"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/data/split/split.html" xlink:title="Split (#1)">
 <ellipse fill="coral" stroke="black" cx="430.44" cy="-338" rx="44.39" ry="18"/>
 <text text-anchor="middle" x="430.44" y="-334.3" font-family="Times,serif" font-size="14.00">Split (#1)</text>
 </a>
@@ -46,7 +46,7 @@
 <!-- r2 -->
 <g id="node4" class="node">
 <title>r2</title>
-<g id="a_node4"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/add/add.toml" xlink:title="work&#45;counter (#2)">
+<g id="a_node4"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/add/add.html" xlink:title="work&#45;counter (#2)">
 <ellipse fill="coral" stroke="black" cx="398.44" cy="-251" rx="75.29" ry="18"/>
 <text text-anchor="middle" x="398.44" y="-247.3" font-family="Times,serif" font-size="14.00">work&#45;counter (#2)</text>
 </a>
@@ -63,7 +63,7 @@
 <!-- r3 -->
 <g id="node5" class="node">
 <title>r3</title>
-<g id="a_node5"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/add/add.toml" xlink:title="token&#45;counter (#3)">
+<g id="a_node5"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/add/add.html" xlink:title="token&#45;counter (#3)">
 <ellipse fill="coral" stroke="black" cx="156.44" cy="-251" rx="76.89" ry="18"/>
 <text text-anchor="middle" x="156.44" y="-247.3" font-family="Times,serif" font-size="14.00">token&#45;counter (#3)</text>
 </a>
@@ -96,7 +96,7 @@
 <!-- r5 -->
 <g id="node7" class="node">
 <title>r5</title>
-<g id="a_node7"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/compare/compare.toml" xlink:title="Compare (#5)">
+<g id="a_node7"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/compare/compare.html" xlink:title="Compare (#5)">
 <ellipse fill="coral" stroke="black" cx="399.44" cy="-164" rx="60.39" ry="18"/>
 <text text-anchor="middle" x="399.44" y="-160.3" font-family="Times,serif" font-size="14.00">Compare (#5)</text>
 </a>
@@ -121,7 +121,7 @@
 <!-- r4 -->
 <g id="node9" class="node">
 <title>r4</title>
-<g id="a_node9"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/control/tap/tap.toml" xlink:title="Tap (#4)">
+<g id="a_node9"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/control/tap/tap.html" xlink:title="Tap (#4)">
 <ellipse fill="coral" stroke="black" cx="233.44" cy="-91" rx="41.69" ry="18"/>
 <text text-anchor="middle" x="233.44" y="-87.3" font-family="Times,serif" font-size="14.00">Tap (#4)</text>
 </a>
@@ -162,7 +162,7 @@
 <!-- r6 -->
 <g id="node10" class="node">
 <title>r6</title>
-<g id="a_node10"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/stdout.toml" xlink:title="Stdout (#6)">
+<g id="a_node10"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/stdout.html" xlink:title="Stdout (#6)">
 <ellipse fill="coral" stroke="black" cx="275.44" cy="-18" rx="50.89" ry="18"/>
 <text text-anchor="middle" x="275.44" y="-14.3" font-family="Times,serif" font-size="14.00">Stdout (#6)</text>
 </a>

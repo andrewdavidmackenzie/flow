@@ -13,7 +13,7 @@
 <!-- r0 -->
 <g id="node1" class="node">
 <title>r0</title>
-<g id="a_node1"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/add/add.toml" xlink:title="add (#0)">
+<g id="a_node1"><a xlink:href="file:///Users/andrew/workspace/flow/flowstdlib/math/add/add.html" xlink:title="add (#0)">
 <ellipse fill="coral" stroke="black" cx="168.44" cy="-91" rx="40.09" ry="18"/>
 <text text-anchor="middle" x="168.44" y="-87.3" font-family="Times,serif" font-size="14.00">add (#0)</text>
 </a>
@@ -38,7 +38,7 @@
 <!-- r1 -->
 <g id="node4" class="node">
 <title>r1</title>
-<g id="a_node4"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/stdout.toml" xlink:title="Stdout (#1)">
+<g id="a_node4"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/stdout.html" xlink:title="Stdout (#1)">
 <ellipse fill="coral" stroke="black" cx="185.44" cy="-18" rx="50.89" ry="18"/>
 <text text-anchor="middle" x="185.44" y="-14.3" font-family="Times,serif" font-size="14.00">Stdout (#1)</text>
 </a>

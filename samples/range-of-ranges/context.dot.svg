@@ -39,7 +39,7 @@
 <!-- /range&#45;of&#45;ranges/start&#45;of&#45;each -->
 <g id="node2" class="node">
 <title>/range&#45;of&#45;ranges/start&#45;of&#45;each</title>
-<g id="a_node2"><a xlink:href="../../flowstdlib/data/buffer/buffer.toml" xlink:title="start&#45;of&#45;each\n(Buffer)">
+<g id="a_node2"><a xlink:href="../../flowstdlib/data/buffer/buffer.html" xlink:title="start&#45;of&#45;each\n(Buffer)">
 <ellipse fill="coral" stroke="black" cx="222" cy="-343.74" rx="60.21" ry="26.74"/>
 <text text-anchor="middle" x="222" y="-347.54" font-family="Times,serif" font-size="14.00">start&#45;of&#45;each</text>
 <text text-anchor="middle" x="222" y="-332.54" font-family="Times,serif" font-size="14.00">(Buffer)</text>
@@ -64,7 +64,7 @@
 <!-- /range&#45;of&#45;ranges/print -->
 <g id="node5" class="node">
 <title>/range&#45;of&#45;ranges/print</title>
-<g id="a_node5"><a xlink:href="../../flowruntime/stdio/stdout.toml" xlink:title="print\n(Stdout)">
+<g id="a_node5"><a xlink:href="../../flowruntime/stdio/stdout.html" xlink:title="print\n(Stdout)">
 <ellipse fill="coral" stroke="black" cx="174" cy="-26.87" rx="43.27" ry="26.74"/>
 <text text-anchor="middle" x="174" y="-30.67" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="174" y="-15.67" font-family="Times,serif" font-size="14.00">(Stdout)</text>
