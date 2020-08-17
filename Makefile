@@ -249,7 +249,7 @@ sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcar
 # This target must be below sample-flows in the Makefile
 samples: build flowstdlib/manifest.json
 	$(STIME)
-	@$(MAKE) -f samples/makefile clean
+	@$(MAKE) clean-samples
 	@$(MAKE) $(sample_flows)
 	$(ETIME)
 
@@ -263,6 +263,18 @@ samples/%/test.output: samples/%/test.input samples/%/test.arguments
 	@if [ -s $(@D)/test.err ]; then (printf " has error output in $(@D)/test.err\n"; exit -1); else printf " has no errors\n"; fi;
 	@rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time
 # leave test.err for inspection in case of failure
+
+clean-samples:
+	$(STIME)
+	@find samples -name \*.wasm -exec rm -rf {} + ; true
+	@find samples -name test.output -exec rm -rf {} + ; true
+	@find samples -name failed.output -exec rm -rf {} + ; true
+	@find samples -name manifest.json -exec rm -rf {} + ; true
+	@find samples -name \*.dump -type f -exec rm -rf {} + ; true
+	@find samples -name \*.txt -type f -exec rm -rf {} + ; true
+	@find samples -name \*.dot -type f -exec rm -rf {} + ; true
+	@find samples -name \*.dot.svg -type f -exec rm -rf {} + ; true
+	$(ETIME)
 
 ################# ONLINE SAMPLES ################
 online-samples:
@@ -313,17 +325,24 @@ flow_impl_derive_publish:
 
 ################# Clean ################
 clean:
-	@$(MAKE) clean-dumps clean-guide
-	@cd flowstdlib; $(MAKE) clean
-	@cd samples; $(MAKE) clean
+	@$(MAKE) clean-dumps clean-docs clean-guide clean-flowstdlib clean-samples
 	@cargo clean
+
+clean-flowstdlib:
+	$(STIME)
+	@find flowstdlib -name \*.wasm -type f -exec rm -rf {} + ; true
+	@rm -f flowstdlib/manifest.json
+	$(ETIME)
 
 clean-dumps:
 	$(STIME)
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot -type f -exec rm -rf {} + ; true
+	$(ETIME)
+
+clean-docs:
+	$(STIME)
 	@find . -name \*.dot.svg -type f -exec rm -rf {} + ; true
-	@echo "\tAll .dump, .dot and .dot.svg files removed"
 	$(ETIME)
 
 clean-guide:
@@ -337,7 +356,7 @@ dot-graphs:
 ifeq ($(DOT),)
 	@echo "\t'dot' not available, skipping 'dot-graphs'. Install 'graphviz' to use."
 else
-	@find . -name \*.dot -type f -exec dot -Tsvg -O {} \;
 	@echo "\tGenerated .svg files for all dot graphs found"
+	@find . -name \*.dot -type f -exec dot -Tsvg -O {} \;
 endif
 	$(ETIME)
