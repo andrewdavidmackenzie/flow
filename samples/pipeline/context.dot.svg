@@ -22,7 +22,7 @@
 <!-- /pipeline/add1 -->
 <g id="node2" class="node">
 <title>/pipeline/add1</title>
-<g id="a_node2"><a xlink:href="../../flowstdlib/math/add/add.toml" xlink:title="add1\n(Add)">
+<g id="a_node2"><a xlink:href="../../flowstdlib/math/add/add.html" xlink:title="add1\n(Add)">
 <ellipse fill="coral" stroke="black" cx="207.34" cy="-431.83" rx="34.8" ry="26.74"/>
 <text text-anchor="middle" x="207.34" y="-435.63" font-family="Times,serif" font-size="14.00">add1</text>
 <text text-anchor="middle" x="207.34" y="-420.63" font-family="Times,serif" font-size="14.00">(Add)</text>
@@ -40,7 +40,7 @@
 <!-- /pipeline/divide2 -->
 <g id="node4" class="node">
 <title>/pipeline/divide2</title>
-<g id="a_node4"><a xlink:href="../../flowstdlib/math/divide/divide.toml" xlink:title="divide2\n(Divide)">
+<g id="a_node4"><a xlink:href="../../flowstdlib/math/divide/divide.html" xlink:title="divide2\n(Divide)">
 <ellipse fill="coral" stroke="black" cx="313.34" cy="-327.09" rx="43.68" ry="26.74"/>
 <text text-anchor="middle" x="313.34" y="-330.89" font-family="Times,serif" font-size="14.00">divide2</text>
 <text text-anchor="middle" x="313.34" y="-315.89" font-family="Times,serif" font-size="14.00">(Divide)</text>
@@ -66,7 +66,7 @@
 <!-- /pipeline/add2 -->
 <g id="node6" class="node">
 <title>/pipeline/add2</title>
-<g id="a_node6"><a xlink:href="../../flowstdlib/math/add/add.toml" xlink:title="add2\n(Add)">
+<g id="a_node6"><a xlink:href="../../flowstdlib/math/add/add.html" xlink:title="add2\n(Add)">
 <ellipse fill="coral" stroke="black" cx="249.34" cy="-222.35" rx="34.8" ry="26.74"/>
 <text text-anchor="middle" x="249.34" y="-226.15" font-family="Times,serif" font-size="14.00">add2</text>
 <text text-anchor="middle" x="249.34" y="-211.15" font-family="Times,serif" font-size="14.00">(Add)</text>
@@ -92,7 +92,7 @@
 <!-- /pipeline/divide4 -->
 <g id="node8" class="node">
 <title>/pipeline/divide4</title>
-<g id="a_node8"><a xlink:href="../../flowstdlib/math/divide/divide.toml" xlink:title="divide4\n(Divide)">
+<g id="a_node8"><a xlink:href="../../flowstdlib/math/divide/divide.html" xlink:title="divide4\n(Divide)">
 <ellipse fill="coral" stroke="black" cx="395.34" cy="-117.61" rx="43.68" ry="26.74"/>
 <text text-anchor="middle" x="395.34" y="-121.41" font-family="Times,serif" font-size="14.00">divide4</text>
 <text text-anchor="middle" x="395.34" y="-106.41" font-family="Times,serif" font-size="14.00">(Divide)</text>
@@ -118,7 +118,7 @@
 <!-- /pipeline/print -->
 <g id="node10" class="node">
 <title>/pipeline/print</title>
-<g id="a_node10"><a xlink:href="../../flowruntime/stdio/stdout.toml" xlink:title="print\n(Stdout)">
+<g id="a_node10"><a xlink:href="../../flowruntime/stdio/stdout.html" xlink:title="print\n(Stdout)">
 <ellipse fill="coral" stroke="black" cx="462.34" cy="-26.87" rx="43.27" ry="26.74"/>
 <text text-anchor="middle" x="462.34" y="-30.67" font-family="Times,serif" font-size="14.00">print</text>
 <text text-anchor="middle" x="462.34" y="-15.67" font-family="Times,serif" font-size="14.00">(Stdout)</text>

@@ -13,7 +13,7 @@
 <!-- r0 -->
 <g id="node1" class="node">
 <title>r0</title>
-<g id="a_node1"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/stdout.toml" xlink:title="print (#0)">
+<g id="a_node1"><a xlink:href="file:///Users/andrew/workspace/flow/flowruntime/stdio/stdout.html" xlink:title="print (#0)">
 <ellipse fill="coral" stroke="black" cx="105.44" cy="-18" rx="44.39" ry="18"/>
 <text text-anchor="middle" x="105.44" y="-14.3" font-family="Times,serif" font-size="14.00">print (#0)</text>
 </a>

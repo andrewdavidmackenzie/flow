@@ -19,7 +19,7 @@
 <!-- /prime/composites/sqrt -->
 <g id="node4" class="node">
 <title>/prime/composites/sqrt</title>
-<g id="a_node4"><a xlink:href="../../flowstdlib/math/sqrt/sqrt.toml" xlink:title="sqrt\n(Sqrt)">
+<g id="a_node4"><a xlink:href="../../flowstdlib/math/sqrt/sqrt.html" xlink:title="sqrt\n(Sqrt)">
 <ellipse fill="coral" stroke="black" cx="149.76" cy="-762.09" rx="33.88" ry="26.74"/>
 <text text-anchor="middle" x="149.76" y="-765.89" font-family="Times,serif" font-size="14.00">sqrt</text>
 <text text-anchor="middle" x="149.76" y="-750.89" font-family="Times,serif" font-size="14.00">(Sqrt)</text>
@@ -87,7 +87,7 @@
 <!-- /prime/composites/compare -->
 <g id="node11" class="node">
 <title>/prime/composites/compare</title>
-<g id="a_node11"><a xlink:href="../../flowstdlib/control/compare_switch/compare_switch.toml" xlink:title="compare\n(CompareSwitch)">
+<g id="a_node11"><a xlink:href="../../flowstdlib/control/compare_switch/compare_switch.html" xlink:title="compare\n(CompareSwitch)">
 <ellipse fill="coral" stroke="black" cx="490.76" cy="-99.87" rx="79.81" ry="26.74"/>
 <text text-anchor="middle" x="490.76" y="-103.67" font-family="Times,serif" font-size="14.00">compare</text>
 <text text-anchor="middle" x="490.76" y="-88.67" font-family="Times,serif" font-size="14.00">(CompareSwitch)</text>
@@ -112,7 +112,7 @@
 <!-- /prime/composites/join -->
 <g id="node7" class="node">
 <title>/prime/composites/join</title>
-<g id="a_node7"><a xlink:href="../../flowstdlib/control/join/join.toml" xlink:title="join\n(Join)">
+<g id="a_node7"><a xlink:href="../../flowstdlib/control/join/join.html" xlink:title="join\n(Join)">
 <ellipse fill="coral" stroke="black" cx="134.76" cy="-295.35" rx="33.88" ry="26.74"/>
 <text text-anchor="middle" x="134.76" y="-299.15" font-family="Times,serif" font-size="14.00">join</text>
 <text text-anchor="middle" x="134.76" y="-284.15" font-family="Times,serif" font-size="14.00">(Join)</text>
@@ -130,7 +130,7 @@
 <!-- /prime/composites/subsequence&#45;count -->
 <g id="node9" class="node">
 <title>/prime/composites/subsequence&#45;count</title>
-<g id="a_node9"><a xlink:href="../../flowstdlib/math/add/add.toml" xlink:title="subsequence&#45;count\n(Add)">
+<g id="a_node9"><a xlink:href="../../flowstdlib/math/add/add.html" xlink:title="subsequence&#45;count\n(Add)">
 <ellipse fill="coral" stroke="black" cx="348.76" cy="-190.61" rx="84.29" ry="26.74"/>
 <text text-anchor="middle" x="348.76" y="-194.41" font-family="Times,serif" font-size="14.00">subsequence&#45;count</text>
 <text text-anchor="middle" x="348.76" y="-179.41" font-family="Times,serif" font-size="14.00">(Add)</text>

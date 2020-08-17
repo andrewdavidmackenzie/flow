@@ -13,7 +13,7 @@
 <!-- /tokenizer/Readline -->
 <g id="node1" class="node">
 <title>/tokenizer/Readline</title>
-<g id="a_node1"><a xlink:href="../../flowruntime/stdio/readline.toml" xlink:title="Readline">
+<g id="a_node1"><a xlink:href="../../flowruntime/stdio/readline.html" xlink:title="Readline">
 <ellipse fill="coral" stroke="black" cx="214.74" cy="-442.74" rx="42.49" ry="18"/>
 <text text-anchor="middle" x="214.74" y="-439.04" font-family="Times,serif" font-size="14.00">Readline</text>
 </a>
@@ -22,7 +22,7 @@
 <!-- /tokenizer/Split -->
 <g id="node2" class="node">
 <title>/tokenizer/Split</title>
-<g id="a_node2"><a xlink:href="../../flowstdlib/data/split/split.toml" xlink:title="Split">
+<g id="a_node2"><a xlink:href="../../flowstdlib/data/split/split.html" xlink:title="Split">
 <ellipse fill="coral" stroke="black" cx="347.74" cy="-355.74" rx="27.1" ry="18"/>
 <text text-anchor="middle" x="347.74" y="-352.04" font-family="Times,serif" font-size="14.00">Split</text>
 </a>
@@ -46,7 +46,7 @@
 <!-- /tokenizer/work&#45;counter -->
 <g id="node4" class="node">
 <title>/tokenizer/work&#45;counter</title>
-<g id="a_node4"><a xlink:href="../../flowstdlib/math/add/add.toml" xlink:title="work&#45;counter\n(Add)">
+<g id="a_node4"><a xlink:href="../../flowstdlib/math/add/add.html" xlink:title="work&#45;counter\n(Add)">
 <ellipse fill="coral" stroke="black" cx="615.74" cy="-259.87" rx="62.87" ry="26.74"/>
 <text text-anchor="middle" x="615.74" y="-263.67" font-family="Times,serif" font-size="14.00">work&#45;counter</text>
 <text text-anchor="middle" x="615.74" y="-248.67" font-family="Times,serif" font-size="14.00">(Add)</text>
@@ -64,7 +64,7 @@
 <!-- /tokenizer/token&#45;counter -->
 <g id="node6" class="node">
 <title>/tokenizer/token&#45;counter</title>
-<g id="a_node6"><a xlink:href="../../flowstdlib/math/add/add.toml" xlink:title="token&#45;counter\n(Add)">
+<g id="a_node6"><a xlink:href="../../flowstdlib/math/add/add.html" xlink:title="token&#45;counter\n(Add)">
 <ellipse fill="coral" stroke="black" cx="204.74" cy="-259.87" rx="65.11" ry="26.74"/>
 <text text-anchor="middle" x="204.74" y="-263.67" font-family="Times,serif" font-size="14.00">token&#45;counter</text>
 <text text-anchor="middle" x="204.74" y="-248.67" font-family="Times,serif" font-size="14.00">(Add)</text>
@@ -98,7 +98,7 @@
 <!-- /tokenizer/Compare -->
 <g id="node9" class="node">
 <title>/tokenizer/Compare</title>
-<g id="a_node9"><a xlink:href="../../flowstdlib/math/compare/compare.toml" xlink:title="Compare">
+<g id="a_node9"><a xlink:href="../../flowstdlib/math/compare/compare.html" xlink:title="Compare">
 <ellipse fill="coral" stroke="black" cx="394.74" cy="-164" rx="43.59" ry="18"/>
 <text text-anchor="middle" x="394.74" y="-160.3" font-family="Times,serif" font-size="14.00">Compare</text>
 </a>
@@ -131,7 +131,7 @@
 <!-- /tokenizer/Tap -->
 <g id="node8" class="node">
 <title>/tokenizer/Tap</title>
-<g id="a_node8"><a xlink:href="../../flowstdlib/control/tap/tap.toml" xlink:title="Tap">
+<g id="a_node8"><a xlink:href="../../flowstdlib/control/tap/tap.html" xlink:title="Tap">
 <ellipse fill="coral" stroke="black" cx="278.74" cy="-91" rx="27" ry="18"/>
 <text text-anchor="middle" x="278.74" y="-87.3" font-family="Times,serif" font-size="14.00">Tap</text>
 </a>
@@ -156,7 +156,7 @@
 <!-- /tokenizer/Stdout -->
 <g id="node11" class="node">
 <title>/tokenizer/Stdout</title>
-<g id="a_node11"><a xlink:href="../../flowruntime/stdio/stdout.toml" xlink:title="Stdout">
+<g id="a_node11"><a xlink:href="../../flowruntime/stdio/stdout.html" xlink:title="Stdout">
 <ellipse fill="coral" stroke="black" cx="339.74" cy="-18" rx="33.6" ry="18"/>
 <text text-anchor="middle" x="339.74" y="-14.3" font-family="Times,serif" font-size="14.00">Stdout</text>
 </a>
