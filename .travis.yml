@@ -33,20 +33,25 @@ addons:
       - libbfd-dev # Required by kcov for code coverage
       - graphviz # Required to build graphs for the book for gh_pages
   homebrew:
+    update: true # if not then pango lib for gtk3 won't build
     packages:
       - gtk+3
       - cairo
       - pango
 
-before_install: |
-  make no-book-config; if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
-    make book-config
-  fi
+before_install:
+  - make no-book-config
+  - |
+    if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
+      make book-config
+    fi
 
-script: |
-  make clippy build test samples; if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
-    make docs
-  fi
+script:
+  - make clippy build test samples
+  - |
+    if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
+      make docs
+    fi
 
 deploy:
   provider: pages
