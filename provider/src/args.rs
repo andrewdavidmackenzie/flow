@@ -12,10 +12,10 @@ use crate::errors::*;
 /// to the working directory.
 ///
 /// Depending on the parameter passed in:
-/// - no parameter passed     --> Return the Current Working Directory (CWD)
-/// - absolute path passed in --> Return the absolute path passed in
-/// - relative path passed in --> Join the CWD with the relative path and return the resulting
-///                               absolute path.
+/// - None                --> Return the Current Working Directory (CWD)
+/// - Some(absolute path) --> Return the absolute path passed in
+/// - Some(relative path) --> Join the CWD with the relative path and return the resulting
+///                           absolute path.
 ///
 /// Returns a full URL with appropriate scheme (depending on the original scheme passed in),
 /// and an absolute path.

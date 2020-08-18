@@ -58,6 +58,26 @@ impl HasRoute for Function {
 }
 
 impl Function {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(name: Name, impure: bool, implementation: String, alias: Name, inputs: IOSet, outputs: IOSet, source_url: &str,
+               route: Route, lib_reference: Option<String>, output_connections: Vec<OutputConnection>,
+               id: usize, flow_id: usize) -> Self {
+        Function {
+            name,
+            impure,
+            implementation,
+            alias,
+            inputs,
+            outputs,
+            source_url: source_url.to_string(),
+            route,
+            lib_reference,
+            output_routes: output_connections,
+            id,
+            flow_id,
+        }
+    }
+
     pub fn set_id(&mut self, id: usize) {
         self.id = id;
     }
@@ -205,7 +225,7 @@ impl Default for Function {
             source_url: Function::default_source_url(),
             route: Route::default(),
             lib_reference: None,
-            output_routes: vec!(OutputConnection::new("".to_string(), 0, 0, 0, 0,  false, Some("".to_string()))),
+            output_routes: vec!(OutputConnection::new("".to_string(), 0, 0, 0, 0, false, Some("".to_string()))),
             id: 0,
             flow_id: 0,
         }
@@ -227,7 +247,6 @@ mod test {
     use crate::compiler::loader::Validate;
     use crate::model::datatype::DataType;
     use crate::model::io::Find;
-    use crate::model::io::IOSet;
     use crate::model::name::HasName;
     use crate::model::name::Name;
     use crate::model::route::HasRoute;
@@ -235,28 +254,6 @@ mod test {
     use crate::model::route::SetRoute;
 
     use super::Function;
-
-    impl Function {
-        #[allow(clippy::too_many_arguments)]
-        pub fn new(name: Name, impure: bool, implementation: String, alias: Name, inputs: IOSet, outputs: IOSet, source_url: &str,
-                   route: Route, lib_reference: Option<String>, output_connections: Vec<OutputConnection>,
-                   id: usize, flow_id: usize) -> Self {
-            Function {
-                name,
-                impure,
-                implementation,
-                alias,
-                inputs,
-                outputs,
-                source_url: source_url.to_string(),
-                route,
-                lib_reference,
-                output_routes: output_connections,
-                id,
-                flow_id,
-            }
-        }
-    }
 
     #[test]
     fn function_with_no_io_not_valid() {

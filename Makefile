@@ -8,6 +8,7 @@ FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 > /dev/null)
 TEST_PREFIXES := flow_impl flowc flowr flowrlib flowruntime flowstdlib
+FLOW_ROOT := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
 all:
 	$(STIME)

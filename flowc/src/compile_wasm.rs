@@ -19,9 +19,7 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool) -> R
 
     let (implementation_path, wasm_destination) = get_paths(function)?;
 
-    // wasm file is out of date if it doesn't exist of timestamp is older than source
-    let missing = !wasm_destination.exists();
-    let out_of_date = out_of_date(&implementation_path, &wasm_destination)?;
+    let (missing, out_of_date) = out_of_date(&implementation_path, &wasm_destination)?;
 
     if missing || out_of_date {
         if skip_building {
@@ -118,51 +116,70 @@ fn run_cargo_build(manifest_path: &PathBuf, target_dir: &PathBuf) -> Result<Stri
     }
 }
 
-// TODO add a test for this
+/*
+    Calculate the paths to the source file of the implementation of the function to be compiled
+    and where to output the compiled wasm
+ */
 fn get_paths(function: &Function) -> Result<(PathBuf, PathBuf)> {
-    let source = function.get_source_url();
-    let mut implementation_url = url_from_string(Some(&source))
+    let function_source_url = url_from_string(Some(&function.get_source_url()))
         .chain_err(|| "Could not create a url from source url")?;
-    implementation_url = implementation_url.join(&function.get_implementation())
+    let implementation_source_url = function_source_url.join(&function.get_implementation())
         .map_err(|_| "Could not convert Url")?;
 
-    let implementation_path = implementation_url.to_file_path().map_err(|_| "Could not convert source url to file path")?;
-    if implementation_path.extension().ok_or("No file extension on source file")?.
+    let implementation_source_path = implementation_source_url.to_file_path()
+        .map_err(|_| "Could not convert source url to file path")?;
+    if implementation_source_path.extension().ok_or("No file extension on source file")?.
         to_str().ok_or("Could not convert file extension to String")? != "rs" {
-        bail!("Source file at '{}' does not have a '.rs' extension", implementation_path.display());
+        bail!("Source file at '{}' does not have a '.rs' extension", implementation_source_path.display());
     }
 
-    if !implementation_path.exists() {
-        bail!("Source file at '{}' does not exist", implementation_path.display());
+    if !implementation_source_path.exists() {
+        bail!("Source file at '{}' does not exist", implementation_source_path.display());
     }
 
-    let mut wasm_destination = implementation_path.clone();
-    wasm_destination.set_extension("wasm");
+    let mut implementation_wasm_path = implementation_source_path.clone();
+    implementation_wasm_path.set_extension("wasm");
 
-    Ok((implementation_path, wasm_destination))
+    Ok((implementation_source_path, implementation_wasm_path))
 }
 
 /*
-    Determine if one file that is derived from another source is out of date (source is newer
-    that derived)
-    Returns:
-        true - source file has been modified since the derived file was last modified
+    Determine if one file that is derived from another source is missing and if not missing
+    if it is out of date (source is newer that derived)
+    Returns: (out_of_date, missing)
+    out_of_date
+        true - source file has been modified since the derived file was last modified or is missing
         false - source has not been modified since derived file was last modified
+    missing
+        true - the derived file does no exist
+        false - the deriver file does exist
 */
-fn out_of_date(source: &PathBuf, derived: &PathBuf) -> Result<bool> {
+fn out_of_date(source: &PathBuf, derived: &PathBuf) -> Result<(bool, bool)> {
     let source_last_modified = fs::metadata(source)
-        .chain_err(||"Could not get file metadata")?
+        .chain_err(|| format!("Could not get metadata for file: '{}'", source.display()))?
         .modified().chain_err(|| "Could not get modified time from file metadata")?;
-    let derived_last_modified = fs::metadata(derived)
-        .chain_err(||"Could not get file metadata")?
-        .modified().chain_err(|| "Could not get modified time from file metadata")?;
-    Ok(source_last_modified > derived_last_modified)
+
+    if derived.exists() {
+        let derived_last_modified = fs::metadata(derived)
+            .chain_err(|| format!("Could not get metadata for file: '{}'", derived.display()))?
+            .modified().chain_err(|| "Could not get modified time from file metadata")?;
+        Ok(((source_last_modified > derived_last_modified), false))
+    } else {
+        Ok((true, true))
+    }
 }
 
 #[cfg(test)]
 mod test {
-    use std::fs::write;
+    use std::env;
+    use std::fs::{remove_file, write};
 
+    use flowclib::model::function::Function;
+    use flowclib::model::io::IO;
+    use flowclib::model::route::Route;
+    use flowrlib::output_connection::OutputConnection;
+
+    use super::get_paths;
     use super::out_of_date;
 
     #[test]
@@ -179,9 +196,8 @@ mod test {
         let source = newer.clone();
         write(newer, "newer").unwrap();
 
-        assert!(out_of_date(&source, &derived).unwrap());
+        assert!(out_of_date(&source, &derived).unwrap().0);
     }
-
 
     #[test]
     fn not_out_of_date_test() {
@@ -197,6 +213,51 @@ mod test {
         let derived = newer.clone();
         write(newer, "newer").unwrap();
 
-        assert_eq!(out_of_date(&source, &derived).unwrap(), false);
+        assert_eq!(out_of_date(&source, &derived).unwrap().0, false);
+    }
+
+    #[test]
+    fn out_of_date_missing_test() {
+        let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
+
+        // make older file
+        let older = output_dir.join("older");
+        let source = older.clone();
+        write(older, "older").unwrap();
+
+        // make second/newer file
+        let newer = output_dir.join("newer");
+        write(&newer, "it's a short life").unwrap();
+        let derived = newer.clone();
+        remove_file(newer).unwrap();
+
+        assert!(out_of_date(&source, &derived).unwrap().1);
+    }
+
+    fn test_function() -> Function {
+        Function::new(
+            "Stdout".into(),
+            false,
+            "stdout.rs".to_string(),
+            "print".into(),
+            Some(vec!()),
+            Some(vec!(
+                IO::new("String", &Route::default())
+            )),
+            &format!("{}/{}", env!("FLOW_ROOT"), "flowruntime/stdio/stdout"),
+            Route::from("/flow0/stdout"),
+            Some("flowruntime/stdio/stdout".to_string()),
+            vec!(OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None)),
+            0, 0)
+    }
+
+    #[test]
+    fn paths_test() {
+        let function = test_function();
+
+        let (impl_source_path, impl_wasm_path) = get_paths(&function).unwrap();
+
+        assert_eq!(format!("{}/{}", env!("FLOW_ROOT"), "flowruntime/stdio/stdout.rs"), impl_source_path.to_str().unwrap());
+        assert_eq!(format!("{}/{}", env!("FLOW_ROOT"), "flowruntime/stdio/stdout.wasm"), impl_wasm_path.to_str().unwrap());
     }
 }
