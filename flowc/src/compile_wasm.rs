@@ -1,3 +1,4 @@
+use std::env;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -5,6 +6,7 @@ use std::process::Stdio;
 
 use log::{debug, error, info, warn};
 use tempdir::TempDir;
+use url::Url;
 
 use flowclib::model::function::Function;
 use provider::args::url_from_string;
@@ -121,7 +123,11 @@ fn run_cargo_build(manifest_path: &PathBuf, target_dir: &PathBuf) -> Result<Stri
     and where to output the compiled wasm
  */
 fn get_paths(function: &Function) -> Result<(PathBuf, PathBuf)> {
-    let function_source_url = url_from_string(Some(&function.get_source_url()))
+    let cwd = env::current_dir().chain_err(|| "Could not get current working directory value")?;
+    let cwd_url = Url::from_directory_path(cwd)
+        .map_err(|_|"Could not form a Url for the current working directory")?;
+
+    let function_source_url = url_from_string(&cwd_url, Some(&function.get_source_url()))
         .chain_err(|| "Could not create a url from source url")?;
     let implementation_source_url = function_source_url.join(&function.get_implementation())
         .map_err(|_| "Could not convert Url")?;

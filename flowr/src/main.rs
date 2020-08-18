@@ -10,11 +10,11 @@ use std::process::exit;
 use std::sync::{Arc, Mutex};
 
 use clap::{App, AppSettings, Arg, ArgMatches};
+use error_chain::error_chain;
 use log::{debug, error, info};
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
-use error_chain::error_chain;
 use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::debug_client::DebugClient;
 use flowrlib::info;
@@ -233,7 +233,11 @@ fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     info!("'flowrlib' version {}", info::version());
 
-    url_from_string(matches.value_of("flow-manifest"))
+    let cwd = env::current_dir().chain_err(|| "Could not get current working directory value")?;
+    let cwd_url =     Url::from_directory_path(cwd)
+        .map_err(|_|"Could not form a Url for the current working directory")?;
+
+    url_from_string(&cwd_url, matches.value_of("flow-manifest"))
         .chain_err(|| "Unable to parse the URL of the manifest of the flow to run")
 }
 

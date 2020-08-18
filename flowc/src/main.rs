@@ -9,6 +9,7 @@
 #[macro_use]
 extern crate error_chain;
 
+use std::env;
 use std::path::PathBuf;
 use std::process::exit;
 
@@ -168,7 +169,11 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
     debug!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     debug!("'flowclib' version {}", info::version());
 
-    let url = url_from_string(matches.value_of("FLOW"))
+    let cwd = env::current_dir().chain_err(|| "Could not get current working directory value")?;
+    let cwd_url =     Url::from_directory_path(cwd)
+        .map_err(|_|"Could not form a Url for the current working directory")?;
+
+    let url = url_from_string(&cwd_url, matches.value_of("FLOW"))
         .chain_err(|| "Could not create a url for flow from the 'FLOW' command line parameter")?;
 
     let output_dir = source_arg::get_output_dir(&url, matches.value_of("OUTPUT_DIR"))
