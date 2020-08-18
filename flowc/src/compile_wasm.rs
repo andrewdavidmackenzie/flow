@@ -16,35 +16,12 @@ use crate::errors::*;
 */
 pub fn compile_implementation(function: &mut Function, skip_building: bool) -> Result<(PathBuf, bool)> {
     let mut built = false;
-    let source = function.get_source_url();
-    let mut implementation_url = url_from_string(Some(&source))
-        .chain_err(|| "Could not create a url from source url")?;
-    implementation_url = implementation_url.join(&function.get_implementation())
-        .map_err(|_| "Could not convert Url")?;
 
-    let implementation_path = implementation_url.to_file_path().map_err(|_| "Could not convert source url to file path")?;
-    if implementation_path.extension().ok_or("No file extension on source file")?.
-        to_str().ok_or("Could not convert file extension to String")? != "rs" {
-        bail!("Source file at '{}' does not have a '.rs' extension", implementation_path.display());
-    }
-
-    if !implementation_path.exists() {
-        bail!("Source file at '{}' does not exist", implementation_path.display());
-    }
-
-    // check that a Cargo.toml file exists for compilation
-    let mut flow_manifest_path = implementation_path.clone();
-    flow_manifest_path.set_file_name("flow.toml");
-    if !flow_manifest_path.exists() {
-        bail!("No flow.toml file could be found at '{}'", flow_manifest_path.display());
-    }
-
-    let mut wasm_destination = implementation_path.clone();
-    wasm_destination.set_extension("wasm");
+    let (implementation_path, wasm_destination) = get_paths(function)?;
 
     // wasm file is out of date if it doesn't exist of timestamp is older than source
     let missing = !wasm_destination.exists();
-    let out_of_date = missing || out_of_date(&implementation_path, &wasm_destination)?;
+    let out_of_date = out_of_date(&implementation_path, &wasm_destination)?;
 
     if missing || out_of_date {
         if skip_building {
@@ -62,6 +39,13 @@ pub fn compile_implementation(function: &mut Function, skip_building: bool) -> R
             let build_dir = TempDir::new("flow")
                 .chain_err(|| "Error creating new TempDir for compiling in")?
                 .into_path();
+
+            // check that a Cargo.toml file exists for compilation
+            let mut flow_manifest_path = implementation_path.clone();
+            flow_manifest_path.set_file_name("flow.toml");
+            if !flow_manifest_path.exists() {
+                bail!("No flow.toml file could be found at '{}'", flow_manifest_path.display());
+            }
 
             let mut cargo_manifest_path = flow_manifest_path.clone();
             cargo_manifest_path.set_file_name("Cargo.toml");
@@ -134,6 +118,30 @@ fn run_cargo_build(manifest_path: &PathBuf, target_dir: &PathBuf) -> Result<Stri
     }
 }
 
+// TODO add a test for this
+fn get_paths(function: &Function) -> Result<(PathBuf, PathBuf)> {
+    let source = function.get_source_url();
+    let mut implementation_url = url_from_string(Some(&source))
+        .chain_err(|| "Could not create a url from source url")?;
+    implementation_url = implementation_url.join(&function.get_implementation())
+        .map_err(|_| "Could not convert Url")?;
+
+    let implementation_path = implementation_url.to_file_path().map_err(|_| "Could not convert source url to file path")?;
+    if implementation_path.extension().ok_or("No file extension on source file")?.
+        to_str().ok_or("Could not convert file extension to String")? != "rs" {
+        bail!("Source file at '{}' does not have a '.rs' extension", implementation_path.display());
+    }
+
+    if !implementation_path.exists() {
+        bail!("Source file at '{}' does not exist", implementation_path.display());
+    }
+
+    let mut wasm_destination = implementation_path.clone();
+    wasm_destination.set_extension("wasm");
+
+    Ok((implementation_path, wasm_destination))
+}
+
 /*
     Determine if one file that is derived from another source is out of date (source is newer
     that derived)
@@ -154,10 +162,6 @@ fn out_of_date(source: &PathBuf, derived: &PathBuf) -> Result<bool> {
 #[cfg(test)]
 mod test {
     use std::fs::write;
-    use std::thread::sleep;
-    use std::time::Duration;
-
-    use tempdir;
 
     use super::out_of_date;
 
@@ -170,13 +174,29 @@ mod test {
         let derived = older.clone();
         write(older, "older").unwrap();
 
-        sleep(Duration::from_secs(1));
-
         // make second/newer file
         let newer = output_dir.join("newer");
         let source = newer.clone();
         write(newer, "newer").unwrap();
 
         assert!(out_of_date(&source, &derived).unwrap());
+    }
+
+
+    #[test]
+    fn not_out_of_date_test() {
+        let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
+
+        // make older file
+        let older = output_dir.join("older");
+        let source = older.clone();
+        write(older, "older").unwrap();
+
+        // make second/newer file
+        let newer = output_dir.join("newer");
+        let derived = newer.clone();
+        write(newer, "newer").unwrap();
+
+        assert_eq!(out_of_date(&source, &derived).unwrap(), false);
     }
 }
