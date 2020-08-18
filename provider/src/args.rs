@@ -44,7 +44,8 @@ pub fn cwd_as_url() -> Result<Url> {
 
 #[cfg(test)]
 mod test {
-    use std::path::Path;
+    use std::path::PathBuf;
+    use std::str::FromStr;
 
     use url::Url;
 
@@ -96,8 +97,8 @@ mod test {
 
     #[test]
     fn relative_path_in_arg_converted_to_absolute_path_and_scheme_added() {
-        let root = Path::from(env!("FLOW_ROOT"));
-        let root_url = Url::from_directory_path(root).unwrap();
+        let root = PathBuf::from_str(env!("FLOW_ROOT")).unwrap();
+        let root_url = Url::from_directory_path(&root).unwrap();
 
         // the path of this file relative to project root
         let relative_path_to_file = "provider/src/args.rs";
