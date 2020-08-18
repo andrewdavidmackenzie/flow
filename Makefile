@@ -7,8 +7,8 @@ ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo "------> T
 FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 > /dev/null)
-TEST_PREFIXES := flow_impl flowc flowr flowrlib flowruntime flowstdlib
 FLOW_ROOT := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+export SHELL := /bin/bash
 
 all:
 	$(STIME)
@@ -146,7 +146,7 @@ clippy:
 #################### Tests ####################
 test:
 	$(STIME)
-	@cargo test --all-features
+	@cargo test --all-features 2>&1 | tee .test.log
 	$(ETIME)
 
 ################### Coverage ####################
@@ -161,17 +161,10 @@ upload_coverage:
 
 measure:
 	$(STIME)
-	@echo "Measuring coverage using 'kcov' for test prefixes $$TEST_PREFIXES in 'target/debug/deps'"
-	@echo "Skipping flow_impl_derive, flowide"
+	@echo "Measuring coverage using 'kcov' for tests in 'target/debug/deps'"
+	@cat .test.log | grep "Running" |cut -f7 -d ' ' > .test_list
 ifeq ($(UNAME), Linux)
-	@cd flowc       && for file in `find ../target/debug/deps -name "flowc-*"       -executable`; do mkdir -p "../target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" $$file; done; true
-	@cd flowclib    && for file in `find ../target/debug/deps -name "flowclib-*"    -executable`; do mkdir -p "../target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" $$file; done; true
-	@cd flowstdlib  && for file in `find ../target/debug/deps -name "flowstdlib-*"  -executable`; do mkdir -p "../target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" $$file; done; true
-	@cd flow_impl   && for file in `find ../target/debug/deps -name "flow_impl-*"   -executable`; do mkdir -p "../target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" $$file; done; true
-	@cd flowr       && for file in `find ../target/debug/deps -name "flowr-*"       -executable`; do mkdir -p "../target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" $$file; done; true
-	@cd flowrlib    && for file in `find ../target/debug/deps -name "flowrlib-*"    -executable`; do mkdir -p "../target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" $$file; done; true
-	@cd flowruntime && for file in `find ../target/debug/deps -name "flowruntime-*" -executable`; do mkdir -p "../target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" $$file; done; true
-	@cd provider    && for file in `find ../target/debug/deps -name "provider-*"    -executable`; do mkdir -p "../target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" $$file; done; true
+	@for file in `cat .test_list`; do mkdir -p "../target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" $$file; done
 else
 	@echo "Coverage measurement is only available on Linux"
 	@false
