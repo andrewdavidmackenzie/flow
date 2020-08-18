@@ -55,7 +55,7 @@ fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: PathBuf, test_name:
     Ok(filename)
 }
 
-fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>, input: String) -> String {
+fn execute_flow(filepath: PathBuf, test_args: Vec<String>, input: String) -> String {
     let mut command = Command::new("cargo");
     let mut command_args = vec!("run", "-p", "flowr", "--", filepath.to_str().unwrap(),
                                 "-n");
@@ -65,7 +65,6 @@ fn execute_flow(run_dir: PathBuf, filepath: PathBuf, test_args: Vec<String>, inp
 
     println!("Command line: {:?}, {:?}", command, command_args);
 
-    command.current_dir(run_dir);
     let mut child = command.args(command_args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -127,10 +126,8 @@ fn get(test_dir: &PathBuf, file_name: &str) -> String {
 }
 
 fn execute_test(test_name: &str) {
-    let mut test_dir = env::current_dir().unwrap();
-    let mut run_dir = test_dir.clone();
-    run_dir.pop();
-    test_dir.push(&format!("tests/samples/{}", test_name));
+    let mut test_dir = PathBuf::from(env!("FLOW_ROOT"));
+    test_dir.push(&format!("flowc/tests/samples/{}", test_name));
     println!("test_dir = '{:?}'", test_dir);
 
     if let FlowProcess(ref flow) = load_flow(&test_dir, test_name) {
@@ -141,7 +138,7 @@ fn execute_test(test_name: &str) {
 
         let test_args = test_args(&test_dir, test_name);
         let input = get(&test_dir, &format!("{}.stdin", test_name));
-        let actual_output = execute_flow(run_dir, manifest_path, test_args, input);
+        let actual_output = execute_flow(manifest_path, test_args, input);
         let expected_output = get(&test_dir, &format!("{}.expected", test_name));
         println!("actual_output = '{}'", actual_output);
         println!("expected_output = '{}'", expected_output);
