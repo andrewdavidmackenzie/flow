@@ -173,6 +173,7 @@ fn out_of_date(source: &PathBuf, derived: &PathBuf) -> Result<(bool, bool)> {
 mod test {
     use std::env;
     use std::fs::{remove_file, write};
+    use std::time::Duration;
 
     use flowclib::model::function::Function;
     use flowclib::model::io::IO;
@@ -190,6 +191,8 @@ mod test {
         let older = output_dir.join("older");
         let derived = older.clone();
         write(older, "older").unwrap();
+
+        std::thread::sleep(Duration::from_secs(1));
 
         // make second/newer file
         let newer = output_dir.join("newer");
