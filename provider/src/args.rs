@@ -96,7 +96,7 @@ mod test {
         // Get the path of this file relative to project root (where Cargo.toml is)
         let relative_path_to_file = "src/args.rs";
         println!("relative_path_to_file = {}, CWD = {}", relative_path_to_file, std::env::current_dir().unwrap().display());
-        let root = path::PathBuf::from(format!("{}/{}", env!("FLOW_LIB_PATH"), "provider"));
+        let root = path::PathBuf::from(format!("{}{}", env!("FLOW_ROOT"), "provider"));
 
         let url = url_from_string(Some(&relative_path_to_file)).unwrap();
 
