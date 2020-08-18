@@ -7,7 +7,7 @@ ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo "------> T
 FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 > /dev/null)
-FLOW_ROOT := $(dir $(realpath $(firstword $(MAKEFILE_LIST)))) #Note: This will have a '/' at the end
+export FLOW_ROOT := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 export SHELL := /bin/bash
 
 all:
