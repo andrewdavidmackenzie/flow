@@ -59,7 +59,7 @@ impl OutputConnection {
                flow_id: usize,
                array_order: i32,
                generic: bool,
-               route: Option<String>, ) -> Self {
+               route: Option<String>) -> Self {
         OutputConnection {
             subpath,
             function_id,
@@ -93,5 +93,53 @@ impl fmt::Display for OutputConnection {
         }
 
         write!(f, "")
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn default_array_order_test() {
+        assert_eq!(super::default_array_order(), 0)
+    }
+
+    #[test]
+    fn is_default_array_order_test() {
+        assert!(super::is_default_array_order(&0));
+    }
+
+    #[test]
+    fn is_not_default_array_order_test() {
+        assert!(!super::is_default_array_order(&1));
+    }
+
+    #[test]
+    fn default_generic_test() {
+        assert!(!super::default_generic());
+    }
+
+    #[test]
+    fn default_not_generic_test() {
+        assert!(super::is_not_generic(&false));
+    }
+
+    #[test]
+    fn default_destination_route_test() {
+        assert_eq!(super::default_destination_route(), None)
+    }
+
+    #[test]
+    fn display_test() {
+        let connection = super::OutputConnection::new("/".into(),
+                             1, 1, 1, 0, false, None);
+        println!("Connection: {}", connection);
+    }
+
+    #[test]
+    fn display_with_route_test() {
+        let connection = super::OutputConnection::new("/".into(),
+                                                      1, 1, 1, 0, false,
+                                                      Some("/flow1/input".into()));
+        println!("Connection: {}", connection);
     }
 }
