@@ -8,3 +8,5 @@ cov
 bin
 **/*.wasm
 **/*.rs.bk
+.test.log
+.test_list

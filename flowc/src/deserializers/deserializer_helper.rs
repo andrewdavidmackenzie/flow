@@ -41,8 +41,19 @@ pub fn get_file_extension(url: &str) -> Option<String> {
 
 #[cfg(test)]
 mod test {
+    use super::get_accepted_extensions;
     use super::get_deserializer;
     use super::get_file_extension;
+
+    #[test]
+    fn get_accepted_extension_test() {
+        let accepted = get_accepted_extensions();
+
+        assert!(accepted.contains(&"toml"));
+        assert!(accepted.contains(&"json"));
+        assert!(accepted.contains(&"yaml"));
+        assert!(accepted.contains(&"yml"));
+    }
 
     #[test]
     fn no_extension() {

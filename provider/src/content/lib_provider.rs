@@ -128,15 +128,12 @@ mod test {
     #[test]
     fn resolve_path() {
         let provider: &dyn Provider = &LibProvider;
-        let mut root = env::current_dir().unwrap();
-        println!("Root = {}", root.display());
-        root.pop();
-        let root_str: String = root.as_os_str().to_str().unwrap().to_string();
-        env::set_var("FLOW_LIB_PATH", &root_str);
+        let root_str = env!("FLOW_ROOT");
+        env::set_var("FLOW_LIB_PATH", root_str);
         let lib_url = "lib://flowstdlib/control/tap";
         match provider.resolve_url(&lib_url, "", &["toml"]) {
             Ok((url, lib_ref)) => {
-                assert_eq!(url, format!("file://{}/flowstdlib/control/tap/tap.toml", root_str));
+                assert_eq!(url, format!("file://{}flowstdlib/control/tap/tap.toml", root_str));
                 assert_eq!(lib_ref, Some("flowstdlib/control/tap".to_string()));
             }
             Err(e) => panic!(e.to_string())

@@ -12,25 +12,23 @@ use crate::errors::*;
 /// to the working directory.
 ///
 /// Depending on the parameter passed in:
-/// - no parameter passed     --> Return the Current Working Directory (CWD)
-/// - absolute path passed in --> Return the absolute path passed in
-/// - relative path passed in --> Join the CWD with the relative path and return the resulting
-///                               absolute path.
+/// - None                --> Return the Current Working Directory (CWD)
+/// - Some(absolute path) --> Return the absolute path passed in
+/// - Some(relative path) --> Join the CWD with the relative path and return the resulting
+///                           absolute path.
 ///
 /// Returns a full URL with appropriate scheme (depending on the original scheme passed in),
 /// and an absolute path.
 ///
-pub fn url_from_string(string: Option<&str>) -> Result<Url> {
-    let parent = cwd_as_url()?;
-
+pub fn url_from_string(base_url: &Url, string: Option<&str>) -> Result<Url> {
     match string {
         None => {
-            info!("No url specified, so using: '{}'", parent);
-            Ok(parent)
+            info!("No url specified, so using: '{}'", base_url);
+            Ok(base_url.clone())
         }
         Some(url_string) => {
-            parent.join(url_string)
-                .chain_err(|| format!("Problem joining url '{}' with '{}'", parent, url_string))
+            base_url.join(url_string)
+                .chain_err(|| format!("Problem joining url '{}' with '{}'", base_url, url_string))
         }
     }
 }
@@ -46,25 +44,29 @@ pub fn cwd_as_url() -> Result<Url> {
 
 #[cfg(test)]
 mod test {
-    use std::path;
+    use std::path::PathBuf;
+    use std::str::FromStr;
+
+    use url::Url;
 
     use super::cwd_as_url;
     use super::url_from_string;
 
     #[test]
     fn no_arg_returns_parent() {
-        let url = url_from_string(None).unwrap();
-
         let cwd = cwd_as_url().unwrap();
+        let url = url_from_string(&cwd, None).unwrap();
+
         assert_eq!(url, cwd);
     }
 
     #[test]
     fn file_scheme_in_arg_absolute_path_preserved() {
+        let cwd = cwd_as_url().unwrap();
         let path = "/some/file";
         let arg = format!("file:{}", path);
 
-        let url = url_from_string(Some(&arg)).unwrap();
+        let url = url_from_string(&cwd, Some(&arg)).unwrap();
 
         assert_eq!(url.scheme(), "file");
         assert_eq!(url.path(), path);
@@ -72,10 +74,11 @@ mod test {
 
     #[test]
     fn http_scheme_in_arg_absolute_path_preserved() {
+        let cwd = cwd_as_url().unwrap();
         let path = "/some/file";
         let arg = format!("http://test.com{}", path);
 
-        let url = url_from_string(Some(&arg)).unwrap();
+        let url = url_from_string(&cwd, Some(&arg)).unwrap();
 
         assert_eq!(url.scheme(), "http");
         assert_eq!(url.path(), path);
@@ -83,9 +86,10 @@ mod test {
 
     #[test]
     fn no_scheme_in_arg_assumes_file() {
+        let cwd = cwd_as_url().unwrap();
         let arg = "/some/file";
 
-        let url = url_from_string(Some(arg)).unwrap();
+        let url = url_from_string(&cwd, Some(arg)).unwrap();
 
         assert_eq!(url.scheme(), "file");
         assert_eq!(url.path(), arg);
@@ -93,14 +97,15 @@ mod test {
 
     #[test]
     fn relative_path_in_arg_converted_to_absolute_path_and_scheme_added() {
-        // Get the path of this file relative to project root (where Cargo.toml is)
-        let relative_path_to_file = "src/args.rs";
-        println!("relative_path_to_file = {}, CWD = {}", relative_path_to_file, std::env::current_dir().unwrap().display());
-        let root = path::PathBuf::from(format!("{}/{}", env!("FLOW_LIB_PATH"), "provider"));
+        let root = PathBuf::from_str(env!("FLOW_ROOT")).unwrap();
+        let root_url = Url::from_directory_path(&root).unwrap();
 
-        let url = url_from_string(Some(&relative_path_to_file)).unwrap();
+        // the path of this file relative to project root
+        let relative_path_to_file = "provider/src/args.rs";
 
-        let abs_path = format!("{}/{}", &root.display(), relative_path_to_file);
+        let url = url_from_string(&root_url, Some(&relative_path_to_file)).unwrap();
+
+        let abs_path = format!("{}{}", root.display(), relative_path_to_file);
         println!("abs_path = {}", abs_path);
         assert_eq!(url.scheme(), "file");
         assert_eq!(url.path(), abs_path);
