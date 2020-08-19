@@ -125,7 +125,7 @@ fn run_cargo_build(manifest_path: &PathBuf, target_dir: &PathBuf) -> Result<Stri
 fn get_paths(function: &Function) -> Result<(PathBuf, PathBuf)> {
     let cwd = env::current_dir().chain_err(|| "Could not get current working directory value")?;
     let cwd_url = Url::from_directory_path(cwd)
-        .map_err(|_|"Could not form a Url for the current working directory")?;
+        .map_err(|_| "Could not form a Url for the current working directory")?;
 
     let function_source_url = url_from_string(&cwd_url, Some(&function.get_source_url()))
         .chain_err(|| "Could not create a url from source url")?;
@@ -177,7 +177,6 @@ fn out_of_date(source: &PathBuf, derived: &PathBuf) -> Result<(bool, bool)> {
 
 #[cfg(test)]
 mod test {
-    use std::env;
     use std::fs::{remove_file, write};
     use std::time::Duration;
 
@@ -243,7 +242,17 @@ mod test {
         assert!(out_of_date(&source, &derived).unwrap().1);
     }
 
+    fn check_flow_root() {
+        if std::env::var("FLOW_ROOT").is_err() {
+            println!("FLOW_ROOT environment variable must be set for testing. Set it to the root\
+            directory of the project and ensure it has a trailing '/'");
+            std::process::exit(1);
+        }
+    }
+
     fn test_function() -> Function {
+        check_flow_root();
+
         Function::new(
             "Stdout".into(),
             false,
@@ -253,7 +262,7 @@ mod test {
             Some(vec!(
                 IO::new("String", &Route::default())
             )),
-            &format!("{}/{}", env!("FLOW_ROOT"), "flowruntime/stdio/stdout"),
+            &format!("{}/{}", std::env::var("FLOW_ROOT").unwrap(), "flowruntime/stdio/stdout"),
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
             vec!(OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None)),
@@ -266,7 +275,7 @@ mod test {
 
         let (impl_source_path, impl_wasm_path) = get_paths(&function).unwrap();
 
-        assert_eq!(format!("{}/{}", env!("FLOW_ROOT"), "flowruntime/stdio/stdout.rs"), impl_source_path.to_str().unwrap());
-        assert_eq!(format!("{}/{}", env!("FLOW_ROOT"), "flowruntime/stdio/stdout.wasm"), impl_wasm_path.to_str().unwrap());
+        assert_eq!(format!("{}/{}", std::env::var("FLOW_ROOT").unwrap(), "flowruntime/stdio/stdout.rs"), impl_source_path.to_str().unwrap());
+        assert_eq!(format!("{}/{}", std::env::var("FLOW_ROOT").unwrap(), "flowruntime/stdio/stdout.wasm"), impl_wasm_path.to_str().unwrap());
     }
 }

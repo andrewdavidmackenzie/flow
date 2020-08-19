@@ -99,9 +99,19 @@ mod test {
 
     use super::FileProvider;
 
+    fn check_flow_root() {
+        if std::env::var("FLOW_ROOT").is_err() {
+            println!("FLOW_ROOT environment variable must be set for testing. Set it to the root\
+            directory of the project and ensure it has a trailing '/'");
+            std::process::exit(1);
+        }
+    }
+
     #[test]
     fn get_default_sample() {
-        let path = PathBuf::from(format!("{}{}", env!("FLOW_ROOT"), "samples/hello-world")).canonicalize().unwrap();
+        check_flow_root();
+
+        let path = PathBuf::from(format!("{}{}", std::env::var("FLOW_ROOT").unwrap(), "samples/hello-world")).canonicalize().unwrap();
         match FileProvider::find_file(&path, "context", &["toml"]) {
             Ok(path_string) => {
                 let path = Path::new(&path_string);

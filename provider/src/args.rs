@@ -95,9 +95,19 @@ mod test {
         assert_eq!(url.path(), arg);
     }
 
+    fn check_flow_root() {
+        if std::env::var("FLOW_ROOT").is_err() {
+            println!("FLOW_ROOT environment variable must be set for testing. Set it to the root\
+            directory of the project and ensure it has a trailing '/'");
+            std::process::exit(1);
+        }
+    }
+
     #[test]
     fn relative_path_in_arg_converted_to_absolute_path_and_scheme_added() {
-        let root = PathBuf::from_str(env!("FLOW_ROOT")).unwrap();
+        check_flow_root();
+
+        let root = PathBuf::from_str(&std::env::var("FLOW_ROOT").unwrap()).unwrap();
         let root_url = Url::from_directory_path(&root).unwrap();
 
         // the path of this file relative to project root

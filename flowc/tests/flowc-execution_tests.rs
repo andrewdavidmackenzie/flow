@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate error_chain;
 
-use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::io::prelude::*;
@@ -125,8 +124,18 @@ fn get(test_dir: &PathBuf, file_name: &str) -> String {
     String::from_utf8(buffer).unwrap()
 }
 
+fn check_flow_root() {
+    if std::env::var("FLOW_ROOT").is_err() {
+        println!("FLOW_ROOT environment variable must be set for testing. Set it to the root\
+            directory of the project and ensure it has a trailing '/'");
+        std::process::exit(1);
+    }
+}
+
 fn execute_test(test_name: &str) {
-    let mut test_dir = PathBuf::from(env!("FLOW_ROOT"));
+    check_flow_root();
+
+    let mut test_dir = PathBuf::from(std::env::var("FLOW_ROOT").unwrap());
     test_dir.push(&format!("flowc/tests/samples/{}", test_name));
     println!("test_dir = '{:?}'", test_dir);
 

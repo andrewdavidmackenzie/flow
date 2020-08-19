@@ -125,10 +125,20 @@ mod test {
 
     use super::LibProvider;
 
+    fn check_flow_root() {
+        if std::env::var("FLOW_ROOT").is_err() {
+            println!("FLOW_ROOT environment variable must be set for testing. Set it to the root\
+            directory of the project and ensure it has a trailing '/'");
+            std::process::exit(1);
+        }
+    }
+
     #[test]
     fn resolve_path() {
+        check_flow_root();
+
         let provider: &dyn Provider = &LibProvider;
-        let root_str = env!("FLOW_ROOT");
+        let root_str = &std::env::var("FLOW_ROOT").unwrap();
         env::set_var("FLOW_LIB_PATH", root_str);
         let lib_url = "lib://flowstdlib/control/tap";
         match provider.resolve_url(&lib_url, "", &["toml"]) {
