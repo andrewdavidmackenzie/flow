@@ -424,7 +424,7 @@ impl RunState {
         too many jobs already running
     */
     pub fn next_job(&mut self) -> Option<Job> {
-        if self.ready.is_empty() || self.number_jobs_running() >= self.max_pending_jobs {
+        if self.number_jobs_running() >= self.max_pending_jobs {
             return None;
         }
 
@@ -2016,6 +2016,20 @@ mod test {
             function.send(0, &json!([1, 2]));
             assert_eq!(function.take_input_set().remove(0), json!([1, 2]),
                        "Value from input set wasn't what was expected");
+        }
+    }
+
+    mod block {
+        #[test]
+        fn display_block_test() {
+            let block = super::super::Block::new(1, 2, 0, 1, 0);
+            println!("Block: {}", block);
+        }
+
+        #[test]
+        fn debug_block_test() {
+            let block = super::super::Block::new(1, 2, 0, 1, 0);
+            println!("Block: {:?}", block);
         }
     }
 }
