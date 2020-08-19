@@ -101,7 +101,7 @@ mod test {
 
     #[test]
     fn get_default_sample() {
-        let path = PathBuf::from("../samples/hello-world").canonicalize().unwrap();
+        let path = PathBuf::from(format!("{}{}", env!("FLOW_ROOT"), "samples/hello-world")).canonicalize().unwrap();
         match FileProvider::find_file(&path, "context", &["toml"]) {
             Ok(path_string) => {
                 let path = Path::new(&path_string);
