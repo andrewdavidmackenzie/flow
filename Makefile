@@ -163,12 +163,7 @@ measure:
 	$(STIME)
 	@echo "Measuring coverage using 'kcov' for tests in 'target/debug/deps'"
 	@cat .test.log | grep "Running" |cut -f7 -d ' ' > .test_list
-ifeq ($(UNAME), Linux)
 	@for file in `cat .test_list`; do mkdir -p "../target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" $$file; done
-else
-	@echo "Coverage measurement is only available on Linux"
-	@false
-endif
 	$(ETIME)
 
 build-kcov:
@@ -202,7 +197,7 @@ ifeq ($(UNAME), Darwin)
 	@cd target/kcov-master && mkdir build && cd build && cmake .. && make
 	@sudo mv target/kcov-master/build/src/kcov /usr/local/bin/kcov
 endif
-	@echo "'kcov' install to `which kcov`"
+	@echo "'kcov' installed to `which kcov`, removign build artifacts"
 	@rm -rf kcov-master
 	@rm -f master.tar.gz*
 else
