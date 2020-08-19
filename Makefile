@@ -146,7 +146,7 @@ clippy:
 #################### Tests ####################
 test:
 	$(STIME)
-	@cargo test --all-features 2>&1 | tee .test.log
+	@cargo test --all-features --workspace --exclude flow_impl_derive --exclude flowide 2>&1 | tee .test.log
 	$(ETIME)
 
 ################### Coverage ####################
