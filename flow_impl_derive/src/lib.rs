@@ -61,3 +61,11 @@ fn impl_flow_impl(ast: &syn::DeriveInput) -> TokenStream {
     };
     gen.into()
 }
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn hello() {
+        println!("I wish there was a way to test this stuff");
+    }
+}
