@@ -580,13 +580,10 @@ impl RunState {
             match Self::array_order(value) - destination.array_order {
                 0 => function.send(destination.io_number, value),
                 1 => function.send_iter(destination.io_number, value),
-                2 => {
-                    for array in value.as_array().unwrap().iter() {
+                2 => for array in value.as_array().unwrap().iter() {
                         function.send_iter(destination.io_number, array)
-                    }
-                }
+                     },
                 -1 => function.send(destination.io_number, &json!([value])),
-                // -2 => function.send(destination.io_number, &json!(vec!(valu))),
                 _ => error!("Unable to handle difference in array order")
             }
         }
