@@ -512,8 +512,7 @@ impl RunState {
                         metrics: &mut Metrics,
                         job: Job,
                         #[cfg(feature = "debugger")]
-                        debugger: &mut Debugger,
-    ) {
+                        debugger: &mut Debugger) {
         trace!("Job #{}:\tCompleted by Function #{}", job.job_id, job.function_id);
         self.running.retain(|&_, &job_id| job_id != job.job_id);
         #[cfg(feature = "checks")]
@@ -1422,6 +1421,46 @@ mod test {
 
 // Event
             let output = super::test_output(1, 0);
+            state.complete_job(
+                #[cfg(feature = "metrics")]
+                    &mut metrics,
+                output,
+                #[cfg(feature = "debugger")]
+                    &mut debugger,
+            );
+
+// Test
+            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+        }
+
+        #[test]
+        fn output_not_found() {
+            let f_a = super::test_function_a_to_b();
+            let f_b = super::test_function_b_init();
+            let functions = vec!(f_a, f_b);
+            let mut state = RunState::new(functions, 1);
+            #[cfg(feature = "metrics")]
+                let mut metrics = Metrics::new(2);
+            #[cfg(feature = "debugger")]
+                let mut debugger = Debugger::new(test_debug_client());
+
+            // Initial state
+            state.init();
+            assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+            assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state, by f_b");
+
+            let job = state.next_job().unwrap();
+            assert_eq!(1, job.function_id, "next() should return function_id=1 (f_b) for running");
+            state.start(&job);
+            assert_eq!(State::Running, state.get_state(1), "f_b should be Running");
+
+// Event
+            let mut output = super::test_output(1, 0);
+
+            // Modify test putput to use a route that doesn't exist
+            let no_such_out_conn = OutputConnection::new("/fake".to_string(), 0, 0, 0, 0, false, None);
+            output.destinations = vec!(no_such_out_conn);
+
             state.complete_job(
                 #[cfg(feature = "metrics")]
                     &mut metrics,
