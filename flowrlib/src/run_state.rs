@@ -546,7 +546,7 @@ impl RunState {
 
                 self.remove_from_busy(job.function_id);
 
-                // if it wants to run again, it can p then add back to the Ready list
+                // if it wants to run again, it can then add back to the Ready list
                 if function_can_run_again {
                     self.refill_inputs(job.function_id, job.flow_id);
                 }
@@ -2069,6 +2069,30 @@ mod test {
         fn debug_block_test() {
             let block = super::super::Block::new(1, 2, 0, 1, 0);
             println!("Block: {:?}", block);
+        }
+    }
+
+    mod misc {
+        use serde_json::json;
+
+        use super::super::RunState;
+
+        #[test]
+        fn test_array_order_0() {
+            let value = json!(1);
+            assert_eq!(RunState::array_order(&value), 0);
+        }
+
+        #[test]
+        fn test_array_order_1() {
+            let value = json!([1, 2, 3]);
+            assert_eq!(RunState::array_order(&value), 1);
+        }
+
+        #[test]
+        fn test_array_order_2() {
+            let value = json!([[1, 2, 3], [2, 3, 4]]);
+            assert_eq!(RunState::array_order(&value), 2);
         }
     }
 }
