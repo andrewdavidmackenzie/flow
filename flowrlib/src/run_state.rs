@@ -2091,5 +2091,14 @@ mod test {
             let value = json!([[1, 2, 3], [2, 3, 4]]);
             assert_eq!(RunState::array_order(&value), 2);
         }
+
+        // Test type conversion and sending
+        //                         |Destination
+        //                         |Generic     Non-Array       Array       Array of Arrays
+        // Value       Value order |    N/A         0               1       2
+        //  Non-Array       (0)    |   send     (0) send        (-1) wrap   (-2) Not supported (error)
+        //  Array           (1)    |   send     (1) iter        (0) send    (-1) wrap in array
+        //  Array of Arrays (2)    |   send     (2) iter/iter   (1) iter    (0) send
+//        fn type_convert_and_send(function: &mut Function, destination: &OutputConnection, value: &Value) {
     }
 }
