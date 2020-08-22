@@ -149,6 +149,8 @@ test:
 	@cargo test --all-features --workspace --exclude flow_impl_derive --exclude flowide 2>&1 | tee .test.log
 	$(ETIME)
 
+.test.log: test
+
 ################### Coverage ####################
 .PHONY: coverage
 coverage: build-kcov measure upload_coverage
@@ -159,11 +161,13 @@ upload_coverage:
 	@curl -s https://codecov.io/bash | bash
 	$(ETIME)
 
-measure:
-	$(STIME)
-	@echo "Measuring coverage using 'kcov' for tests in 'target/debug/deps'"
+.test_list: .test.log
 	@cat .test.log | grep "Running" |cut -f7 -d ' ' > .test_list
-	@for file in `cat .test_list`; do mkdir -p "../target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$CWD "../target/cov/$(basename $$file)" $$file; done
+
+measure: .test_list
+	$(STIME)
+	@echo "Measuring coverage using 'kcov'"
+	@for file in `cat .test_list`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-path=$$CWD "target/cov/$(basename $$file)" $$file; done
 	$(ETIME)
 
 build-kcov:
