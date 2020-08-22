@@ -296,6 +296,23 @@ mod test {
                    "Value from input set wasn't what was expected");
     }
 
+    #[test]
+    fn test_array_to_non_array_depth_1() {
+        let mut function = Function::new(
+            #[cfg(feature = "debugger")]
+                "test".to_string(),
+            #[cfg(feature = "debugger")]
+                "/test".to_string(),
+            "/test".to_string(),
+            vec!(Input::new(None, &None)),
+            0, 0,
+            &[], false);
+        function.init_inputs(true);
+        function.send(0, &json!([1, 2]));
+        assert_eq!(function.take_input_set().remove(0), json!([1, 2]),
+                   "Value from input set wasn't what was expected");
+    }
+
     /*************** Below are tests for inputs with depth > 1 ***********************/
 
     fn test_function() -> Function {

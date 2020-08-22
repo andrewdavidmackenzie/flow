@@ -584,6 +584,7 @@ impl RunState {
                         function.send_iter(destination.io_number, array)
                      },
                 -1 => function.send(destination.io_number, &json!([value])),
+                -2 => function.send(destination.io_number, &json!([[value]])),
                 _ => error!("Unable to handle difference in array order")
             }
         }
@@ -2036,23 +2037,6 @@ mod test {
             );
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
         }
-
-        #[test]
-        fn can_send_array_to_simple_object_depth_1() {
-            let mut function = Function::new(
-                #[cfg(feature = "debugger")]
-                    "test".to_string(),
-                #[cfg(feature = "debugger")]
-                    "/test".to_string(),
-                "/test".to_string(),
-                vec!(Input::new(None, &None)),
-                0, 0,
-                &[], false);
-            function.init_inputs(true);
-            function.send(0, &json!([1, 2]));
-            assert_eq!(function.take_input_set().remove(0), json!([1, 2]),
-                       "Value from input set wasn't what was expected");
-        }
     }
 
     mod block {
@@ -2070,14 +2054,22 @@ mod test {
     }
 
     mod misc {
-        use serde_json::json;
-
+        use serde_json::{json, Value};
+        use crate::function::Function;
+        use crate::input::Input;
+        use crate::output_connection::OutputConnection;
         use super::super::RunState;
 
         #[test]
         fn test_array_order_0() {
             let value = json!(1);
             assert_eq!(RunState::array_order(&value), 0);
+        }
+
+        #[test]
+        fn test_array_order_1_empty_array() {
+            let value = json!([]);
+            assert_eq!(RunState::array_order(&value), 1);
         }
 
         #[test]
@@ -2092,13 +2084,72 @@ mod test {
             assert_eq!(RunState::array_order(&value), 2);
         }
 
+        fn test_function() -> Function {
+            Function::new(
+                #[cfg(feature = "debugger")]
+                    "test".to_string(),
+                #[cfg(feature = "debugger")]
+                    "/test".to_string(),
+                "/test".to_string(),
+                vec!(Input::new(None, &None)),
+                0, 0,
+                &[], false)
+        }
+
         // Test type conversion and sending
-        //                         |Destination
+        //                         |                   Destination
         //                         |Generic     Non-Array       Array       Array of Arrays
-        // Value       Value order |    N/A         0               1       2
-        //  Non-Array       (0)    |   send     (0) send        (-1) wrap   (-2) Not supported (error)
+        // Value       Value order |    N/A         0               1       2      <---- Array Order
+        //  Non-Array       (0)    |   send     (0) send        (-1) wrap   (-2) wrap in array of arrays
         //  Array           (1)    |   send     (1) iter        (0) send    (-1) wrap in array
         //  Array of Arrays (2)    |   send     (2) iter/iter   (1) iter    (0) send
-//        fn type_convert_and_send(function: &mut Function, destination: &OutputConnection, value: &Value) {
+        #[test]
+        fn test_sending() {
+            #[derive(Debug)]
+            struct TestCase {
+                value: Value,
+                dest_generic: bool,
+                dest_array_order: i32,
+                value_expected: Value
+            }
+
+            let test_cases = vec!(
+                // Column 0 test cases
+                TestCase { value: json!(1),                dest_generic: true, dest_array_order: 0, value_expected: json!(1) },
+                TestCase { value: json!([1]),              dest_generic: true, dest_array_order: 0, value_expected: json!([1]) },
+                TestCase { value: json!([[1, 2], [3, 4]]), dest_generic: true, dest_array_order: 0, value_expected: json!([[1, 2], [3, 4]]) },
+
+                // Column 1 Test Cases
+                TestCase { value: json!(1),                dest_generic: false, dest_array_order: 0, value_expected: json!(1) },
+                TestCase { value: json!([1, 2]),           dest_generic: false, dest_array_order: 0, value_expected: json!(1) },
+                TestCase { value: json!([[1, 2], [3, 4]]), dest_generic: false, dest_array_order: 0, value_expected: json!(1) },
+
+                // Column 2 Test Cases
+                TestCase { value: json!(1),                dest_generic: false, dest_array_order: 1, value_expected: json!([1]) },
+                TestCase { value: json!([1, 2]),           dest_generic: false, dest_array_order: 1, value_expected: json!([1, 2]) },
+                TestCase { value: json!([[1, 2], [3, 4]]), dest_generic: false, dest_array_order: 1, value_expected: json!([1, 2]) },
+
+                // Column 3 Test Cases
+                TestCase { value: json!(1),                dest_generic: false, dest_array_order: 2, value_expected: json!([[1]]) },
+                TestCase { value: json!([1, 2]),           dest_generic: false, dest_array_order: 2, value_expected: json!([[1, 2]]) },
+                TestCase { value: json!([[1, 2], [3, 4]]), dest_generic: false, dest_array_order: 2, value_expected: json!([[1, 2], [3, 4]]) },
+            );
+
+            for test_case in test_cases {
+                // Setup
+                let mut function = test_function();
+                let destination = OutputConnection::new("".into(),
+                                                        0, 0, 0,
+                                                        test_case.dest_array_order,
+                                                        test_case.dest_generic, None);
+
+                // Test
+                RunState::type_convert_and_send(&mut function, &destination, &test_case.value);
+
+                // Check
+                println!("TestCase: {:?}", test_case);
+                assert_eq!(test_case.value_expected, function.take_input_set().remove(0));
+            }
+        }
     }
 }
