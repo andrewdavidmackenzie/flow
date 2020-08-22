@@ -424,7 +424,7 @@ impl RunState {
         too many jobs already running
     */
     pub fn next_job(&mut self) -> Option<Job> {
-        if self.ready.is_empty() || self.number_jobs_running() >= self.max_pending_jobs {
+        if self.number_jobs_running() >= self.max_pending_jobs {
             return None;
         }
 
@@ -512,8 +512,7 @@ impl RunState {
                         metrics: &mut Metrics,
                         job: Job,
                         #[cfg(feature = "debugger")]
-                        debugger: &mut Debugger,
-    ) {
+                        debugger: &mut Debugger) {
         trace!("Job #{}:\tCompleted by Function #{}", job.job_id, job.function_id);
         self.running.retain(|&_, &job_id| job_id != job.job_id);
         #[cfg(feature = "checks")]
@@ -547,7 +546,7 @@ impl RunState {
 
                 self.remove_from_busy(job.function_id);
 
-                // if it wants to run again, it can p then add back to the Ready list
+                // if it wants to run again, it can then add back to the Ready list
                 if function_can_run_again {
                     self.refill_inputs(job.function_id, job.flow_id);
                 }
@@ -581,13 +580,11 @@ impl RunState {
             match Self::array_order(value) - destination.array_order {
                 0 => function.send(destination.io_number, value),
                 1 => function.send_iter(destination.io_number, value),
-                2 => {
-                    for array in value.as_array().unwrap().iter() {
+                2 => for array in value.as_array().unwrap().iter() {
                         function.send_iter(destination.io_number, array)
-                    }
-                }
+                     },
                 -1 => function.send(destination.io_number, &json!([value])),
-                // -2 => function.send(destination.io_number, &json!(vec!(valu))),
+                -2 => function.send(destination.io_number, &json!([[value]])),
                 _ => error!("Unable to handle difference in array order")
             }
         }
@@ -1435,6 +1432,46 @@ mod test {
         }
 
         #[test]
+        fn output_not_found() {
+            let f_a = super::test_function_a_to_b();
+            let f_b = super::test_function_b_init();
+            let functions = vec!(f_a, f_b);
+            let mut state = RunState::new(functions, 1);
+            #[cfg(feature = "metrics")]
+                let mut metrics = Metrics::new(2);
+            #[cfg(feature = "debugger")]
+                let mut debugger = Debugger::new(test_debug_client());
+
+            // Initial state
+            state.init();
+            assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+            assert_eq!(State::Blocked, state.get_state(0), "f_a should be in Blocked state, by f_b");
+
+            let job = state.next_job().unwrap();
+            assert_eq!(1, job.function_id, "next() should return function_id=1 (f_b) for running");
+            state.start(&job);
+            assert_eq!(State::Running, state.get_state(1), "f_b should be Running");
+
+// Event
+            let mut output = super::test_output(1, 0);
+
+            // Modify test putput to use a route that doesn't exist
+            let no_such_out_conn = OutputConnection::new("/fake".to_string(), 0, 0, 0, 0, false, None);
+            output.destinations = vec!(no_such_out_conn);
+
+            state.complete_job(
+                #[cfg(feature = "metrics")]
+                    &mut metrics,
+                output,
+                #[cfg(feature = "debugger")]
+                    &mut debugger,
+            );
+
+// Test
+            assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
+        }
+
+        #[test]
         fn process_error_output() {
             let f_a = super::test_function_a_init();
             let f_b = super::test_function_b_not_init();
@@ -2000,10 +2037,55 @@ mod test {
             );
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
         }
+    }
+
+    mod block {
+        #[test]
+        fn display_block_test() {
+            let block = super::super::Block::new(1, 2, 0, 1, 0);
+            println!("Block: {}", block);
+        }
 
         #[test]
-        fn can_send_array_to_simple_object_depth_1() {
-            let mut function = Function::new(
+        fn debug_block_test() {
+            let block = super::super::Block::new(1, 2, 0, 1, 0);
+            println!("Block: {:?}", block);
+        }
+    }
+
+    mod misc {
+        use serde_json::{json, Value};
+        use crate::function::Function;
+        use crate::input::Input;
+        use crate::output_connection::OutputConnection;
+        use super::super::RunState;
+
+        #[test]
+        fn test_array_order_0() {
+            let value = json!(1);
+            assert_eq!(RunState::array_order(&value), 0);
+        }
+
+        #[test]
+        fn test_array_order_1_empty_array() {
+            let value = json!([]);
+            assert_eq!(RunState::array_order(&value), 1);
+        }
+
+        #[test]
+        fn test_array_order_1() {
+            let value = json!([1, 2, 3]);
+            assert_eq!(RunState::array_order(&value), 1);
+        }
+
+        #[test]
+        fn test_array_order_2() {
+            let value = json!([[1, 2, 3], [2, 3, 4]]);
+            assert_eq!(RunState::array_order(&value), 2);
+        }
+
+        fn test_function() -> Function {
+            Function::new(
                 #[cfg(feature = "debugger")]
                     "test".to_string(),
                 #[cfg(feature = "debugger")]
@@ -2011,11 +2093,63 @@ mod test {
                 "/test".to_string(),
                 vec!(Input::new(None, &None)),
                 0, 0,
-                &[], false);
-            function.init_inputs(true);
-            function.send(0, &json!([1, 2]));
-            assert_eq!(function.take_input_set().remove(0), json!([1, 2]),
-                       "Value from input set wasn't what was expected");
+                &[], false)
+        }
+
+        // Test type conversion and sending
+        //                         |                   Destination
+        //                         |Generic     Non-Array       Array       Array of Arrays
+        // Value       Value order |    N/A         0               1       2      <---- Array Order
+        //  Non-Array       (0)    |   send     (0) send        (-1) wrap   (-2) wrap in array of arrays
+        //  Array           (1)    |   send     (1) iter        (0) send    (-1) wrap in array
+        //  Array of Arrays (2)    |   send     (2) iter/iter   (1) iter    (0) send
+        #[test]
+        fn test_sending() {
+            #[derive(Debug)]
+            struct TestCase {
+                value: Value,
+                dest_generic: bool,
+                dest_array_order: i32,
+                value_expected: Value
+            }
+
+            let test_cases = vec!(
+                // Column 0 test cases
+                TestCase { value: json!(1),                dest_generic: true, dest_array_order: 0, value_expected: json!(1) },
+                TestCase { value: json!([1]),              dest_generic: true, dest_array_order: 0, value_expected: json!([1]) },
+                TestCase { value: json!([[1, 2], [3, 4]]), dest_generic: true, dest_array_order: 0, value_expected: json!([[1, 2], [3, 4]]) },
+
+                // Column 1 Test Cases
+                TestCase { value: json!(1),                dest_generic: false, dest_array_order: 0, value_expected: json!(1) },
+                TestCase { value: json!([1, 2]),           dest_generic: false, dest_array_order: 0, value_expected: json!(1) },
+                TestCase { value: json!([[1, 2], [3, 4]]), dest_generic: false, dest_array_order: 0, value_expected: json!(1) },
+
+                // Column 2 Test Cases
+                TestCase { value: json!(1),                dest_generic: false, dest_array_order: 1, value_expected: json!([1]) },
+                TestCase { value: json!([1, 2]),           dest_generic: false, dest_array_order: 1, value_expected: json!([1, 2]) },
+                TestCase { value: json!([[1, 2], [3, 4]]), dest_generic: false, dest_array_order: 1, value_expected: json!([1, 2]) },
+
+                // Column 3 Test Cases
+                TestCase { value: json!(1),                dest_generic: false, dest_array_order: 2, value_expected: json!([[1]]) },
+                TestCase { value: json!([1, 2]),           dest_generic: false, dest_array_order: 2, value_expected: json!([[1, 2]]) },
+                TestCase { value: json!([[1, 2], [3, 4]]), dest_generic: false, dest_array_order: 2, value_expected: json!([[1, 2], [3, 4]]) },
+            );
+
+            for test_case in test_cases {
+                // Setup
+                let mut function = test_function();
+                let destination = OutputConnection::new("".into(),
+                                                        0, 0, 0,
+                                                        test_case.dest_array_order,
+                                                        test_case.dest_generic, None);
+
+                // Test
+                RunState::type_convert_and_send(&mut function, &destination, &test_case.value);
+
+                // Check
+                println!("TestCase: {:?}", test_case);
+                assert_eq!(test_case.value_expected, function.take_input_set().remove(0));
+            }
         }
     }
 }
