@@ -1174,7 +1174,7 @@ mod test {
             let f_a = super::test_function_a_to_b();
             let f_b = super::test_function_b_not_init();
             let functions = vec!(f_a, f_b);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
 
             state.init();
 
@@ -1187,7 +1187,7 @@ mod test {
             let f_a = super::test_function_a_to_b();
             let f_b = super::test_function_b_init();
             let functions = vec!(f_b, f_a);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
 
 // Event
             state.init();
@@ -1217,14 +1217,14 @@ mod test {
 
         #[test]
         fn jobs_sent_zero_at_init() {
-            let mut state = RunState::new(vec!(), 1);
+            let mut state = RunState::new(&vec!(), 1);
             state.init();
             assert_eq!(0, state.jobs(), "At init jobs() should be 0");
         }
 
         #[test]
         fn jobs_sent_increases() {
-            let mut state = RunState::new(vec!(), 1);
+            let mut state = RunState::new(&vec!(), 1);
             state.init();
             state.job_sent();
             assert_eq!(1, state.jobs(), "jobs() should have incremented");
@@ -1256,7 +1256,7 @@ mod test {
             let f_a = super::test_function_a_to_b();
             let f_b = super::test_function_b_not_init();
             let functions = vec!(f_a, f_b);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
 
 // Event
             state.init();
@@ -1271,7 +1271,7 @@ mod test {
             let f_a = super::test_function_a_to_b_not_init();
             let f_b = super::test_function_b_not_init();
             let functions = vec!(f_a, f_b);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
 
 // Event
             state.init();
@@ -1288,7 +1288,7 @@ mod test {
             let f_a = super::test_function_a_to_b();
             let f_b = super::test_function_b_not_init();
             let functions = vec!(f_a, f_b);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
 
 // Event
             state.init();
@@ -1301,7 +1301,7 @@ mod test {
         fn to_ready_3_on_init() {
             let f_a = super::test_function_a_init();
             let functions = vec!(f_a);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
 
 // Event
             state.init();
@@ -1321,7 +1321,7 @@ mod test {
             let f_a = super::test_function_a_to_b();
             let f_b = super::test_function_b_init();
             let functions = vec!(f_b, f_a);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
 
 // Event
             state.init();
@@ -1345,7 +1345,7 @@ mod test {
                 0, 0,
                 &[], false);
             let functions = vec!(f_a);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
 
 // Event
             state.init();
@@ -1358,7 +1358,7 @@ mod test {
         fn ready_to_running_on_next() {
             let f_a = super::test_function_a_init();
             let functions = vec!(f_a);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
 
@@ -1383,7 +1383,7 @@ mod test {
                 0, 0,
                 &[], false);
             let functions = vec!(f_a);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
             state.init();
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
 
@@ -1399,7 +1399,7 @@ mod test {
             let f_a = super::test_function_a_to_b();
             let f_b = super::test_function_b_init();
             let functions = vec!(f_a, f_b);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
@@ -1435,7 +1435,7 @@ mod test {
             let f_a = super::test_function_a_to_b();
             let f_b = super::test_function_b_init();
             let functions = vec!(f_a, f_b);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
@@ -1475,7 +1475,7 @@ mod test {
             let f_a = super::test_function_a_init();
             let f_b = super::test_function_b_not_init();
             let functions = vec!(f_a, f_b);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
@@ -1507,7 +1507,7 @@ mod test {
                 0, 0,
                 &[], false);
             let functions = vec!(f_a);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1548,7 +1548,7 @@ mod test {
         fn running_to_waiting_on_done() {
             let f_a = super::test_function_a_init();
             let functions = vec!(f_a);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1608,7 +1608,7 @@ mod test {
                 1, 0,
                 &[], false);
             let functions = vec!(f_a, f_b);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1659,7 +1659,7 @@ mod test {
                 1, 0,
                 &[out_conn], false);
             let functions = vec!(f_a, f_b);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1700,7 +1700,7 @@ mod test {
                 1, 0,
                 &[connection_to_f0], false);
             let functions = vec!(f_a, f_b);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
@@ -1759,7 +1759,7 @@ mod test {
                 1, 0,
                 &[], false);
             let functions = vec!(f_a, f_b); // NOTE the order!
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
@@ -1870,7 +1870,7 @@ mod test {
 
         #[test]
         fn blocked_works() {
-            let mut state = RunState::new(test_functions(), 1);
+            let mut state = RunState::new(&test_functions(), 1);
             #[cfg(feature = "debugger")]
                 let mut debugger = Debugger::new(test_debug_client());
 
@@ -1883,21 +1883,21 @@ mod test {
 
         #[test]
         fn get_works() {
-            let state = RunState::new(test_functions(), 1);
+            let state = RunState::new(&test_functions(), 1);
             let got = state.get(1);
             assert_eq!(got.id(), 1)
         }
 
         #[test]
         fn no_next_if_none_ready() {
-            let mut state = RunState::new(test_functions(), 1);
+            let mut state = RunState::new(&test_functions(), 1);
 
             assert!(state.next_job().is_none());
         }
 
         #[test]
         fn next_works() {
-            let mut state = RunState::new(test_functions(), 1);
+            let mut state = RunState::new(&test_functions(), 1);
 
 // Put 0 on the blocked/ready
             state.inputs_now_full(0, 0);
@@ -1907,7 +1907,7 @@ mod test {
 
         #[test]
         fn inputs_ready_makes_ready() {
-            let mut state = RunState::new(test_functions(), 1);
+            let mut state = RunState::new(&test_functions(), 1);
 
 // Put 0 on the blocked/ready list depending on blocked status
             state.inputs_now_full(0, 0);
@@ -1917,7 +1917,7 @@ mod test {
 
         #[test]
         fn blocked_is_not_ready() {
-            let mut state = RunState::new(test_functions(), 1);
+            let mut state = RunState::new(&test_functions(), 1);
             #[cfg(feature = "debugger")]
                 let mut debugger = Debugger::new(test_debug_client());
 
@@ -1934,7 +1934,7 @@ mod test {
 
         #[test]
         fn unblocking_makes_ready() {
-            let mut state = RunState::new(test_functions(), 1);
+            let mut state = RunState::new(&test_functions(), 1);
             #[cfg(feature = "debugger")]
                 let mut debugger = Debugger::new(test_debug_client());
 
@@ -1956,7 +1956,7 @@ mod test {
 
         #[test]
         fn unblocking_doubly_blocked_functions_not_ready() {
-            let mut state = RunState::new(test_functions(), 1);
+            let mut state = RunState::new(&test_functions(), 1);
             #[cfg(feature = "debugger")]
                 let mut debugger = Debugger::new(test_debug_client());
 
@@ -1982,7 +1982,7 @@ mod test {
 
         #[test]
         fn wont_return_too_many_jobs() {
-            let mut state = RunState::new(test_functions(), 1);
+            let mut state = RunState::new(&test_functions(), 1);
 
 // Put 0 on the ready list
             state.inputs_now_full(0, 0);
@@ -2005,7 +2005,7 @@ mod test {
             let f_a = super::test_function_a_init();
 
             let functions = vec!(f_a);
-            let mut state = RunState::new(functions, 1);
+            let mut state = RunState::new(&functions, 1);
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]

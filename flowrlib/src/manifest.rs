@@ -76,6 +76,11 @@ impl Manifest {
         &self.lib_references
     }
 
+    /// set the list of all library references in this manifest
+    pub fn set_lib_references(&mut self, lib_references: &HashSet<String>) {
+        self.lib_references = lib_references.clone();
+    }
+
     /// Add a new library reference (the name of a library) into the manifest
     pub fn add_lib_reference(&mut self, lib_reference: &str) {
         self.lib_references.insert(lib_reference.into());
