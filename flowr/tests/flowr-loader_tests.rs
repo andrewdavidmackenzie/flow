@@ -1,9 +1,13 @@
 use std::env;
+use std::fs::File;
 use std::io::{self, Read};
+use std::io::Write;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use flow_impl::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use serde_json::Value;
+use tempdir::TempDir;
 use url::Url;
 
 use flowrlib::function::Function;
@@ -54,6 +58,7 @@ fn create_manifest(functions: Vec<Function>) -> Manifest {
     };
 
     let mut manifest = Manifest::new(metadata);
+    manifest.add_lib_reference("lib://flowstdlib");
 
     for function in functions {
         manifest.add_function(function);
@@ -83,7 +88,7 @@ impl Implementation for Fake {
     }
 }
 
-pub fn get_manifest() -> LibraryManifest {
+fn get_manifest() -> LibraryManifest {
     let metadata = MetaData {
         library_name: "".to_string(),
         description: "".into(),
@@ -101,6 +106,41 @@ pub fn get_manifest() -> LibraryManifest {
     manifest.locators.insert("lib://flowruntime/stdio/stderr/Stderr".to_string(), Native(Arc::new(Fake {})));
 
     manifest
+}
+
+fn write_manifest(manifest: &Manifest, filename: &PathBuf) -> Result<(), String> {
+    let mut manifest_file = File::create(&filename).map_err(|_| "Could not create lib manifest file")?;
+
+    manifest_file.write_all(serde_json::to_string_pretty(manifest)
+        .map_err(|_| "Could not pretty format the manifest JSON contents")?
+        .as_bytes())
+        .map_err(|_| "Could not write manifest data bytes to created manifest file")?;
+
+    Ok(())
+}
+
+#[test]
+fn load_manifest_from_file() {
+    let f_a = Function::new("fA".to_string(), // name
+                            "/fA".to_string(),
+                            "lib://flowstdlib/control/join/Join".to_string(),
+                            vec!(),
+                            0, 0,
+                            &[], false);
+    let functions = vec!(f_a);
+
+    let manifest = create_manifest(functions);
+
+    let temp_dir = TempDir::new("flow").unwrap().into_path();
+    let manifest_file = temp_dir.join("manifest.json");
+    let _ = write_manifest(&manifest, &manifest_file).unwrap();
+    let manifest_url = Url::from_directory_path(manifest_file).unwrap();
+    let provider = MetaProvider{};
+
+    let mut loader = Loader::new();
+    let _ = loader.load_manifest(&provider, &manifest_url.to_string()).unwrap();
+
+    assert!(!loader.get_lib_implementations().is_empty());
 }
 
 #[test]
@@ -143,8 +183,6 @@ fn unresolved_lib_functions_test() {
     assert!(loader.resolve_implementations(&mut manifest, &manifest_url, &provider).is_err());
 }
 
-// TODO add a wasm loading test
-// check coverage of flowrlib/loader.rs and wasm.rs
+// TODO add a wasm provided implementationn loading test
 
 // TODO add a wasm and native execution test
-// check the coverage of execution.rs

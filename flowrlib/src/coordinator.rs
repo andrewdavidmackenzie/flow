@@ -49,7 +49,7 @@ impl Submission {
     /// Create a new `Submission` of a `Flow` for execution with the specified `Manifest`
     /// of `Functions`, executing it with a maximum of `mac_parallel_jobs` running in parallel
     /// connecting via the optional `DebugClient`
-    pub fn new(manifest: Manifest,
+    pub fn new(mut manifest: Manifest,
                max_parallel_jobs: usize,
                display_metrics: bool,
                #[cfg(feature = "debugger")]
@@ -60,13 +60,13 @@ impl Submission {
         info!("Maximum jobs dispatched in parallel limited to {}", max_parallel_jobs);
         let output_timeout = Duration::from_secs(1);
 
-        let state = RunState::new(manifest.functions, max_parallel_jobs);
+        let state = RunState::new(manifest.get_functions(), max_parallel_jobs);
 
         #[cfg(feature = "metrics")]
             let metrics = Metrics::new(state.num_functions());
 
         Submission {
-            _metadata: manifest.metadata,
+            _metadata: manifest.get_metadata().clone(),
             display_metrics,
             #[cfg(feature = "metrics")]
             metrics,

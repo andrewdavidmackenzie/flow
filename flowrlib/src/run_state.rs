@@ -244,9 +244,9 @@ pub struct RunState {
 }
 
 impl RunState {
-    pub fn new(functions: Vec<Function>, max_jobs: usize) -> Self {
+    pub fn new(functions: &Vec<Function>, max_jobs: usize) -> Self {
         RunState {
-            functions,
+            functions: functions.clone(),
             blocked: HashSet::<usize>::new(),
             blocks: HashSet::<Block>::new(),
             ready: VecDeque::<usize>::new(),
