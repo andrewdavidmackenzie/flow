@@ -181,10 +181,11 @@ impl Coordinator {
     fn capture_control_c(&self) {
         // Get a reference to the shared control variable that will be moved into the closure
         let requested = self.debug_requested.clone();
-        ctrlc::set_handler(move || {
+        // ignore error as this will be called multiple times by same "program" when running tests and fail
+        let _ = ctrlc::set_handler(move || {
             // Set the flag requesting to enter into the debugger to true
             requested.store(true, Ordering::SeqCst);
-        }).expect("Error setting Ctrl-C handler");
+        });
         debug!("Control-C capture setup to enter debugger");
     }
 
@@ -402,13 +403,44 @@ mod test {
                                 #[cfg(feature = "debugger")]
                                     test_debug_client(),
                                 #[cfg(feature = "debugger")]
-                                    true,
+                                    false,
         );
     }
 
     #[test]
+    fn test_flow_done() {
+        let meta_data = test_meta_data();
+        let manifest = Manifest::new(meta_data);
+        let mut submission = Submission::new(manifest, 1, true,
+                                #[cfg(feature = "debugger")]
+                                    test_debug_client(),
+                                #[cfg(feature = "debugger")]
+                                    false,
+        );
+        let mut coordinator = super::Coordinator::new(0);
+        coordinator.init();
+
+       coordinator.send_jobs(&mut submission);
+
+       coordinator.flow_done(&submission);
+    }
+
+    #[test]
+    fn test_create() {
+        let _ = super::Coordinator::new(0);
+    }
+
+    #[test]
+    fn test_init() {
+        let mut coordinator = super::Coordinator::new(0);
+        println!("new worked");
+        coordinator.init();
+        println!("init worked");
+    }
+
+    #[test]
     #[ignore] // Submission currently enters an infinite execution loop so ignore test for now
-    fn submit() {
+    fn test_submit() {
         let mut coordinator = Coordinator::new(1);
         coordinator.init();
 
@@ -427,7 +459,7 @@ mod test {
     #[test]
     #[ignore] // Submission currently enters an infinite execution loop so ignore test for now
     #[cfg(feature = "debugger")]
-    fn submit_with_debugger() {
+    fn test_submit_with_debugger() {
         let mut coordinator = Coordinator::new(1);
         coordinator.init();
 
