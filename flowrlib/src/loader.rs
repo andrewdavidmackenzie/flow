@@ -30,6 +30,10 @@ impl Loader {
         }
     }
 
+    pub fn get_lib_implementations(&self) -> &HashMap<String, Arc<dyn Implementation>> {
+        &self.global_lib_implementations
+    }
+
     /// Load all the processes defined in a manifest, and then find all the
     /// implementations required for function execution later.
     ///
@@ -60,7 +64,7 @@ impl Loader {
     /// Load libraries references referenced in the flows manifest that are not already loaded
     pub fn load_libraries(&mut self, provider: &dyn Provider, manifest: &Manifest) -> Result<()> {
         debug!("Loading libraries used by the flow");
-        for library_reference in &manifest.lib_references {
+        for library_reference in manifest.get_lib_references() {
             if !self.loaded_lib_references.contains(library_reference) {
                 info!("Attempting to load library reference '{}'", library_reference);
                 let (lib_manifest, lib_manifest_url) = LibraryManifest::load(provider, library_reference)?;
@@ -79,7 +83,7 @@ impl Loader {
     pub fn resolve_implementations(&mut self, flow_manifest: &mut Manifest, manifest_url: &str, provider: &dyn Provider) -> Result<String> {
         debug!("Resolving implementations");
         // find in a library, or load the supplied implementation - as specified by the source
-        for function in &mut flow_manifest.functions {
+        for function in flow_manifest.get_functions() {
             let implementation_source_url = function.implementation_location().to_string();
             let parts: Vec<_> = implementation_source_url.split(':').collect();
             match parts[0] {

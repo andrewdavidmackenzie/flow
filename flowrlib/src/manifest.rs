@@ -39,11 +39,11 @@ fn default_metadata() -> String {
 /// a list of references to libraries.
 pub struct Manifest {
     /// The `MetaData` about this flow
-    pub metadata: MetaData,
+    metadata: MetaData,
     /// A list of the `lib_references` used by this flow
-    pub lib_references: HashSet<String>,
+    lib_references: HashSet<String>,
     /// A list of descriptors of the `Functions` used in this flow
-    pub functions: Vec<Function>,
+    functions: Vec<Function>,
 }
 
 impl Manifest {
@@ -59,6 +59,31 @@ impl Manifest {
     /// Add a run-time Function to the manifest for use in serialization
     pub fn add_function(&mut self, function: Function) {
         self.functions.push(function);
+    }
+
+    /// Get the list of functions in this manifest
+    pub fn get_functions(&mut self) -> &mut Vec<Function> {
+        &mut self.functions
+    }
+
+    /// Get the metadata structure for this manifest
+    pub fn get_metadata(&self) -> &MetaData {
+        &self.metadata
+    }
+
+    /// get the list of all library references in this manifest
+    pub fn get_lib_references(&self) -> &HashSet<String> {
+        &self.lib_references
+    }
+
+    /// set the list of all library references in this manifest
+    pub fn set_lib_references(&mut self, lib_references: &HashSet<String>) {
+        self.lib_references = lib_references.clone();
+    }
+
+    /// Add a new library reference (the name of a library) into the manifest
+    pub fn add_lib_reference(&mut self, lib_reference: &str) {
+        self.lib_references.insert(lib_reference.into());
     }
 
     /// Load, or Deserialize, a manifest from a `source` Url using `provider`
