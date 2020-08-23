@@ -336,9 +336,9 @@ clean-guide:
 dot-graphs:
 	$(STIME)
 ifeq ($(DOT),)
-	@echo "\t'dot' not available, skipping 'dot-graphs'. Install 'graphviz' to use."
+	@echo "        'dot' not available, skipping 'dot-graphs'. Install 'graphviz' to use."
 else
-	@echo "\tGenerated .svg files for all dot graphs found"
+	@echo "        Generated .svg files for all dot graphs found"
 	@find . -name \*.dot -type f -exec dot -Tsvg -O {} \;
 endif
 	$(ETIME)
