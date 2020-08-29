@@ -167,7 +167,7 @@ upload_coverage:
 measure: .test_list
 	$(STIME)
 	@echo "Measuring coverage using 'kcov'"
-	@for file in `cat .test_list`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$FLOW_ROOT "target/cov/$(basename $$file)" $$file; done
+	@for file in `cat .test_list`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$FLOW_ROOT --exclude-path=flowc/tests,flowr/tests --exclude-region='#[cfg(test)]:#[cfg(testkcovstopmarker)]' "target/cov/$(basename $$file)" $$file; done
 	$(ETIME)
 
 build-kcov:
