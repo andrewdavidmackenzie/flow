@@ -17,6 +17,7 @@ pub enum Command {
 }
 
 /// A `Response` from the runtime_client to the run-time functions
+#[derive(PartialEq)]
 pub enum Response {
     /// Simple acknowledgement
     Ack,

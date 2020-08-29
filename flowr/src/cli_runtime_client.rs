@@ -13,8 +13,7 @@ pub struct CLIRuntimeClient {}
 pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
 
 impl RuntimeClient for CLIRuntimeClient {
-    fn init(&self) {
-    }
+    fn init(&self) {}
 
     // This function is called by the runtime_function to send a commanmd to the runtime_client
     // so here in the runtime_client, it's more like "process_command"
@@ -79,6 +78,35 @@ mod test {
         match client.send_command(Command::Args) {
             Response::Args(args) => assert_eq!(vec!("test".to_string()), args),
             _ => panic!("Didn't get Args response as expected")
+        }
+    }
+
+    #[test]
+    fn test_file_writing() {
+        let temp = tempdir::TempDir::new("flow").unwrap().into_path();
+        let file = temp.join("test");
+
+        let client = CLIRuntimeClient {};
+
+        if client.send_command(Command::Write(file.to_str().unwrap().to_string(), b"Hello".to_vec()))
+            != Response::Ack {
+            panic!("Didn't get Write response as expected")
+        }
+    }
+
+    #[test]
+    fn test_stdout() {
+        let client = CLIRuntimeClient {};
+        if client.send_command(Command::Stdout("Hello".into())) != Response::Ack {
+            panic!("Didn't get Stdout response as expected")
+        }
+    }
+
+    #[test]
+    fn test_stderr() {
+        let client = CLIRuntimeClient {};
+        if client.send_command(Command::Stderr("Hello".into())) != Response::Ack {
+            panic!("Didn't get Stderr response as expected")
         }
     }
 }

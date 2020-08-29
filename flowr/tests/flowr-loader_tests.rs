@@ -41,11 +41,8 @@ fn url_from_rel_path(path: &str) -> String {
     file.to_string()
 }
 
-fn cwd_as_url() -> Result<Url, String> {
-    Url::from_directory_path(
-        env::current_dir()
-            .map_err(|_| "Could not get the value of the current working directory".to_string())?)
-        .map_err(|_| "Could not form a Url for the current working directory".into())
+fn cwd_as_url() -> Url {
+    Url::from_directory_path(env::current_dir().unwrap()).unwrap()
 }
 
 fn create_manifest(functions: Vec<Function>) -> Manifest {
@@ -158,7 +155,7 @@ fn resolve_lib_implementation_test() {
     let manifest_url = url_from_rel_path("manifest.json");
 
     // Load library functions provided
-    loader.add_lib(&provider, "lib://flowruntime", get_manifest(), &cwd_as_url().unwrap().to_string()).unwrap();
+    loader.add_lib(&provider, "lib://flowruntime", get_manifest(), &cwd_as_url().to_string()).unwrap();
 
     loader.resolve_implementations(&mut manifest, &manifest_url, &provider).unwrap();
 }
@@ -178,7 +175,7 @@ fn unresolved_lib_functions_test() {
     let manifest_url = url_from_rel_path("manifest.json");
 
     // Load library functions provided
-    loader.add_lib(&provider, "lib://flowruntime", get_manifest(), &cwd_as_url().unwrap().to_string()).unwrap();
+    loader.add_lib(&provider, "lib://flowruntime", get_manifest(), &cwd_as_url().to_string()).unwrap();
 
     assert!(loader.resolve_implementations(&mut manifest, &manifest_url, &provider).is_err());
 }
