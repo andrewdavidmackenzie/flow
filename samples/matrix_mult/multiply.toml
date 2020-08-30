@@ -75,7 +75,7 @@ to = "multiply/b"
 [[process]]
 alias = "compose_rows"
 source = "lib://flowstdlib/data/accumulate"
-input.partial = { once = [] }
+input.partial = { once =  [] }
 
 [[connection]]
 from = "compose_rows/partial"
@@ -96,7 +96,7 @@ to = "compose_rows/chunk_size"
 [[process]]
 alias = "compose_matrix"
 source = "lib://flowstdlib/data/accumulate"
-input.partial = { once = [] }
+input.partial = { once =  [] }
 
 [[connection]]
 from = "compose_matrix/partial"

@@ -1020,8 +1020,7 @@ mod test {
     use crate::debug_client::{Command, Param};
     use crate::function::Function;
     use crate::input::Input;
-    use crate::input::InputInitializer::OneTime;
-    use crate::input::OneTimeInputInitializer;
+    use crate::input::InputInitializer::Once;
     use crate::output_connection::OutputConnection;
     #[cfg(any(feature = "debugger", feature = "checks"))]
     use crate::run_state;
@@ -1090,7 +1089,7 @@ mod test {
                 "/fA".to_string(),
             "/test".to_string(),
             vec!(Input::new(None,
-                            &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                            &Some(Once(json!(1) )))),
             0, 0,
             &[connection_to_f1], false) // outputs to fB:0
     }
@@ -1103,7 +1102,7 @@ mod test {
                 "/fA".to_string(),
             "/test".to_string(),
             vec!(Input::new(None,
-                            &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                            &Some(Once(json!(1) )))),
             0, 0,
             &[], false)
     }
@@ -1128,7 +1127,7 @@ mod test {
                 "/fB".to_string(),
             "/test".to_string(),
             vec!(Input::new(None,
-                            &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                            &Some(Once(json!(1) )))),
             1, 0,
             &[], false)
     }
@@ -1239,9 +1238,8 @@ mod test {
         #[cfg(feature = "debugger")]
         use crate::debugger::Debugger;
         use crate::function::Function;
-        use crate::input::{ConstantInputInitializer, OneTimeInputInitializer};
         use crate::input::Input;
-        use crate::input::InputInitializer::{Constant, OneTime};
+        use crate::input::InputInitializer::{Always, Once};
         #[cfg(feature = "metrics")]
         use crate::metrics::Metrics;
         use crate::output_connection::OutputConnection;
@@ -1504,7 +1502,7 @@ mod test {
                     "/fA".to_string(),
                 "/test".to_string(),
                 vec!(Input::new(None,
-                                &Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
+                                &Some(Always(json!(1) )))),
                 0, 0,
                 &[], false);
             let functions = vec!(f_a);
@@ -1596,7 +1594,7 @@ mod test {
                     "/fA".to_string(),
                 "/test".to_string(),
                 vec!(Input::new(None,
-                                &Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
+                                &Some(Always(json!(1) )))),
                 0, 0,
                 &[out_conn], false); // outputs to fB:0
             let f_b = Function::new(
@@ -1697,7 +1695,7 @@ mod test {
                     "/fB".to_string(),
                 "/test".to_string(),
                 vec!(Input::new(None,
-                                &Some(Constant(ConstantInputInitializer { constant: json!(1) })))),
+                                &Some(Always(json!(1) )))),
                 1, 0,
                 &[connection_to_f0], false);
             let functions = vec!(f_a, f_b);
@@ -1744,7 +1742,7 @@ mod test {
                     "/fA".to_string(),
                 "/test".to_string(),
                 vec!(Input::new(None,
-                                &Some(OneTime(OneTimeInputInitializer { once: json!(1) })))),
+                                &Some(Once(json!(1) )))),
                 0, 0,
                 &[
                     connection_to_0.clone(), // outputs to self:0
@@ -2055,9 +2053,11 @@ mod test {
 
     mod misc {
         use serde_json::{json, Value};
+
         use crate::function::Function;
         use crate::input::Input;
         use crate::output_connection::OutputConnection;
+
         use super::super::RunState;
 
         #[test]

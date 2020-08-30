@@ -20,7 +20,7 @@ type = "Number"
 [[process]]
 alias = "multiply"
 source = "lib://flowstdlib/math/multiply"
-input.i2 = {constant = 2}
+input.i2 = {always =  2}
 
 [[connection]]
 from = "input/start"

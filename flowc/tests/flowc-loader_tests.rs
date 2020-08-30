@@ -6,7 +6,7 @@ use flowclib::model::process::Process::FlowProcess;
 use flowclib::model::process::Process::FunctionProcess;
 use flowclib::model::route::HasRoute;
 use flowclib::model::route::Route;
-use flowrlib::input::InputInitializer::OneTime;
+use flowrlib::input::InputInitializer::Once;
 use provider::content::provider::MetaProvider;
 
 #[path = "helper.rs"]
@@ -69,8 +69,8 @@ fn function_input_initialized() {
                     let default_input: &IO = inputs.get(0).unwrap();
                     let initial_value = default_input.get_initializer().clone().unwrap();
                     match initial_value {
-                        OneTime(one_time) => assert_eq!(one_time.once, "hello"),
-                        _ => panic!("Initializer should have been a OneTime initializer")
+                        Once(one_time) => assert_eq!(one_time, "hello"),
+                        _ => panic!("Initializer should have been a Once initializer")
                     }
                 } else {
                     panic!("Could not find any inputs");
@@ -121,8 +121,8 @@ fn flow_input_initialized_and_propogated_to_function() {
                             assert_eq!(Route::from("/flow_input_init/count/compare/left"), *in_input.route(), "Input's route is not as expected");
                             let initial_value = in_input.get_initializer();
                             match initial_value {
-                                Some(OneTime(one_time)) => assert_eq!(one_time.once, 10),
-                                _ => panic!("Initializer should have been a OneTime initializer")
+                                Some(Once(one_time)) => assert_eq!(one_time, 10),
+                                _ => panic!("Initializer should have been a Once initializer")
                             }
                         } else {
                             panic!("Could not find any inputs");

@@ -14,11 +14,6 @@ edition = "2018"
 name = "flowrlib"
 path = "src/lib.rs"
 
-test = true
-doctest = true
-bench = true
-doc = true
-
 [features]
 default = []  # Don't include any extra features by default
 metrics = []  # feature for tracking of metrics during execution

@@ -73,7 +73,7 @@ mod test {
         }
     ],
     'connection': [
-        {\
+        {
             'from': 'message',
             'to': 'print'
         }

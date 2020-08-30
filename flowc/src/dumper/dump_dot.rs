@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 use log::info;
 
-use flowrlib::input::InputInitializer::{Constant, OneTime};
+use flowrlib::input::InputInitializer::{Always, Once};
 use flowrlib::provider::Provider;
 
 use crate::deserializers::deserializer_helper::get_file_extension;
@@ -274,8 +274,8 @@ fn input_initializers(function: &Function, function_identifier: &str) -> String 
                 // Add an extra (hidden) graph entry for the initializer
                 initializers.push_str(&format!("\"initializer{}_{}\"[style=invis];\n", function_identifier, input_number));
                 let (value, is_constant) = match initializer {
-                    Constant(constant) => (constant.constant.clone(), true),
-                    OneTime(one_time) => (one_time.once.clone(), false)
+                    Always(value) => (value.clone(), true),
+                    Once(value) => (value.clone(), false)
                 };
 
                 let value_string = if value.is_string() {

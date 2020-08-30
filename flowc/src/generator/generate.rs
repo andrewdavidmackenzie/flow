@@ -154,8 +154,7 @@ fn implementation_location_relative(function: &Function, manifest_url: &str) -> 
 mod test {
     use serde_json::json;
 
-    use flowrlib::input::{ConstantInputInitializer, InputInitializer};
-    use flowrlib::input::OneTimeInputInitializer;
+    use flowrlib::input::InputInitializer;
     use flowrlib::output_connection::OutputConnection;
 
     use crate::model::function::Function;
@@ -288,9 +287,7 @@ mod test {
     #[test]
     fn function_with_initialized_input_generation() {
         let mut io = IO::new("String", &Route::default());
-        io.set_initializer(&Some(InputInitializer::OneTime(
-            OneTimeInputInitializer { once: json!(1) }
-        )));
+        io.set_initializer(&Some(InputInitializer::Once(json!(1))));
 
         let function = Function::new(
             Name::from("Stdout"),
@@ -330,9 +327,7 @@ mod test {
     #[test]
     fn function_with_constant_input_generation() {
         let mut io = IO::new("String", &Route::default());
-        io.set_initializer(&Some(InputInitializer::Constant(
-            ConstantInputInitializer { constant: json!(1) }
-        )));
+        io.set_initializer(&Some(InputInitializer::Always(json!(1))));
 
         let function = Function::new(
             Name::from("Stdout"),
@@ -354,7 +349,7 @@ mod test {
   'inputs': [
     {
       'initializer': {
-        'constant': 1
+        'always': 1
       }
     }
   ]

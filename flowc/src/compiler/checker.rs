@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 use error_chain::bail;
 
-use flowrlib::input::InputInitializer::Constant;
+use flowrlib::input::InputInitializer::Always;
 
 use crate::compiler::connector;
 use crate::errors::*;
@@ -60,7 +60,7 @@ fn check_for_competing_inputs(tables: &GenerationTables) -> Result<()> {
         }
 
         // check for ConstantInitializer at destination
-        if let Some(Constant(_)) = connection.to_io.get_initializer() {
+        if let Some(Always(_)) = connection.to_io.get_initializer() {
             bail!("Connection from '{}' to input at '{}' that also has a Constant Initializer",
             connection.from_io.route(), connection.to_io.route() );
         }
@@ -83,7 +83,7 @@ pub fn check_function_inputs(tables: &mut GenerationTables) -> Result<()> {
                                                input.route(), function.route());
                         }
                     }
-                    Some(Constant(_)) => {
+                    Some(Always(_)) => {
                         // Has a constant initializer and there is another
                         // connections to this input then flag that as an error
                         if connection_to(tables, &input.route()) {
@@ -118,8 +118,8 @@ mod test {
     use super::remove_duplicates;
 
     /*
-                                                    Test that when two functions are connected doubly, the connection gets reduced to a single one
-                                                */
+                                                        Test that when two functions are connected doubly, the connection gets reduced to a single one
+                                                    */
     #[test]
     fn collapse_double_connection() {
         let first = Connection {

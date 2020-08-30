@@ -7,7 +7,7 @@ use flowclib::model::name::Name;
 use flowclib::model::process::Process::{FlowProcess, FunctionProcess};
 use flowclib::model::route::HasRoute;
 use flowclib::model::route::Route;
-use flowrlib::input::InputInitializer::OneTime;
+use flowrlib::input::InputInitializer::Once;
 use provider::content::provider::MetaProvider;
 
 #[path = "helper.rs"]
@@ -259,8 +259,8 @@ fn initialized_output_propogated() {
                                 let in_input = inputs.get(0).unwrap();
                                 let initial_value = in_input.get_initializer();
                                 match initial_value {
-                                    Some(OneTime(one_time)) => assert_eq!(one_time.once, json!("Hello")), // PASS
-                                    _ => panic!("Initializer should have been a OneTime initializer, was {:?}", initial_value)
+                                    Some(Once(one_time)) => assert_eq!(one_time, &json!("Hello")), // PASS
+                                    _ => panic!("Initializer should have been a Once initializer, was {:?}", initial_value)
                                 }
                             } else {
                                 panic!("Could not find any inputs");
@@ -298,8 +298,8 @@ fn flow_input_initialized_and_propogated_to_function_in_subflow() {
                         assert_eq!(Name::from("right"), *in_input.alias(), "Input's name is not 'right' as expected");
                         let initial_value = in_input.get_initializer();
                         match initial_value {
-                            Some(OneTime(one_time)) => assert_eq!(one_time.once, 1), // PASS
-                            _ => panic!("Initializer should have been a OneTime initializer, was {:?}", initial_value)
+                            Some(Once(one_time)) => assert_eq!(one_time, 1), // PASS
+                            _ => panic!("Initializer should have been a Once initializer, was {:?}", initial_value)
                         }
                     } else {
                         panic!("Could not find any inputs");

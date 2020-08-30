@@ -5,8 +5,8 @@ source = "lib://flowruntime/stdio/readline"
 
 [[process]] # Split a string on the space (" ") separator
 source = "lib://flowstdlib/data/split"
-input.separator = { constant = " " }
-#input.string = { once = "the quick brown fox jumped over the lazy dog" }
+input.separator = { always =  " " }
+#input.string = { once =  "the quick brown fox jumped over the lazy dog" }
 
 [[connection]] # Take the input string and pass it to splitter
 from = "readline"
@@ -19,12 +19,12 @@ to = "split/string"
 [[process]] # Adder to track pending work
 alias = "work-counter"
 source = "lib://flowstdlib/math/add"
-input.i2 = { once = 1 }
+input.i2 = { once =  1 }
 
 [[process]] # Adder to count tokens
 alias = "token-counter"
 source = "lib://flowstdlib/math/add"
-input.i2 = { once = 0 }
+input.i2 = { once =  0 }
 
 [[connection]] # Pass the change in amount of work pending to the work counter
 from = "split/delta"
@@ -54,7 +54,7 @@ to = "tap/data"
 
 [[process]] # compare pending work to zero
 source = "lib://flowstdlib/math/compare"
-input.left = { constant = 0 }
+input.left = { always =  0 }
 
 [[connection]] # compare pending work to zero
 name = "pending-work"

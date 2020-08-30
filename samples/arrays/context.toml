@@ -6,9 +6,9 @@ author_email = "andrew@mackenzie-serres.net"
 [[process]]
 alias = "sequence"
 source = "lib://flowstdlib/math/sequence"
-input.start = {once = 1}
-input.end = {once = 20}
-input.step = {once = 1}
+input.start = {once =  1}
+input.end = {once =  20}
+input.step = {once =  1}
 
 [[connection]]
 from = "sequence/sequence"
@@ -17,8 +17,8 @@ to = "accumulator/values"
 [[process]]
 alias = "accumulator"
 source = "lib://flowstdlib/data/accumulate"
-input.partial = {once = []}
-input.chunk_size = {constant = 4}
+input.partial = {once =  []}
+input.chunk_size = {always =  4}
 
 [[connection]]
 from = "accumulator/partial"
@@ -31,7 +31,7 @@ to = "add/i1"
 [[process]]
 alias = "add"
 source = "lib://flowstdlib/math/add"
-input.i2 = {constant = 1}
+input.i2 = {always =  1}
 
 [[connection]]
 from = "add/sum"

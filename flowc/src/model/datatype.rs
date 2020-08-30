@@ -84,32 +84,37 @@ impl DataType {
     }
 }
 
-#[test]
-fn valid_data_string_type() {
-    let string_type = DataType::from("String");
-    string_type.valid().unwrap();
-}
+#[cfg(test)]
+mod test {
+    use super::DataType;
 
-#[test]
-fn valid_data_json_type() {
-    let json_type = DataType::from("Value");
-    json_type.valid().unwrap();
-}
+    #[test]
+    fn valid_data_string_type() {
+        let string_type = DataType::from("String");
+        string_type.valid().unwrap();
+    }
 
-#[test]
-fn invalid_data_type() {
-    let string_type = DataType::from("foo");
-    assert!(string_type.valid().is_err());
-}
+    #[test]
+    fn valid_data_json_type() {
+        let json_type = DataType::from("Value");
+        json_type.valid().unwrap();
+    }
 
-#[test]
-fn is_array_true() {
-    let array_type = DataType::from("Array");
-    assert!(array_type.is_array());
-}
+    #[test]
+    fn invalid_data_type() {
+        let string_type = DataType::from("foo");
+        assert!(string_type.valid().is_err());
+    }
 
-#[test]
-fn is_array_false() {
-    let string_type = DataType::from("String");
-    assert_eq!(string_type.is_array(), false);
+    #[test]
+    fn is_array_true() {
+        let array_type = DataType::from("Array");
+        assert!(array_type.is_array());
+    }
+
+    #[test]
+    fn is_array_false() {
+        let string_type = DataType::from("String");
+        assert_eq!(string_type.is_array(), false);
+    }
 }
