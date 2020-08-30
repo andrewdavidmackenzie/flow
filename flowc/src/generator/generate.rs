@@ -309,7 +309,7 @@ mod test {
   'inputs': [
     {
       'initializer': {
-        'Once': 1
+        'once': 1
       }
     }
   ]
@@ -349,7 +349,7 @@ mod test {
   'inputs': [
     {
       'initializer': {
-        'Always': 1
+        'always': 1
       }
     }
   ]

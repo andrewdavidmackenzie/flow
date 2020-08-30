@@ -19,8 +19,8 @@ to = "sequence/end"
 [[process]]
 alias = "sequence"
 source = "lib://flowstdlib/math/sequence"
-input.start = {Once =  1}
-input.step = {Once =  1}
+input.start = {once =  1}
+input.step = {once =  1}
 
 [[connection]]
 from = "sequence/sequence"
@@ -30,7 +30,7 @@ to = "print"
 [[process]]
 alias = "join"
 source = "lib://flowstdlib/control/join"
-input.data = {Once =  "Range done"}
+input.data = {once =  "Range done"}
 
 [[connection]]
 from = "sequence/last"

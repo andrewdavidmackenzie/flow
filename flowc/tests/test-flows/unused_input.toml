@@ -3,7 +3,7 @@ flow = "unused input"
 [[process]]
 alias = "add"
 source = "lib://flowstdlib/math/add"
-input.i1 = { Once = 1 }
+input.i1 = { once = 1 }
 
 [[connection]]
 from = "add/sum"

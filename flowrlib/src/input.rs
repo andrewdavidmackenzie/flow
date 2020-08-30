@@ -6,6 +6,7 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 /// An `Input` can be initialized in one of two ways with an `InputInitializer`
 pub enum InputInitializer {
     /// A `ConstantInputInitializer` initializes an input "constantly".

@@ -40,7 +40,7 @@ mod test {
         [[process]]
         alias = 'message'
         source = 'lib://flowstdlib/data/buffer.toml'
-        input.default = {Once = 'hello'}
+        input.default = {once = 'hello'}
 
         [[process]]
         alias = 'print'

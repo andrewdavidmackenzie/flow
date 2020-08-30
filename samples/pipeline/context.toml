@@ -6,9 +6,9 @@ author_email = "andrew@mackenzie-serres.net"
 [[process]]
 alias = "range"
 source = "lib://flowstdlib/math/sequence"
-input.start = {Once =  1}
-input.end = {Once =  20}
-input.step = {Once =  1}
+input.start = {once =  1}
+input.end = {once =  20}
+input.step = {once =  1}
 
 [[connection]]
 from = "range/sequence"
@@ -17,7 +17,7 @@ to = "add1/i1"
 [[process]]
 alias = "add1"
 source = "lib://flowstdlib/math/add"
-input.i2 = {Always =  1}
+input.i2 = {always =  1}
 
 [[connection]]
 from = "add1/sum"
@@ -26,7 +26,7 @@ to = "divide2/dividend"
 [[process]]
 alias = "divide2"
 source = "lib://flowstdlib/math/divide"
-input.divisor = {Always =  2}
+input.divisor = {always =  2}
 
 [[connection]]
 from = "divide2/result"
@@ -35,7 +35,7 @@ to = "add2/i1"
 [[process]]
 alias = "add2"
 source = "lib://flowstdlib/math/add"
-input.i2 = {Always =  2}
+input.i2 = {always =  2}
 
 [[connection]]
 from = "add2/sum"
@@ -44,7 +44,7 @@ to = "divide4/dividend"
 [[process]]
 alias = "divide4"
 source = "lib://flowstdlib/math/divide"
-input.divisor = {Always =  2}
+input.divisor = {always =  2}
 
 [[connection]]
 from = "divide4/result"

@@ -18,8 +18,8 @@ source = "lib://flowstdlib/fmt/to_number"
 [[process]]
 alias = "candidates"
 source = "lib://flowstdlib/math/sequence"
-input.start = {Once =  1}
-input.step = {Once =  1}
+input.start = {once =  1}
+input.step = {once =  1}
 
 [[connection]]
 from = "to_number"
@@ -29,7 +29,7 @@ to = "candidates/end"
 [[process]]
 alias = "all-numbers"
 source = "lib://flowstdlib/data/accumulate"
-input.partial = {Once =  []}
+input.partial = {once =  []}
 
 [[connection]]
 from = "candidates/sequence"
@@ -60,7 +60,7 @@ to = "composites/limit"
 [[process]]
 alias = "subtract"
 source = "lib://flowstdlib/data/remove"
-input.value = { Once =  9 }
+input.value = { once =  9 }
 
 [[connection]]
 from = "all-numbers/chunk"

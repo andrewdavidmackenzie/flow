@@ -14,7 +14,7 @@ to = "to_number"
 
 [[process]]
 source = "remainder_zero"
-input.divisor = { Always =  2 }
+input.divisor = { always =  2 }
 
 [[connection]]
 from = "to_number"

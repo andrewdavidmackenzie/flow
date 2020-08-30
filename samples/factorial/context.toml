@@ -17,12 +17,12 @@ source = "lib://flowstdlib/fmt/to_number"
 [[process]]
 alias = "multiply"
 source = "lib://flowstdlib/math/multiply"
-input.i1 = { Once =  1 }
+input.i1 = { once =  1 }
 
 [[process]]
 alias = "sub"
 source = "lib://flowstdlib/math/subtract"
-input.i2 = { Always =  1 }
+input.i2 = { always =  1 }
 
 [[connection]]
 from = "to_number"
@@ -39,7 +39,7 @@ to = "multiply/i1"
 [[process]]
 alias = "compare"
 source = "lib://flowstdlib/math/compare"
-input.right = { Always =  1 }
+input.right = { always =  1 }
 
 [[process]]
 alias = "n-tap"

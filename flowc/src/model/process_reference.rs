@@ -82,7 +82,7 @@ mod test {
         let input_str = "
         alias = 'other'
         source = 'other.toml'
-        input.input1 = {Once = 1}
+        input.input1 = {once = 1}
         ";
 
         let reference: ProcessReference = toml::from_str(input_str).unwrap();
@@ -103,7 +103,7 @@ mod test {
         let input_str = "
         alias = 'other'
         source = 'other.toml'
-        input.input1 = {Always = 1}
+        input.input1 = {always = 1}
         ";
 
         let reference: ProcessReference = toml::from_str(input_str).unwrap();
@@ -125,7 +125,7 @@ mod test {
         let input_str = "
         alias = 'other'
         source = 'other.toml'
-        input.input1 = { Always = 1 }
+        input.input1 = { always = 1 }
         ";
 
         let reference: ProcessReference = toml::from_str(input_str).unwrap();
@@ -144,8 +144,8 @@ mod test {
         let input_str = "
         alias = 'other'
         source = 'other.toml'
-        input.input1 = {Once = 1}
-        input.input2 = {Once = 'hello'}
+        input.input1 = {once = 1}
+        input.input2 = {once = 'hello'}
         ";
 
         let reference: ProcessReference = toml::from_str(input_str).unwrap();

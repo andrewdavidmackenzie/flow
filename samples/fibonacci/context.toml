@@ -6,8 +6,8 @@ author_email = "andrew@mackenzie-serres.net"
 [[process]]
 alias = "add"
 source = "lib://flowstdlib/math/add"
-input.i1 = { Once =  0 }
-input.i2 = { Once =  1 }
+input.i1 = { once =  0 }
+input.i2 = { once =  1 }
 
 [[connection]]
 from = "add/sum"

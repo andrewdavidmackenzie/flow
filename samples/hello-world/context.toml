@@ -3,4 +3,4 @@ flow = "hello-world"
 [[process]]
 alias = "print"
 source = "lib://flowruntime/stdio/stdout"
-input.default = {Once =  "Hello World!"}
+input.default = {once =  "Hello World!"}

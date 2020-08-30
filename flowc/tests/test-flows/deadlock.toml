@@ -6,18 +6,18 @@ alias = "first-sequence"
 source = "lib://flowstdlib/math/sequence"
 input.start = 1
 input.end = 9
-input.step = {Once =  1}
+input.step = {once =  1}
 
 # Generate a sequence of numbers from 2 upto the value from sequence above
 [[process]]
 alias = "second-sequence"
 source = "lib://flowstdlib/math/sequence"
-input.step = {Once =  1}
+input.step = {once =  1}
 
 [[process]]
 alias = "second-start"
 source = "lib://flowstdlib/fmt/to_number"
-input.default = {Always =  "2"}
+input.default = {always =  "2"}
 
 [[connection]]
 from = "second-start"

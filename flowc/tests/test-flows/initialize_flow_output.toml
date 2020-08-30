@@ -2,4 +2,4 @@ flow = "initialize_flow_output"
 
 [[output]]
 type = "String"
-value = { Once = "Hello" }
+value = { once = "Hello" }

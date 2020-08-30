@@ -29,7 +29,7 @@ to = "divide/divisor"
 [[process]]
 alias = "compare"
 source = "lib://flowstdlib/math/compare"
-input.left = { Always =  0 }
+input.left = { always =  0 }
 
 [[connection]]
 from = "divide/remainder"
