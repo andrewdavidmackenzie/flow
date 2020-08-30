@@ -2,7 +2,7 @@ flow = "subflow_input_init"
 
 [[process]]
 source = "subflow_short_circuit"
-input.a = { once = "OK" }
+input.a = { Once = "OK" }
 
 [[process]]
 alias = "print"

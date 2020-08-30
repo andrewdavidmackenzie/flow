@@ -41,7 +41,7 @@ mod test {
             'source': 'lib://flowruntime/stdio/stdout.toml',
             'input': {
                 'default': {
-                    'once': 'hello'
+                    'Once': 'hello'
                 }
             }
         }
@@ -63,7 +63,7 @@ mod test {
             'source': 'lib://flowstdlib/data/buffer.toml',
             'input': {
                 'default': {
-                    'once': 'hello'
+                    'Once': 'hello'
                 }
             }
         },
@@ -73,7 +73,7 @@ mod test {
         }
     ],
     'connection': [
-        {\
+        {
             'from': 'message',
             'to': 'print'
         }

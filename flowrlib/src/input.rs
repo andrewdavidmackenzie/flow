@@ -6,30 +6,14 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(untagged)]
 /// An `Input` can be initialized in one of two ways with an `InputInitializer`
 pub enum InputInitializer {
     /// A `ConstantInputInitializer` initializes an input "constantly".
     /// i.e. after each time the associated function is run
-    Constant(ConstantInputInitializer),
+    Always(Value),
     /// A `OneTimeInputInitializer` initializes an `Input` once - at start-up before any
     /// functions are run. Then it is not initialized again, unless a reset if done for debugging
-    OneTime(OneTimeInputInitializer),
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-/// A `ConstantInputInitializer` initializes an input "constantly".
-pub struct OneTimeInputInitializer {
-    /// `once` is the `Valuez that the `Input` will be initialized with once on start-up
-    pub once: Value,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-/// A `OneTimeInputInitializer` initializes an `Input` once - at start-up
-pub struct ConstantInputInitializer {
-    /// `constant` will be the `Value` that the `Input` will be initized with before each
-    /// time the `Function` is run.
-    pub constant: Value,
+    Once(Value),
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -94,9 +78,9 @@ impl Input {
         }
 
         let init_value = match (first_time, &self.initializer) {
-            (true, Some(InputInitializer::OneTime(one_time))) => Some(one_time.once.clone()),
-            (_, Some(InputInitializer::Constant(constant))) => Some(constant.constant.clone()),
-            (_, None) | (false, Some(InputInitializer::OneTime(_))) => None
+            (true, Some(InputInitializer::Once(one_time))) => Some(one_time.clone()),
+            (_, Some(InputInitializer::Always(constant))) => Some(constant.clone()),
+            (_, None) | (false, Some(InputInitializer::Once(_))) => None
         };
 
         match init_value {

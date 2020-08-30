@@ -4,14 +4,14 @@ flow = "range-of-ranges"
 [[process]]
 alias = "limit-sequence"
 source = "lib://flowstdlib/math/sequence"
-input.start = {once = 1}
-input.end = {once = 9}
-input.step = {once = 1}
+input.start = {Once =  1}
+input.end = {Once =  9}
+input.step = {Once =  1}
 
 [[process]] # a Buffer between the constant starting point of 0 and the 'start' input to avoid priority issues for the input
 alias = "start-of-each"
 source = "lib://flowstdlib/data/buffer"
-input.default = {constant = 0}
+input.default = {Always =  0}
 
 [[connection]]
 from = "start-of-each"
@@ -25,7 +25,7 @@ to = "sequence-of-sequences/start"
 [[process]]
 alias = "sequence-of-sequences"
 source = "lib://flowstdlib/math/sequence"
-input.step = {once = 1}
+input.step = {Once =  1}
 
 # Connect the list of limits to use for each sequence to the generator of the sequence of sequences
 [[connection]]

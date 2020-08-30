@@ -11,7 +11,7 @@ to = "to_number"
 [[process]]
 alias = "to_number"
 source = "lib://flowstdlib/fmt/to_number"
-input.default = { constant = 1}
+input.default = { Always = 1}
 
 [[connection]]
 from = "to_number"

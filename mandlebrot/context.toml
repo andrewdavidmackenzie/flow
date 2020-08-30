@@ -14,7 +14,7 @@ source = "src/parse_pair/parse_pair"
 [[process]]
 alias = "bounds_separator"
 source = "lib://flowstdlib/data/buffer/buffer"
-input.default = {constant = "x"}
+input.default = {Always =  "x"}
 
 [[connection]]
 from = "args/2"
@@ -30,7 +30,7 @@ to = "parse_bounds/separator"
 [[process]]
 alias = "point_separator"
 source = "lib://flowstdlib/data/buffer/buffer"
-input.default = {constant = ","}
+input.default = {Always =  ","}
 
 # Upper Left Coordinate
 [[process]]

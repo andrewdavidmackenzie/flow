@@ -24,8 +24,8 @@ to = "sqrt"
 [[process]]
 alias = "divisors"
 source = "lib://flowstdlib/math/sequence"
-input.start = {once = 2}
-input.step = {once = 1}
+input.start = {Once =  2}
+input.step = {Once =  1}
 
 [[connection]]
 from = "sqrt"
@@ -50,7 +50,7 @@ to = "output/composites"
 [[process]]
 alias = "join"
 source = "lib://flowstdlib/control/join"
-input.data = { constant = 1 }
+input.data = { Always =  1 }
 
 [[connection]]
 from = "generate_composites/subsequence-end"
@@ -59,7 +59,7 @@ to = "join/control"
 [[process]]
 alias = "subsequence-count"
 source = "lib://flowstdlib/math/add"
-input.i1 = { once = 1 }
+input.i1 = { Once =  1 }
 
 [[connection]]
 from = "join"

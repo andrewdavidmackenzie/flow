@@ -4,15 +4,15 @@ flow = "all_numbers"
 [[process]]
 alias = "numbers"
 source = "lib://flowstdlib/math/sequence"
-input.start = {once = 1}
-input.step = {once = 1}
-input.end = {once = 20}
+input.start = {Once =  1}
+input.step = {Once =  1}
+input.end = {Once =  20}
 
 [[process]]
 alias = "array"
 source = "lib://flowstdlib/data/accumulate"
-input.chunk_size = {constant = 20}
-input.partial = {once = []}
+input.chunk_size = {Always =  20}
+input.partial = {Once =  []}
 
 [[connection]]
 from = "numbers/sequence"

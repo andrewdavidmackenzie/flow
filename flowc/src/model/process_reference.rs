@@ -61,18 +61,9 @@ impl fmt::Display for ProcessReference {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
-
     use serde_json::json;
 
-    use flowrlib::input::ConstantInputInitializer;
-    use flowrlib::input::InputInitializer;
-    use flowrlib::input::InputInitializer::{Constant, OneTime};
-
-    use crate::model::function::Function;
-    use crate::model::name::Name;
-    use crate::model::process::Process;
-    use crate::model::route::Route;
+    use flowrlib::input::InputInitializer::{Always, Once};
 
     use super::ProcessReference;
 
@@ -87,56 +78,21 @@ mod test {
     }
 
     #[test]
-    fn deserialize_with_input_initialization() {
+    fn deserialize_with_once_input_initialization() {
         let input_str = "
         alias = 'other'
         source = 'other.toml'
-        input.input1 = {once = 1}
+        input.input1 = {Once = 1}
         ";
 
         let reference: ProcessReference = toml::from_str(input_str).unwrap();
-        let initialized_inputs = reference.initializations.unwrap();
+        let initialized_inputs = reference.clone().initializations.unwrap();
         assert_eq!(initialized_inputs.len(), 1, "Incorrect number of Input initializations parsed");
         match initialized_inputs.get("input1").unwrap() {
-            OneTime(one_time) => assert_eq!(1, one_time.once, "input1 should be initialized to 1"),
-            Constant(_) => panic!("Should have been a OneTime initializer")
+            Always(_) => panic!("Should have been a Once initializer"),
+            Once(value) => assert_eq!(&json!(1), value, "input1 should be initialized to 1")
         }
-    }
-
-    /*
-        The serializer chooses the other form of table output, not the 'inline table' I use
-        generally for input, but it's still valid
-    */
-    #[test]
-    fn serialize_with_constant_input_initialization() {
-        let expected = "alias = 'other'
-source = 'other.toml'
-[input.input1]
-constant = 1
-";
-
-        let constant_initializer = ConstantInputInitializer {
-            constant: json!(1)
-        };
-        let input_initializer = super::InputInitializer::Constant(constant_initializer);
-        let mut initializers = HashMap::<String, InputInitializer>::new();
-        initializers.insert("input1".to_string(), input_initializer);
-        let function = Function::new(Name::from("function"), true,
-                                     "".to_owned(), Name::from("alias"),
-                                     None, None, "url",
-                                     Route::from("route"), None, vec!(), 0, 0);
-        let reference = ProcessReference {
-            alias: Name::from("other"),
-            source: "other.toml".to_string(),
-            initializations: Some(initializers),
-            depths: None,
-            process: Process::FunctionProcess(function),
-        };
-
-        let actual = toml::to_string(&reference).unwrap();
-
-        assert_eq!(expected.replace("'", "\""), actual);
-    }
+   }
 
     /*
         For completeness I test the alternative format of expressing the table, but I prefer to use
@@ -147,20 +103,19 @@ constant = 1
         let input_str = "
         alias = 'other'
         source = 'other.toml'
-        [input.input1]
-        constant = 1
+        input.input1 = {Always = 1}
         ";
 
         let reference: ProcessReference = toml::from_str(input_str).unwrap();
         let initialized_inputs = reference.initializations.unwrap();
         assert_eq!(initialized_inputs.len(), 1, "Incorrect number of Input initializations parsed");
         match initialized_inputs.get("input1").unwrap() {
-            OneTime(one_time) => {
-                println!("initial_value: {}", one_time.once);
-                panic!("Should have been a Constant initializer")
+            Always(value) => {
+                assert_eq!(&json!(1), value, "input1 should be initialized to 1");
             },
-            Constant(constant) => {
-                assert_eq!(1, constant.constant, "input1 should be initialized to 1");
+            Once(value) => {
+                println!("initial_value: {}", value);
+                panic!("Should have been a Constant initializer")
             }
         }
     }
@@ -170,17 +125,17 @@ constant = 1
         let input_str = "
         alias = 'other'
         source = 'other.toml'
-        input.input1 = { constant = 1 }
+        input.input1 = { Always = 1 }
         ";
 
         let reference: ProcessReference = toml::from_str(input_str).unwrap();
         let initialized_inputs = reference.initializations.unwrap();
         assert_eq!(initialized_inputs.len(), 1, "Incorrect number of Input initializations parsed");
         match initialized_inputs.get("input1").unwrap() {
-            OneTime(_) => panic!("Should have been a Constant initializer"),
-            Constant(constant) => {
-                assert_eq!(1, constant.constant, "input1 should be initialized to 1");
+            Always(value) => {
+                assert_eq!(&json!(1), value, "input1 should be initialized to 1");
             }
+            Once(_) => panic!("Should have been an Always initializer"),
         }
     }
 
@@ -189,21 +144,21 @@ constant = 1
         let input_str = "
         alias = 'other'
         source = 'other.toml'
-        input.input1 = {once = 1}
-        input.input2 = {once = 'hello'}
+        input.input1 = {Once = 1}
+        input.input2 = {Once = 'hello'}
         ";
 
         let reference: ProcessReference = toml::from_str(input_str).unwrap();
         let initialized_inputs = reference.initializations.unwrap();
         assert_eq!(initialized_inputs.len(), 2, "Incorrect number of Input initializations parsed");
         match initialized_inputs.get("input1").unwrap() {
-            OneTime(one_time) => assert_eq!(1, one_time.once, "input1 should be initialized to 1"),
-            _ => panic!("Should have been a simple initializer")
+            Once(value) => assert_eq!(&json!(1), value, "input1 should be initialized to 1"),
+            _ => panic!("Should have been a Once initializer")
         }
 
         match initialized_inputs.get("input2").unwrap() {
-            OneTime(one_time) => assert_eq!("hello", one_time.once, "input2 should be initialized to 'hello'"),
-            _ => panic!("Should have been a simple initializer")
+            Once(value) => assert_eq!("hello", value, "input2 should be initialized to 'hello'"),
+            _ => panic!("Should have been a Once initializer")
         }
     }
 
