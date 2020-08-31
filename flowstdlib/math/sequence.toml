@@ -45,6 +45,7 @@ source = "lib://flowstdlib/control/compare_switch"
 alias = "add"
 source = "lib://flowstdlib/math/add"
 depth = {"i2" = 1}
+# TODO ^^^ that is a hack to make the prime example work!
 
 [[connection]]
 from = "input/step"
