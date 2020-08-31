@@ -1,0 +1,38 @@
+flow = "router"
+
+[[process]]
+alias = "readline"
+source = "lib://flowruntime/stdio/readline"
+
+[[process]]
+alias = "to_number"
+source = "lib://flowstdlib/fmt/to_number"
+
+[[connection]]
+from = "readline"
+to = "to_number"
+
+[[process]]
+alias = "accumulate_triples"
+source = "lib://flowstdlib/data/accumulate"
+input.partial = { once = [] }
+input.chunk_size = { always = 3 }
+
+# Loop back the partial arrays
+[[connection]]
+from = "accumulate_triples/partial"
+to = "accumulate_triples/partial"
+
+# read in each segment line one at a time to accumulator
+[[connection]]
+from = "to_number"
+to = "accumulate_triples/values"
+
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"
+
+# Output the formed triples for each segment
+[[connection]]
+from = "accumulate_triples/chunk"
+to = "print"

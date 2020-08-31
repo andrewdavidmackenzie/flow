@@ -1,8 +1,6 @@
 router
 ==
 
-WIP
-
 Descriptiopn
 ===
 This sample implements the algorithm (as described here https://github.com/andrewdavidmackenzie/router) for
