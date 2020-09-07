@@ -177,6 +177,7 @@ impl Coordinator {
         self.capture_control_c();
     }
 
+    #[cfg(not(target="wasm32"))]
     #[cfg(feature = "debugger")]
     fn capture_control_c(&self) {
         // Get a reference to the shared control variable that will be moved into the closure
