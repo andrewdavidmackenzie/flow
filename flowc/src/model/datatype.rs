@@ -55,10 +55,14 @@ impl DataType {
     }
 
     /// Get the data type the array holds
-    pub fn within_array(&self) -> Self {
+    pub fn within_array(&self) -> Result<Self> {
         let mut subtype = self.to_string();
+        if !subtype.starts_with("Array/") {
+            bail!("Datatype is not an Array");
+        }
+        // Could do this with a slice of Self, without creating new string
         subtype.replace_range(0.."Array/".len(), "");
-        Self::from(subtype.as_str())
+        Ok(Self::from(subtype.as_str()))
     }
 
     /// Take a json data value and return the type string for it, recursively
@@ -75,11 +79,13 @@ impl DataType {
     }
 
     /// Take a string description of a DataType and determine how deeply nested in arrays it is
-    pub fn array_order(&self) -> i32 {
+    pub fn array_order(&self) -> Result<i32> {
         if self.is_array() {
-            1 + self.within_array().array_order()
+            let array_contents = self.within_array()?;
+            let sub_order = array_contents.array_order()?;
+            Ok(1 + sub_order)
         } else {
-            0
+            Ok(0)
         }
     }
 }

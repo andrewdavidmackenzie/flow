@@ -1,4 +1,4 @@
-use log::info;
+use log::{info, trace};
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
@@ -12,6 +12,7 @@ use super::optimizer;
 /// Take a hierarchical flow definition in memory and compile it, generating a manifest for execution
 /// of the flow, including references to libraries required.
 pub fn compile(flow: &Flow) -> Result<GenerationTables> {
+    trace!("compile()");
     let mut tables = GenerationTables::new();
 
     info!("=== Compiler phase: Gathering");
@@ -48,9 +49,9 @@ mod test {
     use super::compile;
 
     /*
-                                                            Test for a function that is dead code. It has no connections to it or from it so will
-                                                            never run. So it should be removed by the optimizer and not fail at check stage.
-                                                        */
+                                                                Test for a function that is dead code. It has no connections to it or from it so will
+                                                                never run. So it should be removed by the optimizer and not fail at check stage.
+                                                            */
     #[test]
     fn dead_function() {
         let function = Function::new(Name::from("Stdout"),

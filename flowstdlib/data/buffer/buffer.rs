@@ -15,10 +15,10 @@ use serde_json::Value;
 ///
 ///
 /// ## Input
-/// * (default) - the value to buffer
+/// (default) - the value to buffer
 ///
 /// ## Outputs
-/// * the buffered value
+/// The buffered value
 #[derive(Debug)]
 pub struct Buffer;
 

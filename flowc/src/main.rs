@@ -30,9 +30,8 @@ mod lib_build;
 mod flow_compile;
 mod compile_wasm;
 
-// We'll put our errors in an `errors` module, and other modules in
-// this crate will `use errors::*;` to get access to everything
-// `error_chain!` creates.
+// We'll put our errors in an `errors` module, and other modules in this crate will
+// `use crate::errors::*;` to get access to everything `error_chain!` creates.
 pub mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
     error_chain! {}
@@ -71,8 +70,7 @@ fn main() {
                 println!("caused by: {}", e);
             }
 
-            // The backtrace is not always generated. Try to run this example
-            // with `RUST_BACKTRACE=1`.
+            // The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
             if let Some(backtrace) = e.backtrace() {
                 println!("backtrace: {:?}", backtrace);
             }

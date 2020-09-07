@@ -79,16 +79,15 @@ pub fn check_function_inputs(tables: &mut GenerationTables) -> Result<()> {
                 match input.get_initializer() {
                     None => {
                         if !connection_to(tables, &input.route()) {
-                            bail!("Input at route '{}' of Function at route '{}' is not used",
-                                               input.route(), function.route());
+                            bail!("Input at route '{}' is not used", input.route());
                         }
                     }
                     Some(Always(_)) => {
                         // Has a constant initializer and there is another
                         // connections to this input then flag that as an error
                         if connection_to(tables, &input.route()) {
-                            bail!("Input at route '{}' of Function at route '{}' has a 'constant' initializer and a connection to it",
-                                               input.route(), function.route());
+                            bail!("Input at route '{}' has a 'constant' initializer and a connection to it",
+                                               input.route());
                         }
                     }
                     _ => {}
@@ -118,8 +117,8 @@ mod test {
     use super::remove_duplicates;
 
     /*
-                                                        Test that when two functions are connected doubly, the connection gets reduced to a single one
-                                                    */
+                                                            Test that when two functions are connected doubly, the connection gets reduced to a single one
+                                                        */
     #[test]
     fn collapse_double_connection() {
         let first = Connection {
