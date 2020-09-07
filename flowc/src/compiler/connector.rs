@@ -25,7 +25,6 @@ use crate::model::route::Route;
 pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()> {
     debug!("Setting output routes on processes");
     for connection in &tables.collapsed_connections {
-        debug!("Preparing connection: '{:?}'", connection);
         if let Some((output_route, source_id)) = get_source(&tables.source_routes, &connection.from_io.route()) {
             if let Some(&(destination_function_id, destination_input_index, destination_flow_id)) = tables.destination_routes.get(connection.to_io.route()) {
                 if let Some(source_function) = tables.functions.get_mut(source_id) {
