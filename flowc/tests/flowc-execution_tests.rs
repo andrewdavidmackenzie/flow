@@ -19,11 +19,13 @@ use provider::content::provider::MetaProvider;
 
 #[path="helper.rs"] mod helper;
 
+#[doc(hidden)]
 mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
     error_chain! {}
 }
 
+#[doc(hidden)]
 error_chain! {
     foreign_links {
         Provider(::provider::errors::Error);
