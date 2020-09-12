@@ -249,7 +249,7 @@ impl Flow {
     // Then from the object find the IO (by name or route, probably route) in common code, maybe using IOSet directly?
     pub fn get_route_and_type(&mut self, direction: Direction, route: &Route,
                               initial_value: &Option<InputInitializer>) -> Result<IO> {
-        let output_route = route.without_trailing_array_index().0;
+        let (output_route, index, array_route) = route.without_trailing_array_index();
         let segments: Vec<&str> = output_route.split('/').collect();
         if segments.is_empty() {
             bail!("Invalid connection {:?} '{}'", direction, route);
@@ -265,7 +265,11 @@ impl Flow {
                 self.outputs.find_by_name(&Name::from(segments[1]), initial_value)
             } // an output from this flow
             (&Direction::TO, _) | (&Direction::FROM, _) => {
-                let sub_route = Route::from(segments[1..].join("/"));
+                let sub_route = if array_route {
+                    Route::from(format!("{}{}", segments[1..].join("/"), index))
+                } else {
+                    Route::from(segments[1..].join("/"))
+                };
                 self.get_io_subprocess(&Name::from(segments[0]), direction, &sub_route, initial_value)
             } // input or output of a sub-process
         }
@@ -336,5 +340,19 @@ impl Flow {
         } else {
             bail!("{} connections errors found in flow '{}'", error_count, self.source_url)
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::model::flow::Flow;
+    use crate::model::route::Route;
+
+    #[test]
+    fn get_route_and_type_from_Array_output () {
+        let from_route = Route::from("/arg-print/Get/2");
+        // let mut flow = Flow{}
+
+        // flow.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {}
     }
 }
