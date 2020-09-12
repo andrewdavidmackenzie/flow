@@ -1,0 +1,47 @@
+error: Could not compile and execute the flow 'file:///Users/andrew/workspace/flow/samples/router'
+caused by: Could not compile the flow 'file:///Users/andrew/workspace/flow/samples/router'
+caused by: Connection source process for route '/router/accumulate_triples/chunk/chunk/0' not found
+backtrace:    0: backtrace::backtrace::libunwind::trace
+             at /Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.50/src/backtrace/libunwind.rs:95
+      backtrace::backtrace::trace_unsynchronized
+             at /Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.50/src/backtrace/mod.rs:66
+   1: backtrace::backtrace::trace
+             at /Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.50/src/backtrace/mod.rs:53
+   2: backtrace::capture::Backtrace::create
+             at /Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.50/src/capture.rs:164
+   3: backtrace::capture::Backtrace::new_unresolved
+             at /Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.50/src/capture.rs:158
+   4: error_chain::backtrace::imp::InternalBacktrace::new
+             at /Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/error-chain-0.12.4/src/backtrace.rs:56
+   5: core::ops::function::FnOnce::call_once
+             at /Users/andrew/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/src/libcore/ops/function.rs:233
+   6: core::option::Option<T>::unwrap_or_else
+             at /Users/andrew/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/src/libcore/option.rs:425
+   7: error_chain::State::new
+             at /Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/error-chain-0.12.4/src/lib.rs:696
+   8: <core::result::Result<T,E> as flowc::ResultExt<T>>::chain_err::{{closure}}
+             at /Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/error-chain-0.12.4/src/error_chain.rs:434
+   9: core::result::Result<T,E>::map_err
+             at /Users/andrew/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/src/libcore/result.rs:612
+  10: <core::result::Result<T,E> as flowc::ResultExt<T>>::chain_err
+             at /Users/andrew/.cargo/registry/src/github.com-1ecc6299db9ec823/error-chain-0.12.4/src/error_chain.rs:433
+  11: flowc::run
+             at flowc/src/main.rs:104
+  12: flowc::main
+             at flowc/src/main.rs:66
+  13: std::rt::lang_start::{{closure}}
+             at /Users/andrew/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/src/libstd/rt.rs:67
+  14: std::rt::lang_start_internal::{{closure}}
+             at /rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/libstd/rt.rs:52
+      std::panicking::try::do_call
+             at /rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/libstd/panicking.rs:348
+      std::panicking::try
+             at /rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/libstd/panicking.rs:325
+      std::panic::catch_unwind
+             at /rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/libstd/panic.rs:394
+      std::rt::lang_start_internal
+             at /rustc/04488afe34512aa4c33566eb16d8c912a3ae04f9/src/libstd/rt.rs:51
+  15: std::rt::lang_start
+             at /Users/andrew/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/src/libstd/rt.rs:67
+  16: _main
+
