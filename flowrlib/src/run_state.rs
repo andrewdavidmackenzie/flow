@@ -10,6 +10,7 @@ use serde_json::{json, Value};
 
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
+use crate::errors::*;
 use crate::function::Function;
 #[cfg(feature = "metrics")]
 use crate::metrics::Metrics;
@@ -301,10 +302,10 @@ impl RunState {
 
         for function in &mut self.functions {
             #[cfg(feature = "debugger")]
-            debug!("Init:\tInitializing Function #{} '{}' in Flow #{}",
+            debug!("Initializing Function #{} '{}' in Flow #{}",
                    function.id(), function.name(), function.get_flow_id());
             #[cfg(not(feature = "debugger"))]
-            debug!("Init:\tInitializing Function #{} in Flow #{}",
+            debug!("Initializing Function #{} in Flow #{}",
                    function.id(), function.get_flow_id());
             function.init_inputs(true);
             if function.inputs_full() {
@@ -316,12 +317,12 @@ impl RunState {
         self.create_init_blocks();
 
         // Put all functions that have their inputs ready and are not blocked on the `ready` list
-        debug!("Init:\tReadying initial functions: inputs full and not blocked on output");
+        debug!("Readying initial functions: inputs full and not blocked on output");
         for (id, flow_id) in inputs_ready_list {
             self.inputs_now_full(id, flow_id);
         }
 
-        trace!("Init: State - {}", self)
+        trace!("State - {}", self)
     }
 
     /*
@@ -333,7 +334,7 @@ impl RunState {
         let mut blocks = HashSet::<Block>::new();
         let mut blocked = HashSet::<usize>::new();
 
-        debug!("Init:\tCreating any initial block entries that are needed");
+        debug!("Creating any initial block entries that are needed");
 
         for source_function in &self.functions {
             let source_id;
@@ -351,7 +352,7 @@ impl RunState {
                 if destination.function_id != source_id { // don't block yourself!
                     let destination_function = self.get(destination.function_id);
                     if destination_function.input_full(destination.io_number) {
-                        trace!("Init:\t\tAdded block #{} --> #{}:{}", source_id, destination.function_id, destination.io_number);
+                        trace!("\tAdded block #{} --> #{}:{}", source_id, destination.function_id, destination.io_number);
                         blocks.insert(Block::new(destination.flow_id, destination.function_id, destination.io_number,
                                                  source_id, source_flow_id));
                         // only put source on the blocked list if it already has it's inputs full
@@ -429,19 +430,18 @@ impl RunState {
         }
 
         // create a job for the function_id at the head of the ready list
-        match self.ready.remove(0) {
-            Some(function_id) => {
-                let job = self.create_job(function_id);
-
-                // unblock senders blocked trying to send to this function's empty inputs
-                if let Some(ref j) = job {
-                    self.unblock_senders(j.job_id, j.function_id, j.flow_id);
-                }
-
-                job
+        if let Some(function_id) = self.ready.remove(0) {
+            match self.create_job(function_id) {
+                Ok(job) => {
+                    // unblock senders blocked trying to send to this function's empty inputs
+                    self.unblock_senders(job.job_id, job.function_id, job.flow_id);
+                    return Some(job);
+                },
+                Err(e) => error!("Error creating job: '{}'", e)
             }
-            None => None
         }
+
+        None
     }
 
     /*
@@ -463,17 +463,17 @@ impl RunState {
         Given a function id, prepare a job for execution that contains the input values, the
         implementation and the destination functions the output should be sent to when done
     */
-    fn create_job(&mut self, function_id: usize) -> Option<Job> {
+    fn create_job(&mut self, function_id: usize) -> Result<Job> {
         let job_id = self.jobs_sent;
 
         let function = self.get_mut(function_id);
 
         #[cfg(feature = "debugger")]
-        debug!("Job #{}:-------Creating for Function #{} '{}' ---------------------------", job_id, function_id, function.name());
+        debug!("Job #{}:------Creating for Function #{} '{}' ---------------------------", job_id, function_id, function.name());
         #[cfg(not(feature = "debugger"))]
         debug!("Job #{}:-------Creating for Function #{} ---------------------------", job_id, function_id);
 
-        let input_set = function.take_input_set();
+        let input_set = function.take_input_set().chain_err(|| "Error while gathering input set for new job")?;
         let flow_id = function.get_flow_id();
 
         // inputs were taken and hence emptied - so refresh any inputs that have constant initializers for next time
@@ -485,7 +485,7 @@ impl RunState {
 
         let destinations = function.output_destinations().clone();
 
-        Some(Job {
+        Ok(Job {
             job_id,
             function_id,
             flow_id,
@@ -581,8 +581,8 @@ impl RunState {
                 0 => function.send(destination.io_number, value),
                 1 => function.send_iter(destination.io_number, value),
                 2 => for array in value.as_array().unwrap().iter() {
-                        function.send_iter(destination.io_number, array)
-                     },
+                    function.send_iter(destination.io_number, array)
+                },
                 -1 => function.send(destination.io_number, &json!([value])),
                 -2 => function.send(destination.io_number, &json!([[value]])),
                 _ => error!("Unable to handle difference in array order")
@@ -896,9 +896,9 @@ impl RunState {
 
         if !self.blocks.contains(&block) {
             #[cfg(not(feature = "debugger"))]
-            self.blocks.insert(block);
+                self.blocks.insert(block);
             #[cfg(feature = "debugger")]
-            self.blocks.insert(block.clone());
+                self.blocks.insert(block.clone());
             #[cfg(feature = "debugger")]
                 debugger.check_on_block_creation(self, &block);
         }
@@ -1073,7 +1073,7 @@ mod test {
             #[cfg(feature = "debugger")]
                 "/fA".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None, &None)),
+            vec!(Input::new(&None)),
             0, 0,
             &[connection_to_f1], false) // outputs to fB:0
     }
@@ -1088,8 +1088,7 @@ mod test {
             #[cfg(feature = "debugger")]
                 "/fA".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None,
-                            &Some(Once(json!(1) )))),
+            vec!(Input::new(&Some(Once(json!(1))))),
             0, 0,
             &[connection_to_f1], false) // outputs to fB:0
     }
@@ -1101,8 +1100,7 @@ mod test {
             #[cfg(feature = "debugger")]
                 "/fA".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None,
-                            &Some(Once(json!(1) )))),
+            vec!(Input::new(&Some(Once(json!(1))))),
             0, 0,
             &[], false)
     }
@@ -1114,7 +1112,7 @@ mod test {
             #[cfg(feature = "debugger")]
                 "/fB".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None, &None)),
+            vec!(Input::new(&None)),
             1, 0,
             &[], false)
     }
@@ -1126,8 +1124,7 @@ mod test {
             #[cfg(feature = "debugger")]
                 "/fB".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None,
-                            &Some(Once(json!(1) )))),
+            vec!(Input::new(&Some(Once(json!(1))))),
             1, 0,
             &[], false)
     }
@@ -1340,7 +1337,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 0, 0,
                 &[], false);
             let functions = vec!(f_a);
@@ -1378,7 +1375,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 0, 0,
                 &[], false);
             let functions = vec!(f_a);
@@ -1501,8 +1498,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None,
-                                &Some(Always(json!(1) )))),
+                vec!(Input::new(&Some(Always(json!(1))))),
                 0, 0,
                 &[], false);
             let functions = vec!(f_a);
@@ -1593,8 +1589,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None,
-                                &Some(Always(json!(1) )))),
+                vec!(Input::new(&Some(Always(json!(1))))),
                 0, 0,
                 &[out_conn], false); // outputs to fB:0
             let f_b = Function::new(
@@ -1603,7 +1598,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fB".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 1, 0,
                 &[], false);
             let functions = vec!(f_a, f_b);
@@ -1644,7 +1639,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 0, 0,
                 &[], false);
             let out_conn = OutputConnection::new("".into(), 0, 0, 0, 0, false, None);
@@ -1654,7 +1649,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fB".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 1, 0,
                 &[out_conn], false);
             let functions = vec!(f_a, f_b);
@@ -1694,8 +1689,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fB".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None,
-                                &Some(Always(json!(1) )))),
+                vec!(Input::new(&Some(Always(json!(1))))),
                 1, 0,
                 &[connection_to_f0], false);
             let functions = vec!(f_a, f_b);
@@ -1741,8 +1735,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None,
-                                &Some(Once(json!(1) )))),
+                vec!(Input::new(&Some(Once(json!(1))))),
                 0, 0,
                 &[
                     connection_to_0.clone(), // outputs to self:0
@@ -1754,7 +1747,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fB".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 1, 0,
                 &[], false);
             let functions = vec!(f_a, f_b); // NOTE the order!
@@ -1852,7 +1845,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/p1".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)), // inputs array
+                vec!(Input::new(&None)), // inputs array
                 1, 0,
                 &[], false);
             let p2 = Function::new(
@@ -1861,7 +1854,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/p2".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)), // inputs array
+                vec!(Input::new(&None)), // inputs array
                 2, 0,
                 &[], false);
             vec!(p0, p1, p2)
@@ -2091,7 +2084,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/test".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 0, 0,
                 &[], false)
         }
@@ -2110,28 +2103,28 @@ mod test {
                 value: Value,
                 dest_generic: bool,
                 dest_array_order: i32,
-                value_expected: Value
+                value_expected: Value,
             }
 
             let test_cases = vec!(
                 // Column 0 test cases
-                TestCase { value: json!(1),                dest_generic: true, dest_array_order: 0, value_expected: json!(1) },
-                TestCase { value: json!([1]),              dest_generic: true, dest_array_order: 0, value_expected: json!([1]) },
+                TestCase { value: json!(1), dest_generic: true, dest_array_order: 0, value_expected: json!(1) },
+                TestCase { value: json!([1]), dest_generic: true, dest_array_order: 0, value_expected: json!([1]) },
                 TestCase { value: json!([[1, 2], [3, 4]]), dest_generic: true, dest_array_order: 0, value_expected: json!([[1, 2], [3, 4]]) },
 
                 // Column 1 Test Cases
-                TestCase { value: json!(1),                dest_generic: false, dest_array_order: 0, value_expected: json!(1) },
-                TestCase { value: json!([1, 2]),           dest_generic: false, dest_array_order: 0, value_expected: json!(1) },
+                TestCase { value: json!(1), dest_generic: false, dest_array_order: 0, value_expected: json!(1) },
+                TestCase { value: json!([1, 2]), dest_generic: false, dest_array_order: 0, value_expected: json!(1) },
                 TestCase { value: json!([[1, 2], [3, 4]]), dest_generic: false, dest_array_order: 0, value_expected: json!(1) },
 
                 // Column 2 Test Cases
-                TestCase { value: json!(1),                dest_generic: false, dest_array_order: 1, value_expected: json!([1]) },
-                TestCase { value: json!([1, 2]),           dest_generic: false, dest_array_order: 1, value_expected: json!([1, 2]) },
+                TestCase { value: json!(1), dest_generic: false, dest_array_order: 1, value_expected: json!([1]) },
+                TestCase { value: json!([1, 2]), dest_generic: false, dest_array_order: 1, value_expected: json!([1, 2]) },
                 TestCase { value: json!([[1, 2], [3, 4]]), dest_generic: false, dest_array_order: 1, value_expected: json!([1, 2]) },
 
                 // Column 3 Test Cases
-                TestCase { value: json!(1),                dest_generic: false, dest_array_order: 2, value_expected: json!([[1]]) },
-                TestCase { value: json!([1, 2]),           dest_generic: false, dest_array_order: 2, value_expected: json!([[1, 2]]) },
+                TestCase { value: json!(1), dest_generic: false, dest_array_order: 2, value_expected: json!([[1]]) },
+                TestCase { value: json!([1, 2]), dest_generic: false, dest_array_order: 2, value_expected: json!([[1, 2]]) },
                 TestCase { value: json!([[1, 2], [3, 4]]), dest_generic: false, dest_array_order: 2, value_expected: json!([[1, 2], [3, 4]]) },
             );
 
@@ -2148,7 +2141,7 @@ mod test {
 
                 // Check
                 println!("TestCase: {:?}", test_case);
-                assert_eq!(test_case.value_expected, function.take_input_set().remove(0));
+                assert_eq!(test_case.value_expected, function.take_input_set().unwrap().remove(0));
             }
         }
     }

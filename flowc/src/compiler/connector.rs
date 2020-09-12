@@ -23,7 +23,7 @@ use crate::model::route::Route;
      that route, which could be to multiple destinations)
 */
 pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()> {
-    debug!("Setting output routes on processes");
+    debug!("Setting output routes on processes from collapsed connections");
     for connection in &tables.collapsed_connections {
         if let Some((output_route, source_id)) = get_source(&tables.source_routes, &connection.from_io.route()) {
             if let Some(&(destination_function_id, destination_input_index, destination_flow_id)) = tables.destination_routes.get(connection.to_io.route()) {

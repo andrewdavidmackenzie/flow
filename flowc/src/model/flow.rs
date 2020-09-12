@@ -249,8 +249,7 @@ impl Flow {
     // Then from the object find the IO (by name or route, probably route) in common code, maybe using IOSet directly?
     pub fn get_route_and_type(&mut self, direction: Direction, route: &Route,
                               initial_value: &Option<InputInitializer>) -> Result<IO> {
-        let output_route = route.without_trailing_array_index().0;
-        let segments: Vec<&str> = output_route.split('/').collect();
+        let segments: Vec<&str> = route.split('/').collect();
         if segments.is_empty() {
             bail!("Invalid connection {:?} '{}'", direction, route);
         }

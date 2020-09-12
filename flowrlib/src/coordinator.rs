@@ -212,7 +212,7 @@ impl Coordinator {
             #[cfg(feature = "metrics")]
                 submission.metrics.reset();
 
-            debug!("===========================    Starting flow execution =============================");
+            debug!("=========================== Starting flow execution =============================");
             #[cfg(feature = "debugger")]
                 let mut display_next_output;
             let mut restart;
@@ -345,9 +345,8 @@ impl Coordinator {
         #[cfg(feature = "debugger")]
             let debug_options = submission.debugger.check_prior_to_job(&submission.state, job.job_id, job.function_id);
 
-        let job_id = job.job_id;
+        debug!("Job #{}:\tSending for execution", job.job_id);
         self.job_tx.send(job)?;
-        debug!("Job #{}:\tSent for execution", job_id);
 
         Ok(debug_options)
     }

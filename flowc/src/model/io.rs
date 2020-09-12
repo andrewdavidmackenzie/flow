@@ -32,8 +32,6 @@ pub struct IO {
     name: Name,
     #[serde(rename = "type", default = "default_type")]
     datatype: DataType,
-    #[serde(default = "default_depth")]
-    depth: Option<usize>,
     #[serde(rename = "value")]
     initializer: Option<InputInitializer>,
 
@@ -49,14 +47,6 @@ impl IO {
         io.datatype = datatype.into();
         io.route = route.clone();
         io
-    }
-
-    pub fn depth(&self) -> Option<usize> {
-        self.depth
-    }
-
-    pub fn set_depth(&mut self, depth: usize) {
-        self.depth = Some(depth)
     }
 
     pub fn flow_io(&self) -> bool {
@@ -109,7 +99,6 @@ impl Default for IO {
         IO {
             name: Name::default(),
             datatype: default_type(),
-            depth: default_depth(),
             route: Route::default(),
             io_type: IOType::FunctionIO,
             initializer: None,
@@ -142,10 +131,6 @@ impl HasRoute for IO {
 
 fn default_type() -> DataType {
     DataType::from("Value")
-}
-
-fn default_depth() -> Option<usize> {
-    None
 }
 
 fn default_io_type() -> IOType { IOType::FunctionIO }
@@ -210,17 +195,22 @@ impl Find for IOSet {
     // TODO improve the Route handling of this - maybe moving into Router
     // TODO return a reference to the IO, with same lifetime as IOSet?
     fn find_by_route(&mut self, sub_route: &Route, initial_value: &Option<InputInitializer>) -> Result<IO> {
+
+
+//        let output_route = route.without_trailing_array_index().0;
+
+
         if let Some(ref mut ios) = self {
             for io in ios {
-                let (array_route, _num, array_index) = sub_route.without_trailing_array_index();
-                if array_index && (io.datatype().is_array()) && (Route::from(io.name()) == array_route.into_owned()) {
+                let (array_route, index, is_array_route) = sub_route.without_trailing_array_index();
+                if is_array_route && (io.datatype().is_array()) && (array_route.into_owned() == Route::from(io.name())) {
                     io.set_initializer(initial_value);
 
-                    let mut found = io.clone();
-                    found.set_datatype(&io.datatype.within_array()?); // the type within the array
-                    let new_route = Route::from(format!("{}/{}", found.route(), sub_route));
-                    found.set_route(&new_route, &io.io_type);
-                    return Ok(found);
+                    let mut found_io = io.clone();
+                    found_io.set_datatype(&io.datatype.within_array()?); // the type within the array
+                    let new_route = Route::from(format!("{}/{}", found_io.route(), index));
+                    found_io.set_route(&new_route, &io.io_type);
+                    return Ok(found_io);
                 }
 
                 if Route::from(io.name()) == *sub_route {
@@ -245,22 +235,6 @@ impl IO {
                         if *input.name() == Name::from(initializer.0) ||
                             (initializer.0.as_str() == "default" && index == 0) {
                             input.initializer = Some(initializer.1.clone());
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    pub fn set_depths(ios: &mut IOSet, input_depths: &Option<HashMap<String, Option<usize>>>) {
-        if let Some(depths) = input_depths {
-            if let Some(inputs) = ios {
-                for depth in depths {
-                    // depth.0 is io name, depth.1 is the desired depth for that IO
-                    for (index, input) in inputs.iter_mut().enumerate() {
-                        if *input.name() == Name::from(depth.0) ||
-                            (depth.0.as_str() == "default" && index == 0) { // reserved 'name' for single, unnamed input
-                            input.depth = *depth.1;
                         }
                     }
                 }
@@ -374,7 +348,6 @@ mod test {
             name: Name::from("io_name"),
             datatype: DataType::from("String"),
             route: Route::default(),
-            depth: None,
             io_type: IOType::FunctionIO,
             initializer: None,
         };
@@ -382,7 +355,6 @@ mod test {
             name: Name::from("different_name"),
             datatype: DataType::from("String"),
             route: Route::default(),
-            depth: None,
             io_type: IOType::FunctionIO,
             initializer: None,
         };
@@ -396,7 +368,6 @@ mod test {
             name: Name::from("io_name"),
             datatype: DataType::from("String"),
             route: Route::default(),
-            depth: None,
             io_type: IOType::FunctionIO,
             initializer: None,
         };
@@ -411,7 +382,6 @@ mod test {
             name: Name::from("io_name"),
             datatype: DataType::from("String"),
             route: Route::default(),
-            depth: None,
             io_type: IOType::FunctionIO,
             initializer: None,
         };
@@ -419,7 +389,6 @@ mod test {
             name: Name::default(),
             datatype: DataType::from("String"),
             route: Route::default(),
-            depth: None,
             io_type: IOType::FunctionIO,
             initializer: None,
         };

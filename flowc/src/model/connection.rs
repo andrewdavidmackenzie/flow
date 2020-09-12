@@ -203,35 +203,34 @@ mod test {
     ///
     /// ## Simple Object Value being sent
     ///   Value Type        Input Type
-    /// * Simple Object --> Simple Object (is_array = false, depth = 1)
-    /// * Simple Object --> Simple Object (is_array = false, depth > 1) (will be accumulated at the
-    /// input and sent to the function as an array of size 'depth'
-    /// * Simple Object --> Array (is_array = true, depth = 1)
+    /// * Simple Object --> Simple Object (is_array = false)
+    /// * Simple Object --> Simple Object (is_array = false)
+    /// * Simple Object --> Array (is_array = true)
     ///
     /// ## Array Object being sent
     ///   Value Type        Input Type
-    /// * Array Object  --> Array (is_array = true, depth = 1)
-    /// * Array Object  --> Array (is_array = true, depth > 1)
-    /// * Array Object  --> Simple Object (is_array = false, depth = 1) (values in Array will be
-    /// serialized and sent to input one by one, will be extracted one-by-one as per depth)
-    /// * Array Object  --> Simple Object (is_array = false, depth > 1) (values in Array will be
-    /// serialized and sent to input one by one, will be extracted in sets of size 'depth')
+    /// * Array Object  --> Array (is_array = true)
+    /// * Array Object  --> Array (is_array = true)
+    /// * Array Object  --> Simple Object (is_array = false) (values in Array will be
+    /// serialized and sent to input one by one, will be extracted one-by-one)
+    /// * Array Object  --> Simple Object (is_array = false) (values in Array will be
+    /// serialized and sent to input one by one)
     #[test]
-    fn simple_to_simple_depth_1() {
+    fn simple_to_simple() {
         let from_io = IO::new("String", &Route::from("/p1/output"));
         let to_io = IO::new("String", &Route::from("/p2"));
         assert!(Connection::compatible_types(&from_io.datatype(), &to_io.datatype()));
     }
 
     #[test]
-    fn simple_indexed_to_simple_depth_1() {
+    fn simple_indexed_to_simple() {
         let from_io = IO::new("String", &Route::from("/p1/output/0"));
         let to_io = IO::new("String", &Route::from("/p2"));
         assert!(Connection::compatible_types(&from_io.datatype(), &to_io.datatype()));
     }
 
     #[test]
-    fn simple_to_simple_depth_1_mismatch() {
+    fn simple_to_simple_mismatch() {
         let from_io = IO::new("String", &Route::from("/p1/output"));
         let to_io = IO::new("Number", &Route::from("/p2"));
         assert_eq!(Connection::compatible_types(&from_io.datatype(), &to_io.datatype()), false);
@@ -241,14 +240,6 @@ mod test {
     fn simple_indexed_to_array() {
         let from_io = IO::new("String", &Route::from("/p1/output/0"));
         let to_io = IO::new("Array/String", &Route::from("/p2"));
-        assert!(Connection::compatible_types(&from_io.datatype(), &to_io.datatype()));
-    }
-
-    #[test]
-    fn simple_to_simple_depth_greater_than_1() {
-        let from_io = IO::new("String", &Route::from("/p1/output"));
-        let mut to_io = IO::new("String", &Route::from("/p2"));
-        to_io.set_depth(2);
         assert!(Connection::compatible_types(&from_io.datatype(), &to_io.datatype()));
     }
 
@@ -274,10 +265,9 @@ mod test {
     }
 
     #[test]
-    fn array_to_array_depth_more_than_1() {
+    fn array_to_array() {
         let from_io = IO::new("Array", &Route::from("/p1/output"));
-        let mut to_io = IO::new("Array", &Route::from("/p2"));
-        to_io.set_depth(2);
+        let to_io = IO::new("Array", &Route::from("/p2"));
         assert!(Connection::compatible_types(&from_io.datatype(), &to_io.datatype()));
     }
 
@@ -296,10 +286,9 @@ mod test {
     }
 
     #[test]
-    fn array_to_simple_depth_more_than_1() {
+    fn array_to_simple() {
         let from_io = IO::new("Array/String", &Route::from("/p1/output"));
-        let mut to_io = IO::new("String", &Route::from("/p2"));
-        to_io.set_depth(2);
+        let to_io = IO::new("String", &Route::from("/p2"));
         assert!(Connection::compatible_types(&from_io.datatype(), &to_io.datatype()));
     }
 }

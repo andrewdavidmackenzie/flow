@@ -7,6 +7,7 @@ use log::{error, trace};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::errors::*;
 use crate::input::Input;
 use crate::output_connection::OutputConnection;
 
@@ -214,12 +215,15 @@ impl Function {
     }
 
     /// Read the values from the inputs and return them for use in executing the function
-    pub fn take_input_set(&mut self) -> Vec<Value> {
+    pub fn take_input_set(&mut self) -> Result<Vec<Value>> {
+        let id = self.id;
         let mut input_set: Vec<Value> = Vec::new();
         for input in &mut self.inputs {
-            input_set.push(input.take());
+            let input_value = input.take()
+                .chain_err(|| format!("Error taking from input of Function #{}", id))?;
+            input_set.push(input_value);
         }
-        input_set
+        Ok(input_set)
     }
 }
 
@@ -259,8 +263,6 @@ mod test {
         assert_eq!("arg1", json.pointer("/1").unwrap(), "json pointer array indexing functionality not working!");
     }
 
-    /*************** Below are tests for inputs with depth = 1 ***********************/
-
     #[test]
     fn can_send_simple_object() {
         let mut function = Function::new(
@@ -269,12 +271,12 @@ mod test {
                                          #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(None, &None)),
+                                         vec!(Input::new(&None)),
                                          0, 0,
                                          &[], false);
         function.init_inputs(true);
         function.send(0, &json!(1));
-        assert_eq!(json!(1), function.take_input_set().remove(0),
+        assert_eq!(json!(1), function.take_input_set().unwrap().remove(0),
                    "Value from input set wasn't what was expected");
     }
 
@@ -287,33 +289,31 @@ mod test {
                                          "/test".to_string(),
                                          "/test".to_string(),
                                          // vec!(Input::new(1, &None, true, false)),
-                                         vec!(Input::new(None, &None)),
+                                         vec!(Input::new(&None)),
                                          0, 0,
                                          &[], false);
         function.init_inputs(true);
         function.send(0, &json!([1, 2]));
-        assert_eq!(json!([1, 2]), function.take_input_set().remove(0),
+        assert_eq!(json!([1, 2]), function.take_input_set().unwrap().remove(0),
                    "Value from input set wasn't what was expected");
     }
 
     #[test]
-    fn test_array_to_non_array_depth_1() {
+    fn test_array_to_non_array() {
         let mut function = Function::new(
             #[cfg(feature = "debugger")]
                 "test".to_string(),
             #[cfg(feature = "debugger")]
                 "/test".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None, &None)),
+            vec!(Input::new(&None)),
             0, 0,
             &[], false);
         function.init_inputs(true);
         function.send(0, &json!([1, 2]));
-        assert_eq!(function.take_input_set().remove(0), json!([1, 2]),
+        assert_eq!(function.take_input_set().unwrap().remove(0), json!([1, 2]),
                    "Value from input set wasn't what was expected");
     }
-
-    /*************** Below are tests for inputs with depth > 1 ***********************/
 
     fn test_function() -> Function {
         let out_conn = OutputConnection::new("/other/input/1".to_string(),
@@ -324,7 +324,7 @@ mod test {
             #[cfg(feature = "debugger")]
                         "/test".to_string(),
                       "/implementation".to_string(),
-                      vec!(Input::new(None, &None)),
+                      vec!(Input::new(&None)),
                       1, 0,
                       &[out_conn], false)
     }
@@ -362,7 +362,7 @@ mod test {
             #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(None, &None)),
+                                         vec!(Input::new(&None)),
                                          0, 0,
                                          &[output_route.clone()], false);
         function.init_inputs(true);

@@ -73,13 +73,12 @@ pub trait Validate {
 pub fn load(url: &str, provider: &dyn Provider) -> Result<Process> {
     trace!("load()");
     load_process(&Route::default(), &Name::default(),
-                 0, &mut 0, url, provider, &None, &None)
+                 0, &mut 0, url, provider, &None)
 }
 
 #[allow(clippy::too_many_arguments)]
 fn load_process(parent_route: &Route, alias: &Name, parent_flow_id: usize, flow_count: &mut usize, url: &str, provider: &dyn Provider,
-                initializations: &Option<HashMap<String, InputInitializer>>,
-                depths: &Option<HashMap<String, Option<usize>>>) -> Result<Process> {
+                initializations: &Option<HashMap<String, InputInitializer>>) -> Result<Process> {
     trace!("load_process()");
     trace!("  --> resolve_url()");
     let (resolved_url, lib_ref) = provider.resolve_url(url, "context", &["toml"])
@@ -111,7 +110,7 @@ fn load_process(parent_route: &Route, alias: &Name, parent_flow_id: usize, flow_
         }
         FunctionProcess(ref mut function) => {
             config_function(function, &resolved_url, parent_route, alias, parent_flow_id,
-                            lib_ref, initializations, depths)?;
+                            lib_ref, initializations)?;
         }
     }
 
@@ -158,8 +157,7 @@ fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Pro
                 .map_err(|e| e.to_string())?;
             process_ref.process = load_process(&flow.route, &process_ref.alias(),
                                                flow.id, flow_count, subprocess_url.as_str(),
-                                               provider, &process_ref.initializations,
-                                               &process_ref.depths)?;
+                                               provider, &process_ref.initializations)?;
 
             // if loaded by the default alias in the process ref then set the alias to be the name of the loaded process
             if process_ref.alias.is_empty() {
@@ -187,8 +185,7 @@ fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Pro
 fn config_function(function: &mut Function, source_url: &str, parent_route: &Route, alias: &Name,
                    flow_id: usize,
                    lib_ref: Option<String>,
-                   initializations: &Option<HashMap<String, InputInitializer>>,
-                   depths: &Option<HashMap<String, Option<usize>>>)
+                   initializations: &Option<HashMap<String, InputInitializer>>)
                    -> Result<()> {
     function.set_flow_id(flow_id);
     function.set_alias(alias);
@@ -196,7 +193,6 @@ fn config_function(function: &mut Function, source_url: &str, parent_route: &Rou
     function.set_lib_reference(lib_ref);
     function.set_routes_from_parent(parent_route);
     IO::set_initial_values(&mut function.inputs, initializations);
-    IO::set_depths(&mut function.inputs, depths);
     function.validate()
 }
 

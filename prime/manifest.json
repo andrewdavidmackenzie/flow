@@ -1,0 +1,475 @@
+{
+  "metadata": {
+    "library_name": "prime",
+    "version": "0.0.0",
+    "description": "",
+    "author_name": "unknown",
+    "author_email": "unknown@unknown.com"
+  },
+  "lib_references": [
+    "lib://flowstdlib",
+    "lib://flowruntime"
+  ],
+  "functions": [
+    {
+      "name": "args",
+      "route": "/prime/args",
+      "id": 0,
+      "flow_id": 0,
+      "implementation_location": "lib://flowruntime/args/get/Get",
+      "output_routes": [
+        {
+          "subpath": "/1",
+          "function_id": 1,
+          "io_number": 0,
+          "flow_id": 0,
+          "route": "/prime/to_number"
+        }
+      ]
+    },
+    {
+      "name": "to_number",
+      "route": "/prime/to_number",
+      "id": 1,
+      "flow_id": 0,
+      "implementation_location": "lib://flowstdlib/fmt/to_number/ToNumber",
+      "inputs": [
+        {}
+      ],
+      "output_routes": [
+        {
+          "function_id": 2,
+          "io_number": 0,
+          "flow_id": 1,
+          "route": "/prime/candidates/compare/left"
+        },
+        {
+          "function_id": 4,
+          "io_number": 2,
+          "flow_id": 0,
+          "route": "/prime/all-numbers/chunk_size"
+        },
+        {
+          "function_id": 5,
+          "io_number": 0,
+          "flow_id": 2,
+          "route": "/prime/composites/sqrt"
+        },
+        {
+          "function_id": 11,
+          "io_number": 0,
+          "flow_id": 4,
+          "route": "/prime/composites/generate_composites/limit-buffer"
+        }
+      ]
+    },
+    {
+      "name": "compare",
+      "route": "/prime/candidates/compare",
+      "id": 2,
+      "flow_id": 1,
+      "implementation_location": "lib://flowstdlib/control/compare_switch/CompareSwitch",
+      "inputs": [
+        {},
+        {
+          "initializer": {
+            "once": 1
+          }
+        }
+      ],
+      "output_routes": [
+        {
+          "subpath": "/right-lte",
+          "function_id": 4,
+          "io_number": 0,
+          "flow_id": 0,
+          "route": "/prime/all-numbers/values"
+        },
+        {
+          "subpath": "/left-gt",
+          "function_id": 2,
+          "io_number": 0,
+          "flow_id": 1,
+          "route": "/prime/candidates/compare/left"
+        },
+        {
+          "subpath": "/right-lt",
+          "function_id": 3,
+          "io_number": 0,
+          "flow_id": 1,
+          "route": "/prime/candidates/add/i1"
+        }
+      ]
+    },
+    {
+      "name": "add",
+      "route": "/prime/candidates/add",
+      "id": 3,
+      "flow_id": 1,
+      "implementation_location": "lib://flowstdlib/math/add/Add",
+      "inputs": [
+        {},
+        {
+          "initializer": {
+            "once": 1
+          }
+        }
+      ],
+      "output_routes": [
+        {
+          "subpath": "/i2",
+          "function_id": 3,
+          "io_number": 1,
+          "flow_id": 1,
+          "route": "/prime/candidates/add/i2"
+        },
+        {
+          "subpath": "/sum",
+          "function_id": 2,
+          "io_number": 1,
+          "flow_id": 1,
+          "route": "/prime/candidates/compare/right"
+        }
+      ]
+    },
+    {
+      "name": "all-numbers",
+      "route": "/prime/all-numbers",
+      "id": 4,
+      "flow_id": 0,
+      "implementation_location": "lib://flowstdlib/data/accumulate/Accumulate",
+      "inputs": [
+        {},
+        {
+          "initializer": {
+            "once": []
+          }
+        },
+        {}
+      ],
+      "output_routes": [
+        {
+          "subpath": "/chunk_size",
+          "function_id": 4,
+          "io_number": 2,
+          "flow_id": 0,
+          "route": "/prime/all-numbers/chunk_size"
+        },
+        {
+          "subpath": "/partial",
+          "function_id": 4,
+          "io_number": 1,
+          "flow_id": 0,
+          "generic": true,
+          "route": "/prime/all-numbers/partial"
+        },
+        {
+          "subpath": "/chunk",
+          "function_id": 14,
+          "io_number": 1,
+          "flow_id": 0,
+          "array_order": 1,
+          "route": "/prime/subtract/array"
+        }
+      ]
+    },
+    {
+      "name": "sqrt",
+      "route": "/prime/composites/sqrt",
+      "id": 5,
+      "flow_id": 2,
+      "implementation_location": "lib://flowstdlib/math/sqrt/Sqrt",
+      "inputs": [
+        {}
+      ],
+      "output_routes": [
+        {
+          "function_id": 6,
+          "io_number": 0,
+          "flow_id": 3,
+          "route": "/prime/composites/divisors/compare/left"
+        }
+      ]
+    },
+    {
+      "name": "compare",
+      "route": "/prime/composites/divisors/compare",
+      "id": 6,
+      "flow_id": 3,
+      "implementation_location": "lib://flowstdlib/control/compare_switch/CompareSwitch",
+      "inputs": [
+        {},
+        {
+          "initializer": {
+            "once": 2
+          }
+        }
+      ],
+      "output_routes": [
+        {
+          "subpath": "/right-lte",
+          "function_id": 8,
+          "io_number": 0,
+          "flow_id": 4,
+          "route": "/prime/composites/generate_composites/multiply/i1"
+        },
+        {
+          "subpath": "/right-lte",
+          "function_id": 10,
+          "io_number": 1,
+          "flow_id": 5,
+          "route": "/prime/composites/generate_composites/composite-sequence/add/i2"
+        },
+        {
+          "subpath": "/left-gt",
+          "function_id": 6,
+          "io_number": 0,
+          "flow_id": 3,
+          "route": "/prime/composites/divisors/compare/left"
+        },
+        {
+          "subpath": "/right-lt",
+          "function_id": 7,
+          "io_number": 0,
+          "flow_id": 3,
+          "route": "/prime/composites/divisors/add/i1"
+        }
+      ]
+    },
+    {
+      "name": "add",
+      "route": "/prime/composites/divisors/add",
+      "id": 7,
+      "flow_id": 3,
+      "implementation_location": "lib://flowstdlib/math/add/Add",
+      "inputs": [
+        {},
+        {
+          "initializer": {
+            "once": 1
+          }
+        }
+      ],
+      "output_routes": [
+        {
+          "subpath": "/i2",
+          "function_id": 7,
+          "io_number": 1,
+          "flow_id": 3,
+          "route": "/prime/composites/divisors/add/i2"
+        },
+        {
+          "subpath": "/sum",
+          "function_id": 6,
+          "io_number": 1,
+          "flow_id": 3,
+          "route": "/prime/composites/divisors/compare/right"
+        }
+      ]
+    },
+    {
+      "name": "multiply",
+      "route": "/prime/composites/generate_composites/multiply",
+      "id": 8,
+      "flow_id": 4,
+      "implementation_location": "lib://flowstdlib/math/multiply/Multiply",
+      "inputs": [
+        {},
+        {
+          "initializer": {
+            "always": 2
+          }
+        }
+      ],
+      "output_routes": [
+        {
+          "function_id": 9,
+          "io_number": 1,
+          "flow_id": 5,
+          "route": "/prime/composites/generate_composites/composite-sequence/compare/right"
+        }
+      ]
+    },
+    {
+      "name": "compare",
+      "route": "/prime/composites/generate_composites/composite-sequence/compare",
+      "id": 9,
+      "flow_id": 5,
+      "implementation_location": "lib://flowstdlib/control/compare_switch/CompareSwitch",
+      "inputs": [
+        {},
+        {}
+      ],
+      "output_routes": [
+        {
+          "subpath": "/right-lte",
+          "function_id": 14,
+          "io_number": 0,
+          "flow_id": 0,
+          "route": "/prime/subtract/value"
+        },
+        {
+          "subpath": "/right-lte",
+          "function_id": 15,
+          "io_number": 0,
+          "flow_id": 0,
+          "route": "/prime/print"
+        },
+        {
+          "subpath": "/left-gt",
+          "function_id": 9,
+          "io_number": 0,
+          "flow_id": 5,
+          "route": "/prime/composites/generate_composites/composite-sequence/compare/left"
+        },
+        {
+          "subpath": "/right-lt",
+          "function_id": 10,
+          "io_number": 0,
+          "flow_id": 5,
+          "route": "/prime/composites/generate_composites/composite-sequence/add/i1"
+        },
+        {
+          "subpath": "/right-gte",
+          "function_id": 12,
+          "io_number": 1,
+          "flow_id": 2,
+          "route": "/prime/composites/join/control"
+        }
+      ]
+    },
+    {
+      "name": "add",
+      "route": "/prime/composites/generate_composites/composite-sequence/add",
+      "id": 10,
+      "flow_id": 5,
+      "implementation_location": "lib://flowstdlib/math/add/Add",
+      "inputs": [
+        {},
+        {}
+      ],
+      "output_routes": [
+        {
+          "subpath": "/i2",
+          "function_id": 10,
+          "io_number": 1,
+          "flow_id": 5,
+          "route": "/prime/composites/generate_composites/composite-sequence/add/i2"
+        },
+        {
+          "subpath": "/sum",
+          "function_id": 9,
+          "io_number": 1,
+          "flow_id": 5,
+          "route": "/prime/composites/generate_composites/composite-sequence/compare/right"
+        }
+      ]
+    },
+    {
+      "name": "limit-buffer",
+      "route": "/prime/composites/generate_composites/limit-buffer",
+      "id": 11,
+      "flow_id": 4,
+      "implementation_location": "lib://flowstdlib/data/buffer/Buffer",
+      "inputs": [
+        {}
+      ],
+      "output_routes": [
+        {
+          "function_id": 11,
+          "io_number": 0,
+          "flow_id": 4,
+          "generic": true,
+          "route": "/prime/composites/generate_composites/limit-buffer"
+        },
+        {
+          "function_id": 9,
+          "io_number": 0,
+          "flow_id": 5,
+          "route": "/prime/composites/generate_composites/composite-sequence/compare/left"
+        }
+      ]
+    },
+    {
+      "name": "join",
+      "route": "/prime/composites/join",
+      "id": 12,
+      "flow_id": 2,
+      "implementation_location": "lib://flowstdlib/control/join/Join",
+      "inputs": [
+        {
+          "initializer": {
+            "always": 1
+          }
+        },
+        {}
+      ],
+      "output_routes": [
+        {
+          "function_id": 13,
+          "io_number": 1,
+          "flow_id": 2,
+          "route": "/prime/composites/subsequence-count/i2"
+        }
+      ]
+    },
+    {
+      "name": "subsequence-count",
+      "route": "/prime/composites/subsequence-count",
+      "id": 13,
+      "flow_id": 2,
+      "implementation_location": "lib://flowstdlib/math/add/Add",
+      "inputs": [
+        {
+          "initializer": {
+            "once": 1
+          }
+        },
+        {}
+      ],
+      "output_routes": [
+        {
+          "subpath": "/sum",
+          "function_id": 13,
+          "io_number": 0,
+          "flow_id": 2,
+          "route": "/prime/composites/subsequence-count/i1"
+        }
+      ]
+    },
+    {
+      "name": "subtract",
+      "route": "/prime/subtract",
+      "id": 14,
+      "flow_id": 0,
+      "implementation_location": "lib://flowstdlib/data/remove/Remove",
+      "inputs": [
+        {
+          "initializer": {
+            "once": 9
+          }
+        },
+        {}
+      ],
+      "output_routes": [
+        {
+          "function_id": 14,
+          "io_number": 1,
+          "flow_id": 0,
+          "array_order": 1,
+          "route": "/prime/subtract/array"
+        }
+      ]
+    },
+    {
+      "name": "print",
+      "route": "/prime/print",
+      "id": 15,
+      "flow_id": 0,
+      "implementation_location": "lib://flowruntime/stdio/stdout/Stdout",
+      "inputs": [
+        {}
+      ]
+    }
+  ]
+}
