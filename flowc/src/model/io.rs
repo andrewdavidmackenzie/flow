@@ -217,7 +217,7 @@ impl Find for IOSet {
                     io.set_initializer(initial_value);
 
                     let mut found = io.clone();
-                    found.set_datatype(&io.datatype.within_array()?); // the type within the array
+                    found.set_datatype(&io.datatype.within_array()); // the type within the array
                     let new_route = Route::from(format!("{}/{}", found.route(), sub_route));
                     found.set_route(&new_route, &io.io_type);
                     return Ok(found);

@@ -79,15 +79,16 @@ pub fn check_function_inputs(tables: &mut GenerationTables) -> Result<()> {
                 match input.get_initializer() {
                     None => {
                         if !connection_to(tables, &input.route()) {
-                            bail!("Input at route '{}' is not used", input.route());
+                            bail!("Input at route '{}' of Function at route '{}' is not used",
+                                               input.route(), function.route());
                         }
                     }
                     Some(Always(_)) => {
                         // Has a constant initializer and there is another
                         // connections to this input then flag that as an error
                         if connection_to(tables, &input.route()) {
-                            bail!("Input at route '{}' has a 'constant' initializer and a connection to it",
-                                               input.route());
+                            bail!("Input at route '{}' of Function at route '{}' has a 'constant' initializer and a connection to it",
+                                               input.route(), function.route());
                         }
                     }
                     _ => {}

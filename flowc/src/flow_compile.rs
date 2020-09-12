@@ -60,13 +60,11 @@ fn check_root(flow: &Flow) -> bool {
 */
 pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> Result<String> {
     info!("==== Compiler phase: Loading flow");
-    let context = loader::load(&options.url.to_string(), provider)
-        .chain_err(|| format!("Could not load flow from '{}'", options.url))?;
-
+    let context = loader::load(&options.url.to_string(), provider).chain_err(|| "load() of flow failed")?;
     match context {
         FlowProcess(flow) => {
             let mut tables = compile::compile(&flow)
-                .chain_err(|| format!("Could not compile flow from '{}'", options.url))?;
+                .chain_err(|| format!("Could not compile the flow '{}'", options.url))?;
 
             compile_supplied_implementations(&mut tables, options.provided_implementations)?;
 

@@ -1,4 +1,4 @@
-use log::{info, trace};
+use log::info;
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
@@ -12,7 +12,6 @@ use super::optimizer;
 /// Take a hierarchical flow definition in memory and compile it, generating a manifest for execution
 /// of the flow, including references to libraries required.
 pub fn compile(flow: &Flow) -> Result<GenerationTables> {
-    trace!("compile()");
     let mut tables = GenerationTables::new();
 
     info!("=== Compiler phase: Gathering");

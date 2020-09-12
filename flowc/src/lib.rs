@@ -11,11 +11,13 @@ pub mod compiler;
 pub mod generator;
 pub mod model;
 
-// We'll put our errors in an `errors` module, and other modules in this crate will
-// `use crate::errors::*;` to get access to everything `error_chain!` creates.
+// We'll put our errors in an `errors` module, and other modules in
+// this crate will `use errors::*;` to get access to everything
+// `error_chain!` creates.
 pub mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
-    error_chain! {}
+    error_chain! {
+    }
 }
 
 error_chain! {

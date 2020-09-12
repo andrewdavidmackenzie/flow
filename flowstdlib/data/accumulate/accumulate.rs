@@ -13,46 +13,34 @@ use serde_json::Value;
 /// ```
 ///
 /// ## Input
-/// ```toml
 /// name = "values"
 /// type = "Value"
-/// ```
-/// The stream of input values to accumulate into an array
+/// * The stream of input values to accumulate into an array
 ///
 /// ## Input
-/// ```toml
 /// name = "partial"
 /// type = "Array"
-/// ```
-/// A partial array, to use in the accumulation, adding next input `value` to it
+/// * A partial array, to use in the accumulation, adding next input `value` to it
 ///
 /// ## Input
-/// ```toml
 /// name = "chunk_size"
 /// type = "Number"
-/// ```
-/// The size of the Array we want to create
+/// * The size of the Array we want to create
 ///
 /// ## Outputs
-/// ```toml
 /// name = "chunk"
 /// type = "Array"
-/// ```
-/// The accumulated Array of inputs of size `limit` or more
+/// * The accumulated Array of inputs of size `limit` or more
 ///
 /// ## Outputs
-/// ```toml
 /// name = "partial"
 /// type = "Array"
-/// ```
-/// The partially accumulated array, of size smaller than `chunk_size`
+/// * The partially accumulated array, of size smaller than `chunk_size`
 ///
 /// ## Outputs
-/// ```toml
 /// name = "limit"
 /// type = "Number"
-/// ```
-/// The limit, output for use downstream or in loop-back
+/// * The limit, output for use downstream or in loop-back
 #[derive(Debug)]
 pub struct Accumulate;
 

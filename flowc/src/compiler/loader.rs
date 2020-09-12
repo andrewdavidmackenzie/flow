@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use log::{debug, info, trace};
+use log::{debug, info};
 use url::Url;
 
 use flowrlib::input::InputInitializer;
@@ -71,7 +71,6 @@ pub trait Validate {
 /// flowclib::compiler::loader::load("file:///example.toml", &dummy_provider).unwrap();
 /// ```
 pub fn load(url: &str, provider: &dyn Provider) -> Result<Process> {
-    trace!("load()");
     load_process(&Route::default(), &Name::default(),
                  0, &mut 0, url, provider, &None, &None)
 }
@@ -80,28 +79,22 @@ pub fn load(url: &str, provider: &dyn Provider) -> Result<Process> {
 fn load_process(parent_route: &Route, alias: &Name, parent_flow_id: usize, flow_count: &mut usize, url: &str, provider: &dyn Provider,
                 initializations: &Option<HashMap<String, InputInitializer>>,
                 depths: &Option<HashMap<String, Option<usize>>>) -> Result<Process> {
-    trace!("load_process()");
-    trace!("  --> resolve_url()");
     let (resolved_url, lib_ref) = provider.resolve_url(url, "context", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
     debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
-    trace!("  --> get_contents()");
     let contents = provider.get_contents(&resolved_url)
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
 
-    trace!("  --> get_deserializer()");
     let deserializer = get_deserializer(&resolved_url)?;
     if !alias.is_empty() {
         info!("Loading process with alias = '{}'", alias);
     }
-
-    debug!("Loading process from url = '{}' with deserializer: '{}'", resolved_url, deserializer.name());
-    trace!("  --> deserialize()");
+    debug!("Loading from url = '{}' with deserializer: '{}'", resolved_url, deserializer.name());
     let mut process = deserializer.deserialize(&String::from_utf8(contents).unwrap(),
                                                Some(url))
         .chain_err(|| format!("Could not deserialize process from content in '{}'", url))?;
 
-    debug!("Deserialized the flow, now parsing and loading any sub-processes");
+    debug!("Deserialized flow, now parsing and loading any sub-processes");
     match process {
         FlowProcess(ref mut flow) => {
             config_flow(flow, &resolved_url, parent_route, alias, *flow_count, initializations)?;
@@ -122,7 +115,6 @@ fn load_process(parent_route: &Route, alias: &Name, parent_flow_id: usize, flow_
 /// At the moment this assumes the Library manifest is in Toml format until we add support
 /// for deserializing from other formats.
 pub fn load_metadata(url: &str, provider: &dyn Provider) -> Result<MetaData> {
-    trace!("Loading Metadata");
     let (resolved_url, _) = provider.resolve_url(url, "Library", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
     debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
