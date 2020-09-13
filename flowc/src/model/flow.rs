@@ -342,17 +342,3 @@ impl Flow {
         }
     }
 }
-
-#[cfg(test)]
-mod test {
-    use crate::model::flow::Flow;
-    use crate::model::route::Route;
-
-    #[test]
-    fn get_route_and_type_from_Array_output () {
-        let from_route = Route::from("/arg-print/Get/2");
-        // let mut flow = Flow{}
-
-        // flow.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {}
-    }
-}
