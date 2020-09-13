@@ -476,9 +476,6 @@ impl RunState {
         let input_set = function.take_input_set();
         let flow_id = function.get_flow_id();
 
-        // inputs were taken and hence emptied - so refresh any inputs that have constant initializers for next time
-        function.init_inputs(false);
-
         debug!("Job #{}:\tInputs: {:?}", job_id, input_set);
 
         let implementation = function.get_implementation();
@@ -851,7 +848,6 @@ impl RunState {
 
         // don't unblock more than one function sending to each io port
         // don't unblock functions sending to an io port that was previously refilled
-        trace!("\t\t\tRemoving blocks to Function #{}", blocker_function_id);
         self.blocks.retain(|block| {
             if (block.blocking_id == blocker_function_id) &&
                 !unblock_io_numbers.contains(&block.blocking_io_number) &&
