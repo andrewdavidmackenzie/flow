@@ -5,6 +5,8 @@ use log::{debug, trace};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::errors::*;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 /// An `Input` can be initialized in one of two ways with an `InputInitializer`
@@ -65,9 +67,13 @@ impl Input {
         self.received.clear();
     }
 
-    /// Take first element from the Input and leave the rest for the next time
-    pub fn take(&mut self) -> Value {
-        self.received.remove(0)
+    /// Take first element from the Input
+    pub fn take(&mut self) -> Result<Value> {
+        if self.received.is_empty() {
+            bail!("Trying to take from an empty Input");
+        }
+
+        Ok(self.received.remove(0))
     }
 
     /// Initialize an input with the InputInitializer if it has one.
@@ -165,7 +171,7 @@ mod test {
         let mut input = Input::new(None, &None);
         input.push(json!(10));
         assert!(!input.is_empty());
-        input.take();
+        let _value = input.take().unwrap();
         assert!(input.is_empty());
     }
 

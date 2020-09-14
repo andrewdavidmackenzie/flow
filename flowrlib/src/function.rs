@@ -7,6 +7,7 @@ use log::{error, trace};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::errors::*;
 use crate::input::Input;
 use crate::output_connection::OutputConnection;
 
@@ -151,12 +152,15 @@ impl Function {
     }
 
     /// Initialize all of a `Functions` `Inputs` - as they may have initializers that need running
-    pub fn init_inputs(&mut self, first_time: bool) {
+    pub fn init_inputs(&mut self, first_time: bool) -> bool {
+        let mut inputs_initialized = false;
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
             if input.is_empty() && input.init(first_time, io_number) {
                 trace!("\t\tInput #{}:{} set from initializer", self.id, io_number);
+                inputs_initialized = true;
             }
         }
+        inputs_initialized
     }
 
     /// Accessor for a `Functions` `implementation_location`
@@ -214,12 +218,12 @@ impl Function {
     }
 
     /// Read the values from the inputs and return them for use in executing the function
-    pub fn take_input_set(&mut self) -> Vec<Value> {
+    pub fn take_input_set(&mut self) -> Result<Vec<Value>> {
         let mut input_set: Vec<Value> = Vec::new();
         for input in &mut self.inputs {
-            input_set.push(input.take());
+            input_set.push(input.take()?);
         }
-        input_set
+        Ok(input_set)
     }
 }
 
@@ -274,7 +278,7 @@ mod test {
                                          &[], false);
         function.init_inputs(true);
         function.send(0, &json!(1));
-        assert_eq!(json!(1), function.take_input_set().remove(0),
+        assert_eq!(json!(1), function.take_input_set().unwrap().remove(0),
                    "Value from input set wasn't what was expected");
     }
 
@@ -292,7 +296,7 @@ mod test {
                                          &[], false);
         function.init_inputs(true);
         function.send(0, &json!([1, 2]));
-        assert_eq!(json!([1, 2]), function.take_input_set().remove(0),
+        assert_eq!(json!([1, 2]), function.take_input_set().unwrap().remove(0),
                    "Value from input set wasn't what was expected");
     }
 
@@ -309,7 +313,7 @@ mod test {
             &[], false);
         function.init_inputs(true);
         function.send(0, &json!([1, 2]));
-        assert_eq!(function.take_input_set().remove(0), json!([1, 2]),
+        assert_eq!(function.take_input_set().unwrap().remove(0), json!([1, 2]),
                    "Value from input set wasn't what was expected");
     }
 
