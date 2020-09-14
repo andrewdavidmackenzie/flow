@@ -6,7 +6,7 @@ STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo "<------ Target '$@'
 ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo "------> Target '$@' done in $$st seconds"
 FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
 UNAME := $(shell uname)
-ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 > /dev/null)
+ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 2> /dev/null)
 export FLOW_ROOT := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 export SHELL := /bin/bash
 
