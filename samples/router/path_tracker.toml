@@ -87,7 +87,7 @@ to = "forward_sum/i2"
 from = "input/forward"
 to = "forward_sum/i1"
 
-# Accumulate the distances so_far to the other point
+# Accumulate the distances so_far to the point on the opposite side
 [[process]]
 alias = "cross_sum"
 source = "lib://flowstdlib/math/add"
@@ -114,6 +114,7 @@ from = "cross_sum/sum"
 to = "compare/right"
 
 # select the string that corresponds to the lowest sum
+# selected string = "select_string/select_i1"
 [[process]]
 alias = "select_string"
 source = "lib://flowstdlib/control/select"
@@ -129,10 +130,9 @@ to = "select_string/i2"
 [[connection]]
 from = "compare/lte"
 to = "select_string/control"
-#
-## selected string = "select_string/select_i1"
-#
-## select the total that corresponds to the lowest sum
+
+# select the total that corresponds to the lowest sum
+# selected total = "select_total/select_i1"
 [[process]]
 alias = "select_total"
 source = "lib://flowstdlib/control/select"
@@ -149,7 +149,6 @@ to = "select_total/i2"
 from = "compare/lte"
 to = "select_total/control"
 
-# selected total = "select_total/select_i1"
 
 #  output the total_so_far
 [[connection]]

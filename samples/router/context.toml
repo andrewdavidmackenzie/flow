@@ -1,32 +1,32 @@
 flow = "router"
 
-#[[process]]
-#alias = "readline"
-#source = "lib://flowruntime/stdio/readline"
-#
-#[[process]]
-#alias = "to_number"
-#source = "lib://flowstdlib/fmt/to_number"
-#
-#[[connection]]
-#from = "readline"
-#to = "to_number"
-#
-#[[process]]
-#alias = "accumulate_triples"
-#source = "lib://flowstdlib/data/accumulate"
-#input.partial = { once = [] }
-#input.chunk_size = { always = 3 }
-#
-## read in each segment line one at a time to accumulator
-#[[connection]]
-#from = "to_number"
-#to = "accumulate_triples/values"
-#
-## Loop back the partial arrays
-#[[connection]]
-#from = "accumulate_triples/partial"
-#to = "accumulate_triples/partial"
+[[process]]
+alias = "readline"
+source = "lib://flowruntime/stdio/readline"
+
+[[process]]
+alias = "to_number"
+source = "lib://flowstdlib/fmt/to_number"
+
+[[connection]]
+from = "readline"
+to = "to_number"
+
+[[process]]
+alias = "accumulate_triples"
+source = "lib://flowstdlib/data/accumulate"
+input.partial = { once = [] }
+input.chunk_size = { always = 3 }
+
+# read in each segment line one at a time to accumulator
+[[connection]]
+from = "to_number"
+to = "accumulate_triples/values"
+
+# Loop back the partial arrays
+[[connection]]
+from = "accumulate_triples/partial"
+to = "accumulate_triples/partial"
 
 # Track top path to 'A' points
 [[process]]
@@ -39,22 +39,17 @@ input.other_distance = { once = 0 }
 input.forward_string = { always = "A" }
 input.cross_string = { always = "BC" }
 
-# debug
-input.forward = {once = 50}
-input.cross = {once = 30}
-input.other = {once = 10}
+[[connection]] # top distance
+from = "accumulate_triples/chunk/0"
+to = "A_tracker/forward"
 
-#[[connection]] # top distance
-#from = "accumulate_triples/chunk/0"
-#to = "A_tracker/forward"
-#
-#[[connection]] # cross-over distance
-#from = "accumulate_triples/chunk/1"
-#to = "A_tracker/cross"
-#
-#[[connection]] # bottom distance
-#from = "accumulate_triples/chunk/2"
-#to = "A_tracker/other"
+[[connection]] # cross-over distance
+from = "accumulate_triples/chunk/1"
+to = "A_tracker/cross"
+
+[[connection]] # bottom distance
+from = "accumulate_triples/chunk/2"
+to = "A_tracker/other"
 
 # Track top path to 'B' points
 #[[process]]
