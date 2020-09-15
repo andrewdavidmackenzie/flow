@@ -220,7 +220,7 @@ impl Flow {
         if let Some(ref mut process_refs) = self.process_refs {
             for process_ref in process_refs {
                 debug!("\tLooking in process_ref with alias = '{}'", process_ref.alias);
-                if *subprocess_alias == process_ref.alias().clone() {
+                if subprocess_alias == process_ref.alias() {
                     match process_ref.process {
                         FlowProcess(ref mut sub_flow) => {
                             debug!("\tFlow sub-process with matching name found, name = '{}'", process_ref.alias);
