@@ -212,13 +212,13 @@ impl Find for IOSet {
     fn find_by_route(&mut self, sub_route: &Route, initial_value: &Option<InputInitializer>) -> Result<IO> {
         if let Some(ref mut ios) = self {
             for io in ios {
-                let (array_route, _num, array_index) = sub_route.without_trailing_array_index();
+                let (array_route, index, array_index) = sub_route.without_trailing_array_index();
                 if array_index && (io.datatype().is_array()) && (Route::from(io.name()) == array_route.into_owned()) {
                     io.set_initializer(initial_value);
 
                     let mut found = io.clone();
                     found.set_datatype(&io.datatype.within_array()?); // the type within the array
-                    let new_route = Route::from(format!("{}/{}", found.route(), sub_route));
+                    let new_route = Route::from(format!("{}/{}", found.route(), index));
                     found.set_route(&new_route, &io.io_type);
                     return Ok(found);
                 }
