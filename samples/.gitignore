@@ -1,4 +1,5 @@
 **/manifest.json
+**/failed.output
 *.wasm
 test.output
 test.err
