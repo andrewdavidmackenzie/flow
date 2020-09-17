@@ -196,10 +196,7 @@ impl Coordinator {
     }
 
     fn looper(&mut self, mut submission: Submission) {
-        /*
-            This outer loop is just a way of restarting execution from scratch if the debugger
-            requests it.
-        */
+        // This outer loop is just a way of restarting execution from scratch if the debugger requests it
         loop {
             debug!("Resetting stats and initializing all functions");
             submission.state.init();

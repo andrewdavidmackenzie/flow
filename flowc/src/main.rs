@@ -60,7 +60,8 @@ pub struct Options {
     skip_generation: bool,
     debug_symbols: bool,
     provided_implementations: bool,
-    output_dir: PathBuf
+    output_dir: PathBuf,
+    stdin_file: Option<String>
 }
 
 fn main() {
@@ -145,6 +146,12 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .takes_value(true)
             .value_name("VERBOSITY_LEVEL")
             .help("Set verbosity level for output (trace, debug, info, warn, error (default))"))
+        .arg(Arg::with_name("stdin")
+            .short("i")
+            .long("stdin")
+            .takes_value(true)
+            .value_name("STDIN_FILENAME")
+            .help("Read STDIN from the named file"))
         .arg(Arg::with_name("FLOW")
             .help("the name of the 'flow' definition file to compile")
             .required(false)
@@ -187,6 +194,7 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         skip_generation: matches.is_present("skip"),
         debug_symbols: matches.is_present("symbols"),
         provided_implementations: matches.is_present("provided"),
-        output_dir
+        output_dir,
+        stdin_file: matches.value_of("stdin").map(String::from)
     })
 }
