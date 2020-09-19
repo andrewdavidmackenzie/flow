@@ -28,7 +28,6 @@ use serde_json::{json, Value};
 ///
 /// ## Outputs
 /// ```toml
-/// name = "s3"
 /// type = "String"
 /// ```
 /// The Concatenated string
