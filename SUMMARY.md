@@ -66,6 +66,7 @@
     - [range](samples/range/DESCRIPTION.md)
     - [range-of-ranges](samples/range-of-ranges/DESCRIPTION.md)
     - [reverse-echo sample](samples/reverse-echo/DESCRIPTION.md)
+    - [router](samples/router/DESCRIPTION.md)
     - [tokenizer sample](samples/tokenizer/DESCRIPTION.md)
 
 <!---
