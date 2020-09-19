@@ -87,4 +87,15 @@ mod test {
         let output = result.unwrap();
         assert_eq!(output, json!("hello world"));
     }
+
+    #[test]
+    fn append_one_non_string() {
+        let s1 = json!("hello");
+        let s2 = json!(42);
+
+        let appender = super::Append {};
+        let (result, run_again) = appender.run(&[s1, s2]);
+        assert!(result.is_none());
+        assert_eq!(run_again, true);
+    }
 }
