@@ -101,7 +101,7 @@ to = "B_tracker/other_distance"
 from = "B_tracker/distance"
 to = "A_tracker/other_distance"
 
-######## WIP
+######## Print out the shortest route and it's length to each point 'A' - and the last one is the destination
 
 [[process]]
 alias = "print"
