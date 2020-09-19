@@ -55,7 +55,7 @@ type = "String"
 
 #### The total (so far) for the path (so far) we have selected
 [[output]]
-name = "total"
+name = "distance"
 type = "Number"
 
 ############################### Definition #####################
@@ -74,7 +74,7 @@ from = "input/other"
 to = "cross_distance/i2"
 
 
-# Accumulate the distances so_far to the forward point
+# Accumulate the distances so_far - if we take the forward route
 [[process]]
 alias = "forward_sum"
 source = "lib://flowstdlib/math/add"
@@ -87,7 +87,7 @@ to = "forward_sum/i2"
 from = "input/forward"
 to = "forward_sum/i1"
 
-# Accumulate the distances so_far to the point on the opposite side
+# Accumulate the distances so_far - if we take the cross over route
 [[process]]
 alias = "cross_sum"
 source = "lib://flowstdlib/math/add"
@@ -113,8 +113,8 @@ to = "compare/left"
 from = "cross_sum/sum"
 to = "compare/right"
 
-# select the string that corresponds to the lowest sum
-# selected string = "select_string/select_i1"
+# select the string for the shortest route
+# shortest route = "select_string/select_i1"
 [[process]]
 alias = "select_string"
 source = "lib://flowstdlib/control/select"
@@ -130,6 +130,23 @@ to = "select_string/i2"
 [[connection]]
 from = "compare/lte"
 to = "select_string/control"
+
+# select the shortest route so far
+[[process]]
+alias = "select_route"
+source = "lib://flowstdlib/control/select"
+
+[[connection]]
+from = "input/forward_route"
+to = "select_route/i1"
+
+[[connection]]
+from = "input/other_route"
+to = "select_route/i2"
+
+[[connection]]
+from = "compare/lte"
+to = "select_route/control"
 
 # select the total that corresponds to the lowest sum
 # selected total = "select_total/select_i1"
@@ -149,13 +166,24 @@ to = "select_total/i2"
 from = "compare/lte"
 to = "select_total/control"
 
+# Accumulate the shortest route so far
+[[process]]
+source = "lib://flowstdlib/data/append"
 
-#  output the total_so_far
 [[connection]]
-from = "select_total/select_i1"
-to = "output/total"
+from = "select_route/select_i1"
+to = "append/s1"
 
-# output selected string
 [[connection]]
 from = "select_string/select_i1"
+to = "append/s2"
+
+#  output the distance so far
+[[connection]]
+from = "select_total/select_i1"
+to = "output/distance"
+
+# output route so far
+[[connection]]
+from = "append"
 to = "output/route"
