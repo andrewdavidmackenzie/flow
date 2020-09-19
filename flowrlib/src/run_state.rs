@@ -531,7 +531,7 @@ impl RunState {
 
                 // if it produced an output value
                 if let Some(output_v) = output_value {
-                    debug!("Job #{}:\tOutputs '{}'", job.job_id, output_v);
+                    debug!("Job #{}:\tOutputs {:?}", job.job_id, output_v);
 
                     for destination in &job.destinations {
                         match output_v.pointer(&destination.subpath) {
@@ -750,14 +750,14 @@ impl RunState {
     */
     fn inputs_now_full(&mut self, id: usize, flow_id: usize, value_sent: bool) {
         if self.blocked_sending(id) {
-            debug!("\t\tFunction #{}, inputs full, but blocked on output. Added to blocked list", id);
+            debug!("\t\t\tFunction #{}, inputs full, but blocked on output. Added to blocked list", id);
             // so put it on the blocked list
             self.blocked.insert(id);
         } else {
             // If a value was sent to the function (from another, from initializer or from loopback) then make ready
             // If the function has inputs backed-up and is not ready, then make ready
             if value_sent || !self.ready.contains(&id) {
-                debug!("\t\tFunction #{} not blocked on output, so added to 'Ready' list", id);
+                debug!("\t\t\tFunction #{} not blocked on output, so added to 'Ready' list", id);
                 self.mark_ready(id, flow_id);
             }
         }
