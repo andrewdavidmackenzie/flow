@@ -29,11 +29,11 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
             if let Some(&(destination_function_id, destination_input_index, destination_flow_id)) = tables.destination_routes.get(connection.to_io.route()) {
                 if let Some(source_function) = tables.functions.get_mut(source_id) {
                     debug!("Connection: from '{}' to '{}'", &connection.from_io.route(), &connection.to_io.route());
-                    debug!("Output: Route = '{}', destination_process_id = {}, destination_input_index = {})",
+                    debug!("  Source output route = '{}' --> Destination: Process ID = {},  Input number = {}",
                            output_route.to_string(), destination_function_id, destination_input_index);
                     let output_conn = OutputConnection::new(output_route.to_string(),
                                                             destination_function_id, destination_input_index, destination_flow_id,
-                                                            connection.to_io.datatype().array_order(), connection.to_io.datatype().is_generic(), Some(connection.to_io.route().to_string()));
+                                                            connection.to_io.datatype().array_order()?, connection.to_io.datatype().is_generic(), Some(connection.to_io.route().to_string()));
                     source_function.add_output_route(output_conn);
                 }
 
@@ -51,10 +51,10 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                     }
                 }
             } else {
-                bail!("Connection destination process for route '{}' not found", connection.to_io.route());
+                bail!("Connection destination for route '{}' was not found", connection.to_io.route());
             }
         } else {
-            bail!("Connection source process for route '{}' not found", connection.from_io.route());
+            bail!("Connection source for route '{}' was not found", connection.from_io.route());
         }
     }
 

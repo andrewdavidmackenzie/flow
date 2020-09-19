@@ -177,6 +177,7 @@ impl Coordinator {
         self.capture_control_c();
     }
 
+    #[cfg(not(target="wasm32"))]
     #[cfg(feature = "debugger")]
     fn capture_control_c(&self) {
         // Get a reference to the shared control variable that will be moved into the closure
@@ -195,10 +196,7 @@ impl Coordinator {
     }
 
     fn looper(&mut self, mut submission: Submission) {
-        /*
-            This outer loop is just a way of restarting execution from scratch if the debugger
-            requests it.
-        */
+        // This outer loop is just a way of restarting execution from scratch if the debugger requests it
         loop {
             debug!("Resetting stats and initializing all functions");
             submission.state.init();

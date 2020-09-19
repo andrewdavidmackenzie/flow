@@ -34,8 +34,10 @@ const CLI_DEBUG_CLIENT: &dyn DebugClient = &CLIDebugClient {};
 // We'll put our errors in an `errors` module, and other modules in
 // this crate will `use errors::*;` to get access to everything
 // `error_chain!` creates.
+#[doc(hidden)]
 mod errors {}
 
+#[doc(hidden)]
 error_chain! {
     foreign_links {
         Provider(provider::errors::Error);

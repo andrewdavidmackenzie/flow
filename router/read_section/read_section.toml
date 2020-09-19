@@ -1,8 +1,0 @@
-function = "ReadSection"
-implementation = "read_section.rs"
-
-[[input]]
-type = "String"
-
-[[output]]
-type = "Array/Number"

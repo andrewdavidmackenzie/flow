@@ -30,14 +30,15 @@ mod lib_build;
 mod flow_compile;
 mod compile_wasm;
 
-// We'll put our errors in an `errors` module, and other modules in
-// this crate will `use errors::*;` to get access to everything
-// `error_chain!` creates.
+// We'll put our errors in an `errors` module, and other modules in this crate will
+// `use crate::errors::*;` to get access to everything `error_chain!` creates.
+#[doc(hidden)]
 pub mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
     error_chain! {}
 }
 
+#[doc(hidden)]
 error_chain! {
     types {
         Error, ErrorKind, ResultExt, Result;
@@ -59,7 +60,8 @@ pub struct Options {
     skip_generation: bool,
     debug_symbols: bool,
     provided_implementations: bool,
-    output_dir: PathBuf
+    output_dir: PathBuf,
+    stdin_file: Option<String>
 }
 
 fn main() {
@@ -71,8 +73,7 @@ fn main() {
                 println!("caused by: {}", e);
             }
 
-            // The backtrace is not always generated. Try to run this example
-            // with `RUST_BACKTRACE=1`.
+            // The backtrace is generated if env var `RUST_BACKTRACE` is set to `1` or `full`
             if let Some(backtrace) = e.backtrace() {
                 println!("backtrace: {:?}", backtrace);
             }
@@ -145,6 +146,12 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .takes_value(true)
             .value_name("VERBOSITY_LEVEL")
             .help("Set verbosity level for output (trace, debug, info, warn, error (default))"))
+        .arg(Arg::with_name("stdin")
+            .short("i")
+            .long("stdin")
+            .takes_value(true)
+            .value_name("STDIN_FILENAME")
+            .help("Read STDIN from the named file"))
         .arg(Arg::with_name("FLOW")
             .help("the name of the 'flow' definition file to compile")
             .required(false)
@@ -187,6 +194,7 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         skip_generation: matches.is_present("skip"),
         debug_symbols: matches.is_present("symbols"),
         provided_implementations: matches.is_present("provided"),
-        output_dir
+        output_dir,
+        stdin_file: matches.value_of("stdin").map(String::from)
     })
 }

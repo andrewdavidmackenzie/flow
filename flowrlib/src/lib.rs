@@ -55,6 +55,7 @@ mod run_state;
 mod metrics;
 
 // Specify the errors we will produce and foreign links
+#[doc(hidden)]
 error_chain! {
     types {
         Error, ErrorKind, ResultExt, Result;

@@ -1,6 +1,6 @@
 use std::env;
 use std::fs::File;
-use std::io::prelude::*;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
@@ -60,11 +60,13 @@ fn check_root(flow: &Flow) -> bool {
 */
 pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> Result<String> {
     info!("==== Compiler phase: Loading flow");
-    let context = loader::load(&options.url.to_string(), provider).chain_err(|| "load() of flow failed")?;
+    let context = loader::load(&options.url.to_string(), provider)
+        .chain_err(|| format!("Could not load flow from '{}'", options.url))?;
+
     match context {
         FlowProcess(flow) => {
             let mut tables = compile::compile(&flow)
-                .chain_err(|| format!("Could not compile the flow '{}'", options.url))?;
+                .chain_err(|| format!("Could not compile flow from '{}'", options.url))?;
 
             compile_supplied_implementations(&mut tables, options.provided_implementations)?;
 
@@ -92,7 +94,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
                 .chain_err(|| "Failed to write manifest")?;
 
             info!("==== Compiler phase: Executing flow from manifest");
-            execute_flow(&manifest_path, &options.flow_args)
+            execute_flow(&manifest_path, &options)
         }
         _ => bail!("Process loaded was not of type 'Flow' and cannot be executed")
     }
@@ -174,27 +176,47 @@ fn find_executable_path(name: &str) -> Result<String> {
     If the process exits correctly then just return an Ok() with message and no log
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
-fn execute_flow(filepath: &PathBuf, flow_args: &[String]) -> Result<String> {
+fn execute_flow(filepath: &PathBuf, options: &Options) -> Result<String> {
     info!("Executing flow from manifest in '{}'", filepath.display());
 
     let command = find_executable_path(&get_executable_name())?;
     let mut command_args = vec!(filepath.to_str().unwrap().to_string());
-    if !flow_args.contains(&"-n".to_string()) {
+    if !options.flow_args.contains(&"-n".to_string()) {
         command_args.push("-n".to_string());
     }
-    command_args.append(&mut flow_args.to_vec());
+    command_args.append(&mut options.flow_args.to_vec());
     debug!("Running flow using '{} {:?}'", &command, &command_args);
-    let output = Command::new(&command).args(command_args)
+
+    let mut flowr = Command::new(&command);
+    flowr.args(command_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .output().chain_err(|| "Error while attempting to spawn command to compile and run flow")?;
-    match output.status.code() {
+        .stderr(Stdio::inherit());
+
+    if options.stdin_file.is_some() {
+        flowr.stdin(Stdio::piped());
+    }
+
+    let mut flowr_child = flowr.spawn().chain_err(|| "Could not spawn 'flowr'")?;
+
+    if let Some(stdin_file) = &options.stdin_file {
+        debug!("Reading STDIN from file: '{}'", stdin_file);
+
+        let _ = Command::new("cat")
+            .args(vec!(stdin_file))
+            .stdout(flowr_child.stdin.take().unwrap())
+            .spawn()
+            .chain_err(|| "Could not spawn 'cat' to pipe STDIN to 'flowr'");
+    }
+
+    let flowr_output = flowr_child.wait_with_output().chain_err(|| "Could not capture 'flowr' output")?;
+
+    match flowr_output.status.code() {
         Some(0) => Ok("".into()),
         Some(code) => {
             error!("Execution of 'flowr' failed");
-            error!("Process STDOUT:\n{}", String::from_utf8_lossy(&output.stdout));
-            error!("Process STDERR:\n{}", String::from_utf8_lossy(&output.stderr));
+            error!("Process STDOUT:\n{}", String::from_utf8_lossy(&flowr_output.stdout));
+            error!("Process STDERR:\n{}", String::from_utf8_lossy(&flowr_output.stderr));
             bail!("Exited with status code: {}", code)
         }
         None => Ok("No return code - ignoring".to_string())

@@ -1,0 +1,117 @@
+flow = "router"
+
+[[process]]
+alias = "readline"
+source = "lib://flowruntime/stdio/readline"
+
+[[process]]
+alias = "to_number"
+source = "lib://flowstdlib/fmt/to_number"
+
+[[connection]]
+from = "readline"
+to = "to_number"
+
+[[process]]
+alias = "accumulate_triples"
+source = "lib://flowstdlib/data/accumulate"
+input.partial = { once = [] }
+input.chunk_size = { always = 3 }
+
+# read in each segment line one at a time to accumulator
+[[connection]]
+from = "to_number"
+to = "accumulate_triples/values"
+
+# Loop back the partial arrays
+[[connection]]
+from = "accumulate_triples/partial"
+to = "accumulate_triples/partial"
+
+# Track top path to 'A' points
+[[process]]
+alias = "A_tracker"
+source = "path_tracker"
+input.forward_route = { once = "" }
+input.forward_distance = { once = 0 }
+input.other_route = { once = "" }
+input.other_distance = { once = 0 }
+input.forward_string = { always = "A" }
+input.cross_string = { always = "BC" }
+
+[[connection]] # A - top distance
+from = "accumulate_triples/chunk/0"
+to = "A_tracker/forward"
+
+[[connection]] # B - bottom distance
+from = "accumulate_triples/chunk/1"
+to = "A_tracker/other"
+
+[[connection]] # C - cross-over distance
+from = "accumulate_triples/chunk/2"
+to = "A_tracker/cross"
+
+# Track top path to 'B' points
+[[process]]
+alias = "B_tracker"
+source = "path_tracker"
+input.forward_route = { once = "" }
+input.forward_distance = { once = 0 }
+input.forward_string = { always = "B" }
+input.cross_string = { always = "C" }
+input.other = { always = 0 }
+
+[[connection]] # B - bottom distance
+from = "accumulate_triples/chunk/1"
+to = "B_tracker/forward"
+
+[[connection]] # C - cross-over distance
+from = "accumulate_triples/chunk/2"
+to = "B_tracker/cross"
+
+[[connection]]
+from = "A_tracker/route"
+to = "A_tracker/forward_route"
+
+[[connection]]
+from = "B_tracker/route"
+to = "B_tracker/forward_route"
+
+[[connection]]
+from = "A_tracker/distance"
+to = "A_tracker/forward_distance"
+
+[[connection]]
+from = "B_tracker/distance"
+to = "B_tracker/forward_distance"
+
+[[connection]]
+from = "A_tracker/route"
+to = "B_tracker/other_route"
+
+[[connection]]
+from = "B_tracker/route"
+to = "A_tracker/other_route"
+
+[[connection]]
+from = "A_tracker/distance"
+to = "B_tracker/other_distance"
+
+[[connection]]
+from = "B_tracker/distance"
+to = "A_tracker/other_distance"
+
+######## Print out the shortest route and it's length to each point 'A' - and the last one is the destination
+
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"
+
+# debug
+[[connection]]
+from = "A_tracker/route"
+to = "print"
+
+[[connection]]
+from = "A_tracker/distance"
+to = "print"

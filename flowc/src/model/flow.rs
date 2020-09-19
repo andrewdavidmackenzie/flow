@@ -89,7 +89,7 @@ impl Validate for Flow {
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "\tname: \t\t\t{}\n\tid: \t\t\t{}\n\talias: \t\t\t{}\n\tsource_url: \t{}\n\troute: \t\t\t{}",
-               self.name, self.id, self.alias, self.source_url, self.route).unwrap();
+                 self.name, self.id, self.alias, self.source_url, self.route).unwrap();
 
         writeln!(f, "\tinputs:").unwrap();
         if let Some(ref inputs) = self.inputs {
@@ -220,7 +220,7 @@ impl Flow {
         if let Some(ref mut process_refs) = self.process_refs {
             for process_ref in process_refs {
                 debug!("\tLooking in process_ref with alias = '{}'", process_ref.alias);
-                if *subprocess_alias == process_ref.alias().clone() {
+                if subprocess_alias == process_ref.alias() {
                     match process_ref.process {
                         FlowProcess(ref mut sub_flow) => {
                             debug!("\tFlow sub-process with matching name found, name = '{}'", process_ref.alias);
@@ -250,23 +250,24 @@ impl Flow {
     pub fn get_route_and_type(&mut self, direction: Direction, route: &Route,
                               initial_value: &Option<InputInitializer>) -> Result<IO> {
         let segments: Vec<&str> = route.split('/').collect();
+        // TODO move this into validation of route when it is deserialized?
         if segments.is_empty() {
             bail!("Invalid connection {:?} '{}'", direction, route);
         }
 
         debug!("Looking for connection {:?} '{}'", direction, route);
-
         match (&direction, segments[0]) {
             (&Direction::FROM, "input")  if segments.len() == 2 => {
                 self.inputs.find_by_name(&Name::from(segments[1]), &None)
-            } // an input to this flow
+            }
             (&Direction::TO, "output") if segments.len() == 2 => {
                 self.outputs.find_by_name(&Name::from(segments[1]), initial_value)
-            } // an output from this flow
-            (&Direction::TO, _) | (&Direction::FROM, _) => {
+            }
+            (&Direction::TO, process_name) | (&Direction::FROM, process_name) => {
                 let sub_route = Route::from(segments[1..].join("/"));
-                self.get_io_subprocess(&Name::from(segments[0]), direction, &sub_route, initial_value)
-            } // input or output of a sub-process
+                self.get_io_subprocess(&Name::from(process_name), direction,
+                                       &sub_route, initial_value)
+            }
         }
     }
 
@@ -301,6 +302,9 @@ impl Flow {
                     match self.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {
                         Ok(to_io) => {
                             debug!("Found connection destination:\n{:#?}", to_io);
+                            // TODO here we are only checking compatible data types from the overall FROM IO
+                            // not from sub-types in it selected via a sub-route e.g. Array/String --> String
+                            // We'd need to make compatible_types more complex and take the from sub-Route
                             if Connection::compatible_types(&from_io.datatype(), &to_io.datatype()) {
                                 debug!("Connection built from '{}' to '{}' with runtime conversion ''", from_io.route(), to_io.route());
                                 connection.from_io = from_io;

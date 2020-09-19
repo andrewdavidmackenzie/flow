@@ -1,6 +1,9 @@
 //! ## Control (//flowstdlib/data)
 //! Some generic Processes that act on data.
 
+/// A module that implements String concatenation
+#[path = "append/append.rs"]
+pub mod append;
 /// A module that implements accumulating an array from a number of elements
 #[path = "accumulate/accumulate.rs"]
 pub mod accumulate;

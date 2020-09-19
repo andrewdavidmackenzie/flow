@@ -48,6 +48,8 @@ pub fn get_manifest() -> LibraryManifest {
                              Native(Arc::new(control::tap::Tap)));
 
     // Data
+    manifest.locators.insert("lib://flowstdlib/data/append/Append".to_string(),
+                             Native(Arc::new(data::append::Append)));
     manifest.locators.insert("lib://flowstdlib/data/accumulate/Accumulate".to_string(),
                              Native(Arc::new(data::accumulate::Accumulate)));
     manifest.locators.insert("lib://flowstdlib/data/buffer/Buffer".to_string(),

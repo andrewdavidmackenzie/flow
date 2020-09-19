@@ -28,9 +28,9 @@ impl Route {
     pub fn without_trailing_array_index(&self) -> (Cow<Route>, usize, bool) {
         let mut parts: Vec<&str> = self.split('/').collect();
         if let Some(last_part) = parts.pop() {
-            if let Ok(number) = last_part.parse::<usize>() {
+            if let Ok(index) = last_part.parse::<usize>() {
                 let route_without_number = parts.join("/");
-                return (Cow::Owned(Route::from(route_without_number)), number, true);
+                return (Cow::Owned(Route::from(route_without_number)), index, true);
             }
         }
 
