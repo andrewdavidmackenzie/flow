@@ -1,26 +1,13 @@
-function = "Accumulate"
-implementation = "accumulate.rs"
+function = "Append"
+implementation = "append.rs"
 
 [[input]]
-name = "values"
-type = "Value"
+name = "s1"
+type = "String"
 
 [[input]]
-name = "partial"
-type = "Value"
-
-[[input]]
-name = "chunk_size"
-type = "Number"
+name = "s2"
+type = "String"
 
 [[output]]
-name = "chunk"
-type = "Array/Value"
-
-[[output]]
-name = "partial"
-type = "Value"
-
-[[output]]
-name = "chunk_size"
-type = "Number"
+type = "String"
