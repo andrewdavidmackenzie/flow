@@ -212,7 +212,7 @@ impl Function {
     }
 
     #[cfg(feature = "debugger")]
-    /// Inpect the values of the `inputs` of a feature. Only used by the `debugger` feature
+    /// Inspect the values of the `inputs` of a feature. Only used by the `debugger` feature
     pub fn inputs(&self) -> &Vec<Input> {
         &self.inputs
     }
