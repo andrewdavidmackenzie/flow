@@ -318,7 +318,7 @@ impl RunState {
         // Put all functions that have their inputs ready and are not blocked on the `ready` list
         debug!("Init:\tReadying initial functions: inputs full and not blocked on output");
         for (id, flow_id) in inputs_ready_list {
-            self.inputs_now_full(id, flow_id, true);
+            self.new_input_set(id, flow_id, true);
         }
 
         trace!("Init: State - {}", self)
@@ -650,13 +650,12 @@ impl RunState {
         }
 
         if full {
-            self.inputs_now_full(destination.function_id, destination.flow_id, true);
+            self.new_input_set(destination.function_id, destination.flow_id, true);
         }
     }
 
     /*
-        Refresh any inputs that have initializers on them, and return true if there are now enough
-        input values to create a job for the function.
+        Refresh any inputs that have initializers on them, and update the state if inputs are now full
     */
     fn refill_inputs(&mut self, function_id: usize, flow_id: usize, loopback_value_sent: bool) {
         let function = self.get_mut(function_id);
@@ -664,7 +663,7 @@ impl RunState {
         let input_inited = function.init_inputs(false);
 
         if function.inputs_full() {
-            self.inputs_now_full(function_id, flow_id, input_inited || loopback_value_sent);
+            self.new_input_set(function_id, flow_id, input_inited || loopback_value_sent);
         }
     }
 
@@ -738,10 +737,10 @@ impl RunState {
     }
 
     /*
-        Save the fact that a particular Function's inputs are now full and so it maybe ready
-        to run (if not blocked sending on it's output)
+        Save the fact that a new set of inputs are available for processing at the Function's inputs
+        so it maybe ready to run (if not blocked sending on it's output)
     */
-    fn inputs_now_full(&mut self, id: usize, flow_id: usize, value_sent: bool) {
+    fn new_input_set(&mut self, id: usize, flow_id: usize, value_sent: bool) {
         if self.blocked_sending(id) {
             debug!("\t\t\tFunction #{}, inputs full, but blocked on output. Added to blocked list", id);
             // so put it on the blocked list
@@ -749,7 +748,7 @@ impl RunState {
         } else {
             // If a value was sent to the function (from another, from initializer or from loopback) then make ready
             // If the function has inputs backed-up and is not ready, then make ready
-            if value_sent || !self.ready.contains(&id) {
+            if value_sent {
                 debug!("\t\t\tFunction #{} not blocked on output, so added to 'Ready' list", id);
                 self.mark_ready(id, flow_id);
             }
@@ -1545,7 +1544,7 @@ mod test {
 
 // Event
             let job = Job {
-                job_id: 0,
+                job_id: 1,
                 function_id: 0,
                 flow_id: 0,
                 implementation: super::test_impl(),
@@ -1882,7 +1881,7 @@ mod test {
             let mut state = RunState::new(&test_functions(), 1);
 
 // Put 0 on the blocked/ready
-            state.inputs_now_full(0, 0, true);
+            state.new_input_set(0, 0, true);
 
             assert_eq!(state.next_job().unwrap().function_id, 0);
         }
@@ -1892,7 +1891,7 @@ mod test {
             let mut state = RunState::new(&test_functions(), 1);
 
 // Put 0 on the blocked/ready list depending on blocked status
-            state.inputs_now_full(0, 0, true);
+            state.new_input_set(0, 0, true);
 
             assert_eq!(state.next_job().unwrap().function_id, 0);
         }
@@ -1909,7 +1908,7 @@ mod test {
                                    &mut debugger);
 
 // Put 0 on the blocked/ready list depending on blocked status
-            state.inputs_now_full(0, 0, true);
+            state.new_input_set(0, 0, true);
 
             assert!(state.next_job().is_none());
         }
@@ -1925,7 +1924,7 @@ mod test {
                                #[cfg(feature = "debugger")]
                                    &mut debugger);
             // 0's inputs are now full, so it would be ready if it weren't blocked on output
-            state.inputs_now_full(0, 0, true);
+            state.new_input_set(0, 0, true);
             // 0 does not show as ready.
             assert!(state.next_job().is_none());
 
@@ -1951,7 +1950,7 @@ mod test {
                                    &mut debugger);
 
 // Put 0 on the blocked/ready list depending on blocked status
-            state.inputs_now_full(0, 0, true);
+            state.new_input_set(0, 0, true);
 
             assert!(state.next_job().is_none());
 
@@ -1967,9 +1966,9 @@ mod test {
             let mut state = RunState::new(&test_functions(), 1);
 
 // Put 0 on the ready list
-            state.inputs_now_full(0, 0, true);
+            state.new_input_set(0, 0, true);
 // Put 1 on the ready list
-            state.inputs_now_full(1, 0, true);
+            state.new_input_set(1, 0, true);
 
             let job = state.next_job().unwrap();
             assert_eq!(0, job.function_id);
