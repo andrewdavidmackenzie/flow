@@ -233,7 +233,7 @@ pub struct RunState {
     /// running: MultiMap<function_id, job_id> - a list of functions and jobs ids that are running
     running: MultiMap<usize, usize>,
     /// number of jobs sent for execution to date
-    jobs_sent: usize,
+    jobs_created: usize,
     /// limit on the number of jobs allowed to be pending to complete (i.e. running in parallel)
     max_pending_jobs: usize,
     /// Track which flow-function combinations are considered "busy" <flow_id, function_id>
@@ -251,7 +251,7 @@ impl RunState {
             blocks: HashSet::<Block>::new(),
             ready: VecDeque::<usize>::new(),
             running: MultiMap::<usize, usize>::new(),
-            jobs_sent: 0,
+            jobs_created: 0,
             max_pending_jobs: max_jobs,
             busy_flows: MultiMap::<usize, usize>::new(),
             pending_unblocks: HashMap::<usize, HashSet<usize>>::new(),
@@ -270,7 +270,7 @@ impl RunState {
         self.blocks.clear();
         self.ready.clear();
         self.running.clear();
-        self.jobs_sent = 0;
+        self.jobs_created = 0;
         self.busy_flows.clear();
         self.pending_unblocks.clear();
     }
@@ -445,18 +445,10 @@ impl RunState {
     }
 
     /*
-        Track the number of jobs sent to date
+        return the number of jobs created to date
     */
-    pub fn job_sent(&mut self) {
-        self.jobs_sent += 1;
-    }
-
-    /*
-        return the number of jobs sent to date
-    */
-    #[cfg(feature = "metrics")]
-    pub fn jobs_sent(&self) -> usize {
-        self.jobs_sent
+    pub fn jobs_created(&self) -> usize {
+        self.jobs_created
     }
 
     /*
@@ -464,7 +456,8 @@ impl RunState {
         implementation and the destination functions the output should be sent to when done
     */
     fn create_job(&mut self, function_id: usize) -> Option<Job> {
-        let job_id = self.jobs_sent;
+        let job_id = self.jobs_created;
+        self.jobs_created += 1;
 
         let function = self.get_mut(function_id);
 
@@ -781,10 +774,6 @@ impl RunState {
         false
     }
 
-    pub fn jobs(&self) -> usize {
-        self.jobs_sent
-    }
-
     #[cfg(feature = "metrics")]
     pub fn num_functions(&self) -> usize {
         self.functions.len()
@@ -998,7 +987,7 @@ impl RunState {
 impl fmt::Display for RunState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "RunState:")?;
-        writeln!(f, "    Jobs Executed: {}", self.jobs_sent)?;
+        writeln!(f, "     Jobs Created: {}", self.jobs_created)?;
         writeln!(f, "Functions Blocked: {:?}", self.blocked)?;
         writeln!(f, "           Blocks: {:?}", self.blocks)?;
         writeln!(f, "  Functions Ready: {:?}", self.ready)?;
@@ -1218,18 +1207,10 @@ mod test {
         }
 
         #[test]
-        fn jobs_sent_zero_at_init() {
+        fn jobs_created_zero_at_init() {
             let mut state = RunState::new(&vec!(), 1);
             state.init();
-            assert_eq!(0, state.jobs(), "At init jobs() should be 0");
-        }
-
-        #[test]
-        fn jobs_sent_increases() {
-            let mut state = RunState::new(&vec!(), 1);
-            state.init();
-            state.job_sent();
-            assert_eq!(1, state.jobs(), "jobs() should have incremented");
+            assert_eq!(0, state.jobs_created(), "At init jobs() should be 0");
         }
     }
 

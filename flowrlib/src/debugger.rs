@@ -183,7 +183,7 @@ impl Debugger {
     */
     fn wait_for_command(&mut self, state: &RunState) -> (bool, bool) {
         loop {
-            match self.client.get_command(state.jobs_sent()) {
+            match self.client.get_command(state.jobs_created()) {
                 // *************************      The following are commands that send a response
                 GetState => {
                     // Respond with 'state'
@@ -209,13 +209,13 @@ impl Debugger {
 
                 // **************************      The following commands exit the command loop
                 Continue => {
-                    if state.jobs_sent() > 0 {
+                    if state.jobs_created() > 0 {
                         self.client.send_response(Ack);
                         return (false, false);
                     }
                 }
                 RunReset => {
-                    return if state.jobs_sent() > 0 {
+                    return if state.jobs_created() > 0 {
                         self.client.send_response(self.reset());
                         (false, true)
                     } else {
@@ -415,11 +415,11 @@ impl Debugger {
     fn step(&mut self, state: &RunState, steps: Option<Param>) -> Response {
         match steps {
             None => {
-                self.break_at_job = state.jobs() + 1;
+                self.break_at_job = state.jobs_created() + 1;
                 Ack
             }
             Some(Param::Numeric(steps)) => {
-                self.break_at_job = state.jobs() + steps;
+                self.break_at_job = state.jobs_created() + steps;
                 Ack
             }
             _ => {

@@ -16,8 +16,8 @@ path = "src/lib.rs"
 
 [features]
 default = []  # Don't include any extra features by default
-metrics = []  # feature for tracking of metrics during execution
 debugger = [] # feature to add the debugger
+metrics = []  # feature for tracking of metrics during execution
 checks = []   # feature to perform extra checks during flow execution
 
 [dependencies]
