@@ -12,7 +12,7 @@ export SHELL := /bin/bash
 
 all:
 	$(STIME)
-	@$(MAKE) clippy build test samples docs
+	@$(MAKE) clippy test build samples docs
 	$(ETIME)
 
 ########## Configure Dependencies ############
