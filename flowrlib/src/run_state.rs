@@ -456,8 +456,8 @@ impl RunState {
         implementation and the destination functions the output should be sent to when done
     */
     fn create_job(&mut self, function_id: usize) -> Option<Job> {
-        let job_id = self.jobs_created;
         self.jobs_created += 1;
+        let job_id = self.jobs_created;
 
         let function = self.get_mut(function_id);
 
