@@ -67,7 +67,7 @@ impl fmt::Display for Function {
         }
 
         for (number, input) in self.inputs.iter().enumerate() {
-            if input.is_empty() {
+            if input.count() == 0 {
                 writeln!(f, "\tInput :{} is empty", number)?;
             } else {
                 writeln!(f, "\tInput :{} has value '{}'", number, input)?;
@@ -155,7 +155,7 @@ impl Function {
     pub fn init_inputs(&mut self, first_time: bool) -> bool {
         let mut inputs_initialized = false;
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
-            if input.is_empty() && input.init(first_time, io_number) {
+            if input.count() == 0 && input.init(first_time, io_number) {
                 trace!("\t\tInput #{}:{} set from initializer", self.id, io_number);
                 inputs_initialized = true;
             }
@@ -197,18 +197,18 @@ impl Function {
 
     /// Determine if the `Functions` `input` number `input_number` is full or not
     pub fn input_full(&self, input_number: usize) -> bool {
-        self.inputs[input_number].full()
+        self.inputs[input_number].count() > 0
     }
 
-    /// Determine if all of the `Functions` `inputs` are full and this function can be run
-    pub fn inputs_full(&self) -> bool {
+    /// Returns how many inputs sets are available across all the `Functions` `inputs`
+    pub fn input_set_count(&self) -> usize {
+        let mut num_input_sets = std::usize::MAX;
+
         for input in &self.inputs {
-            if input.is_empty() {
-                return false;
-            }
+            num_input_sets = std::cmp::min(num_input_sets, input.count());
         }
 
-        true
+        num_input_sets
     }
 
     #[cfg(feature = "debugger")]

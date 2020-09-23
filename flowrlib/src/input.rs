@@ -80,7 +80,7 @@ impl Input {
     /// When called at start-up    it will initialize      if it's a OneTime or Constant initializer
     /// When called after start-up it will initialize only if it's a            Constant initializer
     pub fn init(&mut self, first_time: bool, io_number: usize) -> bool {
-        if self.full() {
+        if self.count() > 1 {
             return false;
         }
 
@@ -119,12 +119,7 @@ impl Input {
     }
 
     /// Return true if the `Input` is empty or false otherwise
-    pub fn is_empty(&self) -> bool { self.received.is_empty() }
-
-    /// Return true if the `Input` is "full" and it's values can be taken for executing the `Function`
-    pub fn full(&self) -> bool {
-        !self.received.is_empty()
-    }
+    pub fn count(&self) -> usize { self.received.len() }
 }
 
 #[cfg(test)]
@@ -142,37 +137,37 @@ mod test {
     #[test]
     fn no_inputs_initially() {
         let input = Input::new(None, &None);
-        assert!(input.is_empty());
+        assert_eq!(input.count(), 0);
     }
 
     #[test]
     fn accepts_value() {
         let mut input = Input::new(None, &None);
         input.push(Value::Null);
-        assert!(!input.is_empty());
+        assert_ne!(input.count(), 0);
     }
 
     #[test]
     fn accepts_array() {
         let mut input = Input::new(None, &None);
         input.push_array(vec!(json!(5), json!(10), json!(15)).iter());
-        assert!(!input.is_empty());
+        assert_ne!(input.count(), 0);
     }
 
     #[test]
     fn gets_full() {
         let mut input = Input::new(None, &None);
         input.push(Value::Null);
-        assert!(input.full());
+        assert!(input.count() > 0);
     }
 
     #[test]
     fn take_empties() {
         let mut input = Input::new(None, &None);
         input.push(json!(10));
-        assert!(!input.is_empty());
+        assert_ne!(input.count(), 0);
         let _value = input.take().unwrap();
-        assert!(input.is_empty());
+        assert_eq!(input.count(), 0);
     }
 
     #[cfg(feature = "debugger")]
@@ -180,8 +175,8 @@ mod test {
     fn reset_empties() {
         let mut input = Input::new(None, &None);
         input.push(json!(10));
-        assert!(!input.is_empty());
+        assert_ne!(input.count(), 0);
         input.reset();
-        assert!(input.is_empty());
+        assert_eq!(input.count(), 0);
     }
 }

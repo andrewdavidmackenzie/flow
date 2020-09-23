@@ -61,7 +61,7 @@
     - [hello-world sample](samples/hello-world/DESCRIPTION.md)
     - [matrix multiplication sample](samples/matrix_mult/DESCRIPTION.md)
     - [pipeline sample](samples/pipeline/DESCRIPTION.md)
-    - [prime sample](samples/prime/DESCRIPTION.md)
+    - [prime sample](samples/zprime/DESCRIPTION.md)
     - [primitives sample](samples/primitives/DESCRIPTION.md)
     - [range](samples/range/DESCRIPTION.md)
     - [range-of-ranges](samples/range-of-ranges/DESCRIPTION.md)
