@@ -741,6 +741,10 @@ impl RunState {
         so it maybe ready to run (if not blocked sending on it's output)
     */
     fn new_input_set(&mut self, id: usize, flow_id: usize, value_sent: bool) {
+        // TODO I think this first part should maybe be somewhere else - a block between this function
+        // and the one it wants to send to exists - but until now it did not have inputs and couldn't
+        // go ready. Now it has inputs and could run, if not blocked, so it's added to the blocked list
+        // TODO if we predicate this on "value_sent" also then it breaks matrix_mult sample
         if self.blocked_sending(id) {
             debug!("\t\t\tFunction #{}, inputs full, but blocked on output. Added to blocked list", id);
             // so put it on the blocked list
