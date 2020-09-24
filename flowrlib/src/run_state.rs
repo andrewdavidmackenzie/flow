@@ -547,8 +547,6 @@ impl RunState {
                     }
                 }
 
-                self.remove_from_busy(job.function_id);
-
                 // if the function can run again, then:
                 // - refill inputs from any possible initializers
                 // If inputs full, due to:
@@ -558,6 +556,8 @@ impl RunState {
                 if function_can_run_again {
                     self.refill_inputs(job.function_id, job.flow_id, loopback_value_sent);
                 }
+
+                self.remove_from_busy(job.function_id);
 
                 // need to do flow unblocks as that could affect other functions even if this one cannot run again
                 self.unblock_flows(job.flow_id, job.job_id);
