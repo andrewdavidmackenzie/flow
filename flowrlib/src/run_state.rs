@@ -307,7 +307,7 @@ impl RunState {
             debug!("Init:\tInitializing Function #{} in Flow #{}",
                    function.id(), function.get_flow_id());
             function.init_inputs(true);
-            if function.inputs_full() {
+            if function.input_set_count() > 0 {
                 inputs_ready_list.push((function.id(), function.get_flow_id()));
             }
         }
@@ -343,14 +343,14 @@ impl RunState {
             {
                 source_id = source_function.id();
                 source_flow_id = source_function.get_flow_id();
-                source_has_inputs_full = source_function.inputs_full();
+                source_has_inputs_full = source_function.input_set_count() > 0;
                 destinations = source_function.output_destinations().clone();
             }
 
             for destination in destinations {
                 if destination.function_id != source_id { // don't block yourself!
                     let destination_function = self.get(destination.function_id);
-                    if destination_function.input_full(destination.io_number) {
+                    if destination_function.input_count(destination.io_number) > 0 {
                         trace!("Init:\t\tAdded block #{} --> #{}:{}", source_id, destination.function_id, destination.io_number);
                         blocks.insert(Block::new(destination.flow_id, destination.function_id, destination.io_number,
                                                  source_id, source_flow_id));
@@ -628,6 +628,7 @@ impl RunState {
                                          &output_value, destination.function_id, destination.io_number);
 
         let function = self.get_mut(destination.function_id);
+        let _count_before = function.input_set_count();
         Self::type_convert_and_send(function, destination, output_value);
 
         #[cfg(feature = "metrics")]
@@ -637,8 +638,8 @@ impl RunState {
         // - avoid blocking on itself
         // - delay determining if it should be in the blocked or ready lists (by calling inputs_now_full())
         //   until it has sent all it's other outputs as it might be blocked by another function.
-        let block = function.input_full(destination.io_number) && (source_id != destination.function_id);
-        let full = function.inputs_full() && (source_id != destination.function_id);
+        let block = (function.input_count(destination.io_number) > 0) && (source_id != destination.function_id);
+        let filled = (function.input_set_count() > 0) && (source_id != destination.function_id);
 
         if block {
             // TODO pass in destination and combine Block and OutputConnection?
@@ -649,7 +650,7 @@ impl RunState {
             );
         }
 
-        if full {
+        if filled {
             self.new_input_set(destination.function_id, destination.flow_id, true);
         }
     }
@@ -660,9 +661,11 @@ impl RunState {
     fn refill_inputs(&mut self, function_id: usize, flow_id: usize, loopback_value_sent: bool) {
         let function = self.get_mut(function_id);
 
+        let _count_before = function.input_set_count();
+
         let input_inited = function.init_inputs(false);
 
-        if function.inputs_full() {
+        if function.input_set_count() > 0 {
             self.new_input_set(function_id, flow_id, input_inited || loopback_value_sent);
         }
     }
@@ -707,7 +710,7 @@ impl RunState {
 
         // for each empty input of the target function
         for (target_io, input) in target_function.inputs().iter().enumerate() {
-            if input.is_empty() {
+            if input.count() == 0 {
                 let mut senders = Vec::<(usize, usize)>::new();
 
                 // go through all functions to see if sends to the target function on input
@@ -869,7 +872,7 @@ impl RunState {
                 removed from 'blocked' list", unblocked_id);
                 self.blocked.remove(&unblocked_id);
 
-                if self.get(unblocked_id).inputs_full() {
+                if self.get(unblocked_id).input_set_count() > 0 {
                     debug!("\t\t\t\tFunction #{} has inputs ready, so added to 'ready' list", unblocked_id);
                     self.mark_ready(unblocked_id, unblocked_flow_id);
                 }
@@ -938,7 +941,7 @@ impl RunState {
             // State::Running is because functions with initializers auto-refill when sent to run
             // So they will show as inputs full, but not Ready or Blocked
             let state = self.get_state(function.id());
-            if (!function.inputs().is_empty()) && function.inputs_full() &&
+            if (!function.inputs().is_empty()) && (function.input_set_count() > 0) &&
                 !(state == State::Ready || state == State::Blocked || state == State::Running) {
                 error!("{}", function);
                 return self.runtime_error(job_id, &format!("Function #{} inputs are full, but it is not Ready or Blocked", function.id()),
@@ -957,7 +960,7 @@ impl RunState {
             // For each block on a destination function, then either that input should be full or
             // the function should be running in parallel with the one that just completed
             // or it's flow should be busy and there should be a pending unblock on it
-            if !(self.functions.get(block.blocking_id).unwrap().input_full(block.blocking_io_number) ||
+            if !(self.functions.get(block.blocking_id).unwrap().input_count(block.blocking_io_number) > 0 ||
                 (self.busy_flows.contains_key(&block.blocking_flow_id) && self.pending_unblocks.contains_key(&block.blocking_flow_id))) {
                 return self.runtime_error(job_id,
                                           &format!("Block {} exists for function #{}, but Function #{}:{} input is not full",
@@ -1211,7 +1214,7 @@ mod test {
 
         #[test]
         fn jobs_created_zero_at_init() {
-            let mut state = RunState::new(&vec!(), 1);
+            let mut state = RunState::new(&[], 1);
             state.init();
             assert_eq!(0, state.jobs_created(), "At init jobs() should be 0");
         }

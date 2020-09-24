@@ -196,8 +196,8 @@ impl Function {
     }
 
     /// Determine if the `Functions` `input` number `input_number` is full or not
-    pub fn input_full(&self, input_number: usize) -> bool {
-        self.inputs[input_number].count() > 0
+    pub fn input_count(&self, input_number: usize) -> usize {
+        self.inputs[input_number].count()
     }
 
     /// Returns how many inputs sets are available across all the `Functions` `inputs`
