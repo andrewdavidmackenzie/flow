@@ -69,11 +69,6 @@ to = "subtract/array"
 from = "composites/composites"
 to = "subtract/value"
 
-#### debug
-[[connection]]
-from = "composites/composites"
-to = "print"
-
 [[connection]]
 from = "subtract"
 to = "subtract/array"
