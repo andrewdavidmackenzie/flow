@@ -628,7 +628,7 @@ impl RunState {
                                          &output_value, destination.function_id, destination.io_number);
 
         let function = self.get_mut(destination.function_id);
-        let _count_before = function.input_set_count();
+        let count_before = function.input_set_count();
         Self::type_convert_and_send(function, destination, output_value);
 
         #[cfg(feature = "metrics")]
@@ -639,7 +639,7 @@ impl RunState {
         // - delay determining if it should be in the blocked or ready lists (by calling inputs_now_full())
         //   until it has sent all it's other outputs as it might be blocked by another function.
         let block = (function.input_count(destination.io_number) > 0) && (source_id != destination.function_id);
-        let filled = (function.input_set_count() > 0) && (source_id != destination.function_id);
+        let filled = (function.input_set_count() > count_before) && (source_id != destination.function_id);
 
         if block {
             // TODO pass in destination and combine Block and OutputConnection?
