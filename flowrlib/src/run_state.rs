@@ -1070,7 +1070,7 @@ mod test {
             #[cfg(feature = "debugger")]
                 "/fA".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None, &None)),
+            vec!(Input::new(&None)),
             0, 0,
             &[connection_to_f1], false) // outputs to fB:0
     }
@@ -1085,8 +1085,7 @@ mod test {
             #[cfg(feature = "debugger")]
                 "/fA".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None,
-                            &Some(Once(json!(1))))),
+            vec!(Input::new(&Some(Once(json!(1))))),
             0, 0,
             &[connection_to_f1], false) // outputs to fB:0
     }
@@ -1098,8 +1097,7 @@ mod test {
             #[cfg(feature = "debugger")]
                 "/fA".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None,
-                            &Some(Once(json!(1))))),
+            vec!(Input::new(&Some(Once(json!(1))))),
             0, 0,
             &[], false)
     }
@@ -1111,7 +1109,7 @@ mod test {
             #[cfg(feature = "debugger")]
                 "/fB".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None, &None)),
+            vec!(Input::new(&None)),
             1, 0,
             &[], false)
     }
@@ -1123,8 +1121,7 @@ mod test {
             #[cfg(feature = "debugger")]
                 "/fB".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None,
-                            &Some(Once(json!(1))))),
+            vec!(Input::new(&Some(Once(json!(1))))),
             1, 0,
             &[], false)
     }
@@ -1329,7 +1326,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 0, 0,
                 &[], false);
             let functions = vec!(f_a);
@@ -1367,7 +1364,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 0, 0,
                 &[], false);
             let functions = vec!(f_a);
@@ -1490,8 +1487,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None,
-                                &Some(Always(json!(1))))),
+                vec!(Input::new(&Some(Always(json!(1))))),
                 0, 0,
                 &[], false);
             let functions = vec!(f_a);
@@ -1582,8 +1578,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None,
-                                &Some(Always(json!(1))))),
+                vec!(Input::new(&Some(Always(json!(1))))),
                 0, 0,
                 &[out_conn], false); // outputs to fB:0
             let f_b = Function::new(
@@ -1592,7 +1587,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fB".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 1, 0,
                 &[], false);
             let functions = vec!(f_a, f_b);
@@ -1633,7 +1628,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 0, 0,
                 &[], false);
             let out_conn = OutputConnection::new("".into(), 0, 0, 0, 0, false, None);
@@ -1643,7 +1638,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fB".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 1, 0,
                 &[out_conn], false);
             let functions = vec!(f_a, f_b);
@@ -1683,8 +1678,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fB".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None,
-                                &Some(Always(json!(1))))),
+                vec!(Input::new(&Some(Always(json!(1))))),
                 1, 0,
                 &[connection_to_f0], false);
             let functions = vec!(f_a, f_b);
@@ -1730,8 +1724,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None,
-                                &Some(Once(json!(1))))),
+                vec!(Input::new(&Some(Once(json!(1))))),
                 0, 0,
                 &[
                     connection_to_0.clone(), // outputs to self:0
@@ -1743,7 +1736,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fB".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 1, 0,
                 &[], false);
             let functions = vec!(f_a, f_b); // NOTE the order!
@@ -1841,7 +1834,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/p1".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)), // inputs array
+                vec!(Input::new(&None)), // inputs array
                 1, 0,
                 &[], false);
             let p2 = Function::new(
@@ -1850,7 +1843,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/p2".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)), // inputs array
+                vec!(Input::new(&None)), // inputs array
                 2, 0,
                 &[], false);
             vec!(p0, p1, p2)
@@ -2080,7 +2073,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/test".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 0, 0,
                 &[], false)
         }

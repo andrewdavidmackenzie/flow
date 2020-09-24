@@ -22,10 +22,6 @@ pub enum InputInitializer {
 #[derive(Deserialize, Serialize, Clone)]
 /// An `Input` to a `Function`.
 pub struct Input {
-    #[serde(default = "default_depth", skip_serializing_if = "Option::is_none")]
-    /// An `Input` can accept upto `depth` number of inputs - optional. By default accepts
-    /// an 'infinite' number
-    depth: Option<usize>,
     #[serde(default = "default_initial_value", skip_serializing_if = "Option::is_none")]
     /// An optional `InputInitializer` associated with this input
     pub initializer: Option<InputInitializer>,
@@ -43,19 +39,14 @@ impl fmt::Display for Input {
     }
 }
 
-fn default_depth() -> Option<usize> {
-    None
-}
-
 fn default_initial_value() -> Option<InputInitializer> {
     None
 }
 
 impl Input {
     /// Create a new `Input` with an optional `InputInitializer`
-    pub fn new(depth: Option<usize>, initial_value: &Option<InputInitializer>) -> Self {
+    pub fn new(initial_value: &Option<InputInitializer>) -> Self {
         Input {
-            depth,
             initializer: initial_value.clone(),
             received: Vec::new(),
         }
@@ -103,11 +94,6 @@ impl Input {
     /// Add a value to this `Input`
     pub fn push(&mut self, value: Value) {
         self.received.push(value);
-        if let Some(max) = self.depth {
-            if self.received.len() > max {
-                self.received.drain(0..1); // remove head to reduce number back to depth
-            }
-        }
     }
 
     /// Add an array of values to this `Input`, by pushing them one by one
@@ -136,34 +122,34 @@ mod test {
 
     #[test]
     fn no_inputs_initially() {
-        let input = Input::new(None, &None);
+        let input = Input::new(&None);
         assert_eq!(input.count(), 0);
     }
 
     #[test]
     fn accepts_value() {
-        let mut input = Input::new(None, &None);
+        let mut input = Input::new(&None);
         input.push(Value::Null);
         assert_ne!(input.count(), 0);
     }
 
     #[test]
     fn accepts_array() {
-        let mut input = Input::new(None, &None);
+        let mut input = Input::new(&None);
         input.push_array(vec!(json!(5), json!(10), json!(15)).iter());
         assert_ne!(input.count(), 0);
     }
 
     #[test]
     fn gets_full() {
-        let mut input = Input::new(None, &None);
+        let mut input = Input::new(&None);
         input.push(Value::Null);
         assert!(input.count() > 0);
     }
 
     #[test]
     fn take_empties() {
-        let mut input = Input::new(None, &None);
+        let mut input = Input::new(&None);
         input.push(json!(10));
         assert_ne!(input.count(), 0);
         let _value = input.take().unwrap();
@@ -173,7 +159,7 @@ mod test {
     #[cfg(feature = "debugger")]
     #[test]
     fn reset_empties() {
-        let mut input = Input::new(None, &None);
+        let mut input = Input::new(&None);
         input.push(json!(10));
         assert_ne!(input.count(), 0);
         input.reset();

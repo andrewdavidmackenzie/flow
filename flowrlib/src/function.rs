@@ -263,8 +263,6 @@ mod test {
         assert_eq!("arg1", json.pointer("/1").unwrap(), "json pointer array indexing functionality not working!");
     }
 
-    /*************** Below are tests for inputs with depth = 1 ***********************/
-
     #[test]
     fn can_send_simple_object() {
         let mut function = Function::new(
@@ -273,7 +271,7 @@ mod test {
                                          #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(None, &None)),
+                                         vec!(Input::new(&None)),
                                          0, 0,
                                          &[], false);
         function.init_inputs(true);
@@ -291,7 +289,7 @@ mod test {
                                          "/test".to_string(),
                                          "/test".to_string(),
                                          // vec!(Input::new(1, &None, true, false)),
-                                         vec!(Input::new(None, &None)),
+                                         vec!(Input::new(&None)),
                                          0, 0,
                                          &[], false);
         function.init_inputs(true);
@@ -301,14 +299,14 @@ mod test {
     }
 
     #[test]
-    fn test_array_to_non_array_depth_1() {
+    fn test_array_to_non_array() {
         let mut function = Function::new(
             #[cfg(feature = "debugger")]
                 "test".to_string(),
             #[cfg(feature = "debugger")]
                 "/test".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None, &None)),
+            vec!(Input::new(&None)),
             0, 0,
             &[], false);
         function.init_inputs(true);
@@ -316,8 +314,6 @@ mod test {
         assert_eq!(function.take_input_set().unwrap().remove(0), json!([1, 2]),
                    "Value from input set wasn't what was expected");
     }
-
-    /*************** Below are tests for inputs with depth > 1 ***********************/
 
     fn test_function() -> Function {
         let out_conn = OutputConnection::new("/other/input/1".to_string(),
@@ -328,7 +324,7 @@ mod test {
             #[cfg(feature = "debugger")]
                         "/test".to_string(),
                       "/implementation".to_string(),
-                      vec!(Input::new(None, &None)),
+                      vec!(Input::new(&None)),
                       1, 0,
                       &[out_conn], false)
     }
@@ -366,7 +362,7 @@ mod test {
             #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(None, &None)),
+                                         vec!(Input::new(&None)),
                                          0, 0,
                                          &[output_route.clone()], false);
         function.init_inputs(true);

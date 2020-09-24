@@ -4,7 +4,7 @@ arrays
 Description
 ===
 Sample to show the capabilities of:
-* gathering a stream of outputs of type Object to an input of type Object, of a specified depth. 
+* gathering a stream of outputs of type Object to an input of type Object, of a specified size. 
 This is done by the P2 'composer' (`ComposeArray`) function.
 * Decomposing an output of type Array of Objects to a stream of Objects. This is done by the runtime when it sees
 a connection from an Array of Type to Type.

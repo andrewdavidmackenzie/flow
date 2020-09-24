@@ -49,9 +49,9 @@ mod test {
     use super::compile;
 
     /*
-                                                                Test for a function that is dead code. It has no connections to it or from it so will
-                                                                never run. So it should be removed by the optimizer and not fail at check stage.
-                                                            */
+                                                                    Test for a function that is dead code. It has no connections to it or from it so will
+                                                                    never run. So it should be removed by the optimizer and not fail at check stage.
+                                                                */
     #[test]
     fn dead_function() {
         let function = Function::new(Name::from("Stdout"),
@@ -73,7 +73,6 @@ mod test {
             alias: function.alias().to_owned(),
             source: "lib://flowruntime/stdio/stdout.toml".to_string(),
             initializations: None,
-            depths: None,
             process: FunctionProcess(function),
         };
 
