@@ -233,7 +233,7 @@ pub struct RunState {
     /// running: MultiMap<function_id, job_id> - a list of functions and jobs ids that are running
     running: MultiMap<usize, usize>,
     /// number of jobs sent for execution to date
-    jobs_sent: usize,
+    jobs_created: usize,
     /// limit on the number of jobs allowed to be pending to complete (i.e. running in parallel)
     max_pending_jobs: usize,
     /// Track which flow-function combinations are considered "busy" <flow_id, function_id>
@@ -251,7 +251,7 @@ impl RunState {
             blocks: HashSet::<Block>::new(),
             ready: VecDeque::<usize>::new(),
             running: MultiMap::<usize, usize>::new(),
-            jobs_sent: 0,
+            jobs_created: 0,
             max_pending_jobs: max_jobs,
             busy_flows: MultiMap::<usize, usize>::new(),
             pending_unblocks: HashMap::<usize, HashSet<usize>>::new(),
@@ -270,7 +270,7 @@ impl RunState {
         self.blocks.clear();
         self.ready.clear();
         self.running.clear();
-        self.jobs_sent = 0;
+        self.jobs_created = 0;
         self.busy_flows.clear();
         self.pending_unblocks.clear();
     }
@@ -307,7 +307,7 @@ impl RunState {
             debug!("Init:\tInitializing Function #{} in Flow #{}",
                    function.id(), function.get_flow_id());
             function.init_inputs(true);
-            if function.inputs_full() {
+            if function.input_set_count() > 0 {
                 inputs_ready_list.push((function.id(), function.get_flow_id()));
             }
         }
@@ -318,7 +318,7 @@ impl RunState {
         // Put all functions that have their inputs ready and are not blocked on the `ready` list
         debug!("Init:\tReadying initial functions: inputs full and not blocked on output");
         for (id, flow_id) in inputs_ready_list {
-            self.inputs_now_full(id, flow_id, true);
+            self.new_input_set(id, flow_id, true);
         }
 
         trace!("Init: State - {}", self)
@@ -343,14 +343,14 @@ impl RunState {
             {
                 source_id = source_function.id();
                 source_flow_id = source_function.get_flow_id();
-                source_has_inputs_full = source_function.inputs_full();
+                source_has_inputs_full = source_function.input_set_count() > 0;
                 destinations = source_function.output_destinations().clone();
             }
 
             for destination in destinations {
                 if destination.function_id != source_id { // don't block yourself!
                     let destination_function = self.get(destination.function_id);
-                    if destination_function.input_full(destination.io_number) {
+                    if destination_function.input_count(destination.io_number) > 0 {
                         trace!("Init:\t\tAdded block #{} --> #{}:{}", source_id, destination.function_id, destination.io_number);
                         blocks.insert(Block::new(destination.flow_id, destination.function_id, destination.io_number,
                                                  source_id, source_flow_id));
@@ -445,18 +445,10 @@ impl RunState {
     }
 
     /*
-        Track the number of jobs sent to date
+        return the number of jobs created to date
     */
-    pub fn job_sent(&mut self) {
-        self.jobs_sent += 1;
-    }
-
-    /*
-        return the number of jobs sent to date
-    */
-    #[cfg(feature = "metrics")]
-    pub fn jobs_sent(&self) -> usize {
-        self.jobs_sent
+    pub fn jobs_created(&self) -> usize {
+        self.jobs_created
     }
 
     /*
@@ -464,7 +456,8 @@ impl RunState {
         implementation and the destination functions the output should be sent to when done
     */
     fn create_job(&mut self, function_id: usize) -> Option<Job> {
-        let job_id = self.jobs_sent;
+        self.jobs_created += 1;
+        let job_id = self.jobs_created;
 
         let function = self.get_mut(function_id);
 
@@ -554,8 +547,6 @@ impl RunState {
                     }
                 }
 
-                self.remove_from_busy(job.function_id);
-
                 // if the function can run again, then:
                 // - refill inputs from any possible initializers
                 // If inputs full, due to:
@@ -565,6 +556,8 @@ impl RunState {
                 if function_can_run_again {
                     self.refill_inputs(job.function_id, job.flow_id, loopback_value_sent);
                 }
+
+                self.remove_from_busy(job.function_id);
 
                 // need to do flow unblocks as that could affect other functions even if this one cannot run again
                 self.unblock_flows(job.flow_id, job.job_id);
@@ -635,6 +628,7 @@ impl RunState {
                                          &output_value, destination.function_id, destination.io_number);
 
         let function = self.get_mut(destination.function_id);
+        let count_before = function.input_set_count();
         Self::type_convert_and_send(function, destination, output_value);
 
         #[cfg(feature = "metrics")]
@@ -644,8 +638,8 @@ impl RunState {
         // - avoid blocking on itself
         // - delay determining if it should be in the blocked or ready lists (by calling inputs_now_full())
         //   until it has sent all it's other outputs as it might be blocked by another function.
-        let block = function.input_full(destination.io_number) && (source_id != destination.function_id);
-        let full = function.inputs_full() && (source_id != destination.function_id);
+        let block = (function.input_count(destination.io_number) > 0) && (source_id != destination.function_id);
+        let filled = (function.input_set_count() > count_before) && (source_id != destination.function_id);
 
         if block {
             // TODO pass in destination and combine Block and OutputConnection?
@@ -656,22 +650,23 @@ impl RunState {
             );
         }
 
-        if full {
-            self.inputs_now_full(destination.function_id, destination.flow_id, true);
+        if filled {
+            self.new_input_set(destination.function_id, destination.flow_id, true);
         }
     }
 
     /*
-        Refresh any inputs that have initializers on them, and return true if there are now enough
-        input values to create a job for the function.
+        Refresh any inputs that have initializers on them, and update the state if inputs are now full
     */
     fn refill_inputs(&mut self, function_id: usize, flow_id: usize, loopback_value_sent: bool) {
         let function = self.get_mut(function_id);
 
+        let _count_before = function.input_set_count();
+
         let input_inited = function.init_inputs(false);
 
-        if function.inputs_full() {
-            self.inputs_now_full(function_id, flow_id, input_inited || loopback_value_sent);
+        if function.input_set_count() > 0 {
+            self.new_input_set(function_id, flow_id, input_inited || loopback_value_sent);
         }
     }
 
@@ -715,7 +710,7 @@ impl RunState {
 
         // for each empty input of the target function
         for (target_io, input) in target_function.inputs().iter().enumerate() {
-            if input.is_empty() {
+            if input.count() == 0 {
                 let mut senders = Vec::<(usize, usize)>::new();
 
                 // go through all functions to see if sends to the target function on input
@@ -745,10 +740,14 @@ impl RunState {
     }
 
     /*
-        Save the fact that a particular Function's inputs are now full and so it maybe ready
-        to run (if not blocked sending on it's output)
+        Save the fact that a new set of inputs are available for processing at the Function's inputs
+        so it maybe ready to run (if not blocked sending on it's output)
     */
-    fn inputs_now_full(&mut self, id: usize, flow_id: usize, value_sent: bool) {
+    fn new_input_set(&mut self, id: usize, flow_id: usize, value_sent: bool) {
+        // TODO I think this first part should maybe be somewhere else - a block between this function
+        // and the one it wants to send to exists - but until now it did not have inputs and couldn't
+        // go ready. Now it has inputs and could run, if not blocked, so it's added to the blocked list
+        // TODO if we predicate this on "value_sent" also then it breaks matrix_mult sample
         if self.blocked_sending(id) {
             debug!("\t\t\tFunction #{}, inputs full, but blocked on output. Added to blocked list", id);
             // so put it on the blocked list
@@ -756,7 +755,7 @@ impl RunState {
         } else {
             // If a value was sent to the function (from another, from initializer or from loopback) then make ready
             // If the function has inputs backed-up and is not ready, then make ready
-            if value_sent || !self.ready.contains(&id) {
+            if value_sent {
                 debug!("\t\t\tFunction #{} not blocked on output, so added to 'Ready' list", id);
                 self.mark_ready(id, flow_id);
             }
@@ -779,10 +778,6 @@ impl RunState {
             }
         }
         false
-    }
-
-    pub fn jobs(&self) -> usize {
-        self.jobs_sent
     }
 
     #[cfg(feature = "metrics")]
@@ -877,7 +872,7 @@ impl RunState {
                 removed from 'blocked' list", unblocked_id);
                 self.blocked.remove(&unblocked_id);
 
-                if self.get(unblocked_id).inputs_full() {
+                if self.get(unblocked_id).input_set_count() > 0 {
                     debug!("\t\t\t\tFunction #{} has inputs ready, so added to 'ready' list", unblocked_id);
                     self.mark_ready(unblocked_id, unblocked_flow_id);
                 }
@@ -946,7 +941,7 @@ impl RunState {
             // State::Running is because functions with initializers auto-refill when sent to run
             // So they will show as inputs full, but not Ready or Blocked
             let state = self.get_state(function.id());
-            if (!function.inputs().is_empty()) && function.inputs_full() &&
+            if (!function.inputs().is_empty()) && (function.input_set_count() > 0) &&
                 !(state == State::Ready || state == State::Blocked || state == State::Running) {
                 error!("{}", function);
                 return self.runtime_error(job_id, &format!("Function #{} inputs are full, but it is not Ready or Blocked", function.id()),
@@ -965,7 +960,7 @@ impl RunState {
             // For each block on a destination function, then either that input should be full or
             // the function should be running in parallel with the one that just completed
             // or it's flow should be busy and there should be a pending unblock on it
-            if !(self.functions.get(block.blocking_id).unwrap().input_full(block.blocking_io_number) ||
+            if !(self.functions.get(block.blocking_id).unwrap().input_count(block.blocking_io_number) > 0 ||
                 (self.busy_flows.contains_key(&block.blocking_flow_id) && self.pending_unblocks.contains_key(&block.blocking_flow_id))) {
                 return self.runtime_error(job_id,
                                           &format!("Block {} exists for function #{}, but Function #{}:{} input is not full",
@@ -998,7 +993,7 @@ impl RunState {
 impl fmt::Display for RunState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "RunState:")?;
-        writeln!(f, "    Jobs Executed: {}", self.jobs_sent)?;
+        writeln!(f, "     Jobs Created: {}", self.jobs_created)?;
         writeln!(f, "Functions Blocked: {:?}", self.blocked)?;
         writeln!(f, "           Blocks: {:?}", self.blocks)?;
         writeln!(f, "  Functions Ready: {:?}", self.ready)?;
@@ -1075,7 +1070,7 @@ mod test {
             #[cfg(feature = "debugger")]
                 "/fA".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None, &None)),
+            vec!(Input::new(&None)),
             0, 0,
             &[connection_to_f1], false) // outputs to fB:0
     }
@@ -1090,8 +1085,7 @@ mod test {
             #[cfg(feature = "debugger")]
                 "/fA".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None,
-                            &Some(Once(json!(1))))),
+            vec!(Input::new(&Some(Once(json!(1))))),
             0, 0,
             &[connection_to_f1], false) // outputs to fB:0
     }
@@ -1103,8 +1097,7 @@ mod test {
             #[cfg(feature = "debugger")]
                 "/fA".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None,
-                            &Some(Once(json!(1))))),
+            vec!(Input::new(&Some(Once(json!(1))))),
             0, 0,
             &[], false)
     }
@@ -1116,7 +1109,7 @@ mod test {
             #[cfg(feature = "debugger")]
                 "/fB".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None, &None)),
+            vec!(Input::new(&None)),
             1, 0,
             &[], false)
     }
@@ -1128,8 +1121,7 @@ mod test {
             #[cfg(feature = "debugger")]
                 "/fB".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None,
-                            &Some(Once(json!(1))))),
+            vec!(Input::new(&Some(Once(json!(1))))),
             1, 0,
             &[], false)
     }
@@ -1218,18 +1210,10 @@ mod test {
         }
 
         #[test]
-        fn jobs_sent_zero_at_init() {
-            let mut state = RunState::new(&vec!(), 1);
+        fn jobs_created_zero_at_init() {
+            let mut state = RunState::new(&[], 1);
             state.init();
-            assert_eq!(0, state.jobs(), "At init jobs() should be 0");
-        }
-
-        #[test]
-        fn jobs_sent_increases() {
-            let mut state = RunState::new(&vec!(), 1);
-            state.init();
-            state.job_sent();
-            assert_eq!(1, state.jobs(), "jobs() should have incremented");
+            assert_eq!(0, state.jobs_created(), "At init jobs() should be 0");
         }
     }
 
@@ -1342,7 +1326,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 0, 0,
                 &[], false);
             let functions = vec!(f_a);
@@ -1380,7 +1364,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 0, 0,
                 &[], false);
             let functions = vec!(f_a);
@@ -1503,8 +1487,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None,
-                                &Some(Always(json!(1))))),
+                vec!(Input::new(&Some(Always(json!(1))))),
                 0, 0,
                 &[], false);
             let functions = vec!(f_a);
@@ -1564,7 +1547,7 @@ mod test {
 
 // Event
             let job = Job {
-                job_id: 0,
+                job_id: 1,
                 function_id: 0,
                 flow_id: 0,
                 implementation: super::test_impl(),
@@ -1595,8 +1578,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None,
-                                &Some(Always(json!(1))))),
+                vec!(Input::new(&Some(Always(json!(1))))),
                 0, 0,
                 &[out_conn], false); // outputs to fB:0
             let f_b = Function::new(
@@ -1605,7 +1587,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fB".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 1, 0,
                 &[], false);
             let functions = vec!(f_a, f_b);
@@ -1646,7 +1628,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 0, 0,
                 &[], false);
             let out_conn = OutputConnection::new("".into(), 0, 0, 0, 0, false, None);
@@ -1656,7 +1638,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fB".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 1, 0,
                 &[out_conn], false);
             let functions = vec!(f_a, f_b);
@@ -1696,8 +1678,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fB".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None,
-                                &Some(Always(json!(1))))),
+                vec!(Input::new(&Some(Always(json!(1))))),
                 1, 0,
                 &[connection_to_f0], false);
             let functions = vec!(f_a, f_b);
@@ -1743,8 +1724,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fA".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None,
-                                &Some(Once(json!(1))))),
+                vec!(Input::new(&Some(Once(json!(1))))),
                 0, 0,
                 &[
                     connection_to_0.clone(), // outputs to self:0
@@ -1756,7 +1736,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/fB".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 1, 0,
                 &[], false);
             let functions = vec!(f_a, f_b); // NOTE the order!
@@ -1854,7 +1834,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/p1".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)), // inputs array
+                vec!(Input::new(&None)), // inputs array
                 1, 0,
                 &[], false);
             let p2 = Function::new(
@@ -1863,7 +1843,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/p2".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)), // inputs array
+                vec!(Input::new(&None)), // inputs array
                 2, 0,
                 &[], false);
             vec!(p0, p1, p2)
@@ -1901,7 +1881,7 @@ mod test {
             let mut state = RunState::new(&test_functions(), 1);
 
 // Put 0 on the blocked/ready
-            state.inputs_now_full(0, 0, true);
+            state.new_input_set(0, 0, true);
 
             assert_eq!(state.next_job().unwrap().function_id, 0);
         }
@@ -1911,7 +1891,7 @@ mod test {
             let mut state = RunState::new(&test_functions(), 1);
 
 // Put 0 on the blocked/ready list depending on blocked status
-            state.inputs_now_full(0, 0, true);
+            state.new_input_set(0, 0, true);
 
             assert_eq!(state.next_job().unwrap().function_id, 0);
         }
@@ -1928,7 +1908,7 @@ mod test {
                                    &mut debugger);
 
 // Put 0 on the blocked/ready list depending on blocked status
-            state.inputs_now_full(0, 0, true);
+            state.new_input_set(0, 0, true);
 
             assert!(state.next_job().is_none());
         }
@@ -1944,7 +1924,7 @@ mod test {
                                #[cfg(feature = "debugger")]
                                    &mut debugger);
             // 0's inputs are now full, so it would be ready if it weren't blocked on output
-            state.inputs_now_full(0, 0, true);
+            state.new_input_set(0, 0, true);
             // 0 does not show as ready.
             assert!(state.next_job().is_none());
 
@@ -1970,7 +1950,7 @@ mod test {
                                    &mut debugger);
 
 // Put 0 on the blocked/ready list depending on blocked status
-            state.inputs_now_full(0, 0, true);
+            state.new_input_set(0, 0, true);
 
             assert!(state.next_job().is_none());
 
@@ -1986,9 +1966,9 @@ mod test {
             let mut state = RunState::new(&test_functions(), 1);
 
 // Put 0 on the ready list
-            state.inputs_now_full(0, 0, true);
+            state.new_input_set(0, 0, true);
 // Put 1 on the ready list
-            state.inputs_now_full(1, 0, true);
+            state.new_input_set(1, 0, true);
 
             let job = state.next_job().unwrap();
             assert_eq!(0, job.function_id);
@@ -2093,7 +2073,7 @@ mod test {
                 #[cfg(feature = "debugger")]
                     "/test".to_string(),
                 "/test".to_string(),
-                vec!(Input::new(None, &None)),
+                vec!(Input::new(&None)),
                 0, 0,
                 &[], false)
         }

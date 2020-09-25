@@ -296,7 +296,7 @@ impl Coordinator {
         if submission.display_metrics {
             #[cfg(feature = "metrics")]
             println!("\nMetrics: \n {}", submission.metrics);
-            println!("\t\tJobs processed: {}\n", submission.state.jobs());
+            println!("\t\tJobs created: {}\n", submission.state.jobs_created());
         }
     }
 
@@ -311,7 +311,6 @@ impl Coordinator {
         while let Some(job) = submission.state.next_job() {
             match self.send_job(job.clone(), submission) {
                 Ok((display, rest)) => {
-                    submission.state.job_sent();
                     display_output = display;
                     restart = rest;
                 }

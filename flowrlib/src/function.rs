@@ -67,7 +67,7 @@ impl fmt::Display for Function {
         }
 
         for (number, input) in self.inputs.iter().enumerate() {
-            if input.is_empty() {
+            if input.count() == 0 {
                 writeln!(f, "\tInput :{} is empty", number)?;
             } else {
                 writeln!(f, "\tInput :{} has value '{}'", number, input)?;
@@ -155,7 +155,7 @@ impl Function {
     pub fn init_inputs(&mut self, first_time: bool) -> bool {
         let mut inputs_initialized = false;
         for (io_number, input) in &mut self.inputs.iter_mut().enumerate() {
-            if input.is_empty() && input.init(first_time, io_number) {
+            if input.count() == 0 && input.init(first_time, io_number) {
                 trace!("\t\tInput #{}:{} set from initializer", self.id, io_number);
                 inputs_initialized = true;
             }
@@ -196,23 +196,23 @@ impl Function {
     }
 
     /// Determine if the `Functions` `input` number `input_number` is full or not
-    pub fn input_full(&self, input_number: usize) -> bool {
-        self.inputs[input_number].full()
+    pub fn input_count(&self, input_number: usize) -> usize {
+        self.inputs[input_number].count()
     }
 
-    /// Determine if all of the `Functions` `inputs` are full and this function can be run
-    pub fn inputs_full(&self) -> bool {
+    /// Returns how many inputs sets are available across all the `Functions` `inputs`
+    pub fn input_set_count(&self) -> usize {
+        let mut num_input_sets = std::usize::MAX;
+
         for input in &self.inputs {
-            if input.is_empty() {
-                return false;
-            }
+            num_input_sets = std::cmp::min(num_input_sets, input.count());
         }
 
-        true
+        num_input_sets
     }
 
     #[cfg(feature = "debugger")]
-    /// Inpect the values of the `inputs` of a feature. Only used by the `debugger` feature
+    /// Inspect the values of the `inputs` of a feature. Only used by the `debugger` feature
     pub fn inputs(&self) -> &Vec<Input> {
         &self.inputs
     }
@@ -263,8 +263,6 @@ mod test {
         assert_eq!("arg1", json.pointer("/1").unwrap(), "json pointer array indexing functionality not working!");
     }
 
-    /*************** Below are tests for inputs with depth = 1 ***********************/
-
     #[test]
     fn can_send_simple_object() {
         let mut function = Function::new(
@@ -273,7 +271,7 @@ mod test {
                                          #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(None, &None)),
+                                         vec!(Input::new(&None)),
                                          0, 0,
                                          &[], false);
         function.init_inputs(true);
@@ -291,7 +289,7 @@ mod test {
                                          "/test".to_string(),
                                          "/test".to_string(),
                                          // vec!(Input::new(1, &None, true, false)),
-                                         vec!(Input::new(None, &None)),
+                                         vec!(Input::new(&None)),
                                          0, 0,
                                          &[], false);
         function.init_inputs(true);
@@ -301,14 +299,14 @@ mod test {
     }
 
     #[test]
-    fn test_array_to_non_array_depth_1() {
+    fn test_array_to_non_array() {
         let mut function = Function::new(
             #[cfg(feature = "debugger")]
                 "test".to_string(),
             #[cfg(feature = "debugger")]
                 "/test".to_string(),
             "/test".to_string(),
-            vec!(Input::new(None, &None)),
+            vec!(Input::new(&None)),
             0, 0,
             &[], false);
         function.init_inputs(true);
@@ -316,8 +314,6 @@ mod test {
         assert_eq!(function.take_input_set().unwrap().remove(0), json!([1, 2]),
                    "Value from input set wasn't what was expected");
     }
-
-    /*************** Below are tests for inputs with depth > 1 ***********************/
 
     fn test_function() -> Function {
         let out_conn = OutputConnection::new("/other/input/1".to_string(),
@@ -328,7 +324,7 @@ mod test {
             #[cfg(feature = "debugger")]
                         "/test".to_string(),
                       "/implementation".to_string(),
-                      vec!(Input::new(None, &None)),
+                      vec!(Input::new(&None)),
                       1, 0,
                       &[out_conn], false)
     }
@@ -366,7 +362,7 @@ mod test {
             #[cfg(feature = "debugger")]
                                          "/test".to_string(),
                                          "/test".to_string(),
-                                         vec!(Input::new(None, &None)),
+                                         vec!(Input::new(&None)),
                                          0, 0,
                                          &[output_route.clone()], false);
         function.init_inputs(true);

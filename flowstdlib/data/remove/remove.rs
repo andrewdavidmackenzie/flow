@@ -62,6 +62,17 @@ mod test {
     }
 
     #[test]
+    fn remove_repeated_entry() {
+        let array: Value = json!([1, 2, 2, 3, 4]);
+        let value = json!(2);
+
+        let remover = super::Remove{};
+        let (result, _) = remover.run(&[value, array]);
+
+        assert_eq!(result.unwrap(), json!([1, 3, 4]));
+    }
+
+    #[test]
     fn not_remove_3() {
         let array: Value = json!([1, 2]);
         let value = json!(3);
@@ -70,5 +81,27 @@ mod test {
         let (result, _) = remover.run(&[value, array]);
 
         assert_eq!(result.unwrap(), json!([1, 2]));
+    }
+
+    #[test]
+    fn try_to_remove_from_empty_array() {
+        let array: Value = json!([]);
+        let value = json!(3);
+
+        let remover = super::Remove{};
+        let (result, _) = remover.run(&[value, array]);
+
+        assert_eq!(result.unwrap(), json!([]));
+    }
+
+    #[test]
+    fn try_to_remove_non_existant_entry() {
+        let array: Value = json!([1, 2, 3, 5, 7, 8, 9]);
+        let value = json!(6);
+
+        let remover = super::Remove{};
+        let (result, _) = remover.run(&[value, array]);
+
+        assert_eq!(result.unwrap(), json!([1, 2, 3, 5, 7, 8, 9]));
     }
 }

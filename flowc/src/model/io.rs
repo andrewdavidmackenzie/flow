@@ -32,8 +32,6 @@ pub struct IO {
     name: Name,
     #[serde(rename = "type", default = "default_type")]
     datatype: DataType,
-    #[serde(default = "default_depth")]
-    depth: Option<usize>,
     #[serde(rename = "value")]
     initializer: Option<InputInitializer>,
 
@@ -49,14 +47,6 @@ impl IO {
         io.datatype = datatype.into();
         io.route = route.clone();
         io
-    }
-
-    pub fn depth(&self) -> Option<usize> {
-        self.depth
-    }
-
-    pub fn set_depth(&mut self, depth: usize) {
-        self.depth = Some(depth)
     }
 
     pub fn flow_io(&self) -> bool {
@@ -109,7 +99,6 @@ impl Default for IO {
         IO {
             name: Name::default(),
             datatype: default_type(),
-            depth: default_depth(),
             route: Route::default(),
             io_type: IOType::FunctionIO,
             initializer: None,
@@ -142,10 +131,6 @@ impl HasRoute for IO {
 
 fn default_type() -> DataType {
     DataType::from("Value")
-}
-
-fn default_depth() -> Option<usize> {
-    None
 }
 
 fn default_io_type() -> IOType { IOType::FunctionIO }
@@ -245,22 +230,6 @@ impl IO {
                         if *input.name() == Name::from(initializer.0) ||
                             (initializer.0.as_str() == "default" && index == 0) {
                             input.initializer = Some(initializer.1.clone());
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    pub fn set_depths(ios: &mut IOSet, input_depths: &Option<HashMap<String, Option<usize>>>) {
-        if let Some(depths) = input_depths {
-            if let Some(inputs) = ios {
-                for depth in depths {
-                    // depth.0 is io name, depth.1 is the desired depth for that IO
-                    for (index, input) in inputs.iter_mut().enumerate() {
-                        if *input.name() == Name::from(depth.0) ||
-                            (depth.0.as_str() == "default" && index == 0) { // reserved 'name' for single, unnamed input
-                            input.depth = *depth.1;
                         }
                     }
                 }
@@ -374,7 +343,6 @@ mod test {
             name: Name::from("io_name"),
             datatype: DataType::from("String"),
             route: Route::default(),
-            depth: None,
             io_type: IOType::FunctionIO,
             initializer: None,
         };
@@ -382,7 +350,6 @@ mod test {
             name: Name::from("different_name"),
             datatype: DataType::from("String"),
             route: Route::default(),
-            depth: None,
             io_type: IOType::FunctionIO,
             initializer: None,
         };
@@ -396,7 +363,6 @@ mod test {
             name: Name::from("io_name"),
             datatype: DataType::from("String"),
             route: Route::default(),
-            depth: None,
             io_type: IOType::FunctionIO,
             initializer: None,
         };
@@ -411,7 +377,6 @@ mod test {
             name: Name::from("io_name"),
             datatype: DataType::from("String"),
             route: Route::default(),
-            depth: None,
             io_type: IOType::FunctionIO,
             initializer: None,
         };
@@ -419,7 +384,6 @@ mod test {
             name: Name::default(),
             datatype: DataType::from("String"),
             route: Route::default(),
-            depth: None,
             io_type: IOType::FunctionIO,
             initializer: None,
         };

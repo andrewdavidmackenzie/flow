@@ -60,7 +60,6 @@ to = "composites/limit"
 [[process]]
 alias = "subtract"
 source = "lib://flowstdlib/data/remove"
-input.value = { once =  9 }
 
 [[connection]]
 from = "all-numbers/chunk"
@@ -74,9 +73,8 @@ to = "subtract/value"
 from = "subtract"
 to = "subtract/array"
 
-#### debug
 [[connection]]
-from = "composites/composites"
+from = "subtract"
 to = "print"
 
 ####### Output
