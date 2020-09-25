@@ -204,7 +204,7 @@ mod test {
     /// ## Simple Object Value being sent
     ///   Value Type        Input Type
     /// * Simple Object --> Simple Object (is_array = false)
-    /// input and sent to the function as an array of size 'depth'
+    /// input and sent to the function as an array
     /// * Simple Object --> Array (is_array = true)
     ///
     /// ## Array Object being sent
