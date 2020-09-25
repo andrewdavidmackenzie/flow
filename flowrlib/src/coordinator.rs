@@ -103,7 +103,7 @@ pub struct Coordinator {
 ///
 /// # Examples
 ///
-/// ```
+/// ```no_run
 /// use std::sync::{Arc, Mutex};
 /// use std::io;
 /// use std::io::Write;
@@ -144,7 +144,7 @@ pub struct Coordinator {
 /// let mut coordinator = Coordinator::new( 1 /* num_threads */, );
 /// coordinator.init();
 ///
-/// // coordinator.submit(submission); // Goes into execution loop so avoided for doc-tests for now
+/// coordinator.submit(submission);
 ///
 /// exit(0);
 /// ```
