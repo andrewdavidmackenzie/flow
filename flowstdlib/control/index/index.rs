@@ -64,3 +64,119 @@ impl Implementation for Index {
         (Some(Value::Object(output_map)), RUN_AGAIN)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use flow_impl::Implementation;
+    use serde_json::{json, Value};
+
+    use super::Index;
+
+    #[test]
+    fn select_index_0() {
+        let indexor = Index{};
+
+        let value = json!(42);
+        let previous_value = Value::Null;
+        let index = json!(0);
+        let select_index = json!(0);
+
+        let inputs = vec!(value, previous_value, index, select_index);
+
+        let (result, _) = indexor.run(&inputs);
+
+        let output_map = result.unwrap();
+
+        assert_eq!(output_map.pointer("/selected_value").unwrap(), &json!(42));
+    }
+
+    #[test]
+    fn not_select_index_0() {
+        let indexor = Index{};
+
+        let value = json!(42);
+        let previous_value = Value::Null;
+        let index = json!(0);
+        let select_index = json!(1);
+
+        let inputs = vec!(value, previous_value, index, select_index);
+
+        let (result, _) = indexor.run(&inputs);
+
+        let output_map = result.unwrap();
+
+        assert_eq!(output_map.pointer("/selected_value"), None);
+    }
+
+    #[test]
+    fn select_index_1() {
+        let indexor = Index{};
+
+        let value = json!(42);
+        let previous_value = Value::Null;
+        let index = json!(1);
+        let select_index = json!(1);
+
+        let inputs = vec!(value, previous_value, index, select_index);
+
+        let (result, _) = indexor.run(&inputs);
+
+        let output_map = result.unwrap();
+
+        assert_eq!(output_map.pointer("/selected_value").unwrap(), &json!(42));
+    }
+
+    #[test]
+    fn not_select_index_1() {
+        let indexor = Index{};
+
+        let value = json!(42);
+        let previous_value = Value::Null;
+        let index = json!(1);
+        let select_index = json!(0);
+
+        let inputs = vec!(value, previous_value, index, select_index);
+
+        let (result, _) = indexor.run(&inputs);
+
+        let output_map = result.unwrap();
+
+        assert_eq!(output_map.pointer("/selected_value"), None);
+    }
+
+    #[test]
+    fn select_last() {
+        let indexor = Index{};
+
+        let value = Value::Null;
+        let previous_value = json!(42);
+        let index = json!(7);
+        let select_index = json!(-1);
+
+        let inputs = vec!(value, previous_value, index, select_index);
+
+        let (result, _) = indexor.run(&inputs);
+
+        let output_map = result.unwrap();
+
+        assert_eq!(output_map.pointer("/selected_value").unwrap(), &json!(42));
+    }
+
+    #[test]
+    fn not_select_last() {
+        let indexor = Index{};
+
+        let value = json!(43);
+        let previous_value = json!(42);
+        let index = json!(7);
+        let select_index = json!(-1);
+
+        let inputs = vec!(value, previous_value, index, select_index);
+
+        let (result, _) = indexor.run(&inputs);
+
+        let output_map = result.unwrap();
+
+        assert_eq!(output_map.pointer("/selected_value"), None);
+    }
+}
