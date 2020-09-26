@@ -3,7 +3,7 @@ use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 
 #[derive(FlowImpl)]
-/// Route data to one or another based on a boolean control value.
+/// Select whioch data to outputbased on a boolean control value.
 ///
 /// ## Include using
 /// ```toml
@@ -18,8 +18,8 @@ use serde_json::Value;
 /// * `control` - a boolean value to selection of inputs passed to outputs
 ///
 /// ## Outputs
-/// * `select_i1` if `control` is true `i1` is routed here else `i2` is routed here
-/// * `select_i2` if `control` is true `i2` is routed here else `i1` is routed here
+/// * `select_i1` if `control` is true `i1` is selected for this output else `i2` is selected
+/// * `select_i2` if `control` is true `i2` is selected for this output else `i1` is selected
 #[derive(Debug)]
 pub struct Select;
 

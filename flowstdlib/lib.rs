@@ -38,6 +38,8 @@ pub fn get_manifest() -> LibraryManifest {
     // Control
     manifest.locators.insert("lib://flowstdlib/control/compare_switch/CompareSwitch".to_string(),
                              Native(Arc::new(control::compare_switch::CompareSwitch)));
+    manifest.locators.insert("lib://flowstdlib/control/index/Index".to_string(),
+                             Native(Arc::new(control::index::Index)));
     manifest.locators.insert("lib://flowstdlib/control/join/Join".to_string(),
                              Native(Arc::new(control::join::Join)));
     manifest.locators.insert("lib://flowstdlib/control/route/Route".to_string(),

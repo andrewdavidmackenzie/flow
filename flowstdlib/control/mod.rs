@@ -21,3 +21,7 @@ pub mod route;
 /// A module with functions to select data on output on a control value
 #[path = "select/select.rs"]
 pub mod select;
+
+/// A module with functions to select a value to pass based on index
+#[path = "index/index.rs"]
+pub mod index;
