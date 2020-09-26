@@ -28,7 +28,9 @@ pub enum Response {
     /// An Vector of Strings that are the flow's arguments
     Args(Vec<String>),
     /// An Error occurred on the runtime_client
-    Error(String)
+    Error(String),
+    /// EOF was detected on input
+    EOF
 }
 
 /// runtime_clients must implement this trait
