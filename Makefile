@@ -4,15 +4,18 @@ APTGET := $(shell command -v apt-get 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
 STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo "<------ Target '$@' starting"
 ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo "------> Target '$@' done in $$st seconds"
-FLOWSTDLIB_FILES = $(shell find flowstdlib -type f | grep -v manifest.json)
+FLOWSTDLIB_SOURCES = $(shell find flowstdlib -type f -name \*.rs)
+FLOWSTDLIB_TOMLS = $(shell find flowstdlib -type f -name \*.toml)
+FLOWSTDLIB_MARKDOWN = $(shell find flowstdlib -type f -name \*.md)
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 2> /dev/null)
 export FLOW_ROOT := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 export SHELL := /bin/bash
 
+.PHONNE: all
 all:
 	$(STIME)
-	@$(MAKE) clippy test build samples docs
+	@$(MAKE) clippy build test samples docs
 	$(ETIME)
 
 ########## Configure Dependencies ############
@@ -133,7 +136,8 @@ deploy-pages:
 	$(ETIME)
 
 #################### Build ####################
-build:
+.PHONY: build
+build: flowstdlib
 	$(STIME)
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig" cargo build
 	$(ETIME)
@@ -155,6 +159,7 @@ test:
 .PHONY: coverage
 coverage: build-kcov measure upload_coverage
 
+.PHONY: upload_coverage
 upload_coverage:
 	$(STIME)
 	@echo "Uploading coverage to https://codecov.io....."
@@ -164,12 +169,14 @@ upload_coverage:
 .test_list: .test.log
 	@cat .test.log | grep "Running" |cut -f7 -d ' ' > .test_list
 
+.PHONY: measure
 measure: .test_list
 	$(STIME)
 	@echo "Measuring coverage using 'kcov'"
 	@for file in `cat .test_list`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$FLOW_ROOT --exclude-path=flowc/tests,flowr/tests --exclude-region='#[cfg(test)]:#[cfg(testkcovstopmarker)]' "target/cov/$(basename $$file)" $$file; done
 	$(ETIME)
 
+.PHONY: build-kcov
 build-kcov:
 	$(STIME)
 ifeq ($(KCOV),)
@@ -210,8 +217,11 @@ endif
 	$(ETIME)
 
 #################### FLOW LIBRARIES ####################
-flowstdlib/manifest.json:
-	@mkdir -p target;date '+%s' > target/.flowstdlibtime ; echo "\n<------ Target '$@' starting"
+.PHONY: flowstdlib
+flowstdlib: flowstdlib/manifest.json
+
+flowstdlib/manifest.json: $(FLOWSTDLIB_SOURCES) $(FLOWSTDLIB_TOMLS) $(FLOWSTDLIB_MARKDOWN)
+	@mkdir -p target;date '+%s' > target/.flowstdlibtime ; echo "<------ Target '$@' starting"
 	@cargo run -p flowc -- -v info -l -g -d flowstdlib
 	@read st < target/.flowstdlibtime ; st=$$((`date '+%s'`-$$st)) ; echo "------> Target '$@' done in $$st seconds"
 
@@ -233,7 +243,7 @@ copy:
 sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
 # This target must be below sample-flows in the Makefile
-samples: build flowstdlib/manifest.json
+samples: build flowstdlib
 	$(STIME)
 	@$(MAKE) clean-samples
 	@$(MAKE) $(sample_flows)
