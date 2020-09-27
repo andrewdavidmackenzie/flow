@@ -28,6 +28,7 @@ impl RuntimeClient for IDERuntimeClient {
     // This function is called by the runtime_function to send a commanmd to the runtime_client
     fn send_command(&self, command: Command) -> Response {
         match command {
+            Command::EOF => Response::Ack,
             Command::Stdout(contents) => {
                 widgets::do_in_gtk_eventloop(|refs| {
                     refs.stdout().insert_at_cursor(&format!("{}\n", contents));

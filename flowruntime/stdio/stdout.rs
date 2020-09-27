@@ -19,7 +19,7 @@ impl Implementation for Stdout {
         // Gain sole access to send to the client to avoid mixing output from other functions
         if let Ok(client) = self.client.lock() {
             match input {
-                Value::Null => client.send_command(Command::Stdout("Null".into())),
+                Value::Null => client.send_command(Command::EOF),
                 Value::String(string) => client.send_command(Command::Stdout(string.to_string())),
                 Value::Bool(boolean) => client.send_command(Command::Stdout(boolean.to_string())),
                 Value::Number(number) => client.send_command(Command::Stdout(number.to_string())),

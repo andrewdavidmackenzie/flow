@@ -13,7 +13,9 @@ pub enum Command {
     /// Get the arguments for the flow
     Args,
     /// Write to a file
-    Write(String, Vec<u8>)
+    Write(String, Vec<u8>),
+    /// End of File
+    EOF
 }
 
 /// A `Response` from the runtime_client to the run-time functions

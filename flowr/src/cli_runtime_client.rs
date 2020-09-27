@@ -19,6 +19,7 @@ impl RuntimeClient for CLIRuntimeClient {
     // so here in the runtime_client, it's more like "process_command"
     fn send_command(&self, command: Command) -> Response {
         match command {
+            Command::EOF => Response::Ack,
             Command::Stdout(contents) => {
                 println!("{}", contents);
                 Response::Ack
