@@ -59,28 +59,30 @@ pub struct Accumulate;
 impl Implementation for Accumulate {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
         let value = inputs[0].clone(); // input value to accumulate in array
-        let mut partial_input = inputs[1].clone(); // A partial array to append the values to
-        let chunk_size = inputs[2].clone(); // how many elements desired in the output array
-
-        let partial = partial_input.as_array_mut().unwrap();
-        partial.push(value);
-
         let mut output_map = serde_json::Map::new();
 
-        if partial.len() >= chunk_size.as_u64().unwrap() as usize {
-            // TODO could pass on any extra elements beyond chunk size in 'partial'
-            // and also force chunk size to be exact....
-            output_map.insert("chunk".into(), Value::Array(partial.clone()));
-            output_map.insert("partial".into(), Value::Array(vec!()));
+        if value.is_null() {
+            output_map.insert("chunk".into(), Value::Null);
         } else {
-            output_map.insert("partial".into(), Value::Array(partial.clone()));
+            let mut partial_input = inputs[1].clone(); // A partial array to append the values to
+            let chunk_size = inputs[2].clone(); // how many elements desired in the output array
+
+            let partial = partial_input.as_array_mut().unwrap();
+            partial.push(value);
+
+            if partial.len() >= chunk_size.as_u64().unwrap() as usize {
+                // TODO could pass on any extra elements beyond chunk size in 'partial'
+                // and also force chunk size to be exact....
+                output_map.insert("chunk".into(), Value::Array(partial.clone()));
+                output_map.insert("partial".into(), Value::Array(vec!()));
+            } else {
+                output_map.insert("partial".into(), Value::Array(partial.clone()));
+            }
+
+            output_map.insert("chunk_size".into(), chunk_size);
         }
 
-        output_map.insert("chunk_size".into(), chunk_size);
-
-        let output = Value::Object(output_map);
-
-        (Some(output), RUN_AGAIN)
+        (Some(Value::Object(output_map)), RUN_AGAIN)
     }
 }
 
@@ -91,7 +93,7 @@ mod test {
 
     #[test]
     fn accumulate_start_and_finish() {
-        let value= json!(1);
+        let value = json!(1);
         let partial = json!([]);
         let chunk_size = json!(1);
 
@@ -103,7 +105,7 @@ mod test {
 
     #[test]
     fn accumulate_start_not_finish() {
-        let value= json!(1);
+        let value = json!(1);
         let partial = json!([]);
         let chunk_size = json!(2);
 
@@ -116,7 +118,7 @@ mod test {
 
     #[test]
     fn accumulate_started_then_finish() {
-        let value= json!(2);
+        let value = json!(2);
         let partial = json!([1]);
         let chunk_size = json!(2);
 
