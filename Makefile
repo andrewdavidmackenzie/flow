@@ -243,6 +243,7 @@ copy:
 sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
 # This target must be below sample-flows in the Makefile
+.PHONY: samples
 samples: build flowstdlib
 	$(STIME)
 	@$(MAKE) clean-samples
