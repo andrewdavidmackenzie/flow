@@ -7,6 +7,7 @@ ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo "------> T
 SOURCES = $(shell find . -type f -name \*.rs)
 MARKDOWN = $(shell find . -type f -name \*.md)
 DOTS = $(shell find . -type f -name \*.dot)
+SVGS = $(patsubst %.dot,%.dot.svg,$(DOTS))
 FLOWSTDLIB_SOURCES = $(shell find flowstdlib -type f -name \*.rs)
 FLOWSTDLIB_TOMLS = $(shell find flowstdlib -type f -name \*.toml)
 FLOWSTDLIB_MARKDOWN = $(shell find flowstdlib -type f -name \*.md)
@@ -85,13 +86,21 @@ endif
 
 ################### Doc ####################
 .PHONY: docs
-docs: dot-graphs build-book code-docs trim-docs
+docs: book code-docs trim-docs
 
-.PHONY: build-book
-build-book: $(MARKDOWN)
-	$(STIME)
+.PHONY: book
+book: target/html/index.html
+
+target/html/index.html: $(MARKDOWN) $(SVGS)
 	@RUST_LOG=info time mdbook build
-	$(ETIME)
+
+%.dot.svg: %.dot
+ifeq ($(DOT),)
+	@echo "        Install 'graphviz' to be able to generate dot graphs for flows."
+else
+	@dot -Tsvg -O $<
+	@echo "        Generated $@ SVG file from $< dot file"
+endif
 
 .PHONY: trim-docs
 trim-docs:
@@ -374,16 +383,4 @@ clean-svgs:
 clean-guide:
 	$(STIME)
 	@rm -rf target/html
-	$(ETIME)
-
-################# Dot Graphs ################
-.PHONY: dot-graphs
-dot-graphs: $(DOTS)
-	$(STIME)
-ifeq ($(DOT),)
-	@echo "        Install 'graphviz' to be able to generate dot graphs for flows."
-else
-	@echo "        Generated .svg files for all dot graphs found"
-	@find . -name \*.dot -type f -exec dot -Tsvg -O {} \;
-endif
 	$(ETIME)
