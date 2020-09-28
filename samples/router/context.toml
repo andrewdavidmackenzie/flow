@@ -107,22 +107,23 @@ to = "A_tracker/other_distance"
 alias = "print"
 source = "lib://flowruntime/stdio/stdout"
 
-[[process]]
-alias = "index"
-source = "lib://flowstdlib/control/index"
-input.previous_value = { once = "" }
-input.select_index = { always = -1 }
-input.index = { once = -1 }
+#[[process]]
+#alias = "index"
+#source = "lib://flowstdlib/control/index"
+#input.previous_value = { once = "" }
+#input.select_index = { always = -1 }
+#input.index = { once = -1 }
 
 #loopback
-[[connection]]
-from = "index/previous_value"
-to = "index/previous_value"
+#[[connection]]
+#from = "index/previous_value"
+#to = "index/previous_value"
 
 #loopback
-[[connection]]
-from = "index/index"
-to = "index/index"
+#[[connection]]
+#from = "index/index"
+#to = "index/index"
+
 
 [[connection]]
 from = "A_tracker/route"
