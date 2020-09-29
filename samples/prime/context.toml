@@ -73,8 +73,27 @@ to = "subtract/value"
 from = "subtract"
 to = "subtract/array"
 
+# TODO for this to work, we need the composites generator flow to NULL terminate it's output series.
+#[[process]]
+#source = "lib://flowstdlib/control/index"
+#input.index = { once = -1 }
+#input.select_index = { always = -1 } # Last
+#
+## loopback
+#[[connection]]
+#from = "index/previous_value"
+#to = "index/previous_value"
+#
+#[[connection]]
+#from = "index/index"
+#to = "index/index"
+#
 [[connection]]
 from = "subtract"
+#to = "index/value"
+#
+#[[connection]]
+#from = "index/selected_value"
 to = "print"
 
 ####### Output
