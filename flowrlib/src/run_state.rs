@@ -4,7 +4,7 @@ use std::fmt;
 use std::sync::Arc;
 
 use flow_impl::Implementation;
-use log::{debug, error, trace};
+use log::{debug, error, info, trace};
 use multimap::MultiMap;
 use serde_json::{json, Value};
 
@@ -621,7 +621,7 @@ impl RunState {
             format!("to Function #{}:{}", destination.function_id, destination.io_number)
         };
 
-        debug!("\t\tFunction #{} sending '{}'{} {}", source_id, output_value, route_str, destination_str);
+        info!("\t\tFunction #{} sending '{}'{} {}", source_id, output_value, route_str, destination_str);
 
         #[cfg(feature = "debugger")]
             debugger.check_prior_to_send(self, source_id, &destination.subpath,
