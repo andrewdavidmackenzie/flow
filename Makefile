@@ -16,7 +16,7 @@ ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 2> /dev/null)
 export FLOW_ROOT := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 export SHELL := /bin/bash
 
-.PHONNE: all
+.PHONY: all
 all: clippy build test samples docs
 
 ########## Configure Dependencies ############
