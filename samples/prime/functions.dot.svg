@@ -10,11 +10,6 @@
 <title>prime</title>
 <polygon fill="white" stroke="transparent" points="-4,4 -4,-873 1806.49,-873 1806.49,4 -4,4"/>
 <text text-anchor="middle" x="901.25" y="-853.8" font-family="Times,serif" font-size="14.00">/prime</text>
-<g id="clust1" class="cluster">
-<title>cluster_candidates</title>
-<polygon fill="none" stroke="black" points="1412,-436 1412,-783 1756,-783 1756,-436 1412,-436"/>
-<text text-anchor="middle" x="1584" y="-767.8" font-family="Times,serif" font-size="14.00">/prime/candidates</text>
-</g>
 <g id="clust2" class="cluster">
 <title>cluster_composites</title>
 <polygon fill="none" stroke="black" points="8,-8 8,-652 1074,-652 1074,-8 8,-8"/>
@@ -34,6 +29,11 @@
 <title>cluster_composite_sequence</title>
 <polygon fill="none" stroke="black" points="178,-101 178,-286 528,-286 528,-101 178,-101"/>
 <text text-anchor="middle" x="353" y="-270.8" font-family="Times,serif" font-size="14.00">/prime/composites/generate_composites/composite&#45;sequence</text>
+</g>
+<g id="clust1" class="cluster">
+<title>cluster_candidates</title>
+<polygon fill="none" stroke="black" points="1412,-436 1412,-783 1756,-783 1756,-436 1412,-436"/>
+<text text-anchor="middle" x="1584" y="-767.8" font-family="Times,serif" font-size="14.00">/prime/candidates</text>
 </g>
 <!-- r0 -->
 <g id="node1" class="node">
