@@ -19,6 +19,7 @@ impl RuntimeClient for CLIRuntimeClient {
     // so here in the runtime_client, it's more like "process_command"
     fn send_command(&self, command: Command) -> Response {
         match command {
+            Command::EOF => Response::Ack,
             Command::Stdout(contents) => {
                 println!("{}", contents);
                 Response::Ack
@@ -34,6 +35,8 @@ impl RuntimeClient for CLIRuntimeClient {
                 if let Ok(size) = handle.read_to_string(&mut buffer) {
                     if size > 0 {
                         return Response::Stdin(buffer.trim().to_string());
+                    } else {
+                        return Response::EOF;
                     }
                 }
                 Response::Error("Could not read Stdin".into())
@@ -42,6 +45,7 @@ impl RuntimeClient for CLIRuntimeClient {
                 let mut input = String::new();
                 match io::stdin().read_line(&mut input) {
                     Ok(n) if n > 0 => Response::Readline(input.trim().to_string()),
+                    Ok(n) if n == 0 => Response::EOF,
                     _ => Response::Error("Could not read Readline".into())
                 }
             }

@@ -65,33 +65,37 @@ pub struct Split;
 
 impl Implementation for Split {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let string = inputs[0].as_str().unwrap();
-        let separator = inputs[1].as_str().unwrap();
+        if inputs[0].is_string() {
+            let string = inputs[0].as_str().unwrap();
+            let separator = inputs[1].as_str().unwrap();
 
-        let (partial, token) = split(string, separator);
+            let (partial, token) = split(string, separator);
 
-        let mut output_map = serde_json::Map::new();
+            let mut output_map = serde_json::Map::new();
 
-        let mut work_delta: i32 = -1; // we have consumed a string, so one down
+            let mut work_delta: i32 = -1; // we have consumed a string, so one down
 
-        if let Some(partial) = partial {
-            // but we have generated some new strings to be processed by other jobs
-            work_delta += partial.len() as i32;
-            output_map.insert("partial".into(), json!(partial));
-        }
+            if let Some(partial) = partial {
+                // but we have generated some new strings to be processed by other jobs
+                work_delta += partial.len() as i32;
+                output_map.insert("partial".into(), json!(partial));
+            }
 
-        output_map.insert("delta".into(), json!(work_delta));
+            output_map.insert("delta".into(), json!(work_delta));
 
-        if let Some(tok) = token {
-            output_map.insert("token".into(), json!(tok));
-            output_map.insert("token-count".into(), json!(1));
+            if let Some(tok) = token {
+                output_map.insert("token".into(), json!(tok));
+                output_map.insert("token-count".into(), json!(1));
+            } else {
+                output_map.insert("token-count".into(), json!(0));
+            }
+
+            let output = Value::Object(output_map);
+
+            (Some(output), RUN_AGAIN)
         } else {
-            output_map.insert("token-count".into(), json!(0));
+            (None, RUN_AGAIN)
         }
-
-        let output = Value::Object(output_map);
-
-        (Some(output), RUN_AGAIN)
     }
 }
 

@@ -13,7 +13,9 @@ pub enum Command {
     /// Get the arguments for the flow
     Args,
     /// Write to a file
-    Write(String, Vec<u8>)
+    Write(String, Vec<u8>),
+    /// End of File
+    EOF
 }
 
 /// A `Response` from the runtime_client to the run-time functions
@@ -28,7 +30,9 @@ pub enum Response {
     /// An Vector of Strings that are the flow's arguments
     Args(Vec<String>),
     /// An Error occurred on the runtime_client
-    Error(String)
+    Error(String),
+    /// EOF was detected on input
+    EOF
 }
 
 /// runtime_clients must implement this trait

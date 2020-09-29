@@ -1,0 +1,30 @@
+function = "Index"
+implementation = "index.rs"
+
+[[input]]
+name = "value"
+type = "Value"
+
+[[input]]
+name = "previous_value"
+type = "Value"
+
+[[input]]
+name = "index"
+type = "Number"
+
+[[input]]
+name = "select_index"
+type = "Number"
+
+[[output]]
+name = "index"
+type = "Number"
+
+[[output]]
+name = "previous_value"
+type = "Value"
+
+[[output]]
+name = "selected_value"
+type = "Value"

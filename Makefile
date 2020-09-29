@@ -4,6 +4,10 @@ APTGET := $(shell command -v apt-get 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
 STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo "<------ Target '$@' starting"
 ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo "------> Target '$@' done in $$st seconds"
+SOURCES = $(shell find . -type f -name \*.rs)
+MARKDOWN = $(shell find . -type f -name \*.md)
+DOTS = $(shell find . -type f -name \*.dot)
+SVGS = $(patsubst %.dot,%.dot.svg,$(DOTS))
 FLOWSTDLIB_SOURCES = $(shell find flowstdlib -type f -name \*.rs)
 FLOWSTDLIB_TOMLS = $(shell find flowstdlib -type f -name \*.toml)
 FLOWSTDLIB_MARKDOWN = $(shell find flowstdlib -type f -name \*.md)
@@ -12,13 +16,11 @@ ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 2> /dev/null)
 export FLOW_ROOT := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 export SHELL := /bin/bash
 
-.PHONNE: all
-all:
-	$(STIME)
-	@$(MAKE) clippy build test samples docs
-	$(ETIME)
+.PHONY: all
+all: clippy build test samples docs
 
 ########## Configure Dependencies ############
+.PHONY: config
 config: common-config
 	$(STIME)
 	@echo "Detected $(UNAME)"
@@ -30,6 +32,7 @@ ifeq ($(UNAME), Darwin)
 endif
 	$(ETIME)
 
+.PHONY: clippy-config
 clippy-config:
 	$(STIME)
 	@echo "	Installing clippy command using rustup"
@@ -37,12 +40,14 @@ clippy-config:
 	@rustup --quiet component add clippy
 	$(ETIME)
 
+.PHONY: wasm-config
 wasm-config:
 	$(STIME)
 	@echo "	Installing wasm32 target using rustup"
 	@rustup --quiet target add wasm32-unknown-unknown
 	$(ETIME)
 
+.PHONY: book-config
 book-config:
 	$(STIME)
 	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
@@ -50,16 +55,20 @@ book-config:
 	@cargo install mdbook-linkcheck
 	$(ETIME)
 
+.PHONY: common-config
 common-config: no-book-config book-config
 
+.PHONY: no-book-config
 no-book-config: clippy-config wasm-config
 
+.PHONY: config-darwin
 config-darwin:
 	$(STIME)
 	@echo "	Installing macos specific dependencies using brew"
 	@brew install gtk+3 glib cairo atk cmake graphviz
 	$(ETIME)
 
+.PHONY: config-linux
 config-linux:
 	$(STIME)
 ifneq ($(YUM),)
@@ -77,16 +86,23 @@ endif
 
 ################### Doc ####################
 .PHONY: docs
-docs:
-	$(STIME)
-	@$(MAKE) dot-graphs build-book code-docs trim-docs
-	$(ETIME)
+docs: book code-docs trim-docs
 
-build-book:
-	$(STIME)
+.PHONY: book
+book: target/html/index.html
+
+target/html/index.html: $(MARKDOWN) $(SVGS)
 	@RUST_LOG=info time mdbook build
-	$(ETIME)
 
+%.dot.svg: %.dot
+ifeq ($(DOT),)
+	@echo "        Install 'graphviz' to be able to generate dot graphs for flows."
+else
+	@dot -Tsvg -O $<
+	@echo "        Generated $@ SVG file from $< dot file"
+endif
+
+.PHONY: trim-docs
 trim-docs:
 	$(STIME)
 	@find target/html -name target -type d | xargs rm -rf {}
@@ -112,7 +128,8 @@ trim-docs:
 	@find target/html -depth -type d -empty -delete
 	$(ETIME)
 
-code-docs:
+.PHONY: code-docs
+code-docs: $(SOURCES)
 	$(STIME)
 	@cargo doc --workspace --quiet --all-features --no-deps --target-dir=target/html/code
 	$(ETIME)
@@ -137,30 +154,32 @@ deploy-pages:
 
 #################### Build ####################
 .PHONY: build
-build: flowstdlib
+build: $(SOURCES) flowstdlib
 	$(STIME)
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig" cargo build
 	$(ETIME)
 
-clippy:
+.PHONY: clippy
+clippy: $(SOURCES)
 	$(STIME)
 	@cargo clippy -- -D warnings
 	$(ETIME)
 
 #################### Tests ####################
-test:
+.PHONY: test
+test: $(SOURCES)
 	$(STIME)
-	@cargo test --all-features --workspace --exclude flow_impl_derive --exclude flowide 2>&1 | tee .test.log
+	@set -o pipefail && cargo test --all-features --workspace --exclude flow_impl_derive --exclude flowide 2>&1 | tee .test.log
 	$(ETIME)
 
 .test.log: test
 
 ################### Coverage ####################
 .PHONY: coverage
-coverage: build-kcov measure upload_coverage
+coverage: kcov measure upload-coverage
 
-.PHONY: upload_coverage
-upload_coverage:
+.PHONY: upload-coverage
+upload-coverage:
 	$(STIME)
 	@echo "Uploading coverage to https://codecov.io....."
 	@curl -s https://codecov.io/bash | bash
@@ -176,10 +195,10 @@ measure: .test_list
 	@for file in `cat .test_list`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$FLOW_ROOT --exclude-path=flowc/tests,flowr/tests --exclude-region='#[cfg(test)]:#[cfg(testkcovstopmarker)]' "target/cov/$(basename $$file)" $$file; done
 	$(ETIME)
 
-.PHONY: build-kcov
-build-kcov:
-	$(STIME)
+.PHONY: kcov
+kcov: $(KCOV)
 ifeq ($(KCOV),)
+	$(STIME)
 	@echo "'kcov' is not installed. Building and installing it"
 	@echo "Downloading kcov source code"
 	@cd target && rm -f target/master.tar.gz && wget -q https://github.com/SimonKagstrom/kcov/archive/master.tar.gz
@@ -208,13 +227,13 @@ ifeq ($(UNAME), Darwin)
 	@cd target/kcov-master && mkdir build && cd build && cmake .. && make
 	@sudo mv target/kcov-master/build/src/kcov /usr/local/bin/kcov
 endif
-	@echo "'kcov' installed to `which kcov`, removign build artifacts"
+	@echo "'kcov' installed to `which kcov`, removing build artifacts"
 	@rm -rf kcov-master
 	@rm -f master.tar.gz*
+	$(ETIME)
 else
 	@echo "'kcov' found at `which kcov`"
 endif
-	$(ETIME)
 
 #################### FLOW LIBRARIES ####################
 .PHONY: flowstdlib
@@ -226,6 +245,7 @@ flowstdlib/manifest.json: $(FLOWSTDLIB_SOURCES) $(FLOWSTDLIB_TOMLS) $(FLOWSTDLIB
 	@read st < target/.flowstdlibtime ; st=$$((`date '+%s'`-$$st)) ; echo "------> Target '$@' done in $$st seconds"
 
 #################### Raspberry Pi ####################
+.PHONY: pi
 pi:
 	@echo "Building flowc for pi in $(PWD)"
 # https://hub.docker.com/r/dlecan/rust-crosscompiler-arm
@@ -233,6 +253,7 @@ pi:
 # In case of permissions problems for cargo cache on local machine:
 # sudo chown -R `stat -c %u:%g $HOME` $(pwd) ~/.cargo
 
+.PHONY: copy
 copy:
 	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/release/flowc andrew@zero-w:
 	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/release/flowr andrew@zero-w:
@@ -243,6 +264,7 @@ copy:
 sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
 
 # This target must be below sample-flows in the Makefile
+.PHONY: samples
 samples: build flowstdlib
 	$(STIME)
 	@$(MAKE) clean-samples
@@ -260,6 +282,7 @@ samples/%/test.output: samples/%/test.input samples/%/test.arguments
 	@rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time
 # leave test.err for inspection in case of failure
 
+.PHONY: clean-samples
 clean-samples:
 	$(STIME)
 	@find samples -name \*.wasm -exec rm -rf {} + ; true
@@ -273,6 +296,7 @@ clean-samples:
 	$(ETIME)
 
 ################# ONLINE SAMPLES ################
+.PHONY: online-samples
 online-samples:
 	$(STIME)
 	@echo "Hello" | cargo run --p flowc -- https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
@@ -284,75 +308,79 @@ online-samples:
 #### groups of packages (in same layer) that have same dependencies but are indpendant and they could be published
 #### in parallel. But they both need to be published before the next layer up.
 #### Level 0 - the root
-publish: flowc_publish flowr_publish flowide_publish
+.PHONY: publish
+publish: flowc-publish flowr-publish flowide-publish
 
 #### Level 1 - flowc and flowide - no dependency between them
-flowc_publish: flowr_publish flowrlib_publish provider_publish
+.PHONY: flowc-publish
+flowc-publish: flowr-publish flowrlib-publish provider-publish
 	cargo publish --manifest-path=flowc/Cargo.toml
 
-flowide_publish: flowc_publish flowrlib_publish provider_publish flow_impl_publish flowstdlib_publish
+.PHONY: flowide-publish
+flowide-publish: flowc-publish flowrlib-publish provider-publish flow-impl-publish flowstdlib-publish
 	cargo publish --manifest-path=flowide/Cargo.toml
 
 #### Level 2 - flowr
-flowr_publish: provider_publish flow_impl_publish flowstdlib_publish
+.PHONY: flowr-publish
+flowr-publish: provider-publish flow-impl-publish flowstdlib-publish
 	cargo publish --manifest-path=flowr/Cargo.toml
 
 #### Level 3 - provider
-provider_publish: flowrlib_publish
+.PHONY: provider-publish
+provider-publish: flowrlib-publish
 	cargo publish --manifest-path=provider/Cargo.toml
 
 #### Level 4 - flowstdlib
-flowstdlib_publish: flow_impl_publish flow_impl_derive_publish flowrlib_publish
+.PHONY: flowstdlib-publish
+flowstdlib-publish: flow-impl-publish flow-impl-derive-publish flowrlib-publish
 	cargo publish --manifest-path=flowstdlib/Cargo.toml
 
 #### Level 5 - flowruntime
-flowruntime_publish: flow_impl_publish flowrlib_publish
+.PHONY: flowruntime-publish
+flowruntime-publish: flow-impl-publish flowrlib-publish
 
 #### Level 6 - flowrlib
-flowrlib_publish: flow_impl_publish
+.PHONY: flowrlib-publish
+flowrlib-publish: flow-impl-publish
 	cargo publish --manifest-path=flowrlib/Cargo.toml
 
-#### Level 7 - flow_impl_publish flow_impl_derive_publish
-flow_impl_publish:
+#### Level 7 - flow-impl-publish flow-impl-derive-publish
+.PHONY: flow-impl-publish
+flow-impl-publish:
 	cargo publish --manifest-path=flow_impl/Cargo.toml
 
-flow_impl_derive_publish:
+.PHONY: flow-impl-derive-publish
+flow-impl-derive-publish:
 	cargo publish --manifest-path=flow_impl_derive/Cargo.toml
 
 ################# Clean ################
+.PHONY: clean
 clean:
-	@$(MAKE) clean-dumps clean-docs clean-guide clean-flowstdlib clean-samples
+	@$(MAKE) clean-dumps clean-svgs clean-guide clean-flowstdlib clean-samples
 	@cargo clean
 
+.PHONY: clean-flowstdlib
 clean-flowstdlib:
 	$(STIME)
 	@find flowstdlib -name \*.wasm -type f -exec rm -rf {} + ; true
 	@rm -f flowstdlib/manifest.json
 	$(ETIME)
 
+.PHONY: clean-dumps
 clean-dumps:
 	$(STIME)
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot -type f -exec rm -rf {} + ; true
 	$(ETIME)
 
-clean-docs:
+.PHONY: config
+clean-svgs:
 	$(STIME)
 	@find . -name \*.dot.svg -type f -exec rm -rf {} + ; true
 	$(ETIME)
 
+.PHONY: clean-guide
 clean-guide:
 	$(STIME)
 	@rm -rf target/html
-	$(ETIME)
-
-################# Dot Graphs ################
-dot-graphs:
-	$(STIME)
-ifeq ($(DOT),)
-	@echo "        'dot' not available, skipping 'dot-graphs'. Install 'graphviz' to use."
-else
-	@echo "        Generated .svg files for all dot graphs found"
-	@find . -name \*.dot -type f -exec dot -Tsvg -O {} \;
-endif
 	$(ETIME)
