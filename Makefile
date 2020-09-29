@@ -6,18 +6,39 @@ STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo "<------ Target '$@'
 ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo "------> Target '$@' done in $$st seconds"
 SOURCES = $(shell find . -type f -name \*.rs)
 MARKDOWN = $(shell find . -type f -name \*.md)
-DOTS = $(shell find . -type f -name \*.dot)
-SVGS = $(patsubst %.dot,%.dot.svg,$(DOTS))
-FLOWSTDLIB_SOURCES = $(shell find flowstdlib -type f -name \*.rs)
-FLOWSTDLIB_TOMLS = $(shell find flowstdlib -type f -name \*.toml)
-FLOWSTDLIB_MARKDOWN = $(shell find flowstdlib -type f -name \*.md)
+SAMPLE_FLOWS := $(shell find samples -depth 2 -type f -name \*.toml -not -path "**/flow.toml")
+SAMPLE_DOTS := $(patsubst %.toml,%.dot,$(SAMPLE_FLOWS))
+SAMPLE_SVGS := $(patsubst %.dot,%.dot.svg,$(SAMPLE_DOTS))
+# Find all sub-directories under 'samples' and create a list of paths like 'sample/{directory}/test.output' to use for
+# make paths - to compile all samples found in there. Avoid files using the filter.
+SAMPLE_OUTPUTS := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
+FLOWSTDLIB_SOURCES := $(shell find flowstdlib -type f -name \*.rs)
+FLOWSTDLIB_TOMLS := $(shell find flowstdlib -type f -name \*.toml)
+FLOWSTDLIB_MARKDOWN := $(shell find flowstdlib -type f -name \*.md)
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 2> /dev/null)
 export FLOW_ROOT := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 export SHELL := /bin/bash
 
-.PHONNE: all
-all: clippy build test samples docs
+########## Phony targets a user can specify to make life easier #########
+.PHONY: all
+all: .clippy .build .test .samples .docs
+.PHONY: clippy
+clippy: .clippy
+.PHONY: test
+test: .test
+.PHONY: build
+build: .build
+.PHONY: docs
+docs: .docs
+.PHONY: book
+book: target/html/index.html
+.PHONY: pages
+pages: docs deploy-pages
+.PHONY: flowstdlib
+flowstdlib: flowstdlib/manifest.json
+.PHONY: sample_flows
+sample_flows: samples
 
 ########## Configure Dependencies ############
 .PHONY: config
@@ -85,26 +106,24 @@ endif
 	$(ETIME)
 
 ################### Doc ####################
-.PHONY: docs
-docs: book code-docs trim-docs
+.docs: target/html/index.html target/html/code .trim-docs
+	@touch .docs
 
-.PHONY: book
-book: target/html/index.html
-
-target/html/index.html: $(MARKDOWN) $(SVGS)
+target/html/index.html: $(MARKDOWN) $(SAMPLE_SVGS)
 	@RUST_LOG=info time mdbook build
+
+%.dot: %.output
+	@echo Generate a dot for flow $<
 
 %.dot.svg: %.dot
 ifeq ($(DOT),)
 	@echo "        Install 'graphviz' to be able to generate dot graphs for flows."
 else
 	@dot -Tsvg -O $<
-	@echo "        Generated $@ SVG file from $< dot file"
+	@echo "        Generated $@ from $<"
 endif
 
-.PHONY: trim-docs
-trim-docs:
-	$(STIME)
+.trim-docs:
 	@find target/html -name target -type d | xargs rm -rf {}
 	@find target/html -name .idea | xargs rm -rf {}
 	@find target/html -name \*.iml | xargs rm -rf {}
@@ -126,16 +145,10 @@ trim-docs:
 	@rm -rf target/html/flowc/tests/test-libs
 	@rm -rf target/html/code/debug
 	@find target/html -depth -type d -empty -delete
-	$(ETIME)
+	@touch .trim-docs
 
-.PHONY: code-docs
-code-docs: $(SOURCES)
-	$(STIME)
+target/html/code: $(SOURCES)
 	@cargo doc --workspace --quiet --all-features --no-deps --target-dir=target/html/code
-	$(ETIME)
-
-.PHONY: pages
-pages: docs deploy-pages
 
 .PHONY: deploy-pages
 deploy-pages:
@@ -153,26 +166,24 @@ deploy-pages:
 	$(ETIME)
 
 #################### Build ####################
-.PHONY: build
-build: $(SOURCES) flowstdlib
+.build: $(SOURCES) flowstdlib/manifest.json
 	$(STIME)
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig" cargo build
+	@touch .build
 	$(ETIME)
 
-.PHONY: clippy
-clippy: $(SOURCES)
-	$(STIME)
+.clippy: $(SOURCES)
 	@cargo clippy -- -D warnings
-	$(ETIME)
+	@touch .clippy
 
 #################### Tests ####################
-.PHONY: test
-test: $(SOURCES)
+.test: $(SOURCES)
 	$(STIME)
 	@set -o pipefail && cargo test --all-features --workspace --exclude flow_impl_derive --exclude flowide 2>&1 | tee .test.log
+	@touch .test
 	$(ETIME)
 
-.test.log: test
+.test.log: .test
 
 ################### Coverage ####################
 .PHONY: coverage
@@ -236,9 +247,6 @@ else
 endif
 
 #################### FLOW LIBRARIES ####################
-.PHONY: flowstdlib
-flowstdlib: flowstdlib/manifest.json
-
 flowstdlib/manifest.json: $(FLOWSTDLIB_SOURCES) $(FLOWSTDLIB_TOMLS) $(FLOWSTDLIB_MARKDOWN)
 	@mkdir -p target;date '+%s' > target/.flowstdlibtime ; echo "<------ Target '$@' starting"
 	@cargo run -p flowc -- -v info -l -g -d flowstdlib
@@ -259,28 +267,21 @@ copy:
 	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/release/flowr andrew@zero-w:
 
 #################### SAMPLES ####################
-# Find all sub-directories under 'samples' and create a list of paths like 'sample/{directory}/test.output' to use for
-# make paths - to compile all samples found in there. Avoid files using the filter.
-sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
-
-# This target must be below sample-flows in the Makefile
-.PHONY: samples
-samples: build flowstdlib
+.samples: .build flowstdlib/manifest.json $(SAMPLE_FLOWS)
 	$(STIME)
-	@$(MAKE) clean-samples
-	@$(MAKE) $(sample_flows)
+	@$(MAKE) $(SAMPLE_OUTPUTS)
 	$(ETIME)
 
+# If a sample fails then test.output won't be created
 samples/%: samples/%/test.err
 	$(MAKE) $(@D)/test.output
 
-samples/%/test.output: samples/%/test.input samples/%/test.arguments
+samples/%/test.output: samples/%/test.input samples/%/test.arguments samples/%/context.toml flowc flowr flowstdlib
 	@printf "\tSample '$(@D)'"
-	@RUST_BACKTRACE=1 cargo run --quiet -p flowc -- -g -d $(@D) -i $< -- `cat $(@D)/test.arguments` 2> $(@D)/test.err > $@
+	@RUST_BACKTRACE=1 cargo run --quiet -p flowc -- -g -d $(@D) -i $(@D)/test.input -- `cat $(@D)/test.arguments` 2> $(@D)/test.err > $@
 	@diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && exit $$ret)
 	@if [ -s $(@D)/test.err ]; then (printf " has error output in $(@D)/test.err\n"; exit -1); else printf " has no errors\n"; fi;
 	@rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time
-# leave test.err for inspection in case of failure
 
 .PHONY: clean-samples
 clean-samples:
@@ -358,6 +359,7 @@ flow-impl-derive-publish:
 clean:
 	@$(MAKE) clean-dumps clean-svgs clean-guide clean-flowstdlib clean-samples
 	@cargo clean
+	@rm -f .clippy .build .test .all
 
 .PHONY: clean-flowstdlib
 clean-flowstdlib:
