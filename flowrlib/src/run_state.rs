@@ -36,7 +36,7 @@ pub struct Job {
     pub destinations: Vec<OutputConnection>,
     pub implementation: Arc<dyn Implementation>,
     pub result: (Option<Value>, bool),
-    pub error: Option<String>, // TODO combine those two into a Result<>
+    pub error: Option<String>,
 }
 
 /// blocks: (blocking_id, blocking_io_number, blocked_id, blocked_flow_id) a blocks between functions
