@@ -288,13 +288,6 @@ dependencies = [
 [[package]]
 name = "flow_impl"
 version = "0.10.0"
-dependencies = [
- "serde_json",
-]
-
-[[package]]
-name = "flow_impl"
-version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d0f7b9790973c0b0773938a6bb95a51aedd7ada1f3946defdac7eda16b103b9"
 dependencies = [
@@ -302,11 +295,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "flow_impl_derive"
-version = "0.10.0"
+name = "flow_impl"
+version = "0.11.0"
 dependencies = [
- "quote 1.0.7",
- "syn 1.0.39",
+ "serde_json",
 ]
 
 [[package]]
@@ -320,8 +312,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "flow_impl_derive"
+version = "0.11.0"
+dependencies = [
+ "quote 1.0.7",
+ "syn 1.0.39",
+]
+
+[[package]]
 name = "flowc"
-version = "0.8.8"
+version = "0.11.0"
 dependencies = [
  "clap",
  "error-chain",
@@ -344,10 +344,10 @@ dependencies = [
 
 [[package]]
 name = "flowide"
-version = "0.8.8"
+version = "0.11.0"
 dependencies = [
  "cairo-rs",
- "flow_impl 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "flow_impl 0.10.0",
  "flowc",
  "flowrlib",
  "flowruntime",
@@ -369,11 +369,11 @@ dependencies = [
 
 [[package]]
 name = "flowr"
-version = "0.8.8"
+version = "0.11.0"
 dependencies = [
  "clap",
  "error-chain",
- "flow_impl 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "flow_impl 0.10.0",
  "flowrlib",
  "flowruntime",
  "flowstdlib",
@@ -390,11 +390,11 @@ dependencies = [
 
 [[package]]
 name = "flowrlib"
-version = "0.8.8"
+version = "0.11.0"
 dependencies = [
  "ctrlc",
  "error-chain",
- "flow_impl 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "flow_impl 0.10.0",
  "log",
  "multimap",
  "serde",
@@ -406,10 +406,10 @@ dependencies = [
 
 [[package]]
 name = "flowruntime"
-version = "0.8.8"
+version = "0.11.0"
 dependencies = [
  "error-chain",
- "flow_impl 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "flow_impl 0.10.0",
  "flowrlib",
  "log",
  "serde_json",
@@ -418,10 +418,10 @@ dependencies = [
 
 [[package]]
 name = "flowstdlib"
-version = "0.8.9"
+version = "0.11.0"
 dependencies = [
- "flow_impl 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "flow_impl_derive 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "flow_impl 0.10.0",
+ "flow_impl_derive 0.10.0",
  "flowrlib",
  "image",
  "log",
@@ -1099,7 +1099,7 @@ dependencies = [
 
 [[package]]
 name = "provider"
-version = "0.8.8"
+version = "0.11.0"
 dependencies = [
  "curl",
  "error-chain",

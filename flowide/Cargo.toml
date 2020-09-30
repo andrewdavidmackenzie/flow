@@ -1,6 +1,6 @@
 [package]
 name = "flowide"
-version = "0.8.8"
+version = "0.11.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 edition = "2018"
 description = "A (WIP) IDE for 'flow' programs"
