@@ -5,8 +5,8 @@
 #[path = "reverse/reverse.rs"]
 pub mod reverse;
 /// A module to convert a `String` to a `Number`
-#[path = "to_number/to_number.rs"]
-pub mod to_number;
+#[path = "to_json/to_json.rs"]
+pub mod to_json;
 /// A module to convert a `Number` to a `String`
 #[path = "to_string/to_string.rs"]
 pub mod to_string;

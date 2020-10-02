@@ -91,6 +91,6 @@ input.default = {once = "Hello World!"}
 ```toml
 [[process]]
 alias = "second-start"
-source = "lib://flowstdlib/fmt/to_number"
+source = "lib://flowstdlib/fmt/to_json"
 input.default = {always = "2"}
 ```

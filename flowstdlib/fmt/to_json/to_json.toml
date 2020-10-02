@@ -1,5 +1,5 @@
 function = "ToNumber"
-implementation = "to_number.rs"
+implementation = "to_json.rs"
 
 [[input]]
 type = "String"

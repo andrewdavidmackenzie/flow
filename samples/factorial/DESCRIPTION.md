@@ -18,7 +18,7 @@ Features Used
 * Loop-back connections to accumulate a multiplication result
 * Initializing function inputs with values, once and constantly
 * Multiple connections into and out of functions
-* Library Functions `to_number`, `multiply`, `subtract` from `flowstdlib`
+* Library Functions `to_json`, `multiply`, `subtract` from `flowstdlib`
 * Library Functions `tap`, `compare` from `flowstdlib`
 * Use of aliases to refer to functions with different names inside a flow
 

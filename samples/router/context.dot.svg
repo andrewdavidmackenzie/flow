@@ -20,19 +20,19 @@
 </a>
 </g>
 </g>
-<!-- /router/to_number -->
+<!-- /router/to_json -->
 <g id="node2" class="node">
-<title>/router/to_number</title>
-<g id="a_node2"><a xlink:href="../../flowstdlib/fmt/to_number/to_number.html" xlink:title="to_number\n(ToNumber)">
+<title>/router/to_json</title>
+<g id="a_node2"><a xlink:href="../../flowstdlib/fmt/to_json/to_json.html" xlink:title="to_json\n(ToNumber)">
 <ellipse fill="coral" stroke="black" cx="166.33" cy="-508.61" rx="60.62" ry="26.74"/>
-<text text-anchor="middle" x="166.33" y="-512.41" font-family="Times,serif" font-size="14.00">to_number</text>
+<text text-anchor="middle" x="166.33" y="-512.41" font-family="Times,serif" font-size="14.00">to_json</text>
 <text text-anchor="middle" x="166.33" y="-497.41" font-family="Times,serif" font-size="14.00">(ToNumber)</text>
 </a>
 </g>
 </g>
-<!-- /router/readline&#45;&gt;/router/to_number -->
+<!-- /router/readline&#45;&gt;/router/to_json -->
 <g id="edge3" class="edge">
-<title>/router/readline:e&#45;&gt;/router/to_number:w</title>
+<title>/router/readline:e&#45;&gt;/router/to_json:w</title>
 <path fill="none" stroke="black" d="M106.33,-599.35C141.94,-599.35 81.68,-528.63 94.82,-512.06"/>
 <polygon fill="black" stroke="black" points="96.12,-515.31 104.33,-508.61 93.73,-508.73 96.12,-515.31"/>
 </g>
@@ -46,9 +46,9 @@
 </a>
 </g>
 </g>
-<!-- /router/to_number&#45;&gt;/router/accumulate_triples -->
+<!-- /router/to_json&#45;&gt;/router/accumulate_triples -->
 <g id="edge4" class="edge">
-<title>/router/to_number:e&#45;&gt;/router/accumulate_triples:w</title>
+<title>/router/to_json:e&#45;&gt;/router/accumulate_triples:w</title>
 <path fill="none" stroke="black" d="M228.33,-508.61C240.67,-508.61 229.48,-492.61 235.33,-481.74 255.65,-443.96 258.44,-409.66 295.21,-404.53"/>
 <polygon fill="black" stroke="black" points="295.58,-408.02 305.33,-403.87 295.12,-401.03 295.58,-408.02"/>
 <text text-anchor="middle" x="287.83" y="-407.67" font-family="Times,serif" font-size="14.00">values</text>

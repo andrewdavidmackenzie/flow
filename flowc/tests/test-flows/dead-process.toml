@@ -6,7 +6,7 @@ source = "lib://flowruntime/args/get"
 
 [[process]]
 alias = "dead-process"
-source = "lib://flowstdlib/fmt/to_number"
+source = "lib://flowstdlib/fmt/to_json"
 
 [[connection]]
 from = "args/1"

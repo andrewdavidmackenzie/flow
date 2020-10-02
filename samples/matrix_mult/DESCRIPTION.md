@@ -19,7 +19,7 @@ Features Used
 Array/Array/Number (i.e. Matrix)
 * Initializing function inputs with values, once and constantly
 * Multiple connections into and out of functions
-* Library Functions `to_number`, `multiply`, `subtract` from `flowstdlib`
+* Library Functions `to_json`, `multiply`, `subtract` from `flowstdlib`
 * Library Functions `tap`, `compare` from `flowstdlib`
 * Use of aliases to refer to functions with different names inside a flow
 * Automatic Array decomposing into the elements the array holds when target function input does not accept the array type
