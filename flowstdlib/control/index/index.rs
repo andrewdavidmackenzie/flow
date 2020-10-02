@@ -19,8 +19,9 @@ use serde_json::{json, Value};
 /// name = "previous_value"
 /// type = "Value"
 ///
+/// # This is a looped-back value that is the index of the previous value
 /// [[input]]
-/// name = "index"
+/// name = "previous_index"
 /// type = "Number"
 ///
 /// [[input]]
@@ -32,11 +33,11 @@ use serde_json::{json, Value};
 /// type = "Number"
 ///
 /// [[output]]
-/// name = "selected_value"
+/// name = "value"
 /// type = "Value"
 ///
 /// [[output]]
-/// name = "previous_value"
+/// name = "selected_value"
 /// type = "Value"
 #[derive(Debug)]
 pub struct Index;
@@ -45,21 +46,24 @@ impl Implementation for Index {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
         let value = inputs[0].clone();
         let previous_value = inputs[1].clone();
-        let index = inputs[2].as_i64().unwrap();
+        let previous_index = inputs[2].as_i64().unwrap();
         let select_index = inputs[3].as_i64().unwrap();
 
         let mut output_map = serde_json::Map::new();
+
+        let index = previous_index + 1;
 
         match select_index {
             // A 'select_index' value of -1 indicates to output the last value before the null
             -1 if value.is_null() => output_map.insert("selected_value".into(), json!(previous_value)),
             // If 'select_value' is not -1 then see if it matches the current index
             _ if select_index == index => output_map.insert("selected_value".into(), json!(value)),
-            _ => output_map.insert("previous_value".into(), json!(value))
+            _ => None
         };
 
-        // Output the index of the 'previous_value" about to be output
-        output_map.insert("index".into(), json!(index +1));
+        // Output the 'value" and its index
+        output_map.insert("value".into(), json!(value));
+        output_map.insert("index".into(), json!(index));
 
         (Some(Value::Object(output_map)), RUN_AGAIN)
     }
@@ -78,10 +82,10 @@ mod test {
 
         let value = json!(42);
         let previous_value = Value::Null;
-        let index = json!(0);
+        let previous_index = json!(-1);
         let select_index = json!(0);
 
-        let inputs = vec!(value, previous_value, index, select_index);
+        let inputs = vec!(value, previous_value, previous_index, select_index);
 
         let (result, _) = indexor.run(&inputs);
 
@@ -96,10 +100,10 @@ mod test {
 
         let value = json!(42);
         let previous_value = Value::Null;
-        let index = json!(0);
+        let previous_index = json!(1);
         let select_index = json!(1);
 
-        let inputs = vec!(value, previous_value, index, select_index);
+        let inputs = vec!(value, previous_value, previous_index, select_index);
 
         let (result, _) = indexor.run(&inputs);
 
@@ -114,10 +118,10 @@ mod test {
 
         let value = json!(42);
         let previous_value = Value::Null;
-        let index = json!(1);
+        let previous_index = json!(0);
         let select_index = json!(1);
 
-        let inputs = vec!(value, previous_value, index, select_index);
+        let inputs = vec!(value, previous_value, previous_index, select_index);
 
         let (result, _) = indexor.run(&inputs);
 
@@ -132,10 +136,10 @@ mod test {
 
         let value = json!(42);
         let previous_value = Value::Null;
-        let index = json!(1);
+        let previous_index = json!(1);
         let select_index = json!(0);
 
-        let inputs = vec!(value, previous_value, index, select_index);
+        let inputs = vec!(value, previous_value, previous_index, select_index);
 
         let (result, _) = indexor.run(&inputs);
 
@@ -150,10 +154,10 @@ mod test {
 
         let value = Value::Null;
         let previous_value = json!(42);
-        let index = json!(7);
+        let previous_index = json!(7);
         let select_index = json!(-1);
 
-        let inputs = vec!(value, previous_value, index, select_index);
+        let inputs = vec!(value, previous_value, previous_index, select_index);
 
         let (result, _) = indexor.run(&inputs);
 
@@ -168,10 +172,10 @@ mod test {
 
         let value = json!(43);
         let previous_value = json!(42);
-        let index = json!(7);
+        let previous_index = json!(7);
         let select_index = json!(-1);
 
-        let inputs = vec!(value, previous_value, index, select_index);
+        let inputs = vec!(value, previous_value, previous_index, select_index);
 
         let (result, _) = indexor.run(&inputs);
 
