@@ -57,8 +57,8 @@ impl Submission {
                #[cfg(feature = "debugger")]
                enter_debugger: bool,
     ) -> Submission {
-        info!("Maximum jobs dispatched in parallel limited to {}", max_parallel_jobs);
-        let output_timeout = Duration::from_secs(1);
+        info!("Maximum jobs in parallel limited to {}", max_parallel_jobs);
+        let output_timeout = Duration::from_secs(60);
 
         let state = RunState::new(manifest.get_functions(), max_parallel_jobs);
 
