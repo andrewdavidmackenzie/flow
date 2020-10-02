@@ -20,19 +20,19 @@
 </a>
 </g>
 </g>
-<!-- /factorial/to_number -->
+<!-- /factorial/to_json -->
 <g id="node2" class="node">
-<title>/factorial/to_number</title>
-<g id="a_node2"><a xlink:href="../../flowstdlib/fmt/to_number/to_number.html" xlink:title="to_number\n(ToNumber)">
+<title>/factorial/to_json</title>
+<g id="a_node2"><a xlink:href="../../flowstdlib/fmt/to_json/to_json.html" xlink:title="to_json\n(ToNumber)">
 <ellipse fill="coral" stroke="black" cx="337.29" cy="-613.31" rx="60.62" ry="26.74"/>
-<text text-anchor="middle" x="337.29" y="-617.11" font-family="Times,serif" font-size="14.00">to_number</text>
+<text text-anchor="middle" x="337.29" y="-617.11" font-family="Times,serif" font-size="14.00">to_json</text>
 <text text-anchor="middle" x="337.29" y="-602.11" font-family="Times,serif" font-size="14.00">(ToNumber)</text>
 </a>
 </g>
 </g>
-<!-- /factorial/args&#45;&gt;/factorial/to_number -->
+<!-- /factorial/args&#45;&gt;/factorial/to_json -->
 <g id="edge4" class="edge">
-<title>/factorial/args:e&#45;&gt;/factorial/to_number:w</title>
+<title>/factorial/args:e&#45;&gt;/factorial/to_json:w</title>
 <path fill="none" stroke="black" d="M277.29,-704.05C293.68,-704.05 268.8,-644.15 269.71,-621.68"/>
 <polygon fill="black" stroke="black" points="272.66,-623.57 275.29,-613.31 266.83,-619.69 272.66,-623.57"/>
 <text text-anchor="middle" x="268.24" y="-662.28" font-family="Times,serif" font-size="14.00">[1]</text>
@@ -47,9 +47,9 @@
 </a>
 </g>
 </g>
-<!-- /factorial/to_number&#45;&gt;/factorial/multiply -->
+<!-- /factorial/to_json&#45;&gt;/factorial/multiply -->
 <g id="edge5" class="edge">
-<title>/factorial/to_number:e&#45;&gt;/factorial/multiply:w</title>
+<title>/factorial/to_json:e&#45;&gt;/factorial/multiply:w</title>
 <path fill="none" stroke="black" d="M399.29,-613.31C445.4,-613.31 398.29,-555.68 398.29,-509.57 398.29,-509.57 398.29,-509.57 398.29,-312.09 398.29,-302.78 381.85,-241.86 381.28,-217.95"/>
 <polygon fill="black" stroke="black" points="384.64,-218.94 384.29,-208.35 377.96,-216.84 384.64,-218.94"/>
 <text text-anchor="middle" x="378.79" y="-212.15" font-family="Times,serif" font-size="14.00">i2</text>
@@ -64,9 +64,9 @@
 </a>
 </g>
 </g>
-<!-- /factorial/to_number&#45;&gt;/factorial/sub -->
+<!-- /factorial/to_json&#45;&gt;/factorial/sub -->
 <g id="edge6" class="edge">
-<title>/factorial/to_number:e&#45;&gt;/factorial/sub:ne</title>
+<title>/factorial/to_json:e&#45;&gt;/factorial/sub:ne</title>
 <path fill="none" stroke="black" d="M399.29,-613.31C411.24,-613.31 403.81,-597.04 398.29,-586.44 390.58,-571.65 354.92,-553.56 336.14,-540.01"/>
 <polygon fill="black" stroke="black" points="338.24,-537.21 328.29,-533.57 333.8,-542.62 338.24,-537.21"/>
 <text text-anchor="middle" x="322.79" y="-537.37" font-family="Times,serif" font-size="14.00">i1</text>

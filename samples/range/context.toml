@@ -6,14 +6,14 @@ source = "lib://flowruntime/args/get"
 
 [[connection]]
 from = "args/1"
-to = "to_number"
+to = "to_json"
 
 [[process]]
-alias = "to_number"
-source = "lib://flowstdlib/fmt/to_number"
+alias = "to_json"
+source = "lib://flowstdlib/fmt/to_json"
 
 [[connection]]
-from = "to_number"
+from = "to_json"
 to = "sequence/end"
 
 [[process]]

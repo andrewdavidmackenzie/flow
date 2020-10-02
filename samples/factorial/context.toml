@@ -7,12 +7,12 @@ source = "lib://flowruntime/args/get"
 
 [[connection]]
 from = "args/1"
-to = "to_number"
+to = "to_json"
 
 # convert command line arg to number
 [[process]]
-alias = "to_number"
-source = "lib://flowstdlib/fmt/to_number"
+alias = "to_json"
+source = "lib://flowstdlib/fmt/to_json"
 
 [[process]]
 alias = "multiply"
@@ -25,11 +25,11 @@ source = "lib://flowstdlib/math/subtract"
 input.i2 = { always =  1 }
 
 [[connection]]
-from = "to_number"
+from = "to_json"
 to = "multiply/i2"
 
 [[connection]]
-from = "to_number"
+from = "to_json"
 to = "sub/i1"
 
 [[connection]]

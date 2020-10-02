@@ -5,12 +5,12 @@ alias = "readline"
 source = "lib://flowruntime/stdio/readline"
 
 [[process]]
-alias = "to_number"
-source = "lib://flowstdlib/fmt/to_number"
+alias = "to_json"
+source = "lib://flowstdlib/fmt/to_json"
 
 [[connection]]
 from = "readline"
-to = "to_number"
+to = "to_json"
 
 [[process]]
 alias = "accumulate_triples"
@@ -20,7 +20,7 @@ input.chunk_size = { always = 3 }
 
 # read in each segment line one at a time to accumulator
 [[connection]]
-from = "to_number"
+from = "to_json"
 to = "accumulate_triples/values"
 
 # Loop back the partial arrays

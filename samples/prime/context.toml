@@ -7,11 +7,11 @@ source = "lib://flowruntime/args/get"
 
 [[connection]]
 from = "args/1"
-to = "to_number"
+to = "to_json"
 
 [[process]]
-alias = "to_number"
-source = "lib://flowstdlib/fmt/to_number"
+alias = "to_json"
+source = "lib://flowstdlib/fmt/to_json"
 
 ####### All numbers - Sequence
 # Generate the range of numbers from 1..limit of possible primes
@@ -22,7 +22,7 @@ input.start = {once =  1}
 input.step = {once =  1}
 
 [[connection]]
-from = "to_number"
+from = "to_json"
 to = "candidates/end"
 
 ######### All numbers - gather into an Array
@@ -36,7 +36,7 @@ from = "candidates/sequence"
 to = "all-numbers/values"
 
 [[connection]]
-from = "to_number"
+from = "to_json"
 to = "all-numbers/chunk_size"
 
 [[connection]] # loop-back
@@ -53,7 +53,7 @@ alias = "composites"
 source = "composites"
 
 [[connection]]
-from = "to_number"
+from = "to_json"
 to = "composites/limit"
 
 ####### Remove composites from entire list

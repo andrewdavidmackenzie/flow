@@ -10,7 +10,7 @@ name = "previous_value"
 type = "Value"
 
 [[input]]
-name = "index"
+name = "previous_index"
 type = "Number"
 
 [[input]]
@@ -22,7 +22,7 @@ name = "index"
 type = "Number"
 
 [[output]]
-name = "previous_value"
+name = "value"
 type = "Value"
 
 [[output]]

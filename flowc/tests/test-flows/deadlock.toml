@@ -16,7 +16,7 @@ input.step = {once =  1}
 
 [[process]]
 alias = "second-start"
-source = "lib://flowstdlib/fmt/to_number"
+source = "lib://flowstdlib/fmt/to_json"
 input.default = {always =  "2"}
 
 [[connection]]
