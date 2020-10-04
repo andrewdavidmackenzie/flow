@@ -28,6 +28,9 @@ pub mod multiply_row;
 /// A module that removes elements from an array
 #[path = "remove/remove.rs"]
 pub mod remove;
+/// A module with a function to sort values into an ordered array of numbers
+#[path = "sort/sort.rs"]
+pub mod sort;
 /// A module that splits a String into an Array of Strings
 #[path = "split/split.rs"]
 pub mod split;
