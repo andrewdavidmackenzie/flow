@@ -27,7 +27,7 @@ impl Implementation for Sort {
             (Some(Value::Null), RUN_AGAIN)
         } else if array.is_array() {
             let mut array_of_numbers:Vec<Value> = array.as_array().unwrap().clone();
-            array_of_numbers.sort_by(|a, b| a.as_i64().unwrap().cmp(&b.as_i64().unwrap()));
+            array_of_numbers.sort_by_key(|a| a.as_i64().unwrap());
             (Some(json!(array_of_numbers)), RUN_AGAIN)
         } else {
             (None, RUN_AGAIN)
