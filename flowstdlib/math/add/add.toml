@@ -2,15 +2,15 @@ function = "Add"
 implementation = "add.rs"
 
 [[input]]
-name = "i1"
+name = "i1" # - first input of type `Number`
 type = "Number"
 
 [[input]]
-name = "i2"
+name = "i2" # - second input of type `Number`
 type = "Number"
 
 [[output]]
-name = "sum"
+name = "sum" # - `sum` of `i1` and `i2` of type `Number`
 type = "Number"
 
 [[output]]

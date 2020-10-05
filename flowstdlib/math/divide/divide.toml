@@ -2,29 +2,25 @@ function = "Divide"
 implementation = "divide.rs"
 
 [[input]]
-name = "dividend"
+name = "dividend" # - the number to be divided, of type `Number`
 type = "Number"
 
 [[input]]
-name = "divisor"
+name = "divisor" # - the number to divide by, of type `Number`
 type = "Number"
 
-# resent the dividend input to be used downstream
 [[output]]
-name = "dividend"
+name = "dividend" # - re output the `dividend` input, of type `Number`
 type = "Number"
 
-# resent the divisor input to be used downstream
 [[output]]
-name = "divisor"
+name = "divisor" # - re output the `divisor` input, of type `Number`
 type = "Number"
 
-# The result of the division
 [[output]]
-name = "result"
+name = "result" # - the result of the division, of type `Number`
 type = "Number"
 
-# The remainder of the division
 [[output]]
-name = "remainder"
+name = "remainder" # - the remainder of the division, of type `Number`
 type = "Number"

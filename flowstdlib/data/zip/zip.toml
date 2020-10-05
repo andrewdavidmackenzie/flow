@@ -2,13 +2,13 @@ function = "Zip"
 implementation = "zip.rs"
 
 [[input]]
-name = "left"
+name = "left" # - the 'left' array
 type = "Array/Value"
 
 [[input]]
-name = "right"
+name = "right" # - the 'right' array
 type = "Array/Value"
 
 [[output]]
-name = "tuples"
+name = "tuples" # - tuples - the array of tuples of (left, right)
 type = "Array/Value"

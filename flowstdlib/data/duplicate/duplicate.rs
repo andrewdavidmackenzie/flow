@@ -4,23 +4,6 @@ use serde_json::Value;
 
 #[derive(FlowImpl)]
 /// Takes a value on it's input and sends the same value `factor` times in an array output
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "duplicate"
-/// source = "lib://flowstdlib/data/duplicate"
-/// ```
-///
-///
-/// ## Input
-/// * `value` - the value to duplicate
-///
-/// ## Input
-/// * `factor` - how many times to duplicate the value in the output
-///
-/// ## Outputs
-/// * the array of duplicate values
 #[derive(Debug)]
 pub struct Duplicate;
 

@@ -2,17 +2,17 @@ function = "Count"
 implementation = "count.rs"
 
 [[input]]
-name = "data"
+name = "data" # the value to count and pass on
 type = "Value"
 
 [[input]]
-name = "count"
+name = "count" # - the count before this data item
 type = "Value"
 
 [[output]]
-name = "data"
+name = "data" # - the value passed on
 type = "Value"
 
 [[output]]
-name = "count"
+name = "count" # - the incremented count of values passed thru
 type = "Value"

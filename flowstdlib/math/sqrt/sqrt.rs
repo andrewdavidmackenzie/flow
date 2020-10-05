@@ -5,19 +5,6 @@ use serde_json::Value::Number;
 
 #[derive(FlowImpl)]
 /// Calculate the square root of a number
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "sqrt"
-/// source = "lib://flowstdlib/math/sqrt"
-/// ```
-///
-/// ## Inputs
-/// * Of type `Number`
-///
-/// ## Outputs
-/// * Square Root of type `Number`
 #[derive(Debug)]
 pub struct Sqrt;
 

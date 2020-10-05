@@ -4,21 +4,6 @@ use serde_json::Value;
 
 #[derive(FlowImpl)]
 /// Route data to one or another based on a boolean control value.
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "route"
-/// source = "lib://flowstdlib/control/route"
-/// ```
-///
-/// ## Inputs
-/// * `data` - the data flow we wish to control the flow if
-/// * `control` - a boolean value to determine which output roue `data` is passed to
-///
-/// ## Outputs
-/// * `true` if `control` is true `data` is routed here
-/// * `false` if `control` is false `data` is routed here
 #[derive(Debug)]
 pub struct Route;
 

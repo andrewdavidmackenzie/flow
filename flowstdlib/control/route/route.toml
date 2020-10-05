@@ -2,12 +2,17 @@ function = "Route"
 implementation = "route.rs"
 
 [[input]]
-name = "data"
+name = "data" # - the data flow we wish to control the flow if
 type = "Value"
 
 [[input]]
-name = "control"
+name = "control" # - a boolean value to determine which output roue `data` is passed to
 type = "Bool"
 
 [[output]]
+name = "true" # `if `control` is true `data` is routed here
+type = "Value"
+
+[[output]]
+name = "false" # if `control` is false `data` is routed here
 type = "Value"

@@ -5,24 +5,6 @@ use serde_json::Value;
 #[derive(FlowImpl)]
 /// Compare two input values and output different the right hand value at different output route
 /// corresponding to is equal, greater than, greater than or equal, less than or less than or equal.
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "compare_switch"
-/// source = "lib://flowstdlib/control/compare_switch"
-/// ```
-///
-/// ## Inputs
-/// * `left` - left hand input
-/// * `right` - right hand input
-///
-/// ## Outputs
-/// * `equal` - outputs right hand value if the two values are equal
-/// * `lt` - outputs right hand value if the left hand value is less than the right hand value
-/// * `lte` - outputs right hand value if the left hand value is less than or equal to the right hand value
-/// * `gt` - outputs right hand value if the left hand value is greater than the right hand value
-/// * `gte` - outputs right hand value if the left hand value is greater than or equal to the right hand value
 #[derive(Debug)]
 pub struct CompareSwitch;
 

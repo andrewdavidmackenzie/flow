@@ -2,11 +2,11 @@ function = "FormatPNG"
 implementation = "format_png.rs"
 
 [[input]]
-name = "bytes"
+name = "bytes" # - the bytes to encode as a bitmap
 
 [[input]]
-name = "bounds"
+name = "bounds" # - Json with width and depth of the image the bytes represent
 type = "Value"
 
 [[output]]
-type = "Array"
+type = "Array" # - The bytes representing the PNG encoding of the image, as a String

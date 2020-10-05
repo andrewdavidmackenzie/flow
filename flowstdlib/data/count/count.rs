@@ -6,25 +6,6 @@ use serde_json::Value;
 #[derive(FlowImpl)]
 /// Takes a value on it's input and sends the same value on it's output and adds one to the count
 /// received on 'count' input and outputs new count on 'count' output
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "count"
-/// source = "lib://flowstdlib/data/count"
-/// ```
-///
-///
-/// ## Input
-/// * data - the value to count and pass on
-///
-/// * count - the count before this data item
-///
-/// ## Outputs
-/// * data - the value passed on
-///
-/// * count - the incremented count of values passed thru
-///
 #[derive(Debug)]
 pub struct Count;
 

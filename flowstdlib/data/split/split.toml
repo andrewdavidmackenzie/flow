@@ -2,25 +2,33 @@ function = "Split"
 implementation = "split.rs"
 
 [[input]]
-name = "string"
+name = "string" # - the String to split
 type = "String"
 
 [[input]]
-name = "separator"
+name = "separator" # - the String to use as a separator
 type = "String"
 
 [[output]]
-name = "partial"
+name = "partial" # - an Array of Strings that each may or may not have `separator` strings inside
+# them. This should be feed-back to the input (will be serialized into Strings by the
+# runtime) for further subdivision until each one cannot be split further - in which case
+# it will be output as `token`
 type = "Array/String"
 
 [[output]]
-name = "token-count"
+name = "token-count" # - the number of tokens emitted, can be used to count tokens generated
 type = "Number"
 
 [[output]]
-name = "token"
+name = "token" # - a String that cannot be sub-divided further.
 type = "String"
 
 [[output]]
-name = "delta"
+name = "delta" # - this is a Number that indicates if this job reduced (-1) or increased (+1) the number
+# of pending jobs to complete the split task. e.g. it consumes the input string, ot there is one
+# less to process. If it outputs a token then the delta to pending work is -1 (-1 input consumed
+# -0 partials for further splitting). If the input string
+# is split into two partial strings that are output for further splitting, then the delta to
+# pending work is +1 (+2 partials -1 input)
 type = "Number"

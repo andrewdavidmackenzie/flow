@@ -5,4 +5,4 @@ implementation = "sqrt.rs"
 type = "Number"
 
 [[output]]
-type = "Number"
+type = "Number" # Square Root of type `Number`

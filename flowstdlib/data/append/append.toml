@@ -10,4 +10,4 @@ name = "s2"
 type = "String"
 
 [[output]]
-type = "String"
+type = "String" # - The Concatenated string

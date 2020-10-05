@@ -3,24 +3,7 @@ use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 
 #[derive(FlowImpl)]
-/// Transpose a matricies rows and columns
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "transpose"
-/// source = "lib://flowstdlib/data/transpose"
-/// ```
-///
-/// ## Input
-/// * Input matrix
-///
-/// ## Input
-/// name = "factor"
-/// * duplication factor
-///
-/// ## Output
-/// * Transposed matrix
+/// Duplicate the rows of a matrix
 #[derive(Debug)]
 pub struct DuplicateRows;
 

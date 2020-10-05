@@ -4,24 +4,6 @@ use serde_json::{json, Value};
 
 #[derive(FlowImpl)]
 /// Multiply two matrix rows to a product
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "multiply_row"
-/// source = "lib://flowstdlib/data/multiply_row"
-/// ```
-///
-/// ## Input
-/// name = "a"
-/// type = "Array/Number"
-///
-/// ## Input
-/// name = "b"
-/// type = "Array/Number"
-///
-/// ## Output
-/// type = "Number"
 #[derive(Debug)]
 pub struct MultiplyRow;
 

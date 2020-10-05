@@ -1,9 +1,11 @@
 # `flowruntime`
 
+See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowruntime/index.html)
+
 Here we define the functions an execution environment 
 (i.e. an app or server where flows are executed using `flowrlib`) must provide.
 
-These "impure" functions that interact with stdio or the file system that 
+These are "impure" functions that interact with stdio or the file system that 
 cannot be implemented in the portable `flowrlib` library, and must be provided by the final
 executable that links with it.
 

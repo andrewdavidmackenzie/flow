@@ -5,20 +5,6 @@ use serde_json::Value;
 #[derive(FlowImpl)]
 /// Takes a value on it's input and sends the same value on it's output when it can
 /// run, effectively buffering it until the downstream processs can accept it.
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "buffer"
-/// source = "lib://flowstdlib/data/buffer"
-/// ```
-///
-///
-/// ## Input
-/// (default) - the value to buffer
-///
-/// ## Outputs
-/// The buffered value
 #[derive(Debug)]
 pub struct Buffer;
 

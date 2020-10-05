@@ -30,36 +30,6 @@ use serde_json::{json, Value};
 ///
 /// Due to the splitting and recursion approach, the order of the output tokens is not the order
 /// they appear in the string.
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "split"
-/// source = "lib://flowstdlib/data/split"
-/// ```
-///
-/// ## Inputs
-/// * string - the String to split
-///
-/// * separator - the String to use as a separator
-///
-/// ## Outputs
-/// * partial - an Array of Strings that each may or may not have `separator` strings inside
-/// them. This should be feed-back to the input (will be serialized into Strings by the
-/// runtime) for further subdivision until each one cannot be split further - in which case
-/// it will be output as `token`
-///
-/// * token - a String that cannot be sub-divided further.
-///
-/// * delta - this is a Number that indicates if this job reduced (-1) or increased (+1) the number
-/// of pending jobs to complete the split task. e.g. it consumes the input string, ot there is one
-/// less to process. If it outputs a token then the delta to pending work is -1 (-1 input consumed
-/// -0 partials for further splitting). If the input string
-/// is split into two partial strings that are output for further splitting, then the delta to
-/// pending work is +1 (+2 partials -1 input)
-///
-/// * token-count - the number of tokens emitted, can be used to count tokens generated
-///
 #[derive(Debug)]
 pub struct Split;
 

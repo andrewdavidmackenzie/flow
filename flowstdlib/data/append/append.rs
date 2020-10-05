@@ -4,34 +4,6 @@ use serde_json::{json, Value};
 
 #[derive(FlowImpl)]
 /// Append two strings
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "append"
-/// source = "lib://flowstdlib/data/append"
-/// ```
-///
-/// ## Input
-/// ```toml
-/// name = "s1"
-/// type = "String"
-/// ```
-/// A String
-///
-/// ## Input
-/// ```toml
-/// name = "s2"
-/// type = "String"
-/// ```
-/// A String
-///
-/// ## Outputs
-/// ```toml
-/// type = "String"
-/// ```
-/// The Concatenated string
-///
 #[derive(Debug)]
 pub struct Append;
 

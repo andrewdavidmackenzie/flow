@@ -2,29 +2,29 @@ function = "Compare"
 implementation = "compare.rs"
 
 [[input]]
-name = "left"
+name = "left" # - left hand input
 type = "Number"
 
 [[input]]
-name = "right"
+name = "right" # - right hand input
 type = "Number"
 
 [[output]]
-name = "equal"
+name = "equal" # - `equal` \[Boolean\] - outputs true if the two values are equal
 type = "Bool"
 
 [[output]]
-name = "lt"
+name = "lt" # - `lt` \[Boolean\] - outputs true if the left hand value is less than the right hand value
 type = "Bool"
 
 [[output]]
-name = "lte"
+name = "lte" # - `lte` \[Boolean\] - outputs true if the left hand value is less than or equal to the right hand value
 type = "Bool"
 
 [[output]]
-name = "gt"
+name = "gt" # - `gt` \[Boolean\] - outputs true if the left hand value is greater than the right hand value
 type = "Bool"
 
 [[output]]
-name = "gte"
+name = "gte" # - `gte` \[Boolean\] - outputs true if the left hand value is greater than or equal to the right hand value
 type = "Bool"

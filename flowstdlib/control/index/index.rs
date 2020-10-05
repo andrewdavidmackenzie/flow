@@ -4,41 +4,6 @@ use serde_json::{json, Value};
 
 #[derive(FlowImpl)]
 /// Pass thru a value based on the index of an item in the stream of values
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "index"
-/// source = "lib://flowstdlib/control/index"
-/// ```
-/// [[input]]
-/// name = "value"
-/// type = "Value"
-///
-/// [[input]]
-/// name = "previous_value"
-/// type = "Value"
-///
-/// # This is a looped-back value that is the index of the previous value
-/// [[input]]
-/// name = "previous_index"
-/// type = "Number"
-///
-/// [[input]]
-/// name = "select_index"
-/// type = "Number"
-///
-/// [[output]]
-/// name = "index"
-/// type = "Number"
-///
-/// [[output]]
-/// name = "value"
-/// type = "Value"
-///
-/// [[output]]
-/// name = "selected_value"
-/// type = "Value"
 #[derive(Debug)]
 pub struct Index;
 
