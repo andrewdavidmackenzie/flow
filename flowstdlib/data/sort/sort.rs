@@ -50,6 +50,13 @@ mod test {
     }
 
     #[test]
+    fn sort_invalid() {
+        let sort = super::Sort {};
+        let (result, _) = sort.run(&[json!("Hello World")]);
+        assert_eq!(result, None);
+    }
+
+    #[test]
     fn sort_one() {
         let sort = super::Sort {};
         let (result, _) = sort.run(&[json!([1])]);
