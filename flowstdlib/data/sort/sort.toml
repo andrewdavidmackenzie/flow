@@ -1,19 +1,8 @@
-function = "Insert"
-implementation = "insert.rs"
+function = "Sort"
+implementation = "sort.rs"
 
 [[input]]
-name = "value"
-type = "Number"
-
-[[input]]
-name = "partial"
-type = "Array/Number"
-
-
-[[output]]
-name = "ordered"
 type = "Array/Number"
 
 [[output]]
-name = "partial"
 type = "Array/Number"
