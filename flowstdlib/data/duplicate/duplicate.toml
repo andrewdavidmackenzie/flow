@@ -2,12 +2,12 @@ function = "Duplicate"
 implementation = "duplicate.rs"
 
 [[input]]
-name = "value"
+name = "value" # - the value to duplicate
 type = "Value"
 
 [[input]]
-name = "factor"
+name = "factor" # - how many times to duplicate the value in the output
 type = "Number"
 
 [[output]]
-type = "Array/Value"
+type = "Array/Value" # - the array of duplicate values

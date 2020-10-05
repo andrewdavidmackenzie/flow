@@ -3,23 +3,7 @@ use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 
 #[derive(FlowImpl)]
-/// Select whioch data to outputbased on a boolean control value.
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "select"
-/// source = "lib://flowstdlib/control/select"
-/// ```
-///
-/// ## Inputs
-/// * `i1` - input i1
-/// * `i2` - input i2
-/// * `control` - a boolean value to selection of inputs passed to outputs
-///
-/// ## Outputs
-/// * `select_i1` if `control` is true `i1` is selected for this output else `i2` is selected
-/// * `select_i2` if `control` is true `i2` is selected for this output else `i1` is selected
+/// Select which data to output, based on a boolean control value.
 #[derive(Debug)]
 pub struct Select;
 

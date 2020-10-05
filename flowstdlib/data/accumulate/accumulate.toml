@@ -2,25 +2,25 @@ function = "Accumulate"
 implementation = "accumulate.rs"
 
 [[input]]
-name = "values"
+name = "values" # - The stream of input values to accumulate into an array
 type = "Value"
 
 [[input]]
-name = "partial"
+name = "partial" # - A partial array, to use in the accumulation, adding next input `value` to it
 type = "Value"
 
 [[input]]
-name = "chunk_size"
+name = "chunk_size" # - The size of the Array we want to create
 type = "Number"
 
 [[output]]
-name = "chunk"
+name = "chunk" # - The accumulated Array of inputs of size `limit` or more
 type = "Array/Value"
 
 [[output]]
-name = "partial"
+name = "partial" # - The partially accumulated array, of size smaller than `chunk_size`
 type = "Value"
 
 [[output]]
-name = "chunk_size"
+name = "chunk_size" # - The chunk-size, output for use downstream or in loop-back
 type = "Number"

@@ -1,6 +1,6 @@
 # `flowstdlib`
 
-See [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowstdlib/index.html)
+See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowstdlib/index.html)
 
 A library of commonly used flows and functions that can be used by other `flows`.
 

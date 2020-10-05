@@ -5,20 +5,6 @@ use serde_json::Value;
 
 #[derive(FlowImpl)]
 /// Multiply one input by another
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "multiply"
-/// source = "lib://flowstdlib/math/multiply"
-/// ```
-///
-/// ## Inputs
-/// * `i1` - one number, of type `Number`
-/// * `i2` - the other number, of type `Number`
-///
-/// ## Outputs
-/// * the multiplication of i1 and i2, of type `Number`
 #[derive(Debug)]
 pub struct Multiply;
 

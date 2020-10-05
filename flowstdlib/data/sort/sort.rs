@@ -4,18 +4,6 @@ use serde_json::{json, Value};
 
 #[derive(FlowImpl)]
 /// Sort an Array of Numbers
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// source = "lib://flowstdlib/data/sort"
-/// ```
-///
-/// [[input]]
-/// type = "Array/Number"
-///
-/// [[output]]
-/// type = "Array/Number"
 #[derive(Debug)]
 pub struct Sort;
 

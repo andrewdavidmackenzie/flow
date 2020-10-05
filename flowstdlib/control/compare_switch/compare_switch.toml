@@ -2,45 +2,45 @@ function = "CompareSwitch"
 implementation = "compare_switch.rs"
 
 [[input]]
-name = "left"
+name = "left" # - left hand input
 type = "Number"
 
 [[input]]
-name = "right"
+name = "right" # - right hand input
 type = "Number"
 
 [[output]]
-name = "equal"
+name = "equal" # - outputs right hand value if the two values are equal
 type = "Number"
 
 [[output]]
-name = "right-lt"
+name = "right-lt" # - outputs right hand value if the left hand value is less than the right hand value
 type = "Number"
 
 [[output]]
-name = "right-lte"
+name = "right-lte" # - outputs right hand value if the left hand value is less than or equal to the right hand value
 type = "Number"
 
 [[output]]
-name = "right-gt"
+name = "right-gt" # - outputs right hand value if the left hand value is greater than the right hand value
 type = "Number"
 
 [[output]]
-name = "right-gte"
+name = "right-gte" # - outputs right hand value if the left hand value is greater than or equal to the right hand value
 type = "Number"
 
 [[output]]
-name = "left-lt"
+name = "left-lt" # - outputs left hand value if the left hand value is less than the right hand value
 type = "Number"
 
 [[output]]
-name = "left-lte"
+name = "left-lte" # - outputs left hand value if the left hand value is less than or equal to the right hand value
 type = "Number"
 
 [[output]]
-name = "left-gt"
+name = "left-gt" # - outputs left hand value if the left hand value is greater than the right hand value
 type = "Number"
 
 [[output]]
-name = "left-gte"
+name = "left-gte" # - outputs left hand value if the left hand value is greater than or equal to the right hand value
 type = "Number"

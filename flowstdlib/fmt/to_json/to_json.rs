@@ -4,19 +4,6 @@ use serde_json::Value;
 
 #[derive(FlowImpl)]
 /// Convert a String to Json
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "to_json"
-/// source = "lib://flowstdlib/fmt/to_json"
-/// ```
-///
-/// ## Input
-/// * The String to convert
-///
-/// ## Output
-/// * The Json equivalent of String input if possible
 #[derive(Debug)]
 pub struct ToJson;
 

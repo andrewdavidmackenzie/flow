@@ -2,12 +2,12 @@ function = "Tap"
 implementation = "tap.rs"
 
 [[input]]
-name = "data"
+name = "data" # - the data flow we wish to control the flow if
 type = "Value"
 
 [[input]]
-name = "control"
+name = "control" # - a boolean value to determine in `data` is passed on or not
 type = "Bool"
 
 [[output]]
-type = "Value"
+type = "Value" # `data` is output if `control` is true, nothing if `control` is false

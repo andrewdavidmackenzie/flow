@@ -4,31 +4,6 @@ use serde_json::{json, Value};
 
 #[derive(FlowImpl)]
 /// Output info about the input value
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "info"
-/// source = "lib://flowstdlib/data/info"
-/// ```
-///
-/// ## Input
-/// * Input value
-///
-/// ## Output
-/// name = "type
-/// type = "String"
-/// * String identifying the type of the input value
-///
-/// ## Output
-/// name = "rows
-/// type = "Number"
-/// * Number of rows in the input value
-///
-/// ## Output
-/// name = "columns
-/// type = "Number"
-/// * Number of columns in the input value
 #[derive(Debug)]
 pub struct Info;
 

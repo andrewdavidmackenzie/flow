@@ -4,26 +4,6 @@ use serde_json::Value;
 
 #[derive(FlowImpl)]
 /// Remove a value from a vector of values
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "remove"
-/// source = "lib://flowstdlib/data/remove"
-/// ```
-///
-/// ## Input
-/// name = "value"
-/// * The value to remove from the array
-///
-/// ## Input
-/// name = "array"
-/// type = "Array"
-/// * An array, to remove `value` from
-///
-/// ## Outputs
-/// type = "Array"
-/// * The resulting array
 #[derive(Debug)]
 pub struct Remove;
 

@@ -2,11 +2,11 @@ function = "Remove"
 implementation = "remove.rs"
 
 [[input]]
-name = "value"
+name = "value" # - The value to remove from the array
 
 [[input]]
-name = "array"
+name = "array" # - An array, to remove `value` from
 type = "Array/Value"
 
 [[output]]
-type = "Array/Value"
+type = "Array/Value" # - The resulting array

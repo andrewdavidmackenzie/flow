@@ -4,19 +4,6 @@ use serde_json::Value;
 
 #[derive(FlowImpl)]
 /// Transpose a matricies rows and columns
-///
-/// ## Include using
-/// ```toml
-/// [[process]]
-/// alias = "transpose"
-/// source = "lib://flowstdlib/data/transpose"
-/// ```
-///
-/// ## Input
-/// * Input matrix
-///
-/// ## Output
-/// * Transposed matrix
 #[derive(Debug)]
 pub struct Transpose;
 
