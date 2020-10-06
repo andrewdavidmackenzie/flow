@@ -5,6 +5,12 @@ flow = "mandlebrot"
 alias = "args"
 source = "lib://flowruntime/args/get"
 
+# debug
+[[connection]]
+from = "args/1"
+to = "stdout"
+
+# parse bounds
 [[process]]
 alias = "split_bounds"
 source = "lib://flowstdlib/data/split"
@@ -19,6 +25,36 @@ to = "split_bounds/string"
 from = "args/2"
 to = "split_bounds/string"
 
+# parse upper left
+[[process]]
+alias = "split_upper_left"
+source = "lib://flowstdlib/data/split"
+input.separator ={ always = "," }
+
+# looopback
+[[connection]]
+from = "split_upper_left/partial"
+to = "split_upper_left/string"
+
+[[connection]]
+from = "args/3"
+to = "split_upper_left/string"
+
+# parse lower right
+[[process]]
+alias = "split_lower_right"
+source = "lib://flowstdlib/data/split"
+input.separator ={ always = "," }
+
+# looopback
+[[connection]]
+from = "split_lower_right/partial"
+to = "split_lower_right/string"
+
+[[connection]]
+from = "args/4"
+to = "split_lower_right/string"
+
 # debug
 [[process]]
 source = "lib://flowruntime/stdio/stdout"
@@ -27,48 +63,15 @@ source = "lib://flowruntime/stdio/stdout"
 from = "split_bounds/token"
 to = "stdout"
 
-#
-#[[connection]]
-#from = "bounds_separator"
-#to = "parse_bounds/separator"
-#
-##
-#
-## Points Separator
-#[[process]]
-#alias = "point_separator"
-#source = "lib://flowstdlib/data/buffer/buffer"
-#input.default = {always =  ","}
-#
-## Upper Left Coordinate
-#[[process]]
-#alias = "parse_upper_left"
-#source = "src/parse_pair/parse_pair"
-#
-#[[connection]]
-#from = "point_separator"
-#to = "parse_upper_left/separator"
-#
-#[[connection]]
-#from = "args/3"
-#to = "parse_upper_left/input"
-#
-##
-#
-## Lower Right Coordinate
-#[[process]]
-#alias = "parse_lower_right"
-#source = "src/parse_pair/parse_pair"
-#
-#[[connection]]
-#from = "point_separator"
-#to = "parse_lower_right/separator"
-#
-#[[connection]]
-#from = "args/4"
-#to = "parse_lower_right/input"
-#
-#
+[[connection]]
+from = "split_upper_left/token"
+to = "stdout"
+
+[[connection]]
+from = "split_lower_right/token"
+to = "stdout"
+
+
 ## Subflow 'render'
 #[[process]]
 #alias = "render"
