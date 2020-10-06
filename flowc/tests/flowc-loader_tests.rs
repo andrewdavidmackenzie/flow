@@ -144,7 +144,7 @@ fn flow_input_initialized_and_propogated_to_function() {
 
 #[test]
 fn load_library() {
-    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test_libs/Library_test.toml");
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test_libs/Cargo.toml");
     let provider = MetaProvider {};
 
     loader::load_metadata(&path, &provider).unwrap();

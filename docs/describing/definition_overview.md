@@ -14,8 +14,7 @@ connections.
 So, valid entries in a flow definition include:
 - `flow`        - a String naming this flow (obligatory)
 - `version`     - a SemVer compatible version number for this flow (Optional)
-- `author_name` - String for name of author of the flow (Optional)
-- `author_email`- String for email of author of the flow (Optional)
+- `authors`     - Array of Strings of names and emails of authors of the flow (Optional)
 - `io`          - 0 or more input/outputs of this flow made available to any parent including it
 - `value`       - 0 or more values contained in this flow
 - `process`     - 0 or more references to sub-processes to include under the current flow. A sub-process

@@ -10,7 +10,8 @@ repository = "https://github.com/andrewdavidmackenzie/flow/"
 readme = "README.md"
 edition = "2018"
 
-exclude = [".gitignore", "Makefile", "Cargo.lock"]
+# Files to exclude from packaging and publishing
+exclude = [".gitignore", "Cargo.lock", "flow.toml"]
 
 [lib]
 name = "flowstdlib"
@@ -23,4 +24,3 @@ flowrlib = {path = "../flowrlib"}
 
 serde_json = "1.0"
 image = "0.22.3"
-log = "0.4.6"

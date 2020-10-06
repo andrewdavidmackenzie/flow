@@ -1,5 +1,0 @@
-library_name = "flowstdlib"
-version = "0.11.0"
-author_name = "Andrew Mackenzie"
-author_email = "<andrew@mackenzie-serres.net>"
-description = "The standard library for 'flow' programs compiled with the 'flowc' compiler"

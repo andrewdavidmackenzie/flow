@@ -4,7 +4,7 @@ use log::{debug, info, trace};
 use url::Url;
 
 use flowrlib::input::InputInitializer;
-use flowrlib::manifest::MetaData;
+use flowrlib::manifest::{Cargo, MetaData};
 use flowrlib::provider::Provider;
 
 use crate::deserializers::deserializer_helper::get_deserializer;
@@ -118,18 +118,21 @@ fn load_process(parent_route: &Route, alias: &Name, parent_flow_id: usize, flow_
 }
 
 /// load library metadata from the given url using the provider.
-/// At the moment this assumes the Library manifest is in Toml format until we add support
-/// for deserializing from other formats.
+/// Currently it used the `package` table of Cargo.toml as a source but it could
+/// easily use another file as along as it has the required fields to satisfy `MetaData` struct
 pub fn load_metadata(url: &str, provider: &dyn Provider) -> Result<MetaData> {
     trace!("Loading Metadata");
-    let (resolved_url, _) = provider.resolve_url(url, "Library", &["toml"])
+    let (resolved_url, _) = provider.resolve_url(url, "Cargo", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
+
     debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
     let contents = provider.get_contents(&resolved_url)
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
 
-    toml::from_str(&String::from_utf8(contents).unwrap())
-        .chain_err(|| format!("Error deserializing Toml from: '{:?}'", resolved_url))
+    let cargo : Cargo = toml::from_str(&String::from_utf8(contents).unwrap())
+        .chain_err(|| format!("Error deserializing Toml from: '{:?}'", resolved_url))?;
+
+    Ok(cargo.package)
 }
 
 /*
@@ -198,11 +201,12 @@ fn config_function(function: &mut Function, source_url: &str, parent_route: &Rou
 
 #[cfg(test)]
 mod test {
-    use flowrlib::manifest::MetaData;
+    use flowrlib::manifest::{Cargo, MetaData};
 
     #[test]
     fn deserialize_library() {
-        let contents = include_str!("../../tests/test_libs/Library_test.toml");
-        let _: MetaData = toml::from_str(contents).unwrap();
+        let contents = include_str!("../../tests/test_libs/Cargo.toml");
+        let cargo: Cargo = toml::from_str(contents).unwrap();
+        let _:MetaData = cargo.package;
     }
 }

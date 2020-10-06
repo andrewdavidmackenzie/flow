@@ -21,12 +21,10 @@ pub mod stdio;
 /// Return a `LibraryManifest` for the run-time functions
 pub fn get_manifest(client: Arc<Mutex<dyn RuntimeClient>>) -> LibraryManifest {
     let metadata = MetaData {
-        library_name: "flowruntime".into(),
+        name: "flowruntime".into(),
         version: "0.1.0".into(),
         description: "Runtime library provided by flowr binary".into(),
-        author_name: "Andrew Mackenzie".into(),
-        author_email: "andrew@mackenzie-serres.net".into(),
-
+        authors: vec!("Andrew Mackenzie".to_string())
     };
     let mut manifest = LibraryManifest::new(metadata);
 

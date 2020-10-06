@@ -424,7 +424,6 @@ dependencies = [
  "flow_impl_derive 0.10.0",
  "flowrlib",
  "image",
- "log",
  "serde_json",
 ]
 

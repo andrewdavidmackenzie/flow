@@ -117,7 +117,7 @@ impl Loader {
                    lib_reference: &str,
                    lib_manifest: LibraryManifest,
                    lib_manifest_url: &str) -> Result<()> {
-        debug!("Loading library '{}' from '{}'", lib_manifest.metadata.library_name, lib_manifest_url);
+        debug!("Loading library '{}' from '{}'", lib_manifest.metadata.name, lib_manifest_url);
         self.loaded_lib_references.insert(lib_reference.to_string());
         for (reference, locator) in lib_manifest.locators {
             // if we don't already have an implementation loaded for that reference
@@ -143,7 +143,7 @@ impl Loader {
             }
         }
 
-        info!("Library '{}' loaded.", lib_manifest.metadata.library_name);
+        info!("Library '{}' loaded.", lib_manifest.metadata.name);
         Ok(())
     }
 }
