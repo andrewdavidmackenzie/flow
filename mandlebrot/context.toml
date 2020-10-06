@@ -5,78 +5,86 @@ flow = "mandlebrot"
 alias = "args"
 source = "lib://flowruntime/args/get"
 
-
-# Bounds
 [[process]]
-alias = "parse_bounds"
-source = "src/parse_pair/parse_pair"
+alias = "split_bounds"
+source = "lib://flowstdlib/data/split"
+input.separator ={ always = "x" }
 
-[[process]]
-alias = "bounds_separator"
-source = "lib://flowstdlib/data/buffer/buffer"
-input.default = {always =  "x"}
+# looopback
+[[connection]]
+from = "split_bounds/partial"
+to = "split_bounds/string"
 
 [[connection]]
 from = "args/2"
-to = "parse_bounds/input"
+to = "split_bounds/string"
+
+# debug
+[[process]]
+source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
-from = "bounds_separator"
-to = "parse_bounds/separator"
+from = "split_bounds/token"
+to = "stdout"
 
 #
-
-# Points Separator
-[[process]]
-alias = "point_separator"
-source = "lib://flowstdlib/data/buffer/buffer"
-input.default = {always =  ","}
-
-# Upper Left Coordinate
-[[process]]
-alias = "parse_upper_left"
-source = "src/parse_pair/parse_pair"
-
-[[connection]]
-from = "point_separator"
-to = "parse_upper_left/separator"
-
-[[connection]]
-from = "args/3"
-to = "parse_upper_left/input"
-
+#[[connection]]
+#from = "bounds_separator"
+#to = "parse_bounds/separator"
 #
-
-# Lower Right Coordinate
-[[process]]
-alias = "parse_lower_right"
-source = "src/parse_pair/parse_pair"
-
-[[connection]]
-from = "point_separator"
-to = "parse_lower_right/separator"
-
-[[connection]]
-from = "args/4"
-to = "parse_lower_right/input"
-
-
-# Subflow 'render'
-[[process]]
-alias = "render"
-source = "render"
-
-[[connection]]
-from = "parse_bounds"
-to = "render/bounds"
-
-[[connection]]
-from = "parse_upper_left"
-to = "render/upper_left"
-
-[[connection]]
-from = "parse_lower_right"
-to = "render/lower_right"
+##
+#
+## Points Separator
+#[[process]]
+#alias = "point_separator"
+#source = "lib://flowstdlib/data/buffer/buffer"
+#input.default = {always =  ","}
+#
+## Upper Left Coordinate
+#[[process]]
+#alias = "parse_upper_left"
+#source = "src/parse_pair/parse_pair"
+#
+#[[connection]]
+#from = "point_separator"
+#to = "parse_upper_left/separator"
+#
+#[[connection]]
+#from = "args/3"
+#to = "parse_upper_left/input"
+#
+##
+#
+## Lower Right Coordinate
+#[[process]]
+#alias = "parse_lower_right"
+#source = "src/parse_pair/parse_pair"
+#
+#[[connection]]
+#from = "point_separator"
+#to = "parse_lower_right/separator"
+#
+#[[connection]]
+#from = "args/4"
+#to = "parse_lower_right/input"
+#
+#
+## Subflow 'render'
+#[[process]]
+#alias = "render"
+#source = "render"
+#
+#[[connection]]
+#from = "parse_bounds"
+#to = "render/bounds"
+#
+#[[connection]]
+#from = "parse_upper_left"
+#to = "render/upper_left"
+#
+#[[connection]]
+#from = "parse_lower_right"
+#to = "render/lower_right"
 
 #
 
