@@ -97,8 +97,7 @@ mod test {
         match toml.deserialize(flow_description, None) {
             Ok(FlowProcess(flow)) => {
                 assert_eq!(flow.version, Flow::default_version());
-                assert_eq!(flow.author_name, Flow::default_author());
-                assert_eq!(flow.author_email, Flow::default_email());
+                assert_eq!(flow.authors, Flow::default_authors());
             }
             _ => panic!()
         }
@@ -109,16 +108,14 @@ mod test {
         let flow_description = "\
         flow = 'test'
         version = '1.1.1'
-        author_name = 'tester'
-        author_email = 'tester@test.com'
+        authors = ['tester <tester@test.com>']
     ";
 
         let toml = FlowTomelLoader {};
         match toml.deserialize(flow_description, None) {
             Ok(FlowProcess(flow)) => {
                 assert_eq!(flow.version, "1.1.1".to_string());
-                assert_eq!(flow.author_name, "tester".to_string());
-                assert_eq!(flow.author_email, "tester@test.com".to_string());
+                assert_eq!(flow.authors, vec!("tester <tester@test.com>".to_string()));
             }
             _ => panic!()
         }

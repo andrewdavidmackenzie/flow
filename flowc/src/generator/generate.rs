@@ -47,11 +47,10 @@ impl GenerationTables {
 impl From<&Flow> for MetaData {
     fn from(flow: &Flow) -> Self {
         MetaData {
-            library_name: flow.name.clone().to_string(),
+            name: flow.name.clone().to_string(),
             description: flow.description.clone(),
             version: flow.version.clone(),
-            author_name: flow.author_name.clone(),
-            author_email: flow.author_email.clone(),
+            authors: flow.authors.clone()
         }
     }
 }

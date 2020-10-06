@@ -116,11 +116,10 @@ pub struct Coordinator {
 /// struct ExampleDebugClient {};
 ///
 /// let meta_data = MetaData {
-///                     library_name: "test".into(),
+///                     name: "test".into(),
 ///                     description: "Test submission".into(),
 ///                     version: "0.0.1".into(),
-///                     author_name: "test user".into(),
-///                     author_email: "me@acme.com".into()
+///                     authors: vec!("test user".to_string())
 ///                 };
 ///
 /// let manifest = Manifest::new(meta_data);
@@ -363,11 +362,10 @@ mod test {
     //noinspection DuplicatedCode
     fn test_meta_data() -> MetaData {
         MetaData {
-            library_name: "test".into(),
+            name: "test".into(),
             version: "0.0.0".into(),
             description: "a test".into(),
-            author_name: "me".into(),
-            author_email: "me@a.com".into(),
+            authors: vec!("me".to_string())
         }
     }
 

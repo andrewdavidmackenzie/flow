@@ -10,7 +10,8 @@ use crate::manifest::MetaData;
 use crate::provider::Provider;
 
 /// The default name used for a Library  Manifest file if none is specified
-pub const DEFAULT_LIB_MANIFEST_FILENAME: &str = "manifest";
+pub const DEFAULT_LIB_JSON_MANIFEST_FILENAME: &str = "manifest";
+pub const DEFAULT_LIB_RUST_MANIFEST_FILENAME: &str = "manifest.rs";
 
 /*
     Implementations can be of two types - either a statically linked function referenced
@@ -62,7 +63,7 @@ impl LibraryManifest {
     /// `load` a library from the `source` url, using the `provider` to fetch contents
     pub fn load(provider: &dyn Provider, source: &str) -> Result<(LibraryManifest, String)> {
         let (resolved_url, _) = provider.resolve_url(source,
-                                                     DEFAULT_LIB_MANIFEST_FILENAME,
+                                                     DEFAULT_LIB_JSON_MANIFEST_FILENAME,
                                                      &["json"])
             .chain_err(|| format!("Could not resolve the library manifest file '{}'", source))?;
 
@@ -79,7 +80,7 @@ impl LibraryManifest {
     /// Add a function's implementation to the library, specifying path to Wasm for it
     pub fn add_to_manifest(&mut self, base_dir: &str, wasm_abs_path: &str, wasm_dir: &str, function_name: &str) {
         let relative_dir = wasm_dir.replace(base_dir, "");
-        let lib_reference = format!("lib://{}/{}/{}", self.metadata.library_name, relative_dir, function_name);
+        let lib_reference = format!("lib://{}/{}/{}", self.metadata.name, relative_dir, function_name);
 
         let implementation_relative_location = wasm_abs_path.replace(base_dir, "");
         debug!("Adding implementation to manifest: \n'{}'  --> '{}'", lib_reference, implementation_relative_location);
@@ -130,21 +131,19 @@ mod test {
 
     fn test_meta_data() -> MetaData {
         MetaData {
-            library_name: "test".into(),
+            name: "test".into(),
             version: "0.0.0".into(),
             description: "a test".into(),
-            author_name: "me".into(),
-            author_email: "me@a.com".into(),
+            authors: vec!("me".into())
         }
     }
 
     fn test_meta_data2() -> MetaData {
         MetaData {
-            library_name: "different".into(),
+            name: "different".into(),
             version: "0.0.0".into(),
             description: "a test".into(),
-            author_name: "me".into(),
-            author_email: "me@a.com".into(),
+            authors: vec!("me".to_string())
         }
     }
 
@@ -197,11 +196,10 @@ mod test {
     #[test]
     fn serialize() {
         let metadata = MetaData {
-            library_name: "".to_string(),
+            name: "".to_string(),
             description: "".into(),
             version: "0.1.0".into(),
-            author_name: "".into(),
-            author_email: "".into(),
+            authors: vec!()
         };
 
         let locator: ImplementationLocator = Wasm("add2.wasm".to_string());
@@ -210,11 +208,10 @@ mod test {
         let serialized = serde_json::to_string_pretty(&manifest).unwrap();
         let expected = "{
   \"metadata\": {
-    \"library_name\": \"\",
+    \"name\": \"\",
     \"version\": \"0.1.0\",
     \"description\": \"\",
-    \"author_name\": \"\",
-    \"author_email\": \"\"
+    \"authors\": []
   },
   \"locators\": {
     \"//flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
@@ -227,11 +224,10 @@ mod test {
     fn load_dyn_library() {
         let test_content = "{
   \"metadata\": {
-    \"library_name\": \"\",
+    \"name\": \"\",
     \"version\": \"0.1.0\",
     \"description\": \"\",
-    \"author_name\": \"\",
-    \"author_email\": \"\"
+    \"authors\": []
   },
   \"locators\": {
     \"//flowrlib/test-dyn-lib/add2\": \"add2.wasm\"

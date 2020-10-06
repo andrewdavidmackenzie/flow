@@ -44,10 +44,8 @@ pub struct Flow {
     pub description: String,
     #[serde(default = "Flow::default_version")]
     pub version: String,
-    #[serde(default = "Flow::default_author")]
-    pub author_name: String,
-    #[serde(default = "Flow::default_email")]
-    pub author_email: String,
+    #[serde(default = "Flow::default_authors")]
+    pub authors: Vec<String>,
 
     #[serde(skip)]
     pub id: usize,
@@ -138,8 +136,7 @@ impl Default for Flow {
             lib_references: vec!(),
             description: Flow::default_description(),
             version: Flow::default_version(),
-            author_name: Flow::default_author(),
-            author_email: Flow::default_email(),
+            authors: Flow::default_authors()
         }
     }
 }
@@ -185,8 +182,8 @@ impl Flow {
         "0.0.0".to_string()
     }
 
-    pub fn default_author() -> String {
-        "unknown".to_string()
+    pub fn default_authors() -> Vec<String> {
+        vec!("unknown".to_string())
     }
 
     pub fn default_email() -> String {

@@ -98,7 +98,7 @@ fn run() -> Result<()> {
 
     let debug_client = CLI_DEBUG_CLIENT;
 
-    pass_flow_args(&matches, &manifest.get_metadata().library_name);
+    pass_flow_args(&matches, &manifest.get_metadata().name);
 
     let submission = Submission::new(manifest,
                                      num_parallel_jobs,

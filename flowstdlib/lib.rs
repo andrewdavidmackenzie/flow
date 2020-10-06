@@ -1,8 +1,3 @@
-#![deny(missing_docs)]
-//! `flowstdlib` is a standard library of functions for `flow` programs to use.
-//! It can be compiled and linked natively to a run-time, or each function can be
-//! compiled to WebAssembly and loaded from file by the run-time.
-
 use std::sync::Arc;
 
 use flowrlib::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
@@ -26,14 +21,13 @@ pub mod math;
 /// Return the `LibraryManifest` for the functions in the library
 pub fn get_manifest() -> LibraryManifest {
     let metadata = MetaData {
-        library_name: "flowstdlib".into(),
+        name: env!("CARGO_PKG_NAME").into(),
         version: env!("CARGO_PKG_VERSION").into(),
-        description: "Flow Standard Library".into(),
-        author_name: "Andrew Mackenzie".into(),
-        author_email: "andrew@mackenzie-serres.net".into(),
-
+        description: env!("CARGO_PKG_DESCRIPTION").into(),
+        authors: env!("CARGO_PKG_AUTHORS").split(':').map(|s| s.to_string()).collect()
     };
     let mut manifest = LibraryManifest::new(metadata);
+
 
     // Control
     manifest.locators.insert("lib://flowstdlib/control/compare_switch/CompareSwitch".to_string(),

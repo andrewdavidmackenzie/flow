@@ -38,8 +38,7 @@ mod test {
 flow: hello-world-simple-toml
 
 version: 0.0.0
-author_name: unknown
-author_email: unknown@unknown.com
+authors: [unknown <unknown@unknown.com>]
 ";
 
         let yaml = FlowYamlLoader {};

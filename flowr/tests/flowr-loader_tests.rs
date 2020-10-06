@@ -47,11 +47,10 @@ fn cwd_as_url() -> Url {
 
 fn create_manifest(functions: Vec<Function>) -> Manifest {
     let metadata = MetaData {
-        library_name: "test manifest".into(),
+        name: "test manifest".into(),
         description: "test manifest".into(),
         version: "0.0".into(),
-        author_name: "me".into(),
-        author_email: "me@a.com".into(),
+        authors: vec!("me".into())
     };
 
     let mut manifest = Manifest::new(metadata);
@@ -87,11 +86,10 @@ impl Implementation for Fake {
 
 fn get_manifest() -> LibraryManifest {
     let metadata = MetaData {
-        library_name: "".to_string(),
+        name: "".to_string(),
         description: "".into(),
         version: "0.1.0".into(),
-        author_name: "".into(),
-        author_email: "".into(),
+        authors: vec!("".into())
     };
     let mut manifest = LibraryManifest::new(metadata);
 
