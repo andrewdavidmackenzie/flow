@@ -1,5 +1,3 @@
-#![feature(test)]
-
 use escapes::_escapes;
 use image::ColorType;
 use image::png::PNGEncoder;
