@@ -1,0 +1,12 @@
+name = "escapes"
+
+[[input]]
+name = "limit"
+type = "Number"
+
+[[input]]
+name = "point"
+type = "Json"
+
+[[output]]
+type = "Number"
