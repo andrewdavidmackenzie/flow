@@ -58,6 +58,12 @@ impl RuntimeClient for IDERuntimeClient {
                 file.write_all(bytes.as_slice()).unwrap();
                 Response::Ack
             }
+            Command::PixelWrite((_x, _y), (_r, _g, _b), (_width, _height), _name) => {
+                // let image = self.image_buffers.entry(name)
+                //     .or_insert(RgbImage::new(width, height));
+                // image.put_pixel(x, y, Rgb([r, g, b]));
+                Response::Ack
+            }
         }
     }
 

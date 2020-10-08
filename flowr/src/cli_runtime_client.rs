@@ -1,16 +1,18 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
+use std::path::Path;
 
-use log::debug;
+use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
+use log::{debug, trace};
 
 use flowrlib::runtime_client::{Command, Response, RuntimeClient};
 
 #[derive(Debug, Clone)]
 pub struct CLIRuntimeClient {
-    pub open_files: HashSet<String>
+    pub image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>
 }
 
 /// The name of the environment variables used to pass command line arguments to the function
@@ -19,8 +21,8 @@ pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
 
 impl CLIRuntimeClient {
     pub fn new() -> Self {
-        CLIRuntimeClient{
-            open_files: HashSet::new()
+        CLIRuntimeClient {
+            image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new()
         }
     }
 }
@@ -30,9 +32,10 @@ impl RuntimeClient for CLIRuntimeClient {
         debug!("===========================    Starting flow execution =============================");
     }
 
-    // This function is called by the runtime_function to send a commanmd to the runtime_client
+    // This function is called by the runtime_function to send a command to the runtime_client
     // so here in the runtime_client, it's more like "process_command"
-    fn send_command(&mut self, command: Command) -> Response {
+    #[allow(clippy::many_single_char_names)]
+        fn send_command(&mut self, command: Command) -> Response {
         match command {
             Command::EOF => Response::Ack,
             Command::Stdout(contents) => {
@@ -48,10 +51,10 @@ impl RuntimeClient for CLIRuntimeClient {
                 let stdin = io::stdin();
                 let mut handle = stdin.lock();
                 if let Ok(size) = handle.read_to_string(&mut buffer) {
-                    if size > 0 {
-                        return Response::Stdin(buffer.trim().to_string());
+                    return if size > 0 {
+                        Response::Stdin(buffer.trim().to_string())
                     } else {
-                        return Response::EOF;
+                        Response::EOF
                     }
                 }
                 Response::Error("Could not read Stdin".into())
@@ -65,9 +68,14 @@ impl RuntimeClient for CLIRuntimeClient {
                 }
             }
             Command::Write(filename, bytes) => {
-                self.open_files.insert(filename.clone());
                 let mut file = File::create(filename).unwrap();
                 file.write_all(bytes.as_slice()).unwrap();
+                Response::Ack
+            }
+            Command::PixelWrite((x, y), (r, g, b), (width, height), name) => {
+                let image = self.image_buffers.entry(name)
+                    .or_insert_with( || RgbImage::new(width, height));
+                image.put_pixel(x, y, Rgb([r, g, b]));
                 Response::Ack
             }
             Command::Args => {
@@ -82,13 +90,16 @@ impl RuntimeClient for CLIRuntimeClient {
     fn flow_end(&mut self) {
         debug!("=========================== Flow execution ended ======================================");
 
-        // TODO close open files
+        // flush ImageBuffers to disk
+        for (filename, image_buffer) in self.image_buffers.iter() {
+            trace!("Flushing ImageBuffer to file: {}", filename);
+            image_buffer.save_with_format(Path::new(filename), ImageFormat::PNG).unwrap();
+        }
     }
 }
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashSet;
     use std::env;
 
     use flowrlib::runtime_client::{Command, Response, RuntimeClient};
@@ -100,7 +111,7 @@ mod test {
     fn test_arg_passing() {
         env::set_var(FLOW_ARGS_NAME, "test");
 
-        let mut client = CLIRuntimeClient { open_files: HashSet::new() };
+        let mut client = CLIRuntimeClient::new();
 
         match client.send_command(Command::Args) {
             Response::Args(args) => assert_eq!(vec!("test".to_string()), args),

@@ -14,6 +14,8 @@ pub enum Command {
     Args,
     /// Write to a file
     Write(String, Vec<u8>),
+    /// Write a pixel to an ImageBuffer
+    PixelWrite((u32, u32), (u8, u8, u8), (u32, u32), String),
     /// End of File
     EOF
 }
