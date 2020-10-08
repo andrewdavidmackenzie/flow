@@ -35,7 +35,7 @@ impl RuntimeClient for CLIRuntimeClient {
     // This function is called by the runtime_function to send a command to the runtime_client
     // so here in the runtime_client, it's more like "process_command"
     #[allow(clippy::many_single_char_names)]
-        fn send_command(&mut self, command: Command) -> Response {
+    fn send_command(&mut self, command: Command) -> Response {
         match command {
             Command::EOF => Response::Ack,
             Command::Stdout(contents) => {
@@ -55,7 +55,7 @@ impl RuntimeClient for CLIRuntimeClient {
                         Response::Stdin(buffer.trim().to_string())
                     } else {
                         Response::EOF
-                    }
+                    };
                 }
                 Response::Error("Could not read Stdin".into())
             }
@@ -74,7 +74,7 @@ impl RuntimeClient for CLIRuntimeClient {
             }
             Command::PixelWrite((x, y), (r, g, b), (width, height), name) => {
                 let image = self.image_buffers.entry(name)
-                    .or_insert_with( || RgbImage::new(width, height));
+                    .or_insert_with(|| RgbImage::new(width, height));
                 image.put_pixel(x, y, Rgb([r, g, b]));
                 Response::Ack
             }
@@ -101,6 +101,8 @@ impl RuntimeClient for CLIRuntimeClient {
 #[cfg(test)]
 mod test {
     use std::env;
+    use std::fs;
+    use std::path::Path;
 
     use flowrlib::runtime_client::{Command, Response, RuntimeClient};
 
@@ -146,5 +148,23 @@ mod test {
         if client.send_command(Command::Stderr("Hello".into())) != Response::Ack {
             panic!("Didn't get Stderr response as expected")
         }
+    }
+
+    #[test]
+    fn test_image_writing() {
+        let mut client = CLIRuntimeClient::new();
+        let path = "/tmp/flow.png";
+
+        fs::remove_file(path).unwrap();
+        assert!(!Path::new(path).exists());
+
+        client.flow_start();
+        let pixel = Command::PixelWrite((0, 0), (255, 200, 20), (10, 10), path.into());
+        if client.send_command(pixel) != Response::Ack {
+            panic!("Didn't get pixel write response as expected")
+        }
+        client.flow_end();
+
+        assert!(Path::new(path).exists());
     }
 }
