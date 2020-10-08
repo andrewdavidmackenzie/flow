@@ -1,0 +1,19 @@
+function = "ImageBuffer"
+implementation = "image_buffer.rs"
+impure = true
+
+[[input]]
+name = "pixel"
+type = "Array/Number"
+
+[[input]]
+name = "value"
+type = "Array/Number"
+
+[[input]]
+name = "size"
+type = "Array/Number"
+
+[[input]]
+name = "filename"
+type = "String"

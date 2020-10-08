@@ -14,6 +14,8 @@ pub mod args;
 pub mod file;
 /// `stdio` is a module to interact with standard IO
 pub mod stdio;
+/// `image` is a module to interact with images
+pub mod image;
 
 /// Return a `LibraryManifest` for the run-time functions
 pub fn get_manifest(client: Arc<Mutex<dyn RuntimeClient>>) -> LibraryManifest {
