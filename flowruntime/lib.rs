@@ -6,11 +6,8 @@ use std::sync::{Arc, Mutex};
 
 use flowrlib::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowrlib::manifest::MetaData;
+use flowrlib::runtime_client::RuntimeClient;
 
-use crate::runtime_client::RuntimeClient;
-
-/// `runtime_client` is a trait for clients connectibe to the run-time must implement
-pub mod runtime_client;
 /// `args` is a module to interact with a programs arguments
 pub mod args;
 /// `file` is a module to interact with the file system

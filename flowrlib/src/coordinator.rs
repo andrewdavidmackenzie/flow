@@ -18,9 +18,10 @@ use crate::manifest::MetaData;
 use crate::metrics::Metrics;
 use crate::run_state::Job;
 use crate::run_state::RunState;
+use crate::runtime_client::RuntimeClient;
 
 /// A Submission is the struct used to send a flow to the Coordinator for execution. It contains
-/// all the information encessary to execute it:
+/// all the information necessary to execute it:
 ///
 /// A new Submission is created supplying:
 /// - the manifest of the flow to execute
@@ -32,11 +33,12 @@ use crate::run_state::RunState;
 ///                                     1 /* num_parallel_jobs */,
 ///                                     false /* display_metrics */,
 ///                                     None /* debug client */);
-pub struct Submission {
+pub struct Submission<'a> {
     _metadata: MetaData,
     display_metrics: bool,
     #[cfg(feature = "metrics")]
     metrics: Metrics,
+    runtime_client: &'a mut dyn RuntimeClient,
     job_timeout: Duration,
     state: RunState,
     #[cfg(feature = "debugger")]
@@ -45,18 +47,19 @@ pub struct Submission {
     enter_debugger: bool,
 }
 
-impl Submission {
+impl<'a> Submission<'a> {
     /// Create a new `Submission` of a `Flow` for execution with the specified `Manifest`
     /// of `Functions`, executing it with a maximum of `mac_parallel_jobs` running in parallel
     /// connecting via the optional `DebugClient`
     pub fn new(mut manifest: Manifest,
                max_parallel_jobs: usize,
                display_metrics: bool,
+               runtime_client: &'a mut dyn RuntimeClient,
                #[cfg(feature = "debugger")]
                client: &'static dyn DebugClient,
                #[cfg(feature = "debugger")]
                enter_debugger: bool,
-    ) -> Submission {
+    ) -> Submission<'a> {
         info!("Maximum jobs in parallel limited to {}", max_parallel_jobs);
         let output_timeout = Duration::from_secs(60);
 
@@ -70,6 +73,7 @@ impl Submission {
             display_metrics,
             #[cfg(feature = "metrics")]
             metrics,
+            runtime_client,
             job_timeout: output_timeout,
             state,
             #[cfg(feature = "debugger")]
@@ -112,8 +116,13 @@ pub struct Coordinator {
 /// use flowrlib::manifest::{Manifest, MetaData};
 /// #[cfg(any(feature = "debugger"))]
 /// use flowrlib::debug_client::{DebugClient, Command, Param, Event, Response, Command::ExitDebugger};
+/// use flowrlib::runtime_client::RuntimeClient;
+/// use flowrlib::runtime_client::Response as RuntimeResponse;
+/// use flowrlib::runtime_client::Command as RuntimeCommand;
 ///
 /// struct ExampleDebugClient {};
+/// #[derive(Debug)]
+/// struct ExampleRuntimeClient {};
 ///
 /// let meta_data = MetaData {
 ///                     name: "test".into(),
@@ -134,9 +143,22 @@ pub struct Coordinator {
 ///     fn send_response(&self, response: Response) {}
 /// }
 ///
+/// impl RuntimeClient for ExampleRuntimeClient {
+///     fn flow_start(&mut self) {}
+///
+///     fn send_command(&mut self,command: RuntimeCommand) -> RuntimeResponse {
+///         RuntimeResponse::Ack
+///     }
+///
+///     fn flow_end(&mut self) {}
+/// }
+///
+/// let mut runtime_client = ExampleRuntimeClient {};
+///
 /// let mut submission = Submission::new(manifest,
 ///                                     1 /* num_parallel_jobs */,
 ///                                     false /* display_metrics */,
+///                                     &mut runtime_client,
 ///                                     &ExampleDebugClient{},
 ///                                     true /* enter debugger on start */);
 ///
@@ -199,6 +221,7 @@ impl Coordinator {
         loop {
             debug!("Resetting stats and initializing all functions");
             submission.state.init();
+            submission.runtime_client.flow_start();
 
             #[cfg(feature = "debugger")]
             if submission.enter_debugger {
@@ -208,7 +231,6 @@ impl Coordinator {
             #[cfg(feature = "metrics")]
                 submission.metrics.reset();
 
-            debug!("===========================    Starting flow execution =============================");
             #[cfg(feature = "debugger")]
                 let mut display_next_output;
             let mut restart;
@@ -281,15 +303,15 @@ impl Coordinator {
                     }
 
                 if !restart {
-                    self.flow_done(&submission);
+                    self.flow_done(&mut submission);
                     return;
                 }
             }
         }
     }
 
-    fn flow_done(&self, submission: &Submission) {
-        debug!("=========================== Flow execution ended ======================================");
+    fn flow_done(&self, submission: &mut Submission) {
+        submission.runtime_client.flow_end();
         debug!("{}", submission.state);
 
         if submission.display_metrics {
@@ -353,11 +375,12 @@ mod test {
     use crate::coordinator::Coordinator;
     use crate::coordinator::Submission;
     #[cfg(feature = "debugger")]
-    use crate::debug_client::{DebugClient, Event, Response};
-    #[cfg(feature = "debugger")]
-    use crate::debug_client::Command;
+    use crate::debug_client::{Command, DebugClient, Event, Response};
     use crate::manifest::Manifest;
     use crate::manifest::MetaData;
+    use crate::runtime_client::Command as RuntimeCommand;
+    use crate::runtime_client::Response as RuntimeResponse;
+    use crate::runtime_client::RuntimeClient;
 
     //noinspection DuplicatedCode
     fn test_meta_data() -> MetaData {
@@ -390,11 +413,25 @@ mod test {
         &TestDebugClient {}
     }
 
+    #[derive(Debug)]
+    struct TestRuntimeClient {}
+
+    impl RuntimeClient for TestRuntimeClient {
+        fn flow_start(&mut self) {}
+
+        fn send_command(&mut self, _command: RuntimeCommand) -> RuntimeResponse {
+            RuntimeResponse::Ack
+        }
+
+        fn flow_end(&mut self) {}
+    }
+
     #[test]
     fn create_submission() {
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);
         let _ = Submission::new(manifest, 1, true,
+                                &mut TestRuntimeClient {},
                                 #[cfg(feature = "debugger")]
                                     test_debug_client(),
                                 #[cfg(feature = "debugger")]
@@ -404,9 +441,11 @@ mod test {
 
     #[test]
     fn test_flow_done() {
+        let mut test_client = TestRuntimeClient {};
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);
         let mut submission = Submission::new(manifest, 1, true,
+                                             &mut test_client,
                                 #[cfg(feature = "debugger")]
                                     test_debug_client(),
                                 #[cfg(feature = "debugger")]
@@ -417,7 +456,7 @@ mod test {
 
        coordinator.send_jobs(&mut submission);
 
-       coordinator.flow_done(&submission);
+       coordinator.flow_done(&mut submission);
     }
 
     #[test]
@@ -436,12 +475,15 @@ mod test {
     #[test]
     #[ignore] // Submission currently enters an infinite execution loop so ignore test for now
     fn test_submit() {
+        let mut test_client = TestRuntimeClient {};
+
         let mut coordinator = Coordinator::new(1);
         coordinator.init();
 
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);
         let submission = Submission::new(manifest, 1, true,
+                                         &mut test_client,
                                          #[cfg(feature = "debugger")]
                                              test_debug_client(),
                                          #[cfg(feature = "debugger")]
@@ -455,12 +497,14 @@ mod test {
     #[ignore] // Submission currently enters an infinite execution loop so ignore test for now
     #[cfg(feature = "debugger")]
     fn test_submit_with_debugger() {
+        let mut test_client = TestRuntimeClient {};
         let mut coordinator = Coordinator::new(1);
         coordinator.init();
 
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);
         let submission = Submission::new(manifest, 1, true,
+                                         &mut test_client,
                                          #[cfg(feature = "debugger")]
                                              test_debug_client(),
                                          #[cfg(feature = "debugger")]

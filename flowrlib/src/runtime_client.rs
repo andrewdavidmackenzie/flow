@@ -37,8 +37,10 @@ pub enum Response {
 
 /// runtime_clients must implement this trait
 pub trait RuntimeClient: Sync + Send + Debug {
-    /// Called at init to initalize the client
-    fn init(&self);
+    /// Called at start of flow execution
+    fn flow_start(&mut self);
     /// Called to send the next command to the runtime_client and get the response
-    fn send_command(&self, command: Command) -> Response;
+    fn send_command(&mut self, command: Command) -> Response;
+    /// Called when execution of flow ends
+    fn flow_end(&mut self);
 }

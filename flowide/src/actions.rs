@@ -173,7 +173,9 @@ pub fn run_manifest(args: Vec<String>) {
                         let submission = Submission::new(manifest_clone,
                                                          1,
                                                          false,
-                                                         debug_client, false);
+                                                         &mut context.client,
+                                                         debug_client,
+                                                         false);
                         let mut coordinator = Coordinator::new(1);
                         coordinator.init();
 
@@ -183,7 +185,7 @@ pub fn run_manifest(args: Vec<String>) {
                     _ => message("No manifest loaded to run")
                 }
             }
-            _ => message("Could not get access to uicontext")
+            _ => message("Could not get access to uicontext and client")
         }
     });
 }

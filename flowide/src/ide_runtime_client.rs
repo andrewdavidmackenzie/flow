@@ -3,7 +3,7 @@ use std::io::prelude::*;
 
 use gtk::TextBufferExt;
 
-use flowruntime::runtime_client::{Command, Response, RuntimeClient};
+use flowrlib::runtime_client::{Command, Response, RuntimeClient};
 
 use crate::widgets;
 
@@ -23,10 +23,12 @@ impl IDERuntimeClient {
 }
 
 impl RuntimeClient for IDERuntimeClient {
-    fn init(&self) {}
+    fn flow_start(&mut self) {
+        // TODO show something on the UI to show a new flow is starting executing
+    }
 
     // This function is called by the runtime_function to send a commanmd to the runtime_client
-    fn send_command(&self, command: Command) -> Response {
+    fn send_command(&mut self, command: Command) -> Response {
         match command {
             Command::EOF => Response::Ack,
             Command::Stdout(contents) => {
@@ -57,5 +59,9 @@ impl RuntimeClient for IDERuntimeClient {
                 Response::Ack
             }
         }
+    }
+
+    fn flow_end(&mut self) {
+        // TODO show something on the UI that the flow has ended
     }
 }
