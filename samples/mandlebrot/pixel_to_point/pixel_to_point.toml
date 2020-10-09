@@ -1,0 +1,17 @@
+function = "PixelToPoint"
+implementation = "pixel_to_point.rs"
+
+[[input]]
+name = "bounds"
+type = "Array/Array/Number"
+
+[[input]]
+name = "pixel"
+type = "Array/Number"
+
+[[input]]
+name = "size"
+type = "Array/Number"
+
+[[output]]
+type = "Json"
