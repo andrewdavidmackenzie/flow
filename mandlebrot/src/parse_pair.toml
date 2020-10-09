@@ -1,0 +1,12 @@
+name = "ParsePair"
+
+[[input]]
+name = "input"
+type = "String"
+
+[[input]]
+name = "separator"
+type = "String"
+
+[[output]]
+type = "Json" # because we don't have support for unstructuring Map yet... would be a Map of Numbers

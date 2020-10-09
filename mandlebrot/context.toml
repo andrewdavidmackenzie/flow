@@ -1,0 +1,96 @@
+name = "mandlebrot"
+
+# Args
+[[function]]
+alias = "args"
+source = "lib://flowstdlib/env/args.toml"
+
+
+# Bounds
+[[function]]
+alias = "parse_bounds"
+source = "src/parse_pair.toml"
+
+[[value]]
+name = "bounds_separator"
+type = "String"
+constant = "x"
+
+[[connection]]
+from = "function/args/2"
+to = "function/parse_bounds/input"
+
+[[connection]]
+from = "value/bounds_separator"
+to = "function/parse_bounds/separator"
+
+
+# Points Separator
+[[value]]
+name = "point_separator"
+type = "String"
+constant = ","
+
+
+# Upper Left Coordinate
+[[function]]
+alias = "parse_upper_left"
+source = "src/parse_pair.toml"
+
+[[connection]]
+from = "value/point_separator"
+to = "function/parse_upper_left/separator"
+
+[[connection]]
+from = "function/args/3"
+to = "function/parse_upper_left/input"
+
+
+# Lower Right Coordinate
+[[function]]
+alias = "parse_lower_right"
+source = "src/parse_pair.toml"
+
+[[connection]]
+from = "value/point_separator"
+to = "function/parse_lower_right/separator"
+
+[[connection]]
+from = "function/args/4"
+to = "function/parse_lower_right/input"
+
+
+# Subflow 'render'
+[[flow]]
+alias = "render"
+source = "./render_by_row.toml"  # Use the by row implementation
+
+[[connection]]
+from = "function/parse_bounds"
+to = "flow/render/bounds"
+
+[[connection]]
+from = "function/parse_upper_left"
+to = "flow/render/upper_left"
+
+[[connection]]
+from = "function/parse_lower_right"
+to = "flow/render/lower_right"
+
+
+# Write Bitmap
+[[function]]
+alias = "write_bitmap"
+source = "lib://flowstdlib/img/write_bitmap.toml"
+
+[[connection]]
+from = "function/args/0"
+to = "function/write_bitmap/filename"
+
+[[connection]]
+from = "flow/render/bitmap_bounds"
+to = "function/write_bitmap/bounds"
+
+[[connection]]
+from = "flow/render/bytes"
+to = "function/write_bitmap/bytes"

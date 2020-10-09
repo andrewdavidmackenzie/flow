@@ -1,0 +1,160 @@
+{
+  "metadata": {
+    "name": "mandlebrot",
+    "version": "0.0.0",
+    "description": "",
+    "authors": [
+      "unknown"
+    ]
+  },
+  "lib_references": [
+    "lib://flowstdlib",
+    "lib://flowruntime"
+  ],
+  "functions": [
+    {
+      "name": "args",
+      "route": "/mandlebrot/args",
+      "id": 0,
+      "flow_id": 0,
+      "implementation_location": "lib://flowruntime/args/get/Get",
+      "output_routes": [
+        {
+          "subpath": "/1",
+          "function_id": 4,
+          "io_number": 0,
+          "flow_id": 0,
+          "generic": true,
+          "route": "/mandlebrot/Stdout"
+        },
+        {
+          "subpath": "/2",
+          "function_id": 1,
+          "io_number": 0,
+          "flow_id": 0,
+          "route": "/mandlebrot/split_bounds/string"
+        },
+        {
+          "subpath": "/3",
+          "function_id": 2,
+          "io_number": 0,
+          "flow_id": 0,
+          "route": "/mandlebrot/split_upper_left/string"
+        },
+        {
+          "subpath": "/4",
+          "function_id": 3,
+          "io_number": 0,
+          "flow_id": 0,
+          "route": "/mandlebrot/split_lower_right/string"
+        }
+      ]
+    },
+    {
+      "name": "split_bounds",
+      "route": "/mandlebrot/split_bounds",
+      "id": 1,
+      "flow_id": 0,
+      "implementation_location": "lib://flowstdlib/data/split/Split",
+      "inputs": [
+        {},
+        {
+          "initializer": {
+            "always": "x"
+          }
+        }
+      ],
+      "output_routes": [
+        {
+          "subpath": "/partial",
+          "function_id": 1,
+          "io_number": 0,
+          "flow_id": 0,
+          "route": "/mandlebrot/split_bounds/string"
+        },
+        {
+          "subpath": "/token",
+          "function_id": 4,
+          "io_number": 0,
+          "flow_id": 0,
+          "generic": true,
+          "route": "/mandlebrot/Stdout"
+        }
+      ]
+    },
+    {
+      "name": "split_upper_left",
+      "route": "/mandlebrot/split_upper_left",
+      "id": 2,
+      "flow_id": 0,
+      "implementation_location": "lib://flowstdlib/data/split/Split",
+      "inputs": [
+        {},
+        {
+          "initializer": {
+            "always": ","
+          }
+        }
+      ],
+      "output_routes": [
+        {
+          "subpath": "/partial",
+          "function_id": 2,
+          "io_number": 0,
+          "flow_id": 0,
+          "route": "/mandlebrot/split_upper_left/string"
+        },
+        {
+          "subpath": "/token",
+          "function_id": 4,
+          "io_number": 0,
+          "flow_id": 0,
+          "generic": true,
+          "route": "/mandlebrot/Stdout"
+        }
+      ]
+    },
+    {
+      "name": "split_lower_right",
+      "route": "/mandlebrot/split_lower_right",
+      "id": 3,
+      "flow_id": 0,
+      "implementation_location": "lib://flowstdlib/data/split/Split",
+      "inputs": [
+        {},
+        {
+          "initializer": {
+            "always": ","
+          }
+        }
+      ],
+      "output_routes": [
+        {
+          "subpath": "/partial",
+          "function_id": 3,
+          "io_number": 0,
+          "flow_id": 0,
+          "route": "/mandlebrot/split_lower_right/string"
+        },
+        {
+          "subpath": "/token",
+          "function_id": 4,
+          "io_number": 0,
+          "flow_id": 0,
+          "generic": true,
+          "route": "/mandlebrot/Stdout"
+        }
+      ]
+    },
+    {
+      "name": "Stdout",
+      "route": "/mandlebrot/Stdout",
+      "id": 4,
+      "flow_id": 0,
+      "implementation_location": "lib://flowruntime/stdio/stdout/Stdout",
+      "inputs": [
+        {}
+      ]
+    }
+  ]
+}
