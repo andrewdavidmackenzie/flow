@@ -158,7 +158,7 @@ mod test {
         let temp_dir = TempDir::new("flow").unwrap().into_path();
         let path = temp_dir.join("flow.png");
 
-        fs::remove_file(&path).unwrap();
+        let _ = fs::remove_file(&path);
         assert!(!path.exists());
 
         client.flow_start();
