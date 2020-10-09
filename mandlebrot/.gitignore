@@ -1,5 +1,4 @@
 /target/
 *.iml
 .idea
-mandel.png
 **/*.rs.bk

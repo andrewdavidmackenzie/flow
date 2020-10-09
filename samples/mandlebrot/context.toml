@@ -89,13 +89,6 @@ to = "stdout"
 #from = "parse_lower_right"
 #to = "render/lower_right"
 
-#
-
-# Format Bitmap
-#[[process]]
-#alias = "format_bitmap"
-#source = "lib://flowstdlib/img/format_png"
-
 #[[connection]]
 #from = "render/bitmap_bounds"
 #to = "format_bitmap/bounds"
@@ -104,16 +97,6 @@ to = "stdout"
 #from = "render/bytes"
 #to = "format_bitmap/bytes"
 
-
-# Write Bitmap to a file
-#[[process]]
-#alias = "write_file"
-#source = "lib://flowruntime/file/file_write"
-
 #[[connection]]
 #from = "args/0"
 #to = "write_file/filename"
-
-#[[connection]]
-#from = "format_bitmap"
-#to = "write_file/bytes"
