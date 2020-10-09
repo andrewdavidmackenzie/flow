@@ -102,7 +102,8 @@ impl RuntimeClient for CLIRuntimeClient {
 mod test {
     use std::env;
     use std::fs;
-    use std::path::Path;
+
+    use tempdir::TempDir;
 
     use flowrlib::runtime_client::{Command, Response, RuntimeClient};
 
@@ -153,18 +154,20 @@ mod test {
     #[test]
     fn test_image_writing() {
         let mut client = CLIRuntimeClient::new();
-        let path = "/tmp/flow.png";
 
-        fs::remove_file(path).unwrap();
-        assert!(!Path::new(path).exists());
+        let temp_dir = TempDir::new("flow").unwrap().into_path();
+        let path = temp_dir.join("flow.png");
+
+        fs::remove_file(&path).unwrap();
+        assert!(!path.exists());
 
         client.flow_start();
-        let pixel = Command::PixelWrite((0, 0), (255, 200, 20), (10, 10), path.into());
+        let pixel = Command::PixelWrite((0, 0), (255, 200, 20), (10, 10), path.display().to_string());
         if client.send_command(pixel) != Response::Ack {
             panic!("Didn't get pixel write response as expected")
         }
         client.flow_end();
 
-        assert!(Path::new(path).exists());
+        assert!(path.exists());
     }
 }
