@@ -93,7 +93,7 @@ impl RuntimeClient for CLIRuntimeClient {
         // flush ImageBuffers to disk
         for (filename, image_buffer) in self.image_buffers.iter() {
             trace!("Flushing ImageBuffer to file: {}", filename);
-            image_buffer.save_with_format(Path::new(filename), ImageFormat::PNG).unwrap();
+            image_buffer.save_with_format(Path::new(filename), ImageFormat::Png).unwrap();
         }
     }
 }
