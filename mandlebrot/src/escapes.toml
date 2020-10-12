@@ -6,7 +6,7 @@ type = "Number"
 
 [[input]]
 name = "point"
-type = "Json"
+type = "Value"
 
 [[output]]
 type = "Number"

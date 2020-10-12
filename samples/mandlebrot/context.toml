@@ -1,74 +1,21 @@
 flow = "mandlebrot"
 
-# Args
 [[process]]
-alias = "args"
-source = "lib://flowruntime/args/get"
+source = "parse_args"
 
-# debug
-[[connection]]
-from = "args/1"
-to = "stdout"
-
-# parse bounds
-[[process]]
-alias = "split_bounds"
-source = "lib://flowstdlib/data/split"
-input.separator ={ always = "x" }
-
-# looopback
-[[connection]]
-from = "split_bounds/partial"
-to = "split_bounds/string"
-
-[[connection]]
-from = "args/2"
-to = "split_bounds/string"
-
-# parse upper left
-[[process]]
-alias = "split_upper_left"
-source = "lib://flowstdlib/data/split"
-input.separator ={ always = "," }
-
-# looopback
-[[connection]]
-from = "split_upper_left/partial"
-to = "split_upper_left/string"
-
-[[connection]]
-from = "args/3"
-to = "split_upper_left/string"
-
-# parse lower right
-[[process]]
-alias = "split_lower_right"
-source = "lib://flowstdlib/data/split"
-input.separator ={ always = "," }
-
-# looopback
-[[connection]]
-from = "split_lower_right/partial"
-to = "split_lower_right/string"
-
-[[connection]]
-from = "args/4"
-to = "split_lower_right/string"
-
-# debug
 [[process]]
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
-from = "split_bounds/token"
+from = "parse_args/filename"
 to = "stdout"
 
 [[connection]]
-from = "split_upper_left/token"
+from = "parse_args/size"
 to = "stdout"
 
 [[connection]]
-from = "split_lower_right/token"
+from = "parse_args/bounds"
 to = "stdout"
 
 

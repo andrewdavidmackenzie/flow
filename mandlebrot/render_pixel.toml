@@ -13,11 +13,11 @@ type = "Number"
 
 [[input]]
 name = "upper_left"
-type = "Json"
+type = "Value"
 
 [[input]]
 name = "lower_right"
-type = "Json"
+type = "Value"
 
 [[output]]
 name = "value"

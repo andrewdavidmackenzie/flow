@@ -2,7 +2,7 @@ name = "pixel_to_point"
 
 [[input]]
 name = "bounds"
-type = "Json"
+type = "Array/Array/Number"
 
 [[input]]
 name = "x"
@@ -14,11 +14,11 @@ type = "Number"
 
 [[input]]
 name = "upper_left"
-type = "Json"
+type = "Array/Number"
 
 [[input]]
 name = "lower_right"
-type = "Json"
+type = "Array/Number"
 
 [[output]]
-type = "Json"
+type = "Value"

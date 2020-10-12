@@ -14,4 +14,4 @@ name = "size"
 type = "Array/Number"
 
 [[output]]
-type = "Json"
+type = "Value"
