@@ -29,7 +29,7 @@ they appear in the string.
 
 ### Definition
 ```toml
-{{#include ordered_split.toml}}
+{{#include split.toml}}
 ```
 
 ### Include using
