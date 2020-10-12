@@ -25,6 +25,9 @@ pub mod info;
 /// A module that does matrix row multiplication
 #[path = "multiply_row/multiply_row.rs"]
 pub mod multiply_row;
+/// A module that splits a String into an Array of Strings
+#[path = "ordered_split/ordered_split.rs"]
+pub mod ordered_split;
 /// A module that removes elements from an array
 #[path = "remove/remove.rs"]
 pub mod remove;

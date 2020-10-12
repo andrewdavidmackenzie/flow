@@ -60,6 +60,8 @@ pub fn get_manifest() -> LibraryManifest {
                              Native(Arc::new(data::info::Info)));
     manifest.locators.insert("lib://flowstdlib/data/multiply_row/MultiplyRow".to_string(),
                              Native(Arc::new(data::multiply_row::MultiplyRow)));
+    manifest.locators.insert("lib://flowstdlib/data/ordered_split/OrderedSplit".to_string(),
+                             Native(Arc::new(data::ordered_split::OrderedSplit)));
     manifest.locators.insert("lib://flowstdlib/data/remove/Remove".to_string(),
                              Native(Arc::new(data::remove::Remove)));
     manifest.locators.insert("lib://flowstdlib/data/sort/Sort".to_string(),
