@@ -172,7 +172,7 @@ fn line_echo() {
     execute_test("line-echo");
 }
 
-#[test]
-fn array_input() {
-    execute_test("array-input");
-}
+// #[test]
+// fn array_input() {
+//     execute_test("array-input");
+// }

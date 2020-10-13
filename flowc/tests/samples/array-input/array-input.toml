@@ -1,5 +1,19 @@
-flow = "array-input"
+flow = "array-input-test-flow"
+
+[[process]]
+source = "lib://flowruntime/args/get"
+
+[[process]]
+alias = "tojson"
+source = "lib://flowstdlib/fmt/to_json"
+
+[[connection]]
+from = "get/1"
+to = "tojson"
 
 [[process]]
 source = "subflow"
-input.array_input = { once = [1,2] }
+
+[[connection]]
+from = "tojson"
+to = "subflow/array_input"

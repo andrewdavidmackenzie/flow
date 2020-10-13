@@ -8,5 +8,5 @@ type = "Array/Number"
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
-from = "input/array_input"
+from = "input/array_input/1"
 to = "stdout"
