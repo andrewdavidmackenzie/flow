@@ -4,46 +4,25 @@ flow = "mandlebrot"
 source = "parse_args"
 
 [[process]]
-source = "lib://flowruntime/stdio/stdout"
+source = "generate_pixels"
 
 [[connection]]
-from = "parse_args/filename"
-to = "stdout"
+from = "parse_args/size"
+to = "generate_pixels/size"
+
+#### Debug
+[[process]]
+source = "lib://flowruntime/stdio/stdout"
+
+#[[connection]]
+#from = "parse_args/filename"
+#to = "stdout"
 
 [[connection]]
 from = "parse_args/size"
 to = "stdout"
 
-[[connection]]
-from = "parse_args/bounds"
-to = "stdout"
+#[[connection]]
+#from = "parse_args/bounds"
+#to = "stdout"
 
-
-## Subflow 'render'
-#[[process]]
-#alias = "render"
-#source = "render"
-#
-#[[connection]]
-#from = "parse_bounds"
-#to = "render/bounds"
-#
-#[[connection]]
-#from = "parse_upper_left"
-#to = "render/upper_left"
-#
-#[[connection]]
-#from = "parse_lower_right"
-#to = "render/lower_right"
-
-#[[connection]]
-#from = "render/bitmap_bounds"
-#to = "format_bitmap/bounds"
-
-#[[connection]]
-#from = "render/bytes"
-#to = "format_bitmap/bytes"
-
-#[[connection]]
-#from = "args/0"
-#to = "write_file/filename"

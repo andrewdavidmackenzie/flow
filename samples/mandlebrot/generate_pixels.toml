@@ -1,0 +1,47 @@
+flow = "generate_pixels"
+
+[[input]]
+name = "size"
+type = "Array/Number"
+
+#[[output]]
+#name = "pixels"
+#type = "Array/Number"
+
+[[process]]
+alias = "row-sequence"
+source = "lib://flowstdlib/math/sequence"
+input.step = {once =  1}
+input.start = {once =  1}
+
+[[connection]]
+from = "input/size/1" # 'height' of ['width', 'height'] size input
+to = "row-sequence/end"
+
+
+#[[process]] # a Buffer between the constant starting point of 0 and the 'start' input to avoid priority issues for the input
+#alias = "rows"
+#source = "lib://flowstdlib/data/buffer"
+#input.default = {always =  0}
+#
+#[[connection]]
+#from = "rows"
+#to = "pixel-sequences/start"
+#
+#[[process]]
+#alias = "pixel-sequence"
+#source = "lib://flowstdlib/math/sequence"
+#input.step = {once =  1}
+#input.start = { always = 0 }
+#
+#end from input
+
+# We will be printing out the sequence-of-sequences of numbers
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"
+
+# Connect the sequence-of-sequences to the print function
+[[connection]]
+from = "row-sequence/sequence"
+to = "print"
