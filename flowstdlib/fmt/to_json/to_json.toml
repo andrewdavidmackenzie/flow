@@ -1,8 +1,8 @@
-function = "ToNumber"
+function = "ToJson"
 implementation = "to_json.rs"
 
 [[input]]
 type = "String" # The String to convert
 
 [[output]]
-type = "Number" # The Json equivalent of String input if possible
+type = "Value" # The Json equivalent of String input
