@@ -254,8 +254,15 @@ impl Flow {
 
         debug!("Looking for connection {:?} '{}'", direction, route);
         match (&direction, segments[0]) {
-            (&Direction::FROM, "input")  if segments.len() == 2 => {
-                self.inputs.find_by_name(&Name::from(segments[1]), &None)
+            (&Direction::FROM, "input") => {
+                // make sure the sub-route of the input is added to the source of the connection
+                let mut from = self.inputs.find_by_name(&Name::from(segments[1]), &None)?;
+                let sub_route = Route::from(segments[2..].join("/"));
+                if !sub_route.is_empty() {
+                    // TODO set other fields correctly such as type etc
+                    from.extend_route(&sub_route);
+                }
+                Ok(from)
             }
             (&Direction::TO, "output") if segments.len() == 2 => {
                 self.outputs.find_by_name(&Name::from(segments[1]), initial_value)
