@@ -70,6 +70,11 @@ impl IO {
         self.io_type = io_type.clone();
     }
 
+    pub fn extend_route(&mut self, sub_route: &Route) {
+        self.route.push(&Route::from("/"));
+        self.route.push(sub_route);
+    }
+
     pub fn set_route_from_parent(&mut self, parent: &Route, io_type: &IOType) {
         if self.name().is_empty() {
             self.set_route(&parent, &io_type);
