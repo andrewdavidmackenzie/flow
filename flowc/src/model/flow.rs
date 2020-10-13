@@ -268,6 +268,9 @@ impl Flow {
                 self.outputs.find_by_name(&Name::from(segments[1]), initial_value)
             }
             (&Direction::TO, process_name) | (&Direction::FROM, process_name) => {
+                // TODO what if the whole route is a route to a sub-process output and then
+                // a selector within that output... we should walk down thru the route looking for
+                // the sub-process then take the rest as a sub-route within the output?
                 let sub_route = Route::from(segments[1..].join("/"));
                 self.get_io_subprocess(&Name::from(process_name), direction,
                                        &sub_route, initial_value)
