@@ -1,0 +1,5 @@
+flow = "array-input"
+
+[[process]]
+source = "subflow"
+input.array_input = { once = [1,2] }

@@ -159,7 +159,6 @@ fn execute_test(test_name: &str) {
 
 #[test]
 fn print_args() {
-    println!("Test '{}()' at {}, line {}, CWD={}, loading: {}", "print_args", file!(), line!(), std::env::current_dir().unwrap().display(), "tests/samples/print_args");
     execute_test("print-args");
 }
 
@@ -171,4 +170,9 @@ fn hello_world() {
 #[test]
 fn line_echo() {
     execute_test("line-echo");
+}
+
+#[test]
+fn array_input() {
+    execute_test("array-input");
 }

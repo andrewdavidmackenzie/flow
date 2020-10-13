@@ -1,0 +1,12 @@
+flow = "subflow"
+
+[[input]]
+name = "array_input"
+type = "Array/Number"
+
+[[process]]
+source = "lib://flowruntime/stdio/stdout"
+
+[[connection]]
+from = "input/array_input"
+to = "stdout"
