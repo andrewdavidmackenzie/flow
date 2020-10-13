@@ -10,7 +10,8 @@ use crate::model::io::IOType;
 use crate::model::name::Name;
 
 #[derive(Shrinkwrap, Hash, Debug, PartialEq, Clone, Default, Serialize, Deserialize, Eq)]
-pub struct Route(String);
+#[shrinkwrap(mutable)]
+pub struct Route(pub String);
 
 impl Route {
     pub fn sub_route_of(&self, other_route: &Route) -> bool {
@@ -18,7 +19,7 @@ impl Route {
     }
 
     pub fn push(&mut self, sub_route: &Route) {
-        self.to_string().push_str(sub_route.as_str());
+        self.push_str(sub_route.as_str());
     }
 
     /*
@@ -43,12 +44,6 @@ impl Validate for Route {
         if self.is_empty() {
             return Ok(());
         }
-
-        /*
-        if !self.starts_with('/') {
-            return Err(format!("Non-empty route '{}' must start with '/'", self));
-        }
-        */
 
         Ok(())
     }
