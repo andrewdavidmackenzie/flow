@@ -273,48 +273,56 @@ mod test {
         use super::super::get_source;
 
         /*
-                                    Create a HashTable of routes for use in tests.
-                                    Each entry (K, V) is:
-                                    - Key   - the route to a function's IO
-                                    - Value - a tuple of
-                                                - sub-route (or IO name) from the function to be used at runtime
-                                                - the id number of the function in the functions table, to select it at runtime
-                                 */
+                    Create a HashTable of routes for use in tests.
+                    Each entry (K, V) is:
+                    - Key   - the route to a function's IO
+                    - Value - a tuple of
+                                - sub-route (or IO name) from the function to be used at runtime
+                                - the id number of the function in the functions table, to select it at runtime
+
+                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                 */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (HashMap<Route, (Route, usize)>, Vec<(Route, Option<(Route, usize)>)>) {
             // make sure a corresponding entry (if applicable) is in the table to give the expected response
             let mut test_sources = HashMap::<Route, (Route, usize)>::new();
             test_sources.insert(Route::from("/context/f1"), (Route::from(""), 0));
-            test_sources.insert(Route::from("/context/f2"), (Route::from(""), 1)); // Array output
-            test_sources.insert(Route::from("/context/f3/output_value"), (Route::from("output_value"), 2));
+            test_sources.insert(Route::from("/context/f2/output_value"), (Route::from("output_value"), 1));
+            test_sources.insert(Route::from("/context/f2/output_value_2"), (Route::from("output_value"), 1));
 
             // Create a vector of test cases and expected responses
             //                 Input:Test Route    Outputs: Subroute,       Function ID
             let mut test_cases: Vec<(Route,           Option<(Route,        usize)>)> = vec!();
 
             // Cases using the IO route of the default IO
-            //      - just the default IO (exists -> pass)
+            //      - the default IO (exists) -> pass
             test_cases.push((Route::from("/context/f1"), Some((Route::from(""), 0 as usize))));
 
-            //      - with array element selected from the root (Array output)
-            test_cases.push((Route::from("/context/f2/1"), Some((Route::from("/1"), 1 as usize))));
+            //      - with array element selected from the default output
+            test_cases.push((Route::from("/context/f1/1"), Some((Route::from("/1"), 0 as usize))));
 
             //      - correctly named IO (pass)
-            test_cases.push((Route::from("/context/f3/output_value"), Some((Route::from("/output_value"), 2 as usize))));
+            test_cases.push((Route::from("/context/f2/output_value"), Some((Route::from("/output_value"), 1 as usize))));
+
+            //      - incorrectly named function --> None
+            test_cases.push((Route::from("/context/f2b"), None));
 
             //      - incorrectly named IO --> None
-            test_cases.push((Route::from("/context/f3b"), None));
+            test_cases.push((Route::from("/context/f2/output_fake"), None));
 
-            //      - just the default IO (does not exist) -> None
-            test_cases.push((Route::from("/context/f3"), None));
+            //      - the default IO of a function (which does not exist) -> None
+            test_cases.push((Route::from("/context/f2"), None));
 
-            //      - incorrectly named IO --> None
-            test_cases.push((Route::from("/context/f3/output_fake"), None));
+            //      - with subroute to part of non-existent function
+            test_cases.push((Route::from("/context/f0/sub_struct"), None));
 
-            //      - with subroute to part of output structure
+            // FAILS
+            // //      - with subroute to part of output structure
+            // test_cases.push((Route::from("/context/f1/sub_struct"), Some((Route::from(""), 0 as usize))));
 
-            //      - with subroute to an array element from part of output structure
-            //      - with subroute to part of output structure
+            // FAILS
+            // //      - with subroute to an array element from part of output structure
+            // test_cases.push((Route::from("/context/f1/sub_array/1"), Some((Route::from(""), 0 as usize))));
 
             (test_sources, test_cases)
         }
