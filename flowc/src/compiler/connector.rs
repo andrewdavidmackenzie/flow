@@ -74,23 +74,38 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
 */
 pub fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &Route) -> Option<(Route, usize)> {
     let (source_without_index, array_index, is_array_output) = from_route.without_trailing_array_index();
-    let source = source_routes.get(&*source_without_index.to_owned());
+    let mut source = source_without_index.into_owned();
+    let mut sub_route = Route::from("");
 
-    if let Some(&(ref sub_route, function_index)) = source {
-        if is_array_output {
-            if sub_route.is_empty() {
-                Some((Route::from(&format!("/{}", array_index)), function_index))
+    // Look for a function/output with a route that matches what we are looking for
+    // popping off sub-structure sub-path segments until none left
+    loop {
+        if let Some(&(ref io_name, function_index)) = source_routes.get(&source) {
+            return if is_array_output {
+                if io_name.is_empty() {
+                    Some((Route::from(&format!("{}/{}", sub_route, array_index)), function_index))
+                } else {
+                    Some((Route::from(&format!("/{}{}/{}", io_name, sub_route, array_index)), function_index))
+                }
+            } else if io_name.is_empty() {
+                Some((Route::from(format!("{}", sub_route)), function_index))
             } else {
-                Some((Route::from(&format!("/{}/{}", sub_route, array_index)), function_index))
-            }
-        } else if sub_route.is_empty() {
-            Some((sub_route.clone(), function_index))
-        } else {
-            Some((Route::from(&format!("/{}", sub_route.to_string())), function_index))
+                Some((Route::from(&format!("/{}{}", io_name, sub_route)), function_index))
+            };
         }
-    } else {
-        None
+
+        // pop a route segment off the route - if there are any left
+        match source.pop() {
+            (_, None) => break,
+            (parent, Some(sub)) => {
+                source = parent.into_owned();
+                sub_route.push(&Route::from("/"));
+                sub_route.push(&sub);
+            }
+        }
     }
+
+    None
 }
 
 /*
@@ -273,15 +288,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                                    Create a HashTable of routes for use in tests.
-                                    Each entry (K, V) is:
-                                    - Key   - the route to a function's IO
-                                    - Value - a tuple of
-                                                - sub-route (or IO name) from the function to be used at runtime
-                                                - the id number of the function in the functions table, to select it at runtime
+                                            Create a HashTable of routes for use in tests.
+                                            Each entry (K, V) is:
+                                            - Key   - the route to a function's IO
+                                            - Value - a tuple of
+                                                        - sub-route (or IO name) from the function to be used at runtime
+                                                        - the id number of the function in the functions table, to select it at runtime
 
-                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                 */
+                                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                         */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (HashMap<Route, (Route, usize)>, Vec<(Route, Option<(Route, usize)>)>) {
             // make sure a corresponding entry (if applicable) is in the table to give the expected response
@@ -292,7 +307,7 @@ mod test {
 
             // Create a vector of test cases and expected responses
             //                 Input:Test Route    Outputs: Subroute,       Function ID
-            let mut test_cases: Vec<(Route,           Option<(Route,        usize)>)> = vec!();
+            let mut test_cases: Vec<(Route, Option<(Route, usize)>)> = vec!();
 
             // Cases using the IO route of the default IO
             //      - the default IO (exists) -> pass
@@ -316,13 +331,11 @@ mod test {
             //      - with subroute to part of non-existent function
             test_cases.push((Route::from("/context/f0/sub_struct"), None));
 
-            // FAILS
-            // //      - with subroute to part of output structure
-            // test_cases.push((Route::from("/context/f1/sub_struct"), Some((Route::from(""), 0 as usize))));
+            //      - with subroute to part of an output's structure
+            test_cases.push((Route::from("/context/f1/sub_struct"), Some((Route::from("/sub_struct"), 0 as usize))));
 
-            // FAILS
-            // //      - with subroute to an array element from part of output structure
-            // test_cases.push((Route::from("/context/f1/sub_array/1"), Some((Route::from(""), 0 as usize))));
+            //      - with subroute to an array element from part of output's structure
+            test_cases.push((Route::from("/context/f1/sub_array/1"), Some((Route::from("/sub_array/1"), 0 as usize))));
 
             (test_sources, test_cases)
         }

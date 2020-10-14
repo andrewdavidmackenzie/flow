@@ -18,8 +18,9 @@ impl Route {
         self.as_str().starts_with(other_route.as_str())
     }
 
-    pub fn push(&mut self, sub_route: &Route) {
+    pub fn push(&mut self, sub_route: &Route) -> &Self {
         self.push_str(sub_route.as_str());
+        self
     }
 
     /*
