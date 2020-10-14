@@ -273,32 +273,39 @@ mod test {
         use super::super::get_source;
 
         /*
-                            Create a HashTable of routes for using in subsequent tests,
-                            trying to cover as many cases as possible
-                            - Function output
-                            - Subflow output
-                            - Subflow input
-
-                            - the IO route of the default IO
-                                - just the default IO (exists -> pass)
-                                - just the default IO (does not exist -> fail)
-                                - incorrectly named IO (fail)
-                                - with array element selected from the root (Array output)
-                                - with subroute to part of output structure
-                                - with subroute to an array element from part of output structure
-                            - the IO route of a named output
-                                - correctly named IO (pass)
-                                - incorrectly named IO (fail)
-                                - with array element selected from the root (Array output)
-                                - with subroute to part of output structure
-                                - with subroute to an array element from part of output structure
-                         */
+                    Create a HashTable of routes for use in tests.
+                    Each entry (K, V) is:
+                    - Key   - the route to a function's IO
+                    - Value - a tuple of
+                                - sub-route (or IO name) from the function to be used at runtime
+                                - the id number of the function in the functions table, to select it at runtime
+                 */
         fn test_source_routes() -> HashMap<Route, (Route, usize)> {
+            // make sure a corresponding entry (if applicable) is in the table to give the expected response
             let mut test_sources = HashMap::<Route, (Route, usize)>::new();
-
             test_sources.insert(Route::from("/context/f1"), (Route::from(""), 0));
             test_sources.insert(Route::from("/context/f2"), (Route::from(""), 1)); // Array output
             test_sources.insert(Route::from("/context/f3/output_value"), (Route::from("output_value"), 2));
+
+            // Cases using the IO route of the default IO
+            //      - just the default IO (exists -> pass)
+            //                 Input:Test Route    Outputs: Subroute,       Function ID
+            let mut test_cases: Vec<(Route,                 Route,          usize)> = vec!();
+
+            //      - just the default IO (does not exist -> fail)
+
+            //      - incorrectly named IO (fail)
+
+            //      - with array element selected from the root (Array output)
+            //      - with subroute to part of output structure
+            //      - with subroute to an array element from part of output structure
+            // Cases using the IO route of a named output
+            //      - correctly named IO (pass)
+            //      - incorrectly named IO (fail)
+            //      - with array element selected from the root (Array output)
+            //      - with subroute to part of output structure
+            //      - with subroute to an array element from part of output structure
+
 
             test_sources
         }
