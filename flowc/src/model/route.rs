@@ -23,6 +23,16 @@ impl Route {
     }
 
     /*
+        Return a route that is one level up, such that
+            /context/function/output/subroute -> /context/function/output
+     */
+    pub fn pop(&self) -> Route {
+        let mut parts: Vec<&str> = self.split('/').collect();
+        parts.pop();
+        Route::from(parts.join("/"))
+    }
+
+    /*
         Return the io route without a trailing number (array index) and if it has one or not
         If the trailing number was present then return the route with a trailing '/'
     */
@@ -88,5 +98,31 @@ impl From<String> for Route {
 impl From<&Name> for Route {
     fn from(name: &Name) -> Self {
         Route(name.to_string())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::Route;
+
+    #[test]
+    fn test_route_pop() {
+        let original = Route::from("/context/function/output/subroute");
+        let level_up = original.pop();
+        assert_eq!(level_up, Route::from("/context/function/output"))
+    }
+
+    #[test]
+    fn test_root_route_pop() {
+        let original = Route::from("/");
+        let level_up = original.pop();
+        assert_eq!(level_up, Route::from(""))
+    }
+
+    #[test]
+    fn test_empty_route_pop() {
+        let original = Route::from("");
+        let level_up = original.pop();
+        assert_eq!(level_up, Route::from(""))
     }
 }
