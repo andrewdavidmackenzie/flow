@@ -26,13 +26,13 @@ impl Route {
         Return a route that is one level up, such that
             /context/function/output/subroute -> /context/function/output
      */
-    pub fn pop(&self) -> (Route, Option<Route>) {
+    pub fn pop(&self) -> (Cow<Route>, Option<Route>) {
         let mut parts: Vec<&str> = self.split('/').collect();
         let sub_route = parts.pop();
         match sub_route {
-            None => (self.clone(), None),
-            Some("") => (self.clone(), None),
-            Some(sr) => (Route::from(parts.join("/")), Some(Route::from(sr)))
+            None => (Cow::Borrowed(self), None),
+            Some("") => (Cow::Borrowed(self), None),
+            Some(sr) => (Cow::Owned(Route::from(parts.join("/"))), Some(Route::from(sr)))
         }
     }
 
@@ -113,7 +113,7 @@ mod test {
     fn test_route_pop() {
         let original = Route::from("/context/function/output/subroute");
         let (level_up, sub) = original.pop();
-        assert_eq!(level_up, Route::from("/context/function/output"));
+        assert_eq!(level_up.into_owned(), Route::from("/context/function/output"));
         assert_eq!(sub, Some(Route::from("subroute")));
     }
 
@@ -121,7 +121,7 @@ mod test {
     fn test_root_route_pop() {
         let original = Route::from("/");
         let (level_up, sub) = original.pop();
-        assert_eq!(level_up, Route::from("/"));
+        assert_eq!(level_up.into_owned(), Route::from("/"));
         assert_eq!(sub, None);
     }
 
@@ -129,7 +129,7 @@ mod test {
     fn test_empty_route_pop() {
         let original = Route::from("");
         let (level_up, sub) = original.pop();
-        assert_eq!(level_up, Route::from(""));
+        assert_eq!(level_up.into_owned(), Route::from(""));
         assert_eq!(sub, None);
     }
 }
