@@ -527,7 +527,7 @@ impl RunState {
                     debug!("Job #{}:\tOutputs {:?}", job.job_id, output_v);
 
                     for destination in &job.destinations {
-                        match output_v.pointer(&destination.subpath) {
+                        match output_v.pointer(&destination.subroute) {
                             Some(output_value) => {
                                 if job.function_id == destination.function_id {
                                     loopback_value_sent = true;
@@ -542,7 +542,7 @@ impl RunState {
                                                     debugger,
                                 );
                             }
-                            _ => trace!("Job #{}:\t\tNo output value found at '{}'", job.job_id, &destination.subpath)
+                            _ => trace!("Job #{}:\t\tNo output value found at '{}'", job.job_id, &destination.subroute)
                         }
                     }
                 }
@@ -611,8 +611,8 @@ impl RunState {
                   metrics: &mut Metrics,
                   #[cfg(feature = "debugger")]
                   debugger: &mut Debugger) {
-        let route_str = if destination.subpath.is_empty() { "".to_string() } else {
-            format!(" via output route '{}'", destination.subpath)
+        let route_str = if destination.subroute.is_empty() { "".to_string() } else {
+            format!(" via output route '{}'", destination.subroute)
         };
 
         let destination_str = if source_id == destination.function_id {
@@ -624,7 +624,7 @@ impl RunState {
         info!("\t\tFunction #{} sending '{}'{} {}", source_id, output_value, route_str, destination_str);
 
         #[cfg(feature = "debugger")]
-            debugger.check_prior_to_send(self, source_id, &destination.subpath,
+            debugger.check_prior_to_send(self, source_id, &destination.subroute,
                                          &output_value, destination.function_id, destination.io_number);
 
         let function = self.get_mut(destination.function_id);

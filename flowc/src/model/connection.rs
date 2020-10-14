@@ -167,7 +167,7 @@ mod test {
     }
 
     #[test]
-    fn detect_array_at_output_subpath() {
+    fn detect_array_at_output_subroute() {
         let route = Route::from("/array_output/0");
         let (new_route, num, trailing_number) = route.without_trailing_array_index();
         assert_eq!(new_route.into_owned(), Route::from("/array_output"));
