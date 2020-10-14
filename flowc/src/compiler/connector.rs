@@ -64,24 +64,29 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
 }
 
 /*
-    find a function using the route to its output (removing the array index first to find outputs that are arrays)
-    return a tuple of the sub-route to use (possibly with array index included), and the function index
+    Find a Function's IO using a route to it or subroute of it
+    Return an Option:
+        None --> The IO was not found
+        Some (subroute, function_index) with:
+        - The subroute of the IO relative to the function it belongs to
+        - The function's index in the compiler's tables
+    -  (removing the array index first to find outputs that are arrays, but then adding it back into the subroute) TODO change
 */
 pub fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &Route) -> Option<(Route, usize)> {
     let (source_without_index, array_index, is_array_output) = from_route.without_trailing_array_index();
     let source = source_routes.get(&*source_without_index.to_owned());
 
-    if let Some(&(ref route, function_index)) = source {
+    if let Some(&(ref sub_route, function_index)) = source {
         if is_array_output {
-            if route.is_empty() {
+            if sub_route.is_empty() {
                 Some((Route::from(&format!("/{}", array_index)), function_index))
             } else {
-                Some((Route::from(&format!("/{}/{}", route, array_index)), function_index))
+                Some((Route::from(&format!("/{}/{}", sub_route, array_index)), function_index))
             }
-        } else if route.is_empty() {
-            Some((route.clone(), function_index))
+        } else if sub_route.is_empty() {
+            Some((sub_route.clone(), function_index))
         } else {
-            Some((Route::from(&format!("/{}", route.to_string())), function_index))
+            Some((Route::from(&format!("/{}", sub_route.to_string())), function_index))
         }
     } else {
         None
@@ -263,36 +268,46 @@ mod test {
     mod get_source_tests {
         use std::collections::HashMap;
 
-        // use crate::model::route::HasRoute;
         use crate::model::route::Route;
 
-// use super::super::get_source;
+        use super::super::get_source;
 
         /*
-            Create a HashTable of routes for using in subsequent tests,
-            trying to cover as many cases as possible
-            - Function output
-            - Subflow output
-            - Subflow input
+                    Create a HashTable of routes for using in subsequent tests,
+                    trying to cover as many cases as possible
+                    - Function output
+                    - Subflow output
+                    - Subflow input
 
-            - the IO route of the default IO
-                - just the default IO (exists -> pass)
-                - just the default IO (does not exist -> fail)
-                - incorrectly named IO (fail)
-                - with array element selected from the root (Array output)
-                - with subroute to part of output structure
-                - with subroute to an array element from part of output structure
-            - the IO route of a named output
-                - correctly named IO (pass)
-                - incorrectly named IO (fail)
-                - with array element selected from the root (Array output)
-                - with subroute to part of output structure
-                - with subroute to an array element from part of output structure
-         */
+                    - the IO route of the default IO
+                        - just the default IO (exists -> pass)
+                        - just the default IO (does not exist -> fail)
+                        - incorrectly named IO (fail)
+                        - with array element selected from the root (Array output)
+                        - with subroute to part of output structure
+                        - with subroute to an array element from part of output structure
+                    - the IO route of a named output
+                        - correctly named IO (pass)
+                        - incorrectly named IO (fail)
+                        - with array element selected from the root (Array output)
+                        - with subroute to part of output structure
+                        - with subroute to an array element from part of output structure
+                 */
         fn test_source_routes() -> HashMap<Route, (Route, usize)> {
-            let test_sources = HashMap::<Route, (Route, usize)>::new();
+            let mut test_sources = HashMap::<Route, (Route, usize)>::new();
+
+            test_sources.insert(Route::from("/context/f1"), (Route::from(""), 0));
 
             test_sources
+        }
+
+        #[test]
+        fn default_function_output() {
+            let sources = test_source_routes();
+
+            let (subroute, index) = get_source(&sources, &Route::from("/context/f1")).unwrap();
+            assert_eq!(index, 0);
+            assert_eq!(subroute, Route::from(""));
         }
     }
     mod collapse_tests {
