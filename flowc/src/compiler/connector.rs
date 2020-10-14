@@ -273,43 +273,64 @@ mod test {
         use super::super::get_source;
 
         /*
-                    Create a HashTable of routes for using in subsequent tests,
-                    trying to cover as many cases as possible
-                    - Function output
-                    - Subflow output
-                    - Subflow input
+                            Create a HashTable of routes for using in subsequent tests,
+                            trying to cover as many cases as possible
+                            - Function output
+                            - Subflow output
+                            - Subflow input
 
-                    - the IO route of the default IO
-                        - just the default IO (exists -> pass)
-                        - just the default IO (does not exist -> fail)
-                        - incorrectly named IO (fail)
-                        - with array element selected from the root (Array output)
-                        - with subroute to part of output structure
-                        - with subroute to an array element from part of output structure
-                    - the IO route of a named output
-                        - correctly named IO (pass)
-                        - incorrectly named IO (fail)
-                        - with array element selected from the root (Array output)
-                        - with subroute to part of output structure
-                        - with subroute to an array element from part of output structure
-                 */
+                            - the IO route of the default IO
+                                - just the default IO (exists -> pass)
+                                - just the default IO (does not exist -> fail)
+                                - incorrectly named IO (fail)
+                                - with array element selected from the root (Array output)
+                                - with subroute to part of output structure
+                                - with subroute to an array element from part of output structure
+                            - the IO route of a named output
+                                - correctly named IO (pass)
+                                - incorrectly named IO (fail)
+                                - with array element selected from the root (Array output)
+                                - with subroute to part of output structure
+                                - with subroute to an array element from part of output structure
+                         */
         fn test_source_routes() -> HashMap<Route, (Route, usize)> {
             let mut test_sources = HashMap::<Route, (Route, usize)>::new();
 
             test_sources.insert(Route::from("/context/f1"), (Route::from(""), 0));
+            test_sources.insert(Route::from("/context/f2"), (Route::from(""), 1)); // Array output
+            test_sources.insert(Route::from("/context/f3/output_value"), (Route::from("output_value"), 2));
 
             test_sources
         }
 
         #[test]
-        fn default_function_output() {
+        fn function_default_output() {
             let sources = test_source_routes();
 
             let (subroute, index) = get_source(&sources, &Route::from("/context/f1")).unwrap();
             assert_eq!(index, 0);
             assert_eq!(subroute, Route::from(""));
         }
+
+        #[test]
+        fn function_array_element() {
+            let sources = test_source_routes();
+
+            let (subroute, index) = get_source(&sources, &Route::from("/context/f2/1")).unwrap();
+            assert_eq!(index, 1);
+            assert_eq!(subroute, Route::from("/1"));
+        }
+
+        #[test]
+        fn function_named_output() {
+            let sources = test_source_routes();
+
+            let (subroute, index) = get_source(&sources, &Route::from("/context/f3/output_value")).unwrap();
+            assert_eq!(index, 2);
+            assert_eq!(subroute, Route::from("/output_value"));
+        }
     }
+
     mod collapse_tests {
         use crate::model::connection::Connection;
         use crate::model::io::{IO, IOType};
