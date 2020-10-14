@@ -260,6 +260,41 @@ pub fn collapse_connections(original_connections: &[Connection]) -> Vec<Connecti
 
 #[cfg(test)]
 mod test {
+    mod get_source_tests {
+        use std::collections::HashMap;
+
+        // use crate::model::route::HasRoute;
+        use crate::model::route::Route;
+
+// use super::super::get_source;
+
+        /*
+            Create a HashTable of routes for using in subsequent tests,
+            trying to cover as many cases as possible
+            - Function output
+            - Subflow output
+            - Subflow input
+
+            - the IO route of the default IO
+                - just the default IO (exists -> pass)
+                - just the default IO (does not exist -> fail)
+                - incorrectly named IO (fail)
+                - with array element selected from the root (Array output)
+                - with subroute to part of output structure
+                - with subroute to an array element from part of output structure
+            - the IO route of a named output
+                - correctly named IO (pass)
+                - incorrectly named IO (fail)
+                - with array element selected from the root (Array output)
+                - with subroute to part of output structure
+                - with subroute to an array element from part of output structure
+         */
+        fn test_source_routes() -> HashMap<Route, (Route, usize)> {
+            let test_sources = HashMap::<Route, (Route, usize)>::new();
+
+            test_sources
+        }
+    }
     mod collapse_tests {
         use crate::model::connection::Connection;
         use crate::model::io::{IO, IOType};
