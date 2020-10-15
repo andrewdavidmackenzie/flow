@@ -65,6 +65,10 @@ impl Validate for Route {
             return Ok(());
         }
 
+        if self.parse::<usize>().is_ok() {
+            bail!("Route '{}' is invalid - cannot be an integer", self);
+        }
+
         Ok(())
     }
 }
@@ -113,6 +117,8 @@ impl From<&Name> for Route {
 
 #[cfg(test)]
 mod test {
+    use crate::compiler::loader::Validate;
+
     use super::Route;
 
     #[test]
@@ -181,23 +187,27 @@ mod test {
         assert_eq!(trailing_number, true);
     }
 
-    // #[test]
-    // fn validate_empty_route() {
-    //     fail!();
-    // }
-    //
-    // #[test]
-    // fn validate_root_route() {
-    //     fail!();
-    // }
-    //
-    // #[test]
-    // fn validate_route() {
-    //     fail!();
-    // }
-    //
-    // #[test]
-    // fn validate_invalid_route() {
-    //     fail!();
-    // }
+    #[test]
+    fn validate_empty_route() {
+        let route = Route::from("");
+        assert!(route.validate().is_ok());
+    }
+
+    #[test]
+    fn validate_root_route() {
+        let route = Route::from("/");
+        assert!(route.validate().is_ok());
+    }
+
+    #[test]
+    fn validate_route() {
+        let route = Route::from("/context/f1");
+        assert!(route.validate().is_ok());
+    }
+
+    #[test]
+    fn validate_invalid_route() {
+        let route = Route::from("123");
+        assert!(route.validate().is_err());
+    }
 }
