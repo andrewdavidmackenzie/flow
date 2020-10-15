@@ -181,6 +181,8 @@ pub fn create_routes_table(tables: &mut GenerationTables) {
          7    Flow Input (from parent)  Function Input          Enters flow from higher level into a Function
          8    Flow Input (from parent)  Flow Input (subflow)    Enters flow from higher level into a Sub-flow
          9    Flow Input (from parent)  Flow Output             A pass-thru connection within a flow
+
+         Output is: source_subroute: Route, final_destination: Route
 */
 fn find_function_destinations(from_io_route: &Route, from_level: usize, connections: &[Connection]) -> Vec<(Route, Route)> {
     let mut destinations = vec!();
@@ -284,15 +286,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                                                                            Create a HashTable of routes for use in tests.
-                                                                            Each entry (K, V) is:
-                                                                            - Key   - the route to a function's IO
-                                                                            - Value - a tuple of
-                                                                                        - sub-route (or IO name) from the function to be used at runtime
-                                                                                        - the id number of the function in the functions table, to select it at runtime
+                                                                                    Create a HashTable of routes for use in tests.
+                                                                                    Each entry (K, V) is:
+                                                                                    - Key   - the route to a function's IO
+                                                                                    - Value - a tuple of
+                                                                                                - sub-route (or IO name) from the function to be used at runtime
+                                                                                                - the id number of the function in the functions table, to select it at runtime
 
-                                                                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                                                         */
+                                                                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                                                                 */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (HashMap<Route, (Route, usize)>, Vec<(&'static str, Route, Option<(Route, usize)>)>) {
             // make sure a corresponding entry (if applicable) is in the table to give the expected response
