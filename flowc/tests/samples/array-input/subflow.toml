@@ -2,7 +2,7 @@ flow = "subflow"
 
 [[input]]
 name = "array_input"
-type = "Array/Number"
+type = "Array/String"
 
 [[process]]
 source = "lib://flowruntime/stdio/stdout"
