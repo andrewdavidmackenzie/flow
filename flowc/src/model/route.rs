@@ -14,8 +14,14 @@ use crate::model::name::Name;
 pub struct Route(pub String);
 
 impl Route {
-    pub fn sub_route_of(&self, other_route: &Route) -> bool {
-        self.as_str().starts_with(other_route.as_str())
+    pub fn sub_route_of(&self, other_route: &Route) -> Option<Route> {
+        if self == other_route {
+            Some(Route::from(""))
+        } else if self.as_str().starts_with(&format!("{}/", other_route.as_str())) {
+            Some(Route::from("subroute"))
+        } else {
+            None
+        }
     }
 
     pub fn insert(&mut self, sub_route: &Route) -> &Self {
@@ -209,5 +215,47 @@ mod test {
     fn validate_invalid_route() {
         let route = Route::from("123");
         assert!(route.validate().is_err());
+    }
+
+    #[test]
+    fn subroute_equal_route() {
+        let route = Route::from("/context/function");
+        assert!(route.sub_route_of(&Route::from("/context/function")).is_some())
+    }
+
+    #[test]
+    fn subroute_distinct_route() {
+        let route = Route::from("/context/function");
+        assert!(!route.sub_route_of(&Route::from("/context/foo")).is_some())
+    }
+
+    #[test]
+    fn subroute_extended_name_route() {
+        let route = Route::from("/context/function_foo");
+        assert!(!route.sub_route_of(&Route::from("/context/function")).is_some())
+    }
+
+    #[test]
+    fn is_a_subroute() {
+        let route = Route::from("/context/function/input");
+        assert!(route.sub_route_of(&Route::from("/context/function")).is_some())
+    }
+
+    #[test]
+    fn is_a_sub_subroute() {
+        let route = Route::from("/context/function/input/element");
+        assert!(route.sub_route_of(&Route::from("/context/function")).is_some())
+    }
+
+    #[test]
+    fn is_array_element_subroute() {
+        let route = Route::from("/context/function/1");
+        assert!(route.sub_route_of(&Route::from("/context/function")).is_some())
+    }
+
+    #[test]
+    fn is_array_element_sub_subroute() {
+        let route = Route::from("/context/function/input/1");
+        assert!(route.sub_route_of(&Route::from("/context/function")).is_some())
     }
 }
