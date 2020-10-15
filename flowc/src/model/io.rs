@@ -70,9 +70,15 @@ impl IO {
         self.io_type = io_type.clone();
     }
 
-    pub fn extend_route(&mut self, sub_route: &Route) {
-        self.route.push(&Route::from("/"));
-        self.route.push(sub_route);
+    pub fn extend_route(&mut self, sub_route: &Route) -> &Self{
+        if !sub_route.is_empty() {
+            if !self.route.to_string().ends_with('/') {
+                self.route.push(&Route::from("/"));
+            }
+            self.route.push(sub_route);
+        }
+
+        self
     }
 
     pub fn set_route_from_parent(&mut self, parent: &Route, io_type: &IOType) {
@@ -396,23 +402,59 @@ mod test {
         assert!(ioset.validate().is_err());
     }
 
-    // #[test]
-    // fn extend_empty_route() {
-    //     fail!();
-    // }
-    //
-    // #[test]
-    // fn extend_root_route() {
-    //     fail!();
-    // }
-    //
-    // #[test]
-    // fn extend_route() {
-    //     fail!();
-    // }
-    //
-    // #[test]
-    // fn extend_route_with_nothing() {
-    //     fail!();
-    // }
+    #[test]
+    fn extend_empty_route() {
+        let mut io = IO {
+            name: Name::from("io_name"),
+            datatype: DataType::from("String"),
+            route: Route::default(),
+            io_type: IOType::FunctionIO,
+            initializer: None,
+        };
+
+        io.extend_route(&Route::from("sub"));
+        assert_eq!(io.route, Route::from("/sub"));
+    }
+
+    #[test]
+    fn extend_root_route() {
+        let mut io = IO {
+            name: Name::from("io_name"),
+            datatype: DataType::from("String"),
+            route: Route::from("/"),
+            io_type: IOType::FunctionIO,
+            initializer: None,
+        };
+
+        io.extend_route(&Route::from("sub"));
+        assert_eq!(io.route, Route::from("/sub"));
+    }
+
+    #[test]
+    fn extend_route() {
+        let mut io = IO {
+            name: Name::from("io_name"),
+            datatype: DataType::from("String"),
+            route: Route::from("/context/function"),
+            io_type: IOType::FunctionIO,
+            initializer: None,
+        };
+
+        io.extend_route(&Route::from("sub"));
+        assert_eq!(io.route, Route::from("/context/function/sub"));
+    }
+
+    #[test]
+    fn extend_route_with_nothing() {
+        let mut io = IO {
+            name: Name::from("io_name"),
+            datatype: DataType::from("String"),
+            route: Route::from("/context/function"),
+            io_type: IOType::FunctionIO,
+            initializer: None,
+        };
+
+        io.extend_route(&Route::from(""));
+        assert_eq!(io.route, Route::from("/context/function"));
+    }
 }
