@@ -139,6 +139,48 @@ mod test {
         assert_eq!(sub, None);
     }
 
+    #[test]
+    fn no_path_no_change() {
+        let route = Route::from("");
+        let (new_route, _num, trailing_number) = route.without_trailing_array_index();
+        assert_eq!(new_route.into_owned(), Route::default());
+        assert_eq!(trailing_number, false);
+    }
+
+    #[test]
+    fn just_slash_no_change() {
+        let route = Route::from("/");
+        let (new_route, _num, trailing_number) = route.without_trailing_array_index();
+        assert_eq!(new_route.into_owned(), Route::from("/"));
+        assert_eq!(trailing_number, false);
+    }
+
+    #[test]
+    fn no_trailing_number_no_change() {
+        let route = Route::from("/output1");
+        let (new_route, _num, trailing_number) = route.without_trailing_array_index();
+        assert_eq!(new_route.into_owned(), Route::from("/output1"));
+        assert_eq!(trailing_number, false);
+    }
+
+    #[test]
+    fn detect_array_at_output_root() {
+        let route = Route::from("/0");
+        let (new_route, num, trailing_number) = route.without_trailing_array_index();
+        assert_eq!(new_route.into_owned(), Route::from(""));
+        assert_eq!(num, 0);
+        assert_eq!(trailing_number, true);
+    }
+
+    #[test]
+    fn detect_array_at_output_subroute() {
+        let route = Route::from("/array_output/0");
+        let (new_route, num, trailing_number) = route.without_trailing_array_index();
+        assert_eq!(new_route.into_owned(), Route::from("/array_output"));
+        assert_eq!(num, 0);
+        assert_eq!(trailing_number, true);
+    }
+
     // #[test]
     // fn validate_empty_route() {
     //     fail!();
