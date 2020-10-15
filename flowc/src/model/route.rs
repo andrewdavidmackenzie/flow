@@ -18,7 +18,7 @@ impl Route {
         if self == other_route {
             Some(Route::from(""))
         } else if self.as_str().starts_with(&format!("{}/", other_route.as_str())) {
-            Some(Route::from("subroute"))
+            Some(Route::from(&self.as_str()[other_route.len()..]))
         } else {
             None
         }

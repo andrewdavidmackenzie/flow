@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use error_chain::bail;
-use log::{debug, trace};
+use log::debug;
 
 use flowrlib::output_connection::OutputConnection;
 
@@ -82,10 +82,10 @@ pub fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &R
         if let Some(&(ref io_sub_route, function_index)) = source_routes.get(&source) {
             // TODO see if we can insert the default IO into the table with sub_route "/"
             // then this below can be collapsed into a single statement
-        return if io_sub_route.is_empty() {
+            return if io_sub_route.is_empty() {
                 Some((Route::from(format!("{}", sub_route)), function_index))
             } else {
-                 Some((Route::from(&format!("/{}{}", io_sub_route, sub_route)), function_index))
+                Some((Route::from(&format!("/{}{}", io_sub_route, sub_route)), function_index))
             };
         }
 
@@ -182,14 +182,14 @@ pub fn create_routes_table(tables: &mut GenerationTables) {
          8    Flow Input (from parent)  Flow Input (subflow)    Enters flow from higher level into a Sub-flow
          9    Flow Input (from parent)  Flow Output             A pass-thru connection within a flow
 */
-fn find_function_destinations(from_io_route: &Route, from_level: usize, connections: &[Connection]) -> Vec<Route> {
+fn find_function_destinations(from_io_route: &Route, from_level: usize, connections: &[Connection]) -> Vec<(Route, Route)> {
     let mut destinations = vec!();
 
     debug!("\tLooking for connections from '{}' on level={}", from_io_route, from_level);
 
     let mut found = false;
     for next_connection in connections {
-        if let Some(_subroute) = from_io_route.sub_route_of(next_connection.from_io.route()) {
+        if let Some(subroute) = next_connection.from_io.route().sub_route_of(from_io_route) {
             let next_level = match *next_connection.from_io.io_type() {
                 // Can't escape the context!
                 IOType::FlowOutput if from_level > 0 => from_level - 1,
@@ -203,7 +203,7 @@ fn find_function_destinations(from_io_route: &Route, from_level: usize, connecti
                     IOType::FunctionIO => {
                         debug!("\t\tFound destination function input at '{}'", next_connection.to_io.route());
                         // Found a destination that is a function, add it to the list
-                        destinations.push(next_connection.to_io.route().clone());
+                        destinations.push((subroute, next_connection.to_io.route().clone()));
                         found = true;
                     }
                     IOType::FlowInput => {
@@ -243,28 +243,28 @@ pub fn collapse_connections(original_connections: &[Connection]) -> Vec<Connecti
     debug!("Working on collapsing {} flow connections", original_connections.len());
 
     for connection in original_connections {
-        match *connection.from_io.io_type() {
-            // connection starts at a Function
-            IOType::FunctionIO => {
-                debug!("Trying to create connection from function output at '{}' (level={})",
-                       connection.from_io.route(), connection.level);
-                if *connection.to_io.io_type() == IOType::FunctionIO {
-                    debug!("\tFound direct connection to function input at '{}'", connection.to_io.route());
-                    collapsed_connections.push(connection.clone());
-                } else {
-                    // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
-                    for final_destination in find_function_destinations(&connection.to_io.route(),
-                                                                        connection.level, original_connections) {
-                        let mut collapsed_connection = connection.clone();
-                        collapsed_connection.to_io.set_route(&final_destination, &IOType::FunctionIO);
-                        collapsed_connection.to = final_destination;
-                        debug!("\tIndirect connection {}", collapsed_connection);
-                        collapsed_connections.push(collapsed_connection);
-                    }
+        // All collapsed connections must start and end at a Function, so we only build
+        // them starting at ones that begin at a Function's IO
+        if *connection.from_io.io_type() == IOType::FunctionIO {
+            debug!("Trying to create connection from function output at '{}' (level={})",
+                   connection.from_io.route(), connection.level);
+            if *connection.to_io.io_type() == IOType::FunctionIO {
+                debug!("\tFound direct connection to function input at '{}'", connection.to_io.route());
+                collapsed_connections.push(connection.clone());
+            } else {
+                // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
+                for (source_subroute, final_destination) in find_function_destinations(&connection.to_io.route(),
+                                                                    connection.level, original_connections) {
+                    let mut collapsed_connection = connection.clone();
+                    // append the subroute from the origin function IO - to select from with in that IO
+                    // as prescribed by the connections along the way
+                    collapsed_connection.from = connection.from_io.route().clone().push(&source_subroute).clone();
+                    collapsed_connection.from_io.set_route(&collapsed_connection.from, &IOType::FunctionIO);
+                    collapsed_connection.to_io.set_route(&final_destination, &IOType::FunctionIO);
+                    collapsed_connection.to = final_destination;
+                    debug!("\tIndirect connection {}", collapsed_connection);
+                    collapsed_connections.push(collapsed_connection);
                 }
-            }
-            _ => {
-                trace!("Skipping connection starting at flow input at '{}'", connection.from_io.route());
             }
         }
     }
@@ -284,15 +284,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                                                                    Create a HashTable of routes for use in tests.
-                                                                    Each entry (K, V) is:
-                                                                    - Key   - the route to a function's IO
-                                                                    - Value - a tuple of
-                                                                                - sub-route (or IO name) from the function to be used at runtime
-                                                                                - the id number of the function in the functions table, to select it at runtime
+                                                                            Create a HashTable of routes for use in tests.
+                                                                            Each entry (K, V) is:
+                                                                            - Key   - the route to a function's IO
+                                                                            - Value - a tuple of
+                                                                                        - sub-route (or IO name) from the function to be used at runtime
+                                                                                        - the id number of the function in the functions table, to select it at runtime
 
-                                                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                                                 */
+                                                                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                                                         */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (HashMap<Route, (Route, usize)>, Vec<(&'static str, Route, Option<(Route, usize)>)>) {
             // make sure a corresponding entry (if applicable) is in the table to give the expected response
