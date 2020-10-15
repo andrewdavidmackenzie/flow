@@ -73,24 +73,20 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
     -  (removing the array index first to find outputs that are arrays, but then adding it back into the subroute) TODO change
 */
 pub fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &Route) -> Option<(Route, usize)> {
-    let (source_without_index, array_index, is_array_output) = from_route.without_trailing_array_index();
-    let mut source = source_without_index.into_owned();
+    // let (source_without_index, array_index, is_array_output) = from_route.without_trailing_array_index();
+    let mut source = from_route.clone();
     let mut sub_route = Route::from("");
 
     // Look for a function/output with a route that matches what we are looking for
     // popping off sub-structure sub-path segments until none left
     loop {
-        if let Some(&(ref io_name, function_index)) = source_routes.get(&source) {
-            return if is_array_output {
-                if io_name.is_empty() {
-                    Some((Route::from(&format!("{}/{}", sub_route, array_index)), function_index))
-                } else {
-                    Some((Route::from(&format!("/{}{}/{}", io_name, sub_route, array_index)), function_index))
-                }
-            } else if io_name.is_empty() {
+        if let Some(&(ref io_sub_route, function_index)) = source_routes.get(&source) {
+            // TODO see if we can insert the default IO into the table with sub_route "/"
+            // then this below can be collapsed into a single statement
+        return if io_sub_route.is_empty() {
                 Some((Route::from(format!("{}", sub_route)), function_index))
             } else {
-                Some((Route::from(&format!("/{}{}", io_name, sub_route)), function_index))
+                 Some((Route::from(&format!("/{}{}", io_sub_route, sub_route)), function_index))
             };
         }
 
@@ -99,8 +95,9 @@ pub fn get_source(source_routes: &HashMap<Route, (Route, usize)>, from_route: &R
             (_, None) => break,
             (parent, Some(sub)) => {
                 source = parent.into_owned();
-                sub_route.push(&Route::from("/"));
-                sub_route.push(&sub);
+                // insert new route segment at the start of the sub_route we are building up
+                sub_route.insert(&sub);
+                sub_route.insert(&Route::from("/"));
             }
         }
     }
@@ -288,17 +285,17 @@ mod test {
         use super::super::get_source;
 
         /*
-                                            Create a HashTable of routes for use in tests.
-                                            Each entry (K, V) is:
-                                            - Key   - the route to a function's IO
-                                            - Value - a tuple of
-                                                        - sub-route (or IO name) from the function to be used at runtime
-                                                        - the id number of the function in the functions table, to select it at runtime
+                                                    Create a HashTable of routes for use in tests.
+                                                    Each entry (K, V) is:
+                                                    - Key   - the route to a function's IO
+                                                    - Value - a tuple of
+                                                                - sub-route (or IO name) from the function to be used at runtime
+                                                                - the id number of the function in the functions table, to select it at runtime
 
-                                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                         */
+                                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                                 */
         #[allow(clippy::type_complexity)]
-        fn test_source_routes() -> (HashMap<Route, (Route, usize)>, Vec<(Route, Option<(Route, usize)>)>) {
+        fn test_source_routes() -> (HashMap<Route, (Route, usize)>, Vec<(&'static str, Route, Option<(Route, usize)>)>) {
             // make sure a corresponding entry (if applicable) is in the table to give the expected response
             let mut test_sources = HashMap::<Route, (Route, usize)>::new();
             test_sources.insert(Route::from("/context/f1"), (Route::from(""), 0));
@@ -307,35 +304,17 @@ mod test {
 
             // Create a vector of test cases and expected responses
             //                 Input:Test Route    Outputs: Subroute,       Function ID
-            let mut test_cases: Vec<(Route, Option<(Route, usize)>)> = vec!();
+            let mut test_cases: Vec<(&str, Route, Option<(Route, usize)>)> = vec!();
 
-            // Cases using the IO route of the default IO
-            //      - the default IO (exists) -> pass
-            test_cases.push((Route::from("/context/f1"), Some((Route::from(""), 0 as usize))));
-
-            //      - with array element selected from the default output
-            test_cases.push((Route::from("/context/f1/1"), Some((Route::from("/1"), 0 as usize))));
-
-            //      - correctly named IO (pass)
-            test_cases.push((Route::from("/context/f2/output_value"), Some((Route::from("/output_value"), 1 as usize))));
-
-            //      - incorrectly named function --> None
-            test_cases.push((Route::from("/context/f2b"), None));
-
-            //      - incorrectly named IO --> None
-            test_cases.push((Route::from("/context/f2/output_fake"), None));
-
-            //      - the default IO of a function (which does not exist) -> None
-            test_cases.push((Route::from("/context/f2"), None));
-
-            //      - with subroute to part of non-existent function
-            test_cases.push((Route::from("/context/f0/sub_struct"), None));
-
-            //      - with subroute to part of an output's structure
-            test_cases.push((Route::from("/context/f1/sub_struct"), Some((Route::from("/sub_struct"), 0 as usize))));
-
-            //      - with subroute to an array element from part of output's structure
-            test_cases.push((Route::from("/context/f1/sub_array/1"), Some((Route::from("/sub_array/1"), 0 as usize))));
+            test_cases.push(("the default IO", Route::from("/context/f1"), Some((Route::from(""), 0 as usize))));
+            test_cases.push(("array element selected from the default output", Route::from("/context/f1/1"), Some((Route::from("/1"), 0 as usize))));
+            test_cases.push(("correctly named IO", Route::from("/context/f2/output_value"), Some((Route::from("/output_value"), 1 as usize))));
+            test_cases.push(("incorrectly named function", Route::from("/context/f2b"), None));
+            test_cases.push(("incorrectly named IO", Route::from("/context/f2/output_fake"), None));
+            test_cases.push(("the default IO of a function (which does not exist)", Route::from("/context/f2"), None));
+            test_cases.push(("subroute to part of non-existent function", Route::from("/context/f0/sub_struct"), None));
+            test_cases.push(("subroute to part of a function's default output's structure", Route::from("/context/f1/sub_struct"), Some((Route::from("/sub_struct"), 0 as usize))));
+            test_cases.push(("subroute to an array element from part of output's structure", Route::from("/context/f1/sub_array/1"), Some((Route::from("/sub_array/1"), 0 as usize))));
 
             (test_sources, test_cases)
         }
@@ -345,8 +324,9 @@ mod test {
             let (test_sources, test_cases) = test_source_routes();
 
             for test_case in test_cases {
-                let found = get_source(&test_sources, &test_case.0);
-                assert_eq!(found, test_case.1);
+                println!("{}", test_case.0);
+                let found = get_source(&test_sources, &test_case.1);
+                assert_eq!(found, test_case.2);
             }
         }
     }

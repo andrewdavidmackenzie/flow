@@ -18,6 +18,11 @@ impl Route {
         self.as_str().starts_with(other_route.as_str())
     }
 
+    pub fn insert(&mut self, sub_route: &Route) -> &Self {
+        self.insert_str(0, sub_route.as_str());
+        self
+    }
+
     pub fn push(&mut self, sub_route: &Route) -> &Self {
         self.push_str(sub_route.as_str());
         self
@@ -133,4 +138,24 @@ mod test {
         assert_eq!(level_up.into_owned(), Route::from(""));
         assert_eq!(sub, None);
     }
+
+    // #[test]
+    // fn validate_empty_route() {
+    //     fail!();
+    // }
+    //
+    // #[test]
+    // fn validate_root_route() {
+    //     fail!();
+    // }
+    //
+    // #[test]
+    // fn validate_route() {
+    //     fail!();
+    // }
+    //
+    // #[test]
+    // fn validate_invalid_route() {
+    //     fail!();
+    // }
 }

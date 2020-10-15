@@ -395,4 +395,24 @@ mod test {
         let ioset = Some(vec!(io0, io1));
         assert!(ioset.validate().is_err());
     }
+
+    // #[test]
+    // fn extend_empty_route() {
+    //     fail!();
+    // }
+    //
+    // #[test]
+    // fn extend_root_route() {
+    //     fail!();
+    // }
+    //
+    // #[test]
+    // fn extend_route() {
+    //     fail!();
+    // }
+    //
+    // #[test]
+    // fn extend_route_with_nothing() {
+    //     fail!();
+    // }
 }
