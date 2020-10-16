@@ -15,9 +15,9 @@ input.step = {once =  1}
 input.start = {once =  1}
 
 [[connection]]
-from = "input/size/1" # 'height' of ['width', 'height'] size input
+from = "input/size/1" # 'height' of ['width', 'height'] size input array
 to = "row-sequence/end"
-
+#to = "stdout"
 
 #[[process]] # a Buffer between the constant starting point of 0 and the 'start' input to avoid priority issues for the input
 #alias = "rows"
@@ -38,10 +38,9 @@ to = "row-sequence/end"
 
 # We will be printing out the sequence-of-sequences of numbers
 [[process]]
-alias = "print"
 source = "lib://flowruntime/stdio/stdout"
 
 # Connect the sequence-of-sequences to the print function
 [[connection]]
 from = "row-sequence/sequence"
-to = "print"
+to = "stdout"

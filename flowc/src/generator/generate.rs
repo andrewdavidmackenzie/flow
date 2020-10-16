@@ -111,15 +111,15 @@ fn function_to_runtimefunction(manifest_url: &str, function: &Function, debug_sy
     };
 
     Ok(RuntimeFunction::new(
-                            #[cfg(feature = "debugger")]
+        #[cfg(feature = "debugger")]
                             name,
-                            #[cfg(feature = "debugger")]
+        #[cfg(feature = "debugger")]
                             route,
-                            implementation_location,
-                            runtime_inputs,
-                            function.get_id(), function.get_flow_id(),
-                            function.get_output_routes(),
-                            debug_symbols))
+        implementation_location,
+        runtime_inputs,
+        function.get_id(), function.get_flow_id(),
+        function.get_output_connections(),
+        debug_symbols))
 }
 
 /*
@@ -186,7 +186,7 @@ mod test {
   'id': 0,
   'flow_id': 0,
   'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
-  'output_routes': [
+  'output_connections': [
     {
       'function_id': 1,
       'io_number': 0,
@@ -228,7 +228,7 @@ mod test {
   'id': 0,
   'flow_id': 0,
   'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
-  'output_routes': [
+  'output_connections': [
     {
       'function_id': 1,
       'io_number': 0,
@@ -265,7 +265,7 @@ mod test {
   'id': 0,
   'flow_id': 0,
   'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
-  'output_routes': [
+  'output_connections': [
     {
       'function_id': 1,
       'io_number': 0,
@@ -425,7 +425,7 @@ mod test {
   'id': 0,
   'flow_id': 0,
   'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
-  'output_routes': [
+  'output_connections': [
     {
       'function_id': 1,
       'io_number': 0,
@@ -461,7 +461,7 @@ mod test {
   'id': 0,
   'flow_id': 0,
   'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
-  'output_routes': [
+  'output_connections': [
     {
       'subroute': '/0',
       'function_id': 1,
