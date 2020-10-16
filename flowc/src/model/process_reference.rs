@@ -34,12 +34,15 @@ impl HasName for ProcessReference {
 impl HasRoute for ProcessReference {
     fn route(&self) -> &Route {
         match self.process {
-            Process::FlowProcess(ref flow) => {
-                flow.route()
-            }
-            Process::FunctionProcess(ref function) => {
-                function.route()
-            }
+            Process::FlowProcess(ref flow) => flow.route(),
+            Process::FunctionProcess(ref function) => function.route()
+        }
+    }
+
+    fn route_mut(&mut self) -> &mut Route {
+        match self.process {
+            Process::FlowProcess(ref mut flow) => flow.route_mut(),
+            Process::FunctionProcess(ref mut function) => function.route_mut()
         }
     }
 }

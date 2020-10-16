@@ -155,6 +155,9 @@ impl HasRoute for Flow {
     fn route(&self) -> &Route {
         &self.route
     }
+    fn route_mut(&mut self) -> &mut Route {
+        &mut self.route
+    }
 }
 
 impl SetRoute for Flow {
@@ -260,7 +263,7 @@ impl Flow {
                 let sub_route = Route::from(segments[2..].join("/"));
                 if !sub_route.is_empty() {
                     // TODO set other fields correctly such as type etc
-                    from.extend_route(&sub_route);
+                    from.route_mut().extend(&sub_route);
                 }
                 Ok(from)
             }

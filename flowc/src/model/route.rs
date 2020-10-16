@@ -29,8 +29,14 @@ impl Route {
         self
     }
 
-    pub fn push(&mut self, sub_route: &Route) -> &Self {
-        self.push_str(sub_route.as_str());
+    pub fn extend(&mut self, sub_route: &Route) -> &Self{
+        if !sub_route.is_empty() {
+            if !self.to_string().ends_with('/') && !sub_route.starts_with('/') {
+                self.push_str("/");
+            }
+            self.push_str(sub_route);
+        }
+
         self
     }
 
@@ -81,6 +87,7 @@ impl Validate for Route {
 
 pub trait HasRoute {
     fn route(&self) -> &Route;
+    fn route_mut(&mut self) -> &mut Route;
 }
 
 pub trait SetRoute {
@@ -257,5 +264,37 @@ mod test {
     fn is_array_element_sub_subroute() {
         let route = Route::from("/context/function/input/1");
         assert!(route.sub_route_of(&Route::from("/context/function")).is_some())
+    }
+
+    #[test]
+    fn extend_empty_route() {
+        let mut route = Route::default();
+
+        route.extend(&Route::from("sub"));
+        assert_eq!(route, Route::from("/sub"));
+    }
+
+    #[test]
+    fn extend_root_route() {
+        let mut route = Route::from("/");
+
+        route.extend(&Route::from("sub"));
+        assert_eq!(route, Route::from("/sub"));
+    }
+
+    #[test]
+    fn extend_route() {
+        let mut route = Route::from("/context/function");
+
+        route.extend(&Route::from("sub"));
+        assert_eq!(route, Route::from("/context/function/sub"));
+    }
+
+    #[test]
+    fn extend_route_with_nothing() {
+        let mut route = Route::from("/context/function");
+
+        route.extend(&Route::from(""));
+        assert_eq!(route, Route::from("/context/function"));
     }
 }
