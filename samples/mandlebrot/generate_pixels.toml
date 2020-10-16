@@ -8,39 +8,91 @@ type = "Array/Number"
 #name = "pixels"
 #type = "Array/Number"
 
+# TODO subtract 1 from width and height
+
+## x-coordinate sequence
+#[[process]]
+#alias = "x-sequence"
+#source = "lib://flowstdlib/math/sequence"
+#
+## buffer it's start value as it need to run multiple times, one for each row
+#[[process]]
+#alias = "start-buffer"
+#source = "lib://flowstdlib/data/buffer"
+#input.default = {always = 0}
+#
+## buffer it's step value as it need to run multiple times, one for each row
+#[[process]]
+#alias = "step-buffer"
+#source = "lib://flowstdlib/data/buffer"
+#input.default = {always = 1}
+#
+## connect buffered x-sequence start value to the sequence's start input
+#[[connection]]
+#from = "start-buffer"
+#to = "x-sequence/start"
+#
+## connect buffered x-sequence step value to the sequence's step input
+#[[connection]]
+#from = "step-buffer"
+#to = "x-sequence/step"
+
+# Sequence of y-coordinates
 [[process]]
-alias = "row-sequence"
+alias = "y-sequence"
 source = "lib://flowstdlib/math/sequence"
-input.step = {once =  1}
-input.start = {once =  1}
+input.start = { once = 0 }
+input.step = { once = 1 }
 
 [[connection]]
 from = "input/size/1" # 'height' of ['width', 'height'] size input array
-to = "row-sequence/end"
-#to = "stdout"
+to = "y-sequence/end"
 
-#[[process]] # a Buffer between the constant starting point of 0 and the 'start' input to avoid priority issues for the input
-#alias = "rows"
-#source = "lib://flowstdlib/data/buffer"
-#input.default = {always =  0}
-#
+[[process]]
+alias = "width-gate"
+source = "lib://flowstdlib/control/join"
+
+[[connection]]
+from = "y-sequence/sequence"
+to = "width-gate/control"
+
+[[connection]]
+from = "input/size/0" # 'width' of ['width', 'height'] size input array
+to = "width-gate/data"
+
+# loopback width gate
+[[connection]]
+from = "width-gate"
+to = "width-gate/data"
+
+# each time a value from the y-sequence is produced it will allow the width value to flow
+# to the x-sequence and generate a sequence of coords
 #[[connection]]
-#from = "rows"
-#to = "pixel-sequences/start"
-#
-#[[process]]
-#alias = "pixel-sequence"
-#source = "lib://flowstdlib/math/sequence"
-#input.step = {once =  1}
-#input.start = { always = 0 }
-#
-#end from input
+#from = "width-gate"
+#to = "x-sequence/end"
+
+# we need to duplicate the y-coord for each x-coord in each row
+[[process]]
+alias = "y-duplicator"
+source = "lib://flowstdlib/data/duplicate"
+
+# Connect y value to a duplicator that will produce 'width' instances of it
+[[connection]]
+from = "y-sequence/sequence"
+to = "y-duplicator/value"
+
+[[connection]]
+from = "width-gate"
+to = "y-duplicator/factor"
 
 # We will be printing out the sequence-of-sequences of numbers
 [[process]]
 source = "lib://flowruntime/stdio/stdout"
 
-# Connect the sequence-of-sequences to the print function
+#[[connection]]
+#from = "x-sequence/sequence"
+#to = "stdout"
+
 [[connection]]
-from = "row-sequence/sequence"
+from = "y-duplicator"
 to = "stdout"
