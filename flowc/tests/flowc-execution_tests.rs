@@ -138,7 +138,7 @@ fn execute_test(test_name: &str) {
     check_flow_root();
 
     let mut test_dir = PathBuf::from(std::env::var("FLOW_ROOT").unwrap());
-    test_dir.push(&format!("flowc/tests/samples/{}", test_name));
+    test_dir.push(&format!("flowc/tests/test-flows/{}", test_name));
     println!("test_dir = '{:?}'", test_dir);
 
     if let FlowProcess(ref flow) = load_flow(&test_dir, test_name) {

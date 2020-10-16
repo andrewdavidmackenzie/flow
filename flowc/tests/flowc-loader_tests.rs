@@ -50,7 +50,7 @@ fn invalid_toml() {
 #[test]
 fn invalid_process() {
     let meta_provider = MetaProvider {};
-    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid-process.toml");
+    let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid-process/invalid-process.toml");
     if loader::load(&path, &meta_provider).is_ok() {
         panic!("invalid.toml should not load successfully");
     }
@@ -59,7 +59,7 @@ fn invalid_process() {
 #[test]
 fn function_input_initialized() {
     let meta_provider = MetaProvider {};
-    let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/function_input_init.toml");
+    let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/function_input_init/function_input_init.toml");
 
     match loader::load(&url, &meta_provider) {
         Ok(FlowProcess(flow)) => {
@@ -89,7 +89,7 @@ fn function_input_initialized() {
 fn root_flow_takes_name_from_file() {
     let meta_provider = MetaProvider {};
     // Relative path from project root to the test file
-    let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/names.toml");
+    let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/names/names.toml");
 
     match loader::load(&url, &meta_provider) {
         Ok(FlowProcess(flow)) => assert_eq!(flow.name, Name::from("names")),
@@ -105,7 +105,7 @@ fn root_flow_takes_name_from_file() {
 fn flow_input_initialized_and_propogated_to_function() {
     let meta_provider = MetaProvider {};
     // Relative path from project root to the test file
-    let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/flow_input_init.toml");
+    let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/flow_input_init/flow_input_init.toml");
 
     match loader::load(&url, &meta_provider) {
         Ok(FlowProcess(flow)) => {

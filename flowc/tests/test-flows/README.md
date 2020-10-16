@@ -1,9 +1,8 @@
 ## Test Sample flows
 
-These are a number of simple samples flows that are run as tests during building as a system test
-to ensure many things  are still working.
+These are a number of test flows to ensure many things are still working.
  
-In generaal they are very simple samples more related with exercising specific features that
+In general they are very simple samples more related with exercising specific features that
 demonstrating "real work programs" or solutions to problems.
 
 They are contained in the flowc/tests/samples folder in the code.
