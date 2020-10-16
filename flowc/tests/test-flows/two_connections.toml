@@ -1,4 +1,4 @@
-flow = "two connections"
+flow = "two_connections"
 
 [[process]]
 alias = "args"
