@@ -253,12 +253,12 @@ fn function_to_dot(function: &Function, functions: &[Function], _output_dir: &Pa
     for destination in function.get_output_routes() {
         let input_port = INPUT_PORTS[destination.io_number % INPUT_PORTS.len()];
         let destination_function = &functions[destination.function_id];
-        let output_port = output_name_to_port(&destination.subpath);
+        let output_port = output_name_to_port(&destination.subroute);
         if let Some(inputs) = destination_function.get_inputs() {
             let input_name = inputs.get(destination.io_number).unwrap().name().to_string();
             function_string.push_str(&format!("r{}:{} -> r{}:{} [taillabel = \"{}\", headlabel = \"{}\"];\n",
                                               function.get_id(), output_port, destination.function_id, input_port,
-                                              destination.subpath, input_name));
+                                              destination.subroute, input_name));
         }
     }
 

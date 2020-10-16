@@ -155,6 +155,9 @@ impl HasRoute for Flow {
     fn route(&self) -> &Route {
         &self.route
     }
+    fn route_mut(&mut self) -> &mut Route {
+        &mut self.route
+    }
 }
 
 impl SetRoute for Flow {
@@ -254,13 +257,23 @@ impl Flow {
 
         debug!("Looking for connection {:?} '{}'", direction, route);
         match (&direction, segments[0]) {
-            (&Direction::FROM, "input")  if segments.len() == 2 => {
-                self.inputs.find_by_name(&Name::from(segments[1]), &None)
+            (&Direction::FROM, "input") => {
+                // make sure the sub-route of the input is added to the source of the connection
+                let mut from = self.inputs.find_by_name(&Name::from(segments[1]), &None)?;
+                let sub_route = Route::from(segments[2..].join("/"));
+                if !sub_route.is_empty() {
+                    // TODO set other fields correctly such as type etc
+                    from.route_mut().extend(&sub_route);
+                }
+                Ok(from)
             }
             (&Direction::TO, "output") if segments.len() == 2 => {
                 self.outputs.find_by_name(&Name::from(segments[1]), initial_value)
             }
             (&Direction::TO, process_name) | (&Direction::FROM, process_name) => {
+                // TODO what if the whole route is a route to a sub-process output and then
+                // a selector within that output... we should walk down thru the route looking for
+                // the sub-process then take the rest as a sub-route within the output?
                 let sub_route = Route::from(segments[1..].join("/"));
                 self.get_io_subprocess(&Name::from(process_name), direction,
                                        &sub_route, initial_value)

@@ -127,6 +127,10 @@ impl HasRoute for IO {
     fn route(&self) -> &Route {
         &self.route
     }
+
+    fn route_mut(&mut self) -> &mut Route {
+        &mut self.route
+    }
 }
 
 fn default_type() -> DataType {

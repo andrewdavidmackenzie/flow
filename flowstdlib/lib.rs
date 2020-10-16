@@ -74,7 +74,7 @@ pub fn get_manifest() -> LibraryManifest {
     // Format
     manifest.locators.insert("lib://flowstdlib/fmt/reverse/Reverse".to_string(),
                              Native(Arc::new(fmt::reverse::Reverse)));
-    manifest.locators.insert("lib://flowstdlib/fmt/to_json/ToNumber".to_string(),
+    manifest.locators.insert("lib://flowstdlib/fmt/to_json/ToJson".to_string(),
                              Native(Arc::new(fmt::to_json::ToJson)));
     manifest.locators.insert("lib://flowstdlib/fmt/to_string/ToString".to_string(),
                              Native(Arc::new(fmt::to_string::ToString)));

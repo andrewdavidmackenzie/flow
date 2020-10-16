@@ -193,7 +193,7 @@ mod test {
       'flow_id': 0
     },
     {
-      'subpath': 'sub_route',
+      'subroute': 'sub_route',
       'function_id': 2,
       'io_number': 0,
       'flow_id': 0
@@ -463,7 +463,7 @@ mod test {
   'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
   'output_routes': [
     {
-      'subpath': '/0',
+      'subroute': '/0',
       'function_id': 1,
       'io_number': 0,
       'flow_id': 0

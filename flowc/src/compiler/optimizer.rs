@@ -27,9 +27,9 @@ fn remove_dead_processes(tables: &mut GenerationTables) -> bool {
             let removed_route = function.route();
             // remove connections to and from the process
             for (conn_index, connection) in tables.collapsed_connections.iter().enumerate() {
-                if connection.from_io.route().sub_route_of(removed_route) ||
-                    connection.to_io.route().sub_route_of(removed_route) {
-                    debug!("Connection for removal {}",connection);
+                if connection.from_io.route().sub_route_of(removed_route).is_some() ||
+                    connection.to_io.route().sub_route_of(removed_route).is_some() {
+                    debug!("Connection for removal {}", connection);
                     connections_to_remove.push(conn_index);
                 }
             }
@@ -66,16 +66,9 @@ fn dead_function(connections: &[Connection], function: &Function) -> bool {
 }
 
 fn connection_from_function(connections: &[Connection], function: &Function) -> bool {
-    if let Some(outputs) = function.get_outputs() {
-        for output in outputs {
-            let route = output.route();
-            for connection in connections {
-                let (connection_route, _, _) = connection.from_io.route().without_trailing_array_index();
-                // connection route without any trailing array index
-                if connection_route.into_owned() == *route {
-                    return true;
-                }
-            }
+    for connection in connections {
+        if connection.from_io.route().sub_route_of(&function.route()).is_some() {
+            return true;
         }
     }
 
