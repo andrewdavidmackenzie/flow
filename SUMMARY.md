@@ -48,11 +48,6 @@
         - [Standard Output function](flowruntime/stdio/stdout.md)
         - [Standard Error function](flowruntime/stdio/stderr.md)
 
-- [Test Samples](flowc/tests/samples/README.md)
-    - [hello-world](flowc/tests/samples/hello-world/hello-world.md)
-    - [line-echo](flowc/tests/samples/line-echo/line-echo.md)
-    - [print-args](flowc/tests/samples/print-args/print-args.md)
-
 - [Samples](samples/README.md)
     - [args](samples/args/DESCRIPTION.md)
     - [arrays](samples/arrays/DESCRIPTION.md)
@@ -119,6 +114,11 @@
         - [flow_impl](flow_impl/README.md)
         - [flow_impl_derive](flow_impl_derive/README.md)
         - [flowc](flowc/README.md)
+            - [Test flows](flowc/tests/test-flows/README.md)
+                - [hello-world](flowc/tests/test-flows/hello-world/hello-world.md)
+                - [line-echo](flowc/tests/test-flows/line-echo/line-echo.md)
+                - [print-args](flowc/tests/test-flows/print-args/print-args.md)
+                <!--- TODO add Markdown docs for other test flows explaining what they test -->
         - [flowr](flowr/README.md)
         - [flowrlib](flowrlib/README.md)
         - [flowstdlib](flowstdlib/README.md)
