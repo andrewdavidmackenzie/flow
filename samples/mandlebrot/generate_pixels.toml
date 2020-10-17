@@ -4,38 +4,18 @@ flow = "generate_pixels"
 name = "size"
 type = "Array/Number"
 
-#[[output]]
-#name = "pixels"
-#type = "Array/Number"
+[[output]]
+name = "pixels"
+type = "Array/Array/Number"
 
-# TODO subtract 1 from width and height
+[[process]]
+alias = "height"
+source = "lib://flowstdlib/math/subtract"
+input.i2 = { once = 1 }
 
-## x-coordinate sequence
-#[[process]]
-#alias = "x-sequence"
-#source = "lib://flowstdlib/math/sequence"
-#
-## buffer it's start value as it need to run multiple times, one for each row
-#[[process]]
-#alias = "start-buffer"
-#source = "lib://flowstdlib/data/buffer"
-#input.default = {always = 0}
-#
-## buffer it's step value as it need to run multiple times, one for each row
-#[[process]]
-#alias = "step-buffer"
-#source = "lib://flowstdlib/data/buffer"
-#input.default = {always = 1}
-#
-## connect buffered x-sequence start value to the sequence's start input
-#[[connection]]
-#from = "start-buffer"
-#to = "x-sequence/start"
-#
-## connect buffered x-sequence step value to the sequence's step input
-#[[connection]]
-#from = "step-buffer"
-#to = "x-sequence/step"
+[[connection]]
+from = "input/size/1" # 'height' of ['width', 'height'] size input array
+to = "height/i1"
 
 # Sequence of y-coordinates
 [[process]]
@@ -45,7 +25,7 @@ input.start = { once = 0 }
 input.step = { once = 1 }
 
 [[connection]]
-from = "input/size/1" # 'height' of ['width', 'height'] size input array
+from = "height"
 to = "y-sequence/end"
 
 [[process]]
@@ -65,12 +45,6 @@ to = "width-gate/data"
 from = "width-gate"
 to = "width-gate/data"
 
-# each time a value from the y-sequence is produced it will allow the width value to flow
-# to the x-sequence and generate a sequence of coords
-#[[connection]]
-#from = "width-gate"
-#to = "x-sequence/end"
-
 # we need to duplicate the y-coord for each x-coord in each row
 [[process]]
 alias = "y-duplicator"
@@ -85,14 +59,18 @@ to = "y-duplicator/value"
 from = "width-gate"
 to = "y-duplicator/factor"
 
+# pass each duplicated row thru enumerate to add the x coordinate to each y value
+[[process]]
+source = "lib://flowstdlib/data/enumerate"
+
+[[connection]]
+from = "y-duplicator"
+to = "enumerate"
+
 # We will be printing out the sequence-of-sequences of numbers
 [[process]]
 source = "lib://flowruntime/stdio/stdout"
 
-#[[connection]]
-#from = "x-sequence/sequence"
-#to = "stdout"
-
 [[connection]]
-from = "y-duplicator"
+from = "enumerate"
 to = "stdout"
