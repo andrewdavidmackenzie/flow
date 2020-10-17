@@ -1,0 +1,39 @@
+flow = "render"
+
+[[input]]
+name = "filename"
+type = "String"
+
+[[input]]
+name = "size"
+type = "Array/Number"
+
+[[input]]
+name = "bounds"
+type = "Array/Array/Number"
+
+[[input]]
+name = "pixel"
+type = "Array/Array/Value" # Workaround
+
+
+#### Debug
+[[process]]
+source = "lib://flowruntime/stdio/stdout"
+
+#[[connection]]
+#from = "input/filename"
+#to = "stdout"
+
+[[connection]]
+from = "input/size"
+to = "stdout"
+
+#[[connection]]
+#from = "input/bounds"
+#to = "stdout"
+
+[[connection]]
+from = "input/pixel"
+to = "stdout"
+

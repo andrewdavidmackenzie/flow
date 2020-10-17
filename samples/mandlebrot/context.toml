@@ -6,27 +6,30 @@ source = "parse_args"
 [[process]]
 source = "generate_pixels"
 
+# Connect size to pixel generator
 [[connection]]
 from = "parse_args/size"
 to = "generate_pixels/size"
 
-#### Debug
 [[process]]
-source = "lib://flowruntime/stdio/stdout"
+source = "render"
 
-#[[connection]]
-#from = "parse_args/filename"
-#to = "stdout"
+# Connections to render
+[[connection]]
+from = "parse_args/filename"
+to = "render/filename"
 
 [[connection]]
 from = "parse_args/size"
-to = "stdout"
-
-#[[connection]]
-#from = "parse_args/bounds"
-#to = "stdout"
+to = "render/size"
 
 [[connection]]
+from = "parse_args/bounds"
+to = "render/bounds"
+
+# Connect pixel generator to render
+[[connection]]
 from = "generate_pixels/pixels"
-to = "stdout"
+to = "render/pixel"
+
 
