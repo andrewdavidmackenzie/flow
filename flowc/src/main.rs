@@ -57,7 +57,7 @@ pub struct Options {
     url: Url,
     flow_args: Vec<String>,
     dump: bool,
-    skip_generation: bool,
+    skip_execution: bool,
     debug_symbols: bool,
     provided_implementations: bool,
     output_dir: PathBuf,
@@ -117,7 +117,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .arg(Arg::with_name("skip")
             .short("s")
             .long("skip")
-            .help("Skip manifest generation and running of flow"))
+            .help("Skip execution of flow"))
         .arg(Arg::with_name("lib")
             .short("l")
             .long("lib")
@@ -191,7 +191,7 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         url,
         flow_args,
         dump: matches.is_present("dump"),
-        skip_generation: matches.is_present("skip"),
+        skip_execution: matches.is_present("skip"),
         debug_symbols: matches.is_present("symbols"),
         provided_implementations: matches.is_present("provided"),
         output_dir,

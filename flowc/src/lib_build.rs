@@ -36,7 +36,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
     }
 
     let build_count = compile_implementations(options, &mut lib_manifest, &base_dir, provider,
-                                              options.skip_generation)
+                                              false)
         .chain_err(|| "Could not build library")?;
 
     let manifest_json_file = json_manifest_file(&options.output_dir);
