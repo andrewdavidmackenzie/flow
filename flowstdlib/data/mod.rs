@@ -19,6 +19,9 @@ pub mod duplicate;
 /// A module that duplicates the rows in an array
 #[path = "duplicate_rows/duplicate_rows.rs"]
 pub mod duplicate_rows;
+/// A module that enumerates entries of an Array
+#[path = "enumerate/enumerate.rs"]
+pub mod enumerate;
 /// A module with a function to get info about a Value
 #[path = "info/info.rs"]
 pub mod info;

@@ -56,6 +56,8 @@ pub fn get_manifest() -> LibraryManifest {
                              Native(Arc::new(data::duplicate_rows::DuplicateRows)));
     manifest.locators.insert("lib://flowstdlib/data/duplicate/Duplicate".to_string(),
                              Native(Arc::new(data::duplicate::Duplicate)));
+    manifest.locators.insert("lib://flowstdlib/data/enumerate/Enumerate".to_string(),
+                             Native(Arc::new(data::enumerate::Enumerate)));
     manifest.locators.insert("lib://flowstdlib/data/info/Info".to_string(),
                              Native(Arc::new(data::info::Info)));
     manifest.locators.insert("lib://flowstdlib/data/multiply_row/MultiplyRow".to_string(),
