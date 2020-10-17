@@ -31,6 +31,8 @@ pub fn get_manifest(client: Arc<Mutex<dyn RuntimeClient>>) -> LibraryManifest {
                              Native(Arc::new(args::get::Get { client: client.clone() })));
     manifest.locators.insert("lib://flowruntime/file/file_write/FileWrite".to_string(),
                              Native(Arc::new(file::file_write::FileWrite { client: client.clone() })));
+    manifest.locators.insert("lib://flowruntime/image/image_buffer/ImageBuffer".to_string(),
+                             Native(Arc::new(image::image_buffer::ImageBuffer { client: client.clone() })));
     manifest.locators.insert("lib://flowruntime/stdio/readline/Readline".to_string(),
                              Native(Arc::new(stdio::readline::Readline { client: client.clone() })));
     manifest.locators.insert("lib://flowruntime/stdio/stdin/Stdin".to_string(),

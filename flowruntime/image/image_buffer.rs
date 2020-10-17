@@ -20,14 +20,14 @@ impl Implementation for ImageBuffer {
         let filename = inputs[3].to_string();
 
         if let Ok(mut client) = self.client.lock() {
-            match client.send_command(Command::PixelWrite(
+            return match client.send_command(Command::PixelWrite(
                 (pixel[0].as_u64().unwrap() as u32, pixel[1].as_u64().unwrap() as u32),
                 (value[0].as_u64().unwrap() as u8, value[1].as_u64().unwrap() as u8, value[2].as_u64().unwrap() as u8),
                 (size[0].as_u64().unwrap() as u32, size[1].as_u64().unwrap() as u32),
                 filename
             )) {
-                Response::Ack => return (None, RUN_AGAIN),
-                _ => return (None, RUN_AGAIN)
+                Response::Ack => (None, RUN_AGAIN),
+                _ => (None, RUN_AGAIN)
             }
         }
 
