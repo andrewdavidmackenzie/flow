@@ -1,11 +1,12 @@
+#![feature(test)]
+
 use escapes::_escapes;
 use image::ColorType;
-use image::png::PNGEncoder;
+use image::png::PngEncoder;
 use num::Complex;
 use pixel_to_point::_pixel_to_point;
 use rayon::prelude::*;
 use std::fs::File;
-use std::io::Result;
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -38,7 +39,7 @@ fn main() {
 
     render(&mut pixels, bounds, upper_left, lower_right);
 
-    write_bitmap(&filename, &pixels, bounds).expect("error writing PNG file");
+    write_bitmap(&filename, &pixels, bounds);
 }
 
 fn render(pixels: &mut [u8], bounds: (usize, usize),
@@ -74,17 +75,16 @@ fn render_row(pixels: &mut [u8], bounds: (usize, usize), row_index: usize,
 }
 
 /// Write the buffer 'pixels', whose dimensions are given by 'bounds', to the file named 'filename'
-fn write_bitmap(filename: &PathBuf, pixels: &[u8], bounds: (usize, usize)) -> Result<()> {
-    let output = File::create(filename)?;
-
-    let encoder = PNGEncoder::new(output);
-    encoder.encode(&pixels, bounds.0 as u32, bounds.1 as u32,
-                   ColorType::Gray(8))
+fn write_bitmap(filename: &PathBuf, pixels: &[u8], bounds: (usize, usize)) {
+    let output = File::create(filename).unwrap();
+    let encoder = PngEncoder::new(output);
+    encoder.encode(&pixels, bounds.0 as u32, bounds.1 as u32, ColorType::L8).unwrap();
 }
 
 #[cfg(test)]
 mod test {
-    use tempdir::TempDir;
+    extern crate test;
+
     use test::Bencher;
 
     use super::*;
@@ -107,25 +107,5 @@ mod test {
         let mut pixels = vec![0; bounds.0 * bounds.1];
 
         b.iter(|| render(&mut pixels, bounds, upper_left, lower_right));
-    }
-
-    // TODO fix this test
-    #[test]
-    #[ignore]
-    fn compare_gold_masters() {
-        let tmp_dir = TempDir::new("output_tests").expect("create temp dir failed");
-        println!("Generating test files in {:?}", tmp_dir);
-        let filename = tmp_dir.path().join("mandel_4000x3000.png");
-        let bounds = (4000, 3000);
-        let upper_left = Complex { re: -1.20, im: 0.35 };
-        let lower_right = Complex { re: -1.0, im: 0.20 };
-        let mut pixels = vec![0; bounds.0 * bounds.1];
-
-        render(&mut pixels, bounds, upper_left, lower_right);
-        write_bitmap(&filename, &pixels, bounds).expect("error writing PNG file");
-        println!("Written bitmap to '{:?}'", filename);
-
-        // Compare output to the "golden master" file generated in the first version
-        assert!(!dir_diff::is_different(&tmp_dir.path(), "gold_masters").unwrap());
     }
 }
