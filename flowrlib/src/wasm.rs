@@ -19,13 +19,15 @@ const MAX_RESULT_SIZE: i32 = 1024;
 pub struct WasmExecutor {
     module: Arc<Mutex<ModuleRef>>,
     memory: Arc<Mutex<MemoryRef>>,
+    source_url: String
 }
 
 impl WasmExecutor {
-    pub fn new(module_ref: ModuleRef, memory: MemoryRef) -> Self {
+    pub fn new(module_ref: ModuleRef, memory: MemoryRef, source_url: &str) -> Self {
         WasmExecutor {
             module: Arc::new(Mutex::new(module_ref)),
             memory: Arc::new(Mutex::new(memory)),
+            source_url: source_url.to_string()
         }
     }
 }
@@ -87,7 +89,8 @@ impl Implementation for WasmExecutor {
                 }
             }
             Err(err) => {
-                error!("Error returned by Wasm invoke_export(): {:?}", err);
+                error!("Error returned by Wasm invoke_export() on '{}': {:?}", self.source_url, err);
+                error!("Inputs:\n{:?}", inputs);
                 (None, true)
             }
         }
@@ -115,7 +118,7 @@ pub fn load(provider: &dyn Provider, source_url: &str) -> Result<WasmExecutor> {
 
     info!("Loaded wasm module from: '{}'", source_url);
 
-    Ok(WasmExecutor::new(module_ref, memory))
+    Ok(WasmExecutor::new(module_ref, memory, source_url))
 }
 
 fn check_required_functions(module_ref: &ModuleRef, filename: &str) -> Result<()> {
