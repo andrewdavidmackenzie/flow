@@ -6,7 +6,8 @@ type = "Array/Number"
 
 [[output]]
 name = "pixels"
-type = "Array/Array/Number"
+type = "Array/Array/Value"
+# type = "Array/Array/Number" to avoid https://github.com/andrewdavidmackenzie/flow/issues/748
 
 [[process]]
 alias = "height"
@@ -67,10 +68,6 @@ source = "lib://flowstdlib/data/enumerate"
 from = "y-duplicator"
 to = "enumerate"
 
-# We will be printing out the sequence-of-sequences of numbers
-[[process]]
-source = "lib://flowruntime/stdio/stdout"
-
 [[connection]]
 from = "enumerate"
-to = "stdout"
+to = "output/pixels"
