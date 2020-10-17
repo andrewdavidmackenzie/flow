@@ -13,5 +13,6 @@ type = "Array/Number"
 name = "size"
 type = "Array/Number"
 
+# Pixel and point are output together
 [[output]]
 type = "Value"

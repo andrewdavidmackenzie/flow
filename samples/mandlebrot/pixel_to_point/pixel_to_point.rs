@@ -55,12 +55,14 @@ impl Implementation for PixelToPoint {
 mod test {
     use flow_impl::Implementation;
     use serde_json::{json, Value};
+    use wasm_bindgen_test::*;
 
     // bounds = inputs[0]
     //      upper_left = bounds[0];
     //      lower_right = bounds[1];
     // pixel = inputs[1]
     // size = inputs[2]
+    #[wasm_bindgen_test]
     #[test]
     fn pixel() {
         // Create input vector
