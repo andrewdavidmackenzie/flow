@@ -3,6 +3,7 @@
 *.wasm
 test.output
 test.err
+test.file
 # sub-projects may generate a Cargo.lock when compiled by flowc
 Cargo.lock
 **/*.svg
