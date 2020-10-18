@@ -10,5 +10,7 @@ functions-wasm:
 
 app-native:
 	cargo +nightly build --release
-	time target/release/mandlebrot mandel_400x300.png 400x300 -1.20,0.35 -1,0.20
+	time target/release/mandlebrot mandel_40x30.png 40x30 -1.20,0.35 -1,0.20
+
+bench:
 	cargo +nightly bench
