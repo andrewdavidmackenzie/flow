@@ -6,8 +6,6 @@ type = "Array/Number"
 
 [[output]]
 name = "pixels"
-type = "Array/Number"
-# https://github.com/andrewdavidmackenzie/flow/issues/748
 
 [[process]]
 alias = "height"
