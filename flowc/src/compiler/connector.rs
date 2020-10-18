@@ -32,17 +32,11 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                     debug!("  Source output route = '{}' --> Destination: Process ID = {},  Input number = {}",
                            output_route, destination_function_id, destination_input_index);
 
-                    // What type of array serialization / deserialization will we need between these two data types
-                    // at runtime TODO - take into account the subroute on the output
-                    // calculate how many levels of array nesting it removes via number of '/' / levels?
-                    // let array_level_serde = connection.from_io.datatype().array_order()? - connection.to_io.datatype().array_order()?;
-                    let array_level_serde = connection.to_io.datatype().array_order()?;
-
                     let output_conn = OutputConnection::new(output_route.to_string(),
                                                             destination_function_id,
                                                             destination_input_index,
                                                             destination_flow_id,
-                                                            array_level_serde,
+                                                            connection.to_io.datatype().array_order()?,
                                                             connection.to_io.datatype().is_generic(),
                                                             Some(connection.to_io.route().to_string()));
                     source_function.add_output_route(output_conn);
@@ -304,15 +298,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                                                                                                            Create a HashTable of routes for use in tests.
-                                                                                                            Each entry (K, V) is:
-                                                                                                            - Key   - the route to a function's IO
-                                                                                                            - Value - a tuple of
-                                                                                                                        - sub-route (or IO name) from the function to be used at runtime
-                                                                                                                        - the id number of the function in the functions table, to select it at runtime
+                                                                                                                    Create a HashTable of routes for use in tests.
+                                                                                                                    Each entry (K, V) is:
+                                                                                                                    - Key   - the route to a function's IO
+                                                                                                                    - Value - a tuple of
+                                                                                                                                - sub-route (or IO name) from the function to be used at runtime
+                                                                                                                                - the id number of the function in the functions table, to select it at runtime
 
-                                                                                                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                                                                                         */
+                                                                                                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                                                                                                 */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (HashMap<Route, (Route, usize)>, Vec<(&'static str, Route, Option<(Route, usize)>)>) {
             // make sure a corresponding entry (if applicable) is in the table to give the expected response
