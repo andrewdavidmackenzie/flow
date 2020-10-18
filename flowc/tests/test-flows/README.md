@@ -1,4 +1,4 @@
-## Test Sample flows
+## Test flows
 
 These are a number of test flows to ensure many things are still working.
  
@@ -6,7 +6,7 @@ In general they are very simple samples more related with exercising specific fe
 demonstrating "real work programs" or solutions to problems.
 
 They are contained in the flowc/tests/samples folder in the code.
-[Github link](https://github.com/andrewdavidmackenzie/flow/tree/master/flowc/tests/samples)
+[Github link](https://github.com/andrewdavidmackenzie/flow/tree/master/flowc/tests/test-flows)
 
 ### Structure of each test
 Each sample of name 'text-name' is in its own folder, which includes:
