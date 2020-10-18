@@ -6,5 +6,4 @@ name = "pixel_point"
 type = "Array/Array/Number"
 
 [[output]]
-name = "pixel_value"
 type = "Array/Array/Number" # [[x, y], [r, g, b]]

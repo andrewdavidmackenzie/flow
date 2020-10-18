@@ -524,7 +524,7 @@ impl RunState {
 
                 // if it produced an output value
                 if let Some(output_v) = output_value {
-                    debug!("Job #{}:\tOutputs {:?}", job.job_id, output_v);
+                    debug!("Job #{}:\tOutputs: {:?}", job.job_id, output_v);
 
                     for destination in &job.destinations {
                         match output_v.pointer(&destination.subroute) {
@@ -542,7 +542,7 @@ impl RunState {
                                                     debugger,
                                 );
                             }
-                            _ => trace!("Job #{}:\t\tNo output value found at '{}'", job.job_id, &destination.subroute)
+                            _ => debug!("Job #{}:\t\tNo output value found at '{}'", job.job_id, &destination.subroute)
                         }
                     }
                 }

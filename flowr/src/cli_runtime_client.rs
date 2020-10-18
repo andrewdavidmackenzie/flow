@@ -12,7 +12,7 @@ use flowrlib::runtime_client::{Command, Response, RuntimeClient};
 
 #[derive(Debug, Clone)]
 pub struct CLIRuntimeClient {
-    pub image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>
+    image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>
 }
 
 /// The name of the environment variables used to pass command line arguments to the function

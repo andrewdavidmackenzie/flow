@@ -84,11 +84,11 @@ to = "image_buffer/size"
 
 # send each pixel from [pixel, value] pair from p2v to the image buffer
 [[connection]]
-from = "p2v/pixel_value/0"
+from = "p2v/0"
 to = "image_buffer/pixel"
 # send each value from [pixel, value] pair from p2v to the image buffer
 [[connection]]
-from = "p2v/pixel_value/1"
+from = "p2v/1"
 to = "image_buffer/value"
 
 

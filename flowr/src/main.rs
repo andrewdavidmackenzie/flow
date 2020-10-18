@@ -76,12 +76,12 @@ fn run() -> Result<()> {
     let flow_manifest_url = parse_flow_url(&matches)?;
     let mut loader = Loader::new();
     let provider = MetaProvider {};
-    let mut runtime_client = CLIRuntimeClient::new();
+    let runtime_client = Arc::new(Mutex::new(CLIRuntimeClient::new()));
 
     // Load this run-time's library of native (statically linked) implementations
     loader.add_lib(&provider,
                    "lib://flowruntime",
-                   flowruntime::get_manifest(Arc::new(Mutex::new(runtime_client.clone()))),
+                   flowruntime::get_manifest(runtime_client.clone()),
                    "native")
         .chain_err(|| "Could not add 'flowruntime' library to loader")?;
 
@@ -107,7 +107,7 @@ fn run() -> Result<()> {
     let submission = Submission::new(manifest,
                                      num_parallel_jobs,
                                      metrics,
-                                     &mut runtime_client,
+                                     runtime_client,
                                      CLI_DEBUG_CLIENT,
                                      debugger);
 

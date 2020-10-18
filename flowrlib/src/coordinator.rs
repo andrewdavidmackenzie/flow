@@ -33,12 +33,12 @@ use crate::runtime_client::RuntimeClient;
 ///                                     1 /* num_parallel_jobs */,
 ///                                     false /* display_metrics */,
 ///                                     None /* debug client */);
-pub struct Submission<'a> {
+pub struct Submission {
     _metadata: MetaData,
     display_metrics: bool,
     #[cfg(feature = "metrics")]
     metrics: Metrics,
-    runtime_client: &'a mut dyn RuntimeClient,
+    runtime_client: Arc<Mutex<dyn RuntimeClient>>,
     job_timeout: Duration,
     state: RunState,
     #[cfg(feature = "debugger")]
@@ -47,19 +47,19 @@ pub struct Submission<'a> {
     enter_debugger: bool,
 }
 
-impl<'a> Submission<'a> {
+impl Submission {
     /// Create a new `Submission` of a `Flow` for execution with the specified `Manifest`
     /// of `Functions`, executing it with a maximum of `mac_parallel_jobs` running in parallel
     /// connecting via the optional `DebugClient`
     pub fn new(mut manifest: Manifest,
                max_parallel_jobs: usize,
                display_metrics: bool,
-               runtime_client: &'a mut dyn RuntimeClient,
+               runtime_client: Arc<Mutex<dyn RuntimeClient>>,
                #[cfg(feature = "debugger")]
                client: &'static dyn DebugClient,
                #[cfg(feature = "debugger")]
                enter_debugger: bool,
-    ) -> Submission<'a> {
+    ) -> Submission {
         info!("Maximum jobs in parallel limited to {}", max_parallel_jobs);
         let output_timeout = Duration::from_secs(60);
 
@@ -153,12 +153,12 @@ pub struct Coordinator {
 ///     fn flow_end(&mut self) {}
 /// }
 ///
-/// let mut runtime_client = ExampleRuntimeClient {};
+/// let example_client = ExampleRuntimeClient {};
 ///
 /// let mut submission = Submission::new(manifest,
 ///                                     1 /* num_parallel_jobs */,
 ///                                     false /* display_metrics */,
-///                                     &mut runtime_client,
+///                                     Arc::new(Mutex:new(example_client)),
 ///                                     &ExampleDebugClient{},
 ///                                     true /* enter debugger on start */);
 ///
@@ -195,10 +195,10 @@ impl Coordinator {
     /// - Setup panic hook
     pub fn init(&mut self) {
         #[cfg(feature = "debugger")]
-        self.capture_control_c();
+            self.capture_control_c();
     }
 
-    #[cfg(not(target="wasm32"))]
+    #[cfg(not(target = "wasm32"))]
     #[cfg(feature = "debugger")]
     fn capture_control_c(&self) {
         // Get a reference to the shared control variable that will be moved into the closure
@@ -221,7 +221,7 @@ impl Coordinator {
         loop {
             debug!("Resetting stats and initializing all functions");
             submission.state.init();
-            submission.runtime_client.flow_start();
+            submission.runtime_client.lock().unwrap().flow_start();
 
             #[cfg(feature = "debugger")]
             if submission.enter_debugger {
@@ -276,8 +276,8 @@ impl Coordinator {
                         }
                         #[cfg(feature = "debugger")]
                         Err(err) => {
-                                submission.debugger.panic(&submission.state,
-                                                          format!("Error in job reception: '{}'", err));
+                            submission.debugger.panic(&submission.state,
+                                                      format!("Error in job reception: '{}'", err));
                         }
                         #[cfg(not(feature = "debugger"))]
                         Err(_) => error!("\tError in Job reception")
@@ -311,7 +311,6 @@ impl Coordinator {
     }
 
     fn flow_done(&self, submission: &mut Submission) {
-        submission.runtime_client.flow_end();
         debug!("{}", submission.state);
 
         if submission.display_metrics {
@@ -319,6 +318,8 @@ impl Coordinator {
             println!("\nMetrics: \n {}", submission.metrics);
             println!("\t\tJobs created: {}\n", submission.state.jobs_created());
         }
+
+        submission.runtime_client.lock().unwrap().flow_end();
     }
 
     /*
@@ -372,6 +373,8 @@ impl Coordinator {
 
 #[cfg(test)]
 mod test {
+    use std::sync::{Arc, Mutex};
+
     use crate::coordinator::Coordinator;
     use crate::coordinator::Submission;
     #[cfg(feature = "debugger")]
@@ -388,7 +391,7 @@ mod test {
             name: "test".into(),
             version: "0.0.0".into(),
             description: "a test".into(),
-            authors: vec!("me".to_string())
+            authors: vec!("me".to_string()),
         }
     }
 
@@ -431,7 +434,7 @@ mod test {
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);
         let _ = Submission::new(manifest, 1, true,
-                                &mut TestRuntimeClient {},
+                                Arc::new(Mutex::new(TestRuntimeClient {})),
                                 #[cfg(feature = "debugger")]
                                     test_debug_client(),
                                 #[cfg(feature = "debugger")]
@@ -445,18 +448,18 @@ mod test {
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);
         let mut submission = Submission::new(manifest, 1, true,
-                                             &mut test_client,
-                                #[cfg(feature = "debugger")]
-                                    test_debug_client(),
-                                #[cfg(feature = "debugger")]
-                                    false,
+                                             Arc::new(Mutex::new(TestRuntimeClient {})),
+                                             #[cfg(feature = "debugger")]
+                                                 test_debug_client(),
+                                             #[cfg(feature = "debugger")]
+                                                 false,
         );
         let mut coordinator = super::Coordinator::new(0);
         coordinator.init();
 
-       coordinator.send_jobs(&mut submission);
+        coordinator.send_jobs(&mut submission);
 
-       coordinator.flow_done(&mut submission);
+        coordinator.flow_done(&mut submission);
     }
 
     #[test]
@@ -483,7 +486,7 @@ mod test {
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);
         let submission = Submission::new(manifest, 1, true,
-                                         &mut test_client,
+                                         Arc::new(Mutex::new(TestRuntimeClient {})),
                                          #[cfg(feature = "debugger")]
                                              test_debug_client(),
                                          #[cfg(feature = "debugger")]
@@ -504,7 +507,7 @@ mod test {
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);
         let submission = Submission::new(manifest, 1, true,
-                                         &mut test_client,
+                                         Arc::new(Mutex::new(TestRuntimeClient {})),
                                          #[cfg(feature = "debugger")]
                                              test_debug_client(),
                                          #[cfg(feature = "debugger")]
