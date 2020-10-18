@@ -14,33 +14,26 @@ use serde_json::{json, Value};
 #[derive(FlowImpl, Debug)]
 pub struct RenderPixel;
 
-impl RenderPixel {
-    /// Try to determine if 'c' is in the Mandlebrot set, using at most 'limit' iterations to decide
-    /// If 'c' is not a member, return 'Some(i)', where 'i' is the number of iterations it took for 'c'
-    /// to leave the circle of radius two centered on the origin.
-    /// If 'c' seems to be a member (more precisely, if we reached the iteration limit without being
-    /// able to prove that 'c' is not a member) return 'None'
-    fn escapes(complex: &Vec<Value>, limit: u64) -> u64 {
-        let c = Complex {
-            re: complex[0].as_f64().unwrap(),
-            im: complex[1].as_f64().unwrap()
-        };
-
-        if c.norm_sqr() > 4.0 {
-            return 0;
-        }
-
-        let mut z = c;
-
-        for i in 1..limit {
-            z = z * z + c;
-            if z.norm_sqr() > 4.0 {
-                return i;
-            }
-        }
-
-        return 255;
+/// Try to determine if 'c' is in the Mandlebrot set, using at most 'limit' iterations to decide
+/// If 'c' is not a member, return 'Some(i)', where 'i' is the number of iterations it took for 'c'
+/// to leave the circle of radius two centered on the origin.
+/// If 'c' seems to be a member (more precisely, if we reached the iteration limit without being
+/// able to prove that 'c' is not a member) return 'None'
+fn escapes(c: Complex<f64>, limit: u64) -> u64 {
+    if c.norm_sqr() > 4.0 {
+        return 0;
     }
+
+    let mut z = c;
+
+    for i in 1..limit {
+        z = z * z + c;
+        if z.norm_sqr() > 4.0 {
+            return i;
+        }
+    }
+
+    return limit;
 }
 
 impl Implementation for RenderPixel {
@@ -52,12 +45,20 @@ impl Implementation for RenderPixel {
         able to prove that 'c' is not a member) return 'None'
     */
     fn run(&self, inputs: &[Value]) -> (Option<Value>, bool) {
-        let pixel = inputs[0].as_array().unwrap();
-        let point = inputs[1].as_array().unwrap();
+        let pixel_point = inputs[0].as_array().unwrap();
 
-        let value = Self::escapes(point, 255);
+        let pixel = pixel_point[0].as_array().unwrap();
+        let point = pixel_point[1].as_array().unwrap();
 
-        let result = Some(json!([pixel, [value]]));
+        let c = Complex {
+            re: point[0].as_f64().unwrap(),
+            im: point[1].as_f64().unwrap(),
+        };
+
+        let value = escapes(c, 255);
+
+        // Fake Grey via RGB for now
+        let result = Some(json!([pixel, [value, value, value]]));
 
         (result, true)
     }

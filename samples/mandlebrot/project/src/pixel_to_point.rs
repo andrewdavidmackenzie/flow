@@ -7,7 +7,8 @@ use num::Complex;
 /// `pixel` is a (row, column) pair indicating a particular pixel in that image.
 /// The `upper_left` and `lower_right` parameters are points on the complex
 /// plane designating the area our image covers.
-pub fn _pixel_to_point(bounds: (usize, usize), pixel: (usize, usize),
+pub fn _pixel_to_point(size: (usize, usize),
+                       pixel: (usize, usize),
                        upper_left: Complex<f64>,
                        lower_right: Complex<f64>) -> Complex<f64>
 {
@@ -15,8 +16,8 @@ pub fn _pixel_to_point(bounds: (usize, usize), pixel: (usize, usize),
     let height = upper_left.im - lower_right.im;
 
     Complex {
-        re: upper_left.re + (pixel.0 as f64 * (width / bounds.0 as f64)),
-        im: upper_left.im - (pixel.1 as f64 * (height / bounds.1 as f64)),
+        re: upper_left.re + (pixel.0 as f64 * (width / size.0 as f64)),
+        im: upper_left.im - (pixel.1 as f64 * (height / size.1 as f64)),
         // This is subtraction as pixel.1 increases as we go down,
         // but the imaginary component increases as we go up.
     }

@@ -14,7 +14,7 @@ type = "Array/Array/Number"
 
 [[input]]
 name = "pixel"
-type = "Array/Value" # Workaround
+type = "Array/Number" # Workaround
 
 # Convert a pixel coordinates ot a point in the imaginary space
 [[process]]
@@ -92,9 +92,9 @@ from = "p2v/pixel_value/1"
 to = "image_buffer/value"
 
 
-#### Debug
-[[process]]
-source = "lib://flowruntime/stdio/stdout"
+##### Debug
+#[[process]]
+#source = "lib://flowruntime/stdio/stdout"
 
 #[[connection]]
 #from = "input/filename"
@@ -108,8 +108,7 @@ source = "lib://flowruntime/stdio/stdout"
 #from = "input/bounds"
 #to = "stdout"
 
-
-[[connection]]
-from = "input/pixel"
-to = "stdout"
+#[[connection]]
+#from = "input/pixel"
+#to = "stdout"
 

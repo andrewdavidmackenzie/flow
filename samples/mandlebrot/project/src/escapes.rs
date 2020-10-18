@@ -19,7 +19,7 @@ pub fn _escapes(c: Complex<f64>, limit: u64) -> u64 {
         }
     }
 
-    return 255;
+    return limit;
 }
 
 #[cfg(test)]

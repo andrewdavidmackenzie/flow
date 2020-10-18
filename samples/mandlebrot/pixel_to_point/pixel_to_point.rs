@@ -1,5 +1,6 @@
 use flow_impl::Implementation;
 use flow_impl_derive::FlowImpl;
+use num::Complex;
 use serde_json::{json, Value};
 
 /*
@@ -13,25 +14,18 @@ use serde_json::{json, Value};
 #[derive(FlowImpl, Debug)]
 pub struct PixelToPoint;
 
-impl PixelToPoint {
-    fn pixel_to_point(upper_left: &Vec<Value>,
-                      lower_right: &Vec<Value>,
-                      pixel: &Vec<Value>,
-                      size: &Vec<Value>) -> [f64; 2]
-    {
-        let width = lower_right[0].as_f64().unwrap() - upper_left[0].as_f64().unwrap(); // real
-        let height = upper_left[1].as_f64().unwrap() - lower_right[1].as_f64().unwrap(); // imaginary
+fn pixel_to_point(size: (usize, usize),
+                  pixel: (usize, usize),
+                  upper_left: Complex<f64>,
+                  lower_right: Complex<f64>) -> Complex<f64> {
+    let width = lower_right.re - upper_left.re;
+    let height = upper_left.im - lower_right.im;
 
-        let mut complex: [f64;2] = [0.0, 0.0];
-
-        // This is subtraction as pixel[1] increases as we go down,
+    Complex {
+        re: upper_left.re + (pixel.0 as f64 * (width / size.0 as f64)),
+        im: upper_left.im - (pixel.1 as f64 * (height / size.1 as f64)),
+        // This is subtraction as pixel.1 increases as we go down,
         // but the imaginary component increases as we go up.
-        complex[0] = upper_left[0].as_f64().unwrap() +
-            (pixel[0].as_f64().unwrap() as f64 * (width / size[0].as_f64().unwrap() as f64));
-        complex[1] = upper_left[1].as_f64().unwrap() -
-            (pixel[1].as_f64().unwrap() as f64 * (height / size[1].as_f64().unwrap() as f64));
-
-        complex
     }
 }
 
@@ -39,13 +33,31 @@ impl Implementation for PixelToPoint {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, bool) {
         let bounds = inputs[0].as_array().unwrap();
         let upper_left = bounds[0].as_array().unwrap();
+        let upper_left_c = Complex {
+            re: upper_left[0].as_f64().unwrap() as f64,
+            im: upper_left[1].as_f64().unwrap() as f64,
+        };
+
         let lower_right = bounds[1].as_array().unwrap();
+        let lower_right_c = Complex {
+            re: lower_right[0].as_f64().unwrap() as f64,
+            im: lower_right[1].as_f64().unwrap() as f64,
+        };
+
         let pixel = inputs[1].as_array().unwrap();
+        let x = pixel[0].as_i64().unwrap() as usize;
+        let y = pixel[1].as_i64().unwrap() as usize;
+
         let size = inputs[2].as_array().unwrap();
+        let width = size[0].as_i64().unwrap() as usize;
+        let height = size[1].as_i64().unwrap() as usize;
 
-        let complex_point = Self::pixel_to_point(upper_left, lower_right, pixel, size);
+        let complex_point = pixel_to_point((width, height), // size
+                                                 (x, y), // pixel
+                                                 upper_left_c,
+                                                 lower_right_c);
 
-        let result = Some(json!([pixel, complex_point]));
+        let result = Some(json!([pixel, [complex_point.re, complex_point.im]]));
 
         (result, true)
     }

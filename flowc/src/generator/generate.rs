@@ -270,7 +270,7 @@ mod test {
       'function_id': 1,
       'io_number': 0,
       'flow_id': 0,
-      'array_order': 1
+      'array_level_serde': 1
     }
   ]
 }";

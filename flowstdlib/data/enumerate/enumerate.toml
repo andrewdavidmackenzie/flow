@@ -2,7 +2,7 @@ function = "Enumerate"
 implementation = "enumerate.rs"
 
 [[input]]
-type = "Array/Value"          # e.g. ["a", "b"]
+type = "Array/Number"          # e.g. ["a", "b"]
 
 [[output]]
-type = "Array/Array/Value"  # e.g. [[0, "a"], [1, "b"]]
+type = "Array/Array/Number"  # e.g. [[0, "a"], [1, "b"]]

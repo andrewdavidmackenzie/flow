@@ -585,7 +585,7 @@ impl RunState {
         if destination.is_generic() {
             function.send(destination.io_number, value);
         } else {
-            match Self::array_order(value) - destination.array_order {
+            match Self::array_order(value) - destination.array_level_serde {
                 0 => function.send(destination.io_number, value),
                 1 => function.send_iter(destination.io_number, value),
                 2 => for array in value.as_array().unwrap().iter() {
