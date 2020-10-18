@@ -287,7 +287,7 @@ samples/%: samples/%/test.err
 samples/%/test.output: samples/%/test.input samples/%/test.arguments
 	@printf "\tSample '$(@D)'"
 	@RUST_BACKTRACE=1 cargo run --quiet -p flowc -- -g -d $(@D) -i $< -- `cat $(@D)/test.arguments` 2> $(@D)/test.err > $@
-	@diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && exit $$ret)
+	@diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && rm -f $(@D)/test.file && exit $$ret)
 	@if [ -s $(@D)/expected.file ]; then diff $(@D)/expected.file $(@D)/test.file; fi;
 	@if [ -s $(@D)/test.err ]; then (printf " has error output in $(@D)/test.err\n"; exit -1); else printf " has no errors\n"; fi;
 	@rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time
