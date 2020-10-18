@@ -37,7 +37,7 @@ pub struct Function {
     inputs: Vec<Input>,
 
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    output_routes: Vec<OutputConnection>,
+    output_connections: Vec<OutputConnection>,
 
     #[serde(skip)]
     #[serde(default = "Function::default_implementation")]
@@ -73,7 +73,7 @@ impl fmt::Display for Function {
                 writeln!(f, "\tInput :{} has value '{}'", number, input)?;
             }
         }
-        for output_route in &self.output_routes {
+        for output_route in &self.output_connections {
             writeln!(f, "\t{}", output_route)?;
         }
         write!(f, "")
@@ -88,17 +88,17 @@ impl Function {
     /// Output sub-path (or ""), destination function id, destination function io number, Optional path of destination
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-               #[cfg(feature = "debugger")]
+        #[cfg(feature = "debugger")]
                name: String,
-               #[cfg(feature = "debugger")]
+        #[cfg(feature = "debugger")]
                route: String,
-               implementation_location: String,
-               inputs: Vec<Input>,
-               id: usize,
-               flow_id: usize,
-               output_routes: &[OutputConnection],
-               include_destination_routes: bool) -> Self {
-        let mut routes = output_routes.to_vec();
+        implementation_location: String,
+        inputs: Vec<Input>,
+        id: usize,
+        flow_id: usize,
+        output_connections: &[OutputConnection],
+        include_destination_routes: bool) -> Self {
+        let mut routes = output_connections.to_vec();
 
         // Remove destination routes if not wanted
         if !include_destination_routes {
@@ -116,7 +116,7 @@ impl Function {
             flow_id,
             implementation_location,
             implementation: Function::default_implementation(),
-            output_routes: routes,
+            output_connections: routes,
             inputs,
         }
     }
@@ -180,9 +180,9 @@ impl Function {
         input.push_array(value.as_array().unwrap().iter());
     }
 
-    /// Accessor for a `Functions` `output_routes` field
+    /// Accessor for a `Functions` `output_connections` field
     pub fn output_destinations(&self) -> &Vec<OutputConnection> {
-        &self.output_routes
+        &self.output_connections
     }
 
     /// Get a clone of the `Functions` `implementation`

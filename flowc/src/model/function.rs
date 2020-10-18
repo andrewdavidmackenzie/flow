@@ -39,7 +39,7 @@ pub struct Function {
     lib_reference: Option<String>,
 
     #[serde(skip_deserializing)]
-    output_routes: Vec<OutputConnection>,
+    output_connections: Vec<OutputConnection>,
     #[serde(skip_deserializing)]
     id: usize,
     #[serde(skip_deserializing)]
@@ -75,7 +75,7 @@ impl Function {
             source_url: source_url.to_string(),
             route,
             lib_reference,
-            output_routes: output_connections,
+            output_connections,
             id,
             flow_id,
         }
@@ -114,11 +114,11 @@ impl Function {
     }
 
     pub fn add_output_route(&mut self, output_route: OutputConnection) {
-        self.output_routes.push(output_route);
+        self.output_connections.push(output_route);
     }
 
-    pub fn get_output_routes(&self) -> &Vec<OutputConnection> {
-        &self.output_routes
+    pub fn get_output_connections(&self) -> &Vec<OutputConnection> {
+        &self.output_connections
     }
 
     pub fn get_implementation(&self) -> &str {
@@ -228,7 +228,7 @@ impl Default for Function {
             source_url: Function::default_source_url(),
             route: Route::default(),
             lib_reference: None,
-            output_routes: vec!(OutputConnection::new("".to_string(), 0, 0, 0, 0, false, Some("".to_string()))),
+            output_connections: vec!(OutputConnection::new("".to_string(), 0, 0, 0, 0, false, Some("".to_string()))),
             id: 0,
             flow_id: 0,
         }
@@ -270,7 +270,7 @@ mod test {
             outputs: None,         // No output!
             route: Route::default(),
             lib_reference: None,
-            output_routes: vec!(OutputConnection::new("test_function".to_string(), 0, 0, 0, 0, false, None)),
+            output_connections: vec!(OutputConnection::new("test_function".to_string(), 0, 0, 0, 0, false, None)),
             id: 0,
             flow_id: 0,
         };

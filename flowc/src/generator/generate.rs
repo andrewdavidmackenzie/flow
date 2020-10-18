@@ -111,15 +111,15 @@ fn function_to_runtimefunction(manifest_url: &str, function: &Function, debug_sy
     };
 
     Ok(RuntimeFunction::new(
-                            #[cfg(feature = "debugger")]
+        #[cfg(feature = "debugger")]
                             name,
-                            #[cfg(feature = "debugger")]
+        #[cfg(feature = "debugger")]
                             route,
-                            implementation_location,
-                            runtime_inputs,
-                            function.get_id(), function.get_flow_id(),
-                            function.get_output_routes(),
-                            debug_symbols))
+        implementation_location,
+        runtime_inputs,
+        function.get_id(), function.get_flow_id(),
+        function.get_output_connections(),
+        debug_symbols))
 }
 
 /*
@@ -144,7 +144,7 @@ fn implementation_location_relative(function: &Function, manifest_url: &str) -> 
         info!("Manifest base = '{}'", manifest_base_url.to_string());
         info!("Absolute implementation path = '{}'", implementation_path);
         let relative_path = implementation_url.replace(&format!("{}/", manifest_base_url.as_str()), "");
-        info!("Absolute implementation path = '{}'", relative_path);
+        info!("Relative implementation path = '{}'", relative_path);
         Ok(relative_path)
     }
 }
@@ -186,7 +186,7 @@ mod test {
   'id': 0,
   'flow_id': 0,
   'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
-  'output_routes': [
+  'output_connections': [
     {
       'function_id': 1,
       'io_number': 0,
@@ -228,7 +228,7 @@ mod test {
   'id': 0,
   'flow_id': 0,
   'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
-  'output_routes': [
+  'output_connections': [
     {
       'function_id': 1,
       'io_number': 0,
@@ -265,12 +265,12 @@ mod test {
   'id': 0,
   'flow_id': 0,
   'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
-  'output_routes': [
+  'output_connections': [
     {
       'function_id': 1,
       'io_number': 0,
       'flow_id': 0,
-      'array_order': 1
+      'array_level_serde': 1
     }
   ]
 }";
@@ -425,7 +425,7 @@ mod test {
   'id': 0,
   'flow_id': 0,
   'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
-  'output_routes': [
+  'output_connections': [
     {
       'function_id': 1,
       'io_number': 0,
@@ -461,7 +461,7 @@ mod test {
   'id': 0,
   'flow_id': 0,
   'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
-  'output_routes': [
+  'output_connections': [
     {
       'subroute': '/0',
       'function_id': 1,

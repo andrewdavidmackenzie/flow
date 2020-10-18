@@ -1,0 +1,71 @@
+flow = "generate_pixels"
+
+[[input]]
+name = "size"
+type = "Array/Number"
+
+[[output]]
+name = "pixels"
+
+[[process]]
+alias = "height"
+source = "lib://flowstdlib/math/subtract"
+input.i2 = { once = 1 }
+
+[[connection]]
+from = "input/size/1" # 'height' of ['width', 'height'] size input array
+to = "height/i1"
+
+# Sequence of y-coordinates
+[[process]]
+alias = "y-sequence"
+source = "lib://flowstdlib/math/sequence"
+input.start = { once = 0 }
+input.step = { once = 1 }
+
+[[connection]]
+from = "height"
+to = "y-sequence/end"
+
+[[process]]
+alias = "width-gate"
+source = "lib://flowstdlib/control/join"
+
+[[connection]]
+from = "y-sequence/sequence"
+to = "width-gate/control"
+
+[[connection]]
+from = "input/size/0" # 'width' of ['width', 'height'] size input array
+to = "width-gate/data"
+
+# loopback width gate
+[[connection]]
+from = "width-gate"
+to = "width-gate/data"
+
+# we need to duplicate the y-coord for each x-coord in each row
+[[process]]
+alias = "y-duplicator"
+source = "lib://flowstdlib/data/duplicate"
+
+# Connect y value to a duplicator that will produce 'width' instances of it
+[[connection]]
+from = "y-sequence/sequence"
+to = "y-duplicator/value"
+
+[[connection]]
+from = "width-gate"
+to = "y-duplicator/factor"
+
+# pass each duplicated row thru enumerate to add the x coordinate to each y value
+[[process]]
+source = "lib://flowstdlib/data/enumerate"
+
+[[connection]]
+from = "y-duplicator"
+to = "enumerate"
+
+[[connection]]
+from = "enumerate"
+to = "output/pixels"

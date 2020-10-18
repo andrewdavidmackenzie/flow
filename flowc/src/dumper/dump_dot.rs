@@ -250,7 +250,7 @@ fn function_to_dot(function: &Function, functions: &[Function], _output_dir: &Pa
     function_string.push_str(&input_initializers(function, &format!("r{}", function.get_id())));
 
     // Add edges for each of the outputs of this function to other ones
-    for destination in function.get_output_routes() {
+    for destination in function.get_output_connections() {
         let input_port = INPUT_PORTS[destination.io_number % INPUT_PORTS.len()];
         let destination_function = &functions[destination.function_id];
         let output_port = output_name_to_port(&destination.subroute);

@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
-use super::super::runtime_client::{Command, Response, RuntimeClient};
+use flowrlib::runtime_client::{Command, Response, RuntimeClient};
 
 /// `Implementation` struct for the `Stdout` function
 #[derive(Debug)]
@@ -17,7 +17,7 @@ impl Implementation for Stdout {
         let input = &inputs[0];
 
         // Gain sole access to send to the client to avoid mixing output from other functions
-        if let Ok(client) = self.client.lock() {
+        if let Ok(mut client) = self.client.lock() {
             match input {
                 Value::Null => client.send_command(Command::EOF),
                 Value::String(string) => client.send_command(Command::Stdout(string.to_string())),

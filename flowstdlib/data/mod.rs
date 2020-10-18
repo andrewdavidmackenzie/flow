@@ -19,12 +19,18 @@ pub mod duplicate;
 /// A module that duplicates the rows in an array
 #[path = "duplicate_rows/duplicate_rows.rs"]
 pub mod duplicate_rows;
+/// A module that enumerates entries of an Array
+#[path = "enumerate/enumerate.rs"]
+pub mod enumerate;
 /// A module with a function to get info about a Value
 #[path = "info/info.rs"]
 pub mod info;
 /// A module that does matrix row multiplication
 #[path = "multiply_row/multiply_row.rs"]
 pub mod multiply_row;
+/// A module that splits a String into an Array of Strings
+#[path = "ordered_split/ordered_split.rs"]
+pub mod ordered_split;
 /// A module that removes elements from an array
 #[path = "remove/remove.rs"]
 pub mod remove;

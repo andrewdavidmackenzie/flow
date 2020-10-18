@@ -36,6 +36,10 @@ pub mod provider;
 /// and is an optional feature called "debugger"
 pub mod debug_client;
 
+/// 'runtime_client' is used to connect to a runtime client that provides the implementations for
+/// the required runtime functions.
+pub mod runtime_client;
+
 /// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
 /// to get access to everything `error_chain!` creates.
 #[doc(hidden)]

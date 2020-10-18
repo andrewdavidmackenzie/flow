@@ -3,7 +3,7 @@ use std::io::prelude::*;
 
 use gtk::TextBufferExt;
 
-use flowruntime::runtime_client::{Command, Response, RuntimeClient};
+use flowrlib::runtime_client::{Command, Response, RuntimeClient};
 
 use crate::widgets;
 
@@ -23,10 +23,12 @@ impl IDERuntimeClient {
 }
 
 impl RuntimeClient for IDERuntimeClient {
-    fn init(&self) {}
+    fn flow_start(&mut self) {
+        // TODO show something on the UI to show a new flow is starting executing
+    }
 
     // This function is called by the runtime_function to send a commanmd to the runtime_client
-    fn send_command(&self, command: Command) -> Response {
+    fn send_command(&mut self, command: Command) -> Response {
         match command {
             Command::EOF => Response::Ack,
             Command::Stdout(contents) => {
@@ -56,6 +58,16 @@ impl RuntimeClient for IDERuntimeClient {
                 file.write_all(bytes.as_slice()).unwrap();
                 Response::Ack
             }
+            Command::PixelWrite((_x, _y), (_r, _g, _b), (_width, _height), _name) => {
+                // let image = self.image_buffers.entry(name)
+                //     .or_insert(RgbImage::new(width, height));
+                // image.put_pixel(x, y, Rgb([r, g, b]));
+                Response::Ack
+            }
         }
+    }
+
+    fn flow_end(&mut self) {
+        // TODO show something on the UI that the flow has ended
     }
 }

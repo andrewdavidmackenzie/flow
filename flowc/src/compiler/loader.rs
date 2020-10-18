@@ -21,7 +21,7 @@ use crate::model::route::Route;
 use crate::model::route::SetRoute;
 
 /// All deserializers have to implement this trait for content deserialization, plus a method
-/// to return their name to be aable to inform the user of which deserializer was used
+/// to return their name to be able to inform the user of which deserializer was used
 pub trait Deserializer {
     fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process>;
     fn name(&self) -> &'static str;
@@ -46,7 +46,7 @@ pub trait Validate {
 /// use std::env;
 /// use url::Url;
 ///
-/// // Clients need to provide a Provider of content for the loader as flowlibc is independant of
+/// // Clients need to provide a Provider of content for the loader as flowlibc is independent of
 /// // file systems and io.
 /// struct DummyProvider;
 ///

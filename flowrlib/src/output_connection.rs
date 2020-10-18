@@ -23,8 +23,8 @@ pub struct OutputConnection {
     /// `flow_id` is the flow_id of the target function
     pub flow_id: usize,
     /// `array_order` defines how many levels of arrays of non-array values does the destination accept
-    #[serde(default = "default_array_order", skip_serializing_if = "is_default_array_order")]
-    pub array_order: i32,
+    #[serde(default = "default_array_level_serde", skip_serializing_if = "is_default_array_level_serde")]
+    pub array_level_serde: i32,
     /// `generic` defines if the input accepts generic "Value"s
     #[serde(default = "default_generic", skip_serializing_if = "is_not_generic")]
     pub generic: bool,
@@ -33,12 +33,12 @@ pub struct OutputConnection {
     pub route: Option<String>,
 }
 
-fn default_array_order() -> i32 {
+fn default_array_level_serde() -> i32 {
     0
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)] // As this is imposed on us by serde
-fn is_default_array_order(order: &i32) -> bool {
+fn is_default_array_level_serde(order: &i32) -> bool {
     *order == 0
 }
 
@@ -57,7 +57,7 @@ impl OutputConnection {
                function_id: usize,
                io_number: usize,
                flow_id: usize,
-               array_order: i32,
+               array_level_serde: i32,
                generic: bool,
                route: Option<String>) -> Self {
         OutputConnection {
@@ -65,7 +65,7 @@ impl OutputConnection {
             function_id,
             io_number,
             flow_id,
-            array_order,
+            array_level_serde,
             generic,
             route,
         }
@@ -100,17 +100,17 @@ impl fmt::Display for OutputConnection {
 mod test {
     #[test]
     fn default_array_order_test() {
-        assert_eq!(super::default_array_order(), 0)
+        assert_eq!(super::default_array_level_serde(), 0)
     }
 
     #[test]
     fn is_default_array_order_test() {
-        assert!(super::is_default_array_order(&0));
+        assert!(super::is_default_array_level_serde(&0));
     }
 
     #[test]
     fn is_not_default_array_order_test() {
-        assert!(!super::is_default_array_order(&1));
+        assert!(!super::is_default_array_level_serde(&1));
     }
 
     #[test]

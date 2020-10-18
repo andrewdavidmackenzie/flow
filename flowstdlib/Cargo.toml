@@ -23,4 +23,4 @@ flow_impl_derive = "=0.10.0"
 flowrlib = {path = "../flowrlib"}
 
 serde_json = "1.0"
-image = "0.22.3"
+image = "=0.23.10"

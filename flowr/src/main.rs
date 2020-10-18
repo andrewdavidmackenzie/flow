@@ -5,12 +5,14 @@
 //!
 //! Use `flowr` or `flowr --help` or `flowr -h` at the comment line to see the command line options
 
+#[macro_use]
+extern crate error_chain;
+
 use std::env;
 use std::process::exit;
 use std::sync::{Arc, Mutex};
 
 use clap::{App, AppSettings, Arg, ArgMatches};
-use error_chain::error_chain;
 use log::{debug, error, info};
 use simplog::simplog::SimpleLogger;
 use url::Url;
@@ -74,9 +76,13 @@ fn run() -> Result<()> {
     let flow_manifest_url = parse_flow_url(&matches)?;
     let mut loader = Loader::new();
     let provider = MetaProvider {};
+    let runtime_client = Arc::new(Mutex::new(CLIRuntimeClient::new()));
 
     // Load this run-time's library of native (statically linked) implementations
-    loader.add_lib(&provider, "lib://flowruntime", flowruntime::get_manifest(Arc::new(Mutex::new(CLIRuntimeClient {}))), "native")
+    loader.add_lib(&provider,
+                   "lib://flowruntime",
+                   flowruntime::get_manifest(runtime_client.clone()),
+                   "native")
         .chain_err(|| "Could not add 'flowruntime' library to loader")?;
 
     // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
@@ -96,14 +102,13 @@ fn run() -> Result<()> {
 
     let num_parallel_jobs = num_parallel_jobs(&matches, debugger);
 
-    let debug_client = CLI_DEBUG_CLIENT;
-
     pass_flow_args(&matches, &manifest.get_metadata().name);
 
     let submission = Submission::new(manifest,
                                      num_parallel_jobs,
                                      metrics,
-                                     debug_client,
+                                     runtime_client,
+                                     CLI_DEBUG_CLIENT,
                                      debugger);
 
     coordinator.submit(submission);
@@ -236,8 +241,8 @@ fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
     info!("'flowrlib' version {}", info::version());
 
     let cwd = env::current_dir().chain_err(|| "Could not get current working directory value")?;
-    let cwd_url =     Url::from_directory_path(cwd)
-        .map_err(|_|"Could not form a Url for the current working directory")?;
+    let cwd_url = Url::from_directory_path(cwd)
+        .map_err(|_| "Could not form a Url for the current working directory")?;
 
     url_from_string(&cwd_url, matches.value_of("flow-manifest"))
         .chain_err(|| "Unable to parse the URL of the manifest of the flow to run")

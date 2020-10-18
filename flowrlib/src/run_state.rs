@@ -524,7 +524,7 @@ impl RunState {
 
                 // if it produced an output value
                 if let Some(output_v) = output_value {
-                    debug!("Job #{}:\tOutputs {:?}", job.job_id, output_v);
+                    debug!("Job #{}:\tOutputs: {:?}", job.job_id, output_v);
 
                     for destination in &job.destinations {
                         match output_v.pointer(&destination.subroute) {
@@ -542,7 +542,7 @@ impl RunState {
                                                     debugger,
                                 );
                             }
-                            _ => trace!("Job #{}:\t\tNo output value found at '{}'", job.job_id, &destination.subroute)
+                            _ => debug!("Job #{}:\t\tNo output value found at '{}'", job.job_id, &destination.subroute)
                         }
                     }
                 }
@@ -585,7 +585,7 @@ impl RunState {
         if destination.is_generic() {
             function.send(destination.io_number, value);
         } else {
-            match Self::array_order(value) - destination.array_order {
+            match Self::array_order(value) - destination.array_level_serde {
                 0 => function.send(destination.io_number, value),
                 1 => function.send_iter(destination.io_number, value),
                 2 => for array in value.as_array().unwrap().iter() {

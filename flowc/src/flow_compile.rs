@@ -85,13 +85,13 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
                 return Ok("Flow not runnable, so Manifest generation and execution skipped".to_string());
             }
 
-            if options.skip_generation {
-                return Ok("Manifest generation and execution skipped".to_string());
-            }
-
             info!("==== Compiler phase: Generating Manifest");
             let manifest_path = write_flow_manifest(flow, options.debug_symbols, &options.output_dir, &tables)
                 .chain_err(|| "Failed to write manifest")?;
+
+            if options.skip_execution {
+                return Ok("Flow execution skipped".to_string());
+            }
 
             info!("==== Compiler phase: Executing flow from manifest");
             execute_flow(&manifest_path, &options)
