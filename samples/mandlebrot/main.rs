@@ -36,7 +36,7 @@ fn main() {
     let lower_right_args = parse_pair::parse_pair(&args[4], ",").expect("error parsing lower rightcorner point");
     let lower_right = Complex{ re: lower_right_args.0, im: lower_right_args.1};
 
-    let mut pixels = vec![0; bounds.0 * bounds.1];
+    let mut pixels = vec![0; bounds.0 * bounds.1 * 3];
 
     render(&mut pixels, bounds, upper_left, lower_right);
 
@@ -45,7 +45,7 @@ fn main() {
 
 fn render(pixels: &mut [u8], bounds: (usize, usize),
           upper_left: Complex<f64>, lower_right: Complex<f64>) {
-    let rows = pixels.par_chunks_mut(bounds.0);
+    let rows = pixels.par_chunks_mut(bounds.0 * 3);
     rows.into_par_iter()
         .enumerate()
         .for_each(|(row_index, row)| {
@@ -70,7 +70,12 @@ fn render_row(pixels: &mut [u8], bounds: (usize, usize), row_index: usize,
         // columns
         let point = pixel_to_point(bounds, (column, row_index), upper_left, lower_right);
 
-        pixels[offset] = 255 - escapes(point, 255) as u8;
+        let value = escapes(point, 255) as u8;
+        pixels[offset] = value;
+        offset += 1; // move forward a byte in the pixel buffer
+        pixels[offset] = value;
+        offset += 1; // move forward a byte in the pixel buffer
+        pixels[offset] = value;
         offset += 1; // move forward a byte in the pixel buffer
     }
 }
@@ -79,7 +84,7 @@ fn render_row(pixels: &mut [u8], bounds: (usize, usize), row_index: usize,
 fn write_bitmap(filename: &PathBuf, pixels: &[u8], bounds: (usize, usize)) {
     let output = File::create(filename).unwrap();
     let encoder = PngEncoder::new(output);
-    encoder.encode(&pixels, bounds.0 as u32, bounds.1 as u32, ColorType::L8).unwrap();
+    encoder.encode(&pixels, bounds.0 as u32, bounds.1 as u32, ColorType::Rgb8).unwrap();
 }
 
 #[cfg(test)]
