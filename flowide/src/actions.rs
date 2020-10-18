@@ -135,7 +135,7 @@ fn load_libs(loader: &mut Loader, provider: &dyn Provider, flowruntime_manifest:
     // Load the statically linked flowstdlib - before it maybe loaded from WASM
     loader.add_lib(provider, "lib://flowstdlib", flowstdlib::get_manifest(), "flowstdlib").map_err(|e| e.to_string())?;
 
-    Ok("Added the 'flowruntime' and 'flowstdlibs' static libraries".to_string())
+    Ok("Added the 'flowruntime' and 'flowstdlib' static libraries".to_string())
 }
 
 fn load_manifest(manifest: &mut Manifest, manifest_url: &str, arg: Vec<String>) {
@@ -173,7 +173,7 @@ pub fn run_manifest(args: Vec<String>) {
                         let submission = Submission::new(manifest_clone,
                                                          1,
                                                          false,
-                                                         &mut context.client,
+                                                         context.client.clone(),
                                                          debug_client,
                                                          false);
                         let mut coordinator = Coordinator::new(1);

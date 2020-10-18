@@ -6,7 +6,7 @@ use std::io::prelude::*;
 use std::path::Path;
 
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
-use log::debug;
+use log::{debug, info};
 
 use flowrlib::runtime_client::{Command, Response, RuntimeClient};
 
@@ -90,9 +90,8 @@ impl RuntimeClient for CLIRuntimeClient {
     fn flow_end(&mut self) {
         debug!("=========================== Flow execution ended ======================================");
 
-        // flush ImageBuffers to disk
         for (filename, image_buffer) in self.image_buffers.iter() {
-            debug!("Flushing ImageBuffer to file: {}", filename);
+            info!("Flushing ImageBuffer to file: {}", filename);
             image_buffer.save_with_format(Path::new(filename), ImageFormat::Png).unwrap();
         }
     }
@@ -168,6 +167,6 @@ mod test {
         }
         client.flow_end();
 
-        assert!(path.exists());
+        assert!(path.exists(), "Image file was not created");
     }
 }

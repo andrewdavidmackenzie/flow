@@ -96,7 +96,7 @@ pub struct Coordinator {
     job_tx: Sender<Job>,
     /// A channel used to receive Jobs back after execution (now including the job's output)
     job_rx: Receiver<Job>,
-    /// A flag that indeicates a request to enter the debugger has been made
+    /// A flag that indicates a request to enter the debugger has been made
     #[cfg(feature = "debugger")]
     debug_requested: Arc<AtomicBool>,
 }
@@ -158,7 +158,7 @@ pub struct Coordinator {
 /// let mut submission = Submission::new(manifest,
 ///                                     1 /* num_parallel_jobs */,
 ///                                     false /* display_metrics */,
-///                                     Arc::new(Mutex:new(example_client)),
+///                                     Arc::new(Mutex::new(example_client)),
 ///                                     &ExampleDebugClient{},
 ///                                     true /* enter debugger on start */);
 ///
@@ -251,7 +251,7 @@ impl Coordinator {
                 restart = debug_check.1;
 
                 // If debugger request it, exit the inner loop which will cause us to reset state
-                // and restart execution, in the outerloop
+                // and restart execution, in the outer loop
                 if restart {
                     break 'inner;
                 }
@@ -287,7 +287,7 @@ impl Coordinator {
                 if submission.state.number_jobs_running() == 0 &&
                     submission.state.number_jobs_ready() == 0 {
                     // execution is done - but not returning here allows us to go into debugger
-                    // at the end of exeution, inspect state and possibly reset and rerun
+                    // at the end of execution, inspect state and possibly reset and rerun
                     break 'inner;
                 }
             }
@@ -444,7 +444,6 @@ mod test {
 
     #[test]
     fn test_flow_done() {
-        let mut test_client = TestRuntimeClient {};
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);
         let mut submission = Submission::new(manifest, 1, true,
@@ -478,40 +477,20 @@ mod test {
     #[test]
     #[ignore] // Submission currently enters an infinite execution loop so ignore test for now
     fn test_submit() {
-        let mut test_client = TestRuntimeClient {};
-
         let mut coordinator = Coordinator::new(1);
         coordinator.init();
 
         let meta_data = test_meta_data();
         let manifest = Manifest::new(meta_data);
-        let submission = Submission::new(manifest, 1, true,
-                                         Arc::new(Mutex::new(TestRuntimeClient {})),
-                                         #[cfg(feature = "debugger")]
-                                             test_debug_client(),
-                                         #[cfg(feature = "debugger")]
-                                             true,
-        );
-
-        coordinator.submit(submission);
-    }
-
-    #[test]
-    #[ignore] // Submission currently enters an infinite execution loop so ignore test for now
-    #[cfg(feature = "debugger")]
-    fn test_submit_with_debugger() {
-        let mut test_client = TestRuntimeClient {};
-        let mut coordinator = Coordinator::new(1);
-        coordinator.init();
-
-        let meta_data = test_meta_data();
-        let manifest = Manifest::new(meta_data);
-        let submission = Submission::new(manifest, 1, true,
-                                         Arc::new(Mutex::new(TestRuntimeClient {})),
-                                         #[cfg(feature = "debugger")]
-                                             test_debug_client(),
-                                         #[cfg(feature = "debugger")]
-                                             true,
+        let submission = Submission::new(
+            manifest,
+            1,
+            true,
+            Arc::new(Mutex::new(TestRuntimeClient {})),
+            #[cfg(feature = "debugger")]
+                test_debug_client(),
+            #[cfg(feature = "debugger")]
+                true,
         );
 
         coordinator.submit(submission);

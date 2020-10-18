@@ -144,7 +144,7 @@ fn implementation_location_relative(function: &Function, manifest_url: &str) -> 
         info!("Manifest base = '{}'", manifest_base_url.to_string());
         info!("Absolute implementation path = '{}'", implementation_path);
         let relative_path = implementation_url.replace(&format!("{}/", manifest_base_url.as_str()), "");
-        info!("Absolute implementation path = '{}'", relative_path);
+        info!("Relative implementation path = '{}'", relative_path);
         Ok(relative_path)
     }
 }

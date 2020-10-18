@@ -17,17 +17,17 @@ impl Implementation for ImageBuffer {
         let pixel = inputs[0].as_array().unwrap();
         let value = inputs[1].as_array().unwrap();
         let size = inputs[2].as_array().unwrap();
-        let filename = inputs[3].to_string();
-
-        if let Ok(mut client) = self.client.lock() {
-            return match client.send_command(Command::PixelWrite(
-                (pixel[0].as_u64().unwrap() as u32, pixel[1].as_u64().unwrap() as u32),
-                (value[0].as_u64().unwrap() as u8, value[1].as_u64().unwrap() as u8, value[2].as_u64().unwrap() as u8),
-                (size[0].as_u64().unwrap() as u32, size[1].as_u64().unwrap() as u32),
-                filename
-            )) {
-                Response::Ack => (None, RUN_AGAIN),
-                _ => (None, RUN_AGAIN)
+        if let Value::String(filename) = &inputs[3] {
+            if let Ok(mut client) = self.client.lock() {
+                return match client.send_command(Command::PixelWrite(
+                    (pixel[0].as_u64().unwrap() as u32, pixel[1].as_u64().unwrap() as u32),
+                    (value[0].as_u64().unwrap() as u8, value[1].as_u64().unwrap() as u8, value[2].as_u64().unwrap() as u8),
+                    (size[0].as_u64().unwrap() as u32, size[1].as_u64().unwrap() as u32),
+                    filename.to_string()
+                )) {
+                    Response::Ack => (None, RUN_AGAIN),
+                    _ => (None, RUN_AGAIN)
+                }
             }
         }
 
