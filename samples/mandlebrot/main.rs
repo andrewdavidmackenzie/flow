@@ -1,16 +1,17 @@
 #![feature(test)]
 
-use escapes::_escapes;
 use image::ColorType;
 use image::png::PngEncoder;
 use num::Complex;
-use pixel_to_point::_pixel_to_point;
 use rayon::prelude::*;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 
-mod escapes;
+use crate::pixel_to_point::pixel_to_point::pixel_to_point;
+use crate::render_pixel::render_pixel::escapes;
+
+mod render_pixel;
 mod pixel_to_point;
 mod parse_pair;
 
@@ -27,12 +28,12 @@ fn main() {
 
     let filename = PathBuf::from(&args[1]);
 
-    let bounds = parse_pair::_parse_pair(&args[2], "x").expect("error parsing image dimensions");
+    let bounds = parse_pair::parse_pair(&args[2], "x").expect("error parsing image dimensions");
 
-    let upper_left_args: (f64, f64) = parse_pair::_parse_pair(&args[3], ",").expect("error parsing upper left corner point");
+    let upper_left_args: (f64, f64) = parse_pair::parse_pair(&args[3], ",").expect("error parsing upper left corner point");
     let upper_left = Complex { re: upper_left_args.0, im: upper_left_args.1};
 
-    let lower_right_args = parse_pair::_parse_pair(&args[4], ",").expect("error parsing lower rightcorner point");
+    let lower_right_args = parse_pair::parse_pair(&args[4], ",").expect("error parsing lower rightcorner point");
     let lower_right = Complex{ re: lower_right_args.0, im: lower_right_args.1};
 
     let mut pixels = vec![0; bounds.0 * bounds.1];
@@ -49,9 +50,9 @@ fn render(pixels: &mut [u8], bounds: (usize, usize),
         .enumerate()
         .for_each(|(row_index, row)| {
             let row_bounds = (bounds.0, 1);
-            let row_upper_left = _pixel_to_point(bounds, (0, row_index),
+            let row_upper_left = pixel_to_point(bounds, (0, row_index),
                                                  upper_left, lower_right);
-            let row_lower_right = _pixel_to_point(bounds, (bounds.0, row_index),
+            let row_lower_right = pixel_to_point(bounds, (bounds.0, row_index),
                                                   upper_left, lower_right);
             render_row(row, row_bounds, row_index, row_upper_left, row_lower_right);
         });
@@ -67,9 +68,9 @@ fn render_row(pixels: &mut [u8], bounds: (usize, usize), row_index: usize,
 
     for column in 0..bounds.0 {
         // columns
-        let point = _pixel_to_point(bounds, (column, row_index), upper_left, lower_right);
+        let point = pixel_to_point(bounds, (column, row_index), upper_left, lower_right);
 
-        pixels[offset] = 255 - _escapes(point, 255) as u8;
+        pixels[offset] = 255 - escapes(point, 255) as u8;
         offset += 1; // move forward a byte in the pixel buffer
     }
 }

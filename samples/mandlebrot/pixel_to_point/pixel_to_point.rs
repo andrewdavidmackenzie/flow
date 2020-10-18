@@ -3,18 +3,7 @@ use flow_impl_derive::FlowImpl;
 use num::Complex;
 use serde_json::{json, Value};
 
-/*
-    Given the row and column of a pixel in the output image, return the
-    corresponding point on the complex plane.
-
-    `size` is a pair giving the width and height of the image in pixels.
-    `pixel` is a (row, column) pair indicating a particular pixel in that image.
-    `bounds` is two complex numbers - `upper_left` and `lower_right` designating the area our image covers.
-*/
-#[derive(FlowImpl, Debug)]
-pub struct PixelToPoint;
-
-fn pixel_to_point(size: (usize, usize),
+pub fn pixel_to_point(size: (usize, usize),
                   pixel: (usize, usize),
                   upper_left: Complex<f64>,
                   lower_right: Complex<f64>) -> Complex<f64> {
@@ -28,6 +17,16 @@ fn pixel_to_point(size: (usize, usize),
         // but the imaginary component increases as we go up.
     }
 }
+
+/// Given the row and column of a pixel in the output image, return the
+/// corresponding point on the complex plane.
+///
+/// `bounds` is a pair giving the width and height of the image in pixels.
+/// `pixel` is a (row, column) pair indicating a particular pixel in that image.
+/// The `upper_left` and `lower_right` parameters are points on the complex
+/// plane designating the area our image covers.
+#[derive(FlowImpl, Debug)]
+pub struct PixelToPoint;
 
 impl Implementation for PixelToPoint {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, bool) {
@@ -66,6 +65,7 @@ impl Implementation for PixelToPoint {
 #[cfg(test)]
 mod test {
     use flow_impl::Implementation;
+    use num::Complex;
     use serde_json::{json, Value};
     use wasm_bindgen_test::*;
 
@@ -97,6 +97,16 @@ mod test {
         assert_eq!(50, pixel[1]);
         assert_eq!(0.5, point[0]);
         assert_eq!(0.5, point[1]);
+    }
+
+    #[test]
+    fn test_pixel_to_point() {
+        let upper_left = Complex { re: -1.0, im: 1.0 };
+        let lower_right = Complex { re: 1.0, im: -1.0 };
+
+        assert_eq!(super::pixel_to_point((100, 100), (25, 75),
+                                   upper_left, lower_right),
+                   Complex { re: -0.5, im: -0.5 });
     }
 }
 

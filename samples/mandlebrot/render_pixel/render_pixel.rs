@@ -3,23 +3,12 @@ use flow_impl_derive::FlowImpl;
 use num::Complex;
 use serde_json::{json, Value};
 
-/*
-    Given the row and column of a pixel in the output image, return the
-    corresponding point on the complex plane.
-
-    `size` is a pair giving the width and height of the image in pixels.
-    `pixel` is a (row, column) pair indicating a particular pixel in that image.
-    `bounds` is two complex numbers - `upper_left` and `lower_right` designating the area our image covers.
-*/
-#[derive(FlowImpl, Debug)]
-pub struct RenderPixel;
-
 /// Try to determine if 'c' is in the Mandlebrot set, using at most 'limit' iterations to decide
 /// If 'c' is not a member, return 'Some(i)', where 'i' is the number of iterations it took for 'c'
 /// to leave the circle of radius two centered on the origin.
 /// If 'c' seems to be a member (more precisely, if we reached the iteration limit without being
 /// able to prove that 'c' is not a member) return 'None'
-fn escapes(c: Complex<f64>, limit: u64) -> u64 {
+pub fn escapes(c: Complex<f64>, limit: u64) -> u64 {
     if c.norm_sqr() > 4.0 {
         return 0;
     }
@@ -35,6 +24,18 @@ fn escapes(c: Complex<f64>, limit: u64) -> u64 {
 
     return limit;
 }
+
+
+/*
+    Given the row and column of a pixel in the output image, return the
+    corresponding point on the complex plane.
+
+    `size` is a pair giving the width and height of the image in pixels.
+    `pixel` is a (row, column) pair indicating a particular pixel in that image.
+    `bounds` is two complex numbers - `upper_left` and `lower_right` designating the area our image covers.
+*/
+#[derive(FlowImpl, Debug)]
+pub struct RenderPixel;
 
 impl Implementation for RenderPixel {
     /*
@@ -78,12 +79,9 @@ mod test {
     #[test]
     #[wasm_bindgen_test]
     fn pixel() {
-        // Create input vector
-        let pixel = json!([50, 50]);
-        let point = json!([0.5, 0.5]);
+        let pixel_point = json!([[50, 50], [0.5, 0.5]]);
 
-        let inputs: Vec<Value> = vec!(pixel, point);
-
+        let inputs: Vec<Value> = vec!(pixel_point);
         let renderer = super::RenderPixel {};
         let (result, _) = renderer.run(&inputs);
 
@@ -97,5 +95,22 @@ mod test {
         assert_eq!(50, pixel[0]);
         assert_eq!(50, pixel[1]);
         assert_eq!(4, value);
+    }
+
+    #[cfg(nightly)]
+    mod bench_tests {
+        extern crate test;
+
+        use num::Complex;
+        use test::Bencher;
+
+        use super::escapes;
+
+        #[bench]
+        fn bench_escapes(b: &mut Bencher) {
+            let upper_left = Complex { re: -1.20, im: 0.35 };
+
+            b.iter(|| escapes(upper_left, 255));
+        }
     }
 }

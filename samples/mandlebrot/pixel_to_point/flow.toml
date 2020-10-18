@@ -24,4 +24,4 @@ num = "0.3.0"
 wasm-bindgen-test = "0.3.0"
 
 [workspace]
-exclude = ["../../../"]
+exclude = ["../../../", ".."]
