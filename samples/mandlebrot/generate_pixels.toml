@@ -6,7 +6,7 @@ type = "Array/Number"
 
 [[output]]
 name = "pixels"
-type = "Array/Array/Number"
+type = "Array/Number"
 # https://github.com/andrewdavidmackenzie/flow/issues/748
 
 [[process]]
