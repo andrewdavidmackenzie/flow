@@ -241,23 +241,47 @@ mod test {
         assert_eq!(trailing_number, true);
     }
 
-    // #[test]
-    // fn validate_empty_route() {
-    //     let route = Route::from("");
-    //     assert!(route.validate().is_ok());
-    // }
-    //
-    // #[test]
-    // fn validate_root_route() {
-    //     let route = Route::from("/");
-    //     assert!(route.validate().is_ok());
-    // }
-    //
-    // #[test]
-    // fn validate_route() {
-    //     let route = Route::from("/context/f1");
-    //     assert!(route.validate().is_ok());
-    // }
+    #[test]
+    fn valid_process_route() {
+        let route = Route::from("sub_process/i1");
+        assert!(route.validate().is_ok());
+    }
+
+    #[test]
+    fn valid_process_route_with_subroute() {
+        let route = Route::from("sub_process/i1/sub_route");
+        assert!(route.validate().is_ok());
+    }
+
+    #[test]
+    fn valid_input_route() {
+        let route = Route::from("input/i1");
+        assert!(route.validate().is_ok());
+    }
+
+    #[test]
+    fn valid_input_route_with_subroute() {
+        let route = Route::from("input/i1/sub_route");
+        assert!(route.validate().is_ok());
+    }
+
+    #[test]
+    fn valid_output_route() {
+        let route = Route::from("output/i1");
+        assert!(route.validate().is_ok());
+    }
+
+    #[test]
+    fn valid_output_route_with_subroute() {
+        let route = Route::from("output/i1/sub_route");
+        assert!(route.validate().is_ok());
+    }
+
+    #[test]
+    fn validate_invalid_empty_route() {
+        let route = Route::from("");
+        assert!(route.validate().is_err());
+    }
 
     #[test]
     fn validate_invalid_route() {
