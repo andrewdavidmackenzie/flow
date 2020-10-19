@@ -52,8 +52,8 @@ impl Route {
     }
 
     /// Insert another Route at the front of this Route
-    pub fn insert(&mut self, sub_route: &Route) -> &Self {
-        self.insert_str(0, sub_route.as_str());
+    pub fn insert<R: AsRef<str>>(&mut self, sub_route: R) -> &Self {
+        self.insert_str(0, sub_route.as_ref());
         self
     }
 
@@ -109,6 +109,12 @@ impl Route {
         }
 
         (Cow::Borrowed(self), 0, false)
+    }
+}
+
+impl AsRef<str> for Route {
+    fn as_ref(&self) -> &str {
+        self.as_str()
     }
 }
 

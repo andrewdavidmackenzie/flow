@@ -174,7 +174,7 @@ impl SetRoute for Flow {
 
 impl Flow {
     fn default_url() -> String {
-        "file:///".to_string()
+        "file://".to_string()
     }
 
     pub fn default_description() -> String {
@@ -342,5 +342,52 @@ impl Flow {
         } else {
             bail!("{} connections errors found in flow '{}'", error_count, self.source_url)
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::model::name::{HasName, Name};
+
+    #[test]
+    fn test_default_url() {
+        assert_eq!("file://".to_string(), super::Flow::default_url());
+    }
+
+    #[test]
+    fn test_default_description() {
+        assert_eq!("".to_string(), super::Flow::default_description());
+    }
+
+    #[test]
+    fn test_default_version() {
+        assert_eq!("0.0.0".to_string(), super::Flow::default_version());
+    }
+
+    #[test]
+    fn test_default_authors() {
+        assert_eq!(vec!("unknown".to_string()), super::Flow::default_authors());
+    }
+
+    #[test]
+    fn test_default_email() {
+        assert_eq!("unknown@unknown.com".to_string(), super::Flow::default_email());
+    }
+
+    #[test]
+    fn test_display() {
+        println!("{}", super::Flow::default());
+    }
+
+    #[test]
+    fn test_name() {
+        let flow = super::Flow::default();
+        assert_eq!(flow.name(), &Name::default());
+    }
+
+    #[test]
+    fn test_alias() {
+        let flow = super::Flow::default();
+        assert_eq!(flow.alias(), &Name::default());
     }
 }
