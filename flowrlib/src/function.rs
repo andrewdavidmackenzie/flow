@@ -12,7 +12,7 @@ use crate::input::Input;
 use crate::output_connection::OutputConnection;
 
 #[derive(Deserialize, Serialize, Clone)]
-/// `Function` contains all the information needed about a fubction and its implementation
+/// `Function` contains all the information needed about a function and its implementation
 /// to be able to execute a flow using it.
 pub struct Function {
     #[cfg(feature = "debugger")]
@@ -81,7 +81,7 @@ impl fmt::Display for Function {
 }
 
 impl Function {
-    /// Create a new `fubction` with the specified `name`, `route`, `implemenation` etc.
+    /// Create a new `function` with the specified `name`, `route`, `implementation` etc.
     /// This only needs to be used by compilers or IDE generating `manifests` with functions
     /// The library `flowrlib` just deserializes them from the `manifest`
     /// The Vector of outputs:
@@ -181,7 +181,7 @@ impl Function {
     }
 
     /// Accessor for a `Functions` `output_connections` field
-    pub fn output_destinations(&self) -> &Vec<OutputConnection> {
+    pub fn get_output_connections(&self) -> &Vec<OutputConnection> {
         &self.output_connections
     }
 
@@ -265,15 +265,7 @@ mod test {
 
     #[test]
     fn can_send_simple_object() {
-        let mut function = Function::new(
-                                    #[cfg(feature = "debugger")]
-                                          "test".to_string(),
-                                         #[cfg(feature = "debugger")]
-                                         "/test".to_string(),
-                                         "/test".to_string(),
-                                         vec!(Input::new(&None)),
-                                         0, 0,
-                                         &[], false);
+        let mut function = test_function();
         function.init_inputs(true);
         function.send(0, &json!(1));
         assert_eq!(json!(1), function.take_input_set().unwrap().remove(0),
@@ -282,16 +274,7 @@ mod test {
 
     #[test]
     fn can_send_array_object() {
-        let mut function = Function::new(
-                                    #[cfg(feature = "debugger")]
-                                        "test".to_string(),
-                                         #[cfg(feature = "debugger")]
-                                         "/test".to_string(),
-                                         "/test".to_string(),
-                                         // vec!(Input::new(1, &None, true, false)),
-                                         vec!(Input::new(&None)),
-                                         0, 0,
-                                         &[], false);
+        let mut function = test_function();
         function.init_inputs(true);
         function.send(0, &json!([1, 2]));
         assert_eq!(json!([1, 2]), function.take_input_set().unwrap().remove(0),
@@ -300,15 +283,7 @@ mod test {
 
     #[test]
     fn test_array_to_non_array() {
-        let mut function = Function::new(
-            #[cfg(feature = "debugger")]
-                "test".to_string(),
-            #[cfg(feature = "debugger")]
-                "/test".to_string(),
-            "/test".to_string(),
-            vec!(Input::new(&None)),
-            0, 0,
-            &[], false);
+        let mut function = test_function();
         function.init_inputs(true);
         function.send(0, &json!([1, 2]));
         assert_eq!(function.take_input_set().unwrap().remove(0), json!([1, 2]),
@@ -368,7 +343,7 @@ mod test {
         function.init_inputs(true);
         function.send(0, &json!(1));
         let _ = format!("{}", function);
-        assert_eq!(&vec!(output_route), function.output_destinations(), "output routes not as originally set");
+        assert_eq!(&vec!(output_route), function.get_output_connections(), "output routes not as originally set");
     }
 
     #[test]
