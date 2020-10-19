@@ -42,10 +42,10 @@ pub struct IO {
 }
 
 impl IO {
-    pub fn new<S: Into<DataType>>(datatype: S, route: &Route) -> Self {
+    pub fn new<D: Into<DataType>, R: Into<Route> >(datatype: D, route: R) -> Self {
         let mut io = IO::default();
         io.datatype = datatype.into();
-        io.route = route.clone();
+        io.route = route.into();
         io
     }
 
@@ -70,7 +70,7 @@ impl IO {
         self.io_type = io_type.clone();
     }
 
-    pub fn set_route_from_parent(&mut self, parent: &Route, io_type: &IOType) {
+    fn set_route_from_parent(&mut self, parent: &Route, io_type: &IOType) {
         if self.name().is_empty() {
             self.set_route(&parent, &io_type);
         } else {

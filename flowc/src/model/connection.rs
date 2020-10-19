@@ -91,7 +91,7 @@ impl Connection {
             return true;
         }
 
-        // Faith that "Value" elemnts can be converted to whatever the destination array is
+        // Faith that "Value" elements can be converted to whatever the destination array is
         if from.array_of(&DataType::from("Value")) && to.is_array() {
             return true;
         }
@@ -104,7 +104,6 @@ impl Connection {
 mod test {
     use crate::model::datatype::DataType;
     use crate::model::io::IO;
-    use crate::model::route::Route;
 
     use super::Connection;
 
@@ -172,57 +171,57 @@ mod test {
     /// serialized and sent to input one by one)
     #[test]
     fn simple_to_simple() {
-        let from_io = IO::new("String", &Route::from("/p1/output"));
-        let to_io = IO::new("String", &Route::from("/p2"));
+        let from_io = IO::new("String", "/p1/output");
+        let to_io = IO::new("String", "/p2");
         assert!(Connection::compatible_types(&from_io.datatype(), &to_io.datatype()));
     }
 
     #[test]
     fn simple_indexed_to_simple() {
-        let from_io = IO::new("String", &Route::from("/p1/output/0"));
-        let to_io = IO::new("String", &Route::from("/p2"));
+        let from_io = IO::new("String", "/p1/output/0");
+        let to_io = IO::new("String", "/p2");
         assert!(Connection::compatible_types(&from_io.datatype(), &to_io.datatype()));
     }
 
     #[test]
     fn simple_to_simple_mismatch() {
-        let from_io = IO::new("String", &Route::from("/p1/output"));
-        let to_io = IO::new("Number", &Route::from("/p2"));
+        let from_io = IO::new("String", "/p1/output");
+        let to_io = IO::new("Number", "/p2");
         assert_eq!(Connection::compatible_types(&from_io.datatype(), &to_io.datatype()), false);
     }
 
     #[test]
     fn simple_indexed_to_array() {
-        let from_io = IO::new("String", &Route::from("/p1/output/0"));
-        let to_io = IO::new("Array/String", &Route::from("/p2"));
+        let from_io = IO::new("String", "/p1/output/0");
+        let to_io = IO::new("Array/String", "/p2");
         assert!(Connection::compatible_types(&from_io.datatype(), &to_io.datatype()));
     }
 
     #[test]
     fn simple_to_array() {
-        let from_io = IO::new("String", &Route::from("/p1/output"));
-        let to_io = IO::new("Array/String", &Route::from("/p2"));
+        let from_io = IO::new("String", "/p1/output");
+        let to_io = IO::new("Array/String", "/p2");
         assert!(Connection::compatible_types(&from_io.datatype(), &to_io.datatype()));
     }
 
     #[test]
     fn simple_to_array_mismatch() {
-        let from_io = IO::new("String", &Route::from("/p1/output"));
-        let to_io = IO::new("Array/Number", &Route::from("/p2"));
+        let from_io = IO::new("String", "/p1/output");
+        let to_io = IO::new("Array/Number", "/p2");
         assert_eq!(Connection::compatible_types(&from_io.datatype(), &to_io.datatype()), false);
     }
 
     #[test]
     fn array_to_array() {
-        let from_io = IO::new("Array", &Route::from("/p1/output"));
-        let to_io = IO::new("Array", &Route::from("/p2"));
+        let from_io = IO::new("Array", "/p1/output");
+        let to_io = IO::new("Array", "/p2");
         assert!(Connection::compatible_types(&from_io.datatype(), &to_io.datatype()));
     }
 
     #[test]
     fn array_to_simple() {
-        let from_io = IO::new("Array/String", &Route::from("/p1/output"));
-        let to_io = IO::new("String", &Route::from("/p2"));
+        let from_io = IO::new("Array/String", "/p1/output");
+        let to_io = IO::new("String", "/p2");
         assert!(Connection::compatible_types(&from_io.datatype(), &to_io.datatype()));
     }
 }

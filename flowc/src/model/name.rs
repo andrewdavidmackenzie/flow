@@ -11,6 +11,7 @@ use crate::model::route::Route;
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct Name(String);
 
+// This is used for serde in io.rs
 impl Name {
     pub fn empty(&self) -> bool {
         self.is_empty()

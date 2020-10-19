@@ -54,7 +54,7 @@ pub fn write_flow_to_dot(flow: &Flow, dot_file: &mut dyn Write, output_dir: &Pat
 
     // Process References
     if let Some(process_refs) = &flow.process_refs {
-        contents.push_str("\n\t// Process Referencess\n");
+        contents.push_str("\n\t// Process References\n");
         for flow_ref in process_refs {
             match flow_ref.process {
                 FlowProcess(ref flow) => {
@@ -186,10 +186,10 @@ fn node_from_io_route(route: &Route, name: &Name, io_set: &IOSet) -> (String, St
     let label = if !find(io_set, route) { name.to_string() } else { "".to_string() };
 
     if name.is_empty() || find(io_set, route) {
-        (route.clone().to_string(), label)
+        (route.to_string(), label)
     } else {
         let length_without_io_name = route.len() - name.len() - 1; // 1 for '/'
-        (route.clone()[..length_without_io_name].to_string(), label)
+        (route.to_string()[..length_without_io_name].to_string(), label)
     }
 }
 
@@ -320,7 +320,7 @@ fn add_input_set(input_set: &IOSet, to: &Route, connect_subflow: bool) -> String
                 if connect_subflow {
                     // and connect the input to the sub-flow
                     string.push_str(&format!("\t\"{}\" -> \"{}\":n [style=invis, headtooltip=\"{}\"];\n",
-                                             input.route(), to, input.name()));
+                                             input.route(), to.to_string(), input.name()));
                 }
             }
         }
@@ -348,7 +348,7 @@ fn add_output_set(output_set: &IOSet, from: &Route, connect_subflow: bool) -> St
                     // and connect the output to the sub-flow
                     let output_port = output_name_to_port(output.name());
                     string.push_str(&format!("\t\"{}\":{} -> \"{}\"[style=invis, headtooltip=\"{}\"];\n",
-                                             from, output_port, output.route(), output.name()));
+                                             from.to_string(), output_port, output.route(), output.name()));
                 }
             }
         }

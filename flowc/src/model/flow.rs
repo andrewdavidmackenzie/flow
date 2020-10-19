@@ -21,8 +21,8 @@ use crate::model::name::Name;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 use crate::model::process_reference::ProcessReference;
+use crate::model::route::{Route, RouteType};
 use crate::model::route::HasRoute;
-use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
 
@@ -96,7 +96,7 @@ impl fmt::Display for Flow {
             }
         }
 
-        writeln!(f, "\touputs:").unwrap();
+        writeln!(f, "\toutputs:").unwrap();
         if let Some(ref outputs) = self.outputs {
             for output in outputs {
                 writeln!(f, "\t\t\t\t\t{:#?}", output).unwrap();
@@ -136,7 +136,7 @@ impl Default for Flow {
             lib_references: vec!(),
             description: Flow::default_description(),
             version: Flow::default_version(),
-            authors: Flow::default_authors()
+            authors: Flow::default_authors(),
         }
     }
 }
@@ -174,7 +174,7 @@ impl SetRoute for Flow {
 
 impl Flow {
     fn default_url() -> String {
-        "file:///".to_string()
+        "file://".to_string()
     }
 
     pub fn default_description() -> String {
@@ -221,22 +221,22 @@ impl Flow {
             for process_ref in process_refs {
                 debug!("\tLooking in process_ref with alias = '{}'", process_ref.alias);
                 if subprocess_alias == process_ref.alias() {
-                    match process_ref.process {
+                    return match process_ref.process {
                         FlowProcess(ref mut sub_flow) => {
                             debug!("\tFlow sub-process with matching name found, name = '{}'", process_ref.alias);
                             let io_name = Name::from(route);
-                            return match direction {
+                            match direction {
                                 Direction::TO => sub_flow.inputs.find_by_name(&io_name, initial_value),
                                 Direction::FROM => sub_flow.outputs.find_by_name(&io_name, &None)
-                            };
+                            }
                         }
                         FunctionProcess(ref mut function) => {
-                            return match direction {
+                            match direction {
                                 Direction::TO => function.inputs.find_by_route(route, initial_value),
                                 Direction::FROM => function.get_outputs().find_by_route(route, &None)
-                            };
+                            }
                         }
-                    }
+                    };
                 }
             }
             bail!("Could not find sub-process named '{}'", subprocess_alias);
@@ -249,35 +249,28 @@ impl Flow {
     // Then from the object find the IO (by name or route, probably route) in common code, maybe using IOSet directly?
     pub fn get_route_and_type(&mut self, direction: Direction, route: &Route,
                               initial_value: &Option<InputInitializer>) -> Result<IO> {
-        let segments: Vec<&str> = route.split('/').collect();
-        // TODO move this into validation of route when it is deserialized?
-        if segments.is_empty() {
-            bail!("Invalid connection {:?} '{}'", direction, route);
-        }
-
         debug!("Looking for connection {:?} '{}'", direction, route);
-        match (&direction, segments[0]) {
-            (&Direction::FROM, "input") => {
+        match (&direction, route.route_type()) {
+            (&Direction::FROM, RouteType::Input(input_name, sub_route)) => {
                 // make sure the sub-route of the input is added to the source of the connection
-                let mut from = self.inputs.find_by_name(&Name::from(segments[1]), &None)?;
-                let sub_route = Route::from(segments[2..].join("/"));
-                if !sub_route.is_empty() {
-                    // TODO set other fields correctly such as type etc
-                    from.route_mut().extend(&sub_route);
-                }
+                let mut from = self.inputs.find_by_name(&input_name, &None)?;
+                // accumulate any subroute within the input
+                from.route_mut().extend(&sub_route);
                 Ok(from)
             }
-            (&Direction::TO, "output") if segments.len() == 2 => {
-                self.outputs.find_by_name(&Name::from(segments[1]), initial_value)
+            (&Direction::TO, RouteType::Output(output_name)) => {
+                self.outputs.find_by_name(&output_name, initial_value)
             }
-            (&Direction::TO, process_name) | (&Direction::FROM, process_name) => {
-                // TODO what if the whole route is a route to a sub-process output and then
-                // a selector within that output... we should walk down thru the route looking for
-                // the sub-process then take the rest as a sub-route within the output?
-                let sub_route = Route::from(segments[1..].join("/"));
-                self.get_io_subprocess(&Name::from(process_name), direction,
-                                       &sub_route, initial_value)
+            (_, RouteType::Internal(process_name, sub_route)) => {
+                self.get_io_subprocess(&process_name, direction, &sub_route, initial_value)
             }
+            (&Direction::FROM, RouteType::Output(output_name)) => {
+                bail!("Invalid connection FROM an output named: '{}'", output_name)
+            }
+            (&Direction::TO, RouteType::Input(input_name, sub_route)) => {
+                bail!("Invalid connection TO an input named: '{}' with sub_route: '{}'", input_name, sub_route)
+            }
+            (_, RouteType::Invalid(error)) => bail!(error)
         }
     }
 
@@ -292,7 +285,7 @@ impl Flow {
             "flow_name/io_name"
             "function_name/io_name"
 
-        Propogate any initializers on a flow input into the input (subflow or funcion) it is connected to
+        Propagate any initializers on a flow input into the input (subflow or function) it is connected to
     */
     pub fn build_connections(&mut self) -> Result<()> {
         if self.connections.is_none() { return Ok(()); }
@@ -349,5 +342,52 @@ impl Flow {
         } else {
             bail!("{} connections errors found in flow '{}'", error_count, self.source_url)
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::model::name::{HasName, Name};
+
+    #[test]
+    fn test_default_url() {
+        assert_eq!("file://".to_string(), super::Flow::default_url());
+    }
+
+    #[test]
+    fn test_default_description() {
+        assert_eq!("".to_string(), super::Flow::default_description());
+    }
+
+    #[test]
+    fn test_default_version() {
+        assert_eq!("0.0.0".to_string(), super::Flow::default_version());
+    }
+
+    #[test]
+    fn test_default_authors() {
+        assert_eq!(vec!("unknown".to_string()), super::Flow::default_authors());
+    }
+
+    #[test]
+    fn test_default_email() {
+        assert_eq!("unknown@unknown.com".to_string(), super::Flow::default_email());
+    }
+
+    #[test]
+    fn test_display() {
+        println!("{}", super::Flow::default());
+    }
+
+    #[test]
+    fn test_name() {
+        let flow = super::Flow::default();
+        assert_eq!(flow.name(), &Name::default());
+    }
+
+    #[test]
+    fn test_alias() {
+        let flow = super::Flow::default();
+        assert_eq!(flow.alias(), &Name::default());
     }
 }

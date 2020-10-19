@@ -224,7 +224,7 @@ impl Default for Function {
             implementation: "".to_owned(),
             alias: Name::default(),
             inputs: None,
-            outputs: Some(vec!(IO::new("Value", &Route::default()))),
+            outputs: Some(vec!(IO::new("Value", Route::default()))),
             source_url: Function::default_source_url(),
             route: Route::default(),
             lib_reference: None,
