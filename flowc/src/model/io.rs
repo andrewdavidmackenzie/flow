@@ -70,7 +70,7 @@ impl IO {
         self.io_type = io_type.clone();
     }
 
-    pub fn set_route_from_parent(&mut self, parent: &Route, io_type: &IOType) {
+    fn set_route_from_parent(&mut self, parent: &Route, io_type: &IOType) {
         if self.name().is_empty() {
             self.set_route(&parent, &io_type);
         } else {

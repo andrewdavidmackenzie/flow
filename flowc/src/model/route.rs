@@ -151,15 +151,15 @@ impl From<&str> for Route {
     }
 }
 
-impl From<&String> for Route {
-    fn from(string: &String) -> Self {
-        Route(string.to_string())
-    }
-}
-
 impl From<String> for Route {
     fn from(string: String) -> Self {
         Route(string)
+    }
+}
+
+impl From<&String> for Route {
+    fn from(string: &String) -> Self {
+        Route(string.to_string())
     }
 }
 
@@ -172,8 +172,27 @@ impl From<&Name> for Route {
 #[cfg(test)]
 mod test {
     use crate::compiler::loader::Validate;
+    use crate::model::name::Name;
 
     use super::Route;
+
+    #[test]
+    fn test_from_string() {
+        let route = Route::from("my-route".to_string());
+        assert_eq!(route, Route::from("my-route"));
+    }
+
+    #[test]
+    fn test_from_ref_string() {
+        let route = Route::from(&format!("{}{}", "my-route", "/subroute"));
+        assert_eq!(route, Route::from("my-route/subroute"));
+    }
+
+    #[test]
+    fn test_from_name() {
+        let name = Name::from("my-route-name");
+        assert_eq!(Route::from(&name), Route::from("my-route-name"));
+    }
 
     #[test]
     fn test_route_pop() {
