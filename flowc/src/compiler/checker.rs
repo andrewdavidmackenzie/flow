@@ -22,7 +22,7 @@ pub fn check_connections(tables: &mut GenerationTables) -> Result<()> {
 }
 
 /*
-    Check for duplicate connections
+    Remove duplicate connections from a list
 */
 fn remove_duplicates(connections: &mut Vec<Connection>) -> Result<()> {
     let mut uniques = HashSet::<String>::new();
@@ -112,30 +112,29 @@ mod test {
     use crate::model::connection::Connection;
     use crate::model::io::IO;
     use crate::model::name::Name;
-    use crate::model::route::Route;
 
     use super::remove_duplicates;
 
     /*
-                                                                Test that when two functions are connected doubly, the connection gets reduced to a single one
-                                                            */
+                                                                    Test that when two functions are connected doubly, the connection gets reduced to a single one
+                                                                */
     #[test]
-    fn collapse_double_connection() {
+    fn remove_duplicated_connection() {
         let first = Connection {
             name: Some(Name::from("first")),
-            from: Route::from("/r1"),
-            to: Route::from("/r2"),
-            from_io: IO::new("String", &Route::from("/r1")),
-            to_io: IO::new("String", &Route::from("/r2")),
+            from: "/r1".into(),
+            to: "/r2".into(),
+            from_io: IO::new("String", "/r1"),
+            to_io: IO::new("String", "/r2"),
             level: 0,
         };
 
         let second = Connection {
             name: Some(Name::from("second")),
-            from: Route::from("/r1"),
-            to: Route::from("/r2"),
-            from_io: IO::new("String", &Route::from("/r1")),
-            to_io: IO::new("String", &Route::from("/r2")),
+            from: "/r1".into(),
+            to: "/r2".into(),
+            from_io: IO::new("String", "/r1"),
+            to_io: IO::new("String", "/r2"),
             level: 0,
         };
 

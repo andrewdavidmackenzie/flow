@@ -42,10 +42,10 @@ pub struct IO {
 }
 
 impl IO {
-    pub fn new<S: Into<DataType>>(datatype: S, route: &Route) -> Self {
+    pub fn new<D: Into<DataType>, R: Into<Route> >(datatype: D, route: R) -> Self {
         let mut io = IO::default();
         io.datatype = datatype.into();
-        io.route = route.clone();
+        io.route = route.into();
         io
     }
 

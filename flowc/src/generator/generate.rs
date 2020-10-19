@@ -63,7 +63,7 @@ impl From<&IO> for Input {
 
 /*
     Paths in the manifest are relative to the location of the manifest file, to make the file
-    and associated files relocatable (and manybe packagable into a ZIP etc). So we use manifest_url
+    and associated files relocatable (and maybe packaged into a ZIP etc). So we use manifest_url
     as the location other file paths are made relative to.
 */
 pub fn create_manifest(flow: &Flow, debug_symbols: bool, manifest_url: &str, tables: &GenerationTables)
@@ -125,7 +125,7 @@ fn function_to_runtimefunction(manifest_url: &str, function: &Function, debug_sy
 /*
     Get the location of the implementation - relative to the Manifest if it is a provided implementation
 */
-// TODO generalize this for Urls, not just files - will require changing the function.get_implementaion()
+// TODO generalize this for Urls, not just files - will require changing the function.get_implementation()
 fn implementation_location_relative(function: &Function, manifest_url: &str) -> Result<String> {
     if let Some(ref lib_reference) = function.get_lib_reference() {
         Ok(format!("lib://{}/{}", lib_reference, &function.name()))
@@ -172,8 +172,8 @@ mod test {
             Name::from("print"),
             Some(vec!()),
             Some(vec!(
-                IO::new("Value", &Route::default()),
-                IO::new("String", &Route::default())
+                IO::new("Value", Route::default()),
+                IO::new("String", Route::default())
             )),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
@@ -217,7 +217,7 @@ mod test {
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
             Some(vec!()),
-            Some(vec!(IO::new("String", &Route::default()))),
+            Some(vec!(IO::new("String", Route::default()))),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
@@ -253,7 +253,7 @@ mod test {
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
             Some(vec!()),
-            Some(vec!(IO::new("String", &Route::default()))),
+            Some(vec!(IO::new("String", Route::default()))),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
@@ -285,7 +285,7 @@ mod test {
 
     #[test]
     fn function_with_initialized_input_generation() {
-        let mut io = IO::new("String", &Route::default());
+        let mut io = IO::new("String", Route::default());
         io.set_initializer(&Some(InputInitializer::Once(json!(1))));
 
         let function = Function::new(
@@ -325,7 +325,7 @@ mod test {
 
     #[test]
     fn function_with_constant_input_generation() {
-        let mut io = IO::new("String", &Route::default());
+        let mut io = IO::new("String", Route::default());
         io.set_initializer(&Some(InputInitializer::Always(json!(1))));
 
         let function = Function::new(
@@ -365,7 +365,7 @@ mod test {
 
     #[test]
     fn function_with_array_input_generation() {
-        let io = IO::new("Array/String", &Route::default());
+        let io = IO::new("Array/String", Route::default());
 
         let function = Function::new(
             Name::from("Stdout"),
@@ -406,7 +406,7 @@ mod test {
             Name::from("print"),
             Some(vec!()),
             Some(vec!(
-                IO::new("String", &Route::default())
+                IO::new("String", Route::default())
             )),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
@@ -450,7 +450,7 @@ mod test {
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
             Some(vec!()),
-            Some(vec!(IO::new("Array", &Route::default()))),
+            Some(vec!(IO::new("Array", Route::default()))),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),

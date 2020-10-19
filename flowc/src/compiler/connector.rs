@@ -218,17 +218,17 @@ fn find_function_destinations(prev_subroute: Route, from_io_route: &Route, from_
                     }
                     IOType::FlowInput => {
                         debug!("\t\tFollowing connection into sub-flow via '{}'", from_io_route);
-                        let new_dests = &mut find_function_destinations(accumulated_source_subroute, &next_connection.to_io.route(),
-                                                                        next_connection.level, connections);
+                        let new_destinations = &mut find_function_destinations(accumulated_source_subroute, &next_connection.to_io.route(),
+                                                                               next_connection.level, connections);
                         // TODO accumulate the source subroute that builds up as we go
-                        destinations.append(new_dests);
+                        destinations.append(new_destinations);
                     }
                     IOType::FlowOutput => {
                         debug!("\t\tFollowing connection out of flow via '{}'", from_io_route);
-                        let new_dests = &mut find_function_destinations(accumulated_source_subroute, &next_connection.to_io.route(),
+                        let new_destinations = &mut find_function_destinations(accumulated_source_subroute, &next_connection.to_io.route(),
                                                                         next_connection.level, connections);
                         // TODO accumulate the source subroute that builds up as we go
-                        destinations.append(new_dests);
+                        destinations.append(new_destinations);
                     }
                 }
             }
@@ -298,15 +298,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                                                                                                                    Create a HashTable of routes for use in tests.
-                                                                                                                    Each entry (K, V) is:
-                                                                                                                    - Key   - the route to a function's IO
-                                                                                                                    - Value - a tuple of
-                                                                                                                                - sub-route (or IO name) from the function to be used at runtime
-                                                                                                                                - the id number of the function in the functions table, to select it at runtime
+                                                                                                                            Create a HashTable of routes for use in tests.
+                                                                                                                            Each entry (K, V) is:
+                                                                                                                            - Key   - the route to a function's IO
+                                                                                                                            - Value - a tuple of
+                                                                                                                                        - sub-route (or IO name) from the function to be used at runtime
+                                                                                                                                        - the id number of the function in the functions table, to select it at runtime
 
-                                                                                                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                                                                                                 */
+                                                                                                                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                                                                                                         */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (HashMap<Route, (Route, usize)>, Vec<(&'static str, Route, Option<(Route, usize)>)>) {
             // make sure a corresponding entry (if applicable) is in the table to give the expected response
@@ -358,8 +358,8 @@ mod test {
                 name: Some(Name::from("left")),
                 from: Route::from("/f1/a"),
                 to: Route::from("/f2/a"),
-                from_io: IO::new("String", &Route::from("/f1/a")),
-                to_io: IO::new("String", &Route::from("/f2/a")),
+                from_io: IO::new("String", "/f1/a"),
+                to_io: IO::new("String", "/f2/a"),
                 level: 0,
             }
         }
@@ -380,8 +380,8 @@ mod test {
                 name: Some(Name::from("left")),
                 from: Route::from("/function1"),
                 to: Route::from("/flow2/a"),
-                from_io: IO::new("String", &Route::from("/function1")),
-                to_io: IO::new("String", &Route::from("/flow2/a")),
+                from_io: IO::new("String", "/function1"),
+                to_io: IO::new("String", "/flow2/a"),
                 level: 0,
             };
             left_side.from_io.set_flow_io(IOType::FunctionIO);
@@ -392,8 +392,8 @@ mod test {
                 name: Some(Name::from("unused")),
                 from: Route::from("/flow2/a"),
                 to: Route::from("/flow2/f4/a"),
-                from_io: IO::new("String", &Route::from("/flow2/a")),
-                to_io: IO::new("String", &Route::from("/flow2/f4/a")),
+                from_io: IO::new("String", "/flow2/a"),
+                to_io: IO::new("String", "/flow2/f4/a"),
                 level: 1,
             };
             extra_one.from_io.set_flow_io(IOType::FlowInput);
@@ -403,8 +403,8 @@ mod test {
                 name: Some(Name::from("right")),
                 from: Route::from("/flow2/a"),
                 to: Route::from("/flow2/function3"),
-                from_io: IO::new("String", &Route::from("/flow2/a")),
-                to_io: IO::new("String", &Route::from("/flow2/function3")),
+                from_io: IO::new("String", "/flow2/a"),
+                to_io: IO::new("String", "/flow2/function3"),
                 level: 1,
             };
             right_side.from_io.set_flow_io(IOType::FlowInput);
@@ -430,8 +430,8 @@ mod test {
                 name: Some(Name::from("left")),
                 from: Route::from("/f1"),
                 to: Route::from("/f2/a"),
-                from_io: IO::new("String", &Route::from("/f1")),
-                to_io: IO::new("String", &Route::from("/f2/a")),
+                from_io: IO::new("String", "/f1"),
+                to_io: IO::new("String", "/f2/a"),
                 level: 0,
             };
             left_side.from_io.set_flow_io(IOType::FunctionIO);
@@ -441,8 +441,8 @@ mod test {
                 name: Some(Name::from("right1")),
                 from: Route::from("/f2/a"),
                 to: Route::from("/f2/value1"),
-                from_io: IO::new("String", &Route::from("/f2/a")),
-                to_io: IO::new("String", &Route::from("/f2/value1")),
+                from_io: IO::new("String", "/f2/a"),
+                to_io: IO::new("String", "/f2/value1"),
                 level: 1,
             };
             right_side_one.from_io.set_flow_io(IOType::FlowInput);
@@ -452,8 +452,8 @@ mod test {
                 name: Some(Name::from("right2")),
                 from: Route::from("/f2/a"),
                 to: Route::from("/f2/value2"),
-                from_io: IO::new("String", &Route::from("/f2/a")),
-                to_io: IO::new("String", &Route::from("/f2/value2")),
+                from_io: IO::new("String", "/f2/a"),
+                to_io: IO::new("String", "/f2/value2"),
                 level: 1,
             };
             right_side_two.from_io.set_flow_io(IOType::FlowInput);
@@ -476,8 +476,8 @@ mod test {
                 name: Some(Name::from("value-to-f1:a at context level")),
                 from: Route::from("/value"),
                 to: Route::from("/flow1/a"),
-                from_io: IO::new("String", &Route::from("/value")),
-                to_io: IO::new("String", &Route::from("/flow1/a")),
+                from_io: IO::new("String", "/value"),
+                to_io: IO::new("String", "/flow1/a"),
                 level: 0,
             };
             first_level.from_io.set_flow_io(IOType::FunctionIO);
@@ -487,8 +487,8 @@ mod test {
                 name: Some(Name::from("subflow_connection")),
                 from: Route::from("/flow1/a"),
                 to: Route::from("/flow1/flow2/a"),
-                from_io: IO::new("String", &Route::from("/flow1/a")),
-                to_io: IO::new("String", &Route::from("/flow1/flow2/a")),
+                from_io: IO::new("String", "/flow1/a"),
+                to_io: IO::new("String", "/flow1/flow2/a"),
                 level: 1,
             };
             second_level.from_io.set_flow_io(IOType::FlowInput);
@@ -498,8 +498,8 @@ mod test {
                 name: Some(Name::from("sub_subflow_connection")),
                 from: Route::from("/flow1/flow2/a"),
                 to: Route::from("/flow1/flow2/func/in"),
-                from_io: IO::new("String", &Route::from("/flow1/flow2/a")),
-                to_io: IO::new("String", &Route::from("/flow1/flow2/func/in")),
+                from_io: IO::new("String", "/flow1/flow2/a"),
+                to_io: IO::new("String", "/flow1/flow2/func/in"),
                 level: 2,
             };
             third_level.from_io.set_flow_io(IOType::FlowInput);
@@ -523,8 +523,8 @@ mod test {
                 name: Some(Name::from("right")),
                 from: Route::from("/f3/a"),
                 to: Route::from("/f4/a"),
-                from_io: IO::new("String", &Route::from("/f3/a")),
-                to_io: IO::new("String", &Route::from("/f4/a")),
+                from_io: IO::new("String", "/f3/a"),
+                to_io: IO::new("String", "/f4/a"),
                 level: 0,
             };
 
