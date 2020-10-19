@@ -70,7 +70,7 @@ impl Route {
     }
 
     pub fn route_type(&self) -> RouteType {
-        let segments = self.segments();
+        let segments: Vec<&str> = self.split('/').collect();
 
         match segments[0] {
             "input" => RouteType::Input(segments[1].into(), segments[2..].join("/").into()),
@@ -80,15 +80,10 @@ impl Route {
         }
     }
 
-    /// Split a route into it's segment parts, separated by '/' in the full route
-    pub fn segments(&self) -> Vec<&str> {
-        self.split('/').collect()
-    }
-
     /// Return a route that is one level up, such that
     ///     `/context/function/output/subroute -> /context/function/output`
     pub fn pop(&self) -> (Cow<Route>, Option<Route>) {
-        let mut segments = self.segments();
+        let mut segments: Vec<&str> = self.split('/').collect();
         let sub_route = segments.pop();
         match sub_route {
             None => (Cow::Borrowed(self), None),

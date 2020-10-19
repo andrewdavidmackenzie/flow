@@ -226,7 +226,7 @@ fn find_function_destinations(prev_subroute: Route, from_io_route: &Route, from_
                     IOType::FlowOutput => {
                         debug!("\t\tFollowing connection out of flow via '{}'", from_io_route);
                         let new_destinations = &mut find_function_destinations(accumulated_source_subroute, &next_connection.to_io.route(),
-                                                                        next_connection.level, connections);
+                                                                               next_connection.level, connections);
                         // TODO accumulate the source subroute that builds up as we go
                         destinations.append(new_destinations);
                     }
@@ -298,15 +298,15 @@ mod test {
         use super::super::get_source;
 
         /*
-                                                                                                                                    Create a HashTable of routes for use in tests.
-                                                                                                                                    Each entry (K, V) is:
-                                                                                                                                    - Key   - the route to a function's IO
-                                                                                                                                    - Value - a tuple of
-                                                                                                                                                - sub-route (or IO name) from the function to be used at runtime
-                                                                                                                                                - the id number of the function in the functions table, to select it at runtime
+                                                                                                                                            Create a HashTable of routes for use in tests.
+                                                                                                                                            Each entry (K, V) is:
+                                                                                                                                            - Key   - the route to a function's IO
+                                                                                                                                            - Value - a tuple of
+                                                                                                                                                        - sub-route (or IO name) from the function to be used at runtime
+                                                                                                                                                        - the id number of the function in the functions table, to select it at runtime
 
-                                                                                                                                    Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                                                                                                                 */
+                                                                                                                                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                                                                                                                                         */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (HashMap<Route, (Route, usize)>, Vec<(&'static str, Route, Option<(Route, usize)>)>) {
             // make sure a corresponding entry (if applicable) is in the table to give the expected response
