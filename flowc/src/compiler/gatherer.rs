@@ -10,25 +10,23 @@ use crate::model::process::Process::FunctionProcess;
 */
 pub fn gather_functions_and_connections(flow: &Flow, tables: &mut GenerationTables, level: usize) {
     // Add Connections from this flow hierarchy to the connections table
-    if let Some(ref connections) = flow.connections {
-        let mut conns = connections.clone();
-        for con in &mut conns {
+    if let Some(ref flow_connections) = flow.connections {
+        let mut connections = flow_connections.clone();
+        for con in &mut connections {
             con.level = level;
         };
-        tables.connections.append(&mut conns);
+        tables.connections.append(&mut connections);
     }
 
     // Do the same for all subprocesses referenced from this one
-    if let Some(ref process_refs) = flow.process_refs {
-        for process_ref in process_refs {
-            match process_ref.process {
-                FlowProcess(ref flow) => {
-                    gather_functions_and_connections(flow, tables, level + 1); // recurse
-                }
-                FunctionProcess(ref function) => {
-                    // Add Functions from this flow to the table of functions
-                    tables.functions.push(function.clone());
-                }
+    for subprocess in &flow.subprocesses {
+        match subprocess.1 {
+            FlowProcess(ref flow) => {
+                gather_functions_and_connections(flow, tables, level + 1); // recurse
+            }
+            FunctionProcess(ref function) => {
+                // Add Functions from this flow to the table of functions
+                tables.functions.push(function.clone());
             }
         }
     }

@@ -31,7 +31,7 @@ mod helper;
 #[test]
 fn malformed_connection() {
     let meta_provider = MetaProvider {};
-    println!("Test '{}()' at {}, line {}, CWD={}, loading: {}", "malformed_connection", file!(), line!(), std::env::current_dir().unwrap().display(), "flowc/tests/test-flows/malformed-connection.toml");
+    println!("Test 'malformed_connection()' at {}, line {}, CWD={}, loading: flowc/tests/test-flows/malformed-connection.toml", file!(), line!(), std::env::current_dir().unwrap().display());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/malformed-connection.toml");
     if loader::load(&path, &meta_provider).is_ok() {
         panic!("malformed-connection.toml should not load successfully");
@@ -62,21 +62,22 @@ fn function_input_initialized() {
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/function_input_init/function_input_init.toml");
 
     match loader::load(&url, &meta_provider) {
-        Ok(FlowProcess(flow)) => {
-            if let FunctionProcess(ref print_function) = flow.process_refs.unwrap()[0].process {
-                assert_eq!(*print_function.alias(), Name::from("print"), "Function alias does not match");
-                if let Some(inputs) = print_function.get_inputs() {
-                    let default_input: &IO = inputs.get(0).unwrap();
-                    let initial_value = default_input.get_initializer().clone().unwrap();
-                    match initial_value {
-                        Once(one_time) => assert_eq!(one_time, "hello"),
-                        _ => panic!("Initializer should have been a Once initializer")
+        Ok(FlowProcess(mut flow)) => {
+            match flow.subprocesses.get_mut(&Name::from("print")) {
+                Some(FunctionProcess(print_function)) => {
+                    assert_eq!(*print_function.alias(), Name::from("print"), "Function alias does not match");
+                    if let Some(inputs) = print_function.get_inputs() {
+                        let default_input: &IO = inputs.get(0).unwrap();
+                        let initial_value = default_input.get_initializer().clone().unwrap();
+                        match initial_value {
+                            Once(one_time) => assert_eq!(one_time, "hello"),
+                            _ => panic!("Initializer should have been a Once initializer")
+                        }
+                    } else {
+                        panic!("Could not find any inputs");
                     }
-                } else {
-                    panic!("Could not find any inputs");
                 }
-            } else {
-                panic!("First sub-process was not a function as expected")
+                _ => panic!("Sub-process was not a Function")
             }
         }
         Ok(_) => panic!("Didn't load a flow"),
@@ -98,47 +99,44 @@ fn root_flow_takes_name_from_file() {
 }
 
 /*
-    This tests that an initalizer on an input to a flow process is passed onto function processes
+    This tests that an initializer on an input to a flow process is passed onto function processes
     inside the flow, via a connection from the flow input to the function input
 */
 #[test]
-fn flow_input_initialized_and_propogated_to_function() {
+fn flow_input_initialized_and_propagated_to_function() {
     let meta_provider = MetaProvider {};
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/flow_input_init/flow_input_init.toml");
 
     match loader::load(&url, &meta_provider) {
-        Ok(FlowProcess(flow)) => {
-            if let FlowProcess(ref pilte_sub_flow) = flow.process_refs.unwrap()[0].process {
-                assert_eq!(Name::from("count"), *pilte_sub_flow.alias(), "Flow alias is not 'count' as expected");
-
-                if let Some(ref process_refs) = pilte_sub_flow.process_refs {
-                    if let FunctionProcess(ref tap_function) = process_refs.get(0).unwrap().process {
-                        assert_eq!(Name::from("compare"), *tap_function.alias(), "Function alias is not 'compare' as expected");
-                        if let Some(inputs) = tap_function.get_inputs() {
-                            let in_input = inputs.get(0).unwrap();
-                            assert_eq!(Name::from("left"), *in_input.alias(), "Input's name is not 'left' as expected");
-                            assert_eq!(Route::from("/flow_input_init/count/compare/left"), *in_input.route(), "Input's route is not as expected");
-                            let initial_value = in_input.get_initializer();
-                            match initial_value {
-                                Some(Once(one_time)) => assert_eq!(one_time, 10),
-                                _ => panic!("Initializer should have been a Once initializer")
+        Ok(FlowProcess(mut flow)) => {
+            match flow.subprocesses.get_mut(&Name::from("count")) {
+                Some(FlowProcess(sub_flow)) => {
+                    assert_eq!(Name::from("count"), *sub_flow.alias(), "Flow alias is not 'count' as expected");
+                    match sub_flow.subprocesses.get_mut(&Name::from("compare")) {
+                        Some(FunctionProcess(ref tap_function)) => {
+                            assert_eq!(Name::from("compare"), *tap_function.alias(), "Function alias is not 'compare' as expected");
+                            if let Some(inputs) = tap_function.get_inputs() {
+                                let in_input = inputs.get(0).unwrap();
+                                assert_eq!(Name::from("left"), *in_input.alias(), "Input's name is not 'left' as expected");
+                                assert_eq!(Route::from("/flow_input_init/count/compare/left"), *in_input.route(), "Input's route is not as expected");
+                                let initial_value = in_input.get_initializer();
+                                match initial_value {
+                                    Some(Once(one_time)) => assert_eq!(one_time, 10),
+                                    _ => panic!("Initializer should have been a Once initializer")
+                                }
+                            } else {
+                                panic!("Could not find any inputs");
                             }
-                        } else {
-                            panic!("Could not find any inputs");
                         }
-                    } else {
-                        panic!("First sub-process of 'pass-if-lte' sub-flow was not a function as expected");
+                        _ => panic!("The expected function sub-process of 'pass-if-lte' was not found")
                     }
-                } else {
-                    panic!("Could not get process_refs of sub_flow");
                 }
-            } else {
-                panic!("First sub-process of context flow was not a sub-flow as expected")
+                _ => panic!("The expected function 'print' sub-process was not found")
             }
-        }
-        Ok(_) => panic!("Didn't load a flow"),
-        Err(e) => panic!(e.to_string())
+        },
+        Ok(_) => panic!("Didn't find a Flow as expected"),
+        Err(err) => panic!("Didn't load a flow process as expected. {}", err.to_string())
     }
 }
 
