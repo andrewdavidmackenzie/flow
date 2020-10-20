@@ -158,19 +158,20 @@ fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Pro
                 .map_err(|e| e.to_string())?
                 .join(&process_ref.source)
                 .map_err(|e| e.to_string())?;
-            process_ref.process = load_process(&flow.route, &process_ref.alias(),
+            let process = load_process(&flow.route, &process_ref.alias(),
                                                flow.id, flow_count, subprocess_url.as_str(),
                                                provider, &process_ref.initializations)?;
-
-            process_ref.set_alias();
+            process_ref.set_alias(process.name());
 
             // runtime needs references to library functions to be able to load the implementations at load time
             // library flow definitions are "compiled down" to just library function references at compile time.
-            if let FunctionProcess(ref mut function) = process_ref.process {
+            if let FunctionProcess(function) = &process {
                 if let Some(lib_ref) = function.get_lib_reference() {
                     flow.lib_references.push(format!("{}/{}", lib_ref, function.name()));
                 }
             }
+
+            flow.subprocesses.insert(process_ref.alias().to_owned(), process);
         }
     }
     Ok(())

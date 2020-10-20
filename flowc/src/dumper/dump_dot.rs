@@ -53,17 +53,19 @@ pub fn write_flow_to_dot(flow: &Flow, dot_file: &mut dyn Write, output_dir: &Pat
     contents.push_str(&add_output_set(&flow.outputs(), flow.route(), false));
 
     // Process References
+    contents.push_str("\n\t// Process References\n");
     if let Some(process_refs) = &flow.process_refs {
-        contents.push_str("\n\t// Process References\n");
-        for flow_ref in process_refs {
-            match flow_ref.process {
+        for process_ref in process_refs {
+            let process = flow.subprocesses.get(process_ref.alias())
+                .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Could not find process named in process_ref"))?;
+            match process {
                 FlowProcess(ref flow) => {
-                    let mut flow_source = if flow_ref.source.starts_with("lib:") {
-                        let (source, _lib_ref) = provider.resolve_url(&flow_ref.source, "", &[""])
+                    let mut flow_source = if process_ref.source.starts_with("lib:") {
+                        let (source, _lib_ref) = provider.resolve_url(&process_ref.source, "", &[""])
                             .map_err(|_| Error::new(ErrorKind::Other, "Could not find the true source of a library defined flow"))?;
                         source
                     } else {
-                        flow_ref.source.to_owned()
+                        process_ref.source.to_owned()
                     };
 
                     // remove file extension when forming URL as is of form {file_stem}.dot.svg
@@ -73,7 +75,7 @@ pub fn write_flow_to_dot(flow: &Flow, dot_file: &mut dyn Write, output_dir: &Pat
 
                     let relative_path = absolute_to_relative(flow_source,output_dir);
                     let flow = format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot.svg\"];\n",
-                                       flow.route(), flow_ref.alias, relative_path);
+                                       flow.route(), process_ref.alias, relative_path);
                     contents.push_str(&flow);
                 }
                 FunctionProcess(ref function) => {
@@ -371,7 +373,9 @@ fn process_refs_to_dot(flow: &Flow, tables: &GenerationTables, output_dir: &Path
     // Do the same for all subprocesses referenced from this one
     if let Some(ref process_refs) = flow.process_refs {
         for process_ref in process_refs {
-            match process_ref.process {
+            let process = flow.subprocesses.get(process_ref.alias())
+                .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Could not find process named in process_ref"))?;
+            match process {
                 FlowProcess(ref subflow) => {
                     // create cluster sub graph
                     output.push_str(&format!("\nsubgraph cluster_{} {{\n", str::replace(&subflow.alias.to_string(), "-", "_")));

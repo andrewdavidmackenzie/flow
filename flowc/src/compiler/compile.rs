@@ -42,16 +42,15 @@ mod test {
     use crate::model::io::IO;
     use crate::model::name::HasName;
     use crate::model::name::Name;
-    use crate::model::process::Process::FunctionProcess;
     use crate::model::process_reference::ProcessReference;
     use crate::model::route::Route;
 
     use super::compile;
 
     /*
-                                                                            Test for a function that is dead code. It has no connections to it or from it so will
-                                                                            never run. So it should be removed by the optimizer and not fail at check stage.
-                                                                        */
+                                                                                Test for a function that is dead code. It has no connections to it or from it so will
+                                                                                never run. So it should be removed by the optimizer and not fail at check stage.
+                                                                            */
     #[test]
     fn dead_function() {
         let function = Function::new(Name::from("Stdout"),
@@ -70,8 +69,7 @@ mod test {
         let function_ref = ProcessReference {
             alias: function.alias().to_owned(),
             source: "lib://flowruntime/stdio/stdout.toml".to_string(),
-            initializations: None,
-            process: FunctionProcess(function),
+            initializations: None
         };
 
         let mut flow = Flow::default();

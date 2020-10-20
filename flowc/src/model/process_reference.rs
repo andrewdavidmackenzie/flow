@@ -9,11 +9,6 @@ use crate::compiler::loader::Validate;
 use crate::errors::*;
 use crate::model::name::HasName;
 use crate::model::name::Name;
-use crate::model::process::Process;
-use crate::model::process::Process::FlowProcess;
-use crate::model::process::Process::FunctionProcess;
-use crate::model::route::HasRoute;
-use crate::model::route::Route;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -24,19 +19,14 @@ pub struct ProcessReference {
     #[serde(rename = "input")]
     pub initializations: Option<HashMap<String, InputInitializer>>,
     // Map of initializers of inputs for this reference
-    #[serde(skip)]
-    pub process: Process,
 }
 
 impl ProcessReference {
     /// if the ProcessRef does not specify an alias for the process to be loaded
     /// then set the alias to be the name of the loaded process
-    pub fn set_alias(&mut self) {
+    pub fn set_alias(&mut self, alias: &Name) {
         if self.alias.is_empty() {
-            self.alias = match self.process {
-                FlowProcess(ref mut flow) => flow.name().clone(),
-                FunctionProcess(ref mut function) => function.name().clone()
-            };
+            self.alias = alias.to_owned();
         }
     }
 }
@@ -44,22 +34,6 @@ impl ProcessReference {
 impl HasName for ProcessReference {
     fn name(&self) -> &Name { &self.alias }
     fn alias(&self) -> &Name { &self.alias }
-}
-
-impl HasRoute for ProcessReference {
-    fn route(&self) -> &Route {
-        match self.process {
-            Process::FlowProcess(ref flow) => flow.route(),
-            Process::FunctionProcess(ref function) => function.route()
-        }
-    }
-
-    fn route_mut(&mut self) -> &mut Route {
-        match self.process {
-            Process::FlowProcess(ref mut flow) => flow.route_mut(),
-            Process::FunctionProcess(ref mut function) => function.route_mut()
-        }
-    }
 }
 
 impl Validate for ProcessReference {

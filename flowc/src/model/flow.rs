@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::mem::replace;
 
@@ -9,6 +10,7 @@ use flowrlib::input::InputInitializer;
 
 use crate::compiler::loader::Validate;
 use crate::errors::*;
+use crate::errors::Error;
 use crate::model::connection::Connection;
 use crate::model::connection::Direction;
 use crate::model::connection::Direction::FROM;
@@ -18,6 +20,7 @@ use crate::model::io::Find;
 use crate::model::io::IOSet;
 use crate::model::name::HasName;
 use crate::model::name::Name;
+use crate::model::process::Process;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 use crate::model::process_reference::ProcessReference;
@@ -55,6 +58,8 @@ pub struct Flow {
     pub source_url: String,
     #[serde(skip)]
     pub route: Route,
+    #[serde(skip)]
+    pub subprocesses: HashMap<Name, Process>,
     #[serde(skip)]
     pub lib_references: Vec<String>,
 }
@@ -133,6 +138,7 @@ impl Default for Flow {
             inputs: None,
             outputs: None,
             connections: None,
+            subprocesses: HashMap::new(),
             lib_references: vec!(),
             description: Flow::default_description(),
             version: Flow::default_version(),
@@ -213,36 +219,31 @@ impl Flow {
         &self.outputs
     }
 
-    // TODO create a trait HasInputs and HasOutputs and implement it for function and flow
-    // and process so this below can avoid the match
     fn get_io_subprocess(&mut self, subprocess_alias: &Name, direction: Direction, sub_route: &Route,
                          initial_value: &Option<InputInitializer>) -> Result<IO> {
-        if let Some(ref mut process_refs) = self.process_refs {
-            for process_ref in process_refs {
-                debug!("\tLooking in process_ref with alias = '{}'", process_ref.alias);
-                if subprocess_alias == process_ref.alias() {
-                    return match process_ref.process {
-                        FlowProcess(ref mut sub_flow) => {
-                            debug!("\tFlow sub-process with matching name found, name = '{}'", process_ref.alias);
-                            let io_name = Name::from(sub_route);
-                            match direction {
-                                Direction::TO => sub_flow.inputs.find_by_name(&io_name, initial_value),
-                                Direction::FROM => sub_flow.outputs.find_by_name(&io_name, &None)
-                            }
-                        }
-                        FunctionProcess(ref mut function) => {
-                            match direction {
-                                Direction::TO => function.inputs.find_by_route(sub_route, initial_value),
-                                Direction::FROM => function.get_outputs().find_by_route(sub_route, &None)
-                            }
-                        }
-                    }
+        debug!("\tLooking for subprocess with alias = '{}'", subprocess_alias);
+        let process = self.subprocesses.get_mut(subprocess_alias)
+            .ok_or_else(|| Error::from(format!("Could not find sub-process named '{}'", subprocess_alias)))?;
+
+        // TODO create a trait HasInputs and HasOutputs and implement it for function and flow
+        // and process so this below can avoid the match
+        match process {
+            FlowProcess(ref mut sub_flow) => {
+                debug!("\tFlow sub-process with matching name found, name = '{}'", subprocess_alias);
+                let io_name = Name::from(sub_route);
+                match direction {
+                    Direction::TO => sub_flow.inputs.find_by_name(&io_name, initial_value),
+                    Direction::FROM => sub_flow.outputs.find_by_name(&io_name, &None)
                 }
             }
-            bail!("Could not find sub-process named '{}'", subprocess_alias);
+            FunctionProcess(ref mut function) => {
+                debug!("\tFunction sub-process with matching name found, name = '{}'", subprocess_alias);
+                match direction {
+                    Direction::TO => function.inputs.find_by_route(sub_route, initial_value),
+                    Direction::FROM => function.get_outputs().find_by_route(sub_route, &None)
+                }
+            }
         }
-
-        Err(Error::from("No sub-processes present"))
     }
 
     // TODO consider finding the object first using it's type and name (flow, subflow, value, function)

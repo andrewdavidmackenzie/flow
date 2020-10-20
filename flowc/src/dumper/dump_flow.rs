@@ -71,11 +71,9 @@ fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf, provider: &dyn Pr
     dump_dot::write_flow_to_dot(flow, &mut writer, output_dir, provider)?;
 
     // Dump sub-flows
-    if let Some(ref flow_refs) = flow.process_refs {
-        for flow_ref in flow_refs {
-            if let FlowProcess(ref subflow) = flow_ref.process {
-                _dump_flow(subflow, level + 1, output_dir, provider)?;
-            }
+    for subprocess in &flow.subprocesses {
+        if let FlowProcess(ref subflow) = subprocess.1 {
+            _dump_flow(subflow, level + 1, output_dir, provider)?;
         }
     }
 
