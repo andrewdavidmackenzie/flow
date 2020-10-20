@@ -1,4 +1,4 @@
-function = "Join"
+function = "join"
 implementation = "join.rs"
 
 [[input]]

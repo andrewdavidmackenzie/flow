@@ -1,4 +1,4 @@
-function = "ImageBuffer"
+function = "image_buffer"
 implementation = "image_buffer.rs"
 impure = true
 

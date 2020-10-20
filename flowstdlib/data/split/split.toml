@@ -1,4 +1,4 @@
-function = "Split"
+function = "split"
 implementation = "split.rs"
 
 [[input]]

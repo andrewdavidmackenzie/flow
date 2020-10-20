@@ -71,7 +71,6 @@ to = "p2v/pixel_point"
 
 # An image buffer to accumulate the results
 [[process]]
-alias = "image_buffer"
 source = "lib://flowruntime/image/image_buffer"
 
 # connect up the image buffer with filename and size - buffering them for each pixel

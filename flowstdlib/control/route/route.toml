@@ -1,4 +1,4 @@
-function = "Route"
+function = "route"
 implementation = "route.rs"
 
 [[input]]

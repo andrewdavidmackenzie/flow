@@ -1,4 +1,4 @@
-function = "Stderr"
+function = "stderr"
 implementation = "stderr.rs"
 impure = true
 

@@ -1,4 +1,4 @@
-function = "Enumerate"
+function = "enumerate"
 implementation = "enumerate.rs"
 
 [[input]]

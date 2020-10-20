@@ -215,7 +215,7 @@ impl Flow {
 
     // TODO create a trait HasInputs and HasOutputs and implement it for function and flow
     // and process so this below can avoid the match
-    fn get_io_subprocess(&mut self, subprocess_alias: &Name, direction: Direction, route: &Route,
+    fn get_io_subprocess(&mut self, subprocess_alias: &Name, direction: Direction, sub_route: &Route,
                          initial_value: &Option<InputInitializer>) -> Result<IO> {
         if let Some(ref mut process_refs) = self.process_refs {
             for process_ref in process_refs {
@@ -224,7 +224,7 @@ impl Flow {
                     return match process_ref.process {
                         FlowProcess(ref mut sub_flow) => {
                             debug!("\tFlow sub-process with matching name found, name = '{}'", process_ref.alias);
-                            let io_name = Name::from(route);
+                            let io_name = Name::from(sub_route);
                             match direction {
                                 Direction::TO => sub_flow.inputs.find_by_name(&io_name, initial_value),
                                 Direction::FROM => sub_flow.outputs.find_by_name(&io_name, &None)
@@ -232,17 +232,17 @@ impl Flow {
                         }
                         FunctionProcess(ref mut function) => {
                             match direction {
-                                Direction::TO => function.inputs.find_by_route(route, initial_value),
-                                Direction::FROM => function.get_outputs().find_by_route(route, &None)
+                                Direction::TO => function.inputs.find_by_route(sub_route, initial_value),
+                                Direction::FROM => function.get_outputs().find_by_route(sub_route, &None)
                             }
                         }
-                    };
+                    }
                 }
             }
             bail!("Could not find sub-process named '{}'", subprocess_alias);
         }
 
-        bail!("No sub-processes present");
+        Err(Error::from("No sub-processes present"))
     }
 
     // TODO consider finding the object first using it's type and name (flow, subflow, value, function)

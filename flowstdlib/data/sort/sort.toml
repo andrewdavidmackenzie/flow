@@ -1,4 +1,4 @@
-function = "Sort"
+function = "sort"
 implementation = "sort.rs"
 
 [[input]]

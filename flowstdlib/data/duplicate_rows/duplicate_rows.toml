@@ -1,4 +1,4 @@
-function = "DuplicateRows"
+function = "duplicate_rows"
 implementation = "duplicate_rows.rs"
 
 [[input]]

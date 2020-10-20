@@ -1,4 +1,4 @@
-function = "Stdout"
+function = "stdout"
 implementation = "stdout.rs"
 impure = true
 

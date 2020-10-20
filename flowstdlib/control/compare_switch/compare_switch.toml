@@ -1,4 +1,4 @@
-function = "CompareSwitch"
+function = "compare_switch"
 implementation = "compare_switch.rs"
 
 [[input]]

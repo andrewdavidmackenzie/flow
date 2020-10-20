@@ -1,4 +1,4 @@
-function = "OrderedSplit"
+function = "ordered_split"
 implementation = "ordered_split.rs"
 
 [[input]]

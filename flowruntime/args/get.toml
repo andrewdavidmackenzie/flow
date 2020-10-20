@@ -1,4 +1,4 @@
-function = "Get"
+function = "get"
 implementation = "get.rs"
 impure = true
 

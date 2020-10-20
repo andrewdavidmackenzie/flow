@@ -1,4 +1,4 @@
-function = "Buffer"
+function = "buffer"
 implementation = "buffer.rs"
 
 [[input]]

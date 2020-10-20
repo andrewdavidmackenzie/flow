@@ -1,4 +1,4 @@
-function = "FormatPNG"
+function = "format_png"
 implementation = "format_png.rs"
 
 [[input]]

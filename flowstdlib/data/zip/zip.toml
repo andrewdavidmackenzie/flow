@@ -1,4 +1,4 @@
-function = "Zip"
+function = "zip"
 implementation = "zip.rs"
 
 [[input]]
