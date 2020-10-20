@@ -10,6 +10,8 @@ use crate::errors::*;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::process::Process;
+use crate::model::process::Process::FlowProcess;
+use crate::model::process::Process::FunctionProcess;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
 
@@ -24,6 +26,19 @@ pub struct ProcessReference {
     // Map of initializers of inputs for this reference
     #[serde(skip)]
     pub process: Process,
+}
+
+impl ProcessReference {
+    /// if the ProcessRef does not specify an alias for the process to be loaded
+    /// then set the alias to be the name of the loaded process
+    pub fn set_alias(&mut self) {
+        if self.alias.is_empty() {
+            self.alias = match self.process {
+                FlowProcess(ref mut flow) => flow.name().clone(),
+                FunctionProcess(ref mut function) => function.name().clone()
+            };
+        }
+    }
 }
 
 impl HasName for ProcessReference {

@@ -1,4 +1,4 @@
-function = "FileWrite"
+function = "file_write"
 implementation = "file_write.rs"
 impure = true
 

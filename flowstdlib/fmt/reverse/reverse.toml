@@ -1,4 +1,4 @@
-function = "Reverse"
+function = "reverse"
 implementation = "reverse.rs"
 
 [[input]]

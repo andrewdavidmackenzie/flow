@@ -1,4 +1,4 @@
-function = "MultiplyRow"
+function = "multiply_row"
 implementation = "multiply_row.rs"
 
 [[input]]

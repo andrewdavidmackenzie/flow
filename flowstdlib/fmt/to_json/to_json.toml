@@ -1,4 +1,4 @@
-function = "ToJson"
+function = "to_json"
 implementation = "to_json.rs"
 
 [[input]]

@@ -1,4 +1,4 @@
-function = "Info"
+function = "info"
 implementation = "info.rs"
 
 [[input]] # - Input value

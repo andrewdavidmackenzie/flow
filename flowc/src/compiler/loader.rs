@@ -162,15 +162,7 @@ fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Pro
                                                flow.id, flow_count, subprocess_url.as_str(),
                                                provider, &process_ref.initializations)?;
 
-            // if loaded by the default alias in the process ref then set the alias to be the name of the loaded process
-            if process_ref.alias.is_empty() {
-                process_ref.alias = Name::from(match process_ref.process {
-                    FlowProcess(ref mut flow) => flow.name().to_lowercase(),
-                    FunctionProcess(ref mut function) => {
-                        function.name().to_lowercase()
-                    }
-                });
-            }
+            process_ref.set_alias();
 
             // runtime needs references to library functions to be able to load the implementations at load time
             // library flow definitions are "compiled down" to just library function references at compile time.

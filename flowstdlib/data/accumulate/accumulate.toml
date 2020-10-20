@@ -1,4 +1,4 @@
-function = "Accumulate"
+function = "accumulate"
 implementation = "accumulate.rs"
 
 [[input]]

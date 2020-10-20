@@ -1,4 +1,4 @@
-function = "Remove"
+function = "remove"
 implementation = "remove.rs"
 
 [[input]]

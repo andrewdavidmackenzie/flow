@@ -1,4 +1,4 @@
-function = "Stdin"
+function = "stdin"
 implementation = "stdin.rs"
 impure = true
 

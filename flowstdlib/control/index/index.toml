@@ -1,4 +1,4 @@
-function = "Index"
+function = "index"
 implementation = "index.rs"
 
 [[input]]

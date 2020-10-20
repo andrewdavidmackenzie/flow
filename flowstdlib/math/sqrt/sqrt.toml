@@ -1,4 +1,4 @@
-function = "Sqrt"
+function = "sqrt"
 implementation = "sqrt.rs"
 
 [[input]]

@@ -1,4 +1,4 @@
-function = "Count"
+function = "count"
 implementation = "count.rs"
 
 [[input]]

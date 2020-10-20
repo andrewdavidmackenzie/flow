@@ -1,4 +1,4 @@
-function = "Append"
+function = "append"
 implementation = "append.rs"
 
 [[input]]

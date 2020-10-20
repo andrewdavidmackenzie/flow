@@ -1,4 +1,4 @@
-function = "Transpose"
+function = "transpose"
 implementation = "transpose.rs"
 
 [[input]]

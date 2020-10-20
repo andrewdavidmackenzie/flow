@@ -1,4 +1,4 @@
-function = "ToString"
+function = "to_string"
 implementation = "to_string.rs"
 
 [[input]]

@@ -1,4 +1,4 @@
-function = "PixelToPoint"
+function = "pixel_to_point"
 implementation = "pixel_to_point.rs"
 
 [[input]]

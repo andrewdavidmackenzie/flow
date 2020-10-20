@@ -93,12 +93,12 @@ fn get_manifest() -> LibraryManifest {
     };
     let mut manifest = LibraryManifest::new(metadata);
 
-    manifest.locators.insert("lib://flowruntime/args/get/Get".to_string(), Native(Arc::new(Fake {})));
-    manifest.locators.insert("lib://flowruntime/file/file_write/FileWrite".to_string(), Native(Arc::new(Fake {})));
-    manifest.locators.insert("lib://flowruntime/stdio/readline/Readline".to_string(), Native(Arc::new(Fake {})));
-    manifest.locators.insert("lib://flowruntime/stdio/stdin/Stdin".to_string(), Native(Arc::new(Fake {})));
-    manifest.locators.insert("lib://flowruntime/stdio/stdout/Stdout".to_string(), Native(Arc::new(Fake {})));
-    manifest.locators.insert("lib://flowruntime/stdio/stderr/Stderr".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://flowruntime/args/get/get".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://flowruntime/file/file_write/file_write".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://flowruntime/stdio/readline/readline".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://flowruntime/stdio/stdin/stdin".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://flowruntime/stdio/stdout/stdout".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert("lib://flowruntime/stdio/stderr/stderr".to_string(), Native(Arc::new(Fake {})));
 
     manifest
 }
@@ -118,7 +118,7 @@ fn write_manifest(manifest: &Manifest, filename: &PathBuf) -> Result<(), String>
 fn load_manifest_from_file() {
     let f_a = Function::new("fA".to_string(), // name
                             "/fA".to_string(),
-                            "lib://flowstdlib/control/join/Join".to_string(),
+                            "lib://flowstdlib/control/join/join".to_string(),
                             vec!(),
                             0, 0,
                             &[], false);
@@ -142,7 +142,7 @@ fn load_manifest_from_file() {
 fn resolve_lib_implementation_test() {
     let f_a = Function::new("fA".to_string(), // name
                             "/fA".to_string(),
-                            "lib://flowruntime/stdio/stdin/Stdin".to_string(),
+                            "lib://flowruntime/stdio/stdin/stdin".to_string(),
                             vec!(),
                             0, 0,
                             &[], false);
@@ -162,7 +162,7 @@ fn resolve_lib_implementation_test() {
 fn unresolved_lib_functions_test() {
     let f_a = Function::new("fA".to_string(), // name
                             "/fA".to_string(),
-                            "lib://flowruntime/stdio/stdin/Foo".to_string(),
+                            "lib://flowruntime/stdio/stdin/foo".to_string(),
                             vec!(),
                             0, 0,
                             &[], false);
@@ -178,6 +178,6 @@ fn unresolved_lib_functions_test() {
     assert!(loader.resolve_implementations(&mut manifest, &manifest_url, &provider).is_err());
 }
 
-// TODO add a wasm provided implementationn loading test
+// TODO add a wasm provided implementation loading test
 
 // TODO add a wasm and native execution test

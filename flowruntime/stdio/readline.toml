@@ -1,4 +1,4 @@
-function = "Readline"
+function = "readline"
 implementation = "readline.rs"
 impure = true
 

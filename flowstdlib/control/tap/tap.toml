@@ -1,4 +1,4 @@
-function = "Tap"
+function = "tap"
 implementation = "tap.rs"
 
 [[input]]

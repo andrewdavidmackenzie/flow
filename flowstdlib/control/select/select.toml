@@ -1,4 +1,4 @@
-function = "Select"
+function = "select"
 implementation = "select.rs"
 
 [[input]]

@@ -1,4 +1,4 @@
-function = "RenderPixel"
+function = "render_pixel"
 implementation = "render_pixel.rs"
 
 [[input]]
