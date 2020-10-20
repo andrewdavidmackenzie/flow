@@ -132,17 +132,21 @@ mod test {
         let _ = Manifest::new(test_meta_data());
     }
 
+    fn test_function() -> Function {
+        Function::new(
+            #[cfg(feature = "debugger")]
+                "test".to_string(),
+            #[cfg(feature = "debugger")]
+                "/test".to_string(),
+            "/test".to_string(),
+            vec!(Input::new(&None)),
+            0, 0,
+            &[], false)
+    }
+
     #[test]
     fn add_function() {
-        let function = Function::new(
-            #[cfg(feature = "debugger")]
-                                        "test".to_string(),
-            #[cfg(feature = "debugger")]
-                                         "/test".to_string(),
-                                         "/test".to_string(),
-                                         vec!(Input::new(&None)),
-                                         0, 0,
-                                         &[], false);
+        let function = test_function();
 
         let mut manifest = Manifest::new(test_meta_data());
         manifest.add_function(function);

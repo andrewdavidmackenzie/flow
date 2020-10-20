@@ -33,7 +33,7 @@ pub struct Job {
     pub function_id: usize,
     pub flow_id: usize,
     pub input_set: Vec<Value>,
-    pub destinations: Vec<OutputConnection>,
+    pub connections: Vec<OutputConnection>,
     pub implementation: Arc<dyn Implementation>,
     pub result: (Option<Value>, bool),
     pub error: Option<String>,
@@ -132,7 +132,7 @@ impl fmt::Display for Block {
 ///           (unless that input is it's own, as then it will be emptied when the function runs)
 /// Waiting - Function is in Blocked state when at least one of it's inputs is not full
 /// Running - Function is in Running state when it has been picked from the Ready list for execution
-///           using the next() funcion
+///           using the next() function
 ///
 /// Unused Functions
 /// ================
@@ -205,7 +205,7 @@ impl fmt::Display for Block {
 ///
 /// Blocks on other senders due to Constant Initializers and Loops
 /// ==============================================================
-/// After a funtion runs, its ConstantInitializers are ran, and outputs (possibly to itself) are
+/// After a function runs, its ConstantInitializers are ran, and outputs (possibly to itself) are
 /// sent, before determining that other functions sending to it should unblocked.
 /// This, the initializers and loops to it's inputs have priority and the input(s) will be refilled
 /// but another function wishing to send to it, and blocked, is NOT yet unblocked.
@@ -260,7 +260,7 @@ impl RunState {
 
     #[cfg(feature = "debugger")]
     /*
-        Reset all values back to inital ones to enable debugging from scracth
+        Reset all values back to initial ones to enable debugging from scratch
     */
     fn reset(&mut self) {
         for function in &mut self.functions {
@@ -276,10 +276,9 @@ impl RunState {
     }
 
     /*
-        The ìnit' function is responsible for initializing all functions.
-        The `init` method on each function is called, which returns a boolean to indicate that it's
-        inputs are fulfilled - and this information is added to the RunList to control the readyness of
-        the Fucntion to be executed.
+        The `ìnit()` function is responsible for initializing all functions, and it returns a boolean
+        to indicate that it's inputs are fulfilled - and this information is added to the RunList
+        to control the readiness of the Function to be executed.
 
         After init() Functions will either be:
            - Ready:   an entry will be added to the `ready` list with this function's id
@@ -344,7 +343,7 @@ impl RunState {
                 source_id = source_function.id();
                 source_flow_id = source_function.get_flow_id();
                 source_has_inputs_full = source_function.input_set_count() > 0;
-                destinations = source_function.output_destinations().clone();
+                destinations = source_function.get_output_connections().clone();
             }
 
             for destination in destinations {
@@ -368,7 +367,7 @@ impl RunState {
     }
 
     /*
-        Figure out the state of a function based on it's preence or not in the different control
+        Figure out the state of a function based on it's presence or not in the different control
         lists
     */
     #[cfg(any(feature = "checks", feature = "debugger", test))]
@@ -474,7 +473,7 @@ impl RunState {
 
                 let implementation = function.get_implementation();
 
-                let destinations = function.output_destinations().clone();
+                let connections = function.get_output_connections().clone();
 
                 Some(Job {
                     job_id,
@@ -482,7 +481,7 @@ impl RunState {
                     flow_id,
                     implementation,
                     input_set,
-                    destinations,
+                    connections,
                     result: (None, false),
                     error: None,
                 })
@@ -496,7 +495,7 @@ impl RunState {
     }
 
     /*
-        Complete a Job by takingits output and updating the runlist accordingly.
+        Complete a Job by taking its output and updating the runlist accordingly.
 
         If other functions were blocked trying to send to this one - we can now unblock them
         as it has consumed it's inputs and they are free to be sent to again.
@@ -526,7 +525,7 @@ impl RunState {
                 if let Some(output_v) = output_value {
                     debug!("Job #{}:\tOutputs: {:?}", job.job_id, output_v);
 
-                    for destination in &job.destinations {
+                    for destination in &job.connections {
                         match output_v.pointer(&destination.subroute) {
                             Some(output_value) => {
                                 if job.function_id == destination.function_id {
@@ -663,10 +662,10 @@ impl RunState {
 
         let _count_before = function.input_set_count();
 
-        let input_inited = function.init_inputs(false);
+        let input_initialized = function.init_inputs(false);
 
         if function.input_set_count() > 0 {
-            self.new_input_set(function_id, flow_id, input_inited || loopback_value_sent);
+            self.new_input_set(function_id, flow_id, input_initialized || loopback_value_sent);
         }
     }
 
@@ -720,7 +719,7 @@ impl RunState {
 
                         // for each output route of sending function, see if it is sending to the target function and input
                         //(ref _output_route, destination_id, io_number, _destination_path)
-                        for destination in sender_function.output_destinations() {
+                        for destination in sender_function.get_output_connections() {
                             if (destination.function_id == target_id) &&
                                 (destination.io_number == target_io) {
                                 senders.push((sender_function.id(), target_io));
@@ -1135,7 +1134,7 @@ mod test {
             implementation: test_impl(),
             input_set: vec!(json!(1)),
             result: (Some(json!(1)), true),
-            destinations: vec!(out_conn),
+            connections: vec!(out_conn),
             error: None,
         }
     }
@@ -1149,7 +1148,7 @@ mod test {
             function_id: source_function_id,
             input_set: vec!(json!(1)),
             result: (None, false),
-            destinations: vec!(out_conn),
+            connections: vec!(out_conn),
             error: Some("Some error occurred".to_string()),
         }
     }
@@ -1229,6 +1228,7 @@ mod test {
         #[cfg(feature = "metrics")]
         use crate::metrics::Metrics;
         use crate::output_connection::OutputConnection;
+        use crate::run_state::test::test_function_b_not_init;
 
         use super::super::Job;
         use super::super::RunState;
@@ -1318,9 +1318,8 @@ mod test {
             assert!(state.get_output_blockers(0).contains(&(1, 0)), "f_a should be blocked by f_b, input 0");
         }
 
-        #[test]
-        fn to_waiting_on_init() {
-            let f_a = Function::new(
+        fn test_function_a_not_init() -> Function {
+            Function::new(
                 #[cfg(feature = "debugger")]
                     "fA".to_string(), // name
                 #[cfg(feature = "debugger")]
@@ -1328,7 +1327,12 @@ mod test {
                 "/test".to_string(),
                 vec!(Input::new(&None)),
                 0, 0,
-                &[], false);
+                &[], false)
+        }
+
+        #[test]
+        fn to_waiting_on_init() {
+            let f_a = test_function_a_not_init();
             let functions = vec!(f_a);
             let mut state = RunState::new(&functions, 1);
 
@@ -1358,15 +1362,7 @@ mod test {
 
         #[test]
         fn unready_not_to_running_on_next() {
-            let f_a = Function::new(
-                #[cfg(feature = "debugger")]
-                    "fA".to_string(),
-                #[cfg(feature = "debugger")]
-                    "/fA".to_string(),
-                "/test".to_string(),
-                vec!(Input::new(&None)),
-                0, 0,
-                &[], false);
+            let f_a = test_function_a_not_init();
             let functions = vec!(f_a);
             let mut state = RunState::new(&functions, 1);
             state.init();
@@ -1439,9 +1435,9 @@ mod test {
 // Event
             let mut output = super::test_output(1, 0);
 
-            // Modify test putput to use a route that doesn't exist
+            // Modify test output to use a route that doesn't exist
             let no_such_out_conn = OutputConnection::new("/fake".to_string(), 0, 0, 0, 0, false, None);
-            output.destinations = vec!(no_such_out_conn);
+            output.connections = vec!(no_such_out_conn);
 
             state.complete_job(
                 #[cfg(feature = "metrics")]
@@ -1479,6 +1475,19 @@ mod test {
             assert_eq!(State::Waiting, state.get_state(1), "f_b should be Waiting");
         }
 
+        fn test_job() -> Job {
+            Job {
+                job_id: 1,
+                function_id: 0,
+                flow_id: 0,
+                implementation: super::test_impl(),
+                input_set: vec!(json!(1)),
+                result: (None, true),
+                connections: vec!(),
+                error: None,
+            }
+        }
+
         #[test]
         fn running_to_ready_on_done() {
             let f_a = Function::new(
@@ -1505,16 +1514,7 @@ mod test {
             assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
 
 // Event
-            let job = Job {
-                job_id: 1,
-                function_id: 0,
-                flow_id: 0,
-                implementation: super::test_impl(),
-                input_set: vec!(json!(1)),
-                result: (None, true),
-                destinations: vec!(),
-                error: None,
-            };
+            let job = test_job();
             state.complete_job(
                 #[cfg(feature = "metrics")]
                     &mut metrics,
@@ -1546,16 +1546,7 @@ mod test {
             assert_eq!(State::Running, state.get_state(0), "f_a should be Running");
 
 // Event
-            let job = Job {
-                job_id: 1,
-                function_id: 0,
-                flow_id: 0,
-                implementation: super::test_impl(),
-                input_set: vec!(json!(1)),
-                result: (None, true),
-                destinations: vec!(),
-                error: None,
-            };
+            let job = test_job();
             state.complete_job(
                 #[cfg(feature = "metrics")]
                     &mut metrics,
@@ -1581,15 +1572,7 @@ mod test {
                 vec!(Input::new(&Some(Always(json!(1))))),
                 0, 0,
                 &[out_conn], false); // outputs to fB:0
-            let f_b = Function::new(
-                #[cfg(feature = "debugger")]
-                    "fB".to_string(), // name
-                #[cfg(feature = "debugger")]
-                    "/fB".to_string(),
-                "/test".to_string(),
-                vec!(Input::new(&None)),
-                1, 0,
-                &[], false);
+            let f_b = test_function_b_not_init();
             let functions = vec!(f_a, f_b);
             let mut state = RunState::new(&functions, 1);
             #[cfg(feature = "metrics")]
@@ -1622,15 +1605,7 @@ mod test {
 
         #[test]
         fn waiting_to_ready_on_input() {
-            let f_a = Function::new(
-                #[cfg(feature = "debugger")]
-                    "fA".to_string(), // name
-                #[cfg(feature = "debugger")]
-                    "/fA".to_string(),
-                "/test".to_string(),
-                vec!(Input::new(&None)),
-                0, 0,
-                &[], false);
+            let f_a = test_function_a_not_init();
             let out_conn = OutputConnection::new("".into(), 0, 0, 0, 0, false, None);
             let f_b = Function::new(
                 #[cfg(feature = "debugger")]
@@ -1730,15 +1705,7 @@ mod test {
                     connection_to_0.clone(), // outputs to self:0
                     connection_to_1.clone() // outputs to f_b:0
                 ], false);
-            let f_b = Function::new(
-                #[cfg(feature = "debugger")]
-                    "fB".to_string(), // name
-                #[cfg(feature = "debugger")]
-                    "/fB".to_string(),
-                "/test".to_string(),
-                vec!(Input::new(&None)),
-                1, 0,
-                &[], false);
+            let f_b = test_function_b_not_init();
             let functions = vec!(f_a, f_b); // NOTE the order!
             let mut state = RunState::new(&functions, 1);
             #[cfg(feature = "metrics")]
@@ -1760,7 +1727,7 @@ mod test {
                 implementation: super::test_impl(),
                 input_set: vec!(json!(1)),
                 result: (Some(json!(1)), true),
-                destinations: vec!(connection_to_0, connection_to_1),
+                connections: vec!(connection_to_0, connection_to_1),
                 error: None,
 
             };
@@ -1797,7 +1764,7 @@ mod test {
         }
     }
 
-    /****************************** Miscelaneous tests **************************/
+    /****************************** Miscellaneous tests **************************/
     mod functional_tests {
         use serde_json::json;
 
@@ -1979,7 +1946,7 @@ mod test {
 
         /*
             This test checks that a function with no output destinations (even if pure and produces
-            someoutput) can be executed and nothing crashes
+            some output) can be executed and nothing crashes
         */
         #[test]
         fn pure_function_no_destinations() {
@@ -2003,7 +1970,7 @@ mod test {
                 implementation: super::test_impl(),
                 input_set: vec!(json!(1)),
                 result: (Some(json!(1)), true),
-                destinations: vec!(),
+                connections: vec!(),
                 error: None,
             };
 
