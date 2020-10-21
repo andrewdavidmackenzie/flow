@@ -25,18 +25,24 @@ impl CLIRuntimeClient {
             image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new()
         }
     }
-}
 
-impl RuntimeClient for CLIRuntimeClient {
-    fn flow_start(&mut self) {
-        debug!("===========================    Starting flow execution =============================");
-    }
-
-    // This function is called by the runtime_function to send a command to the runtime_client
-    // so here in the runtime_client, it's more like "process_command"
     #[allow(clippy::many_single_char_names)]
-    fn send_command(&mut self, command: Command) -> Response {
+    fn process_command(&mut self, command: Command) -> Response {
         match command {
+            Command::FlowStart => {
+                debug!("===========================    Starting flow execution =============================");
+                Response::Ack
+            },
+            Command::FlowEnd => {
+                debug!("=========================== Flow execution ended ======================================");
+
+                for (filename, image_buffer) in self.image_buffers.iter() {
+                    info!("Flushing ImageBuffer to file: {}", filename);
+                    image_buffer.save_with_format(Path::new(filename), ImageFormat::Png).unwrap();
+                }
+
+                Response::Ack
+            },
             Command::EOF => Response::Ack,
             Command::Stdout(contents) => {
                 println!("{}", contents);
@@ -86,14 +92,13 @@ impl RuntimeClient for CLIRuntimeClient {
             }
         }
     }
+}
 
-    fn flow_end(&mut self) {
-        debug!("=========================== Flow execution ended ======================================");
-
-        for (filename, image_buffer) in self.image_buffers.iter() {
-            info!("Flushing ImageBuffer to file: {}", filename);
-            image_buffer.save_with_format(Path::new(filename), ImageFormat::Png).unwrap();
-        }
+impl RuntimeClient for CLIRuntimeClient {
+    // This function is called by the runtime_function to send a command to the runtime_client
+    // so here in the runtime_client, it's more like "process_command"
+    fn send_command(&mut self, command: Command) -> Response {
+        self.process_command(command)
     }
 }
 
@@ -160,12 +165,12 @@ mod test {
         let _ = fs::remove_file(&path);
         assert!(!path.exists());
 
-        client.flow_start();
+        client.send_command(Command::FlowStart);
         let pixel = Command::PixelWrite((0, 0), (255, 200, 20), (10, 10), path.display().to_string());
         if client.send_command(pixel) != Response::Ack {
             panic!("Didn't get pixel write response as expected")
         }
-        client.flow_end();
+        client.send_command(Command::FlowEnd);
 
         assert!(path.exists(), "Image file was not created");
     }

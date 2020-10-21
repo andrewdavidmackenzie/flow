@@ -1011,7 +1011,7 @@ mod test {
     use serde_json::Value;
 
     #[cfg(feature = "debugger")]
-    use crate::debug_client::{DebugClient, Event, Response};
+    use crate::debug_client::{DebugClient, Event};
     #[cfg(feature = "debugger")]
     use crate::debug_client::{Command, Param};
     use crate::function::Function;
@@ -1049,8 +1049,6 @@ mod test {
         }
 
         fn send_event(&self, _event: Event) {}
-
-        fn send_response(&self, _response: Response) {}
     }
 
     #[cfg(feature = "debugger")]

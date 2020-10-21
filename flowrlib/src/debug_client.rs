@@ -61,7 +61,7 @@ pub enum Event {
     /// A breakpoint on a `Value` being sent between two functions was encountered
     /// includes: source_process_id, output_route, value, destination_id, input_number));
     DataBreakpoint(usize, String, Value, usize, usize),
-    /// A panic occured executing a `Flows` `Job` -  includes the output of the job that panicked
+    /// A panic occurred executing a `Flows` `Job` -  includes the output of the job that panicked
     Panic(String),
     /// There was an error executing the Job
     JobError(Job),
@@ -70,12 +70,8 @@ pub enum Event {
     /// A check has detected that there is a deadlock between functions impeding more execution
     Deadlock(String),
     /// A value is being sent from the output of one function to the input of another
-    /// incluides: source_process_id, value, destination_id, input_number
+    /// includes: source_process_id, value, destination_id, input_number
     SendingValue(usize, Value, usize, usize),
-}
-
-/// A `Response` from the debugger and run-time to a command from the debug_client
-pub enum Response {
     /// Simple acknowledgement
     Ack,
     /// An error was detected
@@ -94,12 +90,10 @@ pub enum Response {
 
 /// debug_clients must implement this trait
 pub trait DebugClient {
-    /// Called at init to initalize the client
+    /// Called at init to initialize the client
     fn init(&self);
     /// Called to fetch the next command from the debug_client
     fn get_command(&self, job_number: usize) -> Command;
     /// Called to send an event to the debug_client
     fn send_event(&self, event: Event);
-    /// Called to send a response from the debug/run-time to the debug_client
-    fn send_response(&self, response: Response);
 }

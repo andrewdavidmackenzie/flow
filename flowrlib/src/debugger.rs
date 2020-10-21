@@ -8,10 +8,9 @@ use serde_json::Value;
 
 use crate::debug_client::Command::{*};
 use crate::debug_client::DebugClient;
+use crate::debug_client::Event;
 use crate::debug_client::Event::{*};
 use crate::debug_client::Param;
-use crate::debug_client::Response;
-use crate::debug_client::Response::{*};
 use crate::run_state::{Block, Job, RunState};
 
 pub struct Debugger {
@@ -35,16 +34,16 @@ enum BlockType {
 struct BlockerNode {
     function_id: usize,
     io_number: usize,
-    blocktype: BlockType,
+    block_type: BlockType,
     blockers: Vec<BlockerNode>,
 }
 
 impl BlockerNode {
-    fn new(process_id: usize, io_number: usize, blocktype: BlockType) -> Self {
+    fn new(process_id: usize, io_number: usize, block_type: BlockType) -> Self {
         BlockerNode {
             function_id: process_id,
             io_number,
-            blocktype,
+            block_type,
             blockers: vec!(),
         }
     }
@@ -52,7 +51,7 @@ impl BlockerNode {
 
 impl fmt::Display for BlockerNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.blocktype {
+        match self.block_type {
             BlockType::OutputBlocked => write!(f, " -> #{}", self.function_id),
             BlockType::UnreadySender => write!(f, " <- #{}", self.function_id)
         }
@@ -178,7 +177,7 @@ impl Debugger {
            - execute and respond immediately those that require it
            - some commands will cause the command loop to exit.
 
-        When exiting return a tuple for the Coordinaator to determine what to do:
+        When exiting return a tuple for the Coordinator to determine what to do:
            (display next output, reset execution)
     */
     fn wait_for_command(&mut self, state: &RunState) -> (bool, bool) {
@@ -192,39 +191,39 @@ impl Debugger {
                     // Respond with display_state(&self, function_id: usize) -> String ??
                 }
                 Breakpoint(param) =>
-                    self.client.send_response(self.add_breakpoint(state, param)),
+                    self.client.send_event(self.add_breakpoint(state, param)),
                 Delete(param) =>
-                    self.client.send_response(self.delete_breakpoint(param)),
+                    self.client.send_event(self.delete_breakpoint(param)),
                 Inspect =>
-                    self.client.send_response(self.inspect(state)),
+                    self.client.send_event(self.inspect(state)),
                 List =>
-                    self.client.send_response(self.list_breakpoints()),
+                    self.client.send_event(self.list_breakpoints()),
                 Print(param) =>
-                    self.client.send_response(self.print(state, param)),
+                    self.client.send_event(self.print(state, param)),
                 EnterDebugger => { /* Not needed as we are already in the debugger */ }
                 ExitDebugger => {
-                    self.client.send_response(Exiting);
+                    self.client.send_event(Exiting);
                     exit(1);
                 }
 
                 // **************************      The following commands exit the command loop
                 Continue => {
                     if state.jobs_created() > 0 {
-                        self.client.send_response(Ack);
+                        self.client.send_event(Ack);
                         return (false, false);
                     }
                 }
                 RunReset => {
                     return if state.jobs_created() > 0 {
-                        self.client.send_response(self.reset());
+                        self.client.send_event(self.reset());
                         (false, true)
                     } else {
-                        self.client.send_response(Running);
+                        self.client.send_event(Running);
                         (false, false)
                     }
                 }
                 Step(param) => {
-                    self.client.send_response(self.step(state, param));
+                    self.client.send_event(self.step(state, param));
                     return (true, false);
                 }
             };
@@ -236,7 +235,7 @@ impl Debugger {
     /*
         Add a breakpoint to the debugger according to the Optional `Param`
      */
-    fn add_breakpoint(&mut self, state: &RunState, param: Option<Param>) -> Response {
+    fn add_breakpoint(&mut self, state: &RunState, param: Option<Param>) -> Event {
         let mut response = String::new();
 
         match param {
@@ -277,7 +276,7 @@ impl Debugger {
     /*
         Delete debugger breakpoints related to Jobs or Blocks, etc according to the Spec.
      */
-    fn delete_breakpoint(&mut self, param: Option<Param>) -> Response {
+    fn delete_breakpoint(&mut self, param: Option<Param>) -> Event {
         let mut response = String::new();
 
         match param {
@@ -315,7 +314,7 @@ impl Debugger {
     /*
         List all debugger breakpoints of all types.
      */
-    fn list_breakpoints(&self) -> Response {
+    fn list_breakpoints(&self) -> Event {
         let mut response = String::new();
 
         let mut breakpoints = false;
@@ -362,7 +361,7 @@ impl Debugger {
         Run inspections on the current flow execution state to possibly detect issues.
         Currently deadlock inspection is the only inspection that exists.s
      */
-    fn inspect(&self, state: &RunState) -> Response {
+    fn inspect(&self, state: &RunState) -> Event {
         let mut response = String::new();
 
         response.push_str("Running inspections\n");
@@ -376,7 +375,7 @@ impl Debugger {
         Print out a debugger value according to the Optional `Param` passed.
         If no `Param` is passed then print the entire state
      */
-    fn print(&self, state: &RunState, param: Option<Param>) -> Response {
+    fn print(&self, state: &RunState, param: Option<Param>) -> Event {
         let mut response = String::new();
 
         match param {
@@ -402,8 +401,8 @@ impl Debugger {
     /*
         Get ready to start execution (and debugging) from scratch at the start of the flow
      */
-    fn reset(&mut self) -> Response {
-        // Leave all the breaakpoints untouch for the repeat run
+    fn reset(&mut self) -> Event {
+        // Leave all the breakpoints untouched for the repeat run
         self.break_at_job = std::usize::MAX;
         Resetting
     }
@@ -412,7 +411,7 @@ impl Debugger {
         Take one step (execute one more job) in the flow. Do this by setting a breakpoint at the
         next job execution and then returning - flow execution will continue until breakpoint fires
      */
-    fn step(&mut self, state: &RunState, steps: Option<Param>) -> Response {
+    fn step(&mut self, state: &RunState, steps: Option<Param>) -> Event {
         match steps {
             None => {
                 self.break_at_job = state.jobs_created() + 1;

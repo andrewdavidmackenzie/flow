@@ -18,7 +18,7 @@ use crate::manifest::MetaData;
 use crate::metrics::Metrics;
 use crate::run_state::Job;
 use crate::run_state::RunState;
-use crate::runtime_client::RuntimeClient;
+use crate::runtime_client::{Command, RuntimeClient};
 
 /// A Submission is the struct used to send a flow to the Coordinator for execution. It contains
 /// all the information necessary to execute it:
@@ -115,7 +115,7 @@ pub struct Coordinator {
 /// use std::process::exit;
 /// use flowrlib::manifest::{Manifest, MetaData};
 /// #[cfg(any(feature = "debugger"))]
-/// use flowrlib::debug_client::{DebugClient, Command, Param, Event, Response, Command::ExitDebugger};
+/// use flowrlib::debug_client::{DebugClient, Command, Param, Event, Command::ExitDebugger};
 /// use flowrlib::runtime_client::RuntimeClient;
 /// use flowrlib::runtime_client::Response as RuntimeResponse;
 /// use flowrlib::runtime_client::Command as RuntimeCommand;
@@ -139,18 +139,12 @@ pub struct Coordinator {
 ///     fn get_command(&self, job_number: usize) -> Command { ExitDebugger }
 ///
 ///     fn send_event(&self, event: Event) {}
-///
-///     fn send_response(&self, response: Response) {}
 /// }
 ///
 /// impl RuntimeClient for ExampleRuntimeClient {
-///     fn flow_start(&mut self) {}
-///
 ///     fn send_command(&mut self,command: RuntimeCommand) -> RuntimeResponse {
 ///         RuntimeResponse::Ack
 ///     }
-///
-///     fn flow_end(&mut self) {}
 /// }
 ///
 /// let example_client = ExampleRuntimeClient {};
@@ -221,7 +215,7 @@ impl Coordinator {
         loop {
             debug!("Resetting stats and initializing all functions");
             submission.state.init();
-            submission.runtime_client.lock().unwrap().flow_start();
+            submission.runtime_client.lock().unwrap().send_command(Command::FlowStart);
 
             #[cfg(feature = "debugger")]
             if submission.enter_debugger {
@@ -319,7 +313,7 @@ impl Coordinator {
             println!("\t\tJobs created: {}\n", submission.state.jobs_created());
         }
 
-        submission.runtime_client.lock().unwrap().flow_end();
+        submission.runtime_client.lock().unwrap().send_command(Command::FlowEnd);
     }
 
     /*
@@ -378,7 +372,7 @@ mod test {
     use crate::coordinator::Coordinator;
     use crate::coordinator::Submission;
     #[cfg(feature = "debugger")]
-    use crate::debug_client::{Command, DebugClient, Event, Response};
+    use crate::debug_client::{Command, DebugClient, Event};
     use crate::manifest::Manifest;
     use crate::manifest::MetaData;
     use crate::runtime_client::Command as RuntimeCommand;
@@ -407,8 +401,6 @@ mod test {
         }
 
         fn send_event(&self, _event: Event) {}
-
-        fn send_response(&self, _response: Response) {}
     }
 
     #[cfg(feature = "debugger")]
@@ -420,13 +412,9 @@ mod test {
     struct TestRuntimeClient {}
 
     impl RuntimeClient for TestRuntimeClient {
-        fn flow_start(&mut self) {}
-
         fn send_command(&mut self, _command: RuntimeCommand) -> RuntimeResponse {
             RuntimeResponse::Ack
         }
-
-        fn flow_end(&mut self) {}
     }
 
     #[test]

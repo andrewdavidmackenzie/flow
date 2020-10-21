@@ -2,6 +2,10 @@ use std::fmt::Debug;
 
 /// A run-time command sent from a run-time function to a runtime_client
 pub enum Command {
+    /// Command to perform anything needed when a flow starts executing
+    FlowStart,
+    /// Command to perform anything needed when a flow stops executing
+    FlowEnd,
     /// Command to print a String of contents to stdout
     Stdout(String),
     /// Command to print a String of contents to stderr
@@ -39,10 +43,6 @@ pub enum Response {
 
 /// runtime_clients must implement this trait
 pub trait RuntimeClient: Sync + Send + Debug {
-    /// Called at start of flow execution
-    fn flow_start(&mut self);
     /// Called to send the next command to the runtime_client and get the response
     fn send_command(&mut self, command: Command) -> Response;
-    /// Called when execution of flow ends
-    fn flow_end(&mut self);
 }

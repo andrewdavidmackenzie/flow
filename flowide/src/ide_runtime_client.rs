@@ -17,19 +17,10 @@ impl IDERuntimeClient {
         IDERuntimeClient{args: vec!()}
     }
 
-    pub fn set_args(&mut self, args: Vec<String>) {
-        self.args = args;
-    }
-}
-
-impl RuntimeClient for IDERuntimeClient {
-    fn flow_start(&mut self) {
-        // TODO show something on the UI to show a new flow is starting executing
-    }
-
-    // This function is called by the runtime_function to send a commanmd to the runtime_client
-    fn send_command(&mut self, command: Command) -> Response {
+    fn process_command(&mut self, command: Command) -> Response {
         match command {
+            Command::FlowStart => Response::Ack,
+            Command::FlowEnd => Response::Ack,
             Command::EOF => Response::Ack,
             Command::Stdout(contents) => {
                 widgets::do_in_gtk_eventloop(|refs| {
@@ -67,7 +58,14 @@ impl RuntimeClient for IDERuntimeClient {
         }
     }
 
-    fn flow_end(&mut self) {
-        // TODO show something on the UI that the flow has ended
+    pub fn set_args(&mut self, args: Vec<String>) {
+        self.args = args;
+    }
+}
+
+impl RuntimeClient for IDERuntimeClient {
+    // This function is called by the runtime_function to send a command to the runtime_client
+    fn send_command(&mut self, command: Command) -> Response {
+        self.process_command(command)
     }
 }
