@@ -49,7 +49,7 @@ before_install:
 script:
   - RUST_BACKTRACE=full make clippy build test samples
   - |
-    if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
+    if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" && "TRAVIS_EVENT_TYPE" == "cron" ]]; then
       RUST_BACKTRACE=full make docs
     fi
 
@@ -68,6 +68,6 @@ notifications:
   - andrew@mackenzie-serres.net
 
 after_success: |
-  if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
+  if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" && "TRAVIS_EVENT_TYPE" != "cron" ]]; then
     FLOW_LIB_PATH=$TRAVIS_BUILD_DIR make coverage
   fi
