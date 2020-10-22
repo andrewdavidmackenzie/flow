@@ -1042,8 +1042,6 @@ mod test {
 
     #[cfg(feature = "debugger")]
     impl DebugClient for TestDebugClient {
-        fn init(&self) {}
-
         fn get_command(&self, _job_number: usize) -> Command {
             Command::Step(Some(run_state::test::Param::Numeric(1)))
         }

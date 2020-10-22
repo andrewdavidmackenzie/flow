@@ -21,12 +21,6 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
 'q' | 'quit'                 - Stop flow execution and exit debugger
 ";
 
-/*
-    A simple CLI (i.e. stdin and stdout) debug client that implements the DebugClient trait
-    defined in the flowrlib library.
-*/
-pub struct CLIDebugClient {}
-
 fn help() {
     println!("{}", HELP_STRING);
 }
@@ -152,11 +146,21 @@ fn process_event(event: Event) {
 }
 
 /*
+    A simple CLI (i.e. stdin and stdout) debug client that implements the DebugClient trait
+    defined in the flowrlib library.
+*/
+pub struct CLIDebugClient {}
+
+impl CLIDebugClient {
+    pub fn new() -> Self {
+        CLIDebugClient{}
+    }
+}
+
+/*
     Implement a client for the debugger that reads and writes to standard input and output
 */
 impl DebugClient for CLIDebugClient {
-    fn init(&self) {}
-
     // block waiting for a command from the debug client
     fn get_command(&self, job_number: usize) -> Command {
         get_user_command(job_number)

@@ -13,8 +13,8 @@ use crate::debug_client::Event::{*};
 use crate::debug_client::Param;
 use crate::run_state::{Block, Job, RunState};
 
-pub struct Debugger {
-    client: &'static dyn DebugClient,
+pub struct Debugger<'a> {
+    client: &'a dyn DebugClient,
     input_breakpoints: HashSet<(usize, usize)>,
     block_breakpoints: HashSet<(usize, usize)>,
     /* blocked_id -> blocking_id */
@@ -58,8 +58,8 @@ impl fmt::Display for BlockerNode {
     }
 }
 
-impl Debugger {
-    pub fn new(client: &'static dyn DebugClient) -> Self {
+impl<'a> Debugger<'a> {
+    pub fn new(client: &'a dyn DebugClient) -> Self {
         Debugger {
             client,
             input_breakpoints: HashSet::<(usize, usize)>::new(),

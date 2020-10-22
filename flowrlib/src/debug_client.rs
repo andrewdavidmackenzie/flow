@@ -90,8 +90,6 @@ pub enum Event {
 
 /// debug_clients must implement this trait
 pub trait DebugClient {
-    /// Called at init to initialize the client
-    fn init(&self);
     /// Called to fetch the next command from the debug_client
     fn get_command(&self, job_number: usize) -> Command;
     /// Called to send an event to the debug_client

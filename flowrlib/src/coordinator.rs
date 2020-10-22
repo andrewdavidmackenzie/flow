@@ -33,7 +33,7 @@ use crate::runtime_client::{Command, RuntimeClient};
 ///                                     1 /* num_parallel_jobs */,
 ///                                     false /* display_metrics */,
 ///                                     None /* debug client */);
-pub struct Submission {
+pub struct Submission<'a> {
     _metadata: MetaData,
     display_metrics: bool,
     #[cfg(feature = "metrics")]
@@ -42,12 +42,12 @@ pub struct Submission {
     job_timeout: Duration,
     state: RunState,
     #[cfg(feature = "debugger")]
-    debugger: Debugger,
+    debugger: Debugger<'a>,
     #[cfg(feature = "debugger")]
     enter_debugger: bool,
 }
 
-impl Submission {
+impl<'a> Submission<'a> {
     /// Create a new `Submission` of a `Flow` for execution with the specified `Manifest`
     /// of `Functions`, executing it with a maximum of `mac_parallel_jobs` running in parallel
     /// connecting via the optional `DebugClient`
@@ -56,10 +56,9 @@ impl Submission {
                display_metrics: bool,
                runtime_client: Arc<Mutex<dyn RuntimeClient>>,
                #[cfg(feature = "debugger")]
-               client: &'static dyn DebugClient,
+               client: &'a dyn DebugClient,
                #[cfg(feature = "debugger")]
-               enter_debugger: bool,
-    ) -> Submission {
+               enter_debugger: bool) -> Submission<'a> {
         info!("Maximum jobs in parallel limited to {}", max_parallel_jobs);
         let output_timeout = Duration::from_secs(60);
 
@@ -134,8 +133,6 @@ pub struct Coordinator {
 /// let manifest = Manifest::new(meta_data);
 ///
 /// impl DebugClient for ExampleDebugClient {
-///     fn init(&self) {}
-///
 ///     fn get_command(&self, job_number: usize) -> Command { ExitDebugger }
 ///
 ///     fn send_event(&self, event: Event) {}
@@ -394,8 +391,6 @@ mod test {
 
     #[cfg(feature = "debugger")]
     impl DebugClient for TestDebugClient {
-        fn init(&self) {}
-
         fn get_command(&self, _job_number: usize) -> Command {
             Command::ExitDebugger
         }

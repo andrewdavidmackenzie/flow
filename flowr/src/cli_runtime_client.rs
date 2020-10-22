@@ -35,12 +35,10 @@ impl CLIRuntimeClient {
             },
             Command::FlowEnd => {
                 debug!("=========================== Flow execution ended ======================================");
-
-                for (filename, image_buffer) in self.image_buffers.iter() {
+                for (filename, image_buffer) in self.image_buffers.drain() {
                     info!("Flushing ImageBuffer to file: {}", filename);
-                    image_buffer.save_with_format(Path::new(filename), ImageFormat::Png).unwrap();
+                    image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png).unwrap();
                 }
-
                 Response::Ack
             },
             Command::EOF => Response::Ack,

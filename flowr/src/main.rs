@@ -18,7 +18,6 @@ use simplog::simplog::SimpleLogger;
 use url::Url;
 
 use flowrlib::coordinator::{Coordinator, Submission};
-use flowrlib::debug_client::DebugClient;
 use flowrlib::info;
 use flowrlib::loader::Loader;
 use provider::args::url_from_string;
@@ -30,8 +29,6 @@ use crate::cli_runtime_client::FLOW_ARGS_NAME;
 
 mod cli_debug_client;
 mod cli_runtime_client;
-
-const CLI_DEBUG_CLIENT: &dyn DebugClient = &CLIDebugClient {};
 
 // We'll put our errors in an `errors` module, and other modules in
 // this crate will `use errors::*;` to get access to everything
@@ -104,11 +101,13 @@ fn run() -> Result<()> {
 
     pass_flow_args(&matches, &manifest.get_metadata().name);
 
+    let debug_client = CLIDebugClient::new();
+
     let submission = Submission::new(manifest,
                                      num_parallel_jobs,
                                      metrics,
                                      runtime_client,
-                                     CLI_DEBUG_CLIENT,
+                                     &debug_client,
                                      debugger);
 
     coordinator.submit(submission);

@@ -147,8 +147,6 @@ fn process_event(event: Event) {
     Implement a client for the debugger that reads and writes to standard input and output
 */
 impl DebugClient for CLIDebugClient {
-    fn init(&self) {}
-
     fn get_command(&self, job_number: usize) -> Command {
         get_user_command(job_number)
     }
