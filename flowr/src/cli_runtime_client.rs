@@ -41,7 +41,7 @@ impl CLIRuntimeClient {
                 }
                 Response::Ack
             },
-            Command::EOF => Response::Ack,
+            Command::StdoutEOF => Response::Ack,
             Command::Stdout(contents) => {
                 println!("{}", contents);
                 Response::Ack
@@ -50,7 +50,7 @@ impl CLIRuntimeClient {
                 eprintln!("{}", contents);
                 Response::Ack
             }
-            Command::Stdin => {
+            Command::GetStdin => {
                 let mut buffer = String::new();
                 let stdin = io::stdin();
                 let mut handle = stdin.lock();
@@ -58,16 +58,16 @@ impl CLIRuntimeClient {
                     return if size > 0 {
                         Response::Stdin(buffer.trim().to_string())
                     } else {
-                        Response::EOF
+                        Response::GetStdinEOF
                     };
                 }
                 Response::Error("Could not read Stdin".into())
             }
-            Command::Readline => {
+            Command::GetLine => {
                 let mut input = String::new();
                 match io::stdin().read_line(&mut input) {
-                    Ok(n) if n > 0 => Response::Readline(input.trim().to_string()),
-                    Ok(n) if n == 0 => Response::EOF,
+                    Ok(n) if n > 0 => Response::Line(input.trim().to_string()),
+                    Ok(n) if n == 0 => Response::GetLineEOF,
                     _ => Response::Error("Could not read Readline".into())
                 }
             }
@@ -82,7 +82,7 @@ impl CLIRuntimeClient {
                 image.put_pixel(x, y, Rgb([r, g, b]));
                 Response::Ack
             }
-            Command::Args => {
+            Command::GetArgs => {
                 let args = env::var(FLOW_ARGS_NAME).unwrap();
                 env::remove_var(FLOW_ARGS_NAME); // so another invocation later won't use it by mistake
                 let flow_args: Vec<String> = args.split(' ').map(|s| s.to_string()).collect();
@@ -118,7 +118,7 @@ mod test {
 
         let mut client = CLIRuntimeClient::new();
 
-        match client.send_command(Command::Args) {
+        match client.send_command(Command::GetArgs) {
             Response::Args(args) => assert_eq!(vec!("test".to_string()), args),
             _ => panic!("Didn't get Args response as expected")
         }

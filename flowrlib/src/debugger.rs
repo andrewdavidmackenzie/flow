@@ -74,7 +74,7 @@ impl<'a> Debugger<'a> {
         Return values are (display next output, reset execution)
     */
     pub fn enter(&mut self, state: &RunState) -> (bool, bool) {
-        self.client.send_event(Enter);
+        self.client.send_event(EnterDebugger);
         self.wait_for_command(state)
     }
 
@@ -165,7 +165,7 @@ impl<'a> Debugger<'a> {
         Return values are (display next output, reset execution)
     */
     pub fn end(&mut self, state: &RunState) -> (bool, bool) {
-        self.client.send_event(End);
+        self.client.send_event(ExitDebugger);
         self.deadlock_inspection(state);
         self.wait_for_command(state)
     }

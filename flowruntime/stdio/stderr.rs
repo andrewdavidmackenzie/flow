@@ -18,7 +18,7 @@ impl Implementation for Stderr {
 
         if let Ok(mut client) = self.client.lock() {
             match input {
-                Value::Null => client.send_command(Command::EOF),
+                Value::Null => client.send_command(Command::StderrEOF),
                 Value::String(string) => client.send_command(Command::Stderr(string.to_string())),
                 Value::Bool(boolean) => client.send_command(Command::Stderr(boolean.to_string())),
                 Value::Number(number) => client.send_command(Command::Stderr(number.to_string())),

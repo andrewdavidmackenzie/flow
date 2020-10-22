@@ -11,17 +11,19 @@ pub enum Command {
     /// Command to print a String of contents to stderr
     Stderr(String),
     /// Read characters possible from Stdin
-    Stdin,
-    /// Read a line of characters from Stdlin
-    Readline,
+    GetStdin,
+    /// Read a line of characters from Stdin
+    GetLine,
     /// Get the arguments for the flow
-    Args,
+    GetArgs,
     /// Write to a file
     Write(String, Vec<u8>),
     /// Write a pixel to an ImageBuffer
     PixelWrite((u32, u32), (u8, u8, u8), (u32, u32), String),
-    /// End of File
-    EOF
+    /// End of File sent to Stdout
+    StdoutEOF,
+    /// End of File sent to Stderr
+    StderrEOF,
 }
 
 /// A `Response` from the runtime_client to the run-time functions
@@ -31,14 +33,16 @@ pub enum Response {
     Ack,
     /// A String read from Stdin
     Stdin(String),
-    /// A libne of text read from Stdin using readline
-    Readline(String),
+    /// A line of text read from Stdin using readline
+    Line(String),
     /// An Vector of Strings that are the flow's arguments
     Args(Vec<String>),
     /// An Error occurred on the runtime_client
     Error(String),
-    /// EOF was detected on input
-    EOF
+    /// EOF was detected on input reading using Stdin
+    GetStdinEOF,
+    /// EOF was detected on input reading using Readline
+    GetLineEOF,
 }
 
 /// runtime_clients must implement this trait

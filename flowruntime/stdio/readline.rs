@@ -15,9 +15,9 @@ pub struct Readline {
 impl Implementation for Readline {
     fn run(&self, _inputs: &[Value]) -> (Option<Value>, RunAgain) {
         if let Ok(mut client) = self.client.lock() {
-            return match client.send_command(Command::Readline) {
-                Response::Readline(contents) => (Some(Value::String(contents)), RUN_AGAIN),
-               Response::EOF => (Some(Value::Null), DONT_RUN_AGAIN),
+            return match client.send_command(Command::GetLine) {
+                Response::Line(contents) => (Some(Value::String(contents)), RUN_AGAIN),
+               Response::GetLineEOF => (Some(Value::Null), DONT_RUN_AGAIN),
                 _ => (None, DONT_RUN_AGAIN)
             }
         }

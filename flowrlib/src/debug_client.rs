@@ -51,7 +51,7 @@ pub enum Event {
     /// includes:  job_id, function_id
     JobCompleted(usize, usize, Option<Value>),
     /// A `Flow` execution was started - entering the debug_client
-    Enter,
+    EnterDebugger,
     /// The run-time is about to send a `Job` for execution - an opportunity to break
     /// includes: job_id, function_id
     PriorToSendingJob(usize, usize),
@@ -66,7 +66,7 @@ pub enum Event {
     /// There was an error executing the Job
     JobError(Job),
     /// End of debug session - debug_client should disconnect
-    End,
+    ExitDebugger,
     /// A check has detected that there is a deadlock between functions impeding more execution
     Deadlock(String),
     /// A value is being sent from the output of one function to the input of another
@@ -74,11 +74,9 @@ pub enum Event {
     SendingValue(usize, Value, usize, usize),
     /// Simple acknowledgement
     Ack,
-    /// An error was detected
-    /// includes: A string describing the error
+    /// An error was detected - includes: A string describing the error
     Error(String),
     /// A message for display to the user of the debug_client
-    /// includes: A string to be displayed
     Message(String),
     /// The run-time is resetting the status back to the initial state
     Resetting,

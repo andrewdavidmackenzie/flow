@@ -21,7 +21,7 @@ impl IDERuntimeClient {
         match command {
             Command::FlowStart => Response::Ack,
             Command::FlowEnd => Response::Ack,
-            Command::EOF => Response::Ack,
+            Command::StdoutEOF => Response::Ack,
             Command::Stdout(contents) => {
                 widgets::do_in_gtk_eventloop(|refs| {
                     refs.stdout().insert_at_cursor(&format!("{}\n", contents));
@@ -34,14 +34,14 @@ impl IDERuntimeClient {
                 });
                 Response::Ack
             }
-            Command::Stdin => {
+            Command::GetStdin => {
 //                Response::Stdin("bla bla".to_string()) // TODO
                 Response::Error("Could not read Stdin".into())
             }
-            Command::Readline => {
+            Command::GetLine => {
                 Response::Stdin("bla bla".to_string())  // TODO
             }
-            Command::Args => {
+            Command::GetArgs => {
                 Response::Args(self.args.clone())
             }
             Command::Write(filename, bytes) => {

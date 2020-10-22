@@ -109,7 +109,7 @@ fn process_event(event: Event) {
                 println!("\tOutput value: '{}'", &output);
             }
         }
-        Enter =>
+        EnterDebugger =>
             println!("Entering Debugger. Use 'h' or 'help' for help on commands"),
         PriorToSendingJob(job_id, function_id) =>
             println!("About to send Job #{} to Function #{}", job_id, function_id),
@@ -124,7 +124,7 @@ fn process_event(event: Event) {
             println!("Function panicked - Job: {:#?}", output),
         JobError(job) =>
             println!("Error occurred executing a Job: \n'{:?}'", job),
-        End =>
+        ExitDebugger =>
             println!("Execution has ended."),
         Deadlock(message) =>
             println!("Deadlock detected{}", message),

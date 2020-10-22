@@ -15,7 +15,7 @@ pub struct Get {
 impl Implementation for Get {
     fn run(&self, mut _inputs: &[Value]) -> (Option<Value>, RunAgain) {
         if let Ok(mut client) = self.client.lock() {
-            match client.send_command(Command::Args) {
+            match client.send_command(Command::GetArgs) {
                 Response::Args(arg_vec) => {
                     let j_args = Some(json!(arg_vec));
                     return (j_args, DONT_RUN_AGAIN)
