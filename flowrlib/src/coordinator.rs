@@ -18,7 +18,7 @@ use crate::manifest::MetaData;
 use crate::metrics::Metrics;
 use crate::run_state::Job;
 use crate::run_state::RunState;
-use crate::runtime_client::{Command, RuntimeClient};
+use crate::runtime_client::{Event, RuntimeClient};
 
 /// A Submission is the struct used to send a flow to the Coordinator for execution. It contains
 /// all the information necessary to execute it:
@@ -114,10 +114,10 @@ pub struct Coordinator {
 /// use std::process::exit;
 /// use flowrlib::manifest::{Manifest, MetaData};
 /// #[cfg(any(feature = "debugger"))]
-/// use flowrlib::debug_client::{DebugClient, Command, Param, Event, Command::ExitDebugger};
+/// use flowrlib::debug_client::{DebugClient, Response, Param, Event, Response::ExitDebugger};
 /// use flowrlib::runtime_client::RuntimeClient;
 /// use flowrlib::runtime_client::Response as RuntimeResponse;
-/// use flowrlib::runtime_client::Command as RuntimeCommand;
+/// use flowrlib::runtime_client::Event as RuntimeCommand;
 ///
 /// struct ExampleDebugClient {};
 /// #[derive(Debug)]
@@ -133,13 +133,13 @@ pub struct Coordinator {
 /// let manifest = Manifest::new(meta_data);
 ///
 /// impl DebugClient for ExampleDebugClient {
-///     fn get_command(&self, job_number: usize) -> Command { ExitDebugger }
-///
-///     fn send_event(&self, event: Event) {}
+///     fn send_event(&self, event: Event) -> Response {
+///         Response::Ack
+///     }
 /// }
 ///
 /// impl RuntimeClient for ExampleRuntimeClient {
-///     fn send_command(&mut self,command: RuntimeCommand) -> RuntimeResponse {
+///     fn send_event(&mut self,command: RuntimeCommand) -> RuntimeResponse {
 ///         RuntimeResponse::Ack
 ///     }
 /// }
@@ -212,7 +212,7 @@ impl Coordinator {
         loop {
             debug!("Resetting stats and initializing all functions");
             submission.state.init();
-            submission.runtime_client.lock().unwrap().send_command(Command::FlowStart);
+            submission.runtime_client.lock().unwrap().send_event(Event::FlowStart);
 
             #[cfg(feature = "debugger")]
             if submission.enter_debugger {
@@ -288,7 +288,7 @@ impl Coordinator {
                 #[cfg(feature = "debugger")]
                     {
                         if submission.enter_debugger {
-                            let check = submission.debugger.end(&submission.state);
+                            let check = submission.debugger.flow_done(&submission.state);
                             restart = check.1;
                         }
                     }
@@ -310,7 +310,7 @@ impl Coordinator {
             println!("\t\tJobs created: {}\n", submission.state.jobs_created());
         }
 
-        submission.runtime_client.lock().unwrap().send_command(Command::FlowEnd);
+        submission.runtime_client.lock().unwrap().send_event(Event::FlowEnd);
     }
 
     /*
@@ -369,10 +369,10 @@ mod test {
     use crate::coordinator::Coordinator;
     use crate::coordinator::Submission;
     #[cfg(feature = "debugger")]
-    use crate::debug_client::{Command, DebugClient, Event};
+    use crate::debug_client::{DebugClient, Event, Response};
     use crate::manifest::Manifest;
     use crate::manifest::MetaData;
-    use crate::runtime_client::Command as RuntimeCommand;
+    use crate::runtime_client::Event as RuntimeCommand;
     use crate::runtime_client::Response as RuntimeResponse;
     use crate::runtime_client::RuntimeClient;
 
@@ -391,11 +391,9 @@ mod test {
 
     #[cfg(feature = "debugger")]
     impl DebugClient for TestDebugClient {
-        fn get_command(&self, _job_number: usize) -> Command {
-            Command::ExitDebugger
+        fn send_event(&self, _event: Event) -> Response {
+            Response::Ack
         }
-
-        fn send_event(&self, _event: Event) {}
     }
 
     #[cfg(feature = "debugger")]
@@ -407,7 +405,7 @@ mod test {
     struct TestRuntimeClient {}
 
     impl RuntimeClient for TestRuntimeClient {
-        fn send_command(&mut self, _command: RuntimeCommand) -> RuntimeResponse {
+        fn send_event(&mut self, _command: RuntimeCommand) -> RuntimeResponse {
             RuntimeResponse::Ack
         }
     }

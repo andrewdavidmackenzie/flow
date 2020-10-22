@@ -8,7 +8,7 @@ use std::path::Path;
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
 use log::{debug, info};
 
-use flowrlib::runtime_client::{Command, Response, RuntimeClient};
+use flowrlib::runtime_client::{Event, Response, RuntimeClient};
 
 #[derive(Debug, Clone)]
 pub struct CLIRuntimeClient {
@@ -27,13 +27,13 @@ impl CLIRuntimeClient {
     }
 
     #[allow(clippy::many_single_char_names)]
-    fn process_command(&mut self, command: Command) -> Response {
+    fn process_command(&mut self, command: Event) -> Response {
         match command {
-            Command::FlowStart => {
+            Event::FlowStart => {
                 debug!("===========================    Starting flow execution =============================");
                 Response::Ack
             },
-            Command::FlowEnd => {
+            Event::FlowEnd => {
                 debug!("=========================== Flow execution ended ======================================");
                 for (filename, image_buffer) in self.image_buffers.drain() {
                     info!("Flushing ImageBuffer to file: {}", filename);
@@ -41,16 +41,16 @@ impl CLIRuntimeClient {
                 }
                 Response::Ack
             },
-            Command::StdoutEOF => Response::Ack,
-            Command::Stdout(contents) => {
+            Event::StdoutEOF => Response::Ack,
+            Event::Stdout(contents) => {
                 println!("{}", contents);
                 Response::Ack
             }
-            Command::Stderr(contents) => {
+            Event::Stderr(contents) => {
                 eprintln!("{}", contents);
                 Response::Ack
             }
-            Command::GetStdin => {
+            Event::GetStdin => {
                 let mut buffer = String::new();
                 let stdin = io::stdin();
                 let mut handle = stdin.lock();
@@ -63,7 +63,7 @@ impl CLIRuntimeClient {
                 }
                 Response::Error("Could not read Stdin".into())
             }
-            Command::GetLine => {
+            Event::GetLine => {
                 let mut input = String::new();
                 match io::stdin().read_line(&mut input) {
                     Ok(n) if n > 0 => Response::Line(input.trim().to_string()),
@@ -71,23 +71,24 @@ impl CLIRuntimeClient {
                     _ => Response::Error("Could not read Readline".into())
                 }
             }
-            Command::Write(filename, bytes) => {
+            Event::Write(filename, bytes) => {
                 let mut file = File::create(filename).unwrap();
                 file.write_all(bytes.as_slice()).unwrap();
                 Response::Ack
             }
-            Command::PixelWrite((x, y), (r, g, b), (width, height), name) => {
+            Event::PixelWrite((x, y), (r, g, b), (width, height), name) => {
                 let image = self.image_buffers.entry(name)
                     .or_insert_with(|| RgbImage::new(width, height));
                 image.put_pixel(x, y, Rgb([r, g, b]));
                 Response::Ack
             }
-            Command::GetArgs => {
+            Event::GetArgs => {
                 let args = env::var(FLOW_ARGS_NAME).unwrap();
                 env::remove_var(FLOW_ARGS_NAME); // so another invocation later won't use it by mistake
                 let flow_args: Vec<String> = args.split(' ').map(|s| s.to_string()).collect();
                 Response::Args(flow_args)
             }
+            Event::StderrEOF => Response::Ack
         }
     }
 }
@@ -95,7 +96,7 @@ impl CLIRuntimeClient {
 impl RuntimeClient for CLIRuntimeClient {
     // This function is called by the runtime_function to send a command to the runtime_client
     // so here in the runtime_client, it's more like "process_command"
-    fn send_command(&mut self, command: Command) -> Response {
+    fn send_event(&mut self, command: Event) -> Response {
         self.process_command(command)
     }
 }
@@ -107,7 +108,7 @@ mod test {
 
     use tempdir::TempDir;
 
-    use flowrlib::runtime_client::{Command, Response, RuntimeClient};
+    use flowrlib::runtime_client::{Event, Response, RuntimeClient};
 
     use super::CLIRuntimeClient;
     use super::FLOW_ARGS_NAME;
@@ -118,7 +119,7 @@ mod test {
 
         let mut client = CLIRuntimeClient::new();
 
-        match client.send_command(Command::GetArgs) {
+        match client.send_event(Event::GetArgs) {
             Response::Args(args) => assert_eq!(vec!("test".to_string()), args),
             _ => panic!("Didn't get Args response as expected")
         }
@@ -131,7 +132,7 @@ mod test {
 
         let mut client = CLIRuntimeClient::new();
 
-        if client.send_command(Command::Write(file.to_str().unwrap().to_string(), b"Hello".to_vec()))
+        if client.send_event(Event::Write(file.to_str().unwrap().to_string(), b"Hello".to_vec()))
             != Response::Ack {
             panic!("Didn't get Write response as expected")
         }
@@ -140,7 +141,7 @@ mod test {
     #[test]
     fn test_stdout() {
         let mut client = CLIRuntimeClient::new();
-        if client.send_command(Command::Stdout("Hello".into())) != Response::Ack {
+        if client.send_event(Event::Stdout("Hello".into())) != Response::Ack {
             panic!("Didn't get Stdout response as expected")
         }
     }
@@ -148,7 +149,7 @@ mod test {
     #[test]
     fn test_stderr() {
         let mut client = CLIRuntimeClient::new();
-        if client.send_command(Command::Stderr("Hello".into())) != Response::Ack {
+        if client.send_event(Event::Stderr("Hello".into())) != Response::Ack {
             panic!("Didn't get Stderr response as expected")
         }
     }
@@ -163,12 +164,12 @@ mod test {
         let _ = fs::remove_file(&path);
         assert!(!path.exists());
 
-        client.send_command(Command::FlowStart);
-        let pixel = Command::PixelWrite((0, 0), (255, 200, 20), (10, 10), path.display().to_string());
-        if client.send_command(pixel) != Response::Ack {
+        client.send_event(Event::FlowStart);
+        let pixel = Event::PixelWrite((0, 0), (255, 200, 20), (10, 10), path.display().to_string());
+        if client.send_event(pixel) != Response::Ack {
             panic!("Didn't get pixel write response as expected")
         }
-        client.send_command(Command::FlowEnd);
+        client.send_event(Event::FlowEnd);
 
         assert!(path.exists(), "Image file was not created");
     }

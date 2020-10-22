@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
-use flowrlib::runtime_client::{Command, Response, RuntimeClient};
+use flowrlib::runtime_client::{Event, Response, RuntimeClient};
 
 /// `Implementation` struct for the `file_write` function
 #[derive(Debug)]
@@ -18,8 +18,8 @@ impl Implementation for FileWrite {
         let bytes = &inputs[1];
 
         if let Ok(mut client) = self.client.lock() {
-            match client.send_command(Command::Write(filename.to_string(),
-                                                     bytes.as_str().unwrap().as_bytes().to_vec())) {
+            match client.send_event(Event::Write(filename.to_string(),
+                                                 bytes.as_str().unwrap().as_bytes().to_vec())) {
                 Response::Ack => return (None, RUN_AGAIN),
                 _ => return (None, RUN_AGAIN)
             }

@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
-use flowrlib::runtime_client::{Command, Response, RuntimeClient};
+use flowrlib::runtime_client::{Event, Response, RuntimeClient};
 
 /// `Implementation` struct for the `Stderr` function
 #[derive(Debug)]
@@ -18,11 +18,11 @@ impl Implementation for Stderr {
 
         if let Ok(mut client) = self.client.lock() {
             match input {
-                Value::Null => client.send_command(Command::StderrEOF),
-                Value::String(string) => client.send_command(Command::Stderr(string.to_string())),
-                Value::Bool(boolean) => client.send_command(Command::Stderr(boolean.to_string())),
-                Value::Number(number) => client.send_command(Command::Stderr(number.to_string())),
-                Value::Array(_array) => client.send_command(Command::Stdout(input.to_string())),
+                Value::Null => client.send_event(Event::StderrEOF),
+                Value::String(string) => client.send_event(Event::Stderr(string.to_string())),
+                Value::Bool(boolean) => client.send_event(Event::Stderr(boolean.to_string())),
+                Value::Number(number) => client.send_event(Event::Stderr(number.to_string())),
+                Value::Array(_array) => client.send_event(Event::Stdout(input.to_string())),
                 _ => Response::Error("Cannot Print this type".into())
             };
         }

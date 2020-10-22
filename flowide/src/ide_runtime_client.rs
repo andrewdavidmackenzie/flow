@@ -3,7 +3,7 @@ use std::io::prelude::*;
 
 use gtk::TextBufferExt;
 
-use flowrlib::runtime_client::{Command, Response, RuntimeClient};
+use flowrlib::runtime_client::{Event, Response, RuntimeClient};
 
 use crate::widgets;
 
@@ -17,44 +17,45 @@ impl IDERuntimeClient {
         IDERuntimeClient{args: vec!()}
     }
 
-    fn process_command(&mut self, command: Command) -> Response {
+    fn process_command(&mut self, command: Event) -> Response {
         match command {
-            Command::FlowStart => Response::Ack,
-            Command::FlowEnd => Response::Ack,
-            Command::StdoutEOF => Response::Ack,
-            Command::Stdout(contents) => {
+            Event::FlowStart => Response::Ack,
+            Event::FlowEnd => Response::Ack,
+            Event::StdoutEOF => Response::Ack,
+            Event::Stdout(contents) => {
                 widgets::do_in_gtk_eventloop(|refs| {
                     refs.stdout().insert_at_cursor(&format!("{}\n", contents));
                 });
                 Response::Ack
             }
-            Command::Stderr(contents) => {
+            Event::Stderr(contents) => {
                 widgets::do_in_gtk_eventloop(|refs| {
                     refs.stderr().insert_at_cursor(&format!("{}\n", contents));
                 });
                 Response::Ack
             }
-            Command::GetStdin => {
+            Event::GetStdin => {
 //                Response::Stdin("bla bla".to_string()) // TODO
                 Response::Error("Could not read Stdin".into())
             }
-            Command::GetLine => {
+            Event::GetLine => {
                 Response::Stdin("bla bla".to_string())  // TODO
             }
-            Command::GetArgs => {
+            Event::GetArgs => {
                 Response::Args(self.args.clone())
             }
-            Command::Write(filename, bytes) => {
+            Event::Write(filename, bytes) => {
                 let mut file = File::create(filename).unwrap();
                 file.write_all(bytes.as_slice()).unwrap();
                 Response::Ack
             }
-            Command::PixelWrite((_x, _y), (_r, _g, _b), (_width, _height), _name) => {
+            Event::PixelWrite((_x, _y), (_r, _g, _b), (_width, _height), _name) => {
                 // let image = self.image_buffers.entry(name)
                 //     .or_insert(RgbImage::new(width, height));
                 // image.put_pixel(x, y, Rgb([r, g, b]));
                 Response::Ack
             }
+            Event::StderrEOF => Response::Ack
         }
     }
 
@@ -65,7 +66,7 @@ impl IDERuntimeClient {
 
 impl RuntimeClient for IDERuntimeClient {
     // This function is called by the runtime_function to send a command to the runtime_client
-    fn send_command(&mut self, command: Command) -> Response {
+    fn send_event(&mut self, command: Event) -> Response {
         self.process_command(command)
     }
 }

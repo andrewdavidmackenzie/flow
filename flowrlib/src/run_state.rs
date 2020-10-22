@@ -1013,7 +1013,7 @@ mod test {
     #[cfg(feature = "debugger")]
     use crate::debug_client::{DebugClient, Event};
     #[cfg(feature = "debugger")]
-    use crate::debug_client::{Command, Param};
+    use crate::debug_client::{Param, Response};
     use crate::function::Function;
     use crate::input::Input;
     use crate::input::InputInitializer::Once;
@@ -1042,11 +1042,9 @@ mod test {
 
     #[cfg(feature = "debugger")]
     impl DebugClient for TestDebugClient {
-        fn get_command(&self, _job_number: usize) -> Command {
-            Command::Step(Some(run_state::test::Param::Numeric(1)))
+        fn send_event(&self, _event: Event) -> Response {
+            Response::Step(Some(run_state::test::Param::Numeric(1)))
         }
-
-        fn send_event(&self, _event: Event) {}
     }
 
     #[cfg(feature = "debugger")]

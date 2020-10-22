@@ -16,8 +16,10 @@ pub enum Param {
     Block((usize, usize)),
 }
 
-/// A debugger command entered by the user in the client and sent to the debugger runtime
-pub enum Command {
+/// A debugger Response sent by the debug_client the debugger runtime
+pub enum Response {
+    /// Acknowledge event processed correctly
+    Ack,
     /// Set a `breakpoint` - with an optional parameter
     Breakpoint(Option<Param>),
     /// `continue` execution of the flow
@@ -47,11 +49,12 @@ pub enum Command {
 /// A run-time event that the debugger communicates to the debug_client for it to decide
 /// what to do, or what to request of the user
 pub enum Event {
-    /// A `Job` ran to completion by a function
-    /// includes:  job_id, function_id
+    /// A `Job` ran to completion by a function - includes:  job_id, function_id
     JobCompleted(usize, usize, Option<Value>),
-    /// A `Flow` execution was started - entering the debug_client
-    EnterDebugger,
+    /// Entering the debugger
+    EnteringDebugger,
+    /// The debugger/run-time is exiting
+    ExitingDebugger,
     /// The run-time is about to send a `Job` for execution - an opportunity to break
     /// includes: job_id, function_id
     PriorToSendingJob(usize, usize),
@@ -65,31 +68,27 @@ pub enum Event {
     Panic(String),
     /// There was an error executing the Job
     JobError(Job),
-    /// End of debug session - debug_client should disconnect
-    ExitDebugger,
+    /// Execution of the flow has started
+    ExecutionStarted,
+    /// Execution of the flow has ended
+    ExecutionEnded,
     /// A check has detected that there is a deadlock between functions impeding more execution
     Deadlock(String),
     /// A value is being sent from the output of one function to the input of another
     /// includes: source_process_id, value, destination_id, input_number
     SendingValue(usize, Value, usize, usize),
-    /// Simple acknowledgement
-    Ack,
     /// An error was detected - includes: A string describing the error
     Error(String),
     /// A message for display to the user of the debug_client
     Message(String),
     /// The run-time is resetting the status back to the initial state
     Resetting,
-    /// The debugger/run-time is running
-    Running,
-    /// The debugger/run-time is exiting
-    Exiting
+    /// Debugger is blocked waiting for a command before proceeding
+    WaitingForCommand(usize)
 }
 
 /// debug_clients must implement this trait
 pub trait DebugClient {
-    /// Called to fetch the next command from the debug_client
-    fn get_command(&self, job_number: usize) -> Command;
     /// Called to send an event to the debug_client
-    fn send_event(&self, event: Event);
+    fn send_event(&self, event: Event) -> Response;
 }

@@ -1,7 +1,7 @@
 use std::io;
 use std::io::Write;
 
-use flowrlib::debug_client::{Command, Command::{*}, DebugClient, Event, Event::{*}, Param};
+use flowrlib::debug_client::{DebugClient, Event, Event::{*}, Param, Response, Response::{*}};
 
 const HELP_STRING: &str = "Debugger commands:
 'b' | 'breakpoint' {spec}    - Set a breakpoint on a function (by id), an output or an input using spec:
@@ -41,13 +41,13 @@ fn parse_command(input: &str) -> (&str, Option<Param>) {
         }
 
         if let Ok(integer) = parts[1].parse::<usize>() {
-            return (command, Some(Param::Numeric(integer)))
+            return (command, Some(Param::Numeric(integer)));
         }
 
         if parts[1].contains('/') { // is an output specified
             let sub_parts: Vec<&str> = parts[1].split('/').collect();
             if let Ok(source_process_id) = sub_parts[0].parse::<usize>() {
-                    return (command, Some(Param::Output((source_process_id, sub_parts[1].to_string()))));
+                return (command, Some(Param::Output((source_process_id, sub_parts[1].to_string()))));
             }
         } else if parts[1].contains(':') { // is an input specifier
             let sub_parts: Vec<&str> = parts[1].split(':').collect();
@@ -69,7 +69,7 @@ fn parse_command(input: &str) -> (&str, Option<Param>) {
     (command, None)
 }
 
-fn get_user_command(job_number: usize) -> Command {
+fn get_user_command(job_number: usize) -> Response {
     loop {
         print!("Debug #{}> ", job_number);
         io::stdout().flush().unwrap();
@@ -81,7 +81,7 @@ fn get_user_command(job_number: usize) -> Command {
                 let (command, param) = parse_command(&input);
                 match command {
                     "b" | "breakpoint" => return Breakpoint(param),
-                    ""  | "c" | "continue" => return Continue,
+                    "" | "c" | "continue" => return Continue,
                     "d" | "delete" => return Delete(param),
                     "e" | "exit" => return ExitDebugger,
                     "h" | "help" => help(),
@@ -99,7 +99,7 @@ fn get_user_command(job_number: usize) -> Command {
     }
 }
 
-fn process_event(event: Event) {
+fn process_event(event: Event) -> Response {
     match event {
         JobCompleted(job_id, function_id, opt_output) => {
             println!("Job #{} completed by Function #{}", job_id, function_id);
@@ -107,8 +107,6 @@ fn process_event(event: Event) {
                 println!("\tOutput value: '{}'", &output);
             }
         }
-        EnterDebugger =>
-            println!("Entering Debugger. Use 'h' or 'help' for help on commands"),
         PriorToSendingJob(job_id, function_id) =>
             println!("About to send Job #{} to Function #{}", job_id, function_id),
         BlockBreakpoint(block) =>
@@ -122,35 +120,36 @@ fn process_event(event: Event) {
             println!("Function panicked - Job: {:#?}", output),
         JobError(job) =>
             println!("Error occurred executing a Job: \n'{:?}'", job),
-        ExitDebugger =>
-            println!("Execution has ended."),
+        ExecutionStarted =>
+            println!("Running flow"),
+        ExecutionEnded =>
+            println!("Flow has completed"),
         Deadlock(message) =>
             println!("Deadlock detected{}", message),
         SendingValue(source_process_id, value, destination_id, input_number) =>
             println!("Function #{} sending '{}' to {}:{}",
                      source_process_id, value, destination_id, input_number),
-            Ack => {}
-            Error(error_message) =>
+        Error(error_message) =>
             println!("{}", error_message),
-            Message(message) =>
+        Message(message) =>
             println!("{}", message),
-            Resetting =>
+        Resetting =>
             println!("Resetting state"),
-            Running =>
-            println!("Running flow"),
-            Exiting =>
+        EnteringDebugger =>
+            println!("Entering Debugger. Use 'h' or 'help' for help on commands"),
+        ExitingDebugger =>
             println!("Debugger is exiting"),
+        WaitingForCommand(job_id) => return get_user_command(job_id)
     }
+
+    Ack
 }
 
 /*
     Implement a client for the debugger that reads and writes to standard input and output
 */
 impl DebugClient for CLIDebugClient {
-    fn get_command(&self, job_number: usize) -> Command {
-        get_user_command(job_number)
-    }
-    fn send_event(&self, event: Event) {
-        process_event(event);
+    fn send_event(&self, event: Event) -> Response {
+        process_event(event)
     }
 }

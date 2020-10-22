@@ -1,32 +1,32 @@
 use std::fmt::Debug;
 
-/// A run-time command sent from a run-time function to a runtime_client
-pub enum Command {
-    /// Command to perform anything needed when a flow starts executing
+/// A run-time Event sent from the run-time to a runtime_client
+pub enum Event {
+    /// A flow has started executing
     FlowStart,
-    /// Command to perform anything needed when a flow stops executing
+    /// A flow has stopped executing
     FlowEnd,
-    /// Command to print a String of contents to stdout
+    /// A String of contents was sent to stdout
     Stdout(String),
-    /// Command to print a String of contents to stderr
+    /// A String of contents was sent to stderr
     Stderr(String),
-    /// Read characters possible from Stdin
+    /// A Request to read from Stdin
     GetStdin,
-    /// Read a line of characters from Stdin
+    /// A Request to read a line of characters from Stdin
     GetLine,
-    /// Get the arguments for the flow
+    /// A Request to get the arguments for the flow
     GetArgs,
-    /// Write to a file
+    /// A Request to write a series of bytes to a file
     Write(String, Vec<u8>),
-    /// Write a pixel to an ImageBuffer
+    /// A Request to write a pixel to an ImageBuffer
     PixelWrite((u32, u32), (u8, u8, u8), (u32, u32), String),
-    /// End of File sent to Stdout
+    /// A Request to snd EOF to Stdout
     StdoutEOF,
-    /// End of File sent to Stderr
+    /// A Request to snd EOF to Stderr
     StderrEOF,
 }
 
-/// A `Response` from the runtime_client to the run-time functions
+/// A `Response` from the runtime_client to the run-time
 #[derive(PartialEq)]
 pub enum Response {
     /// Simple acknowledgement
@@ -35,18 +35,18 @@ pub enum Response {
     Stdin(String),
     /// A line of text read from Stdin using readline
     Line(String),
-    /// An Vector of Strings that are the flow's arguments
+    /// A Vector of Strings that are the flow's arguments
     Args(Vec<String>),
-    /// An Error occurred on the runtime_client
+    /// An Error occurred in the runtime_client
     Error(String),
     /// EOF was detected on input reading using Stdin
     GetStdinEOF,
-    /// EOF was detected on input reading using Readline
+    /// EOF was detected on input reading Stdin using Readline
     GetLineEOF,
 }
 
 /// runtime_clients must implement this trait
 pub trait RuntimeClient: Sync + Send + Debug {
-    /// Called to send the next command to the runtime_client and get the response
-    fn send_command(&mut self, command: Command) -> Response;
+    /// Called to send the event to the runtime_client and get the response
+    fn send_event(&mut self, event: Event) -> Response;
 }

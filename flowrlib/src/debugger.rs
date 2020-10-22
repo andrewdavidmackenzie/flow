@@ -6,11 +6,11 @@ use std::process::exit;
 use log::debug;
 use serde_json::Value;
 
-use crate::debug_client::Command::{*};
 use crate::debug_client::DebugClient;
 use crate::debug_client::Event;
 use crate::debug_client::Event::{*};
 use crate::debug_client::Param;
+use crate::debug_client::Response::{*};
 use crate::run_state::{Block, Job, RunState};
 
 pub struct Debugger<'a> {
@@ -74,7 +74,7 @@ impl<'a> Debugger<'a> {
         Return values are (display next output, reset execution)
     */
     pub fn enter(&mut self, state: &RunState) -> (bool, bool) {
-        self.client.send_event(EnterDebugger);
+        self.client.send_event(EnteringDebugger);
         self.wait_for_command(state)
     }
 
@@ -164,8 +164,8 @@ impl<'a> Debugger<'a> {
     /*
         Return values are (display next output, reset execution)
     */
-    pub fn end(&mut self, state: &RunState) -> (bool, bool) {
-        self.client.send_event(ExitDebugger);
+    pub fn flow_done(&mut self, state: &RunState) -> (bool, bool) {
+        self.client.send_event(ExecutionEnded);
         self.deadlock_inspection(state);
         self.wait_for_command(state)
     }
@@ -182,34 +182,39 @@ impl<'a> Debugger<'a> {
     */
     fn wait_for_command(&mut self, state: &RunState) -> (bool, bool) {
         loop {
-            match self.client.get_command(state.jobs_created()) {
+            match self.client.send_event(WaitingForCommand(state.jobs_created())) {
                 // *************************      The following are commands that send a response
                 GetState => {
                     // Respond with 'state'
+
                 }
                 GetFunctionState(_id) => {
                     // Respond with display_state(&self, function_id: usize) -> String ??
                 }
-                Breakpoint(param) =>
-                    self.client.send_event(self.add_breakpoint(state, param)),
-                Delete(param) =>
-                    self.client.send_event(self.delete_breakpoint(param)),
-                Inspect =>
-                    self.client.send_event(self.inspect(state)),
-                List =>
-                    self.client.send_event(self.list_breakpoints()),
-                Print(param) =>
-                    self.client.send_event(self.print(state, param)),
+                Breakpoint(param) => {
+                    self.client.send_event(self.add_breakpoint(state, param));
+                },
+                Delete(param) => {
+                    self.client.send_event(self.delete_breakpoint(param));
+                }
+                Inspect => {
+                    self.client.send_event(self.inspect(state));
+                }
+                List => {
+                    self.client.send_event(self.list_breakpoints());
+                }
+                Print(param) => {
+                    self.client.send_event(self.print(state, param));
+                }
                 EnterDebugger => { /* Not needed as we are already in the debugger */ }
                 ExitDebugger => {
-                    self.client.send_event(Exiting);
-                    exit(1);
+                    self.client.send_event(ExitingDebugger);
+                    exit(1); // TODO this will cause the whole runtime to exit - not just debugger
                 }
 
                 // **************************      The following commands exit the command loop
                 Continue => {
                     if state.jobs_created() > 0 {
-                        self.client.send_event(Ack);
                         return (false, false);
                     }
                 }
@@ -218,14 +223,15 @@ impl<'a> Debugger<'a> {
                         self.client.send_event(self.reset());
                         (false, true)
                     } else {
-                        self.client.send_event(Running);
+                        self.client.send_event(ExecutionStarted);
                         (false, false)
                     }
                 }
                 Step(param) => {
-                    self.client.send_event(self.step(state, param));
+                    self.step(state, param);
                     return (true, false);
                 }
+                Ack => {}
             };
         }
     }
@@ -411,18 +417,16 @@ impl<'a> Debugger<'a> {
         Take one step (execute one more job) in the flow. Do this by setting a breakpoint at the
         next job execution and then returning - flow execution will continue until breakpoint fires
      */
-    fn step(&mut self, state: &RunState, steps: Option<Param>) -> Event {
+    fn step(&mut self, state: &RunState, steps: Option<Param>) {
         match steps {
             None => {
                 self.break_at_job = state.jobs_created() + 1;
-                Ack
             }
             Some(Param::Numeric(steps)) => {
                 self.break_at_job = state.jobs_created() + steps;
-                Ack
             }
             _ => {
-                Error("Did not understand step command parameter\n".into())
+                self.client.send_event(Error("Did not understand step command parameter\n".into()));
             }
         }
     }
