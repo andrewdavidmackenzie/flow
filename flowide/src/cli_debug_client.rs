@@ -129,7 +129,7 @@ fn process_event(event: Event) -> Response {
         SendingValue(source_process_id, value, destination_id, input_number) =>
             println!("Function #{} sending '{}' to {}:{}",
                      source_process_id, value, destination_id, input_number),
-        Error(error_message) =>
+        Event::Error(error_message) =>
             println!("{}", error_message),
         Message(message) =>
             println!("{}", message),

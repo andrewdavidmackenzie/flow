@@ -10,25 +10,22 @@ extern crate error_chain;
 
 use std::env;
 use std::process::exit;
-use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{Receiver, Sender};
 
 use clap::{App, AppSettings, Arg, ArgMatches};
 use log::{error, info};
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
+use cli_debug_client::CLIDebugClient;
 use flowrlib::coordinator::{Coordinator, Submission};
-use flowrlib::debug_client::Event as DebugEvent;
-use flowrlib::debug_client::Response as DebugResponse;
 use flowrlib::info;
-use flowrlib::runtime_client::{Event, Response};
 use flowrlib::runtime_client::Response::ClientSubmission;
 use provider::args::url_from_string;
 
+use crate::cli_runtime_client::CLIRuntimeClient;
+
 mod cli_debug_client;
 mod cli_runtime_client;
-
 
 // We'll put our errors in an `errors` module, and other modules in this crate will
 // `use crate::errors::*;` to get access to everything `error_chain!` creates.
@@ -49,20 +46,6 @@ error_chain! {
         Runtime(flowrlib::errors::Error);
         Io(std::io::Error);
     }
-}
-
-#[allow(clippy::type_complexity)]
-fn get(num_threads: usize, native: bool) -> ((Arc<Mutex<Receiver<Event>>>, Sender<Response>),
-                                             (Arc<Mutex<Receiver<DebugEvent>>>, Sender<DebugResponse>)) {
-    let mut coordinator = Coordinator::new(num_threads);
-    let client_channels= coordinator.get_client_channels();
-    let debug_channels = coordinator.get_debug_channels();
-
-    std::thread::spawn(move || {
-        coordinator.start(native);
-    });
-
-    (client_channels, debug_channels)
 }
 
 fn main() {
@@ -93,72 +76,33 @@ fn run() -> Result<String> {
     SimpleLogger::init(matches.value_of("verbosity"));
     let flow_manifest_url = parse_flow_url(&matches)?;
     let debugger = matches.is_present("debugger");
-    #[cfg(feature = "metrics")]
-        let _metrics = matches.is_present("metrics"); // TODO Pass to runtime client
+    let native = matches.is_present("native");
+    let flow_args = get_flow_args(&matches, &flow_manifest_url);
 
     let submission = Submission::new(&flow_manifest_url,
                                      num_parallel_jobs(&matches, debugger),
                                      debugger);
 
-    let (client_channels, debug_channels) = get(
-        num_threads(&matches, debugger),
-        matches.is_present("native"));
+    let mut coordinator = Coordinator::new(num_threads(&matches, debugger));
+    let client_channels = coordinator.get_client_channels();
+    let debug_channels = coordinator.get_debug_channels();
+
+    std::thread::spawn(move || {
+        coordinator.start(native);
+    });
 
     client_channels.1.send(ClientSubmission(submission))
         .chain_err(|| "Could not send Submission to the Coordinator")?;
 
-    debug_client_event_loop(debug_channels);
-    runtime_client_event_loop(client_channels, get_flow_args(&matches, &flow_manifest_url))
+    CLIDebugClient::start(debug_channels);
+    CLIRuntimeClient::start(client_channels,
+                            flow_args,
+                            #[cfg(feature = "metrics")]
+                                matches.is_present("metrics"),
+    );
+    Ok("Event loop exited".into())
 }
 
-fn debug_client_event_loop(debug_channels: (Arc<Mutex<Receiver<DebugEvent>>>, Sender<DebugResponse>)) {
-    let debug_client = cli_debug_client::CLIDebugClient::new();
-
-    std::thread::spawn(move || {
-        loop {
-            let guard = debug_channels.0.lock().unwrap();
-            if let Ok(event) = guard.recv() {
-                let response = debug_client.process_event(event);
-                debug_channels.1.send(response).unwrap();
-            }
-        }
-    });
-}
-
-/*
-    Enter  a loop where we receive events as a client and respond to them
- */
-fn runtime_client_event_loop(client_channels: (Arc<Mutex<Receiver<Event>>>, Sender<Response>),
-                             flow_args: Vec<String>) -> Result<String> {
-    capture_control_c();
-
-    let mut runtime_client = cli_runtime_client::CLIRuntimeClient::new(flow_args);
-
-    loop {
-        let guard = client_channels.0.lock().map_err(|e| e.to_string())?;
-        match guard.recv() {
-            Ok(event) => {
-                let response = runtime_client.process_event(event);
-                if response == Response::ClientExiting {
-                    return Ok("Flow ended, client exiting".into());
-                }
-                client_channels.1.send(response).unwrap();
-            }
-            Err(_) => return Ok("Channel closure, exiting event loop".into())
-        }
-    }
-}
-
-fn capture_control_c() {
-    // Get a reference to the shared control variable that will be moved into the closure
-    // let requested = self.debug_requested.clone();
-    // ignore error as this will be called multiple times by same "program" when running tests and fail
-    let _ = ctrlc::set_handler(move || {
-        // TODO
-        // Set the flag requesting to enter into the debugger to true
-        // requested.store(true, Ordering::SeqCst);
-    });
-}
 
 /*
     Determine the number of threads to use to execute flows, with a default of the number of cores

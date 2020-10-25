@@ -3,25 +3,72 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{Receiver, Sender};
 
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
-use log::{debug, info};
+use log::{debug, error, info};
 
 use flowrlib::runtime_client::{Event, Response};
 
 #[derive(Debug, Clone)]
 pub struct CLIRuntimeClient {
     args: Vec<String>,
-    image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>
+    image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
+    display_metrics: bool,
 }
 
 impl CLIRuntimeClient {
-    pub fn new(args: Vec<String>) -> Self {
+    fn new(args: Vec<String>, display_metrics: bool) -> Self {
         CLIRuntimeClient {
             args,
-            image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new()
+            image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
+            display_metrics,
         }
     }
+
+    /*
+        Enter  a loop where we receive events as a client and respond to them
+     */
+    pub fn start(client_channels: (Arc<Mutex<Receiver<Event>>>, Sender<Response>),
+                 flow_args: Vec<String>,
+                 #[cfg(feature = "metrics")]
+                 display_metrics: bool,
+    ) {
+        Self::capture_control_c(client_channels.1.clone());
+
+        let mut runtime_client = CLIRuntimeClient::new(flow_args, display_metrics);
+
+        loop {
+            match client_channels.0.lock() {
+                Ok(guard) => {
+                    match guard.recv() {
+                        Ok(event) => {
+                            let response = runtime_client.process_event(event);
+                            if response == Response::ClientExiting {
+                                return;
+                            }
+                            client_channels.1.send(response).unwrap();
+                        }
+                        Err(_) => {
+                            return;
+                        }
+                    }
+                }
+                Err(e) => {
+                    error!("Error while trying to lock runtime_client to receive events: {}", e.to_string());
+                    return;
+                }
+            }
+        }
+    }
+
+    fn capture_control_c(client_send_channel: Sender<Response>) {
+        let _ = ctrlc::set_handler(move || {
+            let _ = client_send_channel.send(Response::EnterDebugger);
+        });
+    }
+
 
     #[allow(clippy::many_single_char_names)]
     pub fn process_event(&mut self, event: Event) -> Response {
@@ -112,7 +159,8 @@ mod test {
 
     #[test]
     fn test_arg_passing() {
-        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string(), "1".to_string()));
+        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string(), "1".to_string()),
+                                               false);
 
         match client.process_event(Event::GetArgs) {
             Response::Args(args) => assert_eq!(vec!("file:///test_flow.toml".to_string(), "1".to_string()), args),
@@ -125,7 +173,8 @@ mod test {
         let temp = tempdir::TempDir::new("flow").unwrap().into_path();
         let file = temp.join("test");
 
-        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string()));
+        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string()),
+                                               false);
 
         if client.process_event(Event::Write(file.to_str().unwrap().to_string(), b"Hello".to_vec()))
             != Response::Ack {
@@ -135,7 +184,8 @@ mod test {
 
     #[test]
     fn test_stdout() {
-        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string()));
+        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string()),
+                                               false);
         if client.process_event(Event::Stdout("Hello".into())) != Response::Ack {
             panic!("Didn't get Stdout response as expected")
         }
@@ -143,7 +193,8 @@ mod test {
 
     #[test]
     fn test_stderr() {
-        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string()));
+        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string()),
+                                               false);
         if client.process_event(Event::Stderr("Hello".into())) != Response::Ack {
             panic!("Didn't get Stderr response as expected")
         }
@@ -151,7 +202,8 @@ mod test {
 
     #[test]
     fn test_image_writing() {
-        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string()));
+        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string()),
+                                               false);
 
         let temp_dir = TempDir::new("flow").unwrap().into_path();
         let path = temp_dir.join("flow.png");

@@ -1,6 +1,7 @@
 use std::sync::{Arc, mpsc, Mutex};
 use std::sync::mpsc::{Receiver, Sender};
 
+use log::error;
 use serde_json::Value;
 
 use crate::run_state::{Block, Job};
@@ -46,7 +47,9 @@ pub enum Response {
     /// Get the state of the `Flow`
     GetState,
     /// Get the state of a specific `Function`
-    GetFunctionState(usize)
+    GetFunctionState(usize),
+    /// An error on the client side
+    Error(String)
 }
 
 /// A run-time event that the debugger communicates to the debug_client for it to decide
@@ -120,6 +123,17 @@ impl ChannelDebugClient {
     pub fn get_channels(&self) -> (Arc<Mutex<Receiver<Event>>>, Sender<Response>) {
         (self.debug_event_channel_rx.clone(), self.debug_response_channel_tx.clone())
     }
+
+    pub fn get_response(&self) -> Response {
+        match self.debug_response_channel_rx.recv() {
+            Ok(response) => response,
+            Err(err) => {
+                error!("Error receiving response from debug client: '{}'", err);
+                Response::Error(err.to_string())
+            }
+        }
+    }
+
 }
 
 impl Default for ChannelDebugClient {
@@ -136,8 +150,8 @@ impl Default for ChannelDebugClient {
 }
 
 impl DebugClient for ChannelDebugClient {
-    fn send_event(&self, _command: Event) -> Response {
-        // Send event over the channel and wait for a response
-        Response::Ack // TODO
+    fn send_event(&self, event: Event) -> Response {
+        self.debug_event_channel_tx.send(event).unwrap();
+        self.get_response()
     }
 }

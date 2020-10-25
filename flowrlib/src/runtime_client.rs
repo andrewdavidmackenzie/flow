@@ -5,6 +5,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use log::error;
 
 use crate::coordinator::Submission;
+use crate::errors::*;
 #[cfg(feature = "metrics")]
 use crate::metrics::Metrics;
 
@@ -62,6 +63,8 @@ pub enum Response {
     ClientExiting,
     /// A submission from the client for execution
     ClientSubmission(Submission),
+    /// Client requests that server enters the ddebugger at the next opportunity
+    EnterDebugger
 }
 
 unsafe impl Send for Response {}
@@ -93,6 +96,11 @@ impl ChannelRuntimeClient {
 
     pub fn get_client_channels(&self) -> (Arc<Mutex<Receiver<Event>>>, Sender<Response>) {
         (self.client_event_channel_rx.clone(), self.client_response_channel_tx.clone())
+    }
+
+    pub fn send_response(&self, response: Response) -> Result<()> {
+        self.client_response_channel_tx.send(response)
+            .chain_err(|| "Could not send Submission to the Coordinator")
     }
 
     pub fn get_response(&self) -> Response {

@@ -25,8 +25,7 @@ use crate::flowruntime;
 use crate::loader::Loader;
 #[cfg(feature = "metrics")]
 use crate::metrics::Metrics;
-use crate::run_state::Job;
-use crate::run_state::RunState;
+use crate::run_state::{Job, RunState};
 use crate::runtime_client::{ChannelRuntimeClient, Event, Response, RuntimeClient};
 use crate::runtime_client::Response::ClientSubmission;
 

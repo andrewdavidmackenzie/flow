@@ -1,5 +1,9 @@
 use std::io;
 use std::io::Write;
+use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{Receiver, Sender};
+
+use log::error;
 
 use flowrlib::debug_client::{Event, Event::{*}, Param, Response, Response::{*}};
 
@@ -28,8 +32,25 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
 pub struct CLIDebugClient{}
 
 impl CLIDebugClient {
-    pub fn new() -> Self {
+    fn new() -> Self {
         CLIDebugClient{}
+    }
+
+    pub fn start(debug_channels: (Arc<Mutex<Receiver<Event>>>, Sender<Response>)) {
+        let debug_client = CLIDebugClient::new();
+
+        std::thread::spawn(move || {
+            loop {
+                let guard = debug_channels.0.lock().unwrap();
+                match guard.recv() {
+                    Ok(event) => {
+                        let response = debug_client.process_event(event);
+                        debug_channels.1.send(response).unwrap();
+                    }
+                    Err(err) => error!("Error receiving event from debugger: {}", err)
+                }
+            }
+        });
     }
 
     fn help() {
@@ -146,7 +167,7 @@ impl CLIDebugClient {
             SendingValue(source_process_id, value, destination_id, input_number) =>
                 println!("Function #{} sending '{}' to {}:{}",
                          source_process_id, value, destination_id, input_number),
-            Error(error_message) =>
+            Event::Error(error_message) =>
                 println!("{}", error_message),
             Message(message) =>
                 println!("{}", message),
