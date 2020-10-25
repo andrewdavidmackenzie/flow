@@ -51,39 +51,18 @@ error_chain! {
     }
 }
 
-struct CoordinatorConnection {
-    client_event_channel_rx: Arc<Mutex<Receiver<Event>>>,
-    client_response_channel_tx: Sender<Response>,
-    debug_event_channel_rx: Arc<Mutex<Receiver<DebugEvent>>>,
-    debug_response_channel_tx: Sender<DebugResponse>,
-}
+#[allow(clippy::type_complexity)]
+fn get(num_threads: usize, native: bool) -> ((Arc<Mutex<Receiver<Event>>>, Sender<Response>),
+                                             (Arc<Mutex<Receiver<DebugEvent>>>, Sender<DebugResponse>)) {
+    let mut coordinator = Coordinator::new(num_threads);
+    let client_channels= coordinator.get_client_channels();
+    let debug_channels = coordinator.get_debug_channels();
 
-impl CoordinatorConnection {
-    fn get(num_threads: usize, native: bool) -> Self {
-        let mut coordinator = Coordinator::new(num_threads);
+    std::thread::spawn(move || {
+        coordinator.start(native);
+    });
 
-        let client_channels = coordinator.get_client_channels();
-        let debug_channels = coordinator.get_debug_channels();
-
-        let connection = CoordinatorConnection {
-            client_event_channel_rx: client_channels.0,
-            client_response_channel_tx: client_channels.1,
-            debug_event_channel_rx: debug_channels.0,
-            debug_response_channel_tx: debug_channels.1,
-        };
-
-        std::thread::spawn(move || {
-            coordinator.start(native);
-        });
-
-        connection
-    }
-
-    // Send the submission to the coordinator over a channel
-    fn submit(&mut self, submission: Submission) -> Result<()> {
-        self.client_response_channel_tx.send(ClientSubmission(submission))
-            .chain_err(|| "Could not send Submission to the Coordinator")
-    }
+    (client_channels, debug_channels)
 }
 
 fn main() {
@@ -121,26 +100,26 @@ fn run() -> Result<String> {
                                      num_parallel_jobs(&matches, debugger),
                                      debugger);
 
-    let mut coordinator_connection = CoordinatorConnection::get(
+    let (client_channels, debug_channels) = get(
         num_threads(&matches, debugger),
         matches.is_present("native"));
-    coordinator_connection.submit(submission)?;
 
-    debug_client_event_loop(&coordinator_connection);
-    runtime_client_event_loop(coordinator_connection, get_flow_args(&matches, &flow_manifest_url))
+    client_channels.1.send(ClientSubmission(submission))
+        .chain_err(|| "Could not send Submission to the Coordinator")?;
+
+    debug_client_event_loop(debug_channels);
+    runtime_client_event_loop(client_channels, get_flow_args(&matches, &flow_manifest_url))
 }
 
-fn debug_client_event_loop(coordinator_connection: &CoordinatorConnection) {
+fn debug_client_event_loop(debug_channels: (Arc<Mutex<Receiver<DebugEvent>>>, Sender<DebugResponse>)) {
     let debug_client = cli_debug_client::CLIDebugClient::new();
-    let debug_rx = coordinator_connection.debug_event_channel_rx.clone();
-    let debug_tx = coordinator_connection.debug_response_channel_tx.clone();
 
     std::thread::spawn(move || {
         loop {
-            let guard = debug_rx.lock().unwrap();
+            let guard = debug_channels.0.lock().unwrap();
             if let Ok(event) = guard.recv() {
                 let response = debug_client.process_event(event);
-                debug_tx.send(response).unwrap();
+                debug_channels.1.send(response).unwrap();
             }
         }
     });
@@ -149,31 +128,33 @@ fn debug_client_event_loop(coordinator_connection: &CoordinatorConnection) {
 /*
     Enter  a loop where we receive events as a client and respond to them
  */
-fn runtime_client_event_loop(coordinator_connection: CoordinatorConnection, flow_args: Vec<String>) -> Result<String> {
-    capture_control_c(&coordinator_connection);
+fn runtime_client_event_loop(client_channels: (Arc<Mutex<Receiver<Event>>>, Sender<Response>),
+                             flow_args: Vec<String>) -> Result<String> {
+    capture_control_c();
 
     let mut runtime_client = cli_runtime_client::CLIRuntimeClient::new(flow_args);
 
     loop {
-        let guard = coordinator_connection.client_event_channel_rx.lock().map_err(|e| e.to_string())?;
+        let guard = client_channels.0.lock().map_err(|e| e.to_string())?;
         match guard.recv() {
             Ok(event) => {
                 let response = runtime_client.process_event(event);
                 if response == Response::ClientExiting {
                     return Ok("Flow ended, client exiting".into());
                 }
-                coordinator_connection.client_response_channel_tx.send(response).unwrap();
+                client_channels.1.send(response).unwrap();
             }
             Err(_) => return Ok("Channel closure, exiting event loop".into())
         }
     }
 }
 
-fn capture_control_c(_coordinator_connection: &CoordinatorConnection) {
+fn capture_control_c() {
     // Get a reference to the shared control variable that will be moved into the closure
     // let requested = self.debug_requested.clone();
     // ignore error as this will be called multiple times by same "program" when running tests and fail
     let _ = ctrlc::set_handler(move || {
+        // TODO
         // Set the flag requesting to enter into the debugger to true
         // requested.store(true, Ordering::SeqCst);
     });
