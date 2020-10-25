@@ -6,10 +6,11 @@ use flow_impl::Implementation;
 use log::{debug, info, trace};
 use url::Url;
 
+use flowrstructs::lib_manifest::{ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest};
+use flowrstructs::manifest::Manifest;
+use provider::content::provider::Provider;
+
 use crate::errors::*;
-use crate::lib_manifest::{ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest};
-use crate::manifest::Manifest;
-use crate::provider::Provider;
 use crate::wasm;
 
 /// A `Loader` is responsible for loading a `Flow` from it's `Manifest`, loading the required
@@ -51,7 +52,8 @@ impl Loader {
     /// Thus, all library implementations found will be Native.
     pub fn load_manifest(&mut self, provider: &dyn Provider, flow_manifest_url: &str) -> Result<Manifest> {
         debug!("Loading flow manifest from '{}'", flow_manifest_url);
-        let (mut flow_manifest, resolved_url) = Manifest::load(provider, flow_manifest_url)?;
+        let (mut flow_manifest, resolved_url) = Manifest::load(provider, flow_manifest_url)
+            .chain_err(|| format!("Could not load manifest from: '{}'", flow_manifest_url))?;
 
         self.load_libraries(provider, &flow_manifest)?;
 
@@ -62,12 +64,13 @@ impl Loader {
     }
 
     /// Load libraries references referenced in the flows manifest that are not already loaded
-    pub fn load_libraries(&mut self, provider: &dyn Provider, manifest: &Manifest) -> Result<()> {
+    fn load_libraries(&mut self, provider: &dyn Provider, manifest: &Manifest) -> Result<()> {
         debug!("Loading libraries used by the flow");
         for library_reference in manifest.get_lib_references() {
             if !self.loaded_lib_references.contains(library_reference) {
                 info!("Attempting to load library reference '{}'", library_reference);
-                let (lib_manifest, lib_manifest_url) = LibraryManifest::load(provider, library_reference)?;
+                let (lib_manifest, lib_manifest_url) = LibraryManifest::load(provider, library_reference)
+                    .chain_err(|| format!("Could not load library with reference: '{}'", library_reference))?;
                 debug!("Loading library '{}' from '{}'", library_reference, lib_manifest_url);
                 self.add_lib(provider, library_reference, lib_manifest, &lib_manifest_url)?;
                 info!("Library loaded");

@@ -8,12 +8,13 @@ use log::{debug, error, info, trace};
 use multimap::MultiMap;
 use serde_json::{json, Value};
 
+use flowrstructs::function::Function;
+use flowrstructs::output_connection::OutputConnection;
+
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
-use crate::function::Function;
 #[cfg(feature = "metrics")]
 use crate::metrics::Metrics;
-use crate::output_connection::OutputConnection;
 
 #[cfg(any(feature = "checks", feature = "debugger", test))]
 #[derive(Debug, PartialEq)]
@@ -258,10 +259,10 @@ impl RunState {
         }
     }
 
-    #[cfg(feature = "debugger")]
     /*
         Reset all values back to initial ones to enable debugging from scratch
     */
+    #[cfg(feature = "debugger")]
     fn reset(&mut self) {
         for function in &mut self.functions {
             function.reset()
@@ -942,6 +943,7 @@ impl RunState {
             let state = self.get_state(function.id());
             if (!function.inputs().is_empty()) && (function.input_set_count() > 0) &&
                 !(state == State::Ready || state == State::Blocked || state == State::Running) {
+                #[cfg(feature = "debugger")]
                 error!("{}", function);
                 return self.runtime_error(job_id, &format!("Function #{} inputs are full, but it is not Ready or Blocked", function.id()),
                                           file!(), line!());
@@ -1010,14 +1012,15 @@ mod test {
     use serde_json::json;
     use serde_json::Value;
 
+    use flowrstructs::function::Function;
+    use flowrstructs::input::Input;
+    use flowrstructs::input::InputInitializer::Once;
+    use flowrstructs::output_connection::OutputConnection;
+
     #[cfg(feature = "debugger")]
     use crate::debug_client::{DebugClient, Event};
     #[cfg(feature = "debugger")]
     use crate::debug_client::{Param, Response};
-    use crate::function::Function;
-    use crate::input::Input;
-    use crate::input::InputInitializer::Once;
-    use crate::output_connection::OutputConnection;
     #[cfg(any(feature = "debugger", feature = "checks"))]
     use crate::run_state;
 
@@ -1214,14 +1217,15 @@ mod test {
     mod state_transitions {
         use serde_json::json;
 
+        use flowrstructs::function::Function;
+        use flowrstructs::input::Input;
+        use flowrstructs::input::InputInitializer::{Always, Once};
+        use flowrstructs::output_connection::OutputConnection;
+
         #[cfg(feature = "debugger")]
         use crate::debugger::Debugger;
-        use crate::function::Function;
-        use crate::input::Input;
-        use crate::input::InputInitializer::{Always, Once};
         #[cfg(feature = "metrics")]
         use crate::metrics::Metrics;
-        use crate::output_connection::OutputConnection;
         use crate::run_state::test::test_function_b_not_init;
 
         use super::super::Job;
@@ -1762,13 +1766,14 @@ mod test {
     mod functional_tests {
         use serde_json::json;
 
+        use flowrstructs::function::Function;
+        use flowrstructs::input::Input;
+        use flowrstructs::output_connection::OutputConnection;
+
         #[cfg(feature = "debugger")]
         use crate::debugger::Debugger;
-        use crate::function::Function;
-        use crate::input::Input;
         #[cfg(feature = "metrics")]
         use crate::metrics::Metrics;
-        use crate::output_connection::OutputConnection;
 
         use super::super::Job;
         use super::super::RunState;
@@ -1997,9 +2002,9 @@ mod test {
     mod misc {
         use serde_json::{json, Value};
 
-        use crate::function::Function;
-        use crate::input::Input;
-        use crate::output_connection::OutputConnection;
+        use flowrstructs::function::Function;
+        use flowrstructs::input::Input;
+        use flowrstructs::output_connection::OutputConnection;
 
         use super::super::RunState;
 

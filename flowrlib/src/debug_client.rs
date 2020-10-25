@@ -1,3 +1,6 @@
+use std::sync::{Arc, mpsc, Mutex};
+use std::sync::mpsc::{Receiver, Sender};
+
 use serde_json::Value;
 
 use crate::run_state::{Block, Job};
@@ -91,4 +94,50 @@ pub enum Event {
 pub trait DebugClient {
     /// Called to send an event to the debug_client
     fn send_event(&self, event: Event) -> Response;
+}
+
+#[derive(Debug)]
+pub struct ChannelDebugClient {
+    #[cfg(feature = "debugger")]
+    /// A channel to send events to a debug client on
+    debug_event_channel_tx: Sender<Event>,
+    #[cfg(feature = "debugger")]
+    /// The other end of the channel a debug client can receive events on
+    debug_event_channel_rx: Arc<Mutex<Receiver<Event>>>,
+    #[cfg(feature = "debugger")]
+    /// A channel to for a debug client to send responses on
+    debug_response_channel_tx: Sender<Response>,
+    #[cfg(feature = "debugger")]
+    /// This end of the channel where coordinator will receive events from a debug client on
+    debug_response_channel_rx: Receiver<Response>,
+}
+
+impl ChannelDebugClient {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn get_channels(&self) -> (Arc<Mutex<Receiver<Event>>>, Sender<Response>) {
+        (self.debug_event_channel_rx.clone(), self.debug_response_channel_tx.clone())
+    }
+}
+
+impl Default for ChannelDebugClient {
+    fn default() -> ChannelDebugClient {
+        let (debug_event_channel_tx, debug_event_channel_rx) = mpsc::channel();
+        let (debug_response_channel_tx, debug_response_channel_rx) = mpsc::channel();
+        ChannelDebugClient{
+            debug_event_channel_tx,
+            debug_event_channel_rx: Arc::new(Mutex::new(debug_event_channel_rx)),
+            debug_response_channel_tx,
+            debug_response_channel_rx,
+        }
+    }
+}
+
+impl DebugClient for ChannelDebugClient {
+    fn send_event(&self, _command: Event) -> Response {
+        // Send event over the channel and wait for a response
+        Response::Ack // TODO
+    }
 }

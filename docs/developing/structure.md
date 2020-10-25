@@ -9,5 +9,5 @@ Here is a summary of the project sub-folders, their purpose and a link to their 
 * [flowstdlib](../../flowstdlib/README.md)
 * [flowide](../../flowide/README.md)
 * [provider](../../provider/README.md)
-* [flowruntime](../../flowruntime/README.md)
+* [flowruntime](../../flowrlib/src/flowruntime/README.md)
 * [samples](../../samples/README.md)

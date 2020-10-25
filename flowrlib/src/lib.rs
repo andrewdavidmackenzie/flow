@@ -15,25 +15,15 @@ extern crate error_chain;
 pub mod info;
 /// `coordinator` is the module that coordinates the execution of flows submitted to it
 pub mod coordinator;
-/// `lib_manifest` defines the structs for specifying a Library's manifest and methods to load it
-pub mod lib_manifest;
-/// `function` defines functions that form part of a flow
-pub mod function;
-/// `output_connection` defines a struct for a function's output connection
-pub mod output_connection;
-/// `manifest` is the struct that specifies the manifest of functions in a flow
-pub mod manifest;
-/// `input` defines the struct for inputs to functions in a flow
-pub mod input;
 /// `loader` is responsible for loading a flow from it's manifest and loading libraries it uses
 pub mod loader;
-/// `provider` is a trait that is implemented to provide content to flowrlib in different environments
-/// it runs in
-pub mod provider;
+/// `flowruntime` module implements the executor/server side of the runtime functions and appears
+/// to user code like a library
+mod flowruntime;
 
-#[cfg(feature = "debugger")]
 /// 'debug_client' is used to connect a debugger to the run-time for debugging of flows
 /// and is an optional feature called "debugger"
+#[cfg(feature = "debugger")]
 pub mod debug_client;
 
 /// 'runtime_client' is used to connect to a runtime client that provides the implementations for
@@ -56,7 +46,7 @@ mod wasm;
 mod run_state;
 
 #[cfg(feature = "metrics")]
-mod metrics;
+pub mod metrics;
 
 // Specify the errors we will produce and foreign links
 #[doc(hidden)]
@@ -69,5 +59,6 @@ error_chain! {
         Io(std::io::Error);
         Serde(serde_json::error::Error);
         Recv(std::sync::mpsc::RecvError);
+        Provider(provider::errors::Error);
     }
 }

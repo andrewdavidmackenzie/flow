@@ -20,7 +20,7 @@ impl IDERuntimeClient {
     fn process_command(&mut self, command: Event) -> Response {
         match command {
             Event::FlowStart => Response::Ack,
-            Event::FlowEnd => Response::Ack,
+            Event::FlowEnd(_) => Response::Ack,
             Event::StdoutEOF => Response::Ack,
             Event::Stdout(contents) => {
                 widgets::do_in_gtk_eventloop(|refs| {

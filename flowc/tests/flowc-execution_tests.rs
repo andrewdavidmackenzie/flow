@@ -51,15 +51,14 @@ fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: PathBuf, test_name:
     manifest_file.write_all(serde_json::to_string_pretty(&manifest)
         .chain_err(|| "Could not pretty format json for manifest")?
         .as_bytes())
-        .chain_err(|| "Could not writ emanifest data bytes to file")?;
+        .chain_err(|| "Could not writ manifest data bytes to file")?;
 
     Ok(filename)
 }
 
 fn execute_flow(filepath: PathBuf, test_args: Vec<String>, input: String) -> String {
     let mut command = Command::new("cargo");
-    let mut command_args = vec!("run", "-p", "flowr", "--", filepath.to_str().unwrap(),
-                                "-n");
+    let mut command_args = vec!("run", "-p", "flowr", "--", "-n", filepath.to_str().unwrap());
     for test_arg in &test_args {
         command_args.push(test_arg);
     }
@@ -72,7 +71,7 @@ fn execute_flow(filepath: PathBuf, test_args: Vec<String>, input: String) -> Str
         .stderr(Stdio::piped())
         .spawn().unwrap();
 
-    // send it stdin from the "testname.stdin" file
+    // send it stdin from the "${testname}.stdin" file
     write!(child.stdin.unwrap(), "{}", input).unwrap();
 
     // read stdout
@@ -128,9 +127,8 @@ fn get(test_dir: &PathBuf, file_name: &str) -> String {
 
 fn check_flow_root() {
     if std::env::var("FLOW_ROOT").is_err() {
-        println!("FLOW_ROOT environment variable must be set for testing. Set it to the root\
+        panic!("FLOW_ROOT environment variable must be set for testing. Set it to the root \
             directory of the project and ensure it has a trailing '/'");
-        std::process::exit(1);
     }
 }
 

@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 use error_chain::bail;
 
-use flowrlib::input::InputInitializer::Always;
+use flowrstructs::input::InputInitializer::Always;
 
 use crate::compiler::connector;
 use crate::errors::*;
@@ -116,8 +116,8 @@ mod test {
     use super::remove_duplicates;
 
     /*
-                                                                    Test that when two functions are connected doubly, the connection gets reduced to a single one
-                                                                */
+                                                                        Test that when two functions are connected doubly, the connection gets reduced to a single one
+                                                                    */
     #[test]
     fn remove_duplicated_connection() {
         let first = Connection {

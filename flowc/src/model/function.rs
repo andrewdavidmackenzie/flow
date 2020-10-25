@@ -3,7 +3,7 @@ use std::fmt;
 use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 
-use flowrlib::output_connection::OutputConnection;
+use flowrstructs::output_connection::OutputConnection;
 
 use crate::compiler::loader::Validate;
 use crate::errors::*;
@@ -245,7 +245,7 @@ impl SetRoute for Function {
 
 #[cfg(test)]
 mod test {
-    use flowrlib::output_connection::OutputConnection;
+    use flowrstructs::output_connection::OutputConnection;
 
     use crate::compiler::loader::Validate;
     use crate::model::datatype::DataType;

@@ -2,9 +2,10 @@ use std::collections::HashSet;
 
 use serde_derive::{Deserialize, Serialize};
 
+use provider::content::provider::Provider;
+
 use crate::errors::*;
 use crate::function::Function;
-use crate::provider::Provider;
 
 /// The default name used for a flow Manifest file if none is specified
 pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest";
@@ -83,8 +84,10 @@ impl Manifest {
 
     /// Load, or Deserialize, a manifest from a `source` Url using `provider`
     pub fn load(provider: &dyn Provider, source: &str) -> Result<(Manifest, String)> {
-        let (resolved_url, _) = provider.resolve_url(source, DEFAULT_MANIFEST_FILENAME, &["json"])?;
-        let content = provider.get_contents(&resolved_url)?;
+        let (resolved_url, _) = provider.resolve_url(source, DEFAULT_MANIFEST_FILENAME, &["json"])
+            .chain_err(|| "Could not resolve url for manifest while attempting to load manifest")?;
+        let content = provider.get_contents(&resolved_url)
+            .chain_err(|| "Could not get contents while attempting to load manifest")?;
 
         // TODO for now json only
         let manifest = serde_json::from_str(
@@ -97,10 +100,11 @@ impl Manifest {
 
 #[cfg(test)]
 mod test {
-    use crate::errors::*;
+    use provider::content::provider::Provider;
+    use provider::errors::Result;
+
     use crate::function::Function;
     use crate::input::Input;
-    use crate::provider::Provider;
 
     use super::{Manifest, MetaData};
 

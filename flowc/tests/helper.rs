@@ -5,7 +5,7 @@ use url::Url;
 
 pub fn absolute_file_url_from_relative_path(path: &str) -> String {
     if env::var("FLOW_ROOT").is_err() {
-        eprint!("Environment Variable 'FLOW_ROOT' is not set, so cannot find libraries for testing\n");
+        eprint!("Environment Variable 'FLOW_ROOT' is not set.\n");
         eprint!("In development you can set 'FLOW_ROOT' to the root directory of the project and that should work.\n");
         let cwd = env::current_dir().unwrap();
         let project_root = cwd.parent().unwrap();

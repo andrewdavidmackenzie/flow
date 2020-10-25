@@ -2,8 +2,6 @@ use std::collections::HashSet;
 use std::fmt;
 use std::process::exit;
 
-#[cfg(not(feature = "debugger"))]
-use log::debug;
 use serde_json::Value;
 
 use crate::debug_client::DebugClient;

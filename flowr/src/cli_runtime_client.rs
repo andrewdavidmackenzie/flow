@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::env;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
@@ -8,39 +7,49 @@ use std::path::Path;
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
 use log::{debug, info};
 
-use flowrlib::runtime_client::{Event, Response, RuntimeClient};
+use flowrlib::runtime_client::{Event, Response};
 
 #[derive(Debug, Clone)]
 pub struct CLIRuntimeClient {
+    args: Vec<String>,
     image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>
 }
 
-/// The name of the environment variables used to pass command line arguments to the function
-/// used to get them.
-pub const FLOW_ARGS_NAME: &str = "FLOW_ARGS";
-
 impl CLIRuntimeClient {
-    pub fn new() -> Self {
+    pub fn new(args: Vec<String>) -> Self {
         CLIRuntimeClient {
+            args,
             image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new()
         }
     }
 
     #[allow(clippy::many_single_char_names)]
-    fn process_command(&mut self, command: Event) -> Response {
-        match command {
+    pub fn process_event(&mut self, event: Event) -> Response {
+        match event {
             Event::FlowStart => {
                 debug!("===========================    Starting flow execution =============================");
                 Response::Ack
-            },
+            }
+            #[cfg(feature = "metrics")]
+            Event::FlowEnd(metrics) => {
+                debug!("=========================== Flow execution ended ======================================");
+                info!("\nMetrics: \n {}", metrics);
+
+                for (filename, image_buffer) in self.image_buffers.drain() {
+                    info!("Flushing ImageBuffer to file: {}", filename);
+                    image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png).unwrap();
+                }
+                Response::ClientExiting
+            }
+            #[cfg(not(feature = "metrics"))]
             Event::FlowEnd => {
                 debug!("=========================== Flow execution ended ======================================");
                 for (filename, image_buffer) in self.image_buffers.drain() {
                     info!("Flushing ImageBuffer to file: {}", filename);
                     image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png).unwrap();
                 }
-                Response::Ack
-            },
+                Response::ClientExiting
+            }
             Event::StdoutEOF => Response::Ack,
             Event::Stdout(contents) => {
                 println!("{}", contents);
@@ -83,44 +92,30 @@ impl CLIRuntimeClient {
                 Response::Ack
             }
             Event::GetArgs => {
-                let args = env::var(FLOW_ARGS_NAME).unwrap();
-                env::remove_var(FLOW_ARGS_NAME); // so another invocation later won't use it by mistake
-                let flow_args: Vec<String> = args.split(' ').map(|s| s.to_string()).collect();
-                Response::Args(flow_args)
+                Response::Args(self.args.clone())
             }
             Event::StderrEOF => Response::Ack
         }
     }
 }
 
-impl RuntimeClient for CLIRuntimeClient {
-    // This function is called by the runtime_function to send a command to the runtime_client
-    // so here in the runtime_client, it's more like "process_command"
-    fn send_event(&mut self, command: Event) -> Response {
-        self.process_command(command)
-    }
-}
-
 #[cfg(test)]
 mod test {
-    use std::env;
     use std::fs;
 
     use tempdir::TempDir;
 
-    use flowrlib::runtime_client::{Event, Response, RuntimeClient};
+    use flowrlib::metrics::Metrics;
+    use flowrlib::runtime_client::{Event, Response};
 
     use super::CLIRuntimeClient;
-    use super::FLOW_ARGS_NAME;
 
     #[test]
     fn test_arg_passing() {
-        env::set_var(FLOW_ARGS_NAME, "test");
+        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string(), "1".to_string()));
 
-        let mut client = CLIRuntimeClient::new();
-
-        match client.send_event(Event::GetArgs) {
-            Response::Args(args) => assert_eq!(vec!("test".to_string()), args),
+        match client.process_event(Event::GetArgs) {
+            Response::Args(args) => assert_eq!(vec!("file:///test_flow.toml".to_string(), "1".to_string()), args),
             _ => panic!("Didn't get Args response as expected")
         }
     }
@@ -130,9 +125,9 @@ mod test {
         let temp = tempdir::TempDir::new("flow").unwrap().into_path();
         let file = temp.join("test");
 
-        let mut client = CLIRuntimeClient::new();
+        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string()));
 
-        if client.send_event(Event::Write(file.to_str().unwrap().to_string(), b"Hello".to_vec()))
+        if client.process_event(Event::Write(file.to_str().unwrap().to_string(), b"Hello".to_vec()))
             != Response::Ack {
             panic!("Didn't get Write response as expected")
         }
@@ -140,23 +135,23 @@ mod test {
 
     #[test]
     fn test_stdout() {
-        let mut client = CLIRuntimeClient::new();
-        if client.send_event(Event::Stdout("Hello".into())) != Response::Ack {
+        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string()));
+        if client.process_event(Event::Stdout("Hello".into())) != Response::Ack {
             panic!("Didn't get Stdout response as expected")
         }
     }
 
     #[test]
     fn test_stderr() {
-        let mut client = CLIRuntimeClient::new();
-        if client.send_event(Event::Stderr("Hello".into())) != Response::Ack {
+        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string()));
+        if client.process_event(Event::Stderr("Hello".into())) != Response::Ack {
             panic!("Didn't get Stderr response as expected")
         }
     }
 
     #[test]
     fn test_image_writing() {
-        let mut client = CLIRuntimeClient::new();
+        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string()));
 
         let temp_dir = TempDir::new("flow").unwrap().into_path();
         let path = temp_dir.join("flow.png");
@@ -164,12 +159,15 @@ mod test {
         let _ = fs::remove_file(&path);
         assert!(!path.exists());
 
-        client.send_event(Event::FlowStart);
+        client.process_event(Event::FlowStart);
         let pixel = Event::PixelWrite((0, 0), (255, 200, 20), (10, 10), path.display().to_string());
-        if client.send_event(pixel) != Response::Ack {
+        if client.process_event(pixel) != Response::Ack {
             panic!("Didn't get pixel write response as expected")
         }
-        client.send_event(Event::FlowEnd);
+        #[cfg(feature = "metrics")]
+            client.process_event(Event::FlowEnd(Metrics::new(1)));
+        #[cfg(not(feature = "metrics"))]
+            client.process_event(Event::FlowEnd);
 
         assert!(path.exists(), "Image file was not created");
     }

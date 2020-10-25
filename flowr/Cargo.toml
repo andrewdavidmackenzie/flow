@@ -15,9 +15,10 @@ name = "flowr"
 path = "src/main.rs"
 
 [features]
-default = ["debugger", "native"]
+default = ["debugger", "native", "metrics"]
 debugger = []
 native = []
+metrics = []
 
 [dependencies.flowrlib]
 path = "../flowrlib"
@@ -25,9 +26,8 @@ features = ["debugger", "metrics", "checks"]
 
 [dependencies]
 flow_impl = "=0.10.0"
-flowruntime = {path = "../flowruntime"}
-flowstdlib = {path = "../flowstdlib"}
 provider = {path = "../provider"}
+flowrstructs = {path = "../flowrstructs"}
 clap = "~2"
 simplog = "~1.2"
 log = "0.4.6"
@@ -38,6 +38,7 @@ serde_json = "1.0"
 num_cpus = "~1.10"
 error-chain = "0.12.2"
 image = "=0.23.10"
+ctrlc = "3.1.4"
 
 [dev-dependencies]
 tempdir = "~0.3.5"

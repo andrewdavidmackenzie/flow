@@ -10,10 +10,10 @@ use serde_json::Value;
 use tempdir::TempDir;
 use url::Url;
 
-use flowrlib::function::Function;
-use flowrlib::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowrlib::loader::Loader;
-use flowrlib::manifest::{Manifest, MetaData};
+use flowrstructs::function::Function;
+use flowrstructs::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
+use flowrstructs::manifest::{Manifest, MetaData};
 use provider::content::provider::MetaProvider;
 
 /// flowrlib integration tests

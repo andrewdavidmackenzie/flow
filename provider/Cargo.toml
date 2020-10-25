@@ -15,8 +15,6 @@ default = []
 online_tests = []
 
 [dependencies]
-flowrlib = {path = "../flowrlib"}
-
 log = "0.4.6"
 url = "~2.1"
 curl = "~0.4.24"

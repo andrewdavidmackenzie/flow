@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use flow_impl::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
-use flowrlib::runtime_client::{Event, Response, RuntimeClient};
+use crate::runtime_client::{Event, Response, RuntimeClient};
 
 /// `Implementation` struct for the `Stdin` function
 #[derive(Debug)]

@@ -3,8 +3,9 @@ use log::debug;
 use log::info;
 use url::Url;
 
-use flowrlib::errors::*;
-use flowrlib::provider::Provider;
+use crate::errors::*;
+
+use super::provider::Provider;
 
 pub struct HttpProvider;
 
@@ -74,9 +75,8 @@ impl HttpProvider {
 
 #[cfg(test)]
 mod test {
-    use flowrlib::provider::Provider;
-
     use super::HttpProvider;
+    use super::super::provider::Provider;
 
     #[test]
     fn resolve() {
