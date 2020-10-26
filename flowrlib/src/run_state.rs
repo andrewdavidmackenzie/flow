@@ -264,6 +264,7 @@ impl RunState {
     */
     #[cfg(feature = "debugger")]
     fn reset(&mut self) {
+        debug!("Resetting RunState");
         for function in &mut self.functions {
             function.reset()
         };
@@ -299,6 +300,7 @@ impl RunState {
 
         let mut inputs_ready_list = Vec::<(usize, usize)>::new();
 
+        debug!("Initializing all functions");
         for function in &mut self.functions {
             #[cfg(feature = "debugger")]
             debug!("Init:\tInitializing Function #{} '{}' in Flow #{}",
@@ -320,8 +322,6 @@ impl RunState {
         for (id, flow_id) in inputs_ready_list {
             self.new_input_set(id, flow_id, true);
         }
-
-        trace!("Init: State - {}", self)
     }
 
     /*
@@ -1019,10 +1019,6 @@ mod test {
 
     #[cfg(feature = "debugger")]
     use crate::debug_client::{DebugClient, Event};
-    #[cfg(feature = "debugger")]
-    use crate::debug_client::{Param, Response};
-    #[cfg(any(feature = "debugger", feature = "checks"))]
-    use crate::run_state;
 
     use super::Job;
 
@@ -1045,14 +1041,7 @@ mod test {
 
     #[cfg(feature = "debugger")]
     impl DebugClient for TestDebugClient {
-        fn send_event(&self, _event: Event) -> Response {
-            Response::Step(Some(run_state::test::Param::Numeric(1)))
-        }
-    }
-
-    #[cfg(feature = "debugger")]
-    fn test_debug_client() -> &'static dyn DebugClient {
-        &TestDebugClient {}
+        fn send_event(&self, _event: Event) {}
     }
 
     fn test_function_a_to_b_not_init() -> Function {
@@ -1231,8 +1220,7 @@ mod test {
         use super::super::Job;
         use super::super::RunState;
         use super::super::State;
-        #[cfg(feature = "debugger")]
-        use super::test_debug_client;
+        use super::super::super::debug_client::Response;
 
         #[test]
         fn to_ready_1_on_init() {
@@ -1382,7 +1370,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
 
             // Initial state
             state.init();
@@ -1418,7 +1406,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
 
             // Initial state
             state.init();
@@ -1458,10 +1446,22 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
 
             state.init();
             let output = super::error_output(0, 1);
+
+            #[cfg(feature = "debugger")]
+                {
+                    // When an error is detected in the runtime it enters the debugger which
+                    // informs the client and waits for a Command back - so we create a thread that
+                    // responds with the command ExitDDebugger - otherwise the test will hand
+                    let (_, responder) = debugger.get_channels();
+                    std::thread::spawn(move || {
+                        let _ = responder.clone().send(Response::ExitDebugger);
+                    });
+                }
+
             state.complete_job(
                 #[cfg(feature = "metrics")]
                     &mut metrics,
@@ -1502,7 +1502,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
             let job = state.next_job().unwrap();
@@ -1534,7 +1534,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
             let job = state.next_job().unwrap();
@@ -1576,7 +1576,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
             state.init();
 
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
@@ -1619,7 +1619,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
             state.init();
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
 
@@ -1659,7 +1659,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
             state.init();
 
             assert_eq!(state.get_state(1), State::Ready, "f_b should be Ready");
@@ -1709,7 +1709,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
             state.init();
 
             assert_eq!(state.get_state(0), State::Ready, "f_a should be Ready");
@@ -1778,8 +1778,6 @@ mod test {
         use super::super::Job;
         use super::super::RunState;
         use super::super::State;
-        #[cfg(feature = "debugger")]
-        use super::test_debug_client;
 
         fn test_functions() -> Vec<Function> {
             let out_conn1 = OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None);
@@ -1819,7 +1817,7 @@ mod test {
         fn blocked_works() {
             let mut state = RunState::new(&test_functions(), 1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
 
 // Indicate that 0 is blocked by 1 on input 0
             state.create_block(0, 1, 0, 0, 0,
@@ -1866,7 +1864,7 @@ mod test {
         fn blocked_is_not_ready() {
             let mut state = RunState::new(&test_functions(), 1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
 
 // Indicate that 0 is blocked by 1 on input 0
             state.create_block(0, 1, 0, 0, 0,
@@ -1883,7 +1881,7 @@ mod test {
         fn unblocking_makes_ready() {
             let mut state = RunState::new(&test_functions(), 1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
 
             // Indicate that 0 is blocked by 1 and put 0 on the blocked list
             state.create_block(0, 1, 0, 0, 0,
@@ -1905,7 +1903,7 @@ mod test {
         fn unblocking_doubly_blocked_functions_not_ready() {
             let mut state = RunState::new(&test_functions(), 1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
 
 // Indicate that 0 is blocked by 1 and 2
             state.create_block(0, 1, 0, 0, 0,
@@ -1956,7 +1954,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
             state.init();
 
             assert_eq!(state.next_job().unwrap().function_id, 0);

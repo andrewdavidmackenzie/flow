@@ -2,6 +2,8 @@ use std::cmp::max;
 use std::fmt;
 use std::time::Instant;
 
+use log::debug;
+
 pub struct Metrics {
     num_functions: usize,
     jobs_created: usize,
@@ -22,6 +24,7 @@ impl Metrics {
     }
 
     pub fn reset(&mut self) {
+        debug!("Resetting stats");
         self.jobs_created = 0;
         self.outputs_sent = 0;
         self.start_time = Instant::now();

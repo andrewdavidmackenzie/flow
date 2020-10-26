@@ -150,10 +150,14 @@ impl CLIDebugClient {
                 println!("Data breakpoint: Function #{}{}    ----- {} ----> Function #{}:{}",
                          source_process_id, output_route, value,
                          destination_id, input_number),
-            Panic(output) =>
-                println!("Function panicked - Job: {:#?}", output),
-            JobError(job) =>
-                println!("Error occurred executing a Job: \n'{:?}'", job),
+            Panic(message, jobs_created) => {
+                println!("Function panicked after {} jobs created: {}", jobs_created, message);
+                return Self::get_user_command(jobs_created);
+            }
+            JobError(job) => {
+                println!("Error occurred executing a Job: \n'{:?}'", job);
+                return Self::get_user_command(job.job_id);
+            }
             EnteringDebugger =>
                 println!("Entering Debugger. Use 'h' or 'help' for help on commands"),
             ExitingDebugger =>

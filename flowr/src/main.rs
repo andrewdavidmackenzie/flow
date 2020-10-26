@@ -177,16 +177,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .setting(AppSettings::TrailingVarArg)
         .version(env!("CARGO_PKG_VERSION"));
 
-    let app = app
-        .arg(Arg::with_name("debugger")
-            .short("d")
-            .long("debugger")
-            .help("Enable the debugger when running a flow"))
-        .arg(Arg::with_name("metrics")
-            .short("m")
-            .long("metrics")
-            .help("Calculate metrics during flow execution and print them out when done"))
-        .arg(Arg::with_name("jobs")
+    let app = app.arg(Arg::with_name("jobs")
             .short("j")
             .long("jobs")
             .takes_value(true)
@@ -211,6 +202,18 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .arg(Arg::with_name("flow-arguments")
             .multiple(true)
             .help("A list of arguments to pass to the flow when executed."));
+
+    #[cfg(feature = "debugger")]
+    let app = app.arg(Arg::with_name("debugger")
+        .short("d")
+        .long("debugger")
+        .help("Enable the debugger when running a flow"));
+
+    #[cfg(feature = "metrics")]
+    let app = app.arg(Arg::with_name("metrics")
+        .short("m")
+        .long("metrics")
+        .help("Calculate metrics during flow execution and print them out when done"));
 
     #[cfg(feature = "native")]
         let app = app.arg(Arg::with_name("native")

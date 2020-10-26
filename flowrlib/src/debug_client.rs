@@ -71,7 +71,7 @@ pub enum Event {
     /// includes: source_process_id, output_route, value, destination_id, input_number));
     DataBreakpoint(usize, String, Value, usize, usize),
     /// A panic occurred executing a `Flows` `Job` -  includes the output of the job that panicked
-    Panic(String),
+    Panic(String, usize),
     /// There was an error executing the Job
     JobError(Job),
     /// Execution of the flow has started
@@ -96,21 +96,17 @@ pub enum Event {
 /// debug_clients must implement this trait
 pub trait DebugClient {
     /// Called to send an event to the debug_client
-    fn send_event(&self, event: Event) -> Response;
+    fn send_event(&self, event: Event);
 }
 
 #[derive(Debug)]
 pub struct ChannelDebugClient {
-    #[cfg(feature = "debugger")]
     /// A channel to send events to a debug client on
     debug_event_channel_tx: Sender<Event>,
-    #[cfg(feature = "debugger")]
     /// The other end of the channel a debug client can receive events on
     debug_event_channel_rx: Arc<Mutex<Receiver<Event>>>,
-    #[cfg(feature = "debugger")]
     /// A channel to for a debug client to send responses on
     debug_response_channel_tx: Sender<Response>,
-    #[cfg(feature = "debugger")]
     /// This end of the channel where coordinator will receive events from a debug client on
     debug_response_channel_rx: Receiver<Response>,
 }
@@ -133,7 +129,6 @@ impl ChannelDebugClient {
             }
         }
     }
-
 }
 
 impl Default for ChannelDebugClient {
@@ -150,8 +145,7 @@ impl Default for ChannelDebugClient {
 }
 
 impl DebugClient for ChannelDebugClient {
-    fn send_event(&self, event: Event) -> Response {
-        self.debug_event_channel_tx.send(event).unwrap();
-        self.get_response()
+    fn send_event(&self, event: Event) {
+        let _ = self.debug_event_channel_tx.send(event);
     }
 }

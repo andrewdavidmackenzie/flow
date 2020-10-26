@@ -25,7 +25,9 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
     A simple CLI (i.e. stdin and stdout) debug client that implements the DebugClient trait
     defined in the flowrlib library.
 */
-pub struct CLIDebugClient {}
+pub struct CLIDebugClient {
+
+}
 
 fn help() {
     println!("{}", HELP_STRING);
@@ -99,57 +101,60 @@ fn get_user_command(job_number: usize) -> Response {
     }
 }
 
-fn process_event(event: Event) -> Response {
-    match event {
-        JobCompleted(job_id, function_id, opt_output) => {
-            println!("Job #{} completed by Function #{}", job_id, function_id);
-            if let Some(output) = opt_output {
-                println!("\tOutput value: '{}'", &output);
+impl CLIDebugClient {
+    fn process_event(&self, event: Event) {
+        match event {
+            JobCompleted(job_id, function_id, opt_output) => {
+                println!("Job #{} completed by Function #{}", job_id, function_id);
+                if let Some(output) = opt_output {
+                    println!("\tOutput value: '{}'", &output);
+                }
+            }
+            PriorToSendingJob(job_id, function_id) =>
+                println!("About to send Job #{} to Function #{}", job_id, function_id),
+            BlockBreakpoint(block) =>
+                println!("Block breakpoint: {:?}", block),
+            DataBreakpoint(source_process_id, output_route, value,
+                           destination_id, input_number) =>
+                println!("Data breakpoint: Function #{}{}    ----- {} ----> Function #{}:{}",
+                         source_process_id, output_route, value,
+                         destination_id, input_number),
+            Panic(message, jobs_created) =>
+                println!("Function panicked after {} jobs created: {}", jobs_created, message),
+            JobError(job) =>
+                println!("Error occurred executing a Job: \n'{:?}'", job),
+            ExecutionStarted =>
+                println!("Running flow"),
+            ExecutionEnded =>
+                println!("Flow has completed"),
+            Deadlock(message) =>
+                println!("Deadlock detected{}", message),
+            SendingValue(source_process_id, value, destination_id, input_number) =>
+                println!("Function #{} sending '{}' to {}:{}",
+                         source_process_id, value, destination_id, input_number),
+            Event::Error(error_message) =>
+                println!("{}", error_message),
+            Message(message) =>
+                println!("{}", message),
+            Resetting =>
+                println!("Resetting state"),
+            EnteringDebugger =>
+                println!("Entering Debugger. Use 'h' or 'help' for help on commands"),
+            ExitingDebugger =>
+                println!("Debugger is exiting"),
+            WaitingForCommand(job_id) => {
+                let _response = get_user_command(job_id);
+                // self.client.send(response);
             }
         }
-        PriorToSendingJob(job_id, function_id) =>
-            println!("About to send Job #{} to Function #{}", job_id, function_id),
-        BlockBreakpoint(block) =>
-            println!("Block breakpoint: {:?}", block),
-        DataBreakpoint(source_process_id, output_route, value,
-                       destination_id, input_number) =>
-            println!("Data breakpoint: Function #{}{}    ----- {} ----> Function #{}:{}",
-                     source_process_id, output_route, value,
-                     destination_id, input_number),
-        Panic(output) =>
-            println!("Function panicked - Job: {:#?}", output),
-        JobError(job) =>
-            println!("Error occurred executing a Job: \n'{:?}'", job),
-        ExecutionStarted =>
-            println!("Running flow"),
-        ExecutionEnded =>
-            println!("Flow has completed"),
-        Deadlock(message) =>
-            println!("Deadlock detected{}", message),
-        SendingValue(source_process_id, value, destination_id, input_number) =>
-            println!("Function #{} sending '{}' to {}:{}",
-                     source_process_id, value, destination_id, input_number),
-        Event::Error(error_message) =>
-            println!("{}", error_message),
-        Message(message) =>
-            println!("{}", message),
-        Resetting =>
-            println!("Resetting state"),
-        EnteringDebugger =>
-            println!("Entering Debugger. Use 'h' or 'help' for help on commands"),
-        ExitingDebugger =>
-            println!("Debugger is exiting"),
-        WaitingForCommand(job_id) => return get_user_command(job_id)
     }
-
-    Ack
 }
 
 /*
     Implement a client for the debugger that reads and writes to standard input and output
 */
 impl DebugClient for CLIDebugClient {
-    fn send_event(&self, event: Event) -> Response {
-        process_event(event)
+    fn send_event(&self, event: Event) {
+        self.process_event(event)
     }
 }

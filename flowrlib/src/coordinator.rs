@@ -1,6 +1,4 @@
 use std::sync::{Arc, Mutex};
-#[cfg(feature = "debugger")]
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::mpsc;
 use std::time::Duration;
@@ -11,8 +9,6 @@ use url::Url;
 use flowrstructs::manifest::Manifest;
 use provider::content::provider::MetaProvider;
 
-#[cfg(feature = "debugger")]
-use crate::debug_client::ChannelDebugClient;
 #[cfg(feature = "debugger")]
 use crate::debug_client::Event as DebugEvent;
 #[cfg(feature = "debugger")]
@@ -43,7 +39,7 @@ pub struct Submission {
     max_parallel_jobs: usize,
     job_timeout: Duration,
     #[cfg(feature = "debugger")]
-    enter_debugger: bool,
+    debug: bool,
 }
 
 impl Submission {
@@ -53,7 +49,7 @@ impl Submission {
     pub fn new(manifest_url: &Url,
                max_parallel_jobs: usize,
                #[cfg(feature = "debugger")]
-               enter_debugger: bool) -> Submission {
+               debug: bool) -> Submission {
         info!("Maximum jobs in parallel limited to {}", max_parallel_jobs);
 
         Submission {
@@ -61,7 +57,7 @@ impl Submission {
             max_parallel_jobs,
             job_timeout: Duration::from_secs(60),
             #[cfg(feature = "debugger")]
-            enter_debugger,
+            debug,
         }
     }
 }
@@ -78,14 +74,10 @@ pub struct Coordinator {
     job_tx: Sender<Job>,
     /// A channel used to receive Jobs back after execution (now including the job's output)
     job_rx: Receiver<Job>,
-    /// A flag that indicates a request to enter the debugger has been made
-    #[cfg(feature = "debugger")]
-    debug_requested: Arc<AtomicBool>,
     /// Send messages to the client over channels
     runtime_client: Arc<Mutex<ChannelRuntimeClient>>,
     #[cfg(feature = "debugger")]
-    /// Send messages to the debug client over channels
-    debug_client: Arc<Mutex<ChannelDebugClient>>,
+    debugger: Debugger
 }
 
 /// Create a Submission for a flow to be executed.
@@ -114,8 +106,7 @@ pub struct Coordinator {
 /// struct ExampleRuntimeClient {};
 ///
 /// impl DebugClient for ExampleDebugClient {
-///     fn send_event(&self, event: Event) -> Response {
-///         Response::Ack
+///     fn send_event(&self, event: Event) {
 ///     }
 /// }
 ///
@@ -159,11 +150,9 @@ impl Coordinator {
         Coordinator {
             job_tx,
             job_rx: output_rx,
-            #[cfg(feature = "debugger")]
-            debug_requested: Arc::new(AtomicBool::new(false)),
             runtime_client: Arc::new(Mutex::new(ChannelRuntimeClient::new())),
             #[cfg(feature = "debugger")]
-            debug_client: Arc::new(Mutex::new(ChannelDebugClient::new())),
+            debugger: Debugger::new()
         }
     }
 
@@ -173,47 +162,44 @@ impl Coordinator {
 
     #[cfg(feature = "debugger")]
     pub fn get_debug_channels(&self) -> (Arc<Mutex<Receiver<DebugEvent>>>, Sender<DebugResponse>) {
-        self.debug_client.lock().unwrap().get_channels()
+        self.debugger.get_channels()
     }
 
     fn wait_for_submission(&self) -> Submission {
         loop {
             match self.runtime_client.lock().unwrap().get_response() {
-                ClientSubmission(submission) => return submission,
+                ClientSubmission(submission) => {
+                    debug!("Received submission for execution with manifest_url: '{}'", submission.manifest_url.to_string());
+                    return submission
+                },
                 _ => error!("Was expecting a Submission from the client"),
             }
         }
     }
 
-    /// Start the Coordinator
+    /// Start the Coordinator - this will block the thread it is running on waiting for a submission
     pub fn start(&mut self, native: bool) {
         let submission = self.wait_for_submission();
 
-        debug!("Received submission for execution with manifest_url: '{}'", submission.manifest_url.to_string());
         let mut manifest = Self::load_from_manifest(&submission.manifest_url.to_string(),
                                                     self.runtime_client.clone(),
                                                     native).unwrap(); // TODO
         let mut state = RunState::new(manifest.get_functions(), submission.max_parallel_jobs);
-        #[cfg(feature = "debugger")]
-            let debug_client = ChannelDebugClient::new();
-        #[cfg(feature = "debugger")]
-            let mut debugger = Debugger::new(&debug_client);
         #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(state.num_functions());
 
         // This outer loop is just a way of restarting execution from scratch if the debugger requests it
         'flow_execution: loop {
-            debug!("Resetting stats and initializing all functions");
             state.init();
+            #[cfg(feature = "metrics")]
+                    metrics.reset();
+
             self.runtime_client.lock().unwrap().send_event(Event::FlowStart);
 
             #[cfg(feature = "debugger")]
-            if submission.enter_debugger {
-                debugger.enter(&state);
+            if submission.debug {
+                self.debugger.enter(&state);
             }
-
-            #[cfg(feature = "metrics")]
-                metrics.reset();
 
             #[cfg(feature = "debugger")]
                 let mut display_next_output;
@@ -222,14 +208,9 @@ impl Coordinator {
             'inner: loop {
                 trace!("{}", state);
                 #[cfg(feature = "debugger")]
-                if self.debug_requested.load(Ordering::SeqCst) {
-                    self.debug_requested.store(false, Ordering::SeqCst); // reset to avoid re-entering
-                    debugger.enter(&state);
-                }
+                self.debugger.check_for_entry(&state);
 
                 let debug_check = self.send_jobs(&mut state,
-                                                 #[cfg(feature = "debugger")]
-                                                     &mut debugger,
                                                  #[cfg(feature = "metrics")]
                                                      &mut metrics,
                 );
@@ -251,7 +232,7 @@ impl Coordinator {
                             #[cfg(feature = "debugger")]
                                 {
                                     if display_next_output {
-                                        debugger.job_completed(&job);
+                                        self.debugger.job_completed(&job);
                                     }
                                 }
 
@@ -260,12 +241,12 @@ impl Coordinator {
                                     &mut metrics,
                                 job,
                                 #[cfg(feature = "debugger")]
-                                    &mut debugger,
+                                    &mut self.debugger,
                             );
                         }
                         #[cfg(feature = "debugger")]
                         Err(err) => {
-                            debugger.panic(&state,
+                            self.debugger.panic(&state,
                                            format!("Error in job reception: '{}'", err));
                         }
                         #[cfg(not(feature = "debugger"))]
@@ -284,8 +265,8 @@ impl Coordinator {
             if !restart {
                 #[cfg(feature = "debugger")]
                     {
-                        if submission.enter_debugger {
-                            let check = debugger.flow_done(&state);
+                        if submission.debug {
+                            let check = self.debugger.flow_done(&state);
                             restart = check.1;
                         }
                     }
@@ -338,8 +319,6 @@ impl Coordinator {
     */
     fn send_jobs(&mut self,
                  state: &mut RunState,
-                 #[cfg(feature = "debugger")]
-                 debugger: &mut Debugger,
                  #[cfg(feature = "metrics")]
                  metrics: &mut Metrics,
     ) -> (bool, bool) {
@@ -348,8 +327,6 @@ impl Coordinator {
 
         while let Some(job) = state.next_job() {
             match self.send_job(job.clone(), state,
-                                #[cfg(feature = "debugger")]
-                                    debugger,
                                 #[cfg(feature = "metrics")]
                                     metrics,
             ) {
@@ -362,7 +339,7 @@ impl Coordinator {
                     debug!("{}", state);
 
                     #[cfg(feature = "debugger")]
-                        debugger.error(&state, job);
+                        self.debugger.error(&state, job);
                 }
             }
         }
@@ -373,11 +350,9 @@ impl Coordinator {
     /*
         Send a job for execution
     */
-    fn send_job(&self,
+    fn send_job(&mut self,
                 job: Job,
                 state: &mut RunState,
-                #[cfg(feature = "debugger")]
-                debugger: &mut Debugger,
                 #[cfg(feature = "metrics")]
                 metrics: &mut Metrics,
     ) -> Result<(bool, bool)> {
@@ -389,7 +364,7 @@ impl Coordinator {
             metrics.track_max_jobs(state.number_jobs_running());
 
         #[cfg(feature = "debugger")]
-            let debug_options = debugger.check_prior_to_job(&state, job.job_id, job.function_id);
+            let debug_options = self.debugger.check_prior_to_job(&state, job.job_id, job.function_id);
 
         let job_id = job.job_id;
         self.job_tx.send(job).chain_err(|| "Sending of job for execution failed")?;
@@ -405,7 +380,7 @@ mod test {
 
     use crate::coordinator::Submission;
     #[cfg(feature = "debugger")]
-    use crate::debug_client::{DebugClient, Event, Response};
+    use crate::debug_client::{DebugClient, Event};
     use crate::runtime_client::Event as RuntimeCommand;
     use crate::runtime_client::Response as RuntimeResponse;
     use crate::runtime_client::RuntimeClient;
@@ -415,8 +390,7 @@ mod test {
 
     #[cfg(feature = "debugger")]
     impl DebugClient for TestDebugClient {
-        fn send_event(&self, _event: Event) -> Response {
-            Response::Ack
+        fn send_event(&self, _event: Event) {
         }
     }
 

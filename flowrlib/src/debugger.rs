@@ -1,10 +1,12 @@
 use std::collections::HashSet;
 use std::fmt;
-use std::process::exit;
+use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{Receiver, Sender};
 
 use serde_json::Value;
 
-use crate::debug_client::DebugClient;
+use crate::debug_client::{ChannelDebugClient, DebugClient};
 use crate::debug_client::Event;
 use crate::debug_client::Event::{*};
 use crate::debug_client::Param;
@@ -12,14 +14,16 @@ use crate::debug_client::Response::{*};
 use crate::debug_client::Response;
 use crate::run_state::{Block, Job, RunState};
 
-pub struct Debugger<'a> {
-    debug_client: &'a dyn DebugClient,
+pub struct Debugger {
+    debug_client: ChannelDebugClient,
     input_breakpoints: HashSet<(usize, usize)>,
     block_breakpoints: HashSet<(usize, usize)>,
     /* blocked_id -> blocking_id */
     output_breakpoints: HashSet<(usize, String)>,
     break_at_job: usize,
     function_breakpoints: HashSet<usize>,
+    /// A flag that indicates a request to enter the debugger has been made
+    debug_requested: Arc<AtomicBool>,
 }
 
 #[derive(Debug, Clone)]
@@ -57,16 +61,28 @@ impl fmt::Display for BlockerNode {
     }
 }
 
-impl<'a> Debugger<'a> {
-    pub fn new(client: &'a dyn DebugClient) -> Self {
+impl Debugger {
+    pub fn new() -> Self {
         Debugger {
-            debug_client: client,
+            debug_client: ChannelDebugClient::new(),
             input_breakpoints: HashSet::<(usize, usize)>::new(),
             block_breakpoints: HashSet::<(usize, usize)>::new(),
             output_breakpoints: HashSet::<(usize, String)>::new(),
             break_at_job: std::usize::MAX,
             function_breakpoints: HashSet::<usize>::new(),
+            debug_requested: Arc::new(AtomicBool::new(false)),
         }
+    }
+
+    pub fn check_for_entry(&mut self, state: &RunState) {
+        if self.debug_requested.load(Ordering::SeqCst) {
+            self.debug_requested.store(false, Ordering::SeqCst); // reset to avoid re-entering
+            self.enter(&state);
+        }
+    }
+
+    pub fn get_channels(&self) -> (Arc<Mutex<Receiver<Event>>>, Sender<Response>) {
+        self.debug_client.get_channels()
     }
 
     /*
@@ -156,7 +172,7 @@ impl<'a> Debugger<'a> {
         state etc.
     */
     pub fn panic(&mut self, state: &RunState, error_message: String) {
-        self.debug_client.send_event(Panic(error_message));
+        self.debug_client.send_event(Panic(error_message, state.jobs_created()));
         self.wait_for_command(state);
     }
 
@@ -181,7 +197,8 @@ impl<'a> Debugger<'a> {
     */
     fn wait_for_command(&mut self, state: &RunState) -> (bool, bool) {
         loop {
-            match self.debug_client.send_event(WaitingForCommand(state.jobs_created())) {
+            self.debug_client.send_event(WaitingForCommand(state.jobs_created()));
+            match self.debug_client.get_response() {
                 // *************************      The following are commands that send a response
                 GetState => {
                     // Respond with 'state'
@@ -191,24 +208,29 @@ impl<'a> Debugger<'a> {
                     // Respond with display_state(&self, function_id: usize) -> String ??
                 }
                 Breakpoint(param) => {
-                    self.debug_client.send_event(self.add_breakpoint(state, param));
+                    let event = self.add_breakpoint(state, param);
+                    self.debug_client.send_event(event);
                 },
                 Delete(param) => {
-                    self.debug_client.send_event(self.delete_breakpoint(param));
+                    let event = self.delete_breakpoint(param);
+                    self.debug_client.send_event(event);
                 }
                 Inspect => {
-                    self.debug_client.send_event(self.inspect(state));
+                    let event = self.inspect(state);
+                    self.debug_client.send_event(event);
                 }
                 List => {
-                    self.debug_client.send_event(self.list_breakpoints());
+                    let event = self.list_breakpoints();
+                    self.debug_client.send_event(event);
                 }
                 Print(param) => {
-                    self.debug_client.send_event(self.print(state, param));
+                    let event = self.print(state, param);
+                    self.debug_client.send_event(event);
                 }
                 EnterDebugger => { /* Not needed as we are already in the debugger */ }
                 ExitDebugger => {
                     self.debug_client.send_event(ExitingDebugger);
-                    exit(1); // TODO this will cause the whole runtime to exit - not just debugger
+                    return (false, false);
                 }
 
                 // **************************      The following commands exit the command loop
@@ -219,7 +241,8 @@ impl<'a> Debugger<'a> {
                 }
                 RunReset => {
                     return if state.jobs_created() > 0 {
-                        self.debug_client.send_event(self.reset());
+                        let event = self.reset();
+                        self.debug_client.send_event(event);
                         (false, true)
                     } else {
                         self.debug_client.send_event(ExecutionStarted);
