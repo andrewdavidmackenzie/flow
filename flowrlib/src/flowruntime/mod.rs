@@ -1,12 +1,13 @@
-#![deny(missing_docs)]
+
 //! `flowruntime` is a crate that defines a set of functions for a flow program to interact with the
 //! host system, such as files, stdio etc.
 
 use std::sync::{Arc, Mutex};
 
-use flowrlib::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
-use flowrlib::manifest::MetaData;
-use flowrlib::runtime_client::RuntimeClient;
+use flowrstructs::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
+use flowrstructs::manifest::MetaData;
+
+use super::runtime_client::RuntimeClient;
 
 /// `args` is a module to interact with a programs arguments
 pub mod args;

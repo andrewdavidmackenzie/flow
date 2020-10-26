@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use log::{debug, info, trace};
 use url::Url;
 
-use flowrlib::input::InputInitializer;
-use flowrlib::manifest::{Cargo, MetaData};
-use flowrlib::provider::Provider;
+use flowrstructs::input::InputInitializer;
+use flowrstructs::manifest::{Cargo, MetaData};
+use provider::content::provider::Provider;
 
 use crate::deserializers::deserializer_helper::get_deserializer;
 use crate::errors::*;
@@ -41,7 +41,8 @@ pub trait Validate {
 ///
 /// # Example
 /// ```
-/// use flowrlib::provider::Provider;
+/// use provider::content::provider::Provider;
+/// use provider::errors::Result;
 /// use flowrlib::errors::*;
 /// use std::env;
 /// use url::Url;
@@ -194,7 +195,7 @@ fn config_function(function: &mut Function, source_url: &str, parent_route: &Rou
 
 #[cfg(test)]
 mod test {
-    use flowrlib::manifest::{Cargo, MetaData};
+    use flowrstructs::manifest::{Cargo, MetaData};
 
     #[test]
     fn deserialize_library() {

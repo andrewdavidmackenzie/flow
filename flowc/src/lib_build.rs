@@ -11,10 +11,10 @@ use flowclib::compiler::loader::load;
 use flowclib::dumper::dump_flow;
 use flowclib::model::name::HasName;
 use flowclib::model::process::Process::{FlowProcess, FunctionProcess};
-use flowrlib::lib_manifest::{DEFAULT_LIB_JSON_MANIFEST_FILENAME, DEFAULT_LIB_RUST_MANIFEST_FILENAME};
-use flowrlib::lib_manifest::LibraryManifest;
-use flowrlib::provider::Provider;
+use flowrstructs::lib_manifest::{DEFAULT_LIB_JSON_MANIFEST_FILENAME, DEFAULT_LIB_RUST_MANIFEST_FILENAME};
+use flowrstructs::lib_manifest::LibraryManifest;
 use provider::content::file_provider::FileProvider;
+use provider::content::provider::Provider;
 
 use crate::compile_wasm;
 use crate::errors::*;

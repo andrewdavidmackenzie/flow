@@ -8,8 +8,9 @@ use serde_json::Value;
 use wasmi::{ExternVal, ImportsBuilder, MemoryRef, Module, ModuleInstance, ModuleRef,
             NopExternals, RuntimeValue, Signature, ValueType};
 
+use provider::content::provider::Provider;
+
 use crate::errors::*;
-use crate::provider::Provider;
 
 const DEFAULT_WASM_FILENAME: &str = "module";
 
@@ -99,8 +100,10 @@ impl Implementation for WasmExecutor {
 
 /// load a Wasm module from the specified Url.
 pub fn load(provider: &dyn Provider, source_url: &str) -> Result<WasmExecutor> {
-    let (resolved_url, _) = provider.resolve_url(&source_url, DEFAULT_WASM_FILENAME, &["wasm"])?;
-    let content = provider.get_contents(&resolved_url)?;
+    let (resolved_url, _) = provider.resolve_url(&source_url, DEFAULT_WASM_FILENAME, &["wasm"])
+        .chain_err(|| "Could not resolve url for manifest while attempting to load manifest")?;
+    let content = provider.get_contents(&resolved_url)
+        .chain_err(|| format!("Could not fetch content from url '{}' for loading wasm", resolved_url))?;
     let module = Module::from_buffer(content)
         .chain_err(|| format!("Could not create Wasm Module from content in '{}'", resolved_url))?;
 

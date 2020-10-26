@@ -27,6 +27,10 @@ online_tests = []
 path = "../flowrlib"
 features = ["debugger", "metrics", "checks"]
 
+[dependencies.flowrstructs]
+path = "../flowrstructs"
+features = ["debugger"]
+
 [dependencies]
 provider = {path = "../provider"}
 flowr = {path = "../flowr"}

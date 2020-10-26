@@ -1,8 +1,7 @@
 use std::io;
 use std::io::Write;
 
-use flowrlib::debug_client::{Command, Command::{*}, DebugClient, Event, Event::{*}, Param, Response,
-                             Response::{*}};
+use flowrlib::debug_client::{DebugClient, Event, Event::{*}, Param, Response, Response::{*}};
 
 const HELP_STRING: &str = "Debugger commands:
 'b' | 'breakpoint' {spec}    - Set a breakpoint on a function (by id), an output or an input using spec:
@@ -26,7 +25,9 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
     A simple CLI (i.e. stdin and stdout) debug client that implements the DebugClient trait
     defined in the flowrlib library.
 */
-pub struct CLIDebugClient {}
+pub struct CLIDebugClient {
+
+}
 
 fn help() {
     println!("{}", HELP_STRING);
@@ -42,13 +43,13 @@ fn parse_command(input: &str) -> (&str, Option<Param>) {
         }
 
         if let Ok(integer) = parts[1].parse::<usize>() {
-            return (command, Some(Param::Numeric(integer)))
+            return (command, Some(Param::Numeric(integer)));
         }
 
         if parts[1].contains('/') { // is an output specified
             let sub_parts: Vec<&str> = parts[1].split('/').collect();
             if let Ok(source_process_id) = sub_parts[0].parse::<usize>() {
-                    return (command, Some(Param::Output((source_process_id, sub_parts[1].to_string()))));
+                return (command, Some(Param::Output((source_process_id, sub_parts[1].to_string()))));
             }
         } else if parts[1].contains(':') { // is an input specifier
             let sub_parts: Vec<&str> = parts[1].split(':').collect();
@@ -70,43 +71,38 @@ fn parse_command(input: &str) -> (&str, Option<Param>) {
     (command, None)
 }
 
-/*
-    Implement a client for the debugger that reads and writes to standard input and output
-*/
-impl DebugClient for CLIDebugClient {
-    fn init(&self) {}
+fn get_user_command(job_number: usize) -> Response {
+    loop {
+        print!("Debug #{}> ", job_number);
+        io::stdout().flush().unwrap();
 
-    fn get_command(&self, job_number: usize) -> Command {
-        loop {
-            print!("Debug #{}> ", job_number);
-            io::stdout().flush().unwrap();
-
-            let mut input = String::new();
-            match io::stdin().read_line(&mut input) {
-                Ok(0) => return ExitDebugger,
-                Ok(_n) => {
-                    let (command, param) = parse_command(&input);
-                    match command {
-                        "b" | "breakpoint" => return Breakpoint(param),
-                        ""  | "c" | "continue" => return Continue,
-                        "d" | "delete" => return Delete(param),
-                        "e" | "exit" => return ExitDebugger,
-                        "h" | "help" => help(),
-                        "i" | "inspect" => return Inspect,
-                        "l" | "list" => return List,
-                        "p" | "print" => return Print(param),
-                        "r" | "run" | "reset" => return RunReset,
-                        "s" | "step" => return Step(param),
-                        "q" | "quit" => return ExitDebugger,
-                        _ => println!("Unknown debugger command '{}'\n", command)
-                    }
+        let mut input = String::new();
+        match io::stdin().read_line(&mut input) {
+            Ok(0) => return ExitDebugger,
+            Ok(_n) => {
+                let (command, param) = parse_command(&input);
+                match command {
+                    "b" | "breakpoint" => return Breakpoint(param),
+                    "" | "c" | "continue" => return Continue,
+                    "d" | "delete" => return Delete(param),
+                    "e" | "exit" => return ExitDebugger,
+                    "h" | "help" => help(),
+                    "i" | "inspect" => return Inspect,
+                    "l" | "list" => return List,
+                    "p" | "print" => return Print(param),
+                    "r" | "run" | "reset" => return RunReset,
+                    "s" | "step" => return Step(param),
+                    "q" | "quit" => return ExitDebugger,
+                    _ => println!("Unknown debugger command '{}'\n", command)
                 }
-                Err(_) => println!("Error reading debugger command\n")
             }
+            Err(_) => println!("Error reading debugger command\n")
         }
     }
+}
 
-    fn send_event(&self, event: Event) {
+impl CLIDebugClient {
+    fn process_event(&self, event: Event) {
         match event {
             JobCompleted(job_id, function_id, opt_output) => {
                 println!("Job #{} completed by Function #{}", job_id, function_id);
@@ -114,8 +110,6 @@ impl DebugClient for CLIDebugClient {
                     println!("\tOutput value: '{}'", &output);
                 }
             }
-            Enter =>
-                println!("Entering Debugger. Use 'h' or 'help' for help on commands"),
             PriorToSendingJob(job_id, function_id) =>
                 println!("About to send Job #{} to Function #{}", job_id, function_id),
             BlockBreakpoint(block) =>
@@ -125,33 +119,42 @@ impl DebugClient for CLIDebugClient {
                 println!("Data breakpoint: Function #{}{}    ----- {} ----> Function #{}:{}",
                          source_process_id, output_route, value,
                          destination_id, input_number),
-            Panic(output) =>
-                println!("Function panicked - Job: {:#?}", output),
+            Panic(message, jobs_created) =>
+                println!("Function panicked after {} jobs created: {}", jobs_created, message),
             JobError(job) =>
                 println!("Error occurred executing a Job: \n'{:?}'", job),
-            End =>
-                println!("Execution has ended."),
+            ExecutionStarted =>
+                println!("Running flow"),
+            ExecutionEnded =>
+                println!("Flow has completed"),
             Deadlock(message) =>
                 println!("Deadlock detected{}", message),
             SendingValue(source_process_id, value, destination_id, input_number) =>
                 println!("Function #{} sending '{}' to {}:{}",
                          source_process_id, value, destination_id, input_number),
-        }
-    }
-
-    fn send_response(&self, response: Response) {
-        match response {
-            Ack => {}
-            Error(error_message) =>
+            Event::Error(error_message) =>
                 println!("{}", error_message),
             Message(message) =>
                 println!("{}", message),
             Resetting =>
                 println!("Resetting state"),
-            Running =>
-                println!("Running flow"),
-            Exiting =>
+            EnteringDebugger =>
+                println!("Entering Debugger. Use 'h' or 'help' for help on commands"),
+            ExitingDebugger =>
                 println!("Debugger is exiting"),
+            WaitingForCommand(job_id) => {
+                let _response = get_user_command(job_id);
+                // self.client.send(response);
+            }
         }
+    }
+}
+
+/*
+    Implement a client for the debugger that reads and writes to standard input and output
+*/
+impl DebugClient for CLIDebugClient {
+    fn send_event(&self, event: Event) {
+        self.process_event(event)
     }
 }

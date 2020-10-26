@@ -8,12 +8,13 @@ use log::{debug, error, info, trace};
 use multimap::MultiMap;
 use serde_json::{json, Value};
 
+use flowrstructs::function::Function;
+use flowrstructs::output_connection::OutputConnection;
+
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
-use crate::function::Function;
 #[cfg(feature = "metrics")]
 use crate::metrics::Metrics;
-use crate::output_connection::OutputConnection;
 
 #[cfg(any(feature = "checks", feature = "debugger", test))]
 #[derive(Debug, PartialEq)]
@@ -258,11 +259,12 @@ impl RunState {
         }
     }
 
-    #[cfg(feature = "debugger")]
     /*
         Reset all values back to initial ones to enable debugging from scratch
     */
+    #[cfg(feature = "debugger")]
     fn reset(&mut self) {
+        debug!("Resetting RunState");
         for function in &mut self.functions {
             function.reset()
         };
@@ -298,6 +300,7 @@ impl RunState {
 
         let mut inputs_ready_list = Vec::<(usize, usize)>::new();
 
+        debug!("Initializing all functions");
         for function in &mut self.functions {
             #[cfg(feature = "debugger")]
             debug!("Init:\tInitializing Function #{} '{}' in Flow #{}",
@@ -319,8 +322,6 @@ impl RunState {
         for (id, flow_id) in inputs_ready_list {
             self.new_input_set(id, flow_id, true);
         }
-
-        trace!("Init: State - {}", self)
     }
 
     /*
@@ -942,6 +943,7 @@ impl RunState {
             let state = self.get_state(function.id());
             if (!function.inputs().is_empty()) && (function.input_set_count() > 0) &&
                 !(state == State::Ready || state == State::Blocked || state == State::Running) {
+                #[cfg(feature = "debugger")]
                 error!("{}", function);
                 return self.runtime_error(job_id, &format!("Function #{} inputs are full, but it is not Ready or Blocked", function.id()),
                                           file!(), line!());
@@ -1010,16 +1012,13 @@ mod test {
     use serde_json::json;
     use serde_json::Value;
 
+    use flowrstructs::function::Function;
+    use flowrstructs::input::Input;
+    use flowrstructs::input::InputInitializer::Once;
+    use flowrstructs::output_connection::OutputConnection;
+
     #[cfg(feature = "debugger")]
-    use crate::debug_client::{DebugClient, Event, Response};
-    #[cfg(feature = "debugger")]
-    use crate::debug_client::{Command, Param};
-    use crate::function::Function;
-    use crate::input::Input;
-    use crate::input::InputInitializer::Once;
-    use crate::output_connection::OutputConnection;
-    #[cfg(any(feature = "debugger", feature = "checks"))]
-    use crate::run_state;
+    use crate::debug_client::{DebugClient, Event};
 
     use super::Job;
 
@@ -1042,20 +1041,7 @@ mod test {
 
     #[cfg(feature = "debugger")]
     impl DebugClient for TestDebugClient {
-        fn init(&self) {}
-
-        fn get_command(&self, _job_number: usize) -> Command {
-            Command::Step(Some(run_state::test::Param::Numeric(1)))
-        }
-
         fn send_event(&self, _event: Event) {}
-
-        fn send_response(&self, _response: Response) {}
-    }
-
-    #[cfg(feature = "debugger")]
-    fn test_debug_client() -> &'static dyn DebugClient {
-        &TestDebugClient {}
     }
 
     fn test_function_a_to_b_not_init() -> Function {
@@ -1220,21 +1206,21 @@ mod test {
     mod state_transitions {
         use serde_json::json;
 
+        use flowrstructs::function::Function;
+        use flowrstructs::input::Input;
+        use flowrstructs::input::InputInitializer::{Always, Once};
+        use flowrstructs::output_connection::OutputConnection;
+
         #[cfg(feature = "debugger")]
         use crate::debugger::Debugger;
-        use crate::function::Function;
-        use crate::input::Input;
-        use crate::input::InputInitializer::{Always, Once};
         #[cfg(feature = "metrics")]
         use crate::metrics::Metrics;
-        use crate::output_connection::OutputConnection;
         use crate::run_state::test::test_function_b_not_init;
 
         use super::super::Job;
         use super::super::RunState;
         use super::super::State;
-        #[cfg(feature = "debugger")]
-        use super::test_debug_client;
+        use super::super::super::debug_client::Response;
 
         #[test]
         fn to_ready_1_on_init() {
@@ -1384,7 +1370,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
 
             // Initial state
             state.init();
@@ -1420,7 +1406,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
 
             // Initial state
             state.init();
@@ -1460,10 +1446,22 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
 
             state.init();
             let output = super::error_output(0, 1);
+
+            #[cfg(feature = "debugger")]
+                {
+                    // When an error is detected in the runtime it enters the debugger which
+                    // informs the client and waits for a Command back - so we create a thread that
+                    // responds with the command ExitDDebugger - otherwise the test will hand
+                    let (_, responder) = debugger.get_channels();
+                    std::thread::spawn(move || {
+                        let _ = responder.clone().send(Response::ExitDebugger);
+                    });
+                }
+
             state.complete_job(
                 #[cfg(feature = "metrics")]
                     &mut metrics,
@@ -1504,7 +1502,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
             let job = state.next_job().unwrap();
@@ -1536,7 +1534,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
             let job = state.next_job().unwrap();
@@ -1578,7 +1576,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
             state.init();
 
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
@@ -1621,7 +1619,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
             state.init();
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
 
@@ -1661,7 +1659,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
             state.init();
 
             assert_eq!(state.get_state(1), State::Ready, "f_b should be Ready");
@@ -1711,7 +1709,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
             state.init();
 
             assert_eq!(state.get_state(0), State::Ready, "f_a should be Ready");
@@ -1768,19 +1766,18 @@ mod test {
     mod functional_tests {
         use serde_json::json;
 
+        use flowrstructs::function::Function;
+        use flowrstructs::input::Input;
+        use flowrstructs::output_connection::OutputConnection;
+
         #[cfg(feature = "debugger")]
         use crate::debugger::Debugger;
-        use crate::function::Function;
-        use crate::input::Input;
         #[cfg(feature = "metrics")]
         use crate::metrics::Metrics;
-        use crate::output_connection::OutputConnection;
 
         use super::super::Job;
         use super::super::RunState;
         use super::super::State;
-        #[cfg(feature = "debugger")]
-        use super::test_debug_client;
 
         fn test_functions() -> Vec<Function> {
             let out_conn1 = OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None);
@@ -1820,7 +1817,7 @@ mod test {
         fn blocked_works() {
             let mut state = RunState::new(&test_functions(), 1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
 
 // Indicate that 0 is blocked by 1 on input 0
             state.create_block(0, 1, 0, 0, 0,
@@ -1867,7 +1864,7 @@ mod test {
         fn blocked_is_not_ready() {
             let mut state = RunState::new(&test_functions(), 1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
 
 // Indicate that 0 is blocked by 1 on input 0
             state.create_block(0, 1, 0, 0, 0,
@@ -1884,7 +1881,7 @@ mod test {
         fn unblocking_makes_ready() {
             let mut state = RunState::new(&test_functions(), 1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
 
             // Indicate that 0 is blocked by 1 and put 0 on the blocked list
             state.create_block(0, 1, 0, 0, 0,
@@ -1906,7 +1903,7 @@ mod test {
         fn unblocking_doubly_blocked_functions_not_ready() {
             let mut state = RunState::new(&test_functions(), 1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
 
 // Indicate that 0 is blocked by 1 and 2
             state.create_block(0, 1, 0, 0, 0,
@@ -1957,7 +1954,7 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new(test_debug_client());
+                let mut debugger = Debugger::new();
             state.init();
 
             assert_eq!(state.next_job().unwrap().function_id, 0);
@@ -2003,9 +2000,9 @@ mod test {
     mod misc {
         use serde_json::{json, Value};
 
-        use crate::function::Function;
-        use crate::input::Input;
-        use crate::output_connection::OutputConnection;
+        use flowrstructs::function::Function;
+        use flowrstructs::input::Input;
+        use flowrstructs::output_connection::OutputConnection;
 
         use super::super::RunState;
 

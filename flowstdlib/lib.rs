@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use flowrlib::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
-use flowrlib::manifest::MetaData;
+use flowrstructs::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
+use flowrstructs::manifest::MetaData;
 
 /// Control functions
 pub mod control;

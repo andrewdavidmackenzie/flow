@@ -183,7 +183,7 @@ mod test {
     use flowclib::model::function::Function;
     use flowclib::model::io::IO;
     use flowclib::model::route::Route;
-    use flowrlib::output_connection::OutputConnection;
+    use flowrstructs::output_connection::OutputConnection;
 
     use super::get_paths;
     use super::out_of_date;
@@ -262,7 +262,7 @@ mod test {
             Some(vec!(
                 IO::new("String", Route::default())
             )),
-            &format!("{}/{}", std::env::var("FLOW_ROOT").unwrap(), "flowruntime/stdio/stdout"),
+            &format!("{}/{}", std::env::var("FLOW_ROOT").unwrap(), "flowrlib/src/flowruntime/stdio/stdout"),
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
             vec!(OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None)),
@@ -275,7 +275,7 @@ mod test {
 
         let (impl_source_path, impl_wasm_path) = get_paths(&function).unwrap();
 
-        assert_eq!(format!("{}/{}", std::env::var("FLOW_ROOT").unwrap(), "flowruntime/stdio/stdout.rs"), impl_source_path.to_str().unwrap());
-        assert_eq!(format!("{}/{}", std::env::var("FLOW_ROOT").unwrap(), "flowruntime/stdio/stdout.wasm"), impl_wasm_path.to_str().unwrap());
+        assert_eq!(format!("{}/{}", std::env::var("FLOW_ROOT").unwrap(), "flowrlib/src/flowruntime/stdio/stdout.rs"), impl_source_path.to_str().unwrap());
+        assert_eq!(format!("{}/{}", std::env::var("FLOW_ROOT").unwrap(), "flowrlib/src/flowruntime/stdio/stdout.wasm"), impl_wasm_path.to_str().unwrap());
     }
 }

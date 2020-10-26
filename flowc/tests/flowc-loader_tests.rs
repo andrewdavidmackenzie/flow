@@ -6,7 +6,7 @@ use flowclib::model::process::Process::FlowProcess;
 use flowclib::model::process::Process::FunctionProcess;
 use flowclib::model::route::HasRoute;
 use flowclib::model::route::Route;
-use flowrlib::input::InputInitializer::Once;
+use flowrstructs::input::InputInitializer::Once;
 use provider::content::provider::MetaProvider;
 
 #[path = "helper.rs"]

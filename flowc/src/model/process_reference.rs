@@ -3,7 +3,7 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 
-use flowrlib::input::InputInitializer;
+use flowrstructs::input::InputInitializer;
 
 use crate::compiler::loader::Validate;
 use crate::errors::*;
@@ -53,7 +53,7 @@ impl fmt::Display for ProcessReference {
 mod test {
     use serde_json::json;
 
-    use flowrlib::input::InputInitializer::{Always, Once};
+    use flowrstructs::input::InputInitializer::{Always, Once};
 
     use super::ProcessReference;
 

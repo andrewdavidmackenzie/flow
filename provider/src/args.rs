@@ -97,9 +97,8 @@ mod test {
 
     fn check_flow_root() {
         if std::env::var("FLOW_ROOT").is_err() {
-            println!("FLOW_ROOT environment variable must be set for testing. Set it to the root\
+            panic!("FLOW_ROOT environment variable must be set for testing. Set it to the root \
             directory of the project and ensure it has a trailing '/'");
-            std::process::exit(1);
         }
     }
 

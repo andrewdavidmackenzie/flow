@@ -1,2 +1,2 @@
 [workspace]
-members = ["flowruntime", "flowc", "flowr", "provider", "flowrlib", "flow_impl", "flow_impl_derive", "flowstdlib", "flowide"]
+members = ["flowc", "flowr", "flowrstructs", "provider", "flowrlib", "flow_impl", "flow_impl_derive", "flowstdlib", "flowide"]

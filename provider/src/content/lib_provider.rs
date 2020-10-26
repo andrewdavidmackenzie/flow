@@ -4,10 +4,10 @@ use log::debug;
 use simpath::Simpath;
 use url::Url;
 
-use flowrlib::errors::*;
-use flowrlib::provider::Provider;
-
 use crate::content::file_provider::FileProvider;
+use crate::errors::*;
+
+use super::provider::Provider;
 
 pub struct LibProvider;
 
@@ -26,7 +26,7 @@ pub struct LibProvider;
     that refers to the actual content, and this is returned.
 
     As the scheme of this Url is "file:" then a different content provider will be used to actually
-    provide the content. Hence the "get" method for this provider is not imlemented and should
+    provide the content. Hence the "get" method for this provider is not implemented and should
     never be called.
 */
 impl Provider for LibProvider {
@@ -65,7 +65,7 @@ impl Provider for LibProvider {
         let mut lib_path = flow_lib_search_path.find(lib_name)
             .chain_err(|| format!("Could not find lib named '{}' in FLOW_LIB_PATH", lib_name))?;
 
-        // Once we've foudn the (file) path where the library resides, append the rest of the
+        // Once we've found the (file) path where the library resides, append the rest of the
         // url path to it, to form a path to the directory where the process being loaded resides
         if !url.path().is_empty() {
             lib_path.push(&url.path()[1..]);
@@ -85,7 +85,7 @@ impl Provider for LibProvider {
             }
 
             let provided_implementation_filename = lib_path.file_name().unwrap().to_str().unwrap();
-            debug!("'{}' is a directory, so looking inside it for default file name '{}' or provided implemention file '{}' with extensions '{:?}'",
+            debug!("'{}' is a directory, so looking inside it for default file name '{}' or provided implementation file '{}' with extensions '{:?}'",
                    lib_path.display(), default_filename, provided_implementation_filename, _extensions);
             for filename in [default_filename, provided_implementation_filename].iter() {
                 let file = FileProvider::find_file(&lib_path, filename, _extensions);
@@ -121,13 +121,12 @@ impl Provider for LibProvider {
 mod test {
     use std::env;
 
-    use flowrlib::provider::Provider;
-
     use super::LibProvider;
+    use super::super::provider::Provider;
 
     fn check_flow_root() {
         if std::env::var("FLOW_ROOT").is_err() {
-            println!("FLOW_ROOT environment variable must be set for testing. Set it to the root\
+            println!("FLOW_ROOT environment variable must be set for testing. Set it to the root \
             directory of the project and ensure it has a trailing '/'");
             std::process::exit(1);
         }
