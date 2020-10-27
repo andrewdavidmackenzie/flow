@@ -1,3 +1,7 @@
+use std::sync::{Arc, mpsc, Mutex};
+use std::sync::mpsc::{Receiver, Sender};
+
+use log::error;
 use serde_json::Value;
 
 use crate::run_state::{Block, Job};
@@ -16,8 +20,10 @@ pub enum Param {
     Block((usize, usize)),
 }
 
-/// A debugger command entered by the user in the client and sent to the debugger runtime
-pub enum Command {
+/// A debugger Response sent by the debug_client the debugger runtime
+pub enum Response {
+    /// Acknowledge event processed correctly
+    Ack,
     /// Set a `breakpoint` - with an optional parameter
     Breakpoint(Option<Param>),
     /// `continue` execution of the flow
@@ -41,17 +47,20 @@ pub enum Command {
     /// Get the state of the `Flow`
     GetState,
     /// Get the state of a specific `Function`
-    GetFunctionState(usize)
+    GetFunctionState(usize),
+    /// An error on the client side
+    Error(String)
 }
 
 /// A run-time event that the debugger communicates to the debug_client for it to decide
 /// what to do, or what to request of the user
 pub enum Event {
-    /// A `Job` ran to completion by a function
-    /// includes:  job_id, function_id
+    /// A `Job` ran to completion by a function - includes:  job_id, function_id
     JobCompleted(usize, usize, Option<Value>),
-    /// A `Flow` execution was started - entering the debug_client
-    Enter,
+    /// Entering the debugger
+    EnteringDebugger,
+    /// The debugger/run-time is exiting
+    ExitingDebugger,
     /// The run-time is about to send a `Job` for execution - an opportunity to break
     /// includes: job_id, function_id
     PriorToSendingJob(usize, usize),
@@ -61,45 +70,82 @@ pub enum Event {
     /// A breakpoint on a `Value` being sent between two functions was encountered
     /// includes: source_process_id, output_route, value, destination_id, input_number));
     DataBreakpoint(usize, String, Value, usize, usize),
-    /// A panic occured executing a `Flows` `Job` -  includes the output of the job that panicked
-    Panic(String),
+    /// A panic occurred executing a `Flows` `Job` -  includes the output of the job that panicked
+    Panic(String, usize),
     /// There was an error executing the Job
     JobError(Job),
-    /// End of debug session - debug_client should disconnect
-    End,
+    /// Execution of the flow has started
+    ExecutionStarted,
+    /// Execution of the flow has ended
+    ExecutionEnded,
     /// A check has detected that there is a deadlock between functions impeding more execution
     Deadlock(String),
     /// A value is being sent from the output of one function to the input of another
-    /// incluides: source_process_id, value, destination_id, input_number
+    /// includes: source_process_id, value, destination_id, input_number
     SendingValue(usize, Value, usize, usize),
-}
-
-/// A `Response` from the debugger and run-time to a command from the debug_client
-pub enum Response {
-    /// Simple acknowledgement
-    Ack,
-    /// An error was detected
-    /// includes: A string describing the error
+    /// An error was detected - includes: A string describing the error
     Error(String),
     /// A message for display to the user of the debug_client
-    /// includes: A string to be displayed
     Message(String),
     /// The run-time is resetting the status back to the initial state
     Resetting,
-    /// The debugger/run-time is running
-    Running,
-    /// The debugger/run-time is exiting
-    Exiting
+    /// Debugger is blocked waiting for a command before proceeding
+    WaitingForCommand(usize)
 }
 
 /// debug_clients must implement this trait
 pub trait DebugClient {
-    /// Called at init to initalize the client
-    fn init(&self);
-    /// Called to fetch the next command from the debug_client
-    fn get_command(&self, job_number: usize) -> Command;
     /// Called to send an event to the debug_client
     fn send_event(&self, event: Event);
-    /// Called to send a response from the debug/run-time to the debug_client
-    fn send_response(&self, response: Response);
+}
+
+#[derive(Debug)]
+pub struct ChannelDebugClient {
+    /// A channel to send events to a debug client on
+    debug_event_channel_tx: Sender<Event>,
+    /// The other end of the channel a debug client can receive events on
+    debug_event_channel_rx: Arc<Mutex<Receiver<Event>>>,
+    /// A channel to for a debug client to send responses on
+    debug_response_channel_tx: Sender<Response>,
+    /// This end of the channel where coordinator will receive events from a debug client on
+    debug_response_channel_rx: Receiver<Response>,
+}
+
+impl ChannelDebugClient {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn get_channels(&self) -> (Arc<Mutex<Receiver<Event>>>, Sender<Response>) {
+        (self.debug_event_channel_rx.clone(), self.debug_response_channel_tx.clone())
+    }
+
+    pub fn get_response(&self) -> Response {
+        match self.debug_response_channel_rx.recv() {
+            Ok(response) => response,
+            Err(err) => {
+                error!("Error receiving response from debug client: '{}'", err);
+                Response::Error(err.to_string())
+            }
+        }
+    }
+}
+
+impl Default for ChannelDebugClient {
+    fn default() -> ChannelDebugClient {
+        let (debug_event_channel_tx, debug_event_channel_rx) = mpsc::channel();
+        let (debug_response_channel_tx, debug_response_channel_rx) = mpsc::channel();
+        ChannelDebugClient{
+            debug_event_channel_tx,
+            debug_event_channel_rx: Arc::new(Mutex::new(debug_event_channel_rx)),
+            debug_response_channel_tx,
+            debug_response_channel_rx,
+        }
+    }
+}
+
+impl DebugClient for ChannelDebugClient {
+    fn send_event(&self, event: Event) {
+        let _ = self.debug_event_channel_tx.send(event);
+    }
 }

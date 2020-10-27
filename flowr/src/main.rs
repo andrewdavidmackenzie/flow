@@ -10,39 +10,40 @@ extern crate error_chain;
 
 use std::env;
 use std::process::exit;
-use std::sync::{Arc, Mutex};
 
 use clap::{App, AppSettings, Arg, ArgMatches};
-use log::{debug, error, info};
+use log::{error, info};
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
+use cli_debug_client::CLIDebugClient;
 use flowrlib::coordinator::{Coordinator, Submission};
-use flowrlib::debug_client::DebugClient;
 use flowrlib::info;
-use flowrlib::loader::Loader;
+use flowrlib::runtime_client::Response::ClientSubmission;
 use provider::args::url_from_string;
-use provider::content::provider::MetaProvider;
 
-use crate::cli_debug_client::CLIDebugClient;
 use crate::cli_runtime_client::CLIRuntimeClient;
-use crate::cli_runtime_client::FLOW_ARGS_NAME;
 
 mod cli_debug_client;
 mod cli_runtime_client;
 
-const CLI_DEBUG_CLIENT: &dyn DebugClient = &CLIDebugClient {};
-
-// We'll put our errors in an `errors` module, and other modules in
-// this crate will `use errors::*;` to get access to everything
-// `error_chain!` creates.
+// We'll put our errors in an `errors` module, and other modules in this crate will
+// `use crate::errors::*;` to get access to everything `error_chain!` creates.
 #[doc(hidden)]
-mod errors {}
+pub mod errors {
+    // Create the Error, ErrorKind, ResultExt, and Result types
+    error_chain! {}
+}
 
 #[doc(hidden)]
 error_chain! {
+    types {
+        Error, ErrorKind, ResultExt, Result;
+    }
+
     foreign_links {
         Provider(provider::errors::Error);
+        Runtime(flowrlib::errors::Error);
         Io(std::io::Error);
     }
 }
@@ -70,51 +71,38 @@ fn main() {
     }
 }
 
-fn run() -> Result<()> {
+fn run() -> Result<String> {
     let matches = get_matches();
     SimpleLogger::init(matches.value_of("verbosity"));
     let flow_manifest_url = parse_flow_url(&matches)?;
-    let mut loader = Loader::new();
-    let provider = MetaProvider {};
-    let runtime_client = Arc::new(Mutex::new(CLIRuntimeClient::new()));
-
-    // Load this run-time's library of native (statically linked) implementations
-    loader.add_lib(&provider,
-                   "lib://flowruntime",
-                   flowruntime::get_manifest(runtime_client.clone()),
-                   "native")
-        .chain_err(|| "Could not add 'flowruntime' library to loader")?;
-
-    // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
-    if cfg!(feature = "native") && matches.is_present("native") {
-        loader.add_lib(&provider, "lib://flowstdlib", flowstdlib::get_manifest(), "native")
-            .chain_err(|| "Could not add 'flowstdlib' library to loader")?;
-    }
-
     let debugger = matches.is_present("debugger");
-    let metrics = matches.is_present("metrics");
-    let mut coordinator = Coordinator::new(num_threads(&matches, debugger));
-    coordinator.init();
+    let native = matches.is_present("native");
+    let flow_args = get_flow_args(&matches, &flow_manifest_url);
 
-    // Load the flow to run from the manifest
-    let manifest = loader.load_manifest(&provider, &flow_manifest_url.to_string())
-        .chain_err(|| format!("Could not load the flow from manifest: '{}'", flow_manifest_url))?;
-
-    let num_parallel_jobs = num_parallel_jobs(&matches, debugger);
-
-    pass_flow_args(&matches, &manifest.get_metadata().name);
-
-    let submission = Submission::new(manifest,
-                                     num_parallel_jobs,
-                                     metrics,
-                                     runtime_client,
-                                     CLI_DEBUG_CLIENT,
+    let submission = Submission::new(&flow_manifest_url,
+                                     num_parallel_jobs(&matches, debugger),
                                      debugger);
 
-    coordinator.submit(submission);
+    let mut coordinator = Coordinator::new(num_threads(&matches, debugger));
+    let client_channels = coordinator.get_client_channels();
+    let debug_channels = coordinator.get_debug_channels();
 
-    Ok(())
+    std::thread::spawn(move || {
+        coordinator.start(native);
+    });
+
+    client_channels.1.send(ClientSubmission(submission))
+        .chain_err(|| "Could not send Submission to the Coordinator")?;
+
+    CLIDebugClient::start(debug_channels);
+    CLIRuntimeClient::start(client_channels,
+                            flow_args,
+                            #[cfg(feature = "metrics")]
+                                matches.is_present("metrics"),
+    );
+    Ok("Event loop exited".into())
 }
+
 
 /*
     Determine the number of threads to use to execute flows, with a default of the number of cores
@@ -133,7 +121,7 @@ fn num_threads(matches: &ArgMatches, debugger: bool) -> usize {
             match value.parse::<i32>() {
                 Ok(mut threads) => {
                     if threads < 1 {
-                        error!("Minimum number of additional threads is '1', so option of has been overridded to be '1'");
+                        error!("Minimum number of additional threads is '1', so option has been overridden to be '1'");
                         threads = 1;
                     }
                     threads as usize
@@ -158,7 +146,7 @@ fn num_parallel_jobs(matches: &ArgMatches, debugger: bool) -> usize {
             match value.parse::<i32>() {
                 Ok(mut jobs) => {
                     if jobs < 1 {
-                        error!("Minimum number of parallel jobs is '0', so option of '{}' has been overridded to be '1'",
+                        error!("Minimum number of parallel jobs is '0', so option of '{}' has been overridden to be '1'",
                                jobs);
                         jobs = 1;
                     }
@@ -189,16 +177,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .setting(AppSettings::TrailingVarArg)
         .version(env!("CARGO_PKG_VERSION"));
 
-    let app = app
-        .arg(Arg::with_name("debugger")
-            .short("d")
-            .long("debugger")
-            .help("Enable the debugger when running a flow"))
-        .arg(Arg::with_name("metrics")
-            .short("m")
-            .long("metrics")
-            .help("Calculate metrics during flow execution and print them out when done"))
-        .arg(Arg::with_name("jobs")
+    let app = app.arg(Arg::with_name("jobs")
             .short("j")
             .long("jobs")
             .takes_value(true)
@@ -223,6 +202,18 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .arg(Arg::with_name("flow-arguments")
             .multiple(true)
             .help("A list of arguments to pass to the flow when executed."));
+
+    #[cfg(feature = "debugger")]
+    let app = app.arg(Arg::with_name("debugger")
+        .short("d")
+        .long("debugger")
+        .help("Enable the debugger when running a flow"));
+
+    #[cfg(feature = "metrics")]
+    let app = app.arg(Arg::with_name("metrics")
+        .short("m")
+        .long("metrics")
+        .help("Calculate metrics during flow execution and print them out when done"));
 
     #[cfg(feature = "native")]
         let app = app.arg(Arg::with_name("native")
@@ -252,15 +243,14 @@ fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
     Set environment variable with the args this will not be unique, but it will be used very
     soon and removed
 */
-fn pass_flow_args(matches: &ArgMatches, flow_name: &str) {
-    // arg #0 is the flow name
-    let mut flow_args: Vec<&str> = vec!(flow_name);
+fn get_flow_args(matches: &ArgMatches, flow_manifest_url: &Url) -> Vec<String> {
+    // arg #0 is the flow url
+    let mut flow_args: Vec<String> = vec!(flow_manifest_url.to_string());
 
     // append any other arguments for the flow passed from the command line
-    if let Some(fargs) = matches.values_of("flow-arguments") {
-        flow_args.extend(fargs);
+    if let Some(args) = matches.values_of("flow-arguments") {
+        flow_args.extend(args.map(|arg| arg.to_string()));
     }
 
-    env::set_var(FLOW_ARGS_NAME, flow_args.join(" "));
-    debug!("Setup '{}' with values = '{:?}'", FLOW_ARGS_NAME, flow_args);
+    flow_args
 }

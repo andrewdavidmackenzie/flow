@@ -5,7 +5,7 @@ use std::fmt;
 use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 
-use flowrlib::input::InputInitializer;
+use flowrstructs::input::InputInitializer;
 
 use crate::compiler::loader::Validate;
 use crate::errors::*;

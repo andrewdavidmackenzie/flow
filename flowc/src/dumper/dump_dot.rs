@@ -7,8 +7,8 @@ use std::path::{Path, PathBuf};
 
 use log::info;
 
-use flowrlib::input::InputInitializer::{Always, Once};
-use flowrlib::provider::Provider;
+use flowrstructs::input::InputInitializer::{Always, Once};
+use provider::content::provider::Provider;
 
 use crate::deserializers::deserializer_helper::get_file_extension;
 use crate::dumper::helper;

@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
-use flowrlib::runtime_client::{Command, Response, RuntimeClient};
+use crate::runtime_client::{Event, Response, RuntimeClient};
 
 /// `Implementation` struct for the `image_buffer` function
 #[derive(Debug)]
@@ -19,7 +19,7 @@ impl Implementation for ImageBuffer {
         let size = inputs[2].as_array().unwrap();
         if let Value::String(filename) = &inputs[3] {
             if let Ok(mut client) = self.client.lock() {
-                return match client.send_command(Command::PixelWrite(
+                return match client.send_event(Event::PixelWrite(
                     (pixel[0].as_u64().unwrap() as u32, pixel[1].as_u64().unwrap() as u32),
                     (value[0].as_u64().unwrap() as u8, value[1].as_u64().unwrap() as u8, value[2].as_u64().unwrap() as u8),
                     (size[0].as_u64().unwrap() as u32, size[1].as_u64().unwrap() as u32),

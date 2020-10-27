@@ -19,8 +19,8 @@ use flowclib::generator::generate::GenerationTables;
 use flowclib::model::flow::Flow;
 use flowclib::model::name::HasName;
 use flowclib::model::process::Process::FlowProcess;
-use flowrlib::manifest::DEFAULT_MANIFEST_FILENAME;
-use flowrlib::provider::Provider;
+use flowrstructs::manifest::DEFAULT_MANIFEST_FILENAME;
+use provider::content::provider::Provider;
 
 use crate::compile_wasm;
 use crate::errors::*;

@@ -19,7 +19,6 @@ error_chain! {
     }
 
     foreign_links {
-        Runtime(flowrlib::errors::Error);
         Io(std::io::Error);
     }
 }

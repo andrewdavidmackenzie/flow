@@ -3,8 +3,8 @@ print-args
 
 Description
 ===
-A flow that takes the arguments passed to the flow on the command line and prints them out on standard
-output
+A flow that takes the arguments passed to the flow on the command line and prints 
+the first one (after the flow's source URL) out on standard output
 
 Features Used
 ===

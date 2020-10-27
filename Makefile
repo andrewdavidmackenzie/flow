@@ -347,10 +347,6 @@ provider-publish: flowrlib-publish
 flowstdlib-publish: flow-impl-publish flow-impl-derive-publish flowrlib-publish
 	cargo publish --manifest-path=flowstdlib/Cargo.toml
 
-#### Level 5 - flowruntime
-.PHONY: flowruntime-publish
-flowruntime-publish: flow-impl-publish flowrlib-publish
-
 #### Level 6 - flowrlib
 .PHONY: flowrlib-publish
 flowrlib-publish: flow-impl-publish

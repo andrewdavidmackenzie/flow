@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use log::info;
 
-use flowrlib::provider::Provider;
+use provider::content::provider::Provider;
 
 use crate::dumper::dump_dot;
 use crate::dumper::helper;
@@ -18,7 +18,8 @@ use crate::model::process::Process::FlowProcess;
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use flowrlib::provider::Provider;
+/// use provider::content::provider::Provider;
+/// use provider::errors::Result;
 /// use flowrlib::errors::*;
 /// use flowclib::model::process::Process::FlowProcess;
 ///

@@ -5,9 +5,9 @@ use log::info;
 use serde_derive::Serialize;
 use url::Url;
 
-use flowrlib::function::Function as RuntimeFunction;
-use flowrlib::input::Input;
-use flowrlib::manifest::{Manifest, MetaData};
+use flowrstructs::function::Function as RuntimeFunction;
+use flowrstructs::input::Input;
+use flowrstructs::manifest::{Manifest, MetaData};
 
 use crate::errors::*;
 use crate::model::connection::Connection;
@@ -153,8 +153,8 @@ fn implementation_location_relative(function: &Function, manifest_url: &str) -> 
 mod test {
     use serde_json::json;
 
-    use flowrlib::input::InputInitializer;
-    use flowrlib::output_connection::OutputConnection;
+    use flowrstructs::input::InputInitializer;
+    use flowrstructs::output_connection::OutputConnection;
 
     use crate::model::function::Function;
     use crate::model::io::IO;

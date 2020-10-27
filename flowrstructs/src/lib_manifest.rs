@@ -5,9 +5,10 @@ use flow_impl::Implementation;
 use log::debug;
 use serde_derive::{Deserialize, Serialize};
 
+use provider::content::provider::Provider;
+
 use crate::errors::*;
 use crate::manifest::MetaData;
-use crate::provider::Provider;
 
 /// The default name used for a Library  Manifest file if none is specified
 pub const DEFAULT_LIB_JSON_MANIFEST_FILENAME: &str = "manifest";
@@ -41,7 +42,7 @@ impl PartialEq for ImplementationLocator {
 }
 
 #[derive(Deserialize, Serialize)]
-/// `LibraryManifest` describes the contents of a Library that can be referenced from a `flowz
+/// `LibraryManifest` describes the contents of a Library that can be referenced from a `flow`
 /// It is provided by libraries to help load and/or find implementations of processes
 pub struct LibraryManifest {
     /// `metadata` about a flow with author, version and usual fields
@@ -72,7 +73,7 @@ impl LibraryManifest {
 
         let manifest = serde_json::from_str(
             &String::from_utf8(content).chain_err(|| "Could not convert from utf8 to String")?)
-            .chain_err(|| format!("Could not load Library Manfest from '{}'", resolved_url))?;
+            .chain_err(|| format!("Could not load Library Manifest from '{}'", resolved_url))?;
 
         Ok((manifest, resolved_url))
     }
@@ -120,10 +121,11 @@ mod test {
     use flow_impl::Implementation;
     use serde_json::Value;
 
-    use crate::errors::*;
+    use provider::content::provider::Provider;
+    use provider::errors::Result;
+
     use crate::lib_manifest::{ImplementationLocator, ImplementationLocator::Wasm, LibraryManifest};
     use crate::manifest::MetaData;
-    use crate::provider::Provider;
 
     pub struct TestProvider {
         test_content: &'static str
@@ -294,5 +296,3 @@ mod test {
         assert!(library1 == library2);
     }
 }
-
-

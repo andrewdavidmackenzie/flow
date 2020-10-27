@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use gtk::{TextBufferExt, WidgetExt};
 use url::Url;
 
@@ -8,21 +6,14 @@ use flowclib::compiler::loader;
 use flowclib::generator::generate;
 use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
-use flowrlib::coordinator::{Coordinator, Submission};
-use flowrlib::debug_client::DebugClient;
-use flowrlib::lib_manifest::LibraryManifest;
-use flowrlib::loader::Loader;
-use flowrlib::manifest::{DEFAULT_MANIFEST_FILENAME, Manifest};
-use flowrlib::provider::Provider;
+use flowrlib::coordinator::Submission;
+use flowrstructs::manifest::{DEFAULT_MANIFEST_FILENAME, Manifest};
 use provider::content::provider::MetaProvider;
 
-use crate::cli_debug_client::CLIDebugClient;
 use crate::ide_runtime_client::IDERuntimeClient;
 use crate::message;
 use crate::UICONTEXT;
 use crate::widgets;
-
-const CLI_DEBUG_CLIENT: &dyn DebugClient = &CLIDebugClient {};
 
 fn manifest_url(flow_url_str: &str) -> String {
     let flow_url = Url::parse(&flow_url_str).unwrap();
@@ -48,7 +39,7 @@ pub fn compile_flow() {
                                         context.manifest = Some(manifest);
                                         let manifest_url_str = manifest_url(&flow_url_clone);
                                         message(&format!("Manifest url set to '{}'", manifest_url_str));
-                                        context.manifest_url = Some(manifest_url_str);
+                                        context.manifest_url = Some(Url::parse(&manifest_url_str).unwrap());
                                     }
                                     Err(e) => message(&e.to_string())
                                 }
@@ -118,7 +109,7 @@ pub fn open_manifest(url: String) {
                 match UICONTEXT.try_lock() {
                     Ok(mut context) => {
                         context.manifest = Some(manifest);
-                        context.manifest_url = Some(url);
+                        context.manifest_url = Some(Url::parse(&url).unwrap());
                     }
                     Err(_) => message("Could not lock UI Context")
                 }
@@ -128,58 +119,26 @@ pub fn open_manifest(url: String) {
     });
 }
 
-fn load_libs(loader: &mut Loader, provider: &dyn Provider, flowruntime_manifest: LibraryManifest) -> Result<String, String> {
-    // Load this run-time's library of function implementations
-    loader.add_lib(provider, "lib://flowruntime", flowruntime_manifest, "flowruntime").map_err(|e| e.to_string())?;
-
-    // Load the statically linked flowstdlib - before it maybe loaded from WASM
-    loader.add_lib(provider, "lib://flowstdlib", flowstdlib::get_manifest(), "flowstdlib").map_err(|e| e.to_string())?;
-
-    Ok("Added the 'flowruntime' and 'flowstdlib' static libraries".to_string())
-}
-
-fn load_manifest(manifest: &mut Manifest, manifest_url: &str, arg: Vec<String>) {
-    let mut loader = Loader::new();
-    let provider = MetaProvider {};
-
+fn set_args(arg: Vec<String>) {
     let mut ide_runtime_client = IDERuntimeClient::new();
     ide_runtime_client.set_args(arg);
-    let runtime_client = Arc::new(Mutex::new(ide_runtime_client));
-    let runtime_manifest = flowruntime::get_manifest(runtime_client);
-
-    // Load the 'run-time' library provided by the IDE and the 'flowstdlib' libraries
-    match load_libs(&mut loader, &provider, runtime_manifest) {
-        Ok(s) => message(&s),
-        Err(e) => message(&e)
-    }
-
-    // load any other libraries the flow references - these will be loaded as WASM
-    loader.load_libraries(&provider, &manifest).unwrap(); // TODO
-
-    // Find the implementations for all functions in this flow
-    loader.resolve_implementations(manifest, manifest_url, &provider).unwrap();
-    // TODO
 }
 
 pub fn run_manifest(args: Vec<String>) {
     std::thread::spawn(move || {
         match UICONTEXT.try_lock() {
             Ok(ref mut context) => {
-                match (&context.manifest, &context.manifest_url) {
-                    (Some(manifest), Some(manifest_url)) => {
-                        let mut manifest_clone: Manifest = manifest.clone();
-                        load_manifest(&mut manifest_clone, manifest_url, args);
-                        let debug_client = CLI_DEBUG_CLIENT;
-                        let submission = Submission::new(manifest_clone,
+                match &context.manifest_url {
+                    Some(manifest_url) => {
+                        set_args(args);
+                        // let debug_client = CLI_DEBUG_CLIENT;
+                        let _submission = Submission::new(manifest_url,
                                                          1,
-                                                         false,
-                                                         context.client.clone(),
-                                                         debug_client,
                                                          false);
-                        let mut coordinator = Coordinator::new(1);
-                        coordinator.init();
-
-                        coordinator.submit(submission);
+                        // let mut coordinator = Coordinator::new(1);
+                        // coordinator.init();
+                        //
+                        // coordinator.submit(submission);
                         message("Submitted flow for execution");
                     }
                     _ => message("No manifest loaded to run")

@@ -6,8 +6,9 @@ use std::path::PathBuf;
 use log::{debug, trace};
 use url::Url;
 
-use flowrlib::errors::Result;
-use flowrlib::provider::Provider;
+use crate::errors::Result;
+
+use super::provider::Provider;
 
 /// The `FileProvider` implements the `Provider` trait and takes care of fetching content located
 /// on the local file system.
@@ -95,13 +96,12 @@ mod test {
     use std::path::Path;
     use std::path::PathBuf;
 
-    use flowrlib::provider::Provider;
-
     use super::FileProvider;
+    use super::super::provider::Provider;
 
     fn check_flow_root() {
         if std::env::var("FLOW_ROOT").is_err() {
-            println!("FLOW_ROOT environment variable must be set for testing. Set it to the root\
+            println!("FLOW_ROOT environment variable must be set for testing. Set it to the root \
             directory of the project and ensure it has a trailing '/'");
             std::process::exit(1);
         }
