@@ -46,6 +46,7 @@ before_install:
       make book-config
     fi
 
+# Docs are only built and deployed in "cron" builds
 script:
   - RUST_BACKTRACE=full make clippy build test samples
   - |
@@ -53,6 +54,7 @@ script:
       RUST_BACKTRACE=full make docs
     fi
 
+# Docs are only built and deployed in "cron" builds
 deploy:
   provider: pages
   github-token: $GITHUB_PAGES_TOKEN
@@ -61,7 +63,7 @@ deploy:
   keep-history: false
   on:
     branch: master
-    condition: $TRAVIS_OS_NAME == linux
+    condition: $TRAVIS_OS_NAME == "linux" && $TRAVIS_EVENT_TYPE == "cron"
 
 notifications:
   email:
