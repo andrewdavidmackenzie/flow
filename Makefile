@@ -325,11 +325,11 @@ publish: flowc-publish flowr-publish flowide-publish
 
 #### Level 1 - flowc and flowide - no dependency between them
 .PHONY: flowc-publish
-flowc-publish: flowr-publish flowrlib-publish provider-publish
+flowc-publish: flowr-publish provider-publish
 	cargo publish --manifest-path=flowc/Cargo.toml
 
 .PHONY: flowide-publish
-flowide-publish: flowc-publish flowrlib-publish provider-publish flow-impl-publish flowstdlib-publish
+flowide-publish: flowc-publish provider-publish flow-impl-publish flowstdlib-publish
 	cargo publish --manifest-path=flowide/Cargo.toml
 
 #### Level 2 - flowr
@@ -339,18 +339,13 @@ flowr-publish: provider-publish flow-impl-publish flowstdlib-publish
 
 #### Level 3 - provider
 .PHONY: provider-publish
-provider-publish: flowrlib-publish
+provider-publish:
 	cargo publish --manifest-path=provider/Cargo.toml
 
 #### Level 4 - flowstdlib
 .PHONY: flowstdlib-publish
-flowstdlib-publish: flow-impl-publish flow-impl-derive-publish flowrlib-publish
+flowstdlib-publish: flow-impl-publish flow-impl-derive-publish
 	cargo publish --manifest-path=flowstdlib/Cargo.toml
-
-#### Level 6 - flowrlib
-.PHONY: flowrlib-publish
-flowrlib-publish: flow-impl-publish
-	cargo publish --manifest-path=flowrlib/Cargo.toml
 
 #### Level 7 - flow-impl-publish flow-impl-derive-publish
 .PHONY: flow-impl-publish

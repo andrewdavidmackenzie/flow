@@ -21,7 +21,7 @@ features = ["debugger"]
 [dependencies]
 flow_impl = "=0.10.0"
 flowc = {path = "../flowc"}
-flowrlib = {path = "../flowrlib"}
+flowr = {path = "../flowr"}
 flowstdlib = {path = "../flowstdlib"}
 provider = {path = "../provider"}
 toml = "0.4"

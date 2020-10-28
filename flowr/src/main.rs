@@ -18,7 +18,7 @@ use url::Url;
 
 use cli_debug_client::CLIDebugClient;
 use flowrlib::coordinator::{Coordinator, Submission};
-use flowrlib::info;
+use flowrlib::info as flowrlib_info;
 use flowrlib::runtime_client::Response::ClientSubmission;
 use provider::args::url_from_string;
 
@@ -229,7 +229,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
 */
 fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    info!("'flowrlib' version {}", info::version());
+    info!("'flowrlib' version {}", flowrlib_info::version());
 
     let cwd = env::current_dir().chain_err(|| "Could not get current working directory value")?;
     let cwd_url = Url::from_directory_path(cwd)
