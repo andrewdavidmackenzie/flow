@@ -1028,11 +1028,6 @@ mod test {
     use flowrstructs::input::InputInitializer::Once;
     use flowrstructs::output_connection::OutputConnection;
 
-    #[cfg(feature = "debugger")]
-    use crate::client_server::DebugClient;
-    #[cfg(feature = "debugger")]
-    use crate::debug::Event as DebugEvent;
-
     use super::Job;
 
     #[derive(Debug)]
@@ -1046,15 +1041,6 @@ mod test {
 
     fn test_impl() -> Arc<dyn Implementation> {
         Arc::new(TestImpl {})
-    }
-
-    // Helpers
-    #[cfg(feature = "debugger")]
-    struct TestDebugClient {}
-
-    #[cfg(feature = "debugger")]
-    impl DebugClient for TestDebugClient {
-        fn send_event(&self, _event: DebugEvent) {}
     }
 
     fn test_function_a_to_b_not_init() -> Function {

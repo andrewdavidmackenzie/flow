@@ -5,7 +5,7 @@ use std::sync::mpsc;
 
 use log::error;
 
-use crate::coordinator::{Coordinator, Submission};
+use crate::coordinator::Coordinator;
 #[cfg(feature = "debugger")]
 use crate::debug::Event as DebugEvent;
 #[cfg(feature = "debugger")]
@@ -13,64 +13,59 @@ use crate::debug::Response as DebugResponse;
 use crate::debugger::Debugger;
 use crate::errors::*;
 use crate::runtime::{Event, Response};
-use crate::runtime::Response::ClientSubmission;
 
-pub struct RuntimeConnection {
-    client_channels: (Arc<Mutex<Receiver<Event>>>, Sender<Response>)
+pub struct RuntimeClientConnection {
+    channels: (Arc<Mutex<Receiver<Event>>>, Sender<Response>)
 }
 
-impl RuntimeConnection {
+impl RuntimeClientConnection {
     pub fn new(coordinator: &Coordinator) -> Self {
-        RuntimeConnection {
-            client_channels: coordinator.get_client_channels()
-        }
-    }
+        let context = coordinator.get_server_context();
+        let guard = context.lock().unwrap();
 
-    /// Send a `Submission` of a flow to the `Coordinator` for execution
-    pub fn client_submit(&self, submission: Submission) -> Result<()> {
-        self.client_channels.1.send(ClientSubmission(submission))
-            .chain_err(|| "Could not send Submission to the Coordinator")
+        RuntimeClientConnection {
+            channels: guard.get_client_channels()
+        }
     }
 
     /// Receive an event from the runtime
     pub fn client_recv(&self) -> Result<Event> {
-        let guard = self.client_channels.0.lock()
+        let guard = self.channels.0.lock()
             .map_err(|_| "Could not lock client Event reception channel")?;
         guard.recv().chain_err(|| "Error receiving Event from client channel")
     }
 
     pub fn client_send(&self, response: Response) -> Result<()> {
-        self.client_channels.1.send(response).chain_err(|| "Error sending on client channel")
+        self.channels.1.send(response).chain_err(|| "Error sending on client channel")
     }
 }
 
-pub struct DebuggerConnection {
-    client_channels: (Arc<Mutex<Receiver<DebugEvent>>>, Sender<DebugResponse>),
+pub struct DebuggerClientConnection {
+    channels: (Arc<Mutex<Receiver<DebugEvent>>>, Sender<DebugResponse>),
 }
 
-impl DebuggerConnection {
+impl DebuggerClientConnection {
     pub fn new(debugger: &Debugger) -> Self {
-        DebuggerConnection {
-            client_channels: debugger.debug_client.get_channels()
+        DebuggerClientConnection {
+            channels: debugger.server_context.get_channels()
         }
     }
 
     /// Receive an Event from the debugger
     pub fn client_recv(&self) -> Result<DebugEvent> {
-        let guard = self.client_channels.0.lock()
+        let guard = self.channels.0.lock()
             .map_err(|_| "Could not lock debug Event reception channel")?;
         guard.recv().chain_err(|| "Error receiving Event from debug channel")
     }
 
     /// Send an Event to the debugger
     pub fn client_send(&self, response: DebugResponse) -> Result<()> {
-        self.client_channels.1.send(response).chain_err(|| "Error sending on Debug channel")
+        self.channels.1.send(response).chain_err(|| "Error sending on Debug channel")
     }
 }
 
-
 #[derive(Debug)]
-pub struct ChannelRuntimeClient {
+pub struct RuntimeServerContext {
     /// A channel to sent events to a client on
     client_event_channel_tx: Sender<Event>,
     /// The other end of the channel a client can receive events of
@@ -81,7 +76,7 @@ pub struct ChannelRuntimeClient {
     client_response_channel_rx: Receiver<Response>,
 }
 
-impl ChannelRuntimeClient {
+impl RuntimeServerContext {
     pub fn new() -> Self {
         Self::default()
     }
@@ -104,34 +99,8 @@ impl ChannelRuntimeClient {
             }
         }
     }
-}
 
-unsafe impl Send for ChannelRuntimeClient {}
-
-unsafe impl Sync for ChannelRuntimeClient {}
-
-impl Default for ChannelRuntimeClient {
-    fn default() -> Self {
-        let (client_event_channel_tx, client_event_channel_rx) = mpsc::channel();
-        let (client_response_channel_tx, client_response_channel_rx) = mpsc::channel();
-
-        ChannelRuntimeClient {
-            client_event_channel_tx,
-            client_event_channel_rx: Arc::new(Mutex::new(client_event_channel_rx)),
-            client_response_channel_tx,
-            client_response_channel_rx,
-        }
-    }
-}
-
-/// runtime_clients must implement this trait
-pub trait RuntimeClient: Sync + Send + Debug {
-    /// Called to send the event to the runtime_client and get the response
-    fn send_event(&mut self, event: Event) -> Response;
-}
-
-impl RuntimeClient for ChannelRuntimeClient {
-    fn send_event(&mut self, event: Event) -> Response {
+    pub fn send_event(&mut self, event: Event) -> Response {
         match self.client_event_channel_tx.send(event) {
             Ok(()) => self.get_response(),
             Err(err) => {
@@ -142,15 +111,26 @@ impl RuntimeClient for ChannelRuntimeClient {
     }
 }
 
+unsafe impl Send for RuntimeServerContext {}
 
-/// debug_clients must implement this trait
-pub trait DebugClient: Sync + Send {
-    /// Called to send an event to the debug_client
-    fn send_event(&self, event: DebugEvent);
+unsafe impl Sync for RuntimeServerContext {}
+
+impl Default for RuntimeServerContext {
+    fn default() -> Self {
+        let (client_event_channel_tx, client_event_channel_rx) = mpsc::channel();
+        let (client_response_channel_tx, client_response_channel_rx) = mpsc::channel();
+
+        RuntimeServerContext {
+            client_event_channel_tx,
+            client_event_channel_rx: Arc::new(Mutex::new(client_event_channel_rx)),
+            client_response_channel_tx,
+            client_response_channel_rx,
+        }
+    }
 }
 
 #[derive(Debug)]
-pub struct ChannelDebugClient {
+pub struct DebugServerContext {
     /// A channel to send events to a debug client on
     debug_event_channel_tx: Sender<DebugEvent>,
     /// The other end of the channel a debug client can receive events on
@@ -161,12 +141,12 @@ pub struct ChannelDebugClient {
     debug_response_channel_rx: Receiver<DebugResponse>,
 }
 
-impl ChannelDebugClient {
+impl DebugServerContext {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn get_channels(&self) -> (Arc<Mutex<Receiver<DebugEvent>>>, Sender<DebugResponse>) {
+    fn get_channels(&self) -> (Arc<Mutex<Receiver<DebugEvent>>>, Sender<DebugResponse>) {
         (self.debug_event_channel_rx.clone(), self.debug_response_channel_tx.clone())
     }
 
@@ -179,13 +159,17 @@ impl ChannelDebugClient {
             }
         }
     }
+
+    pub fn send_debug_event(&self, event: DebugEvent) {
+        let _ = self.debug_event_channel_tx.send(event);
+    }
 }
 
-impl Default for ChannelDebugClient {
-    fn default() -> ChannelDebugClient {
+impl Default for DebugServerContext {
+    fn default() -> DebugServerContext {
         let (debug_event_channel_tx, debug_event_channel_rx) = mpsc::channel();
         let (debug_response_channel_tx, debug_response_channel_rx) = mpsc::channel();
-        ChannelDebugClient{
+        DebugServerContext {
             debug_event_channel_tx,
             debug_event_channel_rx: Arc::new(Mutex::new(debug_event_channel_rx)),
             debug_response_channel_tx,
@@ -194,12 +178,6 @@ impl Default for ChannelDebugClient {
     }
 }
 
-impl DebugClient for ChannelDebugClient {
-    fn send_event(&self, event: DebugEvent) {
-        let _ = self.debug_event_channel_tx.send(event);
-    }
-}
+unsafe impl Send for DebugServerContext {}
 
-unsafe impl Send for ChannelDebugClient {}
-
-unsafe impl Sync for ChannelDebugClient {}
+unsafe impl Sync for DebugServerContext {}

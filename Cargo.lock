@@ -376,6 +376,7 @@ dependencies = [
  "glib",
  "gtk",
  "gtk-rs-state",
+ "image",
  "lazy_static",
  "log",
  "pango",

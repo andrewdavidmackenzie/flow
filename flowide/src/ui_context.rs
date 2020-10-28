@@ -3,7 +3,6 @@ use std::sync::{Arc, Mutex};
 use url::Url;
 
 use flowclib::model::flow::Flow;
-use flowrlib::client_server::RuntimeClient;
 use flowrlib::loader::Loader;
 use flowrstructs::manifest::Manifest;
 
@@ -15,7 +14,7 @@ pub struct UIContext {
     pub flow_url: Option<String>,
     pub manifest: Option<Manifest>,
     pub manifest_url: Option<Url>,
-    pub client: Arc<Mutex<dyn RuntimeClient>>,
+    pub client: Arc<Mutex<IDERuntimeClient>>,
 }
 
 impl UIContext {
@@ -26,7 +25,7 @@ impl UIContext {
             flow_url: None,
             manifest: None,
             manifest_url: None,
-            client: Arc::new(Mutex::new(IDERuntimeClient::new())),
+            client: Arc::new(Mutex::new(IDERuntimeClient::new(true))),
         }
     }
 }

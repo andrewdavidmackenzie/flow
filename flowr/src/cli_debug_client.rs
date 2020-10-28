@@ -3,7 +3,7 @@ use std::io::Write;
 
 use log::error;
 
-use flowrlib::client_server::DebuggerConnection;
+use flowrlib::client_server::DebuggerClientConnection;
 use flowrlib::debug::{Event, Event::{*}, Param, Response, Response::{*}};
 
 const HELP_STRING: &str = "Debugger commands:
@@ -31,7 +31,7 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
 pub struct CLIDebugClient {}
 
 impl CLIDebugClient {
-    pub fn start(connection: DebuggerConnection) {
+    pub fn start(connection: DebuggerClientConnection) {
         let debug_client = CLIDebugClient {};
 
         std::thread::spawn(move || {

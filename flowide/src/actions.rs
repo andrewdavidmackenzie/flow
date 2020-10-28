@@ -10,7 +10,6 @@ use flowrlib::coordinator::Submission;
 use flowrstructs::manifest::{DEFAULT_MANIFEST_FILENAME, Manifest};
 use provider::content::provider::MetaProvider;
 
-use crate::ide_runtime_client::IDERuntimeClient;
 use crate::message;
 use crate::UICONTEXT;
 use crate::widgets;
@@ -120,8 +119,13 @@ pub fn open_manifest(url: String) {
 }
 
 fn set_args(arg: Vec<String>) {
-    let mut ide_runtime_client = IDERuntimeClient::new();
-    ide_runtime_client.set_args(arg);
+    match UICONTEXT.try_lock() {
+        Ok(ref mut context) => {
+            let mut guard = context.client.lock().unwrap();
+            guard.set_args(arg);
+        }
+        _ => message("Could not get access to uicontext and client")
+    }
 }
 
 pub fn run_manifest(args: Vec<String>) {
@@ -133,8 +137,8 @@ pub fn run_manifest(args: Vec<String>) {
                         set_args(args);
                         // let debug_client = CLI_DEBUG_CLIENT;
                         let _submission = Submission::new(manifest_url,
-                                                         1,
-                                                         false);
+                                                          1,
+                                                          false);
                         // let mut coordinator = Coordinator::new(1);
                         // coordinator.init();
                         //

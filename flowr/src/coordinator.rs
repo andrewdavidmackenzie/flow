@@ -9,8 +9,7 @@ use url::Url;
 use flowrstructs::manifest::Manifest;
 use provider::content::provider::MetaProvider;
 
-use crate::client_server::{DebuggerConnection, RuntimeConnection};
-use crate::client_server::{ChannelRuntimeClient, RuntimeClient};
+use crate::client_server::{DebuggerClientConnection, RuntimeClientConnection, RuntimeServerContext};
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 use crate::errors::*;
@@ -72,7 +71,7 @@ pub struct Coordinator {
     /// A channel used to receive Jobs back after execution (now including the job's output)
     job_rx: Receiver<Job>,
     /// Get messages from clients over channels
-    runtime_client: Arc<Mutex<ChannelRuntimeClient>>,
+    server_context: Arc<Mutex<RuntimeServerContext>>,
     #[cfg(feature = "debugger")]
     debugger: Debugger,
 }
@@ -90,11 +89,6 @@ pub struct Coordinator {
 /// use flowrlib::coordinator::{Coordinator, Submission};
 /// use std::process::exit;
 /// use flowrstructs::manifest::{Manifest, MetaData};
-/// #[cfg(any(feature = "debugger"))]
-/// use flowrlib::client_server::DebugClient;
-/// #[cfg(any(feature = "debugger"))]
-/// use flowrlib::debug::{Response, Param, Event, Response::ExitDebugger};
-/// use flowrlib::client_server::RuntimeClient;
 /// use flowrlib::runtime::Response as RuntimeResponse;
 /// use flowrlib::runtime::Event as RuntimeEvent;
 /// use url::Url;
@@ -109,7 +103,7 @@ pub struct Coordinator {
 /// let (runtime_connection, debugger_connection) = Coordinator::connect(1 /* num_threads */,
 ///                                                                      true /* native */);
 ///
-/// runtime_connection.client_submit(submission).unwrap();
+/// runtime_connection.client_send(ClientSubmission(submission)).unwrap();
 /// exit(0);
 /// ```
 ///
@@ -128,17 +122,21 @@ impl Coordinator {
         Coordinator {
             job_tx,
             job_rx: output_rx,
-            runtime_client: Arc::new(Mutex::new(ChannelRuntimeClient::new())),
+            server_context: Arc::new(Mutex::new(RuntimeServerContext::new())),
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(),
         }
     }
 
-    pub fn connect(num_threads: usize, native: bool) -> (RuntimeConnection, DebuggerConnection) {
+    pub fn get_server_context(&self) -> Arc<Mutex<RuntimeServerContext>> {
+        self.server_context.clone()
+    }
+
+    pub fn connect(num_threads: usize, native: bool) -> (RuntimeClientConnection, DebuggerClientConnection) {
         let mut coordinator = Coordinator::new(num_threads);
 
-        let runtime_connection = RuntimeConnection::new(&coordinator);
-        let debugger_connection = DebuggerConnection::new(&coordinator.debugger);
+        let runtime_connection = RuntimeClientConnection::new(&coordinator);
+        let debugger_connection = DebuggerClientConnection::new(&coordinator.debugger);
 
         std::thread::spawn(move || {
             coordinator.start(native);
@@ -147,17 +145,13 @@ impl Coordinator {
         (runtime_connection, debugger_connection)
     }
 
-    pub fn get_client_channels(&self) -> (Arc<Mutex<Receiver<Event>>>, Sender<Response>) {
-        self.runtime_client.lock().unwrap().get_client_channels()
-    }
-
     /// Loop waiting for a message from the client.
     /// If the message is a `ClientSubmission` with a submission, then return Some(submission)
     /// If the message is `ClientExiting` then return None
     /// If the message is any other then loop until we find one of the above
     fn wait_for_submission(&self) -> Option<Submission> {
         loop {
-            match self.runtime_client.lock() {
+            match self.server_context.lock() {
                 Ok(guard) => {
                     match guard.get_response() {
                         Response::ClientSubmission(submission) => {
@@ -181,7 +175,7 @@ impl Coordinator {
     pub fn start(&mut self, native: bool) {
         while let Some(submission) = self.wait_for_submission() {
             if let Ok(mut manifest) = Self::load_from_manifest(&submission.manifest_url.to_string(),
-                                                               self.runtime_client.clone(),
+                                                               self.server_context.clone(),
                                                                native) {
                 let state = RunState::new(manifest.get_functions(), submission);
                 self.execute_flow(state);
@@ -206,7 +200,7 @@ impl Coordinator {
             #[cfg(feature = "metrics")]
                 metrics.reset();
 
-            self.runtime_client.lock().unwrap().send_event(Event::FlowStart);
+            self.server_context.lock().unwrap().send_event(Event::FlowStart);
 
             #[cfg(feature = "debugger")]
             if state.debug {
@@ -289,10 +283,10 @@ impl Coordinator {
                     #[cfg(feature = "metrics")]
                         {
                             metrics.set_jobs_created(state.jobs_created());
-                            self.runtime_client.lock().unwrap().send_event(Event::FlowEnd(metrics));
+                            self.server_context.lock().unwrap().send_event(Event::FlowEnd(metrics));
                         }
                     #[cfg(not(feature = "metrics"))]
-                        self.runtime_client.lock().unwrap().send_event(Event::FlowEnd);
+                        self.server_context.lock().unwrap().send_event(Event::FlowEnd);
                     debug!("{}", state);
                     break 'flow_execution;
                 }
@@ -300,14 +294,14 @@ impl Coordinator {
         }
     }
 
-    fn load_from_manifest(manifest_url: &str, runtime_client: Arc<Mutex<dyn RuntimeClient>>, native: bool) -> Result<Manifest> {
+    fn load_from_manifest(manifest_url: &str, server_context: Arc<Mutex<RuntimeServerContext>>, native: bool) -> Result<Manifest> {
         let mut loader = Loader::new();
         let provider = MetaProvider {};
 
         // Load this run-time's library of native (statically linked) implementations
         loader.add_lib(&provider,
                        "lib://flowruntime",
-                       flowruntime::get_manifest(runtime_client.clone()),
+                       flowruntime::get_manifest(server_context),
                        "native")
             .chain_err(|| "Could not add 'flowruntime' library to loader")?;
 
@@ -392,31 +386,7 @@ impl Coordinator {
 mod test {
     use url::Url;
 
-    #[cfg(feature = "debugger")]
-    use crate::client_server::DebugClient;
-    use crate::client_server::RuntimeClient;
     use crate::coordinator::Submission;
-    #[cfg(feature = "debugger")]
-    use crate::debug::Event as DebugEvent;
-    use crate::runtime::Event as RuntimeCommand;
-    use crate::runtime::Response as RuntimeResponse;
-
-    #[cfg(feature = "debugger")]
-    struct TestDebugClient {}
-
-    #[cfg(feature = "debugger")]
-    impl DebugClient for TestDebugClient {
-        fn send_event(&self, _event: DebugEvent) {}
-    }
-
-    #[derive(Debug)]
-    struct TestRuntimeClient {}
-
-    impl RuntimeClient for TestRuntimeClient {
-        fn send_event(&mut self, _command: RuntimeCommand) -> RuntimeResponse {
-            RuntimeResponse::Ack
-        }
-    }
 
     #[test]
     fn create_submission() {

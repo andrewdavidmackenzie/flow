@@ -7,7 +7,7 @@ use std::path::Path;
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
 use log::{debug, info};
 
-use flowrlib::client_server::RuntimeConnection;
+use flowrlib::client_server::RuntimeClientConnection;
 use flowrlib::runtime::{Event, Response};
 
 #[derive(Debug, Clone)]
@@ -29,7 +29,7 @@ impl CLIRuntimeClient {
     /*
         Enter  a loop where we receive events as a client and respond to them
      */
-    pub fn start(connection: RuntimeConnection,
+    pub fn start(connection: RuntimeClientConnection,
                  flow_args: Vec<String>,
                  #[cfg(feature = "metrics")]
                  display_metrics: bool,
@@ -54,7 +54,7 @@ impl CLIRuntimeClient {
         }
     }
 
-    fn capture_control_c(_connection: &RuntimeConnection) {
+    fn capture_control_c(_connection: &RuntimeClientConnection) {
         // let connection_clone = connection.clone();
         // let _ = ctrlc::set_handler(move || {
         //     let _ = connection_clone.send(Response::EnterDebugger);

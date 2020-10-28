@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use flowrstructs::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowrstructs::manifest::MetaData;
 
-use super::client_server::RuntimeClient;
+use crate::client_server::RuntimeServerContext;
 
 /// `args` is a module to interact with a programs arguments
 pub mod args;
@@ -19,7 +19,7 @@ pub mod stdio;
 pub mod image;
 
 /// Return a `LibraryManifest` for the run-time functions
-pub fn get_manifest(client: Arc<Mutex<dyn RuntimeClient>>) -> LibraryManifest {
+pub fn get_manifest(server_context: Arc<Mutex<RuntimeServerContext>>) -> LibraryManifest {
     let metadata = MetaData {
         name: "flowruntime".into(),
         version: "0.1.0".into(),
@@ -29,19 +29,19 @@ pub fn get_manifest(client: Arc<Mutex<dyn RuntimeClient>>) -> LibraryManifest {
     let mut manifest = LibraryManifest::new(metadata);
 
     manifest.locators.insert("lib://flowruntime/args/get/get".to_string(),
-                             Native(Arc::new(args::get::Get { client: client.clone() })));
+                             Native(Arc::new(args::get::Get { server_context: server_context.clone() })));
     manifest.locators.insert("lib://flowruntime/file/file_write/file_write".to_string(),
-                             Native(Arc::new(file::file_write::FileWrite { client: client.clone() })));
+                             Native(Arc::new(file::file_write::FileWrite { server_context: server_context.clone() })));
     manifest.locators.insert("lib://flowruntime/image/image_buffer/image_buffer".to_string(),
-                             Native(Arc::new(image::image_buffer::ImageBuffer { client: client.clone() })));
+                             Native(Arc::new(image::image_buffer::ImageBuffer { server_context: server_context.clone() })));
     manifest.locators.insert("lib://flowruntime/stdio/readline/readline".to_string(),
-                             Native(Arc::new(stdio::readline::Readline { client: client.clone() })));
+                             Native(Arc::new(stdio::readline::Readline { server_context: server_context.clone() })));
     manifest.locators.insert("lib://flowruntime/stdio/stdin/stdin".to_string(),
-                             Native(Arc::new(stdio::stdin::Stdin { client: client.clone() })));
+                             Native(Arc::new(stdio::stdin::Stdin { server_context: server_context.clone() })));
     manifest.locators.insert("lib://flowruntime/stdio/stdout/stdout".to_string(),
-                             Native(Arc::new(stdio::stdout::Stdout { client: client.clone() })));
+                             Native(Arc::new(stdio::stdout::Stdout { server_context: server_context.clone() })));
     manifest.locators.insert("lib://flowruntime/stdio/stderr/stderr".to_string(),
-                             Native(Arc::new(stdio::stderr::Stderr { client: client.clone() })));
+                             Native(Arc::new(stdio::stderr::Stderr { server_context })));
 
     manifest
 }
