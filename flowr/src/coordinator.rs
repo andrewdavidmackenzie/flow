@@ -167,7 +167,7 @@ impl Coordinator {
                         Response::ClientExiting => return None,
                         _ => error!("Was expecting a Submission from the client"),
                     }
-                },
+                }
                 _ => {
                     error!("There was an error accessing the client connection");
                     return None;
@@ -258,8 +258,10 @@ impl Coordinator {
                         }
                         #[cfg(feature = "debugger")]
                         Err(err) => {
-                            self.debugger.panic(&state,
-                                                format!("Error in job reception: '{}'", err));
+                            if state.debug {
+                                self.debugger.panic(&state,
+                                                    format!("Error in job reception: '{}'", err));
+                            }
                         }
                         #[cfg(not(feature = "debugger"))]
                         Err(_) => error!("\tError in Job reception")

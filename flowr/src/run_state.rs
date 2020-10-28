@@ -573,7 +573,9 @@ impl RunState {
             }
             Some(_) => {
                 #[cfg(feature = "debugger")]
+                if self.debug {
                     debugger.error(&self, job)
+                }
             }
         }
 
@@ -1169,7 +1171,7 @@ mod test {
             let f_b = super::test_function_b_not_init();
             let functions = vec!(f_a, f_b);
             let submission = Submission::new(&Url::parse("file:///temp/fake.toml").unwrap(),
-                                 1, true);
+                                             1, true);
             let mut state = RunState::new(&functions, submission);
 
             state.init();
@@ -1243,7 +1245,6 @@ mod test {
         use super::super::Job;
         use super::super::RunState;
         use super::super::State;
-        use super::super::super::debug::Response;
 
         #[test]
         fn to_ready_1_on_init() {
@@ -1486,7 +1487,7 @@ mod test {
             let f_b = super::test_function_b_not_init();
             let functions = vec!(f_a, f_b);
             let submission = Submission::new(&Url::parse("file:///temp/fake.toml").unwrap(),
-                                             1, true);
+                                             1, false);
             let mut state = RunState::new(&functions, submission);
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
@@ -1495,17 +1496,6 @@ mod test {
 
             state.init();
             let output = super::error_output(0, 1);
-
-            #[cfg(feature = "debugger")]
-                {
-                    // When an error is detected in the runtime it enters the debugger which
-                    // informs the client and waits for a Command back - so we create a thread that
-                    // responds with the command ExitDDebugger - otherwise the test will hand
-                    let (_, responder) = debugger.get_channels();
-                    std::thread::spawn(move || {
-                        let _ = responder.send(Response::ExitDebugger);
-                    });
-                }
 
             state.complete_job(
                 #[cfg(feature = "metrics")]

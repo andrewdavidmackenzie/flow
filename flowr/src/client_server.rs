@@ -51,7 +51,7 @@ pub struct DebuggerConnection {
 impl DebuggerConnection {
     pub fn new(debugger: &Debugger) -> Self {
         DebuggerConnection {
-            client_channels: debugger.get_channels()
+            client_channels: debugger.debug_client.get_channels()
         }
     }
 

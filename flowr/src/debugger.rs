@@ -1,8 +1,7 @@
 use std::collections::HashSet;
 use std::fmt;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{Receiver, Sender};
 
 use serde_json::Value;
 
@@ -15,7 +14,7 @@ use crate::debug::Response;
 use crate::run_state::{Block, Job, RunState};
 
 pub struct Debugger {
-    debug_client: ChannelDebugClient,
+    pub debug_client: ChannelDebugClient,
     input_breakpoints: HashSet<(usize, usize)>,
     block_breakpoints: HashSet<(usize, usize)>,
     /* blocked_id -> blocking_id */
@@ -85,10 +84,6 @@ impl Debugger {
             self.debug_requested.store(false, Ordering::SeqCst); // reset to avoid re-entering
             self.enter(&state);
         }
-    }
-
-    pub fn get_channels(&self) -> (Arc<Mutex<Receiver<Event>>>, Sender<Response>) {
-        self.debug_client.get_channels()
     }
 
     /*
