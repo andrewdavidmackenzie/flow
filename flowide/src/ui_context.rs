@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex};
 use url::Url;
 
 use flowclib::model::flow::Flow;
+use flowrlib::client_server::RuntimeClient;
 use flowrlib::loader::Loader;
-use flowrlib::runtime_client::RuntimeClient;
 use flowrstructs::manifest::Manifest;
 
 use crate::ide_runtime_client::IDERuntimeClient;

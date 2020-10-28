@@ -3,7 +3,8 @@ use std::sync::{Arc, Mutex};
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
-use crate::runtime_client::{Event, Response, RuntimeClient};
+use crate::client_server::RuntimeClient;
+use crate::runtime::{Event, Response};
 
 /// `Implementation` struct for the `image_buffer` function
 #[derive(Debug)]

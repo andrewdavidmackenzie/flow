@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use flowrstructs::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowrstructs::manifest::MetaData;
 
-use super::runtime_client::RuntimeClient;
+use super::client_server::RuntimeClient;
 
 /// `args` is a module to interact with a programs arguments
 pub mod args;

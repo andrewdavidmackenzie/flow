@@ -8,7 +8,7 @@ use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
 use log::{debug, info};
 
 use flowrlib::client_server::RuntimeConnection;
-use flowrlib::runtime_client::{Event, Response};
+use flowrlib::runtime::{Event, Response};
 
 #[derive(Debug, Clone)]
 pub struct CLIRuntimeClient {
@@ -144,7 +144,7 @@ mod test {
     use tempdir::TempDir;
 
     use flowrlib::metrics::Metrics;
-    use flowrlib::runtime_client::{Event, Response};
+    use flowrlib::runtime::{Event, Response};
 
     use super::CLIRuntimeClient;
 

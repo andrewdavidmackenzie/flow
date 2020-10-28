@@ -3,7 +3,8 @@ use std::io::prelude::*;
 
 use gtk::TextBufferExt;
 
-use flowrlib::runtime_client::{Event, Response, RuntimeClient};
+use flowrlib::client_server::RuntimeClient;
+use flowrlib::runtime::{Event, Response};
 
 use crate::widgets;
 

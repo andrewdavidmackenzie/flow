@@ -1,7 +1,8 @@
 use std::io;
 use std::io::Write;
 
-use flowrlib::debug_client::{DebugClient, Event, Event::{*}, Param, Response, Response::{*}};
+use flowrlib::client_server::DebugClient;
+use flowrlib::debug::{Event, Event::{*}, Param, Response, Response::{*}};
 
 const HELP_STRING: &str = "Debugger commands:
 'b' | 'breakpoint' {spec}    - Set a breakpoint on a function (by id), an output or an input using spec:

@@ -10,10 +10,7 @@ use flowrstructs::manifest::Manifest;
 use provider::content::provider::MetaProvider;
 
 use crate::client_server::{DebuggerConnection, RuntimeConnection};
-#[cfg(feature = "debugger")]
-use crate::debug_client::Event as DebugEvent;
-#[cfg(feature = "debugger")]
-use crate::debug_client::Response as DebugResponse;
+use crate::client_server::{ChannelRuntimeClient, RuntimeClient};
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 use crate::errors::*;
@@ -23,7 +20,7 @@ use crate::loader::Loader;
 #[cfg(feature = "metrics")]
 use crate::metrics::Metrics;
 use crate::run_state::{Job, RunState};
-use crate::runtime_client::{ChannelRuntimeClient, Event, Response, RuntimeClient};
+use crate::runtime::{Event, Response};
 
 /// A Submission is the struct used to send a flow to the Coordinator for execution. It contains
 /// all the information necessary to execute it:
@@ -36,10 +33,10 @@ use crate::runtime_client::{ChannelRuntimeClient, Event, Response, RuntimeClient
 #[derive(PartialEq)]
 pub struct Submission {
     manifest_url: Url,
-    max_parallel_jobs: usize,
-    job_timeout: Duration,
+    pub max_parallel_jobs: usize,
+    pub job_timeout: Duration,
     #[cfg(feature = "debugger")]
-    debug: bool,
+    pub debug: bool,
 }
 
 impl Submission {
@@ -94,12 +91,14 @@ pub struct Coordinator {
 /// use std::process::exit;
 /// use flowrstructs::manifest::{Manifest, MetaData};
 /// #[cfg(any(feature = "debugger"))]
-/// use flowrlib::debug_client::{DebugClient, Response, Param, Event, Response::ExitDebugger};
-/// use flowrlib::runtime_client::RuntimeClient;
-/// use flowrlib::runtime_client::Response as RuntimeResponse;
-/// use flowrlib::runtime_client::Event as RuntimeEvent;
+/// use flowrlib::client_server::DebugClient;
+/// #[cfg(any(feature = "debugger"))]
+/// use flowrlib::debug::{Response, Param, Event, Response::ExitDebugger};
+/// use flowrlib::client_server::RuntimeClient;
+/// use flowrlib::runtime::Response as RuntimeResponse;
+/// use flowrlib::runtime::Event as RuntimeEvent;
 /// use url::Url;
-/// use flowrlib::runtime_client::Response::ClientSubmission;
+/// use flowrlib::runtime::Response::ClientSubmission;
 ///
 /// let manifest_url = Url::parse("file:///temp/fake.toml").unwrap();
 ///
@@ -107,10 +106,10 @@ pub struct Coordinator {
 ///                                     1 /* num_parallel_jobs */,
 ///                                     true /* enter debugger on start */);
 ///
-///     let (runtime_connection, debugger_connection) = Coordinator::connect(1 /* num_threads */,
-///                                                                          true /* native */);
+/// let (runtime_connection, debugger_connection) = Coordinator::connect(1 /* num_threads */,
+///                                                                      true /* native */);
 ///
-///     runtime_connection.client_submit(submission).unwrap();
+/// runtime_connection.client_submit(submission).unwrap();
 /// exit(0);
 /// ```
 ///
@@ -139,7 +138,7 @@ impl Coordinator {
         let mut coordinator = Coordinator::new(num_threads);
 
         let runtime_connection = RuntimeConnection::new(&coordinator);
-        let debugger_connection = DebuggerConnection::new(&coordinator);
+        let debugger_connection = DebuggerConnection::new(&coordinator.debugger);
 
         std::thread::spawn(move || {
             coordinator.start(native);
@@ -152,40 +151,52 @@ impl Coordinator {
         self.runtime_client.lock().unwrap().get_client_channels()
     }
 
-    #[cfg(feature = "debugger")]
-    pub fn get_debug_channels(&self) -> (Arc<Mutex<Receiver<DebugEvent>>>, Sender<DebugResponse>) {
-        self.debugger.get_channels()
-    }
-
+    /// Loop waiting for a message from the client.
+    /// If the message is a `ClientSubmission` with a submission, then return Some(submission)
+    /// If the message is `ClientExiting` then return None
+    /// If the message is any other then loop until we find one of the above
     fn wait_for_submission(&self) -> Option<Submission> {
         loop {
-            match self.runtime_client.lock().unwrap().get_response() {
-                Response::ClientSubmission(submission) => {
-                    debug!("Received submission for execution with manifest_url: '{}'", submission.manifest_url.to_string());
-                    return Some(submission);
+            match self.runtime_client.lock() {
+                Ok(guard) => {
+                    match guard.get_response() {
+                        Response::ClientSubmission(submission) => {
+                            debug!("Received submission for execution with manifest_url: '{}'", submission.manifest_url.to_string());
+                            return Some(submission);
+                        }
+                        Response::ClientExiting => return None,
+                        _ => error!("Was expecting a Submission from the client"),
+                    }
+                },
+                _ => {
+                    error!("There was an error accessing the client connection");
+                    return None;
                 }
-                Response::ClientExiting => return None,
-                _ => error!("Was expecting a Submission from the client"),
             }
         }
     }
 
     /// Start the Coordinator - this will block the thread it is running on waiting for a submission
+    /// It will loop processing submissions until it gets a `ClientExiting` response, then it will also exit
     pub fn start(&mut self, native: bool) {
         while let Some(submission) = self.wait_for_submission() {
             if let Ok(mut manifest) = Self::load_from_manifest(&submission.manifest_url.to_string(),
                                                                self.runtime_client.clone(),
                                                                native) {
-                let state = RunState::new(manifest.get_functions(), submission.max_parallel_jobs);
-                self.execute_flow(submission, state);
+                let state = RunState::new(manifest.get_functions(), submission);
+                self.execute_flow(state);
             }
         }
 
         // Exiting
-        debug!("Client exiting and no other clients connected, so exiting");
+        debug!("Client exiting and no other clients connected, so server is exiting");
     }
 
-    fn execute_flow(&mut self, submission: Submission, mut state: RunState) {
+    /// Execute a flow by looping while there are jobs to be processed in an inner loop.
+    /// There is an outer loop for the case when you are using the debugger, to allow entering
+    /// the debugger when the flow ends and at any point resetting all the state and starting
+    /// execution again from the initial state
+    fn execute_flow(&mut self, mut state: RunState) {
         #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(state.num_functions());
 
@@ -198,7 +209,7 @@ impl Coordinator {
             self.runtime_client.lock().unwrap().send_event(Event::FlowStart);
 
             #[cfg(feature = "debugger")]
-            if submission.debug {
+            if state.debug {
                 self.debugger.enter(&state);
             }
 
@@ -206,7 +217,7 @@ impl Coordinator {
                 let mut display_next_output;
             let mut restart;
 
-            'inner: loop {
+            'jobs: loop {
                 trace!("{}", state);
                 #[cfg(feature = "debugger")]
                     self.debugger.check_for_entry(&state);
@@ -224,11 +235,11 @@ impl Coordinator {
                 // If debugger request it, exit the inner loop which will cause us to reset state
                 // and restart execution, in the outer loop
                 if restart {
-                    break 'inner;
+                    break 'jobs;
                 }
 
                 if state.number_jobs_running() > 0 {
-                    match self.job_rx.recv_timeout(submission.job_timeout) {
+                    match self.job_rx.recv_timeout(state.job_timeout) {
                         Ok(job) => {
                             #[cfg(feature = "debugger")]
                                 {
@@ -258,7 +269,7 @@ impl Coordinator {
                 if state.number_jobs_running() == 0 && state.number_jobs_ready() == 0 {
                     // execution is done - but not returning here allows us to go into debugger
                     // at the end of execution, inspect state and possibly reset and rerun
-                    break 'inner;
+                    break 'jobs;
                 }
             }
 
@@ -266,7 +277,7 @@ impl Coordinator {
             if !restart {
                 #[cfg(feature = "debugger")]
                     {
-                        if submission.debug {
+                        if state.debug {
                             let check = self.debugger.flow_done(&state);
                             restart = check.1;
                         }
@@ -379,19 +390,21 @@ impl Coordinator {
 mod test {
     use url::Url;
 
+    #[cfg(feature = "debugger")]
+    use crate::client_server::DebugClient;
+    use crate::client_server::RuntimeClient;
     use crate::coordinator::Submission;
     #[cfg(feature = "debugger")]
-    use crate::debug_client::{DebugClient, Event};
-    use crate::runtime_client::Event as RuntimeCommand;
-    use crate::runtime_client::Response as RuntimeResponse;
-    use crate::runtime_client::RuntimeClient;
+    use crate::debug::Event as DebugEvent;
+    use crate::runtime::Event as RuntimeCommand;
+    use crate::runtime::Response as RuntimeResponse;
 
     #[cfg(feature = "debugger")]
     struct TestDebugClient {}
 
     #[cfg(feature = "debugger")]
     impl DebugClient for TestDebugClient {
-        fn send_event(&self, _event: Event) {}
+        fn send_event(&self, _event: DebugEvent) {}
     }
 
     #[derive(Debug)]

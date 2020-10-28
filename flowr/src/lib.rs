@@ -28,11 +28,11 @@ pub mod client_server;
 /// 'debug_client' is used to connect a debugger to the run-time for debugging of flows
 /// and is an optional feature called "debugger"
 #[cfg(feature = "debugger")]
-pub mod debug_client;
+pub mod debug;
 
 /// 'runtime_client' is used to connect to a runtime client that provides the implementations for
 /// the required runtime functions.
-pub mod runtime_client;
+pub mod runtime;
 
 #[cfg(feature = "debugger")]
 mod debugger;

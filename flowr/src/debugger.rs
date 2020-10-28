@@ -6,12 +6,12 @@ use std::sync::mpsc::{Receiver, Sender};
 
 use serde_json::Value;
 
-use crate::debug_client::{ChannelDebugClient, DebugClient};
-use crate::debug_client::Event;
-use crate::debug_client::Event::{*};
-use crate::debug_client::Param;
-use crate::debug_client::Response::{*};
-use crate::debug_client::Response;
+use crate::client_server::{ChannelDebugClient, DebugClient};
+use crate::debug::Event;
+use crate::debug::Event::{*};
+use crate::debug::Param;
+use crate::debug::Response::{*};
+use crate::debug::Response;
 use crate::run_state::{Block, Job, RunState};
 
 pub struct Debugger {
@@ -61,8 +61,8 @@ impl fmt::Display for BlockerNode {
     }
 }
 
-impl Debugger {
-    pub fn new() -> Self {
+impl Default for Debugger {
+    fn default() -> Self {
         Debugger {
             debug_client: ChannelDebugClient::new(),
             input_breakpoints: HashSet::<(usize, usize)>::new(),
@@ -72,6 +72,12 @@ impl Debugger {
             function_breakpoints: HashSet::<usize>::new(),
             debug_requested: Arc::new(AtomicBool::new(false)),
         }
+    }
+}
+
+impl Debugger {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn check_for_entry(&mut self, state: &RunState) {

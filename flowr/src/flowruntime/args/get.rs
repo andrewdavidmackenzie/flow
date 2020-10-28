@@ -3,7 +3,8 @@ use std::sync::{Arc, Mutex};
 use flow_impl::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use serde_json::{json, Value};
 
-use crate::runtime_client::{Event, Response, RuntimeClient};
+use crate::client_server::RuntimeClient;
+use crate::runtime::{Event, Response};
 
 /// `Implementation` struct for the `get` function
 #[derive(Debug)]
