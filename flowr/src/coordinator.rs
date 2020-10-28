@@ -9,6 +9,7 @@ use url::Url;
 use flowrstructs::manifest::Manifest;
 use provider::content::provider::MetaProvider;
 
+use crate::client_server::{DebuggerConnection, RuntimeConnection};
 #[cfg(feature = "debugger")]
 use crate::debug_client::Event as DebugEvent;
 #[cfg(feature = "debugger")]
@@ -74,10 +75,10 @@ pub struct Coordinator {
     job_tx: Sender<Job>,
     /// A channel used to receive Jobs back after execution (now including the job's output)
     job_rx: Receiver<Job>,
-    /// Send messages to the client over channels
+    /// Get messages from clients over channels
     runtime_client: Arc<Mutex<ChannelRuntimeClient>>,
     #[cfg(feature = "debugger")]
-    debugger: Debugger
+    debugger: Debugger,
 }
 
 /// Create a Submission for a flow to be executed.
@@ -101,43 +102,22 @@ pub struct Coordinator {
 /// use url::Url;
 /// use flowrlib::runtime_client::Response::ClientSubmission;
 ///
-/// struct ExampleDebugClient {};
-/// #[derive(Debug)]
-/// struct ExampleRuntimeClient {};
-///
-/// impl DebugClient for ExampleDebugClient {
-///     fn send_event(&self, event: Event) {
-///     }
-/// }
-///
-/// impl RuntimeClient for ExampleRuntimeClient {
-///     fn send_event(&mut self,event: RuntimeEvent) -> RuntimeResponse {
-///         RuntimeResponse::Ack
-///     }
-/// }
-///
-/// let example_client = ExampleRuntimeClient {};
-///
 /// let manifest_url = Url::parse("file:///temp/fake.toml").unwrap();
 ///
 /// let mut submission = Submission::new(&manifest_url,
 ///                                     1 /* num_parallel_jobs */,
 ///                                     true /* enter debugger on start */);
 ///
-/// let mut coordinator = Coordinator::new( 1 /* num_threads */, );
-/// let native = true;
-/// coordinator.start(native);
+///     let (runtime_connection, debugger_connection) = Coordinator::connect(1 /* num_threads */,
+///                                                                          true /* native */);
 ///
-/// let (_, client_channel) = coordinator.get_client_channels();
-///
-/// client_channel.send(ClientSubmission(submission)).unwrap();
-///
+///     runtime_connection.client_submit(submission).unwrap();
 /// exit(0);
 /// ```
 ///
 impl Coordinator {
     /// Create a new `coordinator` with `num_threads` executor threads
-    pub fn new(num_threads: usize) -> Self {
+    fn new(num_threads: usize) -> Self {
         let (job_tx, job_rx, ) = mpsc::channel();
         let (output_tx, output_rx) = mpsc::channel();
 
@@ -152,8 +132,21 @@ impl Coordinator {
             job_rx: output_rx,
             runtime_client: Arc::new(Mutex::new(ChannelRuntimeClient::new())),
             #[cfg(feature = "debugger")]
-            debugger: Debugger::new()
+            debugger: Debugger::new(),
         }
+    }
+
+    pub fn connect(num_threads: usize, native: bool) -> (RuntimeConnection, DebuggerConnection) {
+        let mut coordinator = Coordinator::new(num_threads);
+
+        let runtime_connection = RuntimeConnection::new(&coordinator);
+        let debugger_connection = DebuggerConnection::new(&coordinator);
+
+        std::thread::spawn(move || {
+            coordinator.start(native);
+        });
+
+        (runtime_connection, debugger_connection)
     }
 
     pub fn get_client_channels(&self) -> (Arc<Mutex<Receiver<Event>>>, Sender<Response>) {
@@ -170,8 +163,8 @@ impl Coordinator {
             match self.runtime_client.lock().unwrap().get_response() {
                 ClientSubmission(submission) => {
                     debug!("Received submission for execution with manifest_url: '{}'", submission.manifest_url.to_string());
-                    return submission
-                },
+                    return submission;
+                }
                 _ => error!("Was expecting a Submission from the client"),
             }
         }
@@ -192,7 +185,7 @@ impl Coordinator {
         'flow_execution: loop {
             state.init();
             #[cfg(feature = "metrics")]
-                    metrics.reset();
+                metrics.reset();
 
             self.runtime_client.lock().unwrap().send_event(Event::FlowStart);
 
@@ -208,7 +201,7 @@ impl Coordinator {
             'inner: loop {
                 trace!("{}", state);
                 #[cfg(feature = "debugger")]
-                self.debugger.check_for_entry(&state);
+                    self.debugger.check_for_entry(&state);
 
                 let debug_check = self.send_jobs(&mut state,
                                                  #[cfg(feature = "metrics")]
@@ -247,7 +240,7 @@ impl Coordinator {
                         #[cfg(feature = "debugger")]
                         Err(err) => {
                             self.debugger.panic(&state,
-                                           format!("Error in job reception: '{}'", err));
+                                                format!("Error in job reception: '{}'", err));
                         }
                         #[cfg(not(feature = "debugger"))]
                         Err(_) => error!("\tError in Job reception")
@@ -390,8 +383,7 @@ mod test {
 
     #[cfg(feature = "debugger")]
     impl DebugClient for TestDebugClient {
-        fn send_event(&self, _event: Event) {
-        }
+        fn send_event(&self, _event: Event) {}
     }
 
     #[derive(Debug)]

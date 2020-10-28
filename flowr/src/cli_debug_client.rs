@@ -1,10 +1,9 @@
 use std::io;
 use std::io::Write;
-use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{Receiver, Sender};
 
 use log::error;
 
+use flowrlib::client_server::DebuggerConnection;
 use flowrlib::debug_client::{Event, Event::{*}, Param, Response, Response::{*}};
 
 const HELP_STRING: &str = "Debugger commands:
@@ -29,23 +28,18 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
     A simple CLI (i.e. stdin and stdout) debug client that implements the DebugClient trait
     defined in the flowrlib library.
 */
-pub struct CLIDebugClient{}
+pub struct CLIDebugClient {}
 
 impl CLIDebugClient {
-    fn new() -> Self {
-        CLIDebugClient{}
-    }
-
-    pub fn start(debug_channels: (Arc<Mutex<Receiver<Event>>>, Sender<Response>)) {
-        let debug_client = CLIDebugClient::new();
+    pub fn start(connection: DebuggerConnection) {
+        let debug_client = CLIDebugClient {};
 
         std::thread::spawn(move || {
             loop {
-                let guard = debug_channels.0.lock().unwrap();
-                match guard.recv() {
+                match connection.client_recv() {
                     Ok(event) => {
                         let response = debug_client.process_event(event);
-                        debug_channels.1.send(response).unwrap();
+                        let _ = connection.client_send(response);
                     }
                     Err(err) => error!("Error receiving event from debugger: {}", err)
                 }
@@ -67,7 +61,7 @@ impl CLIDebugClient {
             }
 
             if let Ok(integer) = parts[1].parse::<usize>() {
-                return (command, Some(Param::Numeric(integer)))
+                return (command, Some(Param::Numeric(integer)));
             }
 
             if parts[1].contains('/') { // is an output specified

@@ -3,12 +3,11 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::Path;
-use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{Receiver, Sender};
 
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
-use log::{debug, error, info};
+use log::{debug, info};
 
+use flowrlib::client_server::RuntimeConnection;
 use flowrlib::runtime_client::{Event, Response};
 
 #[derive(Debug, Clone)]
@@ -30,45 +29,37 @@ impl CLIRuntimeClient {
     /*
         Enter  a loop where we receive events as a client and respond to them
      */
-    pub fn start(client_channels: (Arc<Mutex<Receiver<Event>>>, Sender<Response>),
+    pub fn start(connection: RuntimeConnection,
                  flow_args: Vec<String>,
                  #[cfg(feature = "metrics")]
                  display_metrics: bool,
     ) {
-        Self::capture_control_c(client_channels.1.clone());
+        Self::capture_control_c(&connection);
 
         let mut runtime_client = CLIRuntimeClient::new(flow_args, display_metrics);
 
         loop {
-            match client_channels.0.lock() {
-                Ok(guard) => {
-                    match guard.recv() {
-                        Ok(event) => {
-                            let response = runtime_client.process_event(event);
-                            if response == Response::ClientExiting {
-                                return;
-                            }
-                            client_channels.1.send(response).unwrap();
-                        }
-                        Err(_) => {
-                            return;
-                        }
+            match connection.client_recv() {
+                Ok(event) => {
+                    let response = runtime_client.process_event(event);
+                    if response == Response::ClientExiting {
+                        return;
                     }
+                    let _ = connection.client_send(response);
                 }
-                Err(e) => {
-                    error!("Error while trying to lock runtime_client to receive events: {}", e.to_string());
+                Err(_) => {
                     return;
                 }
             }
         }
     }
 
-    fn capture_control_c(client_send_channel: Sender<Response>) {
-        let _ = ctrlc::set_handler(move || {
-            let _ = client_send_channel.send(Response::EnterDebugger);
-        });
+    fn capture_control_c(_connection: &RuntimeConnection) {
+        // let connection_clone = connection.clone();
+        // let _ = ctrlc::set_handler(move || {
+        //     let _ = connection_clone.send(Response::EnterDebugger);
+        // });
     }
-
 
     #[allow(clippy::many_single_char_names)]
     pub fn process_event(&mut self, event: Event) -> Response {

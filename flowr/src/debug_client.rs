@@ -94,7 +94,7 @@ pub enum Event {
 }
 
 /// debug_clients must implement this trait
-pub trait DebugClient {
+pub trait DebugClient: Sync + Send {
     /// Called to send an event to the debug_client
     fn send_event(&self, event: Event);
 }
@@ -149,3 +149,7 @@ impl DebugClient for ChannelDebugClient {
         let _ = self.debug_event_channel_tx.send(event);
     }
 }
+
+unsafe impl Send for ChannelDebugClient {}
+
+unsafe impl Sync for ChannelDebugClient {}

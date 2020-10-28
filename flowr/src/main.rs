@@ -19,7 +19,6 @@ use url::Url;
 use cli_debug_client::CLIDebugClient;
 use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::info as flowrlib_info;
-use flowrlib::runtime_client::Response::ClientSubmission;
 use provider::args::url_from_string;
 
 use crate::cli_runtime_client::CLIRuntimeClient;
@@ -83,19 +82,12 @@ fn run() -> Result<String> {
                                      num_parallel_jobs(&matches, debugger),
                                      debugger);
 
-    let mut coordinator = Coordinator::new(num_threads(&matches, debugger));
-    let client_channels = coordinator.get_client_channels();
-    let debug_channels = coordinator.get_debug_channels();
+    let (runtime_connection, debugger_connection) = Coordinator::connect(num_threads(&matches, debugger), native);
 
-    std::thread::spawn(move || {
-        coordinator.start(native);
-    });
+    runtime_connection.client_submit(submission)?;
 
-    client_channels.1.send(ClientSubmission(submission))
-        .chain_err(|| "Could not send Submission to the Coordinator")?;
-
-    CLIDebugClient::start(debug_channels);
-    CLIRuntimeClient::start(client_channels,
+    CLIDebugClient::start(debugger_connection);
+    CLIRuntimeClient::start(runtime_connection,
                             flow_args,
                             #[cfg(feature = "metrics")]
                                 matches.is_present("metrics"),
