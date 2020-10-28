@@ -24,7 +24,6 @@ use crate::loader::Loader;
 use crate::metrics::Metrics;
 use crate::run_state::{Job, RunState};
 use crate::runtime_client::{ChannelRuntimeClient, Event, Response, RuntimeClient};
-use crate::runtime_client::Response::ClientSubmission;
 
 /// A Submission is the struct used to send a flow to the Coordinator for execution. It contains
 /// all the information necessary to execute it:
@@ -158,13 +157,14 @@ impl Coordinator {
         self.debugger.get_channels()
     }
 
-    fn wait_for_submission(&self) -> Submission {
+    fn wait_for_submission(&self) -> Option<Submission> {
         loop {
             match self.runtime_client.lock().unwrap().get_response() {
-                ClientSubmission(submission) => {
+                Response::ClientSubmission(submission) => {
                     debug!("Received submission for execution with manifest_url: '{}'", submission.manifest_url.to_string());
-                    return submission;
+                    return Some(submission);
                 }
+                Response::ClientExiting => return None,
                 _ => error!("Was expecting a Submission from the client"),
             }
         }
@@ -172,12 +172,20 @@ impl Coordinator {
 
     /// Start the Coordinator - this will block the thread it is running on waiting for a submission
     pub fn start(&mut self, native: bool) {
-        let submission = self.wait_for_submission();
+        while let Some(submission) = self.wait_for_submission() {
+            if let Ok(mut manifest) = Self::load_from_manifest(&submission.manifest_url.to_string(),
+                                                               self.runtime_client.clone(),
+                                                               native) {
+                let state = RunState::new(manifest.get_functions(), submission.max_parallel_jobs);
+                self.execute_flow(submission, state);
+            }
+        }
 
-        let mut manifest = Self::load_from_manifest(&submission.manifest_url.to_string(),
-                                                    self.runtime_client.clone(),
-                                                    native).unwrap(); // TODO
-        let mut state = RunState::new(manifest.get_functions(), submission.max_parallel_jobs);
+        // Exiting
+        debug!("Client exiting and no other clients connected, so exiting");
+    }
+
+    fn execute_flow(&mut self, submission: Submission, mut state: RunState) {
         #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(state.num_functions());
 
