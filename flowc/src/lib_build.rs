@@ -26,7 +26,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
     let metadata = loader::load_metadata(&options.url.to_string(), provider)
         .chain_err(|| format!("Could not load Library metadata from '{}'", options.output_dir.display()))?;
 
-    info!("Building manifest for '{}' library", metadata.name);
+    info!("Building '{}' library", metadata.name);
     let mut lib_manifest = LibraryManifest::new(metadata);
 
     let mut base_dir = options.output_dir.display().to_string();

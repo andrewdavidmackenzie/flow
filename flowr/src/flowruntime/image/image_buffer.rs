@@ -3,13 +3,14 @@ use std::sync::{Arc, Mutex};
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
 
-use crate::runtime_client::{Event, Response, RuntimeClient};
+use crate::client_server::RuntimeServerContext;
+use crate::runtime::{Event, Response};
 
 /// `Implementation` struct for the `image_buffer` function
 #[derive(Debug)]
 pub struct ImageBuffer {
     /// It holds a reference to the runtime client in order to send commands
-    pub client: Arc<Mutex<dyn RuntimeClient>>
+    pub server_context: Arc<Mutex<RuntimeServerContext>>
 }
 
 impl Implementation for ImageBuffer {
@@ -18,8 +19,8 @@ impl Implementation for ImageBuffer {
         let value = inputs[1].as_array().unwrap();
         let size = inputs[2].as_array().unwrap();
         if let Value::String(filename) = &inputs[3] {
-            if let Ok(mut client) = self.client.lock() {
-                return match client.send_event(Event::PixelWrite(
+            if let Ok(mut server) = self.server_context.lock() {
+                return match server.send_event(Event::PixelWrite(
                     (pixel[0].as_u64().unwrap() as u32, pixel[1].as_u64().unwrap() as u32),
                     (value[0].as_u64().unwrap() as u8, value[1].as_u64().unwrap() as u8, value[2].as_u64().unwrap() as u8),
                     (size[0].as_u64().unwrap() as u32, size[1].as_u64().unwrap() as u32),

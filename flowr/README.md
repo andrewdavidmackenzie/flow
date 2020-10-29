@@ -7,4 +7,4 @@ See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowr/
 It handles the execution of `Functions` forming a `Flow` according to the defined semantics.
 
 ## Runtime functions
-Additionally, it implements the required [`flowruntime` functions](../flowrlib/src/flowruntime/README.md).
+Additionally, it implements the required [`flowruntime` functions](../flowr/src/flowruntime/flowruntime.md).

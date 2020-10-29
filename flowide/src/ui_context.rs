@@ -4,7 +4,6 @@ use url::Url;
 
 use flowclib::model::flow::Flow;
 use flowrlib::loader::Loader;
-use flowrlib::runtime_client::RuntimeClient;
 use flowrstructs::manifest::Manifest;
 
 use crate::ide_runtime_client::IDERuntimeClient;
@@ -15,7 +14,7 @@ pub struct UIContext {
     pub flow_url: Option<String>,
     pub manifest: Option<Manifest>,
     pub manifest_url: Option<Url>,
-    pub client: Arc<Mutex<dyn RuntimeClient>>,
+    pub client: Arc<Mutex<IDERuntimeClient>>,
 }
 
 impl UIContext {
@@ -26,7 +25,7 @@ impl UIContext {
             flow_url: None,
             manifest: None,
             manifest_url: None,
-            client: Arc::new(Mutex::new(IDERuntimeClient::new())),
+            client: Arc::new(Mutex::new(IDERuntimeClient::new(true))),
         }
     }
 }

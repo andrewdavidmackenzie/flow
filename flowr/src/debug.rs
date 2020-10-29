@@ -1,7 +1,3 @@
-use std::sync::{Arc, mpsc, Mutex};
-use std::sync::mpsc::{Receiver, Sender};
-
-use log::error;
 use serde_json::Value;
 
 use crate::run_state::{Block, Job};
@@ -91,61 +87,4 @@ pub enum Event {
     Resetting,
     /// Debugger is blocked waiting for a command before proceeding
     WaitingForCommand(usize)
-}
-
-/// debug_clients must implement this trait
-pub trait DebugClient {
-    /// Called to send an event to the debug_client
-    fn send_event(&self, event: Event);
-}
-
-#[derive(Debug)]
-pub struct ChannelDebugClient {
-    /// A channel to send events to a debug client on
-    debug_event_channel_tx: Sender<Event>,
-    /// The other end of the channel a debug client can receive events on
-    debug_event_channel_rx: Arc<Mutex<Receiver<Event>>>,
-    /// A channel to for a debug client to send responses on
-    debug_response_channel_tx: Sender<Response>,
-    /// This end of the channel where coordinator will receive events from a debug client on
-    debug_response_channel_rx: Receiver<Response>,
-}
-
-impl ChannelDebugClient {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn get_channels(&self) -> (Arc<Mutex<Receiver<Event>>>, Sender<Response>) {
-        (self.debug_event_channel_rx.clone(), self.debug_response_channel_tx.clone())
-    }
-
-    pub fn get_response(&self) -> Response {
-        match self.debug_response_channel_rx.recv() {
-            Ok(response) => response,
-            Err(err) => {
-                error!("Error receiving response from debug client: '{}'", err);
-                Response::Error(err.to_string())
-            }
-        }
-    }
-}
-
-impl Default for ChannelDebugClient {
-    fn default() -> ChannelDebugClient {
-        let (debug_event_channel_tx, debug_event_channel_rx) = mpsc::channel();
-        let (debug_response_channel_tx, debug_response_channel_rx) = mpsc::channel();
-        ChannelDebugClient{
-            debug_event_channel_tx,
-            debug_event_channel_rx: Arc::new(Mutex::new(debug_event_channel_rx)),
-            debug_response_channel_tx,
-            debug_response_channel_rx,
-        }
-    }
-}
-
-impl DebugClient for ChannelDebugClient {
-    fn send_event(&self, event: Event) {
-        let _ = self.debug_event_channel_tx.send(event);
-    }
 }

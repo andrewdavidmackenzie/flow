@@ -14,20 +14,27 @@ edition = "2018"
 name = "flowr"
 path = "src/main.rs"
 
-[features]
-default = ["debugger", "native", "metrics"]
-debugger = []
-native = []
-metrics = []
+[lib]
+name = "flowrlib"
+path = "src/lib.rs"
 
-[dependencies.flowrlib]
-path = "../flowrlib"
-features = ["debugger", "metrics", "checks"]
+[features]
+default = ["debugger", "native", "metrics", "checks", "distributed"]
+debugger = [] # feature to add the debugger
+native = []   # Load native implementations of functions in libraries when possible
+metrics = []  # feature for tracking of metrics during execution
+checks = []   # feature to perform extra checks during flow execution
+single_process = [] # Limit to a single process
+distributed = [] # Allow distributed multi-process client and server operation
+
+[dependencies.flowrstructs]
+path = "../flowrstructs"
+features = ["debugger"]
 
 [dependencies]
 flow_impl = "=0.10.0"
+flowstdlib = {path = "../flowstdlib"}
 provider = {path = "../provider"}
-flowrstructs = {path = "../flowrstructs"}
 clap = "~2"
 simplog = "~1.2"
 log = "0.4.6"
@@ -39,6 +46,8 @@ num_cpus = "~1.10"
 error-chain = "0.12.2"
 image = "=0.23.10"
 ctrlc = "3.1.4"
+multimap = "~0.8"
+wasmi = "0.6.2"
 
 [dev-dependencies]
 tempdir = "~0.3.5"

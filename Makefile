@@ -141,7 +141,7 @@ trim-docs:
 .PHONY: code-docs
 code-docs: $(SOURCES)
 	$(STIME)
-	@cargo doc --workspace --quiet --all-features --no-deps --target-dir=target/html/code
+	@cargo doc --workspace --quiet --no-deps --target-dir=target/html/code
 	$(ETIME)
 
 .PHONY: pages
@@ -179,7 +179,7 @@ clippy: $(SOURCES)
 .PHONY: test
 test: $(SOURCES)
 	$(STIME)
-	@set -o pipefail && cargo test --all-features --workspace --exclude flow_impl_derive --exclude flowide 2>&1 | tee .test.log
+	@set -o pipefail && cargo test --workspace --exclude flow_impl_derive --exclude flowide 2>&1 | tee .test.log
 	$(ETIME)
 
 .test.log: test
@@ -325,11 +325,11 @@ publish: flowc-publish flowr-publish flowide-publish
 
 #### Level 1 - flowc and flowide - no dependency between them
 .PHONY: flowc-publish
-flowc-publish: flowr-publish flowrlib-publish provider-publish
+flowc-publish: flowr-publish provider-publish
 	cargo publish --manifest-path=flowc/Cargo.toml
 
 .PHONY: flowide-publish
-flowide-publish: flowc-publish flowrlib-publish provider-publish flow-impl-publish flowstdlib-publish
+flowide-publish: flowc-publish provider-publish flow-impl-publish flowstdlib-publish
 	cargo publish --manifest-path=flowide/Cargo.toml
 
 #### Level 2 - flowr
@@ -339,18 +339,13 @@ flowr-publish: provider-publish flow-impl-publish flowstdlib-publish
 
 #### Level 3 - provider
 .PHONY: provider-publish
-provider-publish: flowrlib-publish
+provider-publish:
 	cargo publish --manifest-path=provider/Cargo.toml
 
 #### Level 4 - flowstdlib
 .PHONY: flowstdlib-publish
-flowstdlib-publish: flow-impl-publish flow-impl-derive-publish flowrlib-publish
+flowstdlib-publish: flow-impl-publish flow-impl-derive-publish
 	cargo publish --manifest-path=flowstdlib/Cargo.toml
-
-#### Level 6 - flowrlib
-.PHONY: flowrlib-publish
-flowrlib-publish: flow-impl-publish
-	cargo publish --manifest-path=flowrlib/Cargo.toml
 
 #### Level 7 - flow-impl-publish flow-impl-derive-publish
 .PHONY: flow-impl-publish

@@ -21,22 +21,18 @@ pub mod loader;
 /// to user code like a library
 mod flowruntime;
 
-/// 'debug_client' is used to connect a debugger to the run-time for debugging of flows
-/// and is an optional feature called "debugger"
+#[cfg_attr(feature = "distributed", path = "message_queue.rs")]
+#[cfg_attr(feature = "single_process", path = "channels.rs")]
+pub mod client_server;
+
+/// 'debug' defines structs passed between the Server and the Client regarding debug events
+/// and client responses to them
 #[cfg(feature = "debugger")]
-pub mod debug_client;
+pub mod debug;
 
-/// 'runtime_client' is used to connect to a runtime client that provides the implementations for
-/// the required runtime functions.
-pub mod runtime_client;
-
-/// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
-/// to get access to everything `error_chain!` creates.
-#[doc(hidden)]
-pub mod errors {
-    // Create the Error, ErrorKind, ResultExt, and Result types
-    error_chain! {}
-}
+/// 'runtime' defines structs passed between the Server and the Client regarding runtime events
+/// and client responses to them
+pub mod runtime;
 
 #[cfg(feature = "debugger")]
 mod debugger;
@@ -48,6 +44,14 @@ mod run_state;
 #[cfg(feature = "metrics")]
 pub mod metrics;
 
+/// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
+/// to get access to everything `error_chain!` creates.
+#[doc(hidden)]
+pub mod errors {
+    // Create the Error, ErrorKind, ResultExt, and Result types
+    error_chain! {}
+}
+
 // Specify the errors we will produce and foreign links
 #[doc(hidden)]
 error_chain! {
@@ -57,6 +61,7 @@ error_chain! {
 
     foreign_links {
         Io(std::io::Error);
+        // Mutex(std::sync::Mutex::PoisonError);
         Serde(serde_json::error::Error);
         Recv(std::sync::mpsc::RecvError);
         Provider(provider::errors::Error);
