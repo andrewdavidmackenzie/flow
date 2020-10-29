@@ -4,7 +4,7 @@ use std::sync::mpsc;
 use std::time::Duration;
 
 use log::{debug, error, info, trace};
-use url::Url;
+use serde_derive::{Deserialize, Serialize};
 
 use flowrstructs::manifest::Manifest;
 use provider::content::provider::MetaProvider;
@@ -29,9 +29,9 @@ use crate::runtime::{Event, Response};
 /// - the maximum number of jobs you want dispatched/executing in parallel
 /// - whether to display some execution metrics when the flow completes
 /// - an optional DebugClient to allow you to debug the execution
-#[derive(PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq)]
 pub struct Submission {
-    manifest_url: Url,
+    manifest_url: String,
     pub max_parallel_jobs: usize,
     pub job_timeout: Duration,
     #[cfg(feature = "debugger")]
@@ -42,14 +42,14 @@ impl Submission {
     /// Create a new `Submission` of a `Flow` for execution with the specified `Manifest`
     /// of `Functions`, executing it with a maximum of `mac_parallel_jobs` running in parallel
     /// connecting via the optional `DebugClient`
-    pub fn new(manifest_url: &Url,
+    pub fn new(manifest_url: &str,
                max_parallel_jobs: usize,
                #[cfg(feature = "debugger")]
                debug: bool) -> Submission {
         info!("Maximum jobs in parallel limited to {}", max_parallel_jobs);
 
         Submission {
-            manifest_url: manifest_url.clone(),
+            manifest_url: manifest_url.to_string(),
             max_parallel_jobs,
             job_timeout: Duration::from_secs(60),
             #[cfg(feature = "debugger")]
@@ -91,12 +91,9 @@ pub struct Coordinator {
 /// use flowrstructs::manifest::{Manifest, MetaData};
 /// use flowrlib::runtime::Response as RuntimeResponse;
 /// use flowrlib::runtime::Event as RuntimeEvent;
-/// use url::Url;
 /// use flowrlib::runtime::Response::ClientSubmission;
 ///
-/// let manifest_url = Url::parse("file:///temp/fake.toml").unwrap();
-///
-/// let mut submission = Submission::new(&manifest_url,
+/// let mut submission = Submission::new("file:///temp/fake.toml",
 ///                                     1 /* num_parallel_jobs */,
 ///                                     true /* enter debugger on start */);
 ///
@@ -155,7 +152,7 @@ impl Coordinator {
                 Ok(guard) => {
                     match guard.get_response() {
                         Response::ClientSubmission(submission) => {
-                            debug!("Received submission for execution with manifest_url: '{}'", submission.manifest_url.to_string());
+                            debug!("Received submission for execution with manifest_url: '{}'", submission.manifest_url);
                             return Some(submission);
                         }
                         Response::ClientExiting => return None,
@@ -174,7 +171,7 @@ impl Coordinator {
     /// It will loop processing submissions until it gets a `ClientExiting` response, then it will also exit
     pub fn start(&mut self, native: bool) {
         while let Some(submission) = self.wait_for_submission() {
-            if let Ok(mut manifest) = Self::load_from_manifest(&submission.manifest_url.to_string(),
+            if let Ok(mut manifest) = Self::load_from_manifest(&submission.manifest_url,
                                                                self.server_context.clone(),
                                                                native) {
                 let state = RunState::new(manifest.get_functions(), submission);
@@ -384,13 +381,11 @@ impl Coordinator {
 
 #[cfg(test)]
 mod test {
-    use url::Url;
-
     use crate::coordinator::Submission;
 
     #[test]
     fn create_submission() {
-        let manifest_url = Url::parse("file:///temp/fake/flow.toml").unwrap();
+        let manifest_url = "file:///temp/fake/flow.toml";
         let _ = Submission::new(&manifest_url, 1,
                                 #[cfg(feature = "debugger")]
                                     false,

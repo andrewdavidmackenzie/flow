@@ -21,8 +21,8 @@ pub mod loader;
 /// to user code like a library
 mod flowruntime;
 
-#[cfg_attr(feature = "distributed", path = "message_queue.rs")]
-#[cfg_attr(feature = "single_process", path = "channels.rs")]
+#[cfg_attr(feature = "distributed", path = "client_server/message_queue.rs")]
+#[cfg_attr(feature = "single_process", path = "client_server/channels.rs")]
 pub mod client_server;
 
 /// 'debug' defines structs passed between the Server and the Client regarding debug events

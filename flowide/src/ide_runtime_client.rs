@@ -4,7 +4,7 @@
 // use gtk::TextBufferExt;
 
 // use flowrlib::runtime::{Event, Response};
-// use flowrlib::client_server::RuntimeClientConnection;
+// use flowrlib::lib.client_server::RuntimeClientConnection;
 use std::collections::HashMap;
 
 // use crate::widgets;

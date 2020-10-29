@@ -1,8 +1,11 @@
+use serde_derive::{Deserialize, Serialize};
+
 use crate::coordinator::Submission;
 #[cfg(feature = "metrics")]
 use crate::metrics::Metrics;
 
 /// A run-time Event sent from the run-time to a runtime_client
+#[derive(Serialize, Deserialize)]
 pub enum Event {
     /// A flow has started executing
     FlowStart,
@@ -29,6 +32,8 @@ pub enum Event {
     StdoutEOF,
     /// A Request to snd EOF to Stderr
     StderrEOF,
+    /// Invalid - used when deserialization goes wrong
+    Invalid,
 }
 
 unsafe impl Send for Event {}
@@ -36,7 +41,7 @@ unsafe impl Send for Event {}
 unsafe impl Sync for Event {}
 
 /// A `Response` from the runtime_client to the run-time
-#[derive(PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq)]
 pub enum Response {
     /// Simple acknowledgement
     Ack,
@@ -57,7 +62,9 @@ pub enum Response {
     /// A submission from the client for execution
     ClientSubmission(Submission),
     /// Client requests that server enters the ddebugger at the next opportunity
-    EnterDebugger
+    EnterDebugger,
+    /// Invalid - used when deserialization goes wrong
+    Invalid,
 }
 
 unsafe impl Send for Response {}

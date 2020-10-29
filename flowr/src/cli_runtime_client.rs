@@ -132,7 +132,8 @@ impl CLIRuntimeClient {
             Event::GetArgs => {
                 Response::Args(self.args.clone())
             }
-            Event::StderrEOF => Response::Ack
+            Event::StderrEOF => Response::Ack,
+            Event::Invalid => Response::Ack
         }
     }
 }

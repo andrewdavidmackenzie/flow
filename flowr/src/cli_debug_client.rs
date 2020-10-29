@@ -171,7 +171,8 @@ impl CLIDebugClient {
                 println!("{}", message),
             Resetting =>
                 println!("Resetting state"),
-            WaitingForCommand(job_id) => return Self::get_user_command(job_id)
+            WaitingForCommand(job_id) => return Self::get_user_command(job_id),
+            Event::Invalid => {}
         }
 
         Ack

@@ -1,9 +1,10 @@
 use log::error;
-/// This is the message-queue implementation of the client_server communications
+/// This is the message-queue implementation of the lib.client_server communications
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::mpsc;
+use zmq::Message;
 
 use crate::coordinator::Coordinator;
 #[cfg(feature = "debugger")]
@@ -13,6 +14,98 @@ use crate::debug::Response as DebugResponse;
 use crate::debugger::Debugger;
 use crate::errors::*;
 use crate::runtime::{Event, Response};
+
+impl From<&Event> for Message {
+    fn from(msg: &Event) -> Self {
+        match serde_json::to_string(msg) {
+            Ok(message_string) => Message::from(&message_string),
+            _ => Message::new()
+        }
+    }
+}
+
+impl From<&Message> for Event {
+    fn from(msg: &Message) -> Self {
+        match msg.as_str() {
+            Some(message_string) => {
+                match serde_json::from_str(message_string) {
+                    Ok(message) => message,
+                    _ => Event::Invalid
+                }
+            },
+            _ => Event::Invalid
+        }
+    }
+}
+
+impl From<&Response> for Message {
+    fn from(msg: &Response) -> Self {
+        match serde_json::to_string(msg) {
+            Ok(message_string) => Message::from(&message_string),
+            _ => Message::new()
+        }
+    }
+}
+
+impl From<&Message> for Response {
+    fn from(msg: &Message) -> Self {
+        match msg.as_str() {
+            Some(message_string) => {
+                match serde_json::from_str(message_string) {
+                    Ok(message) => message,
+                    _ => Response::Invalid
+                }
+            },
+            _ => Response::Invalid
+        }
+    }
+}
+
+impl From<&DebugEvent> for Message {
+    fn from(msg: &DebugEvent) -> Self {
+        match serde_json::to_string(msg) {
+            Ok(message_string) => Message::from(&message_string),
+            _ => Message::new()
+        }
+    }
+}
+
+impl From<&Message> for DebugEvent {
+    fn from(msg: &Message) -> Self {
+        match msg.as_str() {
+            Some(message_string) => {
+                match serde_json::from_str(message_string) {
+                    Ok(message) => message,
+                    _ => DebugEvent::Invalid
+                }
+            },
+            _ => DebugEvent::Invalid
+        }
+    }
+}
+
+impl From<&DebugResponse> for Message {
+    fn from(msg: &DebugResponse) -> Self {
+        match serde_json::to_string(msg) {
+            Ok(message_string) => Message::from(&message_string),
+            _ => Message::new()
+        }
+    }
+}
+
+impl From<&Message> for DebugResponse {
+    fn from(msg: &Message) -> Self {
+        match msg.as_str() {
+            Some(message_string) => {
+                match serde_json::from_str(message_string) {
+                    Ok(message) => message,
+                    _ => DebugResponse::Invalid
+                }
+            },
+            _ => DebugResponse::Invalid
+        }
+    }
+}
 
 pub struct RuntimeClientConnection {
     channels: (Arc<Mutex<Receiver<Event>>>, Sender<Response>)

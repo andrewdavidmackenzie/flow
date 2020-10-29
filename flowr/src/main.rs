@@ -79,7 +79,7 @@ fn run() -> Result<String> {
     let native = matches.is_present("native");
     let flow_args = get_flow_args(&matches, &flow_manifest_url);
 
-    let submission = Submission::new(&flow_manifest_url,
+    let submission = Submission::new(&flow_manifest_url.to_string(),
                                      num_parallel_jobs(&matches, debugger),
                                      debugger);
 

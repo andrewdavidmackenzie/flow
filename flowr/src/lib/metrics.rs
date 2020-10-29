@@ -3,11 +3,15 @@ use std::fmt;
 use std::time::Instant;
 
 use log::debug;
+use serde_derive::{Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize)]
 pub struct Metrics {
     num_functions: usize,
     jobs_created: usize,
     outputs_sent: u32,
+    #[serde(skip)]
+    #[serde(default = "Metrics::default_start_time")]
     start_time: Instant,
     max_simultaneous_jobs: usize,
 }
@@ -41,6 +45,10 @@ impl Metrics {
 
     pub fn track_max_jobs(&mut self, jobs_running: usize) {
         self.max_simultaneous_jobs = max(self.max_simultaneous_jobs, jobs_running);
+    }
+
+    pub fn default_start_time() -> Instant {
+        Instant::now()
     }
 }
 

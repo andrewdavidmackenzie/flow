@@ -136,7 +136,7 @@ pub fn run_manifest(args: Vec<String>) {
                     Some(manifest_url) => {
                         set_args(args);
                         // let debug_client = CLI_DEBUG_CLIENT;
-                        let _submission = Submission::new(manifest_url,
+                        let _submission = Submission::new(&manifest_url.to_string(),
                                                           1,
                                                           false);
                         // let mut coordinator = Coordinator::new(1);

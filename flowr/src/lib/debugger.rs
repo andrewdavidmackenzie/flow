@@ -256,6 +256,7 @@ impl Debugger {
                 }
                 Ack => {}
                 Response::Error(_) => {/* client error */}
+                Response::Invalid => {}
             };
         }
     }
