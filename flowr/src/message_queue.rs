@@ -1,5 +1,5 @@
 use log::error;
-/// This is the channel-based implementation of the client_server communications
+/// This is the message-queue implementation of the client_server communications
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender};

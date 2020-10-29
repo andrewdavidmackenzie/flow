@@ -11,9 +11,6 @@
 #[macro_use]
 extern crate error_chain;
 
-#[cfg(not(feature = "message_queue"))]
-pub use channels::client_server;
-
 /// `info` offers methods to get information about this library
 pub mod info;
 /// `coordinator` is the module that coordinates the execution of flows submitted to it
@@ -24,10 +21,10 @@ pub mod loader;
 /// to user code like a library
 mod flowruntime;
 
-/// A module that implements the client-server communications between debug/runtime clients and
-/// the servers
-#[cfg(not(feature = "message_queue"))]
-mod channels;
+#[cfg_attr(feature = "distributed", path = "message_queue.rs")]
+#[cfg_attr(feature = "single_process", path = "channels.rs")]
+pub mod client_server;
+
 /// 'debug' defines structs passed between the Server and the Client regarding debug events
 /// and client responses to them
 #[cfg(feature = "debugger")]
