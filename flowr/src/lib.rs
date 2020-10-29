@@ -11,6 +11,9 @@
 #[macro_use]
 extern crate error_chain;
 
+#[cfg(not(feature = "message_queue"))]
+pub use channels::client_server;
+
 /// `info` offers methods to get information about this library
 pub mod info;
 /// `coordinator` is the module that coordinates the execution of flows submitted to it
@@ -23,15 +26,15 @@ mod flowruntime;
 
 /// A module that implements the client-server communications between debug/runtime clients and
 /// the servers
-pub mod client_server;
-
-/// 'debug_client' is used to connect a debugger to the run-time for debugging of flows
-/// and is an optional feature called "debugger"
+#[cfg(not(feature = "message_queue"))]
+mod channels;
+/// 'debug' defines structs passed between the Server and the Client regarding debug events
+/// and client responses to them
 #[cfg(feature = "debugger")]
 pub mod debug;
 
-/// 'runtime_client' is used to connect to a runtime client that provides the implementations for
-/// the required runtime functions.
+/// 'runtime' defines structs passed between the Server and the Client regarding runtime events
+/// and client responses to them
 pub mod runtime;
 
 #[cfg(feature = "debugger")]

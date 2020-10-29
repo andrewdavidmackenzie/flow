@@ -141,7 +141,7 @@ trim-docs:
 .PHONY: code-docs
 code-docs: $(SOURCES)
 	$(STIME)
-	@cargo doc --workspace --quiet --all-features --no-deps --target-dir=target/html/code
+	@cargo doc --workspace --quiet --no-deps --target-dir=target/html/code
 	$(ETIME)
 
 .PHONY: pages
@@ -179,7 +179,7 @@ clippy: $(SOURCES)
 .PHONY: test
 test: $(SOURCES)
 	$(STIME)
-	@set -o pipefail && cargo test --all-features --workspace --exclude flow_impl_derive --exclude flowide 2>&1 | tee .test.log
+	@set -o pipefail && cargo test --workspace --exclude flow_impl_derive --exclude flowide 2>&1 | tee .test.log
 	$(ETIME)
 
 .test.log: test

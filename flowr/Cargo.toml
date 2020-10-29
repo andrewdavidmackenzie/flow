@@ -24,6 +24,7 @@ debugger = [] # feature to add the debugger
 native = []   # Load native implementations of functions in libraries when possible
 metrics = []  # feature for tracking of metrics during execution
 checks = []   # feature to perform extra checks during flow execution
+message_queue = [] # Use the message-queue based implementation of client-server communications to enable network use
 
 [dependencies.flowrstructs]
 path = "../flowrstructs"
