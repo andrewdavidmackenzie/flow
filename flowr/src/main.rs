@@ -72,20 +72,28 @@ fn main() {
 }
 
 fn run() -> Result<()> {
+    info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+    info!("'flowrlib' version {}", flowrlib_info::version());
+
     let matches = get_matches();
 
     SimpleLogger::init(matches.value_of("verbosity"));
     let debugger = matches.is_present("debugger");
     let native = matches.is_present("native");
+    let server = matches.is_present("server");
 
-    let (runtime_connection, debugger_connection) = Coordinator::connect(num_threads(&matches, debugger), native);
+    // Start the coordinator server either on the main thread or as a background thread
+    // depending on the value of the "server" option
+    let (runtime_connection, debugger_connection) = Coordinator::server(
+        num_threads(&matches, debugger), native, server);
 
-    if cfg!(feature = "single_process") || matches.is_present("client") {
+    if !server {
         let flow_manifest_url = parse_flow_url(&matches)?;
         let flow_args = get_flow_args(&matches, &flow_manifest_url);
         let submission = Submission::new(&flow_manifest_url.to_string(),
                                          num_parallel_jobs(&matches, debugger),
                                          debugger);
+
 
         runtime_connection.client_send(ClientSubmission(submission))?;
 
@@ -194,7 +202,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .help("Set verbosity level for output (trace, debug, info, warn, error (default))"))
         .arg(Arg::with_name("flow-manifest")
             .help("the file path of the 'flow' manifest file")
-            .required(true)
+            .required(false)
             .index(1))
         .arg(Arg::with_name("flow-arguments")
             .multiple(true)
@@ -205,12 +213,6 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .short("s")
         .long("server")
         .help("Launch as flowr server"));
-
-    #[cfg(feature = "distributed")]
-        let app = app.arg(Arg::with_name("client")
-        .short("c")
-        .long("client")
-        .help("Launch as flowr client"));
 
     #[cfg(feature = "debugger")]
         let app = app.arg(Arg::with_name("debugger")
@@ -237,9 +239,6 @@ fn get_matches<'a>() -> ArgMatches<'a> {
     Parse the command line arguments passed onto the flow itself
 */
 fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
-    info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    info!("'flowrlib' version {}", flowrlib_info::version());
-
     let cwd = env::current_dir().chain_err(|| "Could not get current working directory value")?;
     let cwd_url = Url::from_directory_path(cwd)
         .map_err(|_| "Could not form a Url for the current working directory")?;

@@ -327,16 +327,6 @@ dependencies = [
 
 [[package]]
 name = "flow_impl_derive"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "554eb3c8c57cda138c30ce1704205791bb31f38d0d9166d1ac5d2d9184707e57"
-dependencies = [
- "quote",
- "syn",
-]
-
-[[package]]
-name = "flow_impl_derive"
 version = "0.11.0"
 dependencies = [
  "quote",
@@ -399,7 +389,7 @@ dependencies = [
  "clap",
  "ctrlc",
  "error-chain 0.12.4",
- "flow_impl 0.10.0",
+ "flow_impl 0.11.0",
  "flowrstructs",
  "flowstdlib",
  "image",
@@ -422,7 +412,7 @@ name = "flowrstructs"
 version = "0.11.0"
 dependencies = [
  "error-chain 0.12.4",
- "flow_impl 0.10.0",
+ "flow_impl 0.11.0",
  "log",
  "provider",
  "serde",
@@ -434,8 +424,8 @@ dependencies = [
 name = "flowstdlib"
 version = "0.11.0"
 dependencies = [
- "flow_impl 0.10.0",
- "flow_impl_derive 0.10.0",
+ "flow_impl 0.11.0",
+ "flow_impl_derive",
  "flowrstructs",
  "image",
  "serde_json",

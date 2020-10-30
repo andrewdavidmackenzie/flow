@@ -94,12 +94,14 @@ pub struct Coordinator {
 /// use flowrlib::runtime::Event as RuntimeEvent;
 /// use flowrlib::runtime::Response::ClientSubmission;
 ///
+/// let (runtime_connection, debugger_connection) = Coordinator::server(1 /* num_threads */,
+///                                                                      true, /* native */
+///                                                                     false /* server */);
+///
 /// let mut submission = Submission::new("file:///temp/fake.toml",
 ///                                     1 /* num_parallel_jobs */,
 ///                                     true /* enter debugger on start */);
 ///
-/// let (runtime_connection, debugger_connection) = Coordinator::connect(1 /* num_threads */,
-///                                                                      true /* native */);
 ///
 /// runtime_connection.client_send(ClientSubmission(submission)).unwrap();
 /// exit(0);
@@ -130,7 +132,7 @@ impl Coordinator {
         self.runtime_server_context.clone()
     }
 
-    pub fn connect(num_threads: usize, native: bool) -> (RuntimeClientConnection, DebuggerClientConnection) {
+    pub fn server(num_threads: usize, native: bool, server: bool) -> (RuntimeClientConnection, DebuggerClientConnection) {
         let runtime_server_context = RuntimeServerContext::new();
         let debug_server_context = DebugServerContext::new();
 
@@ -139,10 +141,15 @@ impl Coordinator {
 
         let mut coordinator = Coordinator::new(runtime_server_context, debug_server_context, num_threads);
 
-        #[cfg(feature = "single_process")]
-        std::thread::spawn(move || {
+        if server {
+            info!("Starting 'flowr' server on main thread");
             coordinator.start(native);
-        });
+        } else {
+            std::thread::spawn(move || {
+                info!("Starting 'flowr' server as background thread");
+                coordinator.start(native);
+            });
+        }
 
         (runtime_connection, debugger_connection)
     }
@@ -153,6 +160,7 @@ impl Coordinator {
     /// If the message is any other then loop until we find one of the above
     fn wait_for_submission(&self) -> Option<Submission> {
         loop {
+            info!("'flowr' is waiting to receive a 'Submission'");
             match self.runtime_server_context.lock() {
                 Ok(guard) => {
                     match guard.get_response() {

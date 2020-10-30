@@ -1,13 +1,13 @@
 use std::sync::{Arc, Mutex};
 
-use flow_impl::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use serde_json::{json, Value};
+
+use flow_impl::{DONT_RUN_AGAIN, Implementation, RunAgain};
 
 use crate::client_server::RuntimeServerContext;
 use crate::runtime::{Event, Response};
 
 /// `Implementation` struct for the `get` function
-#[derive(Debug)]
 pub struct Get {
     /// It holds a reference to the runtime client in order to Get the Args
     pub server_context: Arc<Mutex<RuntimeServerContext>>

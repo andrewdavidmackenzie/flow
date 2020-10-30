@@ -23,7 +23,7 @@ mod flowruntime;
 
 #[allow(unused_attributes)]
 #[cfg_attr(feature = "distributed", path = "client_server/message_queue.rs")]
-#[cfg_attr(feature = "single_process", path = "client_server/channels.rs")]
+#[cfg_attr(not(feature = "distributed"), path = "client_server/channels.rs")]
 pub mod client_server;
 
 /// 'debug' defines structs passed between the Server and the Client regarding debug events

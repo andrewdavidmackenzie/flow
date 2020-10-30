@@ -1,13 +1,13 @@
 use std::sync::{Arc, Mutex};
 
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use serde_json::Value;
+
+use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 
 use crate::client_server::RuntimeServerContext;
 use crate::runtime::{Event, Response};
 
 /// `Implementation` struct for the `image_buffer` function
-#[derive(Debug)]
 pub struct ImageBuffer {
     /// It holds a reference to the runtime client in order to send commands
     pub server_context: Arc<Mutex<RuntimeServerContext>>

@@ -19,12 +19,11 @@ name = "flowrlib"
 path = "src/lib/lib.rs"
 
 [features]
-default = ["debugger", "native", "metrics", "checks", "single_process"]
+default = ["debugger", "native", "metrics", "checks"]
 debugger = [] # feature to add the debugger
 native = []   # Load native implementations of functions in libraries when possible
 metrics = []  # feature for tracking of metrics during execution
 checks = []   # feature to perform extra checks during flow execution
-single_process = [] # Limit to a single process
 distributed = ["zmq"] # Allow distributed multi-process client and server operation
 
 [dependencies.flowrstructs]
@@ -32,7 +31,7 @@ path = "../flowrstructs"
 features = ["debugger"]
 
 [dependencies]
-flow_impl = "=0.10.0"
+flow_impl = {path = "../flow_impl" }
 flowstdlib = {path = "../flowstdlib"}
 provider = {path = "../provider"}
 clap = "~2"

@@ -4,12 +4,12 @@ use std::fmt;
 use std::sync::Arc;
 use std::time::Duration;
 
-use flow_impl::Implementation;
 use log::{debug, error, info, trace};
 use multimap::MultiMap;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+use flow_impl::Implementation;
 use flowrstructs::function::Function;
 use flowrstructs::output_connection::OutputConnection;
 
@@ -31,7 +31,7 @@ pub enum State {
     Running,     //is being run somewhere
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Job {
     pub job_id: usize,
     pub function_id: usize,
@@ -43,6 +43,16 @@ pub struct Job {
     pub implementation: Arc<dyn Implementation>,
     pub result: (Option<Value>, bool),
     pub error: Option<String>,
+}
+
+impl fmt::Display for Job {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Job Id: {}, Function Id: {}, Flow Id: {}", self.job_id, self.function_id, self.flow_id)?;
+        writeln!(f, "Inputs: {:?}", self.input_set)?;
+        writeln!(f, "Connections: {:?}", self.connections)?;
+        writeln!(f, "Result: {:?}", self.result)?;
+        write!(f, "Error: {:?}", self.error)
+    }
 }
 
 /// blocks: (blocking_id, blocking_io_number, blocked_id, blocked_flow_id) a blocks between functions
@@ -1022,10 +1032,10 @@ impl fmt::Display for RunState {
 mod test {
     use std::sync::Arc;
 
-    use flow_impl::Implementation;
     use serde_json::json;
     use serde_json::Value;
 
+    use flow_impl::Implementation;
     use flowrstructs::function::Function;
     use flowrstructs::input::Input;
     use flowrstructs::input::InputInitializer::Once;

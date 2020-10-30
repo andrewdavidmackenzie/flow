@@ -149,7 +149,7 @@ impl CLIDebugClient {
                 return Self::get_user_command(jobs_created);
             }
             JobError(job) => {
-                println!("Error occurred executing a Job: \n'{:?}'", job);
+                println!("Error occurred executing a Job: \n'{}'", job);
                 return Self::get_user_command(job.job_id);
             }
             EnteringDebugger =>
