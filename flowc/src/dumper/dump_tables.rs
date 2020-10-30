@@ -102,7 +102,6 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Resul
 ///
 /// let dummy_provider = DummyProvider {};
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-/// println!("url = {:?}", url);
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
 ///
 /// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url.to_string(),

@@ -43,7 +43,6 @@ authors: [unknown <unknown@unknown.com>]
 
         let yaml = FlowYamlLoader {};
         let flow = yaml.deserialize(&flow_description.replace("'", "\""), None);
-        println!("{:?}", flow);
         assert!(flow.is_ok());
     }
 }

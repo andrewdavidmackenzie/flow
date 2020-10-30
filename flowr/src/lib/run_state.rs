@@ -1172,8 +1172,6 @@ mod test {
             let mut state = RunState::new(&functions, submission);
 
             state.init();
-
-            println!("{}", state);
         }
 
         #[cfg(any(feature = "debugger"))]
@@ -2087,13 +2085,11 @@ mod test {
         #[test]
         fn display_block_test() {
             let block = super::super::Block::new(1, 2, 0, 1, 0);
-            println!("Block: {}", block);
         }
 
         #[test]
         fn debug_block_test() {
             let block = super::super::Block::new(1, 2, 0, 1, 0);
-            println!("Block: {:?}", block);
         }
     }
 
@@ -2193,7 +2189,6 @@ mod test {
                 RunState::type_convert_and_send(&mut function, &destination, &test_case.value);
 
                 // Check
-                println!("TestCase: {:?}", test_case);
                 assert_eq!(test_case.value_expected, function.take_input_set().unwrap().remove(0));
             }
         }

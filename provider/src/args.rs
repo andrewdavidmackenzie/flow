@@ -115,7 +115,6 @@ mod test {
         let url = url_from_string(&root_url, Some(&relative_path_to_file)).unwrap();
 
         let abs_path = format!("{}{}", root.display(), relative_path_to_file);
-        println!("abs_path = {}", abs_path);
         assert_eq!(url.scheme(), "file");
         assert_eq!(url.path(), abs_path);
     }

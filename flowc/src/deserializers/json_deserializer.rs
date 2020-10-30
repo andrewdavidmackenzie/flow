@@ -49,7 +49,6 @@ mod test {
 }";
         let toml = FlowJsonLoader {};
         let flow = toml.deserialize(&flow_description.replace("'", "\""), None);
-        println!("{:?}", flow);
         assert!(flow.is_ok());
     }
 
@@ -81,7 +80,6 @@ mod test {
 }";
         let toml = FlowJsonLoader {};
         let flow = toml.deserialize(&flow_description.replace("'", "\""), None);
-        println!("{:?}", flow);
         assert!(flow.is_ok());
     }
 

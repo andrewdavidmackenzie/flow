@@ -31,7 +31,6 @@ mod helper;
 #[test]
 fn malformed_connection() {
     let meta_provider = MetaProvider {};
-    println!("Test 'malformed_connection()' at {}, line {}, CWD={}, loading: flowc/tests/test-flows/malformed-connection.toml", file!(), line!(), std::env::current_dir().unwrap().display());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/malformed-connection.toml");
     if loader::load(&path, &meta_provider).is_ok() {
         panic!("malformed-connection.toml should not load successfully");
