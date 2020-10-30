@@ -71,29 +71,33 @@ fn main() {
     }
 }
 
-fn run() -> Result<String> {
+fn run() -> Result<()> {
     let matches = get_matches();
+
     SimpleLogger::init(matches.value_of("verbosity"));
-    let flow_manifest_url = parse_flow_url(&matches)?;
     let debugger = matches.is_present("debugger");
     let native = matches.is_present("native");
-    let flow_args = get_flow_args(&matches, &flow_manifest_url);
-
-    let submission = Submission::new(&flow_manifest_url.to_string(),
-                                     num_parallel_jobs(&matches, debugger),
-                                     debugger);
 
     let (runtime_connection, debugger_connection) = Coordinator::connect(num_threads(&matches, debugger), native);
 
-    runtime_connection.client_send(ClientSubmission(submission))?;
+    if cfg!(feature = "single_process") || matches.is_present("client") {
+        let flow_manifest_url = parse_flow_url(&matches)?;
+        let flow_args = get_flow_args(&matches, &flow_manifest_url);
+        let submission = Submission::new(&flow_manifest_url.to_string(),
+                                         num_parallel_jobs(&matches, debugger),
+                                         debugger);
 
-    CLIDebugClient::start(debugger_connection);
-    CLIRuntimeClient::start(runtime_connection,
-                            flow_args,
-                            #[cfg(feature = "metrics")]
-                                matches.is_present("metrics"),
-    );
-    Ok("Event loop exited".into())
+        runtime_connection.client_send(ClientSubmission(submission))?;
+
+        CLIDebugClient::start(debugger_connection);
+        CLIRuntimeClient::start(runtime_connection,
+                                flow_args,
+                                #[cfg(feature = "metrics")]
+                                    matches.is_present("metrics"),
+        );
+    }
+
+    Ok(())
 }
 
 
@@ -171,11 +175,11 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .version(env!("CARGO_PKG_VERSION"));
 
     let app = app.arg(Arg::with_name("jobs")
-            .short("j")
-            .long("jobs")
-            .takes_value(true)
-            .value_name("MAX_JOBS")
-            .help("Set maximum number of jobs that can be running in parallel)"))
+        .short("j")
+        .long("jobs")
+        .takes_value(true)
+        .value_name("MAX_JOBS")
+        .help("Set maximum number of jobs that can be running in parallel)"))
         .arg(Arg::with_name("threads")
             .short("t")
             .long("threads")
@@ -196,14 +200,26 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .multiple(true)
             .help("A list of arguments to pass to the flow when executed."));
 
+    #[cfg(feature = "distributed")]
+        let app = app.arg(Arg::with_name("server")
+        .short("s")
+        .long("server")
+        .help("Launch as flowr server"));
+
+    #[cfg(feature = "distributed")]
+        let app = app.arg(Arg::with_name("client")
+        .short("c")
+        .long("client")
+        .help("Launch as flowr client"));
+
     #[cfg(feature = "debugger")]
-    let app = app.arg(Arg::with_name("debugger")
+        let app = app.arg(Arg::with_name("debugger")
         .short("d")
         .long("debugger")
         .help("Enable the debugger when running a flow"));
 
     #[cfg(feature = "metrics")]
-    let app = app.arg(Arg::with_name("metrics")
+        let app = app.arg(Arg::with_name("metrics")
         .short("m")
         .long("metrics")
         .help("Calculate metrics during flow execution and print them out when done"));

@@ -6,12 +6,10 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::sync::mpsc;
 use zmq::Message;
 
-use crate::coordinator::Coordinator;
 #[cfg(feature = "debugger")]
 use crate::debug::Event as DebugEvent;
 #[cfg(feature = "debugger")]
 use crate::debug::Response as DebugResponse;
-use crate::debugger::Debugger;
 use crate::errors::*;
 use crate::runtime::{Event, Response};
 
@@ -112,12 +110,9 @@ pub struct RuntimeClientConnection {
 }
 
 impl RuntimeClientConnection {
-    pub fn new(coordinator: &Coordinator) -> Self {
-        let context = coordinator.get_server_context();
-        let guard = context.lock().unwrap();
-
+    pub fn new(runtime_server_context: &RuntimeServerContext) -> Self {
         RuntimeClientConnection {
-            channels: guard.get_client_channels()
+            channels: runtime_server_context.get_client_channels()
         }
     }
 
@@ -138,9 +133,9 @@ pub struct DebuggerClientConnection {
 }
 
 impl DebuggerClientConnection {
-    pub fn new(debugger: &Debugger) -> Self {
+    pub fn new(debug_server_context: &DebugServerContext) -> Self {
         DebuggerClientConnection {
-            channels: debugger.server_context.get_channels()
+            channels: debug_server_context.get_channels()
         }
     }
 

@@ -9,7 +9,8 @@ use serde_derive::{Deserialize, Serialize};
 use flowrstructs::manifest::Manifest;
 use provider::content::provider::MetaProvider;
 
-use crate::client_server::{DebuggerClientConnection, RuntimeClientConnection, RuntimeServerContext};
+use crate::client_server::{DebuggerClientConnection, DebugServerContext,
+                           RuntimeClientConnection, RuntimeServerContext};
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 use crate::errors::*;
@@ -71,7 +72,7 @@ pub struct Coordinator {
     /// A channel used to receive Jobs back after execution (now including the job's output)
     job_rx: Receiver<Job>,
     /// Get messages from clients over channels
-    server_context: Arc<Mutex<RuntimeServerContext>>,
+    runtime_server_context: Arc<Mutex<RuntimeServerContext>>,
     #[cfg(feature = "debugger")]
     debugger: Debugger,
 }
@@ -106,7 +107,7 @@ pub struct Coordinator {
 ///
 impl Coordinator {
     /// Create a new `coordinator` with `num_threads` executor threads
-    fn new(num_threads: usize) -> Self {
+    fn new(runtime_server_context: RuntimeServerContext, debug_server_context: DebugServerContext, num_threads: usize) -> Self {
         let (job_tx, job_rx, ) = mpsc::channel();
         let (output_tx, output_rx) = mpsc::channel();
 
@@ -119,22 +120,26 @@ impl Coordinator {
         Coordinator {
             job_tx,
             job_rx: output_rx,
-            server_context: Arc::new(Mutex::new(RuntimeServerContext::new())),
+            runtime_server_context: Arc::new(Mutex::new(runtime_server_context)),
             #[cfg(feature = "debugger")]
-            debugger: Debugger::new(),
+            debugger: Debugger::new(debug_server_context),
         }
     }
 
     pub fn get_server_context(&self) -> Arc<Mutex<RuntimeServerContext>> {
-        self.server_context.clone()
+        self.runtime_server_context.clone()
     }
 
     pub fn connect(num_threads: usize, native: bool) -> (RuntimeClientConnection, DebuggerClientConnection) {
-        let mut coordinator = Coordinator::new(num_threads);
+        let runtime_server_context = RuntimeServerContext::new();
+        let debug_server_context = DebugServerContext::new();
 
-        let runtime_connection = RuntimeClientConnection::new(&coordinator);
-        let debugger_connection = DebuggerClientConnection::new(&coordinator.debugger);
+        let runtime_connection = RuntimeClientConnection::new(&runtime_server_context);
+        let debugger_connection = DebuggerClientConnection::new(&debug_server_context);
 
+        let mut coordinator = Coordinator::new(runtime_server_context, debug_server_context, num_threads);
+
+        #[cfg(feature = "single_process")]
         std::thread::spawn(move || {
             coordinator.start(native);
         });
@@ -148,7 +153,7 @@ impl Coordinator {
     /// If the message is any other then loop until we find one of the above
     fn wait_for_submission(&self) -> Option<Submission> {
         loop {
-            match self.server_context.lock() {
+            match self.runtime_server_context.lock() {
                 Ok(guard) => {
                     match guard.get_response() {
                         Response::ClientSubmission(submission) => {
@@ -172,7 +177,7 @@ impl Coordinator {
     pub fn start(&mut self, native: bool) {
         while let Some(submission) = self.wait_for_submission() {
             if let Ok(mut manifest) = Self::load_from_manifest(&submission.manifest_url,
-                                                               self.server_context.clone(),
+                                                               self.runtime_server_context.clone(),
                                                                native) {
                 let state = RunState::new(manifest.get_functions(), submission);
                 self.execute_flow(state);
@@ -197,7 +202,7 @@ impl Coordinator {
             #[cfg(feature = "metrics")]
                 metrics.reset();
 
-            self.server_context.lock().unwrap().send_event(Event::FlowStart);
+            self.runtime_server_context.lock().unwrap().send_event(Event::FlowStart);
 
             #[cfg(feature = "debugger")]
             if state.debug {
@@ -280,10 +285,10 @@ impl Coordinator {
                     #[cfg(feature = "metrics")]
                         {
                             metrics.set_jobs_created(state.jobs_created());
-                            self.server_context.lock().unwrap().send_event(Event::FlowEnd(metrics));
+                            self.runtime_server_context.lock().unwrap().send_event(Event::FlowEnd(metrics));
                         }
                     #[cfg(not(feature = "metrics"))]
-                        self.server_context.lock().unwrap().send_event(Event::FlowEnd);
+                        self.runtime_server_context.lock().unwrap().send_event(Event::FlowEnd);
                     debug!("{}", state);
                     break 'flow_execution;
                 }
@@ -390,10 +395,5 @@ mod test {
                                 #[cfg(feature = "debugger")]
                                     false,
         );
-    }
-
-    #[test]
-    fn test_create() {
-        let _ = super::Coordinator::new(0);
     }
 }

@@ -1221,6 +1221,8 @@ mod test {
         use flowrstructs::input::InputInitializer::{Always, Once};
         use flowrstructs::output_connection::OutputConnection;
 
+        #[cfg(feature = "debugger")]
+        use crate::client_server::DebugServerContext;
         use crate::coordinator::Submission;
         #[cfg(feature = "debugger")]
         use crate::debugger::Debugger;
@@ -1398,7 +1400,9 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new();
+                let debug_server_context = DebugServerContext::new();
+            #[cfg(feature = "debugger")]
+                let mut debugger = Debugger::new(debug_server_context);
 
             // Initial state
             state.init();
@@ -1436,7 +1440,9 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new();
+                let debug_server_context = DebugServerContext::new();
+            #[cfg(feature = "debugger")]
+                let mut debugger = Debugger::new(debug_server_context);
 
             // Initial state
             state.init();
@@ -1478,7 +1484,9 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new();
+                let debug_server_context = DebugServerContext::new();
+            #[cfg(feature = "debugger")]
+                let mut debugger = Debugger::new(debug_server_context);
 
             state.init();
             let output = super::error_output(0, 1);
@@ -1525,7 +1533,9 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new();
+                let debug_server_context = DebugServerContext::new();
+            #[cfg(feature = "debugger")]
+                let mut debugger = Debugger::new(debug_server_context);
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
             let job = state.next_job().unwrap();
@@ -1559,7 +1569,9 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new();
+                let debug_server_context = DebugServerContext::new();
+            #[cfg(feature = "debugger")]
+                let mut debugger = Debugger::new(debug_server_context);
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
             let job = state.next_job().unwrap();
@@ -1603,7 +1615,10 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new();
+                let debug_server_context = DebugServerContext::new();
+            #[cfg(feature = "debugger")]
+                let mut debugger = Debugger::new(debug_server_context);
+
             state.init();
 
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
@@ -1648,7 +1663,10 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new();
+                let debug_server_context = DebugServerContext::new();
+            #[cfg(feature = "debugger")]
+                let mut debugger = Debugger::new(debug_server_context);
+
             state.init();
             assert_eq!(State::Waiting, state.get_state(0), "f_a should be Waiting");
 
@@ -1690,7 +1708,10 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new();
+                let debug_server_context = DebugServerContext::new();
+            #[cfg(feature = "debugger")]
+                let mut debugger = Debugger::new(debug_server_context);
+
             state.init();
 
             assert_eq!(state.get_state(1), State::Ready, "f_b should be Ready");
@@ -1742,7 +1763,10 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(2);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new();
+                let debug_server_context = DebugServerContext::new();
+            #[cfg(feature = "debugger")]
+                let mut debugger = Debugger::new(debug_server_context);
+
             state.init();
 
             assert_eq!(state.get_state(0), State::Ready, "f_a should be Ready");
@@ -1803,6 +1827,8 @@ mod test {
         use flowrstructs::input::Input;
         use flowrstructs::output_connection::OutputConnection;
 
+        #[cfg(feature = "debugger")]
+        use crate::client_server::DebugServerContext;
         use crate::coordinator::Submission;
         #[cfg(feature = "debugger")]
         use crate::debugger::Debugger;
@@ -1853,7 +1879,9 @@ mod test {
                                              1, true);
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new();
+                let debug_server_context = DebugServerContext::new();
+            #[cfg(feature = "debugger")]
+                let mut debugger = Debugger::new(debug_server_context);
 
 // Indicate that 0 is blocked by 1 on input 0
             state.create_block(0, 1, 0, 0, 0,
@@ -1910,7 +1938,9 @@ mod test {
                                              1, true);
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new();
+                let debug_server_context = DebugServerContext::new();
+            #[cfg(feature = "debugger")]
+                let mut debugger = Debugger::new(debug_server_context);
 
 // Indicate that 0 is blocked by 1 on input 0
             state.create_block(0, 1, 0, 0, 0,
@@ -1929,7 +1959,9 @@ mod test {
                                              1, true);
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new();
+                let debug_server_context = DebugServerContext::new();
+            #[cfg(feature = "debugger")]
+                let mut debugger = Debugger::new(debug_server_context);
 
             // Indicate that 0 is blocked by 1 and put 0 on the blocked list
             state.create_block(0, 1, 0, 0, 0,
@@ -1953,7 +1985,9 @@ mod test {
                                              1, true);
             let mut state = RunState::new(&test_functions(), submission);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new();
+                let debug_server_context = DebugServerContext::new();
+            #[cfg(feature = "debugger")]
+                let mut debugger = Debugger::new(debug_server_context);
 
 // Indicate that 0 is blocked by 1 and 2
             state.create_block(0, 1, 0, 0, 0,
@@ -2008,7 +2042,9 @@ mod test {
             #[cfg(feature = "metrics")]
                 let mut metrics = Metrics::new(1);
             #[cfg(feature = "debugger")]
-                let mut debugger = Debugger::new();
+                let debug_server_context = DebugServerContext::new();
+            #[cfg(feature = "debugger")]
+                let mut debugger = Debugger::new(debug_server_context);
             state.init();
 
             assert_eq!(state.next_job().unwrap().function_id, 0);

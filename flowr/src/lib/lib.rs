@@ -21,6 +21,7 @@ pub mod loader;
 /// to user code like a library
 mod flowruntime;
 
+#[allow(unused_attributes)]
 #[cfg_attr(feature = "distributed", path = "client_server/message_queue.rs")]
 #[cfg_attr(feature = "single_process", path = "client_server/channels.rs")]
 pub mod client_server;
