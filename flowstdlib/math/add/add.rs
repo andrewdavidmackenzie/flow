@@ -1,8 +1,9 @@
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
-use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 use serde_json::Value::Number;
 use serde_json::Value::String;
+
+use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
+use flow_impl_derive::FlowImpl;
 
 #[derive(FlowImpl)]
 /// Add two inputs to produce a new output
@@ -62,9 +63,10 @@ impl Implementation for Add {
 
 #[cfg(test)]
 mod test {
-    use flow_impl::Implementation;
     use serde_json::Value;
     use serde_json::Value::Number;
+
+    use flow_impl::Implementation;
 
     use super::Add;
 
@@ -110,7 +112,6 @@ mod test {
         let added = Add {};
 
         for test in &integer_test_set {
-            println!("Testing add of {:?}", test);
             let (output, again) = added.run(&get_inputs(test));
 
             assert_eq!(true, again);

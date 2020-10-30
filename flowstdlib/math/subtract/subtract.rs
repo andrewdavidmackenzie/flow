@@ -1,7 +1,8 @@
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
-use flow_impl_derive::FlowImpl;
 use serde_json::Value;
 use serde_json::Value::Number;
+
+use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
+use flow_impl_derive::FlowImpl;
 
 #[derive(FlowImpl)]
 /// Subtract one input from another to produce a new output
@@ -44,9 +45,10 @@ impl Implementation for Subtract {
 
 #[cfg(test)]
 mod test {
-    use flow_impl::Implementation;
     use serde_json::Value;
     use serde_json::Value::Number;
+
+    use flow_impl::Implementation;
 
     use super::Subtract;
 
@@ -92,7 +94,6 @@ mod test {
         let suber = Subtract {};
 
         for test in &integer_test_set {
-            println!("Testing subtraction of {:?}", test);
             let (output, again) = suber.run(&get_inputs(test));
 
             assert_eq!(true, again);
