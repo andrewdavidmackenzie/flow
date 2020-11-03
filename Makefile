@@ -314,48 +314,6 @@ online-samples:
 	@echo "Hello" | cargo run --p flowc -- https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 	$(ETIME)
 
-################# Packaging ################
-#### Due to dependencies between packages, they need to be published in a given order. Basically this is a DAG and
-#### you need to publish from the leaves at the bottom, upwards. I have separated into layers as there are some
-#### groups of packages (in same layer) that have same dependencies but are indpendant and they could be published
-#### in parallel. But they both need to be published before the next layer up.
-#### Level 0 - the root
-.PHONY: publish
-publish: flowc-publish flowr-publish flowide-publish
-
-#### Level 1 - flowc and flowide - no dependency between them
-.PHONY: flowc-publish
-flowc-publish: flowr-publish provider-publish
-	cargo publish --manifest-path=flowc/Cargo.toml
-
-.PHONY: flowide-publish
-flowide-publish: flowc-publish provider-publish flow-impl-publish flowstdlib-publish
-	cargo publish --manifest-path=flowide/Cargo.toml
-
-#### Level 2 - flowr
-.PHONY: flowr-publish
-flowr-publish: provider-publish flow-impl-publish flowstdlib-publish
-	cargo publish --manifest-path=flowr/Cargo.toml
-
-#### Level 3 - provider
-.PHONY: provider-publish
-provider-publish:
-	cargo publish --manifest-path=provider/Cargo.toml
-
-#### Level 4 - flowstdlib
-.PHONY: flowstdlib-publish
-flowstdlib-publish: flow-impl-publish flow-impl-derive-publish
-	cargo publish --manifest-path=flowstdlib/Cargo.toml
-
-#### Level 7 - flow-impl-publish flow-impl-derive-publish
-.PHONY: flow-impl-publish
-flow-impl-publish:
-	cargo publish --manifest-path=flow_impl/Cargo.toml
-
-.PHONY: flow-impl-derive-publish
-flow-impl-derive-publish:
-	cargo publish --manifest-path=flow_impl_derive/Cargo.toml
-
 ################# Clean ################
 .PHONY: clean
 clean:
