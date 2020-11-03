@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use std::path::Path;
 
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
-use log::{debug, info};
+use log::{debug, error, info, trace};
 
 use flowrlib::client_server::RuntimeClientConnection;
 use flowrlib::coordinator::Submission;
@@ -39,21 +39,27 @@ impl CLIRuntimeClient {
     ) {
         Self::capture_control_c(&connection);
         connection.start().unwrap();
+        trace!("Connection from Runtime client to Runtime server started");
 
+        debug!("Runtime client sending submission to server");
         connection.client_send(ClientSubmission(submission)).unwrap();
 
         let mut runtime_client = CLIRuntimeClient::new(flow_args, display_metrics);
 
         loop {
+            debug!("Runtime client waiting for message from server");
             match connection.client_recv() {
                 Ok(event) => {
+                    trace!("Runtime client received event from server: {:?}", event);
                     let response = runtime_client.process_event(event);
                     if response == Response::ClientExiting {
                         return;
                     }
+                    trace!("Runtime client sending response to server: {:?}", response);
                     let _ = connection.client_send(response);
                 }
-                Err(_) => {
+                Err(e) => {
+                    error!("Error receiving Event in runtime client: {}", e);
                     return;
                 }
             }

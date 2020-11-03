@@ -5,7 +5,7 @@ use crate::coordinator::Submission;
 use crate::metrics::Metrics;
 
 /// A run-time Event sent from the run-time to a runtime_client
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Event {
     /// A flow has started executing
     FlowStart,
@@ -41,7 +41,7 @@ unsafe impl Send for Event {}
 unsafe impl Sync for Event {}
 
 /// A `Response` from the runtime_client to the run-time
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub enum Response {
     /// Simple acknowledgement
     Ack,

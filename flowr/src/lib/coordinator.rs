@@ -30,7 +30,7 @@ use crate::runtime::{Event, Response};
 /// - the maximum number of jobs you want dispatched/executing in parallel
 /// - whether to display some execution metrics when the flow completes
 /// - an optional DebugClient to allow you to debug the execution
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Submission {
     manifest_url: String,
     pub max_parallel_jobs: usize,
@@ -135,23 +135,37 @@ impl Coordinator {
         let runtime_connection = RuntimeClientConnection::new(&runtime_server_context);
         let debugger_connection = DebuggerClientConnection::new(&debug_server_context);
 
+        let mut coordinator = Coordinator::new(runtime_server_context, debug_server_context, num_threads);
+        coordinator.runtime_server_context.lock().unwrap().start();
+        coordinator.debugger.start();
+
         if server {
-            let mut coordinator = Coordinator::new(runtime_server_context, debug_server_context, num_threads);
             info!("Starting 'flowr' server on main thread");
-            coordinator.runtime_server_context.lock().unwrap().start();
             coordinator.start(native);
         } else {
-            #[cfg(not(feature = "distributed"))]
-                {
-                    let mut coordinator = Coordinator::new(runtime_server_context, debug_server_context, num_threads);
-                    std::thread::spawn(move || {
-                        info!("Starting 'flowr' server as background thread");
-                        coordinator.start(native);
-                    });
-                }
+            std::thread::spawn(move || {
+                info!("Starting 'flowr' server as background thread");
+                coordinator.start(native);
+            });
         }
 
         (runtime_connection, debugger_connection)
+    }
+
+    /// Start the Coordinator - this will block the thread it is running on waiting for a submission
+    /// It will loop processing submissions until it gets a `ClientExiting` response, then it will also exit
+    pub fn start(&mut self, native: bool) {
+        while let Some(submission) = self.wait_for_submission() {
+            if let Ok(mut manifest) = Self::load_from_manifest(&submission.manifest_url,
+                                                               self.runtime_server_context.clone(),
+                                                               native) {
+                let state = RunState::new(manifest.get_functions(), submission);
+                self.execute_flow(state);
+            }
+        }
+
+        // Exiting
+        debug!("Client exiting and no other clients connected, so server is exiting");
     }
 
     // Loop waiting for a message from the client.
@@ -169,7 +183,7 @@ impl Coordinator {
                             return Some(submission);
                         }
                         Response::ClientExiting => return None,
-                        _ => error!("Was expecting a Submission from the client"),
+                        r => error!("Did not expect response from client: '{:?}'", r),
                     }
                 }
                 _ => {
@@ -178,22 +192,6 @@ impl Coordinator {
                 }
             }
         }
-    }
-
-    /// Start the Coordinator - this will block the thread it is running on waiting for a submission
-    /// It will loop processing submissions until it gets a `ClientExiting` response, then it will also exit
-    pub fn start(&mut self, native: bool) {
-        while let Some(submission) = self.wait_for_submission() {
-            if let Ok(mut manifest) = Self::load_from_manifest(&submission.manifest_url,
-                                                               self.runtime_server_context.clone(),
-                                                               native) {
-                let state = RunState::new(manifest.get_functions(), submission);
-                self.execute_flow(state);
-            }
-        }
-
-        // Exiting
-        debug!("Client exiting and no other clients connected, so server is exiting");
     }
 
     // Execute a flow by looping while there are jobs to be processed in an inner loop.

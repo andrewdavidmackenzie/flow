@@ -5,7 +5,7 @@ use std::time::Instant;
 use log::debug;
 use serde_derive::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Metrics {
     num_functions: usize,
     jobs_created: usize,

@@ -73,6 +73,10 @@ impl Debugger {
         }
     }
 
+    pub fn start(&mut self) {
+        self.debug_server_context.start();
+    }
+
     pub fn check_for_entry(&mut self, state: &RunState) {
         if self.debug_requested.load(Ordering::SeqCst) {
             self.debug_requested.store(false, Ordering::SeqCst); // reset to avoid re-entering
@@ -84,7 +88,7 @@ impl Debugger {
         Return values are (display next output, reset execution)
     */
     pub fn enter(&mut self, state: &RunState) -> (bool, bool) {
-        self.debug_server_context.send_debug_event(EnteringDebugger);
+        self.debug_server_context.send_event(EnteringDebugger);
         self.wait_for_command(state)
     }
 
@@ -94,7 +98,7 @@ impl Debugger {
         Return values are (display next output, reset execution)
     */
     pub fn job_completed(&mut self, job: &Job) -> (bool, bool) {
-        self.debug_server_context.send_debug_event(JobCompleted(job.job_id, job.function_id, job.result.0.clone()));
+        self.debug_server_context.send_event(JobCompleted(job.job_id, job.function_id, job.result.0.clone()));
         (false, false)
     }
 
@@ -105,7 +109,7 @@ impl Debugger {
     pub fn check_prior_to_job(&mut self, state: &RunState, next_job_id: usize, function_id: usize) -> (bool, bool) {
         if self.break_at_job == next_job_id ||
             self.function_breakpoints.contains(&function_id) {
-            self.debug_server_context.send_debug_event(PriorToSendingJob(next_job_id, function_id));
+            self.debug_server_context.send_event(PriorToSendingJob(next_job_id, function_id));
             self.print(state, Some(Param::Numeric(function_id)));
             return self.wait_for_command(state);
         }
@@ -122,7 +126,7 @@ impl Debugger {
     */
     pub fn check_on_block_creation(&mut self, state: &RunState, block: &Block) {
         if self.block_breakpoints.contains(&(block.blocked_id, block.blocking_id)) {
-            self.debug_server_context.send_debug_event(BlockBreakpoint(block.clone()));
+            self.debug_server_context.send_event(BlockBreakpoint(block.clone()));
             self.wait_for_command(state);
         }
     }
@@ -137,9 +141,9 @@ impl Debugger {
                                value: &Value, destination_id: usize, input_number: usize) {
         if self.output_breakpoints.contains(&(source_process_id, output_route.to_string())) ||
             self.input_breakpoints.contains(&(destination_id, input_number)) {
-            self.debug_server_context.send_debug_event(SendingValue(
+            self.debug_server_context.send_event(SendingValue(
                 source_process_id, value.clone(), destination_id, input_number));
-            self.debug_server_context.send_debug_event(DataBreakpoint(source_process_id, output_route.to_string(),
+            self.debug_server_context.send_event(DataBreakpoint(source_process_id, output_route.to_string(),
                                                                       value.clone(), destination_id, input_number));
             self.wait_for_command(state);
         }
@@ -154,7 +158,7 @@ impl Debugger {
         state etc.
     */
     pub fn error(&mut self, state: &RunState, job: Job) {
-        self.debug_server_context.send_debug_event(JobError(job));
+        self.debug_server_context.send_event(JobError(job));
         self.wait_for_command(state);
     }
 
@@ -167,7 +171,7 @@ impl Debugger {
         state etc.
     */
     pub fn panic(&mut self, state: &RunState, error_message: String) {
-        self.debug_server_context.send_debug_event(Panic(error_message, state.jobs_created()));
+        self.debug_server_context.send_event(Panic(error_message, state.jobs_created()));
         self.wait_for_command(state);
     }
 
@@ -175,7 +179,7 @@ impl Debugger {
         Return values are (display next output, reset execution)
     */
     pub fn flow_done(&mut self, state: &RunState) -> (bool, bool) {
-        self.debug_server_context.send_debug_event(ExecutionEnded);
+        self.debug_server_context.send_event(ExecutionEnded);
         self.deadlock_inspection(state);
         self.wait_for_command(state)
     }
@@ -192,7 +196,7 @@ impl Debugger {
     */
     fn wait_for_command(&mut self, state: &RunState) -> (bool, bool) {
         loop {
-            self.debug_server_context.send_debug_event(WaitingForCommand(state.jobs_created()));
+            self.debug_server_context.send_event(WaitingForCommand(state.jobs_created()));
             match self.debug_server_context.get_response() {
                 // *************************      The following are commands that send a response
                 GetState => {
@@ -204,27 +208,27 @@ impl Debugger {
                 }
                 Breakpoint(param) => {
                     let event = self.add_breakpoint(state, param);
-                    self.debug_server_context.send_debug_event(event);
+                    self.debug_server_context.send_event(event);
                 },
                 Delete(param) => {
                     let event = self.delete_breakpoint(param);
-                    self.debug_server_context.send_debug_event(event);
+                    self.debug_server_context.send_event(event);
                 }
                 Inspect => {
                     let event = self.inspect(state);
-                    self.debug_server_context.send_debug_event(event);
+                    self.debug_server_context.send_event(event);
                 }
                 List => {
                     let event = self.list_breakpoints();
-                    self.debug_server_context.send_debug_event(event);
+                    self.debug_server_context.send_event(event);
                 }
                 Print(param) => {
                     let event = self.print(state, param);
-                    self.debug_server_context.send_debug_event(event);
+                    self.debug_server_context.send_event(event);
                 }
                 EnterDebugger => { /* Not needed as we are already in the debugger */ }
                 ExitDebugger => {
-                    self.debug_server_context.send_debug_event(ExitingDebugger);
+                    self.debug_server_context.send_event(ExitingDebugger);
                     return (false, false);
                 }
 
@@ -237,10 +241,10 @@ impl Debugger {
                 RunReset => {
                     return if state.jobs_created() > 0 {
                         let event = self.reset();
-                        self.debug_server_context.send_debug_event(event);
+                        self.debug_server_context.send_event(event);
                         (false, true)
                     } else {
-                        self.debug_server_context.send_debug_event(ExecutionStarted);
+                        self.debug_server_context.send_event(ExecutionStarted);
                         (false, false)
                     }
                 }
@@ -445,7 +449,7 @@ impl Debugger {
                 self.break_at_job = state.jobs_created() + steps;
             }
             _ => {
-                self.debug_server_context.send_debug_event(Event::Error("Did not understand step command parameter\n".into()));
+                self.debug_server_context.send_event(Event::Error("Did not understand step command parameter\n".into()));
             }
         }
     }
