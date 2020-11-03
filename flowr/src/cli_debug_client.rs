@@ -31,7 +31,8 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
 pub struct CLIDebugClient {}
 
 impl CLIDebugClient {
-    pub fn start(connection: DebuggerClientConnection) {
+    pub fn start(mut connection: DebuggerClientConnection) {
+        connection.start().unwrap();
         let debug_client = CLIDebugClient {};
 
         std::thread::spawn(move || {

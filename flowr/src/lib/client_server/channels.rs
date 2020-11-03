@@ -23,6 +23,10 @@ impl RuntimeClientConnection {
         }
     }
 
+    pub fn start(&mut self) -> Result<()>{
+        Ok(())
+    }
+
     /// Receive an event from the runtime
     pub fn client_recv(&self) -> Result<Event> {
         let guard = self.channels.0.lock()
@@ -44,6 +48,10 @@ impl DebuggerClientConnection {
         DebuggerClientConnection {
             channels: debug_server_context.get_channels()
         }
+    }
+
+    pub fn start(&mut self) -> Result<()>{
+        Ok(())
     }
 
     /// Receive an Event from the debugger
@@ -76,15 +84,15 @@ impl RuntimeServerContext {
         Self::default()
     }
 
-    pub fn get_client_channels(&self) -> (Arc<Mutex<Receiver<Event>>>, Sender<Response>) {
+    pub fn start(&self) {
+    }
+
+    /// Get the channels a client should use to send to the server
+    fn get_client_channels(&self) -> (Arc<Mutex<Receiver<Event>>>, Sender<Response>) {
         (self.client_event_channel_rx.clone(), self.client_response_channel_tx.clone())
     }
 
-    pub fn send_response(&self, response: Response) -> Result<()> {
-        self.client_response_channel_tx.send(response)
-            .chain_err(|| "Could not send Submission to the Coordinator")
-    }
-
+    /// Get a response from the client to the server
     pub fn get_response(&self) -> Response {
         match self.client_response_channel_rx.recv() {
             Ok(response) => response,
@@ -95,6 +103,7 @@ impl RuntimeServerContext {
         }
     }
 
+    /// Send a server event to the client
     pub fn send_event(&mut self, event: Event) -> Response {
         match self.client_event_channel_tx.send(event) {
             Ok(()) => self.get_response(),
@@ -139,6 +148,9 @@ pub struct DebugServerContext {
 impl DebugServerContext {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn start(&self) {
     }
 
     fn get_channels(&self) -> (Arc<Mutex<Receiver<DebugEvent>>>, Sender<DebugResponse>) {

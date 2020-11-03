@@ -19,7 +19,6 @@ use url::Url;
 use cli_debug_client::CLIDebugClient;
 use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::info as flowrlib_info;
-use flowrlib::runtime::Response::ClientSubmission;
 use provider::args::url_from_string;
 
 use crate::cli_runtime_client::CLIRuntimeClient;
@@ -95,10 +94,9 @@ fn run() -> Result<()> {
                                          debugger);
 
 
-        runtime_connection.client_send(ClientSubmission(submission))?;
-
         CLIDebugClient::start(debugger_connection);
         CLIRuntimeClient::start(runtime_connection,
+                                submission,
                                 flow_args,
                                 #[cfg(feature = "metrics")]
                                     matches.is_present("metrics"),

@@ -8,7 +8,9 @@ use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
 use log::{debug, info};
 
 use flowrlib::client_server::RuntimeClientConnection;
+use flowrlib::coordinator::Submission;
 use flowrlib::runtime::{Event, Response};
+use flowrlib::runtime::Response::ClientSubmission;
 
 #[derive(Debug, Clone)]
 pub struct CLIRuntimeClient {
@@ -29,12 +31,16 @@ impl CLIRuntimeClient {
     /*
         Enter  a loop where we receive events as a client and respond to them
      */
-    pub fn start(connection: RuntimeClientConnection,
+    pub fn start(mut connection: RuntimeClientConnection,
+                 submission: Submission,
                  flow_args: Vec<String>,
                  #[cfg(feature = "metrics")]
                  display_metrics: bool,
     ) {
         Self::capture_control_c(&connection);
+        connection.start().unwrap();
+
+        connection.client_send(ClientSubmission(submission)).unwrap();
 
         let mut runtime_client = CLIRuntimeClient::new(flow_args, display_metrics);
 

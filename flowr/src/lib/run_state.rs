@@ -2085,11 +2085,13 @@ mod test {
         #[test]
         fn display_block_test() {
             let block = super::super::Block::new(1, 2, 0, 1, 0);
+            println!("Block: {}", block);
         }
 
         #[test]
         fn debug_block_test() {
             let block = super::super::Block::new(1, 2, 0, 1, 0);
+            println!("Block: {:?}", block);
         }
     }
 

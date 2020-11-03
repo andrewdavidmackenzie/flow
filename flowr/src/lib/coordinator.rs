@@ -128,10 +128,6 @@ impl Coordinator {
         }
     }
 
-    pub fn get_server_context(&self) -> Arc<Mutex<RuntimeServerContext>> {
-        self.runtime_server_context.clone()
-    }
-
     pub fn server(num_threads: usize, native: bool, server: bool) -> (RuntimeClientConnection, DebuggerClientConnection) {
         let runtime_server_context = RuntimeServerContext::new();
         let debug_server_context = DebugServerContext::new();
@@ -139,25 +135,29 @@ impl Coordinator {
         let runtime_connection = RuntimeClientConnection::new(&runtime_server_context);
         let debugger_connection = DebuggerClientConnection::new(&debug_server_context);
 
-        let mut coordinator = Coordinator::new(runtime_server_context, debug_server_context, num_threads);
-
         if server {
+            let mut coordinator = Coordinator::new(runtime_server_context, debug_server_context, num_threads);
             info!("Starting 'flowr' server on main thread");
+            coordinator.runtime_server_context.lock().unwrap().start();
             coordinator.start(native);
         } else {
-            std::thread::spawn(move || {
-                info!("Starting 'flowr' server as background thread");
-                coordinator.start(native);
-            });
+            #[cfg(not(feature = "distributed"))]
+                {
+                    let mut coordinator = Coordinator::new(runtime_server_context, debug_server_context, num_threads);
+                    std::thread::spawn(move || {
+                        info!("Starting 'flowr' server as background thread");
+                        coordinator.start(native);
+                    });
+                }
         }
 
         (runtime_connection, debugger_connection)
     }
 
-    /// Loop waiting for a message from the client.
-    /// If the message is a `ClientSubmission` with a submission, then return Some(submission)
-    /// If the message is `ClientExiting` then return None
-    /// If the message is any other then loop until we find one of the above
+    // Loop waiting for a message from the client.
+    // If the message is a `ClientSubmission` with a submission, then return Some(submission)
+    // If the message is `ClientExiting` then return None
+    // If the message is any other then loop until we find one of the above
     fn wait_for_submission(&self) -> Option<Submission> {
         loop {
             info!("'flowr' is waiting to receive a 'Submission'");
@@ -196,10 +196,10 @@ impl Coordinator {
         debug!("Client exiting and no other clients connected, so server is exiting");
     }
 
-    /// Execute a flow by looping while there are jobs to be processed in an inner loop.
-    /// There is an outer loop for the case when you are using the debugger, to allow entering
-    /// the debugger when the flow ends and at any point resetting all the state and starting
-    /// execution again from the initial state
+    // Execute a flow by looping while there are jobs to be processed in an inner loop.
+    // There is an outer loop for the case when you are using the debugger, to allow entering
+    // the debugger when the flow ends and at any point resetting all the state and starting
+    // execution again from the initial state
     fn execute_flow(&mut self, mut state: RunState) {
         #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(state.num_functions());
@@ -365,9 +365,7 @@ impl Coordinator {
         (display_output, restart)
     }
 
-    /*
-        Send a job for execution
-    */
+    // Send a job for execution
     fn send_job(&mut self,
                 job: Job,
                 state: &mut RunState,

@@ -28,7 +28,7 @@ impl Metrics {
     }
 
     pub fn reset(&mut self) {
-        debug!("Resetting stats");
+        debug!("Resetting Metrics");
         self.jobs_created = 0;
         self.outputs_sent = 0;
         self.start_time = Instant::now();
