@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use flowrstructs::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowrstructs::manifest::MetaData;
 
-use crate::client_server::RuntimeServerContext;
+use crate::client_server::RuntimeServerConnection;
 
 /// `args` is a module to interact with a programs arguments
 pub mod args;
@@ -19,7 +19,7 @@ pub mod stdio;
 pub mod image;
 
 /// Return a `LibraryManifest` for the run-time functions
-pub fn get_manifest(server_context: Arc<Mutex<RuntimeServerContext>>) -> LibraryManifest {
+pub fn get_manifest(server_context: Arc<Mutex<RuntimeServerConnection>>) -> LibraryManifest {
     let metadata = MetaData {
         name: "flowruntime".into(),
         version: "0.1.0".into(),

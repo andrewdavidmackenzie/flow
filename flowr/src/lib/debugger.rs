@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use log::error;
 use serde_json::Value;
 
-use crate::client_server::DebugServerContext;
+use crate::client_server::DebugServerConnection;
 use crate::debug::Event;
 use crate::debug::Event::{*};
 use crate::debug::Param;
@@ -15,7 +15,7 @@ use crate::debug::Response;
 use crate::run_state::{Block, Job, RunState};
 
 pub struct Debugger {
-    debug_server_context: DebugServerContext,
+    debug_server_context: DebugServerConnection,
     input_breakpoints: HashSet<(usize, usize)>,
     block_breakpoints: HashSet<(usize, usize)>,
     /* blocked_id -> blocking_id */
@@ -62,7 +62,7 @@ impl fmt::Display for BlockerNode {
 }
 
 impl Debugger {
-    pub fn new(debug_server_context: DebugServerContext) -> Self {
+    pub fn new(debug_server_context: DebugServerConnection) -> Self {
         Debugger {
             debug_server_context,
             input_breakpoints: HashSet::<(usize, usize)>::new(),

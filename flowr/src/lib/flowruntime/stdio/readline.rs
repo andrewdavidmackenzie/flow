@@ -4,13 +4,13 @@ use serde_json::Value;
 
 use flow_impl::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
 
-use crate::client_server::RuntimeServerContext;
+use crate::client_server::RuntimeServerConnection;
 use crate::runtime::{Event, Response};
 
 /// `Implementation` struct for the `readline` function
 pub struct Readline {
     /// It holds a reference to the runtime client in order to read input
-    pub server_context: Arc<Mutex<RuntimeServerContext>>
+    pub server_context: Arc<Mutex<RuntimeServerConnection>>
 }
 
 impl Implementation for Readline {

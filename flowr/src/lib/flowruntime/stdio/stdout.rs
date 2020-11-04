@@ -4,13 +4,13 @@ use serde_json::Value;
 
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 
-use crate::client_server::RuntimeServerContext;
+use crate::client_server::RuntimeServerConnection;
 use crate::runtime::Event;
 
 /// `Implementation` struct for the `Stdout` function
 pub struct Stdout {
     /// It holds a reference to the runtime client in order to write output
-    pub server_context: Arc<Mutex<RuntimeServerContext>>
+    pub server_context: Arc<Mutex<RuntimeServerConnection>>
 }
 
 impl Implementation for Stdout {

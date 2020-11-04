@@ -4,13 +4,13 @@ use serde_json::Value;
 
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 
-use crate::client_server::RuntimeServerContext;
+use crate::client_server::RuntimeServerConnection;
 use crate::runtime::{Event, Response};
 
 /// `Implementation` struct for the `file_write` function
 pub struct FileWrite {
     /// It holds a reference to the runtime client in order to get file contents
-    pub server_context: Arc<Mutex<RuntimeServerContext>>
+    pub server_context: Arc<Mutex<RuntimeServerConnection>>
 }
 
 impl Implementation for FileWrite {

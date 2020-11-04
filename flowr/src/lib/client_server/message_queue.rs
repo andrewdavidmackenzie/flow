@@ -1,5 +1,5 @@
-use log::debug;
 /// This is the message-queue implementation of the lib.client_server communications
+use log::debug;
 use zmq::Message;
 use zmq::Socket;
 
@@ -10,7 +10,6 @@ use crate::debug::Response as DebugResponse;
 use crate::errors::*;
 use crate::runtime::{Event, Response};
 
-// TODO make a generic version of this using Serialize/Deserialize to &str trait?
 impl From<Event> for Message {
     fn from(event: Event) -> Self {
         match serde_json::to_string(&event) {
@@ -20,8 +19,8 @@ impl From<Event> for Message {
     }
 }
 
-impl From<&Message> for Event {
-    fn from(msg: &Message) -> Self {
+impl From<Message> for Event {
+    fn from(msg: Message) -> Self {
         match msg.as_str() {
             Some(message_string) => {
                 match serde_json::from_str(message_string) {
@@ -43,8 +42,8 @@ impl From<Response> for Message {
     }
 }
 
-impl From<&Message> for Response {
-    fn from(msg: &Message) -> Self {
+impl From<Message> for Response {
+    fn from(msg: Message) -> Self {
         match msg.as_str() {
             Some(message_string) => {
                 match serde_json::from_str(message_string) {
@@ -66,8 +65,8 @@ impl From<DebugEvent> for Message {
     }
 }
 
-impl From<&Message> for DebugEvent {
-    fn from(msg: &Message) -> Self {
+impl From<Message> for DebugEvent {
+    fn from(msg: Message) -> Self {
         match msg.as_str() {
             Some(message_string) => {
                 match serde_json::from_str(message_string) {
@@ -89,8 +88,8 @@ impl From<DebugResponse> for Message {
     }
 }
 
-impl From<&Message> for DebugResponse {
-    fn from(msg: &Message) -> Self {
+impl From<Message> for DebugResponse {
+    fn from(msg: Message) -> Self {
         match msg.as_str() {
             Some(message_string) => {
                 match serde_json::from_str(message_string) {
@@ -111,7 +110,7 @@ pub struct RuntimeClientConnection {
 }
 
 impl RuntimeClientConnection {
-    pub fn new(runtime_server_context: &RuntimeServerContext) -> Self {
+    pub fn new(runtime_server_context: &RuntimeServerConnection) -> Self {
         RuntimeClientConnection {
             host: "localhost".into(),
             port: runtime_server_context.port,
@@ -143,7 +142,7 @@ impl RuntimeClientConnection {
         if let Some(ref requester) = self.requester {
             let msg = requester.recv_msg(0)
                 .map_err(|e| format!("Error receiving from Server: {}", e))?;
-            Ok(Event::from(&msg))
+            Ok(Event::from(msg))
         } else {
             bail!("Client runtime connection has not been started")
         }
@@ -166,7 +165,7 @@ pub struct DebuggerClientConnection {
 }
 
 impl DebuggerClientConnection {
-    pub fn new(debug_server_context: &DebugServerContext) -> Self {
+    pub fn new(debug_server_context: &DebugServerConnection) -> Self {
         DebuggerClientConnection {
             host: "localhost".into(),
             port: debug_server_context.port,
@@ -198,7 +197,7 @@ impl DebuggerClientConnection {
         if let Some(ref requester) = self.requester {
             let msg = requester.recv_msg(0)
                 .map_err(|e| format!("Error receiving from Debug server: {}", e))?;
-            Ok(DebugEvent::from(&msg))
+            Ok(DebugEvent::from(msg))
         } else {
             bail!("Client debug connection has not been started")
         }
@@ -214,12 +213,12 @@ impl DebuggerClientConnection {
     }
 }
 
-pub struct RuntimeServerContext {
+pub struct RuntimeServerConnection {
     port: usize,
     responder: Option<zmq::Socket>,
 }
 
-impl RuntimeServerContext {
+impl RuntimeServerConnection {
     pub fn new() -> Self {
         Self::default()
     }
@@ -244,40 +243,35 @@ impl RuntimeServerContext {
             .chain_err(|| "Runtime server connection not started")?;
         let msg = responder.recv_msg(0)
             .chain_err(|| "Runtime server could not receive response")?;
-        Ok(Response::from(&msg))
+        Ok(Response::from(msg))
     }
 
     pub fn send_event(&mut self, event: Event) -> Result<Response> {
         let responder = self.responder.as_ref()
             .chain_err(|| "Runtime server connection not started")?;
 
-        let event_message = Message::from(event);
-        responder.send(event_message, 0)
+        responder.send(event, 0)
             .chain_err(|| "Error sending to runtime client")?;
 
         self.get_response()
     }
 }
 
-unsafe impl Send for RuntimeServerContext {}
-
-unsafe impl Sync for RuntimeServerContext {}
-
-impl Default for RuntimeServerContext {
+impl Default for RuntimeServerConnection {
     fn default() -> Self {
-        RuntimeServerContext {
+        RuntimeServerConnection {
             port: 5555,
             responder: None,
         }
     }
 }
 
-pub struct DebugServerContext {
+pub struct DebugServerConnection {
     port: usize,
     responder: Option<zmq::Socket>,
 }
 
-impl DebugServerContext {
+impl DebugServerConnection {
     pub fn new() -> Self {
         Self::default()
     }
@@ -303,30 +297,25 @@ impl DebugServerContext {
         let msg = responder.recv_msg(0)
             .chain_err(|| "Runtime server could not receive response")?;
 
-        Ok(DebugResponse::from(&msg))
+        Ok(DebugResponse::from(msg))
     }
 
     pub fn send_event(&self, event: DebugEvent) -> Result<()> {
         let responder = self.responder.as_ref()
             .chain_err(|| "Runtime server connection not started")?;
 
-        let event_message = Message::from(event);
-        responder.send(event_message, 0)
+        responder.send(event, 0)
             .map_err(|e| format!("Error sending debug event to runtime client: {}", e))?;
 
         Ok(())
     }
 }
 
-impl Default for DebugServerContext {
-    fn default() -> DebugServerContext {
-        DebugServerContext {
+impl Default for DebugServerConnection {
+    fn default() -> DebugServerConnection {
+        DebugServerConnection {
             port: 5556,
             responder: None,
         }
     }
 }
-
-unsafe impl Send for DebugServerContext {}
-
-unsafe impl Sync for DebugServerContext {}

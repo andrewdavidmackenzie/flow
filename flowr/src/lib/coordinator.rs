@@ -9,8 +9,8 @@ use serde_derive::{Deserialize, Serialize};
 use flowrstructs::manifest::Manifest;
 use provider::content::provider::MetaProvider;
 
-use crate::client_server::{DebuggerClientConnection, DebugServerContext,
-                           RuntimeClientConnection, RuntimeServerContext};
+use crate::client_server::{DebuggerClientConnection, DebugServerConnection,
+                           RuntimeClientConnection, RuntimeServerConnection};
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 use crate::errors::*;
@@ -72,7 +72,7 @@ pub struct Coordinator {
     /// A channel used to receive Jobs back after execution (now including the job's output)
     job_rx: Receiver<Job>,
     /// Get messages from clients over channels
-    runtime_server_context: Arc<Mutex<RuntimeServerContext>>,
+    runtime_server_context: Arc<Mutex<RuntimeServerConnection>>,
     #[cfg(feature = "debugger")]
     debugger: Debugger,
 }
@@ -110,7 +110,7 @@ pub struct Coordinator {
 ///
 impl Coordinator {
     /// Create a new `coordinator` with `num_threads` executor threads
-    fn new(runtime_server_context: RuntimeServerContext, debug_server_context: DebugServerContext, num_threads: usize) -> Self {
+    fn new(runtime_server_context: RuntimeServerConnection, debug_server_context: DebugServerConnection, num_threads: usize) -> Self {
         let (job_tx, job_rx, ) = mpsc::channel();
         let (output_tx, output_rx) = mpsc::channel();
 
@@ -135,8 +135,8 @@ impl Coordinator {
     /// `server` == true  -> this is a server-only process, start on this thread
     /// `server` == false -> this process works as client AND server, so start serving from a thread
     pub fn server(num_threads: usize, native: bool, server: bool) -> Result<(RuntimeClientConnection, DebuggerClientConnection)> {
-        let runtime_server_context = RuntimeServerContext::new();
-        let debug_server_context = DebugServerContext::new();
+        let runtime_server_context = RuntimeServerConnection::new();
+        let debug_server_context = DebugServerConnection::new();
 
         let runtime_connection = RuntimeClientConnection::new(&runtime_server_context);
         let debugger_connection = DebuggerClientConnection::new(&debug_server_context);
@@ -319,7 +319,7 @@ impl Coordinator {
         Ok(())
     }
 
-    fn load_from_manifest(manifest_url: &str, server_context: Arc<Mutex<RuntimeServerContext>>, native: bool) -> Result<Manifest> {
+    fn load_from_manifest(manifest_url: &str, server_context: Arc<Mutex<RuntimeServerConnection>>, native: bool) -> Result<Manifest> {
         let mut loader = Loader::new();
         let provider = MetaProvider {};
 

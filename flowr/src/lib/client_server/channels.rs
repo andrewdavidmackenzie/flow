@@ -1,4 +1,3 @@
-use log::error;
 /// This is the channel-based implementation of the lib.client_server communications
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
@@ -17,13 +16,13 @@ pub struct RuntimeClientConnection {
 }
 
 impl RuntimeClientConnection {
-    pub fn new(runtime_server_context: &RuntimeServerContext) -> Self {
+    pub fn new(runtime_server_context: &RuntimeServerConnection) -> Self {
         RuntimeClientConnection {
             channels: runtime_server_context.get_client_channels()
         }
     }
 
-    pub fn start(&mut self) -> Result<()>{
+    pub fn start(&mut self) -> Result<()> {
         Ok(())
     }
 
@@ -44,13 +43,13 @@ pub struct DebuggerClientConnection {
 }
 
 impl DebuggerClientConnection {
-    pub fn new(debug_server_context: &DebugServerContext) -> Self {
+    pub fn new(debug_server_context: &DebugServerConnection) -> Self {
         DebuggerClientConnection {
             channels: debug_server_context.get_channels()
         }
     }
 
-    pub fn start(&mut self) -> Result<()>{
+    pub fn start(&mut self) -> Result<()> {
         Ok(())
     }
 
@@ -68,7 +67,7 @@ impl DebuggerClientConnection {
 }
 
 #[derive(Debug)]
-pub struct RuntimeServerContext {
+pub struct RuntimeServerConnection {
     /// A channel to sent events to a client on
     client_event_channel_tx: Sender<Event>,
     /// The other end of the channel a client can receive events of
@@ -79,12 +78,13 @@ pub struct RuntimeServerContext {
     client_response_channel_rx: Receiver<Response>,
 }
 
-impl RuntimeServerContext {
+impl RuntimeServerConnection {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn start(&self) {
+    pub fn start(&self) -> Result<()> {
+        Ok(())
     }
 
     /// Get the channels a client should use to send to the server
@@ -93,38 +93,26 @@ impl RuntimeServerContext {
     }
 
     /// Get a response from the client to the server
-    pub fn get_response(&self) -> Response {
-        match self.client_response_channel_rx.recv() {
-            Ok(response) => response,
-            Err(err) => {
-                error!("Error receiving response from client: '{}'", err);
-                Response::Error(err.to_string())
-            }
-        }
+    pub fn get_response(&self) -> Result<Response> {
+        self.client_response_channel_rx.recv()
+            .chain_err(|| "Error receiving response from client")
     }
 
     /// Send a server event to the client
-    pub fn send_event(&mut self, event: Event) -> Response {
-        match self.client_event_channel_tx.send(event) {
-            Ok(()) => self.get_response(),
-            Err(err) => {
-                error!("Error sending to client: '{}'", err);
-                Response::Error(err.to_string())
-            }
-        }
+    pub fn send_event(&mut self, event: Event) -> Result<Response> {
+        self.client_event_channel_tx.send(event)
+            .map_err(|e| format!("Error sending to client: '{}'", e))?;
+
+        self.get_response()
     }
 }
 
-unsafe impl Send for RuntimeServerContext {}
-
-unsafe impl Sync for RuntimeServerContext {}
-
-impl Default for RuntimeServerContext {
+impl Default for RuntimeServerConnection {
     fn default() -> Self {
         let (client_event_channel_tx, client_event_channel_rx) = mpsc::channel();
         let (client_response_channel_tx, client_response_channel_rx) = mpsc::channel();
 
-        RuntimeServerContext {
+        RuntimeServerConnection {
             client_event_channel_tx,
             client_event_channel_rx: Arc::new(Mutex::new(client_event_channel_rx)),
             client_response_channel_tx,
@@ -134,7 +122,7 @@ impl Default for RuntimeServerContext {
 }
 
 #[derive(Debug)]
-pub struct DebugServerContext {
+pub struct DebugServerConnection {
     /// A channel to send events to a debug client on
     debug_event_channel_tx: Sender<DebugEvent>,
     /// The other end of the channel a debug client can receive events on
@@ -145,38 +133,35 @@ pub struct DebugServerContext {
     debug_response_channel_rx: Receiver<DebugResponse>,
 }
 
-impl DebugServerContext {
+impl DebugServerConnection {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn start(&self) {
+    pub fn start(&self) -> Result<()> {
+        Ok(())
     }
 
     fn get_channels(&self) -> (Arc<Mutex<Receiver<DebugEvent>>>, Sender<DebugResponse>) {
         (self.debug_event_channel_rx.clone(), self.debug_response_channel_tx.clone())
     }
 
-    pub fn get_response(&self) -> DebugResponse {
-        match self.debug_response_channel_rx.recv() {
-            Ok(response) => response,
-            Err(err) => {
-                error!("Error receiving response from debug client: '{}'", err);
-                DebugResponse::Error(err.to_string())
-            }
-        }
+    pub fn get_response(&self) -> Result<DebugResponse> {
+        self.debug_response_channel_rx.recv()
+            .chain_err(|| "Error receiving response from debug client")
     }
 
-    pub fn send_event(&self, event: DebugEvent) {
-        let _ = self.debug_event_channel_tx.send(event);
+    pub fn send_event(&self, event: DebugEvent) -> Result<()> {
+        self.debug_event_channel_tx.send(event)
+            .chain_err(|| "Could not send Debug event from Debug server")
     }
 }
 
-impl Default for DebugServerContext {
-    fn default() -> DebugServerContext {
+impl Default for DebugServerConnection {
+    fn default() -> DebugServerConnection {
         let (debug_event_channel_tx, debug_event_channel_rx) = mpsc::channel();
         let (debug_response_channel_tx, debug_response_channel_rx) = mpsc::channel();
-        DebugServerContext {
+        DebugServerConnection {
             debug_event_channel_tx,
             debug_event_channel_rx: Arc::new(Mutex::new(debug_event_channel_rx)),
             debug_response_channel_tx,
@@ -184,7 +169,3 @@ impl Default for DebugServerContext {
         }
     }
 }
-
-unsafe impl Send for DebugServerContext {}
-
-unsafe impl Sync for DebugServerContext {}
