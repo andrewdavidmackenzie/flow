@@ -167,7 +167,7 @@ impl DebugServerContext {
         }
     }
 
-    pub fn send_debug_event(&self, event: DebugEvent) {
+    pub fn send_event(&self, event: DebugEvent) {
         let _ = self.debug_event_channel_tx.send(event);
     }
 }
