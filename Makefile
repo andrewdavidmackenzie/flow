@@ -74,7 +74,7 @@ config-linux:
 ifneq ($(YUM),)
 	@echo "	Installing linux specific dependencies using $(YUM)"
 	@sudo yum --color=auto --quiet install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel || true
-	@sudo yum --color=auto --quiet install graphviz gtk3-devel || true
+	@sudo yum --color=auto --quiet install graphviz gtk3-devel zeromq zeromq-devel || true
 else ifneq ($(APTGET),)
 	@echo "	Installing linux specific dependencies using $(APTGET)"
 	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
