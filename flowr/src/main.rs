@@ -84,7 +84,7 @@ fn run() -> Result<()> {
     // Start the coordinator server either on the main thread or as a background thread
     // depending on the value of the "server" option
     let (runtime_connection, _debugger_connection) = Coordinator::server(
-        num_threads(&matches, debugger), native, server);
+        num_threads(&matches, debugger), native, server)?;
 
     if !server {
         let flow_manifest_url = parse_flow_url(&matches)?;

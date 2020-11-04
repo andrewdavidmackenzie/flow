@@ -21,7 +21,7 @@ impl Implementation for FileWrite {
         if let Ok(mut server) = self.server_context.lock() {
             return match server.send_event(Event::Write(filename.to_string(),
                                                         bytes.as_str().unwrap().as_bytes().to_vec())) {
-                Response::Ack => (None, RUN_AGAIN),
+                Ok(Response::Ack) => (None, RUN_AGAIN),
                 _ => (None, RUN_AGAIN)
             }
         }

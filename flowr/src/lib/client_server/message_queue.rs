@@ -1,4 +1,4 @@
-use log::{debug, error};
+use log::debug;
 /// This is the message-queue implementation of the lib.client_server communications
 use zmq::Message;
 use zmq::Socket;
@@ -224,40 +224,38 @@ impl RuntimeServerContext {
         Self::default()
     }
 
-    pub fn start(&mut self) {
+    pub fn start(&mut self) -> Result<()> {
         let context = zmq::Context::new();
-        self.responder = Some(context.socket(zmq::REP).unwrap());
+        self.responder = Some(context.socket(zmq::REP)
+            .chain_err(|| "Runtime Server not start connection")?);
 
         if let Some(ref responder) = self.responder {
-            responder.bind(&format!("tcp://*:{}", self.port)).unwrap();
+            responder.bind(&format!("tcp://*:{}", self.port))
+                .chain_err(|| "Runtime Server could not bind connection")?;
         }
 
-        debug!("Runtime Server Connection started on port: {}", self.port)
+        debug!("Runtime Server Connection started on port: {}", self.port);
+
+        Ok(())
     }
 
-    pub fn get_response(&self) -> Response {
-        // TODO use a combinator?
-        if let Some(ref responder) = self.responder {
-            let msg = responder.recv_msg(0).unwrap();
-            Response::from(&msg)
-        } else {
-            Response::Error("Runtime server connection not started".into())
-        }
+    pub fn get_response(&self) -> Result<Response> {
+        let responder = self.responder.as_ref()
+            .chain_err(|| "Runtime server connection not started")?;
+        let msg = responder.recv_msg(0)
+            .chain_err(|| "Runtime server could not receive response")?;
+        Ok(Response::from(&msg))
     }
 
-    pub fn send_event(&mut self, event: Event) -> Response {
-        if let Some(ref responder) = self.responder {
-            let event_message = Message::from(event);
-            match responder.send(event_message, 0) {
-                Ok(()) => self.get_response(),
-                Err(err) => {
-                    error!("Error sending to runtime client: '{}'", err);
-                    Response::Error(err.to_string())
-                }
-            }
-        } else {
-            Response::Error("Server connection not started".into())
-        }
+    pub fn send_event(&mut self, event: Event) -> Result<Response> {
+        let responder = self.responder.as_ref()
+            .chain_err(|| "Runtime server connection not started")?;
+
+        let event_message = Message::from(event);
+        responder.send(event_message, 0)
+            .chain_err(|| "Error sending to runtime client")?;
+
+        self.get_response()
     }
 }
 
@@ -284,33 +282,39 @@ impl DebugServerContext {
         Self::default()
     }
 
-    pub fn start(&mut self) {
+    pub fn start(&mut self) -> Result<()> {
         let context = zmq::Context::new();
-        self.responder = Some(context.socket(zmq::REP).unwrap());
+        self.responder = Some(context.socket(zmq::REP)
+            .chain_err(|| "Debug Server not start connection")?);
 
         if let Some(ref responder) = self.responder {
-            responder.bind(&format!("tcp://*:{}", self.port)).unwrap();
+            responder.bind(&format!("tcp://*:{}", self.port))
+                .chain_err(|| "Debug Server could not bind connection")?;
         }
 
         debug!("Debug Server Connection started on port: {}", self.port);
+
+        Ok(())
     }
 
-    pub fn get_response(&self) -> DebugResponse {
-        if let Some(ref responder) = self.responder {
-            let msg = responder.recv_msg(0).unwrap();
-            DebugResponse::from(&msg)
-        } else {
-            DebugResponse::Error("DDebug server connection not started".into())
-        }
+    pub fn get_response(&self) -> Result<DebugResponse> {
+        let responder = self.responder.as_ref()
+            .chain_err(|| "Runtime server connection not started")?;
+        let msg = responder.recv_msg(0)
+            .chain_err(|| "Runtime server could not receive response")?;
+
+        Ok(DebugResponse::from(&msg))
     }
 
-    pub fn send_event(&self, event: DebugEvent) {
-        if let Some(ref responder) = self.responder {
-            let event_message = Message::from(event);
-            if let Err(e) = responder.send(event_message, 0) {
-                error!("Error sending debug event to client: {}", e);
-            }
-        }
+    pub fn send_event(&self, event: DebugEvent) -> Result<()> {
+        let responder = self.responder.as_ref()
+            .chain_err(|| "Runtime server connection not started")?;
+
+        let event_message = Message::from(event);
+        responder.send(event_message, 0)
+            .map_err(|e| format!("Error sending debug event to runtime client: {}", e))?;
+
+        Ok(())
     }
 }
 

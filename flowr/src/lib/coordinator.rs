@@ -96,7 +96,8 @@ pub struct Coordinator {
 ///
 /// let (runtime_connection, debugger_connection) = Coordinator::server(1 /* num_threads */,
 ///                                                                      true, /* native */
-///                                                                     false /* server */);
+///                                                                     false /* server */)
+///                                                 .unwrap();
 ///
 /// let mut submission = Submission::new("file:///temp/fake.toml",
 ///                                     1 /* num_parallel_jobs */,
@@ -128,7 +129,12 @@ impl Coordinator {
         }
     }
 
-    pub fn server(num_threads: usize, native: bool, server: bool) -> (RuntimeClientConnection, DebuggerClientConnection) {
+    /// Start the Coordinator server either in a background thread or in the
+    /// foreground thread this function is called on according to the `server`
+    /// parameter:
+    /// `server` == true  -> this is a server-only process, start on this thread
+    /// `server` == false -> this process works as client AND server, so start serving from a thread
+    pub fn server(num_threads: usize, native: bool, server: bool) -> Result<(RuntimeClientConnection, DebuggerClientConnection)> {
         let runtime_server_context = RuntimeServerContext::new();
         let debug_server_context = DebugServerContext::new();
 
@@ -136,7 +142,9 @@ impl Coordinator {
         let debugger_connection = DebuggerClientConnection::new(&debug_server_context);
 
         let mut coordinator = Coordinator::new(runtime_server_context, debug_server_context, num_threads);
-        coordinator.runtime_server_context.lock().unwrap().start();
+        coordinator.runtime_server_context.lock()
+            .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
+            .start()?;
         coordinator.debugger.start();
 
         if server {
@@ -149,7 +157,7 @@ impl Coordinator {
             });
         }
 
-        (runtime_connection, debugger_connection)
+        Ok((runtime_connection, debugger_connection))
     }
 
     /// Start the Coordinator - this will block the thread it is running on waiting for a submission
@@ -160,7 +168,7 @@ impl Coordinator {
                                                                self.runtime_server_context.clone(),
                                                                native) {
                 let state = RunState::new(manifest.get_functions(), submission);
-                self.execute_flow(state);
+                let _ = self.execute_flow(state);
             }
         }
 
@@ -178,12 +186,13 @@ impl Coordinator {
             match self.runtime_server_context.lock() {
                 Ok(guard) => {
                     match guard.get_response() {
-                        Response::ClientSubmission(submission) => {
+                        Ok(Response::ClientSubmission(submission)) => {
                             debug!("Received submission for execution with manifest_url: '{}'", submission.manifest_url);
                             return Some(submission);
                         }
-                        Response::ClientExiting => return None,
-                        r => error!("Did not expect response from client: '{:?}'", r),
+                        Ok(Response::ClientExiting) => return None,
+                        Ok(r) => error!("Did not expect response from client: '{:?}'", r),
+                        _ => error!("Error getting response from client"),
                     }
                 }
                 _ => {
@@ -198,7 +207,7 @@ impl Coordinator {
     // There is an outer loop for the case when you are using the debugger, to allow entering
     // the debugger when the flow ends and at any point resetting all the state and starting
     // execution again from the initial state
-    fn execute_flow(&mut self, mut state: RunState) {
+    fn execute_flow(&mut self, mut state: RunState) -> Result<()> {
         #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(state.num_functions());
 
@@ -208,7 +217,9 @@ impl Coordinator {
             #[cfg(feature = "metrics")]
                 metrics.reset();
 
-            self.runtime_server_context.lock().unwrap().send_event(Event::FlowStart);
+            self.runtime_server_context.lock()
+                .map_err(|_| "Could not lock server context")?
+                .send_event(Event::FlowStart)?;
 
             #[cfg(feature = "debugger")]
             if state.debug {
@@ -291,15 +302,21 @@ impl Coordinator {
                     #[cfg(feature = "metrics")]
                         {
                             metrics.set_jobs_created(state.jobs_created());
-                            self.runtime_server_context.lock().unwrap().send_event(Event::FlowEnd(metrics));
+                            self.runtime_server_context.lock()
+                                .map_err(|_| "Could not lock server context")?
+                                .send_event(Event::FlowEnd(metrics))?;
                         }
                     #[cfg(not(feature = "metrics"))]
-                        self.runtime_server_context.lock().unwrap().send_event(Event::FlowEnd);
+                        self.runtime_server_context.lock()
+                        .map_err(|_| "Could not lock server context")?
+                        .send_event(Event::FlowEnd)?;
                     debug!("{}", state);
                     break 'flow_execution;
                 }
             }
         }
+
+        Ok(())
     }
 
     fn load_from_manifest(manifest_url: &str, server_context: Arc<Mutex<RuntimeServerContext>>, native: bool) -> Result<Manifest> {
@@ -329,10 +346,8 @@ impl Coordinator {
         Ok(manifest)
     }
 
-    /*
-        Send as many jobs as possible for parallel execution.
-        Return 'true' if the debugger is requesting a restart
-    */
+    // Send as many jobs as possible for parallel execution.
+    // Return 'true' if the debugger is requesting a restart
     fn send_jobs(&mut self,
                  state: &mut RunState,
                  #[cfg(feature = "metrics")]

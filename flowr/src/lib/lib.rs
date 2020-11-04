@@ -62,7 +62,6 @@ error_chain! {
 
     foreign_links {
         Io(std::io::Error);
-        // Mutex(std::sync::Mutex::PoisonError);
         Serde(serde_json::error::Error);
         Recv(std::sync::mpsc::RecvError);
         Provider(provider::errors::Error);

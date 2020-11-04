@@ -26,7 +26,7 @@ impl Implementation for ImageBuffer {
                     (size[0].as_u64().unwrap() as u32, size[1].as_u64().unwrap() as u32),
                     filename.to_string()
                 )) {
-                    Response::Ack => (None, RUN_AGAIN),
+                    Ok(Response::Ack) => (None, RUN_AGAIN),
                     _ => (None, RUN_AGAIN)
                 }
             }
