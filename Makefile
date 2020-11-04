@@ -65,7 +65,7 @@ no-book-config: clippy-config wasm-config
 config-darwin:
 	$(STIME)
 	@echo "	Installing macos specific dependencies using brew"
-	@brew install gtk+3 glib cairo atk cmake graphviz
+	@brew install gtk+3 glib cairo atk cmake graphviz zmq
 	$(ETIME)
 
 .PHONY: config-linux
@@ -73,12 +73,12 @@ config-linux:
 	$(STIME)
 ifneq ($(YUM),)
 	@echo "	Installing linux specific dependencies using $(YUM)"
-	@sudo yum --color=auto --quiet install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel
+	@sudo yum --color=auto --quiet install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel || true
 	@sudo yum --color=auto --quiet install graphviz gtk3-devel || true
 else ifneq ($(APTGET),)
 	@echo "	Installing linux specific dependencies using $(APTGET)"
-	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev
-	@sudo apt-get -y install graphviz libgtk-3-dev || true
+	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
+	@sudo apt-get -y install graphviz libgtk-3-dev libzmq3-dev || true
 else
 	@echo "	Neither apt-get nor yum detected for installing linux specific dependencies"
 endif
