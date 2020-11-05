@@ -177,6 +177,9 @@ impl Coordinator {
                 let state = RunState::new(manifest.get_functions(), submission);
                 let _ = self.execute_flow(state);
             }
+
+            self.runtime_server_connection.lock().unwrap().start().unwrap();
+            self.debugger.start();
         }
 
         // Exiting
