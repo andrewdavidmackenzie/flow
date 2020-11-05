@@ -178,7 +178,9 @@ impl Coordinator {
                 let _ = self.execute_flow(state);
             }
 
-            self.runtime_server_connection.lock().unwrap().start().unwrap();
+            if self.runtime_server_connection.lock().unwrap().start().is_err() {
+                break;
+            }
             self.debugger.start();
         }
 
