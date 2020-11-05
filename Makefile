@@ -179,7 +179,7 @@ clippy: $(SOURCES)
 .PHONY: test
 test: $(SOURCES)
 	$(STIME)
-	@set -o pipefail && cargo test --workspace --exclude flow_impl_derive --exclude flowide 2>&1 | tee .test.log
+	@set -o pipefail && cargo test --workspace --exclude flow_impl_derive --exclude flowide -- --test-threads 1 2>&1 | tee .test.log
 	$(ETIME)
 
 .test.log: test
