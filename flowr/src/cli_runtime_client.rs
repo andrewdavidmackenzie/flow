@@ -46,21 +46,23 @@ impl CLIRuntimeClient {
 
         let mut runtime_client = CLIRuntimeClient::new(flow_args, display_metrics);
 
-        loop {
+        let mut exit = false;
+        while !exit {
             debug!("Runtime client waiting for message from server");
             match connection.client_recv() {
                 Ok(event) => {
                     trace!("Runtime client received event from server: {:?}", event);
                     let response = runtime_client.process_event(event);
                     if response == Response::ClientExiting {
-                        return;
+                        exit = true;
                     }
+
                     trace!("Runtime client sending response to server: {:?}", response);
                     let _ = connection.client_send(response);
                 }
                 Err(e) => {
                     error!("Error receiving Event in runtime client: {}", e);
-                    return;
+                    exit = true;
                 }
             }
         }

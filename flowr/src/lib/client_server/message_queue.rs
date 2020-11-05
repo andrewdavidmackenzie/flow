@@ -247,7 +247,7 @@ impl RuntimeServerConnection {
         let responder = self.responder.as_ref()
             .chain_err(|| "Runtime server connection not started")?;
         let msg = responder.recv_msg(0)
-            .chain_err(|| "Runtime server could not receive response")?;
+            .map_err(|e| format!("Runtime server error getting response: '{}'", e))?;
         Ok(Response::from(msg))
     }
 
@@ -256,7 +256,7 @@ impl RuntimeServerConnection {
             .chain_err(|| "Runtime server connection not started")?;
 
         responder.send(event, 0)
-            .chain_err(|| "Error sending to runtime client")?;
+            .map_err(|e| format!("Runtime server error sending to client: '{}'", e))?;
 
         self.get_response()
     }
