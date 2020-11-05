@@ -110,10 +110,10 @@ pub struct RuntimeClientConnection {
 }
 
 impl RuntimeClientConnection {
-    pub fn new(runtime_server_context: &RuntimeServerConnection) -> Self {
+    pub fn new(runtime_server_connection: &RuntimeServerConnection) -> Self {
         RuntimeClientConnection {
-            host: "localhost".into(),
-            port: runtime_server_context.port,
+            host: runtime_server_connection.host.clone(),
+            port: runtime_server_connection.port,
             context: None,
             requester: None,
         }
@@ -167,7 +167,7 @@ pub struct DebuggerClientConnection {
 impl DebuggerClientConnection {
     pub fn new(debug_server_context: &DebugServerConnection) -> Self {
         DebuggerClientConnection {
-            host: "localhost".into(),
+            host: debug_server_context.host.clone(),
             port: debug_server_context.port,
             context: None,
             requester: None,
@@ -214,13 +214,18 @@ impl DebuggerClientConnection {
 }
 
 pub struct RuntimeServerConnection {
+    host: String,
     port: usize,
     responder: Option<zmq::Socket>,
 }
 
 impl RuntimeServerConnection {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(server_hostname: Option<&str>) -> Self {
+        RuntimeServerConnection {
+            host: server_hostname.unwrap_or("localhost").into(),
+            port: 5555,
+            responder: None,
+        }
     }
 
     pub fn start(&mut self) -> Result<()> {
@@ -257,23 +262,19 @@ impl RuntimeServerConnection {
     }
 }
 
-impl Default for RuntimeServerConnection {
-    fn default() -> Self {
-        RuntimeServerConnection {
-            port: 5555,
-            responder: None,
-        }
-    }
-}
-
 pub struct DebugServerConnection {
+    host: String,
     port: usize,
     responder: Option<zmq::Socket>,
 }
 
 impl DebugServerConnection {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(server_hostname: Option<&str>) -> Self {
+        DebugServerConnection {
+            host: server_hostname.unwrap_or("localhost").into(),
+            port: 5556,
+            responder: None,
+        }
     }
 
     pub fn start(&mut self) -> Result<()> {
@@ -308,14 +309,5 @@ impl DebugServerConnection {
             .map_err(|e| format!("Error sending debug event to runtime client: {}", e))?;
 
         Ok(())
-    }
-}
-
-impl Default for DebugServerConnection {
-    fn default() -> DebugServerConnection {
-        DebugServerConnection {
-            port: 5556,
-            responder: None,
-        }
     }
 }

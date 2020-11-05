@@ -79,8 +79,16 @@ pub struct RuntimeServerConnection {
 }
 
 impl RuntimeServerConnection {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(_server_hostname: Option<&str>) -> Self {
+        let (client_event_channel_tx, client_event_channel_rx) = mpsc::channel();
+        let (client_response_channel_tx, client_response_channel_rx) = mpsc::channel();
+
+        RuntimeServerConnection {
+            client_event_channel_tx,
+            client_event_channel_rx: Arc::new(Mutex::new(client_event_channel_rx)),
+            client_response_channel_tx,
+            client_response_channel_rx,
+        }
     }
 
     pub fn start(&self) -> Result<()> {
@@ -107,20 +115,6 @@ impl RuntimeServerConnection {
     }
 }
 
-impl Default for RuntimeServerConnection {
-    fn default() -> Self {
-        let (client_event_channel_tx, client_event_channel_rx) = mpsc::channel();
-        let (client_response_channel_tx, client_response_channel_rx) = mpsc::channel();
-
-        RuntimeServerConnection {
-            client_event_channel_tx,
-            client_event_channel_rx: Arc::new(Mutex::new(client_event_channel_rx)),
-            client_response_channel_tx,
-            client_response_channel_rx,
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct DebugServerConnection {
     /// A channel to send events to a debug client on
@@ -134,8 +128,15 @@ pub struct DebugServerConnection {
 }
 
 impl DebugServerConnection {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(_server_hostname: Option<&str>) -> Self {
+        let (debug_event_channel_tx, debug_event_channel_rx) = mpsc::channel();
+        let (debug_response_channel_tx, debug_response_channel_rx) = mpsc::channel();
+        DebugServerConnection {
+            debug_event_channel_tx,
+            debug_event_channel_rx: Arc::new(Mutex::new(debug_event_channel_rx)),
+            debug_response_channel_tx,
+            debug_response_channel_rx,
+        }
     }
 
     pub fn start(&self) -> Result<()> {
@@ -154,18 +155,5 @@ impl DebugServerConnection {
     pub fn send_event(&self, event: DebugEvent) -> Result<()> {
         self.debug_event_channel_tx.send(event)
             .chain_err(|| "Could not send Debug event from Debug server")
-    }
-}
-
-impl Default for DebugServerConnection {
-    fn default() -> DebugServerConnection {
-        let (debug_event_channel_tx, debug_event_channel_rx) = mpsc::channel();
-        let (debug_response_channel_tx, debug_response_channel_rx) = mpsc::channel();
-        DebugServerConnection {
-            debug_event_channel_tx,
-            debug_event_channel_rx: Arc::new(Mutex::new(debug_event_channel_rx)),
-            debug_response_channel_tx,
-            debug_response_channel_rx,
-        }
     }
 }

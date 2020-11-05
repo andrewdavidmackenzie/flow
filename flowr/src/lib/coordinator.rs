@@ -95,8 +95,10 @@ pub struct Coordinator {
 /// use flowrlib::runtime::Response::ClientSubmission;
 ///
 /// let (runtime_connection, debugger_connection) = Coordinator::server(1 /* num_threads */,
-///                                                                      true, /* native */
-///                                                                     false /* server */)
+///                                                                     true,  /* native */
+///                                                                     false, /* server-only */
+///                                                                     false, /* client-only */
+///                                                                     None   /* server hostname */)
 ///                                                 .unwrap();
 ///
 /// let mut submission = Submission::new("file:///temp/fake.toml",
@@ -132,29 +134,34 @@ impl Coordinator {
     /// Start the Coordinator server either in a background thread or in the
     /// foreground thread this function is called on according to the `server`
     /// parameter:
-    /// `server` == true  -> this is a server-only process, start on this thread
-    /// `server` == false -> this process works as client AND server, so start serving from a thread
-    pub fn server(num_threads: usize, native: bool, server: bool) -> Result<(RuntimeClientConnection, DebuggerClientConnection)> {
-        let runtime_server_context = RuntimeServerConnection::new();
-        let debug_server_context = DebugServerConnection::new();
+    /// `server_only` == true  -> this is a server-only process, start the server on this thread
+    /// `server_only` == false -> this process works as client AND server, start serving from a thread
+    /// `client_only` == true  -> No need to start any Coordinator server, just return connections
+    pub fn server(num_threads: usize, native: bool, server_only: bool, client_only: bool,
+                  server_hostname: Option<&str>)
+                  -> Result<(RuntimeClientConnection, DebuggerClientConnection)> {
+        let runtime_server_context = RuntimeServerConnection::new(server_hostname);
+        let debug_server_context = DebugServerConnection::new(server_hostname);
 
         let runtime_connection = RuntimeClientConnection::new(&runtime_server_context);
         let debugger_connection = DebuggerClientConnection::new(&debug_server_context);
 
-        let mut coordinator = Coordinator::new(runtime_server_context, debug_server_context, num_threads);
-        coordinator.runtime_server_context.lock()
-            .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
-            .start()?;
-        coordinator.debugger.start();
+        if !client_only {
+            let mut coordinator = Coordinator::new(runtime_server_context, debug_server_context, num_threads);
+            coordinator.runtime_server_context.lock()
+                .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
+                .start()?;
+            coordinator.debugger.start();
 
-        if server {
-            info!("Starting 'flowr' server on main thread");
-            coordinator.start(native);
-        } else {
-            std::thread::spawn(move || {
-                info!("Starting 'flowr' server as background thread");
+            if server_only {
+                info!("Starting 'flowr' server on main thread");
                 coordinator.start(native);
-            });
+            } else {
+                std::thread::spawn(move || {
+                    info!("Starting 'flowr' server as background thread");
+                    coordinator.start(native);
+                });
+            }
         }
 
         Ok((runtime_connection, debugger_connection))

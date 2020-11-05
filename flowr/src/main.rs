@@ -79,14 +79,16 @@ fn run() -> Result<()> {
     SimpleLogger::init(matches.value_of("verbosity"));
     let debugger = matches.is_present("debugger");
     let native = matches.is_present("native");
-    let server = matches.is_present("server");
+    let server_only = matches.is_present("server");
+    let client_only = matches.is_present("client");
+    let server_hostname = matches.value_of("client");
 
     // Start the coordinator server either on the main thread or as a background thread
-    // depending on the value of the "server" option
+    // depending on the value of the "server_only" option
     let (runtime_connection, _debugger_connection) = Coordinator::server(
-        num_threads(&matches, debugger), native, server)?;
+        num_threads(&matches, debugger), native, server_only, client_only, server_hostname)?;
 
-    if !server {
+    if !server_only {
         let flow_manifest_url = parse_flow_url(&matches)?;
         let flow_args = get_flow_args(&matches, &flow_manifest_url);
         let submission = Submission::new(&flow_manifest_url.to_string(),
@@ -210,6 +212,14 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .short("s")
         .long("server")
         .help("Launch as flowr server"));
+
+    #[cfg(feature = "distributed")]
+        let app = app.arg(Arg::with_name("client")
+        .short("c")
+        .long("client")
+        .takes_value(true)
+        .value_name("SERVER_HOSTNAME")
+        .help("Set the HOSTNAME of the server this client should connect to"));
 
     #[cfg(feature = "debugger")]
         let app = app.arg(Arg::with_name("debugger")
