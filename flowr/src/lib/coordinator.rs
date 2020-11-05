@@ -148,18 +148,16 @@ impl Coordinator {
 
         if !client_only {
             let mut coordinator = Coordinator::new(runtime_server_context, debug_server_context, num_threads);
-            coordinator.runtime_server_connection.lock()
-                .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
-                .start()?;
-            coordinator.debugger.start();
 
             if server_only {
                 info!("Starting 'flowr' server on main thread");
-                coordinator.start(native);
+                coordinator.start(native)?;
             } else {
                 std::thread::spawn(move || {
                     info!("Starting 'flowr' server as background thread");
-                    coordinator.start(native);
+                    if let Err(e) = coordinator.start(native) {
+                        error!("Error starting Coordinator in background thread: '{}'", e);
+                    }
                 });
             }
         }
@@ -169,7 +167,12 @@ impl Coordinator {
 
     /// Start the Coordinator - this will block the thread it is running on waiting for a submission
     /// It will loop processing submissions until it gets a `ClientExiting` response, then it will also exit
-    pub fn start(&mut self, native: bool) {
+    pub fn start(&mut self, native: bool) -> Result<()>{
+        self.runtime_server_connection.lock()
+            .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
+            .start()?;
+        self.debugger.start();
+
         while let Some(submission) = self.wait_for_submission() {
             if let Ok(mut manifest) = Self::load_from_manifest(&submission.manifest_url,
                                                                self.runtime_server_connection.clone(),
@@ -186,6 +189,8 @@ impl Coordinator {
 
         // Exiting
         debug!("Client exiting and no other clients connected, so server is exiting");
+
+        Ok(())
     }
 
     // Loop waiting for a message from the client.
