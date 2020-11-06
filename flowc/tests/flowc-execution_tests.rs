@@ -56,7 +56,7 @@ fn write_manifest(flow: &Flow, debug_symbols: bool, out_dir: PathBuf, test_name:
     Ok(filename)
 }
 
-fn execute_flow(filepath: PathBuf, test_args: Vec<String>, input: String) -> String {
+fn execute_flow(filepath: PathBuf, test_args: Vec<String>, input: String) -> (String, String) {
     let mut command = Command::new("cargo");
     let mut command_args = vec!("run", "-p", "flowr", "--", "-n", filepath.to_str().unwrap());
     for test_arg in &test_args {
@@ -88,7 +88,7 @@ fn execute_flow(filepath: PathBuf, test_args: Vec<String>, input: String) -> Str
         }
     }
 
-    output
+    (output, err)
 }
 
 fn test_args(test_dir: &PathBuf, test_name: &str) -> Vec<String> {
@@ -142,9 +142,10 @@ fn execute_test(test_name: &str) {
 
         let test_args = test_args(&test_dir, test_name);
         let input = get(&test_dir, &format!("{}.stdin", test_name));
-        let actual_output = execute_flow(manifest_path, test_args, input);
+        let (actual_stdout, actual_stderr) = execute_flow(manifest_path, test_args, input);
         let expected_output = get(&test_dir, &format!("{}.expected", test_name));
-        assert_eq!(expected_output, actual_output, "Flow output did not match that in .expected file");
+        assert_eq!(expected_output, actual_stdout, "Flow output did not match that in .expected file");
+        assert!(actual_stderr.is_empty(), "There was stderr output during test: \n{}", actual_stderr)
     }
 }
 
