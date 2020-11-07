@@ -19,7 +19,7 @@ name = "flowrlib"
 path = "src/lib/lib.rs"
 
 [features]
-default = ["debugger", "native", "metrics", "checks"]
+default = ["debugger", "native", "metrics", "checks", "distributed"]
 debugger = [] # feature to add the debugger
 native = []   # Load native implementations of functions in libraries when possible
 metrics = []  # feature for tracking of metrics during execution
