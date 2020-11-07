@@ -38,13 +38,13 @@ impl RuntimeClientConnection {
     }
 }
 
-pub struct DebuggerClientConnection {
+pub struct DebugClientConnection {
     channels: (Arc<Mutex<Receiver<DebugEvent>>>, Sender<DebugResponse>),
 }
 
-impl DebuggerClientConnection {
+impl DebugClientConnection {
     pub fn new(debug_server_context: &DebugServerConnection) -> Self {
-        DebuggerClientConnection {
+        DebugClientConnection {
             channels: debug_server_context.get_channels()
         }
     }
