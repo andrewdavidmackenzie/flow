@@ -9,7 +9,7 @@ use serde_derive::{Deserialize, Serialize};
 use flowrstructs::manifest::Manifest;
 use provider::content::provider::MetaProvider;
 
-use crate::client_server::{DebuggerClientConnection, DebugServerConnection,
+use crate::client_server::{DebugClientConnection, DebugServerConnection,
                            RuntimeClientConnection, RuntimeServerConnection};
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
@@ -94,7 +94,7 @@ pub struct Coordinator {
 /// use flowrlib::runtime::Event as RuntimeEvent;
 /// use flowrlib::runtime::Response::ClientSubmission;
 ///
-/// let (runtime_connection, debugger_connection) = Coordinator::server(1 /* num_threads */,
+/// let (runtime_client_connection, debug_client_connection) = Coordinator::server(1 /* num_threads */,
 ///                                                                     true,  /* native */
 ///                                                                     false, /* server-only */
 ///                                                                     false, /* client-only */
@@ -106,7 +106,7 @@ pub struct Coordinator {
 ///                                     true /* enter debugger on start */);
 ///
 ///
-/// runtime_connection.client_send(ClientSubmission(submission)).unwrap();
+/// runtime_client_connection.client_send(ClientSubmission(submission)).unwrap();
 /// exit(0);
 /// ```
 ///
@@ -139,15 +139,20 @@ impl Coordinator {
     /// `client_only` == true  -> No need to start any Coordinator server, just return connections
     pub fn server(num_threads: usize, native: bool, server_only: bool, client_only: bool,
                   server_hostname: Option<&str>)
-                  -> Result<(RuntimeClientConnection, DebuggerClientConnection)> {
+                  -> Result<(RuntimeClientConnection, DebugClientConnection)> {
         let runtime_server_context = RuntimeServerConnection::new(server_hostname);
         let debug_server_context = DebugServerConnection::new(server_hostname);
 
-        let runtime_connection = RuntimeClientConnection::new(&runtime_server_context);
-        let debugger_connection = DebuggerClientConnection::new(&debug_server_context);
+        let runtime_client_connection = RuntimeClientConnection::new(&runtime_server_context);
+        let debug_client_connection = DebugClientConnection::new(&debug_server_context);
 
         if !client_only {
             let mut coordinator = Coordinator::new(runtime_server_context, debug_server_context, num_threads);
+
+            coordinator.runtime_server_connection.lock()
+                .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
+                .start()?;
+            coordinator.debugger.start();
 
             if server_only {
                 info!("Starting 'flowr' server on main thread");
@@ -162,17 +167,12 @@ impl Coordinator {
             }
         }
 
-        Ok((runtime_connection, debugger_connection))
+        Ok((runtime_client_connection, debug_client_connection))
     }
 
     /// Start the Coordinator - this will block the thread it is running on waiting for a submission
     /// It will loop processing submissions until it gets a `ClientExiting` response, then it will also exit
     pub fn start(&mut self, native: bool) -> Result<()>{
-        self.runtime_server_connection.lock()
-            .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
-            .start()?;
-        self.debugger.start();
-
         while let Some(submission) = self.wait_for_submission() {
             if let Ok(mut manifest) = Self::load_from_manifest(&submission.manifest_url,
                                                                self.runtime_server_connection.clone(),

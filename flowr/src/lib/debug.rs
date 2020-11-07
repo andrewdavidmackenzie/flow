@@ -18,7 +18,7 @@ pub enum Param {
     Block((usize, usize)),
 }
 
-/// A debugger Response sent by the debug_client the debugger runtime
+/// A debugger Response sent by the debug_client to the debug server
 #[derive(Serialize, Deserialize)]
 pub enum Response {
     /// Acknowledge event processed correctly

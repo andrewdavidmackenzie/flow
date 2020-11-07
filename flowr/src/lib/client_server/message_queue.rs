@@ -105,7 +105,6 @@ impl From<Message> for DebugResponse {
 pub struct RuntimeClientConnection {
     host: String,
     port: usize,
-    context: Option<zmq::Context>,
     requester: Option<Socket>,
 }
 
@@ -114,22 +113,19 @@ impl RuntimeClientConnection {
         RuntimeClientConnection {
             host: runtime_server_connection.host.clone(),
             port: runtime_server_connection.port,
-            context: None,
             requester: None,
         }
     }
 
     pub fn start(&mut self) -> Result<()> {
-        self.context = Some(zmq::Context::new());
+        let context = zmq::Context::new();
 
-        if let Some(ref context) = self.context {
-            self.requester = Some(context.socket(zmq::REQ)
-                .chain_err(|| "Runtime client could not connect to server")?);
+        self.requester = Some(context.socket(zmq::REQ)
+            .chain_err(|| "Runtime client could not connect to server")?);
 
-            if let Some(ref requester) = self.requester {
-                requester.connect(&format!("tcp://{}:{}", self.host, self.port))
-                    .chain_err(|| "Could not connect to server")?;
-            }
+        if let Some(ref requester) = self.requester {
+            requester.connect(&format!("tcp://{}:{}", self.host, self.port))
+                .chain_err(|| "Could not connect to server")?;
         }
 
         debug!("Runtime client connected to Server on {}:{}", self.host, self.port);
@@ -157,34 +153,30 @@ impl RuntimeClientConnection {
     }
 }
 
-pub struct DebuggerClientConnection {
+pub struct DebugClientConnection {
     host: String,
     port: usize,
-    context: Option<zmq::Context>,
     requester: Option<Socket>,
 }
 
-impl DebuggerClientConnection {
+impl DebugClientConnection {
     pub fn new(debug_server_context: &DebugServerConnection) -> Self {
-        DebuggerClientConnection {
+        DebugClientConnection {
             host: debug_server_context.host.clone(),
             port: debug_server_context.port,
-            context: None,
             requester: None,
         }
     }
 
     pub fn start(&mut self) -> Result<()> {
-        self.context = Some(zmq::Context::new());
+        let context = zmq::Context::new();
 
-        if let Some(ref context) = self.context {
-            self.requester = Some(context.socket(zmq::REQ)
-                .chain_err(|| "Debug client could not connect to server")?);
+        self.requester = Some(context.socket(zmq::REQ)
+            .chain_err(|| "Debug client could not connect to server")?);
 
-            if let Some(ref requester) = self.requester {
-                requester.connect(&format!("tcp://{}:{}", self.host, self.port))
-                    .chain_err(|| "Could not connect to server")?;
-            }
+        if let Some(ref requester) = self.requester {
+            requester.connect(&format!("tcp://{}:{}", self.host, self.port))
+                .chain_err(|| "Could not connect to server")?;
         }
 
         debug!("Debug client connected to debugger on {}:{}", self.host, self.port);
@@ -304,7 +296,6 @@ impl DebugServerConnection {
     pub fn send_event(&self, event: DebugEvent) -> Result<()> {
         let responder = self.responder.as_ref()
             .chain_err(|| "Runtime server connection not started")?;
-
         responder.send(event, 0)
             .map_err(|e| format!("Error sending debug event to runtime client: {}", e))?;
 
