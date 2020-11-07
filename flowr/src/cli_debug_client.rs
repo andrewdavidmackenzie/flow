@@ -37,7 +37,6 @@ impl CLIDebugClient {
         let _ = connection.start();
 
         std::thread::spawn(move || {
-            // let _ = connection.client_send(Ack); // client must start the protocol
             loop {
                 match connection.client_recv() {
                     Ok(event) => {
@@ -47,7 +46,7 @@ impl CLIDebugClient {
                     }
                     Err(err) => {
                         error!("Error receiving event from debugger: {}", err);
-                        // break;
+                        break;
                     }
                 }
             }
