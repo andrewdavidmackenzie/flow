@@ -56,7 +56,7 @@ impl Provider for LibProvider {
             .chain_err(|| format!("'lib_name' could not be extracted from host part of url '{}'", url))?;
 
         if env::var("FLOW_LIB_PATH").is_err() {
-            let parent_dir = std::env::current_dir().unwrap();
+            let parent_dir = std::env::current_dir().chain_err(|| "Could not get CWD")?;
             debug!("Setting 'FLOW_LIB_PATH' to '{}'", parent_dir.to_string_lossy().to_string());
             env::set_var("FLOW_LIB_PATH", parent_dir.to_string_lossy().to_string());
         }
@@ -72,8 +72,14 @@ impl Provider for LibProvider {
         }
 
         // Drop the file extension off the lib definition file path to get a lib reference
-        let module = url.join("./").unwrap().join(lib_path.file_stem().unwrap().to_str().unwrap());
-        let lib_ref = format!("{}{}", lib_name, module.unwrap().path());
+        let module = url.join("./")
+            .chain_err(|| "Could not perform join")?
+            .join(lib_path.file_stem()
+                .chain_err(|| "Could not get file stem")?
+                .to_str()
+                .chain_err(|| "Could not convert file stem to string")?)
+            .chain_err(|| "Could not create module Url")?;
+        let lib_ref = format!("{}{}", lib_name, module.path());
 
         // See if the directory with that name exists
         if lib_path.exists() {
@@ -84,7 +90,10 @@ impl Provider for LibProvider {
                 return Ok((lib_path_url.to_string(), Some(lib_ref)));
             }
 
-            let provided_implementation_filename = lib_path.file_name().unwrap().to_str().unwrap();
+            let provided_implementation_filename = lib_path.file_name()
+                .chain_err(|| "Could not get library file name")?
+                .to_str()
+                .chain_err(|| "Could not convert library file name to a string")?;
             debug!("'{}' is a directory, so looking inside it for default file name '{}' or provided implementation file '{}' with extensions '{:?}'",
                    lib_path.display(), default_filename, provided_implementation_filename, _extensions);
             for filename in [default_filename, provided_implementation_filename].iter() {

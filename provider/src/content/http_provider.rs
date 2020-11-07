@@ -60,11 +60,11 @@ impl HttpProvider {
             debug!("Looking for resource '{}'", resource_with_extension);
 
             let mut easy = Easy2::new(Collector(Vec::new()));
-            easy.get(true).unwrap();
-            easy.url(&resource_with_extension).unwrap();
-            easy.perform().unwrap();
+            easy.get(true).chain_err(|| "Could not create curl GET request")?;
+            easy.url(&resource_with_extension).chain_err(|| "Could not set Url on curl request")?;
+            easy.perform().chain_err(|| "Could not perform curl request")?;
 
-            if easy.response_code().unwrap() == 200 {
+            if easy.response_code() == Ok(200) {
                 return Ok(resource_with_extension);
             }
         }
