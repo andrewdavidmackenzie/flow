@@ -9,8 +9,7 @@ impl Deserializer for FlowYamlLoader {
     fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process> {
         serde_yaml::from_str(contents)
             .chain_err(|| format!("Error deserializing Yaml from: '{}'",
-                                  url.or_else(|| { Some("URL unknown") } ).unwrap()))
-
+                                  url.map_or("URL unknown".to_owned(), |u| u.to_string())))
     }
 
     fn name(&self) -> &'static str { "Yaml" }
@@ -43,7 +42,6 @@ authors: [unknown <unknown@unknown.com>]
 
         let yaml = FlowYamlLoader {};
         let flow = yaml.deserialize(&flow_description.replace("'", "\""), None);
-        println!("{:?}", flow);
         assert!(flow.is_ok());
     }
 }

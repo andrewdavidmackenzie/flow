@@ -73,7 +73,13 @@ impl DataType {
             Value::Bool(_) => "Boolean".into(),
             Value::Number(_) => "Number".into(),
             Value::Array(array) => format!("Array/{}", Self::type_string(&array[0])),
-            Value::Object(map) => format!("Map/{}", Self::type_string(&map.values().cloned().next().unwrap())),
+            Value::Object(map) => {
+                if let Some(map_entry) = map.values().next() {
+                format!("Map/{}", Self::type_string(map_entry))
+                } else {
+                    "Map".to_owned()
+                }
+            },
             Value::Null => "Null".into()
         }
     }

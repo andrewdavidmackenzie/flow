@@ -1,4 +1,5 @@
-// TODO #![deny(missing_docs)]
+//! #![deny(missing_docs)]
+#![warn(clippy::unwrap_used)]
 //! `flowr` is the flow runner. It reads a `flow` `Manifest` produced
 //! by a flow compiler, such as `flowc`` that describes the network of collaborating functions
 //! that are executed to execute the flow.
@@ -16,12 +17,11 @@ use log::{error, info};
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
-use cli_debug_client::CLIDebugClient;
 use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::info as flowrlib_info;
-use flowrlib::runtime::Response::ClientSubmission;
 use provider::args::url_from_string;
 
+use crate::cli_debug_client::CLIDebugClient;
 use crate::cli_runtime_client::CLIRuntimeClient;
 
 mod cli_debug_client;
@@ -71,29 +71,41 @@ fn main() {
     }
 }
 
-fn run() -> Result<String> {
+fn run() -> Result<()> {
+    info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+    info!("'flowrlib' version {}", flowrlib_info::version());
+
     let matches = get_matches();
+
     SimpleLogger::init(matches.value_of("verbosity"));
-    let flow_manifest_url = parse_flow_url(&matches)?;
     let debugger = matches.is_present("debugger");
     let native = matches.is_present("native");
-    let flow_args = get_flow_args(&matches, &flow_manifest_url);
+    let server_only = matches.is_present("server");
+    let client_only = matches.is_present("client");
+    let server_hostname = matches.value_of("client");
 
-    let submission = Submission::new(&flow_manifest_url,
-                                     num_parallel_jobs(&matches, debugger),
-                                     debugger);
+    // Start the coordinator server either on the main thread or as a background thread
+    // depending on the value of the "server_only" option
+    let (runtime_connection, debug_connection) = Coordinator::server(
+        num_threads(&matches, debugger), native, server_only, client_only, server_hostname)?;
 
-    let (runtime_connection, debugger_connection) = Coordinator::connect(num_threads(&matches, debugger), native);
+    if !server_only {
+        let flow_manifest_url = parse_flow_url(&matches)?;
+        let flow_args = get_flow_args(&matches, &flow_manifest_url);
+        let submission = Submission::new(&flow_manifest_url.to_string(),
+                                         num_parallel_jobs(&matches, debugger),
+                                         debugger);
 
-    runtime_connection.client_send(ClientSubmission(submission))?;
+        CLIDebugClient::start(debug_connection);
+        CLIRuntimeClient::start(runtime_connection,
+                                submission,
+                                flow_args,
+                                #[cfg(feature = "metrics")]
+                                    matches.is_present("metrics"),
+        )?;
+    }
 
-    CLIDebugClient::start(debugger_connection);
-    CLIRuntimeClient::start(runtime_connection,
-                            flow_args,
-                            #[cfg(feature = "metrics")]
-                                matches.is_present("metrics"),
-    );
-    Ok("Event loop exited".into())
+    Ok(())
 }
 
 
@@ -171,11 +183,11 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .version(env!("CARGO_PKG_VERSION"));
 
     let app = app.arg(Arg::with_name("jobs")
-            .short("j")
-            .long("jobs")
-            .takes_value(true)
-            .value_name("MAX_JOBS")
-            .help("Set maximum number of jobs that can be running in parallel)"))
+        .short("j")
+        .long("jobs")
+        .takes_value(true)
+        .value_name("MAX_JOBS")
+        .help("Set maximum number of jobs that can be running in parallel)"))
         .arg(Arg::with_name("threads")
             .short("t")
             .long("threads")
@@ -190,20 +202,34 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .help("Set verbosity level for output (trace, debug, info, warn, error (default))"))
         .arg(Arg::with_name("flow-manifest")
             .help("the file path of the 'flow' manifest file")
-            .required(true)
+            .required(false)
             .index(1))
         .arg(Arg::with_name("flow-arguments")
             .multiple(true)
             .help("A list of arguments to pass to the flow when executed."));
 
+    #[cfg(feature = "distributed")]
+        let app = app.arg(Arg::with_name("server")
+        .short("s")
+        .long("server")
+        .help("Launch as flowr server"));
+
+    #[cfg(feature = "distributed")]
+        let app = app.arg(Arg::with_name("client")
+        .short("c")
+        .long("client")
+        .takes_value(true)
+        .value_name("SERVER_HOSTNAME")
+        .help("Set the HOSTNAME of the server this client should connect to"));
+
     #[cfg(feature = "debugger")]
-    let app = app.arg(Arg::with_name("debugger")
+        let app = app.arg(Arg::with_name("debugger")
         .short("d")
         .long("debugger")
         .help("Enable the debugger when running a flow"));
 
     #[cfg(feature = "metrics")]
-    let app = app.arg(Arg::with_name("metrics")
+        let app = app.arg(Arg::with_name("metrics")
         .short("m")
         .long("metrics")
         .help("Calculate metrics during flow execution and print them out when done"));
@@ -221,9 +247,6 @@ fn get_matches<'a>() -> ArgMatches<'a> {
     Parse the command line arguments passed onto the flow itself
 */
 fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
-    info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    info!("'flowrlib' version {}", flowrlib_info::version());
-
     let cwd = env::current_dir().chain_err(|| "Could not get current working directory value")?;
     let cwd_url = Url::from_directory_path(cwd)
         .map_err(|_| "Could not form a Url for the current working directory")?;

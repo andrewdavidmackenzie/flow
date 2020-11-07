@@ -18,8 +18,8 @@ name = "flowstdlib"
 path = "lib.rs"
 
 [dependencies]
-flow_impl = "=0.10.0"
-flow_impl_derive = "=0.10.0"
+flow_impl = {path = "../flow_impl"}
+flow_impl_derive = {path = "../flow_impl_derive"}
 flowrstructs = {path = "../flowrstructs"}
 
 serde_json = "1.0"

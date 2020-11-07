@@ -1,4 +1,5 @@
 // TODO #![deny(missing_docs)]
+#![warn(clippy::unwrap_used)]
 //! Runtime library for flow execution. This will be linked with other code to produce a
 //! or runner, such as `flowr` command line runner.
 //!
@@ -21,8 +22,9 @@ pub mod loader;
 /// to user code like a library
 mod flowruntime;
 
-#[cfg_attr(feature = "distributed", path = "message_queue.rs")]
-#[cfg_attr(feature = "single_process", path = "channels.rs")]
+#[allow(unused_attributes)]
+#[cfg_attr(feature = "distributed", path = "client_server/message_queue.rs")]
+#[cfg_attr(not(feature = "distributed"), path = "client_server/channels.rs")]
 pub mod client_server;
 
 /// 'debug' defines structs passed between the Server and the Client regarding debug events
@@ -61,7 +63,6 @@ error_chain! {
 
     foreign_links {
         Io(std::io::Error);
-        // Mutex(std::sync::Mutex::PoisonError);
         Serde(serde_json::error::Error);
         Recv(std::sync::mpsc::RecvError);
         Provider(provider::errors::Error);

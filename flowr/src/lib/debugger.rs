@@ -3,9 +3,10 @@ use std::fmt;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use log::error;
 use serde_json::Value;
 
-use crate::client_server::DebugServerContext;
+use crate::client_server::DebugServerConnection;
 use crate::debug::Event;
 use crate::debug::Event::{*};
 use crate::debug::Param;
@@ -14,7 +15,7 @@ use crate::debug::Response;
 use crate::run_state::{Block, Job, RunState};
 
 pub struct Debugger {
-    pub server_context: DebugServerContext,
+    debug_server_connection: DebugServerConnection,
     input_breakpoints: HashSet<(usize, usize)>,
     block_breakpoints: HashSet<(usize, usize)>,
     /* blocked_id -> blocking_id */
@@ -60,10 +61,10 @@ impl fmt::Display for BlockerNode {
     }
 }
 
-impl Default for Debugger {
-    fn default() -> Self {
+impl Debugger {
+    pub fn new(debug_server_connection: DebugServerConnection) -> Self {
         Debugger {
-            server_context: DebugServerContext::new(),
+            debug_server_connection,
             input_breakpoints: HashSet::<(usize, usize)>::new(),
             block_breakpoints: HashSet::<(usize, usize)>::new(),
             output_breakpoints: HashSet::<(usize, String)>::new(),
@@ -72,11 +73,9 @@ impl Default for Debugger {
             debug_requested: Arc::new(AtomicBool::new(false)),
         }
     }
-}
 
-impl Debugger {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn start(&mut self) {
+        let _ = self.debug_server_connection.start();
     }
 
     pub fn check_for_entry(&mut self, state: &RunState) {
@@ -90,7 +89,7 @@ impl Debugger {
         Return values are (display next output, reset execution)
     */
     pub fn enter(&mut self, state: &RunState) -> (bool, bool) {
-        self.server_context.send_debug_event(EnteringDebugger);
+        let _ = self.debug_server_connection.send_event(EnteringDebugger);
         self.wait_for_command(state)
     }
 
@@ -100,7 +99,7 @@ impl Debugger {
         Return values are (display next output, reset execution)
     */
     pub fn job_completed(&mut self, job: &Job) -> (bool, bool) {
-        self.server_context.send_debug_event(JobCompleted(job.job_id, job.function_id, job.result.0.clone()));
+        let _ = self.debug_server_connection.send_event(JobCompleted(job.job_id, job.function_id, job.result.0.clone()));
         (false, false)
     }
 
@@ -111,7 +110,7 @@ impl Debugger {
     pub fn check_prior_to_job(&mut self, state: &RunState, next_job_id: usize, function_id: usize) -> (bool, bool) {
         if self.break_at_job == next_job_id ||
             self.function_breakpoints.contains(&function_id) {
-            self.server_context.send_debug_event(PriorToSendingJob(next_job_id, function_id));
+            let _ = self.debug_server_connection.send_event(PriorToSendingJob(next_job_id, function_id));
             self.print(state, Some(Param::Numeric(function_id)));
             return self.wait_for_command(state);
         }
@@ -128,7 +127,7 @@ impl Debugger {
     */
     pub fn check_on_block_creation(&mut self, state: &RunState, block: &Block) {
         if self.block_breakpoints.contains(&(block.blocked_id, block.blocking_id)) {
-            self.server_context.send_debug_event(BlockBreakpoint(block.clone()));
+            let _ = self.debug_server_connection.send_event(BlockBreakpoint(block.clone()));
             self.wait_for_command(state);
         }
     }
@@ -143,10 +142,10 @@ impl Debugger {
                                value: &Value, destination_id: usize, input_number: usize) {
         if self.output_breakpoints.contains(&(source_process_id, output_route.to_string())) ||
             self.input_breakpoints.contains(&(destination_id, input_number)) {
-            self.server_context.send_debug_event(SendingValue(
+            let _ = self.debug_server_connection.send_event(SendingValue(
                 source_process_id, value.clone(), destination_id, input_number));
-            self.server_context.send_debug_event(DataBreakpoint(source_process_id, output_route.to_string(),
-                                                                value.clone(), destination_id, input_number));
+            let _ = self.debug_server_connection.send_event(DataBreakpoint(source_process_id, output_route.to_string(),
+                                                                           value.clone(), destination_id, input_number));
             self.wait_for_command(state);
         }
     }
@@ -160,7 +159,7 @@ impl Debugger {
         state etc.
     */
     pub fn error(&mut self, state: &RunState, job: Job) {
-        self.server_context.send_debug_event(JobError(job));
+        let _ = self.debug_server_connection.send_event(JobError(job));
         self.wait_for_command(state);
     }
 
@@ -173,7 +172,7 @@ impl Debugger {
         state etc.
     */
     pub fn panic(&mut self, state: &RunState, error_message: String) {
-        self.server_context.send_debug_event(Panic(error_message, state.jobs_created()));
+        let _ = self.debug_server_connection.send_event(Panic(error_message, state.jobs_created()));
         self.wait_for_command(state);
     }
 
@@ -181,7 +180,7 @@ impl Debugger {
         Return values are (display next output, reset execution)
     */
     pub fn flow_done(&mut self, state: &RunState) -> (bool, bool) {
-        self.server_context.send_debug_event(ExecutionEnded);
+        let _ = self.debug_server_connection.send_event(ExecutionEnded);
         self.deadlock_inspection(state);
         self.wait_for_command(state)
     }
@@ -198,64 +197,65 @@ impl Debugger {
     */
     fn wait_for_command(&mut self, state: &RunState) -> (bool, bool) {
         loop {
-            self.server_context.send_debug_event(WaitingForCommand(state.jobs_created()));
-            match self.server_context.get_response() {
+            let _ = self.debug_server_connection.send_event(WaitingForCommand(state.jobs_created()));
+            match self.debug_server_connection.get_response() {
                 // *************************      The following are commands that send a response
-                GetState => {
+                Ok(GetState) => {
                     // Respond with 'state'
-
                 }
-                GetFunctionState(_id) => {
+                Ok(GetFunctionState(_id)) => {
                     // Respond with display_state(&self, function_id: usize) -> String ??
                 }
-                Breakpoint(param) => {
+                Ok(Breakpoint(param)) => {
                     let event = self.add_breakpoint(state, param);
-                    self.server_context.send_debug_event(event);
+                    let _ = self.debug_server_connection.send_event(event);
                 },
-                Delete(param) => {
+                Ok(Delete(param)) => {
                     let event = self.delete_breakpoint(param);
-                    self.server_context.send_debug_event(event);
+                    let _ = self.debug_server_connection.send_event(event);
                 }
-                Inspect => {
+                Ok(Inspect) => {
                     let event = self.inspect(state);
-                    self.server_context.send_debug_event(event);
+                    let _ = self.debug_server_connection.send_event(event);
                 }
-                List => {
+                Ok(List) => {
                     let event = self.list_breakpoints();
-                    self.server_context.send_debug_event(event);
+                    let _ = self.debug_server_connection.send_event(event);
                 }
-                Print(param) => {
+                Ok(Print(param)) => {
                     let event = self.print(state, param);
-                    self.server_context.send_debug_event(event);
+                    let _ = self.debug_server_connection.send_event(event);
                 }
-                EnterDebugger => { /* Not needed as we are already in the debugger */ }
-                ExitDebugger => {
-                    self.server_context.send_debug_event(ExitingDebugger);
+                Ok(EnterDebugger) => { /* Not needed as we are already in the debugger */ }
+                Ok(ExitDebugger) => {
+                    let _ = self.debug_server_connection.send_event(ExitingDebugger);
                     return (false, false);
                 }
 
                 // **************************      The following commands exit the command loop
-                Continue => {
+                Ok(Continue) => {
                     if state.jobs_created() > 0 {
                         return (false, false);
                     }
                 }
-                RunReset => {
+                Ok(RunReset) => {
                     return if state.jobs_created() > 0 {
                         let event = self.reset();
-                        self.server_context.send_debug_event(event);
+                        let _ = self.debug_server_connection.send_event(event);
                         (false, true)
                     } else {
-                        self.server_context.send_debug_event(ExecutionStarted);
+                        let _ = self.debug_server_connection.send_event(ExecutionStarted);
                         (false, false)
                     }
                 }
-                Step(param) => {
-                    self.step(state, param);
+                Ok(Step(param)) => {
+                    let _ = self.step(state, param);
                     return (true, false);
                 }
-                Ack => {}
-                Response::Error(_) => {/* client error */}
+                Ok(Ack) => {}
+                Ok(Response::Error(_)) => {/* client error */}
+                Ok(Response::Invalid) => {}
+                Err(e) => error!("Error in Debug server getting command; {}", e)
             };
         }
     }
@@ -450,7 +450,7 @@ impl Debugger {
                 self.break_at_job = state.jobs_created() + steps;
             }
             _ => {
-                self.server_context.send_debug_event(Event::Error("Did not understand step command parameter\n".into()));
+                let _ = self.debug_server_connection.send_event(Event::Error("Did not understand step command parameter\n".into()));
             }
         }
     }

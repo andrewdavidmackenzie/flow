@@ -9,7 +9,7 @@ impl Deserializer for FlowTomelLoader {
     fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process> {
         toml::from_str(contents)
             .chain_err(|| format!("Error deserializing Toml from: '{}'",
-                                  url.or_else(|| { Some("URL unknown") } ).unwrap()))
+                                  url.map_or("URL unknown".to_owned(), |u| u.to_string())))
     }
 
     fn name(&self) -> &'static str { "Toml" }

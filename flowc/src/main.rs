@@ -1,4 +1,5 @@
 // TODO #![deny(missing_docs)]
+#![warn(clippy::unwrap_used)]
 //! `flowc` the the "flow compiler" that takes a hierarchical description of flows
 //! and functions and compiles it into a network of functions in a `Manifest` file
 //! for execution by `flowr` or other flow runtimes.

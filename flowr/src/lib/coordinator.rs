@@ -4,12 +4,13 @@ use std::sync::mpsc;
 use std::time::Duration;
 
 use log::{debug, error, info, trace};
-use url::Url;
+use serde_derive::{Deserialize, Serialize};
 
 use flowrstructs::manifest::Manifest;
 use provider::content::provider::MetaProvider;
 
-use crate::client_server::{DebuggerClientConnection, RuntimeClientConnection, RuntimeServerContext};
+use crate::client_server::{DebugClientConnection, DebugServerConnection,
+                           RuntimeClientConnection, RuntimeServerConnection};
 #[cfg(feature = "debugger")]
 use crate::debugger::Debugger;
 use crate::errors::*;
@@ -29,9 +30,9 @@ use crate::runtime::{Event, Response};
 /// - the maximum number of jobs you want dispatched/executing in parallel
 /// - whether to display some execution metrics when the flow completes
 /// - an optional DebugClient to allow you to debug the execution
-#[derive(PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Submission {
-    manifest_url: Url,
+    manifest_url: String,
     pub max_parallel_jobs: usize,
     pub job_timeout: Duration,
     #[cfg(feature = "debugger")]
@@ -42,14 +43,14 @@ impl Submission {
     /// Create a new `Submission` of a `Flow` for execution with the specified `Manifest`
     /// of `Functions`, executing it with a maximum of `mac_parallel_jobs` running in parallel
     /// connecting via the optional `DebugClient`
-    pub fn new(manifest_url: &Url,
+    pub fn new(manifest_url: &str,
                max_parallel_jobs: usize,
                #[cfg(feature = "debugger")]
                debug: bool) -> Submission {
         info!("Maximum jobs in parallel limited to {}", max_parallel_jobs);
 
         Submission {
-            manifest_url: manifest_url.clone(),
+            manifest_url: manifest_url.to_string(),
             max_parallel_jobs,
             job_timeout: Duration::from_secs(60),
             #[cfg(feature = "debugger")]
@@ -71,7 +72,7 @@ pub struct Coordinator {
     /// A channel used to receive Jobs back after execution (now including the job's output)
     job_rx: Receiver<Job>,
     /// Get messages from clients over channels
-    server_context: Arc<Mutex<RuntimeServerContext>>,
+    runtime_server_connection: Arc<Mutex<RuntimeServerConnection>>,
     #[cfg(feature = "debugger")]
     debugger: Debugger,
 }
@@ -91,25 +92,27 @@ pub struct Coordinator {
 /// use flowrstructs::manifest::{Manifest, MetaData};
 /// use flowrlib::runtime::Response as RuntimeResponse;
 /// use flowrlib::runtime::Event as RuntimeEvent;
-/// use url::Url;
 /// use flowrlib::runtime::Response::ClientSubmission;
 ///
-/// let manifest_url = Url::parse("file:///temp/fake.toml").unwrap();
+/// let (runtime_client_connection, debug_client_connection) = Coordinator::server(1 /* num_threads */,
+///                                                                     true,  /* native */
+///                                                                     false, /* server-only */
+///                                                                     false, /* client-only */
+///                                                                     None   /* server hostname */)
+///                                                 .unwrap();
 ///
-/// let mut submission = Submission::new(&manifest_url,
+/// let mut submission = Submission::new("file:///temp/fake.toml",
 ///                                     1 /* num_parallel_jobs */,
 ///                                     true /* enter debugger on start */);
 ///
-/// let (runtime_connection, debugger_connection) = Coordinator::connect(1 /* num_threads */,
-///                                                                      true /* native */);
 ///
-/// runtime_connection.client_send(ClientSubmission(submission)).unwrap();
+/// runtime_client_connection.client_send(ClientSubmission(submission)).unwrap();
 /// exit(0);
 /// ```
 ///
 impl Coordinator {
     /// Create a new `coordinator` with `num_threads` executor threads
-    fn new(num_threads: usize) -> Self {
+    fn new(runtime_server_context: RuntimeServerConnection, debug_server_context: DebugServerConnection, num_threads: usize) -> Self {
         let (job_tx, job_rx, ) = mpsc::channel();
         let (output_tx, output_rx) = mpsc::channel();
 
@@ -122,44 +125,91 @@ impl Coordinator {
         Coordinator {
             job_tx,
             job_rx: output_rx,
-            server_context: Arc::new(Mutex::new(RuntimeServerContext::new())),
+            runtime_server_connection: Arc::new(Mutex::new(runtime_server_context)),
             #[cfg(feature = "debugger")]
-            debugger: Debugger::new(),
+            debugger: Debugger::new(debug_server_context),
         }
     }
 
-    pub fn get_server_context(&self) -> Arc<Mutex<RuntimeServerContext>> {
-        self.server_context.clone()
+    /// Start the Coordinator server either in a background thread or in the
+    /// foreground thread this function is called on according to the `server`
+    /// parameter:
+    /// `server_only` == true  -> this is a server-only process, start the server on this thread
+    /// `server_only` == false -> this process works as client AND server, start serving from a thread
+    /// `client_only` == true  -> No need to start any Coordinator server, just return connections
+    pub fn server(num_threads: usize, native: bool, server_only: bool, client_only: bool,
+                  server_hostname: Option<&str>)
+                  -> Result<(RuntimeClientConnection, DebugClientConnection)> {
+        let runtime_server_context = RuntimeServerConnection::new(server_hostname);
+        let debug_server_context = DebugServerConnection::new(server_hostname);
+
+        let runtime_client_connection = RuntimeClientConnection::new(&runtime_server_context);
+        let debug_client_connection = DebugClientConnection::new(&debug_server_context);
+
+        if !client_only {
+            let mut coordinator = Coordinator::new(runtime_server_context, debug_server_context, num_threads);
+
+            coordinator.runtime_server_connection.lock()
+                .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
+                .start()?;
+            coordinator.debugger.start();
+
+            if server_only {
+                info!("Starting 'flowr' server on main thread");
+                coordinator.start(native)?;
+            } else {
+                std::thread::spawn(move || {
+                    info!("Starting 'flowr' server as background thread");
+                    if let Err(e) = coordinator.start(native) {
+                        error!("Error starting Coordinator in background thread: '{}'", e);
+                    }
+                });
+            }
+        }
+
+        Ok((runtime_client_connection, debug_client_connection))
     }
 
-    pub fn connect(num_threads: usize, native: bool) -> (RuntimeClientConnection, DebuggerClientConnection) {
-        let mut coordinator = Coordinator::new(num_threads);
+    /// Start the Coordinator - this will block the thread it is running on waiting for a submission
+    /// It will loop processing submissions until it gets a `ClientExiting` response, then it will also exit
+    pub fn start(&mut self, native: bool) -> Result<()>{
+        while let Some(submission) = self.wait_for_submission() {
+            if let Ok(mut manifest) = Self::load_from_manifest(&submission.manifest_url,
+                                                               self.runtime_server_connection.clone(),
+                                                               native) {
+                let state = RunState::new(manifest.get_functions(), submission);
+                let _ = self.execute_flow(state);
+            }
 
-        let runtime_connection = RuntimeClientConnection::new(&coordinator);
-        let debugger_connection = DebuggerClientConnection::new(&coordinator.debugger);
+            self.runtime_server_connection.lock()
+                .map_err(|e| format!("Could not lock Server Connection: {}", e))?
+                .start()?;
+            self.debugger.start();
+        }
 
-        std::thread::spawn(move || {
-            coordinator.start(native);
-        });
+        // Exiting
+        debug!("Client exiting and no other clients connected, so server is exiting");
 
-        (runtime_connection, debugger_connection)
+        Ok(())
     }
 
-    /// Loop waiting for a message from the client.
-    /// If the message is a `ClientSubmission` with a submission, then return Some(submission)
-    /// If the message is `ClientExiting` then return None
-    /// If the message is any other then loop until we find one of the above
+    // Loop waiting for a message from the client.
+    // If the message is a `ClientSubmission` with a submission, then return Some(submission)
+    // If the message is `ClientExiting` then return None
+    // If the message is any other then loop until we find one of the above
     fn wait_for_submission(&self) -> Option<Submission> {
         loop {
-            match self.server_context.lock() {
+            info!("'flowr' is waiting to receive a 'Submission'");
+            match self.runtime_server_connection.lock() {
                 Ok(guard) => {
                     match guard.get_response() {
-                        Response::ClientSubmission(submission) => {
-                            debug!("Received submission for execution with manifest_url: '{}'", submission.manifest_url.to_string());
+                        Ok(Response::ClientSubmission(submission)) => {
+                            debug!("Received submission for execution with manifest_url: '{}'", submission.manifest_url);
                             return Some(submission);
                         }
-                        Response::ClientExiting => return None,
-                        _ => error!("Was expecting a Submission from the client"),
+                        Ok(Response::ClientExiting) => return None,
+                        Ok(r) => error!("Did not expect response from client: '{:?}'", r),
+                        Err(e) => error!("Error while waiting for submission: '{}'", e),
                     }
                 }
                 _ => {
@@ -170,27 +220,11 @@ impl Coordinator {
         }
     }
 
-    /// Start the Coordinator - this will block the thread it is running on waiting for a submission
-    /// It will loop processing submissions until it gets a `ClientExiting` response, then it will also exit
-    pub fn start(&mut self, native: bool) {
-        while let Some(submission) = self.wait_for_submission() {
-            if let Ok(mut manifest) = Self::load_from_manifest(&submission.manifest_url.to_string(),
-                                                               self.server_context.clone(),
-                                                               native) {
-                let state = RunState::new(manifest.get_functions(), submission);
-                self.execute_flow(state);
-            }
-        }
-
-        // Exiting
-        debug!("Client exiting and no other clients connected, so server is exiting");
-    }
-
-    /// Execute a flow by looping while there are jobs to be processed in an inner loop.
-    /// There is an outer loop for the case when you are using the debugger, to allow entering
-    /// the debugger when the flow ends and at any point resetting all the state and starting
-    /// execution again from the initial state
-    fn execute_flow(&mut self, mut state: RunState) {
+    // Execute a flow by looping while there are jobs to be processed in an inner loop.
+    // There is an outer loop for the case when you are using the debugger, to allow entering
+    // the debugger when the flow ends and at any point resetting all the state and starting
+    // execution again from the initial state
+    fn execute_flow(&mut self, mut state: RunState) -> Result<()> {
         #[cfg(feature = "metrics")]
             let mut metrics = Metrics::new(state.num_functions());
 
@@ -200,7 +234,9 @@ impl Coordinator {
             #[cfg(feature = "metrics")]
                 metrics.reset();
 
-            self.server_context.lock().unwrap().send_event(Event::FlowStart);
+            self.runtime_server_connection.lock()
+                .map_err(|_| "Could not lock server context")?
+                .send_event(Event::FlowStart)?;
 
             #[cfg(feature = "debugger")]
             if state.debug {
@@ -283,18 +319,24 @@ impl Coordinator {
                     #[cfg(feature = "metrics")]
                         {
                             metrics.set_jobs_created(state.jobs_created());
-                            self.server_context.lock().unwrap().send_event(Event::FlowEnd(metrics));
+                            self.runtime_server_connection.lock()
+                                .map_err(|_| "Could not lock server context")?
+                                .send_event(Event::FlowEnd(metrics))?;
                         }
                     #[cfg(not(feature = "metrics"))]
-                        self.server_context.lock().unwrap().send_event(Event::FlowEnd);
+                        self.runtime_server_connection.lock()
+                        .map_err(|_| "Could not lock server context")?
+                        .send_event(Event::FlowEnd)?;
                     debug!("{}", state);
                     break 'flow_execution;
                 }
             }
         }
+
+        Ok(())
     }
 
-    fn load_from_manifest(manifest_url: &str, server_context: Arc<Mutex<RuntimeServerContext>>, native: bool) -> Result<Manifest> {
+    fn load_from_manifest(manifest_url: &str, server_context: Arc<Mutex<RuntimeServerConnection>>, native: bool) -> Result<Manifest> {
         let mut loader = Loader::new();
         let provider = MetaProvider {};
 
@@ -316,15 +358,13 @@ impl Coordinator {
             .chain_err(|| format!("Could not load the flow from manifest: '{}'", manifest_url))?;
 
         // Find the implementations for all functions in this flow
-        loader.resolve_implementations(&mut manifest, manifest_url, &provider).unwrap();
+        loader.resolve_implementations(&mut manifest, manifest_url, &provider)?;
 
         Ok(manifest)
     }
 
-    /*
-        Send as many jobs as possible for parallel execution.
-        Return 'true' if the debugger is requesting a restart
-    */
+    // Send as many jobs as possible for parallel execution.
+    // Return 'true' if the debugger is requesting a restart
     fn send_jobs(&mut self,
                  state: &mut RunState,
                  #[cfg(feature = "metrics")]
@@ -355,9 +395,7 @@ impl Coordinator {
         (display_output, restart)
     }
 
-    /*
-        Send a job for execution
-    */
+    // Send a job for execution
     fn send_job(&mut self,
                 job: Job,
                 state: &mut RunState,
@@ -384,21 +422,14 @@ impl Coordinator {
 
 #[cfg(test)]
 mod test {
-    use url::Url;
-
     use crate::coordinator::Submission;
 
     #[test]
     fn create_submission() {
-        let manifest_url = Url::parse("file:///temp/fake/flow.toml").unwrap();
+        let manifest_url = "file:///temp/fake/flow.toml";
         let _ = Submission::new(&manifest_url, 1,
                                 #[cfg(feature = "debugger")]
                                     false,
         );
-    }
-
-    #[test]
-    fn test_create() {
-        let _ = super::Coordinator::new(0);
     }
 }

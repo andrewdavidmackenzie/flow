@@ -1,3 +1,5 @@
+#![warn(clippy::unwrap_used)]
+
 #[macro_use]
 extern crate error_chain;
 

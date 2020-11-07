@@ -5,10 +5,13 @@ use std::io::prelude::*;
 use std::path::Path;
 
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
-use log::{debug, info};
+use log::{debug, error, info, trace};
 
 use flowrlib::client_server::RuntimeClientConnection;
+use flowrlib::coordinator::Submission;
+use flowrlib::errors::*;
 use flowrlib::runtime::{Event, Response};
+use flowrlib::runtime::Response::ClientSubmission;
 
 #[derive(Debug, Clone)]
 pub struct CLIRuntimeClient {
@@ -29,26 +32,36 @@ impl CLIRuntimeClient {
     /*
         Enter  a loop where we receive events as a client and respond to them
      */
-    pub fn start(connection: RuntimeClientConnection,
+    pub fn start(mut connection: RuntimeClientConnection,
+                 submission: Submission,
                  flow_args: Vec<String>,
                  #[cfg(feature = "metrics")]
                  display_metrics: bool,
-    ) {
+    ) -> Result<()> {
         Self::capture_control_c(&connection);
+        connection.start()?;
+        trace!("Connection from Runtime client to Runtime server started");
+
+        debug!("Runtime client sending submission to server");
+        connection.client_send(ClientSubmission(submission))?;
 
         let mut runtime_client = CLIRuntimeClient::new(flow_args, display_metrics);
 
         loop {
+            debug!("Runtime client waiting for message from server");
             match connection.client_recv() {
                 Ok(event) => {
+                    trace!("Runtime client received event from server: {:?}", event);
                     let response = runtime_client.process_event(event);
                     if response == Response::ClientExiting {
-                        return;
+                        return Ok(());
                     }
+
+                    trace!("Runtime client sending response to server: {:?}", response);
                     let _ = connection.client_send(response);
                 }
-                Err(_) => {
-                    return;
+                Err(e) => {
+                    bail!("Error receiving Event in runtime client: {}", e);
                 }
             }
         }
@@ -75,7 +88,9 @@ impl CLIRuntimeClient {
 
                 for (filename, image_buffer) in self.image_buffers.drain() {
                     info!("Flushing ImageBuffer to file: {}", filename);
-                    image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png).unwrap();
+                    if let Err(e) = image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png) {
+                        error!("Error saving ImageBuffer '{}': '{}'", filename, e);
+                    }
                 }
                 Response::ClientExiting
             }
@@ -84,7 +99,9 @@ impl CLIRuntimeClient {
                 debug!("=========================== Flow execution ended ======================================");
                 for (filename, image_buffer) in self.image_buffers.drain() {
                     info!("Flushing ImageBuffer to file: {}", filename);
-                    image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png).unwrap();
+                    if let Err(e) = image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png) {
+                        error!("Error saving ImageBuffer '{}': '{}'", filename, e);
+                    }
                 }
                 Response::ClientExiting
             }
@@ -119,9 +136,23 @@ impl CLIRuntimeClient {
                 }
             }
             Event::Write(filename, bytes) => {
-                let mut file = File::create(filename).unwrap();
-                file.write_all(bytes.as_slice()).unwrap();
-                Response::Ack
+                match File::create(&filename) {
+                    Ok(mut file) => {
+                        match file.write_all(bytes.as_slice()) {
+                            Ok(_) => Response::Ack,
+                            Err(e) => {
+                                let msg = format!("Error writing to file: '{}': '{}'", filename, e);
+                                error!("{}", msg);
+                                Response::Error(msg)
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        let msg = format!("Error creating file: '{}': '{}'", filename, e);
+                        error!("{}", msg);
+                        Response::Error(msg)
+                    }
+                }
             }
             Event::PixelWrite((x, y), (r, g, b), (width, height), name) => {
                 let image = self.image_buffers.entry(name)
@@ -132,7 +163,8 @@ impl CLIRuntimeClient {
             Event::GetArgs => {
                 Response::Args(self.args.clone())
             }
-            Event::StderrEOF => Response::Ack
+            Event::StderrEOF => Response::Ack,
+            Event::Invalid => Response::Ack
         }
     }
 }

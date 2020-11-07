@@ -2,10 +2,11 @@
 use std::fmt;
 use std::sync::Arc;
 
-use flow_impl::{Implementation, RunAgain};
 use log::{error, trace};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
+
+use flow_impl::{Implementation, RunAgain};
 
 use crate::errors::*;
 use crate::input::Input;
@@ -175,9 +176,9 @@ impl Function {
     }
 
     /// write an array of values to a `Function`'s input
-    pub fn send_iter(&mut self, input_number: usize, value: &Value) {
+    pub fn send_iter(&mut self, input_number: usize, array: &[Value]) {
         let input = &mut self.inputs[input_number];
-        input.push_array(value.as_array().unwrap().iter());
+        input.push_array(array.iter());
     }
 
     /// Accessor for a `Functions` `output_connections` field
@@ -231,9 +232,10 @@ impl Function {
 mod test {
     use std::sync::Arc;
 
-    use flow_impl::Implementation;
     use serde_json::json;
     use serde_json::value::Value;
+
+    use flow_impl::Implementation;
 
     use crate::input::Input;
     use crate::output_connection::OutputConnection;

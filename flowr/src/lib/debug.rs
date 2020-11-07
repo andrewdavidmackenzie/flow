@@ -1,8 +1,10 @@
+use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::run_state::{Block, Job};
 
 /// Types of `Params` used in communications between the debugger and the debug_client
+#[derive(Serialize, Deserialize)]
 pub enum Param {
     /// A "*" style parameter - meaning will depend on the `Command` it's use with
     Wildcard,
@@ -16,7 +18,8 @@ pub enum Param {
     Block((usize, usize)),
 }
 
-/// A debugger Response sent by the debug_client the debugger runtime
+/// A debugger Response sent by the debug_client to the debug server
+#[derive(Serialize, Deserialize)]
 pub enum Response {
     /// Acknowledge event processed correctly
     Ack,
@@ -45,11 +48,14 @@ pub enum Response {
     /// Get the state of a specific `Function`
     GetFunctionState(usize),
     /// An error on the client side
-    Error(String)
+    Error(String),
+    /// Invalid - used when deserialization goes wrong
+    Invalid,
 }
 
 /// A run-time event that the debugger communicates to the debug_client for it to decide
 /// what to do, or what to request of the user
+#[derive(Serialize, Deserialize)]
 pub enum Event {
     /// A `Job` ran to completion by a function - includes:  job_id, function_id
     JobCompleted(usize, usize, Option<Value>),
@@ -86,5 +92,7 @@ pub enum Event {
     /// The run-time is resetting the status back to the initial state
     Resetting,
     /// Debugger is blocked waiting for a command before proceeding
-    WaitingForCommand(usize)
+    WaitingForCommand(usize),
+    /// Invalid - used when deserialization goes wrong
+    Invalid,
 }

@@ -54,21 +54,18 @@ fn create_executor(name: String, job_rx: Arc<Mutex<Receiver<Job>>>, job_tx: Send
 
 fn get_and_execute_job(job_rx: &Arc<Mutex<Receiver<Job>>>,
                        job_tx: &Sender<Job>,
-                       name: &str) -> Result<String> {
-    let guard = job_rx.lock().map_err(|e| e.to_string())?;
-    match guard.recv() {
-        Ok(job) => execute(job, job_tx, name),
-        Err(_) => Ok("Probably channel closure".into())
-    }
+                       name: &str) -> Result<()> {
+    let guard = job_rx.lock()
+        .map_err(|e| format!("Error locking receiver to get job: '{}'", e))?;
+    let job = guard.recv().map_err(|e| format!("Error receiving job for execution: '{}'", e))?;
+    execute(job, job_tx, name)
 }
 
-fn execute(mut job: Job, job_tx: &Sender<Job>, name: &str) -> Result<String> {
+fn execute(mut job: Job, job_tx: &Sender<Job>, name: &str) -> Result<()> {
     // Run the job and catch the execution result
     trace!("Job #{}:\tExecuting on '{}'", job.job_id, name);
     let result = job.implementation.run(&job.input_set);
 
     job.result = result;
-    job_tx.send(job).unwrap();
-
-    Ok("Job Executed".into())
+    job_tx.send(job).chain_err(|| "Error sending job result back after execution")
 }

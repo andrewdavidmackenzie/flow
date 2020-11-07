@@ -47,7 +47,7 @@ impl Provider for FileProvider {
     fn get_contents(&self, url_str: &str) -> Result<Vec<u8>> {
         let url = Url::parse(url_str)
             .map_err(|_| format!("Could not convert '{}' to Url", url_str))?;
-        let file_path = url.to_file_path().unwrap();
+        let file_path = url.to_file_path().map_err(|_| "Could not convert Url to file path")?;
         let mut f = File::open(&file_path)
             .map_err(|_| format!("Could not open file '{:?}'", file_path))?;
         let mut buffer = Vec::new();
@@ -79,7 +79,7 @@ impl FileProvider {
                 if md.is_file() {
                     let file_path_as_url = Url::from_file_path(&file_with_extension)
                         .map_err(|_| format!("Could not create url from file path '{}'",
-                                             file_with_extension.to_str().unwrap()))?;
+                                             file_with_extension.display()))?;
 
                     return Ok(file_path_as_url.to_string());
                 }

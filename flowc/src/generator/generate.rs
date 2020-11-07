@@ -317,8 +317,6 @@ mod test {
         let br = Box::new(function) as Box<Function>;
         let process = function_to_runtimefunction("/test", &br, false).unwrap();
 
-        println!("process {}", process);
-
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
         assert_eq!(expected.replace("'", "\""), serialized_process);
     }
@@ -357,8 +355,6 @@ mod test {
         let br = Box::new(function) as Box<Function>;
         let process = function_to_runtimefunction("/test", &br, false).unwrap();
 
-        println!("process {}", process);
-
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
         assert_eq!(expected.replace("'", "\""), serialized_process);
     }
@@ -391,8 +387,6 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
         let process = function_to_runtimefunction("/test", &br, false).unwrap();
-
-        println!("process {}", process);
 
         let serialized_process = serde_json::to_string_pretty(&process).unwrap();
         assert_eq!(serialized_process, expected.replace("'", "\""));
