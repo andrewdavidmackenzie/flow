@@ -181,7 +181,8 @@ impl DebugClientConnection {
 
         debug!("Debug client connected to debugger on {}:{}", self.host, self.port);
 
-        Ok(())
+        // Send an first message to initialize the connection
+        self.client_send(DebugResponse::Ack)
     }
 
     /// Receive an Event from the debug server

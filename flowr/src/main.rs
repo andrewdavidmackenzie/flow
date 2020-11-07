@@ -21,10 +21,10 @@ use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::info as flowrlib_info;
 use provider::args::url_from_string;
 
-// use crate::cli_debug_client::CLIDebugClient;
+use crate::cli_debug_client::CLIDebugClient;
 use crate::cli_runtime_client::CLIRuntimeClient;
 
-// mod cli_debug_client;
+mod cli_debug_client;
 mod cli_runtime_client;
 
 // We'll put our errors in an `errors` module, and other modules in this crate will
@@ -86,7 +86,7 @@ fn run() -> Result<()> {
 
     // Start the coordinator server either on the main thread or as a background thread
     // depending on the value of the "server_only" option
-    let (runtime_connection, _debug_connection) = Coordinator::server(
+    let (runtime_connection, debug_connection) = Coordinator::server(
         num_threads(&matches, debugger), native, server_only, client_only, server_hostname)?;
 
     if !server_only {
@@ -96,7 +96,7 @@ fn run() -> Result<()> {
                                          num_parallel_jobs(&matches, debugger),
                                          debugger);
 
-        // CLIDebugClient::start(debug_connection);
+        CLIDebugClient::start(debug_connection);
         CLIRuntimeClient::start(runtime_connection,
                                 submission,
                                 flow_args,
