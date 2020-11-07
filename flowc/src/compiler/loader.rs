@@ -97,7 +97,8 @@ fn load_process(parent_route: &Route, alias: &Name, parent_flow_id: usize, flow_
 
     debug!("Loading process from url = '{}' with deserializer: '{}'", resolved_url, deserializer.name());
     trace!("  --> deserialize()");
-    let mut process = deserializer.deserialize(&String::from_utf8(contents).unwrap(),
+    let mut process = deserializer.deserialize(&String::from_utf8(contents)
+        .chain_err(|| "Could not read UTF8 contents")?,
                                                Some(url))
         .chain_err(|| format!("Could not deserialize process from content in '{}'", url))?;
 
@@ -130,7 +131,8 @@ pub fn load_metadata(url: &str, provider: &dyn Provider) -> Result<MetaData> {
     let contents = provider.get_contents(&resolved_url)
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
 
-    let cargo : Cargo = toml::from_str(&String::from_utf8(contents).unwrap())
+    let cargo: Cargo = toml::from_str(&String::from_utf8(contents)
+        .chain_err(|| "Could not read UTF8 contents")?)
         .chain_err(|| format!("Error deserializing Toml from: '{:?}'", resolved_url))?;
 
     Ok(cargo.package)
@@ -160,8 +162,8 @@ fn load_process_refs(flow: &mut Flow, flow_count: &mut usize, provider: &dyn Pro
                 .join(&process_ref.source)
                 .map_err(|e| e.to_string())?;
             let process = load_process(&flow.route, &process_ref.alias(),
-                                               flow.id, flow_count, subprocess_url.as_str(),
-                                               provider, &process_ref.initializations)?;
+                                       flow.id, flow_count, subprocess_url.as_str(),
+                                       provider, &process_ref.initializations)?;
             process_ref.set_alias(process.name());
 
             // runtime needs references to library functions to be able to load the implementations at load time
@@ -201,6 +203,6 @@ mod test {
     fn deserialize_library() {
         let contents = include_str!("../../tests/test_libs/Cargo.toml");
         let cargo: Cargo = toml::from_str(contents).unwrap();
-        let _:MetaData = cargo.package;
+        let _: MetaData = cargo.package;
     }
 }

@@ -5,7 +5,7 @@ use serde_json::Value;
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 
 use crate::client_server::RuntimeServerConnection;
-use crate::runtime::{Event, Response};
+use crate::runtime::Event;
 
 /// `Implementation` struct for the `image_buffer` function
 pub struct ImageBuffer {
@@ -15,20 +15,17 @@ pub struct ImageBuffer {
 
 impl Implementation for ImageBuffer {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let pixel = inputs[0].as_array().unwrap();
-        let value = inputs[1].as_array().unwrap();
-        let size = inputs[2].as_array().unwrap();
-        if let Value::String(filename) = &inputs[3] {
-            if let Ok(mut server) = self.server_context.lock() {
-                return match server.send_event(Event::PixelWrite(
-                    (pixel[0].as_u64().unwrap() as u32, pixel[1].as_u64().unwrap() as u32),
-                    (value[0].as_u64().unwrap() as u8, value[1].as_u64().unwrap() as u8, value[2].as_u64().unwrap() as u8),
-                    (size[0].as_u64().unwrap() as u32, size[1].as_u64().unwrap() as u32),
-                    filename.to_string()
-                )) {
-                    Ok(Response::Ack) => (None, RUN_AGAIN),
-                    _ => (None, RUN_AGAIN)
-                }
+        if let (Some(pixel), Some(value), Some(size),
+            Value::String(filename), Ok(ref mut server)) = (inputs[0].as_array(), inputs[1].as_array(), inputs[2].as_array(), &inputs[3], self.server_context.lock()) {
+            if let (Some(x), Some(y), Some(r), Some(g), Some(b), Some(w), Some(h)) = (pixel[0].as_u64(), pixel[1].as_u64(),
+                                                                                      value[0].as_u64(), value[1].as_u64(), value[2].as_u64(),
+                                                                                      size[0].as_u64(), size[1].as_u64()) {
+                let _ = server.send_event(Event::PixelWrite(
+                    (x as u32, y as u32),
+                    (r as u8, g as u8, b as u8),
+                    (w as u32, h as u32),
+                    filename.to_string(),
+                ));
             }
         }
 

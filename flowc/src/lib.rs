@@ -1,4 +1,5 @@
 // TODO #![deny(missing_docs)]
+#![warn(clippy::unwrap_used)]
 //! This is the rust `flow` Compiler Library. It can be linked with other code to produce
 //! a flow compiler, such as the `flowc` command line flow compiler.
 #[macro_use]
@@ -27,5 +28,6 @@ error_chain! {
 
     foreign_links {
         Io(std::io::Error);
+        Url(url::ParseError);
     }
 }

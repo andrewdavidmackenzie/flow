@@ -50,7 +50,8 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
             write_lib_rust_manifest(&lib_manifest, &manifest_rust_file)?;
         } else {
             let provider = &FileProvider {} as &dyn Provider;
-            let manifest_file_as_url = Url::from_file_path(&manifest_json_file).unwrap().to_string();
+            let manifest_file_as_url = Url::from_file_path(&manifest_json_file)
+                .map_err(|_| "Could not parse Url from file path")?.to_string();
             if let Ok((existing_manifest, _)) = LibraryManifest::load(provider, &manifest_file_as_url) {
                 if existing_manifest != lib_manifest {
                     info!("Library manifest exists, but new manifest has changes, so updating manifest file");
@@ -134,7 +135,7 @@ fn compile_implementations(options: &Options, lib_manifest: &mut LibraryManifest
         if let Ok(ref toml_path) = entry {
             let url = Url::from_file_path(&toml_path)
                 .map_err(|_| format!("Could not create url from file path '{}'",
-                                     toml_path.to_str().unwrap()))?.to_string();
+                                     toml_path.display()))?.to_string();
             debug!("Trying to load library process from '{}'", url);
             match load(&url, provider) {
                 Ok(FunctionProcess(ref mut function)) => {

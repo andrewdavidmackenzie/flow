@@ -71,7 +71,7 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Resul
 
     writer = create_output_file(&output_dir, "libs", "dump")?;
     info!("\tGenerating libs.dump");
-    writer.write_all(serde_json::to_string_pretty(&tables.libs).unwrap().as_bytes())?;
+    writer.write_all(serde_json::to_string_pretty(&tables.libs)?.as_bytes())?;
     Ok("All tables dumped".to_string())
 }
 

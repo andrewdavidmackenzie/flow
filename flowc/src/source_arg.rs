@@ -46,19 +46,19 @@ fn make_writeable(output_dir: PathBuf) -> Result<PathBuf> {
     if output_dir.exists() {
         let md = fs::metadata(&output_dir)
             .chain_err(|| format!("Could not read metadata of the existing output directory '{}'",
-                                  output_dir.to_str().unwrap()))?;
+                                  output_dir.display()))?;
         // Check it's not a file!
         if md.is_file() {
-            bail!("Output directory '{}' already exists as a file", output_dir.to_str().unwrap());
+            bail!("Output directory '{}' already exists as a file", output_dir.display());
         }
 
         // check it's not read only!
         if md.permissions().readonly() {
-            bail!("Output directory '{}' is read only", output_dir.to_str().unwrap());
+            bail!("Output directory '{}' is read only", output_dir.display());
         }
     } else {
         fs::create_dir(&output_dir).chain_err(|| format!("Could not create directory '{}'",
-                                                         output_dir.to_str().unwrap()))?;
+                                                         output_dir.display()))?;
     }
 
     Ok(output_dir)

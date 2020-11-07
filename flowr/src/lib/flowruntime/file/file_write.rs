@@ -19,10 +19,14 @@ impl Implementation for FileWrite {
         let bytes = &inputs[1];
 
         if let Ok(mut server) = self.server_context.lock() {
-            return match server.send_event(Event::Write(filename.to_string(),
-                                                        bytes.as_str().unwrap().as_bytes().to_vec())) {
-                Ok(Response::Ack) => (None, RUN_AGAIN),
-                _ => (None, RUN_AGAIN)
+            match bytes.as_str() {
+                Some(string) => {
+                    return match server.send_event(Event::Write(filename.to_string(), string.as_bytes().to_vec())) {
+                        Ok(Response::Ack) => (None, RUN_AGAIN),
+                        _ => (None, RUN_AGAIN)
+                    }
+                }
+                None => return (None, RUN_AGAIN)
             }
         }
 

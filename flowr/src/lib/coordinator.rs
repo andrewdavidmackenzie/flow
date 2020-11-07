@@ -181,9 +181,9 @@ impl Coordinator {
                 let _ = self.execute_flow(state);
             }
 
-            if self.runtime_server_connection.lock().unwrap().start().is_err() {
-                break;
-            }
+            self.runtime_server_connection.lock()
+                .map_err(|e| format!("Could not lock Server Connection: {}", e))?
+                .start()?;
             self.debugger.start();
         }
 
@@ -358,7 +358,7 @@ impl Coordinator {
             .chain_err(|| format!("Could not load the flow from manifest: '{}'", manifest_url))?;
 
         // Find the implementations for all functions in this flow
-        loader.resolve_implementations(&mut manifest, manifest_url, &provider).unwrap();
+        loader.resolve_implementations(&mut manifest, manifest_url, &provider)?;
 
         Ok(manifest)
     }

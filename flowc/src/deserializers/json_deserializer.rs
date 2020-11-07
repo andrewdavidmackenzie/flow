@@ -9,7 +9,7 @@ impl Deserializer for FlowJsonLoader {
     fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process> {
         serde_json::from_str(contents)
             .chain_err(|| format!("Error deserializing Json from: '{}'",
-                                  url.or_else(|| { Some("URL unknown") } ).unwrap()))
+                                  url.map_or("URL unknown".to_owned(), |u| u.to_string())))
     }
 
     fn name(&self) -> &'static str { "Json" }

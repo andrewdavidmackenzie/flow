@@ -94,32 +94,32 @@ impl CLIDebugClient {
     /*
         Wait for the user to input a valid debugger command then return it
      */
-    fn get_user_command(job_number: usize) -> Response {
+    fn get_user_command(job_number: usize) -> Result<Response> {
         loop {
             print!("Debug #{}> ", job_number);
-            io::stdout().flush().unwrap();
+            io::stdout().flush()?;
 
             let mut input = String::new();
             match io::stdin().read_line(&mut input) {
-                Ok(0) => return ExitDebugger,
+                Ok(0) => return Ok(ExitDebugger),
                 Ok(_n) => {
                     let (command, param) = Self::parse_command(&input);
                     match command {
-                        "b" | "breakpoint" => return Breakpoint(param),
-                        "" | "c" | "continue" => return Continue,
-                        "d" | "delete" => return Delete(param),
-                        "e" | "exit" => return ExitDebugger,
+                        "b" | "breakpoint" => return Ok(Breakpoint(param),
+                        "" | "c" | "continue" => return Ok(Continue),
+                        "d" | "delete" => return Ok(Delete(param)),
+                        "e" | "exit" => return Ok(ExitDebugger),
                         "h" | "help" => Self::help(),
-                        "i" | "inspect" => return Inspect,
-                        "l" | "list" => return List,
-                        "p" | "print" => return Print(param),
-                        "r" | "run" | "reset" => return RunReset,
-                        "s" | "step" => return Step(param),
-                        "q" | "quit" => return ExitDebugger,
+                        "i" | "inspect" => return Ok(Inspect),
+                        "l" | "list" => return Ok(List),
+                        "p" | "print" => return Ok(Print(param)),
+                        "r" | "run" | "reset" => return Ok(RunReset),
+                        "s" | "step" => return Ok(Step(param)),
+                        "q" | "quit" => return Ok(ExitDebugger),
                         _ => println!("Unknown debugger command '{}'\n", command)
                     }
                 }
-                Err(_) => println!("Error reading debugger command\n")
+                Err(e) => bail!("Error reading debugger command")
             }
         }
     }

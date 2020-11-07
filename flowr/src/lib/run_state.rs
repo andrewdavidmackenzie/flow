@@ -418,7 +418,7 @@ impl RunState {
 
         if function_state == State::Running {
             output.push_str(&format!("\t\tJob Numbers Running: {:?}\n",
-                                     self.running.get_vec(&function_id).unwrap()));
+                                     self.running.get_vec(&function_id)));
         }
 
         for block in &self.blocks {
@@ -609,14 +609,18 @@ impl RunState {
         if destination.is_generic() {
             function.send(destination.io_number, value);
         } else {
-            match Self::array_order(value) - destination.array_level_serde {
-                0 => function.send(destination.io_number, value),
-                1 => function.send_iter(destination.io_number, value),
-                2 => for array in value.as_array().unwrap().iter() {
-                    function.send_iter(destination.io_number, array)
-                },
-                -1 => function.send(destination.io_number, &json!([value])),
-                -2 => function.send(destination.io_number, &json!([[value]])),
+            match ((Self::array_order(value) - destination.array_level_serde), value) {
+                (0, _) => function.send(destination.io_number, value),
+                (1, Value::Array(array)) => function.send_iter(destination.io_number, array),
+                (2, Value::Array(array_2)) => {
+                    for array in array_2.iter() {
+                        if let Value::Array(sub_array) = array {
+                            function.send_iter(destination.io_number, sub_array)
+                        }
+                    }
+                }
+                (-1, _) => function.send(destination.io_number, &json!([value])),
+                (-2, _) => function.send(destination.io_number, &json!([[value]])),
                 _ => error!("Unable to handle difference in array order")
             }
         }
@@ -985,12 +989,14 @@ impl RunState {
             // For each block on a destination function, then either that input should be full or
             // the function should be running in parallel with the one that just completed
             // or it's flow should be busy and there should be a pending unblock on it
-            if !(self.functions.get(block.blocking_id).unwrap().input_count(block.blocking_io_number) > 0 ||
-                (self.busy_flows.contains_key(&block.blocking_flow_id) && self.pending_unblocks.contains_key(&block.blocking_flow_id))) {
-                return self.runtime_error(job_id,
-                                          &format!("Block {} exists for function #{}, but Function #{}:{} input is not full",
-                                                   block, block.blocking_id, block.blocking_id, block.blocking_io_number),
-                                          file!(), line!());
+            if let Some(function) = self.functions.get(block.blocking_id) {
+                if !(function.input_count(block.blocking_io_number) > 0 ||
+                    (self.busy_flows.contains_key(&block.blocking_flow_id) && self.pending_unblocks.contains_key(&block.blocking_flow_id))) {
+                    return self.runtime_error(job_id,
+                                              &format!("Block {} exists for function #{}, but Function #{}:{} input is not full",
+                                                       block, block.blocking_id, block.blocking_id, block.blocking_io_number),
+                                              file!(), line!());
+                }
             }
         }
 

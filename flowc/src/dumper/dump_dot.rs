@@ -6,12 +6,14 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
 use log::info;
+use serde_json::Value;
 
 use flowrstructs::input::InputInitializer::{Always, Once};
 use provider::content::provider::Provider;
 
 use crate::deserializers::deserializer_helper::get_file_extension;
 use crate::dumper::helper;
+use crate::errors::*;
 use crate::generator::generate::GenerationTables;
 use crate::model::connection::Connection;
 use crate::model::flow::Flow;
@@ -27,8 +29,9 @@ use crate::model::route::Route;
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw", "w"];
 static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
 
-fn absolute_to_relative(absolute: String, current_dir: &PathBuf) -> String {
-    let root_path = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+fn absolute_to_relative(absolute: String, current_dir: &PathBuf) -> Result<String> {
+    let root_path = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
+        .ok_or("Could not get parent directory of manifest dir")?;
     let mut current_path = current_dir.clone();
     let mut path_to_root = String::new();
     // figure out relative path to get to root from output_dir
@@ -36,9 +39,7 @@ fn absolute_to_relative(absolute: String, current_dir: &PathBuf) -> String {
         path_to_root.push_str("../");
         current_path.pop();
     }
-    let project_root = root_path.to_str().unwrap();
-
-    absolute.replace(&format!("file://{}/", project_root), &path_to_root)
+    Ok(absolute.replace(&format!("file://{}/", root_path.display()), &path_to_root))
 }
 
 pub fn write_flow_to_dot(flow: &Flow, dot_file: &mut dyn Write, output_dir: &PathBuf, provider: &dyn Provider) -> io::Result<String> {
@@ -69,17 +70,19 @@ pub fn write_flow_to_dot(flow: &Flow, dot_file: &mut dyn Write, output_dir: &Pat
                     };
 
                     // remove file extension when forming URL as is of form {file_stem}.dot.svg
-                    if let Some(extension) = get_file_extension(&flow_source) {
+                    if let Some(extension) = get_file_extension(&flow_source.clone()) {
                         flow_source.truncate(flow_source.len() - (extension.len() + 1));
                     }
 
-                    let relative_path = absolute_to_relative(flow_source,output_dir);
+                    let relative_path = absolute_to_relative(flow_source,output_dir)
+                        .map_err(|_| io::Error::new(io::ErrorKind::Other, "Could not convert relative path to absolute path"))?;
                     let flow = format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot.svg\"];\n",
                                        flow.route(), process_ref.alias, relative_path);
                     contents.push_str(&flow);
                 }
                 FunctionProcess(ref function) => {
-                    contents.push_str(&fn_to_dot(function, output_dir));
+                    contents.push_str(&fn_to_dot(function, output_dir)
+                        .map_err(|_| io::Error::new(io::ErrorKind::Other, "Could not generate dot code for function"))?);
                 }
             }
         }
@@ -212,7 +215,7 @@ fn digraph_wrapper_end() -> String {
 } // close digraph\n".to_string()
 }
 
-fn fn_to_dot(function: &Function, output_dir: &PathBuf) -> String {
+fn fn_to_dot(function: &Function, output_dir: &PathBuf) -> Result<String> {
     let mut dot_string = String::new();
 
     let name = if function.name() == function.alias() {
@@ -221,7 +224,7 @@ fn fn_to_dot(function: &Function, output_dir: &PathBuf) -> String {
         format!("\\n({})", function.name())
     };
 
-    let relative_path = absolute_to_relative(function.get_source_url().to_owned(),output_dir);
+    let relative_path = absolute_to_relative(function.get_source_url().to_owned(),output_dir)?;
 
     // modify path to point to the .html page that's built from .md to document the function
     let md_path = relative_path.replace("toml", "html");
@@ -233,7 +236,7 @@ fn fn_to_dot(function: &Function, output_dir: &PathBuf) -> String {
 
     dot_string.push_str(&input_initializers(function, &function.route().to_string()));
 
-    dot_string
+    Ok(dot_string)
 }
 
 // Given a Function as used in the code generation - generate a "dot" format string to draw it
@@ -280,8 +283,8 @@ fn input_initializers(function: &Function, function_identifier: &str) -> String 
                     Once(value) => (value.clone(), false)
                 };
 
-                let value_string = if value.is_string() {
-                    format!("\\\"{}\\\"", value.as_str().unwrap())
+                let value_string = if let Value::String(value_str) = value {
+                    format!("\\\"{}\\\"", value_str)
                 } else {
                     format!("{}", value)
                 };

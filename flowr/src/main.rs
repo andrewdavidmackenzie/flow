@@ -1,4 +1,5 @@
 //! #![deny(missing_docs)]
+#![warn(clippy::unwrap_used)]
 //! `flowr` is the flow runner. It reads a `flow` `Manifest` produced
 //! by a flow compiler, such as `flowc`` that describes the network of collaborating functions
 //! that are executed to execute the flow.
@@ -101,7 +102,7 @@ fn run() -> Result<()> {
                                 flow_args,
                                 #[cfg(feature = "metrics")]
                                     matches.is_present("metrics"),
-        );
+        )?;
     }
 
     Ok(())

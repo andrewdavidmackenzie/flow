@@ -297,45 +297,46 @@ impl Flow {
 
         // get connections out of self - so we can use immutable references to self inside loop
         let connections = replace(&mut self.connections, None);
-        let mut connections = connections.unwrap();
 
-        for connection in connections.iter_mut() {
-            match self.get_route_and_type(FROM, &connection.from, &None) {
-                Ok(from_io) => {
-                    debug!("Found connection source:\n{:#?}", from_io);
-                    match self.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {
-                        Ok(to_io) => {
-                            debug!("Found connection destination:\n{:#?}", to_io);
-                            // TODO here we are only checking compatible data types from the overall FROM IO
-                            // not from sub-types in it selected via a sub-route e.g. Array/String --> String
-                            // We'd need to make compatible_types more complex and take the from sub-Route
-                            if Connection::compatible_types(&from_io.datatype(), &to_io.datatype()) {
-                                debug!("Connection built from '{}' to '{}' with runtime conversion ''", from_io.route(), to_io.route());
-                                connection.from_io = from_io;
-                                connection.to_io = to_io;
-                            } else {
-                                error!("In flow '{}' cannot connect types:\nfrom\n{:#?}\nto\n{:#?}",
-                                       self.source_url, from_io, to_io);
+        if let Some(mut conns) = connections {
+            for connection in conns.iter_mut() {
+                match self.get_route_and_type(FROM, &connection.from, &None) {
+                    Ok(from_io) => {
+                        debug!("Found connection source:\n{:#?}", from_io);
+                        match self.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {
+                            Ok(to_io) => {
+                                debug!("Found connection destination:\n{:#?}", to_io);
+                                // TODO here we are only checking compatible data types from the overall FROM IO
+                                // not from sub-types in it selected via a sub-route e.g. Array/String --> String
+                                // We'd need to make compatible_types more complex and take the from sub-Route
+                                if Connection::compatible_types(&from_io.datatype(), &to_io.datatype()) {
+                                    debug!("Connection built from '{}' to '{}' with runtime conversion ''", from_io.route(), to_io.route());
+                                    connection.from_io = from_io;
+                                    connection.to_io = to_io;
+                                } else {
+                                    error!("In flow '{}' cannot connect types:\nfrom\n{:#?}\nto\n{:#?}",
+                                           self.source_url, from_io, to_io);
+                                    error_count += 1;
+                                }
+                            }
+                            Err(error) => {
+                                error!("Did not find connection destination: '{}' in flow '{}'\n\t\t{}",
+                                       connection.to, self.source_url, error);
                                 error_count += 1;
                             }
                         }
-                        Err(error) => {
-                            error!("Did not find connection destination: '{}' in flow '{}'\n\t\t{}",
-                                   connection.to, self.source_url, error);
-                            error_count += 1;
-                        }
+                    }
+                    Err(error) => {
+                        error!("Did not find connection source: '{}' specified in flow '{}'\n\t\t{}",
+                               connection.from, self.source_url, error);
+                        error_count += 1;
                     }
                 }
-                Err(error) => {
-                    error!("Did not find connection source: '{}' specified in flow '{}'\n\t\t{}",
-                           connection.from, self.source_url, error);
-                    error_count += 1;
-                }
             }
-        }
 
-        // put connections back into self
-        let _ = replace(&mut self.connections, Some(connections));
+            // put connections back into self
+            let _ = replace(&mut self.connections, Some(conns));
+        }
 
         if error_count == 0 {
             debug!("All connections inside flow '{}' successfully built", self.source_url);

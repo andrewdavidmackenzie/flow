@@ -118,14 +118,15 @@ fn compile_supplied_implementations(tables: &mut GenerationTables, skip_building
     Generate a manifest for the flow in JSON that can be used to run it using 'flowr'
 */
 // TODO this is tied to being a file:// - generalize this to write to a URL, moving the code
-// TODO into the provider and implementingn for file and http
+// TODO into the provider and implementing for file and http
 fn write_flow_manifest(flow: Flow, debug_symbols: bool, destination: &PathBuf, tables: &GenerationTables)
                        -> Result<PathBuf> {
     let mut filename = destination.clone();
     filename.push(DEFAULT_MANIFEST_FILENAME.to_string());
     filename.set_extension("json");
     let mut manifest_file = File::create(&filename).chain_err(|| "Could not create manifest file")?;
-    let manifest_url = Url::from_file_path(&filename).unwrap();
+    let manifest_url = Url::from_file_path(&filename)
+        .map_err(|_| "Could not parse Url from file path")?;
     let manifest = generate::create_manifest(&flow, debug_symbols, manifest_url.as_str(), tables)
         .chain_err(|| "Could not create manifest from parsed flow and compiler tables")?;
 
@@ -180,7 +181,7 @@ fn execute_flow(filepath: &PathBuf, options: &Options) -> Result<String> {
     info!("Executing flow from manifest in '{}'", filepath.display());
 
     let command = find_executable_path(&get_executable_name())?;
-    let mut command_args = vec!(filepath.to_str().unwrap().to_string());
+    let mut command_args = vec!(filepath.display().to_string());
     if !options.flow_args.contains(&"-n".to_string()) {
         command_args.push("-n".to_string());
     }
@@ -204,7 +205,7 @@ fn execute_flow(filepath: &PathBuf, options: &Options) -> Result<String> {
 
         let _ = Command::new("cat")
             .args(vec!(stdin_file))
-            .stdout(flowr_child.stdin.take().unwrap())
+            .stdout(flowr_child.stdin.take().chain_err(||"Could not read child process stdin")?)
             .spawn()
             .chain_err(|| "Could not spawn 'cat' to pipe STDIN to 'flowr'");
     }
