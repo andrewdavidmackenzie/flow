@@ -1,6 +1,6 @@
 [package]
 name = "flowc"
-version = "0.21.0"
+version = "0.22.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A compiler and library for compiling 'flow' programs"
 license = "MIT"
@@ -25,12 +25,12 @@ online_tests = []
 
 [dependencies.flowr]
 path = "../flowr"
-version = "0.21.0"
+version = "0.22.0"
 features = ["debugger", "metrics", "checks"]
 
 [dependencies.flowrstructs]
 path = "../flowrstructs"
-version = "0.21.0"
+version = "0.22.0"
 features = ["debugger"]
 
 [dependencies]

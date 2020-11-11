@@ -326,7 +326,7 @@ dependencies = [
 
 [[package]]
 name = "flowc"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "clap",
  "error-chain 0.12.4",
@@ -349,7 +349,7 @@ dependencies = [
 
 [[package]]
 name = "flowide"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "cairo-rs",
  "flow_impl",
@@ -375,7 +375,7 @@ dependencies = [
 
 [[package]]
 name = "flowr"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "clap",
  "ctrlc",
@@ -400,7 +400,7 @@ dependencies = [
 
 [[package]]
 name = "flowrstructs"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "error-chain 0.12.4",
  "flow_impl",
@@ -413,7 +413,7 @@ dependencies = [
 
 [[package]]
 name = "flowstdlib"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "flow_impl",
  "flow_impl_derive",
