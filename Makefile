@@ -277,7 +277,6 @@ sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcar
 .PHONY: samples
 samples: build flowstdlib
 	$(STIME)
-	@$(MAKE) clean-samples
 	@$(MAKE) $(sample_flows)
 	$(ETIME)
 
@@ -286,7 +285,7 @@ samples/%: samples/%/test.err
 
 samples/%/test.output: samples/%/test.input samples/%/test.arguments
 	@printf "\tSample '$(@D)'"
-	@RUST_BACKTRACE=1 cargo run --quiet -p flowc -- -g -d $(@D) -i $< -- `cat $(@D)/test.arguments` 2> $(@D)/test.err > $@
+	@cat $< | RUST_BACKTRACE=1 cargo run --quiet -p flowr -- --native $(@D) `cat $(@D)/test.arguments` 2> $(@D)/test.err > $@
 	@diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && rm -f $(@D)/test.file && exit $$ret)
 	@if [ -s $(@D)/expected.file ]; then diff $(@D)/expected.file $(@D)/test.file; fi;
 	@if [ -s $(@D)/test.err ]; then (printf " has error output in $(@D)/test.err\n"; exit -1); else printf " has no errors\n"; fi;
