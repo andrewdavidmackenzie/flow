@@ -25,14 +25,17 @@ online_tests = []
 
 [dependencies.flowr]
 path = "../flowr"
+version = "0.21.0"
 features = ["debugger", "metrics", "checks"]
 
 [dependencies.flowrstructs]
 path = "../flowrstructs"
+version = "0.21.0"
 features = ["debugger"]
 
 [dependencies]
-provider = {path = "../provider"}
+provider = {path = "../provider", version = "0.21.0" }
+
 clap = "~2"
 simplog = "~1.2"
 log = "0.4.6"

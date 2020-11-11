@@ -22,8 +22,9 @@ default = []  # Don't include any extra features by default
 debugger = [] # feature to add the debugger
 
 [dependencies]
-flow_impl = {path = "../flow_impl"}
-provider = {path = "../provider"}
+flow_impl = {path = "../flow_impl", version = "0.21.0" }
+provider = {path = "../provider", version = "0.21.0" }
+
 serde = "~1.0.27"
 serde_derive = "~1.0.27"
 serde_json = "1.0"

@@ -28,12 +28,13 @@ distributed = ["zmq"] # Allow distributed multi-process client and server operat
 
 [dependencies.flowrstructs]
 path = "../flowrstructs"
+version = "0.21.0"
 features = ["debugger"]
 
 [dependencies]
-flow_impl = {path = "../flow_impl" }
-flowstdlib = {path = "../flowstdlib"}
-provider = {path = "../provider"}
+flow_impl = {path = "../flow_impl", version = "0.21.0" }
+flowstdlib = {path = "../flowstdlib", version = "0.21.0" }
+provider = {path = "../provider", version = "0.21.0" }
 clap = "~2"
 simplog = "~1.2"
 log = "0.4.6"
