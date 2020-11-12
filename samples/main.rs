@@ -1,3 +1,12 @@
+// Run all the sample flows found in subfolders
+// samples/%/test.output: samples/%/test.input samples/%/test.arguments
+// @printf "\tSample '$(@D)'"
+// @cat $< | RUST_BACKTRACE=1 cargo run --quiet -p flowr -- --native $(@D) `cat $(@D)/test.arguments` 2> $(@D)/test.err > $@
+// @diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && rm -f $(@D)/test.file && exit $$ret)
+// @if [ -s $(@D)/expected.file ]; then diff $(@D)/expected.file $(@D)/test.file; fi;
+// @if [ -s $(@D)/test.err ]; then (printf " has error output in $(@D)/test.err\n"; exit -1); else printf " has no errors\n"; fi;
+// @rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time
+// # leave test.err for inspection in case of failure
 fn main() {
     println!("running all the samples");
 }
