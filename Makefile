@@ -271,26 +271,21 @@ copy:
 #################### SAMPLES ####################
 # Find all sub-directories under 'samples' and create a list of paths like 'sample/{directory}/test.output' to use for
 # make paths - to compile all samples found in there. Avoid files using the filter.
-sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
+sample_flows := $(patsubst samples/%,samples/%.done,$(filter %/, $(wildcard samples/*/)))
 
 # This target must be below sample-flows in the Makefile
 .PHONY: samples
-samples: build flowstdlib
+samples:
 	$(STIME)
+	@cargo run -p flowsamples
 	@$(MAKE) $(sample_flows)
 	$(ETIME)
 
-samples/%: samples/%/test.err
-	$(MAKE) $(@D)/test.output
-
-samples/%/test.output: samples/%/test.input samples/%/test.arguments
-	@printf "\tSample '$(@D)'"
-	@cat $< | RUST_BACKTRACE=1 cargo run --quiet -p flowr -- --native $(@D)/manifest.json `cat $(@D)/test.arguments` 2> $(@D)/test.err > $@
-	@diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && rm -f $(@D)/test.file && exit $$ret)
+samples/%/.done:
+	@printf "Sample $(@D)"
+	@if [ -s $(@D)/test.output ]; then diff $(@D)/expected.output $(@D)/test.output; fi;
 	@if [ -s $(@D)/expected.file ]; then diff $(@D)/expected.file $(@D)/test.file; fi;
 	@if [ -s $(@D)/test.err ]; then (printf " has error output in $(@D)/test.err\n"; exit -1); else printf " has no errors\n"; fi;
-	@rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time
-# leave test.err for inspection in case of failure
 
 .PHONY: clean-samples
 clean-samples:
@@ -298,13 +293,6 @@ clean-samples:
 	@find samples -name test.output -exec rm -rf {} + ; true
 	@find samples -name test.file -exec rm -rf {} + ; true
 	@find samples -name failed.output -exec rm -rf {} + ; true
-	$(ETIME)
-
-################# ONLINE SAMPLES ################
-.PHONY: online-samples
-online-samples:
-	$(STIME)
-	@echo "Hello" | cargo run --p flowc -- https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
 	$(ETIME)
 
 ################# Clean ################
