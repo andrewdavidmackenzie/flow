@@ -31,26 +31,20 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-// @cat $< | RUST_BACKTRACE=1 cargo run --quiet -p flowr -- --native $(@D) `cat $(@D)/test.arguments` 2> $(@D)/test.err > $@
-// @diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && rm -f $(@D)/test.file && exit $$ret)
-// @if [ -s $(@D)/expected.file ]; then diff $(@D)/expected.file $(@D)/test.file; fi;
-// @if [ -s $(@D)/test.err ]; then (printf " has error output in $(@D)/test.err\n"; exit -1); else printf " has no errors\n"; fi;
-// @rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time
-// # leave test.err for inspection in case of failure
 fn run_sample(sample_dir: &Path, flowr_path: &Path) {
     let mut flowr_command = Command::new(flowr_path);
     let manifest = sample_dir.join("manifest.json");
-    let output = File::create(sample_dir.join("test.output")).unwrap();
-    let error = File::create(sample_dir.join("test.err")).unwrap();
-    println!("\tRunning Sample: {}", manifest.display());
+    println!("\tRunning Sample: {:?}", sample_dir.file_name().unwrap());
+    println!("\tReading STDIN from test.input, Arguments read from test.arguments");
+    println!("\tOutput sent to STDOUT/STDERR and file output to test.file");
 
     let mut command_args: Vec<String> = vec!("--native".into(), manifest.display().to_string());
     command_args.append(&mut args(&sample_dir));
 
     let mut flowr_child = flowr_command.args(command_args)
         .stdin(Stdio::piped())
-        .stdout(Stdio::from(output))
-        .stderr(Stdio::from(error))
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
         .spawn().unwrap();
 
     let _ = Command::new("cat")
@@ -71,4 +65,35 @@ fn args(sample_dir: &Path) -> Vec<String> {
         args.push(line.unwrap());
     }
     args
+}
+
+#[cfg(test)]
+mod test {
+    use std::fs::File;
+    use std::path::Path;
+    use std::process::{Command, Stdio};
+
+    fn test_run_sample(sample_dir: &Path, flowr_path: &Path) {
+        let mut flowr_command = Command::new(flowr_path);
+        let manifest = sample_dir.join("manifest.json");
+        let output = File::create(sample_dir.join("test.output")).unwrap();
+        let error = File::create(sample_dir.join("test.err")).unwrap();
+        println!("\tRunning Sample: {}", manifest.display());
+
+        let mut command_args: Vec<String> = vec!("--native".into(), manifest.display().to_string());
+        command_args.append(&mut super::args(&sample_dir));
+
+        let mut flowr_child = flowr_command.args(command_args)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::from(output))
+            .stderr(Stdio::from(error))
+            .spawn().unwrap();
+
+        let _ = Command::new("cat")
+            .args(vec!(sample_dir.join("test.input")))
+            .stdout(flowr_child.stdin.take().unwrap())
+            .spawn().unwrap();
+
+        flowr_child.wait_with_output().unwrap();
+    }
 }
