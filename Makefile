@@ -295,15 +295,9 @@ samples/%/test.output: samples/%/test.input samples/%/test.arguments
 .PHONY: clean-samples
 clean-samples:
 	$(STIME)
-	@find samples -name \*.wasm -exec rm -rf {} + ; true
 	@find samples -name test.output -exec rm -rf {} + ; true
-#	@find samples -name test.file -exec rm -rf {} + ; true
+	@find samples -name test.file -exec rm -rf {} + ; true
 	@find samples -name failed.output -exec rm -rf {} + ; true
-	@find samples -name manifest.json -exec rm -rf {} + ; true
-	@find samples -name \*.dump -type f -exec rm -rf {} + ; true
-	@find samples -name \*.txt -type f -exec rm -rf {} + ; true
-	@find samples -name \*.dot -type f -exec rm -rf {} + ; true
-	@find samples -name \*.dot.svg -type f -exec rm -rf {} + ; true
 	$(ETIME)
 
 ################# ONLINE SAMPLES ################
