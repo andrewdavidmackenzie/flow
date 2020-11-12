@@ -94,25 +94,15 @@ impl FileProvider {
 mod test {
     use std::ffi::OsStr;
     use std::path::Path;
-    use std::path::PathBuf;
 
     use super::FileProvider;
     use super::super::provider::Provider;
 
-    fn check_flow_root() {
-        if std::env::var("FLOW_ROOT").is_err() {
-            println!("FLOW_ROOT environment variable must be set for testing. Set it to the root \
-            directory of the project and ensure it has a trailing '/'");
-            std::process::exit(1);
-        }
-    }
-
     #[test]
     fn get_default_sample() {
-        check_flow_root();
-
-        let path = PathBuf::from(format!("{}{}", std::env::var("FLOW_ROOT").unwrap(), "samples/hello-world")).canonicalize().unwrap();
-        match FileProvider::find_file(&path, "context", &["toml"]) {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+        let path = root.join("samples/hello-world");
+        match FileProvider::find_file(&path.to_path_buf(), "context", &["toml"]) {
             Ok(path_string) => {
                 let path = Path::new(&path_string);
                 assert_eq!(Some(OsStr::new("context.toml")), path.file_name());

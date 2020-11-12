@@ -121,18 +121,10 @@ fn get(test_dir: &PathBuf, file_name: &str) -> String {
     String::from_utf8(buffer).unwrap()
 }
 
-fn check_flow_root() {
-    if std::env::var("FLOW_ROOT").is_err() {
-        panic!("FLOW_ROOT environment variable must be set for testing. Set it to the root \
-            directory of the project and ensure it has a trailing '/'");
-    }
-}
-
 fn execute_test(test_name: &str) {
-    check_flow_root();
-
-    let mut test_dir = PathBuf::from(std::env::var("FLOW_ROOT").unwrap());
-    test_dir.push(&format!("flowc/tests/test-flows/{}", test_name));
+    let mut root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    root_dir.pop();
+    let test_dir = root_dir.join(&format!("flowc/tests/test-flows/{}", test_name));
 
     if let FlowProcess(ref flow) = load_flow(&test_dir, test_name) {
         let tables = compile::compile(flow).unwrap();

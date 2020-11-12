@@ -95,26 +95,18 @@ mod test {
         assert_eq!(url.path(), arg);
     }
 
-    fn check_flow_root() {
-        if std::env::var("FLOW_ROOT").is_err() {
-            panic!("FLOW_ROOT environment variable must be set for testing. Set it to the root \
-            directory of the project and ensure it has a trailing '/'");
-        }
-    }
-
     #[test]
     fn relative_path_in_arg_converted_to_absolute_path_and_scheme_added() {
-        check_flow_root();
-
-        let root = PathBuf::from_str(&std::env::var("FLOW_ROOT").unwrap()).unwrap();
+        let mut root = PathBuf::from_str(env!("CARGO_MANIFEST_DIR")).unwrap();
+        root.pop();
         let root_url = Url::from_directory_path(&root).unwrap();
 
-        // the path of this file relative to project root
-        let relative_path_to_file = "provider/src/args.rs";
+        // the path of this file relative to crate root
+        let relative_path_to_file = "src/args.rs";
 
         let url = url_from_string(&root_url, Some(&relative_path_to_file)).unwrap();
+        let abs_path = format!("{}/{}", root.display().to_string(), relative_path_to_file);
 
-        let abs_path = format!("{}{}", root.display(), relative_path_to_file);
         assert_eq!(url.scheme(), "file");
         assert_eq!(url.path(), abs_path);
     }

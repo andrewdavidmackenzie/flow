@@ -13,11 +13,13 @@ FLOWSTDLIB_TOMLS = $(shell find flowstdlib -type f -name \*.toml)
 FLOWSTDLIB_MARKDOWN = $(shell find flowstdlib -type f -name \*.md)
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 2> /dev/null)
-export FLOW_ROOT := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 export SHELL := /bin/bash
 
 .PHONY: all
 all: clippy build test samples docs
+
+foo:
+	@echo $(FLOW_ROOT)
 
 ########## Configure Dependencies ############
 .PHONY: config
@@ -287,18 +289,10 @@ samples/%/.done:
 	@if [ -s $(@D)/expected.file ]; then diff $(@D)/expected.file $(@D)/test.file; fi;
 	@if [ -s $(@D)/test.err ]; then (printf " has error output in $(@D)/test.err\n"; exit -1); else printf " has no errors\n"; fi;
 
-.PHONY: clean-samples
-clean-samples:
-	$(STIME)
-	@find samples -name test.output -exec rm -rf {} + ; true
-	@find samples -name test.file -exec rm -rf {} + ; true
-	@find samples -name failed.output -exec rm -rf {} + ; true
-	$(ETIME)
-
 ################# Clean ################
 .PHONY: clean
 clean:
-	@$(MAKE) clean-dumps clean-svgs clean-guide clean-flowstdlib clean-samples
+	@$(MAKE) clean-dumps clean-svgs clean-guide clean-flowstdlib
 	@cargo clean
 
 .PHONY: clean-flowstdlib
