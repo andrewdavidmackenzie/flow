@@ -267,7 +267,7 @@ clean-dumps:
 	@find . -name \*.dot -type f -exec rm -rf {} + ; true
 	$(ETIME)
 
-.PHONY: config
+.PHONY: clean-svgs
 clean-svgs:
 	$(STIME)
 	@find . -name \*.dot.svg -type f -exec rm -rf {} + ; true
