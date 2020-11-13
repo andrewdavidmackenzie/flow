@@ -48,7 +48,6 @@ error_chain! {
     foreign_links {
         Provider(provider::errors::Error);
         Compiler(flowclib::errors::Error);
-        Runtime(flowrlib::errors::Error);
         Io(std::io::Error);
     }
 }
