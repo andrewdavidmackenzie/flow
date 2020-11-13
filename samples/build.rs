@@ -4,19 +4,21 @@ use std::{fs, io};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-fn main() -> io::Result<()> {
-    // find all sample sub-folders
-    fs::read_dir(".")?
-        .map(|res| res.map(|e| {
-            if e.metadata().unwrap().is_dir() {
-                compile_sample(&e.path());
-            }
-        }))
-        .collect::<Result<Vec<_>, io::Error>>()?;
+fn main() {
+    let flowc = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc");
 
-    println!("cargo:rerun-if-env-changed=FLOW_LIB_PATH");
+    if flowc.exists() {
+        // find all sample sub-folders
+        fs::read_dir(".").unwrap()
+            .map(|res| res.map(|e| {
+                if e.metadata().unwrap().is_dir() {
+                    compile_sample(&e.path());
+                }
+            }))
+            .collect::<Result<Vec<_>, io::Error>>().unwrap();
 
-    Ok(())
+        println!("cargo:rerun-if-env-changed=FLOW_LIB_PATH");
+    }
 }
 
 fn compile_sample(sample_dir: &Path) {
