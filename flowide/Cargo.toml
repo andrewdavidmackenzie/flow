@@ -28,7 +28,6 @@ features = ["debugger"]
 flow_impl = {path = "../flow_impl", version = "0.21.0" }
 flowc = {path = "../flowc", version = "0.23.0" }
 flowr = {path = "../flowr", version = "0.23.0" }
-flowstdlib = {path = "../flowstdlib", version = "0.23.0" }
 provider = {path = "../provider", version = "0.23.0" }
 
 toml = "0.4"

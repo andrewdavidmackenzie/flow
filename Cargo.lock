@@ -355,7 +355,6 @@ dependencies = [
  "flowc",
  "flowr",
  "flowrstructs",
- "flowstdlib",
  "gdk",
  "gdk-pixbuf",
  "gio",

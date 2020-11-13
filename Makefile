@@ -12,7 +12,7 @@ ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 2> /dev/null)
 export SHELL := /bin/bash
 
 .PHONY: all
-all: clippy build test docs
+all: build clippy test docs
 
 ########## Configure Dependencies ############
 .PHONY: config

@@ -18,11 +18,13 @@ exclude = [".gitignore", "Cargo.lock", "flow.toml"]
 name = "flowstdlib"
 path = "lib.rs"
 
+[build-dependencies]
+flowc = {path = "../flowc", version = "0.23.0" }
+
 [dependencies]
 flow_impl = {path = "../flow_impl", version = "0.21.0" }
 flow_impl_derive = {path = "../flow_impl_derive", version = "0.21.0" }
 flowrstructs = {path = "../flowrstructs", version = "0.23.0" }
-flowc = {path = "../flowc", version = "0.23.0" }
 
 serde_json = "1.0"
 image = "=0.23.10"
