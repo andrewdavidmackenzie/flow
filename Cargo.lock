@@ -348,7 +348,7 @@ dependencies = [
 
 [[package]]
 name = "flowide"
-version = "0.23.0"
+version = "0.24.0"
 dependencies = [
  "cairo-rs",
  "flow_impl",
@@ -373,7 +373,7 @@ dependencies = [
 
 [[package]]
 name = "flowr"
-version = "0.23.0"
+version = "0.24.0"
 dependencies = [
  "clap",
  "ctrlc",
@@ -411,7 +411,7 @@ dependencies = [
 
 [[package]]
 name = "flowsamples"
-version = "0.23.0"
+version = "0.24.0"
 dependencies = [
  "flowc",
  "flowr",
@@ -419,7 +419,7 @@ dependencies = [
 
 [[package]]
 name = "flowstdlib"
-version = "0.23.0"
+version = "0.24.0"
 dependencies = [
  "flow_impl",
  "flow_impl_derive",

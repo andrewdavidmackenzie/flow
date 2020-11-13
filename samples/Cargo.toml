@@ -1,6 +1,6 @@
 [package]
 name = "flowsamples"
-version = "0.23.0"
+version = "0.24.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 readme = "README.md"
 description = "A set of sample 'flow' programs"
@@ -25,6 +25,6 @@ flowc = {path = "../flowc", version = "0.23.0" }
 
 [dependencies.flowr]
 path = "../flowr"
-version = "0.23.0"
+version = "0.24.0"
 features = ["debugger", "metrics", "checks"]
 
