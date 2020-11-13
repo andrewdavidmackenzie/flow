@@ -18,7 +18,6 @@ use crate::model::flow::Flow;
 /// use url::Url;
 /// use provider::content::provider::Provider;
 /// use provider::errors::Result;
-/// use flowrlib::errors::*;
 /// use flowclib::model::process::Process::FlowProcess;
 ///
 /// struct DummyProvider {}
@@ -84,7 +83,6 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Resul
 /// use url::Url;
 /// use provider::content::provider::Provider;
 /// use provider::errors::Result;
-/// use flowrlib::errors::*;
 /// use flowclib::model::process::Process::FlowProcess;
 ///
 /// struct DummyProvider {}

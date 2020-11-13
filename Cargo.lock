@@ -330,7 +330,6 @@ version = "0.22.0"
 dependencies = [
  "clap",
  "error-chain 0.12.4",
- "flowr",
  "flowrstructs",
  "glob",
  "log",
@@ -425,6 +424,7 @@ version = "0.22.0"
 dependencies = [
  "flow_impl",
  "flow_impl_derive",
+ "flowc",
  "flowrstructs",
  "image",
  "serde_json",

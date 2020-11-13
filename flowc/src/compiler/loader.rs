@@ -43,7 +43,6 @@ pub trait Validate {
 /// ```
 /// use provider::content::provider::Provider;
 /// use provider::errors::Result;
-/// use flowrlib::errors::*;
 /// use std::env;
 /// use url::Url;
 ///

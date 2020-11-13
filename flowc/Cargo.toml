@@ -23,11 +23,6 @@ default = ["debugger"]
 debugger = []
 online_tests = []
 
-[dependencies.flowr]
-path = "../flowr"
-version = "0.22.0"
-features = ["debugger", "metrics", "checks"]
-
 [dependencies.flowrstructs]
 path = "../flowrstructs"
 version = "0.22.0"
