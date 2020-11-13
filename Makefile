@@ -14,9 +14,6 @@ export SHELL := /bin/bash
 .PHONY: all
 all: clippy build test docs
 
-foo:
-	@echo $(FLOW_ROOT)
-
 ########## Configure Dependencies ############
 .PHONY: config
 config: common-config
@@ -200,7 +197,7 @@ upload-coverage:
 measure: .test_list
 	$(STIME)
 	@echo "Measuring coverage using 'kcov'"
-	@for file in `cat .test_list`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --include-pattern=$$FLOW_ROOT --exclude-path=flowc/tests,flowr/tests --exclude-region='#[cfg(test)]:#[cfg(testkcovstopmarker)]' "target/cov/$(basename $$file)" $$file; done
+	@for file in `cat .test_list`; do mkdir -p "target/cov/$(basename $$file)"; echo "-------> Testing coverage of $$file"; kcov --exclude-path=flowc/tests,flowr/tests --exclude-region='#[cfg(test)]:#[cfg(testkcovstopmarker)]' "target/cov/$(basename $$file)" $$file; done
 	$(ETIME)
 
 .PHONY: kcov
