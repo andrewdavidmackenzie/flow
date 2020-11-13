@@ -51,23 +51,21 @@ error_chain! {
 fn main() {
     match run() {
         Err(ref e) => {
-            println!("error: {}", e);
+            error!("{}", e);
 
             for e in e.iter().skip(1) {
-                println!("caused by: {}", e);
+                error!("caused by: {}", e);
             }
 
             // The backtrace is not always generated. Try to run this example
             // with `RUST_BACKTRACE=1`.
             if let Some(backtrace) = e.backtrace() {
-                println!("backtrace: {:?}", backtrace);
+                error!("backtrace: {:?}", backtrace);
             }
 
             exit(1);
         }
-        Ok(_) => {
-            exit(0);
-        }
+        Ok(_) => exit(0)
     }
 }
 

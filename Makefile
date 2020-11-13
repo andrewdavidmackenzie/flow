@@ -16,7 +16,7 @@ ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 2> /dev/null)
 export SHELL := /bin/bash
 
 .PHONY: all
-all: clippy build test samples docs
+all: clippy build test docs
 
 foo:
 	@echo $(FLOW_ROOT)
@@ -269,25 +269,6 @@ pi:
 copy:
 	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/release/flowc andrew@zero-w:
 	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/release/flowr andrew@zero-w:
-
-#################### SAMPLES ####################
-# Find all sub-directories under 'samples' and create a list of paths like 'sample/{directory}/test.output' to use for
-# make paths - to compile all samples found in there. Avoid files using the filter.
-sample_flows := $(patsubst samples/%,samples/%.done,$(filter %/, $(wildcard samples/*/)))
-
-# This target must be below sample-flows in the Makefile
-.PHONY: samples
-samples:
-	$(STIME)
-	@cargo run -p flowsamples
-	@$(MAKE) $(sample_flows)
-	$(ETIME)
-
-samples/%/.done:
-	@printf "Sample $(@D)"
-	@if [ -s $(@D)/test.output ]; then diff $(@D)/expected.output $(@D)/test.output; fi;
-	@if [ -s $(@D)/expected.file ]; then diff $(@D)/expected.file $(@D)/test.file; fi;
-	@if [ -s $(@D)/test.err ]; then (printf " has error output in $(@D)/test.err\n"; exit -1); else printf " has no errors\n"; fi;
 
 ################# Clean ################
 .PHONY: clean
