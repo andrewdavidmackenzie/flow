@@ -28,7 +28,6 @@ pub fn get_manifest() -> LibraryManifest {
     };
     let mut manifest = LibraryManifest::new(metadata);
 
-
     // Control
     manifest.locators.insert("lib://flowstdlib/control/compare_switch/compare_switch".to_string(),
                              Native(Arc::new(control::compare_switch::CompareSwitch)));
@@ -106,8 +105,12 @@ pub fn get_manifest() -> LibraryManifest {
 
 #[cfg(test)]
 mod test {
+    use std::path::Path;
+
     #[test]
     fn check_manifest() {
-
+        // check the manifest was created
+        let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("manifest.json");
+        assert!(manifest.exists());
     }
 }
