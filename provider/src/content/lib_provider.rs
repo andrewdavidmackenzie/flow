@@ -129,29 +129,20 @@ impl Provider for LibProvider {
 #[cfg(test)]
 mod test {
     use std::env;
+    use std::path::Path;
 
     use super::LibProvider;
     use super::super::provider::Provider;
 
-    fn check_flow_root() {
-        if std::env::var("FLOW_ROOT").is_err() {
-            println!("FLOW_ROOT environment variable must be set for testing. Set it to the root \
-            directory of the project and ensure it has a trailing '/'");
-            std::process::exit(1);
-        }
-    }
-
     #[test]
     fn resolve_path() {
-        check_flow_root();
-
         let provider: &dyn Provider = &LibProvider;
-        let root_str = &std::env::var("FLOW_ROOT").unwrap();
+        let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
         env::set_var("FLOW_LIB_PATH", root_str);
         let lib_url = "lib://flowstdlib/control/tap";
         match provider.resolve_url(&lib_url, "", &["toml"]) {
             Ok((url, lib_ref)) => {
-                assert_eq!(url, format!("file://{}flowstdlib/control/tap/tap.toml", root_str));
+                assert_eq!(url, format!("file://{}/flowstdlib/control/tap/tap.toml", root_str.display().to_string()));
                 assert_eq!(lib_ref, Some("flowstdlib/control/tap".to_string()));
             }
             Err(e) => panic!(e.to_string())

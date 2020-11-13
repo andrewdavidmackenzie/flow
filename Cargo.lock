@@ -412,6 +412,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "flowsamples"
+version = "0.22.0"
+dependencies = [
+ "flowc",
+ "flowr",
+]
+
+[[package]]
 name = "flowstdlib"
 version = "0.22.0"
 dependencies = [

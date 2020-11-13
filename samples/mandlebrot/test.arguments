@@ -1,1 +1,4 @@
-samples/mandlebrot/test.file 20x15 -1.20,0.35 -1,0.20
+mandlebrot/test.file
+20x15
+-1.20,0.35
+-1,0.20

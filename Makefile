@@ -13,11 +13,13 @@ FLOWSTDLIB_TOMLS = $(shell find flowstdlib -type f -name \*.toml)
 FLOWSTDLIB_MARKDOWN = $(shell find flowstdlib -type f -name \*.md)
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 2> /dev/null)
-export FLOW_ROOT := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 export SHELL := /bin/bash
 
 .PHONY: all
-all: clippy build test samples docs
+all: clippy build test docs
+
+foo:
+	@echo $(FLOW_ROOT)
 
 ########## Configure Dependencies ############
 .PHONY: config
@@ -268,56 +270,10 @@ copy:
 	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/release/flowc andrew@zero-w:
 	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/release/flowr andrew@zero-w:
 
-#################### SAMPLES ####################
-# Find all sub-directories under 'samples' and create a list of paths like 'sample/{directory}/test.output' to use for
-# make paths - to compile all samples found in there. Avoid files using the filter.
-sample_flows := $(patsubst samples/%,samples/%test.output,$(filter %/, $(wildcard samples/*/)))
-
-# This target must be below sample-flows in the Makefile
-.PHONY: samples
-samples: build flowstdlib
-	$(STIME)
-	@$(MAKE) clean-samples
-	@$(MAKE) $(sample_flows)
-	$(ETIME)
-
-samples/%: samples/%/test.err
-	$(MAKE) $(@D)/test.output
-
-samples/%/test.output: samples/%/test.input samples/%/test.arguments
-	@printf "\tSample '$(@D)'"
-	@RUST_BACKTRACE=1 cargo run --quiet -p flowc -- -g -d $(@D) -i $< -- `cat $(@D)/test.arguments` 2> $(@D)/test.err > $@
-	@diff $@ $(@D)/expected.output || (ret=$$?; cp $@ $(@D)/failed.output && rm -f $@ && rm -f $(@D)/test.file && exit $$ret)
-	@if [ -s $(@D)/expected.file ]; then diff $(@D)/expected.file $(@D)/test.file; fi;
-	@if [ -s $(@D)/test.err ]; then (printf " has error output in $(@D)/test.err\n"; exit -1); else printf " has no errors\n"; fi;
-	@rm $@ #remove test.output after successful diff so that dependency will cause it to run again next time
-# leave test.err for inspection in case of failure
-
-.PHONY: clean-samples
-clean-samples:
-	$(STIME)
-	@find samples -name \*.wasm -exec rm -rf {} + ; true
-	@find samples -name test.output -exec rm -rf {} + ; true
-#	@find samples -name test.file -exec rm -rf {} + ; true
-	@find samples -name failed.output -exec rm -rf {} + ; true
-	@find samples -name manifest.json -exec rm -rf {} + ; true
-	@find samples -name \*.dump -type f -exec rm -rf {} + ; true
-	@find samples -name \*.txt -type f -exec rm -rf {} + ; true
-	@find samples -name \*.dot -type f -exec rm -rf {} + ; true
-	@find samples -name \*.dot.svg -type f -exec rm -rf {} + ; true
-	$(ETIME)
-
-################# ONLINE SAMPLES ################
-.PHONY: online-samples
-online-samples:
-	$(STIME)
-	@echo "Hello" | cargo run --p flowc -- https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world-simple/context.toml
-	$(ETIME)
-
 ################# Clean ################
 .PHONY: clean
 clean:
-	@$(MAKE) clean-dumps clean-svgs clean-guide clean-flowstdlib clean-samples
+	@$(MAKE) clean-dumps clean-svgs clean-guide clean-flowstdlib
 	@cargo clean
 
 .PHONY: clean-flowstdlib

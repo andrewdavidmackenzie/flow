@@ -178,6 +178,7 @@ fn out_of_date(source: &PathBuf, derived: &PathBuf) -> Result<(bool, bool)> {
 #[cfg(test)]
 mod test {
     use std::fs::{remove_file, write};
+    use std::path::Path;
     use std::time::Duration;
 
     use flowclib::model::function::Function;
@@ -242,17 +243,7 @@ mod test {
         assert!(out_of_date(&source, &derived).unwrap().1);
     }
 
-    fn check_flow_root() {
-        if std::env::var("FLOW_ROOT").is_err() {
-            println!("FLOW_ROOT environment variable must be set for testing. Set it to the root \
-            directory of the project and ensure it has a trailing '/'");
-            std::process::exit(1);
-        }
-    }
-
     fn test_function() -> Function {
-        check_flow_root();
-
         Function::new(
             "Stdout".into(),
             false,
@@ -262,7 +253,8 @@ mod test {
             Some(vec!(
                 IO::new("String", Route::default())
             )),
-            &format!("{}/{}", std::env::var("FLOW_ROOT").unwrap(), "flowr/src/lib/flowruntime/stdio/stdout"),
+            &format!("{}/{}", Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().display().to_string(),
+                     "flowr/src/lib/flowruntime/stdio/stdout"),
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
             vec!(OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None)),
@@ -275,7 +267,9 @@ mod test {
 
         let (impl_source_path, impl_wasm_path) = get_paths(&function).unwrap();
 
-        assert_eq!(format!("{}/{}", std::env::var("FLOW_ROOT").unwrap(), "flowr/src/lib/flowruntime/stdio/stdout.rs"), impl_source_path.to_str().unwrap());
-        assert_eq!(format!("{}/{}", std::env::var("FLOW_ROOT").unwrap(), "flowr/src/lib/flowruntime/stdio/stdout.wasm"), impl_wasm_path.to_str().unwrap());
+        assert_eq!(format!("{}/{}", Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().display().to_string(),
+                           "flowr/src/lib/flowruntime/stdio/stdout.rs"), impl_source_path.to_str().unwrap());
+        assert_eq!(format!("{}/{}", Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().display().to_string(),
+                           "flowr/src/lib/flowruntime/stdio/stdout.wasm"), impl_wasm_path.to_str().unwrap());
     }
 }
