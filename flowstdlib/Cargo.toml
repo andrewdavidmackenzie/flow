@@ -1,6 +1,6 @@
 [package]
 name = "flowstdlib"
-version = "0.22.0"
+version = "0.23.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "The standard library of functions for 'flow' programs"
 license = "MIT"
@@ -21,8 +21,8 @@ path = "lib.rs"
 [dependencies]
 flow_impl = {path = "../flow_impl", version = "0.21.0" }
 flow_impl_derive = {path = "../flow_impl_derive", version = "0.21.0" }
-flowrstructs = {path = "../flowrstructs", version = "0.22.0" }
-flowc = {path = "../flowc", version = "0.22.0" }
+flowrstructs = {path = "../flowrstructs", version = "0.23.0" }
+flowc = {path = "../flowc", version = "0.23.0" }
 
 serde_json = "1.0"
 image = "=0.23.10"
