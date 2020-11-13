@@ -184,7 +184,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_mandlebrot() {
         let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("mandlebrot");
