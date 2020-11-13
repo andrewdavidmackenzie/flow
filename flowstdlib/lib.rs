@@ -104,3 +104,10 @@ pub fn get_manifest() -> LibraryManifest {
     manifest
 }
 
+#[cfg(test)]
+mod test {
+    #[test]
+    fn check_manifest() {
+
+    }
+}

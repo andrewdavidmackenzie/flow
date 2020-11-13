@@ -1,5 +1,3 @@
 [workspace]
-members = ["flowc", "flowr", "flowrstructs", "provider", "flow_impl", "flow_impl_derive", "flowstdlib", "flowide",
-"samples"]
-
-default-members = ["samples"]
+members = ["flowc", "flowr", "flowrstructs", "provider", "flow_impl", "flow_impl_derive", "flowstdlib", "flowide", "samples"]
+default-members = ["flowc", "flowr", "flowrstructs", "provider", "flow_impl", "flow_impl_derive", "flowstdlib", "flowide", "samples"]

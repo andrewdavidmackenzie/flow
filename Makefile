@@ -4,13 +4,9 @@ APTGET := $(shell command -v apt-get 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
 STIME = @mkdir -p target;date '+%s' > target/.$@time ; echo "<------ Target '$@' starting"
 ETIME = @read st < target/.$@time ; st=$$((`date '+%s'`-$$st)) ; echo "------> Target '$@' done in $$st seconds"
-SOURCES = $(shell find . -type f -name \*.rs)
 MARKDOWN = $(shell find . -type f -name \*.md)
 DOTS = $(shell find . -type f -name \*.dot)
 SVGS = $(patsubst %.dot,%.dot.svg,$(DOTS))
-FLOWSTDLIB_SOURCES = $(shell find flowstdlib -type f -name \*.rs)
-FLOWSTDLIB_TOMLS = $(shell find flowstdlib -type f -name \*.toml)
-FLOWSTDLIB_MARKDOWN = $(shell find flowstdlib -type f -name \*.md)
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 2> /dev/null)
 export SHELL := /bin/bash
@@ -141,7 +137,7 @@ trim-docs:
 	$(ETIME)
 
 .PHONY: code-docs
-code-docs: $(SOURCES)
+code-docs:
 	$(STIME)
 	@cargo doc --workspace --quiet --no-deps --target-dir=target/html/code
 	$(ETIME)
@@ -166,20 +162,20 @@ deploy-pages:
 
 #################### Build ####################
 .PHONY: build
-build: $(SOURCES) flowstdlib
+build:
 	$(STIME)
-	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig" cargo build
+	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig" cargo build --workspace
 	$(ETIME)
 
 .PHONY: clippy
-clippy: $(SOURCES)
+clippy:
 	$(STIME)
 	@cargo clippy -- -D warnings
 	$(ETIME)
 
 #################### Tests ####################
 .PHONY: test
-test: $(SOURCES)
+test:
 	$(STIME)
 	@set -o pipefail && cargo test --workspace --exclude flow_impl_derive --exclude flowide -- --test-threads 1 2>&1 | tee .test.log
 	$(ETIME)
@@ -247,15 +243,6 @@ else
 	@echo "'kcov' found at `which kcov`"
 endif
 
-#################### FLOW LIBRARIES ####################
-.PHONY: flowstdlib
-flowstdlib: flowstdlib/manifest.json
-
-flowstdlib/manifest.json: $(FLOWSTDLIB_SOURCES) $(FLOWSTDLIB_TOMLS) $(FLOWSTDLIB_MARKDOWN)
-	@mkdir -p target;date '+%s' > target/.flowstdlibtime ; echo "<------ Target '$@' starting"
-	@cargo run -p flowc -- -v info -l -g -d flowstdlib
-	@read st < target/.flowstdlibtime ; st=$$((`date '+%s'`-$$st)) ; echo "------> Target '$@' done in $$st seconds"
-
 #################### Raspberry Pi ####################
 .PHONY: pi
 pi:
@@ -273,15 +260,8 @@ copy:
 ################# Clean ################
 .PHONY: clean
 clean:
-	@$(MAKE) clean-dumps clean-svgs clean-guide clean-flowstdlib
+	@$(MAKE) clean-dumps clean-svgs clean-guide
 	@cargo clean
-
-.PHONY: clean-flowstdlib
-clean-flowstdlib:
-	$(STIME)
-	@find flowstdlib -name \*.wasm -type f -exec rm -rf {} + ; true
-	@rm -f flowstdlib/manifest.json
-	$(ETIME)
 
 .PHONY: clean-dumps
 clean-dumps:
