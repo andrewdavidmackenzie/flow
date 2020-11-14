@@ -14,17 +14,23 @@ build = "build.rs"
 # Files to exclude from packaging and publishing
 exclude = [".gitignore", "Cargo.lock", "flow.toml"]
 
+[[bin]]
+name = "flowstdlib"
+path = "main.rs"
+
 [lib]
 name = "flowstdlib"
 path = "lib.rs"
 
 [build-dependencies]
 flowc = {path = "../flowc", version = "0.23.0" }
+simpath = "~1.4"
 
 [dependencies]
 flow_impl = {path = "../flow_impl", version = "0.21.0" }
 flow_impl_derive = {path = "../flow_impl_derive", version = "0.21.0" }
 flowrstructs = {path = "../flowrstructs", version = "0.23.0" }
+simpath = "~1.4"
 
 serde_json = "1.0"
 image = "=0.23.10"
