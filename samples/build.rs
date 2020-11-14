@@ -5,7 +5,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 
 fn main() {
-    let flowc = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc");
+    let flowc = Path::new(env!("CARGO_MANIFEST_DIR")).join("flowc");
 
     if flowc.exists() {
         // find all sample sub-folders
@@ -25,7 +25,7 @@ fn compile_sample(sample_dir: &Path) {
     // Tell Cargo that if the given file changes, to rerun this build script.
     println!("cargo:rerun-if-changed={}/context.toml", sample_dir.display());
 
-    let mut command = Command::new("../target/debug/flowc");
+    let mut command = Command::new("flowc");
     // -g for debug symbols, -d to dump compiler structs, -s to skip running, only compile the flow
     let command_args = vec!("-g", "-d", "-s", sample_dir.to_str().unwrap());
 

@@ -6,7 +6,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 
 fn main() -> io::Result<()> {
-    let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
+    let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("flowr");
 
     let args: Vec<String> = env::args().collect();
 
