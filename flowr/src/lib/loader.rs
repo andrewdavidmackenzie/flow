@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use flow_impl::Implementation;
 use log::{debug, info, trace};
 use url::Url;
 
+use flow_impl::Implementation;
 use flowrstructs::lib_manifest::{ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest};
 use flowrstructs::manifest::Manifest;
 use provider::content::provider::Provider;
@@ -65,7 +65,6 @@ impl Loader {
 
     /// Load libraries references referenced in the flows manifest that are not already loaded
     fn load_libraries(&mut self, provider: &dyn Provider, manifest: &Manifest) -> Result<()> {
-        debug!("Loading libraries used by the flow");
         for library_reference in manifest.get_lib_references() {
             if !self.loaded_lib_references.contains(library_reference) {
                 info!("Attempting to load library reference '{}'", library_reference);
