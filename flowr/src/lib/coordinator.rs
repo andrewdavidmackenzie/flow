@@ -156,11 +156,11 @@ impl Coordinator {
 
             if server_only {
                 info!("Starting 'flowr' server on main thread");
-                coordinator.start(native)?;
+                coordinator.start(native, server_only)?;
             } else {
                 std::thread::spawn(move || {
                     info!("Starting 'flowr' server as background thread");
-                    if let Err(e) = coordinator.start(native) {
+                    if let Err(e) = coordinator.start(native, server_only) {
                         error!("Error starting Coordinator in background thread: '{}'", e);
                     }
                 });
@@ -172,19 +172,27 @@ impl Coordinator {
 
     /// Start the Coordinator - this will block the thread it is running on waiting for a submission
     /// It will loop processing submissions until it gets a `ClientExiting` response, then it will also exit
-    pub fn start(&mut self, native: bool) -> Result<()>{
+    pub fn start(&mut self, native: bool, server_only: bool) -> Result<()> {
         while let Some(submission) = self.wait_for_submission() {
-            if let Ok(mut manifest) = Self::load_from_manifest(&submission.manifest_url,
-                                                               self.runtime_server_connection.clone(),
-                                                               native) {
-                let state = RunState::new(manifest.get_functions(), submission);
-                let _ = self.execute_flow(state);
-            }
+            match Self::load_from_manifest(&submission.manifest_url,
+                                           self.runtime_server_connection.clone(),
+                                           native) {
+                Ok(mut manifest) => {
+                    let state = RunState::new(manifest.get_functions(), submission);
+                    let _ = self.execute_flow(state);
 
-            self.runtime_server_connection.lock()
-                .map_err(|e| format!("Could not lock Server Connection: {}", e))?
-                .start()?;
-            self.debugger.start();
+                    self.runtime_server_connection.lock()
+                        .map_err(|e| format!("Could not lock Server Connection: {}", e))?
+                        .start()?;
+                    self.debugger.start();
+                }
+                Err(e) => {
+                    error!("Error loading from manifest: {}", e);
+                    if !server_only {
+                        break;
+                    }
+                }
+            }
         }
 
         // Exiting
@@ -354,11 +362,8 @@ impl Coordinator {
         }
 
         // Load the flow to run from the manifest
-        let mut manifest = loader.load_manifest(&provider, manifest_url)
+        let manifest = loader.load_manifest(&provider, manifest_url)
             .chain_err(|| format!("Could not load the flow from manifest: '{}'", manifest_url))?;
-
-        // Find the implementations for all functions in this flow
-        loader.resolve_implementations(&mut manifest, manifest_url, &provider)?;
 
         Ok(manifest)
     }
