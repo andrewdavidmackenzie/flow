@@ -7,30 +7,32 @@ use std::process::{Command, Stdio};
 use simpath::{FileType, Simpath};
 
 fn main() -> io::Result<()> {
-    let flowc = if Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc").exists() {
-        "../target/debug/flowc"
-    } else if Simpath::new("PATH").find_type("flowc", FileType::File).is_ok() {
-        "flowc"
-    } else {
-        ""
-    };
+    let flowc = get_flowc()?;
 
-    if flowc.is_empty() {
-        Err(io::Error::new(io::ErrorKind::Other, "Could not find `flowc` so `flowsamples` cannot be built"))
-    } else {
-        // find all sample sub-folders
-        for entry in fs::read_dir(env!("CARGO_MANIFEST_DIR"))? {
-            if let Ok(e) = entry {
-                if let Ok(ft) = e.file_type() {
-                    if ft.is_dir() {
-                        compile_sample(&e.path(), flowc)?;
-                    }
+    // find all sample sub-folders
+    for entry in fs::read_dir(env!("CARGO_MANIFEST_DIR"))? {
+        if let Ok(e) = entry {
+            if let Ok(ft) = e.file_type() {
+                if ft.is_dir() {
+                    compile_sample(&e.path(), &flowc)?;
                 }
             }
-        };
+        }
+    };
 
-        println!("cargo:rerun-if-env-changed=FLOW_LIB_PATH");
-        Ok(())
+    println!("cargo:rerun-if-env-changed=FLOW_LIB_PATH");
+    Ok(())
+}
+
+fn get_flowc() -> io::Result<String> {
+    let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc");
+    if dev.exists() {
+        Ok(dev.into_os_string().to_str().unwrap().to_string())
+    } else if Simpath::new("PATH").find_type("flowr", FileType::File).is_ok() {
+        Ok("flowc".into())
+    } else {
+        Err(io::Error::new(io::ErrorKind::Other,
+                           "`flowc` could not be found in `$PATH` or `target/debug`"))
     }
 }
 
