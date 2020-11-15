@@ -7,22 +7,23 @@ use std::process::{Command, Stdio};
 use simpath::{FileType, Simpath};
 
 fn main() {
-    let flowc = if Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc").exists() {
-        "../target/debug/flowc"
-    } else if Simpath::new("PATH").find_type("flowc", FileType::File).is_ok() {
-        "flowc"
-    } else {
-        ""
-    };
-
-    if flowc.is_empty() {
-        println!("cargo:warning=Could not find `flowc` in $PATH or `target/debug`, so cannot build flowsamples");
-    } else {
+    // let flowc = if Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc").exists() {
+    //     "../target/debug/flowc"
+    // } else if Simpath::new("PATH").find_type("flowc", FileType::File).is_ok() {
+    //     "flowc"
+    // } else {
+    //     ""
+    // };
+    //
+    // if flowc.is_empty() {
+    //     println!("cargo:warning=Could not find `flowc` in $PATH or `target/debug`, so cannot build flowsamples");
+    // } else
+    if Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc").exists() {
         // find all sample sub-folders
         fs::read_dir(".").unwrap()
             .map(|res| res.map(|e| {
                 if e.metadata().unwrap().is_dir() {
-                    compile_sample(&e.path(), flowc);
+                    compile_sample(&e.path(), "../target/debug/flowc");
                 }
             }))
             .collect::<Result<Vec<_>, io::Error>>().unwrap();
