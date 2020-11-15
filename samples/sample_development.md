@@ -27,8 +27,8 @@ If there is any standard error found in the file test.err then the test will fai
 If there is no standard error then it compares standard output captured in test.output to expected.output
 and fails if there is a difference.
 
-If an expected.file exists then it compares it to file output in test.file and fails if there is any 
-difference with the expected file.
+If an expected.file exists then it compares it to file output in test.file 
+and fails if there is any difference with the expected file.
 
 You can test all samples by using `cargo test -p flowsamples -- --test-threads 1`, 
 tests will be run one at a time.
