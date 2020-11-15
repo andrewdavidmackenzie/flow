@@ -411,7 +411,7 @@ dependencies = [
 
 [[package]]
 name = "flowsamples"
-version = "0.25.0"
+version = "0.25.1"
 dependencies = [
  "flowc",
  "flowr",
@@ -420,7 +420,7 @@ dependencies = [
 
 [[package]]
 name = "flowstdlib"
-version = "0.25.0"
+version = "0.25.1"
 dependencies = [
  "flow_impl",
  "flow_impl_derive",
