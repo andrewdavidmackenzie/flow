@@ -6,7 +6,10 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 
 fn main() -> io::Result<()> {
-    let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("flowr");
+    let mut flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
+    if !flowr.exists() {
+        flowr = Path::new("flowr").to_path_buf();
+    }
 
     let args: Vec<String> = env::args().collect();
 
