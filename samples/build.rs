@@ -5,7 +5,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 
 fn main() {
-    let mut flowc = Path::new(env!("CARGO_MANIFEST_DIR")).join("flowc");
+    let mut flowc = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc");
     if !flowc.exists() {
         flowc = Path::new("flowc").to_path_buf();
     }
