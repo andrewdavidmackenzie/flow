@@ -36,7 +36,7 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
     }
 
     let build_count = compile_implementations(options, &mut lib_manifest, &base_dir, provider,
-                                              false)
+                                              false, options.dump)
         .chain_err(|| "Could not build library")?;
 
     let manifest_json_file = json_manifest_file(&options.output_dir);
@@ -126,7 +126,7 @@ fn write_lib_rust_manifest(_lib_manifest: &LibraryManifest, _rust_manifest_filen
 */
 fn compile_implementations(options: &Options, lib_manifest: &mut LibraryManifest,
                            base_dir: &str, provider: &dyn Provider,
-                           skip_building: bool) -> Result<i32> {
+                           skip_building: bool, dump: bool) -> Result<i32> {
     let mut build_count = 0;
     let search_pattern = format!("{}**/*.toml", base_dir);
 
@@ -163,8 +163,10 @@ fn compile_implementations(options: &Options, lib_manifest: &mut LibraryManifest
                         let output_dir = source_path.parent()
                             .chain_err(|| "Could not get parent directory of flow's source_url")?;
 
-                        dump_flow::dump_flow(&flow, &output_dir.to_path_buf(), provider)
-                            .chain_err(|| "Failed to dump flow's definition")?;
+                        if dump {
+                            dump_flow::dump_flow(&flow, &output_dir.to_path_buf(), provider)
+                                .chain_err(|| "Failed to dump flow's definition")?;
+                        }
                     }
                 }
                 Err(_) => debug!("Skipping file '{}'", url)

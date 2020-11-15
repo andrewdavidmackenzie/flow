@@ -1,48 +1,70 @@
 // Build script to compile the flow samples in the crate
-
 use std::{fs, io};
+use std::io::ErrorKind;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-// use simpath::{FileType, Simpath};
+use simpath::{FileType, Simpath};
 
-fn main() {
-    // let flowc = if Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc").exists() {
-    //     "../target/debug/flowc"
-    // } else if Simpath::new("PATH").find_type("flowc", FileType::File).is_ok() {
-    //     "flowc"
-    // } else {
-    //     ""
-    // };
-    //
-    // if flowc.is_empty() {
-    //     println!("cargo:warning=Could not find `flowc` in $PATH or `target/debug`, so cannot build flowsamples");
-    // } else
-    if Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc").exists() {
-        // find all sample sub-folders
-        fs::read_dir(".").unwrap()
-            .map(|res| res.map(|e| {
-                if e.metadata().unwrap().is_dir() {
-                    compile_sample(&e.path(), "../target/debug/flowc");
+fn main() -> io::Result<()> {
+    let flowc = get_flowc()?;
+
+    // find all sample sub-folders
+    for entry in fs::read_dir(env!("CARGO_MANIFEST_DIR"))? {
+        if let Ok(e) = entry {
+            if let Ok(ft) = e.file_type() {
+                if ft.is_dir() {
+                    compile_sample(&e.path(), &flowc)?;
                 }
-            }))
-            .collect::<Result<Vec<_>, io::Error>>().unwrap();
+            }
+        }
+    };
 
-        println!("cargo:rerun-if-env-changed=FLOW_LIB_PATH");
+    println!("cargo:rerun-if-env-changed=FLOW_LIB_PATH");
+    Ok(())
+}
+
+fn get_flowc() -> io::Result<String> {
+    let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc");
+    if dev.exists() {
+        Ok(dev.into_os_string().to_str().unwrap().to_string())
+    } else if Simpath::new("PATH").find_type("flowr", FileType::File).is_ok() {
+        Ok("flowc".into())
+    } else {
+        Err(io::Error::new(io::ErrorKind::Other,
+                           "`flowc` could not be found in `$PATH` or `target/debug`"))
     }
 }
 
-fn compile_sample(sample_dir: &Path, flowc: &str) {
+fn compile_sample(sample_dir: &Path, flowc: &str) -> io::Result<()> {
     // Tell Cargo that if the given file changes, to rerun this build script.
     println!("cargo:rerun-if-changed={}/context.toml", sample_dir.display());
 
     let mut command = Command::new(flowc);
     // -g for debug symbols, -d to dump compiler structs, -s to skip running, only compile the flow
-    let command_args = vec!("-g", "-d", "-s", sample_dir.to_str().unwrap());
+    // let command_args = vec!("-g", "-d", "-s", sample_dir.to_str().unwrap());
+    let command_args = vec!("-g", "-s", sample_dir.to_str().unwrap());
 
-    command.args(command_args)
+    match command.args(command_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
-        .spawn().unwrap();
+        .spawn() {
+        Ok(flowc_child) => {
+            match flowc_child.wait_with_output() {
+                Ok(_) => Ok(()),
+                Err(e) => Err(io::Error::new(io::ErrorKind::Other,
+                                             format!("Error running `flowc`: {}", e)))
+            }
+        }
+        Err(e) => {
+            match e.kind() {
+                ErrorKind::NotFound =>
+                    Err(io::Error::new(io::ErrorKind::Other,
+                                       format!("`flowc` was not found! Check your $PATH. {}", e))),
+                _ => Err(io::Error::new(io::ErrorKind::Other,
+                                        format!("Unexpected error occurred spawning `flowc`: {}", e)))
+            }
+        }
+    }
 }

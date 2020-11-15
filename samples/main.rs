@@ -8,14 +8,7 @@ use std::process::{Command, Stdio};
 use simpath::{FileType, Simpath};
 
 fn main() -> io::Result<()> {
-    let flowr = if Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr").exists() {
-        "../target/debug/flowr"
-    } else if Simpath::new("PATH").find_type("flowr", FileType::File).is_ok() {
-        "flowr"
-    } else {
-        eprintln!("`flowr` could not be found in $PATH or `target/debug` to `flowsamples` can not be run");
-        ""
-    };
+    let flowr = get_flowr()?;
 
     let args: Vec<String> = env::args().collect();
 
@@ -25,19 +18,31 @@ fn main() -> io::Result<()> {
             for entry in fs::read_dir(env!("CARGO_MANIFEST_DIR"))? {
                 if let Ok(e) = entry {
                     if e.metadata()?.is_dir() {
-                        run_sample(&e.path(), flowr)?
+                        run_sample(&e.path(), &flowr)?
                     }
                 };
             }
         }
         2 => {
             let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join(&args[1]);
-            run_sample(&samples_dir, flowr)?
+            run_sample(&samples_dir, &flowr)?
         }
         _ => eprintln!("Usage: {} <optional_sample_directory_name>", args[0])
     }
 
     Ok(())
+}
+
+fn get_flowr() -> io::Result<String> {
+    let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
+    if dev.exists() {
+        Ok(dev.into_os_string().to_str().unwrap().to_string())
+    } else if Simpath::new("PATH").find_type("flowr", FileType::File).is_ok() {
+        Ok("flowr".into())
+    } else {
+        Err(io::Error::new(io::ErrorKind::Other,
+                           "`flowr` could not be found in `$PATH` or `target/debug`"))
+    }
 }
 
 fn run_sample(sample_dir: &Path, flowr_path: &str) -> io::Result<()> {
@@ -106,14 +111,16 @@ mod test {
     use std::path::Path;
     use std::process::{Command, Stdio};
 
-    fn test_run_sample(sample_dir: &Path, flowr_path: &Path) {
+    use serial_test::serial;
+
+    fn test_run_sample(sample_dir: &Path, flowr: &str) {
         // Remove any previous output
         let _ = fs::remove_file(sample_dir.join("test.err"));
         let _ = fs::remove_file(sample_dir.join("test.file"));
         let _ = fs::remove_file(sample_dir.join("test.output"));
 
-        let mut flowr_command = Command::new(flowr_path);
-        eprintln!("\tRunning Sample: {:?}", sample_dir.file_name().unwrap());
+        let mut flowr_command = Command::new(flowr);
+        println!("\tSample: {:?}", sample_dir.file_name().unwrap());
 
         let manifest = sample_dir.join("manifest.json");
 
@@ -175,122 +182,122 @@ mod test {
     }
 
     #[test]
+    #[serial]
     fn test_args() {
-        let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("args");
-        test_run_sample(&sample, &flowr);
+        test_run_sample(&sample, &super::get_flowr().unwrap());
     }
 
     #[test]
+    #[serial]
     fn test_arrays() {
-        let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("arrays");
-        test_run_sample(&sample, &flowr);
+        test_run_sample(&sample, &super::get_flowr().unwrap());
     }
 
     #[test]
+    #[serial]
     fn test_factorial() {
-        let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("factorial");
-        test_run_sample(&sample, &flowr);
+        test_run_sample(&sample, &super::get_flowr().unwrap());
     }
 
     #[test]
+    #[serial]
     fn test_fibonacci() {
-        let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("fibonacci");
-        test_run_sample(&sample, &flowr);
+        test_run_sample(&sample, &super::get_flowr().unwrap());
     }
 
     #[test]
+    #[serial]
     fn test_hello_world() {
-        let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("hello-world");
-        test_run_sample(&sample, &flowr);
+        test_run_sample(&sample, &super::get_flowr().unwrap());
     }
 
     #[test]
+    #[serial]
     fn test_mandlebrot() {
-        let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("mandlebrot");
-        test_run_sample(&sample, &flowr);
+        test_run_sample(&sample, &super::get_flowr().unwrap());
     }
 
     #[test]
+    #[serial]
     fn test_matrix_mult() {
-        let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("matrix_mult");
-        test_run_sample(&sample, &flowr);
+        test_run_sample(&sample, &super::get_flowr().unwrap());
     }
 
     #[test]
+    #[serial]
     fn test_pipeline() {
-        let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("pipeline");
-        test_run_sample(&sample, &flowr);
+        test_run_sample(&sample, &super::get_flowr().unwrap());
     }
 
     #[test]
+    #[serial]
     fn test_prime() {
-        let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("prime");
-        test_run_sample(&sample, &flowr);
+        test_run_sample(&sample, &super::get_flowr().unwrap());
     }
 
     #[test]
+    #[serial]
     fn test_primitives() {
-        let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("primitives");
-        test_run_sample(&sample, &flowr);
+        test_run_sample(&sample, &super::get_flowr().unwrap());
     }
 
     #[test]
+    #[serial]
     fn test_range() {
-        let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("range");
-        test_run_sample(&sample, &flowr);
+        test_run_sample(&sample, &super::get_flowr().unwrap());
     }
 
     #[test]
+    #[serial]
     fn test_range_of_ranges() {
-        let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("range-of-ranges");
-        test_run_sample(&sample, &flowr);
+        test_run_sample(&sample, &super::get_flowr().unwrap());
     }
 
     #[test]
+    #[serial]
     fn test_reverse_echo() {
-        let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("reverse-echo");
-        test_run_sample(&sample, &flowr);
+        test_run_sample(&sample, &super::get_flowr().unwrap());
     }
 
     #[test]
+    #[serial]
     fn test_router() {
-        let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("router");
-        test_run_sample(&sample, &flowr);
+        test_run_sample(&sample, &super::get_flowr().unwrap());
     }
 
     #[test]
+    #[serial]
     fn test_tokenizer() {
-        let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("tokenizer");
-        test_run_sample(&sample, &flowr);
+        test_run_sample(&sample, &super::get_flowr().unwrap());
     }
 
-    #[test]
-    #[ignore]
-    fn test_all_samples() {
-        let flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
-
-        // find all sample sub-folders below this crate root
-        for entry in fs::read_dir(env!("CARGO_MANIFEST_DIR")).unwrap() {
-            if let Ok(e) = entry {
-                if e.metadata().unwrap().is_dir() {
-                    test_run_sample(&e.path(), &flowr);
-                }
-            };
-        }
-    }
+    // #[test]
+    // #[ignore]
+    // fn test_all_samples() {
+    //     let flowr = super::get_flowr().unwrap();
+    //
+    //     // find all sample sub-folders below this crate root
+    //     for entry in fs::read_dir(env!("CARGO_MANIFEST_DIR")).unwrap() {
+    //         if let Ok(e) = entry {
+    //             if e.metadata().unwrap().is_dir() {
+    //                 test_run_sample(&e.path(), flowr);
+    //             }
+    //         };
+    //     }
+    // }
 }
