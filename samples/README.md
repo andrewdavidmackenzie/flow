@@ -40,4 +40,9 @@ particular package is supplied, thus the samples can also be built and run using
 * `cargo test`  : run the samples using `flowr` and check the generated output is correct
 
 As other `default-members` are added to the workspace over time, those commands may do other things, so
-just be aware that if you onyl want to run the samples the `-p samples` option above will be safer.
+just be aware that if you only want to run the samples the `-p samples` option above will be safer.
+
+## `flowsamples` executable
+There is also an executable (`bin` or binary) installed with the library called `flowsamples` that if run
+without any arguments will run all the samples. You can supply it the name of a sample (the name of the folder
+under `samples` where the sample is) to run just that one sample.
