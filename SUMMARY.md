@@ -130,7 +130,7 @@
     - [Ways to contribute](docs/developing/contributing.md)
         - [Issues](docs/developing/issues.md)
         - [PRs](docs/developing/prs.md)
-        - [Developing a sample](samples/sample_development.md)
+        - [Developing a sample](samples/README.md)
         - [Continuous Integration Tests](docs/developing/ci.md)
         
 - [Internals of flow](docs/internals/overview.md)
