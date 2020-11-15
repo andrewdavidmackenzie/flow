@@ -1,13 +1,21 @@
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-use simpath::Simpath;
+use simpath::{FileType, Simpath};
 
 // Build script to compile the flowstdlib WASM files and generate manifest - using flowc
 fn main() {
-    let flowc = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc");
+    let flowc = if Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc").exists() {
+        "../target/debug/flowc"
+    } else if Simpath::new("PATH").find_type("flowc", FileType::File).is_ok() {
+        "flowc"
+    } else {
+        ""
+    };
 
-    if flowc.exists() {
+    if flowc.is_empty() {
+        println!("cargo:warning=Could not find `flowc` in $PATH or `target/debug`, so cannot build flowstdlib");
+    } else {
         let mut command = Command::new(flowc);
         // let mut command = Command::new("../target/debug/flowc");
         // Options for flowc: -g for debug symbols, -d to dump compiler structs, -l for a library build
