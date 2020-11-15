@@ -5,13 +5,17 @@ use std::io::{BufRead, BufReader, ErrorKind};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
+use simpath::{FileType, Simpath};
+
 fn main() -> io::Result<()> {
-    // Try the local 'flowr' in the development tree
-    let mut flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
-    if !flowr.exists() {
-        // if it doesn't exist then let's try a 'flowr' the user has installed with 'cargo'
-        flowr = Path::new("flowr").to_path_buf();
-    }
+    let flowr = if Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr").exists() {
+        "../target/debug/flowr"
+    } else if Simpath::new("PATH").find_type("flowr", FileType::File).is_ok() {
+        "flowr"
+    } else {
+        eprintln!("`flowr` could not be found in $PATH or `target/debug` to `flowsamples` can not be run");
+        ""
+    };
 
     let args: Vec<String> = env::args().collect();
 
@@ -21,14 +25,14 @@ fn main() -> io::Result<()> {
             for entry in fs::read_dir(env!("CARGO_MANIFEST_DIR"))? {
                 if let Ok(e) = entry {
                     if e.metadata()?.is_dir() {
-                        run_sample(&e.path(), &flowr)?
+                        run_sample(&e.path(), flowr)?
                     }
                 };
             }
         }
         2 => {
             let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join(&args[1]);
-            run_sample(&samples_dir, &flowr)?
+            run_sample(&samples_dir, flowr)?
         }
         _ => eprintln!("Usage: {} <optional_sample_directory_name>", args[0])
     }
@@ -36,7 +40,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn run_sample(sample_dir: &Path, flowr_path: &Path) -> io::Result<()> {
+fn run_sample(sample_dir: &Path, flowr_path: &str) -> io::Result<()> {
     // Remove any previous output
     let _ = fs::remove_file(sample_dir.join("test.err"));
     let _ = fs::remove_file(sample_dir.join("test.file"));

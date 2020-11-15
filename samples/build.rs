@@ -4,18 +4,25 @@ use std::{fs, io};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-fn main() {
-    let mut flowc = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc");
-    if !flowc.exists() {
-        flowc = Path::new("flowc").to_path_buf();
-    }
+use simpath::{FileType, Simpath};
 
-    if flowc.exists() {
+fn main() {
+    let flowc = if Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc").exists() {
+        "../target/debug/flowc"
+    } else if Simpath::new("PATH").find_type("flowc", FileType::File).is_ok() {
+        "flowc"
+    } else {
+        ""
+    };
+
+    if flowc.is_empty() {
+        println!("cargo:warning=Could not find `flowc` in $PATH or `target/debug`, so cannot build flowsamples");
+    } else {
         // find all sample sub-folders
         fs::read_dir(".").unwrap()
             .map(|res| res.map(|e| {
                 if e.metadata().unwrap().is_dir() {
-                    compile_sample(&e.path(), &flowc);
+                    compile_sample(&e.path(), flowc);
                 }
             }))
             .collect::<Result<Vec<_>, io::Error>>().unwrap();
@@ -24,7 +31,7 @@ fn main() {
     }
 }
 
-fn compile_sample(sample_dir: &Path, flowc: &Path) {
+fn compile_sample(sample_dir: &Path, flowc: &str) {
     // Tell Cargo that if the given file changes, to rerun this build script.
     println!("cargo:rerun-if-changed={}/context.toml", sample_dir.display());
 

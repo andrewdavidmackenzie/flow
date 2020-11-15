@@ -22,6 +22,10 @@ path = "main.rs"
 
 [build-dependencies]
 flowc = {path = "../flowc", version = "0.25.0" }
+simpath = "~1.4"
+
+[dependencies]
+simpath = "~1.4"
 
 [dependencies.flowr]
 path = "../flowr"
