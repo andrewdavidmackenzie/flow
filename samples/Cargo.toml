@@ -32,3 +32,6 @@ path = "../flowr"
 version = "0.25.0"
 features = ["debugger", "metrics", "checks"]
 
+[dev-dependencies]
+serial_test = "0.5.0"
+
