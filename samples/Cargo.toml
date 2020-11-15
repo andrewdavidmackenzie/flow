@@ -17,7 +17,7 @@ exclude = ["**/*.dump", "**/*.err", "**/*.dot", "**/*.svg", "manifest.json", "fa
            ".gitignore"]
 
 [[bin]]
-name = "samples"
+name = "flowsamples"
 path = "main.rs"
 
 [build-dependencies]
