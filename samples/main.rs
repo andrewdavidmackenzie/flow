@@ -1,13 +1,15 @@
 // Run sample flows found in any subfolder
 use std::{env, fs, io};
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, ErrorKind};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
 fn main() -> io::Result<()> {
+    // Try the local 'flowr' in the development tree
     let mut flowr = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
     if !flowr.exists() {
+        // if it doesn't exist then let's try a 'flowr' the user has installed with 'cargo'
         flowr = Path::new("flowr").to_path_buf();
     }
 
@@ -18,15 +20,15 @@ fn main() -> io::Result<()> {
             // find all sample sub-folders below this crate root
             for entry in fs::read_dir(env!("CARGO_MANIFEST_DIR"))? {
                 if let Ok(e) = entry {
-                    if e.metadata().unwrap().is_dir() {
-                        run_sample(&e.path(), &flowr);
+                    if e.metadata()?.is_dir() {
+                        run_sample(&e.path(), &flowr)?
                     }
                 };
             }
         }
         2 => {
             let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join(&args[1]);
-            run_sample(&samples_dir, &flowr)
+            run_sample(&samples_dir, &flowr)?
         }
         _ => eprintln!("Usage: {} <optional_sample_directory_name>", args[0])
     }
@@ -34,7 +36,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn run_sample(sample_dir: &Path, flowr_path: &Path) {
+fn run_sample(sample_dir: &Path, flowr_path: &Path) -> io::Result<()> {
     // Remove any previous output
     let _ = fs::remove_file(sample_dir.join("test.err"));
     let _ = fs::remove_file(sample_dir.join("test.file"));
@@ -47,32 +49,49 @@ fn run_sample(sample_dir: &Path, flowr_path: &Path) {
     println!("\tOutput sent to STDOUT/STDERR and file output to test.file");
 
     let mut command_args: Vec<String> = vec!("--native".into(), manifest.display().to_string());
-    command_args.append(&mut args(&sample_dir));
+    command_args.append(&mut args(&sample_dir)?);
 
-    let mut flowr_child = flowr_command.args(command_args)
+    match flowr_command.args(command_args)
         .stdin(Stdio::piped())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
-        .spawn().unwrap();
+        .spawn() {
+        Ok(mut flowr_child) => {
+            let _ = Command::new("cat")
+                .args(vec!(sample_dir.join("test.input")))
+                .stdout(flowr_child.stdin.take()
+                    .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Could not take STDIN of `flowr` process"))?)
+                .spawn().unwrap();
 
-    let _ = Command::new("cat")
-        .args(vec!(sample_dir.join("test.input")))
-        .stdout(flowr_child.stdin.take().unwrap())
-        .spawn().unwrap();
-
-    flowr_child.wait_with_output().unwrap();
+            match flowr_child.wait_with_output() {
+                Ok(_) => Ok(()),
+                Err(e) => Err(io::Error::new(io::ErrorKind::Other,
+                                             format!("Error running `flowr`: {}", e)))
+            }
+        }
+        Err(e) => {
+            match e.kind() {
+                ErrorKind::NotFound =>
+                    Err(io::Error::new(io::ErrorKind::Other,
+                                       format!("`flowr` was not found! Check your $PATH. {}", e))),
+                _ => Err(io::Error::new(io::ErrorKind::Other,
+                                        format!("Unexpected error occurred spawning `flowr`: {}", e)))
+            }
+        }
+    }
 }
 
-fn args(sample_dir: &Path) -> Vec<String> {
+fn args(sample_dir: &Path) -> io::Result<Vec<String>>  {
     let args_file = sample_dir.join("test.arguments");
-    let f = File::open(&args_file).unwrap();
+    let f = File::open(&args_file)?;
     let f = BufReader::new(f);
 
     let mut args = Vec::new();
     for line in f.lines() {
-        args.push(line.unwrap());
+        args.push(line?);
     }
-    args
+
+    Ok(args)
 }
 
 #[cfg(test)]
@@ -95,7 +114,7 @@ mod test {
         let manifest = sample_dir.join("manifest.json");
 
         let mut command_args: Vec<String> = vec!("--native".into(), manifest.display().to_string());
-        command_args.append(&mut super::args(&sample_dir));
+        command_args.append(&mut super::args(&sample_dir).unwrap());
 
         let output = File::create(sample_dir.join("test.output")).unwrap();
         let error = File::create(sample_dir.join("test.err")).unwrap();
