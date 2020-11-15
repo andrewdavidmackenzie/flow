@@ -4,7 +4,7 @@ use std::{fs, io};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-use simpath::{FileType, Simpath};
+// use simpath::{FileType, Simpath};
 
 fn main() {
     // let flowc = if Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc").exists() {
