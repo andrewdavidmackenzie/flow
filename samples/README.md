@@ -23,17 +23,21 @@ Each sample directory contains:
 ## Compiling and Running the Samples
 The samples set has now been converted to a rust crate with a custom build script.
 
-Using `cargo build -p samples` causes the build script to run, and it compiles in-place the samples
+Using `cargo build -p flowsamples` causes the build script to run, and it compiles in-place the samples
 using the `flowc` compiler.
 
-Using `cargo run -p samples` causes the sample runner in main.rs to run. It looks for sub-folders in
+Using `cargo run -p flowsamples` causes the sample runner in main.rs to run. It looks for sub-folders in
 the samples folder and then executes the sample within, and compares the actual output with the 
 expected output and fails if they are different.
 
+Using `cargo test -p flowsamples` it will run them and also test that the output is correct by comparing 
+it to previously generated output.
+
 The `samples` crate is one of the `default-members` of the `flow` workspace project, so it is used if no 
 particular package is supplied, thus the samples can also be built and run using:
-* cargo build : compile the samples using `flowc`
-* cargo run   : run the samples using `flowr`
+* `cargo build` : compile the samples using `flowc`
+* `cargo run`   : run the samples using `flowr`
+* `cargo test`  : run the samples using `flowr` and check the generated output is correct
 
 As other `default-members` are added to the workspace over time, those commands may do other things, so
 just be aware that if you onyl want to run the samples the `-p samples` option above will be safer.
