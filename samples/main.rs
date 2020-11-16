@@ -8,6 +8,10 @@ use std::process::{Command, Stdio};
 use simpath::{FileType, Simpath};
 
 fn main() -> io::Result<()> {
+    println!("`flowsample` version {}", env!("CARGO_PKG_VERSION"));
+    println!("Current Working Directory: `{}`", std::env::current_dir().unwrap().display());
+    println!("Manifest Directory: `{}`", env!("CARGO_MANIFEST_DIR"));
+
     let flowr = get_flowr()?;
 
     let args: Vec<String> = env::args().collect();

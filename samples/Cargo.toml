@@ -13,7 +13,7 @@ edition = "2018"
 build = "build.rs"
 
 # Avoid a bunch of files that are generated as part of the samples building and/or running
-exclude = ["**/*.dump", "**/*.err", "**/*.dot", "**/*.svg", "manifest.json", "failed.output", "Cargo.lock",
+exclude = ["**/*.dump", "**/*.err", "**/*.dot", "**/*.svg", "failed.output", "Cargo.lock",
            ".gitignore"]
 
 [[bin]]
