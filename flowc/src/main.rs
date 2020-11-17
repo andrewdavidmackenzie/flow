@@ -183,7 +183,7 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
     let url = url_from_string(&cwd_url, matches.value_of("FLOW"))
         .chain_err(|| "Could not create a url for flow from the 'FLOW' command line parameter")?;
 
-    let output_dir = source_arg::get_output_dir(&url, matches.value_of("OUTPUT_DIR"))
+    let output_dir = source_arg::get_output_dir(&url, matches.value_of("output"))
         .chain_err(|| "Could not get or create the output directory")?;
 
     Ok(Options {
