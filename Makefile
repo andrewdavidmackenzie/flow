@@ -86,7 +86,7 @@ docs: book code-docs trim-docs
 .PHONY: book
 book: target/html/index.html
 
-target/html/index.html: $(MARKDOWN) $(SVGS) dot-graphs
+target/html/index.html: $(MARKDOWN) $(SVGS)
 	@RUST_LOG=info time mdbook build
 
 %.dot.svg: %.dot
@@ -96,16 +96,6 @@ else
 	@dot -Tsvg -O $<
 	@echo "        Generated $@ SVG file from $< dot file"
 endif
-
-dot-graphs:
-	$(STIME)
-ifeq ($(DOT),)
-	@echo "        'dot' not available, skipping 'dot-graphs'. Install 'graphviz' to use."
-else
-	@echo "        Generated .svg files for all dot graphs found"
-	@find . -name \*.dot -type f -exec dot -Tsvg -O {} \;
-endif
-	$(ETIME)
 
 .PHONY: trim-docs
 trim-docs:
