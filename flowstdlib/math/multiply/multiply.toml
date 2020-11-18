@@ -1,0 +1,13 @@
+function = "multiply"
+implementation = "multiply.rs"
+
+[[input]]
+name = "i1" # - one number, of type `Number`
+type = "Number"
+
+[[input]]
+name = "i2" # - the other number, of type `Number`
+type = "Number"
+
+[[output]]
+type = "Number" # - the multiplication of i1 and i2, of type `Number`

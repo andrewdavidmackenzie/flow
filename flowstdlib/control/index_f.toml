@@ -1,0 +1,43 @@
+flow = "index_f"
+# A wrapper flow to simplify the use of the index function for standard use cases
+
+[[input]]
+name = "value"
+type = "Value"
+
+[[input]]
+name = "select_index"
+type = "Number"
+
+[[output]]
+name = "selected_value"
+type = "Value"
+
+# the index function we wrap
+[[process]]
+source = "index/index"
+input.previous_index = { once = -1 } # so first value through will get an index of 0
+input.previous_value = { once = 42 } # fake
+
+# connect up inputs
+[[connection]]
+from = "input/value"
+to = "index/value"
+
+[[connection]]
+from = "input/select_index"
+to = "index/select_index"
+
+# loopback connections
+[[connection]]
+from = "index/value"
+to = "index/previous_value"
+
+[[connection]]
+from = "index/index"
+to = "index/previous_index"
+
+# connect up output
+[[connection]]
+from = "index/selected_value"
+to = "output/selected_value"

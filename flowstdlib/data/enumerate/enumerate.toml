@@ -1,0 +1,8 @@
+function = "enumerate"
+implementation = "enumerate.rs"
+
+[[input]]
+type = "Array/Number"          # e.g. ["a", "b"]
+
+[[output]]
+type = "Array/Array/Number"  # e.g. [[0, "a"], [1, "b"]]

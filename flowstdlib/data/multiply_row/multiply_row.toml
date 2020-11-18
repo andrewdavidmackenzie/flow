@@ -1,0 +1,13 @@
+function = "multiply_row"
+implementation = "multiply_row.rs"
+
+[[input]]
+name = "a"
+type = "Array/Number"
+
+[[input]]
+name = "b"
+type = "Array/Number"
+
+[[output]]
+type = "Number"

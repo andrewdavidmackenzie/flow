@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Index","Pass thru a value based on the index of an item in the stream of values"]]});

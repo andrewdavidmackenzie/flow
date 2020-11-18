@@ -1,0 +1,23 @@
+flow = "reverse-echo"
+
+[[process]]
+alias = "read"
+source = "lib://flowruntime/stdio/readline"
+
+[[process]]
+alias = "reverse"
+source = "reverse/reverse"
+
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"
+
+[[connection]]
+name = "normal"
+from = "read"
+to = "reverse"
+
+[[connection]]
+name = "reversed"
+from = "reverse/reversed"
+to = "print"

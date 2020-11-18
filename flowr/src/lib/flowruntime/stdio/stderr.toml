@@ -1,0 +1,6 @@
+function = "stderr"
+implementation = "stderr.rs"
+impure = true
+
+[[input]]
+type = "Value"

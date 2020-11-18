@@ -1,0 +1,9 @@
+function = "render_pixel"
+implementation = "render_pixel.rs"
+
+[[input]]
+name = "pixel_point"
+type = "Array/Array/Number"
+
+[[output]]
+type = "Array/Array/Number" # [[x, y], [r, g, b]]

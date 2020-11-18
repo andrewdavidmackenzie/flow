@@ -1,0 +1,103 @@
+flow = "prime"
+
+# Read the limit from the command line
+[[process]]
+alias = "args"
+source = "lib://flowruntime/args/get"
+
+[[connection]]
+from = "args/1"
+to = "to_json"
+
+[[process]]
+alias = "to_json"
+source = "lib://flowstdlib/fmt/to_json"
+
+####### All numbers - Sequence
+# Generate the range of numbers from 1..limit of possible primes
+[[process]]
+alias = "candidates"
+source = "lib://flowstdlib/math/sequence"
+input.start = {once =  1}
+input.step = {once =  1}
+
+[[connection]]
+from = "to_json"
+to = "candidates/end"
+
+######### All numbers - gather into an Array
+[[process]]
+alias = "all-numbers"
+source = "lib://flowstdlib/data/accumulate"
+input.partial = {once =  []}
+
+[[connection]]
+from = "candidates/sequence"
+to = "all-numbers/values"
+
+[[connection]]
+from = "to_json"
+to = "all-numbers/chunk_size"
+
+[[connection]] # loop-back
+from = "all-numbers/chunk_size"
+to = "all-numbers/chunk_size"
+
+[[connection]]
+from = "all-numbers/partial"
+to = "all-numbers/partial"
+
+####### Composites
+[[process]]
+alias = "composites"
+source = "composites"
+
+[[connection]]
+from = "to_json"
+to = "composites/limit"
+
+####### Remove composites from entire list
+[[process]]
+alias = "subtract"
+source = "lib://flowstdlib/data/remove"
+
+[[connection]]
+from = "all-numbers/chunk"
+to = "subtract/array"
+
+[[connection]]
+from = "composites/composites"
+to = "subtract/value"
+
+[[connection]]
+from = "subtract"
+to = "subtract/array"
+
+# TODO for this to work, we need the composites generator flow to NULL terminate it's output series.
+#[[process]]
+#source = "lib://flowstdlib/control/index"
+#input.index = { once = -1 }
+#input.select_index = { always = -1 } # Last
+#
+## loopback
+#[[connection]]
+#from = "index/previous_value"
+#to = "index/previous_value"
+#
+#[[connection]]
+#from = "index/index"
+#to = "index/index"
+#
+[[connection]]
+from = "subtract"
+#to = "index/value"
+#
+#[[connection]]
+#from = "index/selected_value"
+to = "print"
+
+####### Output
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"
+

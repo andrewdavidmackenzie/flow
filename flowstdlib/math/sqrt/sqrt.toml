@@ -1,0 +1,8 @@
+function = "sqrt"
+implementation = "sqrt.rs"
+
+[[input]]
+type = "Number"
+
+[[output]]
+type = "Number" # Square Root of type `Number`

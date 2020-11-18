@@ -1,0 +1,5 @@
+(function() {var implementors = {};
+implementors["flowclib"] = [{"text":"impl StructuralPartialEq for Name","synthetic":false,"types":[]},{"text":"impl StructuralPartialEq for DataType","synthetic":false,"types":[]},{"text":"impl StructuralPartialEq for Route","synthetic":false,"types":[]},{"text":"impl StructuralPartialEq for IOType","synthetic":false,"types":[]}];
+implementors["flowrlib"] = [{"text":"impl StructuralPartialEq for Submission","synthetic":false,"types":[]},{"text":"impl StructuralPartialEq for Response","synthetic":false,"types":[]}];
+implementors["flowrstructs"] = [{"text":"impl StructuralPartialEq for Conversion","synthetic":false,"types":[]},{"text":"impl StructuralPartialEq for OutputConnection","synthetic":false,"types":[]},{"text":"impl StructuralPartialEq for MetaData","synthetic":false,"types":[]},{"text":"impl StructuralPartialEq for Cargo","synthetic":false,"types":[]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

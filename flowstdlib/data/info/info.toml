@@ -1,0 +1,16 @@
+function = "info"
+implementation = "info.rs"
+
+[[input]] # - Input value
+
+[[output]]
+name = "type" # - String identifying the type of the input value
+type = "String"
+
+[[output]]
+name = "rows" # - Number of rows in the input value
+type = "Number"
+
+[[output]]
+name = "columns" # - Number of columns in the input value
+type = "Number"

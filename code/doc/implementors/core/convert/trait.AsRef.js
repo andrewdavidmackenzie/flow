@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["flowclib"] = [{"text":"impl AsRef&lt;String&gt; for Name","synthetic":false,"types":[]},{"text":"impl AsRef&lt;String&gt; for DataType","synthetic":false,"types":[]},{"text":"impl AsRef&lt;String&gt; for Route","synthetic":false,"types":[]},{"text":"impl AsRef&lt;str&gt; for Route","synthetic":false,"types":[]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

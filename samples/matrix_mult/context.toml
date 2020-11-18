@@ -1,0 +1,50 @@
+flow = "matrix_mult"
+
+[[process]]
+source = "lib://flowruntime/stdio/readline"
+
+[[process]]
+alias = "to_json"
+source = "lib://flowstdlib/fmt/to_json"
+
+[[process]]
+alias = "select_0"
+source = "lib://flowstdlib/control/index_f"
+input.select_index = { always = 0 }
+
+[[connection]]
+from = "readline"
+to = "to_json"
+
+[[connection]]
+from = "to_json"
+to = "select_0/value"
+
+[[process]]
+alias = "select_1"
+source = "lib://flowstdlib/control/index_f"
+input.select_index = { always = 1 }
+
+[[connection]]
+from = "to_json"
+to = "select_1/value"
+
+[[process]]
+alias = "multiply"
+source = "multiply"
+
+[[connection]]
+from = "select_0/selected_value"
+to = "multiply/a"
+
+[[connection]]
+from = "select_1/selected_value"
+to = "multiply/b"
+
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"
+
+[[connection]]
+from = "multiply/product"
+to = "print"

@@ -1,0 +1,6 @@
+function = "readline"
+implementation = "readline.rs"
+impure = true
+
+[[output]]
+type = "String"

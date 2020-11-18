@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["FileProvider","The `FileProvider` implements the `Provider` trait and takes care of fetching content located on the local file system."]]});

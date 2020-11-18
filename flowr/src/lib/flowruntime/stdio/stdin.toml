@@ -1,0 +1,6 @@
+function = "stdin"
+implementation = "stdin.rs"
+impure = true
+
+[[output]]
+type = "String"

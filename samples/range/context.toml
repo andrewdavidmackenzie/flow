@@ -1,0 +1,46 @@
+flow = "range"
+
+[[process]]
+alias = "args"
+source = "lib://flowruntime/args/get"
+
+[[connection]]
+from = "args/1"
+to = "to_json"
+
+[[process]]
+alias = "to_json"
+source = "lib://flowstdlib/fmt/to_json"
+
+[[connection]]
+from = "to_json"
+to = "sequence/end"
+
+[[process]]
+alias = "sequence"
+source = "lib://flowstdlib/math/sequence"
+input.start = {once =  1}
+input.step = {once =  1}
+
+[[connection]]
+from = "sequence/sequence"
+to = "print"
+
+# Output a string to show we're done when the series ends
+[[process]]
+alias = "join"
+source = "lib://flowstdlib/control/join"
+input.data = {once =  "Range done"}
+
+[[connection]]
+from = "sequence/last"
+to = "join/control"
+
+[[connection]]
+from = "join"
+to = "print"
+
+# Output
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"

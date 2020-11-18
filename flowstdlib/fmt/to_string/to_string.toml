@@ -1,0 +1,13 @@
+function = "to_string"
+implementation = "to_string.rs"
+
+[[input]]
+type = "Value"
+# * The data to convert to a String. Current types supported are:
+# * String - a bit redundant, but it works
+# * Bool - Boolean JSON value
+# * Number - A JSON Number
+# * Array - An JSON array of values that can be converted, they are converted one by one
+
+[[output]]
+type = "String" # The String equivalent of the input value

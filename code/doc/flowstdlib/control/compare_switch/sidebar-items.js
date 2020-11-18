@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["CompareSwitch","Compare two input values and output different the right hand value at different output route corresponding to is equal, greater than, greater than or equal, less than or less than or equal."]]});

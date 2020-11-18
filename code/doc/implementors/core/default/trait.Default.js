@@ -1,0 +1,4 @@
+(function() {var implementors = {};
+implementors["flowclib"] = [{"text":"impl Default for GenerationTables","synthetic":false,"types":[]},{"text":"impl Default for Name","synthetic":false,"types":[]},{"text":"impl Default for DataType","synthetic":false,"types":[]},{"text":"impl Default for Route","synthetic":false,"types":[]},{"text":"impl Default for Function","synthetic":false,"types":[]},{"text":"impl Default for Flow","synthetic":false,"types":[]},{"text":"impl Default for Process","synthetic":false,"types":[]},{"text":"impl Default for IO","synthetic":false,"types":[]}];
+implementors["flowrlib"] = [{"text":"impl Default for Loader","synthetic":false,"types":[]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

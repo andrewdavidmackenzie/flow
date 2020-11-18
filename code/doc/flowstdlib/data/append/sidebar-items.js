@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Append","Append two strings"]]});

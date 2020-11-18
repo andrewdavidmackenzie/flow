@@ -1,0 +1,6 @@
+function = "get"
+implementation = "get.rs"
+impure = true
+
+[[output]]
+type = "Array/String"

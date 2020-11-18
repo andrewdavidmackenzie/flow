@@ -1,0 +1,53 @@
+flow = "primitives"
+
+# 1 plus 2 = 3
+[[process]]
+alias = "add"
+source = "lib://flowstdlib/math/add"
+input.i1 = {once =  2}
+input.i2 = {once =  1}
+
+# 3 / 2 = 1.5
+[[process]]
+alias = "divide"
+source = "lib://flowstdlib/math/divide"
+input.divisor = {once =  2}
+
+[[connection]]
+from = "add/sum"
+to = "divide/dividend"
+
+[[connection]]
+from = "divide/result"
+to = "print"
+
+[[process]]
+alias = "tap"
+source = "lib://flowstdlib/control/tap"
+input.control = {once =  false}
+
+#compare result (1.5) to 1
+[[process]]
+alias = "compare"
+source = "lib://flowstdlib/math/compare"
+input.right = {once =  1}
+
+[[connection]]
+from = "divide/result"
+to = "tap/data"
+
+[[connection]]
+from = "divide/result"
+to = "compare/left"
+
+[[connection]]
+from = "compare/gt"
+to = "print"
+
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"
+
+[[connection]]
+from = "tap"
+to = "print"
