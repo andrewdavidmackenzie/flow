@@ -97,6 +97,16 @@ else
 	@echo "        Generated $@ SVG file from $< dot file"
 endif
 
+dot-graphs:
+	$(STIME)
+ifeq ($(DOT),)
+	@echo "        'dot' not available, skipping 'dot-graphs'. Install 'graphviz' to use."
+else
+	@echo "        Generated .svg files for all dot graphs found"
+	@find . -name \*.dot -type f -exec dot -Tsvg -O {} \;
+endif
+	$(ETIME)
+
 .PHONY: trim-docs
 trim-docs:
 	$(STIME)
