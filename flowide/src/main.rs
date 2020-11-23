@@ -67,7 +67,7 @@ fn about_dialog() -> AboutDialog {
     p.set_comments(Some(&format!("flowclib version: {}\nflowrlib version: {}",
                                  flowclib::info::version(), flowrlib::info::version())));
     println!("pwd {:?}", std::env::current_dir());
-    if let Ok(image) = Pixbuf::new_from_file(resource(env!("CARGO_MANIFEST_DIR"), "icons/png/128x128.png")) {
+    if let Ok(image) = Pixbuf::from_file(resource(env!("CARGO_MANIFEST_DIR"), "icons/png/128x128.png")) {
         p.set_logo(Some(&image));
     }
 
@@ -85,7 +85,7 @@ fn open_action<F: 'static>(window: &ApplicationWindow, open: &MenuItem, action_f
     let accepted_extensions = deserializer_helper::get_accepted_extensions();
 
     let window_weak = window.downgrade();
-    open.connect_activate(move |_| {
+    open.connect_activate(move |_| unsafe {
         let window = upgrade_weak!(window_weak);
         let dialog = FileChooserDialog::new(Some("Choose a file"), Some(&window),
                                             FileChooserAction::Open);
@@ -129,9 +129,9 @@ fn menu_bar(app_window: &ApplicationWindow) -> (MenuBar, AccelGroup, MenuItem, M
 
     // File Menu
     let file_menu = Menu::new();
-    let file = MenuItem::new_with_label("File");
-    let about = MenuItem::new_with_label("About");
-    let quit = MenuItem::new_with_label("Quit");
+    let file = MenuItem::with_label("File");
+    let about = MenuItem::with_label("About");
+    let quit = MenuItem::with_label("Quit");
     file_menu.append(&about);
     file_menu.append(&quit);
     file.set_submenu(Some(&file_menu));
@@ -142,9 +142,9 @@ fn menu_bar(app_window: &ApplicationWindow) -> (MenuBar, AccelGroup, MenuItem, M
 
     // Flow Menu
     let flow_menu = Menu::new();
-    let flow = MenuItem::new_with_label("Flow");
-    let open_flow_menu_item = MenuItem::new_with_label("Open");
-    let compile_flow_menu_item = MenuItem::new_with_label("Compile");
+    let flow = MenuItem::with_label("Flow");
+    let open_flow_menu_item = MenuItem::with_label("Open");
+    let compile_flow_menu_item = MenuItem::with_label("Compile");
     compile_flow_menu_item.set_sensitive(false);
     flow_menu.append(&open_flow_menu_item);
     flow_menu.append(&compile_flow_menu_item);
@@ -156,9 +156,9 @@ fn menu_bar(app_window: &ApplicationWindow) -> (MenuBar, AccelGroup, MenuItem, M
 
     // Manifest Menu
     let manifest_menu = Menu::new();
-    let manifest = MenuItem::new_with_label("Manifest");
-    let open_manifest_menu = MenuItem::new_with_label("Open");
-    let run_manifest_menu = MenuItem::new_with_label("Run");
+    let manifest = MenuItem::with_label("Manifest");
+    let open_manifest_menu = MenuItem::with_label("Open");
+    let run_manifest_menu = MenuItem::with_label("Run");
     run_manifest_menu.set_sensitive(false);
     manifest_menu.append(&open_manifest_menu);
     manifest_menu.append(&run_manifest_menu);
@@ -171,13 +171,13 @@ fn menu_bar(app_window: &ApplicationWindow) -> (MenuBar, AccelGroup, MenuItem, M
     menu_bar.append(&manifest);
 
     let window_weak = app_window.downgrade();
-    quit.connect_activate(move |_| {
+    quit.connect_activate(move |_| unsafe {
         let window = upgrade_weak!(window_weak);
         window.destroy();
     });
 
     let window_weak = app_window.downgrade();
-    about.connect_activate(move |_| {
+    about.connect_activate(move |_| unsafe {
         let ad = about_dialog();
         let window = upgrade_weak!(window_weak);
         ad.set_transient_for(Some(&window));
