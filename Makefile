@@ -227,7 +227,7 @@ ifeq ($(UNAME), Darwin)
 	@sudo ln -s /usr/local/opt/openssl/lib/libssl.1.1.1.dylib /usr/local/lib/ 2>/dev/null; true
 	@sudo ln -s /usr/local/Cellar/openssl@1.1/1.1.1g/lib/libcrypto.1.1.dylib /usr/local/lib/libcrypto.dylib 2>/dev/null; true
 	@#sudo ln -s /usr/local/Cellar/openssl@1.1/1.1.1g/lib/libssl.dylib /usr/local/lib/
-	@# Issue with cmake not being able to generage xcode files: "Xcode 1.5 not supported"
+	@# Issue with cmake not being able to generate xcode files: "Xcode 1.5 not supported"
 	@#cd target/kcov-master && mkdir build && cd build && cmake -G Xcode .. && xcodebuild -configuration Release
 	@cd target/kcov-master && mkdir build && cd build && cmake .. && make
 	@sudo mv target/kcov-master/build/src/kcov /usr/local/bin/kcov
