@@ -61,7 +61,7 @@ impl Route {
     pub fn extend(&mut self, sub_route: &Route) -> &Self{
         if !sub_route.is_empty() {
             if !self.to_string().ends_with('/') && !sub_route.starts_with('/') {
-                self.push_str("/");
+                self.push('/');
             }
             self.push_str(sub_route);
         }
