@@ -162,7 +162,9 @@ deploy-pages:
 # `flowc` binary to have completed first
 .PHONY: build-flowc
 build-flowc:
+	$(STIME)
 	@cargo build -p flowc
+	$(ETIME)
 
 .PHONY: build
 build: build-flowc
