@@ -5,11 +5,10 @@ cache:
   cargo: true
 
 # request macOS 10.15.7
-osx_image: xcode12.2
-
 matrix:
   include:
   - os: osx
+    osx_image: xcode12.2
     rust: stable
   - os: linux
     rust: stable
