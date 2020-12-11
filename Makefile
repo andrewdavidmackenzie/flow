@@ -12,7 +12,7 @@ ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 2> /dev/null)
 export SHELL := /bin/bash
 
 .PHONY: all
-all: build clippy test docs
+all: clippy build test docs
 
 ########## Configure Dependencies ############
 .PHONY: config
@@ -171,7 +171,7 @@ build: build-flowc
 	$(ETIME)
 
 .PHONY: clippy
-clippy:
+clippy: build-flowc
 	$(STIME)
 	@cargo clippy -- -D warnings
 	$(ETIME)

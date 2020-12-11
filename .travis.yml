@@ -50,7 +50,7 @@ before_install:
 
 # Docs are only built and deployed in "cron" builds
 script:
-  - RUST_BACKTRACE=full make build clippy test
+  - RUST_BACKTRACE=full make clippy build test
   - |
     if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" && "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
       RUST_BACKTRACE=full make docs
