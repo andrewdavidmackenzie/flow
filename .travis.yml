@@ -4,6 +4,9 @@ dist: bionic
 cache:
   cargo: true
 
+# request macOS 10.15.7
+osx_image: xcode12.2
+
 matrix:
   include:
   - os: osx
@@ -60,7 +63,6 @@ script:
 deploy:
   provider: pages
   github-token: $GITHUB_PAGES_TOKEN
-  skip_cleanup: true
   local-dir: target/html
   keep-history: false
   on:
