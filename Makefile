@@ -158,8 +158,14 @@ deploy-pages:
 	$(ETIME)
 
 #################### Build ####################
+# This is currently needed as the build of the workspace also builds flowstdlib, which requires
+# `flowc` binary to have completed first
+.PHONY: build-flowc
+build-flowc:
+	@cargo build -p flowc
+
 .PHONY: build
-build:
+build: build-flowc
 	$(STIME)
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig" cargo build --workspace
 	$(ETIME)
