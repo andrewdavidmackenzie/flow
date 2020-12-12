@@ -1,9 +1,6 @@
 language: rust
 dist: bionic
 
-cache:
-  cargo: true
-
 # request macOS 10.15.7
 matrix:
   include:
