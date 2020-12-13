@@ -4,10 +4,10 @@ dist: bionic
 # request macOS 10.15.7
 matrix:
   include:
+  - os: linux
+    rust: stable
   - os: osx
     osx_image: xcode12.2
-    rust: stable
-  - os: linux
     rust: stable
 
 env:
@@ -49,7 +49,12 @@ before_install:
 
 # Docs are only built and deployed in "cron" builds
 script:
-  - RUST_BACKTRACE=full make clippy build test
+  - |
+    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      RUST_BACKTRACE=full make clippy build test
+    else
+      RUST_BACKTRACE=full make build test # on macosx skip clippy
+    fi
   - |
     if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" && "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
       RUST_BACKTRACE=full make docs
