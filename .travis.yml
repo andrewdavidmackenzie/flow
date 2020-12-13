@@ -52,11 +52,11 @@ script:
   - |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       RUST_BACKTRACE=full make clippy build test
+      if [[ "$TRAVIS_RUST_VERSION" == "stable" && "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
+        RUST_BACKTRACE=full make docs
+      fi
     else
       RUST_BACKTRACE=full make build test # on macosx skip clippy
-    fi
-    if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" && "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
-      RUST_BACKTRACE=full make docs
     fi
 
 # Docs are only built and deployed in "cron" builds
