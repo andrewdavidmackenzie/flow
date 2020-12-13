@@ -12,7 +12,7 @@ ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 2> /dev/null)
 export SHELL := /bin/bash
 
 .PHONY: all
-all: build clippy test docs
+all: clippy build test docs
 
 ########## Configure Dependencies ############
 .PHONY: config
@@ -86,7 +86,7 @@ docs: book code-docs trim-docs
 .PHONY: book
 book: target/html/index.html
 
-target/html/index.html: $(MARKDOWN) $(SVGS) dot-graphs
+target/html/index.html: $(MARKDOWN) $(SVGS)
 	@RUST_LOG=info time mdbook build
 
 %.dot.svg: %.dot
@@ -158,14 +158,22 @@ deploy-pages:
 	$(ETIME)
 
 #################### Build ####################
+# This is currently needed as the build of the workspace also builds flowstdlib, which requires
+# `flowc` binary to have completed first
+.PHONY: build-flowc
+build-flowc:
+	$(STIME)
+	@cargo build -p flowc
+	$(ETIME)
+
 .PHONY: build
-build:
+build: build-flowc
 	$(STIME)
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig" cargo build --workspace
 	$(ETIME)
 
 .PHONY: clippy
-clippy:
+clippy: build-flowc
 	$(STIME)
 	@cargo clippy -- -D warnings
 	$(ETIME)
@@ -227,7 +235,7 @@ ifeq ($(UNAME), Darwin)
 	@sudo ln -s /usr/local/opt/openssl/lib/libssl.1.1.1.dylib /usr/local/lib/ 2>/dev/null; true
 	@sudo ln -s /usr/local/Cellar/openssl@1.1/1.1.1g/lib/libcrypto.1.1.dylib /usr/local/lib/libcrypto.dylib 2>/dev/null; true
 	@#sudo ln -s /usr/local/Cellar/openssl@1.1/1.1.1g/lib/libssl.dylib /usr/local/lib/
-	@# Issue with cmake not being able to generage xcode files: "Xcode 1.5 not supported"
+	@# Issue with cmake not being able to generate xcode files: "Xcode 1.5 not supported"
 	@#cd target/kcov-master && mkdir build && cd build && cmake -G Xcode .. && xcodebuild -configuration Release
 	@cd target/kcov-master && mkdir build && cd build && cmake .. && make
 	@sudo mv target/kcov-master/build/src/kcov /usr/local/bin/kcov

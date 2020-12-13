@@ -23,6 +23,7 @@ name = "flowstdlib"
 path = "lib.rs"
 
 [build-dependencies]
+# dependency on flowc binary being built doesn't actually work yet
 flowc = {path = "../flowc", version = "0.31.0" }
 simpath = "~1.4"
 
