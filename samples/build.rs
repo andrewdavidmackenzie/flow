@@ -27,13 +27,20 @@ fn main() -> io::Result<()> {
 fn get_flowc() -> io::Result<String> {
     let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowc");
     if dev.exists() {
-        Ok(dev.into_os_string().to_str().unwrap().to_string())
-    } else if Simpath::new("PATH").find_type("flowr", FileType::File).is_ok() {
-        Ok("flowc".into())
-    } else {
-        Err(io::Error::new(io::ErrorKind::Other,
-                           "`flowc` could not be found in `$PATH` or `target/debug`"))
+        return Ok(dev.into_os_string().to_str().unwrap().to_string());
     }
+
+    let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/release/flowc");
+    if dev.exists() {
+        return Ok(dev.into_os_string().to_str().unwrap().to_string());
+    }
+
+    if Simpath::new("PATH").find_type("flowr", FileType::File).is_ok() {
+        return Ok("flowc".into());
+    }
+
+    Err(io::Error::new(io::ErrorKind::Other,
+                       "`flowc` could not be found in `$PATH` or `target/`"))
 }
 
 fn compile_sample(sample_dir: &Path, flowc: &str) -> io::Result<()> {

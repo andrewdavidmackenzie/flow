@@ -40,13 +40,20 @@ fn main() -> io::Result<()> {
 fn get_flowr() -> io::Result<String> {
     let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/debug/flowr");
     if dev.exists() {
-        Ok(dev.into_os_string().to_str().unwrap().to_string())
-    } else if Simpath::new("PATH").find_type("flowr", FileType::File).is_ok() {
-        Ok("flowr".into())
-    } else {
-        Err(io::Error::new(io::ErrorKind::Other,
-                           "`flowr` could not be found in `$PATH` or `target/debug`"))
+        return Ok(dev.into_os_string().to_str().unwrap().to_string());
     }
+
+    let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/release/flowr");
+    if dev.exists() {
+        return Ok(dev.into_os_string().to_str().unwrap().to_string());
+    }
+
+    if Simpath::new("PATH").find_type("flowr", FileType::File).is_ok() {
+        return Ok("flowr".into());
+    }
+
+    Err(io::Error::new(io::ErrorKind::Other,
+                       "`flowr` could not be found in `$PATH` or `target/`"))
 }
 
 fn run_sample(sample_dir: &Path, flowr_path: &str) -> io::Result<()> {
@@ -94,7 +101,7 @@ fn run_sample(sample_dir: &Path, flowr_path: &str) -> io::Result<()> {
     }
 }
 
-fn args(sample_dir: &Path) -> io::Result<Vec<String>>  {
+fn args(sample_dir: &Path) -> io::Result<Vec<String>> {
     let args_file = sample_dir.join("test.arguments");
     let f = File::open(&args_file)?;
     let f = BufReader::new(f);

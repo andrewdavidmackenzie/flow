@@ -122,7 +122,6 @@
         - [flowr](flowr/README.md)
         - [flowrlib](flowr/src/lib/flowrlib.md)
         - [flowstdlib](flowstdlib/README.md)
-        - [flowide](flowide/README.md)
         - [provider](provider/README.md)
         - [flowruntime](flowr/src/lib/flowruntime/flowruntime.md)
         - [samples](samples/README.md)

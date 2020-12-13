@@ -22,7 +22,6 @@ branches:
 addons:
   apt:
     packages:
-      - libgtk-3-dev
       - libcurl4-openssl-dev
       - libelf-dev
       - libzmq3-dev
@@ -35,9 +34,6 @@ addons:
     update: true # if not then pango lib for gtk3 won't build
     packages:
       - zmq
-      - gtk+3
-      - cairo
-      - pango
 
 # Docs are only built and deployed in "cron" builds - so only prepare that when needed
 before_install:
@@ -56,7 +52,8 @@ script:
         RUST_BACKTRACE=full make docs
       fi
     else
-      RUST_BACKTRACE=full make build test # on macosx skip clippy
+       # on macosx skip clippy and avoid timeouts until 30mins have passed (default is 10mins)
+      travis_wait 30 make build test
     fi
 
 # Docs are only built and deployed in "cron" builds

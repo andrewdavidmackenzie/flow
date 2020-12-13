@@ -162,6 +162,12 @@ fn find_executable_path(name: &str) -> Result<String> {
         return Ok(file_exists.to_string_lossy().to_string());
     }
 
+    let file = cwd.join(&format!("./target/release/{}", name));
+    let abs_path = file.canonicalize();
+    if let Ok(file_exists) = abs_path {
+        return Ok(file_exists.to_string_lossy().to_string());
+    }
+
     // Couldn't find the development version under CWD where running, so look in path
     let bin_search_path = Simpath::new("PATH");
     let bin_path = bin_search_path.find_type(name, FileType::File)
