@@ -360,7 +360,7 @@ impl RunState {
         for source_function in &self.functions {
             let source_id = source_function.id();
             let source_flow_id = source_function.get_flow_id();
-            let destinations = source_function.get_output_connections().clone();
+            let destinations = source_function.get_output_connections();
             let source_has_inputs_full = source_function.input_set_count() > 0;
 
             for destination in destinations {
