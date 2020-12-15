@@ -41,13 +41,12 @@ pub fn set_panic_hook() {
 }
 
 fn create_executor(name: String, job_rx: Arc<Mutex<Receiver<Job>>>, job_tx: Sender<Job>) {
-    let executor_name = name.clone();
-    let builder = thread::Builder::new().name(name);
+    let builder = thread::Builder::new();
     let _ = builder.spawn(move || {
         set_panic_hook();
 
         loop {
-            let _ = get_and_execute_job(&job_rx, &job_tx, &executor_name);
+            let _ = get_and_execute_job(&job_rx, &job_tx, &name);
         }
     });
 }
