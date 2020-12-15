@@ -2,3 +2,5 @@
 **/Cargo.toml
 **/Cargo.lock
 manifest.json
+**/*.dot
+**/*.dot.svg
