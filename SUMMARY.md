@@ -98,6 +98,7 @@
         - [compare](flowstdlib/math/compare/compare.md)
         - [divide](flowstdlib/math/divide/divide.md)
         - [multiply](flowstdlib/math/multiply/multiply.md)
+        - [sequence](flowstdlib/math/sequence.md)
         - [subtract](flowstdlib/math/subtract/subtract.md)
         - [sqrt](flowstdlib/math/sqrt/sqrt.md)
 

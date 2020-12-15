@@ -1,2 +1,2 @@
 ## Math (//flowstdlib/math)
-Math Functions
+Math Functions and flows
