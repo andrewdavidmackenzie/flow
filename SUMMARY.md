@@ -69,6 +69,7 @@
     - [control](flowstdlib/control/control.md)
         - [compare_switch](flowstdlib/control/compare_switch/compare_switch.md)
         - [index](flowstdlib/control/index/index.md)
+        - [index_f](flowstdlib/control/index_f.md)
         - [join](flowstdlib/control/join/join.md)
         - [route](flowstdlib/control/route/route.md)
         - [select](flowstdlib/control/select/select.md)
