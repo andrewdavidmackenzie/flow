@@ -91,12 +91,14 @@ target/html/index.html: $(MARKDOWN) $(SVGS)
 
 %.dot.svg: %.dot
 ifeq ($(DOT),)
-	@echo "        Install 'graphviz' to be able to generate dot graphs for flows."
+	@echo "        Install 'graphviz' to be able to convert 'dot' files created by flowc into SVG files for use in docs"
 else
 	@dot -Tsvg -O $<
-	@echo "        Generated $@ SVG file from $< dot file"
+	@echo "        Generated $@ from $<"
 endif
 
+# This target can be used to manually generate new SVG files from dot files
+.PHONY: dot-graphs
 dot-graphs:
 	$(STIME)
 ifeq ($(DOT),)
