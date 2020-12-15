@@ -1,6 +1,6 @@
 [package]
 name = "flowr"
-version = "0.31.0"
+version = "0.32.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "A runner for compiled 'flow' programs"
 license = "MIT"
@@ -33,7 +33,7 @@ features = ["debugger"]
 
 [dependencies]
 flow_impl = {path = "../flow_impl", version = "0.21.0" }
-flowstdlib = {path = "../flowstdlib", version = "0.31.0" }
+flowstdlib = {path = "../flowstdlib", version = "0.32.0" }
 provider = {path = "../provider", version = "0.25.0" }
 
 clap = "~2"

@@ -1,6 +1,6 @@
 [package]
 name = "flowsamples"
-version = "0.31.1"
+version = "0.32.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 readme = "README.md"
 description = "A set of sample 'flow' programs"
@@ -21,7 +21,7 @@ name = "flowsamples"
 path = "main.rs"
 
 [build-dependencies]
-flowc = {path = "../flowc", version = "0.31.0" }
+flowc = {path = "../flowc", version = "0.32.0" }
 simpath = "~1.4"
 
 [dependencies]
@@ -29,7 +29,7 @@ simpath = "~1.4"
 
 [dependencies.flowr]
 path = "../flowr"
-version = "0.31.0"
+version = "0.32.0"
 features = ["debugger", "metrics", "checks"]
 
 [dev-dependencies]
