@@ -49,8 +49,7 @@ fn compile_sample(sample_dir: &Path, flowc: &str) -> io::Result<()> {
 
     let mut command = Command::new(flowc);
     // -g for debug symbols, -d to dump compiler structs, -s to skip running, only compile the flow
-    // let command_args = vec!("-g", "-d", "-s", sample_dir.to_str().unwrap());
-    let command_args = vec!("-g", "-s", sample_dir.to_str().unwrap());
+    let command_args = vec!("-g", "-d", "-s", sample_dir.to_str().unwrap());
 
     match command.args(command_args)
         .stdin(Stdio::inherit())
