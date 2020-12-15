@@ -379,7 +379,7 @@ impl Coordinator {
         let mut restart = false;
 
         while let Some(job) = state.next_job() {
-            match self.send_job(job.clone(), state,
+            match self.send_job(&job, state,
                                 #[cfg(feature = "metrics")]
                                     metrics,
             ) {
@@ -402,7 +402,7 @@ impl Coordinator {
 
     // Send a job for execution
     fn send_job(&mut self,
-                job: Job,
+                job: &Job,
                 state: &mut RunState,
                 #[cfg(feature = "metrics")]
                 metrics: &mut Metrics,
@@ -417,9 +417,8 @@ impl Coordinator {
         #[cfg(feature = "debugger")]
             let debug_options = self.debugger.check_prior_to_job(&state, job.job_id, job.function_id);
 
-        let job_id = job.job_id;
-        self.job_tx.send(job).chain_err(|| "Sending of job for execution failed")?;
-        debug!("Job #{}:\tSent for execution", job_id);
+        self.job_tx.send(job.clone()).chain_err(|| "Sending of job for execution failed")?;
+        debug!("Job #{}:\tSent for execution", job.job_id);
 
         Ok(debug_options)
     }
