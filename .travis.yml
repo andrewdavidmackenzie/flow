@@ -52,8 +52,8 @@ script:
         RUST_BACKTRACE=full make docs
       fi
     else
-       # on macosx skip clippy and avoid timeouts until 30mins have passed (default is 10mins)
-      travis_wait 30 make build test
+       # on macosx skip clippy and avoid timeouts until 40mins have passed (default is 10mins)
+      travis_wait 40 make build test
     fi
 
 # Docs are only built and deployed in "cron" builds
