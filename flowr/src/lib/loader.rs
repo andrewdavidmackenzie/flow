@@ -93,7 +93,7 @@ impl Loader {
                     let implementation = self.global_lib_implementations.get(function.implementation_location())
                         .chain_err(|| format!("Did not find implementation for '{}'", implementation_source_url))?;
                     trace!("Found implementation for '{}'", function.implementation_location());
-                    function.set_implementation(implementation.clone());
+                    function.set_implementation(implementation.clone()); // Only clone of an Arc, not the object
                 }
 
                 /*** These below are not 'lib:' references - hence are supplied implementations ***/

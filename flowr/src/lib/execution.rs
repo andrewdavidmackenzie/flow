@@ -18,7 +18,7 @@ pub fn start_executors(number_of_executors: usize,
                        job_tx: &Sender<Job>) {
     for executor_number in 0..number_of_executors {
         create_executor(format!("Executor #{}", executor_number),
-                        job_rx.clone(), job_tx.clone());
+                        job_rx.clone(), job_tx.clone()); // clone of Arcs and Sender OK
     }
 }
 
@@ -41,13 +41,12 @@ pub fn set_panic_hook() {
 }
 
 fn create_executor(name: String, job_rx: Arc<Mutex<Receiver<Job>>>, job_tx: Sender<Job>) {
-    let executor_name = name.clone();
-    let builder = thread::Builder::new().name(name);
+    let builder = thread::Builder::new();
     let _ = builder.spawn(move || {
         set_panic_hook();
 
         loop {
-            let _ = get_and_execute_job(&job_rx, &job_tx, &executor_name);
+            let _ = get_and_execute_job(&job_rx, &job_tx, &name);
         }
     });
 }

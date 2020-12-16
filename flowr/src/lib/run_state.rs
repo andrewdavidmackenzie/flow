@@ -358,24 +358,23 @@ impl RunState {
         debug!("Init:\tCreating any initial block entries that are needed");
 
         for source_function in &self.functions {
-            let source_id;
-            let source_flow_id;
-            let destinations;
-            let source_has_inputs_full;
-            {
-                source_id = source_function.id();
-                source_flow_id = source_function.get_flow_id();
-                source_has_inputs_full = source_function.input_set_count() > 0;
-                destinations = source_function.get_output_connections().clone();
-            }
+            let source_id = source_function.id();
+            let source_flow_id = source_function.get_flow_id();
+            let destinations = source_function.get_output_connections();
+            let source_has_inputs_full = source_function.input_set_count() > 0;
 
             for destination in destinations {
                 if destination.function_id != source_id { // don't block yourself!
                     let destination_function = self.get(destination.function_id);
                     if destination_function.input_count(destination.io_number) > 0 {
-                        trace!("Init:\t\tAdded block #{} --> #{}:{}", source_id, destination.function_id, destination.io_number);
-                        blocks.insert(Block::new(destination.flow_id, destination.function_id, destination.io_number,
-                                                 source_id, source_flow_id));
+                        trace!("Init:\t\tAdded block #{} --> #{}:{}", source_id,
+                               destination.function_id,
+                               destination.io_number);
+                        blocks.insert(Block::new(destination.flow_id,
+                                                 destination.function_id,
+                                                 destination.io_number,
+                                                 source_id,
+                                                 source_flow_id));
                         // only put source on the blocked list if it already has it's inputs full
                         if source_has_inputs_full {
                             blocked.insert(source_id);

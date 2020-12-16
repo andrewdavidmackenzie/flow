@@ -97,6 +97,7 @@ impl RuntimeServerConnection {
 
     /// Get the channels a client should use to send to the server
     fn get_client_channels(&self) -> (Arc<Mutex<Receiver<Event>>>, Sender<Response>) {
+        // Clone of Arc and Sender is OK
         (self.client_event_channel_rx.clone(), self.client_response_channel_tx.clone())
     }
 
@@ -144,6 +145,7 @@ impl DebugServerConnection {
     }
 
     fn get_channels(&self) -> (Arc<Mutex<Receiver<DebugEvent>>>, Sender<DebugResponse>) {
+        // Clone of Arc and Sender is OK
         (self.debug_event_channel_rx.clone(), self.debug_response_channel_tx.clone())
     }
 

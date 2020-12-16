@@ -28,17 +28,17 @@ pub fn get_manifest(server_context: Arc<Mutex<RuntimeServerConnection>>) -> Libr
     };
     let mut manifest = LibraryManifest::new(metadata);
 
-    manifest.locators.insert("lib://flowruntime/args/get/get".to_string(),
+    manifest.locators.insert("lib://flowruntime/args/get/get".to_string(), // Clone of Arc is OK
                              Native(Arc::new(args::get::Get { server_context: server_context.clone() })));
-    manifest.locators.insert("lib://flowruntime/file/file_write/file_write".to_string(),
+    manifest.locators.insert("lib://flowruntime/file/file_write/file_write".to_string(), // Clone of Arc is OK
                              Native(Arc::new(file::file_write::FileWrite { server_context: server_context.clone() })));
-    manifest.locators.insert("lib://flowruntime/image/image_buffer/image_buffer".to_string(),
+    manifest.locators.insert("lib://flowruntime/image/image_buffer/image_buffer".to_string(), // Clone of Arc is OK
                              Native(Arc::new(image::image_buffer::ImageBuffer { server_context: server_context.clone() })));
-    manifest.locators.insert("lib://flowruntime/stdio/readline/readline".to_string(),
+    manifest.locators.insert("lib://flowruntime/stdio/readline/readline".to_string(), // Clone of Arc is OK
                              Native(Arc::new(stdio::readline::Readline { server_context: server_context.clone() })));
-    manifest.locators.insert("lib://flowruntime/stdio/stdin/stdin".to_string(),
+    manifest.locators.insert("lib://flowruntime/stdio/stdin/stdin".to_string(), // Clone of Arc is OK
                              Native(Arc::new(stdio::stdin::Stdin { server_context: server_context.clone() })));
-    manifest.locators.insert("lib://flowruntime/stdio/stdout/stdout".to_string(),
+    manifest.locators.insert("lib://flowruntime/stdio/stdout/stdout".to_string(), // Clone of Arc is OK
                              Native(Arc::new(stdio::stdout::Stdout { server_context: server_context.clone() })));
     manifest.locators.insert("lib://flowruntime/stdio/stderr/stderr".to_string(),
                              Native(Arc::new(stdio::stderr::Stderr { server_context })));
