@@ -18,7 +18,7 @@ pub fn start_executors(number_of_executors: usize,
                        job_tx: &Sender<Job>) {
     for executor_number in 0..number_of_executors {
         create_executor(format!("Executor #{}", executor_number),
-                        job_rx.clone(), job_tx.clone());
+                        job_rx.clone(), job_tx.clone()); // clone of Arcs and Sender OK
     }
 }
 

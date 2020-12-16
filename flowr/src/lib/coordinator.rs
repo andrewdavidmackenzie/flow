@@ -72,7 +72,7 @@ pub struct Coordinator {
     /// A channel used to receive Jobs back after execution (now including the job's output)
     job_rx: Receiver<Job>,
     /// Get messages from clients over channels
-    runtime_server_connection: Arc<Mutex<RuntimeServerConnection>>,
+    runtime_server_context: Arc<Mutex<RuntimeServerConnection>>,
     #[cfg(feature = "debugger")]
     debugger: Debugger,
 }
@@ -125,7 +125,7 @@ impl Coordinator {
         Coordinator {
             job_tx,
             job_rx: output_rx,
-            runtime_server_connection: Arc::new(Mutex::new(runtime_server_context)),
+            runtime_server_context: Arc::new(Mutex::new(runtime_server_context)),
             #[cfg(feature = "debugger")]
             debugger: Debugger::new(debug_server_context),
         }
@@ -149,7 +149,7 @@ impl Coordinator {
         if !client_only {
             let mut coordinator = Coordinator::new(runtime_server_context, debug_server_context, num_threads);
 
-            coordinator.runtime_server_connection.lock()
+            coordinator.runtime_server_context.lock()
                 .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
                 .start()?;
             coordinator.debugger.start();
@@ -174,14 +174,14 @@ impl Coordinator {
     /// It will loop processing submissions until it gets a `ClientExiting` response, then it will also exit
     pub fn start(&mut self, native: bool, server_only: bool) -> Result<()> {
         while let Some(submission) = self.wait_for_submission() {
-            match Self::load_from_manifest(&submission.manifest_url,
-                                           self.runtime_server_connection.clone(),
+            match Self::load_from_manifest(&submission.manifest_url,  // Clone of Arc is OK
+                                           self.runtime_server_context.clone(),
                                            native) {
                 Ok(mut manifest) => {
                     let state = RunState::new(manifest.get_functions(), submission);
                     let _ = self.execute_flow(state);
 
-                    self.runtime_server_connection.lock()
+                    self.runtime_server_context.lock()
                         .map_err(|e| format!("Could not lock Server Connection: {}", e))?
                         .start()?;
                     self.debugger.start();
@@ -208,7 +208,7 @@ impl Coordinator {
     fn wait_for_submission(&self) -> Option<Submission> {
         loop {
             info!("'flowr' is waiting to receive a 'Submission'");
-            match self.runtime_server_connection.lock() {
+            match self.runtime_server_context.lock() {
                 Ok(guard) => {
                     match guard.get_response() {
                         Ok(Response::ClientSubmission(submission)) => {
@@ -242,7 +242,7 @@ impl Coordinator {
             #[cfg(feature = "metrics")]
                 metrics.reset();
 
-            self.runtime_server_connection.lock()
+            self.runtime_server_context.lock()
                 .map_err(|_| "Could not lock server context")?
                 .send_event(Event::FlowStart)?;
 
@@ -327,12 +327,12 @@ impl Coordinator {
                     #[cfg(feature = "metrics")]
                         {
                             metrics.set_jobs_created(state.jobs_created());
-                            self.runtime_server_connection.lock()
+                            self.runtime_server_context.lock()
                                 .map_err(|_| "Could not lock server context")?
                                 .send_event(Event::FlowEnd(metrics))?;
                         }
                     #[cfg(not(feature = "metrics"))]
-                        self.runtime_server_connection.lock()
+                        self.runtime_server_context.lock()
                         .map_err(|_| "Could not lock server context")?
                         .send_event(Event::FlowEnd)?;
                     debug!("{}", state);
@@ -417,6 +417,7 @@ impl Coordinator {
         #[cfg(feature = "debugger")]
             let debug_options = self.debugger.check_prior_to_job(&state, job.job_id, job.function_id);
 
+        // Jobs maybe sent to remote nodes over network so have to be self--contained - clone OK
         self.job_tx.send(job.clone()).chain_err(|| "Sending of job for execution failed")?;
         debug!("Job #{}:\tSent for execution", job.job_id);
 

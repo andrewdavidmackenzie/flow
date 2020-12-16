@@ -160,7 +160,7 @@ impl CLIRuntimeClient {
                 image.put_pixel(x, y, Rgb([r, g, b]));
                 Response::Ack
             }
-            Event::GetArgs => {
+            Event::GetArgs => { // Response gets serialized and sent over channel/network so needs to args be owned
                 Response::Args(self.args.clone())
             }
             Event::StderrEOF => Response::Ack,
