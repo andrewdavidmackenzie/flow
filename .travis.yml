@@ -47,7 +47,7 @@ before_install:
 script:
   - |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      RUST_BACKTRACE=full make clippy build test
+      travis_wait 30 make clippy build test
       if [[ "$TRAVIS_RUST_VERSION" == "stable" && "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
         RUST_BACKTRACE=full make docs
       fi
