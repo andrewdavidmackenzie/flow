@@ -49,7 +49,7 @@ script:
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       travis_wait 30 make clippy build test
       if [[ "$TRAVIS_RUST_VERSION" == "stable" && "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
-        RUST_BACKTRACE=full make docs
+        travis_wait 30 make docs
       fi
     else
        # on macosx skip clippy and avoid timeouts until 40mins have passed (default is 10mins)
