@@ -18,6 +18,7 @@ use crate::generator::generate::GenerationTables;
 use crate::model::connection::Connection;
 use crate::model::flow::Flow;
 use crate::model::function::Function;
+use crate::model::io::Find;
 use crate::model::io::IOSet;
 use crate::model::name::HasName;
 use crate::model::name::Name;
@@ -138,20 +139,6 @@ fn output_name_to_port<T: Hash>(t: &T) -> &str {
     OUTPUT_PORTS[index_from_name(t, OUTPUT_PORTS.len())]
 }
 
-/*
-    Determine if it's a given route is in this IOSet
-*/
-fn find(io_set: &IOSet, route: &Route) -> bool {
-    if let Some(ios) = io_set {
-        for io in ios {
-            if io.route() == route {
-                return true;
-            }
-        }
-    }
-    false
-}
-
 fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IOSet) -> String {
     let (from_route, number, array_index) = connection.from_io.route().without_trailing_array_index();
 
@@ -188,9 +175,9 @@ fn connection_to_dot(connection: &Connection, input_set: &IOSet, output_set: &IO
     route and return that.
 */
 fn node_from_io_route(route: &Route, name: &Name, io_set: &IOSet) -> (String, String) {
-    let label = if !find(io_set, route) { name.to_string() } else { "".to_string() };
+    let label = if !io_set.find(route) { name.to_string() } else { "".to_string() };
 
-    if name.is_empty() || find(io_set, route) {
+    if name.is_empty() || io_set.find(route) {
         (route.to_string(), label)
     } else {
         let length_without_io_name = route.len() - name.len() - 1; // 1 for '/'
