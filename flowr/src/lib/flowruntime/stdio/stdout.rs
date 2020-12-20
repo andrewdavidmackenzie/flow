@@ -25,7 +25,7 @@ impl Implementation for Stdout {
                 Value::Bool(boolean) => server.send_event(Event::Stdout(boolean.to_string())),
                 Value::Number(number) => server.send_event(Event::Stdout(number.to_string())),
                 Value::Array(_array) => server.send_event(Event::Stdout(input.to_string())),
-                _ => return (None, RUN_AGAIN)
+                Value::Object(_obj) => server.send_event(Event::Stdout(input.to_string())),
             };
         }
 
