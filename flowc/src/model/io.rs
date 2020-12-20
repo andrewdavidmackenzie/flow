@@ -267,10 +267,11 @@ mod test {
 
     #[test]
     fn deserialize_empty_string() {
-        let input_str = "";
-
-        let output: IO = toml::from_str(input_str).unwrap();
-        output.validate().unwrap();
+        let output: IO = match toml::from_str("") {
+            Ok(x) => x,
+            Err(_) => panic!("TOML does not parse"),
+        };
+        assert!(output.validate().is_ok(), "IO does not validate()");
         assert_eq!(output.datatype, DataType::from("Value"));
         assert_eq!(output.name, Name::default());
     }
@@ -281,8 +282,11 @@ mod test {
         type = 'String'
         ";
 
-        let output: IO = toml::from_str(input_str).unwrap();
-        output.validate().unwrap();
+        let output: IO = match toml::from_str(input_str) {
+            Ok(x) => x,
+            Err(_) => panic!("TOML does not parse"),
+        };
+        assert!(output.validate().is_ok(), "IO does not validate()");
     }
 
     #[test]
@@ -291,7 +295,10 @@ mod test {
         type = 'Unknown'
         ";
 
-        let output: IO = toml::from_str(input_str).unwrap();
+        let output: IO = match toml::from_str(input_str) {
+            Ok(x) => x,
+            Err(_) => panic!("TOML does not parse"),
+        };
         assert!(output.validate().is_err());
     }
 
@@ -302,8 +309,11 @@ mod test {
         type = 'String'
         ";
 
-        let output: IO = toml::from_str(input_str).unwrap();
-        output.validate().unwrap();
+        let output: IO = match toml::from_str(input_str) {
+            Ok(x) => x,
+            Err(_) => panic!("TOML does not parse"),
+        };
+        assert!(output.validate().is_ok(), "IO does not validate()");
         assert_eq!("/sub_route", output.name.to_string());
     }
 
@@ -314,8 +324,11 @@ mod test {
         type = 'String'
         ";
 
-        let input: IO = toml::from_str(input_str).unwrap();
-        input.validate().unwrap();
+        let input: IO = match toml::from_str(input_str) {
+            Ok(x) => x,
+            Err(_) => panic!("TOML does not parse"),
+        };
+        assert!(input.validate().is_ok(), "IO does not validate()");
     }
 
     #[test]
@@ -325,7 +338,10 @@ mod test {
         type = 'String'
         ";
 
-        let input: IO = toml::from_str(input_str).unwrap();
+        let input: IO = match toml::from_str(input_str) {
+            Ok(x) => x,
+            Err(_) => panic!("TOML does not parse"),
+        };
         assert_eq!(Name::from("input"), *input.name());
         assert_eq!(&DataType::from("String"), input.datatype());
     }
@@ -337,8 +353,11 @@ mod test {
         type = 'Value'
         ";
 
-        let input: IO = toml::from_str(input_str).unwrap();
-        input.validate().unwrap();
+        let input: IO = match toml::from_str(input_str) {
+            Ok(x) => x,
+            Err(_) => panic!("TOML does not parse"),
+        };
+        assert!(input.validate().is_ok(), "IO does not validate()");
     }
 
     #[test]
@@ -370,7 +389,7 @@ mod test {
             initializer: None,
         };
         let ioset = Some(vec!(io0, io1));
-        ioset.validate().unwrap()
+        assert!(ioset.validate().is_ok(), "IOSet does not validate()");
     }
 
     #[test]
