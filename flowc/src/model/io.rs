@@ -178,11 +178,23 @@ impl SetIORoutes for IOSet {
 }
 
 pub trait Find {
+    fn find(&self, route: &Route) -> bool;
     fn find_by_name(&mut self, name: &Name, initial_value: &Option<InputInitializer>) -> Result<IO>;
     fn find_by_route(&mut self, route: &Route, initial_value: &Option<InputInitializer>) -> Result<IO>;
 }
 
 impl Find for IOSet {
+    fn find(&self, route: &Route) -> bool {
+        if let Some(ios) = self {
+            for io in ios {
+                if io.route() == route {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
     fn find_by_name(&mut self, name: &Name, initial_value: &Option<InputInitializer>) -> Result<IO> {
         if let Some(ref mut ios) = self {
             for io in ios {
