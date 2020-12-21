@@ -1,13 +1,11 @@
 flow = "echo"
 
 [[process]]
-alias = "stdin"
 source = "lib://flowruntime/stdio/readline"
 
 [[process]]
-alias = "print"
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
-from = "stdin"
-to = "print"
+from = "readline"
+to = "stdout"

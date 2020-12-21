@@ -1,11 +1,9 @@
 flow = "router"
 
 [[process]]
-alias = "readline"
 source = "lib://flowruntime/stdio/readline"
 
 [[process]]
-alias = "to_json"
 source = "lib://flowstdlib/fmt/to_json"
 
 [[connection]]
