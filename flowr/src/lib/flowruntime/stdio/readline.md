@@ -20,4 +20,5 @@ source = "lib://flowruntime/stdio/readline"
 ### Inputs
 
 #### Output
-* Line of text read from STDIN - with leading and trailing whitespace trimmed.
+* text - Line of text read from STDIN - with leading and trailing whitespace trimmed.
+* json - Json value parsed from from STDIN
