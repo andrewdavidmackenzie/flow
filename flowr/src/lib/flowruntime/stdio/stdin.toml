@@ -5,3 +5,7 @@ impure = true
 [[output]]
 name = "text"
 type = "String"
+
+[[output]]
+name = "json"
+type = "Value"

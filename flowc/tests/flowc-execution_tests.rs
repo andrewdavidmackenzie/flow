@@ -157,6 +157,11 @@ fn line_echo() {
 }
 
 #[test]
+fn args() {
+    execute_test("args");
+}
+
+#[test]
 fn array_input() {
     execute_test("array-input");
 }

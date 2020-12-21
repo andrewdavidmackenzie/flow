@@ -7,5 +7,5 @@ source = "lib://flowruntime/args/get"
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
-from = "get/2"
+from = "get/text/2"
 to = "stdout"

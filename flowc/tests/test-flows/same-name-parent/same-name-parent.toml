@@ -9,7 +9,7 @@ alias = "child"
 source = "same-name-child"
 
 [[connection]]
-from = "args/1"
+from = "args/text/1"
 to = "child/message"
 
 [[process]]
@@ -17,7 +17,7 @@ alias = "child2"
 source = "same-name-child"
 
 [[connection]]
-from = "args/1"
+from = "args/text/1"
 to = "child2/message"
 
 [[process]]

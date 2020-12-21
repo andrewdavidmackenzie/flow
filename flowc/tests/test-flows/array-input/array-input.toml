@@ -7,5 +7,5 @@ source = "lib://flowruntime/args/get"
 source = "subflow"
 
 [[connection]]
-from = "get"
+from = "get/text"
 to = "subflow/array_input"

@@ -5,7 +5,7 @@ alias = "args"
 source = "lib://flowruntime/args/get"
 
 [[connection]]
-from = "args/1"
+from = "args/text/1"
 to = "to_json"
 
 [[process]]

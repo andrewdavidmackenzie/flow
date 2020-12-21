@@ -9,11 +9,11 @@ alias = "zip"
 source = "lib://flowstdlib/data/zip"
 
 [[connection]]
-from = "args/1"
+from = "args/text/1"
 to = "zip/left"
 
 [[connection]]
-from = "args/2"
+from = "args/text/2"
 to = "zip/right"
 
 [[process]]
