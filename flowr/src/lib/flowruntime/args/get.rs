@@ -33,7 +33,7 @@ impl Implementation for Get {
                     let _ = output_map.insert("json".into(), Value::Array(json_arg_vec));
 
                     // Add the array of (unparsed) text values of the args at "/text" route
-                    output_map.insert("text".into(), json!(arg_vec));
+                    output_map.insert("string".into(), json!(arg_vec));
 
                     (Some(Value::Object(output_map)), DONT_RUN_AGAIN)
                 }

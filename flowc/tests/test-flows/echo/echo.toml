@@ -8,5 +8,5 @@ source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
 name = "echo"
-from = "stdin/text"
+from = "stdin/string"
 to = "stdout"

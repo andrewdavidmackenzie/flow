@@ -13,7 +13,7 @@ source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
 name = "normal"
-from = "readline/text"
+from = "readline/string"
 to = "reverse"
 
 [[connection]]

@@ -3,7 +3,7 @@ implementation = "stdin.rs"
 impure = true
 
 [[output]]
-name = "text"
+name = "string"
 type = "String"
 
 [[output]]

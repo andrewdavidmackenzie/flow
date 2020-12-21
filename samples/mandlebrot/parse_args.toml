@@ -20,7 +20,7 @@ source = "lib://flowruntime/args/get"
 
 ############# filename
 [[connection]]
-from = "args/text/1"
+from = "args/string/1"
 to = "output/filename"
 
 ############## parse size
@@ -30,7 +30,7 @@ source = "lib://flowstdlib/data/ordered_split"
 input.separator = { always = "x" }
 
 [[connection]]
-from = "args/text/2"
+from = "args/string/2"
 to = "split_size/string"
 
 [[process]]
@@ -68,7 +68,7 @@ source = "lib://flowstdlib/data/ordered_split"
 input.separator ={ always = "," }
 
 [[connection]]
-from = "args/text/3"
+from = "args/string/3"
 to = "split_upper_left/string"
 
 [[connection]]
@@ -87,7 +87,7 @@ source = "lib://flowstdlib/data/ordered_split"
 input.separator ={ always = "," }
 
 [[connection]]
-from = "args/text/4"
+from = "args/string/4"
 to = "split_lower_right/string"
 
 # Convert strings to json (Numbers)
