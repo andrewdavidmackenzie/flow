@@ -13,7 +13,7 @@ source = "lib://flowstdlib/control/index_f"
 input.select_index = { always = 0 }
 
 [[connection]]
-from = "readline"
+from = "readline/text"
 to = "to_json"
 
 [[connection]]

@@ -9,7 +9,7 @@ input.separator = { always =  " " }
 #input.string = { once =  "the quick brown fox jumped over the lazy dog" }
 
 [[connection]] # Take the input string and pass it to splitter
-from = "readline"
+from = "readline/text"
 to = "split/string"
 
 [[connection]] # Loop back partial splits to be split further

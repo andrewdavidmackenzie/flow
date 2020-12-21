@@ -1,14 +1,12 @@
 flow = "echo inputs"
 
 [[process]]
-alias = "stdin"
 source = "lib://flowruntime/stdio/stdin"
 
 [[process]]
-alias = "print"
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
 name = "echo"
-from = "stdin"
-to = "print"
+from = "stdin/text"
+to = "stdout"

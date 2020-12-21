@@ -3,4 +3,5 @@ implementation = "stdin.rs"
 impure = true
 
 [[output]]
+name = "text"
 type = "String"

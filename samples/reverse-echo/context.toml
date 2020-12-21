@@ -1,7 +1,6 @@
 flow = "reverse-echo"
 
 [[process]]
-alias = "read"
 source = "lib://flowruntime/stdio/readline"
 
 [[process]]
@@ -14,7 +13,7 @@ source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
 name = "normal"
-from = "read"
+from = "readline/text"
 to = "reverse"
 
 [[connection]]
