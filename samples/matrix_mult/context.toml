@@ -4,20 +4,12 @@ flow = "matrix_mult"
 source = "lib://flowruntime/stdio/readline"
 
 [[process]]
-alias = "to_json"
-source = "lib://flowstdlib/fmt/to_json"
-
-[[process]]
 alias = "select_0"
 source = "lib://flowstdlib/control/index_f"
 input.select_index = { always = 0 }
 
 [[connection]]
-from = "readline/text"
-to = "to_json"
-
-[[connection]]
-from = "to_json"
+from = "readline/json"
 to = "select_0/value"
 
 [[process]]
@@ -26,7 +18,7 @@ source = "lib://flowstdlib/control/index_f"
 input.select_index = { always = 1 }
 
 [[connection]]
-from = "to_json"
+from = "readline/json"
 to = "select_1/value"
 
 [[process]]

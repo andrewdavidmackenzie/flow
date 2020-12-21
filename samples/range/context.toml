@@ -1,19 +1,10 @@
 flow = "range"
 
 [[process]]
-alias = "args"
 source = "lib://flowruntime/args/get"
 
 [[connection]]
-from = "args/text/1"
-to = "to_json"
-
-[[process]]
-alias = "to_json"
-source = "lib://flowstdlib/fmt/to_json"
-
-[[connection]]
-from = "to_json"
+from = "get/json/1"
 to = "sequence/end"
 
 [[process]]
@@ -28,7 +19,6 @@ to = "print"
 
 # Output a string to show we're done when the series ends
 [[process]]
-alias = "join"
 source = "lib://flowstdlib/control/join"
 input.data = {once =  "Range done"}
 
@@ -38,9 +28,8 @@ to = "join/control"
 
 [[connection]]
 from = "join"
-to = "print"
+to = "stdout"
 
 # Output
 [[process]]
-alias = "print"
 source = "lib://flowruntime/stdio/stdout"

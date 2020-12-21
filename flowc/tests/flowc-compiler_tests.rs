@@ -219,11 +219,11 @@ fn compile_detects_connection_to_initialized_input() {
 }
 
 /*
-    This tests that an initalizer on an input to a flow sub-process is passed into it and
+    This tests that an initializer on an input to a flow sub-process is passed into it and
     back out via a connection
 */
 #[test]
-fn flow_input_propogated_backout() {
+fn flow_input_propagated_backout() {
     let meta_provider = MetaProvider {};
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/subflow_input_init/subflow_input_init.toml");
@@ -241,10 +241,10 @@ fn flow_input_propogated_backout() {
 }
 
 /*
-    This tests that an initalizer on an output of a sub-process is passed propogated out and set on destination
+    This tests that an initializer on an output of a sub-process is passed propagated out and set on destination
 */
 #[test]
-fn initialized_output_propogated() {
+fn initialized_output_propagated() {
     let meta_provider = MetaProvider {};
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/print_subflow_output/print_subflow_output.toml");

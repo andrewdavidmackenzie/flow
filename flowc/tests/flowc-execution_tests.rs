@@ -162,6 +162,11 @@ fn args() {
 }
 
 #[test]
+fn args_json() {
+    execute_test("args_json");
+}
+
+#[test]
 fn array_input() {
     execute_test("array-input");
 }

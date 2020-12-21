@@ -71,15 +71,14 @@ input.separator ={ always = "," }
 from = "args/text/3"
 to = "split_upper_left/string"
 
-# Convert strings to json (Numbers)
-[[process]]
-alias = "upper_left_to_json"
-source = "lib://flowstdlib/fmt/to_json"
-
 [[connection]]
 from = "split_upper_left"
 to = "upper_left_to_json"
 
+# Convert strings to json (Numbers)
+[[process]]
+alias = "upper_left_to_json"
+source = "lib://flowstdlib/fmt/to_json"
 
 # parse lower right bound
 [[process]]
