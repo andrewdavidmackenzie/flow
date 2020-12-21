@@ -23,7 +23,9 @@ impl Implementation for Readline {
                     (Some(Value::Object(output_map)), RUN_AGAIN)
                 },
                 Ok(Response::GetLineEOF) => {
-                    (Some(Value::Null), DONT_RUN_AGAIN)
+                    let mut output_map = serde_json::Map::new();
+                    output_map.insert("text".into(), Value::Null);
+                    (Some(Value::Object(output_map)), DONT_RUN_AGAIN)
                 },
                 _ => (None, DONT_RUN_AGAIN)
             };
