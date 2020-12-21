@@ -25,10 +25,12 @@ impl Implementation for Get {
                     for arg in &arg_vec {
                         if let Ok(json) = serde_json::from_str(arg) {
                             json_arg_vec.push(json);
+                        } else {
+                            json_arg_vec.push(serde_json::Value::String(arg.into()))
                         }
                     }
                     // And add the array of Value at the "/json" route
-                    let _ = output_map.insert("json".into(), json!(json_arg_vec));
+                    let _ = output_map.insert("json".into(), Value::Array(json_arg_vec));
 
                     // Add the array of (unparsed) text values of the args at "/text" route
                     output_map.insert("text".into(), json!(arg_vec));
