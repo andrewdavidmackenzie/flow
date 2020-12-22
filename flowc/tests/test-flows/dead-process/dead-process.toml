@@ -9,5 +9,5 @@ alias = "dead-process"
 source = "lib://flowstdlib/fmt/to_json"
 
 [[connection]]
-from = "args/1"
+from = "args/string/1"
 to = "dead-process"

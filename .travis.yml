@@ -52,7 +52,7 @@ script:
         travis_wait 30 make docs
       fi
     else
-       # on macosx skip clippy and avoid timeouts until 40mins have passed (default is 10mins)
+       # on macosx skip clippy to avoid timeouts until 40mins have passed (default is 10mins)
       travis_wait 40 make build test
     fi
 

@@ -16,4 +16,5 @@ source = "lib://flowruntime/args/get"
 ### Inputs
 
 ### Output
-* Array of Strings of the command line arguments the flow was invoked with.
+* text - Array of Strings of the command line arguments the flow was invoked with.
+* json - Array of Json parsed values of the command line arguments the flow was invoked with.

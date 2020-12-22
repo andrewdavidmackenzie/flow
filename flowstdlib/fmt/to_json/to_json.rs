@@ -1,6 +1,7 @@
+use serde_json::Value;
+
 use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use flow_impl_derive::FlowImpl;
-use serde_json::Value;
 
 #[derive(FlowImpl)]
 /// Convert a String to Json
@@ -14,9 +15,64 @@ impl Implementation for ToJson {
         if input.is_null() {
             (Some(Value::Null), RUN_AGAIN)
         } else if input.is_string() {
-            (Some(serde_json::from_str(input.as_str().unwrap()).unwrap()), RUN_AGAIN)
+            match input.as_str() {
+                Some(string) => (Some(serde_json::from_str(string).unwrap()), RUN_AGAIN),
+                None => (None, RUN_AGAIN)
+            }
+
         } else {
             (Some(input.clone()), RUN_AGAIN)
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::collections::HashMap;
+
+    use serde_json::{json, Value};
+
+    use super::Implementation;
+    use super::ToJson;
+
+    fn test_to_json(string: &str, expected_value: Value, ) {
+        let to_json = ToJson{};
+        let inputs = vec!(json!(string));
+        let (result, _) = to_json.run(&inputs);
+
+        match result {
+            Some(value) => {
+                assert_eq!(value, expected_value);
+            }
+            None => panic!("No Result returned")
+        }
+    }
+
+    #[test]
+    fn parse_string() {
+        test_to_json("\"Hello World\"", json!("Hello World"));
+    }
+
+    #[test]
+    fn parse_number() {
+        test_to_json("42", json!(42));
+    }
+
+    #[test]
+    fn parse_null() {
+        test_to_json("null", serde_json::Value::Null);
+    }
+
+    #[test]
+    fn parse_array() {
+        test_to_json("[1,2,3,4]", json!([1,2,3,4]));
+    }
+
+    #[test]
+    fn parse_map() {
+        let mut map: HashMap<&str, u32> = HashMap::new();
+        map.insert("Meaning", 42);
+        map.insert("Size", 9);
+        test_to_json("{\"Meaning\":42,\"Size\":9}", json!(map));
     }
 }

@@ -8,5 +8,5 @@ type = "String"
 source = "lib://flowruntime/stdio/stdin"
 
 [[connection]]
-from = "stdin"
+from = "stdin/string"
 to = "output/out"

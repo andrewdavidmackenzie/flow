@@ -157,6 +157,16 @@ fn line_echo() {
 }
 
 #[test]
+fn args() {
+    execute_test("args");
+}
+
+#[test]
+fn args_json() {
+    execute_test("args_json");
+}
+
+#[test]
 fn array_input() {
     execute_test("array-input");
 }
