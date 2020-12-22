@@ -53,7 +53,7 @@ script:
       fi
     else
        # on macosx skip clippy and build to avoid timeouts until 40mins have passed (default is 10mins)
-      travis_wait 40 make test
+#      travis_wait 40 make test
     fi
 
 # Docs are only built and deployed in "cron" builds on linux with rust stable
