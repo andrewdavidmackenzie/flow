@@ -58,11 +58,11 @@ make
 ```
 
 ## Run your first 'flow'
-Run the 'first' sample flow using:
+Run the 'fibonacci' sample flow using:
 
-```cargo run -- samples/first```
+```cargo run --bin flowc -- samples/fibonacci```
 
-You should get a series of numbers output to the terminal.
+You should get a fibonacci series of numbers output to the terminal.
 
 The [first flow](docs/first_flow/first_flow.md) section of the guide explains what that sample does and walks you through it.
 
