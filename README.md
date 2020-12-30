@@ -60,7 +60,7 @@ make
 ## Run your first 'flow'
 Run the 'fibonacci' sample flow using:
 
-```cargo run --bin flowc -- samples/fibonacci```
+```cargo run -- samples/fibonacci```
 
 You should get a fibonacci series of numbers output to the terminal.
 

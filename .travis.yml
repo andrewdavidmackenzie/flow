@@ -52,8 +52,8 @@ script:
         travis_wait 30 make docs
       fi
     else
-       # on macosx skip clippy to avoid timeouts until 40mins have passed (default is 10mins)
-      travis_wait 40 make build test
+       # on macosx skip clippy to avoid timeouts until 50mins have passed (default is 10mins)
+      travis_wait 50 make test
     fi
 
 # Docs are only built and deployed in "cron" builds on linux with rust stable
