@@ -15,7 +15,7 @@ input.step = {once =  1}
 
 [[connection]]
 from = "sequence/sequence"
-to = "print"
+to = "stdout"
 
 # Output a string to show we're done when the series ends
 [[process]]

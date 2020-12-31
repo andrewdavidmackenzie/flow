@@ -1,5 +1,8 @@
 [![Build Status](https://travis-ci.org/andrewdavidmackenzie/flow.svg?branch=master)](https://travis-ci.org/andrewdavidmackenzie/flow)
 [![codecov](https://codecov.io/gh/andrewdavidmackenzie/flow/branch/master/graph/badge.svg)](https://codecov.io/gh/andrewdavidmackenzie/flow)
+[![Generic badge](https://img.shields.io/badge/macos-supported-Green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/linux-supported-Green.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Rust-stable-Green.svg)](https://shields.io/)
 # Welcome!
 Welcome to my project called `flow` for defining and running parallel, [dataflow programs](https://en.wikipedia.org/wiki/Dataflow_programming) like this one:
 
