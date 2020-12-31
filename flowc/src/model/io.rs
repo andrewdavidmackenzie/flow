@@ -42,11 +42,12 @@ pub struct IO {
 }
 
 impl IO {
-    pub fn new<D: Into<DataType>, R: Into<Route> >(datatype: D, route: R) -> Self {
-        let mut io = IO::default();
-        io.datatype = datatype.into();
-        io.route = route.into();
-        io
+    pub fn new<D: Into<DataType>, R: Into<Route>>(datatype: D, route: R) -> Self {
+        IO {
+            datatype: datatype.into(),
+            route: route.into(),
+            ..Default::default()
+        }
     }
 
     pub fn flow_io(&self) -> bool {
