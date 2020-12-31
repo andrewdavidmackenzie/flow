@@ -182,7 +182,7 @@ clippy: build-flowc
 
 #################### Tests ####################
 .PHONY: test
-test:
+test: build-flowc
 	$(STIME)
 	@set -o pipefail && cargo test --workspace --exclude flow_impl_derive -- --test-threads 1 2>&1 | tee .test.log
 	$(ETIME)
