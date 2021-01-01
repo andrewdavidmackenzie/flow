@@ -469,7 +469,7 @@ impl RunState {
     /*
         return the number of jobs created to date
     */
-    #[cfg(feature = "debugger")]
+    #[cfg(any(feature = "metrics", feature = "debugger"))]
     pub fn jobs_created(&self) -> usize {
         self.jobs_created
     }
@@ -809,7 +809,7 @@ impl RunState {
         false
     }
 
-    #[cfg(feature = "metrics")]
+    #[cfg(any(feature = "debugger", feature = "metrics"))]
     pub fn num_functions(&self) -> usize {
         self.functions.len()
     }
