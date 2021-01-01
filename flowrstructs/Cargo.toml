@@ -18,7 +18,7 @@ name = "flowrstructs"
 path = "src/lib.rs"
 
 [features]
-default = []  # Don't include any extra features by default
+default = []  # Don't include any features by default
 debugger = [] # feature to add the debugger
 
 [dependencies]
