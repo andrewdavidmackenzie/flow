@@ -56,6 +56,7 @@ impl From<Message> for Response {
     }
 }
 
+#[cfg(feature = "debugger")]
 impl From<DebugEvent> for Message {
     fn from(debug_event: DebugEvent) -> Self {
         match serde_json::to_string(&debug_event) {
@@ -65,6 +66,7 @@ impl From<DebugEvent> for Message {
     }
 }
 
+#[cfg(feature = "debugger")]
 impl From<Message> for DebugEvent {
     fn from(msg: Message) -> Self {
         match msg.as_str() {
@@ -79,6 +81,7 @@ impl From<Message> for DebugEvent {
     }
 }
 
+#[cfg(feature = "debugger")]
 impl From<DebugResponse> for Message {
     fn from(msg: DebugResponse) -> Self {
         match serde_json::to_string(&msg) {
@@ -88,6 +91,7 @@ impl From<DebugResponse> for Message {
     }
 }
 
+#[cfg(feature = "debugger")]
 impl From<Message> for DebugResponse {
     fn from(msg: Message) -> Self {
         match msg.as_str() {
@@ -153,12 +157,14 @@ impl RuntimeClientConnection {
     }
 }
 
+#[cfg(feature = "debugger")]
 pub struct DebugClientConnection {
     host: String,
     port: usize,
     requester: Option<Socket>,
 }
 
+#[cfg(feature = "debugger")]
 impl DebugClientConnection {
     pub fn new(debug_server_context: &DebugServerConnection) -> Self {
         DebugClientConnection {
@@ -255,12 +261,14 @@ impl RuntimeServerConnection {
     }
 }
 
+#[cfg(feature = "debugger")]
 pub struct DebugServerConnection {
     host: String,
     port: usize,
     responder: Option<zmq::Socket>,
 }
 
+#[cfg(feature = "debugger")]
 impl DebugServerConnection {
     pub fn new(server_hostname: Option<&str>) -> Self {
         DebugServerConnection {

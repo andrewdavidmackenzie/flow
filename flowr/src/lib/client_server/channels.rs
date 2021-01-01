@@ -38,10 +38,12 @@ impl RuntimeClientConnection {
     }
 }
 
+#[cfg(feature = "debugger")]
 pub struct DebugClientConnection {
     channels: (Arc<Mutex<Receiver<DebugEvent>>>, Sender<DebugResponse>),
 }
 
+#[cfg(feature = "debugger")]
 impl DebugClientConnection {
     pub fn new(debug_server_context: &DebugServerConnection) -> Self {
         DebugClientConnection {
@@ -116,6 +118,7 @@ impl RuntimeServerConnection {
     }
 }
 
+#[cfg(feature = "debugger")]
 #[derive(Debug)]
 pub struct DebugServerConnection {
     /// A channel to send events to a debug client on
@@ -128,6 +131,7 @@ pub struct DebugServerConnection {
     debug_response_channel_rx: Receiver<DebugResponse>,
 }
 
+#[cfg(feature = "debugger")]
 impl DebugServerConnection {
     pub fn new(_server_hostname: Option<&str>) -> Self {
         let (debug_event_channel_tx, debug_event_channel_rx) = mpsc::channel();

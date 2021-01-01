@@ -50,10 +50,10 @@ fn send_byte_array(instance: &ModuleRef, memory: &MemoryRef, bytes: &[u8]) -> u3
         Ok(Some(RuntimeValue::I32(pointer))) => {
             match memory.set(pointer as u32, bytes) {
                 Ok(_) => pointer as u32,
-                _ => 0 as u32
+                _ => 0_u32
             }
         }
-        _ => 0 as u32
+        _ => 0_u32
     }
 }
 

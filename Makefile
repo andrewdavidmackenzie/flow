@@ -174,6 +174,11 @@ build: build-flowc
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig" cargo build --workspace
 	$(ETIME)
 
+build-all-features: build-flowc
+	cd flowrstructs && cargo build-all-features
+	cd flowr && cargo build-all-features
+	cd flowc && cargo build-all-features
+
 .PHONY: clippy
 clippy: build-flowc
 	$(STIME)
@@ -188,6 +193,11 @@ test: build-flowc
 	$(ETIME)
 
 .test.log: test
+
+test-all-features: build-flowc
+	cd flowrstructs && cargo test-all-features
+	cd flowr && cargo test-all-features
+	cd flowc && cargo test-all-features
 
 ################### Coverage ####################
 .PHONY: coverage
