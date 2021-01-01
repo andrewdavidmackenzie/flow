@@ -17,14 +17,19 @@ use flowrlib::runtime::Response::ClientSubmission;
 pub struct CLIRuntimeClient {
     args: Vec<String>,
     image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
+    #[cfg(feature = "metrics")]
     display_metrics: bool,
 }
 
 impl CLIRuntimeClient {
-    fn new(args: Vec<String>, display_metrics: bool) -> Self {
+    fn new(args: Vec<String>,
+           #[cfg(feature = "metrics")]
+           display_metrics: bool
+    ) -> Self {
         CLIRuntimeClient {
             args,
             image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
+            #[cfg(feature = "metrics")]
             display_metrics,
         }
     }
@@ -45,7 +50,10 @@ impl CLIRuntimeClient {
         debug!("Runtime client sending submission to server");
         connection.client_send(ClientSubmission(submission))?;
 
-        let mut runtime_client = CLIRuntimeClient::new(flow_args, display_metrics);
+        let mut runtime_client = CLIRuntimeClient::new(flow_args,
+                                                       #[cfg(feature = "metrics")]
+                                                       display_metrics
+        );
 
         loop {
             debug!("Runtime client waiting for message from server");

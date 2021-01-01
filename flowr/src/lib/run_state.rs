@@ -274,6 +274,7 @@ impl RunState {
             running: MultiMap::<usize, usize>::new(),
             jobs_created: 0,
             max_pending_jobs: submission.max_parallel_jobs,
+            #[cfg(feature = "debugger")]
             debug: submission.debug,
             job_timeout: submission.job_timeout,
             busy_flows: MultiMap::<usize, usize>::new(),
@@ -468,6 +469,7 @@ impl RunState {
     /*
         return the number of jobs created to date
     */
+    #[cfg(feature = "debugger")]
     pub fn jobs_created(&self) -> usize {
         self.jobs_created
     }

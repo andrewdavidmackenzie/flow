@@ -21,9 +21,11 @@ use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::info as flowrlib_info;
 use provider::args::url_from_string;
 
+#[cfg(feature = "debugger")]
 use crate::cli_debug_client::CLIDebugClient;
 use crate::cli_runtime_client::CLIRuntimeClient;
 
+#[cfg(feature = "debugger")]
 mod cli_debug_client;
 mod cli_runtime_client;
 
@@ -84,7 +86,12 @@ fn run() -> Result<()> {
 
     // Start the coordinator server either on the main thread or as a background thread
     // depending on the value of the "server_only" option
+    #[cfg(feature = "debugger")]
     let (runtime_connection, debug_connection) = Coordinator::server(
+        num_threads(&matches, debugger), native, server_only, client_only, server_hostname)?;
+
+    #[cfg(not(feature = "debugger"))]
+        let runtime_connection = Coordinator::server(
         num_threads(&matches, debugger), native, server_only, client_only, server_hostname)?;
 
     if !server_only {
@@ -92,8 +99,11 @@ fn run() -> Result<()> {
         let flow_args = get_flow_args(&matches, &flow_manifest_url);
         let submission = Submission::new(&flow_manifest_url.to_string(),
                                          num_parallel_jobs(&matches, debugger),
-                                         debugger);
+                                         #[cfg(feature = "debugger")]
+                                         debugger
+        );
 
+        #[cfg(feature = "debugger")]
         CLIDebugClient::start(debug_connection);
         CLIRuntimeClient::start(runtime_connection,
                                 submission,
