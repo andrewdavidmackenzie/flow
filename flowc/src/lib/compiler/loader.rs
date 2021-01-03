@@ -200,8 +200,9 @@ mod test {
 
     #[test]
     fn deserialize_library() {
-        let contents = include_str!("../../tests/test_libs/Cargo.toml");
-        let cargo: Cargo = toml::from_str(contents).unwrap();
+        let contents = include_str!("../../../tests/test_libs/Cargo.toml");
+        let cargo: Cargo = toml::from_str(contents)
+            .expect("Could not parse Cargo.toml in deserialize_library test");
         let _: MetaData = cargo.package;
     }
 }
