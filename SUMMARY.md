@@ -7,7 +7,7 @@
 - [Introduction](docs/introduction/introduction.md)
     - [What is flow](docs/introduction/what_is_flow.md)
     - [Tenets of flow](docs/introduction/tenets.md)
-    - [Project Components](docs/introduction/components.md)
+    - [Project Components and Structure](docs/introduction/structure.md)
     - [The Inspirations for flow](docs/introduction/inspirations.md)
     - [Non-Inspirations](docs/introduction/non_inspirations.md)
     - [Status](docs/introduction/status.md)
@@ -37,7 +37,7 @@
     - [Standard Input and Output](docs/running/stdio.md)
     - [Exceptions and Panics](docs/running/panics.md)
 
-- [The flowruntime functions](flowr/src/lib/flowruntime/flowruntime.md)
+- [The flowruntime functions](flowr/src/lib/flowruntime/README.md)
     - [Arg functions](flowr/src/lib/flowruntime/args/args.md)
         - [Arg get function](flowr/src/lib/flowruntime/args/get.md)
     - [File functions](flowr/src/lib/flowruntime/file/file.md)
@@ -107,7 +107,6 @@
 
 - [Developing flow](docs/developing/overview.md)
     - [Pre-requisites](docs/developing/prereqs.md)
-    - [Project Structure](docs/developing/structure.md)
         - [flow_impl](flow_impl/README.md)
         - [flow_impl_derive](flow_impl_derive/README.md)
         - [flowc](flowc/README.md)
@@ -117,10 +116,10 @@
                 - [print-args](flowc/tests/test-flows/print-args/print-args.md)
                 <!--- TODO add Markdown docs for other test flows explaining what they test -->
         - [flowr](flowr/README.md)
-        - [flowrlib](flowr/src/lib/flowrlib.md)
+        - [flowrlib](flowr/src/lib/README.md)
         - [flowstdlib](flowstdlib/README.md)
         - [provider](provider/README.md)
-        - [flowruntime](flowr/src/lib/flowruntime/flowruntime.md)
+        - [flowruntime](flowr/src/lib/flowruntime/README.md)
         - [samples](samples/README.md)
     - [Makefile targets](docs/developing/make.md)
     - [Ways to contribute](docs/developing/contributing.md)

@@ -1,6 +1,6 @@
 # `flowruntime`
 
-`flowruntime` defines the functions an execution environment 
+`flowruntime` defines and implements the functions all flow runtimes 
 (i.e. an app or server where flows are executed using `flowrlib`) must provide
 in order to interact with `stdio` or the file system.
 

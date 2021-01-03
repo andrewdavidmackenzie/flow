@@ -116,8 +116,8 @@ mod test {
     use super::remove_duplicates;
 
     /*
-                                                                        Test that when two functions are connected doubly, the connection gets reduced to a single one
-                                                                    */
+                                                                            Test that when two functions are connected doubly, the connection gets reduced to a single one
+                                                                        */
     #[test]
     fn remove_duplicated_connection() {
         let first = Connection {
