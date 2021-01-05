@@ -84,7 +84,6 @@ fn function_input_initialized() {
     }
 }
 
-
 #[test]
 fn root_flow_takes_name_from_file() {
     let meta_provider = MetaProvider {};

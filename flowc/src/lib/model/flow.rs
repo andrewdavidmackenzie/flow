@@ -392,4 +392,12 @@ mod test {
         let flow = super::Flow::default();
         assert_eq!(flow.alias(), &Name::default());
     }
+
+    #[test]
+    fn test_serialization() {
+        match toml::to_string(&super::Flow::default()) {
+            Ok(contents) => assert!(!contents.is_empty(), "Serialized flow was empty"),
+            Err(e) => panic!("Could not serialize flow: {}", e)
+        }
+    }
 }
