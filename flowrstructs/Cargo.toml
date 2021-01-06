@@ -1,6 +1,6 @@
 [package]
 name = "flowrstructs"
-version = "0.25.0"
+version = "0.33.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "Structures shared between runtime and clients"
 license = "MIT"
