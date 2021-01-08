@@ -6,6 +6,7 @@ use glob::glob;
 use log::{debug, info};
 use url::Url;
 
+use flowclib::compiler::compile_wasm;
 use flowclib::compiler::loader;
 use flowclib::compiler::loader::load;
 use flowclib::dumper::dump_flow;
@@ -16,7 +17,6 @@ use flowrstructs::lib_manifest::LibraryManifest;
 use provider::content::file_provider::FileProvider;
 use provider::content::provider::Provider;
 
-use crate::compile_wasm;
 use crate::errors::*;
 use crate::Options;
 
@@ -140,7 +140,8 @@ fn compile_implementations(options: &Options, lib_manifest: &mut LibraryManifest
             match load(&url, provider) {
                 Ok(FunctionProcess(ref mut function)) => {
                     let (wasm_abs_path, built) = compile_wasm::compile_implementation(function,
-                                                                                      skip_building)?;
+                                                                                      skip_building)
+                        .chain_err(|| "Could not compile supplied implementation to wasm")?;
                     let wasm_dir = wasm_abs_path.parent()
                         .chain_err(|| "Could not get parent directory of wasm path")?;
                     lib_manifest.add_to_manifest(base_dir,

@@ -76,70 +76,85 @@ mod test {
 
     #[test]
     fn http_url_no_output_dir_arg() {
-        let url = &Url::parse("http://test.com/dir/file.flow").unwrap();
+        let url = &Url::parse("http://test.com/dir/file.flow")
+            .expect("Could not parse test url");
 
-        let dir = super::get_output_dir(url, None);
+        let dir = super::get_output_dir(url, None)
+            .expect("Could not get output dir");
 
-        assert!(dir.unwrap().exists());
+        assert!(dir.exists());
     }
 
     #[test]
     fn http_with_output_dir_arg() {
-        let url = &Url::parse("http://test.com/dir/file.flow").unwrap();
+        let url = &Url::parse("http://test.com/dir/file.flow")
+            .expect("Could not parse test url");
 
-        let temp_dir = TempDir::new("flow").unwrap().into_path();
-        let out_dir_arg = temp_dir.to_str().unwrap();
+        let temp_dir = TempDir::new("flow")
+            .expect("Could not create TempDir for test").into_path();
+        let out_dir_arg = temp_dir.to_str().expect("Could not convert temp dir to String");
 
-        let dir = super::get_output_dir(url, Some(&out_dir_arg));
+        let dir = super::get_output_dir(url, Some(&out_dir_arg))
+            .expect("Could not get output dir");
 
-        assert_eq!(dir.unwrap().to_str().unwrap(), out_dir_arg);
+        assert_eq!(dir.to_str().expect("Could not convert dir ot String"), out_dir_arg);
     }
 
     #[test]
     fn output_dir_is_created() {
-        let url = &Url::parse("http://test.com/dir/file.flow").unwrap();
+        let url = &Url::parse("http://test.com/dir/file.flow")
+            .expect("Could not parse test url");
 
-        let temp_dir = TempDir::new("flow").unwrap().into_path();
-        let out_dir_arg = format!("{}/subdir", temp_dir.to_str().unwrap());
+        let temp_dir = TempDir::new("flow")
+            .expect("Could not create TempDir for test").into_path();
+        let out_dir_arg = format!("{}/subdir", temp_dir.to_str()
+            .expect("Could not convert temp dir name to string"));
 
         let dir = super::get_output_dir(url, Some(&out_dir_arg))
-            .unwrap();
+            .expect("Could not get output dir");
 
-        assert_eq!(dir.to_str().unwrap(), out_dir_arg);
+        assert_eq!(dir.to_str().expect("Could not convert dir ot String"), out_dir_arg);
         assert!(dir.exists());
     }
 
     #[test]
     fn file_url_no_output_dir_arg() {
-        let temp_dir = TempDir::new("flow").unwrap().into_path();
-        let flow_dir = temp_dir.to_str().unwrap();
+        let temp_dir = TempDir::new("flow")
+            .expect("Could not create TempDir for test").into_path();
+        let flow_dir = temp_dir.to_str()
+            .expect("Could not convert temp dir name to string");
         let flow_path = format!("{}/fake.toml", flow_dir);
-        let mut file = fs::File::create(&flow_path).unwrap();
-        file.write_all(b"flow = 'test'").unwrap();
-        let url = Url::parse(&format!("file://{}", flow_path)).unwrap();
+        let mut file = fs::File::create(&flow_path).expect("Could not create file");
+        file.write_all(b"flow = 'test'").expect("Could not write to file");
+        let url = Url::parse(&format!("file://{}", flow_path)).expect("Could not parse test Url");
 
-        let dir = super::get_output_dir(&url, None).unwrap();
+        let dir = super::get_output_dir(&url, None)
+            .expect("Could not get output dir");
 
-        assert_eq!(dir.to_str().unwrap(), flow_dir);
+        assert_eq!(dir.to_str().expect("Could not convert output directory to file"), flow_dir);
         assert!(dir.exists());
     }
 
     #[test]
     fn file_url_output_dir_arg() {
         // FLow url
-        let temp_dir = TempDir::new("flow").unwrap().into_path();
-        let flow_dir = temp_dir.to_str().unwrap();
+        let temp_dir = TempDir::new("flow")
+            .expect("Could not create TempDir for test").into_path();
+        let flow_dir = temp_dir.to_str().expect("Could not convert temp dir name to string");
+
         let flow_path = format!("{}/fake.toml", flow_dir);
-        let url = Url::parse(&format!("file:/{}", flow_path)).unwrap();
+        let url = Url::parse(&format!("file:/{}", flow_path)).expect("Could not parse test Url");
 
         // Output dir arg
-        let temp_dir = TempDir::new("flow").unwrap().into_path();
-        let out_dir_arg = temp_dir.to_str().unwrap();
+        let temp_dir = TempDir::new("flow")
+            .expect("Could not create TempDir for test").into_path();
+        let out_dir_arg = temp_dir.to_str()
+            .expect("Could not convert temp dir name to string");
 
         let dir = super::get_output_dir(&url, Some(&out_dir_arg))
-            .unwrap();
+            .expect("Could not get output dir");
 
-        assert_eq!(dir.to_str().unwrap(), out_dir_arg);
+        assert_eq!(dir.to_str().expect("Could not convert dir ot String"), out_dir_arg);
         assert!(dir.exists());
     }
 }

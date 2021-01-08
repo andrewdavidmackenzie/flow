@@ -37,6 +37,7 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables> {
 
 #[cfg(test)]
 mod test {
+    use crate::compiler::compile::compile;
     use crate::model::flow::Flow;
     use crate::model::function::Function;
     use crate::model::io::IO;
@@ -45,12 +46,10 @@ mod test {
     use crate::model::process_reference::ProcessReference;
     use crate::model::route::Route;
 
-    use super::compile;
-
     /*
-                                                                                    Test for a function that is dead code. It has no connections to it or from it so will
-                                                                                    never run. So it should be removed by the optimizer and not fail at check stage.
-                                                                                */
+            Test for a function that is dead code. It has no connections to it or from it so will
+            never run. So it should be removed by the optimizer and not fail at check stage.
+        */
     #[test]
     fn dead_function() {
         let function = Function::new(Name::from("Stdout"),
@@ -72,11 +71,13 @@ mod test {
             initializations: None
         };
 
-        let mut flow = Flow::default();
-        flow.alias = Name::from("context");
-        flow.name = Name::from("test-flow");
-        flow.process_refs = Some(vec!(function_ref));
+        let flow = Flow {
+            alias: Name::from("context"),
+            name: Name::from("test-flow"),
+            process_refs: Some(vec!(function_ref)),
+            ..Default::default()
+        };
 
-        let _tables = compile(&flow).unwrap();
+        let _tables = compile(&flow).expect("Error while compiling");
     }
 }

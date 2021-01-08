@@ -29,7 +29,6 @@ use crate::lib_build::build_lib;
 mod source_arg;
 mod lib_build;
 mod flow_compile;
-mod compile_wasm;
 
 // We'll put our errors in an `errors` module, and other modules in this crate will
 // `use crate::errors::*;` to get access to everything `error_chain!` creates.

@@ -1,5 +1,8 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fs::File;
+use std::io::Write;
+use std::path::PathBuf;
 
 use log::info;
 use serde_derive::Serialize;
@@ -7,7 +10,7 @@ use url::Url;
 
 use flowrstructs::function::Function as RuntimeFunction;
 use flowrstructs::input::Input;
-use flowrstructs::manifest::{Manifest, MetaData};
+use flowrstructs::manifest::{DEFAULT_MANIFEST_FILENAME, Manifest, MetaData};
 
 use crate::errors::*;
 use crate::model::connection::Connection;
@@ -80,6 +83,28 @@ pub fn create_manifest(flow: &Flow, debug_symbols: bool, manifest_url: &str, tab
     manifest.set_lib_references(&tables.libs);
 
     Ok(manifest)
+}
+
+
+/// Generate a manifest for the flow in JSON that can be used to run it using 'flowr'
+// TODO this is tied to being a file:// - generalize this to write to a URL, moving the code
+// TODO into the provider and implementing for file and http
+pub fn write_flow_manifest(flow: Flow, debug_symbols: bool, destination: &PathBuf, tables: &GenerationTables)
+                       -> Result<PathBuf> {
+    let mut filename = destination.clone();
+    filename.push(DEFAULT_MANIFEST_FILENAME.to_string());
+    filename.set_extension("json");
+    let mut manifest_file = File::create(&filename).chain_err(|| "Could not create manifest file")?;
+    let manifest_url = Url::from_file_path(&filename)
+        .map_err(|_| "Could not parse Url from file path")?;
+    let manifest = create_manifest(&flow, debug_symbols, manifest_url.as_str(), tables)
+        .chain_err(|| "Could not create manifest from parsed flow and compiler tables")?;
+
+    manifest_file.write_all(serde_json::to_string_pretty(&manifest)
+        .chain_err(|| "Could not pretty format the manifest JSON contents")?
+        .as_bytes()).chain_err(|| "Could not write manifest data bytes to created manifest file")?;
+
+    Ok(filename)
 }
 
 /*
@@ -203,9 +228,11 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let runtime_process = function_to_runtimefunction("/test", &br, false).unwrap();
+        let runtime_process = function_to_runtimefunction("/test", &br, false)
+            .expect("Could not convert compile time function to runtime function");
 
-        let serialized_process = serde_json::to_string_pretty(&runtime_process).unwrap();
+        let serialized_process = serde_json::to_string_pretty(&runtime_process)
+            .expect("Could not convert function content to json");
         assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 
@@ -239,9 +266,11 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = function_to_runtimefunction("/test", &br, false).unwrap();
+        let process = function_to_runtimefunction("/test", &br, false)
+            .expect("Could not convert compile time function to runtime function");
 
-        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        let serialized_process = serde_json::to_string_pretty(&process)
+            .expect("Could not convert function content to json");
         assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 
@@ -277,9 +306,11 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = function_to_runtimefunction("/test", &br, false).unwrap();
+        let process = function_to_runtimefunction("/test", &br, false)
+            .expect("Could not convert compile time function to runtime function");
 
-        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        let serialized_process = serde_json::to_string_pretty(&process)
+            .expect("Could not convert function content to json");
         assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 
@@ -315,9 +346,11 @@ mod test {
 }";
 
         let br = Box::new(function) as Box<Function>;
-        let process = function_to_runtimefunction("/test", &br, false).unwrap();
+        let process = function_to_runtimefunction("/test", &br, false)
+            .expect("Could not convert compile time function to runtime function");
 
-        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        let serialized_process = serde_json::to_string_pretty(&process)
+            .expect("Could not convert function content to json");
         assert_eq!(expected.replace("'", "\""), serialized_process);
     }
 
@@ -353,9 +386,11 @@ mod test {
 }";
 
         let br = Box::new(function) as Box<Function>;
-        let process = function_to_runtimefunction("/test", &br, false).unwrap();
+        let process = function_to_runtimefunction("/test", &br, false)
+            .expect("Could not convert compile time function to runtime function");
 
-        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        let serialized_process = serde_json::to_string_pretty(&process)
+            .expect("Could not convert function content to json");
         assert_eq!(expected.replace("'", "\""), serialized_process);
     }
 
@@ -386,9 +421,11 @@ mod test {
 }";
 
         let br = Box::new(function) as Box<Function>;
-        let process = function_to_runtimefunction("/test", &br, false).unwrap();
+        let process = function_to_runtimefunction("/test", &br, false)
+            .expect("Could not convert compile time function to runtime function");
 
-        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        let serialized_process = serde_json::to_string_pretty(&process)
+            .expect("Could not convert function content to json");
         assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 
@@ -430,9 +467,11 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = function_to_runtimefunction("/test", &br, true).unwrap();
+        let process = function_to_runtimefunction("/test", &br, true)
+            .expect("Could not convert compile time function to runtime function");
 
-        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        let serialized_process = serde_json::to_string_pretty(&process)
+            .expect("Could not convert function content to json");
         assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 
@@ -467,9 +506,11 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = function_to_runtimefunction("/test", &br, false).unwrap();
+        let process = function_to_runtimefunction("/test", &br, false)
+            .expect("Could not convert compile time function to runtime function");
 
-        let serialized_process = serde_json::to_string_pretty(&process).unwrap();
+        let serialized_process = serde_json::to_string_pretty(&process)
+            .expect("Could not convert function content to json");
         assert_eq!(serialized_process, expected.replace("'", "\""));
     }
 }

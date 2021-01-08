@@ -1,6 +1,4 @@
 use std::env;
-use std::fs::File;
-use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
@@ -8,21 +6,18 @@ use std::process::Stdio;
 use log::{debug, error, info};
 use simpath::FileType;
 use simpath::Simpath;
-use url::Url;
 
 use flowclib::compiler::compile;
+use flowclib::compiler::compile_wasm;
 use flowclib::compiler::loader;
 use flowclib::dumper::dump_flow;
 use flowclib::dumper::dump_tables;
 use flowclib::generator::generate;
-use flowclib::generator::generate::GenerationTables;
 use flowclib::model::flow::Flow;
 use flowclib::model::name::HasName;
 use flowclib::model::process::Process::FlowProcess;
-use flowrstructs::manifest::DEFAULT_MANIFEST_FILENAME;
 use provider::content::provider::Provider;
 
-use crate::compile_wasm;
 use crate::errors::*;
 use crate::Options;
 
@@ -68,7 +63,9 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
             let mut tables = compile::compile(&flow)
                 .chain_err(|| format!("Could not compile flow from '{}'", options.url))?;
 
-            compile_supplied_implementations(&mut tables, options.provided_implementations)?;
+            compile_wasm::compile_supplied_implementations(&mut tables,
+                                                           options.provided_implementations)
+                .chain_err(|| "Could not compile supplied implementation to wasm")?;
 
             let runnable = check_root(&flow);
 
@@ -86,7 +83,8 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
             }
 
             info!("==== Compiler phase: Generating Manifest");
-            let manifest_path = write_flow_manifest(flow, options.debug_symbols, &options.output_dir, &tables)
+            let manifest_path = generate::write_flow_manifest(flow, options.debug_symbols,
+                                                    &options.output_dir, &tables)
                 .chain_err(|| "Failed to write manifest")?;
 
             if options.skip_execution {
@@ -98,43 +96,6 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
         }
         _ => bail!("Process loaded was not of type 'Flow' and cannot be executed")
     }
-}
-
-/*
-    For any function that provides an implementation - compile the source to wasm and modify the
-    implementation to indicate it is the wasm file
-*/
-fn compile_supplied_implementations(tables: &mut GenerationTables, skip_building: bool) -> Result<String> {
-    for function in &mut tables.functions {
-        if function.get_lib_reference().is_none() {
-            compile_wasm::compile_implementation(function, skip_building)?;
-        }
-    }
-
-    Ok("All supplied implementations compiled successfully".into())
-}
-
-/*
-    Generate a manifest for the flow in JSON that can be used to run it using 'flowr'
-*/
-// TODO this is tied to being a file:// - generalize this to write to a URL, moving the code
-// TODO into the provider and implementing for file and http
-fn write_flow_manifest(flow: Flow, debug_symbols: bool, destination: &PathBuf, tables: &GenerationTables)
-                       -> Result<PathBuf> {
-    let mut filename = destination.clone();
-    filename.push(DEFAULT_MANIFEST_FILENAME.to_string());
-    filename.set_extension("json");
-    let mut manifest_file = File::create(&filename).chain_err(|| "Could not create manifest file")?;
-    let manifest_url = Url::from_file_path(&filename)
-        .map_err(|_| "Could not parse Url from file path")?;
-    let manifest = generate::create_manifest(&flow, debug_symbols, manifest_url.as_str(), tables)
-        .chain_err(|| "Could not create manifest from parsed flow and compiler tables")?;
-
-    manifest_file.write_all(serde_json::to_string_pretty(&manifest)
-        .chain_err(|| "Could not pretty format the manifest JSON contents")?
-        .as_bytes()).chain_err(|| "Could not write manifest data bytes to created manifest file")?;
-
-    Ok(filename)
 }
 
 #[cfg(not(target_os = "windows"))]
