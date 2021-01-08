@@ -8,14 +8,26 @@ use log::{debug, error, info, warn};
 use tempdir::TempDir;
 use url::Url;
 
-use flowclib::model::function::Function;
 use provider::args::url_from_string;
 
 use crate::errors::*;
+use crate::generator::generate::GenerationTables;
+use crate::model::function::Function;
 
-/*
-    Compile a function provided in rust to wasm and modify implementation to point to new file
-*/
+/// For any function that provides an implementation - compile the source to wasm and modify the
+/// implementation to indicate it is the wasm file
+pub fn compile_supplied_implementations(tables: &mut GenerationTables, skip_building: bool) -> Result<String> {
+    for function in &mut tables.functions {
+        if function.get_lib_reference().is_none() {
+            compile_implementation(function, skip_building)?;
+        }
+    }
+
+    Ok("All supplied implementations compiled successfully".into())
+}
+
+/// Compile a function provided in rust to wasm and modify implementation to point to new file
+/// Checks the timestamp of source and wasm files and only recompiles if wasm file is out of date
 pub fn compile_implementation(function: &mut Function, skip_building: bool) -> Result<(PathBuf, bool)> {
     let mut built = false;
 
@@ -181,66 +193,82 @@ mod test {
     use std::path::Path;
     use std::time::Duration;
 
-    use flowclib::model::function::Function;
-    use flowclib::model::io::IO;
-    use flowclib::model::route::Route;
     use flowrstructs::output_connection::OutputConnection;
+
+    use crate::model::function::Function;
+    use crate::model::io::IO;
+    use crate::model::route::Route;
 
     use super::get_paths;
     use super::out_of_date;
 
     #[test]
     fn out_of_date_test() {
-        let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
+        let output_dir = tempdir::TempDir::new("flow")
+            .unwrap_or_else(|_| panic!("Could not create TempDir during testing"))
+            .into_path();
 
         // make older file
         let older = output_dir.join("older");
         let derived = older.clone();
-        write(older, "older").unwrap();
+        write(&older, "older")
+            .unwrap_or_else(|_| panic!("Could not write to file {} during testing", older.display()));
 
         std::thread::sleep(Duration::from_secs(1));
 
         // make second/newer file
         let newer = output_dir.join("newer");
         let source = newer.clone();
-        write(newer, "newer").unwrap();
+        write(&newer, "newer")
+            .unwrap_or_else(|_| panic!("Could not write to file {} during testing", newer.display()));
 
-        assert!(out_of_date(&source, &derived).unwrap().0);
+        assert!(out_of_date(&source, &derived).unwrap_or_else(|_| panic!("Error in 'out__of_date'")).0);
     }
 
     #[test]
     fn not_out_of_date_test() {
-        let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
+        let output_dir = tempdir::TempDir::new("flow")
+            .unwrap_or_else(|_| panic!("Could not create TempDir during testing"))
+            .into_path();
 
         // make older file
         let older = output_dir.join("older");
         let source = older.clone();
-        write(older, "older").unwrap();
+        write(&older, "older")
+            .unwrap_or_else(|_| panic!("Could not write to file {} during testing", older.display()));
 
         // make second/newer file
         let newer = output_dir.join("newer");
         let derived = newer.clone();
-        write(newer, "newer").unwrap();
+        write(&newer, "newer")
+            .unwrap_or_else(|_| panic!("Could not write to file {} during testing", newer.display()));
 
-        assert_eq!(out_of_date(&source, &derived).unwrap().0, false);
+        assert_eq!(out_of_date(&source, &derived)
+                       .unwrap_or_else(|_| panic!("Error in 'out__of_date'")).0, false);
     }
 
     #[test]
     fn out_of_date_missing_test() {
-        let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
+        let output_dir = tempdir::TempDir::new("flow")
+            .unwrap_or_else(|_| panic!("Could not create TempDir during testing"))
+            .into_path();
 
         // make older file
         let older = output_dir.join("older");
         let source = older.clone();
-        write(older, "older").unwrap();
+        write(&older, "older")
+            .unwrap_or_else(|_| panic!("Could not write to file {} during testing", older.display()));
 
         // make second/newer file
         let newer = output_dir.join("newer");
-        write(&newer, "it's a short life").unwrap();
-        let derived = newer.clone();
-        remove_file(newer).unwrap();
+        write(&newer, "newer")
+            .unwrap_or_else(|_| panic!("Could not write to file {} during testing", newer.display()));
 
-        assert!(out_of_date(&source, &derived).unwrap().1);
+        let derived = newer.clone();
+        remove_file(newer).unwrap_or_else(|_| panic!("Error in 'remove_file' during testing"));
+
+        assert!(out_of_date(&source, &derived)
+            .unwrap_or_else(|_| panic!("Error in 'out__of_date'")).1);
     }
 
     fn test_function() -> Function {
@@ -253,11 +281,13 @@ mod test {
             Some(vec!(
                 IO::new("String", Route::default())
             )),
-            &format!("{}/{}", Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().display().to_string(),
+            &format!("{}/{}", Path::new(env!("CARGO_MANIFEST_DIR")).parent()
+                .expect("Error getting Manifest Dir").display().to_string(),
                      "flowr/src/lib/flowruntime/stdio/stdout"),
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
-            vec!(OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None)),
+            vec!(OutputConnection::new("".to_string(),
+                                       1, 0, 0, 0, false, None)),
             0, 0)
     }
 
@@ -265,11 +295,16 @@ mod test {
     fn paths_test() {
         let function = test_function();
 
-        let (impl_source_path, impl_wasm_path) = get_paths(&function).unwrap();
+        let (impl_source_path, impl_wasm_path) = get_paths(&function)
+            .expect("Error in 'get_paths'");
 
-        assert_eq!(format!("{}/{}", Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().display().to_string(),
-                           "flowr/src/lib/flowruntime/stdio/stdout.rs"), impl_source_path.to_str().unwrap());
-        assert_eq!(format!("{}/{}", Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().display().to_string(),
-                           "flowr/src/lib/flowruntime/stdio/stdout.wasm"), impl_wasm_path.to_str().unwrap());
+        assert_eq!(format!("{}/{}", Path::new(env!("CARGO_MANIFEST_DIR")).parent()
+            .expect("Error getting Manifest Dir").display().to_string(),
+                           "flowr/src/lib/flowruntime/stdio/stdout.rs"), impl_source_path.to_str()
+            .expect("Error converting path to str"));
+        assert_eq!(format!("{}/{}", Path::new(env!("CARGO_MANIFEST_DIR")).parent()
+            .expect("Error getting Manifest Dir").display().to_string(),
+                           "flowr/src/lib/flowruntime/stdio/stdout.wasm"), impl_wasm_path.to_str()
+            .expect("Error converting path to str"));
     }
 }

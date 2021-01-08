@@ -35,9 +35,9 @@ pub struct Flow {
     #[serde(rename = "flow")]
     pub name: Name,
     #[serde(rename = "input")]
-    inputs: IOSet,
+    pub inputs: IOSet,
     #[serde(rename = "output")]
-    outputs: IOSet,
+    pub outputs: IOSet,
     #[serde(rename = "process")]
     pub process_refs: Option<Vec<ProcessReference>>,
     #[serde(rename = "connection")]
