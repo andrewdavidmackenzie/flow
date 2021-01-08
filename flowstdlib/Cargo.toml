@@ -1,6 +1,6 @@
 [package]
 name = "flowstdlib"
-version = "0.33.0"
+version = "0.34.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "The standard library of functions for 'flow' programs"
 license = "MIT"
@@ -24,7 +24,7 @@ path = "lib.rs"
 
 [build-dependencies]
 # dependency on flowc binary being built doesn't actually work yet
-flowc = {path = "../flowc", version = "0.33.0" }
+flowc = {path = "../flowc", version = "0.34.0" }
 simpath = "~1.4"
 
 [dependencies]
