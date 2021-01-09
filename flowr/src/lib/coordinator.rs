@@ -337,7 +337,7 @@ impl Coordinator {
                             }
                         }
                         #[cfg(not(feature = "debugger"))]
-                        Err(_) => error!("\tError in Job reception")
+                        Err(e) => error!("\tError in Job reception: {}", e)
                     }
                 }
 
