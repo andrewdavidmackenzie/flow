@@ -223,9 +223,8 @@ impl Coordinator {
                     self.debugger.start();
                 }
                 Err(e) => {
-                    error!("Error loading from manifest: {}", e);
                     if !server_only {
-                        break;
+                        bail!("Error loading from manifest: {}", e);
                     }
                 }
             }
