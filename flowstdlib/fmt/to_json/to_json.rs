@@ -16,7 +16,12 @@ impl Implementation for ToJson {
             (Some(Value::Null), RUN_AGAIN)
         } else if input.is_string() {
             match input.as_str() {
-                Some(string) => (Some(serde_json::from_str(string).unwrap()), RUN_AGAIN),
+                Some(string) => {
+                    match serde_json::from_str(string) {
+                        Ok(json) => (Some(json), RUN_AGAIN),
+                        Err(_) => (Some(serde_json::Value::String(string.to_string())), RUN_AGAIN)
+                    }
+                },
                 None => (None, RUN_AGAIN)
             }
 
@@ -66,6 +71,12 @@ mod test {
     #[test]
     fn parse_array() {
         test_to_json("[1,2,3,4]", json!([1,2,3,4]));
+    }
+
+    // Can't be parsed directly into json so return String
+    #[test]
+    fn parse_invalid() {
+        test_to_json("-1.20,0.35", json!("-1.20,0.35"));
     }
 
     #[test]
