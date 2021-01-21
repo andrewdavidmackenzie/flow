@@ -3,6 +3,7 @@
 **/*.iml
 **/*.dot
 **/*.dump
+**/*.log
 cov
 .crates.toml
 bin
