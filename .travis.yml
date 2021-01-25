@@ -59,8 +59,6 @@ script:
 # Docs are only built and deployed in "cron" builds on linux with rust stable
 deploy:
   provider: pages
-  edge:
-    branch: master #This has a fix to not count an empty deploy as a failure
   github-token: $GITHUB_PAGES_TOKEN
   local-dir: target/html
   keep-history: false
