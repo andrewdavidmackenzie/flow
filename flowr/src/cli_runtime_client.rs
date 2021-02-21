@@ -43,7 +43,6 @@ impl CLIRuntimeClient {
                  #[cfg(feature = "metrics")]
                  display_metrics: bool,
     ) -> Result<()> {
-        Self::capture_control_c(&connection);
         connection.start()?;
         trace!("Connection from Runtime client to Runtime server started");
 
@@ -73,13 +72,6 @@ impl CLIRuntimeClient {
                 }
             }
         }
-    }
-
-    fn capture_control_c(_connection: &RuntimeClientConnection) {
-        // let connection_clone = connection.clone();
-        // let _ = ctrlc::set_handler(move || {
-        //     let _ = connection_clone.send(Response::EnterDebugger);
-        // });
     }
 
     #[allow(clippy::many_single_char_names)]

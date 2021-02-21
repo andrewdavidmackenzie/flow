@@ -180,16 +180,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ctrlc"
-version = "3.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b57a92e9749e10f25a171adcebfafe72991d45e7ec2dcb853e8f83d9dafaeb08"
-dependencies = [
- "nix",
- "winapi",
-]
-
-[[package]]
 name = "curl"
 version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -299,7 +289,6 @@ name = "flowr"
 version = "0.34.3"
 dependencies = [
  "clap",
- "ctrlc",
  "error-chain 0.12.4",
  "flow_impl",
  "flowrstructs",
@@ -336,8 +325,6 @@ dependencies = [
 name = "flowsamples"
 version = "0.34.0"
 dependencies = [
- "flowc",
- "flowr",
  "serial_test",
  "simpath",
 ]
@@ -348,7 +335,6 @@ version = "0.34.3"
 dependencies = [
  "flow_impl",
  "flow_impl_derive",
- "flowc",
  "flowrstructs",
  "image",
  "serde_json",
@@ -567,18 +553,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1255076139a83bb467426e7f8d0134968a8118844faa755985e077cf31850333"
 dependencies = [
  "serde",
-]
-
-[[package]]
-name = "nix"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83450fe6a6142ddd95fb064b746083fc4ef1705fe81f64a64e1d4b39f54a1055"
-dependencies = [
- "bitflags",
- "cc",
- "cfg-if 0.1.10",
- "libc",
 ]
 
 [[package]]

@@ -106,7 +106,10 @@ fn write_lib_json_manifest(lib_manifest: &LibraryManifest, json_manifest_filenam
 
 /*
     Generate a manifest for the library in rust for static linking
+
+    TODO: Implement library rust manifest generation
 */
+#[allow(clippy::unnecessary_wraps)]
 fn write_lib_rust_manifest(_lib_manifest: &LibraryManifest, _rust_manifest_filename: &PathBuf) -> Result<()> {
     // let mut manifest_file = File::create(&rust_manifest_filename).chain_err(|| "Could not create lib rust manifest file")?;
     //

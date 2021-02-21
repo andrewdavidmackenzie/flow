@@ -9,6 +9,12 @@ DOTS = $(shell find . -type f -name \*.dot)
 SVGS = $(patsubst %.dot,%.dot.svg,$(DOTS))
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 2> /dev/null)
+#TARGET_ARCH := armv7-unknown-linux-musleabihf # For arm7 targets
+#TARGET_TOOLCHAIN := ../arm-linux-musleabihf-cross/armv7-linux-musleabihf  # For arm7 targets
+TARGET_ARCH := arm-unknown-linux-musleabihf # For piZero target
+#TARGET_TOOLCHAIN := ../arm-linux-musleabihf-cross/arm-linux-musleabihf  # For piZero target
+REMOTE_HOST := andrew@pi
+REMOTE_DIR := /home/andrew/bin
 export SHELL := /bin/bash
 
 .PHONY: all
@@ -261,13 +267,13 @@ else
 endif
 
 #################### Raspberry Pi ####################
+target/${TARGET_ARCH}/debug/flowr:
+	cargo build --target=${TARGET_ARCH} -p flowr
+
 .PHONY: pi
-pi:
+pi: target/${TARGET_ARCH}/debug/flowr
 	@echo "Building flowc for pi in $(PWD)"
-# https://hub.docker.com/r/dlecan/rust-crosscompiler-arm
-	docker run -it --rm -v $(PWD):/source -v ~/.cargo/git:/root/.cargo/git -v ~/.cargo/registry:/root/.cargo/registry dlecan/rust-crosscompiler-arm:stable
-# In case of permissions problems for cargo cache on local machine:
-# sudo chown -R `stat -c %u:%g $HOME` $(pwd) ~/.cargo
+	rsync -azh $< ${REMOTE_HOST}:${REMOTE_DIR}/hello
 
 .PHONY: copy
 copy:
