@@ -21,16 +21,10 @@ name = "flowsamples"
 path = "main.rs"
 
 [build-dependencies]
-flowc = {path = "../flowc", version = "0.34.0" }
 simpath = "~1.4"
 
 [dependencies]
 simpath = "~1.4"
-
-[dependencies.flowr]
-path = "../flowr"
-version = "0.34.0"
-features = ["debugger", "metrics", "checks"]
 
 [dev-dependencies]
 serial_test = "0.5.0"
