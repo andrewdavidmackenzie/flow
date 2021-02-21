@@ -116,8 +116,8 @@ mod test {
     use super::remove_duplicates;
 
     /*
-                                                                                Test that when two functions are connected doubly, the connection gets reduced to a single one
-                                                                            */
+                                                                                    Test that when two functions are connected doubly, the connection gets reduced to a single one
+                                                                                */
     #[test]
     fn remove_duplicated_connection() {
         let first = Connection {
@@ -141,7 +141,7 @@ mod test {
         let mut connections = vec!(first, second);
 
         assert_eq!(connections.len(), 2);
-        remove_duplicates(&mut connections).unwrap();
+        remove_duplicates(&mut connections);
         assert_eq!(connections.len(), 1);
     }
 }
