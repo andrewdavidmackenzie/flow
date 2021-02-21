@@ -18,13 +18,15 @@ use crate::model::route::Route;
 pub fn check_connections(tables: &mut GenerationTables) -> Result<()> {
     check_for_competing_inputs(tables)?;
 
-    remove_duplicates(&mut tables.collapsed_connections)
+    remove_duplicates(&mut tables.collapsed_connections);
+
+    Ok(())
 }
 
 /*
     Remove duplicate connections from a list
 */
-fn remove_duplicates(connections: &mut Vec<Connection>) -> Result<()> {
+fn remove_duplicates(connections: &mut Vec<Connection>) {
     let mut uniques = HashSet::<String>::new();
 
     // keep unique connections - dump duplicates
@@ -32,8 +34,6 @@ fn remove_duplicates(connections: &mut Vec<Connection>) -> Result<()> {
         let unique_key = format!("{}->{}", conn.from_io.route(), conn.to_io.route());
         uniques.insert(unique_key)
     });
-
-    Ok(())
 }
 
 /*
@@ -116,8 +116,8 @@ mod test {
     use super::remove_duplicates;
 
     /*
-                                                                            Test that when two functions are connected doubly, the connection gets reduced to a single one
-                                                                        */
+                                                                                Test that when two functions are connected doubly, the connection gets reduced to a single one
+                                                                            */
     #[test]
     fn remove_duplicated_connection() {
         let first = Connection {
