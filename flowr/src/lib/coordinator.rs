@@ -379,7 +379,8 @@ impl Coordinator {
         Ok(())
     }
 
-    fn load_from_manifest(manifest_url: &str, server_context: Arc<Mutex<RuntimeServerConnection>>, native: bool) -> Result<Manifest> {
+    fn load_from_manifest(manifest_url: &str, server_context: Arc<Mutex<RuntimeServerConnection>>,
+                          native: bool) -> Result<Manifest> {
         let mut loader = Loader::new();
         let provider = MetaProvider {};
 

@@ -8,8 +8,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 
-use flowclib::compiler::compile;
-use flowclib::compiler::loader;
+use flowclib::compiler::{compile, loader};
 use flowclib::generator::generate;
 use flowclib::generator::generate::GenerationTables;
 use flowclib::model::flow::Flow;
@@ -122,6 +121,7 @@ fn get(test_dir: &PathBuf, file_name: &str) -> String {
 }
 
 fn execute_test(test_name: &str) {
+    helper::set_lib_search_path();
     let mut root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     root_dir.pop();
     let test_dir = root_dir.join(&format!("flowc/tests/test-flows/{}", test_name));

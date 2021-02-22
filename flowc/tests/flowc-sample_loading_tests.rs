@@ -5,6 +5,7 @@ use provider::content::provider::MetaProvider;
 
 #[test]
 fn load_hello_world_from_context() {
+    helper::set_lib_search_path();
     let meta_provider = MetaProvider {};
     loader::load(&helper::absolute_file_url_from_relative_path("samples/hello-world/context.toml"),
                  &meta_provider).unwrap();
@@ -12,6 +13,7 @@ fn load_hello_world_from_context() {
 
 #[test]
 fn load_reverse_echo_from_toml() {
+    helper::set_lib_search_path();
     let meta_provider = MetaProvider {};
     loader::load(&helper::absolute_file_url_from_relative_path("samples/reverse-echo/context.toml"),
                  &meta_provider).unwrap();
@@ -19,6 +21,7 @@ fn load_reverse_echo_from_toml() {
 
 #[test]
 fn load_fibonacci_from_file() {
+    helper::set_lib_search_path();
     let meta_provider = MetaProvider {};
     loader::load(&helper::absolute_file_url_from_relative_path("samples/fibonacci/context.toml"),
                  &meta_provider).unwrap();
@@ -26,6 +29,7 @@ fn load_fibonacci_from_file() {
 
 #[test]
 fn load_fibonacci_from_directory() {
+    helper::set_lib_search_path();
     let meta_provider = MetaProvider {};
     let url = helper::absolute_file_url_from_relative_path("samples/fibonacci");
     loader::load(&url, &meta_provider).unwrap();

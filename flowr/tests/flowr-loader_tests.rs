@@ -5,11 +5,11 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use flow_impl::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use serde_json::Value;
 use tempdir::TempDir;
 use url::Url;
 
+use flow_impl::{DONT_RUN_AGAIN, Implementation, RunAgain};
 use flowrlib::loader::Loader;
 use flowrstructs::function::Function;
 use flowrstructs::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
@@ -133,6 +133,8 @@ fn load_manifest_from_file() {
     let provider = MetaProvider{};
 
     let mut loader = Loader::new();
+    // Load the "native" version of the flowstdlib first
+    loader.add_lib(&provider, "lib://flowstdlib", flowstdlib::get_manifest(), "native").unwrap();
     let _ = loader.load_manifest(&provider, &manifest_url.to_string()).unwrap();
 
     assert!(!loader.get_lib_implementations().is_empty());

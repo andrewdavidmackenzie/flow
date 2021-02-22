@@ -1,5 +1,3 @@
-use std::env;
-
 use log::debug;
 use simpath::Simpath;
 use url::Url;
@@ -18,10 +16,6 @@ pub struct LibProvider;
     Where 'flowstdlib' is the library name and 'stdio/stdout.toml' the path of the definition
     file within the library.
 
-    For the lib provider, libraries maybe installed in multiple places in the file system.
-    In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
-    list of directories in which to look for the library in question.
-
     Once the library in question is found in the file system, then a "file:" Url is constructed
     that refers to the actual content, and this is returned.
 
@@ -34,10 +28,7 @@ impl Provider for LibProvider {
         Take the "lib:" Url (such as "lib://flowruntime/stdio/stdout") and extract the library
          name ("flowruntime")
 
-        Using the "FLOW_LIB_PATH" environment variable attempt to locate the library's root folder
-        in the file system.
-
-        If located, then construct a PathBuf to refer to the definition file:
+        If the library is located, then construct a PathBuf to refer to the definition file:
             - either "stdio/stdout.toml" or
             - "stdio/stdout/stdout.toml"
 
@@ -55,15 +46,9 @@ impl Provider for LibProvider {
         let lib_name = url.host_str()
             .chain_err(|| format!("'lib_name' could not be extracted from host part of url '{}'", url))?;
 
-        if env::var("FLOW_LIB_PATH").is_err() {
-            let parent_dir = std::env::current_dir().chain_err(|| "Could not get CWD")?;
-            debug!("Setting 'FLOW_LIB_PATH' to '{}'", parent_dir.to_string_lossy().to_string());
-            env::set_var("FLOW_LIB_PATH", parent_dir.to_string_lossy().to_string());
-        }
-
         let flow_lib_search_path = Simpath::new("FLOW_LIB_PATH");
         let mut lib_path = flow_lib_search_path.find(lib_name)
-            .chain_err(|| format!("Could not find lib named '{}' in FLOW_LIB_PATH", lib_name))?;
+            .chain_err(|| format!("Could not find library named '{}' in library search path ('FLOW_LIB_PATH' and '-L')", lib_name))?;
 
         // Once we've found the (file) path where the library resides, append the rest of the
         // url path to it, to form a path to the directory where the process being loaded resides
@@ -103,7 +88,7 @@ impl Provider for LibProvider {
                 }
             }
 
-            bail!("Found library folder '{}' in 'FLOW_LIB_PATH', but could not locate default file '{}' or provided implementation file '{}' within it with extensions '{:?}'",
+            bail!("Found library folder '{}' in Library search path, but could not locate default file '{}' or provided implementation file '{}' within it with extensions '{:?}'",
             lib_path.display(), default_filename, provided_implementation_filename, _extensions)
         } else {
             // See if the file, with a .toml extension exists
@@ -114,7 +99,7 @@ impl Provider for LibProvider {
                     .map_err(|_| format!("Could not create Url from '{:?}'", &implementation_path))?;
                 return Ok((lib_path_url.to_string(), Some(lib_ref)));
             }
-            bail!("Could not locate a folder called '{}' or an implementation file called '{}' in 'FLOW_LIB_PATH'",
+            bail!("Could not locate a folder called '{}' or an implementation file called '{}' in the Library search path ('FLOW_LIB_PATH' and '-L')",
             lib_path.display(), implementation_path.display())
         }
     }
@@ -136,9 +121,10 @@ mod test {
 
     #[test]
     fn resolve_path() {
-        let provider: &dyn Provider = &LibProvider;
-        let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+        let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("Could not get project root dir");
         env::set_var("FLOW_LIB_PATH", root_str);
+
+        let provider: &dyn Provider = &LibProvider;
         let lib_url = "lib://flowstdlib/control/tap";
         match provider.resolve_url(&lib_url, "", &["toml"]) {
             Ok((url, lib_ref)) => {

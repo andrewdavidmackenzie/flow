@@ -89,12 +89,33 @@ fn main() {
 }
 
 /*
+    For the lib provider, libraries maybe installed in multiple places in the file system.
+    In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
+    list of directories in which to look for the library in question.
+
+
+    Using the "FLOW_LIB_PATH" environment variable attempt to locate the library's root folder
+    in the file system.
+ */
+fn setup_lib_path() -> Result<()>{
+    if env::var("FLOW_LIB_PATH").is_err() {
+        let parent_dir = std::env::current_dir().chain_err(|| "Could not get CWD")?;
+        debug!("Setting 'FLOW_LIB_PATH' to '{}'", parent_dir.to_string_lossy().to_string());
+        env::set_var("FLOW_LIB_PATH", parent_dir.to_string_lossy().to_string());
+    }
+
+    Ok(())
+}
+
+/*
     run the loader to load the process and (optionally) compile, generate code and run the flow.
     Return either an error string if anything goes wrong or
     a message to display to the user if all went OK
 */
 fn run() -> Result<String> {
     let options = parse_args(get_matches())?;
+
+    setup_lib_path()?;
 
     let provider = &MetaProvider {};
 
@@ -121,6 +142,13 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .short("l")
             .long("lib")
             .help("Compile a flow library"))
+        .arg(Arg::with_name("libdir")
+            .short("L")
+            .long("libdir")
+            .number_of_values(1)
+            .multiple(true)
+            .value_name("LIB_DIR")
+            .help("Add the directory or Url to the Library Search path"))
         .arg(Arg::with_name("dump")
             .short("d")
             .long("dump")
