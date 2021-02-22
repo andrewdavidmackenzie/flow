@@ -61,7 +61,8 @@ deploy:
   provider: pages
   github-token: $GITHUB_PAGES_TOKEN
   local-dir: target/html
-  keep-history: false
+  keep_history: true
+  allow_empty_commit: true # Avoid deploy fail on empty commit if nothing has changed in CRON deploy
   on:
     branch: master
     condition: $TRAVIS_OS_NAME == "linux" && $TRAVIS_RUST_VERSION == "stable" && $TRAVIS_EVENT_TYPE == "cron"
