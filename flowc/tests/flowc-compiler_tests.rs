@@ -27,10 +27,10 @@ mod helper;
 /// some test flow toml files and just compile those. Plus that also stresses the deserialization
 /// and parsing.
 ///
-/// An interim solution could be so have the files in the code as Strings and parse from there.
+/// An interim solution could be to have the files in the code as Strings and parse from there.
 #[test]
 fn args() {
-    let meta_provider = MetaProvider {};
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/args/args.toml");
     let process = loader::load(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
@@ -42,7 +42,7 @@ fn args() {
 
 #[test]
 fn object_to_array_connection() {
-    let meta_provider = MetaProvider {};
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/object_to_array_connection/object_to_array_connection.toml");
     let process = loader::load(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
@@ -54,7 +54,7 @@ fn object_to_array_connection() {
 
 #[test]
 fn context_with_io() {
-    let meta_provider = MetaProvider {};
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/context_with_io/context_with_io.toml");
     let process = loader::load(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
@@ -70,7 +70,7 @@ fn context_with_io() {
 
 #[test]
 fn same_name_input_and_output() {
-    let meta_provider = MetaProvider {};
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/same-name-parent/same-name-parent.toml");
     let process = loader::load(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
@@ -85,7 +85,7 @@ fn same_name_input_and_output() {
 
 #[test]
 fn same_name_flow_ids() {
-    let meta_provider = MetaProvider {};
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/same-name-parent/same-name-parent.toml");
     let process = loader::load(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
@@ -112,7 +112,7 @@ fn same_name_flow_ids() {
 
 #[test]
 fn double_connection() {
-    let meta_provider = MetaProvider {};
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/double-connection/double-connection.toml");
     let process = loader::load(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
@@ -126,7 +126,7 @@ fn double_connection() {
 
 #[test]
 fn connection_to_input_with_constant_initializer() {
-    let meta_provider = MetaProvider {};
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/connect_to_constant/connect_to_constant.toml");
     let process = loader::load(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
@@ -140,7 +140,7 @@ fn connection_to_input_with_constant_initializer() {
 
 #[test]
 fn dead_process_removed() {
-    let meta_provider = MetaProvider {};
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/dead-process/dead-process.toml");
     let process = loader::load(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
@@ -157,7 +157,7 @@ fn dead_process_removed() {
 
 #[test]
 fn dead_process_and_connected_process_removed() {
-    let meta_provider = MetaProvider {};
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/dead-process-and-connected-process/dead-process-and-connected-process.toml");
     let process = loader::load(&path, &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
@@ -172,7 +172,7 @@ fn dead_process_and_connected_process_removed() {
 
 #[test]
 fn compile_echo_ok() {
-    let meta_provider = MetaProvider {};
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
     let process = loader::load(&helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/echo/echo.toml"),
                                &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
@@ -184,7 +184,7 @@ fn compile_echo_ok() {
 
 #[test]
 fn compiler_detects_unused_input() {
-    let meta_provider = MetaProvider {};
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
     let process = loader::load(&helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/unused_input/unused_input.toml"),
                                &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
@@ -196,7 +196,7 @@ fn compiler_detects_unused_input() {
 
 #[test]
 fn compile_double_connection() {
-    let meta_provider = MetaProvider {};
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
     let process = loader::load(&helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/double/double.toml"),
                                &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
@@ -208,7 +208,7 @@ fn compile_double_connection() {
 
 #[test]
 fn compile_detects_connection_to_initialized_input() {
-    let meta_provider = MetaProvider {};
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
     let process = loader::load(&helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/connect_to_constant/connect_to_constant.toml"),
                                &meta_provider).unwrap();
     if let FlowProcess(ref flow) = process {
@@ -223,8 +223,8 @@ fn compile_detects_connection_to_initialized_input() {
     back out via a connection
 */
 #[test]
-fn flow_input_propagated_backout() {
-    let meta_provider = MetaProvider {};
+fn flow_input_propagated_back_out() {
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/subflow_input_init/subflow_input_init.toml");
 
@@ -245,7 +245,7 @@ fn flow_input_propagated_backout() {
 */
 #[test]
 fn initialized_output_propagated() {
-    let meta_provider = MetaProvider {};
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/print_subflow_output/print_subflow_output.toml");
 
@@ -278,12 +278,12 @@ fn initialized_output_propagated() {
 }
 
 /*
-    This tests that an initalizer on an input to a flow process is passed onto a function in
+    This tests that an initializer on an input to a flow process is passed onto a function in
     a sub-flow of that via a connection from the flow input to the function input
 */
 #[test]
-fn flow_input_initialized_and_propogated_to_function_in_subflow() {
-    let meta_provider = MetaProvider {};
+fn flow_input_initialized_and_propagated_to_function_in_subflow() {
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/subflow_function_input_init/subflow_function_input_init.toml");
 
