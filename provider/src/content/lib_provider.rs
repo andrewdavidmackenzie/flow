@@ -7,7 +7,17 @@ use crate::errors::*;
 
 use super::provider::Provider;
 
-pub struct LibProvider;
+pub struct LibProvider {
+    lib_search_path: Simpath
+}
+
+impl LibProvider {
+    pub fn new(lib_search_path: Simpath) -> Self {
+        LibProvider {
+            lib_search_path
+        }
+    }
+}
 
 /*
     Urls for library flows and functions and values will be of the form:
@@ -46,9 +56,8 @@ impl Provider for LibProvider {
         let lib_name = url.host_str()
             .chain_err(|| format!("'lib_name' could not be extracted from host part of url '{}'", url))?;
 
-        let flow_lib_search_path = Simpath::new("FLOW_LIB_PATH");
-        let mut lib_path = flow_lib_search_path.find(lib_name)
-            .chain_err(|| format!("Could not find library named '{}' in library search path ('FLOW_LIB_PATH' and '-L')", lib_name))?;
+        let mut lib_path = self.lib_search_path.find(lib_name)
+            .chain_err(|| format!("Could not find library named '{}' in library search path", lib_name))?;
 
         // Once we've found the (file) path where the library resides, append the rest of the
         // url path to it, to form a path to the directory where the process being loaded resides
@@ -116,15 +125,23 @@ mod test {
     use std::env;
     use std::path::Path;
 
+    use simpath::Simpath;
+
     use super::LibProvider;
     use super::super::provider::Provider;
+
+    fn set_lib_search_path() -> Simpath {
+        let mut lib_search_path = Simpath::new("lib_search_path");
+        let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("Could not get project root dir");
+        lib_search_path.add_directory(root_str.to_str().expect("Could not get root path as string"));
+        println!("Lib search path set to '{}'", lib_search_path);
+        lib_search_path
+    }
 
     #[test]
     fn resolve_path() {
         let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("Could not get project root dir");
-        env::set_var("FLOW_LIB_PATH", root_str);
-
-        let provider: &dyn Provider = &LibProvider;
+        let provider: &dyn Provider = &LibProvider::new(set_lib_search_path());
         let lib_url = "lib://flowstdlib/control/tap";
         match provider.resolve_url(&lib_url, "", &["toml"]) {
             Ok((url, lib_ref)) => {

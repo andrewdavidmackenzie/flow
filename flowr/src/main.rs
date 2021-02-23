@@ -10,10 +10,13 @@
 extern crate error_chain;
 
 use std::env;
+use std::io;
+use std::path::Path;
 use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
 use log::{error, info};
+use simpath::Simpath;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
@@ -71,6 +74,43 @@ fn main() {
     }
 }
 
+/*
+    For the lib provider, libraries maybe installed in multiple places in the file system.
+    In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
+    list of directories in which to look for the library in question.
+
+    Using the "FLOW_LIB_PATH" environment variable attempt to locate the library's root folder
+    in the file system.
+ */
+pub fn set_lib_search_path(lib_dirs: &[String]) -> Result<Simpath> {
+    let mut lib_search_path = Simpath::new("FLOW_LIB_PATH");
+
+    if env::var("FLOW_LIB_PATH").is_ok(){
+        info!("Library Search Path initialized from 'FLOW_LIB_PATH'");
+    }
+    else {
+        info!("'FLOW_LIB_PATH' not set so initializing Library Search Path from Project directories");
+        let project_root = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Could not get Project root dir"))?;
+        let project_root_str = project_root.to_str().chain_err(|| "Unable to convert project_root Path to String")?;
+        lib_search_path.add_directory(project_root_str);
+        info!("Directory '{}' added to the Library Search Path", project_root_str);
+
+        let runtime_parent = project_root.join("flowr/src/lib");
+        let runtime_parent_str = runtime_parent.to_str().chain_err(|| "Unable to convert runtime Path to String")?;
+        lib_search_path.add_directory(runtime_parent_str);
+        info!("Directory '{}' added to the Library Search Path", runtime_parent_str);
+    }
+
+    // Add any library search directories specified via the command line
+    for dir in lib_dirs {
+        lib_search_path.add_directory(dir);
+        info!("Directory '{}' specified on command line via '-L' added to the Library Search Path", dir);
+    }
+
+    Ok(lib_search_path)
+}
+
 fn run() -> Result<()> {
     info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     info!("'flowrlib' version {}", flowrlib_info::version());
@@ -83,12 +123,21 @@ fn run() -> Result<()> {
     let server_only = matches.is_present("server");
     let client_only = matches.is_present("client");
     let server_hostname = matches.value_of("client");
+    let lib_dirs = if matches.is_present("lib_dir") {
+        matches.values_of("lib_dir")
+            .chain_err(|| "Could not get the list of 'LIB_DIR' options specified")?
+            .map(|s| s.to_string()).collect()
+    } else {
+        vec!()
+    };
+    let lib_search_path = set_lib_search_path(&lib_dirs)?;
 
     // Start the coordinator server either on the main thread or as a background thread
     // depending on the value of the "server_only" option
     #[cfg(feature = "debugger")]
     let (runtime_connection, debug_connection) = Coordinator::server(
-        num_threads(&matches, debugger), native, server_only, client_only, server_hostname)?;
+        num_threads(&matches, debugger), lib_search_path,
+        native, server_only, client_only, server_hostname)?;
 
     #[cfg(not(feature = "debugger"))]
         let runtime_connection = Coordinator::server(
@@ -196,6 +245,13 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         .takes_value(true)
         .value_name("MAX_JOBS")
         .help("Set maximum number of jobs that can be running in parallel)"))
+        .arg(Arg::with_name("lib_dir")
+            .short("L")
+            .long("libdir")
+            .number_of_values(1)
+            .multiple(true)
+            .value_name("LIB_DIR")
+            .help("Add the directory or Url to the Library Search path"))
         .arg(Arg::with_name("threads")
             .short("t")
             .long("threads")

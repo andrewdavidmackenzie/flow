@@ -2,10 +2,11 @@ use std::env;
 use std::fs::File;
 use std::io::{self, Read};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use serde_json::Value;
+use simpath::Simpath;
 use tempdir::TempDir;
 use url::Url;
 
@@ -114,6 +115,14 @@ fn write_manifest(manifest: &Manifest, filename: &PathBuf) -> Result<(), String>
     Ok(())
 }
 
+fn set_lib_search_path() -> Simpath {
+    let mut lib_search_path = Simpath::new("lib_search_path");
+    let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("Could not get project root dir");
+    lib_search_path.add_directory(root_str.to_str().expect("Could not get root path as string"));
+    println!("Lib search path set to '{}'", lib_search_path);
+    lib_search_path
+}
+
 #[test]
 fn load_manifest_from_file() {
     let f_a = Function::new("fA".to_string(), // name
@@ -130,7 +139,7 @@ fn load_manifest_from_file() {
     let manifest_file = temp_dir.join("manifest.json");
     let _ = write_manifest(&manifest, &manifest_file).unwrap();
     let manifest_url = Url::from_directory_path(manifest_file).unwrap();
-    let provider = MetaProvider{};
+    let provider = MetaProvider::new(set_lib_search_path());
 
     let mut loader = Loader::new();
     // Load the "native" version of the flowstdlib first
@@ -150,7 +159,7 @@ fn resolve_lib_implementation_test() {
                             &[], false);
     let functions = vec!(f_a);
     let mut manifest = create_manifest(functions);
-    let provider = MetaProvider {};
+    let provider = MetaProvider::new(set_lib_search_path());
     let mut loader = Loader::new();
     let manifest_url = url_from_rel_path("manifest.json");
 
@@ -170,7 +179,7 @@ fn unresolved_lib_functions_test() {
                             &[], false);
     let functions = vec!(f_a);
     let mut manifest = create_manifest(functions);
-    let provider = MetaProvider {};
+    let provider = MetaProvider::new(set_lib_search_path());
     let mut loader = Loader::new();
     let manifest_url = url_from_rel_path("manifest.json");
 

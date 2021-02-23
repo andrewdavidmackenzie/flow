@@ -108,7 +108,8 @@ fn load_flow(test_dir: &PathBuf, test_name: &str) -> Process {
     let test_flow = format!("{}.toml", test_name);
     let mut flow_file = test_dir.clone();
     flow_file.push(test_flow);
-    loader::load(&helper::absolute_file_url_from_relative_path(&flow_file.to_string_lossy()), &MetaProvider {}).unwrap()
+    loader::load(&helper::absolute_file_url_from_relative_path(&flow_file.to_string_lossy()),
+                 &MetaProvider::new(helper::set_lib_search_path())).unwrap()
 }
 
 fn get(test_dir: &PathBuf, file_name: &str) -> String {
@@ -121,7 +122,7 @@ fn get(test_dir: &PathBuf, file_name: &str) -> String {
 }
 
 fn execute_test(test_name: &str) {
-    helper::set_lib_search_path();
+    // helper::set_lib_search_path()
     let mut root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     root_dir.pop();
     let test_dir = root_dir.join(&format!("flowc/tests/test-flows/{}", test_name));

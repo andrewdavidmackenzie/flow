@@ -301,6 +301,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
+ "simpath",
  "simplog",
  "tempdir",
  "url",

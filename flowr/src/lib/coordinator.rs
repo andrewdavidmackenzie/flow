@@ -5,9 +5,10 @@ use std::time::Duration;
 
 use log::{debug, error, info, trace};
 use serde_derive::{Deserialize, Serialize};
+use simpath::Simpath;
 
 use flowrstructs::manifest::Manifest;
-use provider::content::provider::MetaProvider;
+use provider::content::provider::{MetaProvider, Provider};
 
 #[cfg(feature = "debugger")]
 use crate::client_server::{DebugClientConnection, DebugServerConnection};
@@ -94,8 +95,10 @@ pub struct Coordinator {
 /// use flowrlib::runtime::Response as RuntimeResponse;
 /// use flowrlib::runtime::Event as RuntimeEvent;
 /// use flowrlib::runtime::Response::ClientSubmission;
+/// use simpath::Simpath;
 ///
 /// let (runtime_client_connection, debug_client_connection) = Coordinator::server(1 /* num_threads */,
+///                                                                     Simpath::new("fake path"),
 ///                                                                     true,  /* native */
 ///                                                                     false, /* server-only */
 ///                                                                     false, /* client-only */
@@ -142,7 +145,7 @@ impl Coordinator {
     /// `server_only` == false -> this process works as client AND server, start serving from a thread
     /// `client_only` == true  -> No need to start any Coordinator server, just return connections
     #[cfg(feature = "debugger")]
-    pub fn server(num_threads: usize, native: bool, server_only: bool, client_only: bool,
+    pub fn server(num_threads: usize, lib_search_path: Simpath, native: bool, server_only: bool, client_only: bool,
                   server_hostname: Option<&str>) -> Result<(RuntimeClientConnection, DebugClientConnection)> {
         let runtime_server_context = RuntimeServerConnection::new(server_hostname);
         let debug_server_context = DebugServerConnection::new(server_hostname);
@@ -162,11 +165,11 @@ impl Coordinator {
 
             if server_only {
                 info!("Starting 'flowr' server on main thread");
-                coordinator.start(native, server_only)?;
+                coordinator.start(lib_search_path, native, server_only)?;
             } else {
                 std::thread::spawn(move || {
                     info!("Starting 'flowr' server as background thread");
-                    if let Err(e) = coordinator.start(native, server_only) {
+                    if let Err(e) = coordinator.start(lib_search_path, native, server_only) {
                         error!("Error starting Coordinator in background thread: '{}'", e);
                     }
                 });
@@ -207,9 +210,14 @@ impl Coordinator {
 
     /// Start the Coordinator - this will block the thread it is running on waiting for a submission
     /// It will loop processing submissions until it gets a `ClientExiting` response, then it will also exit
-    pub fn start(&mut self, native: bool, server_only: bool) -> Result<()> {
+    pub fn start(&mut self, lib_search_path: Simpath, native: bool, server_only: bool) -> Result<()> {
+        let mut loader = Loader::new();
+        let provider = MetaProvider::new(lib_search_path);
+
         while let Some(submission) = self.wait_for_submission() {
-            match Self::load_from_manifest(&submission.manifest_url,  // Clone of Arc is OK
+            match Self::load_from_manifest(&submission.manifest_url,
+                                           &mut loader,
+                                           &provider,
                                            self.runtime_server_context.clone(),
                                            native) {
                 Ok(mut manifest) => {
@@ -379,13 +387,13 @@ impl Coordinator {
         Ok(())
     }
 
-    fn load_from_manifest(manifest_url: &str, server_context: Arc<Mutex<RuntimeServerConnection>>,
+    fn load_from_manifest(manifest_url: &str,
+                          loader: &mut Loader,
+                          provider: &dyn Provider,
+                          server_context: Arc<Mutex<RuntimeServerConnection>>,
                           native: bool) -> Result<Manifest> {
-        let mut loader = Loader::new();
-        let provider = MetaProvider {};
-
         // Load this run-time's library of native (statically linked) implementations
-        loader.add_lib(&provider,
+        loader.add_lib(provider,
                        "lib://flowruntime",
                        flowruntime::get_manifest(server_context),
                        "native")
@@ -393,12 +401,12 @@ impl Coordinator {
 
         // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
         if cfg!(feature = "native") && native {
-            loader.add_lib(&provider, "lib://flowstdlib", flowstdlib::get_manifest(), "native")
+            loader.add_lib(provider, "lib://flowstdlib", flowstdlib::get_manifest(), "native")
                 .chain_err(|| "Could not add 'flowstdlib' library to loader")?;
         }
 
         // Load the flow to run from the manifest
-        let manifest = loader.load_manifest(&provider, manifest_url)
+        let manifest = loader.load_manifest(provider, manifest_url)
             .chain_err(|| format!("Could not load the flow from manifest: '{}'", manifest_url))?;
 
         Ok(manifest)
