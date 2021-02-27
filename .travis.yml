@@ -59,6 +59,7 @@ script:
 # Docs are only built and deployed in "cron" builds on linux with rust stable
 deploy:
   provider: pages
+  skip_cleanup: true
   github-token: $GITHUB_PAGES_TOKEN
   local-dir: target/html
   keep_history: true
