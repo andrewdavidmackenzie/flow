@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `flowc/src/compiler/connector.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>connector.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled ><script src="../../../storage.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="shortcut icon" href="../../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../../flowclib/index.html'><div class='logo-container rust-logo'><img src='../../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><span class="help-button">?</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowc/src/lib/compiler/connector.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>connector.rs - source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled ><script id="default-settings"></script><script src="../../../storage.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../../favicon.svg">
+<link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png">
+<link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../../flowclib/index.html'><div class='logo-container rust-logo'><img src='../../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" class="help-button">?</button>
                 <a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
@@ -559,7 +561,7 @@
     (according to each function&#39;s output route in the original description plus each connection from
      that route, which could be to multiple destinations)
 */</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">prepare_function_connections</span>(<span class="ident">tables</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">GenerationTables</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">prepare_function_connections</span>(<span class="ident">tables</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">GenerationTables</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
     <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;Setting output routes on processes&quot;</span>);
     <span class="kw">for</span> <span class="ident">connection</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">tables</span>.<span class="ident">collapsed_connections</span> {
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>((<span class="ident">output_route</span>, <span class="ident">source_id</span>)) <span class="op">=</span> <span class="ident">get_source</span>(<span class="kw-2">&amp;</span><span class="ident">tables</span>.<span class="ident">source_routes</span>, <span class="kw-2">&amp;</span><span class="ident">connection</span>.<span class="ident">from_io</span>.<span class="ident">route</span>()) {
@@ -614,7 +616,7 @@
         - The function&#39;s index in the compiler&#39;s tables
     -  (removing the array index first to find outputs that are arrays, but then adding it back into the subroute) TODO change
 */</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_source</span>(<span class="ident">source_routes</span>: <span class="kw-2">&amp;</span><span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">Route</span>, (<span class="ident">Route</span>, <span class="ident">usize</span>)<span class="op">&gt;</span>, <span class="ident">from_route</span>: <span class="kw-2">&amp;</span><span class="ident">Route</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">Route</span>, <span class="ident">usize</span>)<span class="op">&gt;</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_source</span>(<span class="ident">source_routes</span>: <span class="kw-2">&amp;</span><span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">Route</span>, (<span class="ident">Route</span>, <span class="ident">usize</span>)<span class="op">&gt;</span>, <span class="ident">from_route</span>: <span class="kw-2">&amp;</span><span class="ident">Route</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">Route</span>, <span class="ident">usize</span>)<span class="op">&gt;</span> {
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">source</span> <span class="op">=</span> <span class="ident">from_route</span>.<span class="ident">clone</span>();
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sub_route</span> <span class="op">=</span> <span class="ident">Route</span>::<span class="ident">from</span>(<span class="string">&quot;&quot;</span>);
 
@@ -633,8 +635,8 @@
 
         <span class="comment">// pop a route segment off the route - if there are any left</span>
         <span class="kw">match</span> <span class="ident">source</span>.<span class="ident">pop</span>() {
-            (<span class="kw">_</span>, <span class="prelude-val">None</span>) <span class="op">=&gt;</span> <span class="kw">break</span>,
-            (<span class="ident">parent</span>, <span class="prelude-val">Some</span>(<span class="ident">sub</span>)) <span class="op">=&gt;</span> {
+            (<span class="kw">_</span>, <span class="prelude-val">None</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="kw">break</span>,
+            (<span class="ident">parent</span>, <span class="prelude-val">Some</span>(<span class="ident">sub</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">source</span> <span class="op">=</span> <span class="ident">parent</span>.<span class="ident">into_owned</span>();
                 <span class="comment">// insert new route segment at the start of the sub_route we are building up</span>
                 <span class="ident">sub_route</span>.<span class="ident">insert</span>(<span class="ident">sub</span>);
@@ -664,7 +666,7 @@
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">inputs</span>) <span class="op">=</span> <span class="ident">function</span>.<span class="ident">get_inputs</span>() {
             <span class="kw">for</span> <span class="ident">input</span> <span class="kw">in</span> <span class="ident">inputs</span> {
                 <span class="ident">tables</span>.<span class="ident">destination_routes</span>.<span class="ident">insert</span>(<span class="ident">input</span>.<span class="ident">route</span>().<span class="ident">clone</span>(), (<span class="ident">function</span>.<span class="ident">get_id</span>(), <span class="ident">input_index</span>, <span class="ident">function</span>.<span class="ident">get_flow_id</span>()));
-                <span class="ident">input_index</span> <span class="op">+=</span> <span class="number">1</span>;
+                <span class="ident">input_index</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
             }
         }
     }
@@ -726,7 +728,7 @@
 
          Output is: source_subroute: Route, final_destination: Route
 */</span>
-<span class="kw">fn</span> <span class="ident">find_function_destinations</span>(<span class="ident">prev_subroute</span>: <span class="ident">Route</span>, <span class="ident">from_io_route</span>: <span class="kw-2">&amp;</span><span class="ident">Route</span>, <span class="ident">from_level</span>: <span class="ident">usize</span>, <span class="ident">connections</span>: <span class="kw-2">&amp;</span>[<span class="ident">Connection</span>]) <span class="op">-&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">Route</span>, <span class="ident">IO</span>)<span class="op">&gt;</span> {
+<span class="kw">fn</span> <span class="ident">find_function_destinations</span>(<span class="ident">prev_subroute</span>: <span class="ident">Route</span>, <span class="ident">from_io_route</span>: <span class="kw-2">&amp;</span><span class="ident">Route</span>, <span class="ident">from_level</span>: <span class="ident">usize</span>, <span class="ident">connections</span>: <span class="kw-2">&amp;</span>[<span class="ident">Connection</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">Route</span>, <span class="ident">IO</span>)<span class="op">&gt;</span> {
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">destinations</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>();
 
     <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;\tLooking for connections from &#39;{}&#39; on level={}&quot;</span>, <span class="ident">from_io_route</span>, <span class="ident">from_level</span>);
@@ -736,31 +738,31 @@
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">subroute</span>) <span class="op">=</span> <span class="ident">next_connection</span>.<span class="ident">from_io</span>.<span class="ident">route</span>().<span class="ident">sub_route_of</span>(<span class="ident">from_io_route</span>) {
             <span class="kw">let</span> <span class="ident">next_level</span> <span class="op">=</span> <span class="kw">match</span> <span class="kw-2">*</span><span class="ident">next_connection</span>.<span class="ident">from_io</span>.<span class="ident">io_type</span>() {
                 <span class="comment">// Can&#39;t escape the context!</span>
-                <span class="ident">IOType</span>::<span class="ident">FlowOutput</span> <span class="kw">if</span> <span class="ident">from_level</span> <span class="op">&gt;</span> <span class="number">0</span> <span class="op">=&gt;</span> <span class="ident">from_level</span> <span class="op">-</span> <span class="number">1</span>,
-                <span class="ident">IOType</span>::<span class="ident">FlowOutput</span> <span class="kw">if</span> <span class="ident">from_level</span> <span class="op">==</span> <span class="number">0</span> <span class="op">=&gt;</span> <span class="ident">std</span>::<span class="ident">usize</span>::<span class="ident">MAX</span>,
-                <span class="ident">IOType</span>::<span class="ident">FlowInput</span> <span class="op">=&gt;</span> <span class="ident">from_level</span> <span class="op">+</span> <span class="number">1</span>,
-                <span class="kw">_</span> <span class="op">=&gt;</span> <span class="ident">from_level</span>
+                <span class="ident">IOType</span>::<span class="ident">FlowOutput</span> <span class="kw">if</span> <span class="ident">from_level</span> <span class="op">&gt;</span> <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">from_level</span> <span class="op">-</span> <span class="number">1</span>,
+                <span class="ident">IOType</span>::<span class="ident">FlowOutput</span> <span class="kw">if</span> <span class="ident">from_level</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">std</span>::<span class="ident">usize</span>::<span class="ident">MAX</span>,
+                <span class="ident">IOType</span>::<span class="ident">FlowInput</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">from_level</span> <span class="op">+</span> <span class="number">1</span>,
+                <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">from_level</span>
             };
 
-            <span class="kw">if</span> <span class="ident">next_connection</span>.<span class="ident">level</span> <span class="op">==</span> <span class="ident">next_level</span> {
+            <span class="kw">if</span> <span class="ident">next_connection</span>.<span class="ident">level</span> <span class="op">=</span><span class="op">=</span> <span class="ident">next_level</span> {
                 <span class="comment">// Add any subroute from this connection to the origin subroute accumulated so far</span>
                 <span class="kw">let</span> <span class="ident">accumulated_source_subroute</span> <span class="op">=</span> <span class="ident">prev_subroute</span>.<span class="ident">clone</span>().<span class="ident">extend</span>(<span class="kw-2">&amp;</span><span class="ident">subroute</span>).<span class="ident">clone</span>();
 
                 <span class="kw">match</span> <span class="kw-2">*</span><span class="ident">next_connection</span>.<span class="ident">to_io</span>.<span class="ident">io_type</span>() {
-                    <span class="ident">IOType</span>::<span class="ident">FunctionIO</span> <span class="op">=&gt;</span> {
+                    <span class="ident">IOType</span>::<span class="ident">FunctionIO</span> <span class="op">=</span><span class="op">&gt;</span> {
                         <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;\t\tFound destination function input at &#39;{}&#39;&quot;</span>, <span class="ident">next_connection</span>.<span class="ident">to_io</span>.<span class="ident">route</span>());
                         <span class="comment">// Found a destination that is a function, add it to the list</span>
                         <span class="ident">destinations</span>.<span class="ident">push</span>((<span class="ident">accumulated_source_subroute</span>, <span class="ident">next_connection</span>.<span class="ident">to_io</span>.<span class="ident">clone</span>()));
                         <span class="ident">found</span> <span class="op">=</span> <span class="bool-val">true</span>;
                     }
-                    <span class="ident">IOType</span>::<span class="ident">FlowInput</span> <span class="op">=&gt;</span> {
+                    <span class="ident">IOType</span>::<span class="ident">FlowInput</span> <span class="op">=</span><span class="op">&gt;</span> {
                         <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;\t\tFollowing connection into sub-flow via &#39;{}&#39;&quot;</span>, <span class="ident">from_io_route</span>);
                         <span class="kw">let</span> <span class="ident">new_destinations</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">find_function_destinations</span>(<span class="ident">accumulated_source_subroute</span>, <span class="kw-2">&amp;</span><span class="ident">next_connection</span>.<span class="ident">to_io</span>.<span class="ident">route</span>(),
                                                                                <span class="ident">next_connection</span>.<span class="ident">level</span>, <span class="ident">connections</span>);
                         <span class="comment">// TODO accumulate the source subroute that builds up as we go</span>
                         <span class="ident">destinations</span>.<span class="ident">append</span>(<span class="ident">new_destinations</span>);
                     }
-                    <span class="ident">IOType</span>::<span class="ident">FlowOutput</span> <span class="op">=&gt;</span> {
+                    <span class="ident">IOType</span>::<span class="ident">FlowOutput</span> <span class="op">=</span><span class="op">&gt;</span> {
                         <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;\t\tFollowing connection out of flow via &#39;{}&#39;&quot;</span>, <span class="ident">from_io_route</span>);
                         <span class="kw">let</span> <span class="ident">new_destinations</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">find_function_destinations</span>(<span class="ident">accumulated_source_subroute</span>, <span class="kw-2">&amp;</span><span class="ident">next_connection</span>.<span class="ident">to_io</span>.<span class="ident">route</span>(),
                                                                                <span class="ident">next_connection</span>.<span class="ident">level</span>, <span class="ident">connections</span>);
@@ -786,7 +788,7 @@
     to the table of &quot;collapsed&quot; connections which will be used to configure the outputs of the
     functions.
 */</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">collapse_connections</span>(<span class="ident">original_connections</span>: <span class="kw-2">&amp;</span>[<span class="ident">Connection</span>]) <span class="op">-&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Connection</span><span class="op">&gt;</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">collapse_connections</span>(<span class="ident">original_connections</span>: <span class="kw-2">&amp;</span>[<span class="ident">Connection</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Connection</span><span class="op">&gt;</span> {
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">collapsed_connections</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Connection</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">new</span>();
 
     <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;Working on collapsing {} flow connections&quot;</span>, <span class="ident">original_connections</span>.<span class="ident">len</span>());
@@ -794,10 +796,10 @@
     <span class="kw">for</span> <span class="ident">connection</span> <span class="kw">in</span> <span class="ident">original_connections</span> {
         <span class="comment">// All collapsed connections must start and end at a Function, so we only build</span>
         <span class="comment">// them starting at ones that begin at a Function&#39;s IO</span>
-        <span class="kw">if</span> <span class="kw-2">*</span><span class="ident">connection</span>.<span class="ident">from_io</span>.<span class="ident">io_type</span>() <span class="op">==</span> <span class="ident">IOType</span>::<span class="ident">FunctionIO</span> {
+        <span class="kw">if</span> <span class="kw-2">*</span><span class="ident">connection</span>.<span class="ident">from_io</span>.<span class="ident">io_type</span>() <span class="op">=</span><span class="op">=</span> <span class="ident">IOType</span>::<span class="ident">FunctionIO</span> {
             <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;Trying to create connection from function output at &#39;{}&#39; (level={})&quot;</span>,
                    <span class="ident">connection</span>.<span class="ident">from_io</span>.<span class="ident">route</span>(), <span class="ident">connection</span>.<span class="ident">level</span>);
-            <span class="kw">if</span> <span class="kw-2">*</span><span class="ident">connection</span>.<span class="ident">to_io</span>.<span class="ident">io_type</span>() <span class="op">==</span> <span class="ident">IOType</span>::<span class="ident">FunctionIO</span> {
+            <span class="kw">if</span> <span class="kw-2">*</span><span class="ident">connection</span>.<span class="ident">to_io</span>.<span class="ident">io_type</span>() <span class="op">=</span><span class="op">=</span> <span class="ident">IOType</span>::<span class="ident">FunctionIO</span> {
                 <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;\tFound direct connection to function input at &#39;{}&#39;&quot;</span>, <span class="ident">connection</span>.<span class="ident">to_io</span>.<span class="ident">route</span>());
                 <span class="ident">collapsed_connections</span>.<span class="ident">push</span>(<span class="ident">connection</span>.<span class="ident">clone</span>());
             } <span class="kw">else</span> {
@@ -835,17 +837,17 @@
         <span class="kw">use</span> <span class="kw">super</span>::<span class="kw">super</span>::<span class="ident">get_source</span>;
 
         <span class="comment">/*
-                                                                                                                                                            Create a HashTable of routes for use in tests.
-                                                                                                                                                            Each entry (K, V) is:
-                                                                                                                                                            - Key   - the route to a function&#39;s IO
-                                                                                                                                                            - Value - a tuple of
-                                                                                                                                                                        - sub-route (or IO name) from the function to be used at runtime
-                                                                                                                                                                        - the id number of the function in the functions table, to select it at runtime
+                            Create a HashTable of routes for use in tests.
+                            Each entry (K, V) is:
+                            - Key   - the route to a function&#39;s IO
+                            - Value - a tuple of
+                                        - sub-route (or IO name) from the function to be used at runtime
+                                        - the id number of the function in the functions table, to select it at runtime
 
-                                                                                                                                                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
-                                                                                                                                                         */</span>
+                            Plus a vector of test cases with the Route to search for and the expected function_id and output sub-route
+                        */</span>
         <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy</span>::<span class="ident">type_complexity</span>)]</span>
-        <span class="kw">fn</span> <span class="ident">test_source_routes</span>() <span class="op">-&gt;</span> (<span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">Route</span>, (<span class="ident">Route</span>, <span class="ident">usize</span>)<span class="op">&gt;</span>, <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>, <span class="ident">Route</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">Route</span>, <span class="ident">usize</span>)<span class="op">&gt;</span>)<span class="op">&gt;</span>) {
+        <span class="kw">fn</span> <span class="ident">test_source_routes</span>() <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">Route</span>, (<span class="ident">Route</span>, <span class="ident">usize</span>)<span class="op">&gt;</span>, <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>, <span class="ident">Route</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">Route</span>, <span class="ident">usize</span>)<span class="op">&gt;</span>)<span class="op">&gt;</span>) {
             <span class="comment">// make sure a corresponding entry (if applicable) is in the table to give the expected response</span>
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">test_sources</span> <span class="op">=</span> <span class="ident">HashMap</span>::<span class="op">&lt;</span><span class="ident">Route</span>, (<span class="ident">Route</span>, <span class="ident">usize</span>)<span class="op">&gt;</span>::<span class="ident">new</span>();
             <span class="ident">test_sources</span>.<span class="ident">insert</span>(<span class="ident">Route</span>::<span class="ident">from</span>(<span class="string">&quot;/context/f1&quot;</span>), (<span class="ident">Route</span>::<span class="ident">from</span>(<span class="string">&quot;&quot;</span>), <span class="number">0</span>));
@@ -889,7 +891,7 @@
 
         <span class="kw">use</span> <span class="kw">super</span>::<span class="kw">super</span>::<span class="ident">collapse_connections</span>;
 
-        <span class="kw">fn</span> <span class="ident">test_connection</span>() <span class="op">-&gt;</span> <span class="ident">Connection</span> {
+        <span class="kw">fn</span> <span class="ident">test_connection</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Connection</span> {
             <span class="ident">Connection</span> {
                 <span class="ident">name</span>: <span class="prelude-val">Some</span>(<span class="ident">Name</span>::<span class="ident">from</span>(<span class="string">&quot;left&quot;</span>)),
                 <span class="ident">from</span>: <span class="ident">Route</span>::<span class="ident">from</span>(<span class="string">&quot;/f1/a&quot;</span>),

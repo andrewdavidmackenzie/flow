@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `flowr/src/lib/run_state.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>run_state.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="shortcut icon" href="../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../flowrlib/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><span class="help-button">?</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowr/src/lib/run_state.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>run_state.rs - source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings"></script><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="alternate icon" type="image/png" href="../../favicon-16x16.png">
+<link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../flowrlib/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" class="help-button">?</button>
                 <a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">   1</span>
 <span id="2">   2</span>
 <span id="3">   3</span>
@@ -2203,6 +2205,91 @@
 <span id="2202">2202</span>
 <span id="2203">2203</span>
 <span id="2204">2204</span>
+<span id="2205">2205</span>
+<span id="2206">2206</span>
+<span id="2207">2207</span>
+<span id="2208">2208</span>
+<span id="2209">2209</span>
+<span id="2210">2210</span>
+<span id="2211">2211</span>
+<span id="2212">2212</span>
+<span id="2213">2213</span>
+<span id="2214">2214</span>
+<span id="2215">2215</span>
+<span id="2216">2216</span>
+<span id="2217">2217</span>
+<span id="2218">2218</span>
+<span id="2219">2219</span>
+<span id="2220">2220</span>
+<span id="2221">2221</span>
+<span id="2222">2222</span>
+<span id="2223">2223</span>
+<span id="2224">2224</span>
+<span id="2225">2225</span>
+<span id="2226">2226</span>
+<span id="2227">2227</span>
+<span id="2228">2228</span>
+<span id="2229">2229</span>
+<span id="2230">2230</span>
+<span id="2231">2231</span>
+<span id="2232">2232</span>
+<span id="2233">2233</span>
+<span id="2234">2234</span>
+<span id="2235">2235</span>
+<span id="2236">2236</span>
+<span id="2237">2237</span>
+<span id="2238">2238</span>
+<span id="2239">2239</span>
+<span id="2240">2240</span>
+<span id="2241">2241</span>
+<span id="2242">2242</span>
+<span id="2243">2243</span>
+<span id="2244">2244</span>
+<span id="2245">2245</span>
+<span id="2246">2246</span>
+<span id="2247">2247</span>
+<span id="2248">2248</span>
+<span id="2249">2249</span>
+<span id="2250">2250</span>
+<span id="2251">2251</span>
+<span id="2252">2252</span>
+<span id="2253">2253</span>
+<span id="2254">2254</span>
+<span id="2255">2255</span>
+<span id="2256">2256</span>
+<span id="2257">2257</span>
+<span id="2258">2258</span>
+<span id="2259">2259</span>
+<span id="2260">2260</span>
+<span id="2261">2261</span>
+<span id="2262">2262</span>
+<span id="2263">2263</span>
+<span id="2264">2264</span>
+<span id="2265">2265</span>
+<span id="2266">2266</span>
+<span id="2267">2267</span>
+<span id="2268">2268</span>
+<span id="2269">2269</span>
+<span id="2270">2270</span>
+<span id="2271">2271</span>
+<span id="2272">2272</span>
+<span id="2273">2273</span>
+<span id="2274">2274</span>
+<span id="2275">2275</span>
+<span id="2276">2276</span>
+<span id="2277">2277</span>
+<span id="2278">2278</span>
+<span id="2279">2279</span>
+<span id="2280">2280</span>
+<span id="2281">2281</span>
+<span id="2282">2282</span>
+<span id="2283">2283</span>
+<span id="2284">2284</span>
+<span id="2285">2285</span>
+<span id="2286">2286</span>
+<span id="2287">2287</span>
+<span id="2288">2288</span>
+<span id="2289">2289</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::{<span class="ident">HashMap</span>, <span class="ident">HashSet</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">VecDeque</span>;
@@ -2252,7 +2339,7 @@
 }
 
 <span class="kw">impl</span> <span class="ident">fmt</span>::<span class="ident">Display</span> <span class="kw">for</span> <span class="ident">Job</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
         <span class="macro">writeln</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;Job Id: {}, Function Id: {}, Flow Id: {}&quot;</span>, <span class="self">self</span>.<span class="ident">job_id</span>, <span class="self">self</span>.<span class="ident">function_id</span>, <span class="self">self</span>.<span class="ident">flow_id</span>)<span class="question-mark">?</span>;
         <span class="macro">writeln</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;Inputs: {:?}&quot;</span>, <span class="self">self</span>.<span class="ident">input_set</span>)<span class="question-mark">?</span>;
         <span class="macro">writeln</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;Connections: {:?}&quot;</span>, <span class="self">self</span>.<span class="ident">connections</span>)<span class="question-mark">?</span>;
@@ -2272,7 +2359,7 @@
 }
 
 <span class="kw">impl</span> <span class="ident">Block</span> {
-    <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">blocking_flow_id</span>: <span class="ident">usize</span>, <span class="ident">blocking_id</span>: <span class="ident">usize</span>, <span class="ident">blocking_io_number</span>: <span class="ident">usize</span>, <span class="ident">blocked_id</span>: <span class="ident">usize</span>, <span class="ident">blocked_flow_id</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
+    <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">blocking_flow_id</span>: <span class="ident">usize</span>, <span class="ident">blocking_id</span>: <span class="ident">usize</span>, <span class="ident">blocking_io_number</span>: <span class="ident">usize</span>, <span class="ident">blocked_id</span>: <span class="ident">usize</span>, <span class="ident">blocked_flow_id</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="ident">Block</span> {
             <span class="ident">blocking_flow_id</span>,
             <span class="ident">blocking_id</span>,
@@ -2284,14 +2371,14 @@
 }
 
 <span class="kw">impl</span> <span class="ident">fmt</span>::<span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">Block</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
         <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;#{}({}) --&gt; #{}({}):{}&quot;</span>, <span class="self">self</span>.<span class="ident">blocked_id</span>, <span class="self">self</span>.<span class="ident">blocked_flow_id</span>,
                <span class="self">self</span>.<span class="ident">blocking_id</span>, <span class="self">self</span>.<span class="ident">blocking_flow_id</span>, <span class="self">self</span>.<span class="ident">blocking_io_number</span>)
     }
 }
 
 <span class="kw">impl</span> <span class="ident">fmt</span>::<span class="ident">Display</span> <span class="kw">for</span> <span class="ident">Block</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
         <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;#{}({}) --&gt; #{}({}):{}&quot;</span>, <span class="self">self</span>.<span class="ident">blocked_id</span>, <span class="self">self</span>.<span class="ident">blocked_flow_id</span>,
                <span class="self">self</span>.<span class="ident">blocking_id</span>, <span class="self">self</span>.<span class="ident">blocking_flow_id</span>, <span class="self">self</span>.<span class="ident">blocking_io_number</span>)
     }
@@ -2467,11 +2554,11 @@
     <span class="ident">busy_flows</span>: <span class="ident">MultiMap</span><span class="op">&lt;</span><span class="ident">usize</span>, <span class="ident">usize</span><span class="op">&gt;</span>,
     <span class="doccomment">/// Track which functions have finished and can be unblocked when flow goes not &quot;busy&quot;</span>
     <span class="doccomment">/// HashMap&lt; &lt;flow_id&gt;, (function_id, vector of refilled io numbers of that function)&gt;</span>
-    <span class="ident">pending_unblocks</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">usize</span>, <span class="ident">HashSet</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;&gt;</span>,
+    <span class="ident">pending_unblocks</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">usize</span>, <span class="ident">HashSet</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">impl</span> <span class="ident">RunState</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">functions</span>: <span class="kw-2">&amp;</span>[<span class="ident">Function</span>], <span class="ident">submission</span>: <span class="ident">Submission</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">functions</span>: <span class="kw-2">&amp;</span>[<span class="ident">Function</span>], <span class="ident">submission</span>: <span class="ident">Submission</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="ident">RunState</span> {
             <span class="ident">functions</span>: <span class="ident">functions</span>.<span class="ident">to_vec</span>(),
             <span class="ident">blocked</span>: <span class="ident">HashSet</span>::<span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>::<span class="ident">new</span>(),
@@ -2480,10 +2567,11 @@
             <span class="ident">running</span>: <span class="ident">MultiMap</span>::<span class="op">&lt;</span><span class="ident">usize</span>, <span class="ident">usize</span><span class="op">&gt;</span>::<span class="ident">new</span>(),
             <span class="ident">jobs_created</span>: <span class="number">0</span>,
             <span class="ident">max_pending_jobs</span>: <span class="ident">submission</span>.<span class="ident">max_parallel_jobs</span>,
+            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
             <span class="ident">debug</span>: <span class="ident">submission</span>.<span class="ident">debug</span>,
             <span class="ident">job_timeout</span>: <span class="ident">submission</span>.<span class="ident">job_timeout</span>,
             <span class="ident">busy_flows</span>: <span class="ident">MultiMap</span>::<span class="op">&lt;</span><span class="ident">usize</span>, <span class="ident">usize</span><span class="op">&gt;</span>::<span class="ident">new</span>(),
-            <span class="ident">pending_unblocks</span>: <span class="ident">HashMap</span>::<span class="op">&lt;</span><span class="ident">usize</span>, <span class="ident">HashSet</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;&gt;</span>::<span class="ident">new</span>(),
+            <span class="ident">pending_unblocks</span>: <span class="ident">HashMap</span>::<span class="op">&lt;</span><span class="ident">usize</span>, <span class="ident">HashSet</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span><span class="op">&gt;</span>::<span class="ident">new</span>(),
         }
     }
 
@@ -2564,24 +2652,23 @@
         <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;Init:\tCreating any initial block entries that are needed&quot;</span>);
 
         <span class="kw">for</span> <span class="ident">source_function</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">functions</span> {
-            <span class="kw">let</span> <span class="ident">source_id</span>;
-            <span class="kw">let</span> <span class="ident">source_flow_id</span>;
-            <span class="kw">let</span> <span class="ident">destinations</span>;
-            <span class="kw">let</span> <span class="ident">source_has_inputs_full</span>;
-            {
-                <span class="ident">source_id</span> <span class="op">=</span> <span class="ident">source_function</span>.<span class="ident">id</span>();
-                <span class="ident">source_flow_id</span> <span class="op">=</span> <span class="ident">source_function</span>.<span class="ident">get_flow_id</span>();
-                <span class="ident">source_has_inputs_full</span> <span class="op">=</span> <span class="ident">source_function</span>.<span class="ident">input_set_count</span>() <span class="op">&gt;</span> <span class="number">0</span>;
-                <span class="ident">destinations</span> <span class="op">=</span> <span class="ident">source_function</span>.<span class="ident">get_output_connections</span>().<span class="ident">clone</span>();
-            }
+            <span class="kw">let</span> <span class="ident">source_id</span> <span class="op">=</span> <span class="ident">source_function</span>.<span class="ident">id</span>();
+            <span class="kw">let</span> <span class="ident">source_flow_id</span> <span class="op">=</span> <span class="ident">source_function</span>.<span class="ident">get_flow_id</span>();
+            <span class="kw">let</span> <span class="ident">destinations</span> <span class="op">=</span> <span class="ident">source_function</span>.<span class="ident">get_output_connections</span>();
+            <span class="kw">let</span> <span class="ident">source_has_inputs_full</span> <span class="op">=</span> <span class="ident">source_function</span>.<span class="ident">input_set_count</span>() <span class="op">&gt;</span> <span class="number">0</span>;
 
             <span class="kw">for</span> <span class="ident">destination</span> <span class="kw">in</span> <span class="ident">destinations</span> {
-                <span class="kw">if</span> <span class="ident">destination</span>.<span class="ident">function_id</span> <span class="op">!=</span> <span class="ident">source_id</span> { <span class="comment">// don&#39;t block yourself!</span>
+                <span class="kw">if</span> <span class="ident">destination</span>.<span class="ident">function_id</span> <span class="op">!</span><span class="op">=</span> <span class="ident">source_id</span> { <span class="comment">// don&#39;t block yourself!</span>
                     <span class="kw">let</span> <span class="ident">destination_function</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">get</span>(<span class="ident">destination</span>.<span class="ident">function_id</span>);
                     <span class="kw">if</span> <span class="ident">destination_function</span>.<span class="ident">input_count</span>(<span class="ident">destination</span>.<span class="ident">io_number</span>) <span class="op">&gt;</span> <span class="number">0</span> {
-                        <span class="macro">trace</span><span class="macro">!</span>(<span class="string">&quot;Init:\t\tAdded block #{} --&gt; #{}:{}&quot;</span>, <span class="ident">source_id</span>, <span class="ident">destination</span>.<span class="ident">function_id</span>, <span class="ident">destination</span>.<span class="ident">io_number</span>);
-                        <span class="ident">blocks</span>.<span class="ident">insert</span>(<span class="ident">Block</span>::<span class="ident">new</span>(<span class="ident">destination</span>.<span class="ident">flow_id</span>, <span class="ident">destination</span>.<span class="ident">function_id</span>, <span class="ident">destination</span>.<span class="ident">io_number</span>,
-                                                 <span class="ident">source_id</span>, <span class="ident">source_flow_id</span>));
+                        <span class="macro">trace</span><span class="macro">!</span>(<span class="string">&quot;Init:\t\tAdded block #{} --&gt; #{}:{}&quot;</span>, <span class="ident">source_id</span>,
+                               <span class="ident">destination</span>.<span class="ident">function_id</span>,
+                               <span class="ident">destination</span>.<span class="ident">io_number</span>);
+                        <span class="ident">blocks</span>.<span class="ident">insert</span>(<span class="ident">Block</span>::<span class="ident">new</span>(<span class="ident">destination</span>.<span class="ident">flow_id</span>,
+                                                 <span class="ident">destination</span>.<span class="ident">function_id</span>,
+                                                 <span class="ident">destination</span>.<span class="ident">io_number</span>,
+                                                 <span class="ident">source_id</span>,
+                                                 <span class="ident">source_flow_id</span>));
                         <span class="comment">// only put source on the blocked list if it already has it&#39;s inputs full</span>
                         <span class="kw">if</span> <span class="ident">source_has_inputs_full</span> {
                             <span class="ident">blocked</span>.<span class="ident">insert</span>(<span class="ident">source_id</span>);
@@ -2600,7 +2687,7 @@
         lists
     */</span>
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;checks&quot;</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>, <span class="ident">test</span>))]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_state</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">function_id</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">State</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_state</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">function_id</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">State</span> {
         <span class="kw">if</span> <span class="self">self</span>.<span class="ident">ready</span>.<span class="ident">contains</span>(<span class="kw-2">&amp;</span><span class="ident">function_id</span>) {
             <span class="ident">State</span>::<span class="ident">Ready</span>
         } <span class="kw">else</span> <span class="kw">if</span> <span class="self">self</span>.<span class="ident">blocked</span>.<span class="ident">contains</span>(<span class="kw-2">&amp;</span><span class="ident">function_id</span>) {
@@ -2613,24 +2700,24 @@
     }
 
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_blocked</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">HashSet</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_blocked</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">HashSet</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> {
         <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">blocked</span>
     }
 
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">display_state</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">function_id</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">String</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">display_state</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">function_id</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
         <span class="kw">let</span> <span class="ident">function_state</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">get_state</span>(<span class="ident">function_id</span>);
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">output</span> <span class="op">=</span> <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;\tState: {:?}\n&quot;</span>, <span class="ident">function_state</span>);
 
-        <span class="kw">if</span> <span class="ident">function_state</span> <span class="op">==</span> <span class="ident">State</span>::<span class="ident">Running</span> {
+        <span class="kw">if</span> <span class="ident">function_state</span> <span class="op">=</span><span class="op">=</span> <span class="ident">State</span>::<span class="ident">Running</span> {
             <span class="ident">output</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;\t\tJob Numbers Running: {:?}\n&quot;</span>,
                                      <span class="self">self</span>.<span class="ident">running</span>.<span class="ident">get_vec</span>(<span class="kw-2">&amp;</span><span class="ident">function_id</span>)));
         }
 
         <span class="kw">for</span> <span class="ident">block</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">blocks</span> {
-            <span class="kw">if</span> <span class="ident">block</span>.<span class="ident">blocked_flow_id</span> <span class="op">==</span> <span class="ident">function_id</span> {
+            <span class="kw">if</span> <span class="ident">block</span>.<span class="ident">blocked_flow_id</span> <span class="op">=</span><span class="op">=</span> <span class="ident">function_id</span> {
                 <span class="ident">output</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;\t{:?}\n&quot;</span>, <span class="ident">block</span>));
-            } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">block</span>.<span class="ident">blocking_id</span> <span class="op">==</span> <span class="ident">function_id</span> {
+            } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">block</span>.<span class="ident">blocking_id</span> <span class="op">=</span><span class="op">=</span> <span class="ident">function_id</span> {
                 <span class="ident">output</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;\tBlocking #{}:{} &lt;-- Blocked #{}\n&quot;</span>,
                                          <span class="ident">block</span>.<span class="ident">blocking_id</span>, <span class="ident">block</span>.<span class="ident">blocking_io_number</span>, <span class="ident">block</span>.<span class="ident">blocked_id</span>));
             }
@@ -2639,11 +2726,11 @@
         <span class="ident">output</span>
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="ident">Function</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">Function</span> {
         <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">functions</span>[<span class="ident">id</span>]
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Function</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Function</span> {
         <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">functions</span>[<span class="ident">id</span>]
     }
 
@@ -2651,14 +2738,14 @@
         Return the next job ready to be run, if there is one and there are not
         too many jobs already running
     */</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">next_job</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Job</span><span class="op">&gt;</span> {
-        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">number_jobs_running</span>() <span class="op">&gt;=</span> <span class="self">self</span>.<span class="ident">max_pending_jobs</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">next_job</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Job</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">number_jobs_running</span>() <span class="op">&gt;</span><span class="op">=</span> <span class="self">self</span>.<span class="ident">max_pending_jobs</span> {
             <span class="kw">return</span> <span class="prelude-val">None</span>;
         }
 
         <span class="comment">// create a job for the function_id at the head of the ready list</span>
         <span class="kw">match</span> <span class="self">self</span>.<span class="ident">ready</span>.<span class="ident">remove</span>(<span class="number">0</span>) {
-            <span class="prelude-val">Some</span>(<span class="ident">function_id</span>) <span class="op">=&gt;</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">function_id</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">job</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">create_job</span>(<span class="ident">function_id</span>);
 
                 <span class="comment">// unblock senders blocked trying to send to this function&#39;s empty inputs</span>
@@ -2668,14 +2755,15 @@
 
                 <span class="ident">job</span>
             }
-            <span class="prelude-val">None</span> <span class="op">=&gt;</span> <span class="prelude-val">None</span>
+            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">None</span>
         }
     }
 
     <span class="comment">/*
         return the number of jobs created to date
     */</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">jobs_created</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>))]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">jobs_created</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span> {
         <span class="self">self</span>.<span class="ident">jobs_created</span>
     }
 
@@ -2683,8 +2771,8 @@
         Given a function id, prepare a job for execution that contains the input values, the
         implementation and the destination functions the output should be sent to when done
     */</span>
-    <span class="kw">fn</span> <span class="ident">create_job</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">function_id</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Job</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">jobs_created</span> <span class="op">+=</span> <span class="number">1</span>;
+    <span class="kw">fn</span> <span class="ident">create_job</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">function_id</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Job</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">jobs_created</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
         <span class="kw">let</span> <span class="ident">job_id</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">jobs_created</span>;
 
         <span class="kw">let</span> <span class="ident">function</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">get_mut</span>(<span class="ident">function_id</span>);
@@ -2695,7 +2783,7 @@
         <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;Job #{}:-------Creating for Function #{} ---------------------------&quot;</span>, <span class="ident">job_id</span>, <span class="ident">function_id</span>);
 
         <span class="kw">match</span> <span class="ident">function</span>.<span class="ident">take_input_set</span>() {
-            <span class="prelude-val">Ok</span>(<span class="ident">input_set</span>) <span class="op">=&gt;</span> {
+            <span class="prelude-val">Ok</span>(<span class="ident">input_set</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">flow_id</span> <span class="op">=</span> <span class="ident">function</span>.<span class="ident">get_flow_id</span>();
 
                 <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;Job #{}:\tInputs: {:?}&quot;</span>, <span class="ident">job_id</span>, <span class="ident">input_set</span>);
@@ -2715,7 +2803,7 @@
                     <span class="ident">error</span>: <span class="prelude-val">None</span>,
                 })
             }
-            <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=&gt;</span> {
+            <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="macro">error</span><span class="macro">!</span>(<span class="string">&quot;Job #{}: Error &#39;{}&#39; while creating job for Function #{}&quot;</span>,
                        <span class="ident">job_id</span>, <span class="ident">e</span>, <span class="ident">function_id</span>);
                 <span class="prelude-val">None</span>
@@ -2740,12 +2828,12 @@
                         <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
                         <span class="ident">debugger</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Debugger</span>) {
         <span class="macro">trace</span><span class="macro">!</span>(<span class="string">&quot;Job #{}:\tCompleted by Function #{}&quot;</span>, <span class="ident">job</span>.<span class="ident">job_id</span>, <span class="ident">job</span>.<span class="ident">function_id</span>);
-        <span class="self">self</span>.<span class="ident">running</span>.<span class="ident">retain</span>(<span class="op">|</span><span class="kw-2">&amp;</span><span class="kw">_</span>, <span class="kw-2">&amp;</span><span class="ident">job_id</span><span class="op">|</span> <span class="ident">job_id</span> <span class="op">!=</span> <span class="ident">job</span>.<span class="ident">job_id</span>);
+        <span class="self">self</span>.<span class="ident">running</span>.<span class="ident">retain</span>(<span class="op">|</span><span class="kw-2">&amp;</span><span class="kw">_</span>, <span class="kw-2">&amp;</span><span class="ident">job_id</span><span class="op">|</span> <span class="ident">job_id</span> <span class="op">!</span><span class="op">=</span> <span class="ident">job</span>.<span class="ident">job_id</span>);
         <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;checks&quot;</span>)]</span>
             <span class="kw">let</span> <span class="ident">job_id</span> <span class="op">=</span> <span class="ident">job</span>.<span class="ident">job_id</span>;
 
         <span class="kw">match</span> <span class="ident">job</span>.<span class="ident">error</span> {
-            <span class="prelude-val">None</span> <span class="op">=&gt;</span> {
+            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">output_value</span> <span class="op">=</span> <span class="ident">job</span>.<span class="ident">result</span>.<span class="number">0</span>;
                 <span class="kw">let</span> <span class="ident">function_can_run_again</span> <span class="op">=</span> <span class="ident">job</span>.<span class="ident">result</span>.<span class="number">1</span>;
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">loopback_value_sent</span> <span class="op">=</span> <span class="bool-val">false</span>;
@@ -2756,8 +2844,8 @@
 
                     <span class="kw">for</span> <span class="ident">destination</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">job</span>.<span class="ident">connections</span> {
                         <span class="kw">match</span> <span class="ident">output_v</span>.<span class="ident">pointer</span>(<span class="kw-2">&amp;</span><span class="ident">destination</span>.<span class="ident">subroute</span>) {
-                            <span class="prelude-val">Some</span>(<span class="ident">output_value</span>) <span class="op">=&gt;</span> {
-                                <span class="kw">if</span> <span class="ident">job</span>.<span class="ident">function_id</span> <span class="op">==</span> <span class="ident">destination</span>.<span class="ident">function_id</span> {
+                            <span class="prelude-val">Some</span>(<span class="ident">output_value</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                                <span class="kw">if</span> <span class="ident">job</span>.<span class="ident">function_id</span> <span class="op">=</span><span class="op">=</span> <span class="ident">destination</span>.<span class="ident">function_id</span> {
                                     <span class="ident">loopback_value_sent</span> <span class="op">=</span> <span class="bool-val">true</span>;
                                 }
                                 <span class="self">self</span>.<span class="ident">send_value</span>(<span class="ident">job</span>.<span class="ident">function_id</span>,
@@ -2770,7 +2858,7 @@
                                                     <span class="ident">debugger</span>,
                                 );
                             }
-                            <span class="kw">_</span> <span class="op">=&gt;</span> <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;Job #{}:\t\tNo output value found at &#39;{}&#39;&quot;</span>, <span class="ident">job</span>.<span class="ident">job_id</span>, <span class="kw-2">&amp;</span><span class="ident">destination</span>.<span class="ident">subroute</span>)
+                            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;Job #{}:\t\tNo output value found at &#39;{}&#39;&quot;</span>, <span class="ident">job</span>.<span class="ident">job_id</span>, <span class="kw-2">&amp;</span><span class="ident">destination</span>.<span class="ident">subroute</span>)
                         }
                     }
                 }
@@ -2790,7 +2878,7 @@
                 <span class="comment">// need to do flow unblocks as that could affect other functions even if this one cannot run again</span>
                 <span class="self">self</span>.<span class="ident">unblock_flows</span>(<span class="ident">job</span>.<span class="ident">flow_id</span>, <span class="ident">job</span>.<span class="ident">job_id</span>);
             }
-            <span class="prelude-val">Some</span>(<span class="kw">_</span>) <span class="op">=&gt;</span> {
+            <span class="prelude-val">Some</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
                 <span class="kw">if</span> <span class="self">self</span>.<span class="ident">debug</span> {
                     <span class="ident">debugger</span>.<span class="ident">error</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">job</span>)
@@ -2803,11 +2891,11 @@
     }
 
     <span class="comment">// Take a json data value and return the array order for it</span>
-    <span class="kw">fn</span> <span class="ident">array_order</span>(<span class="ident">value</span>: <span class="kw-2">&amp;</span><span class="ident">Value</span>) <span class="op">-&gt;</span> <span class="ident">i32</span> {
+    <span class="kw">fn</span> <span class="ident">array_order</span>(<span class="ident">value</span>: <span class="kw-2">&amp;</span><span class="ident">Value</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">i32</span> {
         <span class="kw">match</span> <span class="ident">value</span> {
-            <span class="ident">Value</span>::<span class="ident">Array</span>(<span class="ident">array</span>) <span class="kw">if</span> <span class="op">!</span><span class="ident">array</span>.<span class="ident">is_empty</span>() <span class="op">=&gt;</span> <span class="number">1</span> <span class="op">+</span> <span class="self">Self</span>::<span class="ident">array_order</span>(<span class="kw-2">&amp;</span><span class="ident">array</span>[<span class="number">0</span>]),
-            <span class="ident">Value</span>::<span class="ident">Array</span>(<span class="ident">array</span>) <span class="kw">if</span> <span class="ident">array</span>.<span class="ident">is_empty</span>() <span class="op">=&gt;</span> <span class="number">1</span>,
-            <span class="kw">_</span> <span class="op">=&gt;</span> <span class="number">0</span>
+            <span class="ident">Value</span>::<span class="ident">Array</span>(<span class="ident">array</span>) <span class="kw">if</span> <span class="op">!</span><span class="ident">array</span>.<span class="ident">is_empty</span>() <span class="op">=</span><span class="op">&gt;</span> <span class="number">1</span> <span class="op">+</span> <span class="self">Self</span>::<span class="ident">array_order</span>(<span class="kw-2">&amp;</span><span class="ident">array</span>[<span class="number">0</span>]),
+            <span class="ident">Value</span>::<span class="ident">Array</span>(<span class="ident">array</span>) <span class="kw">if</span> <span class="ident">array</span>.<span class="ident">is_empty</span>() <span class="op">=</span><span class="op">&gt;</span> <span class="number">1</span>,
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="number">0</span>
         }
     }
 
@@ -2816,18 +2904,18 @@
             <span class="ident">function</span>.<span class="ident">send</span>(<span class="ident">destination</span>.<span class="ident">io_number</span>, <span class="ident">value</span>);
         } <span class="kw">else</span> {
             <span class="kw">match</span> ((<span class="self">Self</span>::<span class="ident">array_order</span>(<span class="ident">value</span>) <span class="op">-</span> <span class="ident">destination</span>.<span class="ident">array_level_serde</span>), <span class="ident">value</span>) {
-                (<span class="number">0</span>, <span class="kw">_</span>) <span class="op">=&gt;</span> <span class="ident">function</span>.<span class="ident">send</span>(<span class="ident">destination</span>.<span class="ident">io_number</span>, <span class="ident">value</span>),
-                (<span class="number">1</span>, <span class="ident">Value</span>::<span class="ident">Array</span>(<span class="ident">array</span>)) <span class="op">=&gt;</span> <span class="ident">function</span>.<span class="ident">send_iter</span>(<span class="ident">destination</span>.<span class="ident">io_number</span>, <span class="ident">array</span>),
-                (<span class="number">2</span>, <span class="ident">Value</span>::<span class="ident">Array</span>(<span class="ident">array_2</span>)) <span class="op">=&gt;</span> {
+                (<span class="number">0</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">function</span>.<span class="ident">send</span>(<span class="ident">destination</span>.<span class="ident">io_number</span>, <span class="ident">value</span>),
+                (<span class="number">1</span>, <span class="ident">Value</span>::<span class="ident">Array</span>(<span class="ident">array</span>)) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">function</span>.<span class="ident">send_iter</span>(<span class="ident">destination</span>.<span class="ident">io_number</span>, <span class="ident">array</span>),
+                (<span class="number">2</span>, <span class="ident">Value</span>::<span class="ident">Array</span>(<span class="ident">array_2</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="kw">for</span> <span class="ident">array</span> <span class="kw">in</span> <span class="ident">array_2</span>.<span class="ident">iter</span>() {
                         <span class="kw">if</span> <span class="kw">let</span> <span class="ident">Value</span>::<span class="ident">Array</span>(<span class="ident">sub_array</span>) <span class="op">=</span> <span class="ident">array</span> {
                             <span class="ident">function</span>.<span class="ident">send_iter</span>(<span class="ident">destination</span>.<span class="ident">io_number</span>, <span class="ident">sub_array</span>)
                         }
                     }
                 }
-                (<span class="op">-</span><span class="number">1</span>, <span class="kw">_</span>) <span class="op">=&gt;</span> <span class="ident">function</span>.<span class="ident">send</span>(<span class="ident">destination</span>.<span class="ident">io_number</span>, <span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>([<span class="ident">value</span>])),
-                (<span class="op">-</span><span class="number">2</span>, <span class="kw">_</span>) <span class="op">=&gt;</span> <span class="ident">function</span>.<span class="ident">send</span>(<span class="ident">destination</span>.<span class="ident">io_number</span>, <span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>([[<span class="ident">value</span>]])),
-                <span class="kw">_</span> <span class="op">=&gt;</span> <span class="macro">error</span><span class="macro">!</span>(<span class="string">&quot;Unable to handle difference in array order&quot;</span>)
+                (<span class="op">-</span><span class="number">1</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">function</span>.<span class="ident">send</span>(<span class="ident">destination</span>.<span class="ident">io_number</span>, <span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>([<span class="ident">value</span>])),
+                (<span class="op">-</span><span class="number">2</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">function</span>.<span class="ident">send</span>(<span class="ident">destination</span>.<span class="ident">io_number</span>, <span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>([[<span class="ident">value</span>]])),
+                <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">error</span><span class="macro">!</span>(<span class="string">&quot;Unable to handle difference in array order&quot;</span>)
             }
         }
     }
@@ -2849,7 +2937,7 @@
             <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot; via output route &#39;{}&#39;&quot;</span>, <span class="ident">destination</span>.<span class="ident">subroute</span>)
         };
 
-        <span class="kw">let</span> <span class="ident">destination_str</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">source_id</span> <span class="op">==</span> <span class="ident">destination</span>.<span class="ident">function_id</span> {
+        <span class="kw">let</span> <span class="ident">destination_str</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">source_id</span> <span class="op">=</span><span class="op">=</span> <span class="ident">destination</span>.<span class="ident">function_id</span> {
             <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;to Self:{}&quot;</span>, <span class="ident">destination</span>.<span class="ident">io_number</span>)
         } <span class="kw">else</span> {
             <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;to Function #{}:{}&quot;</span>, <span class="ident">destination</span>.<span class="ident">function_id</span>, <span class="ident">destination</span>.<span class="ident">io_number</span>)
@@ -2872,8 +2960,8 @@
         <span class="comment">// - avoid blocking on itself</span>
         <span class="comment">// - delay determining if it should be in the blocked or ready lists (by calling inputs_now_full())</span>
         <span class="comment">//   until it has sent all it&#39;s other outputs as it might be blocked by another function.</span>
-        <span class="kw">let</span> <span class="ident">block</span> <span class="op">=</span> (<span class="ident">function</span>.<span class="ident">input_count</span>(<span class="ident">destination</span>.<span class="ident">io_number</span>) <span class="op">&gt;</span> <span class="number">0</span>) <span class="op">&amp;&amp;</span> (<span class="ident">source_id</span> <span class="op">!=</span> <span class="ident">destination</span>.<span class="ident">function_id</span>);
-        <span class="kw">let</span> <span class="ident">filled</span> <span class="op">=</span> (<span class="ident">function</span>.<span class="ident">input_set_count</span>() <span class="op">&gt;</span> <span class="ident">count_before</span>) <span class="op">&amp;&amp;</span> (<span class="ident">source_id</span> <span class="op">!=</span> <span class="ident">destination</span>.<span class="ident">function_id</span>);
+        <span class="kw">let</span> <span class="ident">block</span> <span class="op">=</span> (<span class="ident">function</span>.<span class="ident">input_count</span>(<span class="ident">destination</span>.<span class="ident">io_number</span>) <span class="op">&gt;</span> <span class="number">0</span>) <span class="op">&amp;&amp;</span> (<span class="ident">source_id</span> <span class="op">!</span><span class="op">=</span> <span class="ident">destination</span>.<span class="ident">function_id</span>);
+        <span class="kw">let</span> <span class="ident">filled</span> <span class="op">=</span> (<span class="ident">function</span>.<span class="ident">input_set_count</span>() <span class="op">&gt;</span> <span class="ident">count_before</span>) <span class="op">&amp;&amp;</span> (<span class="ident">source_id</span> <span class="op">!</span><span class="op">=</span> <span class="ident">destination</span>.<span class="ident">function_id</span>);
 
         <span class="kw">if</span> <span class="ident">block</span> {
             <span class="comment">// TODO pass in destination and combine Block and OutputConnection?</span>
@@ -2900,7 +2988,7 @@
         <span class="kw">let</span> <span class="ident">input_initialized</span> <span class="op">=</span> <span class="ident">function</span>.<span class="ident">init_inputs</span>(<span class="bool-val">false</span>);
 
         <span class="kw">if</span> <span class="ident">function</span>.<span class="ident">input_set_count</span>() <span class="op">&gt;</span> <span class="number">0</span> {
-            <span class="self">self</span>.<span class="ident">new_input_set</span>(<span class="ident">function_id</span>, <span class="ident">flow_id</span>, <span class="ident">input_initialized</span> <span class="op">||</span> <span class="ident">loopback_value_sent</span>);
+            <span class="self">self</span>.<span class="ident">new_input_set</span>(<span class="ident">function_id</span>, <span class="ident">flow_id</span>, <span class="ident">input_initialized</span> <span class="op">|</span><span class="op">|</span> <span class="ident">loopback_value_sent</span>);
         }
     }
 
@@ -2909,11 +2997,11 @@
     }
 
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_output_blockers</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">usize</span>)<span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_output_blockers</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">usize</span>)<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">blockers</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>();
 
         <span class="kw">for</span> <span class="ident">block</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">blocks</span> {
-            <span class="kw">if</span> <span class="ident">block</span>.<span class="ident">blocked_id</span> <span class="op">==</span> <span class="ident">id</span> {
+            <span class="kw">if</span> <span class="ident">block</span>.<span class="ident">blocked_id</span> <span class="op">=</span><span class="op">=</span> <span class="ident">id</span> {
                 <span class="ident">blockers</span>.<span class="ident">push</span>((<span class="ident">block</span>.<span class="ident">blocking_id</span>, <span class="ident">block</span>.<span class="ident">blocking_io_number</span>));
             }
         }
@@ -2921,15 +3009,15 @@
         <span class="ident">blockers</span>
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">number_jobs_running</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">number_jobs_running</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">num_running_jobs</span> <span class="op">=</span> <span class="number">0</span>;
         <span class="kw">for</span> (<span class="kw">_</span>, <span class="ident">vector</span>) <span class="kw">in</span> <span class="self">self</span>.<span class="ident">running</span>.<span class="ident">iter_all</span>() {
-            <span class="ident">num_running_jobs</span> <span class="op">+=</span> <span class="ident">vector</span>.<span class="ident">len</span>()
+            <span class="ident">num_running_jobs</span> <span class="op">+</span><span class="op">=</span> <span class="ident">vector</span>.<span class="ident">len</span>()
         };
         <span class="ident">num_running_jobs</span>
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">number_jobs_ready</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">number_jobs_ready</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span> {
         <span class="self">self</span>.<span class="ident">ready</span>.<span class="ident">len</span>()
     }
 
@@ -2938,13 +3026,13 @@
         of target function, and which is not ready to run, hence target function cannot run.
     */</span>
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_input_blockers</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">target_id</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">usize</span>)<span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_input_blockers</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">target_id</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">usize</span>)<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">input_blockers</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>();
         <span class="kw">let</span> <span class="ident">target_function</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">get</span>(<span class="ident">target_id</span>);
 
         <span class="comment">// for each empty input of the target function</span>
         <span class="kw">for</span> (<span class="ident">target_io</span>, <span class="ident">input</span>) <span class="kw">in</span> <span class="ident">target_function</span>.<span class="ident">inputs</span>().<span class="ident">iter</span>().<span class="ident">enumerate</span>() {
-            <span class="kw">if</span> <span class="ident">input</span>.<span class="ident">count</span>() <span class="op">==</span> <span class="number">0</span> {
+            <span class="kw">if</span> <span class="ident">input</span>.<span class="ident">count</span>() <span class="op">=</span><span class="op">=</span> <span class="number">0</span> {
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">senders</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">usize</span>)<span class="op">&gt;</span>::<span class="ident">new</span>();
 
                 <span class="comment">// go through all functions to see if sends to the target function on input</span>
@@ -2955,8 +3043,8 @@
                         <span class="comment">// for each output route of sending function, see if it is sending to the target function and input</span>
                         <span class="comment">//(ref _output_route, destination_id, io_number, _destination_path)</span>
                         <span class="kw">for</span> <span class="ident">destination</span> <span class="kw">in</span> <span class="ident">sender_function</span>.<span class="ident">get_output_connections</span>() {
-                            <span class="kw">if</span> (<span class="ident">destination</span>.<span class="ident">function_id</span> <span class="op">==</span> <span class="ident">target_id</span>) <span class="op">&amp;&amp;</span>
-                                (<span class="ident">destination</span>.<span class="ident">io_number</span> <span class="op">==</span> <span class="ident">target_io</span>) {
+                            <span class="kw">if</span> (<span class="ident">destination</span>.<span class="ident">function_id</span> <span class="op">=</span><span class="op">=</span> <span class="ident">target_id</span>) <span class="op">&amp;&amp;</span>
+                                (<span class="ident">destination</span>.<span class="ident">io_number</span> <span class="op">=</span><span class="op">=</span> <span class="ident">target_io</span>) {
                                 <span class="ident">senders</span>.<span class="ident">push</span>((<span class="ident">sender_function</span>.<span class="ident">id</span>(), <span class="ident">target_io</span>));
                             }
                         }
@@ -2964,7 +3052,7 @@
                 }
 
                 <span class="comment">// If unique sender to this Input, then target function is blocked waiting for that value</span>
-                <span class="kw">if</span> <span class="ident">senders</span>.<span class="ident">len</span>() <span class="op">==</span> <span class="number">1</span> {
+                <span class="kw">if</span> <span class="ident">senders</span>.<span class="ident">len</span>() <span class="op">=</span><span class="op">=</span> <span class="number">1</span> {
                     <span class="ident">input_blockers</span>.<span class="ident">extend</span>(<span class="ident">senders</span>);
                 }
             }
@@ -3005,17 +3093,17 @@
     }
 
     <span class="comment">// See if there is any block where the blocked function is the one we&#39;re looking for</span>
-    <span class="kw">fn</span> <span class="ident">blocked_sending</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+    <span class="kw">fn</span> <span class="ident">blocked_sending</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">bool</span> {
         <span class="kw">for</span> <span class="ident">block</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">blocks</span> {
-            <span class="kw">if</span> <span class="ident">block</span>.<span class="ident">blocked_id</span> <span class="op">==</span> <span class="ident">id</span> {
+            <span class="kw">if</span> <span class="ident">block</span>.<span class="ident">blocked_id</span> <span class="op">=</span><span class="op">=</span> <span class="ident">id</span> {
                 <span class="kw">return</span> <span class="bool-val">true</span>;
             }
         }
         <span class="bool-val">false</span>
     }
 
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">num_functions</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">usize</span> {
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>))]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">num_functions</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span> {
         <span class="self">self</span>.<span class="ident">functions</span>.<span class="ident">len</span>()
     }
 
@@ -3028,7 +3116,7 @@
     */</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">unblock_senders</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">job_id</span>: <span class="ident">usize</span>, <span class="ident">blocker_function_id</span>: <span class="ident">usize</span>, <span class="ident">blocker_flow_id</span>: <span class="ident">usize</span>) {
         <span class="comment">// delete blocks to this function from within the same flow</span>
-        <span class="kw">let</span> <span class="ident">flow_internal_blocks</span> <span class="op">=</span> <span class="op">|</span><span class="ident">block</span>: <span class="kw-2">&amp;</span><span class="ident">Block</span><span class="op">|</span> <span class="ident">block</span>.<span class="ident">blocking_flow_id</span> <span class="op">==</span> <span class="ident">block</span>.<span class="ident">blocked_flow_id</span>;
+        <span class="kw">let</span> <span class="ident">flow_internal_blocks</span> <span class="op">=</span> <span class="op">|</span><span class="ident">block</span>: <span class="kw-2">&amp;</span><span class="ident">Block</span><span class="op">|</span> <span class="ident">block</span>.<span class="ident">blocking_flow_id</span> <span class="op">=</span><span class="op">=</span> <span class="ident">block</span>.<span class="ident">blocked_flow_id</span>;
 
         <span class="self">self</span>.<span class="ident">unblock_senders_to_function</span>(<span class="ident">blocker_function_id</span>, <span class="ident">flow_internal_blocks</span>);
 
@@ -3044,7 +3132,7 @@
         Detect which flows have gone inactive and remove pending unblocks for functions in it
     */</span>
     <span class="kw">fn</span> <span class="ident">unblock_flows</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">blocker_flow_id</span>: <span class="ident">usize</span>, <span class="ident">job_id</span>: <span class="ident">usize</span>) {
-        <span class="kw">let</span> <span class="ident">flow_external_blocks</span> <span class="op">=</span> <span class="op">|</span><span class="ident">block</span>: <span class="kw-2">&amp;</span><span class="ident">Block</span><span class="op">|</span> <span class="ident">block</span>.<span class="ident">blocking_flow_id</span> <span class="op">!=</span> <span class="ident">block</span>.<span class="ident">blocked_flow_id</span>;
+        <span class="kw">let</span> <span class="ident">flow_external_blocks</span> <span class="op">=</span> <span class="op">|</span><span class="ident">block</span>: <span class="kw-2">&amp;</span><span class="ident">Block</span><span class="op">|</span> <span class="ident">block</span>.<span class="ident">blocking_flow_id</span> <span class="op">!</span><span class="op">=</span> <span class="ident">block</span>.<span class="ident">blocked_flow_id</span>;
 
         <span class="comment">// if flow is now idle, remove any blocks on sending to functions in the flow</span>
         <span class="kw">if</span> <span class="self">self</span>.<span class="ident">busy_flows</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">blocker_flow_id</span>).<span class="ident">is_none</span>() {
@@ -3066,8 +3154,8 @@
     <span class="kw">fn</span> <span class="ident">remove_from_busy</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">blocker_function_id</span>: <span class="ident">usize</span>) {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">count</span> <span class="op">=</span> <span class="number">0</span>;
         <span class="self">self</span>.<span class="ident">busy_flows</span>.<span class="ident">retain</span>(<span class="op">|</span><span class="kw-2">&amp;</span><span class="ident">_flow_id</span>, <span class="kw-2">&amp;</span><span class="ident">function_id</span><span class="op">|</span> {
-            <span class="kw">if</span> <span class="ident">function_id</span> <span class="op">==</span> <span class="ident">blocker_function_id</span> <span class="op">&amp;&amp;</span> <span class="ident">count</span> <span class="op">==</span> <span class="number">0</span> {
-                <span class="ident">count</span> <span class="op">+=</span> <span class="number">1</span>;
+            <span class="kw">if</span> <span class="ident">function_id</span> <span class="op">=</span><span class="op">=</span> <span class="ident">blocker_function_id</span> <span class="op">&amp;&amp;</span> <span class="ident">count</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span> {
+                <span class="ident">count</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
                 <span class="bool-val">false</span> <span class="comment">// remove it</span>
             } <span class="kw">else</span> {
                 <span class="bool-val">true</span> <span class="comment">// retain it</span>
@@ -3083,11 +3171,11 @@
         Once each is unblocked, if it&#39;s inputs are full, then it is ready to be run again,
         so mark as ready
     */</span>
-    <span class="kw">fn</span> <span class="ident">unblock_senders_to_function</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">blocker_function_id</span>: <span class="ident">usize</span>, <span class="ident">f</span>: <span class="ident">F</span>) <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">Fn</span>(<span class="kw-2">&amp;</span><span class="ident">Block</span>) <span class="op">-&gt;</span> <span class="ident">bool</span> {
+    <span class="kw">fn</span> <span class="ident">unblock_senders_to_function</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">blocker_function_id</span>: <span class="ident">usize</span>, <span class="ident">f</span>: <span class="ident">F</span>) <span class="kw">where</span> <span class="ident">F</span>: <span class="ident">Fn</span>(<span class="kw-2">&amp;</span><span class="ident">Block</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">bool</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">unblock_list</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>();
 
         <span class="self">self</span>.<span class="ident">blocks</span>.<span class="ident">retain</span>(<span class="op">|</span><span class="ident">block</span><span class="op">|</span> {
-            <span class="kw">if</span> (<span class="ident">block</span>.<span class="ident">blocking_id</span> <span class="op">==</span> <span class="ident">blocker_function_id</span>) <span class="op">&amp;&amp;</span>
+            <span class="kw">if</span> (<span class="ident">block</span>.<span class="ident">blocking_id</span> <span class="op">=</span><span class="op">=</span> <span class="ident">blocker_function_id</span>) <span class="op">&amp;&amp;</span>
                 <span class="ident">f</span>(<span class="ident">block</span>)
             {
                 <span class="ident">unblock_list</span>.<span class="ident">push</span>((<span class="ident">block</span>.<span class="ident">blocked_id</span>, <span class="ident">block</span>.<span class="ident">blocked_flow_id</span>));
@@ -3151,32 +3239,32 @@
         <span class="comment">// check invariants of each functions</span>
         <span class="kw">for</span> <span class="ident">function</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">functions</span> {
             <span class="kw">match</span> <span class="self">self</span>.<span class="ident">get_state</span>(<span class="ident">function</span>.<span class="ident">id</span>()) {
-                <span class="ident">State</span>::<span class="ident">Ready</span> <span class="op">=&gt;</span> {
+                <span class="ident">State</span>::<span class="ident">Ready</span> <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">busy_flows</span>.<span class="ident">contains_key</span>(<span class="kw-2">&amp;</span><span class="ident">function</span>.<span class="ident">get_flow_id</span>()) {
                         <span class="kw">return</span> <span class="self">self</span>.<span class="ident">runtime_error</span>(<span class="ident">job_id</span>, <span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Function #{} is Ready, but Flow #{} is not busy&quot;</span>, <span class="ident">function</span>.<span class="ident">id</span>(), <span class="ident">function</span>.<span class="ident">get_flow_id</span>()),
                                                   <span class="macro">file</span><span class="macro">!</span>(), <span class="macro">line</span><span class="macro">!</span>());
                     }
                 }
-                <span class="ident">State</span>::<span class="ident">Running</span> <span class="op">=&gt;</span> {
+                <span class="ident">State</span>::<span class="ident">Running</span> <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">busy_flows</span>.<span class="ident">contains_key</span>(<span class="kw-2">&amp;</span><span class="ident">function</span>.<span class="ident">get_flow_id</span>()) {
                         <span class="kw">return</span> <span class="self">self</span>.<span class="ident">runtime_error</span>(<span class="ident">job_id</span>, <span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Function #{} is Running, but Flow #{} is not busy&quot;</span>, <span class="ident">function</span>.<span class="ident">id</span>(), <span class="ident">function</span>.<span class="ident">get_flow_id</span>()),
                                                   <span class="macro">file</span><span class="macro">!</span>(), <span class="macro">line</span><span class="macro">!</span>());
                     }
                 }
-                <span class="ident">State</span>::<span class="ident">Blocked</span> <span class="op">=&gt;</span> {
+                <span class="ident">State</span>::<span class="ident">Blocked</span> <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">blocked_sending</span>(<span class="ident">function</span>.<span class="ident">id</span>()) {
                         <span class="kw">return</span> <span class="self">self</span>.<span class="ident">runtime_error</span>(<span class="ident">job_id</span>, <span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Function #{} is in Blocked state, but no block exists&quot;</span>, <span class="ident">function</span>.<span class="ident">id</span>()),
                                                   <span class="macro">file</span><span class="macro">!</span>(), <span class="macro">line</span><span class="macro">!</span>());
                     }
                 }
-                <span class="ident">State</span>::<span class="ident">Waiting</span> <span class="op">=&gt;</span> {}
+                <span class="ident">State</span>::<span class="ident">Waiting</span> <span class="op">=</span><span class="op">&gt;</span> {}
             }
 
             <span class="comment">// State::Running is because functions with initializers auto-refill when sent to run</span>
             <span class="comment">// So they will show as inputs full, but not Ready or Blocked</span>
             <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">get_state</span>(<span class="ident">function</span>.<span class="ident">id</span>());
             <span class="kw">if</span> (<span class="op">!</span><span class="ident">function</span>.<span class="ident">inputs</span>().<span class="ident">is_empty</span>()) <span class="op">&amp;&amp;</span> (<span class="ident">function</span>.<span class="ident">input_set_count</span>() <span class="op">&gt;</span> <span class="number">0</span>) <span class="op">&amp;&amp;</span>
-                <span class="op">!</span>(<span class="ident">state</span> <span class="op">==</span> <span class="ident">State</span>::<span class="ident">Ready</span> <span class="op">||</span> <span class="ident">state</span> <span class="op">==</span> <span class="ident">State</span>::<span class="ident">Blocked</span> <span class="op">||</span> <span class="ident">state</span> <span class="op">==</span> <span class="ident">State</span>::<span class="ident">Running</span>) {
+                <span class="op">!</span>(<span class="ident">state</span> <span class="op">=</span><span class="op">=</span> <span class="ident">State</span>::<span class="ident">Ready</span> <span class="op">|</span><span class="op">|</span> <span class="ident">state</span> <span class="op">=</span><span class="op">=</span> <span class="ident">State</span>::<span class="ident">Blocked</span> <span class="op">|</span><span class="op">|</span> <span class="ident">state</span> <span class="op">=</span><span class="op">=</span> <span class="ident">State</span>::<span class="ident">Running</span>) {
                 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
                 <span class="macro">error</span><span class="macro">!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">function</span>);
                 <span class="kw">return</span> <span class="self">self</span>.<span class="ident">runtime_error</span>(<span class="ident">job_id</span>, <span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Function #{} inputs are full, but it is not Ready or Blocked&quot;</span>, <span class="ident">function</span>.<span class="ident">id</span>()),
@@ -3187,7 +3275,7 @@
         <span class="comment">// Check block invariants</span>
         <span class="kw">for</span> <span class="ident">block</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">blocks</span> {
             <span class="comment">// function should not be blocked on itself</span>
-            <span class="kw">if</span> <span class="ident">block</span>.<span class="ident">blocked_id</span> <span class="op">==</span> <span class="ident">block</span>.<span class="ident">blocking_id</span> {
+            <span class="kw">if</span> <span class="ident">block</span>.<span class="ident">blocked_id</span> <span class="op">=</span><span class="op">=</span> <span class="ident">block</span>.<span class="ident">blocking_id</span> {
                 <span class="kw">return</span> <span class="self">self</span>.<span class="ident">runtime_error</span>(<span class="ident">job_id</span>, <span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Block {} has same Function id as blocked and blocking&quot;</span>, <span class="ident">block</span>),
                                           <span class="macro">file</span><span class="macro">!</span>(), <span class="macro">line</span><span class="macro">!</span>());
             }
@@ -3196,7 +3284,7 @@
             <span class="comment">// the function should be running in parallel with the one that just completed</span>
             <span class="comment">// or it&#39;s flow should be busy and there should be a pending unblock on it</span>
             <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">function</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">functions</span>.<span class="ident">get</span>(<span class="ident">block</span>.<span class="ident">blocking_id</span>) {
-                <span class="kw">if</span> <span class="op">!</span>(<span class="ident">function</span>.<span class="ident">input_count</span>(<span class="ident">block</span>.<span class="ident">blocking_io_number</span>) <span class="op">&gt;</span> <span class="number">0</span> <span class="op">||</span>
+                <span class="kw">if</span> <span class="op">!</span>(<span class="ident">function</span>.<span class="ident">input_count</span>(<span class="ident">block</span>.<span class="ident">blocking_io_number</span>) <span class="op">&gt;</span> <span class="number">0</span> <span class="op">|</span><span class="op">|</span>
                     (<span class="self">self</span>.<span class="ident">busy_flows</span>.<span class="ident">contains_key</span>(<span class="kw-2">&amp;</span><span class="ident">block</span>.<span class="ident">blocking_flow_id</span>) <span class="op">&amp;&amp;</span> <span class="self">self</span>.<span class="ident">pending_unblocks</span>.<span class="ident">contains_key</span>(<span class="kw-2">&amp;</span><span class="ident">block</span>.<span class="ident">blocking_flow_id</span>))) {
                     <span class="kw">return</span> <span class="self">self</span>.<span class="ident">runtime_error</span>(<span class="ident">job_id</span>,
                                               <span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Block {} exists for function #{}, but Function #{}:{} input is not full&quot;</span>,
@@ -3218,7 +3306,7 @@
         <span class="comment">// Check busy flow invariants</span>
         <span class="kw">for</span> (<span class="ident">flow_id</span>, <span class="ident">function_id</span>) <span class="kw">in</span> <span class="self">self</span>.<span class="ident">busy_flows</span>.<span class="ident">iter</span>() {
             <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">get_state</span>(<span class="kw-2">*</span><span class="ident">function_id</span>);
-            <span class="kw">if</span> <span class="op">!</span>(<span class="ident">state</span> <span class="op">==</span> <span class="ident">State</span>::<span class="ident">Ready</span> <span class="op">||</span> <span class="ident">state</span> <span class="op">==</span> <span class="ident">State</span>::<span class="ident">Running</span>) {
+            <span class="kw">if</span> <span class="op">!</span>(<span class="ident">state</span> <span class="op">=</span><span class="op">=</span> <span class="ident">State</span>::<span class="ident">Ready</span> <span class="op">|</span><span class="op">|</span> <span class="ident">state</span> <span class="op">=</span><span class="op">=</span> <span class="ident">State</span>::<span class="ident">Running</span>) {
                 <span class="kw">return</span> <span class="self">self</span>.<span class="ident">runtime_error</span>(<span class="ident">job_id</span>, <span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Busy flow entry exists for Function #{} in Flow #{} but it&#39;s state is {:?}&quot;</span>,
                                                            <span class="ident">function_id</span>, <span class="ident">flow_id</span>, <span class="ident">state</span>),
                                           <span class="macro">file</span><span class="macro">!</span>(), <span class="macro">line</span><span class="macro">!</span>());
@@ -3228,7 +3316,7 @@
 }
 
 <span class="kw">impl</span> <span class="ident">fmt</span>::<span class="ident">Display</span> <span class="kw">for</span> <span class="ident">RunState</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
         <span class="macro">writeln</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;RunState:&quot;</span>)<span class="question-mark">?</span>;
         <span class="macro">writeln</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;     Jobs Created: {}&quot;</span>, <span class="self">self</span>.<span class="ident">jobs_created</span>)<span class="question-mark">?</span>;
         <span class="macro">writeln</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;Functions Blocked: {:?}&quot;</span>, <span class="self">self</span>.<span class="ident">blocked</span>)<span class="question-mark">?</span>;
@@ -3259,16 +3347,16 @@
     <span class="kw">struct</span> <span class="ident">TestImpl</span> {}
 
     <span class="kw">impl</span> <span class="ident">Implementation</span> <span class="kw">for</span> <span class="ident">TestImpl</span> {
-        <span class="kw">fn</span> <span class="ident">run</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">_inputs</span>: <span class="kw-2">&amp;</span>[<span class="ident">Value</span>]) <span class="op">-&gt;</span> (<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span>, <span class="ident">bool</span>) {
+        <span class="kw">fn</span> <span class="ident">run</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">_inputs</span>: <span class="kw-2">&amp;</span>[<span class="ident">Value</span>]) <span class="op">-</span><span class="op">&gt;</span> (<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span>, <span class="ident">bool</span>) {
             <span class="macro">unimplemented</span><span class="macro">!</span>()
         }
     }
 
-    <span class="kw">fn</span> <span class="ident">test_impl</span>() <span class="op">-&gt;</span> <span class="ident">Arc</span><span class="op">&lt;</span><span class="kw">dyn</span> <span class="ident">Implementation</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">test_impl</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Arc</span><span class="op">&lt;</span><span class="kw">dyn</span> <span class="ident">Implementation</span><span class="op">&gt;</span> {
         <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">TestImpl</span> {})
     }
 
-    <span class="kw">fn</span> <span class="ident">test_function_a_to_b_not_init</span>() <span class="op">-&gt;</span> <span class="ident">Function</span> {
+    <span class="kw">fn</span> <span class="ident">test_function_a_to_b_not_init</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Function</span> {
         <span class="kw">let</span> <span class="ident">connection_to_f1</span> <span class="op">=</span> <span class="ident">OutputConnection</span>::<span class="ident">new</span>(<span class="string">&quot;&quot;</span>.<span class="ident">to_string</span>(),
                                                      <span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>,
                                                      <span class="number">0</span>, <span class="bool-val">false</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;/fB&quot;</span>.<span class="ident">to_string</span>()));
@@ -3284,7 +3372,7 @@
             <span class="kw-2">&amp;</span>[<span class="ident">connection_to_f1</span>], <span class="bool-val">false</span>) <span class="comment">// outputs to fB:0</span>
     }
 
-    <span class="kw">fn</span> <span class="ident">test_function_a_to_b</span>() <span class="op">-&gt;</span> <span class="ident">Function</span> {
+    <span class="kw">fn</span> <span class="ident">test_function_a_to_b</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Function</span> {
         <span class="kw">let</span> <span class="ident">connection_to_f1</span> <span class="op">=</span> <span class="ident">OutputConnection</span>::<span class="ident">new</span>(<span class="string">&quot;&quot;</span>.<span class="ident">to_string</span>(),
                                                      <span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>,
                                                      <span class="number">0</span>, <span class="bool-val">false</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;/fB&quot;</span>.<span class="ident">to_string</span>()));
@@ -3299,7 +3387,7 @@
             <span class="kw-2">&amp;</span>[<span class="ident">connection_to_f1</span>], <span class="bool-val">false</span>) <span class="comment">// outputs to fB:0</span>
     }
 
-    <span class="kw">fn</span> <span class="ident">test_function_a_init</span>() <span class="op">-&gt;</span> <span class="ident">Function</span> {
+    <span class="kw">fn</span> <span class="ident">test_function_a_init</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Function</span> {
         <span class="ident">Function</span>::<span class="ident">new</span>(
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
                 <span class="string">&quot;fA&quot;</span>.<span class="ident">to_string</span>(), <span class="comment">// name</span>
@@ -3311,7 +3399,7 @@
             <span class="kw-2">&amp;</span>[], <span class="bool-val">false</span>)
     }
 
-    <span class="kw">fn</span> <span class="ident">test_function_b_not_init</span>() <span class="op">-&gt;</span> <span class="ident">Function</span> {
+    <span class="kw">fn</span> <span class="ident">test_function_b_not_init</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Function</span> {
         <span class="ident">Function</span>::<span class="ident">new</span>(
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
                 <span class="string">&quot;fB&quot;</span>.<span class="ident">to_string</span>(), <span class="comment">// name</span>
@@ -3323,7 +3411,7 @@
             <span class="kw-2">&amp;</span>[], <span class="bool-val">false</span>)
     }
 
-    <span class="kw">fn</span> <span class="ident">test_function_b_init</span>() <span class="op">-&gt;</span> <span class="ident">Function</span> {
+    <span class="kw">fn</span> <span class="ident">test_function_b_init</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Function</span> {
         <span class="ident">Function</span>::<span class="ident">new</span>(
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
                 <span class="string">&quot;fB&quot;</span>.<span class="ident">to_string</span>(), <span class="comment">// name</span>
@@ -3335,7 +3423,7 @@
             <span class="kw-2">&amp;</span>[], <span class="bool-val">false</span>)
     }
 
-    <span class="kw">fn</span> <span class="ident">test_output</span>(<span class="ident">source_function_id</span>: <span class="ident">usize</span>, <span class="ident">dest_function_id</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">Job</span> {
+    <span class="kw">fn</span> <span class="ident">test_output</span>(<span class="ident">source_function_id</span>: <span class="ident">usize</span>, <span class="ident">dest_function_id</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Job</span> {
         <span class="kw">let</span> <span class="ident">out_conn</span> <span class="op">=</span> <span class="ident">OutputConnection</span>::<span class="ident">new</span>(<span class="string">&quot;&quot;</span>.<span class="ident">to_string</span>(), <span class="ident">dest_function_id</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="bool-val">false</span>, <span class="prelude-val">None</span>);
         <span class="ident">Job</span> {
             <span class="ident">job_id</span>: <span class="number">1</span>,
@@ -3349,7 +3437,7 @@
         }
     }
 
-    <span class="kw">fn</span> <span class="ident">error_output</span>(<span class="ident">source_function_id</span>: <span class="ident">usize</span>, <span class="ident">dest_function_id</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">Job</span> {
+    <span class="kw">fn</span> <span class="ident">error_output</span>(<span class="ident">source_function_id</span>: <span class="ident">usize</span>, <span class="ident">dest_function_id</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Job</span> {
         <span class="kw">let</span> <span class="ident">out_conn</span> <span class="op">=</span> <span class="ident">OutputConnection</span>::<span class="ident">new</span>(<span class="string">&quot;&quot;</span>.<span class="ident">to_string</span>(), <span class="ident">dest_function_id</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="bool-val">false</span>, <span class="prelude-val">None</span>);
         <span class="ident">Job</span> {
             <span class="ident">job_id</span>: <span class="number">1</span>,
@@ -3425,7 +3513,10 @@
         <span class="attribute">#[<span class="ident">test</span>]</span>
         <span class="kw">fn</span> <span class="ident">jobs_created_zero_at_init</span>() {
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span>[], <span class="ident">submission</span>);
             <span class="ident">state</span>.<span class="ident">init</span>();
             <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="number">0</span>, <span class="ident">state</span>.<span class="ident">jobs_created</span>(), <span class="string">&quot;At init jobs() should be 0&quot;</span>);
@@ -3460,7 +3551,10 @@
             <span class="kw">let</span> <span class="ident">f_b</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">test_function_b_not_init</span>();
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>, <span class="ident">f_b</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
 
 <span class="comment">// Event</span>
@@ -3477,7 +3571,10 @@
             <span class="kw">let</span> <span class="ident">f_b</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">test_function_b_not_init</span>();
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>, <span class="ident">f_b</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
 
 <span class="comment">// Event</span>
@@ -3496,7 +3593,10 @@
             <span class="kw">let</span> <span class="ident">f_b</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">test_function_b_not_init</span>();
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>, <span class="ident">f_b</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
 
 <span class="comment">// Event</span>
@@ -3511,7 +3611,10 @@
             <span class="kw">let</span> <span class="ident">f_a</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">test_function_a_init</span>();
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
 
 <span class="comment">// Event</span>
@@ -3533,7 +3636,10 @@
             <span class="kw">let</span> <span class="ident">f_b</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">test_function_b_init</span>();
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_b</span>, <span class="ident">f_a</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
 
 <span class="comment">// Event</span>
@@ -3546,7 +3652,7 @@
             <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">state</span>.<span class="ident">get_output_blockers</span>(<span class="number">0</span>).<span class="ident">contains</span>(<span class="kw-2">&amp;</span>(<span class="number">1</span>, <span class="number">0</span>)), <span class="string">&quot;f_a should be blocked by f_b, input 0&quot;</span>);
         }
 
-        <span class="kw">fn</span> <span class="ident">test_function_a_not_init</span>() <span class="op">-&gt;</span> <span class="ident">Function</span> {
+        <span class="kw">fn</span> <span class="ident">test_function_a_not_init</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Function</span> {
             <span class="ident">Function</span>::<span class="ident">new</span>(
                 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
                     <span class="string">&quot;fA&quot;</span>.<span class="ident">to_string</span>(), <span class="comment">// name</span>
@@ -3563,7 +3669,10 @@
             <span class="kw">let</span> <span class="ident">f_a</span> <span class="op">=</span> <span class="ident">test_function_a_not_init</span>();
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
 
 <span class="comment">// Event</span>
@@ -3578,7 +3687,10 @@
             <span class="kw">let</span> <span class="ident">f_a</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">test_function_a_init</span>();
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
             <span class="ident">state</span>.<span class="ident">init</span>();
             <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">State</span>::<span class="ident">Ready</span>, <span class="ident">state</span>.<span class="ident">get_state</span>(<span class="number">0</span>), <span class="string">&quot;f_a should be Ready&quot;</span>);
@@ -3597,7 +3709,10 @@
             <span class="kw">let</span> <span class="ident">f_a</span> <span class="op">=</span> <span class="ident">test_function_a_not_init</span>();
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
             <span class="ident">state</span>.<span class="ident">init</span>();
             <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">State</span>::<span class="ident">Waiting</span>, <span class="ident">state</span>.<span class="ident">get_state</span>(<span class="number">0</span>), <span class="string">&quot;f_a should be Waiting&quot;</span>);
@@ -3615,7 +3730,10 @@
             <span class="kw">let</span> <span class="ident">f_b</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">test_function_b_init</span>();
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>, <span class="ident">f_b</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">metrics</span> <span class="op">=</span> <span class="ident">Metrics</span>::<span class="ident">new</span>(<span class="number">2</span>);
@@ -3655,7 +3773,10 @@
             <span class="kw">let</span> <span class="ident">f_b</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">test_function_b_init</span>();
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>, <span class="ident">f_b</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">metrics</span> <span class="op">=</span> <span class="ident">Metrics</span>::<span class="ident">new</span>(<span class="number">2</span>);
@@ -3699,7 +3820,10 @@
             <span class="kw">let</span> <span class="ident">f_b</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">test_function_b_not_init</span>();
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>, <span class="ident">f_b</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">false</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">false</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">metrics</span> <span class="op">=</span> <span class="ident">Metrics</span>::<span class="ident">new</span>(<span class="number">2</span>);
@@ -3722,7 +3846,7 @@
             <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">State</span>::<span class="ident">Waiting</span>, <span class="ident">state</span>.<span class="ident">get_state</span>(<span class="number">1</span>), <span class="string">&quot;f_b should be Waiting&quot;</span>);
         }
 
-        <span class="kw">fn</span> <span class="ident">test_job</span>() <span class="op">-&gt;</span> <span class="ident">Job</span> {
+        <span class="kw">fn</span> <span class="ident">test_job</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Job</span> {
             <span class="ident">Job</span> {
                 <span class="ident">job_id</span>: <span class="number">1</span>,
                 <span class="ident">function_id</span>: <span class="number">0</span>,
@@ -3748,7 +3872,10 @@
                 <span class="kw-2">&amp;</span>[], <span class="bool-val">false</span>);
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">metrics</span> <span class="op">=</span> <span class="ident">Metrics</span>::<span class="ident">new</span>(<span class="number">1</span>);
@@ -3784,7 +3911,10 @@
             <span class="kw">let</span> <span class="ident">f_a</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">test_function_a_init</span>();
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">metrics</span> <span class="op">=</span> <span class="ident">Metrics</span>::<span class="ident">new</span>(<span class="number">1</span>);
@@ -3830,7 +3960,10 @@
             <span class="kw">let</span> <span class="ident">f_b</span> <span class="op">=</span> <span class="ident">test_function_b_not_init</span>();
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>, <span class="ident">f_b</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">metrics</span> <span class="op">=</span> <span class="ident">Metrics</span>::<span class="ident">new</span>(<span class="number">1</span>);
@@ -3878,7 +4011,10 @@
                 <span class="kw-2">&amp;</span>[<span class="ident">out_conn</span>], <span class="bool-val">false</span>);
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>, <span class="ident">f_b</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">metrics</span> <span class="op">=</span> <span class="ident">Metrics</span>::<span class="ident">new</span>(<span class="number">1</span>);
@@ -3923,7 +4059,10 @@
                 <span class="kw-2">&amp;</span>[<span class="ident">connection_to_f0</span>], <span class="bool-val">false</span>);
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>, <span class="ident">f_b</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">metrics</span> <span class="op">=</span> <span class="ident">Metrics</span>::<span class="ident">new</span>(<span class="number">1</span>);
@@ -3978,7 +4117,10 @@
             <span class="kw">let</span> <span class="ident">f_b</span> <span class="op">=</span> <span class="ident">test_function_b_not_init</span>();
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>, <span class="ident">f_b</span>); <span class="comment">// NOTE the order!</span>
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">metrics</span> <span class="op">=</span> <span class="ident">Metrics</span>::<span class="ident">new</span>(<span class="number">2</span>);
@@ -4059,7 +4201,7 @@
         <span class="kw">use</span> <span class="kw">super</span>::<span class="kw">super</span>::<span class="ident">RunState</span>;
         <span class="kw">use</span> <span class="kw">super</span>::<span class="kw">super</span>::<span class="ident">State</span>;
 
-        <span class="kw">fn</span> <span class="ident">test_functions</span>() <span class="op">-&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Function</span><span class="op">&gt;</span> {
+        <span class="kw">fn</span> <span class="ident">test_functions</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Function</span><span class="op">&gt;</span> {
             <span class="kw">let</span> <span class="ident">out_conn1</span> <span class="op">=</span> <span class="ident">OutputConnection</span>::<span class="ident">new</span>(<span class="string">&quot;&quot;</span>.<span class="ident">to_string</span>(), <span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="bool-val">false</span>, <span class="prelude-val">None</span>);
             <span class="kw">let</span> <span class="ident">out_conn2</span> <span class="op">=</span> <span class="ident">OutputConnection</span>::<span class="ident">new</span>(<span class="string">&quot;&quot;</span>.<span class="ident">to_string</span>(), <span class="number">2</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="bool-val">false</span>, <span class="prelude-val">None</span>);
             <span class="kw">let</span> <span class="ident">p0</span> <span class="op">=</span> <span class="ident">Function</span>::<span class="ident">new</span>(
@@ -4096,7 +4238,10 @@
         <span class="attribute">#[<span class="ident">test</span>]</span>
         <span class="kw">fn</span> <span class="ident">blocked_works</span>() {
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">test_functions</span>(), <span class="ident">submission</span>);
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
                 <span class="kw">let</span> <span class="ident">debug_server_context</span> <span class="op">=</span> <span class="ident">DebugServerConnection</span>::<span class="ident">new</span>(<span class="prelude-val">None</span>);
@@ -4113,7 +4258,10 @@
         <span class="attribute">#[<span class="ident">test</span>]</span>
         <span class="kw">fn</span> <span class="ident">get_works</span>() {
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">test_functions</span>(), <span class="ident">submission</span>);
             <span class="kw">let</span> <span class="ident">got</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">get</span>(<span class="number">1</span>);
             <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">got</span>.<span class="ident">id</span>(), <span class="number">1</span>)
@@ -4122,7 +4270,10 @@
         <span class="attribute">#[<span class="ident">test</span>]</span>
         <span class="kw">fn</span> <span class="ident">no_next_if_none_ready</span>() {
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">test_functions</span>(), <span class="ident">submission</span>);
 
             <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">state</span>.<span class="ident">next_job</span>().<span class="ident">is_none</span>());
@@ -4131,7 +4282,10 @@
         <span class="attribute">#[<span class="ident">test</span>]</span>
         <span class="kw">fn</span> <span class="ident">next_works</span>() {
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">test_functions</span>(), <span class="ident">submission</span>);
 
 <span class="comment">// Put 0 on the blocked/ready</span>
@@ -4143,7 +4297,10 @@
         <span class="attribute">#[<span class="ident">test</span>]</span>
         <span class="kw">fn</span> <span class="ident">inputs_ready_makes_ready</span>() {
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">test_functions</span>(), <span class="ident">submission</span>);
 
 <span class="comment">// Put 0 on the blocked/ready list depending on blocked status</span>
@@ -4155,7 +4312,10 @@
         <span class="attribute">#[<span class="ident">test</span>]</span>
         <span class="kw">fn</span> <span class="ident">blocked_is_not_ready</span>() {
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">test_functions</span>(), <span class="ident">submission</span>);
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
                 <span class="kw">let</span> <span class="ident">debug_server_context</span> <span class="op">=</span> <span class="ident">DebugServerConnection</span>::<span class="ident">new</span>(<span class="prelude-val">None</span>);
@@ -4176,7 +4336,10 @@
         <span class="attribute">#[<span class="ident">test</span>]</span>
         <span class="kw">fn</span> <span class="ident">unblocking_makes_ready</span>() {
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                             <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">test_functions</span>(), <span class="ident">submission</span>);
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
                 <span class="kw">let</span> <span class="ident">debug_server_context</span> <span class="op">=</span> <span class="ident">DebugServerConnection</span>::<span class="ident">new</span>(<span class="prelude-val">None</span>);
@@ -4202,7 +4365,10 @@
         <span class="attribute">#[<span class="ident">test</span>]</span>
         <span class="kw">fn</span> <span class="ident">unblocking_doubly_blocked_functions_not_ready</span>() {
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">test_functions</span>(), <span class="ident">submission</span>);
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
                 <span class="kw">let</span> <span class="ident">debug_server_context</span> <span class="op">=</span> <span class="ident">DebugServerConnection</span>::<span class="ident">new</span>(<span class="prelude-val">None</span>);
@@ -4232,7 +4398,10 @@
         <span class="attribute">#[<span class="ident">test</span>]</span>
         <span class="kw">fn</span> <span class="ident">wont_return_too_many_jobs</span>() {
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">test_functions</span>(), <span class="ident">submission</span>);
 
 <span class="comment">// Put 0 on the ready list</span>
@@ -4257,7 +4426,10 @@
 
             <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">f_a</span>);
             <span class="kw">let</span> <span class="ident">submission</span> <span class="op">=</span> <span class="ident">Submission</span>::<span class="ident">new</span>(<span class="string">&quot;file:///temp/fake.toml&quot;</span>,
-                                             <span class="number">1</span>, <span class="bool-val">true</span>);
+                                             <span class="number">1</span>,
+                                             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
+                                                 <span class="bool-val">true</span>
+            );
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">RunState</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">functions</span>, <span class="ident">submission</span>);
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">metrics</span> <span class="op">=</span> <span class="ident">Metrics</span>::<span class="ident">new</span>(<span class="number">1</span>);
@@ -4340,7 +4512,7 @@
             <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">RunState</span>::<span class="ident">array_order</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>), <span class="number">2</span>);
         }
 
-        <span class="kw">fn</span> <span class="ident">test_function</span>() <span class="op">-&gt;</span> <span class="ident">Function</span> {
+        <span class="kw">fn</span> <span class="ident">test_function</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Function</span> {
             <span class="ident">Function</span>::<span class="ident">new</span>(
                 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
                     <span class="string">&quot;test&quot;</span>.<span class="ident">to_string</span>(),

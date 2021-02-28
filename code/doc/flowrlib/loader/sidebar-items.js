@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Loader","A `Loader` is responsible for loading a `Flow` from it's `Manifest`, loading the required  libraries needed by the flow and keeping track of the `Function` `Implementations` that will be used to execute it."]]});
+initSidebarItems({"struct":[["Loader","A `Loader` is responsible for loading a `Flow` from it's `Manifest`, loading the required libraries needed by the flow and keeping track of the `Function` `Implementations` that will be used to execute it."]]});

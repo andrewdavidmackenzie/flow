@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `flowr/src/cli_debug_client.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>cli_debug_client.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="shortcut icon" href="../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../flowr/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><span class="help-button">?</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowr/src/cli_debug_client.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>cli_debug_client.rs - source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings"></script><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="alternate icon" type="image/png" href="../../favicon-16x16.png">
+<link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../flowr/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" class="help-button">?</button>
                 <a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
@@ -224,15 +226,15 @@ ENTER | &#39;c&#39; | &#39;continue&#39;     - Continue execution until next bre
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">start</span>(<span class="kw-2">mut</span> <span class="ident">connection</span>: <span class="ident">DebugClientConnection</span>) {
         <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">connection</span>.<span class="ident">start</span>();
 
-        <span class="ident">std</span>::<span class="ident">thread</span>::<span class="ident">spawn</span>(<span class="kw">move</span> <span class="op">||</span> {
+        <span class="ident">std</span>::<span class="ident">thread</span>::<span class="ident">spawn</span>(<span class="kw">move</span> <span class="op">|</span><span class="op">|</span> {
             <span class="kw">loop</span> {
                 <span class="kw">match</span> <span class="ident">connection</span>.<span class="ident">client_recv</span>() {
-                    <span class="prelude-val">Ok</span>(<span class="ident">event</span>) <span class="op">=&gt;</span> {
+                    <span class="prelude-val">Ok</span>(<span class="ident">event</span>) <span class="op">=</span><span class="op">&gt;</span> {
                         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">response</span>) <span class="op">=</span> <span class="self">Self</span>::<span class="ident">process_event</span>(<span class="ident">event</span>) {
                             <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">connection</span>.<span class="ident">client_send</span>(<span class="ident">response</span>);
                         }
                     }
-                    <span class="prelude-val">Err</span>(<span class="ident">err</span>) <span class="op">=&gt;</span> {
+                    <span class="prelude-val">Err</span>(<span class="ident">err</span>) <span class="op">=</span><span class="op">&gt;</span> {
                         <span class="macro">error</span><span class="macro">!</span>(<span class="string">&quot;Error receiving event from debugger: {}&quot;</span>, <span class="ident">err</span>);
                         <span class="kw">break</span>;
                     }
@@ -245,12 +247,12 @@ ENTER | &#39;c&#39; | &#39;continue&#39;     - Continue execution until next bre
         <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">HELP_STRING</span>);
     }
 
-    <span class="kw">fn</span> <span class="ident">parse_command</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> (<span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Param</span><span class="op">&gt;</span>) {
+    <span class="kw">fn</span> <span class="ident">parse_command</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Param</span><span class="op">&gt;</span>) {
         <span class="kw">let</span> <span class="ident">parts</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">input</span>.<span class="ident">trim</span>().<span class="ident">split</span>(<span class="string">&#39; &#39;</span>).<span class="ident">collect</span>();
         <span class="kw">let</span> <span class="ident">command</span> <span class="op">=</span> <span class="ident">parts</span>[<span class="number">0</span>];
 
         <span class="kw">if</span> <span class="ident">parts</span>.<span class="ident">len</span>() <span class="op">&gt;</span> <span class="number">1</span> {
-            <span class="kw">if</span> <span class="ident">parts</span>[<span class="number">1</span>] <span class="op">==</span> <span class="string">&quot;*&quot;</span> {
+            <span class="kw">if</span> <span class="ident">parts</span>[<span class="number">1</span>] <span class="op">=</span><span class="op">=</span> <span class="string">&quot;*&quot;</span> {
                 <span class="kw">return</span> (<span class="ident">command</span>, <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Wildcard</span>));
             }
 
@@ -266,16 +268,16 @@ ENTER | &#39;c&#39; | &#39;continue&#39;     - Continue execution until next bre
             } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">parts</span>[<span class="number">1</span>].<span class="ident">contains</span>(<span class="string">&#39;:&#39;</span>) { <span class="comment">// is an input specifier</span>
                 <span class="kw">let</span> <span class="ident">sub_parts</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">parts</span>[<span class="number">1</span>].<span class="ident">split</span>(<span class="string">&#39;:&#39;</span>).<span class="ident">collect</span>();
                 <span class="kw">match</span> (<span class="ident">sub_parts</span>[<span class="number">0</span>].<span class="ident">parse</span>::<span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>(), <span class="ident">sub_parts</span>[<span class="number">1</span>].<span class="ident">parse</span>::<span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>()) {
-                    (<span class="prelude-val">Ok</span>(<span class="ident">dest_process_id</span>), <span class="prelude-val">Ok</span>(<span class="ident">dest_input_number</span>)) <span class="op">=&gt;</span>
+                    (<span class="prelude-val">Ok</span>(<span class="ident">dest_process_id</span>), <span class="prelude-val">Ok</span>(<span class="ident">dest_input_number</span>)) <span class="op">=</span><span class="op">&gt;</span>
                         <span class="kw">return</span> (<span class="ident">command</span>, <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Input</span>((<span class="ident">dest_process_id</span>, <span class="ident">dest_input_number</span>)))),
-                    (<span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=&gt;</span> { <span class="comment">/* couldn&#39;t parse the process and input numbers */</span> }
+                    (<span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> { <span class="comment">/* couldn&#39;t parse the process and input numbers */</span> }
                 }
             } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">parts</span>[<span class="number">1</span>].<span class="ident">contains</span>(<span class="string">&quot;-&gt;&quot;</span>) { <span class="comment">// is a block specifier</span>
                 <span class="kw">let</span> <span class="ident">sub_parts</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">parts</span>[<span class="number">1</span>].<span class="ident">split</span>(<span class="string">&quot;-&gt;&quot;</span>).<span class="ident">collect</span>();
                 <span class="kw">match</span> (<span class="ident">sub_parts</span>[<span class="number">0</span>].<span class="ident">parse</span>::<span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>(), <span class="ident">sub_parts</span>[<span class="number">1</span>].<span class="ident">parse</span>::<span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>()) {
-                    (<span class="prelude-val">Ok</span>(<span class="ident">blocked_process_id</span>), <span class="prelude-val">Ok</span>(<span class="ident">blocking_process_id</span>)) <span class="op">=&gt;</span>
+                    (<span class="prelude-val">Ok</span>(<span class="ident">blocked_process_id</span>), <span class="prelude-val">Ok</span>(<span class="ident">blocking_process_id</span>)) <span class="op">=</span><span class="op">&gt;</span>
                         <span class="kw">return</span> (<span class="ident">command</span>, <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Block</span>((<span class="ident">blocked_process_id</span>, <span class="ident">blocking_process_id</span>)))),
-                    (<span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=&gt;</span> { <span class="comment">/* couldn&#39;t parse the process ids */</span> }
+                    (<span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> { <span class="comment">/* couldn&#39;t parse the process ids */</span> }
                 }
             }
         }
@@ -286,32 +288,32 @@ ENTER | &#39;c&#39; | &#39;continue&#39;     - Continue execution until next bre
     <span class="comment">/*
         Wait for the user to input a valid debugger command then return it
      */</span>
-    <span class="kw">fn</span> <span class="ident">get_user_command</span>(<span class="ident">job_number</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Response</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">get_user_command</span>(<span class="ident">job_number</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Response</span><span class="op">&gt;</span> {
         <span class="kw">loop</span> {
             <span class="macro">print</span><span class="macro">!</span>(<span class="string">&quot;Debug #{}&gt; &quot;</span>, <span class="ident">job_number</span>);
-            <span class="ident">io</span>::<span class="ident">stdout</span>().<span class="ident">flush</span>().<span class="ident">chain_err</span>(<span class="op">||</span> <span class="string">&quot;Could not flush stdout&quot;</span>)<span class="question-mark">?</span>;
+            <span class="ident">io</span>::<span class="ident">stdout</span>().<span class="ident">flush</span>().<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not flush stdout&quot;</span>)<span class="question-mark">?</span>;
 
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">input</span> <span class="op">=</span> <span class="ident">String</span>::<span class="ident">new</span>();
             <span class="kw">match</span> <span class="ident">io</span>::<span class="ident">stdin</span>().<span class="ident">read_line</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">input</span>) {
-                <span class="prelude-val">Ok</span>(<span class="number">0</span>) <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">ExitDebugger</span>),
-                <span class="prelude-val">Ok</span>(<span class="ident">_n</span>) <span class="op">=&gt;</span> {
+                <span class="prelude-val">Ok</span>(<span class="number">0</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">ExitDebugger</span>),
+                <span class="prelude-val">Ok</span>(<span class="ident">_n</span>) <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="kw">let</span> (<span class="ident">command</span>, <span class="ident">param</span>) <span class="op">=</span> <span class="self">Self</span>::<span class="ident">parse_command</span>(<span class="kw-2">&amp;</span><span class="ident">input</span>);
                     <span class="kw">match</span> <span class="ident">command</span> {
-                        <span class="string">&quot;b&quot;</span> <span class="op">|</span> <span class="string">&quot;breakpoint&quot;</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">Breakpoint</span>(<span class="ident">param</span>)),
-                        <span class="string">&quot;&quot;</span> <span class="op">|</span> <span class="string">&quot;c&quot;</span> <span class="op">|</span> <span class="string">&quot;continue&quot;</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">Continue</span>),
-                        <span class="string">&quot;d&quot;</span> <span class="op">|</span> <span class="string">&quot;delete&quot;</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">Delete</span>(<span class="ident">param</span>)),
-                        <span class="string">&quot;e&quot;</span> <span class="op">|</span> <span class="string">&quot;exit&quot;</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">ExitDebugger</span>),
-                        <span class="string">&quot;h&quot;</span> <span class="op">|</span> <span class="string">&quot;help&quot;</span> <span class="op">=&gt;</span> <span class="self">Self</span>::<span class="ident">help</span>(),
-                        <span class="string">&quot;i&quot;</span> <span class="op">|</span> <span class="string">&quot;inspect&quot;</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">Inspect</span>),
-                        <span class="string">&quot;l&quot;</span> <span class="op">|</span> <span class="string">&quot;list&quot;</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">List</span>),
-                        <span class="string">&quot;p&quot;</span> <span class="op">|</span> <span class="string">&quot;print&quot;</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">Print</span>(<span class="ident">param</span>)),
-                        <span class="string">&quot;r&quot;</span> <span class="op">|</span> <span class="string">&quot;run&quot;</span> <span class="op">|</span> <span class="string">&quot;reset&quot;</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">RunReset</span>),
-                        <span class="string">&quot;s&quot;</span> <span class="op">|</span> <span class="string">&quot;step&quot;</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">Step</span>(<span class="ident">param</span>)),
-                        <span class="string">&quot;q&quot;</span> <span class="op">|</span> <span class="string">&quot;quit&quot;</span> <span class="op">=&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">ExitDebugger</span>),
-                        <span class="kw">_</span> <span class="op">=&gt;</span> <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Unknown debugger command &#39;{}&#39;\n&quot;</span>, <span class="ident">command</span>)
+                        <span class="string">&quot;b&quot;</span> <span class="op">|</span> <span class="string">&quot;breakpoint&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">Breakpoint</span>(<span class="ident">param</span>)),
+                        <span class="string">&quot;&quot;</span> <span class="op">|</span> <span class="string">&quot;c&quot;</span> <span class="op">|</span> <span class="string">&quot;continue&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">Continue</span>),
+                        <span class="string">&quot;d&quot;</span> <span class="op">|</span> <span class="string">&quot;delete&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">Delete</span>(<span class="ident">param</span>)),
+                        <span class="string">&quot;e&quot;</span> <span class="op">|</span> <span class="string">&quot;exit&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">ExitDebugger</span>),
+                        <span class="string">&quot;h&quot;</span> <span class="op">|</span> <span class="string">&quot;help&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">help</span>(),
+                        <span class="string">&quot;i&quot;</span> <span class="op">|</span> <span class="string">&quot;inspect&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">Inspect</span>),
+                        <span class="string">&quot;l&quot;</span> <span class="op">|</span> <span class="string">&quot;list&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">List</span>),
+                        <span class="string">&quot;p&quot;</span> <span class="op">|</span> <span class="string">&quot;print&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">Print</span>(<span class="ident">param</span>)),
+                        <span class="string">&quot;r&quot;</span> <span class="op">|</span> <span class="string">&quot;run&quot;</span> <span class="op">|</span> <span class="string">&quot;reset&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">RunReset</span>),
+                        <span class="string">&quot;s&quot;</span> <span class="op">|</span> <span class="string">&quot;step&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">Step</span>(<span class="ident">param</span>)),
+                        <span class="string">&quot;q&quot;</span> <span class="op">|</span> <span class="string">&quot;quit&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">ExitDebugger</span>),
+                        <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Unknown debugger command &#39;{}&#39;\n&quot;</span>, <span class="ident">command</span>)
                     }
                 }
-                <span class="prelude-val">Err</span>(<span class="kw">_</span>) <span class="op">=&gt;</span> <span class="macro">bail</span><span class="macro">!</span>(<span class="string">&quot;Error reading debugger command&quot;</span>)
+                <span class="prelude-val">Err</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">bail</span><span class="macro">!</span>(<span class="string">&quot;Error reading debugger command&quot;</span>)
             }
         }
     }
@@ -321,52 +323,52 @@ ENTER | &#39;c&#39; | &#39;continue&#39;     - Continue execution until next bre
 
         These are events generated by the remote debugger without any previous request from the debug client
     */</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">process_event</span>(<span class="ident">event</span>: <span class="ident">Event</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Response</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">process_event</span>(<span class="ident">event</span>: <span class="ident">Event</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Response</span><span class="op">&gt;</span> {
         <span class="kw">match</span> <span class="ident">event</span> {
-            <span class="ident">JobCompleted</span>(<span class="ident">job_id</span>, <span class="ident">function_id</span>, <span class="ident">opt_output</span>) <span class="op">=&gt;</span> {
+            <span class="ident">JobCompleted</span>(<span class="ident">job_id</span>, <span class="ident">function_id</span>, <span class="ident">opt_output</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Job #{} completed by Function #{}&quot;</span>, <span class="ident">job_id</span>, <span class="ident">function_id</span>);
                 <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">output</span>) <span class="op">=</span> <span class="ident">opt_output</span> {
                     <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;\tOutput value: &#39;{}&#39;&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">output</span>);
                 }
             }
-            <span class="ident">PriorToSendingJob</span>(<span class="ident">job_id</span>, <span class="ident">function_id</span>) <span class="op">=&gt;</span>
+            <span class="ident">PriorToSendingJob</span>(<span class="ident">job_id</span>, <span class="ident">function_id</span>) <span class="op">=</span><span class="op">&gt;</span>
                 <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;About to send Job #{} to Function #{}&quot;</span>, <span class="ident">job_id</span>, <span class="ident">function_id</span>),
-            <span class="ident">BlockBreakpoint</span>(<span class="ident">block</span>) <span class="op">=&gt;</span>
+            <span class="ident">BlockBreakpoint</span>(<span class="ident">block</span>) <span class="op">=</span><span class="op">&gt;</span>
                 <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Block breakpoint: {:?}&quot;</span>, <span class="ident">block</span>),
             <span class="ident">DataBreakpoint</span>(<span class="ident">source_process_id</span>, <span class="ident">output_route</span>, <span class="ident">value</span>,
-                           <span class="ident">destination_id</span>, <span class="ident">input_number</span>) <span class="op">=&gt;</span>
+                           <span class="ident">destination_id</span>, <span class="ident">input_number</span>) <span class="op">=</span><span class="op">&gt;</span>
                 <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Data breakpoint: Function #{}{}    ----- {} ----&gt; Function #{}:{}&quot;</span>,
                          <span class="ident">source_process_id</span>, <span class="ident">output_route</span>, <span class="ident">value</span>,
                          <span class="ident">destination_id</span>, <span class="ident">input_number</span>),
-            <span class="ident">Panic</span>(<span class="ident">message</span>, <span class="ident">jobs_created</span>) <span class="op">=&gt;</span> {
+            <span class="ident">Panic</span>(<span class="ident">message</span>, <span class="ident">jobs_created</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Function panicked after {} jobs created: {}&quot;</span>, <span class="ident">jobs_created</span>, <span class="ident">message</span>);
                 <span class="kw">return</span> <span class="self">Self</span>::<span class="ident">get_user_command</span>(<span class="ident">jobs_created</span>);
             }
-            <span class="ident">JobError</span>(<span class="ident">job</span>) <span class="op">=&gt;</span> {
+            <span class="ident">JobError</span>(<span class="ident">job</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Error occurred executing a Job: \n&#39;{}&#39;&quot;</span>, <span class="ident">job</span>);
                 <span class="kw">return</span> <span class="self">Self</span>::<span class="ident">get_user_command</span>(<span class="ident">job</span>.<span class="ident">job_id</span>);
             }
-            <span class="ident">EnteringDebugger</span> <span class="op">=&gt;</span>
+            <span class="ident">EnteringDebugger</span> <span class="op">=</span><span class="op">&gt;</span>
                 <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Entering Debugger. Use &#39;h&#39; or &#39;help&#39; for help on commands&quot;</span>),
-            <span class="ident">ExitingDebugger</span> <span class="op">=&gt;</span>
+            <span class="ident">ExitingDebugger</span> <span class="op">=</span><span class="op">&gt;</span>
                 <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Debugger is exiting&quot;</span>),
-            <span class="ident">ExecutionStarted</span> <span class="op">=&gt;</span>
+            <span class="ident">ExecutionStarted</span> <span class="op">=</span><span class="op">&gt;</span>
                 <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Running flow&quot;</span>),
-            <span class="ident">ExecutionEnded</span> <span class="op">=&gt;</span>
+            <span class="ident">ExecutionEnded</span> <span class="op">=</span><span class="op">&gt;</span>
                 <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Flow has completed&quot;</span>),
-            <span class="ident">Deadlock</span>(<span class="ident">message</span>) <span class="op">=&gt;</span>
+            <span class="ident">Deadlock</span>(<span class="ident">message</span>) <span class="op">=</span><span class="op">&gt;</span>
                 <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Deadlock detected{}&quot;</span>, <span class="ident">message</span>),
-            <span class="ident">SendingValue</span>(<span class="ident">source_process_id</span>, <span class="ident">value</span>, <span class="ident">destination_id</span>, <span class="ident">input_number</span>) <span class="op">=&gt;</span>
+            <span class="ident">SendingValue</span>(<span class="ident">source_process_id</span>, <span class="ident">value</span>, <span class="ident">destination_id</span>, <span class="ident">input_number</span>) <span class="op">=</span><span class="op">&gt;</span>
                 <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Function #{} sending &#39;{}&#39; to {}:{}&quot;</span>,
                          <span class="ident">source_process_id</span>, <span class="ident">value</span>, <span class="ident">destination_id</span>, <span class="ident">input_number</span>),
-            <span class="ident">Event</span>::<span class="ident">Error</span>(<span class="ident">error_message</span>) <span class="op">=&gt;</span>
+            <span class="ident">Event</span>::<span class="ident">Error</span>(<span class="ident">error_message</span>) <span class="op">=</span><span class="op">&gt;</span>
                 <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">error_message</span>),
-            <span class="ident">Message</span>(<span class="ident">message</span>) <span class="op">=&gt;</span>
+            <span class="ident">Message</span>(<span class="ident">message</span>) <span class="op">=</span><span class="op">&gt;</span>
                 <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">message</span>),
-            <span class="ident">Resetting</span> <span class="op">=&gt;</span>
+            <span class="ident">Resetting</span> <span class="op">=</span><span class="op">&gt;</span>
                 <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Resetting state&quot;</span>),
-            <span class="ident">WaitingForCommand</span>(<span class="ident">job_id</span>) <span class="op">=&gt;</span> <span class="kw">return</span> <span class="self">Self</span>::<span class="ident">get_user_command</span>(<span class="ident">job_id</span>),
-            <span class="ident">Event</span>::<span class="ident">Invalid</span> <span class="op">=&gt;</span> {}
+            <span class="ident">WaitingForCommand</span>(<span class="ident">job_id</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="self">Self</span>::<span class="ident">get_user_command</span>(<span class="ident">job_id</span>),
+            <span class="ident">Event</span>::<span class="ident">Invalid</span> <span class="op">=</span><span class="op">&gt;</span> {}
         }
 
         <span class="prelude-val">Ok</span>(<span class="ident">Ack</span>)

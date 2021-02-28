@@ -1,1 +1,0 @@
-initSidebarItems({"fn":[["compile_flow",""],["load_flow_from_url",""],["manifest_url",""],["open_flow",""],["open_manifest",""],["run_manifest",""],["set_args",""],["set_manifest",""]]});

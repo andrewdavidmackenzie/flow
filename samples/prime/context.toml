@@ -6,12 +6,8 @@ alias = "args"
 source = "lib://flowruntime/args/get"
 
 [[connection]]
-from = "args/1"
-to = "to_json"
-
-[[process]]
-alias = "to_json"
-source = "lib://flowstdlib/fmt/to_json"
+from = "args/json/1"
+to = "candidates/end"
 
 ####### All numbers - Sequence
 # Generate the range of numbers from 1..limit of possible primes
@@ -20,10 +16,6 @@ alias = "candidates"
 source = "lib://flowstdlib/math/sequence"
 input.start = {once =  1}
 input.step = {once =  1}
-
-[[connection]]
-from = "to_json"
-to = "candidates/end"
 
 ######### All numbers - gather into an Array
 [[process]]
@@ -36,7 +28,7 @@ from = "candidates/sequence"
 to = "all-numbers/values"
 
 [[connection]]
-from = "to_json"
+from = "args/json/1"
 to = "all-numbers/chunk_size"
 
 [[connection]] # loop-back
@@ -53,7 +45,7 @@ alias = "composites"
 source = "composites"
 
 [[connection]]
-from = "to_json"
+from = "args/json/1"
 to = "composites/limit"
 
 ####### Remove composites from entire list
@@ -73,27 +65,8 @@ to = "subtract/value"
 from = "subtract"
 to = "subtract/array"
 
-# TODO for this to work, we need the composites generator flow to NULL terminate it's output series.
-#[[process]]
-#source = "lib://flowstdlib/control/index"
-#input.index = { once = -1 }
-#input.select_index = { always = -1 } # Last
-#
-## loopback
-#[[connection]]
-#from = "index/previous_value"
-#to = "index/previous_value"
-#
-#[[connection]]
-#from = "index/index"
-#to = "index/index"
-#
 [[connection]]
 from = "subtract"
-#to = "index/value"
-#
-#[[connection]]
-#from = "index/selected_value"
 to = "print"
 
 ####### Output

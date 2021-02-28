@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `provider/src/content/lib_provider.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib_provider.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled ><script src="../../../storage.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="shortcut icon" href="../../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../../provider/index.html'><div class='logo-container rust-logo'><img src='../../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><span class="help-button">?</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `provider/src/content/lib_provider.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib_provider.rs - source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled ><script id="default-settings"></script><script src="../../../storage.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../../favicon.svg">
+<link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png">
+<link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../../provider/index.html'><div class='logo-container rust-logo'><img src='../../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" class="help-button">?</button>
                 <a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
@@ -150,9 +152,10 @@
 <span id="149">149</span>
 <span id="150">150</span>
 <span id="151">151</span>
+<span id="152">152</span>
+<span id="153">153</span>
+<span id="154">154</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">env</span>;
-
 <span class="kw">use</span> <span class="ident">log</span>::<span class="ident">debug</span>;
 <span class="kw">use</span> <span class="ident">simpath</span>::<span class="ident">Simpath</span>;
 <span class="kw">use</span> <span class="ident">url</span>::<span class="ident">Url</span>;
@@ -162,7 +165,17 @@
 
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">provider</span>::<span class="ident">Provider</span>;
 
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">LibProvider</span>;
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">LibProvider</span> {
+    <span class="ident">lib_search_path</span>: <span class="ident">Simpath</span>
+}
+
+<span class="kw">impl</span> <span class="ident">LibProvider</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">lib_search_path</span>: <span class="ident">Simpath</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="ident">LibProvider</span> {
+            <span class="ident">lib_search_path</span>
+        }
+    }
+}
 
 <span class="comment">/*
     Urls for library flows and functions and values will be of the form:
@@ -170,10 +183,6 @@
 
     Where &#39;flowstdlib&#39; is the library name and &#39;stdio/stdout.toml&#39; the path of the definition
     file within the library.
-
-    For the lib provider, libraries maybe installed in multiple places in the file system.
-    In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
-    list of directories in which to look for the library in question.
 
     Once the library in question is found in the file system, then a &quot;file:&quot; Url is constructed
     that refers to the actual content, and this is returned.
@@ -187,10 +196,7 @@
         Take the &quot;lib:&quot; Url (such as &quot;lib://flowruntime/stdio/stdout&quot;) and extract the library
          name (&quot;flowruntime&quot;)
 
-        Using the &quot;FLOW_LIB_PATH&quot; environment variable attempt to locate the library&#39;s root folder
-        in the file system.
-
-        If located, then construct a PathBuf to refer to the definition file:
+        If the library is located, then construct a PathBuf to refer to the definition file:
             - either &quot;stdio/stdout.toml&quot; or
             - &quot;stdio/stdout/stdout.toml&quot;
 
@@ -202,21 +208,14 @@
         Also, construct a string that is a reference to that module in the library, such as:
             &quot;flowruntime/stdio/stdout&quot; and return that also.
     */</span>
-    <span class="kw">fn</span> <span class="ident">resolve_url</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">url_str</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">default_filename</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">_extensions</span>: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="ident">str</span>]) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(<span class="ident">String</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>)<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">resolve_url</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">url_str</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">default_filename</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">_extensions</span>: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="ident">str</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(<span class="ident">String</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>)<span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">url</span> <span class="op">=</span> <span class="ident">Url</span>::<span class="ident">parse</span>(<span class="ident">url_str</span>)
-            .<span class="ident">chain_err</span>(<span class="op">||</span> <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Could not convert &#39;{}&#39; to valid Url&quot;</span>, <span class="ident">url_str</span>))<span class="question-mark">?</span>;
+            .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Could not convert &#39;{}&#39; to valid Url&quot;</span>, <span class="ident">url_str</span>))<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">lib_name</span> <span class="op">=</span> <span class="ident">url</span>.<span class="ident">host_str</span>()
-            .<span class="ident">chain_err</span>(<span class="op">||</span> <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;&#39;lib_name&#39; could not be extracted from host part of url &#39;{}&#39;&quot;</span>, <span class="ident">url</span>))<span class="question-mark">?</span>;
+            .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;&#39;lib_name&#39; could not be extracted from host part of url &#39;{}&#39;&quot;</span>, <span class="ident">url</span>))<span class="question-mark">?</span>;
 
-        <span class="kw">if</span> <span class="ident">env</span>::<span class="ident">var</span>(<span class="string">&quot;FLOW_LIB_PATH&quot;</span>).<span class="ident">is_err</span>() {
-            <span class="kw">let</span> <span class="ident">parent_dir</span> <span class="op">=</span> <span class="ident">std</span>::<span class="ident">env</span>::<span class="ident">current_dir</span>().<span class="ident">chain_err</span>(<span class="op">||</span> <span class="string">&quot;Could not get CWD&quot;</span>)<span class="question-mark">?</span>;
-            <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;Setting &#39;FLOW_LIB_PATH&#39; to &#39;{}&#39;&quot;</span>, <span class="ident">parent_dir</span>.<span class="ident">to_string_lossy</span>().<span class="ident">to_string</span>());
-            <span class="ident">env</span>::<span class="ident">set_var</span>(<span class="string">&quot;FLOW_LIB_PATH&quot;</span>, <span class="ident">parent_dir</span>.<span class="ident">to_string_lossy</span>().<span class="ident">to_string</span>());
-        }
-
-        <span class="kw">let</span> <span class="ident">flow_lib_search_path</span> <span class="op">=</span> <span class="ident">Simpath</span>::<span class="ident">new</span>(<span class="string">&quot;FLOW_LIB_PATH&quot;</span>);
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">lib_path</span> <span class="op">=</span> <span class="ident">flow_lib_search_path</span>.<span class="ident">find</span>(<span class="ident">lib_name</span>)
-            .<span class="ident">chain_err</span>(<span class="op">||</span> <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Could not find lib named &#39;{}&#39; in FLOW_LIB_PATH&quot;</span>, <span class="ident">lib_name</span>))<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">lib_path</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">lib_search_path</span>.<span class="ident">find</span>(<span class="ident">lib_name</span>)
+            .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Could not find library named &#39;{}&#39; in library search path&quot;</span>, <span class="ident">lib_name</span>))<span class="question-mark">?</span>;
 
         <span class="comment">// Once we&#39;ve found the (file) path where the library resides, append the rest of the</span>
         <span class="comment">// url path to it, to form a path to the directory where the process being loaded resides</span>
@@ -226,12 +225,12 @@
 
         <span class="comment">// Drop the file extension off the lib definition file path to get a lib reference</span>
         <span class="kw">let</span> <span class="ident">module</span> <span class="op">=</span> <span class="ident">url</span>.<span class="ident">join</span>(<span class="string">&quot;./&quot;</span>)
-            .<span class="ident">chain_err</span>(<span class="op">||</span> <span class="string">&quot;Could not perform join&quot;</span>)<span class="question-mark">?</span>
+            .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not perform join&quot;</span>)<span class="question-mark">?</span>
             .<span class="ident">join</span>(<span class="ident">lib_path</span>.<span class="ident">file_stem</span>()
-                .<span class="ident">chain_err</span>(<span class="op">||</span> <span class="string">&quot;Could not get file stem&quot;</span>)<span class="question-mark">?</span>
+                .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not get file stem&quot;</span>)<span class="question-mark">?</span>
                 .<span class="ident">to_str</span>()
-                .<span class="ident">chain_err</span>(<span class="op">||</span> <span class="string">&quot;Could not convert file stem to string&quot;</span>)<span class="question-mark">?</span>)
-            .<span class="ident">chain_err</span>(<span class="op">||</span> <span class="string">&quot;Could not create module Url&quot;</span>)<span class="question-mark">?</span>;
+                .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not convert file stem to string&quot;</span>)<span class="question-mark">?</span>)
+            .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not create module Url&quot;</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">lib_ref</span> <span class="op">=</span> <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="ident">lib_name</span>, <span class="ident">module</span>.<span class="ident">path</span>());
 
         <span class="comment">// See if the directory with that name exists</span>
@@ -244,9 +243,9 @@
             }
 
             <span class="kw">let</span> <span class="ident">provided_implementation_filename</span> <span class="op">=</span> <span class="ident">lib_path</span>.<span class="ident">file_name</span>()
-                .<span class="ident">chain_err</span>(<span class="op">||</span> <span class="string">&quot;Could not get library file name&quot;</span>)<span class="question-mark">?</span>
+                .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not get library file name&quot;</span>)<span class="question-mark">?</span>
                 .<span class="ident">to_str</span>()
-                .<span class="ident">chain_err</span>(<span class="op">||</span> <span class="string">&quot;Could not convert library file name to a string&quot;</span>)<span class="question-mark">?</span>;
+                .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not convert library file name to a string&quot;</span>)<span class="question-mark">?</span>;
             <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;&#39;{}&#39; is a directory, so looking inside it for default file name &#39;{}&#39; or provided implementation file &#39;{}&#39; with extensions &#39;{:?}&#39;&quot;</span>,
                    <span class="ident">lib_path</span>.<span class="ident">display</span>(), <span class="ident">default_filename</span>, <span class="ident">provided_implementation_filename</span>, <span class="ident">_extensions</span>);
             <span class="kw">for</span> <span class="ident">filename</span> <span class="kw">in</span> [<span class="ident">default_filename</span>, <span class="ident">provided_implementation_filename</span>].<span class="ident">iter</span>() {
@@ -256,7 +255,7 @@
                 }
             }
 
-            <span class="macro">bail</span><span class="macro">!</span>(<span class="string">&quot;Found library folder &#39;{}&#39; in &#39;FLOW_LIB_PATH&#39;, but could not locate default file &#39;{}&#39; or provided implementation file &#39;{}&#39; within it with extensions &#39;{:?}&#39;&quot;</span>,
+            <span class="macro">bail</span><span class="macro">!</span>(<span class="string">&quot;Found library folder &#39;{}&#39; in Library search path, but could not locate default file &#39;{}&#39; or provided implementation file &#39;{}&#39; within it with extensions &#39;{:?}&#39;&quot;</span>,
             <span class="ident">lib_path</span>.<span class="ident">display</span>(), <span class="ident">default_filename</span>, <span class="ident">provided_implementation_filename</span>, <span class="ident">_extensions</span>)
         } <span class="kw">else</span> {
             <span class="comment">// See if the file, with a .toml extension exists</span>
@@ -267,14 +266,14 @@
                     .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Could not create Url from &#39;{:?}&#39;&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">implementation_path</span>))<span class="question-mark">?</span>;
                 <span class="kw">return</span> <span class="prelude-val">Ok</span>((<span class="ident">lib_path_url</span>.<span class="ident">to_string</span>(), <span class="prelude-val">Some</span>(<span class="ident">lib_ref</span>)));
             }
-            <span class="macro">bail</span><span class="macro">!</span>(<span class="string">&quot;Could not locate a folder called &#39;{}&#39; or an implementation file called &#39;{}&#39; in &#39;FLOW_LIB_PATH&#39;&quot;</span>,
+            <span class="macro">bail</span><span class="macro">!</span>(<span class="string">&quot;Could not locate a folder called &#39;{}&#39; or an implementation file called &#39;{}&#39; in the Library search path (&#39;FLOW_LIB_PATH&#39; and &#39;-L&#39;)&quot;</span>,
             <span class="ident">lib_path</span>.<span class="ident">display</span>(), <span class="ident">implementation_path</span>.<span class="ident">display</span>())
         }
     }
 
     <span class="comment">// All Urls that start with &quot;lib://&quot; should resource to a different Url with &quot;http(s)&quot; or &quot;file&quot;</span>
     <span class="comment">// and so we should never get a request to get content from a Url with such a scheme</span>
-    <span class="kw">fn</span> <span class="ident">get_contents</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">_url</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">get_contents</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">_url</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> {
         <span class="macro">unimplemented</span><span class="macro">!</span>();
     }
 }
@@ -284,21 +283,30 @@
     <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">env</span>;
     <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">path</span>::<span class="ident">Path</span>;
 
+    <span class="kw">use</span> <span class="ident">simpath</span>::<span class="ident">Simpath</span>;
+
     <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">LibProvider</span>;
     <span class="kw">use</span> <span class="kw">super</span>::<span class="kw">super</span>::<span class="ident">provider</span>::<span class="ident">Provider</span>;
 
+    <span class="kw">fn</span> <span class="ident">set_lib_search_path</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Simpath</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">lib_search_path</span> <span class="op">=</span> <span class="ident">Simpath</span>::<span class="ident">new</span>(<span class="string">&quot;lib_search_path&quot;</span>);
+        <span class="kw">let</span> <span class="ident">root_str</span> <span class="op">=</span> <span class="ident">Path</span>::<span class="ident">new</span>(<span class="macro">env</span><span class="macro">!</span>(<span class="string">&quot;CARGO_MANIFEST_DIR&quot;</span>)).<span class="ident">parent</span>().<span class="ident">expect</span>(<span class="string">&quot;Could not get project root dir&quot;</span>);
+        <span class="ident">lib_search_path</span>.<span class="ident">add_directory</span>(<span class="ident">root_str</span>.<span class="ident">to_str</span>().<span class="ident">expect</span>(<span class="string">&quot;Could not get root path as string&quot;</span>));
+        <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Lib search path set to &#39;{}&#39;&quot;</span>, <span class="ident">lib_search_path</span>);
+        <span class="ident">lib_search_path</span>
+    }
+
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">resolve_path</span>() {
-        <span class="kw">let</span> <span class="ident">provider</span>: <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Provider</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">LibProvider</span>;
-        <span class="kw">let</span> <span class="ident">root_str</span> <span class="op">=</span> <span class="ident">Path</span>::<span class="ident">new</span>(<span class="macro">env</span><span class="macro">!</span>(<span class="string">&quot;CARGO_MANIFEST_DIR&quot;</span>)).<span class="ident">parent</span>().<span class="ident">unwrap</span>();
-        <span class="ident">env</span>::<span class="ident">set_var</span>(<span class="string">&quot;FLOW_LIB_PATH&quot;</span>, <span class="ident">root_str</span>);
+        <span class="kw">let</span> <span class="ident">root_str</span> <span class="op">=</span> <span class="ident">Path</span>::<span class="ident">new</span>(<span class="macro">env</span><span class="macro">!</span>(<span class="string">&quot;CARGO_MANIFEST_DIR&quot;</span>)).<span class="ident">parent</span>().<span class="ident">expect</span>(<span class="string">&quot;Could not get project root dir&quot;</span>);
+        <span class="kw">let</span> <span class="ident">provider</span>: <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Provider</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">LibProvider</span>::<span class="ident">new</span>(<span class="ident">set_lib_search_path</span>());
         <span class="kw">let</span> <span class="ident">lib_url</span> <span class="op">=</span> <span class="string">&quot;lib://flowstdlib/control/tap&quot;</span>;
         <span class="kw">match</span> <span class="ident">provider</span>.<span class="ident">resolve_url</span>(<span class="kw-2">&amp;</span><span class="ident">lib_url</span>, <span class="string">&quot;&quot;</span>, <span class="kw-2">&amp;</span>[<span class="string">&quot;toml&quot;</span>]) {
-            <span class="prelude-val">Ok</span>((<span class="ident">url</span>, <span class="ident">lib_ref</span>)) <span class="op">=&gt;</span> {
+            <span class="prelude-val">Ok</span>((<span class="ident">url</span>, <span class="ident">lib_ref</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">url</span>, <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;file://{}/flowstdlib/control/tap/tap.toml&quot;</span>, <span class="ident">root_str</span>.<span class="ident">display</span>().<span class="ident">to_string</span>()));
                 <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">lib_ref</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;flowstdlib/control/tap&quot;</span>.<span class="ident">to_string</span>()));
             }
-            <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="ident">e</span>.<span class="ident">to_string</span>())
+            <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="ident">e</span>.<span class="ident">to_string</span>())
         }
     }
 }
