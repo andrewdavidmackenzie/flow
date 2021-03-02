@@ -85,21 +85,8 @@ fn main() {
 pub fn set_lib_search_path(lib_dirs: &[String]) -> Result<Simpath> {
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 
-    if env::var("FLOW_LIB_PATH").is_ok(){
-        info!("Library Search Path initialized from 'FLOW_LIB_PATH'");
-    }
-    else {
-        info!("'FLOW_LIB_PATH' not set so initializing Library Search Path from Project directories");
-        let project_root = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Could not get Project root dir"))?;
-        let project_root_str = project_root.to_str().chain_err(|| "Unable to convert project_root Path to String")?;
-        lib_search_path.add_directory(project_root_str);
-        info!("Directory '{}' added to the Library Search Path", project_root_str);
-
-        let runtime_parent = project_root.join("flowr/src/lib");
-        let runtime_parent_str = runtime_parent.to_str().chain_err(|| "Unable to convert runtime Path to String")?;
-        lib_search_path.add_directory(runtime_parent_str);
-        info!("Directory '{}' added to the Library Search Path", runtime_parent_str);
+    if env::var("FLOW_LIB_PATH").is_err(){
+        warn!("'FLOW_LIB_PATH' is not set so it is possible libraries referenced will not be found");
     }
 
     // Add any library search directories specified via the command line

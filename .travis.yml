@@ -73,5 +73,5 @@ notifications:
 
 after_success: |
   if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" && "$TRAVIS_EVENT_TYPE" != "cron" ]]; then
-    FLOW_LIB_PATH=$TRAVIS_BUILD_DIR make coverage
+    FLOW_LIB_PATH=$TRAVIS_BUILD_DIR,$TRAVIS_BUILD_DIR/flowr/src/lib make coverage
   fi
