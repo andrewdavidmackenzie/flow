@@ -100,7 +100,7 @@ fn main() {
     in the file system.
  */
 pub fn set_lib_search_path(lib_dirs: &[String]) -> Result<Simpath> {
-    let mut lib_search_path = Simpath::new("FLOW_LIB_PATH");
+    let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 
     if env::var("FLOW_LIB_PATH").is_ok(){
         info!("Library Search Path initialized from 'FLOW_LIB_PATH'");

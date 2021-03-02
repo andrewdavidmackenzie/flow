@@ -16,11 +16,11 @@ fn check_flow_lib_path() {
              Set it to an appropriate value thus: export FLOW_LIB_PATH=\"{}\"", parent);
         }
         Ok(value) => {
-            let lib_path = Simpath::new("FLOW_LIB_PATH");
+            let lib_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
             if !lib_path.contains(&parent) {
                 println!("'FLOW_LIB_PATH' is set to '{}'. But it does not contain the directory where 'flowstdlib' is\n\
                             so 'flowstdlib' will not be found by 'flowc' or 'flowr'. \n\
-                            Add an entry for this directory thus: export FLOW_LIB_PATH=\"{}:$FLOW_LIB_PATH\"",
+                            Add an entry for this directory thus: export FLOW_LIB_PATH=\"{},$FLOW_LIB_PATH\"",
                          value, parent);
             } else {
                 println!("'FLOW_LIB_PATH' is set to '{}' and correctly contains directory '{}'",
