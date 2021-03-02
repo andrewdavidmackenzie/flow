@@ -38,7 +38,7 @@ pub struct MetaProvider {
 /// ```
 /// use provider::content::provider::{Provider, MetaProvider};
 /// use simpath::Simpath;
-/// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
+/// let lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 /// let meta_provider = &MetaProvider::new(lib_search_path) as &dyn Provider;
 /// let url = "file://directory";
 /// match meta_provider.resolve_url(url, "default", &["toml"]) {

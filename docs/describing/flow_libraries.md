@@ -5,10 +5,12 @@ The run-time includes some basic ones in the `flowruntime` and `flowstdlib` libr
 
 Others can be shared by developers.
 
-The references to flows or functions specify a source, that will be searched for in a defined
-FLOW_LIB_PATH, that currently uses relative paths to the current flow's CWD.
+References to flows or functions specify a source, which is a file on the local file system or located at a URL. 
+A Library search path is used to find the source in libraries.
 
-If the specified name is not found there, the load path will be searched for it.
+The library search path is initialized from the contents of the `$FLOW_LIB_PATH` environment variable (if it is defined) 
+and maybe augmented by supplying additional directories or URLs to search using one or more instances of 
+the `-L` command line option.
 
 TODO
 

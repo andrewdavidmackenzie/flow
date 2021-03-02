@@ -4,8 +4,8 @@ See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowst
 
 `flowstdlib` is a standard library of functions for `flow` programs to use.
 
-The directory containing this library must be part of `FLOW_LIB_PATH` in order for the compiler to be able to 
-find the library `flow` and `function` definitions.
+The directory containing this library must be part of `FLOW_LIB_PATH` or specified using an instance of the `-L` 
+command line option, in order for the compiler to be able to find the library `flow` and `function` definitions.
 
 It is build by using `flowc` with the `-l` option.
                       
