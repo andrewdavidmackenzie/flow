@@ -11,8 +11,7 @@
 extern crate error_chain;
 
 use std::env;
-use std::io;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};

@@ -10,12 +10,10 @@
 extern crate error_chain;
 
 use std::env;
-use std::io;
-use std::path::Path;
 use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
-use log::{error, info};
+use log::{error, info, warn};
 use simpath::Simpath;
 use simplog::simplog::SimpleLogger;
 use url::Url;
