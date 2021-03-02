@@ -95,3 +95,50 @@ impl Provider for MetaProvider {
         Ok(content)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use simpath::Simpath;
+
+    use crate::content::provider::MetaProvider;
+
+    #[test]
+    fn get_invalid_provider() {
+        let search_path = Simpath::new("TEST");
+        let meta = MetaProvider::new(search_path);
+
+        assert!(meta.get_provider("fake://bla").is_err());
+    }
+
+    #[test]
+    fn get_http_provider() {
+        let search_path = Simpath::new("TEST");
+        let meta = MetaProvider::new(search_path);
+
+        assert!(meta.get_provider("http://bla").is_ok());
+    }
+
+    #[test]
+    fn get_https_provider() {
+        let search_path = Simpath::new("TEST");
+        let meta = MetaProvider::new(search_path);
+
+        assert!(meta.get_provider("https://bla").is_ok());
+    }
+
+    #[test]
+    fn get_file_provider() {
+        let search_path = Simpath::new("TEST");
+        let meta = MetaProvider::new(search_path);
+
+        assert!(meta.get_provider("file:///bla").is_ok());
+    }
+
+    #[test]
+    fn get_default_file_provider() {
+        let search_path = Simpath::new("TEST");
+        let meta = MetaProvider::new(search_path);
+
+        assert!(meta.get_provider("bla").is_ok());
+    }
+}

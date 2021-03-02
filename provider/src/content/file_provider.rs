@@ -100,9 +100,10 @@ mod test {
 
     #[test]
     fn get_default_sample() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
+            .expect("Could not get CARGO_MANIFEST_DIR");
         let path = root.join("samples/hello-world");
-        match FileProvider::find_file(&path.to_path_buf(), "context", &["toml"]) {
+        match FileProvider::find_file(&path, "context", &["toml"]) {
             Ok(path_string) => {
                 let path = Path::new(&path_string);
                 assert_eq!(Some(OsStr::new("context.toml")), path.file_name());
