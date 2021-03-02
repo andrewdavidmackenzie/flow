@@ -65,7 +65,6 @@ impl MetaProvider {
         let url = Url::parse(url_str)
             .chain_err(|| format!("Could not convert '{}' to valid Url", url_str))?;
         match url.scheme() {
-            "" => Ok(FILE_PROVIDER),
             "file" => Ok(FILE_PROVIDER),
             "lib" => Ok(&self.lib_provider as &dyn Provider),
             "http" | "https" => Ok(HTTP_PROVIDER),
@@ -132,13 +131,5 @@ mod test {
         let meta = MetaProvider::new(search_path);
 
         assert!(meta.get_provider("file:///bla").is_ok());
-    }
-
-    #[test]
-    fn get_default_file_provider() {
-        let search_path = Simpath::new("TEST");
-        let meta = MetaProvider::new(search_path);
-
-        assert!(meta.get_provider("bla").is_ok());
     }
 }
