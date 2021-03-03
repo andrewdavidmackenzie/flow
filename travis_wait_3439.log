@@ -44,5 +44,5 @@
         Generated samples/args/context.dot.svg from samples/args/context.dot
         Generated samples/tokenizer/functions.dot.svg from samples/tokenizer/functions.dot
         Generated samples/tokenizer/context.dot.svg from samples/tokenizer/context.dot
-2021-03-02 09:12:59 [INFO] (mdbook::book): Book building has started
-2021-03-02 09:12:59 [INFO] (mdbook::book): Running the html backend
+2021-03-03 09:13:05 [INFO] (mdbook::book): Book building has started
+2021-03-03 09:13:05 [INFO] (mdbook::book): Running the html backend
