@@ -17,6 +17,6 @@ online_tests = []
 [dependencies]
 log = "0.4.6"
 url = "~2.1"
-curl = "~0.4.24"
-simpath = "~1.5"
+curl = "~0.4"
+simpath = "~2"
 error-chain = "0.12.2"

@@ -915,9 +915,9 @@ dependencies = [
 
 [[package]]
 name = "simpath"
-version = "1.5.0"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42b74a125b4f0323dfca63771a51a2d450d10c4347c7e41f202e60abec0bfda6"
+checksum = "9de48c2c6eb1733bd9f88a72d0121d7eca214538944d2724be919bd7325ddea8"
 
 [[package]]
 name = "simplog"

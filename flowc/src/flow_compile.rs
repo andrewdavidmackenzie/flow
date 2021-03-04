@@ -4,7 +4,7 @@ use std::process::Command;
 use std::process::Stdio;
 
 use log::{debug, error, info};
-use simpath::FileType;
+use simpath::{FileType, FoundType};
 use simpath::Simpath;
 
 use flowclib::compiler::compile;
@@ -131,10 +131,10 @@ fn find_executable_path(name: &str) -> Result<String> {
 
     // Couldn't find the development version under CWD where running, so look in path
     let bin_search_path = Simpath::new("PATH");
-    let bin_path = bin_search_path.find_type(name, FileType::File)
-        .chain_err(|| format!("Could not find executable '{}'", name))?;
-
-    Ok(bin_path.to_string_lossy().to_string())
+    match bin_search_path.find_type(name, FileType::File) {
+        Ok(FoundType::File(bin_path)) => Ok(bin_path.to_string_lossy().to_string()),
+        _ => bail!("Could not find executable '{}'", name)
+    }
 }
 
 /*
