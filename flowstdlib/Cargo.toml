@@ -23,13 +23,13 @@ name = "flowstdlib"
 path = "lib.rs"
 
 [build-dependencies]
-simpath = { path = "../../simpath", version = "~2" }
+simpath = { path = "../../simpath", version = "~2.1" }
 
 [dependencies]
 flow_impl = {path = "../flow_impl", version = "0.21.0" }
 flow_impl_derive = {path = "../flow_impl_derive", version = "0.21.0" }
 flowrstructs = {path = "../flowrstructs", version = "0.33.0" }
-simpath = { path = "../../simpath", version = "~2" }
+simpath = { path = "../../simpath", version = "~2.1" }
 
 serde_json = "1.0"
 image = "=0.23.10"

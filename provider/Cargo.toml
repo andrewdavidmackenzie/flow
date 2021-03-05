@@ -18,5 +18,5 @@ online_tests = []
 log = "0.4.6"
 url = "~2.1"
 curl = "~0.4"
-simpath = { path = "../../simpath", version = "~2" }
+simpath = { path = "../../simpath", version = "~2.1" }
 error-chain = "0.12.2"
