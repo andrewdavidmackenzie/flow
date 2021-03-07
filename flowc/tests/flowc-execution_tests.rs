@@ -9,6 +9,7 @@ use std::process::Command;
 use std::process::Stdio;
 
 use simpath::Simpath;
+use url::Url;
 
 use flowclib::compiler::{compile, loader};
 use flowclib::generator::generate;
@@ -170,8 +171,14 @@ fn args() {
 }
 
 #[test]
-fn args_no_flow_lib_path() {
-    let search_path = helper::set_lib_search_path_to_project();
+fn args_libs_on_the_web() {
+    let mut search_path = Simpath::new("web_path");
+
+    // In order to run 'args' it needs the flowruntime library but doesn't need flowstdlib
+    // Let's add a search path entry to where that lib can be found on the web
+    search_path.add_url(&Url::parse("https://github.com/andrewdavidmackenzie/flow/tree/master/flowr/src/lib")
+        .expect("Could not parse the url for Simpath"));
+
     execute_test("args", search_path);
 }
 

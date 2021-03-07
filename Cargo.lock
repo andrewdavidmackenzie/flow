@@ -916,6 +916,10 @@ dependencies = [
 [[package]]
 name = "simpath"
 version = "2.1.2"
+dependencies = [
+ "curl",
+ "url",
+]
 
 [[package]]
 name = "simplog"
