@@ -30,7 +30,7 @@ mod helper;
 ///
 #[test]
 fn malformed_connection() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/malformed-connection.toml");
     if loader::load(&path, &meta_provider).is_ok() {
         panic!("malformed-connection.toml should not load successfully");
@@ -39,7 +39,7 @@ fn malformed_connection() {
 
 #[test]
 fn invalid_toml() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid.toml");
     if loader::load(&path, &meta_provider).is_ok() {
         panic!("invalid.toml should not load successfully");
@@ -48,7 +48,7 @@ fn invalid_toml() {
 
 #[test]
 fn invalid_process() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid-process/invalid-process.toml");
     if loader::load(&path, &meta_provider).is_ok() {
         panic!("invalid.toml should not load successfully");
@@ -57,7 +57,7 @@ fn invalid_process() {
 
 #[test]
 fn function_input_initialized() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/function_input_init/function_input_init.toml");
 
     match loader::load(&url, &meta_provider) {
@@ -87,7 +87,7 @@ fn function_input_initialized() {
 
 #[test]
 fn root_flow_takes_name_from_file() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/names/names.toml");
 
@@ -103,7 +103,7 @@ fn root_flow_takes_name_from_file() {
 */
 #[test]
 fn flow_input_initialized_and_propagated_to_function() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     // Relative path from project root to the test file
     let url = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/flow_input_init/flow_input_init.toml");
 
@@ -141,7 +141,7 @@ fn flow_input_initialized_and_propagated_to_function() {
 
 #[test]
 fn load_library() {
-    let meta_provider = MetaProvider::new(helper::set_lib_search_path());
+    let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test_libs/Cargo.toml");
     loader::load_metadata(&path, &meta_provider).unwrap();
 }

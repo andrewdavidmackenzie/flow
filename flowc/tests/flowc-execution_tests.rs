@@ -8,6 +8,8 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 
+use simpath::Simpath;
+
 use flowclib::compiler::{compile, loader};
 use flowclib::generator::generate;
 use flowclib::generator::generate::GenerationTables;
@@ -104,12 +106,12 @@ fn test_args(test_dir: &PathBuf, test_name: &str) -> Vec<String> {
     args
 }
 
-fn load_flow(test_dir: &PathBuf, test_name: &str) -> Process {
+fn load_flow(test_dir: &PathBuf, test_name: &str, search_path: Simpath) -> Process {
     let test_flow = format!("{}.toml", test_name);
     let mut flow_file = test_dir.clone();
     flow_file.push(test_flow);
     loader::load(&helper::absolute_file_url_from_relative_path(&flow_file.to_string_lossy()),
-                 &MetaProvider::new(helper::set_lib_search_path())).unwrap()
+                 &MetaProvider::new(search_path)).unwrap()
 }
 
 fn get(test_dir: &PathBuf, file_name: &str) -> String {
@@ -121,13 +123,13 @@ fn get(test_dir: &PathBuf, file_name: &str) -> String {
     String::from_utf8(buffer).unwrap()
 }
 
-fn execute_test(test_name: &str) {
+fn execute_test(test_name: &str, search_path: Simpath) {
     // helper::set_lib_search_path()
     let mut root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     root_dir.pop();
     let test_dir = root_dir.join(&format!("flowc/tests/test-flows/{}", test_name));
 
-    if let FlowProcess(ref flow) = load_flow(&test_dir, test_name) {
+    if let FlowProcess(ref flow) = load_flow(&test_dir, test_name, search_path) {
         let tables = compile::compile(flow).unwrap();
         let out_dir = test_dir.clone();
         let manifest_path = write_manifest(flow, true, out_dir,
@@ -140,34 +142,47 @@ fn execute_test(test_name: &str) {
         assert_eq!(expected_output, actual_stdout, "Flow output did not match that in .expected file");
         assert!(actual_stderr.is_empty(), "There was stderr output during test: \n{}", actual_stderr)
     }
+
 }
 
 #[test]
 fn print_args() {
-    execute_test("print-args");
+    let search_path = helper::set_lib_search_path_to_project();
+    execute_test("print-args", search_path);
 }
 
 #[test]
 fn hello_world() {
-    execute_test("hello-world");
+    let search_path = helper::set_lib_search_path_to_project();
+    execute_test("hello-world", search_path);
 }
 
 #[test]
 fn line_echo() {
-    execute_test("line-echo");
+    let search_path = helper::set_lib_search_path_to_project();
+    execute_test("line-echo", search_path);
 }
 
 #[test]
 fn args() {
-    execute_test("args");
+    let search_path = helper::set_lib_search_path_to_project();
+    execute_test("args", search_path);
+}
+
+#[test]
+fn args_no_flow_lib_path() {
+    let search_path = helper::set_lib_search_path_to_project();
+    execute_test("args", search_path);
 }
 
 #[test]
 fn args_json() {
-    execute_test("args_json");
+    let search_path = helper::set_lib_search_path_to_project();
+    execute_test("args_json", search_path);
 }
 
 #[test]
 fn array_input() {
-    execute_test("array-input");
+    let search_path = helper::set_lib_search_path_to_project();
+    execute_test("array-input", search_path);
 }
