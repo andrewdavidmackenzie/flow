@@ -208,8 +208,8 @@ mod test {
     #[test]
     fn resolve_web_path() {
         let mut search_path = Simpath::new("web_path");
-        // `flowstdlib` can be found under the root of the project at `tree/master` on github
-        search_path.add_url(&Url::parse(&format!("{}{}", env!("CARGO_PKG_REPOSITORY"), "tree/master/flowstdlib"))
+        // `flowstdlib` can be found under the root of the project at `tree/master/flowstdlib` on github
+        search_path.add_url(&Url::parse(&format!("{}{}", env!("CARGO_PKG_REPOSITORY"), "tree/master"))
             .expect("Could not parse the url for Simpath"));
 
         let provider: &dyn Provider = &MetaProvider::new(search_path);
@@ -217,6 +217,7 @@ mod test {
         let lib_url = "lib://flowstdlib/control/tap/tap.toml";
         let resolved_url = provider.resolve_url(&lib_url, "", &["toml"])
             .expect("Couldn't resolve library on the web").0;
+        // TODO search for the path right down to the file in the lib on the web
         assert_eq!(resolved_url, format!("{}{}", env!("CARGO_PKG_REPOSITORY"),
                                          "tree/master/flowstdlib/control/tap/tap.toml"));
     }

@@ -170,6 +170,8 @@ fn args() {
     execute_test("args", search_path);
 }
 
+// TODO pending finding files from the name of the parent dir
+#[ignore]
 #[test]
 fn args_libs_on_the_web() {
     let mut search_path = Simpath::new("web_path");
