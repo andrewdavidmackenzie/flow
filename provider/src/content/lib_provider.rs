@@ -38,7 +38,7 @@ impl LibProvider {
             lib_root_path.push(&url.path()[1..]);
         }
 
-        // Drop the file extension off the lib definition file path to get a lib reference
+        // // Drop the file extension off the lib definition file path to get a lib reference
         let module = url.join("./")
             .chain_err(|| "Could not perform join")?
             .join(lib_root_path.file_stem()
@@ -46,7 +46,7 @@ impl LibProvider {
                 .to_str()
                 .chain_err(|| "Could not convert file stem to string")?)
             .chain_err(|| "Could not create module Url")?;
-        let lib_ref = format!("{}{}", lib_name, module.path());
+        let lib_module_ref = format!("{}{}", lib_name, module.path());
 
         // See if the directory with that name exists
         if lib_root_path.exists() {
@@ -54,7 +54,7 @@ impl LibProvider {
                 // It's a file and it exists, so just return the path
                 let lib_path_url = Url::from_file_path(&lib_root_path)
                     .map_err(|_| format!("Could not create Url from '{:?}'", &lib_root_path))?;
-                return Ok((lib_path_url.to_string(), Some(lib_ref)));
+                return Ok((lib_path_url.to_string(), Some(lib_module_ref)));
             }
 
             let provided_implementation_filename = lib_root_path.file_name()
@@ -66,7 +66,7 @@ impl LibProvider {
             for filename in [default_filename, provided_implementation_filename].iter() {
                 let file = FileProvider::find_file(&lib_root_path, filename, extensions);
                 if let Ok(file_path_as_url) = file {
-                    return Ok((file_path_as_url, Some(lib_ref)));
+                    return Ok((file_path_as_url, Some(lib_module_ref)));
                 }
             }
 
@@ -79,13 +79,14 @@ impl LibProvider {
             if implementation_path.exists() {
                 let lib_path_url = Url::from_file_path(&implementation_path)
                     .map_err(|_| format!("Could not create Url from '{:?}'", &implementation_path))?;
-                return Ok((lib_path_url.to_string(), Some(lib_ref)));
+                return Ok((lib_path_url.to_string(), Some(lib_module_ref)));
             }
             bail!("Could not locate a folder called '{}' or an implementation file called '{}' in the Library search path ('FLOW_LIB_PATH' and '-L')",
                         lib_root_path.display(), implementation_path.display())
         }
     }
 
+    // TODO
     fn resolve_url(lib_url: &Url, _lib_name: &str) -> Result<(String, Option<String>)> {
         bail!("Could not resolve library Url '{}' in library search path", lib_url)
     }
@@ -95,24 +96,24 @@ impl LibProvider {
     Urls for library flows and functions and values will be of the form:
         "lib://flowstdlib/stdio/stdout.toml"
 
-    Where 'flowstdlib' is the library name and 'stdio/stdout.toml' the path of the definition
-    file within the library.
-
-    Once the library in question is found in the file system, then a "file:" Url is constructed
-    that refers to the actual content, and this is returned.
-
-    As the scheme of this Url is "file:" then a different content provider will be used to actually
-    provide the content. Hence the "get" method for this provider is not implemented and should
-    never be called.
+    For a library Url, the only valid action is to resolve it to either an Http Url where the
+    library is located, or a File path where the file is located, so only `resolve_url` is
+    implemented.
 */
 impl Provider for LibProvider {
-    /*
-        Take the "lib:" Url (such as "lib://flowruntime/stdio/stdout") and extract the library
-         name ("flowruntime")
-
-        Also, construct a string that is a reference to that module in the library, such as:
-            "flowruntime/stdio/stdout" and return that also.
-    */
+    /// Urls for library flows and functions and values will be of the form:
+    ///        "lib://flowstdlib/stdio/stdout.toml"
+    ///
+    ///    Where 'flowstdlib' is the library name and 'stdio/stdout.toml' the path of the definition
+    ///    file within the library.
+    ///
+    ///   Find library in question is found in the file system or via Http using the provider's
+    ///   search path (setup on provider creation).
+    ///
+    ///   Then return:
+    ///    - a string representation of the Url (file: or http: or https:) where the file can be found
+    ///    - a string that is a reference to that module in the library, such as:
+    ///        "flowruntime/stdio/stdout/stdout"
     fn resolve_url(&self, url_str: &str, default_filename: &str, extensions: &[&str]) -> Result<(String, Option<String>)> {
         let url = Url::parse(url_str)
             .chain_err(|| format!("Could not convert '{}' to valid Url", url_str))?;
