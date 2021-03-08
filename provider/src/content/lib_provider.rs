@@ -30,18 +30,18 @@ impl LibProvider {
         If the file exists, then create a "file:" Url that points to the file, for the file provider
         to use later to read the content.
      */
-    fn resolve_file_path(url: &Url, lib_path: &mut PathBuf, lib_name: &str,
+    fn resolve_file_path(url: &Url, lib_root_path: &mut PathBuf, lib_name: &str,
                          default_filename: &str, extensions: &[&str]) -> Result<(String, Option<String>)> {
         // Once we've found the path where the library resides, append the rest of the
         // url path to it, to form a path to the directory where the process being loaded resides
         if !url.path().is_empty() {
-            lib_path.push(&url.path()[1..]);
+            lib_root_path.push(&url.path()[1..]);
         }
 
         // Drop the file extension off the lib definition file path to get a lib reference
         let module = url.join("./")
             .chain_err(|| "Could not perform join")?
-            .join(lib_path.file_stem()
+            .join(lib_root_path.file_stem()
                 .chain_err(|| "Could not get file stem")?
                 .to_str()
                 .chain_err(|| "Could not convert file stem to string")?)
@@ -49,32 +49,32 @@ impl LibProvider {
         let lib_ref = format!("{}{}", lib_name, module.path());
 
         // See if the directory with that name exists
-        if lib_path.exists() {
-            if !lib_path.is_dir() {
+        if lib_root_path.exists() {
+            if !lib_root_path.is_dir() {
                 // It's a file and it exists, so just return the path
-                let lib_path_url = Url::from_file_path(&lib_path)
-                    .map_err(|_| format!("Could not create Url from '{:?}'", &lib_path))?;
+                let lib_path_url = Url::from_file_path(&lib_root_path)
+                    .map_err(|_| format!("Could not create Url from '{:?}'", &lib_root_path))?;
                 return Ok((lib_path_url.to_string(), Some(lib_ref)));
             }
 
-            let provided_implementation_filename = lib_path.file_name()
+            let provided_implementation_filename = lib_root_path.file_name()
                 .chain_err(|| "Could not get library file name")?
                 .to_str()
                 .chain_err(|| "Could not convert library file name to a string")?;
             debug!("'{}' is a directory, so looking inside it for default file name '{}' or provided implementation file '{}' with extensions '{:?}'",
-                   lib_path.display(), default_filename, provided_implementation_filename, extensions);
+                   lib_root_path.display(), default_filename, provided_implementation_filename, extensions);
             for filename in [default_filename, provided_implementation_filename].iter() {
-                let file = FileProvider::find_file(&lib_path, filename, extensions);
+                let file = FileProvider::find_file(&lib_root_path, filename, extensions);
                 if let Ok(file_path_as_url) = file {
                     return Ok((file_path_as_url, Some(lib_ref)));
                 }
             }
 
             bail!("Found library folder '{}' in Library search path, but could not locate default file '{}' or provided implementation file '{}' within it with extensions '{:?}'",
-                        lib_path.display(), default_filename, provided_implementation_filename, extensions)
+                        lib_root_path.display(), default_filename, provided_implementation_filename, extensions)
         } else {
             // See if the file, with a .toml extension exists
-            let mut implementation_path = lib_path.clone();
+            let mut implementation_path = lib_root_path.clone();
             implementation_path.set_extension("toml");
             if implementation_path.exists() {
                 let lib_path_url = Url::from_file_path(&implementation_path)
@@ -82,7 +82,7 @@ impl LibProvider {
                 return Ok((lib_path_url.to_string(), Some(lib_ref)));
             }
             bail!("Could not locate a folder called '{}' or an implementation file called '{}' in the Library search path ('FLOW_LIB_PATH' and '-L')",
-                        lib_path.display(), implementation_path.display())
+                        lib_root_path.display(), implementation_path.display())
         }
     }
 
@@ -120,8 +120,8 @@ impl Provider for LibProvider {
             .chain_err(|| format!("'lib_name' could not be extracted from the url '{}'", url))?;
 
         match self.lib_search_path.find(lib_name) {
-            Ok(FoundType::File(mut lib_path)) => Self::resolve_file_path(&url, &mut lib_path, lib_name, default_filename, extensions),
-            Ok(FoundType::Resource(lib_url)) => Self::resolve_url(&lib_url, lib_name),
+            Ok(FoundType::File(mut lib_root_path)) => Self::resolve_file_path(&url, &mut lib_root_path, lib_name, default_filename, extensions),
+            Ok(FoundType::Resource(lib_root_url)) => Self::resolve_url(&lib_root_url, lib_name),
             _ => bail!("Could not resolve library Url '{}' using library search path", url_str)
         }
     }
