@@ -80,17 +80,16 @@ fn main() {
     Using the "FLOW_LIB_PATH" environment variable attempt to locate the library's root folder
     in the file system.
  */
-pub fn set_lib_search_path(lib_dirs: &[String]) -> Result<Simpath> {
+pub fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 
-    if env::var("FLOW_LIB_PATH").is_err() && lib_dirs.is_empty() {
+    if env::var("FLOW_LIB_PATH").is_err() && search_path_additions.is_empty() {
         warn!("'FLOW_LIB_PATH' is not set, and no LIB_DIRS supplied, so it is possible libraries referenced will not be found");
     }
 
-    // Add any library search directories specified via the command line
-    for dir in lib_dirs {
-        lib_search_path.add_directory(dir);
-        info!("Directory '{}' specified on command line via '-L' added to the Library Search Path", dir);
+    for additions in search_path_additions {
+        lib_search_path.add(additions);
+        info!("'{}' added to the Library Search Path", additions);
     }
 
     Ok(lib_search_path)
