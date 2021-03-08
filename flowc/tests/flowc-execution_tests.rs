@@ -170,15 +170,16 @@ fn args() {
     execute_test("args", search_path);
 }
 
-#[ignore]
 #[test]
 fn args_libs_on_the_web() {
     let mut search_path = Simpath::new("web_path");
 
     // In order to run 'args' it needs the flowruntime library but doesn't need flowstdlib
     // Let's add a search path entry to where that lib can be found on the web
-    search_path.add_url(&Url::parse("https://github.com/andrewdavidmackenzie/flow/tree/master/flowr/src/lib")
+    search_path.add_url(&Url::parse(&format!("{}{}", env!("CARGO_PKG_REPOSITORY"), "tree/master/flowr/src/lib"))
         .expect("Could not parse the url for Simpath"));
+
+    println!("{}", search_path);
 
     execute_test("args", search_path);
 }

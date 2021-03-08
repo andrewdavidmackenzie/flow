@@ -91,13 +91,12 @@ impl MetaProvider {
             Ok(FoundType::File(lib_root_path)) => {
                 let lib_path = lib_root_path.join(path_under_lib);
                 Ok((Url::from_directory_path(lib_path)
-                    .map_err(|_| "Could not convert file: lib_path to Url")?, lib_reference))
-            },
+                        .map_err(|_| "Could not convert file: lib_path to Url")?, lib_reference))
+            }
             Ok(FoundType::Resource(mut lib_root_url)) => {
-                lib_root_url = lib_root_url.join(path_under_lib)
-                    .map_err(|_| "Could not extend lib_root_url")?;
+                lib_root_url.set_path(&format!("{}/{}", lib_root_url.path(), path_under_lib));
                 Ok((lib_root_url, lib_reference))
-            },
+            }
             _ => bail!("Could not resolve library Url '{}' using library search path", url)
         }
     }
@@ -148,6 +147,7 @@ mod test {
     use std::path::Path;
 
     use simpath::Simpath;
+    use url::Url;
 
     use crate::content::provider::{MetaProvider, Provider};
 
@@ -203,5 +203,21 @@ mod test {
             }
             Err(e) => panic!(e.to_string())
         }
+    }
+
+    #[test]
+    fn resolve_web_path() {
+        let mut search_path = Simpath::new("web_path");
+        // `flowstdlib` can be found under the root of the project at `tree/master` on github
+        search_path.add_url(&Url::parse(&format!("{}{}", env!("CARGO_PKG_REPOSITORY"), "tree/master/flowstdlib"))
+            .expect("Could not parse the url for Simpath"));
+
+        let provider: &dyn Provider = &MetaProvider::new(search_path);
+
+        let lib_url = "lib://flowstdlib/control/tap/tap.toml";
+        let resolved_url = provider.resolve_url(&lib_url, "", &["toml"])
+            .expect("Couldn't resolve library on the web").0;
+        assert_eq!(resolved_url, format!("{}{}", env!("CARGO_PKG_REPOSITORY"),
+                                         "tree/master/flowstdlib/control/tap/tap.toml"));
     }
 }
