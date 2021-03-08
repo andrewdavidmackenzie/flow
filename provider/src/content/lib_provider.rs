@@ -32,7 +32,7 @@ impl LibProvider {
      */
     fn resolve_file_path(url: &Url, lib_path: &mut PathBuf, lib_name: &str,
                          default_filename: &str, extensions: &[&str]) -> Result<(String, Option<String>)> {
-        // Once we've found the (file) path where the library resides, append the rest of the
+        // Once we've found the path where the library resides, append the rest of the
         // url path to it, to form a path to the directory where the process being loaded resides
         if !url.path().is_empty() {
             lib_path.push(&url.path()[1..]);
@@ -85,6 +85,10 @@ impl LibProvider {
                         lib_path.display(), implementation_path.display())
         }
     }
+
+    fn resolve_url(lib_url: &Url, _lib_name: &str) -> Result<(String, Option<String>)> {
+        bail!("Could not resolve library Url '{}' in library search path", lib_url)
+    }
 }
 
 /*
@@ -117,8 +121,8 @@ impl Provider for LibProvider {
 
         match self.lib_search_path.find(lib_name) {
             Ok(FoundType::File(mut lib_path)) => Self::resolve_file_path(&url, &mut lib_path, lib_name, default_filename, extensions),
-            Ok(_) => bail!("Could not find library named '{}' in library search path", lib_name),
-            Err(_) => bail!("Could not find library named '{}' in library search path", lib_name)
+            Ok(FoundType::Resource(lib_url)) => Self::resolve_url(&lib_url, lib_name),
+            _ => bail!("Could not resolve library Url '{}' using library search path", url_str)
         }
     }
 

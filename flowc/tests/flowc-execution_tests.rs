@@ -170,6 +170,7 @@ fn args() {
     execute_test("args", search_path);
 }
 
+#[ignore]
 #[test]
 fn args_libs_on_the_web() {
     let mut search_path = Simpath::new("web_path");
