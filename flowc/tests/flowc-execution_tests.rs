@@ -1,15 +1,7 @@
 #[macro_use]
 extern crate error_chain;
 
-use std::fs::File;
-use std::io::{BufRead, BufReader, Write};
-use std::io::prelude::*;
-use std::path::PathBuf;
-use std::process::Command;
-use std::process::Stdio;
-
 use simpath::Simpath;
-use url::Url;
 
 use flowclib::compiler::{compile, loader};
 use flowclib::generator::generate;
@@ -18,6 +10,12 @@ use flowclib::model::flow::Flow;
 use flowclib::model::process::Process;
 use flowclib::model::process::Process::FlowProcess;
 use provider::content::provider::MetaProvider;
+use std::fs::File;
+use std::io::{BufRead, BufReader, Write};
+use std::io::prelude::*;
+use std::path::PathBuf;
+use std::process::Command;
+use std::process::Stdio;
 
 #[path="helper.rs"] mod helper;
 
@@ -167,22 +165,6 @@ fn line_echo() {
 #[test]
 fn args() {
     let search_path = helper::set_lib_search_path_to_project();
-    execute_test("args", search_path);
-}
-
-// TODO pending finding files from the name of the parent dir
-#[ignore]
-#[test]
-fn args_libs_on_the_web() {
-    let mut search_path = Simpath::new("web_path");
-
-    // In order to run 'args' it needs the flowruntime library but doesn't need flowstdlib
-    // Let's add a search path entry to where that lib can be found on the web
-    search_path.add_url(&Url::parse(&format!("{}{}", env!("CARGO_PKG_REPOSITORY"), "tree/master/flowr/src/lib"))
-        .expect("Could not parse the url for Simpath"));
-
-    println!("{}", search_path);
-
     execute_test("args", search_path);
 }
 
