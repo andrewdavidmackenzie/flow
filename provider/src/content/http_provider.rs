@@ -1,6 +1,6 @@
 use curl::easy::{Easy2, Handler, WriteError};
 use log::debug;
-use log::info;
+use log::trace;
 use url::Url;
 
 use crate::errors::*;
@@ -23,10 +23,15 @@ impl Provider for HttpProvider {
         let url = Url::parse(url_str)
             .chain_err(|| format!("Could not convert '{}' to valid Url", url_str))?;
         if url.path().ends_with('/') {
-            info!("'{}' is a directory, so attempting to find default file in it", url);
+            // trace!("'{}' is a directory, so attempting to find file with same name in it", path.display());
+            if HttpProvider::find_resource(url_str, "", extensions).is_ok() {
+                return Ok((url_str.into(), None));
+            }
+
+            trace!("'{}' is a directory, so attempting to find default file in it", url);
             Ok((HttpProvider::find_resource(url_str, default_filename, extensions)?, None))
         } else {
-            Ok((url.to_string(), None))
+            Ok((url_str.into(), None))
         }
     }
 
@@ -82,7 +87,8 @@ mod test {
     fn resolve() {
         let provider = HttpProvider {};
         let folder_url = "https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml";
-        let full_url = provider.resolve_url(folder_url, "context", &[&"toml"]).unwrap().0;
+        let full_url = provider.resolve_url(folder_url, "context", &[&"toml"])
+            .expect("Could not resolve url").0;
         assert_eq!(folder_url, &full_url);
     }
 
@@ -90,7 +96,8 @@ mod test {
     fn resolve_default() {
         let provider = HttpProvider {};
         let folder_url = "https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/";
-        let full_url = provider.resolve_url(folder_url, "context", &[&"toml"]).unwrap().0;
+        let full_url = provider.resolve_url(folder_url, "context", &[&"toml"])
+            .expect("Could not resolve url").0;
         let mut expected = folder_url.to_string();
         expected.push_str("context.toml");
         assert_eq!(full_url, expected);
