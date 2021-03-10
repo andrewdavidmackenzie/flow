@@ -75,9 +75,9 @@ checksum = "bed57e2090563b83ba8f83366628ce535a7584c9afa4c9fc0612a03925c6df58"
 
 [[package]]
 name = "byteorder"
-version = "1.4.2"
+version = "1.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae44d1a3d5a19df61dd0c8beb138458ac2a53a7ac09eba97d55592540004306b"
+checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
 name = "cc"
@@ -915,9 +915,9 @@ dependencies = [
 
 [[package]]
 name = "simpath"
-version = "2.1.4"
+version = "2.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78b2d143713733c4ab356dda7ef9ce52c05a99890196fb9fbb9abe70eba7210a"
+checksum = "0961096351b15ad02efc38a2ffabe77057a12f107435de52b95b65be05cf31ae"
 dependencies = [
  "curl",
  "url",
