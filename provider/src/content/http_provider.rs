@@ -24,6 +24,11 @@ impl Provider for HttpProvider {
             return Ok((url_str.into(), None));
         }
 
+        // Try the url with possible extensions next
+        if let Ok(found) = Self::resource_by_extensions(url_str, extensions) {
+            return Ok((found, None));
+        }
+
         // Attempting to find default file under this path
         if let Ok(found) = Self::resource_by_extensions(&format!("{}/{}", url_str, default_filename), extensions) {
             return Ok((found, None));
