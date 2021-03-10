@@ -1,16 +1,16 @@
  Downloading crates ...
-  Downloaded instant v0.1.9
-  Downloaded parking_lot_core v0.8.2
-  Downloaded serial_test_derive v0.5.1
-  Downloaded smallvec v1.6.0
-  Downloaded serial_test v0.5.1
   Downloaded parking_lot v0.11.1
+  Downloaded parking_lot_core v0.8.2
+  Downloaded serial_test v0.5.1
   Downloaded lock_api v0.4.2
+  Downloaded instant v0.1.9
+  Downloaded smallvec v1.6.0
+  Downloaded serial_test_derive v0.5.1
    Compiling smallvec v1.6.0
    Compiling instant v0.1.9
    Compiling lock_api v0.4.2
-   Compiling libz-sys v1.1.2
    Compiling openssl-sys v0.9.60
+   Compiling libz-sys v1.1.2
    Compiling parking_lot_core v0.8.2
    Compiling zmq-sys v0.11.0
    Compiling curl-sys v0.4.39+curl-7.74.0
@@ -23,10 +23,10 @@
    Compiling provider v0.25.0 (/home/travis/build/andrewdavidmackenzie/flow/provider)
    Compiling flowsamples v0.34.0 (/home/travis/build/andrewdavidmackenzie/flow/samples)
    Compiling flowrstructs v0.33.0 (/home/travis/build/andrewdavidmackenzie/flow/flowrstructs)
-   Compiling flowc v0.34.0 (/home/travis/build/andrewdavidmackenzie/flow/flowc)
    Compiling flowstdlib v0.34.3 (/home/travis/build/andrewdavidmackenzie/flow/flowstdlib)
+   Compiling flowc v0.34.0 (/home/travis/build/andrewdavidmackenzie/flow/flowc)
    Compiling flowr v0.34.3 (/home/travis/build/andrewdavidmackenzie/flow/flowr)
-    Finished test [unoptimized + debuginfo] target(s) in 40.64s
+    Finished test [unoptimized + debuginfo] target(s) in 43.08s
      Running target/debug/deps/flow_impl-ad2e8bff07b500cd
 
 running 0 tests
@@ -214,7 +214,7 @@ test hello_world ... ok
 test line_echo ... ok
 test print_args ... ok
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.43s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.88s
 
      Running target/debug/deps/flowc_loader_tests-8079104d37299f47
 
@@ -484,9 +484,15 @@ test content::http_provider::test::resolve ... ok
 test content::http_provider::test::resolve_default ... ok
 test content::lib_provider::test::resolve_path ... ok
 
-test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
 
    Doc-tests flowstdlib
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests flowrstructs
 
 running 0 tests
 
@@ -497,7 +503,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 running 1 test
 test src/content/provider.rs - content::provider::MetaProvider (line 38) ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
 
    Doc-tests flowrlib
 
@@ -505,19 +511,6 @@ running 1 test
 test src/lib/coordinator.rs - coordinator::Coordinator (line 88) ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
-
-   Doc-tests flowrstructs
-
-running 0 tests
-
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-
-   Doc-tests flow_impl
-
-running 1 test
-test src/lib.rs - Implementation (line 26) ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
 
    Doc-tests flowclib
 
@@ -527,5 +520,12 @@ test src/lib/dumper/dump_flow.rs - dumper::dump_flow::dump_flow (line 18) ... ok
 test src/lib/dumper/dump_tables.rs - dumper::dump_tables::dump_functions (line 81) ... ok
 test src/lib/dumper/dump_tables.rs - dumper::dump_tables::dump_tables (line 16) ... ok
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.11s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.71s
+
+   Doc-tests flow_impl
+
+running 1 test
+test src/lib.rs - Implementation (line 26) ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
 
