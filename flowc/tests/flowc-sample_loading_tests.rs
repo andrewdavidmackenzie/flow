@@ -3,7 +3,6 @@ use url::Url;
 
 use flowclib::compiler::loader;
 use provider::content::provider::MetaProvider;
-use std::path::Path;
 
 #[path="helper.rs"] mod helper;
 
@@ -40,21 +39,21 @@ pub fn set_lib_search_path_flowstdlib_on_web() -> Simpath {
 
     // Add the parent directory of 'flowruntime' which is in flowr/src/lib so `lib://flowruntime/*` references
     // can be found
-    let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("Could not get project root dir");
-    let runtime_parent = root_str.join("flowr/src/lib");
-    lib_search_path.add_directory(runtime_parent.to_str().unwrap());
+    // let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("Could not get project root dir");
+    // let runtime_parent = root_str.join("flowr/src/lib");
+    // lib_search_path.add_directory(runtime_parent.to_str().unwrap());
+    lib_search_path.add_url(&Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowr/src/lib/flowruntime")
+        .expect("Could not parse the url for Simpath"));
 
     // Add the url of 'flowstdlib' on the web, so `lib://flowstdlib/*` references can be found
     lib_search_path.add_url(&Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib")
         .expect("Could not parse the url for Simpath"));
 
-    println!("Lib search path set to '{}'", lib_search_path);
-
     lib_search_path
 }
 
 #[test]
-fn load_fibonacci_flowstdlib_on_the_web() {
+fn load_fibonacci_libs_on_the_web() {
     let meta_provider = MetaProvider::new(set_lib_search_path_flowstdlib_on_web());
     let url = helper::absolute_file_url_from_relative_path("samples/fibonacci");
     loader::load(&url, &meta_provider).unwrap();
