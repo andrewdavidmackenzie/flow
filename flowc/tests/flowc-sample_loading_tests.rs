@@ -52,7 +52,6 @@ pub fn set_lib_search_path_flowstdlib_on_web() -> Simpath {
     lib_search_path
 }
 
-#[ignore]
 #[test]
 fn load_fibonacci_libs_on_the_web() {
     let meta_provider = MetaProvider::new(set_lib_search_path_flowstdlib_on_web());
