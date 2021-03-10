@@ -44,9 +44,8 @@ pub fn set_lib_search_path_flowstdlib_on_web() -> Simpath {
     let runtime_parent = root_str.join("flowr/src/lib");
     lib_search_path.add_directory(runtime_parent.to_str().unwrap());
 
-    // Add the root url of where 'flowstdlib' can be found on the web, so `lib://flowstdlib/*` references
-    // can be found
-    lib_search_path.add_url(&Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master")
+    // Add the url of 'flowstdlib' on the web, so `lib://flowstdlib/*` references can be found
+    lib_search_path.add_url(&Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib")
         .expect("Could not parse the url for Simpath"));
 
     println!("Lib search path set to '{}'", lib_search_path);
@@ -54,7 +53,6 @@ pub fn set_lib_search_path_flowstdlib_on_web() -> Simpath {
     lib_search_path
 }
 
-#[ignore]
 #[test]
 fn load_fibonacci_flowstdlib_on_the_web() {
     let meta_provider = MetaProvider::new(set_lib_search_path_flowstdlib_on_web());
