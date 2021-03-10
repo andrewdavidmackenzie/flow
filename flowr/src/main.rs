@@ -10,12 +10,10 @@
 extern crate error_chain;
 
 use std::env;
-use std::io;
-use std::path::Path;
 use std::process::exit;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
-use log::{error, info};
+use log::{error, info, warn};
 use simpath::Simpath;
 use simplog::simplog::SimpleLogger;
 use url::Url;
@@ -82,30 +80,16 @@ fn main() {
     Using the "FLOW_LIB_PATH" environment variable attempt to locate the library's root folder
     in the file system.
  */
-pub fn set_lib_search_path(lib_dirs: &[String]) -> Result<Simpath> {
-    let mut lib_search_path = Simpath::new("FLOW_LIB_PATH");
+pub fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
+    let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 
-    if env::var("FLOW_LIB_PATH").is_ok(){
-        info!("Library Search Path initialized from 'FLOW_LIB_PATH'");
-    }
-    else {
-        info!("'FLOW_LIB_PATH' not set so initializing Library Search Path from Project directories");
-        let project_root = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Could not get Project root dir"))?;
-        let project_root_str = project_root.to_str().chain_err(|| "Unable to convert project_root Path to String")?;
-        lib_search_path.add_directory(project_root_str);
-        info!("Directory '{}' added to the Library Search Path", project_root_str);
-
-        let runtime_parent = project_root.join("flowr/src/lib");
-        let runtime_parent_str = runtime_parent.to_str().chain_err(|| "Unable to convert runtime Path to String")?;
-        lib_search_path.add_directory(runtime_parent_str);
-        info!("Directory '{}' added to the Library Search Path", runtime_parent_str);
+    if env::var("FLOW_LIB_PATH").is_err() && search_path_additions.is_empty() {
+        warn!("'FLOW_LIB_PATH' is not set, and no LIB_DIRS supplied, so it is possible libraries referenced will not be found");
     }
 
-    // Add any library search directories specified via the command line
-    for dir in lib_dirs {
-        lib_search_path.add_directory(dir);
-        info!("Directory '{}' specified on command line via '-L' added to the Library Search Path", dir);
+    for additions in search_path_additions {
+        lib_search_path.add(additions);
+        info!("'{}' added to the Library Search Path", additions);
     }
 
     Ok(lib_search_path)
@@ -250,8 +234,8 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .long("libdir")
             .number_of_values(1)
             .multiple(true)
-            .value_name("LIB_DIR")
-            .help("Add the directory or Url to the Library Search path"))
+            .value_name("LIB_DIR|BASE_URL")
+            .help("Add a directory or base Url to the Library Search path"))
         .arg(Arg::with_name("threads")
             .short("t")
             .long("threads")

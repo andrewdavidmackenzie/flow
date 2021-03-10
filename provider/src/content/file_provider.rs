@@ -26,6 +26,16 @@ impl Provider for FileProvider {
         match md_result {
             Ok(md) => {
                 if md.is_dir() {
+                    trace!("'{}' is a directory, so attempting to find file with same name in it",
+                           path.display());
+                    if let Some(dir_os_name) = path.file_name() {
+                        let dir_name = dir_os_name.to_string_lossy();
+                        if let Ok(file_found_url) = FileProvider::find_file(&path,
+                                                                            &dir_name, extensions) {
+                            return Ok((file_found_url, None));
+                        }
+                    }
+
                     trace!("'{}' is a directory, so attempting to find default file named '{}' in it",
                            path.display(), default_filename);
                     let file_found_url = FileProvider::find_file(&path, default_filename, extensions)?;
@@ -100,9 +110,10 @@ mod test {
 
     #[test]
     fn get_default_sample() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent()
+            .expect("Could not get CARGO_MANIFEST_DIR");
         let path = root.join("samples/hello-world");
-        match FileProvider::find_file(&path.to_path_buf(), "context", &["toml"]) {
+        match FileProvider::find_file(&path, "context", &["toml"]) {
             Ok(path_string) => {
                 let path = Path::new(&path_string);
                 assert_eq!(Some(OsStr::new("context.toml")), path.file_name());

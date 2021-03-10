@@ -4,9 +4,4 @@ pub mod provider;
 pub mod file_provider;
 /// The Content Provider for Http contents
 mod http_provider;
-/// The Content Provider for library contents ("lib://" schema) that uses the Library Search path to determine
-/// where actual library contents can be found and then resolves the url to be either a File or Http
-/// schema url. The Library Search path is initialized from `FLOW_LIB_PATH` and then any locations passed in via
-/// the '-L' option are added to it.
-mod lib_provider;
 

@@ -40,7 +40,7 @@ URL of the file:
 The process is in a library that is available to your current installation. 
 In order for flow to find the function at compile time it uses the 
 environment variable `FLOW_LIB_PATH`, that is a `PATH` style variable with zero or
-more directory entries. 
+more directory entries or URLs separated by the `","` character
 * e.g. `source = "lib://flowruntime/stdio/stdin"`
     * Library name = `flowrlib`
     * Function path within the library = `stdio/stdin`
