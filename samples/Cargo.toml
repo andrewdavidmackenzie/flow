@@ -21,10 +21,10 @@ name = "flowsamples"
 path = "main.rs"
 
 [build-dependencies]
-simpath = { path = "../../simpath", version = "~2.1", features = ["urls"]}
+simpath = { version = "~2.1", features = ["urls"]}
 
 [dependencies]
-simpath = { path = "../../simpath", version = "~2.1", features = ["urls"]}
+simpath = { version = "~2.1", features = ["urls"]}
 
 [dev-dependencies]
 serial_test = "0.5.0"

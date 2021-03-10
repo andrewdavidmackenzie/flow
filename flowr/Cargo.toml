@@ -35,7 +35,7 @@ provider = {path = "../provider", version = "0.25.0" }
 clap = "~2"
 simplog = "~1.2"
 log = "0.4.6"
-simpath = { path = "../../simpath", version = "~2.1", features = ["urls"]}
+simpath = { version = "~2.1", features = ["urls"]}
 url = "~2.1"
 serde_derive = "~1.0.27"
 serde = "~1.0.27"
