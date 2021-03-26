@@ -51,8 +51,7 @@ script:
         travis_wait 50 make docs
       fi
     else
-      # travis_wait 50 make clippy test
-      echo "Skipping everything"
+      travis_wait 50 make clippy test
     fi
 
 # Docs are only built and deployed in "cron" builds on linux with rust stable
