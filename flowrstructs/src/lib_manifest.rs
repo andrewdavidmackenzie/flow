@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use flow_impl::Implementation;
 use log::debug;
 use serde_derive::{Deserialize, Serialize};
 
+use flow_impl::Implementation;
 use provider::content::provider::Provider;
 
 use crate::errors::*;
@@ -33,10 +33,11 @@ pub enum ImplementationLocator {
 impl PartialEq for ImplementationLocator {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (ImplementationLocator::Wasm(self_source), ImplementationLocator::Wasm(other_source)) => {
-                self_source == other_source
-            }
-            _ => false
+            (
+                ImplementationLocator::Wasm(self_source),
+                ImplementationLocator::Wasm(other_source),
+            ) => self_source == other_source,
+            _ => false,
         }
     }
 }
@@ -63,29 +64,48 @@ impl LibraryManifest {
 
     /// `load` a library from the `source` url, using the `provider` to fetch contents
     pub fn load(provider: &dyn Provider, source: &str) -> Result<(LibraryManifest, String)> {
-        let (resolved_url, _) = provider.resolve_url(source,
-                                                     DEFAULT_LIB_JSON_MANIFEST_FILENAME,
-                                                     &["json"])
+        let (resolved_url, _) = provider
+            .resolve_url(source, DEFAULT_LIB_JSON_MANIFEST_FILENAME, &["json"])
             .chain_err(|| format!("Could not resolve the library manifest file '{}'", source))?;
 
-        let content = provider.get_contents(&resolved_url)
-            .chain_err(|| format!("Could not read contents of Library Manifest from '{}'", resolved_url))?;
+        let content = provider.get_contents(&resolved_url).chain_err(|| {
+            format!(
+                "Could not read contents of Library Manifest from '{}'",
+                resolved_url
+            )
+        })?;
 
         let manifest = serde_json::from_str(
-            &String::from_utf8(content).chain_err(|| "Could not convert from utf8 to String")?)
-            .chain_err(|| format!("Could not load Library Manifest from '{}'", resolved_url))?;
+            &String::from_utf8(content).chain_err(|| "Could not convert from utf8 to String")?,
+        )
+        .chain_err(|| format!("Could not load Library Manifest from '{}'", resolved_url))?;
 
         Ok((manifest, resolved_url))
     }
 
     /// Add a function's implementation to the library, specifying path to Wasm for it
-    pub fn add_to_manifest(&mut self, base_dir: &str, wasm_abs_path: &str, wasm_dir: &str, function_name: &str) {
+    pub fn add_to_manifest(
+        &mut self,
+        base_dir: &str,
+        wasm_abs_path: &str,
+        wasm_dir: &str,
+        function_name: &str,
+    ) {
         let relative_dir = wasm_dir.replace(base_dir, "");
-        let lib_reference = format!("lib://{}/{}/{}", self.metadata.name, relative_dir, function_name);
+        let lib_reference = format!(
+            "lib://{}/{}/{}",
+            self.metadata.name, relative_dir, function_name
+        );
 
         let implementation_relative_location = wasm_abs_path.replace(base_dir, "");
-        debug!("Adding implementation to manifest: \n'{}'  --> '{}'", lib_reference, implementation_relative_location);
-        self.locators.insert(lib_reference, ImplementationLocator::Wasm(implementation_relative_location));
+        debug!(
+            "Adding implementation to manifest: \n'{}'  --> '{}'",
+            lib_reference, implementation_relative_location
+        );
+        self.locators.insert(
+            lib_reference,
+            ImplementationLocator::Wasm(implementation_relative_location),
+        );
     }
 }
 
@@ -118,17 +138,19 @@ impl PartialEq for LibraryManifest {
 mod test {
     use std::sync::Arc;
 
-    use flow_impl::Implementation;
     use serde_json::Value;
 
+    use flow_impl::Implementation;
     use provider::content::provider::Provider;
     use provider::errors::Result;
 
-    use crate::lib_manifest::{ImplementationLocator, ImplementationLocator::Wasm, LibraryManifest};
+    use crate::lib_manifest::{
+        ImplementationLocator, ImplementationLocator::Wasm, LibraryManifest,
+    };
     use crate::manifest::MetaData;
 
     pub struct TestProvider {
-        test_content: &'static str
+        test_content: &'static str,
     }
 
     fn test_meta_data() -> MetaData {
@@ -136,7 +158,7 @@ mod test {
             name: "test".into(),
             version: "0.0.0".into(),
             description: "a test".into(),
-            authors: vec!("me".into())
+            authors: vec!["me".into()],
         }
     }
 
@@ -145,12 +167,17 @@ mod test {
             name: "different".into(),
             version: "0.0.0".into(),
             description: "a test".into(),
-            authors: vec!("me".to_string())
+            authors: vec!["me".to_string()],
         }
     }
 
     impl Provider for TestProvider {
-        fn resolve_url(&self, source: &str, _default_filename: &str, _extensions: &[&str]) -> Result<(String, Option<String>)> {
+        fn resolve_url(
+            &self,
+            source: &str,
+            _default_filename: &str,
+            _extensions: &[&str],
+        ) -> Result<(String, Option<String>)> {
             Ok((source.to_string(), None))
         }
 
@@ -183,14 +210,15 @@ mod test {
     #[test]
     fn locators_type_mismatch() {
         #[derive(Debug)]
-        struct TestImpl {};
+        struct TestImpl {}
+
         impl Implementation for TestImpl {
             fn run(&self, _inputs: &[Value]) -> (Option<Value>, bool) {
                 unimplemented!()
             }
         }
         let wasm_loc = ImplementationLocator::Wasm("wasm_location".into());
-        let native_loc = ImplementationLocator::Native(Arc::new(TestImpl{}));
+        let native_loc = ImplementationLocator::Native(Arc::new(TestImpl {}));
 
         assert!(wasm_loc != native_loc);
     }
@@ -201,12 +229,14 @@ mod test {
             name: "".to_string(),
             description: "".into(),
             version: "0.1.0".into(),
-            authors: vec!()
+            authors: vec![],
         };
 
         let locator: ImplementationLocator = Wasm("add2.wasm".to_string());
         let mut manifest = LibraryManifest::new(metadata);
-        manifest.locators.insert("//flowrlib/test-dyn-lib/add2".to_string(), locator);
+        manifest
+            .locators
+            .insert("//flowrlib/test-dyn-lib/add2".to_string(), locator);
         let serialized = serde_json::to_string_pretty(&manifest).unwrap();
         let expected = "{
   \"metadata\": {
@@ -235,25 +265,33 @@ mod test {
     \"//flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
   }
 }";
-        let provider = TestProvider {
-            test_content
-        };
+        let provider = TestProvider { test_content };
         let url = "file:://test/fake";
         let (lib_manifest, _lib_manifest_url) = LibraryManifest::load(&provider, url).unwrap();
         assert_eq!(lib_manifest.locators.len(), 1);
-        assert!(lib_manifest.locators.get("//flowrlib/test-dyn-lib/add2").is_some());
-        let locator = lib_manifest.locators.get("//flowrlib/test-dyn-lib/add2").unwrap();
+        assert!(lib_manifest
+            .locators
+            .get("//flowrlib/test-dyn-lib/add2")
+            .is_some());
+        let locator = lib_manifest
+            .locators
+            .get("//flowrlib/test-dyn-lib/add2")
+            .unwrap();
         match locator {
             Wasm(source) => assert_eq!(source, "add2.wasm"),
-            _ => panic!("Expected type 'Wasm' but found another type")
+            _ => panic!("Expected type 'Wasm' but found another type"),
         }
     }
 
     #[test]
     fn add_to() {
         let mut library = LibraryManifest::new(test_meta_data());
-        library.add_to_manifest( "/fake", "/bin/my.wasm", "/bin", "my function");
-        assert_eq!(library.locators.len(), 1, "There should be one implementation location in the library manifest");
+        library.add_to_manifest("/fake", "/bin/my.wasm", "/bin", "my function");
+        assert_eq!(
+            library.locators.len(),
+            1,
+            "There should be one implementation location in the library manifest"
+        );
     }
 
     #[test]
@@ -267,7 +305,7 @@ mod test {
     #[test]
     fn compare_manifests_num_locators_different() {
         let mut library1 = LibraryManifest::new(test_meta_data());
-        library1.add_to_manifest( "/fake", "/bin/my.wasm", "/bin", "my function");
+        library1.add_to_manifest("/fake", "/bin/my.wasm", "/bin", "my function");
 
         let library2 = LibraryManifest::new(test_meta_data());
 
@@ -277,10 +315,10 @@ mod test {
     #[test]
     fn compare_manifests_locators_different() {
         let mut library1 = LibraryManifest::new(test_meta_data());
-        library1.add_to_manifest( "/fake", "/bin/fake.wasm", "/bin", "my fake function");
+        library1.add_to_manifest("/fake", "/bin/fake.wasm", "/bin", "my fake function");
 
         let mut library2 = LibraryManifest::new(test_meta_data());
-        library2.add_to_manifest( "/different", "/bin/my.wasm", "/bin", "my function");
+        library2.add_to_manifest("/different", "/bin/my.wasm", "/bin", "my function");
 
         assert!(library1 != library2);
     }
@@ -288,10 +326,10 @@ mod test {
     #[test]
     fn compare_manifests_same() {
         let mut library1 = LibraryManifest::new(test_meta_data());
-        library1.add_to_manifest( "/fake", "/bin/my.wasm", "/bin", "my function");
+        library1.add_to_manifest("/fake", "/bin/my.wasm", "/bin", "my function");
 
         let mut library2 = LibraryManifest::new(test_meta_data());
-        library2.add_to_manifest( "/fake", "/bin/my.wasm", "/bin", "my function");
+        library2.add_to_manifest("/fake", "/bin/my.wasm", "/bin", "my function");
 
         assert!(library1 == library2);
     }

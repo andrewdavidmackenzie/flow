@@ -17,7 +17,7 @@ pub enum RouteType {
     Input(Name, Route),
     Output(Name),
     Internal(Name, Route),
-    Invalid(String)
+    Invalid(String),
 }
 
 /// `Route` is used to locate Processes (Flows or Functions), their IOs and sub-elements of a
@@ -58,7 +58,7 @@ impl Route {
     }
 
     /// Extend a Route by appending another Route to the end, adding the '/' separator if needed
-    pub fn extend(&mut self, sub_route: &Route) -> &Self{
+    pub fn extend(&mut self, sub_route: &Route) -> &Self {
         if !sub_route.is_empty() {
             if !self.to_string().ends_with('/') && !sub_route.starts_with('/') {
                 self.push('/');
@@ -75,8 +75,12 @@ impl Route {
         match segments[0] {
             "input" => RouteType::Input(segments[1].into(), segments[2..].join("/").into()),
             "output" => RouteType::Output(segments[1].into()),
-            "" => RouteType::Invalid("'input' or 'output' or valid process name must be specified in route".into()),
-            process_name => RouteType::Internal(process_name.into(), segments[1..].join("/").into())
+            "" => RouteType::Invalid(
+                "'input' or 'output' or valid process name must be specified in route".into(),
+            ),
+            process_name => {
+                RouteType::Internal(process_name.into(), segments[1..].join("/").into())
+            }
         }
     }
 
@@ -88,7 +92,10 @@ impl Route {
         match sub_route {
             None => (Cow::Borrowed(self), None),
             Some("") => (Cow::Borrowed(self), None),
-            Some(sr) => (Cow::Owned(Route::from(segments.join("/"))), Some(Route::from(sr)))
+            Some(sr) => (
+                Cow::Owned(Route::from(segments.join("/"))),
+                Some(Route::from(sr)),
+            ),
         }
     }
 
@@ -136,6 +143,7 @@ pub trait SetRoute {
     fn set_routes_from_parent(&mut self, parent: &Route);
 }
 
+#[allow(clippy::upper_case_acronyms)]
 pub trait SetIORoutes {
     fn set_io_routes_from_parent(&mut self, parent: &Route, io_type: IOType);
 }
@@ -199,7 +207,10 @@ mod test {
     fn test_route_pop() {
         let original = Route::from("/context/function/output/subroute");
         let (level_up, sub) = original.pop();
-        assert_eq!(level_up.into_owned(), Route::from("/context/function/output"));
+        assert_eq!(
+            level_up.into_owned(),
+            Route::from("/context/function/output")
+        );
         assert_eq!(sub, Some(Route::from("subroute")));
     }
 
@@ -312,7 +323,9 @@ mod test {
     #[test]
     fn subroute_equal_route() {
         let route = Route::from("/context/function");
-        assert!(route.sub_route_of(&Route::from("/context/function")).is_some())
+        assert!(route
+            .sub_route_of(&Route::from("/context/function"))
+            .is_some())
     }
 
     #[test]
@@ -324,31 +337,41 @@ mod test {
     #[test]
     fn subroute_extended_name_route() {
         let route = Route::from("/context/function_foo");
-        assert!(!route.sub_route_of(&Route::from("/context/function")).is_some())
+        assert!(!route
+            .sub_route_of(&Route::from("/context/function"))
+            .is_some())
     }
 
     #[test]
     fn is_a_subroute() {
         let route = Route::from("/context/function/input");
-        assert!(route.sub_route_of(&Route::from("/context/function")).is_some())
+        assert!(route
+            .sub_route_of(&Route::from("/context/function"))
+            .is_some())
     }
 
     #[test]
     fn is_a_sub_subroute() {
         let route = Route::from("/context/function/input/element");
-        assert!(route.sub_route_of(&Route::from("/context/function")).is_some())
+        assert!(route
+            .sub_route_of(&Route::from("/context/function"))
+            .is_some())
     }
 
     #[test]
     fn is_array_element_subroute() {
         let route = Route::from("/context/function/1");
-        assert!(route.sub_route_of(&Route::from("/context/function")).is_some())
+        assert!(route
+            .sub_route_of(&Route::from("/context/function"))
+            .is_some())
     }
 
     #[test]
     fn is_array_element_sub_subroute() {
         let route = Route::from("/context/function/input/1");
-        assert!(route.sub_route_of(&Route::from("/context/function")).is_some())
+        assert!(route
+            .sub_route_of(&Route::from("/context/function"))
+            .is_some())
     }
 
     #[test]

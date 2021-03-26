@@ -1,15 +1,15 @@
 // TODO #![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
-//! This is the rust `flow` Compiler Library. It can be linked with other code to produce
-//! a flow compiler, such as the `flowc` command line flow compiler.
 #[macro_use]
 extern crate error_chain;
 
+/// This is the rust `flow` Compiler Library. It can be linked with other code to produce
+/// a flow compiler, such as the `flowc` command line flow compiler.
+pub mod compiler;
 pub mod deserializers;
 pub mod dumper;
-pub mod info;
-pub mod compiler;
 pub mod generator;
+pub mod info;
 pub mod model;
 
 // We'll put our errors in an `errors` module, and other modules in this crate will

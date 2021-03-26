@@ -18,6 +18,7 @@ use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum IOType {
     FunctionIO,
     FlowInput,
@@ -26,6 +27,7 @@ pub enum IOType {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct IO {
     #[serde(default = "Name::default")]
     #[serde(skip_serializing_if = "Name::empty")]
@@ -114,8 +116,12 @@ impl fmt::Display for IO {
 }
 
 impl HasName for IO {
-    fn name(&self) -> &Name { &self.name }
-    fn alias(&self) -> &Name { &self.name }
+    fn name(&self) -> &Name {
+        &self.name
+    }
+    fn alias(&self) -> &Name {
+        &self.name
+    }
 }
 
 impl HasDataType for IO {
@@ -138,7 +144,9 @@ fn default_type() -> DataType {
     DataType::from("Value")
 }
 
-fn default_io_type() -> IOType { IOType::FunctionIO }
+fn default_io_type() -> IOType {
+    IOType::FunctionIO
+}
 
 impl Validate for IO {
     fn validate(&self) -> Result<()> {
@@ -146,6 +154,7 @@ impl Validate for IO {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 pub type IOSet = Option<Vec<IO>>;
 
 impl Validate for IOSet {
@@ -180,8 +189,13 @@ impl SetIORoutes for IOSet {
 
 pub trait Find {
     fn find(&self, route: &Route) -> bool;
-    fn find_by_name(&mut self, name: &Name, initial_value: &Option<InputInitializer>) -> Result<IO>;
-    fn find_by_route(&mut self, route: &Route, initial_value: &Option<InputInitializer>) -> Result<IO>;
+    fn find_by_name(&mut self, name: &Name, initial_value: &Option<InputInitializer>)
+        -> Result<IO>;
+    fn find_by_route(
+        &mut self,
+        route: &Route,
+        initial_value: &Option<InputInitializer>,
+    ) -> Result<IO>;
 }
 
 impl Find for IOSet {
@@ -196,7 +210,11 @@ impl Find for IOSet {
         false
     }
 
-    fn find_by_name(&mut self, name: &Name, initial_value: &Option<InputInitializer>) -> Result<IO> {
+    fn find_by_name(
+        &mut self,
+        name: &Name,
+        initial_value: &Option<InputInitializer>,
+    ) -> Result<IO> {
         if let Some(ref mut ios) = self {
             for io in ios {
                 if io.name() == name {
@@ -206,16 +224,26 @@ impl Find for IOSet {
             }
             bail!("No input or output with name '{}' was found", name);
         }
-        bail!("No inputs or outputs found when looking for input/output named '{}'", name)
+        bail!(
+            "No inputs or outputs found when looking for input/output named '{}'",
+            name
+        )
     }
 
     // TODO improve the Route handling of this - maybe moving into Router
     // TODO return a reference to the IO, with same lifetime as IOSet?
-    fn find_by_route(&mut self, sub_route: &Route, initial_value: &Option<InputInitializer>) -> Result<IO> {
+    fn find_by_route(
+        &mut self,
+        sub_route: &Route,
+        initial_value: &Option<InputInitializer>,
+    ) -> Result<IO> {
         if let Some(ref mut ios) = self {
             for io in ios {
                 let (array_route, index, array_index) = sub_route.without_trailing_array_index();
-                if array_index && (io.datatype().is_array()) && (Route::from(io.name()) == array_route.into_owned()) {
+                if array_index
+                    && (io.datatype().is_array())
+                    && (Route::from(io.name()) == array_route.into_owned())
+                {
                     io.set_initializer(initial_value);
 
                     let mut found = io.clone();
@@ -233,19 +261,26 @@ impl Find for IOSet {
             bail!("No output with sub-route '{}' was found", sub_route);
         }
 
-        bail!("No inputs or outputs found when looking for input/output with sub-route '{}'", sub_route)
+        bail!(
+            "No inputs or outputs found when looking for input/output with sub-route '{}'",
+            sub_route
+        )
     }
 }
 
 impl IO {
-    pub fn set_initial_values(ios: &mut IOSet, initializers: &Option<HashMap<String, InputInitializer>>) {
+    pub fn set_initial_values(
+        ios: &mut IOSet,
+        initializers: &Option<HashMap<String, InputInitializer>>,
+    ) {
         if let Some(inits) = initializers {
             if let Some(inputs) = ios {
                 for initializer in inits {
                     // initializer.0 is io name, initializer.1 is the initial value to set it to
                     for (index, input) in inputs.iter_mut().enumerate() {
-                        if *input.name() == Name::from(initializer.0) ||
-                            (initializer.0.as_str() == "default" && index == 0) {
+                        if *input.name() == Name::from(initializer.0)
+                            || (initializer.0.as_str() == "default" && index == 0)
+                        {
                             input.initializer = Some(initializer.1.clone());
                         }
                     }
@@ -389,7 +424,7 @@ mod test {
             io_type: IOType::FunctionIO,
             initializer: None,
         };
-        let ioset = Some(vec!(io0, io1));
+        let ioset = Some(vec![io0, io1]);
         assert!(ioset.validate().is_ok(), "IOSet does not validate()");
     }
 
@@ -403,7 +438,7 @@ mod test {
             initializer: None,
         };
         let io1 = io0.clone();
-        let ioset = Some(vec!(io0, io1));
+        let ioset = Some(vec![io0, io1]);
         assert!(ioset.validate().is_err());
     }
 
@@ -423,7 +458,7 @@ mod test {
             io_type: IOType::FunctionIO,
             initializer: None,
         };
-        let ioset = Some(vec!(io0, io1));
+        let ioset = Some(vec![io0, io1]);
         assert!(ioset.validate().is_err());
     }
 }

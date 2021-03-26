@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use glob::glob;
 use log::{debug, info};
@@ -12,8 +12,10 @@ use flowclib::compiler::loader::load;
 use flowclib::dumper::dump_flow;
 use flowclib::model::name::HasName;
 use flowclib::model::process::Process::{FlowProcess, FunctionProcess};
-use flowrstructs::lib_manifest::{DEFAULT_LIB_JSON_MANIFEST_FILENAME, DEFAULT_LIB_RUST_MANIFEST_FILENAME};
 use flowrstructs::lib_manifest::LibraryManifest;
+use flowrstructs::lib_manifest::{
+    DEFAULT_LIB_JSON_MANIFEST_FILENAME, DEFAULT_LIB_RUST_MANIFEST_FILENAME,
+};
 use provider::content::file_provider::FileProvider;
 use provider::content::provider::Provider;
 
@@ -23,8 +25,12 @@ use crate::Options;
 /// Build a library from source and generate a manifest for it so it can be used at runtime when
 /// a flow referencing it is loaded and ran
 pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
-    let metadata = loader::load_metadata(&options.url.to_string(), provider)
-        .chain_err(|| format!("Could not load Library metadata from '{}'", options.output_dir.display()))?;
+    let metadata = loader::load_metadata(&options.url.to_string(), provider).chain_err(|| {
+        format!(
+            "Could not load Library metadata from '{}'",
+            options.output_dir.display()
+        )
+    })?;
 
     info!("Building '{}' library", metadata.name);
     let mut lib_manifest = LibraryManifest::new(metadata);
@@ -35,9 +41,15 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
         base_dir = format!("{}/", base_dir);
     }
 
-    let build_count = compile_implementations(options, &mut lib_manifest, &base_dir, provider,
-                                              false, options.dump)
-        .chain_err(|| "Could not build library")?;
+    let build_count = compile_implementations(
+        options,
+        &mut lib_manifest,
+        &base_dir,
+        provider,
+        false,
+        options.dump,
+    )
+    .chain_err(|| "Could not build library")?;
 
     let manifest_json_file = json_manifest_file(&options.output_dir);
     let manifest_rust_file = rust_manifest_file(&options.output_dir);
@@ -51,14 +63,20 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
         } else {
             let provider = &FileProvider {} as &dyn Provider;
             let manifest_file_as_url = Url::from_file_path(&manifest_json_file)
-                .map_err(|_| "Could not parse Url from file path")?.to_string();
-            if let Ok((existing_manifest, _)) = LibraryManifest::load(provider, &manifest_file_as_url) {
+                .map_err(|_| "Could not parse Url from file path")?
+                .to_string();
+            if let Ok((existing_manifest, _)) =
+                LibraryManifest::load(provider, &manifest_file_as_url)
+            {
                 if existing_manifest != lib_manifest {
                     info!("Library manifest exists, but new manifest has changes, so updating manifest file");
                     write_lib_json_manifest(&lib_manifest, &manifest_json_file)?;
                     write_lib_rust_manifest(&lib_manifest, &manifest_rust_file)?;
                 } else {
-                    info!("Existing manifest at '{}' is up to date", manifest_file_as_url);
+                    info!(
+                        "Existing manifest at '{}' is up to date",
+                        manifest_file_as_url
+                    );
                 }
             } else {
                 info!("Could not load existing Library manifest to compare, so writing new manifest file");
@@ -73,18 +91,21 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
         write_lib_rust_manifest(&lib_manifest, &manifest_rust_file)?;
     }
 
-    Ok(format!("Library '{}' built successfully", options.url.to_string()))
+    Ok(format!(
+        "Library '{}' built successfully",
+        options.url.to_string()
+    ))
 }
 
-fn json_manifest_file(base_dir: &PathBuf) -> PathBuf {
-    let mut filename = base_dir.clone();
+fn json_manifest_file(base_dir: &Path) -> PathBuf {
+    let mut filename = base_dir.to_path_buf();
     filename.push(DEFAULT_LIB_JSON_MANIFEST_FILENAME.to_string());
     filename.set_extension("json");
     filename
 }
 
-fn rust_manifest_file(base_dir: &PathBuf) -> PathBuf {
-    let mut filename = base_dir.clone();
+fn rust_manifest_file(base_dir: &Path) -> PathBuf {
+    let mut filename = base_dir.to_path_buf();
     filename.push(DEFAULT_LIB_RUST_MANIFEST_FILENAME.to_string());
     filename
 }
@@ -92,14 +113,25 @@ fn rust_manifest_file(base_dir: &PathBuf) -> PathBuf {
 /*
     Generate a manifest for the library in JSON that can be used to load it using 'flowr'
 */
-fn write_lib_json_manifest(lib_manifest: &LibraryManifest, json_manifest_filename: &PathBuf) -> Result<()> {
-    let mut manifest_file = File::create(&json_manifest_filename).chain_err(|| "Could not create lib json manifest file")?;
+fn write_lib_json_manifest(
+    lib_manifest: &LibraryManifest,
+    json_manifest_filename: &Path,
+) -> Result<()> {
+    let mut manifest_file = File::create(&json_manifest_filename)
+        .chain_err(|| "Could not create lib json manifest file")?;
 
-    manifest_file.write_all(serde_json::to_string_pretty(lib_manifest)
-        .chain_err(|| "Could not pretty format the library manifest JSON contents")?
-        .as_bytes()).chain_err(|| "Could not write library manifest data bytes to created manifest file")?;
+    manifest_file
+        .write_all(
+            serde_json::to_string_pretty(lib_manifest)
+                .chain_err(|| "Could not pretty format the library manifest JSON contents")?
+                .as_bytes(),
+        )
+        .chain_err(|| "Could not write library manifest data bytes to created manifest file")?;
 
-    info!("Generated library JSON manifest at '{}'", json_manifest_filename.display());
+    info!(
+        "Generated library JSON manifest at '{}'",
+        json_manifest_filename.display()
+    );
 
     Ok(())
 }
@@ -110,7 +142,10 @@ fn write_lib_json_manifest(lib_manifest: &LibraryManifest, json_manifest_filenam
     TODO: Implement library rust manifest generation
 */
 #[allow(clippy::unnecessary_wraps)]
-fn write_lib_rust_manifest(_lib_manifest: &LibraryManifest, _rust_manifest_filename: &PathBuf) -> Result<()> {
+fn write_lib_rust_manifest(
+    _lib_manifest: &LibraryManifest,
+    _rust_manifest_filename: &Path,
+) -> Result<()> {
     // let mut manifest_file = File::create(&rust_manifest_filename).chain_err(|| "Could not create lib rust manifest file")?;
     //
     // manifest_file.write_all(serde_json::to_string_pretty(lib_manifest)
@@ -127,32 +162,50 @@ fn write_lib_rust_manifest(_lib_manifest: &LibraryManifest, _rust_manifest_filen
     the wasm file is up-to-date with the source and if not compile it, and add them all to the
     manifest struct
 */
-fn compile_implementations(options: &Options, lib_manifest: &mut LibraryManifest,
-                           base_dir: &str, provider: &dyn Provider,
-                           skip_building: bool, dump: bool) -> Result<i32> {
+fn compile_implementations(
+    options: &Options,
+    lib_manifest: &mut LibraryManifest,
+    base_dir: &str,
+    provider: &dyn Provider,
+    skip_building: bool,
+    dump: bool,
+) -> Result<i32> {
     let mut build_count = 0;
     let search_pattern = format!("{}**/*.toml", base_dir);
 
-    debug!("Searching for process definitions using search pattern: '{}'", search_pattern);
+    debug!(
+        "Searching for process definitions using search pattern: '{}'",
+        search_pattern
+    );
     for entry in glob(&search_pattern).chain_err(|| "Failed to read glob pattern")? {
         if let Ok(ref toml_path) = entry {
             let url = Url::from_file_path(&toml_path)
-                .map_err(|_| format!("Could not create url from file path '{}'",
-                                     toml_path.display()))?.to_string();
+                .map_err(|_| {
+                    format!(
+                        "Could not create url from file path '{}'",
+                        toml_path.display()
+                    )
+                })?
+                .to_string();
             debug!("Trying to load library process from '{}'", url);
             match load(&url, provider) {
                 Ok(FunctionProcess(ref mut function)) => {
-                    let (wasm_abs_path, built) = compile_wasm::compile_implementation(function,
-                                                                                      skip_building)
-                        .chain_err(|| "Could not compile supplied implementation to wasm")?;
-                    let wasm_dir = wasm_abs_path.parent()
+                    let (wasm_abs_path, built) =
+                        compile_wasm::compile_implementation(function, skip_building)
+                            .chain_err(|| "Could not compile supplied implementation to wasm")?;
+                    let wasm_dir = wasm_abs_path
+                        .parent()
                         .chain_err(|| "Could not get parent directory of wasm path")?;
-                    lib_manifest.add_to_manifest(base_dir,
-                                                 wasm_abs_path.to_str()
-                                                     .chain_err(|| "Could not convert wasm_path to str")?,
-                                                 wasm_dir.to_str()
-                                                     .chain_err(|| "Could not convert wasm_dir to str")?,
-                                                 function.name() as &str);
+                    lib_manifest.add_to_manifest(
+                        base_dir,
+                        wasm_abs_path
+                            .to_str()
+                            .chain_err(|| "Could not convert wasm_path to str")?,
+                        wasm_dir
+                            .to_str()
+                            .chain_err(|| "Could not convert wasm_dir to str")?,
+                        function.name() as &str,
+                    );
                     if built {
                         build_count += 1;
                     }
@@ -162,9 +215,11 @@ fn compile_implementations(options: &Options, lib_manifest: &mut LibraryManifest
                         // Dump the dot file alongside the definition file
                         let source_url = Url::parse(&flow.source_url)
                             .chain_err(|| "Could not convert flow's source_url to Url")?;
-                        let source_path = source_url.to_file_path()
-                            .map_err(|_| "Could not convert flow's source_url Url to a Path".to_string())?;
-                        let output_dir = source_path.parent()
+                        let source_path = source_url.to_file_path().map_err(|_| {
+                            "Could not convert flow's source_url Url to a Path".to_string()
+                        })?;
+                        let output_dir = source_path
+                            .parent()
                             .chain_err(|| "Could not get parent directory of flow's source_url")?;
 
                         if dump {
@@ -173,7 +228,7 @@ fn compile_implementations(options: &Options, lib_manifest: &mut LibraryManifest
                         }
                     }
                 }
-                Err(_) => debug!("Skipping file '{}'", url)
+                Err(_) => debug!("Skipping file '{}'", url),
             }
         }
     }
