@@ -52,7 +52,6 @@ script:
       fi
     else
       # travis_wait 50 make clippy test
-      travis_wait 50 make test
     fi
 
 # Docs are only built and deployed in "cron" builds on linux with rust stable
