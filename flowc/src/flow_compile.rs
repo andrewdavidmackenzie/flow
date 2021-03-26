@@ -1,11 +1,11 @@
 use std::env;
-use std::path::PathBuf;
+use std::path::Path;
 use std::process::Command;
 use std::process::Stdio;
 
 use log::{debug, error, info};
-use simpath::{FileType, FoundType};
 use simpath::Simpath;
+use simpath::{FileType, FoundType};
 
 use flowclib::compiler::compile;
 use flowclib::compiler::compile_wasm;
@@ -63,9 +63,11 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
             let mut tables = compile::compile(&flow)
                 .chain_err(|| format!("Could not compile flow from '{}'", options.url))?;
 
-            compile_wasm::compile_supplied_implementations(&mut tables,
-                                                           options.provided_implementations)
-                .chain_err(|| "Could not compile supplied implementation to wasm")?;
+            compile_wasm::compile_supplied_implementations(
+                &mut tables,
+                options.provided_implementations,
+            )
+            .chain_err(|| "Could not compile supplied implementation to wasm")?;
 
             let runnable = check_root(&flow);
 
@@ -79,13 +81,19 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
             }
 
             if !runnable {
-                return Ok("Flow not runnable, so Manifest generation and execution skipped".to_string());
+                return Ok(
+                    "Flow not runnable, so Manifest generation and execution skipped".to_string(),
+                );
             }
 
             info!("==== Compiler phase: Generating Manifest");
-            let manifest_path = generate::write_flow_manifest(flow, options.debug_symbols,
-                                                    &options.output_dir, &tables)
-                .chain_err(|| "Failed to write manifest")?;
+            let manifest_path = generate::write_flow_manifest(
+                flow,
+                options.debug_symbols,
+                &options.output_dir,
+                &tables,
+            )
+            .chain_err(|| "Failed to write manifest")?;
 
             if options.skip_execution {
                 return Ok("Flow execution skipped".to_string());
@@ -94,7 +102,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> R
             info!("==== Compiler phase: Executing flow from manifest");
             execute_flow(&manifest_path, &options)
         }
-        _ => bail!("Process loaded was not of type 'Flow' and cannot be executed")
+        _ => bail!("Process loaded was not of type 'Flow' and cannot be executed"),
     }
 }
 
@@ -133,7 +141,7 @@ fn find_executable_path(name: &str) -> Result<String> {
     let bin_search_path = Simpath::new("PATH");
     match bin_search_path.find_type(name, FileType::File) {
         Ok(FoundType::File(bin_path)) => Ok(bin_path.to_string_lossy().to_string()),
-        _ => bail!("Could not find executable '{}'", name)
+        _ => bail!("Could not find executable '{}'", name),
     }
 }
 
@@ -144,11 +152,11 @@ fn find_executable_path(name: &str) -> Result<String> {
     If the process exits correctly then just return an Ok() with message and no log
     If the process fails then return an Err() with message and log stderr in an ERROR level message
 */
-fn execute_flow(filepath: &PathBuf, options: &Options) -> Result<String> {
+fn execute_flow(filepath: &Path, options: &Options) -> Result<String> {
     info!("Executing flow from manifest in '{}'", filepath.display());
 
     let command = find_executable_path(&get_executable_name())?;
-    let mut command_args = vec!(filepath.display().to_string());
+    let mut command_args = vec![filepath.display().to_string()];
     if !options.flow_args.contains(&"-n".to_string()) {
         command_args.push("-n".to_string());
     }
@@ -156,7 +164,8 @@ fn execute_flow(filepath: &PathBuf, options: &Options) -> Result<String> {
     debug!("Running flow using '{} {:?}'", &command, &command_args);
 
     let mut flowr = Command::new(&command);
-    flowr.args(command_args)
+    flowr
+        .args(command_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
@@ -171,22 +180,35 @@ fn execute_flow(filepath: &PathBuf, options: &Options) -> Result<String> {
         debug!("Reading STDIN from file: '{}'", stdin_file);
 
         let _ = Command::new("cat")
-            .args(vec!(stdin_file))
-            .stdout(flowr_child.stdin.take().chain_err(||"Could not read child process stdin")?)
+            .args(vec![stdin_file])
+            .stdout(
+                flowr_child
+                    .stdin
+                    .take()
+                    .chain_err(|| "Could not read child process stdin")?,
+            )
             .spawn()
             .chain_err(|| "Could not spawn 'cat' to pipe STDIN to 'flowr'");
     }
 
-    let flowr_output = flowr_child.wait_with_output().chain_err(|| "Could not capture 'flowr' output")?;
+    let flowr_output = flowr_child
+        .wait_with_output()
+        .chain_err(|| "Could not capture 'flowr' output")?;
 
     match flowr_output.status.code() {
         Some(0) => Ok("".into()),
         Some(code) => {
             error!("Execution of 'flowr' failed");
-            error!("Process STDOUT:\n{}", String::from_utf8_lossy(&flowr_output.stdout));
-            error!("Process STDERR:\n{}", String::from_utf8_lossy(&flowr_output.stderr));
+            error!(
+                "Process STDOUT:\n{}",
+                String::from_utf8_lossy(&flowr_output.stdout)
+            );
+            error!(
+                "Process STDERR:\n{}",
+                String::from_utf8_lossy(&flowr_output.stderr)
+            );
             bail!("Exited with status code: {}", code)
         }
-        None => Ok("No return code - ignoring".to_string())
+        None => Ok("No return code - ignoring".to_string()),
     }
 }

@@ -2,7 +2,7 @@ use std::fmt;
 use std::fs::File;
 use std::io;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use log::info;
 
@@ -49,7 +49,7 @@ use crate::model::flow::Flow;
 /// }
 /// ```
 ///
-pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Result<String> {
+pub fn dump_tables(tables: &GenerationTables, output_dir: &Path) -> io::Result<String> {
     info!("=== Dumper: Dumping tables to '{}'", output_dir.display());
 
     let mut writer = create_output_file(&output_dir, "connections", "dump")?;
@@ -110,7 +110,11 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &PathBuf) -> io::Resul
 ///     flowclib::dumper::dump_tables::dump_functions(&flow, &tables, &output_dir).unwrap();
 /// }
 /// ```
-pub fn dump_functions(flow: &Flow, tables: &GenerationTables, output_dir: &PathBuf) -> io::Result<String> {
+pub fn dump_functions(
+    flow: &Flow,
+    tables: &GenerationTables,
+    output_dir: &Path,
+) -> io::Result<String> {
     dump_dot::functions_to_dot(flow, tables, output_dir)?;
 
     let mut writer = create_output_file(&output_dir, "functions", "dump")?;
@@ -121,7 +125,9 @@ pub fn dump_functions(flow: &Flow, tables: &GenerationTables, output_dir: &PathB
 
 // TODO I can't get output of functions as JSON to work with serde
 fn dump_table<C: Iterator>(table: C, writer: &mut dyn Write) -> io::Result<String>
-    where <C as Iterator>::Item: fmt::Display {
+where
+    <C as Iterator>::Item: fmt::Display,
+{
     for function in table.into_iter() {
         writer.write_all(format!("{}\n", function).as_bytes())?;
     }
@@ -129,10 +135,10 @@ fn dump_table<C: Iterator>(table: C, writer: &mut dyn Write) -> io::Result<Strin
     Ok("table dumped".to_string())
 }
 
-fn create_output_file(output_path: &PathBuf, filename: &str, extension: &str) -> io::Result<File> {
+fn create_output_file(output_path: &Path, filename: &str, extension: &str) -> io::Result<File> {
     let mut output_file = PathBuf::from(filename);
     output_file.set_extension(extension);
-    let mut output_file_path = output_path.clone();
+    let mut output_file_path = output_path.to_path_buf();
     output_file_path.push(&output_file);
     File::create(&output_file_path)
 }

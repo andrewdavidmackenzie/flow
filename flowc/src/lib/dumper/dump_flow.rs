@@ -1,7 +1,7 @@
 use std::io;
-use std::io::{Error, ErrorKind};
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::io::{Error, ErrorKind};
+use std::path::Path;
 
 use log::info;
 
@@ -48,8 +48,11 @@ use crate::model::process::Process::FlowProcess;
 ///     flowclib::dumper::dump_flow::dump_flow(&flow, &output_dir, &dummy_provider).unwrap();
 /// }
 /// ```
-pub fn dump_flow(flow: &Flow, output_dir: &PathBuf, provider: &dyn Provider) -> io::Result<String> {
-    info!("=== Dumper: Dumping flow hierarchy to '{}'", output_dir.display());
+pub fn dump_flow(flow: &Flow, output_dir: &Path, provider: &dyn Provider) -> io::Result<String> {
+    info!(
+        "=== Dumper: Dumping flow hierarchy to '{}'",
+        output_dir.display()
+    );
     _dump_flow(flow, 0, output_dir, provider)
 }
 
@@ -57,11 +60,23 @@ pub fn dump_flow(flow: &Flow, output_dir: &PathBuf, provider: &dyn Provider) -> 
     dump the flow definition recursively, tracking what level we are at as we go down
 */
 #[allow(clippy::or_fun_call)]
-fn _dump_flow(flow: &Flow, level: usize, output_dir: &PathBuf, provider: &dyn Provider) -> io::Result<String> {
-    let filename = Path::new(&flow.source_url).file_stem()
-        .ok_or(Error::new(ErrorKind::Other, "Could not get file_stem of flow definition filename"))?
+fn _dump_flow(
+    flow: &Flow,
+    level: usize,
+    output_dir: &Path,
+    provider: &dyn Provider,
+) -> io::Result<String> {
+    let filename = Path::new(&flow.source_url)
+        .file_stem()
+        .ok_or(Error::new(
+            ErrorKind::Other,
+            "Could not get file_stem of flow definition filename",
+        ))?
         .to_str()
-        .ok_or(Error::new(ErrorKind::Other, "Could not convert filename to string"))?;
+        .ok_or(Error::new(
+            ErrorKind::Other,
+            "Could not convert filename to string",
+        ))?;
 
     let mut writer = helper::create_output_file(&output_dir, filename, "dump")?;
     writer.write_all(format!("\nLevel={}\n{}", level, flow).as_bytes())?;

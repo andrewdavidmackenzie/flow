@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use log::info;
 use serde_derive::Serialize;
@@ -10,7 +10,7 @@ use url::Url;
 
 use flowrstructs::function::Function as RuntimeFunction;
 use flowrstructs::input::Input;
-use flowrstructs::manifest::{DEFAULT_MANIFEST_FILENAME, Manifest, MetaData};
+use flowrstructs::manifest::{Manifest, MetaData, DEFAULT_MANIFEST_FILENAME};
 
 use crate::errors::*;
 use crate::model::connection::Connection;
@@ -53,7 +53,7 @@ impl From<&Flow> for MetaData {
             name: flow.name.clone().to_string(),
             description: flow.description.clone(),
             version: flow.version.clone(),
-            authors: flow.authors.clone()
+            authors: flow.authors.clone(),
         }
     }
 }
@@ -69,15 +69,23 @@ impl From<&IO> for Input {
     and associated files relocatable (and maybe packaged into a ZIP etc). So we use manifest_url
     as the location other file paths are made relative to.
 */
-pub fn create_manifest(flow: &Flow, debug_symbols: bool, manifest_url: &str, tables: &GenerationTables)
-                       -> Result<Manifest> {
+pub fn create_manifest(
+    flow: &Flow,
+    debug_symbols: bool,
+    manifest_url: &str,
+    tables: &GenerationTables,
+) -> Result<Manifest> {
     info!("Writing flow manifest to '{}'", manifest_url);
 
     let mut manifest = Manifest::new(MetaData::from(flow));
 
     // Generate run-time Process struct for each of the functions
     for function in &tables.functions {
-        manifest.add_function(function_to_runtimefunction(&manifest_url, function, debug_symbols)?);
+        manifest.add_function(function_to_runtimefunction(
+            &manifest_url,
+            function,
+            debug_symbols,
+        )?);
     }
 
     manifest.set_lib_references(&tables.libs);
@@ -85,24 +93,32 @@ pub fn create_manifest(flow: &Flow, debug_symbols: bool, manifest_url: &str, tab
     Ok(manifest)
 }
 
-
 /// Generate a manifest for the flow in JSON that can be used to run it using 'flowr'
 // TODO this is tied to being a file:// - generalize this to write to a URL, moving the code
 // TODO into the provider and implementing for file and http
-pub fn write_flow_manifest(flow: Flow, debug_symbols: bool, destination: &PathBuf, tables: &GenerationTables)
-                       -> Result<PathBuf> {
-    let mut filename = destination.clone();
+pub fn write_flow_manifest(
+    flow: Flow,
+    debug_symbols: bool,
+    destination: &Path,
+    tables: &GenerationTables,
+) -> Result<PathBuf> {
+    let mut filename = destination.to_path_buf();
     filename.push(DEFAULT_MANIFEST_FILENAME.to_string());
     filename.set_extension("json");
-    let mut manifest_file = File::create(&filename).chain_err(|| "Could not create manifest file")?;
-    let manifest_url = Url::from_file_path(&filename)
-        .map_err(|_| "Could not parse Url from file path")?;
+    let mut manifest_file =
+        File::create(&filename).chain_err(|| "Could not create manifest file")?;
+    let manifest_url =
+        Url::from_file_path(&filename).map_err(|_| "Could not parse Url from file path")?;
     let manifest = create_manifest(&flow, debug_symbols, manifest_url.as_str(), tables)
         .chain_err(|| "Could not create manifest from parsed flow and compiler tables")?;
 
-    manifest_file.write_all(serde_json::to_string_pretty(&manifest)
-        .chain_err(|| "Could not pretty format the manifest JSON contents")?
-        .as_bytes()).chain_err(|| "Could not write manifest data bytes to created manifest file")?;
+    manifest_file
+        .write_all(
+            serde_json::to_string_pretty(&manifest)
+                .chain_err(|| "Could not pretty format the manifest JSON contents")?
+                .as_bytes(),
+        )
+        .chain_err(|| "Could not write manifest data bytes to created manifest file")?;
 
     Ok(filename)
 }
@@ -111,21 +127,29 @@ pub fn write_flow_manifest(flow: Flow, debug_symbols: bool, destination: &PathBu
     Create a run-time function struct from a compile-time function struct.
     manifest_dir is the directory that paths will be made relative to.
 */
-fn function_to_runtimefunction(manifest_url: &str, function: &Function, debug_symbols: bool) -> Result<RuntimeFunction> {
+fn function_to_runtimefunction(
+    manifest_url: &str,
+    function: &Function,
+    debug_symbols: bool,
+) -> Result<RuntimeFunction> {
     #[cfg(feature = "debugger")]
     let name = if debug_symbols {
         function.alias().to_string()
-    } else { "".to_string() };
+    } else {
+        "".to_string()
+    };
 
     #[cfg(feature = "debugger")]
     let route = if debug_symbols {
         function.route().to_string()
-    } else { "".to_string() };
+    } else {
+        "".to_string()
+    };
 
     // make the location of implementation relative to the output directory if it is under it
     let implementation_location = implementation_location_relative(&function, manifest_url)?;
 
-    let mut runtime_inputs = vec!();
+    let mut runtime_inputs = vec![];
     match &function.get_inputs() {
         &None => {}
         Some(inputs) => {
@@ -137,14 +161,16 @@ fn function_to_runtimefunction(manifest_url: &str, function: &Function, debug_sy
 
     Ok(RuntimeFunction::new(
         #[cfg(feature = "debugger")]
-                            name,
+        name,
         #[cfg(feature = "debugger")]
-                            route,
+        route,
         implementation_location,
         runtime_inputs,
-        function.get_id(), function.get_flow_id(),
+        function.get_id(),
+        function.get_flow_id(),
         function.get_output_connections(),
-        debug_symbols))
+        debug_symbols,
+    ))
 }
 
 /*
@@ -157,18 +183,24 @@ fn implementation_location_relative(function: &Function, manifest_url: &str) -> 
     } else {
         let implementation_path = function.get_implementation();
         let implementation_url = Url::from_file_path(implementation_path)
-                                    .map_err(|_| format!("Could not create Url from file path: {}", implementation_path))?
-                                    .to_string();
+            .map_err(|_| {
+                format!(
+                    "Could not create Url from file path: {}",
+                    implementation_path
+                )
+            })?
+            .to_string();
 
-        let mut manifest_base_url = Url::parse(manifest_url)
-            .map_err(|e| e.to_string())?;
-        manifest_base_url.path_segments_mut()
+        let mut manifest_base_url = Url::parse(manifest_url).map_err(|e| e.to_string())?;
+        manifest_base_url
+            .path_segments_mut()
             .map_err(|_| "cannot be base")?
             .pop();
 
         info!("Manifest base = '{}'", manifest_base_url.to_string());
         info!("Absolute implementation path = '{}'", implementation_path);
-        let relative_path = implementation_url.replace(&format!("{}/", manifest_base_url.as_str()), "");
+        let relative_path =
+            implementation_url.replace(&format!("{}/", manifest_base_url.as_str()), "");
         info!("Relative implementation path = '{}'", relative_path);
         Ok(relative_path)
     }
@@ -195,17 +227,21 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
-            Some(vec!()),
-            Some(vec!(
+            Some(vec![]),
+            Some(vec![
                 IO::new("Value", Route::default()),
-                IO::new("String", Route::default())
-            )),
+                IO::new("String", Route::default()),
+            ]),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
-            vec!(OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None),
-                 OutputConnection::new("sub_route".to_string(), 2, 0, 0, 0, false, None)),
-            0, 0);
+            vec![
+                OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None),
+                OutputConnection::new("sub_route".to_string(), 2, 0, 0, 0, false, None),
+            ],
+            0,
+            0,
+        );
 
         let expected = "{
   'id': 0,
@@ -243,13 +279,23 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
-            Some(vec!()),
-            Some(vec!(IO::new("String", Route::default()))),
+            Some(vec![]),
+            Some(vec![IO::new("String", Route::default())]),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
-            vec!(OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None)),
-            0, 0);
+            vec![OutputConnection::new(
+                "".to_string(),
+                1,
+                0,
+                0,
+                0,
+                false,
+                None,
+            )],
+            0,
+            0,
+        );
 
         let expected = "{
   'id': 0,
@@ -281,14 +327,23 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
-            Some(vec!()),
-            Some(vec!(IO::new("String", Route::default()))),
+            Some(vec![]),
+            Some(vec![IO::new("String", Route::default())]),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
-            vec!(OutputConnection::new("".to_string(), 1, 0, 0,
-                                       1, false, None)),
-            0, 0);
+            vec![OutputConnection::new(
+                "".to_string(),
+                1,
+                0,
+                0,
+                1,
+                false,
+                None,
+            )],
+            0,
+            0,
+        );
 
         let expected = "{
   'id': 0,
@@ -324,13 +379,15 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
-            Some(vec!(io)),
+            Some(vec![io]),
             None,
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
-            vec!(),
-            0, 0);
+            vec![],
+            0,
+            0,
+        );
 
         let expected = "{
   'id': 0,
@@ -364,13 +421,15 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
-            Some(vec!(io)),
+            Some(vec![io]),
             None,
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
-            vec!(),
-            0, 0);
+            vec![],
+            0,
+            0,
+        );
 
         let expected = "{
   'id': 0,
@@ -403,13 +462,15 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
-            Some(vec!(io)),
+            Some(vec![io]),
             None,
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
-            vec!(),
-            0, 0);
+            vec![],
+            0,
+            0,
+        );
 
         let expected = "{
   'id': 0,
@@ -435,15 +496,23 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
-            Some(vec!()),
-            Some(vec!(
-                IO::new("String", Route::default())
-            )),
+            Some(vec![]),
+            Some(vec![IO::new("String", Route::default())]),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
-            vec!(OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None)),
-            0, 0)
+            vec![OutputConnection::new(
+                "".to_string(),
+                1,
+                0,
+                0,
+                0,
+                false,
+                None,
+            )],
+            0,
+            0,
+        )
     }
 
     #[test]
@@ -482,13 +551,23 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
-            Some(vec!()),
-            Some(vec!(IO::new("Array", Route::default()))),
+            Some(vec![]),
+            Some(vec![IO::new("Array", Route::default())]),
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
-            vec!(OutputConnection::new("/0".to_string(), 1, 0, 0, 0, false, None)),
-            0, 0);
+            vec![OutputConnection::new(
+                "/0".to_string(),
+                1,
+                0,
+                0,
+                0,
+                false,
+                None,
+            )],
+            0,
+            0,
+        );
 
         let expected = "{
   'id': 0,
