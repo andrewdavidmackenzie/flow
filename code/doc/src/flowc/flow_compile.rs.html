@@ -200,7 +200,7 @@
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">process</span>::<span class="ident">Stdio</span>;
 
 <span class="kw">use</span> <span class="ident">log</span>::{<span class="ident">debug</span>, <span class="ident">error</span>, <span class="ident">info</span>};
-<span class="kw">use</span> <span class="ident">simpath</span>::<span class="ident">FileType</span>;
+<span class="kw">use</span> <span class="ident">simpath</span>::{<span class="ident">FileType</span>, <span class="ident">FoundType</span>};
 <span class="kw">use</span> <span class="ident">simpath</span>::<span class="ident">Simpath</span>;
 
 <span class="kw">use</span> <span class="ident">flowclib</span>::<span class="ident">compiler</span>::<span class="ident">compile</span>;
@@ -327,10 +327,10 @@
 
     <span class="comment">// Couldn&#39;t find the development version under CWD where running, so look in path</span>
     <span class="kw">let</span> <span class="ident">bin_search_path</span> <span class="op">=</span> <span class="ident">Simpath</span>::<span class="ident">new</span>(<span class="string">&quot;PATH&quot;</span>);
-    <span class="kw">let</span> <span class="ident">bin_path</span> <span class="op">=</span> <span class="ident">bin_search_path</span>.<span class="ident">find_type</span>(<span class="ident">name</span>, <span class="ident">FileType</span>::<span class="ident">File</span>)
-        .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Could not find executable &#39;{}&#39;&quot;</span>, <span class="ident">name</span>))<span class="question-mark">?</span>;
-
-    <span class="prelude-val">Ok</span>(<span class="ident">bin_path</span>.<span class="ident">to_string_lossy</span>().<span class="ident">to_string</span>())
+    <span class="kw">match</span> <span class="ident">bin_search_path</span>.<span class="ident">find_type</span>(<span class="ident">name</span>, <span class="ident">FileType</span>::<span class="ident">File</span>) {
+        <span class="prelude-val">Ok</span>(<span class="ident">FoundType</span>::<span class="ident">File</span>(<span class="ident">bin_path</span>)) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">bin_path</span>.<span class="ident">to_string_lossy</span>().<span class="ident">to_string</span>()),
+        <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">bail</span><span class="macro">!</span>(<span class="string">&quot;Could not find executable &#39;{}&#39;&quot;</span>, <span class="ident">name</span>)
+    }
 }
 
 <span class="comment">/*
@@ -386,4 +386,5 @@
         <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="string">&quot;No return code - ignoring&quot;</span>.<span class="ident">to_string</span>())
     }
 }</pre></div>
-</section><section id="search" class="content hidden"></section><section class="footer"></section><script>window.rootPath = "../../";window.currentCrate = "flowc";</script><script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script><script defer src="../../search-index.js"></script></body></html>
+</section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="flowc"></div>
+    <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script><script defer src="../../search-index.js"></script></body></html>

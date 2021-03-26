@@ -166,8 +166,8 @@
                         <h1 id="flowstdlib"><a class="header" href="#flowstdlib"><code>flowstdlib</code></a></h1>
 <p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowstdlib/index.html">Code docs</a></p>
 <p><code>flowstdlib</code> is a standard library of functions for <code>flow</code> programs to use.</p>
-<p>The directory containing this library must be part of <code>FLOW_LIB_PATH</code> in order for the compiler to be able to 
-find the library <code>flow</code> and <code>function</code> definitions.</p>
+<p>The directory containing this library must be part of <code>FLOW_LIB_PATH</code> or specified using an instance of the <code>-L</code> 
+command line option, in order for the compiler to be able to find the library <code>flow</code> and <code>function</code> definitions.</p>
 <p>It is build by using <code>flowc</code> with the <code>-l</code> option.</p>
 <p>It can be compiled and linked natively to a run-time, or each function can be compiled to WebAssembly and loaded 
 from file by the run-time. The directory containing the compiled WebAssembly <code>.wasm</code> files must be reachable 

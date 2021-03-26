@@ -811,7 +811,7 @@ URL of the file:</p>
 <p>The process is in a library that is available to your current installation. 
 In order for flow to find the function at compile time it uses the 
 environment variable <code>FLOW_LIB_PATH</code>, that is a <code>PATH</code> style variable with zero or
-more directory entries. </p>
+more directory entries or URLs separated by the <code>&quot;,&quot;</code> character</p>
 <ul>
 <li>e.g. <code>source = &quot;lib://flowruntime/stdio/stdin&quot;</code>
 <ul>
@@ -1017,9 +1017,11 @@ used in the IO references to inputs or outputs of that referenced flow/function.
 <p>Functions and Flows can be defined as libraries and shared re-used by other flows.</p>
 <p>The run-time includes some basic ones in the <code>flowruntime</code> and <code>flowstdlib</code> libraries.</p>
 <p>Others can be shared by developers.</p>
-<p>The references to flows or functions specify a source, that will be searched for in a defined
-FLOW_LIB_PATH, that currently uses relative paths to the current flow's CWD.</p>
-<p>If the specified name is not found there, the load path will be searched for it.</p>
+<p>References to flows or functions specify a source, which is a file on the local file system or located at a URL. 
+A Library search path is used to find the source in libraries.</p>
+<p>The library search path is initialized from the contents of the <code>$FLOW_LIB_PATH</code> environment variable (if it is defined) 
+and maybe augmented by supplying additional directories or URLs to search using one or more instances of 
+the <code>-L</code> command line option.</p>
 <p>TODO</p>
 <p>Format and examples of how to reference library functions from flows</p>
 <h2 id="running-flows"><a class="header" href="#running-flows">Running Flows</a></h2>
@@ -1778,8 +1780,8 @@ tokens using the string splitter function from the flowstdlib.</p>
 <h1 id="flowstdlib"><a class="header" href="#flowstdlib"><code>flowstdlib</code></a></h1>
 <p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowstdlib/index.html">Code docs</a></p>
 <p><code>flowstdlib</code> is a standard library of functions for <code>flow</code> programs to use.</p>
-<p>The directory containing this library must be part of <code>FLOW_LIB_PATH</code> in order for the compiler to be able to 
-find the library <code>flow</code> and <code>function</code> definitions.</p>
+<p>The directory containing this library must be part of <code>FLOW_LIB_PATH</code> or specified using an instance of the <code>-L</code> 
+command line option, in order for the compiler to be able to find the library <code>flow</code> and <code>function</code> definitions.</p>
 <p>It is build by using <code>flowc</code> with the <code>-l</code> option.</p>
 <p>It can be compiled and linked natively to a run-time, or each function can be compiled to WebAssembly and loaded 
 from file by the run-time. The directory containing the compiled WebAssembly <code>.wasm</code> files must be reachable 
@@ -2740,20 +2742,13 @@ it is up to date and built).</p>
 <p>This library contains most of the compilation and linking logic. 
 See more in <a href="flowc/src/lib/README.html">README.md</a></p>
 <h2 id="test-flows"><a class="header" href="#test-flows">Test flows</a></h2>
-<p>These are a number of test flows to ensure many things are still working.</p>
-<p>In general they are very simple samples more related with exercising specific features that
-demonstrating &quot;real work programs&quot; or solutions to problems.</p>
-<p>They are contained in the flowc/tests/samples folder in the code.
-<a href="https://github.com/andrewdavidmackenzie/flow/tree/master/flowc/tests/test-flows">Github link</a></p>
+<p>These are a number of test flows to exercise specific features and are not intended to be &quot;real world programs&quot; 
+or solutions to problems.</p>
+<p>They are contained in the <a href="https://github.com/andrewdavidmackenzie/flow/tree/master/flowc/tests/test-flows">flowc/tests/test-flows</a>
+folder in the code.</p>
 <h3 id="structure-of-each-test"><a class="header" href="#structure-of-each-test">Structure of each test</a></h3>
-<p>Each sample of name 'text-name' is in its own folder, which includes:</p>
+<p>Each test flow of name 'text-name' is in its own folder, which includes:</p>
 <ul>
-<li>A test-name.md file that:
-<ul>
-<li>describes what it does</li>
-<li>lists the features of 'flow' that this sample uses and demonstrates</li>
-</ul>
-</li>
 <li>A <code>test-name.toml</code> file that contains the flow description</li>
 <li>Files used in the automated testing of each sample:
 <ul>
@@ -2767,9 +2762,11 @@ sent to standard input</li>
 </ul>
 <h3 id="execution-of-each-test"><a class="header" href="#execution-of-each-test">Execution of each test</a></h3>
 <ul>
-<li>Flow will be compiled with <code>flowc</code> and the manifest generated in a file names <code>test-name.json</code></li>
-<li>Flow will be executed with <code>flowr</code> and the standard output captured</li>
-<li>The standard output is compared to <code>test-name.expected</code> and if identical the test will pass. 
+<li>The test flow will be compiled by <code>flowc</code> and the manifest generated in a file names <code>test-name.json</code></li>
+<li>The <code>test-name.json</code> manifest will be executed by <code>flowr</code>, passing <code>test-name.args</code> as it's arguments
+and piping the contents of <code>test-name.stdin</code> to standard input, and standard output of the flow execution will 
+be captured.</li>
+<li>The standard output will be compared to <code>test-name.expected</code> and if identical the test will pass.
 Any differences and the test will fail.</li>
 </ul>
 <h1 id="hello-world-simple"><a class="header" href="#hello-world-simple">hello-world-simple</a></h1>
@@ -2822,8 +2819,8 @@ and passing those <code>Outputs</code> to other connected <code>Functions</code>
 <h1 id="flowstdlib-1"><a class="header" href="#flowstdlib-1"><code>flowstdlib</code></a></h1>
 <p>See also: <a href="http://andrewdavidmackenzie.github.io/flow/code/doc/flowstdlib/index.html">Code docs</a></p>
 <p><code>flowstdlib</code> is a standard library of functions for <code>flow</code> programs to use.</p>
-<p>The directory containing this library must be part of <code>FLOW_LIB_PATH</code> in order for the compiler to be able to 
-find the library <code>flow</code> and <code>function</code> definitions.</p>
+<p>The directory containing this library must be part of <code>FLOW_LIB_PATH</code> or specified using an instance of the <code>-L</code> 
+command line option, in order for the compiler to be able to find the library <code>flow</code> and <code>function</code> definitions.</p>
 <p>It is build by using <code>flowc</code> with the <code>-l</code> option.</p>
 <p>It can be compiled and linked natively to a run-time, or each function can be compiled to WebAssembly and loaded 
 from file by the run-time. The directory containing the compiled WebAssembly <code>.wasm</code> files must be reachable 

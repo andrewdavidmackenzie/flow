@@ -167,9 +167,11 @@
 <p>Functions and Flows can be defined as libraries and shared re-used by other flows.</p>
 <p>The run-time includes some basic ones in the <code>flowruntime</code> and <code>flowstdlib</code> libraries.</p>
 <p>Others can be shared by developers.</p>
-<p>The references to flows or functions specify a source, that will be searched for in a defined
-FLOW_LIB_PATH, that currently uses relative paths to the current flow's CWD.</p>
-<p>If the specified name is not found there, the load path will be searched for it.</p>
+<p>References to flows or functions specify a source, which is a file on the local file system or located at a URL. 
+A Library search path is used to find the source in libraries.</p>
+<p>The library search path is initialized from the contents of the <code>$FLOW_LIB_PATH</code> environment variable (if it is defined) 
+and maybe augmented by supplying additional directories or URLs to search using one or more instances of 
+the <code>-L</code> command line option.</p>
 <p>TODO</p>
 <p>Format and examples of how to reference library functions from flows</p>
 
