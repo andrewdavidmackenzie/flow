@@ -1,5 +1,5 @@
-// Run sample flows found in any subfolder
 use std::{env, fs, io};
+// Run sample flows found in any subfolder
 use std::fs::File;
 use std::io::{BufRead, BufReader, ErrorKind};
 use std::path::Path;
@@ -9,7 +9,10 @@ use simpath::{FileType, Simpath};
 
 fn main() -> io::Result<()> {
     println!("`flowsample` version {}", env!("CARGO_PKG_VERSION"));
-    println!("Current Working Directory: `{}`", std::env::current_dir().unwrap().display());
+    println!(
+        "Current Working Directory: `{}`",
+        std::env::current_dir().unwrap().display()
+    );
     println!("Manifest Directory: `{}`", env!("CARGO_MANIFEST_DIR"));
 
     let flowr = get_flowr()?;
@@ -31,7 +34,7 @@ fn main() -> io::Result<()> {
             let samples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join(&args[1]);
             run_sample(&samples_dir, &flowr)?
         }
-        _ => eprintln!("Usage: {} <optional_sample_directory_name>", args[0])
+        _ => eprintln!("Usage: {} <optional_sample_directory_name>", args[0]),
     }
 
     Ok(())
@@ -48,12 +51,17 @@ fn get_flowr() -> io::Result<String> {
         return Ok(dev.into_os_string().to_str().unwrap().to_string());
     }
 
-    if Simpath::new("PATH").find_type("flowr", FileType::File).is_ok() {
+    if Simpath::new("PATH")
+        .find_type("flowr", FileType::File)
+        .is_ok()
+    {
         return Ok("flowr".into());
     }
 
-    Err(io::Error::new(io::ErrorKind::Other,
-                       "`flowr` could not be found in `$PATH` or `target/`"))
+    Err(io::Error::new(
+        io::ErrorKind::Other,
+        "`flowr` could not be found in `$PATH` or `target/`",
+    ))
 }
 
 fn run_sample(sample_dir: &Path, flowr_path: &str) -> io::Result<()> {
@@ -68,36 +76,46 @@ fn run_sample(sample_dir: &Path, flowr_path: &str) -> io::Result<()> {
     println!("\tReading STDIN from test.input, Arguments read from test.arguments");
     println!("\tOutput sent to STDOUT/STDERR and file output to test.file");
 
-    let mut command_args: Vec<String> = vec!("--native".into(), manifest.display().to_string());
+    let mut command_args: Vec<String> = vec!["--native".into(), manifest.display().to_string()];
     command_args.append(&mut args(&sample_dir)?);
 
-    match flowr_command.args(command_args)
+    match flowr_command
+        .args(command_args)
         .stdin(Stdio::piped())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
-        .spawn() {
+        .spawn()
+    {
         Ok(mut flowr_child) => {
             let _ = Command::new("cat")
-                .args(vec!(sample_dir.join("test.input")))
-                .stdout(flowr_child.stdin.take()
-                    .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Could not take STDIN of `flowr` process"))?)
-                .spawn().unwrap();
+                .args(vec![sample_dir.join("test.input")])
+                .stdout(flowr_child.stdin.take().ok_or_else(|| {
+                    io::Error::new(
+                        io::ErrorKind::Other,
+                        "Could not take STDIN of `flowr` process",
+                    )
+                })?)
+                .spawn()
+                .unwrap();
 
             match flowr_child.wait_with_output() {
                 Ok(_) => Ok(()),
-                Err(e) => Err(io::Error::new(io::ErrorKind::Other,
-                                             format!("Error running `flowr`: {}", e)))
+                Err(e) => Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Error running `flowr`: {}", e),
+                )),
             }
         }
-        Err(e) => {
-            match e.kind() {
-                ErrorKind::NotFound =>
-                    Err(io::Error::new(io::ErrorKind::Other,
-                                       format!("`flowr` was not found! Check your $PATH. {}", e))),
-                _ => Err(io::Error::new(io::ErrorKind::Other,
-                                        format!("Unexpected error occurred spawning `flowr`: {}", e)))
-            }
-        }
+        Err(e) => match e.kind() {
+            ErrorKind::NotFound => Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("`flowr` was not found! Check your $PATH. {}", e),
+            )),
+            _ => Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("Unexpected error occurred spawning `flowr`: {}", e),
+            )),
+        },
     }
 }
 
@@ -135,21 +153,24 @@ mod test {
 
         let manifest = sample_dir.join("manifest.json");
 
-        let mut command_args: Vec<String> = vec!("--native".into(), manifest.display().to_string());
+        let mut command_args: Vec<String> = vec!["--native".into(), manifest.display().to_string()];
         command_args.append(&mut super::args(&sample_dir).unwrap());
 
         let output = File::create(sample_dir.join("test.output")).unwrap();
         let error = File::create(sample_dir.join("test.err")).unwrap();
-        let mut flowr_child = flowr_command.args(command_args)
+        let mut flowr_child = flowr_command
+            .args(command_args)
             .stdin(Stdio::piped())
             .stdout(Stdio::from(output))
             .stderr(Stdio::from(error))
-            .spawn().unwrap();
+            .spawn()
+            .unwrap();
 
         let _ = Command::new("cat")
-            .args(vec!(sample_dir.join("test.input")))
+            .args(vec![sample_dir.join("test.input")])
             .stdout(flowr_child.stdin.take().unwrap())
-            .spawn().unwrap();
+            .spawn()
+            .unwrap();
 
         flowr_child.wait_with_output().unwrap();
 
@@ -161,17 +182,17 @@ mod test {
         if expected.exists() {
             let actual = sample_dir.join(actual_name);
             let diff = Command::new("diff")
-                .args(vec!(&expected, &actual))
+                .args(vec![&expected, &actual])
                 .stdin(Stdio::inherit())
                 .stderr(Stdio::inherit())
                 .stdout(Stdio::inherit())
-                .spawn().unwrap();
+                .spawn()
+                .unwrap();
             let output = diff.wait_with_output().unwrap();
-            assert!(output.status.success(),
-                    format!("Sample {:?} {:?} does not match {:?}",
-                            sample_dir.file_name().unwrap(),
-                            actual.file_name().unwrap(),
-                            expected.file_name().unwrap()));
+            assert!(
+                output.status.success(),
+                "Output doesn't match the expected output"
+            );
         }
     }
 
@@ -183,7 +204,11 @@ mod test {
             let contents = f.fill_buf().unwrap();
 
             if !contents.is_empty() {
-                eprintln!("Sample {:?} produced error output in {}", sample_dir.file_name().unwrap(), error.display());
+                eprintln!(
+                    "Sample {:?} produced error output in {}",
+                    sample_dir.file_name().unwrap(),
+                    error.display()
+                );
                 std::process::exit(-1);
             }
         }

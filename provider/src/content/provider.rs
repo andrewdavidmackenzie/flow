@@ -15,7 +15,12 @@ pub trait Provider {
     /// directory (a file provider) or a server path (an http provider), or it may involve
     /// translating a virtual URL into a real on where content can be found (lib provider).
     /// It also returns an optional String which is a library reference in case that applies.
-    fn resolve_url(&self, url: &str, default_file: &str, extensions: &[&str]) -> Result<(String, Option<String>)>;
+    fn resolve_url(
+        &self,
+        url: &str,
+        default_file: &str,
+        extensions: &[&str],
+    ) -> Result<(String, Option<String>)>;
 
     /// Fetches content from a URL. It resolves the URL internally before attempting to
     /// fetch actual content
@@ -29,7 +34,7 @@ const HTTP_PROVIDER: &dyn Provider = &HttpProvider as &dyn Provider;
 /// resolution to a real location for content invokes one of the child providers it has
 /// to fetch the content (e.g. File or Http).
 pub struct MetaProvider {
-    lib_search_path: Simpath
+    lib_search_path: Simpath,
 }
 
 /// Instantiate MetaProvider and then use the Provider trait methods on it to resolve and fetch
@@ -54,9 +59,7 @@ pub struct MetaProvider {
 /// ```
 impl MetaProvider {
     pub fn new(lib_search_path: Simpath) -> Self {
-        MetaProvider {
-            lib_search_path
-        }
+        MetaProvider { lib_search_path }
     }
 
     // Determine which specific provider should be used based on the scheme of the Url of the content
@@ -64,7 +67,10 @@ impl MetaProvider {
         match scheme {
             "file" => Ok(FILE_PROVIDER),
             "http" | "https" => Ok(HTTP_PROVIDER),
-            _ => bail!("Cannot determine which provider to use for url with scheme: '{}'", scheme)
+            _ => bail!(
+                "Cannot determine which provider to use for url with scheme: '{}'",
+                scheme
+            ),
         }
     }
 
@@ -82,7 +88,8 @@ impl MetaProvider {
     ///    - a string that is a reference to that module in the library, such as:
     ///        "flowruntime/stdio/stdout/stdout"
     fn resolve_lib_url(&self, url: Url) -> Result<(Url, Option<String>)> {
-        let lib_name = url.host_str()
+        let lib_name = url
+            .host_str()
             .chain_err(|| format!("'lib_name' could not be extracted from the url '{}'", url))?;
         let path_under_lib = url.path().trim_start_matches('/');
         let lib_reference = Some(format!("{}/{}", lib_name, path_under_lib));
@@ -90,14 +97,20 @@ impl MetaProvider {
         match self.lib_search_path.find(lib_name) {
             Ok(FoundType::File(lib_root_path)) => {
                 let lib_path = lib_root_path.join(path_under_lib);
-                Ok((Url::from_directory_path(lib_path)
-                        .map_err(|_| "Could not convert file: lib_path to Url")?, lib_reference))
+                Ok((
+                    Url::from_directory_path(lib_path)
+                        .map_err(|_| "Could not convert file: lib_path to Url")?,
+                    lib_reference,
+                ))
             }
             Ok(FoundType::Resource(mut lib_root_url)) => {
                 lib_root_url.set_path(&format!("{}/{}", lib_root_url.path(), path_under_lib));
                 Ok((lib_root_url, lib_reference))
             }
-            _ => bail!("Could not resolve library Url '{}' using library search path", url)
+            _ => bail!(
+                "Could not resolve library Url '{}' using library search path",
+                url
+            ),
         }
     }
 }
@@ -110,7 +123,12 @@ impl Provider for MetaProvider {
     ///     -  a specific file or flow (that may or may not exist)
     ///     -  a directory - if exists then look for a provider specific default file
     ///     -  a file in a library, transform the reference into a Url where the content can be found
-    fn resolve_url(&self, url_str: &str, default_filename: &str, extensions: &[&str]) -> Result<(String, Option<String>)> {
+    fn resolve_url(
+        &self,
+        url_str: &str,
+        default_filename: &str,
+        extensions: &[&str],
+    ) -> Result<(String, Option<String>)> {
         let mut url = Url::parse(url_str)
             .chain_err(|| format!("Could not convert '{}' to valid Url", url_str))?;
         let scheme = url.scheme().to_string();
@@ -124,7 +142,8 @@ impl Provider for MetaProvider {
         }
 
         let provider = self.get_provider(&url.scheme())?;
-        let (resolved_url, _) = provider.resolve_url(&url.to_string(), default_filename, extensions)?;
+        let (resolved_url, _) =
+            provider.resolve_url(&url.to_string(), default_filename, extensions)?;
 
         Ok((resolved_url, lib_reference))
     }
@@ -144,10 +163,10 @@ impl Provider for MetaProvider {
 
 #[cfg(test)]
 mod test {
+    use std::path::Path;
+
     use simpath::Simpath;
     use url::Url;
-
-    use std::path::Path;
 
     use crate::content::provider::{MetaProvider, Provider};
 
@@ -185,23 +204,37 @@ mod test {
 
     fn set_lib_search_path() -> Simpath {
         let mut lib_search_path = Simpath::new("lib_search_path");
-        let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("Could not get project root dir");
-        lib_search_path.add_directory(root_str.to_str().expect("Could not get root path as string"));
+        let root_str = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("Could not get project root dir");
+        lib_search_path.add_directory(
+            root_str
+                .to_str()
+                .expect("Could not get root path as string"),
+        );
         println!("Lib search path set to '{}'", lib_search_path);
         lib_search_path
     }
 
     #[test]
     fn resolve_path() {
-        let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("Could not get project root dir");
+        let root_str = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("Could not get project root dir");
         let provider: &dyn Provider = &MetaProvider::new(set_lib_search_path());
         let lib_url = "lib://flowstdlib/control/tap";
         match provider.resolve_url(&lib_url, "", &["toml"]) {
             Ok((url, lib_ref)) => {
-                assert_eq!(url, format!("file://{}/flowstdlib/control/tap/tap.toml", root_str.display().to_string()));
+                assert_eq!(
+                    url,
+                    format!(
+                        "file://{}/flowstdlib/control/tap/tap.toml",
+                        root_str.display().to_string()
+                    )
+                );
                 assert_eq!(lib_ref, Some("flowstdlib/control/tap".to_string()));
             }
-            Err(e) => panic!(e.to_string())
+            Err(_) => assert!(false, "Error trying to resolve url"),
         }
     }
 
@@ -209,14 +242,20 @@ mod test {
     fn resolve_web_path() {
         let mut search_path = Simpath::new("web_path");
         // `flowstdlib` can be found under the root of the project at `tree/master/flowstdlib` on github
-        search_path.add_url(&Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib")
-            .expect("Could not parse the url for Simpath"));
+        search_path.add_url(
+            &Url::parse(
+                "https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib",
+            )
+            .expect("Could not parse the url for Simpath"),
+        );
 
         let provider: &dyn Provider = &MetaProvider::new(search_path);
 
         let lib_url = "lib://flowstdlib/control/tap";
-        let resolved_url = provider.resolve_url(&lib_url, "", &["toml"])
-            .expect("Couldn't resolve library on the web").0;
+        let resolved_url = provider
+            .resolve_url(&lib_url, "", &["toml"])
+            .expect("Couldn't resolve library on the web")
+            .0;
         assert_eq!(resolved_url, "https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib/control/tap/tap.toml");
     }
 }
