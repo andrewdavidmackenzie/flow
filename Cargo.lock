@@ -251,7 +251,7 @@ dependencies = [
 
 [[package]]
 name = "flowc"
-version = "0.34.4"
+version = "0.34.5"
 dependencies = [
  "clap",
  "error-chain 0.12.4",
@@ -273,7 +273,7 @@ dependencies = [
 
 [[package]]
 name = "flowr"
-version = "0.34.4"
+version = "0.34.5"
 dependencies = [
  "clap",
  "error-chain 0.12.4",
