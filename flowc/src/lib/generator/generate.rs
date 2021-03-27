@@ -519,6 +519,7 @@ mod test {
     fn function_to_code_with_debug_generation() {
         let function = test_function();
 
+        #[cfg(feature = "debugger")]
         let expected = "{
   'name': 'print',
   'route': '/flow0/stdout',
@@ -533,7 +534,19 @@ mod test {
     }
   ]
 }";
-
+        #[cfg(not(feature = "debugger"))]
+        let expected = "{
+  'id': 0,
+  'flow_id': 0,
+  'implementation_location': 'lib://flowruntime/stdio/stdout/Stdout',
+  'output_connections': [
+    {
+      'function_id': 1,
+      'io_number': 0,
+      'flow_id': 0
+    }
+  ]
+}";
         let br = Box::new(function) as Box<Function>;
 
         let process = function_to_runtimefunction("/test", &br, true)
