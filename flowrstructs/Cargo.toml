@@ -1,6 +1,6 @@
 [package]
 name = "flowrstructs"
-version = "0.33.0"
+version = "0.34.4"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "Structures shared between runtime and clients"
 license = "MIT"
@@ -23,7 +23,7 @@ debugger = [] # feature to add the debugger
 
 [dependencies]
 flow_impl = {path = "../flow_impl", version = "0.21.0" }
-provider = {path = "../provider", version = "0.25.0" }
+provider = {path = "../provider", version = "0.34.4" }
 
 serde = "~1.0.27"
 serde_derive = "~1.0.27"

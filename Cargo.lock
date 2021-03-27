@@ -251,7 +251,7 @@ dependencies = [
 
 [[package]]
 name = "flowc"
-version = "0.34.0"
+version = "0.34.4"
 dependencies = [
  "clap",
  "error-chain 0.12.4",
@@ -273,7 +273,7 @@ dependencies = [
 
 [[package]]
 name = "flowr"
-version = "0.34.3"
+version = "0.34.4"
 dependencies = [
  "clap",
  "error-chain 0.12.4",
@@ -298,7 +298,7 @@ dependencies = [
 
 [[package]]
 name = "flowrstructs"
-version = "0.33.0"
+version = "0.34.4"
 dependencies = [
  "error-chain 0.12.4",
  "flow_impl",
@@ -311,7 +311,7 @@ dependencies = [
 
 [[package]]
 name = "flowsamples"
-version = "0.34.0"
+version = "0.34.4"
 dependencies = [
  "serial_test",
  "simpath",
@@ -319,7 +319,7 @@ dependencies = [
 
 [[package]]
 name = "flowstdlib"
-version = "0.34.3"
+version = "0.34.4"
 dependencies = [
  "flow_impl",
  "flow_impl_derive",
@@ -706,7 +706,7 @@ dependencies = [
 
 [[package]]
 name = "provider"
-version = "0.25.0"
+version = "0.34.4"
 dependencies = [
  "curl",
  "error-chain 0.12.4",
