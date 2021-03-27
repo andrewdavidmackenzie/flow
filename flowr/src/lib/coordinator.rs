@@ -215,7 +215,7 @@ impl Coordinator {
             } else {
                 std::thread::spawn(move || {
                     info!("Starting 'flowr' server as background thread");
-                    if let Err(e) = coordinator.start(native, server_only) {
+                    if let Err(e) = coordinator.start(lib_search_path, native, server_only) {
                         error!("Error starting Coordinator in background thread: '{}'", e);
                     }
                 });

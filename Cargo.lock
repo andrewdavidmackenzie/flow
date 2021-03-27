@@ -273,7 +273,7 @@ dependencies = [
 
 [[package]]
 name = "flowr"
-version = "0.34.5"
+version = "0.34.6"
 dependencies = [
  "clap",
  "error-chain 0.12.4",
@@ -298,7 +298,7 @@ dependencies = [
 
 [[package]]
 name = "flowrstructs"
-version = "0.34.4"
+version = "0.34.6"
 dependencies = [
  "error-chain 0.12.4",
  "flow_impl",

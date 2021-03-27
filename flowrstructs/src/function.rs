@@ -89,16 +89,15 @@ impl Function {
     /// Output sub-path (or ""), destination function id, destination function io number, Optional path of destination
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        #[cfg(feature = "debugger")]
-               name: String,
-        #[cfg(feature = "debugger")]
-               route: String,
+        #[cfg(feature = "debugger")] name: String,
+        #[cfg(feature = "debugger")] route: String,
         implementation_location: String,
         inputs: Vec<Input>,
         id: usize,
         flow_id: usize,
         output_connections: &[OutputConnection],
-        include_destination_routes: bool) -> Self {
+        include_destination_routes: bool,
+    ) -> Self {
         let mut routes = output_connections.to_vec();
 
         // Remove destination routes if not wanted
@@ -212,7 +211,6 @@ impl Function {
         num_input_sets
     }
 
-    #[cfg(feature = "debugger")]
     /// Inspect the values of the `inputs` of a feature. Only used by the `debugger` feature
     pub fn inputs(&self) -> &Vec<Input> {
         &self.inputs
@@ -248,21 +246,37 @@ mod test {
     #[test]
     fn destructure_output_base_route() {
         let json = json!("simple");
-        assert_eq!("simple", json.pointer("").unwrap(), "json pointer functionality not working!");
+        assert_eq!(
+            "simple",
+            json.pointer("").unwrap(),
+            "json pointer functionality not working!"
+        );
     }
 
     #[test]
     fn destructure_json_value() {
         let json: Value = json!({ "sub_route": "sub_output" });
-        assert_eq!("sub_output", json.pointer("/sub_route").unwrap(), "json pointer functionality not working!");
+        assert_eq!(
+            "sub_output",
+            json.pointer("/sub_route").unwrap(),
+            "json pointer functionality not working!"
+        );
     }
 
     #[test]
     fn access_array_elements() {
-        let args: Vec<&str> = vec!("arg0", "arg1", "arg2");
+        let args: Vec<&str> = vec!["arg0", "arg1", "arg2"];
         let json = json!(args);
-        assert_eq!("arg0", json.pointer("/0").unwrap(), "json pointer array indexing functionality not working!");
-        assert_eq!("arg1", json.pointer("/1").unwrap(), "json pointer array indexing functionality not working!");
+        assert_eq!(
+            "arg0",
+            json.pointer("/0").unwrap(),
+            "json pointer array indexing functionality not working!"
+        );
+        assert_eq!(
+            "arg1",
+            json.pointer("/1").unwrap(),
+            "json pointer array indexing functionality not working!"
+        );
     }
 
     #[test]
@@ -270,8 +284,11 @@ mod test {
         let mut function = test_function();
         function.init_inputs(true);
         function.send(0, &json!(1));
-        assert_eq!(json!(1), function.take_input_set().unwrap().remove(0),
-                   "Value from input set wasn't what was expected");
+        assert_eq!(
+            json!(1),
+            function.take_input_set().unwrap().remove(0),
+            "Value from input set wasn't what was expected"
+        );
     }
 
     #[test]
@@ -279,8 +296,11 @@ mod test {
         let mut function = test_function();
         function.init_inputs(true);
         function.send(0, &json!([1, 2]));
-        assert_eq!(json!([1, 2]), function.take_input_set().unwrap().remove(0),
-                   "Value from input set wasn't what was expected");
+        assert_eq!(
+            json!([1, 2]),
+            function.take_input_set().unwrap().remove(0),
+            "Value from input set wasn't what was expected"
+        );
     }
 
     #[test]
@@ -288,22 +308,27 @@ mod test {
         let mut function = test_function();
         function.init_inputs(true);
         function.send(0, &json!([1, 2]));
-        assert_eq!(function.take_input_set().unwrap().remove(0), json!([1, 2]),
-                   "Value from input set wasn't what was expected");
+        assert_eq!(
+            function.take_input_set().unwrap().remove(0),
+            json!([1, 2]),
+            "Value from input set wasn't what was expected"
+        );
     }
 
     fn test_function() -> Function {
-        let out_conn = OutputConnection::new("/other/input/1".to_string(),
-                                             1, 1, 0, 0, false, None);
+        let out_conn = OutputConnection::new("/other/input/1".to_string(), 1, 1, 0, 0, false, None);
         Function::new(
             #[cfg(feature = "debugger")]
-                    "test".to_string(),
+            "test".to_string(),
             #[cfg(feature = "debugger")]
-                        "/test".to_string(),
-                      "/implementation".to_string(),
-                      vec!(Input::new(&None)),
-                      1, 0,
-                      &[out_conn], false)
+            "/test".to_string(),
+            "/implementation".to_string(),
+            vec![Input::new(&None)],
+            1,
+            0,
+            &[out_conn],
+            false,
+        )
     }
 
     #[cfg(feature = "debugger")]
@@ -312,13 +337,21 @@ mod test {
         let mut function = test_function();
         function.init_inputs(true);
         function.send(0, &json!(1));
-        assert_eq!(function.inputs().len(), 1, "Could not read incomplete input set");
+        assert_eq!(
+            function.inputs().len(),
+            1,
+            "Could not read incomplete input set"
+        );
     }
 
     #[test]
     fn implementation_not_found() {
         let inf = ImplementationNotFound {};
-        assert_eq!((None, false), inf.run(&[]), "ImplementationNotFound should return (None, false)");
+        assert_eq!(
+            (None, false),
+            inf.run(&[]),
+            "ImplementationNotFound should return (None, false)"
+        );
     }
 
     #[cfg(feature = "debugger")]
@@ -331,21 +364,28 @@ mod test {
     #[cfg(feature = "debugger")]
     #[test]
     fn can_display_function_with_inputs() {
-        let output_route = OutputConnection::new("/other/input/1".to_string(),
-                                                 1, 1, 0, 0, false, None);
+        let output_route =
+            OutputConnection::new("/other/input/1".to_string(), 1, 1, 0, 0, false, None);
         let mut function = Function::new(
             #[cfg(feature = "debugger")]
-                                        "test".to_string(),
+            "test".to_string(),
             #[cfg(feature = "debugger")]
-                                         "/test".to_string(),
-                                         "/test".to_string(),
-                                         vec!(Input::new(&None)),
-                                         0, 0,
-                                         &[output_route.clone()], false);
+            "/test".to_string(),
+            "/test".to_string(),
+            vec![Input::new(&None)],
+            0,
+            0,
+            &[output_route.clone()],
+            false,
+        );
         function.init_inputs(true);
         function.send(0, &json!(1));
         let _ = format!("{}", function);
-        assert_eq!(&vec!(output_route), function.get_output_connections(), "output routes not as originally set");
+        assert_eq!(
+            &vec!(output_route),
+            function.get_output_connections(),
+            "output routes not as originally set"
+        );
     }
 
     #[test]
