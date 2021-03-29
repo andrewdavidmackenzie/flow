@@ -212,7 +212,7 @@ mod test {
                 .to_str()
                 .expect("Could not get root path as string"),
         );
-        println!("Lib search path set to '{}'", lib_search_path);
+        println!("{}", lib_search_path);
         lib_search_path
     }
 
@@ -234,7 +234,7 @@ mod test {
                 );
                 assert_eq!(lib_ref, Some("flowstdlib/control/tap".to_string()));
             }
-            Err(_) => assert!(false, "Error trying to resolve url"),
+            Err(_) => panic!("Error trying to resolve url"),
         }
     }
 

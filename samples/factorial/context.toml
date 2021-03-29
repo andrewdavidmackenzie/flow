@@ -37,11 +37,11 @@ alias = "n-tap"
 source = "lib://flowstdlib/control/tap"
 
 [[connection]]
-from = "sub"
+from = "sub/diff"
 to = "n-tap/data"
 
 [[connection]]
-from = "sub"
+from = "sub/diff"
 to = "compare/left"
 
 [[connection]]
