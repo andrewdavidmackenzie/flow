@@ -50,23 +50,23 @@ to = "composites/limit"
 
 ####### Remove composites from entire list
 [[process]]
-alias = "subtract"
+alias = "remove"
 source = "lib://flowstdlib/data/remove"
 
 [[connection]]
 from = "all-numbers/chunk"
-to = "subtract/array"
+to = "remove/array"
 
 [[connection]]
 from = "composites/composites"
-to = "subtract/value"
+to = "remove/value"
 
 [[connection]]
-from = "subtract"
-to = "subtract/array"
+from = "remove"
+to = "remove/array"
 
 [[connection]]
-from = "subtract"
+from = "remove"
 to = "print"
 
 ####### Output
