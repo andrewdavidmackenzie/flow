@@ -4,27 +4,37 @@ use url::Url;
 use flowclib::compiler::loader;
 use provider::content::provider::MetaProvider;
 
-#[path="helper.rs"] mod helper;
+#[path = "helper.rs"]
+mod helper;
 
 #[test]
 fn load_hello_world_from_context() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
-    loader::load(&helper::absolute_file_url_from_relative_path("samples/hello-world/context.toml"),
-                 &meta_provider).unwrap();
+    loader::load(
+        &helper::absolute_file_url_from_relative_path("samples/hello-world/context.toml"),
+        &meta_provider,
+    )
+    .unwrap();
 }
 
 #[test]
 fn load_reverse_echo_from_toml() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
-    loader::load(&helper::absolute_file_url_from_relative_path("samples/reverse-echo/context.toml"),
-                 &meta_provider).unwrap();
+    loader::load(
+        &helper::absolute_file_url_from_relative_path("samples/reverse-echo/context.toml"),
+        &meta_provider,
+    )
+    .unwrap();
 }
 
 #[test]
 fn load_fibonacci_from_file() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
-    loader::load(&helper::absolute_file_url_from_relative_path("samples/fibonacci/context.toml"),
-                 &meta_provider).unwrap();
+    loader::load(
+        &helper::absolute_file_url_from_relative_path("samples/fibonacci/context.toml"),
+        &meta_provider,
+    )
+    .unwrap();
 }
 
 #[test]
@@ -46,8 +56,12 @@ pub fn set_lib_search_path_flowstdlib_on_web() -> Simpath {
         .expect("Could not parse the url for Simpath"));
 
     // Add the url of 'flowstdlib' on the web, so `lib://flowstdlib/*` references can be found
-    lib_search_path.add_url(&Url::parse("https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib")
-        .expect("Could not parse the url for Simpath"));
+    lib_search_path.add_url(
+        &Url::parse(
+            "https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/flowstdlib",
+        )
+        .expect("Could not parse the url for Simpath"),
+    );
 
     lib_search_path
 }
