@@ -1,7 +1,7 @@
 use std::env;
 use std::fs::File;
-use std::io::{self, Read};
 use std::io::Write;
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -10,7 +10,7 @@ use simpath::Simpath;
 use tempdir::TempDir;
 use url::Url;
 
-use flow_impl::{DONT_RUN_AGAIN, Implementation, RunAgain};
+use flow_impl::{Implementation, RunAgain, DONT_RUN_AGAIN};
 use flowrlib::loader::Loader;
 use flowrstructs::function::Function;
 use flowrstructs::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
@@ -51,7 +51,7 @@ fn create_manifest(functions: Vec<Function>) -> Manifest {
         name: "test manifest".into(),
         description: "test manifest".into(),
         version: "0.0".into(),
-        authors: vec!("me".into())
+        authors: vec!["me".into()],
     };
 
     let mut manifest = Manifest::new(metadata);
@@ -90,26 +90,48 @@ fn get_manifest() -> LibraryManifest {
         name: "".to_string(),
         description: "".into(),
         version: "0.1.0".into(),
-        authors: vec!("".into())
+        authors: vec!["".into()],
     };
     let mut manifest = LibraryManifest::new(metadata);
 
-    manifest.locators.insert("lib://flowruntime/args/get/get".to_string(), Native(Arc::new(Fake {})));
-    manifest.locators.insert("lib://flowruntime/file/file_write/file_write".to_string(), Native(Arc::new(Fake {})));
-    manifest.locators.insert("lib://flowruntime/stdio/readline/readline".to_string(), Native(Arc::new(Fake {})));
-    manifest.locators.insert("lib://flowruntime/stdio/stdin/stdin".to_string(), Native(Arc::new(Fake {})));
-    manifest.locators.insert("lib://flowruntime/stdio/stdout/stdout".to_string(), Native(Arc::new(Fake {})));
-    manifest.locators.insert("lib://flowruntime/stdio/stderr/stderr".to_string(), Native(Arc::new(Fake {})));
+    manifest.locators.insert(
+        "lib://flowruntime/args/get/get".to_string(),
+        Native(Arc::new(Fake {})),
+    );
+    manifest.locators.insert(
+        "lib://flowruntime/file/file_write/file_write".to_string(),
+        Native(Arc::new(Fake {})),
+    );
+    manifest.locators.insert(
+        "lib://flowruntime/stdio/readline/readline".to_string(),
+        Native(Arc::new(Fake {})),
+    );
+    manifest.locators.insert(
+        "lib://flowruntime/stdio/stdin/stdin".to_string(),
+        Native(Arc::new(Fake {})),
+    );
+    manifest.locators.insert(
+        "lib://flowruntime/stdio/stdout/stdout".to_string(),
+        Native(Arc::new(Fake {})),
+    );
+    manifest.locators.insert(
+        "lib://flowruntime/stdio/stderr/stderr".to_string(),
+        Native(Arc::new(Fake {})),
+    );
 
     manifest
 }
 
 fn write_manifest(manifest: &Manifest, filename: &PathBuf) -> Result<(), String> {
-    let mut manifest_file = File::create(&filename).map_err(|_| "Could not create lib manifest file")?;
+    let mut manifest_file =
+        File::create(&filename).map_err(|_| "Could not create lib manifest file")?;
 
-    manifest_file.write_all(serde_json::to_string_pretty(manifest)
-        .map_err(|_| "Could not pretty format the manifest JSON contents")?
-        .as_bytes())
+    manifest_file
+        .write_all(
+            serde_json::to_string_pretty(manifest)
+                .map_err(|_| "Could not pretty format the manifest JSON contents")?
+                .as_bytes(),
+        )
         .map_err(|_| "Could not write manifest data bytes to created manifest file")?;
 
     Ok(())
@@ -117,21 +139,31 @@ fn write_manifest(manifest: &Manifest, filename: &PathBuf) -> Result<(), String>
 
 fn set_lib_search_path() -> Simpath {
     let mut lib_search_path = Simpath::new("lib_search_path");
-    let root_str = Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("Could not get project root dir");
-    lib_search_path.add_directory(root_str.to_str().expect("Could not get root path as string"));
-    println!("Lib search path set to '{}'", lib_search_path);
+    let root_str = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("Could not get project root dir");
+    lib_search_path.add_directory(
+        root_str
+            .to_str()
+            .expect("Could not get root path as string"),
+    );
+    println!("{}", lib_search_path);
     lib_search_path
 }
 
 #[test]
 fn load_manifest_from_file() {
-    let f_a = Function::new("fA".to_string(), // name
-                            "/fA".to_string(),
-                            "lib://flowstdlib/control/join/join".to_string(),
-                            vec!(),
-                            0, 0,
-                            &[], false);
-    let functions = vec!(f_a);
+    let f_a = Function::new(
+        "fA".to_string(), // name
+        "/fA".to_string(),
+        "lib://flowstdlib/control/join/join".to_string(),
+        vec![],
+        0,
+        0,
+        &[],
+        false,
+    );
+    let functions = vec![f_a];
 
     let manifest = create_manifest(functions);
 
@@ -143,50 +175,85 @@ fn load_manifest_from_file() {
 
     let mut loader = Loader::new();
     // Load the "native" version of the flowstdlib first
-    loader.add_lib(&provider, "lib://flowstdlib", flowstdlib::get_manifest(), "native").unwrap();
-    let _ = loader.load_manifest(&provider, &manifest_url.to_string()).unwrap();
+    loader
+        .add_lib(
+            &provider,
+            "lib://flowstdlib",
+            flowstdlib::get_manifest(),
+            "native",
+        )
+        .unwrap();
+    let _ = loader
+        .load_manifest(&provider, &manifest_url.to_string())
+        .unwrap();
 
     assert!(!loader.get_lib_implementations().is_empty());
 }
 
 #[test]
 fn resolve_lib_implementation_test() {
-    let f_a = Function::new("fA".to_string(), // name
-                            "/fA".to_string(),
-                            "lib://flowruntime/stdio/stdin/stdin".to_string(),
-                            vec!(),
-                            0, 0,
-                            &[], false);
-    let functions = vec!(f_a);
+    let f_a = Function::new(
+        "fA".to_string(), // name
+        "/fA".to_string(),
+        "lib://flowruntime/stdio/stdin/stdin".to_string(),
+        vec![],
+        0,
+        0,
+        &[],
+        false,
+    );
+    let functions = vec![f_a];
     let mut manifest = create_manifest(functions);
     let provider = MetaProvider::new(set_lib_search_path());
     let mut loader = Loader::new();
     let manifest_url = url_from_rel_path("manifest.json");
 
     // Load library functions provided
-    loader.add_lib(&provider, "lib://flowruntime", get_manifest(), &cwd_as_url().to_string()).unwrap();
+    loader
+        .add_lib(
+            &provider,
+            "lib://flowruntime",
+            get_manifest(),
+            &cwd_as_url().to_string(),
+        )
+        .unwrap();
 
-    loader.resolve_implementations(&mut manifest, &manifest_url, &provider).unwrap();
+    loader
+        .resolve_implementations(&mut manifest, &manifest_url, &provider)
+        .unwrap();
 }
 
 #[test]
 fn unresolved_lib_functions_test() {
-    let f_a = Function::new("fA".to_string(), // name
-                            "/fA".to_string(),
-                            "lib://flowruntime/stdio/stdin/foo".to_string(),
-                            vec!(),
-                            0, 0,
-                            &[], false);
-    let functions = vec!(f_a);
+    let f_a = Function::new(
+        "fA".to_string(), // name
+        "/fA".to_string(),
+        "lib://flowruntime/stdio/stdin/foo".to_string(),
+        vec![],
+        0,
+        0,
+        &[],
+        false,
+    );
+    let functions = vec![f_a];
     let mut manifest = create_manifest(functions);
     let provider = MetaProvider::new(set_lib_search_path());
     let mut loader = Loader::new();
     let manifest_url = url_from_rel_path("manifest.json");
 
     // Load library functions provided
-    loader.add_lib(&provider, "lib://flowruntime", get_manifest(), &cwd_as_url().to_string()).unwrap();
+    loader
+        .add_lib(
+            &provider,
+            "lib://flowruntime",
+            get_manifest(),
+            &cwd_as_url().to_string(),
+        )
+        .unwrap();
 
-    assert!(loader.resolve_implementations(&mut manifest, &manifest_url, &provider).is_err());
+    assert!(loader
+        .resolve_implementations(&mut manifest, &manifest_url, &provider)
+        .is_err());
 }
 
 // TODO add a wasm provided implementation loading test
