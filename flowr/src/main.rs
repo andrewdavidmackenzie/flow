@@ -68,18 +68,18 @@ fn main() {
 
             exit(1);
         }
-        Ok(_) => exit(0)
+        Ok(_) => exit(0),
     }
 }
 
 /*
-    For the lib provider, libraries maybe installed in multiple places in the file system.
-    In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
-    list of directories in which to look for the library in question.
+   For the lib provider, libraries maybe installed in multiple places in the file system.
+   In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
+   list of directories in which to look for the library in question.
 
-    Using the "FLOW_LIB_PATH" environment variable attempt to locate the library's root folder
-    in the file system.
- */
+   Using the "FLOW_LIB_PATH" environment variable attempt to locate the library's root folder
+   in the file system.
+*/
 pub fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 
@@ -96,7 +96,11 @@ pub fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> 
 }
 
 fn run() -> Result<()> {
-    info!("'{}' version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+    info!(
+        "'{}' version {}",
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION")
+    );
     info!("'flowrlib' version {}", flowrlib_info::version());
 
     let matches = get_matches();
@@ -108,11 +112,13 @@ fn run() -> Result<()> {
     let client_only = matches.is_present("client");
     let server_hostname = matches.value_of("client");
     let lib_dirs = if matches.is_present("lib_dir") {
-        matches.values_of("lib_dir")
+        matches
+            .values_of("lib_dir")
             .chain_err(|| "Could not get the list of 'LIB_DIR' options specified")?
-            .map(|s| s.to_string()).collect()
+            .map(|s| s.to_string())
+            .collect()
     } else {
-        vec!()
+        vec![]
     };
     let lib_search_path = set_lib_search_path(&lib_dirs)?;
 
@@ -120,35 +126,47 @@ fn run() -> Result<()> {
     // depending on the value of the "server_only" option
     #[cfg(feature = "debugger")]
     let (runtime_connection, debug_connection) = Coordinator::server(
-        num_threads(&matches, debugger), lib_search_path,
-        native, server_only, client_only, server_hostname)?;
+        num_threads(&matches, debugger),
+        lib_search_path,
+        native,
+        server_only,
+        client_only,
+        server_hostname,
+    )?;
 
     #[cfg(not(feature = "debugger"))]
-        let runtime_connection = Coordinator::server(
-        num_threads(&matches, debugger), native, server_only, client_only, server_hostname)?;
+    let runtime_connection = Coordinator::server(
+        num_threads(&matches, debugger),
+        lib_search_path,
+        native,
+        server_only,
+        client_only,
+        server_hostname,
+    )?;
 
     if !server_only {
         let flow_manifest_url = parse_flow_url(&matches)?;
         let flow_args = get_flow_args(&matches, &flow_manifest_url);
-        let submission = Submission::new(&flow_manifest_url.to_string(),
-                                         num_parallel_jobs(&matches, debugger),
-                                         #[cfg(feature = "debugger")]
-                                         debugger
+        let submission = Submission::new(
+            &flow_manifest_url.to_string(),
+            num_parallel_jobs(&matches, debugger),
+            #[cfg(feature = "debugger")]
+            debugger,
         );
 
         #[cfg(feature = "debugger")]
         CLIDebugClient::start(debug_connection);
-        CLIRuntimeClient::start(runtime_connection,
-                                submission,
-                                flow_args,
-                                #[cfg(feature = "metrics")]
-                                    matches.is_present("metrics"),
+        CLIRuntimeClient::start(
+            runtime_connection,
+            submission,
+            flow_args,
+            #[cfg(feature = "metrics")]
+            matches.is_present("metrics"),
         )?;
     }
 
     Ok(())
 }
-
 
 /*
     Determine the number of threads to use to execute flows, with a default of the number of cores
@@ -163,22 +181,20 @@ fn num_threads(matches: &ArgMatches, debugger: bool) -> usize {
     }
 
     match matches.value_of("threads") {
-        Some(value) => {
-            match value.parse::<i32>() {
-                Ok(mut threads) => {
-                    if threads < 1 {
-                        error!("Minimum number of additional threads is '1', so option has been overridden to be '1'");
-                        threads = 1;
-                    }
-                    threads as usize
+        Some(value) => match value.parse::<i32>() {
+            Ok(mut threads) => {
+                if threads < 1 {
+                    error!("Minimum number of additional threads is '1', so option has been overridden to be '1'");
+                    threads = 1;
                 }
-                Err(_) => {
-                    error!("Error parsing the value for number of threads '{}'", value);
-                    num_cpus::get()
-                }
+                threads as usize
             }
-        }
-        None => num_cpus::get()
+            Err(_) => {
+                error!("Error parsing the value for number of threads '{}'", value);
+                num_cpus::get()
+            }
+        },
+        None => num_cpus::get(),
     }
 }
 
@@ -188,22 +204,23 @@ fn num_threads(matches: &ArgMatches, debugger: bool) -> usize {
 */
 fn num_parallel_jobs(matches: &ArgMatches, debugger: bool) -> usize {
     match matches.value_of("jobs") {
-        Some(value) => {
-            match value.parse::<i32>() {
-                Ok(mut jobs) => {
-                    if jobs < 1 {
-                        error!("Minimum number of parallel jobs is '0', so option of '{}' has been overridden to be '1'",
+        Some(value) => match value.parse::<i32>() {
+            Ok(mut jobs) => {
+                if jobs < 1 {
+                    error!("Minimum number of parallel jobs is '0', so option of '{}' has been overridden to be '1'",
                                jobs);
-                        jobs = 1;
-                    }
-                    jobs as usize
+                    jobs = 1;
                 }
-                Err(_) => {
-                    error!("Error parsing the value for number of parallel jobs '{}'", value);
-                    2 * num_cpus::get()
-                }
+                jobs as usize
             }
-        }
+            Err(_) => {
+                error!(
+                    "Error parsing the value for number of parallel jobs '{}'",
+                    value
+                );
+                2 * num_cpus::get()
+            }
+        },
         None => {
             if debugger {
                 info!("Due to debugger option being set, max number of parallel jobs has defaulted to 1");
@@ -257,36 +274,46 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .help("A list of arguments to pass to the flow when executed."));
 
     #[cfg(feature = "distributed")]
-        let app = app.arg(Arg::with_name("server")
-        .short("s")
-        .long("server")
-        .help("Launch as flowr server"));
+    let app = app.arg(
+        Arg::with_name("server")
+            .short("s")
+            .long("server")
+            .help("Launch as flowr server"),
+    );
 
     #[cfg(feature = "distributed")]
-        let app = app.arg(Arg::with_name("client")
-        .short("c")
-        .long("client")
-        .takes_value(true)
-        .value_name("SERVER_HOSTNAME")
-        .help("Set the HOSTNAME of the server this client should connect to"));
+    let app = app.arg(
+        Arg::with_name("client")
+            .short("c")
+            .long("client")
+            .takes_value(true)
+            .value_name("SERVER_HOSTNAME")
+            .help("Set the HOSTNAME of the server this client should connect to"),
+    );
 
     #[cfg(feature = "debugger")]
-        let app = app.arg(Arg::with_name("debugger")
-        .short("d")
-        .long("debugger")
-        .help("Enable the debugger when running a flow"));
+    let app = app.arg(
+        Arg::with_name("debugger")
+            .short("d")
+            .long("debugger")
+            .help("Enable the debugger when running a flow"),
+    );
 
     #[cfg(feature = "metrics")]
-        let app = app.arg(Arg::with_name("metrics")
-        .short("m")
-        .long("metrics")
-        .help("Calculate metrics during flow execution and print them out when done"));
+    let app = app.arg(
+        Arg::with_name("metrics")
+            .short("m")
+            .long("metrics")
+            .help("Calculate metrics during flow execution and print them out when done"),
+    );
 
     #[cfg(feature = "native")]
-        let app = app.arg(Arg::with_name("native")
-        .short("n")
-        .long("native")
-        .help("Use native libraries when possible"));
+    let app = app.arg(
+        Arg::with_name("native")
+            .short("n")
+            .long("native")
+            .help("Use native libraries when possible"),
+    );
 
     app.get_matches()
 }
@@ -309,7 +336,7 @@ fn parse_flow_url(matches: &ArgMatches) -> Result<Url> {
 */
 fn get_flow_args(matches: &ArgMatches, flow_manifest_url: &Url) -> Vec<String> {
     // arg #0 is the flow url
-    let mut flow_args: Vec<String> = vec!(flow_manifest_url.to_string());
+    let mut flow_args: Vec<String> = vec![flow_manifest_url.to_string()];
 
     // append any other arguments for the flow passed from the command line
     if let Some(args) = matches.values_of("flow-arguments") {
