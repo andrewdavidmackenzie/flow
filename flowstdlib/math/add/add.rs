@@ -1,6 +1,5 @@
 use serde_json::Value;
 use serde_json::Value::Number;
-use serde_json::Value::String;
 
 use flow_impl::{Implementation, RunAgain, RUN_AGAIN};
 use flow_impl_derive::FlowImpl;
@@ -40,12 +39,6 @@ impl Implementation for Add {
                     println!("Unsupported input types combination in 'add': {:?}", inputs);
                     None
                 };
-            }
-            (&String(ref a), &String(ref b)) => {
-                let i1 = a.parse::<i64>().unwrap();
-                let i2 = b.parse::<i64>().unwrap();
-                let o1 = i1 + i2;
-                sum = Some(Value::String(o1.to_string()));
             }
             (_, _) => println!("Unsupported input types in 'add': {:?}", inputs),
         }
