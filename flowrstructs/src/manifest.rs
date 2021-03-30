@@ -1,8 +1,9 @@
 use std::collections::HashSet;
 
 use serde_derive::{Deserialize, Serialize};
+use url::Url;
 
-use provider::content::provider::Provider;
+use provider::lib_provider::LibProvider;
 
 use crate::errors::*;
 use crate::function::Function;
@@ -83,16 +84,19 @@ impl Manifest {
     }
 
     /// Load, or Deserialize, a manifest from a `source` Url using `provider`
-    pub fn load(provider: &dyn Provider, source: &str) -> Result<(Manifest, String)> {
-        let (resolved_url, _) = provider.resolve_url(source, DEFAULT_MANIFEST_FILENAME, &["json"])
+    pub fn load(provider: &dyn LibProvider, source: &Url) -> Result<(Manifest, Url)> {
+        let (resolved_url, _) = provider
+            .resolve_url(source, DEFAULT_MANIFEST_FILENAME, &["json"])
             .chain_err(|| "Could not resolve url for manifest while attempting to load manifest")?;
-        let content = provider.get_contents(&resolved_url)
+        let content = provider
+            .get_contents(&resolved_url)
             .chain_err(|| "Could not get contents while attempting to load manifest")?;
 
         // TODO for now json only
         let manifest = serde_json::from_str(
-            &String::from_utf8(content).chain_err(|| "Could not convert from utf8 to String")?)
-            .chain_err(|| format!("Could not create a manifest from '{}'", source))?;
+            &String::from_utf8(content).chain_err(|| "Could not convert from utf8 to String")?,
+        )
+        .chain_err(|| format!("Could not create a manifest from '{}'", source))?;
 
         Ok((manifest, resolved_url))
     }
@@ -100,9 +104,11 @@ impl Manifest {
 
 #[cfg(test)]
 mod test {
-    use provider::content::provider::Provider;
-    use provider::errors::Result;
+    use url::Url;
 
+    use provider::lib_provider::LibProvider;
+
+    use crate::errors::*;
     use crate::function::Function;
     use crate::input::Input;
 
@@ -113,20 +119,25 @@ mod test {
             name: "test".into(),
             version: "0.0.0".into(),
             description: "a test".into(),
-            authors: vec!("me".into())
+            authors: vec!["me".into()],
         }
     }
 
     pub struct TestProvider {
-        test_content: &'static str
+        test_content: &'static str,
     }
 
-    impl Provider for TestProvider {
-        fn resolve_url(&self, source: &str, _default_filename: &str, _extensions: &[&str]) -> Result<(String, Option<String>)> {
-            Ok((source.to_string(), None))
+    impl LibProvider for TestProvider {
+        fn resolve_url(
+            &self,
+            source: &Url,
+            _default_filename: &str,
+            _extensions: &[&str],
+        ) -> Result<(Url, Option<String>)> {
+            Ok((source.clone(), None))
         }
 
-        fn get_contents(&self, _url: &str) -> Result<Vec<u8>> {
+        fn get_contents(&self, _url: &Url) -> Result<Vec<u8>> {
             Ok(self.test_content.as_bytes().to_owned())
         }
     }
@@ -139,13 +150,16 @@ mod test {
     fn test_function() -> Function {
         Function::new(
             #[cfg(feature = "debugger")]
-                "test".to_string(),
+            "test".to_string(),
             #[cfg(feature = "debugger")]
-                "/test".to_string(),
             "/test".to_string(),
-            vec!(Input::new(&None)),
-            0, 0,
-            &[], false)
+            "/test".to_string(),
+            vec![Input::new(&None)],
+            0,
+            0,
+            &[],
+            false,
+        )
     }
 
     #[test]
@@ -181,10 +195,12 @@ mod test {
                 }
              ]
             }";
-        let provider = TestProvider {
-            test_content
-        };
+        let provider = TestProvider { test_content };
 
-        assert!(Manifest::load(&provider, "fake source").is_ok());
+        assert!(Manifest::load(
+            &provider,
+            &Url::parse("http://ibm.com").expect("Couldn't create a url")
+        )
+        .is_ok());
     }
 }

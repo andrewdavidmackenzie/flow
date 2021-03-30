@@ -3,9 +3,10 @@ use std::sync::Arc;
 
 use log::debug;
 use serde_derive::{Deserialize, Serialize};
+use url::Url;
 
 use flow_impl::Implementation;
-use provider::content::provider::Provider;
+use provider::lib_provider::LibProvider;
 
 use crate::errors::*;
 use crate::manifest::MetaData;
@@ -63,7 +64,7 @@ impl LibraryManifest {
     }
 
     /// `load` a library from the `source` url, using the `provider` to fetch contents
-    pub fn load(provider: &dyn Provider, source: &str) -> Result<(LibraryManifest, String)> {
+    pub fn load(provider: &dyn LibProvider, source: &Url) -> Result<(LibraryManifest, Url)> {
         let (resolved_url, _) = provider
             .resolve_url(source, DEFAULT_LIB_JSON_MANIFEST_FILENAME, &["json"])
             .chain_err(|| format!("Could not resolve the library manifest file '{}'", source))?;
@@ -139,10 +140,11 @@ mod test {
     use std::sync::Arc;
 
     use serde_json::Value;
+    use url::Url;
 
     use flow_impl::Implementation;
-    use provider::content::provider::Provider;
     use provider::errors::Result;
+    use provider::lib_provider::LibProvider;
 
     use crate::lib_manifest::{
         ImplementationLocator, ImplementationLocator::Wasm, LibraryManifest,
@@ -171,17 +173,17 @@ mod test {
         }
     }
 
-    impl Provider for TestProvider {
+    impl LibProvider for TestProvider {
         fn resolve_url(
             &self,
-            source: &str,
+            source: &Url,
             _default_filename: &str,
             _extensions: &[&str],
-        ) -> Result<(String, Option<String>)> {
-            Ok((source.to_string(), None))
+        ) -> Result<(Url, Option<String>)> {
+            Ok((source.clone(), None))
         }
 
-        fn get_contents(&self, _url: &str) -> Result<Vec<u8>> {
+        fn get_contents(&self, _url: &Url) -> Result<Vec<u8>> {
             Ok(self.test_content.as_bytes().to_owned())
         }
     }
@@ -265,9 +267,9 @@ mod test {
     \"//flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
   }
 }";
-        let provider = TestProvider { test_content };
-        let url = "file:://test/fake";
-        let (lib_manifest, _lib_manifest_url) = LibraryManifest::load(&provider, url).unwrap();
+        let provider = &TestProvider { test_content } as &dyn LibProvider;
+        let url = Url::parse("file:://test/fake").expect("Could not create Url");
+        let (lib_manifest, _lib_manifest_url) = LibraryManifest::load(provider, &url).unwrap();
         assert_eq!(lib_manifest.locators.len(), 1);
         assert!(lib_manifest
             .locators
