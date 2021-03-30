@@ -21,7 +21,7 @@ use simplog::simplog::SimpleLogger;
 use url::Url;
 
 use flowclib::info;
-use provider::args::url_from_string;
+use flowrstructs::url_helper::url_from_string;
 use provider::content::provider::MetaProvider;
 
 use crate::flow_compile::compile_and_execute_flow;

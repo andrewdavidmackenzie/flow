@@ -5,7 +5,6 @@
 extern crate error_chain;
 
 pub mod content;
-pub mod args;
 
 #[doc(hidden)]
 pub mod errors {

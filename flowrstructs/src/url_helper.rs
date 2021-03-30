@@ -1,14 +1,12 @@
 //! Help take file/url strings from a command line and convert them
-//! into URLs (as Strings) with schemes for use with flowlibc and flowlibr.
-use std::env;
-
+//! into URLs (as Strings) with schemes for use with flowlibc and flowrlib.
 use log::info;
 use url::Url;
 
 use crate::errors::*;
 
 /// Accept an optional string (URL or filename) and from it create an absolute path URL with correct
-/// scheme. This allows specifiying of full URL (http, file etc) as well as file paths relative
+/// scheme. This allows specifying of full URL (http, file etc) as well as file paths relative
 /// to the working directory.
 ///
 /// Depending on the parameter passed in:
@@ -26,47 +24,42 @@ pub fn url_from_string(base_url: &Url, string: Option<&str>) -> Result<Url> {
             info!("No url specified, so using: '{}'", base_url);
             Ok(base_url.clone())
         }
-        Some(url_string) => {
-            base_url.join(url_string)
-                .chain_err(|| format!("Problem joining url '{}' with '{}'", base_url, url_string))
-        }
+        Some(url_string) => base_url
+            .join(url_string)
+            .chain_err(|| format!("Problem joining url '{}' with '{}'", base_url, url_string)),
     }
-}
-
-///
-/// Provide the Current Working Directory (CWD) as a URL (with 'file:' scheme) or an error if it cannot be found.
-///
-pub fn cwd_as_url() -> Result<Url> {
-    Url::from_directory_path(
-        env::current_dir().chain_err(|| "Could not get current working directory value")?)
-        .map_err(|_| "Could not form a Url for the current working directory".into())
 }
 
 #[cfg(test)]
 mod test {
+    use std::env;
     use std::path::PathBuf;
     use std::str::FromStr;
 
     use url::Url;
 
-    use super::cwd_as_url;
-    use super::url_from_string;
+    use crate::url_helper::url_from_string;
+
+    fn cwd_as_url() -> Url {
+        Url::from_directory_path(env::current_dir().expect("Couldn't get CWD"))
+            .expect("Could not convert CWD to a URL")
+    }
 
     #[test]
     fn no_arg_returns_parent() {
-        let cwd = cwd_as_url().unwrap();
-        let url = url_from_string(&cwd, None).unwrap();
+        let cwd = cwd_as_url();
+        let url = url_from_string(&cwd, None).expect("Could not form URL");
 
         assert_eq!(url, cwd);
     }
 
     #[test]
     fn file_scheme_in_arg_absolute_path_preserved() {
-        let cwd = cwd_as_url().unwrap();
+        let cwd = cwd_as_url();
         let path = "/some/file";
         let arg = format!("file:{}", path);
 
-        let url = url_from_string(&cwd, Some(&arg)).unwrap();
+        let url = url_from_string(&cwd, Some(&arg)).expect("Could not form URL");
 
         assert_eq!(url.scheme(), "file");
         assert_eq!(url.path(), path);
@@ -74,11 +67,11 @@ mod test {
 
     #[test]
     fn http_scheme_in_arg_absolute_path_preserved() {
-        let cwd = cwd_as_url().unwrap();
+        let cwd = cwd_as_url();
         let path = "/some/file";
         let arg = format!("http://test.com{}", path);
 
-        let url = url_from_string(&cwd, Some(&arg)).unwrap();
+        let url = url_from_string(&cwd, Some(&arg)).expect("Could not form URL");
 
         assert_eq!(url.scheme(), "http");
         assert_eq!(url.path(), path);
@@ -86,10 +79,10 @@ mod test {
 
     #[test]
     fn no_scheme_in_arg_assumes_file() {
-        let cwd = cwd_as_url().unwrap();
+        let cwd = cwd_as_url();
         let arg = "/some/file";
 
-        let url = url_from_string(&cwd, Some(arg)).unwrap();
+        let url = url_from_string(&cwd, Some(arg)).expect("Could not form URL");
 
         assert_eq!(url.scheme(), "file");
         assert_eq!(url.path(), arg);
@@ -97,14 +90,16 @@ mod test {
 
     #[test]
     fn relative_path_in_arg_converted_to_absolute_path_and_scheme_added() {
-        let mut root = PathBuf::from_str(env!("CARGO_MANIFEST_DIR")).unwrap();
+        let mut root = PathBuf::from_str(env!("CARGO_MANIFEST_DIR"))
+            .expect("Could not get CARGO_MANIFEST_DIR");
         root.pop();
-        let root_url = Url::from_directory_path(&root).unwrap();
+        let root_url = Url::from_directory_path(&root).expect("Could not form URL");
 
         // the path of this file relative to crate root
-        let relative_path_to_file = "src/args.rs";
+        let relative_path_to_file = "src/url";
 
-        let url = url_from_string(&root_url, Some(&relative_path_to_file)).unwrap();
+        let url =
+            url_from_string(&root_url, Some(&relative_path_to_file)).expect("Could not form URL");
         let abs_path = format!("{}/{}", root.display().to_string(), relative_path_to_file);
 
         assert_eq!(url.scheme(), "file");

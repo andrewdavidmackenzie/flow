@@ -20,7 +20,7 @@ use url::Url;
 
 use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::info as flowrlib_info;
-use provider::args::url_from_string;
+use flowrstructs::url_helper::url_from_string;
 
 #[cfg(feature = "debugger")]
 use crate::cli_debug_client::CLIDebugClient;
