@@ -6,8 +6,8 @@ use std::path::Path;
 use log::{debug, trace};
 use url::Url;
 
-use crate::Provider;
-use crate::Result;
+use crate::errors::*;
+use crate::lib_provider::Provider;
 
 /// The `FileProvider` implements the `Provider` trait and takes care of fetching content located
 /// on the local file system.
@@ -19,7 +19,7 @@ impl Provider for FileProvider {
             .to_file_path()
             .map_err(|_| format!("Could not convert '{}' to a file path", url))?;
         let md_result = fs::metadata(&path)
-            .map_err(|_| format!("Error getting file metadata for path: '{}'", path.display()));
+            .chain_err(|| format!("Error getting file metadata for path: '{}'", path.display()));
 
         match md_result {
             Ok(md) => {
@@ -66,7 +66,7 @@ impl Provider for FileProvider {
             File::open(&file_path).map_err(|_| format!("Could not open file '{:?}'", file_path))?;
         let mut buffer = Vec::new();
         f.read_to_end(&mut buffer)
-            .map_err(|_| format!("Could not read content from '{:?}'", file_path))?;
+            .chain_err(|| format!("Could not read content from '{:?}'", file_path))?;
         Ok(buffer)
     }
 }
@@ -119,7 +119,7 @@ mod test {
 
     use url::Url;
 
-    use crate::Provider;
+    use crate::lib_provider::Provider;
 
     use super::FileProvider;
 

@@ -2,8 +2,8 @@ use curl::easy::{Easy2, Handler, WriteError};
 use log::debug;
 use url::Url;
 
-use crate::Provider;
-use crate::Result;
+use crate::errors::*;
+use crate::lib_provider::Provider;
 
 pub struct HttpProvider;
 
@@ -29,8 +29,8 @@ impl Provider for HttpProvider {
         }
 
         // Attempting to find default file under this path, with any of the valid extensions
-        let default_filename_url =
-            Url::parse(&format!("{}/{}", url.to_string(), default_filename))?;
+        let default_filename_url = Url::parse(&format!("{}/{}", url.to_string(), default_filename))
+            .chain_err(|| "Could not append default_filename to url")?;
         if let Ok(found) = Self::resource_by_extensions(&default_filename_url, extensions) {
             return Ok(found);
         }
@@ -40,7 +40,8 @@ impl Provider for HttpProvider {
         let file_name = segments
             .next_back()
             .ok_or("Could not get last path segment")?;
-        let filename_url = Url::parse(&format!("{}/{}", url.to_string(), file_name))?;
+        let filename_url = Url::parse(&format!("{}/{}", url.to_string(), file_name))
+            .chain_err(|| "Could not append filename after directory in Url")?;
         if let Ok(found) = Self::resource_by_extensions(&filename_url, extensions) {
             return Ok(found);
         }
@@ -50,10 +51,13 @@ impl Provider for HttpProvider {
 
     fn get_contents(&self, url: &Url) -> Result<Vec<u8>> {
         let mut easy = Easy2::new(Collector(Vec::new()));
-        easy.get(true)?;
-        easy.url(url.as_str())?;
-        easy.perform()?;
-        match easy.response_code()? {
+        easy.get(true).chain_err(|| "Could not set GET operation")?;
+        easy.url(url.as_str()).chain_err(|| "Could not set Url")?;
+        easy.perform().chain_err(|| "Could not perform operation")?;
+        match easy
+            .response_code()
+            .chain_err(|| "Could not get status code")?
+        {
             200..=299 => {
                 let contents = easy.get_ref();
                 Ok(contents.0.clone())
@@ -67,14 +71,19 @@ impl HttpProvider {
     fn resource_exists(url: &Url) -> Result<()> {
         debug!("Looking for resource '{}'", url);
         let mut easy = Easy2::new(Collector(Vec::new()));
-        easy.nobody(true)?;
+        easy.nobody(true)
+            .chain_err(|| "Could not set NO_BODY on operation")?;
 
-        easy.url(url.as_str())?;
-        easy.perform()?;
+        easy.url(url.as_str())
+            .chain_err(|| "Could not set Url on operation")?;
+        easy.perform().chain_err(|| "Could not perform operation")?;
 
         // Consider 301 - Permanently Moved as the resource NOT being at this Url
         // An option to consider is asking the request library to follow the redirect.
-        match easy.response_code()? {
+        match easy
+            .response_code()
+            .chain_err(|| "Could not get status code")?
+        {
             200..=299 => Ok(()),
             error_code => bail!("Response code: {} from '{}'", error_code, url.as_str()),
         }
@@ -84,7 +93,8 @@ impl HttpProvider {
         // for that file path, try with all the allowed file extensions
         for extension in extensions {
             let resource_with_extension =
-                Url::parse(&format!("{}.{}", resource.as_str(), extension))?;
+                Url::parse(&format!("{}.{}", resource.as_str(), extension))
+                    .chain_err(|| "Could not parse Url with extension added")?;
             if Self::resource_exists(&resource_with_extension).is_ok() {
                 return Ok(resource_with_extension);
             }
@@ -102,7 +112,7 @@ impl HttpProvider {
 mod test {
     use url::Url;
 
-    use crate::Provider;
+    use crate::lib_provider::Provider;
 
     use super::HttpProvider;
 
