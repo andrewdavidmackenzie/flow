@@ -106,9 +106,9 @@ impl Manifest {
 mod test {
     use url::Url;
 
+    use provider::errors::Result;
     use provider::lib_provider::LibProvider;
 
-    use crate::errors::*;
     use crate::function::Function;
     use crate::input::Input;
 
