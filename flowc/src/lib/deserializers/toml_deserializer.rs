@@ -1,18 +1,25 @@
+use url::Url;
+
 use crate::compiler::loader::Deserializer;
 use crate::errors::*;
 use crate::model::process::Process;
 
-pub struct FlowTomelLoader;
+pub struct FlowTomlLoader;
 
 // NOTE: Add one to make indexes one-based
-impl Deserializer for FlowTomelLoader {
-    fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process> {
-        toml::from_str(contents)
-            .chain_err(|| format!("Error deserializing Toml from: '{}'",
-                                  url.map_or("URL unknown".to_owned(), |u| u.to_string())))
+impl Deserializer for FlowTomlLoader {
+    fn deserialize(&self, contents: &str, url: Option<&Url>) -> Result<Process> {
+        toml::from_str(contents).chain_err(|| {
+            format!(
+                "Error deserializing Toml from: '{}'",
+                url.map_or("URL unknown".to_owned(), |u| u.to_string())
+            )
+        })
     }
 
-    fn name(&self) -> &'static str { "Toml" }
+    fn name(&self) -> &'static str {
+        "Toml"
+    }
 }
 
 #[cfg(test)]
@@ -21,13 +28,13 @@ mod test {
     use crate::model::flow::Flow;
     use crate::model::process::Process::FlowProcess;
 
-    use super::FlowTomelLoader;
+    use super::FlowTomlLoader;
 
     #[test]
     fn invalid_toml() {
-        let deserializer = FlowTomelLoader {};
+        let deserializer = FlowTomlLoader {};
 
-        if deserializer.deserialize("{}}}}f dsdsadsa ", None).is_ok() {
+        if deserializer.deserialize("{}}}}f fake data ", None).is_ok() {
             panic!("Should not have parsed correctly as is invalid TOML");
         };
     }
@@ -51,7 +58,7 @@ mod test {
         to = 'print'
     ";
 
-        let toml = FlowTomelLoader {};
+        let toml = FlowTomlLoader {};
         let flow = toml.deserialize(flow_description, None);
         assert!(flow.is_ok());
     }
@@ -67,7 +74,7 @@ mod test {
         bar = 'true'
     ";
 
-        let toml = FlowTomelLoader {};
+        let toml = FlowTomlLoader {};
         assert!(toml.deserialize(flow_description, None).is_err());
     }
 
@@ -83,7 +90,7 @@ mod test {
         bar = 'true'
     ";
 
-        let toml = FlowTomelLoader {};
+        let toml = FlowTomlLoader {};
         assert!(toml.deserialize(flow_description, None).is_err());
     }
 
@@ -93,13 +100,13 @@ mod test {
         flow = 'test'
     ";
 
-        let toml = FlowTomelLoader {};
+        let toml = FlowTomlLoader {};
         match toml.deserialize(flow_description, None) {
             Ok(FlowProcess(flow)) => {
                 assert_eq!(flow.version, Flow::default_version());
                 assert_eq!(flow.authors, Flow::default_authors());
             }
-            _ => panic!()
+            _ => panic!(),
         }
     }
 
@@ -111,13 +118,13 @@ mod test {
         authors = ['tester <tester@test.com>']
     ";
 
-        let toml = FlowTomelLoader {};
+        let toml = FlowTomlLoader {};
         match toml.deserialize(flow_description, None) {
             Ok(FlowProcess(flow)) => {
                 assert_eq!(flow.version, "1.1.1".to_string());
                 assert_eq!(flow.authors, vec!("tester <tester@test.com>".to_string()));
             }
-            _ => panic!()
+            _ => panic!(),
         }
     }
 
@@ -131,7 +138,7 @@ mod test {
         source = 'lib://flowstdlib/stdio/stdout.toml'
     ";
 
-        let toml = FlowTomelLoader {};
+        let toml = FlowTomlLoader {};
         assert!(toml.deserialize(flow_description, None).is_ok());
     }
 
@@ -142,10 +149,10 @@ mod test {
 
         [[process]]
         alias = 'print'
-        lib = 'lib://fakelib/stdio/stdout.toml'
+        lib = 'lib://fake/stdio/stdout.toml'
     ";
 
-        let toml = FlowTomelLoader {};
+        let toml = FlowTomlLoader {};
         assert!(toml.deserialize(flow_description, None).is_err());
     }
 
@@ -158,7 +165,7 @@ mod test {
         alias = 'print'
     ";
 
-        let toml = FlowTomelLoader {};
+        let toml = FlowTomlLoader {};
         assert!(toml.deserialize(flow_description, None).is_err());
     }
 
@@ -169,7 +176,7 @@ mod test {
         source = 'lib://flowstdlib/stdio/stdout.toml'
     ";
 
-        let toml = FlowTomelLoader {};
+        let toml = FlowTomlLoader {};
         assert!(toml.deserialize(flow_description, None).is_err());
     }
 
@@ -182,7 +189,7 @@ implementation = 'stdout.rs'
 name = 'stdout'
 type = 'String'";
 
-        let toml = FlowTomelLoader {};
+        let toml = FlowTomlLoader {};
         assert!(toml.deserialize(function_definition, None).is_ok());
     }
 
@@ -194,7 +201,7 @@ implementation = 'stdout.rs'
 name = 'stdout'
 type = 'String'";
 
-        let toml = FlowTomelLoader {};
+        let toml = FlowTomlLoader {};
         assert!(toml.deserialize(function_definition, None).is_err());
     }
 
@@ -206,7 +213,7 @@ function = 'stdout'
 name = 'stdout'
 type = 'String'";
 
-        let toml = FlowTomelLoader {};
+        let toml = FlowTomlLoader {};
         assert!(toml.deserialize(function_definition, None).is_err());
     }
 }

@@ -31,7 +31,7 @@ pub struct GenerationTables {
     /// HashMap from "route of the input of a function" --> (dest_function_id, input number, flow_id)
     pub collapsed_connections: Vec<Connection>,
     pub functions: Vec<Function>,
-    pub libs: HashSet<String>,
+    pub libs: HashSet<Url>,
 }
 
 impl GenerationTables {
@@ -72,7 +72,7 @@ impl From<&IO> for Input {
 pub fn create_manifest(
     flow: &Flow,
     debug_symbols: bool,
-    manifest_url: &str,
+    manifest_url: &Url,
     tables: &GenerationTables,
 ) -> Result<Manifest> {
     info!("Writing flow manifest to '{}'", manifest_url);
@@ -82,7 +82,7 @@ pub fn create_manifest(
     // Generate run-time Process struct for each of the functions
     for function in &tables.functions {
         manifest.add_function(function_to_runtimefunction(
-            &manifest_url,
+            manifest_url,
             function,
             debug_symbols,
         )?);
@@ -109,7 +109,7 @@ pub fn write_flow_manifest(
         File::create(&filename).chain_err(|| "Could not create manifest file")?;
     let manifest_url =
         Url::from_file_path(&filename).map_err(|_| "Could not parse Url from file path")?;
-    let manifest = create_manifest(&flow, debug_symbols, manifest_url.as_str(), tables)
+    let manifest = create_manifest(&flow, debug_symbols, &manifest_url, tables)
         .chain_err(|| "Could not create manifest from parsed flow and compiler tables")?;
 
     manifest_file
@@ -128,7 +128,7 @@ pub fn write_flow_manifest(
     manifest_dir is the directory that paths will be made relative to.
 */
 fn function_to_runtimefunction(
-    manifest_url: &str,
+    manifest_url: &Url,
     function: &Function,
     debug_symbols: bool,
 ) -> Result<RuntimeFunction> {
@@ -177,7 +177,7 @@ fn function_to_runtimefunction(
     Get the location of the implementation - relative to the Manifest if it is a provided implementation
 */
 // TODO generalize this for Urls, not just files - will require changing the function.get_implementation()
-fn implementation_location_relative(function: &Function, manifest_url: &str) -> Result<String> {
+fn implementation_location_relative(function: &Function, manifest_url: &Url) -> Result<String> {
     if let Some(ref lib_reference) = function.get_lib_reference() {
         Ok(format!("lib://{}/{}", lib_reference, &function.name()))
     } else {
@@ -191,7 +191,7 @@ fn implementation_location_relative(function: &Function, manifest_url: &str) -> 
             })?
             .to_string();
 
-        let mut manifest_base_url = Url::parse(manifest_url).map_err(|e| e.to_string())?;
+        let mut manifest_base_url = manifest_url.clone();
         manifest_base_url
             .path_segments_mut()
             .map_err(|_| "cannot be base")?
@@ -209,6 +209,7 @@ fn implementation_location_relative(function: &Function, manifest_url: &str) -> 
 #[cfg(test)]
 mod test {
     use serde_json::json;
+    use url::Url;
 
     use flowrstructs::input::InputInitializer;
     use flowrstructs::output_connection::OutputConnection;
@@ -264,8 +265,12 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let runtime_process = function_to_runtimefunction("/test", &br, false)
-            .expect("Could not convert compile time function to runtime function");
+        let runtime_process = function_to_runtimefunction(
+            &Url::parse("file://test").expect("Couldn't parse test Url"),
+            &br,
+            false,
+        )
+        .expect("Could not convert compile time function to runtime function");
 
         let serialized_process = serde_json::to_string_pretty(&runtime_process)
             .expect("Could not convert function content to json");
@@ -312,8 +317,12 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = function_to_runtimefunction("/test", &br, false)
-            .expect("Could not convert compile time function to runtime function");
+        let process = function_to_runtimefunction(
+            &Url::parse("file://test").expect("Couldn't parse test Url"),
+            &br,
+            false,
+        )
+        .expect("Could not convert compile time function to runtime function");
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
@@ -361,8 +370,12 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = function_to_runtimefunction("/test", &br, false)
-            .expect("Could not convert compile time function to runtime function");
+        let process = function_to_runtimefunction(
+            &Url::parse("file://test").expect("Couldn't parse test Url"),
+            &br,
+            false,
+        )
+        .expect("Could not convert compile time function to runtime function");
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
@@ -403,8 +416,12 @@ mod test {
 }";
 
         let br = Box::new(function) as Box<Function>;
-        let process = function_to_runtimefunction("/test", &br, false)
-            .expect("Could not convert compile time function to runtime function");
+        let process = function_to_runtimefunction(
+            &Url::parse("file://test").expect("Couldn't parse test Url"),
+            &br,
+            false,
+        )
+        .expect("Could not convert compile time function to runtime function");
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
@@ -445,8 +462,12 @@ mod test {
 }";
 
         let br = Box::new(function) as Box<Function>;
-        let process = function_to_runtimefunction("/test", &br, false)
-            .expect("Could not convert compile time function to runtime function");
+        let process = function_to_runtimefunction(
+            &Url::parse("file://test").expect("Couldn't parse test Url"),
+            &br,
+            false,
+        )
+        .expect("Could not convert compile time function to runtime function");
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
@@ -482,8 +503,12 @@ mod test {
 }";
 
         let br = Box::new(function) as Box<Function>;
-        let process = function_to_runtimefunction("/test", &br, false)
-            .expect("Could not convert compile time function to runtime function");
+        let process = function_to_runtimefunction(
+            &Url::parse("file://test").expect("Couldn't parse test Url"),
+            &br,
+            false,
+        )
+        .expect("Could not convert compile time function to runtime function");
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
@@ -549,8 +574,12 @@ mod test {
 }";
         let br = Box::new(function) as Box<Function>;
 
-        let process = function_to_runtimefunction("/test", &br, true)
-            .expect("Could not convert compile time function to runtime function");
+        let process = function_to_runtimefunction(
+            &Url::parse("file://test").expect("Couldn't parse test Url"),
+            &br,
+            true,
+        )
+        .expect("Could not convert compile time function to runtime function");
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");
@@ -598,8 +627,12 @@ mod test {
 
         let br = Box::new(function) as Box<Function>;
 
-        let process = function_to_runtimefunction("/test", &br, false)
-            .expect("Could not convert compile time function to runtime function");
+        let process = function_to_runtimefunction(
+            &Url::parse("file://test").expect("Couldn't parse test Url"),
+            &br,
+            false,
+        )
+        .expect("Could not convert compile time function to runtime function");
 
         let serialized_process = serde_json::to_string_pretty(&process)
             .expect("Could not convert function content to json");

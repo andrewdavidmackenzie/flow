@@ -25,7 +25,18 @@ impl Provider for FileProvider {
             Ok(md) => {
                 if md.is_dir() {
                     trace!(
-                        "'{}' is a directory, so attempting to find file with same name in it",
+                        "'{}' is a directory, so attempting to find default file named '{}' in it",
+                        path.display(),
+                        default_filename
+                    );
+                    if let Ok(file_found_url) =
+                        FileProvider::find_file(&path, default_filename, extensions)
+                    {
+                        return Ok(file_found_url);
+                    }
+
+                    trace!(
+                        "'{}' is a directory, so attempting to find file with same name inside it",
                         path.display()
                     );
                     if let Some(dir_os_name) = path.file_name() {
@@ -35,14 +46,7 @@ impl Provider for FileProvider {
                         }
                     }
 
-                    trace!(
-                        "'{}' is a directory, so attempting to find default file named '{}' in it",
-                        path.display(),
-                        default_filename
-                    );
-                    let file_found_url =
-                        FileProvider::find_file(&path, default_filename, extensions)?;
-                    Ok(file_found_url)
+                    bail!("No default or same named file found in directory")
                 } else if md.is_file() {
                     Ok(url.clone())
                 } else {

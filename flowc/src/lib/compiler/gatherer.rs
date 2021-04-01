@@ -1,3 +1,6 @@
+use std::iter::Extend;
+
+use crate::errors::*;
 use crate::generator::generate::GenerationTables;
 use crate::model::flow::Flow;
 use crate::model::function::Function;
@@ -8,13 +11,17 @@ use crate::model::process::Process::FunctionProcess;
     This module is responsible for parsing the flow tree and gathering information into a set of
     flat tables that the compiler can use for code generation.
 */
-pub fn gather_functions_and_connections(flow: &Flow, tables: &mut GenerationTables, level: usize) {
+pub fn gather_functions_and_connections(
+    flow: &Flow,
+    tables: &mut GenerationTables,
+    level: usize,
+) -> Result<()> {
     // Add Connections from this flow hierarchy to the connections table
     if let Some(ref flow_connections) = flow.connections {
         let mut connections = flow_connections.clone();
         for con in &mut connections {
             con.level = level;
-        };
+        }
         tables.connections.append(&mut connections);
     }
 
@@ -22,7 +29,7 @@ pub fn gather_functions_and_connections(flow: &Flow, tables: &mut GenerationTabl
     for subprocess in &flow.subprocesses {
         match subprocess.1 {
             FlowProcess(ref flow) => {
-                gather_functions_and_connections(flow, tables, level + 1); // recurse
+                gather_functions_and_connections(flow, tables, level + 1)?; // recurse
             }
             FunctionProcess(ref function) => {
                 // Add Functions from this flow to the table of functions
@@ -31,11 +38,11 @@ pub fn gather_functions_and_connections(flow: &Flow, tables: &mut GenerationTabl
         }
     }
 
-    // Add libraries referenced from this flow to the overall list
-    for lib_reference in &flow.lib_references {
-        let lib_name = lib_reference.split('/').collect::<Vec<&str>>()[0].to_string();
-        tables.libs.insert(format!("lib://{}", lib_name));
-    }
+    // Add the library references of this flow into the tables list
+    let lib_refs = &flow.lib_references;
+    tables.libs.extend(lib_refs.iter().cloned());
+
+    Ok(())
 }
 
 /*

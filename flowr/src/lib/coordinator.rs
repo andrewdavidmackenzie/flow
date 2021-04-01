@@ -6,9 +6,10 @@ use std::time::Duration;
 use log::{debug, error, info, trace};
 use serde_derive::{Deserialize, Serialize};
 use simpath::Simpath;
+use url::Url;
 
 use flowrstructs::manifest::Manifest;
-use provider::content::provider::{MetaProvider, Provider};
+use provider::lib_provider::{LibProvider, MetaProvider};
 
 #[cfg(feature = "debugger")]
 use crate::client_server::{DebugClientConnection, DebugServerConnection};
@@ -34,7 +35,7 @@ use crate::runtime::{Event, Response};
 /// - an optional DebugClient to allow you to debug the execution
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Submission {
-    manifest_url: String,
+    manifest_url: Url,
     pub max_parallel_jobs: usize,
     pub job_timeout: Duration,
     #[cfg(feature = "debugger")]
@@ -46,14 +47,14 @@ impl Submission {
     /// of `Functions`, executing it with a maximum of `mac_parallel_jobs` running in parallel
     /// connecting via the optional `DebugClient`
     pub fn new(
-        manifest_url: &str,
+        manifest_url: &Url,
         max_parallel_jobs: usize,
         #[cfg(feature = "debugger")] debug: bool,
     ) -> Submission {
         info!("Maximum jobs in parallel limited to {}", max_parallel_jobs);
 
         Submission {
-            manifest_url: manifest_url.to_string(),
+            manifest_url: manifest_url.to_owned(),
             max_parallel_jobs,
             job_timeout: Duration::from_secs(60),
             #[cfg(feature = "debugger")]
@@ -97,6 +98,7 @@ pub struct Coordinator {
 /// use flowrlib::runtime::Event as RuntimeEvent;
 /// use flowrlib::runtime::Response::ClientSubmission;
 /// use simpath::Simpath;
+/// use url::Url;
 ///
 /// let (runtime_client_connection, debug_client_connection) = Coordinator::server(1 /* num_threads */,
 ///                                                                     Simpath::new("fake path"),
@@ -106,7 +108,7 @@ pub struct Coordinator {
 ///                                                                     None   /* server hostname */)
 ///                                                 .unwrap();
 ///
-/// let mut submission = Submission::new("file:///temp/fake.toml",
+/// let mut submission = Submission::new(&Url::parse("file:///temp/fake.toml").unwrap(),
 ///                                     1 /* num_parallel_jobs */,
 ///                                     true /* enter debugger on start */);
 ///
@@ -297,6 +299,7 @@ impl Coordinator {
         }
     }
 
+    //noinspection RsTypeCheck
     // Execute a flow by looping while there are jobs to be processed in an inner loop.
     // There is an outer loop for the case when you are using the debugger, to allow entering
     // the debugger when the flow ends and at any point resetting all the state and starting
@@ -418,19 +421,21 @@ impl Coordinator {
     }
 
     fn load_from_manifest(
-        manifest_url: &str,
+        manifest_url: &Url,
         loader: &mut Loader,
-        provider: &dyn Provider,
+        provider: &dyn LibProvider,
         server_context: Arc<Mutex<RuntimeServerConnection>>,
         native: bool,
     ) -> Result<Manifest> {
+        let native_url =
+            Url::parse("lib://flowruntime").chain_err(|| "Could not parse lib_manifest_url")?;
+
         // Load this run-time's library of native (statically linked) implementations
         loader
             .add_lib(
                 provider,
-                "lib://flowruntime",
-                flowruntime::get_manifest(server_context),
-                "native",
+                flowruntime::get_manifest(server_context)?,
+                &native_url,
             )
             .chain_err(|| "Could not add 'flowruntime' library to loader")?;
 
@@ -439,9 +444,8 @@ impl Coordinator {
             loader
                 .add_lib(
                     provider,
-                    "lib://flowstdlib",
-                    flowstdlib::get_manifest(),
-                    "native",
+                    flowstdlib::get_manifest().chain_err(|| "Could not get flowstdlib manifest")?,
+                    &native_url,
                 )
                 .chain_err(|| "Could not add 'flowstdlib' library to loader")?;
         }
@@ -519,11 +523,13 @@ impl Coordinator {
 
 #[cfg(test)]
 mod test {
+    use url::Url;
+
     use crate::coordinator::Submission;
 
     #[test]
     fn create_submission() {
-        let manifest_url = "file:///temp/fake/flow.toml";
+        let manifest_url = Url::parse("file:///temp/fake/flow.toml").expect("Could not create Url");
         let _ = Submission::new(
             &manifest_url,
             1,

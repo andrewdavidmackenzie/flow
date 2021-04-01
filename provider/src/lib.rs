@@ -5,7 +5,7 @@
 #[macro_use]
 extern crate error_chain;
 
-pub mod content;
+mod content;
 pub mod lib_provider;
 
 #[doc(hidden)]

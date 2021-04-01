@@ -1,36 +1,29 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use std::io;
 use std::io::prelude::*;
-use std::io::{Error, ErrorKind};
 use std::path::Path;
 
-use log::info;
 use serde_json::Value;
+use url::Url;
 
 use flowrstructs::input::InputInitializer::{Always, Once};
-use provider::content::provider::Provider;
+use provider::lib_provider::LibProvider;
 
 use crate::deserializers::deserializer_helper::get_file_extension;
-use crate::dumper::helper;
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
 use crate::model::connection::Connection;
 use crate::model::flow::Flow;
 use crate::model::function::Function;
-use crate::model::io::Find;
-use crate::model::io::IOSet;
-use crate::model::name::HasName;
-use crate::model::name::Name;
-use crate::model::process::Process::FlowProcess;
-use crate::model::process::Process::FunctionProcess;
-use crate::model::route::HasRoute;
-use crate::model::route::Route;
+use crate::model::io::{Find, IOSet};
+use crate::model::name::{HasName, Name};
+use crate::model::process::Process::{FlowProcess, FunctionProcess};
+use crate::model::route::{HasRoute, Route};
 
 static INPUT_PORTS: &[&str] = &["n", "ne", "nw", "w"];
 static OUTPUT_PORTS: &[&str] = &["s", "se", "sw", "e"];
 
-fn absolute_to_relative(absolute: String, current_dir: &Path) -> Result<String> {
+fn absolute_to_relative(absolute: &str, current_dir: &Path) -> Result<String> {
     let root_path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .ok_or("Could not get parent directory of manifest dir")?;
@@ -48,8 +41,8 @@ pub fn write_flow_to_dot(
     flow: &Flow,
     dot_file: &mut dyn Write,
     output_dir: &Path,
-    provider: &dyn Provider,
-) -> io::Result<String> {
+    provider: &dyn LibProvider,
+) -> std::io::Result<()> {
     dot_file.write_all(digraph_wrapper_start(flow).as_bytes())?;
 
     let mut contents = String::new();
@@ -65,37 +58,42 @@ pub fn write_flow_to_dot(
     if let Some(process_refs) = &flow.process_refs {
         for process_ref in process_refs {
             let process = flow.subprocesses.get(process_ref.alias()).ok_or_else(|| {
-                io::Error::new(
-                    io::ErrorKind::Other,
+                std::io::Error::new(
+                    std::io::ErrorKind::Other,
                     "Could not find process named in process_ref",
                 )
             })?;
             match process {
                 FlowProcess(ref flow) => {
-                    let mut flow_source = if process_ref.source.starts_with("lib:") {
-                        let (source, _lib_ref) = provider
-                            .resolve_url(&process_ref.source, "", &[""])
-                            .map_err(|_| {
-                                Error::new(
-                                    ErrorKind::Other,
-                                    "Could not find the true source of a library defined flow",
+                    let (flow_source, _) = provider
+                        .resolve_url(
+                            &Url::parse(&process_ref.source).map_err(|_| {
+                                std::io::Error::new(
+                                    std::io::ErrorKind::Other,
+                                    "Could not parse Url from flow_source",
                                 )
-                            })?;
-                        source
-                    } else {
-                        process_ref.source.to_owned()
-                    };
+                            })?,
+                            "",
+                            &[""],
+                        )
+                        .map_err(|_| {
+                            std::io::Error::new(
+                                std::io::ErrorKind::Other,
+                                "Could not resolve Url of flow_source",
+                            )
+                        })?;
 
                     // remove file extension when forming URL as is of form {file_stem}.dot.svg
-                    if let Some(extension) = get_file_extension(&flow_source.clone()) {
-                        flow_source.truncate(flow_source.len() - (extension.len() + 1));
+                    let mut flow_source_str = flow_source.to_string();
+                    if let Some(extension) = get_file_extension(&flow_source) {
+                        flow_source_str.truncate(flow_source_str.len() - (extension.len() + 1))
                     }
 
-                    let relative_path =
-                        absolute_to_relative(flow_source, output_dir).map_err(|_| {
-                            io::Error::new(
-                                io::ErrorKind::Other,
-                                "Could not convert relative path to absolute path",
+                    let relative_path = absolute_to_relative(&flow_source_str, output_dir)
+                        .map_err(|_| {
+                            std::io::Error::new(
+                                std::io::ErrorKind::Other,
+                                "Could not absolute flow_source to a relative path",
                             )
                         })?;
                     let flow = format!("\t\"{}\" [label=\"{}\", style=filled, fillcolor=aquamarine, width=2, height=2, URL=\"{}.dot.svg\"];\n",
@@ -104,8 +102,8 @@ pub fn write_flow_to_dot(
                 }
                 FunctionProcess(ref function) => {
                     contents.push_str(&fn_to_dot(function, output_dir).map_err(|_| {
-                        io::Error::new(
-                            io::ErrorKind::Other,
+                        std::io::Error::new(
+                            std::io::ErrorKind::Other,
                             "Could not generate dot code for function",
                         )
                     })?);
@@ -128,41 +126,7 @@ pub fn write_flow_to_dot(
 
     dot_file.write_all(contents.as_bytes())?;
 
-    dot_file.write_all(&digraph_wrapper_end().as_bytes())?;
-
-    Ok("Dot file written".to_string())
-}
-
-/*
-    Create a directed graph named after the flow, adding functions grouped in sub-clusters
-*/
-pub fn functions_to_dot(
-    flow: &Flow,
-    tables: &GenerationTables,
-    output_dir: &Path,
-) -> io::Result<String> {
-    info!(
-        "=== Dumper: Dumping functions to '{}'",
-        output_dir.display()
-    );
-    let mut dot_file = helper::create_output_file(&output_dir, "functions", "dot")?;
-    info!("\tGenerating functions.dot, Use \"dotty\" to view it");
-    dot_file.write_all(
-        format!(
-            "digraph {} {{\nnodesep=1.0\n",
-            str::replace(&flow.alias.to_string(), "-", "_")
-        )
-        .as_bytes(),
-    )?;
-    dot_file.write_all(&format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
-
-    let functions = process_refs_to_dot(flow, tables, output_dir)?;
-
-    dot_file.write_all(functions.as_bytes())?;
-
-    dot_file.write_all(b"}")?;
-
-    Ok("Dot file written".to_string())
+    dot_file.write_all(&digraph_wrapper_end().as_bytes())
 }
 
 fn index_from_name<T: Hash>(t: &T, length: usize) -> usize {
@@ -273,7 +237,7 @@ fn fn_to_dot(function: &Function, output_dir: &Path) -> Result<String> {
         format!("\\n({})", function.name())
     };
 
-    let relative_path = absolute_to_relative(function.get_source_url().to_owned(), output_dir)?;
+    let relative_path = absolute_to_relative(function.get_source_url(), output_dir)?;
 
     // modify path to point to the .html page that's built from .md to document the function
     let md_path = relative_path.replace("toml", "html");
@@ -450,22 +414,20 @@ fn output_compiled_function(
     }
 }
 
-fn process_refs_to_dot(
+pub fn process_refs_to_dot(
     flow: &Flow,
     tables: &GenerationTables,
     output_dir: &Path,
-) -> io::Result<String> {
+) -> Result<String> {
     let mut output = String::new();
 
     // Do the same for all subprocesses referenced from this one
     if let Some(ref process_refs) = flow.process_refs {
         for process_ref in process_refs {
-            let process = flow.subprocesses.get(process_ref.alias()).ok_or_else(|| {
-                io::Error::new(
-                    io::ErrorKind::Other,
-                    "Could not find process named in process_ref",
-                )
-            })?;
+            let process = flow
+                .subprocesses
+                .get(process_ref.alias())
+                .ok_or("Could not find process named in process_ref")?;
             match process {
                 FlowProcess(ref subflow) => {
                     // create cluster sub graph

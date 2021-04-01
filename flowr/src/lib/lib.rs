@@ -12,15 +12,15 @@
 #[macro_use]
 extern crate error_chain;
 
-/// `info` offers methods to get information about this library
-pub mod info;
 /// `coordinator` is the module that coordinates the execution of flows submitted to it
 pub mod coordinator;
-/// `loader` is responsible for loading a flow from it's manifest and loading libraries it uses
-pub mod loader;
 /// `flowruntime` module implements the executor/server side of the runtime functions and appears
 /// to user code like a library
 mod flowruntime;
+/// `info` offers methods to get information about this library
+pub mod info;
+/// `loader` is responsible for loading a flow from it's manifest and loading libraries it uses
+pub mod loader;
 
 #[allow(unused_attributes)]
 #[cfg_attr(feature = "distributed", path = "client_server/message_queue.rs")]
@@ -40,8 +40,8 @@ pub mod runtime;
 mod debugger;
 
 mod execution;
-mod wasm;
 mod run_state;
+mod wasm;
 
 #[cfg(feature = "metrics")]
 pub mod metrics;
@@ -66,5 +66,8 @@ error_chain! {
         Serde(serde_json::error::Error);
         Recv(std::sync::mpsc::RecvError);
         Provider(provider::errors::Error);
+        Url(url::ParseError);
+        FlowStdLib(flowstdlib::errors::Error);
+        FlowrStructs(flowrstructs::errors::Error);
     }
 }

@@ -1,3 +1,5 @@
+use url::Url;
+
 use crate::compiler::loader::Deserializer;
 use crate::errors::*;
 use crate::model::process::Process;
@@ -6,13 +8,18 @@ pub struct FlowJsonLoader;
 
 // NOTE: Indexes are one-based
 impl Deserializer for FlowJsonLoader {
-    fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process> {
-        serde_json::from_str(contents)
-            .chain_err(|| format!("Error deserializing Json from: '{}'",
-                                  url.map_or("URL unknown".to_owned(), |u| u.to_string())))
+    fn deserialize(&self, contents: &str, url: Option<&Url>) -> Result<Process> {
+        serde_json::from_str(contents).chain_err(|| {
+            format!(
+                "Error deserializing Json from: '{}'",
+                url.map_or("URL unknown".to_owned(), |u| u.to_string())
+            )
+        })
     }
 
-    fn name(&self) -> &'static str { "Json" }
+    fn name(&self) -> &'static str {
+        "Json"
+    }
 }
 
 #[cfg(test)]
@@ -29,7 +36,6 @@ mod test {
             panic!("Should not have parsed correctly as is invalid JSON");
         };
     }
-
 
     #[test]
     fn simplest_context_loads() {

@@ -25,7 +25,7 @@ debugger = [] # feature to add the debugger
 flow_impl = {path = "../flow_impl", version = "0.21.0" }
 provider = {path = "../provider", version = "0.34.4" }
 
-url = "~2.1"
+url = { version = "2.2", features = ["serde"] }
 serde = "~1.0.27"
 serde_derive = "~1.0.27"
 serde_json = "1.0"

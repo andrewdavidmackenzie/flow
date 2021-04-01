@@ -148,7 +148,7 @@ fn run() -> Result<()> {
         let flow_manifest_url = parse_flow_url(&matches)?;
         let flow_args = get_flow_args(&matches, &flow_manifest_url);
         let submission = Submission::new(
-            &flow_manifest_url.to_string(),
+            &flow_manifest_url,
             num_parallel_jobs(&matches, debugger),
             #[cfg(feature = "debugger")]
             debugger,

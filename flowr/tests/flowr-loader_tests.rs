@@ -15,7 +15,7 @@ use flowrlib::loader::Loader;
 use flowrstructs::function::Function;
 use flowrstructs::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowrstructs::manifest::{Manifest, MetaData};
-use provider::content::provider::MetaProvider;
+use provider::lib_provider::MetaProvider;
 
 /// flowrlib integration tests
 ///
@@ -35,11 +35,10 @@ use provider::content::provider::MetaProvider;
 ///
 
 // Helper function for tests
-fn url_from_rel_path(path: &str) -> String {
+fn url_from_rel_path(path: &str) -> Url {
     let cwd = Url::from_file_path(env::current_dir().unwrap()).unwrap();
     let source_file = cwd.join(file!()).unwrap();
-    let file = source_file.join(path).unwrap();
-    file.to_string()
+    source_file.join(path).unwrap()
 }
 
 fn cwd_as_url() -> Url {
@@ -55,7 +54,7 @@ fn create_manifest(functions: Vec<Function>) -> Manifest {
     };
 
     let mut manifest = Manifest::new(metadata);
-    manifest.add_lib_reference("lib://flowstdlib");
+    manifest.add_lib_reference(&Url::parse("lib://flowstdlib").expect("Could not create Url"));
 
     for function in functions {
         manifest.add_function(function);
@@ -95,27 +94,27 @@ fn get_manifest() -> LibraryManifest {
     let mut manifest = LibraryManifest::new(metadata);
 
     manifest.locators.insert(
-        "lib://flowruntime/args/get/get".to_string(),
+        Url::parse("lib://flowruntime/args/get/get").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
     manifest.locators.insert(
-        "lib://flowruntime/file/file_write/file_write".to_string(),
+        Url::parse("lib://flowruntime/file/file_write/file_write").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
     manifest.locators.insert(
-        "lib://flowruntime/stdio/readline/readline".to_string(),
+        Url::parse("lib://flowruntime/stdio/readline/readline").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
     manifest.locators.insert(
-        "lib://flowruntime/stdio/stdin/stdin".to_string(),
+        Url::parse("lib://flowruntime/stdio/stdin/stdin").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
     manifest.locators.insert(
-        "lib://flowruntime/stdio/stdout/stdout".to_string(),
+        Url::parse("lib://flowruntime/stdio/stdout/stdout").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
     manifest.locators.insert(
-        "lib://flowruntime/stdio/stderr/stderr".to_string(),
+        Url::parse("lib://flowruntime/stdio/stderr/stderr").expect("Could not create Url"),
         Native(Arc::new(Fake {})),
     );
 
@@ -154,9 +153,9 @@ fn set_lib_search_path() -> Simpath {
 #[test]
 fn load_manifest_from_file() {
     let f_a = Function::new(
-        "fA".to_string(), // name
-        "/fA".to_string(),
-        "lib://flowstdlib/control/join/join".to_string(),
+        "fA",
+        "/fA",
+        "lib://flowstdlib/control/join/join",
         vec![],
         0,
         0,
@@ -178,14 +177,11 @@ fn load_manifest_from_file() {
     loader
         .add_lib(
             &provider,
-            "lib://flowstdlib",
-            flowstdlib::get_manifest(),
-            "native",
+            flowstdlib::get_manifest().expect("Couldn't get manifest"),
+            &Url::parse("lib://flowstdlib").expect("Could not create Url"),
         )
         .unwrap();
-    let _ = loader
-        .load_manifest(&provider, &manifest_url.to_string())
-        .unwrap();
+    let _ = loader.load_manifest(&provider, &manifest_url).unwrap();
 
     assert!(!loader.get_lib_implementations().is_empty());
 }
@@ -193,9 +189,9 @@ fn load_manifest_from_file() {
 #[test]
 fn resolve_lib_implementation_test() {
     let f_a = Function::new(
-        "fA".to_string(), // name
-        "/fA".to_string(),
-        "lib://flowruntime/stdio/stdin/stdin".to_string(),
+        "fA",
+        "/fA",
+        "lib://flowruntime/stdio/stdin/stdin",
         vec![],
         0,
         0,
@@ -210,12 +206,7 @@ fn resolve_lib_implementation_test() {
 
     // Load library functions provided
     loader
-        .add_lib(
-            &provider,
-            "lib://flowruntime",
-            get_manifest(),
-            &cwd_as_url().to_string(),
-        )
+        .add_lib(&provider, get_manifest(), &cwd_as_url())
         .unwrap();
 
     loader
@@ -226,9 +217,9 @@ fn resolve_lib_implementation_test() {
 #[test]
 fn unresolved_lib_functions_test() {
     let f_a = Function::new(
-        "fA".to_string(), // name
-        "/fA".to_string(),
-        "lib://flowruntime/stdio/stdin/foo".to_string(),
+        "fA",
+        "/fA",
+        "lib://flowruntime/stdio/stdin/foo",
         vec![],
         0,
         0,
@@ -243,12 +234,7 @@ fn unresolved_lib_functions_test() {
 
     // Load library functions provided
     loader
-        .add_lib(
-            &provider,
-            "lib://flowruntime",
-            get_manifest(),
-            &cwd_as_url().to_string(),
-        )
+        .add_lib(&provider, get_manifest(), &cwd_as_url())
         .unwrap();
 
     assert!(loader

@@ -38,7 +38,7 @@ pub struct Manifest {
     /// The `MetaData` about this flow
     metadata: MetaData,
     /// A list of the `lib_references` used by this flow
-    lib_references: HashSet<String>,
+    lib_references: HashSet<Url>,
     /// A list of descriptors of the `Functions` used in this flow
     functions: Vec<Function>,
 }
@@ -48,7 +48,7 @@ impl Manifest {
     pub fn new(metadata: MetaData) -> Self {
         Manifest {
             metadata,
-            lib_references: HashSet::<String>::new(),
+            lib_references: HashSet::<Url>::new(),
             functions: Vec::<Function>::new(),
         }
     }
@@ -69,18 +69,18 @@ impl Manifest {
     }
 
     /// get the list of all library references in this manifest
-    pub fn get_lib_references(&self) -> &HashSet<String> {
+    pub fn get_lib_references(&self) -> &HashSet<Url> {
         &self.lib_references
     }
 
     /// set the list of all library references in this manifest
-    pub fn set_lib_references(&mut self, lib_references: &HashSet<String>) {
+    pub fn set_lib_references(&mut self, lib_references: &HashSet<Url>) {
         self.lib_references = lib_references.clone();
     }
 
     /// Add a new library reference (the name of a library) into the manifest
-    pub fn add_lib_reference(&mut self, lib_reference: &str) {
-        self.lib_references.insert(lib_reference.into());
+    pub fn add_lib_reference(&mut self, lib_reference: &Url) {
+        self.lib_references.insert(lib_reference.clone());
     }
 
     /// Load, or Deserialize, a manifest from a `source` Url using `provider`
@@ -150,10 +150,10 @@ mod test {
     fn test_function() -> Function {
         Function::new(
             #[cfg(feature = "debugger")]
-            "test".to_string(),
+            "test",
             #[cfg(feature = "debugger")]
-            "/test".to_string(),
-            "/test".to_string(),
+            "/test",
+            "file://fake/test",
             vec![Input::new(&None)],
             0,
             0,

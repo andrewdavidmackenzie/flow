@@ -30,6 +30,8 @@ pub struct Function {
     /// The unique id of the flow this function was in at definition time
     flow_id: usize,
 
+    /// Implementation location can be a "lib://lib_name/path/to/implementation" reference
+    /// or a path relative to the manifest location where a supplied implementation file can be found
     implementation_location: String,
 
     // TODO skip serializing this, if the vector ONLY contains objects that can be serialized
@@ -88,10 +90,10 @@ impl Function {
     /// The Vector of outputs:
     /// Output sub-path (or ""), destination function id, destination function io number, Optional path of destination
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        #[cfg(feature = "debugger")] name: String,
-        #[cfg(feature = "debugger")] route: String,
-        implementation_location: String,
+    pub fn new<N: Into<String>, R: Into<String>, I: Into<String>>(
+        #[cfg(feature = "debugger")] name: N,
+        #[cfg(feature = "debugger")] route: R,
+        implementation_location: I,
         inputs: Vec<Input>,
         id: usize,
         flow_id: usize,
@@ -109,12 +111,12 @@ impl Function {
 
         Function {
             #[cfg(feature = "debugger")]
-            name,
+            name: name.into(),
             #[cfg(feature = "debugger")]
-            route,
+            route: route.into(),
             id,
             flow_id,
-            implementation_location,
+            implementation_location: implementation_location.into(),
             implementation: Function::default_implementation(),
             output_connections: routes,
             inputs,
@@ -202,7 +204,7 @@ impl Function {
 
     /// Returns how many inputs sets are available across all the `Functions` `inputs`
     pub fn input_set_count(&self) -> usize {
-        let mut num_input_sets = std::usize::MAX;
+        let mut num_input_sets = usize::MAX;
 
         for input in &self.inputs {
             num_input_sets = std::cmp::min(num_input_sets, input.count());
@@ -248,7 +250,7 @@ mod test {
         let json = json!("simple");
         assert_eq!(
             "simple",
-            json.pointer("").unwrap(),
+            json.pointer("").expect("Couldn't get root element"),
             "json pointer functionality not working!"
         );
     }
@@ -258,7 +260,7 @@ mod test {
         let json: Value = json!({ "sub_route": "sub_output" });
         assert_eq!(
             "sub_output",
-            json.pointer("/sub_route").unwrap(),
+            json.pointer("/sub_route").expect("Couldn't get route"),
             "json pointer functionality not working!"
         );
     }
@@ -269,12 +271,12 @@ mod test {
         let json = json!(args);
         assert_eq!(
             "arg0",
-            json.pointer("/0").unwrap(),
+            json.pointer("/0").expect("Couldn't get /0 route"),
             "json pointer array indexing functionality not working!"
         );
         assert_eq!(
             "arg1",
-            json.pointer("/1").unwrap(),
+            json.pointer("/1").expect("Couldn't get /1 route"),
             "json pointer array indexing functionality not working!"
         );
     }
@@ -286,7 +288,10 @@ mod test {
         function.send(0, &json!(1));
         assert_eq!(
             json!(1),
-            function.take_input_set().unwrap().remove(0),
+            function
+                .take_input_set()
+                .expect("Couldn't get input set")
+                .remove(0),
             "Value from input set wasn't what was expected"
         );
     }
@@ -298,7 +303,10 @@ mod test {
         function.send(0, &json!([1, 2]));
         assert_eq!(
             json!([1, 2]),
-            function.take_input_set().unwrap().remove(0),
+            function
+                .take_input_set()
+                .expect("Couldn't get input set")
+                .remove(0),
             "Value from input set wasn't what was expected"
         );
     }
@@ -309,7 +317,10 @@ mod test {
         function.init_inputs(true);
         function.send(0, &json!([1, 2]));
         assert_eq!(
-            function.take_input_set().unwrap().remove(0),
+            function
+                .take_input_set()
+                .expect("Couldn't get input set")
+                .remove(0),
             json!([1, 2]),
             "Value from input set wasn't what was expected"
         );
@@ -319,10 +330,10 @@ mod test {
         let out_conn = OutputConnection::new("/other/input/1".to_string(), 1, 1, 0, 0, false, None);
         Function::new(
             #[cfg(feature = "debugger")]
-            "test".to_string(),
+            "test",
             #[cfg(feature = "debugger")]
-            "/test".to_string(),
-            "/implementation".to_string(),
+            "/test",
+            "file://fake/implementation",
             vec![Input::new(&None)],
             1,
             0,
@@ -368,10 +379,10 @@ mod test {
             OutputConnection::new("/other/input/1".to_string(), 1, 1, 0, 0, false, None);
         let mut function = Function::new(
             #[cfg(feature = "debugger")]
-            "test".to_string(),
+            "test",
             #[cfg(feature = "debugger")]
-            "/test".to_string(),
-            "/test".to_string(),
+            "/test",
+            "file://fake/test",
             vec![Input::new(&None)],
             0,
             0,
@@ -394,7 +405,10 @@ mod test {
         #[cfg(feature = "debugger")]
         assert_eq!("test".to_string(), function.name());
         assert_eq!(1, function.id());
-        assert_eq!("/implementation", function.implementation_location());
+        assert_eq!(
+            "file://fake/implementation",
+            function.implementation_location()
+        );
     }
 
     #[test]

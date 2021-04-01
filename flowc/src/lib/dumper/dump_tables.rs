@@ -1,6 +1,5 @@
 use std::fmt;
 use std::fs::File;
-use std::io;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -9,35 +8,37 @@ use log::info;
 use crate::dumper::dump_dot;
 use crate::generator::generate::GenerationTables;
 use crate::model::flow::Flow;
+use crate::model::route::HasRoute;
 
-/// dump a flow's compiler tables that were constructed for use in code generation
+/// Dump the compiler tables of a loaded flow in human readable format to a specified
+/// output directory.
 ///
 /// # Example
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use provider::content::provider::Provider;
+/// use provider::lib_provider::Provider;
 /// use provider::errors::Result;
 /// use flowclib::model::process::Process::FlowProcess;
+/// use provider::lib_provider::LibProvider;
 ///
 /// struct DummyProvider {}
 ///
-/// impl Provider for DummyProvider {
-///     fn resolve_url(&self, url: &str, default_filename: &str, _ext: &[&str]) -> Result<(String, Option<String>)> {
-///         Ok((url.to_string(), None))
+/// impl LibProvider for DummyProvider {
+///     fn resolve_url(&self, url: &Url, default_filename: &str, _ext: &[&str]) -> Result<(Url, Option<String>)> {
+///         Ok((url.clone(), None))
 ///     }
 ///
-///     fn get_contents(&self, url: &str) -> Result<Vec<u8>> {
+///     fn get_contents(&self, _url: &Url) -> Result<Vec<u8>> {
 ///         Ok("flow = \"dummy\"".as_bytes().to_owned())
 ///     }
 /// }
 ///
 /// let dummy_provider = DummyProvider {};
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-/// println!("url = {:?}", url);
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
 ///
-/// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url.to_string(),
+/// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url,
 ///                                                           &dummy_provider).unwrap() {
 ///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///     let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
@@ -49,7 +50,7 @@ use crate::model::flow::Flow;
 /// }
 /// ```
 ///
-pub fn dump_tables(tables: &GenerationTables, output_dir: &Path) -> io::Result<String> {
+pub fn dump_tables(tables: &GenerationTables, output_dir: &Path) -> std::io::Result<()> {
     info!("=== Dumper: Dumping tables to '{}'", output_dir.display());
 
     let mut writer = create_output_file(&output_dir, "connections", "dump")?;
@@ -70,8 +71,54 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &Path) -> io::Result<S
 
     writer = create_output_file(&output_dir, "libs", "dump")?;
     info!("\tGenerating libs.dump");
-    writer.write_all(serde_json::to_string_pretty(&tables.libs)?.as_bytes())?;
-    Ok("All tables dumped".to_string())
+    writer.write_all(serde_json::to_string_pretty(&tables.libs)?.as_bytes())
+}
+
+pub fn create_output_file(
+    output_path: &Path,
+    filename: &str,
+    extension: &str,
+) -> std::io::Result<File> {
+    let mut output_file = PathBuf::from(filename);
+    output_file.set_extension(extension);
+    let mut output_file_path = output_path.to_path_buf();
+    output_file_path.push(&output_file);
+    File::create(&output_file_path)
+}
+
+/*
+    Create a directed graph named after the flow, adding functions grouped in sub-clusters
+*/
+fn functions_to_dot(
+    flow: &Flow,
+    tables: &GenerationTables,
+    output_dir: &Path,
+) -> std::io::Result<()> {
+    info!(
+        "=== Dumper: Dumping functions to '{}'",
+        output_dir.display()
+    );
+    let mut dot_file = create_output_file(&output_dir, "functions", "dot")?;
+    info!("\tGenerating functions.dot, Use \"dotty\" to view it");
+    dot_file.write_all(
+        format!(
+            "digraph {} {{\nnodesep=1.0\n",
+            str::replace(&flow.alias.to_string(), "-", "_")
+        )
+        .as_bytes(),
+    )?;
+    dot_file.write_all(&format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
+
+    let functions = dump_dot::process_refs_to_dot(flow, tables, output_dir).map_err(|_| {
+        std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Could not create dot content for process_refs",
+        )
+    })?;
+
+    dot_file.write_all(functions.as_bytes())?;
+
+    dot_file.write_all(b"}")
 }
 
 /// dump a flow's functions graph as a .dot file to visualize dependencies
@@ -81,19 +128,20 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &Path) -> io::Result<S
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use provider::content::provider::Provider;
+/// use provider::lib_provider::Provider;
 /// use provider::errors::Result;
 /// use flowclib::model::process::Process::FlowProcess;
+/// use provider::lib_provider::LibProvider;
 ///
 /// struct DummyProvider {}
 ///
-/// impl Provider for DummyProvider {
-///     fn resolve_url(&self, url: &str, default_filename: &str, _ext: &[&str]) -> Result<(String, Option<String>)> {
-///         Ok((url.to_string(), None))
+/// impl LibProvider for DummyProvider {
+///     fn resolve_url(&self, url: &Url, default_filename: &str, _ext: &[&str]) -> Result<(Url, Option<String>)> {
+///         Ok((url.clone(), None))
 ///     }
 ///
 ///     // Return a flow definition for the content for the example
-///     fn get_contents(&self, url: &str) -> Result<Vec<u8>> {
+///     fn get_contents(&self, _url: &Url) -> Result<Vec<u8>> {
 ///         Ok("flow = \"dummy\"".as_bytes().to_owned())
 ///     }
 /// }
@@ -102,7 +150,7 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &Path) -> io::Result<S
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
 ///
-/// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url.to_string(),
+/// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url,
 ///                                                           &dummy_provider).unwrap() {
 ///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///     let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
@@ -114,31 +162,21 @@ pub fn dump_functions(
     flow: &Flow,
     tables: &GenerationTables,
     output_dir: &Path,
-) -> io::Result<String> {
-    dump_dot::functions_to_dot(flow, tables, output_dir)?;
+) -> std::io::Result<()> {
+    functions_to_dot(flow, tables, output_dir)?;
 
     let mut writer = create_output_file(&output_dir, "functions", "dump")?;
     info!("\tGenerating functions.dump");
-    dump_table(tables.functions.iter(), &mut writer)?;
-    Ok("Functions dumped".to_string())
+    dump_table(tables.functions.iter(), &mut writer)
 }
 
 // TODO I can't get output of functions as JSON to work with serde
-fn dump_table<C: Iterator>(table: C, writer: &mut dyn Write) -> io::Result<String>
+fn dump_table<C: Iterator>(table: C, writer: &mut dyn Write) -> std::io::Result<()>
 where
     <C as Iterator>::Item: fmt::Display,
 {
     for function in table.into_iter() {
         writer.write_all(format!("{}\n", function).as_bytes())?;
     }
-    writer.write_all(b"\n")?;
-    Ok("table dumped".to_string())
-}
-
-fn create_output_file(output_path: &Path, filename: &str, extension: &str) -> io::Result<File> {
-    let mut output_file = PathBuf::from(filename);
-    output_file.set_extension(extension);
-    let mut output_file_path = output_path.to_path_buf();
-    output_file_path.push(&output_file);
-    File::create(&output_file_path)
+    writer.write_all(b"\n")
 }

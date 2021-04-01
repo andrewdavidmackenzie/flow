@@ -1,3 +1,5 @@
+use url::Url;
+
 use crate::compiler::loader::Deserializer;
 use crate::errors::*;
 use crate::model::process::Process;
@@ -6,15 +8,19 @@ pub struct FlowYamlLoader;
 
 // NOTE: Indexes are one-based
 impl Deserializer for FlowYamlLoader {
-    fn deserialize(&self, contents: &str, url: Option<&str>) -> Result<Process> {
-        serde_yaml::from_str(contents)
-            .chain_err(|| format!("Error deserializing Yaml from: '{}'",
-                                  url.map_or("URL unknown".to_owned(), |u| u.to_string())))
+    fn deserialize(&self, contents: &str, url: Option<&Url>) -> Result<Process> {
+        serde_yaml::from_str(contents).chain_err(|| {
+            format!(
+                "Error deserializing Yaml from: '{}'",
+                url.map_or("URL unknown".to_owned(), |u| u.to_string())
+            )
+        })
     }
 
-    fn name(&self) -> &'static str { "Yaml" }
+    fn name(&self) -> &'static str {
+        "Yaml"
+    }
 }
-
 
 #[cfg(test)]
 mod test {
