@@ -46,12 +46,16 @@ before_install:
 script:
   - |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      travis_wait 50 make clippy build test
-      if [[ "$TRAVIS_RUST_VERSION" == "stable" && "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
+      if [[ "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
+        # Build the docs nightly
         travis_wait 50 make docs
+      else
+        travis_wait 50 make clippy build test
       fi
     else
-      travis_wait 50 make clippy test
+      if [[ "$TRAVIS_EVENT_TYPE" != "cron" ]]; then
+        travis_wait 50 make clippy test
+      fi
     fi
 
 # Docs are only built and deployed in "cron" builds on linux with rust stable
