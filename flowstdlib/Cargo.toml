@@ -22,14 +22,16 @@ path = "main.rs"
 name = "flowstdlib"
 path = "lib.rs"
 
-[build-dependencies]
-simpath = { version = "~2.1", features = ["urls"]}
-
 [dependencies]
 flow_impl = {path = "../flow_impl", version = "0.21.0" }
 flow_impl_derive = {path = "../flow_impl_derive", version = "0.21.0" }
 flowrstructs = {path = "../flowrstructs", version = "0.34.4" }
-simpath = { version = "~2.1", features = ["urls"]}
-
+simpath = { version = "~2.2", features = ["urls"]}
+url = { version = "2.2", features = ["serde"] }
 serde_json = "1.0"
 image = "=0.23.10"
+error-chain = "0.12.2"
+
+[build-dependencies]
+simpath = { version = "~2.2", features = ["urls"]}
+url = { version = "2.2", features = ["serde"] }

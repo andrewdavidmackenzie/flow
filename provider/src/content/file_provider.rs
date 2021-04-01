@@ -6,71 +6,63 @@ use std::path::Path;
 use log::{debug, trace};
 use url::Url;
 
-use crate::errors::Result;
-
-use super::provider::Provider;
+use crate::errors::*;
+use crate::lib_provider::Provider;
 
 /// The `FileProvider` implements the `Provider` trait and takes care of fetching content located
 /// on the local file system.
 pub struct FileProvider;
 
 impl Provider for FileProvider {
-    fn resolve_url(
-        &self,
-        url_str: &str,
-        default_filename: &str,
-        extensions: &[&str],
-    ) -> Result<(String, Option<String>)> {
-        let url =
-            Url::parse(url_str).map_err(|_| format!("Could not convert '{}' to Url", url_str))?;
+    fn resolve_url(&self, url: &Url, default_filename: &str, extensions: &[&str]) -> Result<Url> {
         let path = url
             .to_file_path()
             .map_err(|_| format!("Could not convert '{}' to a file path", url))?;
         let md_result = fs::metadata(&path)
-            .map_err(|_| format!("Error getting file metadata for path: '{}'", path.display()));
+            .chain_err(|| format!("Error getting file metadata for path: '{}'", path.display()));
 
         match md_result {
             Ok(md) => {
                 if md.is_dir() {
                     trace!(
-                        "'{}' is a directory, so attempting to find file with same name in it",
-                        path.display()
-                    );
-                    if let Some(dir_os_name) = path.file_name() {
-                        let dir_name = dir_os_name.to_string_lossy();
-                        if let Ok(file_found_url) =
-                            FileProvider::find_file(&path, &dir_name, extensions)
-                        {
-                            return Ok((file_found_url, None));
-                        }
-                    }
-
-                    trace!(
                         "'{}' is a directory, so attempting to find default file named '{}' in it",
                         path.display(),
                         default_filename
                     );
-                    let file_found_url =
-                        FileProvider::find_file(&path, default_filename, extensions)?;
-                    Ok((file_found_url, None))
+                    if let Ok(file_found_url) =
+                        FileProvider::find_file(&path, default_filename, extensions)
+                    {
+                        return Ok(file_found_url);
+                    }
+
+                    trace!(
+                        "'{}' is a directory, so attempting to find file with same name inside it",
+                        path.display()
+                    );
+                    if let Some(dir_os_name) = path.file_name() {
+                        let dir_name = dir_os_name.to_string_lossy();
+                        if let Ok(file_found_url) = Self::find_file(&path, &dir_name, extensions) {
+                            return Ok(file_found_url);
+                        }
+                    }
+
+                    bail!("No default or same named file found in directory")
                 } else if md.is_file() {
-                    Ok((url.to_string(), None))
+                    Ok(url.clone())
                 } else {
-                    let file_found_url = FileProvider::file_by_extensions(&path, extensions)?;
-                    Ok((file_found_url, None))
+                    let file_found_url = Self::file_by_extensions(&path, extensions)?;
+                    Ok(file_found_url)
                 }
             }
             _ => {
                 // doesn't exist
-                let file_found_url = FileProvider::file_by_extensions(&path, extensions)?;
-                Ok((file_found_url, None))
+                let file_found_url = Self::file_by_extensions(&path, extensions)?;
+                Ok(file_found_url)
             }
         }
     }
 
-    fn get_contents(&self, url_str: &str) -> Result<Vec<u8>> {
-        let url =
-            Url::parse(url_str).map_err(|_| format!("Could not convert '{}' to Url", url_str))?;
+    fn get_contents(&self, url: &Url) -> Result<Vec<u8>> {
         let file_path = url
             .to_file_path()
             .map_err(|_| "Could not convert Url to file path")?;
@@ -78,7 +70,7 @@ impl Provider for FileProvider {
             File::open(&file_path).map_err(|_| format!("Could not open file '{:?}'", file_path))?;
         let mut buffer = Vec::new();
         f.read_to_end(&mut buffer)
-            .map_err(|_| format!("Could not read content from '{:?}'", file_path))?;
+            .chain_err(|| format!("Could not read content from '{:?}'", file_path))?;
         Ok(buffer)
     }
 }
@@ -86,7 +78,7 @@ impl Provider for FileProvider {
 impl FileProvider {
     /// Passed a path to a directory, it searches for a file in the directory called 'default_filename'
     /// If found, it opens the file and returns its contents as a String in the result
-    pub fn find_file(dir: &Path, default_filename: &str, extensions: &[&str]) -> Result<String> {
+    pub fn find_file(dir: &Path, default_filename: &str, extensions: &[&str]) -> Result<Url> {
         let mut file = dir.to_path_buf();
         file.push(default_filename);
 
@@ -94,7 +86,7 @@ impl FileProvider {
     }
 
     /// Given a path to a filename, try to find an existing file with any of the allowed extensions
-    pub fn file_by_extensions(file: &Path, extensions: &[&str]) -> Result<String> {
+    pub fn file_by_extensions(file: &Path, extensions: &[&str]) -> Result<Url> {
         let mut file_with_extension = file.to_path_buf();
 
         // for that file path, try with all the allowed file extensions
@@ -111,7 +103,7 @@ impl FileProvider {
                             )
                         })?;
 
-                    return Ok(file_path_as_url.to_string());
+                    return Ok(file_path_as_url);
                 }
             }
         }
@@ -129,7 +121,10 @@ mod test {
     use std::ffi::OsStr;
     use std::path::Path;
 
-    use super::super::provider::Provider;
+    use url::Url;
+
+    use crate::lib_provider::Provider;
+
     use super::FileProvider;
 
     #[test]
@@ -140,7 +135,9 @@ mod test {
         let path = root.join("samples/hello-world");
         match FileProvider::find_file(&path, "context", &["toml"]) {
             Ok(path_string) => {
-                let path = Path::new(&path_string);
+                let path = path_string
+                    .to_file_path()
+                    .expect("Could not convert Url to File Path");
                 assert_eq!(Some(OsStr::new("context.toml")), path.file_name());
             }
             _ => panic!("Could not find_file 'context.toml'"),
@@ -150,13 +147,14 @@ mod test {
     #[test]
     fn resolve_url_file_not_found() {
         let provider: &dyn Provider = &FileProvider;
-        let url = "file://directory";
-        let _ = provider.resolve_url(url, "default", &["toml"]);
+        let url = Url::parse("file://directory").expect("Could not create Url");
+        let _ = provider.resolve_url(&url, "default", &["toml"]);
     }
 
     #[test]
     fn get_contents_file_not_found() {
         let provider: &dyn Provider = &FileProvider;
-        assert!(provider.get_contents("file:///no-such-file").is_err());
+        let url = Url::parse("file:///no-such-file").expect("Could not create Url");
+        assert!(provider.get_contents(&url).is_err());
     }
 }

@@ -22,11 +22,10 @@ pub fn set_lib_search_path_to_project() -> Simpath {
     lib_search_path
 }
 
-pub fn absolute_file_url_from_relative_path(path: &str) -> String {
+pub fn absolute_file_url_from_relative_path(path: &str) -> Url {
     let flow_root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
     Url::from_directory_path(flow_root)
         .unwrap()
         .join(path)
         .unwrap()
-        .to_string()
 }

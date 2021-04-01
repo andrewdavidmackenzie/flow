@@ -20,7 +20,7 @@ use url::Url;
 
 use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::info as flowrlib_info;
-use provider::args::url_from_string;
+use flowrstructs::url_helper::url_from_string;
 
 #[cfg(feature = "debugger")]
 use crate::cli_debug_client::CLIDebugClient;
@@ -148,7 +148,7 @@ fn run() -> Result<()> {
         let flow_manifest_url = parse_flow_url(&matches)?;
         let flow_args = get_flow_args(&matches, &flow_manifest_url);
         let submission = Submission::new(
-            &flow_manifest_url.to_string(),
+            &flow_manifest_url,
             num_parallel_jobs(&matches, debugger),
             #[cfg(feature = "debugger")]
             debugger,

@@ -3,9 +3,10 @@ use std::sync::Arc;
 
 use log::debug;
 use serde_derive::{Deserialize, Serialize};
+use url::Url;
 
 use flow_impl::Implementation;
-use provider::content::provider::Provider;
+use provider::lib_provider::LibProvider;
 
 use crate::errors::*;
 use crate::manifest::MetaData;
@@ -50,7 +51,7 @@ pub struct LibraryManifest {
     pub metadata: MetaData,
     /// the `locators` map a reference to a function/implementation to the `ImplementationLocator`
     /// that can be used to load it or reference it
-    pub locators: HashMap<String, ImplementationLocator>,
+    pub locators: HashMap<Url, ImplementationLocator>,
 }
 
 impl LibraryManifest {
@@ -58,17 +59,29 @@ impl LibraryManifest {
     pub fn new(metadata: MetaData) -> Self {
         LibraryManifest {
             metadata,
-            locators: HashMap::<String, ImplementationLocator>::new(),
+            locators: HashMap::<Url, ImplementationLocator>::new(),
         }
     }
 
-    /// `load` a library from the `source` url, using the `provider` to fetch contents
-    pub fn load(provider: &dyn Provider, source: &str) -> Result<(LibraryManifest, String)> {
+    /// `load` a `LibraryManifest` from the `source` url, using the `provider` to fetch contents
+    pub fn load(
+        provider: &dyn LibProvider,
+        lib_manifest_url: &Url,
+    ) -> Result<(LibraryManifest, Url)> {
         let (resolved_url, _) = provider
-            .resolve_url(source, DEFAULT_LIB_JSON_MANIFEST_FILENAME, &["json"])
-            .chain_err(|| format!("Could not resolve the library manifest file '{}'", source))?;
+            .resolve_url(
+                lib_manifest_url,
+                DEFAULT_LIB_JSON_MANIFEST_FILENAME,
+                &["json"],
+            )
+            .chain_err(|| {
+                format!(
+                    "Could not resolve the library manifest url '{}'",
+                    lib_manifest_url
+                )
+            })?;
 
-        let content = provider.get_contents(&resolved_url).chain_err(|| {
+        let manifest_content = provider.get_contents(&resolved_url).chain_err(|| {
             format!(
                 "Could not read contents of Library Manifest from '{}'",
                 resolved_url
@@ -76,9 +89,10 @@ impl LibraryManifest {
         })?;
 
         let manifest = serde_json::from_str(
-            &String::from_utf8(content).chain_err(|| "Could not convert from utf8 to String")?,
+            &String::from_utf8(manifest_content)
+                .chain_err(|| "Could not deserialize LibraryManifest to JSON")?,
         )
-        .chain_err(|| format!("Could not load Library Manifest from '{}'", resolved_url))?;
+        .chain_err(|| format!("Could not load LibraryManifest from '{}'", resolved_url))?;
 
         Ok((manifest, resolved_url))
     }
@@ -90,12 +104,13 @@ impl LibraryManifest {
         wasm_abs_path: &str,
         wasm_dir: &str,
         function_name: &str,
-    ) {
+    ) -> Result<()> {
         let relative_dir = wasm_dir.replace(base_dir, "");
-        let lib_reference = format!(
+        let lib_reference = Url::parse(&format!(
             "lib://{}/{}/{}",
             self.metadata.name, relative_dir, function_name
-        );
+        ))
+        .chain_err(|| "Could not form library Url to add to the manifest")?;
 
         let implementation_relative_location = wasm_abs_path.replace(base_dir, "");
         debug!(
@@ -106,6 +121,8 @@ impl LibraryManifest {
             lib_reference,
             ImplementationLocator::Wasm(implementation_relative_location),
         );
+
+        Ok(())
     }
 }
 
@@ -139,10 +156,11 @@ mod test {
     use std::sync::Arc;
 
     use serde_json::Value;
+    use url::Url;
 
     use flow_impl::Implementation;
-    use provider::content::provider::Provider;
     use provider::errors::Result;
+    use provider::lib_provider::LibProvider;
 
     use crate::lib_manifest::{
         ImplementationLocator, ImplementationLocator::Wasm, LibraryManifest,
@@ -171,17 +189,17 @@ mod test {
         }
     }
 
-    impl Provider for TestProvider {
+    impl LibProvider for TestProvider {
         fn resolve_url(
             &self,
-            source: &str,
+            source: &Url,
             _default_filename: &str,
             _extensions: &[&str],
-        ) -> Result<(String, Option<String>)> {
-            Ok((source.to_string(), None))
+        ) -> Result<(Url, Option<String>)> {
+            Ok((source.clone(), None))
         }
 
-        fn get_contents(&self, _url: &str) -> Result<Vec<u8>> {
+        fn get_contents(&self, _url: &Url) -> Result<Vec<u8>> {
             Ok(self.test_content.as_bytes().to_owned())
         }
     }
@@ -234,10 +252,12 @@ mod test {
 
         let locator: ImplementationLocator = Wasm("add2.wasm".to_string());
         let mut manifest = LibraryManifest::new(metadata);
-        manifest
-            .locators
-            .insert("//flowrlib/test-dyn-lib/add2".to_string(), locator);
-        let serialized = serde_json::to_string_pretty(&manifest).unwrap();
+        manifest.locators.insert(
+            Url::parse("lib://flowrlib/test-dyn-lib/add2").expect("Could not create Url"),
+            locator,
+        );
+        let serialized =
+            serde_json::to_string_pretty(&manifest).expect("Could not pretty print JSON");
         let expected = "{
   \"metadata\": {
     \"name\": \"\",
@@ -246,7 +266,7 @@ mod test {
     \"authors\": []
   },
   \"locators\": {
-    \"//flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
+    \"lib://flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
   }
 }";
         assert_eq!(expected, serialized);
@@ -262,20 +282,21 @@ mod test {
     \"authors\": []
   },
   \"locators\": {
-    \"//flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
+    \"lib://flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
   }
 }";
-        let provider = TestProvider { test_content };
-        let url = "file:://test/fake";
-        let (lib_manifest, _lib_manifest_url) = LibraryManifest::load(&provider, url).unwrap();
+        let provider = &TestProvider { test_content } as &dyn LibProvider;
+        let url = Url::parse("file:://test/fake").expect("Could not create Url");
+        let (lib_manifest, _lib_manifest_url) =
+            LibraryManifest::load(provider, &url).expect("Could not load manifest");
         assert_eq!(lib_manifest.locators.len(), 1);
         assert!(lib_manifest
             .locators
-            .get("//flowrlib/test-dyn-lib/add2")
+            .get(&Url::parse("lib://flowrlib/test-dyn-lib/add2").expect("Create Url error"))
             .is_some());
         let locator = lib_manifest
             .locators
-            .get("//flowrlib/test-dyn-lib/add2")
+            .get(&Url::parse("lib://flowrlib/test-dyn-lib/add2").expect("Create Url error"))
             .unwrap();
         match locator {
             Wasm(source) => assert_eq!(source, "add2.wasm"),
@@ -286,7 +307,9 @@ mod test {
     #[test]
     fn add_to() {
         let mut library = LibraryManifest::new(test_meta_data());
-        library.add_to_manifest("/fake", "/bin/my.wasm", "/bin", "my function");
+        library
+            .add_to_manifest("/fake", "/bin/my.wasm", "/bin", "my function")
+            .expect("Could not add to manifest");
         assert_eq!(
             library.locators.len(),
             1,
@@ -305,7 +328,9 @@ mod test {
     #[test]
     fn compare_manifests_num_locators_different() {
         let mut library1 = LibraryManifest::new(test_meta_data());
-        library1.add_to_manifest("/fake", "/bin/my.wasm", "/bin", "my function");
+        library1
+            .add_to_manifest("/fake", "/bin/my.wasm", "/bin", "my function")
+            .expect("Could not add to manifest");
 
         let library2 = LibraryManifest::new(test_meta_data());
 
@@ -315,10 +340,14 @@ mod test {
     #[test]
     fn compare_manifests_locators_different() {
         let mut library1 = LibraryManifest::new(test_meta_data());
-        library1.add_to_manifest("/fake", "/bin/fake.wasm", "/bin", "my fake function");
+        library1
+            .add_to_manifest("/fake", "/bin/fake.wasm", "/bin", "my fake function")
+            .expect("Could not add to manifest");
 
         let mut library2 = LibraryManifest::new(test_meta_data());
-        library2.add_to_manifest("/different", "/bin/my.wasm", "/bin", "my function");
+        library2
+            .add_to_manifest("/different", "/bin/my.wasm", "/bin", "my function")
+            .expect("Could not add to manifest");
 
         assert!(library1 != library2);
     }
@@ -326,10 +355,14 @@ mod test {
     #[test]
     fn compare_manifests_same() {
         let mut library1 = LibraryManifest::new(test_meta_data());
-        library1.add_to_manifest("/fake", "/bin/my.wasm", "/bin", "my function");
+        library1
+            .add_to_manifest("/fake", "/bin/my.wasm", "/bin", "my function")
+            .expect("Could not add to manifest");
 
         let mut library2 = LibraryManifest::new(test_meta_data());
-        library2.add_to_manifest("/fake", "/bin/my.wasm", "/bin", "my function");
+        library2
+            .add_to_manifest("/fake", "/bin/my.wasm", "/bin", "my function")
+            .expect("Could not add to manifest");
 
         assert!(library1 == library2);
     }

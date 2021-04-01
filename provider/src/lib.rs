@@ -1,11 +1,12 @@
 // TODO #![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
-//! A module to help parse command line arguments for flow URLs and fetch the associated content
+//! The `Provider` that helps resolve Urls and calls the underlying content provider
+
 #[macro_use]
 extern crate error_chain;
 
-pub mod content;
-pub mod args;
+mod content;
+pub mod lib_provider;
 
 #[doc(hidden)]
 pub mod errors {
@@ -22,5 +23,6 @@ error_chain! {
     foreign_links {
         Io(std::io::Error);
         Easy(curl::Error);
+        Url(url::ParseError);
     }
 }

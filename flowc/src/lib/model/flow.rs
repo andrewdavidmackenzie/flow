@@ -1,33 +1,34 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::mem::replace;
 
 use error_chain::bail;
 use log::{debug, error};
 use serde_derive::{Deserialize, Serialize};
+use url::Url;
 
 use flowrstructs::input::InputInitializer;
 
 use crate::compiler::loader::Validate;
-use crate::errors::*;
 use crate::errors::Error;
+use crate::errors::*;
 use crate::model::connection::Connection;
 use crate::model::connection::Direction;
 use crate::model::connection::Direction::FROM;
 use crate::model::connection::Direction::TO;
-use crate::model::io::{IO, IOType};
 use crate::model::io::Find;
 use crate::model::io::IOSet;
+use crate::model::io::{IOType, IO};
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::process::Process;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 use crate::model::process_reference::ProcessReference;
-use crate::model::route::{Route, RouteType};
 use crate::model::route::HasRoute;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
+use crate::model::route::{Route, RouteType};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -55,13 +56,13 @@ pub struct Flow {
     #[serde(skip)]
     pub alias: Name,
     #[serde(skip, default = "Flow::default_url")]
-    pub source_url: String,
+    pub source_url: Url,
     #[serde(skip)]
     pub route: Route,
     #[serde(skip)]
     pub subprocesses: HashMap<Name, Process>,
     #[serde(skip)]
-    pub lib_references: Vec<String>,
+    pub lib_references: HashSet<Url>,
 }
 
 impl Validate for Flow {
@@ -139,7 +140,7 @@ impl Default for Flow {
             outputs: None,
             connections: None,
             subprocesses: HashMap::new(),
-            lib_references: vec!(),
+            lib_references: HashSet::new(),
             description: Flow::default_description(),
             version: Flow::default_version(),
             authors: Flow::default_authors(),
@@ -173,14 +174,17 @@ impl SetRoute for Flow {
         } else {
             self.route = Route::from(format!("{}/{}", parent_route, self.alias));
         }
-        self.inputs.set_io_routes_from_parent(&self.route, IOType::FlowInput);
-        self.outputs.set_io_routes_from_parent(&self.route, IOType::FlowOutput);
+        self.inputs
+            .set_io_routes_from_parent(&self.route, IOType::FlowInput);
+        self.outputs
+            .set_io_routes_from_parent(&self.route, IOType::FlowOutput);
     }
 }
 
 impl Flow {
-    fn default_url() -> String {
-        "file://".to_string()
+    fn default_url() -> Url {
+        #[allow(clippy::unwrap_used)]
+        Url::parse("file://").unwrap()
     }
 
     pub fn default_description() -> String {
@@ -192,7 +196,7 @@ impl Flow {
     }
 
     pub fn default_authors() -> Vec<String> {
-        vec!("unknown".to_string())
+        vec!["unknown".to_string()]
     }
 
     pub fn default_email() -> String {
@@ -219,28 +223,46 @@ impl Flow {
         &self.outputs
     }
 
-    fn get_io_subprocess(&mut self, subprocess_alias: &Name, direction: Direction, sub_route: &Route,
-                         initial_value: &Option<InputInitializer>) -> Result<IO> {
-        debug!("\tLooking for subprocess with alias = '{}'", subprocess_alias);
-        let process = self.subprocesses.get_mut(subprocess_alias)
-            .ok_or_else(|| Error::from(format!("Could not find sub-process named '{}'", subprocess_alias)))?;
+    fn get_io_subprocess(
+        &mut self,
+        subprocess_alias: &Name,
+        direction: Direction,
+        sub_route: &Route,
+        initial_value: &Option<InputInitializer>,
+    ) -> Result<IO> {
+        debug!(
+            "\tLooking for subprocess with alias = '{}'",
+            subprocess_alias
+        );
+        let process = self.subprocesses.get_mut(subprocess_alias).ok_or_else(|| {
+            Error::from(format!(
+                "Could not find sub-process named '{}'",
+                subprocess_alias
+            ))
+        })?;
 
         // TODO create a trait HasInputs and HasOutputs and implement it for function and flow
         // and process so this below can avoid the match
         match process {
             FlowProcess(ref mut sub_flow) => {
-                debug!("\tFlow sub-process with matching name found, name = '{}'", subprocess_alias);
+                debug!(
+                    "\tFlow sub-process with matching name found, name = '{}'",
+                    subprocess_alias
+                );
                 let io_name = Name::from(sub_route);
                 match direction {
                     Direction::TO => sub_flow.inputs.find_by_name(&io_name, initial_value),
-                    Direction::FROM => sub_flow.outputs.find_by_name(&io_name, &None)
+                    Direction::FROM => sub_flow.outputs.find_by_name(&io_name, &None),
                 }
             }
             FunctionProcess(ref mut function) => {
-                debug!("\tFunction sub-process with matching name found, name = '{}'", subprocess_alias);
+                debug!(
+                    "\tFunction sub-process with matching name found, name = '{}'",
+                    subprocess_alias
+                );
                 match direction {
                     Direction::TO => function.inputs.find_by_route(sub_route, initial_value),
-                    Direction::FROM => function.get_outputs().find_by_route(sub_route, &None)
+                    Direction::FROM => function.get_outputs().find_by_route(sub_route, &None),
                 }
             }
         }
@@ -248,8 +270,12 @@ impl Flow {
 
     // TODO consider finding the object first using it's type and name (flow, subflow, value, function)
     // Then from the object find the IO (by name or route, probably route) in common code, maybe using IOSet directly?
-    pub fn get_route_and_type(&mut self, direction: Direction, route: &Route,
-                              initial_value: &Option<InputInitializer>) -> Result<IO> {
+    pub fn get_route_and_type(
+        &mut self,
+        direction: Direction,
+        route: &Route,
+        initial_value: &Option<InputInitializer>,
+    ) -> Result<IO> {
         debug!("Looking for connection {:?} '{}'", direction, route);
         match (&direction, route.route_type()) {
             (&Direction::FROM, RouteType::Input(input_name, sub_route)) => {
@@ -269,9 +295,13 @@ impl Flow {
                 bail!("Invalid connection FROM an output named: '{}'", output_name)
             }
             (&Direction::TO, RouteType::Input(input_name, sub_route)) => {
-                bail!("Invalid connection TO an input named: '{}' with sub_route: '{}'", input_name, sub_route)
+                bail!(
+                    "Invalid connection TO an input named: '{}' with sub_route: '{}'",
+                    input_name,
+                    sub_route
+                )
             }
-            (_, RouteType::Invalid(error)) => bail!(error)
+            (_, RouteType::Invalid(error)) => bail!(error),
         }
     }
 
@@ -289,7 +319,9 @@ impl Flow {
         Propagate any initializers on a flow input into the input (subflow or function) it is connected to
     */
     pub fn build_connections(&mut self) -> Result<()> {
-        if self.connections.is_none() { return Ok(()); }
+        if self.connections.is_none() {
+            return Ok(());
+        }
 
         debug!("Building connections for flow '{}'", self.name);
 
@@ -303,13 +335,17 @@ impl Flow {
                 match self.get_route_and_type(FROM, &connection.from, &None) {
                     Ok(from_io) => {
                         debug!("Found connection source:\n{:#?}", from_io);
-                        match self.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {
+                        match self.get_route_and_type(TO, &connection.to, from_io.get_initializer())
+                        {
                             Ok(to_io) => {
                                 debug!("Found connection destination:\n{:#?}", to_io);
                                 // TODO here we are only checking compatible data types from the overall FROM IO
                                 // not from sub-types in it selected via a sub-route e.g. Array/String --> String
                                 // We'd need to make compatible_types more complex and take the from sub-Route
-                                if Connection::compatible_types(&from_io.datatype(), &to_io.datatype()) {
+                                if Connection::compatible_types(
+                                    &from_io.datatype(),
+                                    &to_io.datatype(),
+                                ) {
                                     debug!("Connection built from '{}' to '{}' with runtime conversion ''", from_io.route(), to_io.route());
                                     connection.from_io = from_io;
                                     connection.to_io = to_io;
@@ -327,8 +363,10 @@ impl Flow {
                         }
                     }
                     Err(error) => {
-                        error!("Did not find connection source: '{}' specified in flow '{}'\n\t\t{}",
-                               connection.from, self.source_url, error);
+                        error!(
+                            "Did not find connection source: '{}' specified in flow '{}'\n\t\t{}",
+                            connection.from, self.source_url, error
+                        );
                         error_count += 1;
                     }
                 }
@@ -339,10 +377,17 @@ impl Flow {
         }
 
         if error_count == 0 {
-            debug!("All connections inside flow '{}' successfully built", self.source_url);
+            debug!(
+                "All connections inside flow '{}' successfully built",
+                self.source_url
+            );
             Ok(())
         } else {
-            bail!("{} connections errors found in flow '{}'", error_count, self.source_url)
+            bail!(
+                "{} connections errors found in flow '{}'",
+                error_count,
+                self.source_url
+            )
         }
     }
 }
@@ -350,11 +395,6 @@ impl Flow {
 #[cfg(test)]
 mod test {
     use crate::model::name::{HasName, Name};
-
-    #[test]
-    fn test_default_url() {
-        assert_eq!("file://".to_string(), super::Flow::default_url());
-    }
 
     #[test]
     fn test_default_description() {
@@ -373,7 +413,10 @@ mod test {
 
     #[test]
     fn test_default_email() {
-        assert_eq!("unknown@unknown.com".to_string(), super::Flow::default_email());
+        assert_eq!(
+            "unknown@unknown.com".to_string(),
+            super::Flow::default_email()
+        );
     }
 
     #[test]

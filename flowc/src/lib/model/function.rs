@@ -7,8 +7,8 @@ use flowrstructs::output_connection::OutputConnection;
 
 use crate::compiler::loader::Validate;
 use crate::errors::*;
-use crate::model::io::{IO, IOType};
 use crate::model::io::IOSet;
+use crate::model::io::{IOType, IO};
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::route::HasRoute;
@@ -32,7 +32,7 @@ pub struct Function {
     #[serde(skip_deserializing)]
     alias: Name,
     #[serde(skip_deserializing, default = "Function::default_source_url")]
-    source_url: String,
+    source_url: String, // can be a relative path with no scheme etc so can't be a Url
     #[serde(skip_deserializing)]
     route: Route,
     #[serde(skip_deserializing)]
@@ -47,8 +47,12 @@ pub struct Function {
 }
 
 impl HasName for Function {
-    fn name(&self) -> &Name { &self.name }
-    fn alias(&self) -> &Name { &self.alias }
+    fn name(&self) -> &Name {
+        &self.name
+    }
+    fn alias(&self) -> &Name {
+        &self.alias
+    }
 }
 
 impl HasRoute for Function {
@@ -62,9 +66,20 @@ impl HasRoute for Function {
 
 impl Function {
     #[allow(clippy::too_many_arguments)]
-    pub fn new(name: Name, impure: bool, implementation: String, alias: Name, inputs: IOSet, outputs: IOSet, source_url: &str,
-               route: Route, lib_reference: Option<String>, output_connections: Vec<OutputConnection>,
-               id: usize, flow_id: usize) -> Self {
+    pub fn new(
+        name: Name,
+        impure: bool,
+        implementation: String,
+        alias: Name,
+        inputs: IOSet,
+        outputs: IOSet,
+        source_url: &str,
+        route: Route,
+        lib_reference: Option<String>,
+        output_connections: Vec<OutputConnection>,
+        id: usize,
+        flow_id: usize,
+    ) -> Self {
         Function {
             name,
             impure,
@@ -72,7 +87,7 @@ impl Function {
             alias,
             inputs,
             outputs,
-            source_url: source_url.to_string(),
+            source_url: source_url.to_owned(),
             route,
             lib_reference,
             output_connections,
@@ -224,11 +239,19 @@ impl Default for Function {
             implementation: "".to_owned(),
             alias: Name::default(),
             inputs: None,
-            outputs: Some(vec!(IO::new("Value", Route::default()))),
+            outputs: Some(vec![IO::new("Value", Route::default())]),
             source_url: Function::default_source_url(),
             route: Route::default(),
             lib_reference: None,
-            output_connections: vec!(OutputConnection::new("".to_string(), 0, 0, 0, 0, false, Some("".to_string()))),
+            output_connections: vec![OutputConnection::new(
+                "".to_string(),
+                0,
+                0,
+                0,
+                0,
+                false,
+                Some("".to_string()),
+            )],
             id: 0,
             flow_id: 0,
         }
@@ -238,8 +261,10 @@ impl Default for Function {
 impl SetRoute for Function {
     fn set_routes_from_parent(&mut self, parent_route: &Route) {
         self.route = Route::from(format!("{}/{}", parent_route, self.alias));
-        self.inputs.set_io_routes_from_parent(&self.route, IOType::FunctionIO);
-        self.outputs.set_io_routes_from_parent(&self.route, IOType::FunctionIO);
+        self.inputs
+            .set_io_routes_from_parent(&self.route, IOType::FunctionIO);
+        self.outputs
+            .set_io_routes_from_parent(&self.route, IOType::FunctionIO);
     }
 }
 
@@ -266,11 +291,19 @@ mod test {
             implementation: "".to_owned(),
             alias: Name::from("test_function"),
             source_url: Function::default_source_url(),
-            inputs: Some(vec!()), // No inputs!
-            outputs: None,         // No output!
+            inputs: Some(vec![]), // No inputs!
+            outputs: None,        // No output!
             route: Route::default(),
             lib_reference: None,
-            output_connections: vec!(OutputConnection::new("test_function".to_string(), 0, 0, 0, 0, false, None)),
+            output_connections: vec![OutputConnection::new(
+                "test_function".to_string(),
+                0,
+                0,
+                0,
+                0,
+                false,
+                None,
+            )],
             id: 0,
             flow_id: 0,
         };
@@ -417,7 +450,10 @@ mod test {
         assert_eq!(*output0.route(), Route::from("/flow/test_alias/sub_output"));
 
         let output1 = &outputs[1];
-        assert_eq!(*output1.route(), Route::from("/flow/test_alias/other_output"));
+        assert_eq!(
+            *output1.route(),
+            Route::from("/flow/test_alias/other_output")
+        );
     }
 
     #[test]
@@ -438,7 +474,10 @@ mod test {
 
         // Test
         // Try and get the output using a route to a specific element of the output
-        let output = function.outputs.find_by_route(&Route::from("/0"), &None).unwrap();
+        let output = function
+            .outputs
+            .find_by_route(&Route::from("/0"), &None)
+            .unwrap();
         assert_eq!(*output.name(), Name::default());
     }
 }

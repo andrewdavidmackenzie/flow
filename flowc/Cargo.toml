@@ -30,9 +30,9 @@ provider = {path = "../provider", version = "0.34.4" }
 clap = "~2"
 simplog = "~1.2"
 log = "0.4.6"
-url = "~2.1"
+url = { version = "2.2", features = ["serde"] }
 tempdir = "~0.3.5"
-simpath = { version = "~2.1", features = ["urls"]}
+simpath = { version = "~2.2", features = ["urls"]}
 glob = "~0.2.11"
 serde_json = "1.0"
 error-chain = "0.12.2"
@@ -44,4 +44,4 @@ shrinkwraprs = "0.2.1"
 
 [dev-dependencies]
 tempdir = "~0.3.5"
-simpath = { version = "~2.1", features = ["urls"]}
+simpath = { version = "~2.2", features = ["urls"]}

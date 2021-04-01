@@ -8,7 +8,7 @@ use log::{debug, error, info, warn};
 use tempdir::TempDir;
 use url::Url;
 
-use provider::args::url_from_string;
+use flowrstructs::url_helper::url_from_string;
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;

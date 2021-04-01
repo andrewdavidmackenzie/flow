@@ -1257,10 +1257,10 @@ mod test {
 
         Function::new(
             #[cfg(feature = "debugger")]
-            "fA".to_string(), // name
+            "fA",
             #[cfg(feature = "debugger")]
-            "/fA".to_string(),
-            "/test".to_string(),
+            "/fA",
+            "file://fake/test",
             vec![Input::new(&None)],
             0,
             0,
@@ -1274,10 +1274,10 @@ mod test {
             OutputConnection::new("".to_string(), 1, 0, 0, 0, false, Some("/fB".to_string()));
         Function::new(
             #[cfg(feature = "debugger")]
-            "fA".to_string(), // name
+            "fA",
             #[cfg(feature = "debugger")]
-            "/fA".to_string(),
-            "/test".to_string(),
+            "/fA",
+            "file://fake/test",
             vec![Input::new(&Some(Once(json!(1))))],
             0,
             0,
@@ -1289,10 +1289,10 @@ mod test {
     fn test_function_a_init() -> Function {
         Function::new(
             #[cfg(feature = "debugger")]
-            "fA".to_string(), // name
+            "fA",
             #[cfg(feature = "debugger")]
-            "/fA".to_string(),
-            "/test".to_string(),
+            "/fA",
+            "file://fake/test",
             vec![Input::new(&Some(Once(json!(1))))],
             0,
             0,
@@ -1304,10 +1304,10 @@ mod test {
     fn test_function_b_not_init() -> Function {
         Function::new(
             #[cfg(feature = "debugger")]
-            "fB".to_string(), // name
+            "fB",
             #[cfg(feature = "debugger")]
-            "/fB".to_string(),
-            "/test".to_string(),
+            "/fB",
+            "file://fake/test",
             vec![Input::new(&None)],
             1,
             0,
@@ -1319,10 +1319,10 @@ mod test {
     fn test_function_b_init() -> Function {
         Function::new(
             #[cfg(feature = "debugger")]
-            "fB".to_string(), // name
+            "fB",
             #[cfg(feature = "debugger")]
-            "/fB".to_string(),
-            "/test".to_string(),
+            "/fB",
+            "file://fake/test",
             vec![Input::new(&Some(Once(json!(1))))],
             1,
             0,
@@ -1365,6 +1365,8 @@ mod test {
         #[cfg(any(feature = "debugger"))]
         use std::collections::HashSet;
 
+        use url::Url;
+
         use crate::coordinator::Submission;
 
         use super::super::RunState;
@@ -1377,7 +1379,11 @@ mod test {
             let f_a = super::test_function_a_to_b();
             let f_b = super::test_function_b_not_init();
             let functions = vec![f_a, f_b];
-            let submission = Submission::new("file:///temp/fake.toml", 1, true);
+            let submission = Submission::new(
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+                1,
+                true,
+            );
             let mut state = RunState::new(&functions, submission);
 
             state.init();
@@ -1389,7 +1395,11 @@ mod test {
             let f_a = super::test_function_a_to_b();
             let f_b = super::test_function_b_init();
             let functions = vec![f_b, f_a];
-            let submission = Submission::new("file:///temp/fake.toml", 1, true);
+            let submission = Submission::new(
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+                1,
+                true,
+            );
             let mut state = RunState::new(&functions, submission);
 
             // Event
@@ -1421,7 +1431,7 @@ mod test {
             state.display_state(1);
 
             // Event
-            let job = state.next_job().unwrap();
+            let job = state.next_job().expect("Couldn't get next job");
             state.start(&job);
 
             // Test
@@ -1437,7 +1447,7 @@ mod test {
         #[test]
         fn jobs_created_zero_at_init() {
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -1451,6 +1461,7 @@ mod test {
     /********************************* State Transition Tests *********************************/
     mod state_transitions {
         use serde_json::json;
+        use url::Url;
 
         use flowrstructs::function::Function;
         use flowrstructs::input::Input;
@@ -1476,7 +1487,7 @@ mod test {
             let f_b = super::test_function_b_not_init();
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -1501,7 +1512,7 @@ mod test {
             let f_b = super::test_function_b_not_init();
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -1535,7 +1546,7 @@ mod test {
             let f_b = super::test_function_b_not_init();
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -1554,7 +1565,7 @@ mod test {
             let f_a = super::test_function_a_init();
             let functions = vec![f_a];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -1580,7 +1591,7 @@ mod test {
             let f_b = super::test_function_b_init();
             let functions = vec![f_b, f_a];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -1607,10 +1618,10 @@ mod test {
         fn test_function_a_not_init() -> Function {
             Function::new(
                 #[cfg(feature = "debugger")]
-                "fA".to_string(), // name
+                "fA",
                 #[cfg(feature = "debugger")]
-                "/fA".to_string(),
-                "/test".to_string(),
+                "/fA",
+                "file://fake/test",
                 vec![Input::new(&None)],
                 0,
                 0,
@@ -1624,7 +1635,7 @@ mod test {
             let f_a = test_function_a_not_init();
             let functions = vec![f_a];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -1643,7 +1654,7 @@ mod test {
             let f_a = super::test_function_a_init();
             let functions = vec![f_a];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -1653,7 +1664,7 @@ mod test {
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
 
             // Event
-            let job = state.next_job().unwrap();
+            let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(
                 0, job.function_id,
                 "next_job() should return function_id = 0"
@@ -1669,7 +1680,7 @@ mod test {
             let f_a = test_function_a_not_init();
             let functions = vec![f_a];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -1691,7 +1702,7 @@ mod test {
             let f_b = super::test_function_b_init();
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -1714,7 +1725,7 @@ mod test {
             );
 
             // First job
-            let job = state.next_job().unwrap();
+            let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(
                 1, job.function_id,
                 "next() should return function_id=1 (f_b) for running"
@@ -1742,7 +1753,7 @@ mod test {
             let f_b = super::test_function_b_init();
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -1764,7 +1775,7 @@ mod test {
                 "f_a should be in Blocked state, by f_b"
             );
 
-            let job = state.next_job().unwrap();
+            let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(
                 1, job.function_id,
                 "next() should return function_id=1 (f_b) for running"
@@ -1798,7 +1809,7 @@ mod test {
             let f_b = super::test_function_b_not_init();
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 false,
@@ -1842,10 +1853,10 @@ mod test {
         fn running_to_ready_on_done() {
             let f_a = Function::new(
                 #[cfg(feature = "debugger")]
-                "fA".to_string(), // name
+                "fA",
                 #[cfg(feature = "debugger")]
-                "/fA".to_string(),
-                "/test".to_string(),
+                "/fA",
+                "file://fake/test",
                 vec![Input::new(&Some(Always(json!(1))))],
                 0,
                 0,
@@ -1854,7 +1865,7 @@ mod test {
             );
             let functions = vec![f_a];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -1868,7 +1879,7 @@ mod test {
             let mut debugger = Debugger::new(debug_server_context);
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
-            let job = state.next_job().unwrap();
+            let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
             state.start(&job);
 
@@ -1898,7 +1909,7 @@ mod test {
             let f_a = super::test_function_a_init();
             let functions = vec![f_a];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -1912,7 +1923,7 @@ mod test {
             let mut debugger = Debugger::new(debug_server_context);
             state.init();
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
-            let job = state.next_job().unwrap();
+            let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id, "next() should return function_id = 0");
             state.start(&job);
 
@@ -1942,10 +1953,10 @@ mod test {
             let out_conn = OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None);
             let f_a = Function::new(
                 #[cfg(feature = "debugger")]
-                "fA".to_string(), // name
+                "fA",
                 #[cfg(feature = "debugger")]
-                "/fA".to_string(),
-                "/test".to_string(),
+                "/fA",
+                "file://fake/test",
                 vec![Input::new(&Some(Always(json!(1))))],
                 0,
                 0,
@@ -1955,7 +1966,7 @@ mod test {
             let f_b = test_function_b_not_init();
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -1972,7 +1983,7 @@ mod test {
 
             assert_eq!(State::Ready, state.get_state(0), "f_a should be Ready");
 
-            let job = state.next_job().unwrap();
+            let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(
                 0, job.function_id,
                 "next() should return function_id=0 (f_a) for running"
@@ -2001,10 +2012,10 @@ mod test {
             let out_conn = OutputConnection::new("".into(), 0, 0, 0, 0, false, None);
             let f_b = Function::new(
                 #[cfg(feature = "debugger")]
-                "fB".to_string(), // name
+                "fB",
                 #[cfg(feature = "debugger")]
-                "/fB".to_string(),
-                "/test".to_string(),
+                "/fB",
+                "file://fake/test",
                 vec![Input::new(&None)],
                 1,
                 0,
@@ -2013,7 +2024,7 @@ mod test {
             );
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -2053,10 +2064,10 @@ mod test {
             let connection_to_f0 = OutputConnection::new("".into(), 0, 0, 0, 0, false, None);
             let f_b = Function::new(
                 #[cfg(feature = "debugger")]
-                "fB".to_string(), // name
+                "fB",
                 #[cfg(feature = "debugger")]
-                "/fB".to_string(),
-                "/test".to_string(),
+                "/fB",
+                "file://fake/test",
                 vec![Input::new(&Some(Always(json!(1))))],
                 1,
                 0,
@@ -2065,7 +2076,7 @@ mod test {
             );
             let functions = vec![f_a, f_b];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -2088,7 +2099,7 @@ mod test {
             );
 
             assert_eq!(
-                state.next_job().unwrap().function_id,
+                state.next_job().expect("Couldn't get next job").function_id,
                 1,
                 "next() should return function_id=1 (f_b) for running"
             );
@@ -2119,10 +2130,10 @@ mod test {
 
             let f_a = Function::new(
                 #[cfg(feature = "debugger")]
-                "fA".to_string(), // name
+                "fA",
                 #[cfg(feature = "debugger")]
-                "/fA".to_string(),
-                "/test".to_string(),
+                "/fA",
+                "file://fake/test",
                 vec![Input::new(&Some(Once(json!(1))))],
                 0,
                 0,
@@ -2135,7 +2146,7 @@ mod test {
             let f_b = test_function_b_not_init();
             let functions = vec![f_a, f_b]; // NOTE the order!
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -2158,7 +2169,7 @@ mod test {
             );
 
             assert_eq!(
-                state.next_job().unwrap().function_id,
+                state.next_job().expect("Couldn't get next job").function_id,
                 0,
                 "next() should return function_id=0 (f_a) for running"
             );
@@ -2190,7 +2201,7 @@ mod test {
                 "f_a should be Blocked on f_b"
             );
 
-            let job = state.next_job().unwrap();
+            let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(
                 job.function_id, 1,
                 "next() should return function_id=1 (f_b) for running"
@@ -2203,7 +2214,7 @@ mod test {
                 &mut debugger,
             );
 
-            let job = state.next_job().unwrap();
+            let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(
                 job.function_id, 0,
                 "next() should return function_id=0 (f_a) for running"
@@ -2221,6 +2232,7 @@ mod test {
     /****************************** Miscellaneous tests **************************/
     mod functional_tests {
         use serde_json::json;
+        use url::Url;
 
         use flowrstructs::function::Function;
         use flowrstructs::input::Input;
@@ -2243,10 +2255,10 @@ mod test {
             let out_conn2 = OutputConnection::new("".to_string(), 2, 0, 0, 0, false, None);
             let p0 = Function::new(
                 #[cfg(feature = "debugger")]
-                "p0".to_string(), // name
+                "p0",
                 #[cfg(feature = "debugger")]
-                "/p0".to_string(),
-                "/test".to_string(),
+                "/p0",
+                "file://fake/test/p0",
                 vec![], // input array
                 0,
                 0,
@@ -2255,10 +2267,10 @@ mod test {
             ); // implementation
             let p1 = Function::new(
                 #[cfg(feature = "debugger")]
-                "p1".to_string(),
+                "p1",
                 #[cfg(feature = "debugger")]
-                "/p1".to_string(),
-                "/test".to_string(),
+                "/p1",
+                "file://fake/test/p1",
                 vec![Input::new(&None)], // inputs array
                 1,
                 0,
@@ -2267,10 +2279,10 @@ mod test {
             );
             let p2 = Function::new(
                 #[cfg(feature = "debugger")]
-                "p2".to_string(),
+                "p2",
                 #[cfg(feature = "debugger")]
-                "/p2".to_string(),
-                "/test".to_string(),
+                "/p2",
+                "file://fake/test/p2",
                 vec![Input::new(&None)], // inputs array
                 2,
                 0,
@@ -2283,7 +2295,7 @@ mod test {
         #[test]
         fn blocked_works() {
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -2310,7 +2322,7 @@ mod test {
         #[test]
         fn get_works() {
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -2323,7 +2335,7 @@ mod test {
         #[test]
         fn no_next_if_none_ready() {
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -2336,7 +2348,7 @@ mod test {
         #[test]
         fn next_works() {
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -2346,13 +2358,16 @@ mod test {
             // Put 0 on the blocked/ready
             state.new_input_set(0, 0, true);
 
-            assert_eq!(state.next_job().unwrap().function_id, 0);
+            assert_eq!(
+                state.next_job().expect("Couldn't get next job").function_id,
+                0
+            );
         }
 
         #[test]
         fn inputs_ready_makes_ready() {
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -2362,13 +2377,16 @@ mod test {
             // Put 0 on the blocked/ready list depending on blocked status
             state.new_input_set(0, 0, true);
 
-            assert_eq!(state.next_job().unwrap().function_id, 0);
+            assert_eq!(
+                state.next_job().expect("Couldn't get next job").function_id,
+                0
+            );
         }
 
         #[test]
         fn blocked_is_not_ready() {
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file://temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -2399,7 +2417,7 @@ mod test {
         #[test]
         fn unblocking_makes_ready() {
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -2429,13 +2447,16 @@ mod test {
             state.unblock_senders(0, 1, 0);
 
             // Now function with id 0 should be ready and served up by next
-            assert_eq!(state.next_job().unwrap().function_id, 0);
+            assert_eq!(
+                state.next_job().expect("Couldn't get next job").function_id,
+                0
+            );
         }
 
         #[test]
         fn unblocking_doubly_blocked_functions_not_ready() {
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -2481,7 +2502,7 @@ mod test {
         #[test]
         fn wont_return_too_many_jobs() {
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -2493,7 +2514,7 @@ mod test {
             // Put 1 on the ready list
             state.new_input_set(1, 0, true);
 
-            let job = state.next_job().unwrap();
+            let job = state.next_job().expect("Couldn't get next job");
             assert_eq!(0, job.function_id);
             state.start(&job);
 
@@ -2510,7 +2531,7 @@ mod test {
 
             let functions = vec![f_a];
             let submission = Submission::new(
-                "file:///temp/fake.toml",
+                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
                 1,
                 #[cfg(feature = "debugger")]
                 true,
@@ -2524,7 +2545,10 @@ mod test {
             let mut debugger = Debugger::new(debug_server_context);
             state.init();
 
-            assert_eq!(state.next_job().unwrap().function_id, 0);
+            assert_eq!(
+                state.next_job().expect("Couldn't get next job").function_id,
+                0
+            );
 
             // Event run f_a
             let job = Job {
@@ -2600,10 +2624,10 @@ mod test {
         fn test_function() -> Function {
             Function::new(
                 #[cfg(feature = "debugger")]
-                "test".to_string(),
+                "test",
                 #[cfg(feature = "debugger")]
-                "/test".to_string(),
-                "/test".to_string(),
+                "/test",
+                "file://fake/test",
                 vec![Input::new(&None)],
                 0,
                 0,
@@ -2727,7 +2751,10 @@ mod test {
                 // Check
                 assert_eq!(
                     test_case.value_expected,
-                    function.take_input_set().unwrap().remove(0)
+                    function
+                        .take_input_set()
+                        .expect("Couldn't get input set")
+                        .remove(0)
                 );
             }
         }

@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use glob::glob;
 use log::{debug, info};
+use simpath::Simpath;
 use url::Url;
 
 use flowclib::compiler::compile_wasm;
@@ -16,16 +17,15 @@ use flowrstructs::lib_manifest::LibraryManifest;
 use flowrstructs::lib_manifest::{
     DEFAULT_LIB_JSON_MANIFEST_FILENAME, DEFAULT_LIB_RUST_MANIFEST_FILENAME,
 };
-use provider::content::file_provider::FileProvider;
-use provider::content::provider::Provider;
+use provider::lib_provider::{LibProvider, MetaProvider};
 
 use crate::errors::*;
 use crate::Options;
 
 /// Build a library from source and generate a manifest for it so it can be used at runtime when
 /// a flow referencing it is loaded and ran
-pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
-    let metadata = loader::load_metadata(&options.url.to_string(), provider).chain_err(|| {
+pub fn build_lib(options: &Options, provider: &dyn LibProvider) -> Result<String> {
+    let metadata = loader::load_metadata(&options.url, provider).chain_err(|| {
         format!(
             "Could not load Library metadata from '{}'",
             options.output_dir.display()
@@ -61,12 +61,11 @@ pub fn build_lib(options: &Options, provider: &dyn Provider) -> Result<String> {
             write_lib_json_manifest(&lib_manifest, &manifest_json_file)?;
             write_lib_rust_manifest(&lib_manifest, &manifest_rust_file)?;
         } else {
-            let provider = &FileProvider {} as &dyn Provider;
+            let provider = MetaProvider::new(Simpath::new(""));
             let manifest_file_as_url = Url::from_file_path(&manifest_json_file)
-                .map_err(|_| "Could not parse Url from file path")?
-                .to_string();
+                .map_err(|_| "Could not parse Url from file path")?;
             if let Ok((existing_manifest, _)) =
-                LibraryManifest::load(provider, &manifest_file_as_url)
+                LibraryManifest::load(&provider, &manifest_file_as_url)
             {
                 if existing_manifest != lib_manifest {
                     info!("Library manifest exists, but new manifest has changes, so updating manifest file");
@@ -166,7 +165,7 @@ fn compile_implementations(
     options: &Options,
     lib_manifest: &mut LibraryManifest,
     base_dir: &str,
-    provider: &dyn Provider,
+    provider: &dyn LibProvider,
     skip_building: bool,
     dump: bool,
 ) -> Result<i32> {
@@ -179,14 +178,12 @@ fn compile_implementations(
     );
     for entry in glob(&search_pattern).chain_err(|| "Failed to read glob pattern")? {
         if let Ok(ref toml_path) = entry {
-            let url = Url::from_file_path(&toml_path)
-                .map_err(|_| {
-                    format!(
-                        "Could not create url from file path '{}'",
-                        toml_path.display()
-                    )
-                })?
-                .to_string();
+            let url = Url::from_file_path(&toml_path).map_err(|_| {
+                format!(
+                    "Could not create url from file path '{}'",
+                    toml_path.display()
+                )
+            })?;
             debug!("Trying to load library process from '{}'", url);
             match load(&url, provider) {
                 Ok(FunctionProcess(ref mut function)) => {
@@ -196,16 +193,18 @@ fn compile_implementations(
                     let wasm_dir = wasm_abs_path
                         .parent()
                         .chain_err(|| "Could not get parent directory of wasm path")?;
-                    lib_manifest.add_to_manifest(
-                        base_dir,
-                        wasm_abs_path
-                            .to_str()
-                            .chain_err(|| "Could not convert wasm_path to str")?,
-                        wasm_dir
-                            .to_str()
-                            .chain_err(|| "Could not convert wasm_dir to str")?,
-                        function.name() as &str,
-                    );
+                    lib_manifest
+                        .add_to_manifest(
+                            base_dir,
+                            wasm_abs_path
+                                .to_str()
+                                .chain_err(|| "Could not convert wasm_path to str")?,
+                            wasm_dir
+                                .to_str()
+                                .chain_err(|| "Could not convert wasm_dir to str")?,
+                            function.name() as &str,
+                        )
+                        .chain_err(|| "Could not add entry to library manifest")?;
                     if built {
                         build_count += 1;
                     }
@@ -213,9 +212,7 @@ fn compile_implementations(
                 Ok(FlowProcess(ref mut flow)) => {
                     if options.dump {
                         // Dump the dot file alongside the definition file
-                        let source_url = Url::parse(&flow.source_url)
-                            .chain_err(|| "Could not convert flow's source_url to Url")?;
-                        let source_path = source_url.to_file_path().map_err(|_| {
+                        let source_path = flow.source_url.to_file_path().map_err(|_| {
                             "Could not convert flow's source_url Url to a Path".to_string()
                         })?;
                         let output_dir = source_path

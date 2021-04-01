@@ -4,11 +4,14 @@ use std::sync::Mutex;
 
 use log::{error, info, trace};
 use serde_json::Value;
-use wasmi::{ExternVal, ImportsBuilder, MemoryRef, Module, ModuleInstance, ModuleRef,
-            NopExternals, RuntimeValue, Signature, ValueType};
+use url::Url;
+use wasmi::{
+    ExternVal, ImportsBuilder, MemoryRef, Module, ModuleInstance, ModuleRef, NopExternals,
+    RuntimeValue, Signature, ValueType,
+};
 
 use flow_impl::{Implementation, RunAgain};
-use provider::content::provider::Provider;
+use provider::lib_provider::LibProvider;
 
 use crate::errors::*;
 
@@ -20,15 +23,15 @@ const MAX_RESULT_SIZE: i32 = 1024;
 pub struct WasmExecutor {
     module: Arc<Mutex<ModuleRef>>,
     memory: Arc<Mutex<MemoryRef>>,
-    source_url: String,
+    source_url: Url,
 }
 
 impl WasmExecutor {
-    pub fn new(module_ref: ModuleRef, memory: MemoryRef, source_url: &str) -> Self {
+    pub fn new(module_ref: ModuleRef, memory: MemoryRef, source_url: &Url) -> Self {
         WasmExecutor {
             module: Arc::new(Mutex::new(module_ref)),
             memory: Arc::new(Mutex::new(memory)),
-            source_url: source_url.to_string(),
+            source_url: source_url.clone(),
         }
     }
 }
@@ -42,18 +45,15 @@ unsafe impl Sync for WasmExecutor {}
 */
 fn send_byte_array(instance: &ModuleRef, memory: &MemoryRef, bytes: &[u8]) -> u32 {
     let alloc_size = max(bytes.len() as i32, MAX_RESULT_SIZE);
-    let result = instance
-        .invoke_export("alloc", &[RuntimeValue::I32(alloc_size)],
-                       &mut NopExternals);
+    let result =
+        instance.invoke_export("alloc", &[RuntimeValue::I32(alloc_size)], &mut NopExternals);
 
     match result {
-        Ok(Some(RuntimeValue::I32(pointer))) => {
-            match memory.set(pointer as u32, bytes) {
-                Ok(_) => pointer as u32,
-                _ => 0_u32
-            }
-        }
-        _ => 0_u32
+        Ok(Some(RuntimeValue::I32(pointer))) => match memory.set(pointer as u32, bytes) {
+            Ok(_) => pointer as u32,
+            _ => 0_u32,
+        },
+        _ => 0_u32,
     }
 }
 
@@ -65,44 +65,60 @@ impl Implementation for WasmExecutor {
                 // Allocate a string for the input data inside wasm module
                 let input_data_wasm_ptr = send_byte_array(&module_ref, &memory_ref, &input_data);
 
-                let result = module_ref.invoke_export("run_wasm",
-                                                      &[RuntimeValue::I32(input_data_wasm_ptr as i32),
-                                                          RuntimeValue::I32(input_data.len() as i32), ], &mut NopExternals);
+                let result = module_ref.invoke_export(
+                    "run_wasm",
+                    &[
+                        RuntimeValue::I32(input_data_wasm_ptr as i32),
+                        RuntimeValue::I32(input_data.len() as i32),
+                    ],
+                    &mut NopExternals,
+                );
 
                 return match result {
-                    Ok(Some(value)) => {
-                        match value {
-                            RuntimeValue::I32(result_length) => {
-                                trace!("Return length from wasm function of {}", result_length);
-                                if result_length > MAX_RESULT_SIZE {
-                                    error!("Return length from wasm function of {} exceed maximum allowed", result_length);
-                                    (None, true)
+                    Ok(Some(value)) => match value {
+                        RuntimeValue::I32(result_length) => {
+                            trace!("Return length from wasm function of {}", result_length);
+                            if result_length > MAX_RESULT_SIZE {
+                                error!(
+                                    "Return length from wasm function of {} exceed maximum allowed",
+                                    result_length
+                                );
+                                (None, true)
+                            } else {
+                                let result_data = memory_ref
+                                    .get(input_data_wasm_ptr, result_length as usize)
+                                    .unwrap();
+                                if let Ok((result, run_again)) =
+                                    serde_json::from_slice(result_data.as_slice())
+                                {
+                                    (result, run_again)
                                 } else {
-                                    let result_data = memory_ref.get(input_data_wasm_ptr, result_length as usize).unwrap();
-                                    if let Ok((result, run_again)) = serde_json::from_slice(result_data.as_slice()) {
-                                        (result, run_again)
-                                    } else {
-                                        (None, true)
-                                    }
+                                    (None, true)
                                 }
                             }
-                            _ => {
-                                error!("Unexpected return value from wasm function on invoke_export()");
-                                (None, true)
-                            }
                         }
-                    }
+                        _ => {
+                            error!("Unexpected return value from wasm function on invoke_export()");
+                            (None, true)
+                        }
+                    },
                     Ok(None) => {
-                        error!("None value returned by Wasm invoke_export(): {:?}", self.source_url);
+                        error!(
+                            "None value returned by Wasm invoke_export(): {:?}",
+                            self.source_url
+                        );
                         error!("Inputs:\n{:?}", inputs);
                         (None, true)
                     }
                     Err(err) => {
-                        error!("Error returned by Wasm invoke_export() on '{}': {:?}", self.source_url, err);
+                        error!(
+                            "Error returned by Wasm invoke_export() on '{}': {:?}",
+                            self.source_url, err
+                        );
                         error!("Inputs:\n{:?}", inputs);
                         (None, true)
                     }
-                }
+                };
             }
         }
 
@@ -111,19 +127,29 @@ impl Implementation for WasmExecutor {
 }
 
 /// load a Wasm module from the specified Url.
-pub fn load(provider: &dyn Provider, source_url: &str) -> Result<WasmExecutor> {
-    let (resolved_url, _) = provider.resolve_url(&source_url, DEFAULT_WASM_FILENAME, &["wasm"])
+pub fn load(provider: &dyn LibProvider, source_url: &Url) -> Result<WasmExecutor> {
+    let (resolved_url, _) = provider
+        .resolve_url(&source_url, DEFAULT_WASM_FILENAME, &["wasm"])
         .chain_err(|| "Could not resolve url for manifest while attempting to load manifest")?;
-    let content = provider.get_contents(&resolved_url)
-        .chain_err(|| format!("Could not fetch content from url '{}' for loading wasm", resolved_url))?;
-    let module = Module::from_buffer(content)
-        .chain_err(|| format!("Could not create Wasm Module from content in '{}'", resolved_url))?;
+    let content = provider.get_contents(&resolved_url).chain_err(|| {
+        format!(
+            "Could not fetch content from url '{}' for loading wasm",
+            resolved_url
+        )
+    })?;
+    let module = Module::from_buffer(content).chain_err(|| {
+        format!(
+            "Could not create Wasm Module from content in '{}'",
+            resolved_url
+        )
+    })?;
 
     let module_ref = ModuleInstance::new(&module, &ImportsBuilder::default())
         .chain_err(|| "Could not create new ModuleInstance when loading WASM content")?
         .assert_no_start();
 
-    let memory = module_ref.export_by_name("memory")
+    let memory = module_ref
+        .export_by_name("memory")
         .chain_err(|| "`memory` export not found")?
         .as_memory()
         .chain_err(|| "export name `memory` is not of memory type")?
@@ -136,23 +162,34 @@ pub fn load(provider: &dyn Provider, source_url: &str) -> Result<WasmExecutor> {
     Ok(WasmExecutor::new(module_ref, memory, source_url))
 }
 
-fn check_required_functions(module_ref: &ModuleRef, filename: &str) -> Result<()> {
-    let required_wasm_functions = vec!(
-        ("alloc", Signature::new(&[ValueType::I32][..], Some(ValueType::I32))),
-        ("run_wasm", Signature::new(&[ValueType::I32, ValueType::I32][..], Some(ValueType::I32))),
-    );
+fn check_required_functions(module_ref: &ModuleRef, filename: &Url) -> Result<()> {
+    let required_wasm_functions = vec![
+        (
+            "alloc",
+            Signature::new(&[ValueType::I32][..], Some(ValueType::I32)),
+        ),
+        (
+            "run_wasm",
+            Signature::new(&[ValueType::I32, ValueType::I32][..], Some(ValueType::I32)),
+        ),
+    ];
 
     for (function_name, signature) in required_wasm_functions {
-        match module_ref.export_by_name(function_name).ok_or(format!("No function named '{}' found in wasm file '{}'",
-                                                                     function_name, filename))? {
+        match module_ref.export_by_name(function_name).ok_or(format!(
+            "No function named '{}' found in wasm file '{}'",
+            function_name, filename
+        ))? {
             ExternVal::Func(function_ref) => {
                 let sig = function_ref.signature();
                 if *sig != signature {
-                    bail!("Expected function signature '{:?}' and found signature '{:?}'",
-                            signature, sig);
+                    bail!(
+                        "Expected function signature '{:?}' and found signature '{:?}'",
+                        signature,
+                        sig
+                    );
                 }
             }
-            _ => bail!("Exported value was not a function")
+            _ => bail!("Exported value was not a function"),
         }
     }
 

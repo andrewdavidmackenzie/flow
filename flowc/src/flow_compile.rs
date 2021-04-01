@@ -16,7 +16,7 @@ use flowclib::generator::generate;
 use flowclib::model::flow::Flow;
 use flowclib::model::name::HasName;
 use flowclib::model::process::Process::FlowProcess;
-use provider::content::provider::Provider;
+use provider::lib_provider::LibProvider;
 
 use crate::errors::*;
 use crate::Options;
@@ -53,9 +53,9 @@ fn check_root(flow: &Flow) -> bool {
 /*
     Compile a flow, maybe run it
 */
-pub fn compile_and_execute_flow(options: &Options, provider: &dyn Provider) -> Result<String> {
+pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -> Result<String> {
     info!("==== Compiler phase: Loading flow");
-    let context = loader::load(&options.url.to_string(), provider)
+    let context = loader::load(&options.url, provider)
         .chain_err(|| format!("Could not load flow from '{}'", options.url))?;
 
     match context {
