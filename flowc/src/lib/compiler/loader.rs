@@ -79,7 +79,7 @@ pub fn load(url: &Url, provider: &dyn LibProvider) -> Result<Process> {
         &mut 0,
         url,
         provider,
-        &&None,
+        &HashMap::new(),
     )
 }
 
@@ -91,7 +91,7 @@ fn load_process(
     flow_count: &mut usize,
     url: &Url,
     provider: &dyn LibProvider,
-    initializations: &Option<HashMap<String, InputInitializer>>,
+    initializations: &HashMap<String, InputInitializer>,
 ) -> Result<Process> {
     trace!("load_process()");
     trace!("  --> resolve_url()");
@@ -184,7 +184,7 @@ fn config_flow(
     parent_route: &Route,
     alias_from_reference: &Name,
     id: usize,
-    initializations: &Option<HashMap<String, InputInitializer>>,
+    initializations: &HashMap<String, InputInitializer>,
 ) -> Result<()> {
     flow.id = id;
     flow.set_alias(alias_from_reference);
@@ -202,38 +202,37 @@ fn load_process_refs(
     flow_count: &mut usize,
     provider: &dyn LibProvider,
 ) -> Result<()> {
-    if let Some(ref mut process_refs) = flow.process_refs {
-        for process_ref in process_refs {
-            let subprocess_url = flow
-                .source_url
-                .join(&process_ref.source)
-                .map_err(|e| e.to_string())?;
-            let process = load_process(
-                &flow.route,
-                &process_ref.alias(),
-                flow.id,
-                flow_count,
-                &subprocess_url,
-                provider,
-                &process_ref.initializations,
-            )?;
-            process_ref.set_alias(process.name());
+    for process_ref in &mut flow.process_refs {
+        let subprocess_url = flow
+            .source_url
+            .join(&process_ref.source)
+            .map_err(|e| e.to_string())?;
+        let process = load_process(
+            &flow.route,
+            &process_ref.alias(),
+            flow.id,
+            flow_count,
+            &subprocess_url,
+            provider,
+            &process_ref.initializations,
+        )?;
+        process_ref.set_alias(process.name());
 
-            // runtime needs references to library functions to be able to load the implementations at load time
-            // library flow definitions are "compiled down" to just library function references at compile time.
-            if let FunctionProcess(function) = &process {
-                if let Some(lib_ref) = function.get_lib_reference() {
-                    flow.lib_references.insert(
-                        Url::parse(&format!("lib://{}/{}", lib_ref, function.name()))
-                            .map_err(|_| "Could not create Url from library reference")?,
-                    );
-                }
+        // runtime needs references to library functions to be able to load the implementations at load time
+        // library flow definitions are "compiled down" to just library function references at compile time.
+        if let FunctionProcess(function) = &process {
+            if let Some(lib_ref) = function.get_lib_reference() {
+                flow.lib_references.insert(
+                    Url::parse(&format!("lib://{}/{}", lib_ref, function.name()))
+                        .map_err(|_| "Could not create Url from library reference")?,
+                );
             }
-
-            flow.subprocesses
-                .insert(process_ref.alias().to_owned(), process);
         }
+
+        flow.subprocesses
+            .insert(process_ref.alias().to_owned(), process);
     }
+
     Ok(())
 }
 
@@ -245,7 +244,7 @@ fn config_function(
     alias: &Name,
     flow_id: usize,
     lib_ref: Option<String>,
-    initializations: &Option<HashMap<String, InputInitializer>>,
+    initializations: &HashMap<String, InputInitializer>,
 ) -> Result<()> {
     function.set_flow_id(flow_id);
     function.set_alias(alias);

@@ -24,9 +24,9 @@ pub struct Function {
     #[serde(default = "Function::default_impure")]
     impure: bool,
     implementation: String,
-    #[serde(rename = "input")]
+    #[serde(default, rename = "input")]
     pub inputs: IOSet,
-    #[serde(rename = "output")]
+    #[serde(default, rename = "output")]
     outputs: IOSet,
 
     #[serde(skip_deserializing)]
@@ -183,18 +183,14 @@ impl Validate for Function {
 
         let mut io_count = 0;
 
-        if let Some(ref inputs) = self.inputs {
-            for i in inputs {
-                io_count += 1;
-                i.validate()?
-            }
+        for i in &self.inputs {
+            io_count += 1;
+            i.validate()?
         }
 
-        if let Some(ref outputs) = self.outputs {
-            for i in outputs {
-                io_count += 1;
-                i.validate()?
-            }
+        for i in &self.outputs {
+            io_count += 1;
+            i.validate()?
         }
 
         // A function must have at least one valid input or output
@@ -214,17 +210,13 @@ impl fmt::Display for Function {
         writeln!(f, "flow_id: \t\t{}", self.flow_id)?;
 
         writeln!(f, "inputs:")?;
-        if let Some(ref inputs) = self.inputs {
-            for input in inputs {
-                writeln!(f, "\t{:#?}", input)?;
-            }
+        for input in &self.inputs {
+            writeln!(f, "\t{:#?}", input)?;
         }
 
         writeln!(f, "outputs:")?;
-        if let Some(ref outputs) = self.outputs {
-            for output in outputs {
-                writeln!(f, "\t{:#?}", output)?;
-            }
+        for output in &self.outputs {
+            writeln!(f, "\t{:#?}", output)?;
         }
 
         Ok(())
@@ -238,8 +230,8 @@ impl Default for Function {
             impure: false,
             implementation: "".to_owned(),
             alias: Name::default(),
-            inputs: None,
-            outputs: Some(vec![IO::new("Value", Route::default())]),
+            inputs: vec![],
+            outputs: vec![IO::new("Value", Route::default())],
             source_url: Function::default_source_url(),
             route: Route::default(),
             lib_reference: None,
@@ -291,8 +283,8 @@ mod test {
             implementation: "".to_owned(),
             alias: Name::from("test_function"),
             source_url: Function::default_source_url(),
-            inputs: Some(vec![]), // No inputs!
-            outputs: None,        // No output!
+            inputs: vec![],  // No inputs!
+            outputs: vec![], // No output!
             route: Route::default(),
             lib_reference: None,
             output_connections: vec![OutputConnection::new(
@@ -332,17 +324,15 @@ mod test {
     }
 
     #[test]
-    fn deserialize_output_empty() {
+    fn deserialize_no_inputs_or_outputs() {
         let function_str = "
         function = 'test_function'
         implementation = 'test.rs'
-
-        [[output]]
         ";
 
-        let function: Function = toml::from_str(function_str).unwrap();
-        function.validate().unwrap();
-        assert!(function.outputs.is_some());
+        let function: Function =
+            toml::from_str(function_str).expect("Couldn't read function from toml");
+        assert!(function.validate().is_err());
     }
 
     #[test]
@@ -367,10 +357,11 @@ mod test {
         type = 'String'
         ";
 
-        let function: Function = toml::from_str(function_str).unwrap();
-        function.validate().unwrap();
-        assert!(function.outputs.is_some());
-        let output = &function.outputs.unwrap()[0];
+        let function: Function =
+            toml::from_str(function_str).expect("Couldn't read function from toml");
+        function.validate().expect("Function did not validate");
+        assert!(!function.outputs.is_empty());
+        let output = &function.outputs[0];
         assert_eq!(*output.name(), Name::default());
         assert_eq!(output.datatype(), &DataType::from("String"));
     }
@@ -386,10 +377,11 @@ mod test {
         type = 'String'
         ";
 
-        let function: Function = toml::from_str(function_str).unwrap();
-        function.validate().unwrap();
-        assert!(function.outputs.is_some());
-        let output = &function.outputs.unwrap()[0];
+        let function: Function =
+            toml::from_str(function_str).expect("Could not deserialize function from toml");
+        function.validate().expect("Function does not validate");
+        assert!(!function.outputs.is_empty());
+        let output = &function.outputs[0];
         assert_eq!(*output.name(), Name::from("sub_output"));
         assert_eq!(output.datatype(), &DataType::from("String"));
     }
@@ -408,10 +400,11 @@ mod test {
         type = 'Number'
         ";
 
-        let function: Function = toml::from_str(function_str).unwrap();
-        function.validate().unwrap();
-        assert!(function.outputs.is_some());
-        let outputs = function.outputs.unwrap();
+        let function: Function =
+            toml::from_str(function_str).expect("Couldn't read function from toml");
+        function.validate().expect("Function didn't validate");
+        assert!(!function.outputs.is_empty());
+        let outputs = function.outputs;
         assert_eq!(outputs.len(), 2);
         let output0 = &outputs[0];
         assert_eq!(*output0.name(), Name::from("sub_output"));
@@ -436,7 +429,8 @@ mod test {
         ";
 
         // Setup
-        let mut function: Function = toml::from_str(function_str).unwrap();
+        let mut function: Function =
+            toml::from_str(function_str).expect("Couldn't read function from toml");
         function.alias = Name::from("test_alias");
 
         // Test
@@ -444,12 +438,10 @@ mod test {
 
         assert_eq!(function.route, Route::from("/flow/test_alias"));
 
-        let outputs = function.outputs.unwrap();
-
-        let output0 = &outputs[0];
+        let output0 = &function.outputs[0];
         assert_eq!(*output0.route(), Route::from("/flow/test_alias/sub_output"));
 
-        let output1 = &outputs[1];
+        let output1 = &function.outputs[1];
         assert_eq!(
             *output1.route(),
             Route::from("/flow/test_alias/other_output")
@@ -468,7 +460,8 @@ mod test {
         ";
 
         // Setup
-        let mut function: Function = toml::from_str(function_str).unwrap();
+        let mut function: Function =
+            toml::from_str(function_str).expect("Couldn't read function from toml");
         function.alias = Name::from("test_alias");
         function.set_routes_from_parent(&Route::from("/flow"));
 
@@ -477,7 +470,7 @@ mod test {
         let output = function
             .outputs
             .find_by_route(&Route::from("/0"), &None)
-            .unwrap();
+            .expect("Expected to find an IO");
         assert_eq!(*output.name(), Name::default());
     }
 }

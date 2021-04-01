@@ -35,14 +35,14 @@ use crate::model::route::{Route, RouteType};
 pub struct Flow {
     #[serde(rename = "flow")]
     pub name: Name,
-    #[serde(rename = "input")]
+    #[serde(default, rename = "input")]
     pub inputs: IOSet,
-    #[serde(rename = "output")]
+    #[serde(default, rename = "output")]
     pub outputs: IOSet,
-    #[serde(rename = "process")]
-    pub process_refs: Option<Vec<ProcessReference>>,
-    #[serde(rename = "connection")]
-    pub connections: Option<Vec<Connection>>,
+    #[serde(default, rename = "process")]
+    pub process_refs: Vec<ProcessReference>,
+    #[serde(default, rename = "connection")]
+    pub connections: Vec<Connection>,
 
     #[serde(default = "Flow::default_description")]
     pub description: String,
@@ -68,22 +68,16 @@ pub struct Flow {
 impl Validate for Flow {
     // check the correctness of all the fields in this flow, prior to loading sub-elements
     fn validate(&self) -> Result<()> {
-        if let Some(ref inputs) = self.inputs {
-            for input in inputs {
-                input.validate()?;
-            }
+        for input in &self.inputs {
+            input.validate()?;
         }
 
-        if let Some(ref outputs) = self.outputs {
-            for output in outputs {
-                output.validate()?;
-            }
+        for output in &self.outputs {
+            output.validate()?;
         }
 
-        if let Some(ref connections) = self.connections {
-            for connection in connections {
-                connection.validate()?;
-            }
+        for connection in &self.connections {
+            connection.validate()?;
         }
 
         Ok(())
@@ -93,34 +87,26 @@ impl Validate for Flow {
 impl fmt::Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "\tname: \t\t\t{}\n\tid: \t\t\t{}\n\talias: \t\t\t{}\n\tsource_url: \t{}\n\troute: \t\t\t{}",
-                 self.name, self.id, self.alias, self.source_url, self.route).unwrap();
+                 self.name, self.id, self.alias, self.source_url, self.route)?;
 
-        writeln!(f, "\tinputs:").unwrap();
-        if let Some(ref inputs) = self.inputs {
-            for input in inputs {
-                writeln!(f, "\t\t\t\t\t{:#?}", input).unwrap();
-            }
+        writeln!(f, "\tinputs:")?;
+        for input in &self.inputs {
+            writeln!(f, "\t\t\t\t\t{:#?}", input)?;
         }
 
-        writeln!(f, "\toutputs:").unwrap();
-        if let Some(ref outputs) = self.outputs {
-            for output in outputs {
-                writeln!(f, "\t\t\t\t\t{:#?}", output).unwrap();
-            }
+        writeln!(f, "\toutputs:")?;
+        for output in &self.outputs {
+            writeln!(f, "\t\t\t\t\t{:#?}", output)?;
         }
 
-        writeln!(f, "\tprocesses:").unwrap();
-        if let Some(ref process_refs) = self.process_refs {
-            for flow_ref in process_refs {
-                writeln!(f, "\t{}", flow_ref).unwrap();
-            }
+        writeln!(f, "\tprocesses:")?;
+        for flow_ref in &self.process_refs {
+            writeln!(f, "\t{}", flow_ref)?;
         }
 
-        writeln!(f, "\tconnections:").unwrap();
-        if let Some(ref connections) = self.connections {
-            for connection in connections {
-                writeln!(f, "\t\t\t\t\t{}", connection).unwrap();
-            }
+        writeln!(f, "\tconnections:")?;
+        for connection in &self.connections {
+            writeln!(f, "\t\t\t\t\t{}", connection)?;
         }
 
         Ok(())
@@ -135,10 +121,10 @@ impl Default for Flow {
             alias: Name::default(),
             source_url: Flow::default_url(),
             route: Route::default(),
-            process_refs: None,
-            inputs: None,
-            outputs: None,
-            connections: None,
+            process_refs: vec![],
+            inputs: vec![],
+            outputs: vec![],
+            connections: vec![],
             subprocesses: HashMap::new(),
             lib_references: HashSet::new(),
             description: Flow::default_description(),
@@ -319,7 +305,7 @@ impl Flow {
         Propagate any initializers on a flow input into the input (subflow or function) it is connected to
     */
     pub fn build_connections(&mut self) -> Result<()> {
-        if self.connections.is_none() {
+        if self.connections.is_empty() {
             return Ok(());
         }
 
@@ -328,53 +314,56 @@ impl Flow {
         let mut error_count = 0;
 
         // get connections out of self - so we can use immutable references to self inside loop
-        let connections = replace(&mut self.connections, None);
+        let mut connections = replace(&mut self.connections, vec![]);
 
-        if let Some(mut conns) = connections {
-            for connection in conns.iter_mut() {
-                match self.get_route_and_type(FROM, &connection.from, &None) {
-                    Ok(from_io) => {
-                        debug!("Found connection source:\n{:#?}", from_io);
-                        match self.get_route_and_type(TO, &connection.to, from_io.get_initializer())
-                        {
-                            Ok(to_io) => {
-                                debug!("Found connection destination:\n{:#?}", to_io);
-                                // TODO here we are only checking compatible data types from the overall FROM IO
-                                // not from sub-types in it selected via a sub-route e.g. Array/String --> String
-                                // We'd need to make compatible_types more complex and take the from sub-Route
-                                if Connection::compatible_types(
-                                    &from_io.datatype(),
-                                    &to_io.datatype(),
-                                ) {
-                                    debug!("Connection built from '{}' to '{}' with runtime conversion ''", from_io.route(), to_io.route());
-                                    connection.from_io = from_io;
-                                    connection.to_io = to_io;
-                                } else {
-                                    error!("In flow '{}' cannot connect types:\nfrom\n{:#?}\nto\n{:#?}",
-                                           self.source_url, from_io, to_io);
-                                    error_count += 1;
-                                }
-                            }
-                            Err(error) => {
-                                error!("Did not find connection destination: '{}' in flow '{}'\n\t\t{}",
-                                       connection.to, self.source_url, error);
+        for connection in connections.iter_mut() {
+            match self.get_route_and_type(FROM, &connection.from, &None) {
+                Ok(from_io) => {
+                    debug!("Found connection source:\n{:#?}", from_io);
+                    match self.get_route_and_type(TO, &connection.to, from_io.get_initializer()) {
+                        Ok(to_io) => {
+                            debug!("Found connection destination:\n{:#?}", to_io);
+                            // TODO here we are only checking compatible data types from the overall FROM IO
+                            // not from sub-types in it selected via a sub-route e.g. Array/String --> String
+                            // We'd need to make compatible_types more complex and take the from sub-Route
+                            if Connection::compatible_types(&from_io.datatype(), &to_io.datatype())
+                            {
+                                debug!(
+                                    "Connection built from '{}' to '{}' with runtime conversion ''",
+                                    from_io.route(),
+                                    to_io.route()
+                                );
+                                connection.from_io = from_io;
+                                connection.to_io = to_io;
+                            } else {
+                                error!(
+                                    "In flow '{}' cannot connect types:\nfrom\n{:#?}\nto\n{:#?}",
+                                    self.source_url, from_io, to_io
+                                );
                                 error_count += 1;
                             }
                         }
-                    }
-                    Err(error) => {
-                        error!(
-                            "Did not find connection source: '{}' specified in flow '{}'\n\t\t{}",
-                            connection.from, self.source_url, error
-                        );
-                        error_count += 1;
+                        Err(error) => {
+                            error!(
+                                "Did not find connection destination: '{}' in flow '{}'\n\t\t{}",
+                                connection.to, self.source_url, error
+                            );
+                            error_count += 1;
+                        }
                     }
                 }
+                Err(error) => {
+                    error!(
+                        "Did not find connection source: '{}' specified in flow '{}'\n\t\t{}",
+                        connection.from, self.source_url, error
+                    );
+                    error_count += 1;
+                }
             }
-
-            // put connections back into self
-            let _ = replace(&mut self.connections, Some(conns));
         }
+
+        // put connections back into self
+        let _ = replace(&mut self.connections, connections);
 
         if error_count == 0 {
             debug!(

@@ -14,7 +14,6 @@ use flowclib::dumper::dump_flow;
 use flowclib::dumper::dump_tables;
 use flowclib::generator::generate;
 use flowclib::model::flow::Flow;
-use flowclib::model::name::HasName;
 use flowclib::model::process::Process::FlowProcess;
 use provider::lib_provider::LibProvider;
 
@@ -27,24 +26,22 @@ use crate::Options;
 fn check_root(flow: &Flow) -> bool {
     let mut runnable = true;
 
-    if let Some(inputs) = flow.inputs() {
-        if !inputs.is_empty() {
-            error!("Root process '{}' has inputs:", flow.name);
-            for input in inputs {
-                error!("\t'{}'", input.name());
-            }
-            runnable = false
-        }
+    if !flow.inputs().is_empty() {
+        error!(
+            "Root process '{}' has inputs: {:?}",
+            flow.name,
+            flow.inputs()
+        );
+        runnable = false
     }
 
-    if let Some(outputs) = flow.outputs() {
-        if !outputs.is_empty() {
-            error!("Root process '{}' has outputs:", flow.name);
-            for output in outputs {
-                error!("\t'{}'", output.name());
-            }
-            runnable = false
-        }
+    if !flow.outputs().is_empty() {
+        error!(
+            "Root process '{}' has outputs: {:?}",
+            flow.name,
+            flow.outputs()
+        );
+        runnable = false
     }
 
     runnable

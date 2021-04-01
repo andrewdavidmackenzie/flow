@@ -44,6 +44,7 @@ mod test {
     use crate::model::name::{HasName, Name};
     use crate::model::process_reference::ProcessReference;
     use crate::model::route::Route;
+    use std::collections::HashMap;
 
     /*
         Test for a function that is dead code. It has no connections to it or from it so will
@@ -56,8 +57,8 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout.toml".to_owned(),
             Name::from("test-function"),
-            Some(vec![IO::new("String", "/print")]),
-            Some(vec![]),
+            vec![IO::new("String", "/print")],
+            vec![],
             "lib://flowruntime/stdio/stdout.toml",
             Route::from("/print"),
             Some("lib://flowruntime/stdio/stdout.toml".to_string()),
@@ -69,13 +70,13 @@ mod test {
         let function_ref = ProcessReference {
             alias: function.alias().to_owned(),
             source: "lib://flowruntime/stdio/stdout.toml".to_string(),
-            initializations: None,
+            initializations: HashMap::new(),
         };
 
         let flow = Flow {
             alias: Name::from("context"),
             name: Name::from("test-flow"),
-            process_refs: Some(vec![function_ref]),
+            process_refs: vec![function_ref],
             ..Default::default()
         };
 

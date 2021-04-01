@@ -150,14 +150,9 @@ fn function_to_runtimefunction(
     let implementation_location = implementation_location_relative(&function, manifest_url)?;
 
     let mut runtime_inputs = vec![];
-    match &function.get_inputs() {
-        &None => {}
-        Some(inputs) => {
-            for input in inputs {
-                runtime_inputs.push(Input::from(input));
-            }
-        }
-    };
+    for input in function.get_inputs() {
+        runtime_inputs.push(Input::from(input));
+    }
 
     Ok(RuntimeFunction::new(
         #[cfg(feature = "debugger")]
@@ -228,11 +223,11 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
-            Some(vec![]),
-            Some(vec![
+            vec![],
+            vec![
                 IO::new("Value", Route::default()),
                 IO::new("String", Route::default()),
-            ]),
+            ],
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
@@ -284,8 +279,8 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
-            Some(vec![]),
-            Some(vec![IO::new("String", Route::default())]),
+            vec![],
+            vec![IO::new("String", Route::default())],
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
@@ -336,8 +331,8 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
-            Some(vec![]),
-            Some(vec![IO::new("String", Route::default())]),
+            vec![],
+            vec![IO::new("String", Route::default())],
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
@@ -392,8 +387,8 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
-            Some(vec![io]),
-            None,
+            vec![io],
+            vec![],
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
@@ -438,8 +433,8 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
-            Some(vec![io]),
-            None,
+            vec![io],
+            vec![],
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
@@ -483,8 +478,8 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
-            Some(vec![io]),
-            None,
+            vec![io],
+            vec![],
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
@@ -521,8 +516,8 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
-            Some(vec![]),
-            Some(vec![IO::new("String", Route::default())]),
+            vec![],
+            vec![IO::new("String", Route::default())],
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
@@ -593,8 +588,8 @@ mod test {
             false,
             "lib://flowruntime/stdio/stdout".to_string(),
             Name::from("print"),
-            Some(vec![]),
-            Some(vec![IO::new("Array", Route::default())]),
+            vec![],
+            vec![IO::new("Array", Route::default())],
             "file:///fake/file",
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),

@@ -368,8 +368,8 @@ mod test {
             false,
             "stdout.rs".to_string(),
             "print".into(),
-            Some(vec![]),
-            Some(vec![IO::new("String", Route::default())]),
+            vec![],
+            vec![IO::new("String", Route::default())],
             &format!(
                 "{}/{}",
                 Path::new(env!("CARGO_MANIFEST_DIR"))

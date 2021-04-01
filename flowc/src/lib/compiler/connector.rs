@@ -57,15 +57,14 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                     if let Some(destination_function) =
                         tables.functions.get_mut(destination_function_id)
                     {
-                        if let Some(ref mut inputs) = destination_function.get_mut_inputs() {
-                            let destination_input =
-                                inputs.get_mut(destination_input_index).unwrap();
-                            if destination_input.get_initializer().is_none() {
-                                destination_input
-                                    .set_initializer(connection.to_io.get_initializer());
-                                debug!("Set initializer on destination function '{}' input at '{}' from connection",
+                        let destination_input = destination_function
+                            .get_mut_inputs()
+                            .get_mut(destination_input_index)
+                            .unwrap();
+                        if destination_input.get_initializer().is_none() {
+                            destination_input.set_initializer(connection.to_io.get_initializer());
+                            debug!("Set initializer on destination function '{}' input at '{}' from connection",
                                        destination_function.name(), connection.to_io.route());
-                            }
                         }
                     }
                 }
@@ -142,25 +141,19 @@ pub fn get_source(
 pub fn create_routes_table(tables: &mut GenerationTables) {
     for function in &mut tables.functions {
         // Add any output routes it has to the source routes table
-        if let Some(ref outputs) = function.get_outputs() {
-            for output in outputs {
-                tables.source_routes.insert(
-                    output.route().clone(),
-                    (Route::from(output.name()), function.get_id()),
-                );
-            }
+        for output in function.get_outputs() {
+            tables.source_routes.insert(
+                output.route().clone(),
+                (Route::from(output.name()), function.get_id()),
+            );
         }
 
         // Add any inputs it has to the destination routes table
-        let mut input_index = 0;
-        if let Some(ref inputs) = function.get_inputs() {
-            for input in inputs {
-                tables.destination_routes.insert(
-                    input.route().clone(),
-                    (function.get_id(), input_index, function.get_flow_id()),
-                );
-                input_index += 1;
-            }
+        for (input_index, input) in function.get_inputs().iter().enumerate() {
+            tables.destination_routes.insert(
+                input.route().clone(),
+                (function.get_id(), input_index, function.get_flow_id()),
+            );
         }
     }
 }
