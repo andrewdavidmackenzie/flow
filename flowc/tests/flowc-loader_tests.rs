@@ -74,15 +74,11 @@ fn function_input_initialized() {
                     Name::from("print"),
                     "Function alias does not match"
                 );
-                if let Some(inputs) = print_function.get_inputs() {
-                    let default_input: &IO = inputs.get(0).unwrap();
-                    let initial_value = default_input.get_initializer().clone().unwrap();
-                    match initial_value {
-                        Once(one_time) => assert_eq!(one_time, "hello"),
-                        _ => panic!("Initializer should have been a Once initializer"),
-                    }
-                } else {
-                    panic!("Could not find any inputs");
+                let default_input: &IO = print_function.get_inputs().get(0).unwrap();
+                let initial_value = default_input.get_initializer().clone().unwrap();
+                match initial_value {
+                    Once(one_time) => assert_eq!(one_time, "hello"),
+                    _ => panic!("Initializer should have been a Once initializer"),
                 }
             }
             _ => panic!("Sub-process was not a Function"),
@@ -132,25 +128,21 @@ fn flow_input_initialized_and_propagated_to_function() {
                             *tap_function.alias(),
                             "Function alias is not 'compare' as expected"
                         );
-                        if let Some(inputs) = tap_function.get_inputs() {
-                            let in_input = inputs.get(0).unwrap();
-                            assert_eq!(
-                                Name::from("left"),
-                                *in_input.alias(),
-                                "Input's name is not 'left' as expected"
-                            );
-                            assert_eq!(
-                                Route::from("/flow_input_init/count/compare/left"),
-                                *in_input.route(),
-                                "Input's route is not as expected"
-                            );
-                            let initial_value = in_input.get_initializer();
-                            match initial_value {
-                                Some(Once(one_time)) => assert_eq!(one_time, 10),
-                                _ => panic!("Initializer should have been a Once initializer"),
-                            }
-                        } else {
-                            panic!("Could not find any inputs");
+                        let in_input = tap_function.get_inputs().get(0).unwrap();
+                        assert_eq!(
+                            Name::from("left"),
+                            *in_input.alias(),
+                            "Input's name is not 'left' as expected"
+                        );
+                        assert_eq!(
+                            Route::from("/flow_input_init/count/compare/left"),
+                            *in_input.route(),
+                            "Input's route is not as expected"
+                        );
+                        let initial_value = in_input.get_initializer();
+                        match initial_value {
+                            Some(Once(one_time)) => assert_eq!(one_time, 10),
+                            _ => panic!("Initializer should have been a Once initializer"),
                         }
                     }
                     _ => panic!("The expected function sub-process of 'pass-if-lte' was not found"),

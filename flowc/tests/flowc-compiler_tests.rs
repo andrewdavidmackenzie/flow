@@ -65,8 +65,8 @@ fn context_with_io() {
     if let FlowProcess(ref flow) = process {
         if compile::compile(flow).is_ok() {
             // flow loaded, but has ios
-            assert!(!flow.inputs().as_ref().unwrap().is_empty());
-            assert!(!flow.outputs().as_ref().unwrap().is_empty());
+            assert!(!flow.inputs().is_empty());
+            assert!(!flow.outputs().is_empty());
         }
     } else {
         panic!("Process loaded was not a flow");
@@ -339,18 +339,14 @@ fn initialized_output_propagated() {
                         .find(|&f| f.route() == &Route::from("/print_subflow_output/print"))
                     {
                         Some(print_function) => {
-                            if let Some(inputs) = print_function.get_inputs() {
-                                let in_input = inputs.get(0).unwrap();
-                                let initial_value = in_input.get_initializer();
-                                match initial_value {
-                                    Some(Once(one_time)) => assert_eq!(one_time, &json!("Hello")), // PASS
-                                    _ => panic!(
-                                        "Initializer should have been a Once initializer, was {:?}",
-                                        initial_value
-                                    ),
-                                }
-                            } else {
-                                panic!("Could not find any inputs");
+                            let in_input = print_function.get_inputs().get(0).unwrap();
+                            let initial_value = in_input.get_initializer();
+                            match initial_value {
+                                Some(Once(one_time)) => assert_eq!(one_time, &json!("Hello")), // PASS
+                                _ => panic!(
+                                    "Initializer should have been a Once initializer, was {:?}",
+                                    initial_value
+                                ),
                             }
                         }
                         None => {
@@ -390,17 +386,13 @@ fn flow_input_initialized_and_propagated_to_function_in_subflow() {
 
             match tables.functions.iter().find(|&f| f.route() == &Route::from("/subflow_function_input_init/sequence/compare")) {
                 Some(compare_switch_function) => {
-                    if let Some(inputs) = compare_switch_function.get_inputs() {
-                        let in_input = inputs.get(1).unwrap();
+                        let in_input = compare_switch_function.get_inputs().get(1).unwrap();
                         assert_eq!(Name::from("right"), *in_input.alias(), "Input's name is not 'right' as expected");
                         let initial_value = in_input.get_initializer();
                         match initial_value {
                             Some(Once(one_time)) => assert_eq!(one_time, 1), // PASS
                             _ => panic!("Initializer should have been a Once initializer, was {:?}", initial_value)
                         }
-                    } else {
-                        panic!("Could not find any inputs");
-                    }
                 }
                 None => panic!("Could not find function at route '/subflow_function_input_init/sequence/compare'")
             }

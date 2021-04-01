@@ -50,19 +50,30 @@ fn check_for_competing_inputs(tables: &GenerationTables) -> Result<()> {
 
     for connection in &tables.collapsed_connections {
         // Check for double connection
-        if let Some((_output_route, sender_id)) = connector::get_source(&tables.source_routes, &connection.from_io.route()) {
-            if let Some(other_sender_id) = used_destinations.insert(connection.to_io.route().clone(), sender_id) {                    // The same function is already sending to this route!
+        if let Some((_output_route, sender_id)) =
+            connector::get_source(&tables.source_routes, &connection.from_io.route())
+        {
+            if let Some(other_sender_id) =
+                used_destinations.insert(connection.to_io.route().clone(), sender_id)
+            {
+                // The same function is already sending to this route!
                 if other_sender_id == sender_id {
-                    bail!("The function #{} has multiple outputs sending to the route '{}'",
-                                           sender_id, connection.to_io.route());
+                    bail!(
+                        "The function #{} has multiple outputs sending to the route '{}'",
+                        sender_id,
+                        connection.to_io.route()
+                    );
                 }
             }
         }
 
         // check for ConstantInitializer at destination
         if let Some(Always(_)) = connection.to_io.get_initializer() {
-            bail!("Connection from '{}' to input at '{}' that also has a `always` initializer",
-            connection.from_io.route(), connection.to_io.route() );
+            bail!(
+                "Connection from '{}' to input at '{}' that also has a `always` initializer",
+                connection.from_io.route(),
+                connection.to_io.route()
+            );
         }
     }
 
@@ -74,27 +85,26 @@ fn check_for_competing_inputs(tables: &GenerationTables) -> Result<()> {
 */
 pub fn check_function_inputs(tables: &mut GenerationTables) -> Result<()> {
     for function in &tables.functions {
-        if let Some(inputs) = function.get_inputs() {
-            for input in inputs {
-                match input.get_initializer() {
-                    None => {
-                        if !connection_to(tables, &input.route()) {
-                            bail!("Input at route '{}' is not used", input.route());
-                        }
+        for input in function.get_inputs() {
+            match input.get_initializer() {
+                None => {
+                    if !connection_to(tables, &input.route()) {
+                        bail!("Input at route '{}' is not used", input.route());
                     }
-                    Some(Always(_)) => {
-                        // Has a constant initializer and there is another
-                        // connections to this input then flag that as an error
-                        if connection_to(tables, &input.route()) {
-                            bail!("Input at route '{}' has a 'constant' initializer and a connection to it",
-                                               input.route());
-                        }
-                    }
-                    _ => {}
                 }
+                Some(Always(_)) => {
+                    // Has a constant initializer and there is another
+                    // connections to this input then flag that as an error
+                    if connection_to(tables, &input.route()) {
+                        bail!("Input at route '{}' has a 'constant' initializer and a connection to it",
+                                               input.route());
+                    }
+                }
+                _ => {}
             }
         }
     }
+
     Ok(())
 }
 
@@ -116,8 +126,8 @@ mod test {
     use super::remove_duplicates;
 
     /*
-                                                                                    Test that when two functions are connected doubly, the connection gets reduced to a single one
-                                                                                */
+        Test that when two functions are connected doubly, the connection gets reduced to a single one
+    */
     #[test]
     fn remove_duplicated_connection() {
         let first = Connection {
@@ -138,7 +148,7 @@ mod test {
             level: 0,
         };
 
-        let mut connections = vec!(first, second);
+        let mut connections = vec![first, second];
 
         assert_eq!(connections.len(), 2);
         remove_duplicates(&mut connections);

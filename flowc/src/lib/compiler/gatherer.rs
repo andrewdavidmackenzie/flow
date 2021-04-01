@@ -17,13 +17,11 @@ pub fn gather_functions_and_connections(
     level: usize,
 ) -> Result<()> {
     // Add Connections from this flow hierarchy to the connections table
-    if let Some(ref flow_connections) = flow.connections {
-        let mut connections = flow_connections.clone();
-        for con in &mut connections {
-            con.level = level;
-        }
-        tables.connections.append(&mut connections);
+    let mut connections = flow.connections.clone();
+    for con in &mut connections {
+        con.level = level;
     }
+    tables.connections.append(&mut connections);
 
     // Do the same for all subprocesses referenced from this one
     for subprocess in &flow.subprocesses {

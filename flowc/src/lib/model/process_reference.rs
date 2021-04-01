@@ -16,8 +16,8 @@ pub struct ProcessReference {
     #[serde(default = "Name::default")]
     pub alias: Name,
     pub source: String,
-    #[serde(rename = "input")]
-    pub initializations: Option<HashMap<String, InputInitializer>>,
+    #[serde(default, rename = "input")]
+    pub initializations: HashMap<String, InputInitializer>,
     // Map of initializers of inputs for this reference
 }
 
@@ -32,8 +32,12 @@ impl ProcessReference {
 }
 
 impl HasName for ProcessReference {
-    fn name(&self) -> &Name { &self.alias }
-    fn alias(&self) -> &Name { &self.alias }
+    fn name(&self) -> &Name {
+        &self.alias
+    }
+    fn alias(&self) -> &Name {
+        &self.alias
+    }
 }
 
 impl Validate for ProcessReference {
@@ -44,8 +48,11 @@ impl Validate for ProcessReference {
 
 impl fmt::Display for ProcessReference {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\t\t\t\talias: {}\n\t\t\t\t\tsource: {}\n\t\t\t\t\tURL: {}\n",
-               self.alias, self.source, self.source)
+        write!(
+            f,
+            "\t\t\t\talias: {}\n\t\t\t\t\tsource: {}\n\t\t\t\t\tURL: {}\n",
+            self.alias, self.source, self.source
+        )
     }
 }
 
@@ -64,7 +71,8 @@ mod test {
         source = 'other.toml'
         ";
 
-        let _reference: ProcessReference = toml::from_str(input_str).unwrap();
+        let _reference: ProcessReference =
+            toml::from_str(input_str).expect("Could not deserialize ProcessReference from toml");
     }
 
     #[test]
@@ -75,14 +83,18 @@ mod test {
         input.input1 = {once = 1}
         ";
 
-        let reference: ProcessReference = toml::from_str(input_str).unwrap();
-        let initialized_inputs = reference.clone().initializations.unwrap();
-        assert_eq!(initialized_inputs.len(), 1, "Incorrect number of Input initializations parsed");
-        match initialized_inputs.get("input1").unwrap() {
+        let reference: ProcessReference =
+            toml::from_str(input_str).expect("Could not deserialize ProcessReference from toml");
+        assert_eq!(
+            reference.initializations.len(),
+            1,
+            "Incorrect number of Input initializations parsed"
+        );
+        match reference.initializations.get("input1").unwrap() {
             Always(_) => panic!("Should have been a Once initializer"),
-            Once(value) => assert_eq!(&json!(1), value, "input1 should be initialized to 1")
+            Once(value) => assert_eq!(&json!(1), value, "input1 should be initialized to 1"),
         }
-   }
+    }
 
     /*
         For completeness I test the alternative format of expressing the table, but I prefer to use
@@ -96,17 +108,18 @@ mod test {
         input.input1 = {always = 1}
         ";
 
-        let reference: ProcessReference = toml::from_str(input_str).unwrap();
-        let initialized_inputs = reference.initializations.unwrap();
-        assert_eq!(initialized_inputs.len(), 1, "Incorrect number of Input initializations parsed");
-        match initialized_inputs.get("input1").unwrap() {
-            Always(value) => {
-                assert_eq!(&json!(1), value, "input1 should be initialized to 1");
-            },
-            Once(value) => {
-                println!("initial_value: {}", value);
-                panic!("Should have been a Constant initializer")
+        let reference: ProcessReference =
+            toml::from_str(input_str).expect("Could not deserialize ProcessReference from toml");
+        assert_eq!(
+            reference.initializations.len(),
+            1,
+            "Incorrect number of Input initializations parsed"
+        );
+        match reference.initializations.get("input1") {
+            Some(Always(value)) => {
+                assert_eq!(&json!(1), value, "input1 should be initialized to 1")
             }
+            _ => panic!("Should have been a Constant initializer"),
         }
     }
 
@@ -118,14 +131,18 @@ mod test {
         input.input1 = { always = 1 }
         ";
 
-        let reference: ProcessReference = toml::from_str(input_str).unwrap();
-        let initialized_inputs = reference.initializations.unwrap();
-        assert_eq!(initialized_inputs.len(), 1, "Incorrect number of Input initializations parsed");
-        match initialized_inputs.get("input1").unwrap() {
-            Always(value) => {
-                assert_eq!(&json!(1), value, "input1 should be initialized to 1");
+        let reference: ProcessReference =
+            toml::from_str(input_str).expect("Could not deserialize ProcessReference from toml");
+        assert_eq!(
+            reference.initializations.len(),
+            1,
+            "Incorrect number of Input initializations parsed"
+        );
+        match reference.initializations.get("input1") {
+            Some(Always(value)) => {
+                assert_eq!(&json!(1), value, "input1 should be initialized to 1")
             }
-            Once(_) => panic!("Should have been an Always initializer"),
+            _ => panic!("Should have been an Always initializer"),
         }
     }
 
@@ -138,17 +155,23 @@ mod test {
         input.input2 = {once = 'hello'}
         ";
 
-        let reference: ProcessReference = toml::from_str(input_str).unwrap();
-        let initialized_inputs = reference.initializations.unwrap();
-        assert_eq!(initialized_inputs.len(), 2, "Incorrect number of Input initializations parsed");
-        match initialized_inputs.get("input1").unwrap() {
-            Once(value) => assert_eq!(&json!(1), value, "input1 should be initialized to 1"),
-            _ => panic!("Should have been a Once initializer")
+        let reference: ProcessReference =
+            toml::from_str(input_str).expect("Could not deserialize ProcessReference from toml");
+        assert_eq!(
+            reference.initializations.len(),
+            2,
+            "Incorrect number of Input initializations parsed"
+        );
+        match reference.initializations.get("input1") {
+            Some(Once(value)) => assert_eq!(&json!(1), value, "input1 should be initialized to 1"),
+            _ => panic!("Should have been a Once initializer"),
         }
 
-        match initialized_inputs.get("input2").unwrap() {
-            Once(value) => assert_eq!("hello", value, "input2 should be initialized to 'hello'"),
-            _ => panic!("Should have been a Once initializer")
+        match reference.initializations.get("input2") {
+            Some(Once(value)) => {
+                assert_eq!("hello", value, "input2 should be initialized to 'hello'")
+            }
+            _ => panic!("Should have been a Once initializer"),
         }
     }
 
