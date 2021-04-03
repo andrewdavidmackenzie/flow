@@ -21,7 +21,7 @@ use simplog::simplog::SimpleLogger;
 use url::Url;
 
 use flowclib::info;
-use flowrstructs::url_helper::url_from_string;
+use flowcore::url_helper::url_from_string;
 use provider::lib_provider::MetaProvider;
 
 use crate::flow_compile::compile_and_execute_flow;
@@ -46,7 +46,7 @@ error_chain! {
     }
 
     foreign_links {
-        Core(flowrstructs::errors::Error);
+        Core(flowcore::errors::Error);
         Provider(provider::errors::Error);
         Compiler(flowclib::errors::Error);
         Io(std::io::Error);

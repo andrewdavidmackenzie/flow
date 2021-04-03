@@ -7,7 +7,7 @@ use log::{debug, error};
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
-use flowrstructs::input::InputInitializer;
+use flowcore::input::InputInitializer;
 
 use crate::compiler::loader::Validate;
 use crate::errors::Error;

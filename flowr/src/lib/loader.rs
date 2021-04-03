@@ -5,11 +5,11 @@ use std::sync::Arc;
 use log::{debug, info, trace};
 use url::Url;
 
-use flow_impl::Implementation;
-use flowrstructs::lib_manifest::{
+use flowcore::Implementation;
+use flowcore::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
 };
-use flowrstructs::manifest::Manifest;
+use flowcore::manifest::Manifest;
 use provider::lib_provider::LibProvider;
 
 use crate::errors::*;

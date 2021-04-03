@@ -235,13 +235,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "flow_impl"
-version = "0.21.0"
-dependencies = [
- "serde_json",
-]
-
-[[package]]
 name = "flow_impl_derive"
 version = "0.21.0"
 dependencies = [
@@ -255,7 +248,7 @@ version = "0.34.5"
 dependencies = [
  "clap",
  "error-chain 0.12.4",
- "flowrstructs",
+ "flowcore",
  "glob",
  "log",
  "provider",
@@ -272,13 +265,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "flowcore"
+version = "0.34.6"
+dependencies = [
+ "error-chain 0.12.4",
+ "log",
+ "provider",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "url",
+]
+
+[[package]]
 name = "flowr"
 version = "0.34.6"
 dependencies = [
  "clap",
  "error-chain 0.12.4",
- "flow_impl",
- "flowrstructs",
+ "flowcore",
  "flowstdlib",
  "image",
  "log",
@@ -297,20 +302,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "flowrstructs"
-version = "0.34.6"
-dependencies = [
- "error-chain 0.12.4",
- "flow_impl",
- "log",
- "provider",
- "serde",
- "serde_derive",
- "serde_json",
- "url",
-]
-
-[[package]]
 name = "flowsamples"
 version = "0.34.4"
 dependencies = [
@@ -323,9 +314,8 @@ name = "flowstdlib"
 version = "0.34.4"
 dependencies = [
  "error-chain 0.12.4",
- "flow_impl",
  "flow_impl_derive",
- "flowrstructs",
+ "flowcore",
  "image",
  "serde_json",
  "simpath",

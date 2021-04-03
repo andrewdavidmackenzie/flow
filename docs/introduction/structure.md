@@ -14,7 +14,7 @@ Here is a summary of the project components, their purpose and a link to their `
     * [flowrlib](../../flowr/src/lib/README.md) - The flow runner library that loads and executes compiled flows.
     * [flowruntime](../../flowr/src/lib/flowruntime/README.md) - A set of core functions provided by any flow runtime 
       for all flows to interact with the environment and perform IO
-* [flowrstructs](../../flowrstructs/README.md) - A set of core structs used by `flowr` and `flowc`
+* [flowcore](../../flowcore/README.md) - A set of core structs used by `flowr` and `flowc`
 * [flowstdlib](../../flowstdlib/README.md) - the flow "standard library" which contains a set of functions that can be 
   used by flows being defined by the user
 * [provider](../../provider/README.md) - Library used to fetch content from file/http and find and fetch library 

@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 use error_chain::bail;
 
-use flowrstructs::input::InputInitializer::Always;
+use flowcore::input::InputInitializer::Always;
 
 use crate::compiler::connector;
 use crate::errors::*;

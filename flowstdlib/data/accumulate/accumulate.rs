@@ -1,6 +1,7 @@
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
-use flow_impl_derive::FlowImpl;
 use serde_json::Value;
+
+use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 
 #[derive(FlowImpl)]
 /// Accumulate input values into an array upto the limit specified
@@ -25,7 +26,7 @@ impl Implementation for Accumulate {
                 // TODO could pass on any extra elements beyond chunk size in 'partial'
                 // and also force chunk size to be exact....
                 output_map.insert("chunk".into(), Value::Array(partial.clone()));
-                output_map.insert("partial".into(), Value::Array(vec!()));
+                output_map.insert("partial".into(), Value::Array(vec![]));
             } else {
                 output_map.insert("partial".into(), Value::Array(partial.clone()));
             }
@@ -39,8 +40,9 @@ impl Implementation for Accumulate {
 
 #[cfg(test)]
 mod test {
-    use flow_impl::Implementation;
     use serde_json::json;
+
+    use flowcore::Implementation;
 
     #[test]
     fn accumulate_start_and_finish() {

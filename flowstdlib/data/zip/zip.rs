@@ -1,7 +1,8 @@
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
-use flow_impl_derive::FlowImpl;
 use serde_json::json;
 use serde_json::Value;
+
+use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 
 #[derive(FlowImpl)]
 /// Takes two arrays of values and produce an array of tuples of pairs of values from each input array.

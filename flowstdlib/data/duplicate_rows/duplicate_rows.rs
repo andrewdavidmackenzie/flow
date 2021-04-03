@@ -1,6 +1,7 @@
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
-use flow_impl_derive::FlowImpl;
 use serde_json::Value;
+
+use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 
 #[derive(FlowImpl)]
 /// Duplicate the rows of a matrix
@@ -11,7 +12,7 @@ impl Implementation for DuplicateRows {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
         let matrix = inputs[0].as_array().unwrap();
         let factor = &inputs[1];
-        let mut output_matrix: Vec<Value> = vec!();
+        let mut output_matrix: Vec<Value> = vec![];
 
         for row in matrix.iter() {
             for _i in 0..factor.as_i64().unwrap() {
@@ -25,17 +26,18 @@ impl Implementation for DuplicateRows {
 
 #[cfg(test)]
 mod test {
-    use flow_impl::Implementation;
     use serde_json::{Number, Value};
     use serde_json::json;
+
+    use flowcore::Implementation;
 
     #[test]
     fn duplicate_2() {
         let row0 = json!([1, 2]);
         let row1 = json!([3, 4]);
-        let matrix = Value::Array(vec!(row0, row1));
+        let matrix = Value::Array(vec![row0, row1]);
 
-        let inputs = vec!(matrix, json!(2));
+        let inputs = vec![matrix, json!(2)];
 
         let duplicator = super::DuplicateRows {};
         let (result, _) = duplicator.run(&inputs);
@@ -46,19 +48,43 @@ mod test {
         let new_row2 = new_matrix[2].clone();
         let new_row3 = new_matrix[3].clone();
 
-        assert_eq!(new_row0, Value::Array(vec!(Value::Number(Number::from(1)), Value::Number(Number::from(2)))));
-        assert_eq!(new_row1, Value::Array(vec!(Value::Number(Number::from(1)), Value::Number(Number::from(2)))));
-        assert_eq!(new_row2, Value::Array(vec!(Value::Number(Number::from(3)), Value::Number(Number::from(4)))));
-        assert_eq!(new_row3, Value::Array(vec!(Value::Number(Number::from(3)), Value::Number(Number::from(4)))));
+        assert_eq!(
+            new_row0,
+            Value::Array(vec!(
+                Value::Number(Number::from(1)),
+                Value::Number(Number::from(2))
+            ))
+        );
+        assert_eq!(
+            new_row1,
+            Value::Array(vec!(
+                Value::Number(Number::from(1)),
+                Value::Number(Number::from(2))
+            ))
+        );
+        assert_eq!(
+            new_row2,
+            Value::Array(vec!(
+                Value::Number(Number::from(3)),
+                Value::Number(Number::from(4))
+            ))
+        );
+        assert_eq!(
+            new_row3,
+            Value::Array(vec!(
+                Value::Number(Number::from(3)),
+                Value::Number(Number::from(4))
+            ))
+        );
     }
 
     #[test]
     fn duplicate_3() {
         let row0 = json!([1, 2]);
         let row1 = json!([3, 4]);
-        let matrix = Value::Array(vec!(row0, row1));
+        let matrix = Value::Array(vec![row0, row1]);
 
-        let inputs = vec!(matrix, json!(3));
+        let inputs = vec![matrix, json!(3)];
 
         let duplicator = super::DuplicateRows {};
         let (result, _) = duplicator.run(&inputs);

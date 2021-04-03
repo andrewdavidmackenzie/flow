@@ -1,6 +1,7 @@
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
-use flow_impl_derive::FlowImpl;
 use serde_json::Value;
+
+use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 
 #[derive(FlowImpl)]
 /// Takes a value on it's input and sends the same value `factor` times in an array output
@@ -12,7 +13,7 @@ impl Implementation for Duplicate {
         let value = &inputs[0];
         let factor = inputs[1].as_i64().unwrap();
 
-        let mut output_array = vec!();
+        let mut output_array = vec![];
 
         for _i in 0..factor {
             output_array.push(value.clone());
@@ -24,8 +25,9 @@ impl Implementation for Duplicate {
 
 #[cfg(test)]
 mod test {
-    use flow_impl::Implementation;
     use serde_json::json;
+
+    use flowcore::Implementation;
 
     use super::Duplicate;
 
@@ -33,7 +35,7 @@ mod test {
     fn duplicate_number() {
         let value = json!(42);
         let factor = json!(2);
-        let inputs: Vec<serde_json::Value> = vec!(value, factor);
+        let inputs: Vec<serde_json::Value> = vec![value, factor];
 
         let duplicator = Duplicate {};
         let (output, _) = duplicator.run(&inputs);
@@ -45,7 +47,7 @@ mod test {
     fn duplicate_row_of_numbers() {
         let value = json!([1, 2, 3]);
         let factor = json!(2);
-        let inputs: Vec<serde_json::Value> = vec!(value, factor);
+        let inputs: Vec<serde_json::Value> = vec![value, factor];
 
         let duplicator = Duplicate {};
         let (output, _) = duplicator.run(&inputs);
@@ -57,11 +59,17 @@ mod test {
     fn duplicate_matrix() {
         let value = json!([[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
         let factor = json!(2);
-        let inputs: Vec<serde_json::Value> = vec!(value, factor);
+        let inputs: Vec<serde_json::Value> = vec![value, factor];
 
         let duplicator = Duplicate {};
         let (output, _) = duplicator.run(&inputs);
 
-        assert_eq!(output.unwrap(), json!([[[1, 2, 3], [4, 5, 6], [7, 8, 9]], [[1, 2, 3], [4, 5, 6], [7, 8, 9]]]));
+        assert_eq!(
+            output.unwrap(),
+            json!([
+                [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+            ])
+        );
     }
 }

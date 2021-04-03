@@ -1,8 +1,8 @@
 use serde_json::Value;
 use serde_json::Value::Number;
 
-use flow_impl::{Implementation, RunAgain, RUN_AGAIN};
 use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Subtract one input from another to produce a new output
@@ -67,7 +67,7 @@ mod test {
     use serde_json::Value;
     use serde_json::Value::Number;
 
-    use flow_impl::Implementation;
+    use flowcore::Implementation;
 
     use super::Subtract;
 

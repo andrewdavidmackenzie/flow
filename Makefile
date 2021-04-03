@@ -181,7 +181,7 @@ build: build-flowc
 	$(ETIME)
 
 build-all-features: build-flowc
-	cd flowrstructs && cargo build-all-features
+	cd flowcore && cargo build-all-features
 	cd flowr && cargo build-all-features
 	cd flowc && cargo build-all-features
 
@@ -201,7 +201,7 @@ test: build-flowc
 .test.log: test
 
 test-all-features: build-flowc
-	cd flowrstructs && cargo test-all-features
+	cd flowcore && cargo test-all-features
 	cd flowr && cargo test-all-features
 	cd flowc && cargo test-all-features
 

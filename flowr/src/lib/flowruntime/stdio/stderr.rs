@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use serde_json::Value;
 
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 
 use crate::client_server::RuntimeServerConnection;
 use crate::runtime::Event;
@@ -10,7 +10,7 @@ use crate::runtime::Event;
 /// `Implementation` struct for the `Stderr` function
 pub struct Stderr {
     /// It holds a reference to the runtime client in order to write output
-    pub server_context: Arc<Mutex<RuntimeServerConnection>>
+    pub server_context: Arc<Mutex<RuntimeServerConnection>>,
 }
 
 impl Implementation for Stderr {

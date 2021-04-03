@@ -10,8 +10,7 @@ use crate::proc_macro::TokenStream;
 #[proc_macro_derive(FlowImpl)]
 /// Implement the `FlowImpl` derive macro
 pub fn flow_impl_derive(input: TokenStream) -> TokenStream {
-    // Construct a representation of Rust code as a syntax tree
-    // that we can manipulate
+    // Construct a representation of Rust code as a syntax tree that we can manipulate
     let ast = syn::parse(input).unwrap();
 
     // Build the trait implementation
@@ -23,9 +22,7 @@ fn impl_flow_impl(ast: &syn::DeriveInput) -> TokenStream {
     let gen = quote! {
         use std::os::raw::c_void;
 
-        /*
-            Allocate a chunk of memory of `size` bytes in wasm module
-        */
+        // Allocate a chunk of memory of `size` bytes in wasm module
         #[cfg(target_arch = "wasm32")]
         #[no_mangle]
         pub extern "C" fn alloc(size: usize) -> *mut c_void {
@@ -36,9 +33,7 @@ fn impl_flow_impl(ast: &syn::DeriveInput) -> TokenStream {
             return ptr as *mut c_void;
         }
 
-        /*
-            Wrapper function for running a wasm implementation
-        */
+        // Wrapper function for running a wasm implementation
         #[cfg(target_arch = "wasm32")]
         #[no_mangle]
         pub extern "C" fn run_wasm(input_data_ptr: *mut c_void, input_data_length: i32) -> i32 {

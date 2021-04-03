@@ -20,11 +20,11 @@ path = "src/lib/lib.rs"
 
 [features]
 default = ["debugger"]
-debugger = ["flowrstructs/debugger"] # feature to add output for the debugger
+debugger = ["flowcore/debugger"] # feature to add output for the debugger
 online_tests = []
 
 [dependencies]
-flowrstructs = {path = "../flowrstructs", version = "0.34.4"}
+flowcore = {path = "../flowcore", version = "0.34.6"}
 provider = {path = "../provider", version = "0.34.4" }
 
 clap = "~2"

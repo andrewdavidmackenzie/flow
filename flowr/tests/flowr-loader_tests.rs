@@ -10,11 +10,11 @@ use simpath::Simpath;
 use tempdir::TempDir;
 use url::Url;
 
-use flow_impl::{Implementation, RunAgain, DONT_RUN_AGAIN};
+use flowcore::function::Function;
+use flowcore::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
+use flowcore::manifest::{Manifest, MetaData};
+use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN};
 use flowrlib::loader::Loader;
-use flowrstructs::function::Function;
-use flowrstructs::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
-use flowrstructs::manifest::{Manifest, MetaData};
 use provider::lib_provider::MetaProvider;
 
 /// flowrlib integration tests

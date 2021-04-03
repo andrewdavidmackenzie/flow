@@ -1,8 +1,9 @@
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
-use flow_impl_derive::FlowImpl;
 use serde_json::json;
 use serde_json::Value;
 use serde_json::Value::String as JsonString;
+
+use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Reverse a String
@@ -16,9 +17,9 @@ impl Implementation for Reverse {
         let input = &inputs[0];
         if let JsonString(ref s) = input {
             value = Some(json!({
-                    "reversed" : s.chars().rev().collect::<String>(),
-                    "original": s
-                }));
+                "reversed" : s.chars().rev().collect::<String>(),
+                "original": s
+            }));
         }
 
         (value, RUN_AGAIN)

@@ -1,12 +1,14 @@
-use flow_impl::Implementation;
 use flow_impl_derive::FlowImpl;
+use flowcore::Implementation;
 use num::Complex;
 use serde_json::{json, Value};
 
-pub fn pixel_to_point(size: (usize, usize),
-                  pixel: (usize, usize),
-                  upper_left: Complex<f64>,
-                  lower_right: Complex<f64>) -> Complex<f64> {
+pub fn pixel_to_point(
+    size: (usize, usize),
+    pixel: (usize, usize),
+    upper_left: Complex<f64>,
+    lower_right: Complex<f64>,
+) -> Complex<f64> {
     let width = lower_right.re - upper_left.re;
     let height = upper_left.im - lower_right.im;
 
@@ -51,10 +53,12 @@ impl Implementation for PixelToPoint {
         let width = size[0].as_i64().unwrap() as usize;
         let height = size[1].as_i64().unwrap() as usize;
 
-        let complex_point = pixel_to_point((width, height), // size
-                                                 (x, y), // pixel
-                                                 upper_left_c,
-                                                 lower_right_c);
+        let complex_point = pixel_to_point(
+            (width, height), // size
+            (x, y),          // pixel
+            upper_left_c,
+            lower_right_c,
+        );
 
         let result = Some(json!([pixel, [complex_point.re, complex_point.im]]));
 
@@ -64,7 +68,7 @@ impl Implementation for PixelToPoint {
 
 #[cfg(test)]
 mod test {
-    use flow_impl::Implementation;
+    use flowcore::Implementation;
     use num::Complex;
     use serde_json::{json, Value};
     use wasm_bindgen_test::*;
@@ -82,7 +86,7 @@ mod test {
         let pixel = json!([50, 50]);
         let size = json!([100, 100]);
 
-        let inputs: Vec<Value> = vec!(bounds, pixel, size);
+        let inputs: Vec<Value> = vec![bounds, pixel, size];
 
         let pixelator = super::PixelToPoint {};
         let (result, _) = pixelator.run(&inputs);
@@ -104,10 +108,9 @@ mod test {
         let upper_left = Complex { re: -1.0, im: 1.0 };
         let lower_right = Complex { re: 1.0, im: -1.0 };
 
-        assert_eq!(super::pixel_to_point((100, 100), (25, 75),
-                                   upper_left, lower_right),
-                   Complex { re: -0.5, im: -0.5 });
+        assert_eq!(
+            super::pixel_to_point((100, 100), (25, 75), upper_left, lower_right),
+            Complex { re: -0.5, im: -0.5 }
+        );
     }
 }
-
-

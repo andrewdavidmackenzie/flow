@@ -1,6 +1,7 @@
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
-use flow_impl_derive::FlowImpl;
 use serde_json::Value;
+
+use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 
 #[derive(FlowImpl)]
 /// Compare two input values and output different boolean values depending on if the comparison
@@ -13,7 +14,10 @@ impl Implementation for Compare {
         match (inputs[0].as_f64(), inputs[1].as_f64()) {
             (Some(left), Some(right)) => {
                 let mut output_map = serde_json::Map::new();
-                output_map.insert("equal".into(), Value::Bool((left - right).abs() < std::f64::EPSILON));
+                output_map.insert(
+                    "equal".into(),
+                    Value::Bool((left - right).abs() < std::f64::EPSILON),
+                );
                 output_map.insert("lt".into(), Value::Bool(left < right));
                 output_map.insert("gt".into(), Value::Bool(left > right));
                 output_map.insert("lte".into(), Value::Bool(left <= right));
@@ -22,7 +26,7 @@ impl Implementation for Compare {
 
                 (Some(output), RUN_AGAIN)
             }
-            (_, _) => (None, RUN_AGAIN)
+            (_, _) => (None, RUN_AGAIN),
         }
     }
 }

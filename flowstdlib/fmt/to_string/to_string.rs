@@ -1,13 +1,12 @@
 use serde_json::{json, Value};
 
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Convert an input type to a String
 #[derive(Debug)]
 pub struct ToString;
-
 
 // The data to convert to a String. Current types supported are:
 // * Null - A null will be printed as "Null"
@@ -33,15 +32,15 @@ mod test {
     use super::ToString;
 
     fn test_to_string(value: Value, string: &str) {
-        let to_string = ToString{};
-        let inputs = vec!(value);
+        let to_string = ToString {};
+        let inputs = vec![value];
         let (result, _) = to_string.run(&inputs);
 
         match result {
             Some(value) => {
                 assert_eq!(value.as_str(), Some(string));
             }
-            None => panic!("No Result returned")
+            None => panic!("No Result returned"),
         }
     }
 
