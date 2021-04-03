@@ -1,6 +1,7 @@
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
-use flow_impl_derive::FlowImpl;
 use serde_json::{json, Value};
+
+use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Split a string into (possibly) two parts and a possible token, based on a separator.
@@ -86,9 +87,16 @@ fn split(input: &str, separator: &str) -> (Option<Vec<String>>, Option<String>) 
     let end = text.len();
 
     // try and find a separator from middle towards the end
-    for point in middle..end { // cannot have separator at end
+    for point in middle..end {
+        // cannot have separator at end
         if text.get(point..point + 1).unwrap() == separator {
-            return (Some(vec!(text[0..point].to_string(), text[point + 1..text.len()].to_string())), None);
+            return (
+                Some(vec![
+                    text[0..point].to_string(),
+                    text[point + 1..text.len()].to_string(),
+                ]),
+                None,
+            );
         }
     }
 
@@ -97,7 +105,10 @@ fn split(input: &str, separator: &str) -> (Option<Vec<String>>, Option<String>) 
         if text.get(point..point + 1).unwrap() == separator {
             // If we find one return the string upto that  point for further splitting, plus the string from
             // there to the end as a token
-            return (Some(vec!(text[0..point].to_string())), Some(text[point + 1..text.len()].to_string()));
+            return (
+                Some(vec![text[0..point].to_string()]),
+                Some(text[point + 1..text.len()].to_string()),
+            );
         }
     }
 
@@ -107,53 +118,78 @@ fn split(input: &str, separator: &str) -> (Option<Vec<String>>, Option<String>) 
 
 #[cfg(test)]
 mod test {
-    use flow_impl::Implementation;
     use serde_json::json;
+
+    use flowcore::Implementation;
 
     #[test]
     fn basic_tests() {
         #[allow(clippy::type_complexity)]
-            let test_cases: Vec<(&str, (Option<Vec<String>>, Option<String>))> = vec!(
+        let test_cases: Vec<(&str, (Option<Vec<String>>, Option<String>))> = vec![
             // empty string case
             ("", (None, None)),
-
             // just separators
             (" ", (None, None)),   // 1
             ("  ", (None, None)),  // 2
             ("   ", (None, None)), // 3
-
             // one letter words
             ("a", (None, Some("a".into()))),   // no separator
             (" a", (None, Some("a".into()))),  // separator before
             ("a ", (None, Some("a".into()))),  // separator after
             (" a ", (None, Some("a".into()))), // separator before and after
-
             // two letter words
             ("aa", (None, Some("aa".into()))),   // no separator
             (" aa", (None, Some("aa".into()))),  // separator before
             ("aa ", (None, Some("aa".into()))),  // separator after
             (" aa ", (None, Some("aa".into()))), // separator before and after
-
             // One word texts
-            ("text", (None, Some("text".into()))),   // no separator
-            (" text", (None, Some("text".into()))),  // separator before
-            ("text ", (None, Some("text".into()))),  // separator after
+            ("text", (None, Some("text".into()))), // no separator
+            (" text", (None, Some("text".into()))), // separator before
+            ("text ", (None, Some("text".into()))), // separator after
             (" text ", (None, Some("text".into()))), // separator before and after
-
             // Two word texts
-            ("some text", (Some(vec!("some".into(), "text".into())), None)),   // separator in middle
-            ("some text ", (Some(vec!("some".into(), "text".into())), None)),  // separator in middle and after
-            (" some text", (Some(vec!("some".into(), "text".into())), None)),  // separator before, middle
-            (" some text ", (Some(vec!("some".into(), "text".into())), None)), // separator before, middle and after
-
+            (
+                "some text",
+                (Some(vec!["some".into(), "text".into()]), None),
+            ), // separator in middle
+            (
+                "some text ",
+                (Some(vec!["some".into(), "text".into()]), None),
+            ), // separator in middle and after
+            (
+                " some text",
+                (Some(vec!["some".into(), "text".into()]), None),
+            ), // separator before, middle
+            (
+                " some text ",
+                (Some(vec!["some".into(), "text".into()]), None),
+            ), // separator before, middle and after
             // longer texts
-            ("the quick brown fox jumped over the lazy dog",
-             (Some(vec!("the quick brown fox jumped".into(), "over the lazy dog".into())), None)),
-            ("the quick brown fox jumped-over-the-lazy-dog",
-             (Some(vec!("the quick brown fox".into())), Some("jumped-over-the-lazy-dog".into()))),
-            ("the-quick-brown-fox-jumped-over-the-lazy-dog",
-             (None, Some("the-quick-brown-fox-jumped-over-the-lazy-dog".into()))),
-        );
+            (
+                "the quick brown fox jumped over the lazy dog",
+                (
+                    Some(vec![
+                        "the quick brown fox jumped".into(),
+                        "over the lazy dog".into(),
+                    ]),
+                    None,
+                ),
+            ),
+            (
+                "the quick brown fox jumped-over-the-lazy-dog",
+                (
+                    Some(vec!["the quick brown fox".into()]),
+                    Some("jumped-over-the-lazy-dog".into()),
+                ),
+            ),
+            (
+                "the-quick-brown-fox-jumped-over-the-lazy-dog",
+                (
+                    None,
+                    Some("the-quick-brown-fox-jumped-over-the-lazy-dog".into()),
+                ),
+            ),
+        ];
 
         for test in test_cases {
             let result = super::split(test.0, " ");
@@ -172,8 +208,8 @@ mod test {
     fn iterate_until_done() {
         let string = json!("the quick brown fox jumped over the lazy dog");
         let separator = json!(" ");
-        let mut output_vector = vec!();
-        let mut input_strings = vec!(string);
+        let mut output_vector = vec![];
+        let mut input_strings = vec![string];
 
         loop {
             // if nothing else to split we're dong
@@ -224,7 +260,10 @@ mod test {
         let output = result.unwrap();
         assert!(output.pointer("/token").is_none());
         assert_eq!(output.pointer("/token-count").unwrap(), &json!(0));
-        assert_eq!(output.pointer("/partial").unwrap(), &json!(["the quick brown fox jumped", "over the lazy dog"]));
+        assert_eq!(
+            output.pointer("/partial").unwrap(),
+            &json!(["the quick brown fox jumped", "over the lazy dog"])
+        );
         assert_eq!(output.pointer("/delta").unwrap(), &json!(1));
     }
 
@@ -237,9 +276,15 @@ mod test {
         let (result, _) = splitter.run(&[test.0, separator]);
 
         let output = result.unwrap();
-        assert_eq!(output.pointer("/token").unwrap(), "fox-jumped-over-the-lazy-dog");
+        assert_eq!(
+            output.pointer("/token").unwrap(),
+            "fox-jumped-over-the-lazy-dog"
+        );
         assert_eq!(output.pointer("/token-count").unwrap(), &json!(1));
-        assert_eq!(output.pointer("/partial").unwrap(), &json!(["the quick brown"]));
+        assert_eq!(
+            output.pointer("/partial").unwrap(),
+            &json!(["the quick brown"])
+        );
         assert_eq!(output.pointer("/delta").unwrap(), &json!(0));
     }
 

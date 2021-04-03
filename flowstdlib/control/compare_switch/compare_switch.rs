@@ -1,6 +1,7 @@
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
-use flow_impl_derive::FlowImpl;
 use serde_json::Value;
+
+use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Compare two input values and output different the right hand value at different output route
@@ -26,7 +27,7 @@ impl Implementation for CompareSwitch {
                     output_map.insert("left-gt".into(), left.clone());
                     output_map.insert("right-lte".into(), right.clone());
                     output_map.insert("left-gte".into(), left.clone());
-                } else  if rhs > lhs {
+                } else if rhs > lhs {
                     output_map.insert("right-gt".into(), right.clone());
                     output_map.insert("left-lt".into(), left.clone());
                     output_map.insert("right-gte".into(), right.clone());
@@ -47,8 +48,9 @@ impl Implementation for CompareSwitch {
 
 #[cfg(test)]
 mod test {
-    use flow_impl::{Implementation, RUN_AGAIN};
     use serde_json::json;
+
+    use flowcore::{Implementation, RUN_AGAIN};
 
     use super::CompareSwitch;
 
@@ -56,9 +58,9 @@ mod test {
     fn integer_equals() {
         let left = json!(1);
         let right = json!(1);
-        let inputs = vec!(left, right);
+        let inputs = vec![left, right];
 
-        let comparer = &CompareSwitch{} as &dyn Implementation;
+        let comparer = &CompareSwitch {} as &dyn Implementation;
 
         let (value, run_again) = comparer.run(&inputs);
 
@@ -73,9 +75,9 @@ mod test {
     fn float_equals() {
         let left = json!(1.0);
         let right = json!(1.0);
-        let inputs = vec!(left, right);
+        let inputs = vec![left, right];
 
-        let comparer = &CompareSwitch{} as &dyn Implementation;
+        let comparer = &CompareSwitch {} as &dyn Implementation;
 
         let (value, run_again) = comparer.run(&inputs);
 

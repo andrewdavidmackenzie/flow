@@ -5,14 +5,15 @@ use log::debug;
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
-use flow_impl::Implementation;
 use provider::lib_provider::LibProvider;
 
 use crate::errors::*;
+use crate::Implementation;
 use crate::manifest::MetaData;
 
 /// The default name used for a Library  Manifest file if none is specified
 pub const DEFAULT_LIB_JSON_MANIFEST_FILENAME: &str = "manifest";
+/// The default name used for a Rust Library Manifest if none is specified
 pub const DEFAULT_LIB_RUST_MANIFEST_FILENAME: &str = "manifest.rs";
 
 /*
@@ -158,10 +159,10 @@ mod test {
     use serde_json::Value;
     use url::Url;
 
-    use flow_impl::Implementation;
     use provider::errors::Result;
     use provider::lib_provider::LibProvider;
 
+    use crate::Implementation;
     use crate::lib_manifest::{
         ImplementationLocator, ImplementationLocator::Wasm, LibraryManifest,
     };

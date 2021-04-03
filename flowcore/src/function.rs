@@ -6,11 +6,10 @@ use log::{error, trace};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
-use flow_impl::{Implementation, RunAgain};
-
 use crate::errors::*;
 use crate::input::Input;
 use crate::output_connection::OutputConnection;
+use crate::{Implementation, RunAgain};
 
 #[derive(Deserialize, Serialize, Clone)]
 /// `Function` contains all the information needed about a function and its implementation
@@ -235,10 +234,9 @@ mod test {
     use serde_json::json;
     use serde_json::value::Value;
 
-    use flow_impl::Implementation;
-
     use crate::input::Input;
     use crate::output_connection::OutputConnection;
+    use crate::Implementation;
 
     use super::Function;
     use super::ImplementationNotFound;

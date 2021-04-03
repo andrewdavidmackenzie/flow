@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use serde_json::Value;
 
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 use crate::client_server::RuntimeServerConnection;
 use crate::runtime::{Event, Response};
@@ -10,7 +10,7 @@ use crate::runtime::{Event, Response};
 /// `Implementation` struct for the `file_write` function
 pub struct FileWrite {
     /// It holds a reference to the runtime client in order to get file contents
-    pub server_context: Arc<Mutex<RuntimeServerConnection>>
+    pub server_context: Arc<Mutex<RuntimeServerConnection>>,
 }
 
 impl Implementation for FileWrite {
@@ -21,12 +21,15 @@ impl Implementation for FileWrite {
         if let Ok(mut server) = self.server_context.lock() {
             match bytes.as_str() {
                 Some(string) => {
-                    return match server.send_event(Event::Write(filename.to_string(), string.as_bytes().to_vec())) {
+                    return match server.send_event(Event::Write(
+                        filename.to_string(),
+                        string.as_bytes().to_vec(),
+                    )) {
                         Ok(Response::Ack) => (None, RUN_AGAIN),
-                        _ => (None, RUN_AGAIN)
+                        _ => (None, RUN_AGAIN),
                     }
                 }
-                None => return (None, RUN_AGAIN)
+                None => return (None, RUN_AGAIN),
             }
         }
 

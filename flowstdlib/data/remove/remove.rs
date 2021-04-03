@@ -1,6 +1,7 @@
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
-use flow_impl_derive::FlowImpl;
 use serde_json::Value;
+
+use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 
 #[derive(FlowImpl)]
 /// Remove a value from a vector of values
@@ -27,15 +28,16 @@ impl Implementation for Remove {
 
 #[cfg(test)]
 mod test {
-    use flow_impl::Implementation;
     use serde_json::{json, Value};
+
+    use flowcore::Implementation;
 
     #[test]
     fn remove_1() {
         let array: Value = json!([1, 2]);
         let value = json!(1);
 
-        let remover = super::Remove{};
+        let remover = super::Remove {};
         let (result, _) = remover.run(&[value, array]);
 
         assert_eq!(result.unwrap(), json!([2]));
@@ -46,7 +48,7 @@ mod test {
         let array: Value = json!([1, 2, 2, 3, 4]);
         let value = json!(2);
 
-        let remover = super::Remove{};
+        let remover = super::Remove {};
         let (result, _) = remover.run(&[value, array]);
 
         assert_eq!(result.unwrap(), json!([1, 3, 4]));
@@ -57,7 +59,7 @@ mod test {
         let array: Value = json!([1, 2]);
         let value = json!(3);
 
-        let remover = super::Remove{};
+        let remover = super::Remove {};
         let (result, _) = remover.run(&[value, array]);
 
         assert_eq!(result.unwrap(), json!([1, 2]));
@@ -68,7 +70,7 @@ mod test {
         let array: Value = json!([]);
         let value = json!(3);
 
-        let remover = super::Remove{};
+        let remover = super::Remove {};
         let (result, _) = remover.run(&[value, array]);
 
         assert_eq!(result.unwrap(), json!([]));
@@ -79,7 +81,7 @@ mod test {
         let array: Value = json!([1, 2, 3, 5, 7, 8, 9]);
         let value = json!(6);
 
-        let remover = super::Remove{};
+        let remover = super::Remove {};
         let (result, _) = remover.run(&[value, array]);
 
         assert_eq!(result.unwrap(), json!([1, 2, 3, 5, 7, 8, 9]));

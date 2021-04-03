@@ -1,5 +1,5 @@
-use flow_impl::Implementation;
 use flow_impl_derive::FlowImpl;
+use flowcore::Implementation;
 use num::Complex;
 use serde_json::{json, Value};
 
@@ -24,7 +24,6 @@ pub fn escapes(c: Complex<f64>, limit: u64) -> u64 {
 
     return limit;
 }
-
 
 /*
     Given the row and column of a pixel in the output image, return the
@@ -67,7 +66,7 @@ impl Implementation for RenderPixel {
 
 #[cfg(test)]
 mod test {
-    use flow_impl::Implementation;
+    use flowcore::Implementation;
     use serde_json::{json, Value};
     use wasm_bindgen_test::*;
 
@@ -81,7 +80,7 @@ mod test {
     fn pixel() {
         let pixel_point = json!([[50, 50], [0.5, 0.5]]);
 
-        let inputs: Vec<Value> = vec!(pixel_point);
+        let inputs: Vec<Value> = vec![pixel_point];
         let renderer = super::RenderPixel {};
         let (result, _) = renderer.run(&inputs);
 
@@ -108,7 +107,10 @@ mod test {
 
         #[bench]
         fn bench_escapes(b: &mut Bencher) {
-            let upper_left = Complex { re: -1.20, im: 0.35 };
+            let upper_left = Complex {
+                re: -1.20,
+                im: 0.35,
+            };
 
             b.iter(|| escapes(upper_left, 255));
         }

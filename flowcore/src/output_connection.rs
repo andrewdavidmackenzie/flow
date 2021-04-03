@@ -2,12 +2,13 @@ use std::fmt;
 
 use serde_derive::{Deserialize, Serialize};
 
-/// The `Conversion` enum defines what type of run-time conversaion of types is to be done
+/// The `Conversion` enum defines what type of run-time conversion of types is to be done
 #[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
 pub enum Conversion {
+    /// Take value and send it wrapped in an array
     WrapAsArray,
-    // Take value and send it wrapped in an array
-    ArraySerialize,  // Serialize an Array, sending each element as a separate value
+    /// Serialize an Array, sending each element as a separate value
+    ArraySerialize,
 }
 
 #[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
@@ -23,13 +24,19 @@ pub struct OutputConnection {
     /// `flow_id` is the flow_id of the target function
     pub flow_id: usize,
     /// `array_order` defines how many levels of arrays of non-array values does the destination accept
-    #[serde(default = "default_array_level_serde", skip_serializing_if = "is_default_array_level_serde")]
+    #[serde(
+        default = "default_array_level_serde",
+        skip_serializing_if = "is_default_array_level_serde"
+    )]
     pub array_level_serde: i32,
     /// `generic` defines if the input accepts generic "Value"s
     #[serde(default = "default_generic", skip_serializing_if = "is_not_generic")]
     pub generic: bool,
     /// `route` is the full route to the destination input
-    #[serde(default = "default_destination_route", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default = "default_destination_route",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub route: Option<String>,
 }
 
@@ -53,13 +60,15 @@ fn is_not_generic(generic: &bool) -> bool {
 
 impl OutputConnection {
     /// Create a new `OutputConnection`
-    pub fn new(subroute: String,
-               function_id: usize,
-               io_number: usize,
-               flow_id: usize,
-               array_level_serde: i32,
-               generic: bool,
-               route: Option<String>) -> Self {
+    pub fn new(
+        subroute: String,
+        function_id: usize,
+        io_number: usize,
+        flow_id: usize,
+        array_level_serde: i32,
+        generic: bool,
+        route: Option<String>,
+    ) -> Self {
         OutputConnection {
             subroute,
             function_id,
@@ -87,7 +96,11 @@ impl fmt::Display for OutputConnection {
         if !self.subroute.is_empty() {
             write!(f, " from sub-path '{}'", self.subroute)?;
         }
-        write!(f, " -> Function #{}({}):{}", self.function_id, self.flow_id, self.io_number)?;
+        write!(
+            f,
+            " -> Function #{}({}):{}",
+            self.function_id, self.flow_id, self.io_number
+        )?;
         if let Some(route) = &self.route {
             write!(f, " @ route '{}'", route)?;
         }
@@ -130,16 +143,21 @@ mod test {
 
     #[test]
     fn display_test() {
-        let connection = super::OutputConnection::new("/".into(),
-                             1, 1, 1, 0, false, None);
+        let connection = super::OutputConnection::new("/".into(), 1, 1, 1, 0, false, None);
         println!("Connection: {}", connection);
     }
 
     #[test]
     fn display_with_route_test() {
-        let connection = super::OutputConnection::new("/".into(),
-                                                      1, 1, 1, 0, false,
-                                                      Some("/flow1/input".into()));
+        let connection = super::OutputConnection::new(
+            "/".into(),
+            1,
+            1,
+            1,
+            0,
+            false,
+            Some("/flow1/input".into()),
+        );
         println!("Connection: {}", connection);
     }
 }

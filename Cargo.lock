@@ -235,13 +235,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "flow_impl"
-version = "0.21.0"
-dependencies = [
- "serde_json",
-]
-
-[[package]]
 name = "flow_impl_derive"
 version = "0.21.0"
 dependencies = [
@@ -276,7 +269,6 @@ name = "flowcore"
 version = "0.34.6"
 dependencies = [
  "error-chain 0.12.4",
- "flow_impl",
  "log",
  "provider",
  "serde",
@@ -291,7 +283,6 @@ version = "0.34.6"
 dependencies = [
  "clap",
  "error-chain 0.12.4",
- "flow_impl",
  "flowcore",
  "flowstdlib",
  "image",
@@ -323,7 +314,6 @@ name = "flowstdlib"
 version = "0.34.4"
 dependencies = [
  "error-chain 0.12.4",
- "flow_impl",
  "flow_impl_derive",
  "flowcore",
  "image",

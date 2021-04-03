@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use serde_json::Value;
 
-use flow_impl::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
 
 use crate::client_server::RuntimeServerConnection;
 use crate::runtime::{Event, Response};
@@ -10,7 +10,7 @@ use crate::runtime::{Event, Response};
 /// `Implementation` struct for the `Stdin` function
 pub struct Stdin {
     /// It holds a reference to the runtime client in order to read input
-    pub server_context: Arc<Mutex<RuntimeServerConnection>>
+    pub server_context: Arc<Mutex<RuntimeServerConnection>>,
 }
 
 impl Implementation for Stdin {
@@ -31,7 +31,7 @@ impl Implementation for Stdin {
                     output_map.insert("json".into(), Value::Null);
                     (Some(Value::Object(output_map)), DONT_RUN_AGAIN)
                 }
-                _ => (None, DONT_RUN_AGAIN)
+                _ => (None, DONT_RUN_AGAIN),
             };
         }
         (None, DONT_RUN_AGAIN)

@@ -1,6 +1,7 @@
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
-use flow_impl_derive::FlowImpl;
 use serde_json::{json, Value};
+
+use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 
 #[derive(FlowImpl)]
 /// Pass thru a value based on the index of an item in the stream of values
@@ -20,10 +21,12 @@ impl Implementation for Index {
 
         match select_index {
             // A 'select_index' value of -1 indicates to output the last value before the null
-            -1 if value.is_null() => output_map.insert("selected_value".into(), json!(previous_value)),
+            -1 if value.is_null() => {
+                output_map.insert("selected_value".into(), json!(previous_value))
+            }
             // If 'select_value' is not -1 then see if it matches the current index
             _ if select_index == index => output_map.insert("selected_value".into(), json!(value)),
-            _ => None
+            _ => None,
         };
 
         // Output the 'value" and its index
@@ -36,21 +39,22 @@ impl Implementation for Index {
 
 #[cfg(test)]
 mod test {
-    use flow_impl::Implementation;
     use serde_json::{json, Value};
+
+    use flowcore::Implementation;
 
     use super::Index;
 
     #[test]
     fn select_index_0() {
-        let indexor = Index{};
+        let indexor = Index {};
 
         let value = json!(42);
         let previous_value = Value::Null;
         let previous_index = json!(-1);
         let select_index = json!(0);
 
-        let inputs = vec!(value, previous_value, previous_index, select_index);
+        let inputs = vec![value, previous_value, previous_index, select_index];
 
         let (result, _) = indexor.run(&inputs);
 
@@ -61,14 +65,14 @@ mod test {
 
     #[test]
     fn not_select_index_0() {
-        let indexor = Index{};
+        let indexor = Index {};
 
         let value = json!(42);
         let previous_value = Value::Null;
         let previous_index = json!(1);
         let select_index = json!(1);
 
-        let inputs = vec!(value, previous_value, previous_index, select_index);
+        let inputs = vec![value, previous_value, previous_index, select_index];
 
         let (result, _) = indexor.run(&inputs);
 
@@ -79,14 +83,14 @@ mod test {
 
     #[test]
     fn select_index_1() {
-        let indexor = Index{};
+        let indexor = Index {};
 
         let value = json!(42);
         let previous_value = Value::Null;
         let previous_index = json!(0);
         let select_index = json!(1);
 
-        let inputs = vec!(value, previous_value, previous_index, select_index);
+        let inputs = vec![value, previous_value, previous_index, select_index];
 
         let (result, _) = indexor.run(&inputs);
 
@@ -97,14 +101,14 @@ mod test {
 
     #[test]
     fn not_select_index_1() {
-        let indexor = Index{};
+        let indexor = Index {};
 
         let value = json!(42);
         let previous_value = Value::Null;
         let previous_index = json!(1);
         let select_index = json!(0);
 
-        let inputs = vec!(value, previous_value, previous_index, select_index);
+        let inputs = vec![value, previous_value, previous_index, select_index];
 
         let (result, _) = indexor.run(&inputs);
 
@@ -115,14 +119,14 @@ mod test {
 
     #[test]
     fn select_last() {
-        let indexor = Index{};
+        let indexor = Index {};
 
         let value = Value::Null;
         let previous_value = json!(42);
         let previous_index = json!(7);
         let select_index = json!(-1);
 
-        let inputs = vec!(value, previous_value, previous_index, select_index);
+        let inputs = vec![value, previous_value, previous_index, select_index];
 
         let (result, _) = indexor.run(&inputs);
 
@@ -133,14 +137,14 @@ mod test {
 
     #[test]
     fn not_select_last() {
-        let indexor = Index{};
+        let indexor = Index {};
 
         let value = json!(43);
         let previous_value = json!(42);
         let previous_index = json!(7);
         let select_index = json!(-1);
 
-        let inputs = vec!(value, previous_value, previous_index, select_index);
+        let inputs = vec![value, previous_value, previous_index, select_index];
 
         let (result, _) = indexor.run(&inputs);
 

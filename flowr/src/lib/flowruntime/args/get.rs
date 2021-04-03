@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use serde_json::{json, Value};
 
-use flow_impl::{DONT_RUN_AGAIN, Implementation, RunAgain};
+use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN};
 
 use crate::client_server::RuntimeServerConnection;
 use crate::runtime::{Event, Response};
@@ -10,7 +10,7 @@ use crate::runtime::{Event, Response};
 /// `Implementation` struct for the `get` function
 pub struct Get {
     /// It holds a reference to the runtime client in order to Get the Args
-    pub server_context: Arc<Mutex<RuntimeServerConnection>>
+    pub server_context: Arc<Mutex<RuntimeServerConnection>>,
 }
 
 impl Implementation for Get {
@@ -37,7 +37,7 @@ impl Implementation for Get {
 
                     (Some(Value::Object(output_map)), DONT_RUN_AGAIN)
                 }
-                _ => (None, DONT_RUN_AGAIN)
+                _ => (None, DONT_RUN_AGAIN),
             };
         }
         (None, DONT_RUN_AGAIN)

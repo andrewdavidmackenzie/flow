@@ -9,9 +9,9 @@ use multimap::MultiMap;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use flow_impl::Implementation;
 use flowcore::function::Function;
 use flowcore::output_connection::OutputConnection;
+use flowcore::Implementation;
 
 use crate::coordinator::Submission;
 #[cfg(feature = "debugger")]
@@ -1230,11 +1230,11 @@ mod test {
     use serde_json::json;
     use serde_json::Value;
 
-    use flow_impl::Implementation;
     use flowcore::function::Function;
     use flowcore::input::Input;
     use flowcore::input::InputInitializer::Once;
     use flowcore::output_connection::OutputConnection;
+    use flowcore::Implementation;
 
     use super::Job;
 

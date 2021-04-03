@@ -1,7 +1,7 @@
 use serde_json::Value;
 
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
 use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RUN_AGAIN, RunAgain};
 
 #[derive(FlowImpl)]
 /// Convert a String to Json
@@ -16,15 +16,15 @@ impl Implementation for ToJson {
             (Some(Value::Null), RUN_AGAIN)
         } else if input.is_string() {
             match input.as_str() {
-                Some(string) => {
-                    match serde_json::from_str(string) {
-                        Ok(json) => (Some(json), RUN_AGAIN),
-                        Err(_) => (Some(serde_json::Value::String(string.to_string())), RUN_AGAIN)
-                    }
+                Some(string) => match serde_json::from_str(string) {
+                    Ok(json) => (Some(json), RUN_AGAIN),
+                    Err(_) => (
+                        Some(serde_json::Value::String(string.to_string())),
+                        RUN_AGAIN,
+                    ),
                 },
-                None => (None, RUN_AGAIN)
+                None => (None, RUN_AGAIN),
             }
-
         } else {
             (Some(input.clone()), RUN_AGAIN)
         }
@@ -40,16 +40,16 @@ mod test {
     use super::Implementation;
     use super::ToJson;
 
-    fn test_to_json(string: &str, expected_value: Value, ) {
-        let to_json = ToJson{};
-        let inputs = vec!(json!(string));
+    fn test_to_json(string: &str, expected_value: Value) {
+        let to_json = ToJson {};
+        let inputs = vec![json!(string)];
         let (result, _) = to_json.run(&inputs);
 
         match result {
             Some(value) => {
                 assert_eq!(value, expected_value);
             }
-            None => panic!("No Result returned")
+            None => panic!("No Result returned"),
         }
     }
 
@@ -70,7 +70,7 @@ mod test {
 
     #[test]
     fn parse_array() {
-        test_to_json("[1,2,3,4]", json!([1,2,3,4]));
+        test_to_json("[1,2,3,4]", json!([1, 2, 3, 4]));
     }
 
     // Can't be parsed directly into json so return String

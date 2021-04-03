@@ -1,6 +1,7 @@
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
-use flow_impl_derive::FlowImpl;
 use serde_json::{json, Value};
+
+use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Sort an Array of Numbers
@@ -14,7 +15,7 @@ impl Implementation for Sort {
         if array.is_null() {
             (Some(Value::Null), RUN_AGAIN)
         } else if array.is_array() {
-            let mut array_of_numbers:Vec<Value> = array.as_array().unwrap().clone();
+            let mut array_of_numbers: Vec<Value> = array.as_array().unwrap().clone();
             array_of_numbers.sort_by_key(|a| a.as_i64().unwrap());
             (Some(json!(array_of_numbers)), RUN_AGAIN)
         } else {
@@ -25,8 +26,9 @@ impl Implementation for Sort {
 
 #[cfg(test)]
 mod test {
-    use flow_impl::Implementation;
     use serde_json::{json, Value};
+
+    use flowcore::Implementation;
 
     #[test]
     fn sort_null() {

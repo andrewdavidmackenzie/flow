@@ -1,7 +1,8 @@
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
-use flow_impl_derive::FlowImpl;
 use serde_json::json;
 use serde_json::Value;
+
+use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Takes a value on it's input and sends the same value on it's output and adds one to the count
@@ -28,8 +29,9 @@ impl Implementation for Count {
 
 #[cfg(test)]
 mod test {
-    use flow_impl::Implementation;
     use serde_json::json;
+
+    use flowcore::Implementation;
 
     use super::Count;
 
@@ -37,7 +39,7 @@ mod test {
     fn count_returns_value() {
         let data = json!(42);
         let count = json!(0);
-        let inputs = vec!(data, count);
+        let inputs = vec![data, count];
 
         let counter = Count {};
         let (result, _) = counter.run(&inputs);

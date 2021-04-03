@@ -1,6 +1,7 @@
-use flow_impl::{Implementation, RUN_AGAIN, RunAgain};
-use flow_impl_derive::FlowImpl;
 use serde_json::Value;
+
+use flow_impl_derive::FlowImpl;
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Transpose a matricies rows and columns
@@ -31,15 +32,16 @@ impl Implementation for Transpose {
 
 #[cfg(test)]
 mod test {
-    use flow_impl::Implementation;
     use serde_json::json;
     use serde_json::Value;
 
+    use flowcore::Implementation;
+
     #[test]
     fn transpose_empty() {
-        let matrix = Value::Array(vec!(Value::Array(vec!())));
+        let matrix = Value::Array(vec![Value::Array(vec![])]);
 
-        let inputs = vec!(matrix);
+        let inputs = vec![matrix];
 
         let transposer = super::Transpose {};
         let (result, _) = transposer.run(&inputs);
@@ -52,9 +54,9 @@ mod test {
     #[test]
     fn transpose_1x1() {
         let row0 = json!([1]);
-        let matrix = Value::Array(vec!(row0));
+        let matrix = Value::Array(vec![row0]);
 
-        let inputs = vec!(matrix);
+        let inputs = vec![matrix];
 
         let transposer = super::Transpose {};
         let (result, _) = transposer.run(&inputs);
@@ -69,9 +71,9 @@ mod test {
     fn transpose_2x2() {
         let row0 = json!([1, 2]);
         let row1 = json!([3, 4]);
-        let matrix = Value::Array(vec!(row0, row1));
+        let matrix = Value::Array(vec![row0, row1]);
 
-        let inputs = vec!(matrix);
+        let inputs = vec![matrix];
 
         let transposer = super::Transpose {};
         let (result, _) = transposer.run(&inputs);
@@ -88,9 +90,9 @@ mod test {
     fn transpose_2x3() {
         let row0 = json!([1, 2, 3]);
         let row1 = json!([4, 5, 6]);
-        let matrix = Value::Array(vec!(row0, row1));
+        let matrix = Value::Array(vec![row0, row1]);
 
-        let inputs = vec!(matrix);
+        let inputs = vec![matrix];
 
         let transposer = super::Transpose {};
         let (result, _) = transposer.run(&inputs);
