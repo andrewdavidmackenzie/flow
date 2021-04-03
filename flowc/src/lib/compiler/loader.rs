@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use log::{debug, info, trace};
 use url::Url;
 
-use flowrstructs::input::InputInitializer;
-use flowrstructs::manifest::{Cargo, MetaData};
+use flowcore::input::InputInitializer;
+use flowcore::manifest::{Cargo, MetaData};
 use provider::lib_provider::LibProvider;
 
 use crate::deserializers::deserializer_helper::get_deserializer;
@@ -257,7 +257,7 @@ fn config_function(
 
 #[cfg(test)]
 mod test {
-    use flowrstructs::manifest::{Cargo, MetaData};
+    use flowcore::manifest::{Cargo, MetaData};
 
     #[test]
     fn deserialize_library() {

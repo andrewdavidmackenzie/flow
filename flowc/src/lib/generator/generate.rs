@@ -8,9 +8,9 @@ use log::info;
 use serde_derive::Serialize;
 use url::Url;
 
-use flowrstructs::function::Function as RuntimeFunction;
-use flowrstructs::input::Input;
-use flowrstructs::manifest::{Manifest, MetaData, DEFAULT_MANIFEST_FILENAME};
+use flowcore::function::Function as RuntimeFunction;
+use flowcore::input::Input;
+use flowcore::manifest::{Manifest, MetaData, DEFAULT_MANIFEST_FILENAME};
 
 use crate::errors::*;
 use crate::model::connection::Connection;
@@ -206,8 +206,8 @@ mod test {
     use serde_json::json;
     use url::Url;
 
-    use flowrstructs::input::InputInitializer;
-    use flowrstructs::output_connection::OutputConnection;
+    use flowcore::input::InputInitializer;
+    use flowcore::output_connection::OutputConnection;
 
     use crate::model::function::Function;
     use crate::model::io::IO;

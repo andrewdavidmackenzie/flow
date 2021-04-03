@@ -20,14 +20,14 @@ path = "src/lib/lib.rs"
 
 [features]
 default = ["debugger", "native", "metrics", "checks", "distributed"]
-debugger = ["flowrstructs/debugger"] # feature to add the debugger, requires flowstructs to have feature enabled also
+debugger = ["flowcore/debugger"] # feature to add the debugger, requires flowstructs to have feature enabled also
 native = []   # Load native implementations of functions in libraries when possible
 metrics = []  # feature for tracking of metrics during execution
 checks = []   # feature to perform extra checks during flow execution
 distributed = ["zmq"] # Allow distributed multi-process client and server operation
 
 [dependencies]
-flowrstructs = {path = "../flowrstructs", version = "0.34.4"}
+flowcore = {path = "../flowcore", version = "0.34.4"}
 flow_impl = {path = "../flow_impl", version = "0.21.0" }
 flowstdlib = {path = "../flowstdlib", version = "0.34.1" }
 provider = {path = "../provider", version = "0.34.4" }

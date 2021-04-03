@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 use url::Url;
 
-use flowrstructs::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
-use flowrstructs::manifest::MetaData;
+use flowcore::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
+use flowcore::manifest::MetaData;
 
 /// Control functions
 pub mod control;

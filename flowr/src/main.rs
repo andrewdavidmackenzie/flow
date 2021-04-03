@@ -18,9 +18,9 @@ use simpath::Simpath;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
+use flowcore::url_helper::url_from_string;
 use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::info as flowrlib_info;
-use flowrstructs::url_helper::url_from_string;
 
 #[cfg(feature = "debugger")]
 use crate::cli_debug_client::CLIDebugClient;

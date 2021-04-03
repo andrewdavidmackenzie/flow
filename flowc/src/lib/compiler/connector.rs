@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use error_chain::bail;
 use log::debug;
 
-use flowrstructs::output_connection::OutputConnection;
+use flowcore::output_connection::OutputConnection;
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;

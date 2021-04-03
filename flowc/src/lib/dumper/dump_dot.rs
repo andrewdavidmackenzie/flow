@@ -6,7 +6,7 @@ use std::path::Path;
 use serde_json::Value;
 use url::Url;
 
-use flowrstructs::input::InputInitializer::{Always, Once};
+use flowcore::input::InputInitializer::{Always, Once};
 use provider::lib_provider::LibProvider;
 
 use crate::deserializers::deserializer_helper::get_file_extension;

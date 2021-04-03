@@ -8,7 +8,7 @@ use log::{debug, error, info, warn};
 use tempdir::TempDir;
 use url::Url;
 
-use flowrstructs::url_helper::url_from_string;
+use flowcore::url_helper::url_from_string;
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
@@ -267,7 +267,7 @@ mod test {
     use std::path::Path;
     use std::time::Duration;
 
-    use flowrstructs::output_connection::OutputConnection;
+    use flowcore::output_connection::OutputConnection;
 
     use crate::model::function::Function;
     use crate::model::io::IO;

@@ -10,8 +10,8 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use flow_impl::Implementation;
-use flowrstructs::function::Function;
-use flowrstructs::output_connection::OutputConnection;
+use flowcore::function::Function;
+use flowcore::output_connection::OutputConnection;
 
 use crate::coordinator::Submission;
 #[cfg(feature = "debugger")]
@@ -1231,10 +1231,10 @@ mod test {
     use serde_json::Value;
 
     use flow_impl::Implementation;
-    use flowrstructs::function::Function;
-    use flowrstructs::input::Input;
-    use flowrstructs::input::InputInitializer::Once;
-    use flowrstructs::output_connection::OutputConnection;
+    use flowcore::function::Function;
+    use flowcore::input::Input;
+    use flowcore::input::InputInitializer::Once;
+    use flowcore::output_connection::OutputConnection;
 
     use super::Job;
 
@@ -1463,10 +1463,10 @@ mod test {
         use serde_json::json;
         use url::Url;
 
-        use flowrstructs::function::Function;
-        use flowrstructs::input::Input;
-        use flowrstructs::input::InputInitializer::{Always, Once};
-        use flowrstructs::output_connection::OutputConnection;
+        use flowcore::function::Function;
+        use flowcore::input::Input;
+        use flowcore::input::InputInitializer::{Always, Once};
+        use flowcore::output_connection::OutputConnection;
 
         #[cfg(feature = "debugger")]
         use crate::client_server::DebugServerConnection;
@@ -2234,9 +2234,9 @@ mod test {
         use serde_json::json;
         use url::Url;
 
-        use flowrstructs::function::Function;
-        use flowrstructs::input::Input;
-        use flowrstructs::output_connection::OutputConnection;
+        use flowcore::function::Function;
+        use flowcore::input::Input;
+        use flowcore::output_connection::OutputConnection;
 
         #[cfg(feature = "debugger")]
         use crate::client_server::DebugServerConnection;
@@ -2591,9 +2591,9 @@ mod test {
     mod misc {
         use serde_json::{json, Value};
 
-        use flowrstructs::function::Function;
-        use flowrstructs::input::Input;
-        use flowrstructs::output_connection::OutputConnection;
+        use flowcore::function::Function;
+        use flowcore::input::Input;
+        use flowcore::output_connection::OutputConnection;
 
         use super::super::RunState;
 

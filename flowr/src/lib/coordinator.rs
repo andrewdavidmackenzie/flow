@@ -8,7 +8,7 @@ use serde_derive::{Deserialize, Serialize};
 use simpath::Simpath;
 use url::Url;
 
-use flowrstructs::manifest::Manifest;
+use flowcore::manifest::Manifest;
 use provider::lib_provider::{LibProvider, MetaProvider};
 
 #[cfg(feature = "debugger")]
@@ -93,7 +93,7 @@ pub struct Coordinator {
 /// use std::io::Write;
 /// use flowrlib::coordinator::{Coordinator, Submission};
 /// use std::process::exit;
-/// use flowrstructs::manifest::{Manifest, MetaData};
+/// use flowcore::manifest::{Manifest, MetaData};
 /// use flowrlib::runtime::Response as RuntimeResponse;
 /// use flowrlib::runtime::Event as RuntimeEvent;
 /// use flowrlib::runtime::Response::ClientSubmission;

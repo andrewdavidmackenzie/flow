@@ -68,6 +68,6 @@ error_chain! {
         Provider(provider::errors::Error);
         Url(url::ParseError);
         FlowStdLib(flowstdlib::errors::Error);
-        FlowrStructs(flowrstructs::errors::Error);
+        FlowrStructs(flowcore::errors::Error);
     }
 }

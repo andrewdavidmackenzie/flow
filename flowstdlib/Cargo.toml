@@ -25,7 +25,7 @@ path = "lib.rs"
 [dependencies]
 flow_impl = {path = "../flow_impl", version = "0.21.0" }
 flow_impl_derive = {path = "../flow_impl_derive", version = "0.21.0" }
-flowrstructs = {path = "../flowrstructs", version = "0.34.4" }
+flowcore = {path = "../flowcore", version = "0.34.4" }
 simpath = { version = "~2.2", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }
 serde_json = "1.0"

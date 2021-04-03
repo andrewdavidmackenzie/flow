@@ -13,8 +13,8 @@ use flowclib::compiler::loader::load;
 use flowclib::dumper::dump_flow;
 use flowclib::model::name::HasName;
 use flowclib::model::process::Process::{FlowProcess, FunctionProcess};
-use flowrstructs::lib_manifest::LibraryManifest;
-use flowrstructs::lib_manifest::{
+use flowcore::lib_manifest::LibraryManifest;
+use flowcore::lib_manifest::{
     DEFAULT_LIB_JSON_MANIFEST_FILENAME, DEFAULT_LIB_RUST_MANIFEST_FILENAME,
 };
 use provider::lib_provider::{LibProvider, MetaProvider};
