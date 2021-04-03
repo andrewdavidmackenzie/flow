@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use serde_json::Value;
 
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 use crate::client_server::RuntimeServerConnection;
 use crate::runtime::Event;

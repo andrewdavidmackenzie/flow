@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Convert an input type to a String

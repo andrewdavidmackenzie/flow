@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Divide one input by another, producing outputs for the dividend, divisor, result and the remainder

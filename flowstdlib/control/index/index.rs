@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Pass thru a value based on the index of an item in the stream of values
