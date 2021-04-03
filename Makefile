@@ -87,7 +87,7 @@ endif
 
 ################### Doc ####################
 .PHONY: docs
-docs: book code-docs trim-docs
+docs: build-flowc book code-docs trim-docs
 
 .PHONY: book
 book: target/html/index.html
