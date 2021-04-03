@@ -14,7 +14,7 @@ impl From<Event> for Message {
     fn from(event: Event) -> Self {
         match serde_json::to_string(&event) {
             Ok(message_string) => Message::from(&message_string),
-            _ => Message::new()
+            _ => Message::new(),
         }
     }
 }
@@ -22,13 +22,11 @@ impl From<Event> for Message {
 impl From<Message> for Event {
     fn from(msg: Message) -> Self {
         match msg.as_str() {
-            Some(message_string) => {
-                match serde_json::from_str(message_string) {
-                    Ok(message) => message,
-                    _ => Event::Invalid
-                }
-            }
-            _ => Event::Invalid
+            Some(message_string) => match serde_json::from_str(message_string) {
+                Ok(message) => message,
+                _ => Event::Invalid,
+            },
+            _ => Event::Invalid,
         }
     }
 }
@@ -37,7 +35,7 @@ impl From<Response> for Message {
     fn from(msg: Response) -> Self {
         match serde_json::to_string(&msg) {
             Ok(message_string) => Message::from(&message_string),
-            _ => Message::new()
+            _ => Message::new(),
         }
     }
 }
@@ -45,13 +43,11 @@ impl From<Response> for Message {
 impl From<Message> for Response {
     fn from(msg: Message) -> Self {
         match msg.as_str() {
-            Some(message_string) => {
-                match serde_json::from_str(message_string) {
-                    Ok(message) => message,
-                    _ => Response::Invalid
-                }
-            }
-            _ => Response::Invalid
+            Some(message_string) => match serde_json::from_str(message_string) {
+                Ok(message) => message,
+                _ => Response::Invalid,
+            },
+            _ => Response::Invalid,
         }
     }
 }
@@ -61,7 +57,7 @@ impl From<DebugEvent> for Message {
     fn from(debug_event: DebugEvent) -> Self {
         match serde_json::to_string(&debug_event) {
             Ok(message_string) => Message::from(&message_string),
-            _ => Message::new()
+            _ => Message::new(),
         }
     }
 }
@@ -70,13 +66,11 @@ impl From<DebugEvent> for Message {
 impl From<Message> for DebugEvent {
     fn from(msg: Message) -> Self {
         match msg.as_str() {
-            Some(message_string) => {
-                match serde_json::from_str(message_string) {
-                    Ok(message) => message,
-                    _ => DebugEvent::Invalid
-                }
-            }
-            _ => DebugEvent::Invalid
+            Some(message_string) => match serde_json::from_str(message_string) {
+                Ok(message) => message,
+                _ => DebugEvent::Invalid,
+            },
+            _ => DebugEvent::Invalid,
         }
     }
 }
@@ -86,7 +80,7 @@ impl From<DebugResponse> for Message {
     fn from(msg: DebugResponse) -> Self {
         match serde_json::to_string(&msg) {
             Ok(message_string) => Message::from(&message_string),
-            _ => Message::new()
+            _ => Message::new(),
         }
     }
 }
@@ -95,13 +89,11 @@ impl From<DebugResponse> for Message {
 impl From<Message> for DebugResponse {
     fn from(msg: Message) -> Self {
         match msg.as_str() {
-            Some(message_string) => {
-                match serde_json::from_str(message_string) {
-                    Ok(message) => message,
-                    _ => DebugResponse::Invalid
-                }
-            }
-            _ => DebugResponse::Invalid
+            Some(message_string) => match serde_json::from_str(message_string) {
+                Ok(message) => message,
+                _ => DebugResponse::Invalid,
+            },
+            _ => DebugResponse::Invalid,
         }
     }
 }
@@ -124,15 +116,22 @@ impl RuntimeClientConnection {
     pub fn start(&mut self) -> Result<()> {
         let context = zmq::Context::new();
 
-        self.requester = Some(context.socket(zmq::REQ)
-            .chain_err(|| "Runtime client could not connect to server")?);
+        self.requester = Some(
+            context
+                .socket(zmq::REQ)
+                .chain_err(|| "Runtime client could not connect to server")?,
+        );
 
         if let Some(ref requester) = self.requester {
-            requester.connect(&format!("tcp://{}:{}", self.host, self.port))
+            requester
+                .connect(&format!("tcp://{}:{}", self.host, self.port))
                 .chain_err(|| "Could not connect to server")?;
         }
 
-        debug!("Runtime client connected to Server on {}:{}", self.host, self.port);
+        debug!(
+            "Runtime client connected to Server on {}:{}",
+            self.host, self.port
+        );
 
         Ok(())
     }
@@ -140,7 +139,8 @@ impl RuntimeClientConnection {
     /// Receive an event from the runtime server
     pub fn client_recv(&self) -> Result<Event> {
         if let Some(ref requester) = self.requester {
-            let msg = requester.recv_msg(0)
+            let msg = requester
+                .recv_msg(0)
                 .map_err(|e| format!("Error receiving from Server: {}", e))?;
             Ok(Event::from(msg))
         } else {
@@ -150,7 +150,9 @@ impl RuntimeClientConnection {
 
     pub fn client_send(&self, response: Response) -> Result<()> {
         if let Some(ref requester) = self.requester {
-            requester.send(response, 0).chain_err(|| "Error sending to Runtime server")
+            requester
+                .send(response, 0)
+                .chain_err(|| "Error sending to Runtime server")
         } else {
             bail!("Runtime client connection has not been started")
         }
@@ -177,15 +179,22 @@ impl DebugClientConnection {
     pub fn start(&mut self) -> Result<()> {
         let context = zmq::Context::new();
 
-        self.requester = Some(context.socket(zmq::REQ)
-            .chain_err(|| "Debug client could not connect to server")?);
+        self.requester = Some(
+            context
+                .socket(zmq::REQ)
+                .chain_err(|| "Debug client could not connect to server")?,
+        );
 
         if let Some(ref requester) = self.requester {
-            requester.connect(&format!("tcp://{}:{}", self.host, self.port))
+            requester
+                .connect(&format!("tcp://{}:{}", self.host, self.port))
                 .chain_err(|| "Could not connect to server")?;
         }
 
-        debug!("Debug client connected to debugger on {}:{}", self.host, self.port);
+        debug!(
+            "Debug client connected to debugger on {}:{}",
+            self.host, self.port
+        );
 
         // Send an first message to initialize the connection
         self.client_send(DebugResponse::Ack)
@@ -194,7 +203,8 @@ impl DebugClientConnection {
     /// Receive an Event from the debug server
     pub fn client_recv(&self) -> Result<DebugEvent> {
         if let Some(ref requester) = self.requester {
-            let msg = requester.recv_msg(0)
+            let msg = requester
+                .recv_msg(0)
                 .map_err(|e| format!("Error receiving from Debug server: {}", e))?;
             Ok(DebugEvent::from(msg))
         } else {
@@ -205,7 +215,9 @@ impl DebugClientConnection {
     /// Send an Event to the debug server
     pub fn client_send(&self, response: DebugResponse) -> Result<()> {
         if let Some(ref requester) = self.requester {
-            requester.send(response, 0).chain_err(|| "Error sending to debug server")
+            requester
+                .send(response, 0)
+                .chain_err(|| "Error sending to debug server")
         } else {
             bail!("Debug client connection has not been started")
         }
@@ -229,11 +241,15 @@ impl RuntimeServerConnection {
 
     pub fn start(&mut self) -> Result<()> {
         let context = zmq::Context::new();
-        self.responder = Some(context.socket(zmq::REP)
-            .chain_err(|| "Runtime Server not start connection")?);
+        self.responder = Some(
+            context
+                .socket(zmq::REP)
+                .chain_err(|| "Runtime Server not start connection")?,
+        );
 
         if let Some(ref responder) = self.responder {
-            responder.bind(&format!("tcp://*:{}", self.port))
+            responder
+                .bind(&format!("tcp://*:{}", self.port))
                 .chain_err(|| "Runtime Server could not bind connection")?;
         }
 
@@ -243,21 +259,51 @@ impl RuntimeServerConnection {
     }
 
     pub fn get_response(&self) -> Result<Response> {
-        let responder = self.responder.as_ref()
+        let responder = self
+            .responder
+            .as_ref()
             .chain_err(|| "Runtime server connection not started")?;
-        let msg = responder.recv_msg(0)
+        let msg = responder
+            .recv_msg(0)
             .map_err(|e| format!("Runtime server error getting response: '{}'", e))?;
         Ok(Response::from(msg))
     }
 
     pub fn send_event(&mut self, event: Event) -> Result<Response> {
-        let responder = self.responder.as_ref()
+        let responder = self
+            .responder
+            .as_ref()
             .chain_err(|| "Runtime server connection not started")?;
 
-        responder.send(event, 0)
+        responder
+            .send(event, 0)
             .map_err(|e| format!("Runtime server error sending to client: '{}'", e))?;
 
         self.get_response()
+    }
+
+    pub fn send_event_only(&mut self, event: Event) -> Result<()> {
+        let responder = self
+            .responder
+            .as_ref()
+            .chain_err(|| "Runtime server connection not started")?;
+
+        responder
+            .send(event, 0)
+            .map_err(|e| format!("Runtime server error sending to client: '{}'", e))?;
+
+        Ok(())
+    }
+
+    pub fn close(&mut self) -> Result<()> {
+        let responder = self
+            .responder
+            .as_ref()
+            .chain_err(|| "Runtime server connection not started")?;
+
+        responder
+            .disconnect("")
+            .chain_err(|| "Error trying to disconnect responder")
     }
 }
 
@@ -280,11 +326,15 @@ impl DebugServerConnection {
 
     pub fn start(&mut self) -> Result<()> {
         let context = zmq::Context::new();
-        self.responder = Some(context.socket(zmq::REP)
-            .chain_err(|| "Debug Server not start connection")?);
+        self.responder = Some(
+            context
+                .socket(zmq::REP)
+                .chain_err(|| "Debug Server not start connection")?,
+        );
 
         if let Some(ref responder) = self.responder {
-            responder.bind(&format!("tcp://*:{}", self.port))
+            responder
+                .bind(&format!("tcp://*:{}", self.port))
                 .chain_err(|| "Debug Server could not bind connection")?;
         }
 
@@ -294,18 +344,24 @@ impl DebugServerConnection {
     }
 
     pub fn get_response(&self) -> Result<DebugResponse> {
-        let responder = self.responder.as_ref()
+        let responder = self
+            .responder
+            .as_ref()
             .chain_err(|| "Runtime server connection not started")?;
-        let msg = responder.recv_msg(0)
+        let msg = responder
+            .recv_msg(0)
             .chain_err(|| "Runtime server could not receive response")?;
 
         Ok(DebugResponse::from(msg))
     }
 
     pub fn send_event(&self, event: DebugEvent) -> Result<()> {
-        let responder = self.responder.as_ref()
+        let responder = self
+            .responder
+            .as_ref()
             .chain_err(|| "Runtime server connection not started")?;
-        responder.send(event, 0)
+        responder
+            .send(event, 0)
             .map_err(|e| format!("Error sending debug event to runtime client: {}", e))?;
 
         Ok(())

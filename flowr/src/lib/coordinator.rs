@@ -175,14 +175,14 @@ impl Coordinator {
             coordinator.debugger.start();
 
             if server_only {
-                info!("Starting 'flowr' server on main thread");
-                coordinator.start(lib_search_path, native, server_only)?;
+                info!("Starting 'flowr' server on main thread in server process");
+                coordinator.submission_loop(lib_search_path, native, server_only)?;
+                info!("'flowr' server running on main thread in server process has exited");
             } else {
                 std::thread::spawn(move || {
-                    info!("Starting 'flowr' server as background thread");
-                    if let Err(e) = coordinator.start(lib_search_path, native, server_only) {
-                        error!("Error starting Coordinator in background thread: '{}'", e);
-                    }
+                    info!("Starting 'flowr' server on a background thread");
+                    let _ = coordinator.submission_loop(lib_search_path, native, server_only);
+                    info!("'flowr' server running in background thread has exited");
                 });
             }
         }
@@ -213,11 +213,13 @@ impl Coordinator {
 
             if server_only {
                 info!("Starting 'flowr' server on main thread");
-                coordinator.start(lib_search_path, native, server_only)?;
+                coordinator.submission_loop(lib_search_path, native, server_only)?;
             } else {
                 std::thread::spawn(move || {
                     info!("Starting 'flowr' server as background thread");
-                    if let Err(e) = coordinator.start(lib_search_path, native, server_only) {
+                    if let Err(e) =
+                        coordinator.submission_loop(lib_search_path, native, server_only)
+                    {
                         error!("Error starting Coordinator in background thread: '{}'", e);
                     }
                 });
@@ -227,9 +229,11 @@ impl Coordinator {
         Ok(runtime_client_connection)
     }
 
-    /// Start the Coordinator - this will block the thread it is running on waiting for a submission
-    /// It will loop processing submissions until it gets a `ClientExiting` response, then it will also exit
-    pub fn start(
+    /// Enter the Coordinator's Submission Loop - this will block the thread it is running on and
+    /// wait for a submission to be sent from a client
+    /// It will loop receiving and processing submissions until it gets a `ClientExiting` response,
+    /// then it will also exit
+    pub fn submission_loop(
         &mut self,
         lib_search_path: Simpath,
         native: bool,
@@ -257,18 +261,31 @@ impl Coordinator {
                     #[cfg(feature = "debugger")]
                     self.debugger.start();
                 }
+                Err(e) if server_only => {
+                    error!("Error in server submission loop, continuing. {}", e)
+                }
                 Err(e) => {
-                    if !server_only {
-                        bail!("Error loading from manifest: {}", e);
-                    }
+                    error!("{}", e);
+                    error!("Server exiting Submission loop.");
+                    break;
                 }
             }
         }
 
-        // Exiting
-        debug!("Client exiting and no other clients connected, so server is exiting");
+        debug!("Server has exited Submission loop and will close connection");
+        self.close_connection()?;
 
         Ok(())
+    }
+
+    fn close_connection(&mut self) -> Result<()> {
+        let mut connection = self
+            .runtime_server_context
+            .lock()
+            .map_err(|e| format!("Could not lock Server Connection: {}", e))?;
+
+        connection.send_event_only(Event::ServerExiting)?;
+        connection.close()
     }
 
     // Loop waiting for a message from the client.
@@ -282,17 +299,17 @@ impl Coordinator {
                 Ok(guard) => match guard.get_response() {
                     Ok(Response::ClientSubmission(submission)) => {
                         debug!(
-                            "Received submission for execution with manifest_url: '{}'",
+                            "Server received a submission for execution with manifest_url: '{}'",
                             submission.manifest_url
                         );
                         return Some(submission);
                     }
                     Ok(Response::ClientExiting) => return None,
-                    Ok(r) => error!("Did not expect response from client: '{:?}'", r),
-                    Err(e) => error!("Error while waiting for submission: '{}'", e),
+                    Ok(r) => error!("Server did not expect response from client: '{:?}'", r),
+                    Err(e) => error!("Server error while waiting for submission: '{}'", e),
                 },
                 _ => {
-                    error!("There was an error accessing the client connection");
+                    error!("Server could not lock context");
                     return None;
                 }
             }

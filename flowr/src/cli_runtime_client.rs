@@ -10,8 +10,8 @@ use log::{debug, error, info, trace};
 use flowrlib::client_server::RuntimeClientConnection;
 use flowrlib::coordinator::Submission;
 use flowrlib::errors::*;
-use flowrlib::runtime::{Event, Response};
 use flowrlib::runtime::Response::ClientSubmission;
+use flowrlib::runtime::{Event, Response};
 
 #[derive(Debug, Clone)]
 pub struct CLIRuntimeClient {
@@ -22,10 +22,7 @@ pub struct CLIRuntimeClient {
 }
 
 impl CLIRuntimeClient {
-    fn new(args: Vec<String>,
-           #[cfg(feature = "metrics")]
-           display_metrics: bool
-    ) -> Self {
+    fn new(args: Vec<String>, #[cfg(feature = "metrics")] display_metrics: bool) -> Self {
         CLIRuntimeClient {
             args,
             image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
@@ -35,32 +32,34 @@ impl CLIRuntimeClient {
     }
 
     /*
-        Enter  a loop where we receive events as a client and respond to them
-     */
-    pub fn start(mut connection: RuntimeClientConnection,
-                 submission: Submission,
-                 flow_args: Vec<String>,
-                 #[cfg(feature = "metrics")]
-                 display_metrics: bool,
+       Enter  a loop where we receive events as a client and respond to them
+    */
+    pub fn start(
+        mut connection: RuntimeClientConnection,
+        submission: Submission,
+        flow_args: Vec<String>,
+        #[cfg(feature = "metrics")] display_metrics: bool,
     ) -> Result<()> {
         connection.start()?;
         trace!("Connection from Runtime client to Runtime server started");
 
-        debug!("Runtime client sending submission to server");
+        debug!("Client sending submission to server");
         connection.client_send(ClientSubmission(submission))?;
 
-        let mut runtime_client = CLIRuntimeClient::new(flow_args,
-                                                       #[cfg(feature = "metrics")]
-                                                       display_metrics
+        let mut runtime_client = CLIRuntimeClient::new(
+            flow_args,
+            #[cfg(feature = "metrics")]
+            display_metrics,
         );
 
         loop {
-            debug!("Runtime client waiting for message from server");
+            debug!("Client waiting for message from server");
             match connection.client_recv() {
                 Ok(event) => {
                     trace!("Runtime client received event from server: {:?}", event);
                     let response = runtime_client.process_event(event);
                     if response == Response::ClientExiting {
+                        debug!("Server is exiting, so client will exit also");
                         return Ok(());
                     }
 
@@ -88,10 +87,16 @@ impl CLIRuntimeClient {
 
                 for (filename, image_buffer) in self.image_buffers.drain() {
                     info!("Flushing ImageBuffer to file: {}", filename);
-                    if let Err(e) = image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png) {
+                    if let Err(e) =
+                        image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png)
+                    {
                         error!("Error saving ImageBuffer '{}': '{}'", filename, e);
                     }
                 }
+                Response::ClientExiting
+            }
+            Event::ServerExiting => {
+                debug!("Server is exiting");
                 Response::ClientExiting
             }
             #[cfg(not(feature = "metrics"))]
@@ -99,13 +104,15 @@ impl CLIRuntimeClient {
                 debug!("=========================== Flow execution ended ======================================");
                 for (filename, image_buffer) in self.image_buffers.drain() {
                     info!("Flushing ImageBuffer to file: {}", filename);
-                    if let Err(e) = image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png) {
+                    if let Err(e) =
+                        image_buffer.save_with_format(Path::new(&filename), ImageFormat::Png)
+                    {
                         error!("Error saving ImageBuffer '{}': '{}'", filename, e);
                     }
                 }
                 Response::ClientExiting
             }
-            Event::StdoutEOF => Response::Ack,
+            Event::StdoutEof => Response::Ack,
             Event::Stdout(contents) => {
                 println!("{}", contents);
                 Response::Ack
@@ -132,39 +139,38 @@ impl CLIRuntimeClient {
                 match io::stdin().read_line(&mut input) {
                     Ok(n) if n > 0 => Response::Line(input.trim().to_string()),
                     Ok(n) if n == 0 => Response::GetLineEOF,
-                    _ => Response::Error("Could not read Readline".into())
+                    _ => Response::Error("Could not read Readline".into()),
                 }
             }
-            Event::Write(filename, bytes) => {
-                match File::create(&filename) {
-                    Ok(mut file) => {
-                        match file.write_all(bytes.as_slice()) {
-                            Ok(_) => Response::Ack,
-                            Err(e) => {
-                                let msg = format!("Error writing to file: '{}': '{}'", filename, e);
-                                error!("{}", msg);
-                                Response::Error(msg)
-                            }
-                        }
-                    }
+            Event::Write(filename, bytes) => match File::create(&filename) {
+                Ok(mut file) => match file.write_all(bytes.as_slice()) {
+                    Ok(_) => Response::Ack,
                     Err(e) => {
-                        let msg = format!("Error creating file: '{}': '{}'", filename, e);
+                        let msg = format!("Error writing to file: '{}': '{}'", filename, e);
                         error!("{}", msg);
                         Response::Error(msg)
                     }
+                },
+                Err(e) => {
+                    let msg = format!("Error creating file: '{}': '{}'", filename, e);
+                    error!("{}", msg);
+                    Response::Error(msg)
                 }
-            }
+            },
             Event::PixelWrite((x, y), (r, g, b), (width, height), name) => {
-                let image = self.image_buffers.entry(name)
+                let image = self
+                    .image_buffers
+                    .entry(name)
                     .or_insert_with(|| RgbImage::new(width, height));
                 image.put_pixel(x, y, Rgb([r, g, b]));
                 Response::Ack
             }
-            Event::GetArgs => { // Response gets serialized and sent over channel/network so needs to args be owned
+            Event::GetArgs => {
+                // Response gets serialized and sent over channel/network so needs to args be owned
                 Response::Args(self.args.clone())
             }
-            Event::StderrEOF => Response::Ack,
-            Event::Invalid => Response::Ack
+            Event::StderrEof => Response::Ack,
+            Event::Invalid => Response::Ack,
         }
     }
 }
@@ -183,14 +189,18 @@ mod test {
 
     #[test]
     fn test_arg_passing() {
-        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string(), "1".to_string()),
-                                               #[cfg(feature = "metrics")]
-                                               false
+        let mut client = CLIRuntimeClient::new(
+            vec!["file:///test_flow.toml".to_string(), "1".to_string()],
+            #[cfg(feature = "metrics")]
+            false,
         );
 
         match client.process_event(Event::GetArgs) {
-            Response::Args(args) => assert_eq!(vec!("file:///test_flow.toml".to_string(), "1".to_string()), args),
-            _ => panic!("Didn't get Args response as expected")
+            Response::Args(args) => assert_eq!(
+                vec!("file:///test_flow.toml".to_string(), "1".to_string()),
+                args
+            ),
+            _ => panic!("Didn't get Args response as expected"),
         }
     }
 
@@ -199,22 +209,27 @@ mod test {
         let temp = tempdir::TempDir::new("flow").unwrap().into_path();
         let file = temp.join("test");
 
-        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string()),
-                                               #[cfg(feature = "metrics")]
-                                               false
+        let mut client = CLIRuntimeClient::new(
+            vec!["file:///test_flow.toml".to_string()],
+            #[cfg(feature = "metrics")]
+            false,
         );
 
-        if client.process_event(Event::Write(file.to_str().unwrap().to_string(), b"Hello".to_vec()))
-            != Response::Ack {
+        if client.process_event(Event::Write(
+            file.to_str().unwrap().to_string(),
+            b"Hello".to_vec(),
+        )) != Response::Ack
+        {
             panic!("Didn't get Write response as expected")
         }
     }
 
     #[test]
     fn test_stdout() {
-        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string()),
-                                               #[cfg(feature = "metrics")]
-                                               false
+        let mut client = CLIRuntimeClient::new(
+            vec!["file:///test_flow.toml".to_string()],
+            #[cfg(feature = "metrics")]
+            false,
         );
         if client.process_event(Event::Stdout("Hello".into())) != Response::Ack {
             panic!("Didn't get Stdout response as expected")
@@ -223,9 +238,10 @@ mod test {
 
     #[test]
     fn test_stderr() {
-        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string()),
-                                               #[cfg(feature = "metrics")]
-                                               false
+        let mut client = CLIRuntimeClient::new(
+            vec!["file:///test_flow.toml".to_string()],
+            #[cfg(feature = "metrics")]
+            false,
         );
         if client.process_event(Event::Stderr("Hello".into())) != Response::Ack {
             panic!("Didn't get Stderr response as expected")
@@ -234,9 +250,10 @@ mod test {
 
     #[test]
     fn test_image_writing() {
-        let mut client = CLIRuntimeClient::new(vec!("file:///test_flow.toml".to_string()),
-                                               #[cfg(feature = "metrics")]
-                                               false
+        let mut client = CLIRuntimeClient::new(
+            vec!["file:///test_flow.toml".to_string()],
+            #[cfg(feature = "metrics")]
+            false,
         );
 
         let temp_dir = TempDir::new("flow").unwrap().into_path();
@@ -251,9 +268,9 @@ mod test {
             panic!("Didn't get pixel write response as expected")
         }
         #[cfg(feature = "metrics")]
-            client.process_event(Event::FlowEnd(Metrics::new(1)));
+        client.process_event(Event::FlowEnd(Metrics::new(1)));
         #[cfg(not(feature = "metrics"))]
-            client.process_event(Event::FlowEnd);
+        client.process_event(Event::FlowEnd);
 
         assert!(path.exists(), "Image file was not created");
     }

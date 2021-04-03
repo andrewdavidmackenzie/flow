@@ -20,7 +20,7 @@ impl Implementation for Stdout {
         // Gain sole access to send to the client to avoid mixing output from other functions
         if let Ok(mut server) = self.server_context.lock() {
             let _ = match input {
-                Value::Null => server.send_event(Event::StdoutEOF),
+                Value::Null => server.send_event(Event::StdoutEof),
                 Value::String(string) => server.send_event(Event::Stdout(string.to_string())),
                 Value::Bool(boolean) => server.send_event(Event::Stdout(boolean.to_string())),
                 Value::Number(number) => server.send_event(Event::Stdout(number.to_string())),
