@@ -14,6 +14,8 @@ pub enum Event {
     FlowEnd(Metrics),
     #[cfg(not(feature = "metrics"))]
     FlowEnd,
+    /// Server is exiting
+    ServerExiting,
     /// A String of contents was sent to stdout
     Stdout(String),
     /// A String of contents was sent to stderr
@@ -29,9 +31,9 @@ pub enum Event {
     /// A Request to write a pixel to an ImageBuffer
     PixelWrite((u32, u32), (u8, u8, u8), (u32, u32), String),
     /// A Request to snd EOF to Stdout
-    StdoutEOF,
+    StdoutEof,
     /// A Request to snd EOF to Stderr
-    StderrEOF,
+    StderrEof,
     /// Invalid - used when deserialization goes wrong
     Invalid,
 }

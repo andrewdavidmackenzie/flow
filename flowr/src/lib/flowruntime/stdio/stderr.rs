@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use serde_json::Value;
 
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 use crate::client_server::RuntimeServerConnection;
 use crate::runtime::Event;
@@ -19,7 +19,7 @@ impl Implementation for Stderr {
 
         if let Ok(mut server) = self.server_context.lock() {
             let _ = match input {
-                Value::Null => server.send_event(Event::StderrEOF),
+                Value::Null => server.send_event(Event::StderrEof),
                 Value::String(string) => server.send_event(Event::Stderr(string.to_string())),
                 Value::Bool(boolean) => server.send_event(Event::Stderr(boolean.to_string())),
                 Value::Number(number) => server.send_event(Event::Stderr(number.to_string())),

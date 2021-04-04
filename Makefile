@@ -87,7 +87,7 @@ endif
 
 ################### Doc ####################
 .PHONY: docs
-docs: book code-docs trim-docs
+docs: build-flowc book code-docs trim-docs
 
 .PHONY: book
 book: target/html/index.html
@@ -283,24 +283,9 @@ copy:
 ################# Clean ################
 .PHONY: clean
 clean:
-	@$(MAKE) clean-dumps clean-svgs clean-guide
-	@cargo clean
-
-.PHONY: clean-dumps
-clean-dumps:
-	$(STIME)
+	@find . -name \*.dot.svg -type f -exec rm -rf {} + ; true
+	@find . -name \*.dot -type f -exec rm -rf {} + ; true
+	@rm -rf target/html
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot -type f -exec rm -rf {} + ; true
-	$(ETIME)
-
-.PHONY: clean-svgs
-clean-svgs:
-	$(STIME)
-	@find . -name \*.dot.svg -type f -exec rm -rf {} + ; true
-	$(ETIME)
-
-.PHONY: clean-guide
-clean-guide:
-	$(STIME)
-	@rm -rf target/html
-	$(ETIME)
+	@cargo clean
