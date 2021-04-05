@@ -102,6 +102,34 @@ mod test {
                 true,  //lte
                 false, // gte
             ),
+            // f64
+            (
+                json!(3.14),
+                json!(3.14),
+                true,  // eq
+                false, // lt
+                false, // gt
+                true,  //lte
+                true,  // gte
+            ),
+            (
+                json!(3.14),
+                json!(3.11),
+                false, // eq
+                false, // lt
+                true,  // gt
+                false, //lte
+                true,  // gte
+            ),
+            (
+                json!(3.11),
+                json!(3.14),
+                false, // eq
+                true,  // lt
+                false, // gt
+                true,  //lte
+                false, // gte
+            ),
         ]
     }
 
