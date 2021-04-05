@@ -1,1 +1,0 @@
-initSidebarItems({"mod":[["file_provider","The Content Provider for File contents"],["provider","The Provider trait must be implemented by Providers of content to the compiler or runtime"]]});

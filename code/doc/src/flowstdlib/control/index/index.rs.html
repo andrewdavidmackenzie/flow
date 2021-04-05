@@ -152,10 +152,15 @@
 <span id="149">149</span>
 <span id="150">150</span>
 <span id="151">151</span>
+<span id="152">152</span>
+<span id="153">153</span>
+<span id="154">154</span>
+<span id="155">155</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="ident">flow_impl</span>::{<span class="ident">Implementation</span>, <span class="ident">RUN_AGAIN</span>, <span class="ident">RunAgain</span>};
-<span class="kw">use</span> <span class="ident">flow_impl_derive</span>::<span class="ident">FlowImpl</span>;
 <span class="kw">use</span> <span class="ident">serde_json</span>::{<span class="ident">json</span>, <span class="ident">Value</span>};
+
+<span class="kw">use</span> <span class="ident">flow_impl_derive</span>::<span class="ident">FlowImpl</span>;
+<span class="kw">use</span> <span class="ident">flowcore</span>::{<span class="ident">Implementation</span>, <span class="ident">RunAgain</span>, <span class="ident">RUN_AGAIN</span>};
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">FlowImpl</span>)]</span>
 <span class="doccomment">/// Pass thru a value based on the index of an item in the stream of values</span>
@@ -175,10 +180,12 @@
 
         <span class="kw">match</span> <span class="ident">select_index</span> {
             <span class="comment">// A &#39;select_index&#39; value of -1 indicates to output the last value before the null</span>
-            <span class="op">-</span><span class="number">1</span> <span class="kw">if</span> <span class="ident">value</span>.<span class="ident">is_null</span>() <span class="op">=</span><span class="op">&gt;</span> <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;selected_value&quot;</span>.<span class="ident">into</span>(), <span class="macro">json</span><span class="macro">!</span>(<span class="ident">previous_value</span>)),
+            <span class="op">-</span><span class="number">1</span> <span class="kw">if</span> <span class="ident">value</span>.<span class="ident">is_null</span>() <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;selected_value&quot;</span>.<span class="ident">into</span>(), <span class="macro">json</span><span class="macro">!</span>(<span class="ident">previous_value</span>))
+            }
             <span class="comment">// If &#39;select_value&#39; is not -1 then see if it matches the current index</span>
             <span class="kw">_</span> <span class="kw">if</span> <span class="ident">select_index</span> <span class="op">=</span><span class="op">=</span> <span class="ident">index</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;selected_value&quot;</span>.<span class="ident">into</span>(), <span class="macro">json</span><span class="macro">!</span>(<span class="ident">value</span>)),
-            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">None</span>
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">None</span>,
         };
 
         <span class="comment">// Output the &#39;value&quot; and its index</span>
@@ -191,21 +198,22 @@
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">test</span> {
-    <span class="kw">use</span> <span class="ident">flow_impl</span>::<span class="ident">Implementation</span>;
     <span class="kw">use</span> <span class="ident">serde_json</span>::{<span class="ident">json</span>, <span class="ident">Value</span>};
+
+    <span class="kw">use</span> <span class="ident">flowcore</span>::<span class="ident">Implementation</span>;
 
     <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">Index</span>;
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">select_index_0</span>() {
-        <span class="kw">let</span> <span class="ident">indexor</span> <span class="op">=</span> <span class="ident">Index</span>{};
+        <span class="kw">let</span> <span class="ident">indexor</span> <span class="op">=</span> <span class="ident">Index</span> {};
 
         <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">42</span>);
         <span class="kw">let</span> <span class="ident">previous_value</span> <span class="op">=</span> <span class="ident">Value</span>::<span class="ident">Null</span>;
         <span class="kw">let</span> <span class="ident">previous_index</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="op">-</span><span class="number">1</span>);
         <span class="kw">let</span> <span class="ident">select_index</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">0</span>);
 
-        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">value</span>, <span class="ident">previous_value</span>, <span class="ident">previous_index</span>, <span class="ident">select_index</span>);
+        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">value</span>, <span class="ident">previous_value</span>, <span class="ident">previous_index</span>, <span class="ident">select_index</span>];
 
         <span class="kw">let</span> (<span class="ident">result</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">indexor</span>.<span class="ident">run</span>(<span class="kw-2">&amp;</span><span class="ident">inputs</span>);
 
@@ -216,14 +224,14 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">not_select_index_0</span>() {
-        <span class="kw">let</span> <span class="ident">indexor</span> <span class="op">=</span> <span class="ident">Index</span>{};
+        <span class="kw">let</span> <span class="ident">indexor</span> <span class="op">=</span> <span class="ident">Index</span> {};
 
         <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">42</span>);
         <span class="kw">let</span> <span class="ident">previous_value</span> <span class="op">=</span> <span class="ident">Value</span>::<span class="ident">Null</span>;
         <span class="kw">let</span> <span class="ident">previous_index</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">1</span>);
         <span class="kw">let</span> <span class="ident">select_index</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">1</span>);
 
-        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">value</span>, <span class="ident">previous_value</span>, <span class="ident">previous_index</span>, <span class="ident">select_index</span>);
+        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">value</span>, <span class="ident">previous_value</span>, <span class="ident">previous_index</span>, <span class="ident">select_index</span>];
 
         <span class="kw">let</span> (<span class="ident">result</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">indexor</span>.<span class="ident">run</span>(<span class="kw-2">&amp;</span><span class="ident">inputs</span>);
 
@@ -234,14 +242,14 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">select_index_1</span>() {
-        <span class="kw">let</span> <span class="ident">indexor</span> <span class="op">=</span> <span class="ident">Index</span>{};
+        <span class="kw">let</span> <span class="ident">indexor</span> <span class="op">=</span> <span class="ident">Index</span> {};
 
         <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">42</span>);
         <span class="kw">let</span> <span class="ident">previous_value</span> <span class="op">=</span> <span class="ident">Value</span>::<span class="ident">Null</span>;
         <span class="kw">let</span> <span class="ident">previous_index</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">0</span>);
         <span class="kw">let</span> <span class="ident">select_index</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">1</span>);
 
-        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">value</span>, <span class="ident">previous_value</span>, <span class="ident">previous_index</span>, <span class="ident">select_index</span>);
+        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">value</span>, <span class="ident">previous_value</span>, <span class="ident">previous_index</span>, <span class="ident">select_index</span>];
 
         <span class="kw">let</span> (<span class="ident">result</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">indexor</span>.<span class="ident">run</span>(<span class="kw-2">&amp;</span><span class="ident">inputs</span>);
 
@@ -252,14 +260,14 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">not_select_index_1</span>() {
-        <span class="kw">let</span> <span class="ident">indexor</span> <span class="op">=</span> <span class="ident">Index</span>{};
+        <span class="kw">let</span> <span class="ident">indexor</span> <span class="op">=</span> <span class="ident">Index</span> {};
 
         <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">42</span>);
         <span class="kw">let</span> <span class="ident">previous_value</span> <span class="op">=</span> <span class="ident">Value</span>::<span class="ident">Null</span>;
         <span class="kw">let</span> <span class="ident">previous_index</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">1</span>);
         <span class="kw">let</span> <span class="ident">select_index</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">0</span>);
 
-        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">value</span>, <span class="ident">previous_value</span>, <span class="ident">previous_index</span>, <span class="ident">select_index</span>);
+        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">value</span>, <span class="ident">previous_value</span>, <span class="ident">previous_index</span>, <span class="ident">select_index</span>];
 
         <span class="kw">let</span> (<span class="ident">result</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">indexor</span>.<span class="ident">run</span>(<span class="kw-2">&amp;</span><span class="ident">inputs</span>);
 
@@ -270,14 +278,14 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">select_last</span>() {
-        <span class="kw">let</span> <span class="ident">indexor</span> <span class="op">=</span> <span class="ident">Index</span>{};
+        <span class="kw">let</span> <span class="ident">indexor</span> <span class="op">=</span> <span class="ident">Index</span> {};
 
         <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="ident">Value</span>::<span class="ident">Null</span>;
         <span class="kw">let</span> <span class="ident">previous_value</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">42</span>);
         <span class="kw">let</span> <span class="ident">previous_index</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">7</span>);
         <span class="kw">let</span> <span class="ident">select_index</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="op">-</span><span class="number">1</span>);
 
-        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">value</span>, <span class="ident">previous_value</span>, <span class="ident">previous_index</span>, <span class="ident">select_index</span>);
+        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">value</span>, <span class="ident">previous_value</span>, <span class="ident">previous_index</span>, <span class="ident">select_index</span>];
 
         <span class="kw">let</span> (<span class="ident">result</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">indexor</span>.<span class="ident">run</span>(<span class="kw-2">&amp;</span><span class="ident">inputs</span>);
 
@@ -288,14 +296,14 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">not_select_last</span>() {
-        <span class="kw">let</span> <span class="ident">indexor</span> <span class="op">=</span> <span class="ident">Index</span>{};
+        <span class="kw">let</span> <span class="ident">indexor</span> <span class="op">=</span> <span class="ident">Index</span> {};
 
         <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">43</span>);
         <span class="kw">let</span> <span class="ident">previous_value</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">42</span>);
         <span class="kw">let</span> <span class="ident">previous_index</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">7</span>);
         <span class="kw">let</span> <span class="ident">select_index</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="op">-</span><span class="number">1</span>);
 
-        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">value</span>, <span class="ident">previous_value</span>, <span class="ident">previous_index</span>, <span class="ident">select_index</span>);
+        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">value</span>, <span class="ident">previous_value</span>, <span class="ident">previous_index</span>, <span class="ident">select_index</span>];
 
         <span class="kw">let</span> (<span class="ident">result</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">indexor</span>.<span class="ident">run</span>(<span class="kw-2">&amp;</span><span class="ident">inputs</span>);
 
@@ -303,6 +311,7 @@
 
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">output_map</span>.<span class="ident">pointer</span>(<span class="string">&quot;/selected_value&quot;</span>), <span class="prelude-val">None</span>);
     }
-}</pre></div>
+}
+</pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../../../" data-current-crate="flowstdlib"></div>
     <script src="../../../../main.js"></script><script src="../../../../source-script.js"></script><script src="../../../../source-files.js"></script><script defer src="../../../../search-index.js"></script></body></html>

@@ -89,10 +89,13 @@
 <span id="86">86</span>
 <span id="87">87</span>
 <span id="88">88</span>
+<span id="89">89</span>
+<span id="90">90</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="ident">flow_impl</span>::{<span class="ident">Implementation</span>, <span class="ident">RUN_AGAIN</span>, <span class="ident">RunAgain</span>};
-<span class="kw">use</span> <span class="ident">flow_impl_derive</span>::<span class="ident">FlowImpl</span>;
 <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">Value</span>;
+
+<span class="kw">use</span> <span class="ident">flow_impl_derive</span>::<span class="ident">FlowImpl</span>;
+<span class="kw">use</span> <span class="ident">flowcore</span>::{<span class="ident">Implementation</span>, <span class="ident">RunAgain</span>, <span class="ident">RUN_AGAIN</span>};
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">FlowImpl</span>)]</span>
 <span class="doccomment">/// Compare two input values and output different the right hand value at different output route</span>
@@ -118,7 +121,7 @@
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;left-gt&quot;</span>.<span class="ident">into</span>(), <span class="ident">left</span>.<span class="ident">clone</span>());
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;right-lte&quot;</span>.<span class="ident">into</span>(), <span class="ident">right</span>.<span class="ident">clone</span>());
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;left-gte&quot;</span>.<span class="ident">into</span>(), <span class="ident">left</span>.<span class="ident">clone</span>());
-                } <span class="kw">else</span>  <span class="kw">if</span> <span class="ident">rhs</span> <span class="op">&gt;</span> <span class="ident">lhs</span> {
+                } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">rhs</span> <span class="op">&gt;</span> <span class="ident">lhs</span> {
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;right-gt&quot;</span>.<span class="ident">into</span>(), <span class="ident">right</span>.<span class="ident">clone</span>());
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;left-lt&quot;</span>.<span class="ident">into</span>(), <span class="ident">left</span>.<span class="ident">clone</span>());
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;right-gte&quot;</span>.<span class="ident">into</span>(), <span class="ident">right</span>.<span class="ident">clone</span>());
@@ -139,8 +142,9 @@
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">test</span> {
-    <span class="kw">use</span> <span class="ident">flow_impl</span>::{<span class="ident">Implementation</span>, <span class="ident">RUN_AGAIN</span>};
     <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">json</span>;
+
+    <span class="kw">use</span> <span class="ident">flowcore</span>::{<span class="ident">Implementation</span>, <span class="ident">RUN_AGAIN</span>};
 
     <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">CompareSwitch</span>;
 
@@ -148,9 +152,9 @@
     <span class="kw">fn</span> <span class="ident">integer_equals</span>() {
         <span class="kw">let</span> <span class="ident">left</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">1</span>);
         <span class="kw">let</span> <span class="ident">right</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">1</span>);
-        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">left</span>, <span class="ident">right</span>);
+        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">left</span>, <span class="ident">right</span>];
 
-        <span class="kw">let</span> <span class="ident">comparer</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">CompareSwitch</span>{} <span class="kw">as</span> <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Implementation</span>;
+        <span class="kw">let</span> <span class="ident">comparer</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">CompareSwitch</span> {} <span class="kw">as</span> <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Implementation</span>;
 
         <span class="kw">let</span> (<span class="ident">value</span>, <span class="ident">run_again</span>) <span class="op">=</span> <span class="ident">comparer</span>.<span class="ident">run</span>(<span class="kw-2">&amp;</span><span class="ident">inputs</span>);
 
@@ -165,9 +169,9 @@
     <span class="kw">fn</span> <span class="ident">float_equals</span>() {
         <span class="kw">let</span> <span class="ident">left</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">1.0</span>);
         <span class="kw">let</span> <span class="ident">right</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="number">1.0</span>);
-        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">left</span>, <span class="ident">right</span>);
+        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">left</span>, <span class="ident">right</span>];
 
-        <span class="kw">let</span> <span class="ident">comparer</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">CompareSwitch</span>{} <span class="kw">as</span> <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Implementation</span>;
+        <span class="kw">let</span> <span class="ident">comparer</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">CompareSwitch</span> {} <span class="kw">as</span> <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Implementation</span>;
 
         <span class="kw">let</span> (<span class="ident">value</span>, <span class="ident">run_again</span>) <span class="op">=</span> <span class="ident">comparer</span>.<span class="ident">run</span>(<span class="kw-2">&amp;</span><span class="ident">inputs</span>);
 
@@ -177,6 +181,7 @@
         <span class="kw">let</span> <span class="ident">map</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">as_object</span>().<span class="ident">unwrap</span>();
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">map</span>.<span class="ident">contains_key</span>(<span class="string">&quot;equal&quot;</span>));
     }
-}</pre></div>
+}
+</pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../../../" data-current-crate="flowstdlib"></div>
     <script src="../../../../main.js"></script><script src="../../../../source-script.js"></script><script src="../../../../source-files.js"></script><script defer src="../../../../search-index.js"></script></body></html>

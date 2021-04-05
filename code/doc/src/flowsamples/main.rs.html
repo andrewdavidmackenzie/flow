@@ -315,9 +315,35 @@
 <span id="312">312</span>
 <span id="313">313</span>
 <span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
+<span id="333">333</span>
+<span id="334">334</span>
+<span id="335">335</span>
+<span id="336">336</span>
+<span id="337">337</span>
+<span id="338">338</span>
+<span id="339">339</span>
+<span id="340">340</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="comment">// Run sample flows found in any subfolder</span>
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">env</span>, <span class="ident">fs</span>, <span class="ident">io</span>};
+<span class="comment">// Run sample flows found in any subfolder</span>
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fs</span>::<span class="ident">File</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::{<span class="ident">BufRead</span>, <span class="ident">BufReader</span>, <span class="ident">ErrorKind</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">path</span>::<span class="ident">Path</span>;
@@ -327,7 +353,10 @@
 
 <span class="kw">fn</span> <span class="ident">main</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
     <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;`flowsample` version {}&quot;</span>, <span class="macro">env</span><span class="macro">!</span>(<span class="string">&quot;CARGO_PKG_VERSION&quot;</span>));
-    <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Current Working Directory: `{}`&quot;</span>, <span class="ident">std</span>::<span class="ident">env</span>::<span class="ident">current_dir</span>().<span class="ident">unwrap</span>().<span class="ident">display</span>());
+    <span class="macro">println</span><span class="macro">!</span>(
+        <span class="string">&quot;Current Working Directory: `{}`&quot;</span>,
+        <span class="ident">std</span>::<span class="ident">env</span>::<span class="ident">current_dir</span>().<span class="ident">unwrap</span>().<span class="ident">display</span>()
+    );
     <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Manifest Directory: `{}`&quot;</span>, <span class="macro">env</span><span class="macro">!</span>(<span class="string">&quot;CARGO_MANIFEST_DIR&quot;</span>));
 
     <span class="kw">let</span> <span class="ident">flowr</span> <span class="op">=</span> <span class="ident">get_flowr</span>()<span class="question-mark">?</span>;
@@ -349,7 +378,7 @@
             <span class="kw">let</span> <span class="ident">samples_dir</span> <span class="op">=</span> <span class="ident">Path</span>::<span class="ident">new</span>(<span class="macro">env</span><span class="macro">!</span>(<span class="string">&quot;CARGO_MANIFEST_DIR&quot;</span>)).<span class="ident">join</span>(<span class="kw-2">&amp;</span><span class="ident">args</span>[<span class="number">1</span>]);
             <span class="ident">run_sample</span>(<span class="kw-2">&amp;</span><span class="ident">samples_dir</span>, <span class="kw-2">&amp;</span><span class="ident">flowr</span>)<span class="question-mark">?</span>
         }
-        <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">eprintln</span><span class="macro">!</span>(<span class="string">&quot;Usage: {} &lt;optional_sample_directory_name&gt;&quot;</span>, <span class="ident">args</span>[<span class="number">0</span>])
+        <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">eprintln</span><span class="macro">!</span>(<span class="string">&quot;Usage: {} &lt;optional_sample_directory_name&gt;&quot;</span>, <span class="ident">args</span>[<span class="number">0</span>]),
     }
 
     <span class="prelude-val">Ok</span>(())
@@ -366,12 +395,17 @@
         <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">dev</span>.<span class="ident">into_os_string</span>().<span class="ident">to_str</span>().<span class="ident">unwrap</span>().<span class="ident">to_string</span>());
     }
 
-    <span class="kw">if</span> <span class="ident">Simpath</span>::<span class="ident">new</span>(<span class="string">&quot;PATH&quot;</span>).<span class="ident">find_type</span>(<span class="string">&quot;flowr&quot;</span>, <span class="ident">FileType</span>::<span class="ident">File</span>).<span class="ident">is_ok</span>() {
+    <span class="kw">if</span> <span class="ident">Simpath</span>::<span class="ident">new</span>(<span class="string">&quot;PATH&quot;</span>)
+        .<span class="ident">find_type</span>(<span class="string">&quot;flowr&quot;</span>, <span class="ident">FileType</span>::<span class="ident">File</span>)
+        .<span class="ident">is_ok</span>()
+    {
         <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="string">&quot;flowr&quot;</span>.<span class="ident">into</span>());
     }
 
-    <span class="prelude-val">Err</span>(<span class="ident">io</span>::<span class="ident">Error</span>::<span class="ident">new</span>(<span class="ident">io</span>::<span class="ident">ErrorKind</span>::<span class="ident">Other</span>,
-                       <span class="string">&quot;`flowr` could not be found in `$PATH` or `target/`&quot;</span>))
+    <span class="prelude-val">Err</span>(<span class="ident">io</span>::<span class="ident">Error</span>::<span class="ident">new</span>(
+        <span class="ident">io</span>::<span class="ident">ErrorKind</span>::<span class="ident">Other</span>,
+        <span class="string">&quot;`flowr` could not be found in `$PATH` or `target/`&quot;</span>,
+    ))
 }
 
 <span class="kw">fn</span> <span class="ident">run_sample</span>(<span class="ident">sample_dir</span>: <span class="kw-2">&amp;</span><span class="ident">Path</span>, <span class="ident">flowr_path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
@@ -386,36 +420,46 @@
     <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;\tReading STDIN from test.input, Arguments read from test.arguments&quot;</span>);
     <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;\tOutput sent to STDOUT/STDERR and file output to test.file&quot;</span>);
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">command_args</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="string">&quot;--native&quot;</span>.<span class="ident">into</span>(), <span class="ident">manifest</span>.<span class="ident">display</span>().<span class="ident">to_string</span>());
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">command_args</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="string">&quot;--native&quot;</span>.<span class="ident">into</span>(), <span class="ident">manifest</span>.<span class="ident">display</span>().<span class="ident">to_string</span>()];
     <span class="ident">command_args</span>.<span class="ident">append</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">args</span>(<span class="kw-2">&amp;</span><span class="ident">sample_dir</span>)<span class="question-mark">?</span>);
 
-    <span class="kw">match</span> <span class="ident">flowr_command</span>.<span class="ident">args</span>(<span class="ident">command_args</span>)
+    <span class="kw">match</span> <span class="ident">flowr_command</span>
+        .<span class="ident">args</span>(<span class="ident">command_args</span>)
         .<span class="ident">stdin</span>(<span class="ident">Stdio</span>::<span class="ident">piped</span>())
         .<span class="ident">stdout</span>(<span class="ident">Stdio</span>::<span class="ident">inherit</span>())
         .<span class="ident">stderr</span>(<span class="ident">Stdio</span>::<span class="ident">inherit</span>())
-        .<span class="ident">spawn</span>() {
+        .<span class="ident">spawn</span>()
+    {
         <span class="prelude-val">Ok</span>(<span class="kw-2">mut</span> <span class="ident">flowr_child</span>) <span class="op">=</span><span class="op">&gt;</span> {
             <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">Command</span>::<span class="ident">new</span>(<span class="string">&quot;cat&quot;</span>)
-                .<span class="ident">args</span>(<span class="macro">vec</span><span class="macro">!</span>(<span class="ident">sample_dir</span>.<span class="ident">join</span>(<span class="string">&quot;test.input&quot;</span>)))
-                .<span class="ident">stdout</span>(<span class="ident">flowr_child</span>.<span class="ident">stdin</span>.<span class="ident">take</span>()
-                    .<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="ident">io</span>::<span class="ident">Error</span>::<span class="ident">new</span>(<span class="ident">io</span>::<span class="ident">ErrorKind</span>::<span class="ident">Other</span>, <span class="string">&quot;Could not take STDIN of `flowr` process&quot;</span>))<span class="question-mark">?</span>)
-                .<span class="ident">spawn</span>().<span class="ident">unwrap</span>();
+                .<span class="ident">args</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="ident">sample_dir</span>.<span class="ident">join</span>(<span class="string">&quot;test.input&quot;</span>)])
+                .<span class="ident">stdout</span>(<span class="ident">flowr_child</span>.<span class="ident">stdin</span>.<span class="ident">take</span>().<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> {
+                    <span class="ident">io</span>::<span class="ident">Error</span>::<span class="ident">new</span>(
+                        <span class="ident">io</span>::<span class="ident">ErrorKind</span>::<span class="ident">Other</span>,
+                        <span class="string">&quot;Could not take STDIN of `flowr` process&quot;</span>,
+                    )
+                })<span class="question-mark">?</span>)
+                .<span class="ident">spawn</span>()
+                .<span class="ident">unwrap</span>();
 
             <span class="kw">match</span> <span class="ident">flowr_child</span>.<span class="ident">wait_with_output</span>() {
                 <span class="prelude-val">Ok</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(()),
-                <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Err</span>(<span class="ident">io</span>::<span class="ident">Error</span>::<span class="ident">new</span>(<span class="ident">io</span>::<span class="ident">ErrorKind</span>::<span class="ident">Other</span>,
-                                             <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Error running `flowr`: {}&quot;</span>, <span class="ident">e</span>)))
+                <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Err</span>(<span class="ident">io</span>::<span class="ident">Error</span>::<span class="ident">new</span>(
+                    <span class="ident">io</span>::<span class="ident">ErrorKind</span>::<span class="ident">Other</span>,
+                    <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Error running `flowr`: {}&quot;</span>, <span class="ident">e</span>),
+                )),
             }
         }
-        <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> {
-            <span class="kw">match</span> <span class="ident">e</span>.<span class="ident">kind</span>() {
-                <span class="ident">ErrorKind</span>::<span class="ident">NotFound</span> <span class="op">=</span><span class="op">&gt;</span>
-                    <span class="prelude-val">Err</span>(<span class="ident">io</span>::<span class="ident">Error</span>::<span class="ident">new</span>(<span class="ident">io</span>::<span class="ident">ErrorKind</span>::<span class="ident">Other</span>,
-                                       <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;`flowr` was not found! Check your $PATH. {}&quot;</span>, <span class="ident">e</span>))),
-                <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Err</span>(<span class="ident">io</span>::<span class="ident">Error</span>::<span class="ident">new</span>(<span class="ident">io</span>::<span class="ident">ErrorKind</span>::<span class="ident">Other</span>,
-                                        <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Unexpected error occurred spawning `flowr`: {}&quot;</span>, <span class="ident">e</span>)))
-            }
-        }
+        <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="kw">match</span> <span class="ident">e</span>.<span class="ident">kind</span>() {
+            <span class="ident">ErrorKind</span>::<span class="ident">NotFound</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Err</span>(<span class="ident">io</span>::<span class="ident">Error</span>::<span class="ident">new</span>(
+                <span class="ident">io</span>::<span class="ident">ErrorKind</span>::<span class="ident">Other</span>,
+                <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;`flowr` was not found! Check your $PATH. {}&quot;</span>, <span class="ident">e</span>),
+            )),
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Err</span>(<span class="ident">io</span>::<span class="ident">Error</span>::<span class="ident">new</span>(
+                <span class="ident">io</span>::<span class="ident">ErrorKind</span>::<span class="ident">Other</span>,
+                <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Unexpected error occurred spawning `flowr`: {}&quot;</span>, <span class="ident">e</span>),
+            )),
+        },
     }
 }
 
@@ -453,21 +497,24 @@
 
         <span class="kw">let</span> <span class="ident">manifest</span> <span class="op">=</span> <span class="ident">sample_dir</span>.<span class="ident">join</span>(<span class="string">&quot;manifest.json&quot;</span>);
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">command_args</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="string">&quot;--native&quot;</span>.<span class="ident">into</span>(), <span class="ident">manifest</span>.<span class="ident">display</span>().<span class="ident">to_string</span>());
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">command_args</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="string">&quot;--native&quot;</span>.<span class="ident">into</span>(), <span class="ident">manifest</span>.<span class="ident">display</span>().<span class="ident">to_string</span>()];
         <span class="ident">command_args</span>.<span class="ident">append</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw">super</span>::<span class="ident">args</span>(<span class="kw-2">&amp;</span><span class="ident">sample_dir</span>).<span class="ident">unwrap</span>());
 
         <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> <span class="ident">File</span>::<span class="ident">create</span>(<span class="ident">sample_dir</span>.<span class="ident">join</span>(<span class="string">&quot;test.output&quot;</span>)).<span class="ident">unwrap</span>();
         <span class="kw">let</span> <span class="ident">error</span> <span class="op">=</span> <span class="ident">File</span>::<span class="ident">create</span>(<span class="ident">sample_dir</span>.<span class="ident">join</span>(<span class="string">&quot;test.err&quot;</span>)).<span class="ident">unwrap</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">flowr_child</span> <span class="op">=</span> <span class="ident">flowr_command</span>.<span class="ident">args</span>(<span class="ident">command_args</span>)
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">flowr_child</span> <span class="op">=</span> <span class="ident">flowr_command</span>
+            .<span class="ident">args</span>(<span class="ident">command_args</span>)
             .<span class="ident">stdin</span>(<span class="ident">Stdio</span>::<span class="ident">piped</span>())
             .<span class="ident">stdout</span>(<span class="ident">Stdio</span>::<span class="ident">from</span>(<span class="ident">output</span>))
             .<span class="ident">stderr</span>(<span class="ident">Stdio</span>::<span class="ident">from</span>(<span class="ident">error</span>))
-            .<span class="ident">spawn</span>().<span class="ident">unwrap</span>();
+            .<span class="ident">spawn</span>()
+            .<span class="ident">unwrap</span>();
 
         <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">Command</span>::<span class="ident">new</span>(<span class="string">&quot;cat&quot;</span>)
-            .<span class="ident">args</span>(<span class="macro">vec</span><span class="macro">!</span>(<span class="ident">sample_dir</span>.<span class="ident">join</span>(<span class="string">&quot;test.input&quot;</span>)))
+            .<span class="ident">args</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="ident">sample_dir</span>.<span class="ident">join</span>(<span class="string">&quot;test.input&quot;</span>)])
             .<span class="ident">stdout</span>(<span class="ident">flowr_child</span>.<span class="ident">stdin</span>.<span class="ident">take</span>().<span class="ident">unwrap</span>())
-            .<span class="ident">spawn</span>().<span class="ident">unwrap</span>();
+            .<span class="ident">spawn</span>()
+            .<span class="ident">unwrap</span>();
 
         <span class="ident">flowr_child</span>.<span class="ident">wait_with_output</span>().<span class="ident">unwrap</span>();
 
@@ -479,17 +526,17 @@
         <span class="kw">if</span> <span class="ident">expected</span>.<span class="ident">exists</span>() {
             <span class="kw">let</span> <span class="ident">actual</span> <span class="op">=</span> <span class="ident">sample_dir</span>.<span class="ident">join</span>(<span class="ident">actual_name</span>);
             <span class="kw">let</span> <span class="ident">diff</span> <span class="op">=</span> <span class="ident">Command</span>::<span class="ident">new</span>(<span class="string">&quot;diff&quot;</span>)
-                .<span class="ident">args</span>(<span class="macro">vec</span><span class="macro">!</span>(<span class="kw-2">&amp;</span><span class="ident">expected</span>, <span class="kw-2">&amp;</span><span class="ident">actual</span>))
+                .<span class="ident">args</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="kw-2">&amp;</span><span class="ident">expected</span>, <span class="kw-2">&amp;</span><span class="ident">actual</span>])
                 .<span class="ident">stdin</span>(<span class="ident">Stdio</span>::<span class="ident">inherit</span>())
                 .<span class="ident">stderr</span>(<span class="ident">Stdio</span>::<span class="ident">inherit</span>())
                 .<span class="ident">stdout</span>(<span class="ident">Stdio</span>::<span class="ident">inherit</span>())
-                .<span class="ident">spawn</span>().<span class="ident">unwrap</span>();
+                .<span class="ident">spawn</span>()
+                .<span class="ident">unwrap</span>();
             <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> <span class="ident">diff</span>.<span class="ident">wait_with_output</span>().<span class="ident">unwrap</span>();
-            <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">output</span>.<span class="ident">status</span>.<span class="ident">success</span>(),
-                    <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Sample {:?} {:?} does not match {:?}&quot;</span>,
-                            <span class="ident">sample_dir</span>.<span class="ident">file_name</span>().<span class="ident">unwrap</span>(),
-                            <span class="ident">actual</span>.<span class="ident">file_name</span>().<span class="ident">unwrap</span>(),
-                            <span class="ident">expected</span>.<span class="ident">file_name</span>().<span class="ident">unwrap</span>()));
+            <span class="macro">assert</span><span class="macro">!</span>(
+                <span class="ident">output</span>.<span class="ident">status</span>.<span class="ident">success</span>(),
+                <span class="string">&quot;Output doesn&#39;t match the expected output&quot;</span>
+            );
         }
     }
 
@@ -501,7 +548,11 @@
             <span class="kw">let</span> <span class="ident">contents</span> <span class="op">=</span> <span class="ident">f</span>.<span class="ident">fill_buf</span>().<span class="ident">unwrap</span>();
 
             <span class="kw">if</span> <span class="op">!</span><span class="ident">contents</span>.<span class="ident">is_empty</span>() {
-                <span class="macro">eprintln</span><span class="macro">!</span>(<span class="string">&quot;Sample {:?} produced error output in {}&quot;</span>, <span class="ident">sample_dir</span>.<span class="ident">file_name</span>().<span class="ident">unwrap</span>(), <span class="ident">error</span>.<span class="ident">display</span>());
+                <span class="macro">eprintln</span><span class="macro">!</span>(
+                    <span class="string">&quot;Sample {:?} produced error output in {}&quot;</span>,
+                    <span class="ident">sample_dir</span>.<span class="ident">file_name</span>().<span class="ident">unwrap</span>(),
+                    <span class="ident">error</span>.<span class="ident">display</span>()
+                );
                 <span class="ident">std</span>::<span class="ident">process</span>::<span class="ident">exit</span>(<span class="op">-</span><span class="number">1</span>);
             }
         }
@@ -517,6 +568,7 @@
         <span class="ident">test_run_sample</span>(<span class="kw-2">&amp;</span><span class="ident">sample</span>, <span class="kw-2">&amp;</span><span class="kw">super</span>::<span class="ident">get_flowr</span>().<span class="ident">unwrap</span>());
     }
 
+    <span class="attribute">#[<span class="ident">ignore</span>]</span>
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="attribute">#[<span class="ident">serial</span>]</span>
     <span class="kw">fn</span> <span class="ident">test_arrays</span>() {
@@ -629,6 +681,7 @@
     <span class="comment">//         };</span>
     <span class="comment">//     }</span>
     <span class="comment">// }</span>
-}</pre></div>
+}
+</pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="flowsamples"></div>
     <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script><script defer src="../../search-index.js"></script></body></html>

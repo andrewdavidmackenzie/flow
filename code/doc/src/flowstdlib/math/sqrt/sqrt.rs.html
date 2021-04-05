@@ -45,11 +45,16 @@
 <span id="42">42</span>
 <span id="43">43</span>
 <span id="44">44</span>
+<span id="45">45</span>
+<span id="46">46</span>
+<span id="47">47</span>
+<span id="48">48</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="ident">flow_impl</span>::{<span class="ident">Implementation</span>, <span class="ident">RUN_AGAIN</span>, <span class="ident">RunAgain</span>};
-<span class="kw">use</span> <span class="ident">flow_impl_derive</span>::<span class="ident">FlowImpl</span>;
 <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">Value</span>;
 <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">Value</span>::<span class="ident">Number</span>;
+
+<span class="kw">use</span> <span class="ident">flow_impl_derive</span>::<span class="ident">FlowImpl</span>;
+<span class="kw">use</span> <span class="ident">flowcore</span>::{<span class="ident">Implementation</span>, <span class="ident">RunAgain</span>, <span class="ident">RUN_AGAIN</span>};
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">FlowImpl</span>)]</span>
 <span class="doccomment">/// Calculate the square root of a number</span>
@@ -63,7 +68,9 @@
 
         <span class="kw">if</span> <span class="kw">let</span> <span class="ident">Number</span>(<span class="kw-2">ref</span> <span class="ident">a</span>) <span class="op">=</span> <span class="ident">input</span> {
             <span class="kw">if</span> <span class="ident">a</span>.<span class="ident">is_i64</span>() <span class="op">|</span><span class="op">|</span> <span class="ident">a</span>.<span class="ident">is_u64</span>() <span class="op">|</span><span class="op">|</span> <span class="ident">a</span>.<span class="ident">is_f64</span>() {
-                <span class="ident">value</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">a</span>.<span class="ident">as_f64</span>().<span class="ident">unwrap</span>().<span class="ident">sqrt</span>()).<span class="ident">unwrap</span>()));
+                <span class="ident">value</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">Value</span>::<span class="ident">Number</span>(
+                    <span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">a</span>.<span class="ident">as_f64</span>().<span class="ident">unwrap</span>().<span class="ident">sqrt</span>()).<span class="ident">unwrap</span>(),
+                ));
             }
         };
 
@@ -73,8 +80,9 @@
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">test</span> {
-    <span class="kw">use</span> <span class="ident">flow_impl</span>::<span class="ident">Implementation</span>;
     <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">json</span>;
+
+    <span class="kw">use</span> <span class="ident">flowcore</span>::<span class="ident">Implementation</span>;
 
     <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">Sqrt</span>;
 
@@ -89,6 +97,7 @@
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">again</span>);
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">test_9</span>, <span class="ident">root</span>.<span class="ident">unwrap</span>());
     }
-}</pre></div>
+}
+</pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../../../" data-current-crate="flowstdlib"></div>
     <script src="../../../../main.js"></script><script src="../../../../source-script.js"></script><script src="../../../../source-files.js"></script><script defer src="../../../../search-index.js"></script></body></html>

@@ -54,11 +54,14 @@
 <span id="51">51</span>
 <span id="52">52</span>
 <span id="53">53</span>
+<span id="54">54</span>
+<span id="55">55</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="ident">flow_impl</span>::{<span class="ident">Implementation</span>, <span class="ident">RUN_AGAIN</span>, <span class="ident">RunAgain</span>};
-<span class="kw">use</span> <span class="ident">flow_impl_derive</span>::<span class="ident">FlowImpl</span>;
 <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">json</span>;
 <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">Value</span>;
+
+<span class="kw">use</span> <span class="ident">flow_impl_derive</span>::<span class="ident">FlowImpl</span>;
+<span class="kw">use</span> <span class="ident">flowcore</span>::{<span class="ident">Implementation</span>, <span class="ident">RUN_AGAIN</span>, <span class="ident">RunAgain</span>};
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">FlowImpl</span>)]</span>
 <span class="doccomment">/// Multiply one input by another</span>
@@ -79,18 +82,19 @@
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">test</span> {
-    <span class="kw">use</span> <span class="ident">flow_impl</span>::<span class="ident">Implementation</span>;
     <span class="kw">use</span> <span class="ident">serde_json</span>::{<span class="ident">json</span>, <span class="ident">Value</span>};
+
+    <span class="kw">use</span> <span class="ident">flowcore</span>::<span class="ident">Implementation</span>;
 
     <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">Multiply</span>;
 
     <span class="kw">fn</span> <span class="ident">do_multiply</span>(<span class="ident">test_data</span>: (<span class="ident">u32</span>, <span class="ident">u32</span>, <span class="ident">u32</span>)) {
-        <span class="kw">let</span> <span class="ident">multiplier</span>: <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Implementation</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">Multiply</span>{} <span class="kw">as</span> <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Implementation</span>;
+        <span class="kw">let</span> <span class="ident">multiplier</span>: <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Implementation</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">Multiply</span> {} <span class="kw">as</span> <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Implementation</span>;
 
         <span class="comment">// Create input vector</span>
         <span class="kw">let</span> <span class="ident">i1</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="ident">test_data</span>.<span class="number">0</span>);
         <span class="kw">let</span> <span class="ident">i2</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="ident">test_data</span>.<span class="number">1</span>);
-        <span class="kw">let</span> <span class="ident">inputs</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">i1</span>, <span class="ident">i2</span>);
+        <span class="kw">let</span> <span class="ident">inputs</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">i1</span>, <span class="ident">i2</span>];
 
         <span class="kw">let</span> (<span class="ident">output</span>, <span class="ident">run_again</span>) <span class="op">=</span> <span class="ident">multiplier</span>.<span class="ident">run</span>(<span class="kw-2">&amp;</span><span class="ident">inputs</span>);
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">run_again</span>);
@@ -101,12 +105,13 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">test_divide</span>() {
-        <span class="kw">let</span> <span class="ident">test_set</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>((<span class="number">3</span>, <span class="number">3</span>, <span class="number">9</span>), (<span class="number">33</span>, <span class="number">3</span>, <span class="number">99</span>));
+        <span class="kw">let</span> <span class="ident">test_set</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[(<span class="number">3</span>, <span class="number">3</span>, <span class="number">9</span>), (<span class="number">33</span>, <span class="number">3</span>, <span class="number">99</span>)];
 
         <span class="kw">for</span> <span class="ident">test</span> <span class="kw">in</span> <span class="ident">test_set</span> {
             <span class="ident">do_multiply</span>(<span class="ident">test</span>);
         }
     }
-}</pre></div>
+}
+</pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../../../" data-current-crate="flowstdlib"></div>
     <script src="../../../../main.js"></script><script src="../../../../source-script.js"></script><script src="../../../../source-files.js"></script><script defer src="../../../../search-index.js"></script></body></html>

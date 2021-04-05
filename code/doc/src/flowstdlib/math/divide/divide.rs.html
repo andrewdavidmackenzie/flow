@@ -68,10 +68,37 @@
 <span id="65">65</span>
 <span id="66">66</span>
 <span id="67">67</span>
+<span id="68">68</span>
+<span id="69">69</span>
+<span id="70">70</span>
+<span id="71">71</span>
+<span id="72">72</span>
+<span id="73">73</span>
+<span id="74">74</span>
+<span id="75">75</span>
+<span id="76">76</span>
+<span id="77">77</span>
+<span id="78">78</span>
+<span id="79">79</span>
+<span id="80">80</span>
+<span id="81">81</span>
+<span id="82">82</span>
+<span id="83">83</span>
+<span id="84">84</span>
+<span id="85">85</span>
+<span id="86">86</span>
+<span id="87">87</span>
+<span id="88">88</span>
+<span id="89">89</span>
+<span id="90">90</span>
+<span id="91">91</span>
+<span id="92">92</span>
+<span id="93">93</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="ident">flow_impl</span>::{<span class="ident">Implementation</span>, <span class="ident">RUN_AGAIN</span>, <span class="ident">RunAgain</span>};
-<span class="kw">use</span> <span class="ident">flow_impl_derive</span>::<span class="ident">FlowImpl</span>;
 <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">Value</span>;
+
+<span class="kw">use</span> <span class="ident">flow_impl_derive</span>::<span class="ident">FlowImpl</span>;
+<span class="kw">use</span> <span class="ident">flowcore</span>::{<span class="ident">Implementation</span>, <span class="ident">RunAgain</span>, <span class="ident">RUN_AGAIN</span>};
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">FlowImpl</span>)]</span>
 <span class="doccomment">/// Divide one input by another, producing outputs for the dividend, divisor, result and the remainder</span>
@@ -84,10 +111,22 @@
         <span class="kw">let</span> <span class="ident">divisor</span> <span class="op">=</span> <span class="ident">inputs</span>[<span class="number">1</span>].<span class="ident">as_f64</span>().<span class="ident">unwrap</span>();
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">output_map</span> <span class="op">=</span> <span class="ident">serde_json</span>::<span class="ident">Map</span>::<span class="ident">new</span>();
-        <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;dividend&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">dividend</span>).<span class="ident">unwrap</span>()));
-        <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;divisor&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">divisor</span>).<span class="ident">unwrap</span>()));
-        <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;result&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">dividend</span><span class="op">/</span><span class="ident">divisor</span>).<span class="ident">unwrap</span>()));
-        <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;remainder&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">dividend</span> <span class="op">%</span> <span class="ident">divisor</span>).<span class="ident">unwrap</span>()));
+        <span class="ident">output_map</span>.<span class="ident">insert</span>(
+            <span class="string">&quot;dividend&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">dividend</span>).<span class="ident">unwrap</span>()),
+        );
+        <span class="ident">output_map</span>.<span class="ident">insert</span>(
+            <span class="string">&quot;divisor&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">divisor</span>).<span class="ident">unwrap</span>()),
+        );
+        <span class="ident">output_map</span>.<span class="ident">insert</span>(
+            <span class="string">&quot;result&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">dividend</span> <span class="op">/</span> <span class="ident">divisor</span>).<span class="ident">unwrap</span>()),
+        );
+        <span class="ident">output_map</span>.<span class="ident">insert</span>(
+            <span class="string">&quot;remainder&quot;</span>.<span class="ident">into</span>(),
+            <span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">dividend</span> <span class="op">%</span> <span class="ident">divisor</span>).<span class="ident">unwrap</span>()),
+        );
         <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> <span class="ident">Value</span>::<span class="ident">Object</span>(<span class="ident">output_map</span>);
 
         (<span class="prelude-val">Some</span>(<span class="ident">output</span>), <span class="ident">RUN_AGAIN</span>)
@@ -96,18 +135,19 @@
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">test</span> {
-    <span class="kw">use</span> <span class="ident">flow_impl</span>::<span class="ident">Implementation</span>;
     <span class="kw">use</span> <span class="ident">serde_json</span>::{<span class="ident">json</span>, <span class="ident">Value</span>};
+
+    <span class="kw">use</span> <span class="ident">flowcore</span>::<span class="ident">Implementation</span>;
 
     <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">Divide</span>;
 
     <span class="kw">fn</span> <span class="ident">do_divide</span>(<span class="ident">test_data</span>: (<span class="ident">u32</span>, <span class="ident">u32</span>, <span class="ident">f64</span>, <span class="ident">u32</span>)) {
-        <span class="kw">let</span> <span class="ident">divide</span>: <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Implementation</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">Divide</span>{} <span class="kw">as</span> <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Implementation</span>;
+        <span class="kw">let</span> <span class="ident">divide</span>: <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Implementation</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">Divide</span> {} <span class="kw">as</span> <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Implementation</span>;
 
         <span class="comment">// Create input vector</span>
         <span class="kw">let</span> <span class="ident">dividend</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="ident">test_data</span>.<span class="number">0</span>);
         <span class="kw">let</span> <span class="ident">divisor</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="ident">test_data</span>.<span class="number">1</span>);
-        <span class="kw">let</span> <span class="ident">inputs</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">dividend</span>, <span class="ident">divisor</span>);
+        <span class="kw">let</span> <span class="ident">inputs</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">dividend</span>, <span class="ident">divisor</span>];
 
         <span class="kw">let</span> (<span class="ident">output</span>, <span class="ident">run_again</span>) <span class="op">=</span> <span class="ident">divide</span>.<span class="ident">run</span>(<span class="kw-2">&amp;</span><span class="ident">inputs</span>);
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">run_again</span>);
@@ -115,26 +155,39 @@
         <span class="kw">let</span> <span class="ident">outputs</span> <span class="op">=</span> <span class="ident">output</span>.<span class="ident">unwrap</span>();
 
         <span class="kw">let</span> <span class="ident">dividend</span> <span class="op">=</span> <span class="ident">outputs</span>.<span class="ident">pointer</span>(<span class="string">&quot;/dividend&quot;</span>).<span class="ident">unwrap</span>();
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">dividend</span>, <span class="kw-2">&amp;</span><span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">test_data</span>.<span class="number">0</span> <span class="kw">as</span> <span class="ident">f64</span>).<span class="ident">unwrap</span>()));
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">dividend</span>,
+            <span class="kw-2">&amp;</span><span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">test_data</span>.<span class="number">0</span> <span class="kw">as</span> <span class="ident">f64</span>).<span class="ident">unwrap</span>())
+        );
 
         <span class="kw">let</span> <span class="ident">divisor</span> <span class="op">=</span> <span class="ident">outputs</span>.<span class="ident">pointer</span>(<span class="string">&quot;/divisor&quot;</span>).<span class="ident">unwrap</span>();
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">divisor</span>, <span class="kw-2">&amp;</span><span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">test_data</span>.<span class="number">1</span> <span class="kw">as</span> <span class="ident">f64</span>).<span class="ident">unwrap</span>()));
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">divisor</span>,
+            <span class="kw-2">&amp;</span><span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">test_data</span>.<span class="number">1</span> <span class="kw">as</span> <span class="ident">f64</span>).<span class="ident">unwrap</span>())
+        );
 
         <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">outputs</span>.<span class="ident">pointer</span>(<span class="string">&quot;/result&quot;</span>).<span class="ident">unwrap</span>();
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">result</span>, <span class="kw-2">&amp;</span><span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">test_data</span>.<span class="number">2</span> <span class="kw">as</span> <span class="ident">f64</span>).<span class="ident">unwrap</span>()));
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">result</span>,
+            <span class="kw-2">&amp;</span><span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">test_data</span>.<span class="number">2</span> <span class="kw">as</span> <span class="ident">f64</span>).<span class="ident">unwrap</span>())
+        );
 
         <span class="kw">let</span> <span class="ident">remainder</span> <span class="op">=</span> <span class="ident">outputs</span>.<span class="ident">pointer</span>(<span class="string">&quot;/remainder&quot;</span>).<span class="ident">unwrap</span>();
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">remainder</span>, <span class="kw-2">&amp;</span><span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">test_data</span>.<span class="number">3</span> <span class="kw">as</span> <span class="ident">f64</span>).<span class="ident">unwrap</span>()));
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">remainder</span>,
+            <span class="kw-2">&amp;</span><span class="ident">Value</span>::<span class="ident">Number</span>(<span class="ident">serde_json</span>::<span class="ident">Number</span>::<span class="ident">from_f64</span>(<span class="ident">test_data</span>.<span class="number">3</span> <span class="kw">as</span> <span class="ident">f64</span>).<span class="ident">unwrap</span>())
+        );
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">test_divide</span>() {
-        <span class="kw">let</span> <span class="ident">test_set</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>((<span class="number">100</span>, <span class="number">3</span>, <span class="number">33.333_333_333_333_336_f64</span>, <span class="number">1</span>), (<span class="number">99</span>, <span class="number">3</span>, <span class="number">33f64</span>, <span class="number">0</span>));
+        <span class="kw">let</span> <span class="ident">test_set</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[(<span class="number">100</span>, <span class="number">3</span>, <span class="number">33.333_333_333_333_336_f64</span>, <span class="number">1</span>), (<span class="number">99</span>, <span class="number">3</span>, <span class="number">33f64</span>, <span class="number">0</span>)];
 
         <span class="kw">for</span> <span class="ident">test</span> <span class="kw">in</span> <span class="ident">test_set</span> {
             <span class="ident">do_divide</span>(<span class="ident">test</span>);
         }
     }
-}</pre></div>
+}
+</pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../../../" data-current-crate="flowstdlib"></div>
     <script src="../../../../main.js"></script><script src="../../../../source-script.js"></script><script src="../../../../source-files.js"></script><script defer src="../../../../search-index.js"></script></body></html>

@@ -45,10 +45,13 @@
 <span id="42">42</span>
 <span id="43">43</span>
 <span id="44">44</span>
+<span id="45">45</span>
+<span id="46">46</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="ident">flow_impl</span>::{<span class="ident">Implementation</span>, <span class="ident">RUN_AGAIN</span>, <span class="ident">RunAgain</span>};
-<span class="kw">use</span> <span class="ident">flow_impl_derive</span>::<span class="ident">FlowImpl</span>;
 <span class="kw">use</span> <span class="ident">serde_json</span>::{<span class="ident">json</span>, <span class="ident">Value</span>};
+
+<span class="kw">use</span> <span class="ident">flow_impl_derive</span>::<span class="ident">FlowImpl</span>;
+<span class="kw">use</span> <span class="ident">flowcore</span>::{<span class="ident">Implementation</span>, <span class="ident">RUN_AGAIN</span>, <span class="ident">RunAgain</span>};
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">FlowImpl</span>)]</span>
 <span class="doccomment">/// Multiply two matrix rows to a product</span>
@@ -71,16 +74,17 @@
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">test</span> {
-    <span class="kw">use</span> <span class="ident">flow_impl</span>::<span class="ident">Implementation</span>;
     <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">json</span>;
     <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">Value</span>;
 
+    <span class="kw">use</span> <span class="ident">flowcore</span>::<span class="ident">Implementation</span>;
+
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">multiply_row</span>() {
-        <span class="kw">let</span> <span class="ident">row0</span> <span class="op">=</span> <span class="ident">Value</span>::<span class="ident">Array</span>(<span class="macro">vec</span><span class="macro">!</span>(<span class="macro">json</span><span class="macro">!</span>(<span class="number">1</span>), <span class="macro">json</span><span class="macro">!</span>(<span class="number">2</span>)));
-        <span class="kw">let</span> <span class="ident">row1</span> <span class="op">=</span> <span class="ident">Value</span>::<span class="ident">Array</span>(<span class="macro">vec</span><span class="macro">!</span>(<span class="macro">json</span><span class="macro">!</span>(<span class="number">3</span>), <span class="macro">json</span><span class="macro">!</span>(<span class="number">4</span>)));
+        <span class="kw">let</span> <span class="ident">row0</span> <span class="op">=</span> <span class="ident">Value</span>::<span class="ident">Array</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="macro">json</span><span class="macro">!</span>(<span class="number">1</span>), <span class="macro">json</span><span class="macro">!</span>(<span class="number">2</span>)]);
+        <span class="kw">let</span> <span class="ident">row1</span> <span class="op">=</span> <span class="ident">Value</span>::<span class="ident">Array</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="macro">json</span><span class="macro">!</span>(<span class="number">3</span>), <span class="macro">json</span><span class="macro">!</span>(<span class="number">4</span>)]);
 
-        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">row0</span>, <span class="ident">row1</span>);
+        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">row0</span>, <span class="ident">row1</span>];
 
         <span class="kw">let</span> <span class="ident">multiplier</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">MultiplyRow</span> {};
         <span class="kw">let</span> (<span class="ident">result</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">multiplier</span>.<span class="ident">run</span>(<span class="kw-2">&amp;</span><span class="ident">inputs</span>);
@@ -89,6 +93,7 @@
 
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">product</span>, <span class="macro">json</span><span class="macro">!</span>(<span class="number">11</span>));
     }
-}</pre></div>
+}
+</pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../../../" data-current-crate="flowstdlib"></div>
     <script src="../../../../main.js"></script><script src="../../../../source-script.js"></script><script src="../../../../source-files.js"></script><script defer src="../../../../search-index.js"></script></body></html>

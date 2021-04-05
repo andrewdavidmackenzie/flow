@@ -133,14 +133,40 @@
 <span id="130">130</span>
 <span id="131">131</span>
 <span id="132">132</span>
+<span id="133">133</span>
+<span id="134">134</span>
+<span id="135">135</span>
+<span id="136">136</span>
+<span id="137">137</span>
+<span id="138">138</span>
+<span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
+<span id="142">142</span>
+<span id="143">143</span>
+<span id="144">144</span>
+<span id="145">145</span>
+<span id="146">146</span>
+<span id="147">147</span>
+<span id="148">148</span>
+<span id="149">149</span>
+<span id="150">150</span>
+<span id="151">151</span>
+<span id="152">152</span>
+<span id="153">153</span>
+<span id="154">154</span>
+<span id="155">155</span>
+<span id="156">156</span>
+<span id="157">157</span>
+<span id="158">158</span>
+<span id="159">159</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">curl</span>::<span class="ident">easy</span>::{<span class="ident">Easy2</span>, <span class="ident">Handler</span>, <span class="ident">WriteError</span>};
 <span class="kw">use</span> <span class="ident">log</span>::<span class="ident">debug</span>;
 <span class="kw">use</span> <span class="ident">url</span>::<span class="ident">Url</span>;
 
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">errors</span>::<span class="kw-2">*</span>;
-
-<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">provider</span>::<span class="ident">Provider</span>;
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">lib_provider</span>::<span class="ident">Provider</span>;
 
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">HttpProvider</span>;
 
@@ -154,115 +180,143 @@
 }
 
 <span class="kw">impl</span> <span class="ident">Provider</span> <span class="kw">for</span> <span class="ident">HttpProvider</span> {
-    <span class="kw">fn</span> <span class="ident">resolve_url</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">url_str</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">default_filename</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">extensions</span>: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="ident">str</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(<span class="ident">String</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>)<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">resolve_url</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">url</span>: <span class="kw-2">&amp;</span><span class="ident">Url</span>, <span class="ident">default_filename</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">extensions</span>: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="ident">str</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Url</span><span class="op">&gt;</span> {
         <span class="comment">// Try the url directly first</span>
-        <span class="kw">if</span> <span class="self">Self</span>::<span class="ident">resource_exists</span>(<span class="ident">url_str</span>).<span class="ident">is_ok</span>() {
-            <span class="kw">return</span> <span class="prelude-val">Ok</span>((<span class="ident">url_str</span>.<span class="ident">into</span>(), <span class="prelude-val">None</span>));
+        <span class="kw">if</span> <span class="self">Self</span>::<span class="ident">resource_exists</span>(<span class="ident">url</span>).<span class="ident">is_ok</span>() {
+            <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">url</span>.<span class="ident">clone</span>());
         }
 
         <span class="comment">// Try the url with possible extensions next</span>
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">found</span>) <span class="op">=</span> <span class="self">Self</span>::<span class="ident">resource_by_extensions</span>(<span class="ident">url_str</span>, <span class="ident">extensions</span>) {
-            <span class="kw">return</span> <span class="prelude-val">Ok</span>((<span class="ident">found</span>, <span class="prelude-val">None</span>));
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">found</span>) <span class="op">=</span> <span class="self">Self</span>::<span class="ident">resource_by_extensions</span>(<span class="ident">url</span>, <span class="ident">extensions</span>) {
+            <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">found</span>);
         }
 
-        <span class="comment">// Attempting to find default file under this path</span>
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">found</span>) <span class="op">=</span> <span class="self">Self</span>::<span class="ident">resource_by_extensions</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}/{}&quot;</span>, <span class="ident">url_str</span>, <span class="ident">default_filename</span>), <span class="ident">extensions</span>) {
-            <span class="kw">return</span> <span class="prelude-val">Ok</span>((<span class="ident">found</span>, <span class="prelude-val">None</span>));
+        <span class="comment">// Attempting to find default file under this path, with any of the valid extensions</span>
+        <span class="kw">let</span> <span class="ident">default_filename_url</span> <span class="op">=</span> <span class="ident">Url</span>::<span class="ident">parse</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}/{}&quot;</span>, <span class="ident">url</span>.<span class="ident">to_string</span>(), <span class="ident">default_filename</span>))
+            .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not append default_filename to url&quot;</span>)<span class="question-mark">?</span>;
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">found</span>) <span class="op">=</span> <span class="self">Self</span>::<span class="ident">resource_by_extensions</span>(<span class="kw-2">&amp;</span><span class="ident">default_filename_url</span>, <span class="ident">extensions</span>) {
+            <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">found</span>);
         }
 
-        <span class="comment">// Attempt to find file with same name as final segment under that path</span>
-        <span class="kw">let</span> <span class="ident">url</span> <span class="op">=</span> <span class="ident">Url</span>::<span class="ident">parse</span>(<span class="ident">url_str</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="ident">e</span>.<span class="ident">to_string</span>())<span class="question-mark">?</span>;
+        <span class="comment">// Attempt to find file with same name as final segment under that path, with any extension</span>
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">segments</span> <span class="op">=</span> <span class="ident">url</span>.<span class="ident">path_segments</span>().<span class="ident">ok_or</span>(<span class="string">&quot;Could not get path segments&quot;</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">file_name</span> <span class="op">=</span> <span class="ident">segments</span>.<span class="ident">next_back</span>().<span class="ident">ok_or</span>(<span class="string">&quot;Could not get last path segment&quot;</span>)<span class="question-mark">?</span>;
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">found</span>) <span class="op">=</span> <span class="self">Self</span>::<span class="ident">resource_by_extensions</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}/{}&quot;</span>, <span class="ident">url_str</span>, <span class="ident">file_name</span>), <span class="ident">extensions</span>) {
-            <span class="kw">return</span> <span class="prelude-val">Ok</span>((<span class="ident">found</span>, <span class="prelude-val">None</span>));
+        <span class="kw">let</span> <span class="ident">file_name</span> <span class="op">=</span> <span class="ident">segments</span>
+            .<span class="ident">next_back</span>()
+            .<span class="ident">ok_or</span>(<span class="string">&quot;Could not get last path segment&quot;</span>)<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">filename_url</span> <span class="op">=</span> <span class="ident">Url</span>::<span class="ident">parse</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}/{}&quot;</span>, <span class="ident">url</span>.<span class="ident">to_string</span>(), <span class="ident">file_name</span>))
+            .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not append filename after directory in Url&quot;</span>)<span class="question-mark">?</span>;
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">found</span>) <span class="op">=</span> <span class="self">Self</span>::<span class="ident">resource_by_extensions</span>(<span class="kw-2">&amp;</span><span class="ident">filename_url</span>, <span class="ident">extensions</span>) {
+            <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">found</span>);
         }
 
-        <span class="macro">bail</span><span class="macro">!</span>(<span class="string">&quot;Could not resolve the Url: &#39;{}&#39;&quot;</span>, <span class="ident">url_str</span>)
+        <span class="macro">bail</span><span class="macro">!</span>(<span class="string">&quot;Could not resolve the Url: &#39;{}&#39;&quot;</span>, <span class="ident">url</span>)
     }
 
-    <span class="kw">fn</span> <span class="ident">get_contents</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">url_str</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">get_contents</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">url</span>: <span class="kw-2">&amp;</span><span class="ident">Url</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">easy</span> <span class="op">=</span> <span class="ident">Easy2</span>::<span class="ident">new</span>(<span class="ident">Collector</span>(<span class="ident">Vec</span>::<span class="ident">new</span>()));
-        <span class="ident">easy</span>.<span class="ident">get</span>(<span class="bool-val">true</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="string">&quot;Could not perform GET action on content source&quot;</span>)<span class="question-mark">?</span>;
-        <span class="ident">easy</span>.<span class="ident">url</span>(<span class="ident">url_str</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="string">&quot;Could not set the url of the content source&quot;</span>)<span class="question-mark">?</span>;
-        <span class="ident">easy</span>.<span class="ident">perform</span>().<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="string">&quot;Could not perform the action&quot;</span>)<span class="question-mark">?</span>;
-        <span class="kw">match</span> <span class="ident">easy</span>.<span class="ident">response_code</span>().<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="ident">e</span>.<span class="ident">to_string</span>())<span class="question-mark">?</span> {
+        <span class="ident">easy</span>.<span class="ident">get</span>(<span class="bool-val">true</span>).<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not set GET operation&quot;</span>)<span class="question-mark">?</span>;
+        <span class="ident">easy</span>.<span class="ident">url</span>(<span class="ident">url</span>.<span class="ident">as_str</span>()).<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not set Url&quot;</span>)<span class="question-mark">?</span>;
+        <span class="ident">easy</span>.<span class="ident">perform</span>().<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not perform operation&quot;</span>)<span class="question-mark">?</span>;
+        <span class="kw">match</span> <span class="ident">easy</span>
+            .<span class="ident">response_code</span>()
+            .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not get status code&quot;</span>)<span class="question-mark">?</span>
+        {
             <span class="number">200</span>..<span class="op">=</span><span class="number">299</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">contents</span> <span class="op">=</span> <span class="ident">easy</span>.<span class="ident">get_ref</span>();
                 <span class="prelude-val">Ok</span>(<span class="ident">contents</span>.<span class="number">0</span>.<span class="ident">clone</span>())
-            },
-            <span class="ident">error_code</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">bail</span><span class="macro">!</span>(<span class="string">&quot;Response code: {} from &#39;{}&#39;&quot;</span>, <span class="ident">error_code</span>, <span class="ident">url_str</span>)
+            }
+            <span class="ident">error_code</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">bail</span><span class="macro">!</span>(<span class="string">&quot;Response code: {} from &#39;{}&#39;&quot;</span>, <span class="ident">error_code</span>, <span class="ident">url</span>.<span class="ident">as_str</span>()),
         }
     }
 }
 
 <span class="kw">impl</span> <span class="ident">HttpProvider</span> {
-    <span class="kw">fn</span> <span class="ident">resource_exists</span>(<span class="ident">url_str</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-        <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;Looking for resource &#39;{}&#39;&quot;</span>, <span class="ident">url_str</span>);
+    <span class="kw">fn</span> <span class="ident">resource_exists</span>(<span class="ident">url</span>: <span class="kw-2">&amp;</span><span class="ident">Url</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+        <span class="macro">debug</span><span class="macro">!</span>(<span class="string">&quot;Looking for resource &#39;{}&#39;&quot;</span>, <span class="ident">url</span>);
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">easy</span> <span class="op">=</span> <span class="ident">Easy2</span>::<span class="ident">new</span>(<span class="ident">Collector</span>(<span class="ident">Vec</span>::<span class="ident">new</span>()));
-        <span class="ident">easy</span>.<span class="ident">nobody</span>(<span class="bool-val">true</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="ident">e</span>.<span class="ident">to_string</span>())<span class="question-mark">?</span>;
+        <span class="ident">easy</span>.<span class="ident">nobody</span>(<span class="bool-val">true</span>)
+            .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not set NO_BODY on operation&quot;</span>)<span class="question-mark">?</span>;
 
-        <span class="ident">easy</span>.<span class="ident">url</span>(<span class="ident">url_str</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="ident">e</span>.<span class="ident">to_string</span>())<span class="question-mark">?</span>;
-        <span class="ident">easy</span>.<span class="ident">perform</span>().<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="ident">e</span>.<span class="ident">to_string</span>())<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">response_code</span> <span class="op">=</span> <span class="ident">easy</span>.<span class="ident">response_code</span>().<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="ident">e</span>.<span class="ident">to_string</span>())<span class="question-mark">?</span>;
+        <span class="ident">easy</span>.<span class="ident">url</span>(<span class="ident">url</span>.<span class="ident">as_str</span>())
+            .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not set Url on operation&quot;</span>)<span class="question-mark">?</span>;
+        <span class="ident">easy</span>.<span class="ident">perform</span>().<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not perform operation&quot;</span>)<span class="question-mark">?</span>;
 
         <span class="comment">// Consider 301 - Permanently Moved as the resource NOT being at this Url</span>
         <span class="comment">// An option to consider is asking the request library to follow the redirect.</span>
-        <span class="kw">match</span> <span class="ident">response_code</span> {
+        <span class="kw">match</span> <span class="ident">easy</span>
+            .<span class="ident">response_code</span>()
+            .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not get status code&quot;</span>)<span class="question-mark">?</span>
+        {
             <span class="number">200</span>..<span class="op">=</span><span class="number">299</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(()),
-            <span class="ident">error_code</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">bail</span><span class="macro">!</span>(<span class="string">&quot;Response code: {} from &#39;{}&#39;&quot;</span>, <span class="ident">error_code</span>, <span class="ident">url_str</span>)
+            <span class="ident">error_code</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">bail</span><span class="macro">!</span>(<span class="string">&quot;Response code: {} from &#39;{}&#39;&quot;</span>, <span class="ident">error_code</span>, <span class="ident">url</span>.<span class="ident">as_str</span>()),
         }
     }
 
-    <span class="kw">fn</span> <span class="ident">resource_by_extensions</span>(<span class="ident">resource</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">extensions</span>: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="ident">str</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">resource_by_extensions</span>(<span class="ident">resource</span>: <span class="kw-2">&amp;</span><span class="ident">Url</span>, <span class="ident">extensions</span>: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="ident">str</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Url</span><span class="op">&gt;</span> {
         <span class="comment">// for that file path, try with all the allowed file extensions</span>
         <span class="kw">for</span> <span class="ident">extension</span> <span class="kw">in</span> <span class="ident">extensions</span> {
-            <span class="kw">let</span> <span class="ident">resource_with_extension</span> <span class="op">=</span> <span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}.{}&quot;</span>, <span class="ident">resource</span>, <span class="ident">extension</span>);
+            <span class="kw">let</span> <span class="ident">resource_with_extension</span> <span class="op">=</span>
+                <span class="ident">Url</span>::<span class="ident">parse</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}.{}&quot;</span>, <span class="ident">resource</span>.<span class="ident">as_str</span>(), <span class="ident">extension</span>))
+                    .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not parse Url with extension added&quot;</span>)<span class="question-mark">?</span>;
             <span class="kw">if</span> <span class="self">Self</span>::<span class="ident">resource_exists</span>(<span class="kw-2">&amp;</span><span class="ident">resource_with_extension</span>).<span class="ident">is_ok</span>() {
                 <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">resource_with_extension</span>);
             }
         }
 
-        <span class="macro">bail</span><span class="macro">!</span>(<span class="string">&quot;No resources found at path &#39;{}&#39; with any of these extensions &#39;{:?}&#39;&quot;</span>, <span class="ident">resource</span>, <span class="ident">extensions</span>)
+        <span class="macro">bail</span><span class="macro">!</span>(
+            <span class="string">&quot;No resources found at path &#39;{}&#39; with any of these extensions &#39;{:?}&#39;&quot;</span>,
+            <span class="ident">resource</span>,
+            <span class="ident">extensions</span>
+        )
     }
 }
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">test</span> {
+    <span class="kw">use</span> <span class="ident">url</span>::<span class="ident">Url</span>;
+
+    <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">lib_provider</span>::<span class="ident">Provider</span>;
+
     <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">HttpProvider</span>;
-    <span class="kw">use</span> <span class="kw">super</span>::<span class="kw">super</span>::<span class="ident">provider</span>::<span class="ident">Provider</span>;
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">resolve</span>() {
         <span class="kw">let</span> <span class="ident">provider</span> <span class="op">=</span> <span class="ident">HttpProvider</span> {};
-        <span class="kw">let</span> <span class="ident">folder_url</span> <span class="op">=</span> <span class="string">&quot;https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml&quot;</span>;
-        <span class="kw">let</span> <span class="ident">full_url</span> <span class="op">=</span> <span class="ident">provider</span>.<span class="ident">resolve_url</span>(<span class="ident">folder_url</span>, <span class="string">&quot;context&quot;</span>, <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="string">&quot;toml&quot;</span>])
-            .<span class="ident">expect</span>(<span class="string">&quot;Could not resolve url&quot;</span>).<span class="number">0</span>;
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">folder_url</span>, <span class="kw-2">&amp;</span><span class="ident">full_url</span>);
+        <span class="kw">let</span> <span class="ident">folder_url</span> <span class="op">=</span> <span class="ident">Url</span>::<span class="ident">parse</span>(<span class="string">&quot;https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml&quot;</span>)
+            .<span class="ident">expect</span>(<span class="string">&quot;Could not form Url&quot;</span>);
+        <span class="kw">let</span> <span class="ident">full_url</span> <span class="op">=</span> <span class="ident">provider</span>
+            .<span class="ident">resolve_url</span>(<span class="kw-2">&amp;</span><span class="ident">folder_url</span>, <span class="string">&quot;context&quot;</span>, <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="string">&quot;toml&quot;</span>])
+            .<span class="ident">expect</span>(<span class="string">&quot;Could not resolve url&quot;</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">folder_url</span>.<span class="ident">as_str</span>(), <span class="ident">full_url</span>.<span class="ident">as_str</span>());
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">resolve_default</span>() {
         <span class="kw">let</span> <span class="ident">provider</span> <span class="op">=</span> <span class="ident">HttpProvider</span> {};
-        <span class="kw">let</span> <span class="ident">folder_url</span> <span class="op">=</span> <span class="string">&quot;https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world&quot;</span>;
-        <span class="kw">let</span> <span class="ident">full_url</span> <span class="op">=</span> <span class="ident">provider</span>.<span class="ident">resolve_url</span>(<span class="ident">folder_url</span>, <span class="string">&quot;context&quot;</span>, <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="string">&quot;toml&quot;</span>])
-            .<span class="ident">expect</span>(<span class="string">&quot;Could not resolve url&quot;</span>).<span class="number">0</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">expected</span> <span class="op">=</span> <span class="ident">folder_url</span>.<span class="ident">to_string</span>();
-        <span class="ident">expected</span>.<span class="ident">push_str</span>(<span class="string">&quot;/context.toml&quot;</span>);
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">full_url</span>, <span class="ident">expected</span>);
+        <span class="kw">let</span> <span class="ident">folder_url</span> <span class="op">=</span> <span class="ident">Url</span>::<span class="ident">parse</span>(<span class="string">&quot;https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world&quot;</span>)
+            .<span class="ident">expect</span>(<span class="string">&quot;Could not form Url&quot;</span>);
+        <span class="kw">let</span> <span class="ident">expected_url</span> <span class="op">=</span> <span class="ident">Url</span>::<span class="ident">parse</span>(<span class="string">&quot;https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml&quot;</span>)
+            .<span class="ident">expect</span>(<span class="string">&quot;Could not form Url&quot;</span>);
+        <span class="kw">let</span> <span class="ident">full_url</span> <span class="op">=</span> <span class="ident">provider</span>
+            .<span class="ident">resolve_url</span>(<span class="kw-2">&amp;</span><span class="ident">folder_url</span>, <span class="string">&quot;context&quot;</span>, <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span><span class="string">&quot;toml&quot;</span>])
+            .<span class="ident">expect</span>(<span class="string">&quot;Could not resolve url&quot;</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">full_url</span>.<span class="ident">as_str</span>(), <span class="ident">expected_url</span>.<span class="ident">as_str</span>());
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">get_github_sample</span>() {
         <span class="kw">let</span> <span class="ident">provider</span>: <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Provider</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">HttpProvider</span>;
-        <span class="kw">let</span> <span class="ident">found</span> <span class="op">=</span> <span class="ident">provider</span>.<span class="ident">get_contents</span>(<span class="string">&quot;https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml&quot;</span>);
+        <span class="kw">let</span> <span class="ident">url</span> <span class="op">=</span> <span class="ident">Url</span>::<span class="ident">parse</span>(<span class="string">&quot;https://raw.githubusercontent.com/andrewdavidmackenzie/flow/master/samples/hello-world/context.toml&quot;</span>)
+            .<span class="ident">expect</span>(<span class="string">&quot;Could not form Url&quot;</span>);
+        <span class="kw">let</span> <span class="ident">found</span> <span class="op">=</span> <span class="ident">provider</span>.<span class="ident">get_contents</span>(<span class="kw-2">&amp;</span><span class="ident">url</span>);
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">found</span>.<span class="ident">is_ok</span>());
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">online_get_contents_file_not_found</span>() {
         <span class="kw">let</span> <span class="ident">provider</span>: <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Provider</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">HttpProvider</span>;
-        <span class="kw">let</span> <span class="ident">not_found</span> <span class="op">=</span> <span class="ident">provider</span>.<span class="ident">get_contents</span>(<span class="string">&quot;http://foo.com/no-such-file&quot;</span>);
+        <span class="kw">let</span> <span class="ident">url</span> <span class="op">=</span> <span class="ident">Url</span>::<span class="ident">parse</span>(<span class="string">&quot;http://foo.com/no-such-file&quot;</span>).<span class="ident">expect</span>(<span class="string">&quot;Could not form Url&quot;</span>);
+        <span class="kw">let</span> <span class="ident">not_found</span> <span class="op">=</span> <span class="ident">provider</span>.<span class="ident">get_contents</span>(<span class="kw-2">&amp;</span><span class="ident">url</span>);
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">not_found</span>.<span class="ident">is_err</span>());
     }
 }

@@ -139,47 +139,92 @@
 <span id="136">136</span>
 <span id="137">137</span>
 <span id="138">138</span>
+<span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
+<span id="142">142</span>
+<span id="143">143</span>
+<span id="144">144</span>
+<span id="145">145</span>
+<span id="146">146</span>
+<span id="147">147</span>
+<span id="148">148</span>
+<span id="149">149</span>
+<span id="150">150</span>
+<span id="151">151</span>
+<span id="152">152</span>
+<span id="153">153</span>
+<span id="154">154</span>
+<span id="155">155</span>
+<span id="156">156</span>
+<span id="157">157</span>
+<span id="158">158</span>
+<span id="159">159</span>
+<span id="160">160</span>
+<span id="161">161</span>
+<span id="162">162</span>
+<span id="163">163</span>
+<span id="164">164</span>
+<span id="165">165</span>
+<span id="166">166</span>
+<span id="167">167</span>
+<span id="168">168</span>
+<span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fs</span>::<span class="ident">File</span>;
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">Write</span>;
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">path</span>::<span class="ident">PathBuf</span>;
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">path</span>::{<span class="ident">Path</span>, <span class="ident">PathBuf</span>};
 
 <span class="kw">use</span> <span class="ident">log</span>::<span class="ident">info</span>;
 
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">dumper</span>::<span class="ident">dump_dot</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">generator</span>::<span class="ident">generate</span>::<span class="ident">GenerationTables</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">flow</span>::<span class="ident">Flow</span>;
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">route</span>::<span class="ident">HasRoute</span>;
 
-<span class="doccomment">/// dump a flow&#39;s compiler tables that were constructed for use in code generation</span>
+<span class="doccomment">/// Dump the compiler tables of a loaded flow in human readable format to a specified</span>
+<span class="doccomment">/// output directory.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// # Example</span>
 <span class="doccomment">/// ```</span>
 <span class="doccomment">/// use std::env;</span>
 <span class="doccomment">/// use url::Url;</span>
-<span class="doccomment">/// use provider::content::provider::Provider;</span>
+<span class="doccomment">/// use provider::lib_provider::Provider;</span>
 <span class="doccomment">/// use provider::errors::Result;</span>
 <span class="doccomment">/// use flowclib::model::process::Process::FlowProcess;</span>
+<span class="doccomment">/// use provider::lib_provider::LibProvider;</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// struct DummyProvider {}</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// impl Provider for DummyProvider {</span>
-<span class="doccomment">///     fn resolve_url(&amp;self, url: &amp;str, default_filename: &amp;str, _ext: &amp;[&amp;str]) -&gt; Result&lt;(String, Option&lt;String&gt;)&gt; {</span>
-<span class="doccomment">///         Ok((url.to_string(), None))</span>
+<span class="doccomment">/// impl LibProvider for DummyProvider {</span>
+<span class="doccomment">///     fn resolve_url(&amp;self, url: &amp;Url, default_filename: &amp;str, _ext: &amp;[&amp;str]) -&gt; Result&lt;(Url, Option&lt;String&gt;)&gt; {</span>
+<span class="doccomment">///         Ok((url.clone(), None))</span>
 <span class="doccomment">///     }</span>
 <span class="doccomment">///</span>
-<span class="doccomment">///     fn get_contents(&amp;self, url: &amp;str) -&gt; Result&lt;Vec&lt;u8&gt;&gt; {</span>
+<span class="doccomment">///     fn get_contents(&amp;self, _url: &amp;Url) -&gt; Result&lt;Vec&lt;u8&gt;&gt; {</span>
 <span class="doccomment">///         Ok(&quot;flow = \&quot;dummy\&quot;&quot;.as_bytes().to_owned())</span>
 <span class="doccomment">///     }</span>
 <span class="doccomment">/// }</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// let dummy_provider = DummyProvider {};</span>
 <span class="doccomment">/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();</span>
-<span class="doccomment">/// println!(&quot;url = {:?}&quot;, url);</span>
 <span class="doccomment">/// url = url.join(&quot;samples/hello-world-simple/context.toml&quot;).unwrap();</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&amp;url.to_string(),</span>
+<span class="doccomment">/// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&amp;url,</span>
 <span class="doccomment">///                                                           &amp;dummy_provider).unwrap() {</span>
 <span class="doccomment">///     let tables = flowclib::compiler::compile::compile(&amp;mut flow).unwrap();</span>
 <span class="doccomment">///     let output_dir = tempdir::TempDir::new(&quot;flow&quot;).unwrap().into_path();</span>
@@ -191,7 +236,7 @@
 <span class="doccomment">/// }</span>
 <span class="doccomment">/// ```</span>
 <span class="doccomment">///</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">dump_tables</span>(<span class="ident">tables</span>: <span class="kw-2">&amp;</span><span class="ident">GenerationTables</span>, <span class="ident">output_dir</span>: <span class="kw-2">&amp;</span><span class="ident">PathBuf</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">dump_tables</span>(<span class="ident">tables</span>: <span class="kw-2">&amp;</span><span class="ident">GenerationTables</span>, <span class="ident">output_dir</span>: <span class="kw-2">&amp;</span><span class="ident">Path</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
     <span class="macro">info</span><span class="macro">!</span>(<span class="string">&quot;=== Dumper: Dumping tables to &#39;{}&#39;&quot;</span>, <span class="ident">output_dir</span>.<span class="ident">display</span>());
 
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">writer</span> <span class="op">=</span> <span class="ident">create_output_file</span>(<span class="kw-2">&amp;</span><span class="ident">output_dir</span>, <span class="string">&quot;connections&quot;</span>, <span class="string">&quot;dump&quot;</span>)<span class="question-mark">?</span>;
@@ -212,8 +257,54 @@
 
     <span class="ident">writer</span> <span class="op">=</span> <span class="ident">create_output_file</span>(<span class="kw-2">&amp;</span><span class="ident">output_dir</span>, <span class="string">&quot;libs&quot;</span>, <span class="string">&quot;dump&quot;</span>)<span class="question-mark">?</span>;
     <span class="macro">info</span><span class="macro">!</span>(<span class="string">&quot;\tGenerating libs.dump&quot;</span>);
-    <span class="ident">writer</span>.<span class="ident">write_all</span>(<span class="ident">serde_json</span>::<span class="ident">to_string_pretty</span>(<span class="kw-2">&amp;</span><span class="ident">tables</span>.<span class="ident">libs</span>)<span class="question-mark">?</span>.<span class="ident">as_bytes</span>())<span class="question-mark">?</span>;
-    <span class="prelude-val">Ok</span>(<span class="string">&quot;All tables dumped&quot;</span>.<span class="ident">to_string</span>())
+    <span class="ident">writer</span>.<span class="ident">write_all</span>(<span class="ident">serde_json</span>::<span class="ident">to_string_pretty</span>(<span class="kw-2">&amp;</span><span class="ident">tables</span>.<span class="ident">libs</span>)<span class="question-mark">?</span>.<span class="ident">as_bytes</span>())
+}
+
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_output_file</span>(
+    <span class="ident">output_path</span>: <span class="kw-2">&amp;</span><span class="ident">Path</span>,
+    <span class="ident">filename</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
+    <span class="ident">extension</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
+) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">File</span><span class="op">&gt;</span> {
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">output_file</span> <span class="op">=</span> <span class="ident">PathBuf</span>::<span class="ident">from</span>(<span class="ident">filename</span>);
+    <span class="ident">output_file</span>.<span class="ident">set_extension</span>(<span class="ident">extension</span>);
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">output_file_path</span> <span class="op">=</span> <span class="ident">output_path</span>.<span class="ident">to_path_buf</span>();
+    <span class="ident">output_file_path</span>.<span class="ident">push</span>(<span class="kw-2">&amp;</span><span class="ident">output_file</span>);
+    <span class="ident">File</span>::<span class="ident">create</span>(<span class="kw-2">&amp;</span><span class="ident">output_file_path</span>)
+}
+
+<span class="comment">/*
+    Create a directed graph named after the flow, adding functions grouped in sub-clusters
+*/</span>
+<span class="kw">fn</span> <span class="ident">functions_to_dot</span>(
+    <span class="ident">flow</span>: <span class="kw-2">&amp;</span><span class="ident">Flow</span>,
+    <span class="ident">tables</span>: <span class="kw-2">&amp;</span><span class="ident">GenerationTables</span>,
+    <span class="ident">output_dir</span>: <span class="kw-2">&amp;</span><span class="ident">Path</span>,
+) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="macro">info</span><span class="macro">!</span>(
+        <span class="string">&quot;=== Dumper: Dumping functions to &#39;{}&#39;&quot;</span>,
+        <span class="ident">output_dir</span>.<span class="ident">display</span>()
+    );
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">dot_file</span> <span class="op">=</span> <span class="ident">create_output_file</span>(<span class="kw-2">&amp;</span><span class="ident">output_dir</span>, <span class="string">&quot;functions&quot;</span>, <span class="string">&quot;dot&quot;</span>)<span class="question-mark">?</span>;
+    <span class="macro">info</span><span class="macro">!</span>(<span class="string">&quot;\tGenerating functions.dot, Use \&quot;dotty\&quot; to view it&quot;</span>);
+    <span class="ident">dot_file</span>.<span class="ident">write_all</span>(
+        <span class="macro">format</span><span class="macro">!</span>(
+            <span class="string">&quot;digraph {} {{\nnodesep=1.0\n&quot;</span>,
+            <span class="ident">str</span>::<span class="ident">replace</span>(<span class="kw-2">&amp;</span><span class="ident">flow</span>.<span class="ident">alias</span>.<span class="ident">to_string</span>(), <span class="string">&quot;-&quot;</span>, <span class="string">&quot;_&quot;</span>)
+        )
+        .<span class="ident">as_bytes</span>(),
+    )<span class="question-mark">?</span>;
+    <span class="ident">dot_file</span>.<span class="ident">write_all</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;labelloc=t;\nlabel = \&quot;{}\&quot;;\n&quot;</span>, <span class="ident">flow</span>.<span class="ident">route</span>()).<span class="ident">as_bytes</span>())<span class="question-mark">?</span>;
+
+    <span class="kw">let</span> <span class="ident">functions</span> <span class="op">=</span> <span class="ident">dump_dot</span>::<span class="ident">process_refs_to_dot</span>(<span class="ident">flow</span>, <span class="ident">tables</span>, <span class="ident">output_dir</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> {
+        <span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">Error</span>::<span class="ident">new</span>(
+            <span class="ident">std</span>::<span class="ident">io</span>::<span class="ident">ErrorKind</span>::<span class="ident">Other</span>,
+            <span class="string">&quot;Could not create dot content for process_refs&quot;</span>,
+        )
+    })<span class="question-mark">?</span>;
+
+    <span class="ident">dot_file</span>.<span class="ident">write_all</span>(<span class="ident">functions</span>.<span class="ident">as_bytes</span>())<span class="question-mark">?</span>;
+
+    <span class="ident">dot_file</span>.<span class="ident">write_all</span>(<span class="string">b&quot;}&quot;</span>)
 }
 
 <span class="doccomment">/// dump a flow&#39;s functions graph as a .dot file to visualize dependencies</span>
@@ -223,19 +314,20 @@
 <span class="doccomment">/// ```</span>
 <span class="doccomment">/// use std::env;</span>
 <span class="doccomment">/// use url::Url;</span>
-<span class="doccomment">/// use provider::content::provider::Provider;</span>
+<span class="doccomment">/// use provider::lib_provider::Provider;</span>
 <span class="doccomment">/// use provider::errors::Result;</span>
 <span class="doccomment">/// use flowclib::model::process::Process::FlowProcess;</span>
+<span class="doccomment">/// use provider::lib_provider::LibProvider;</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// struct DummyProvider {}</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// impl Provider for DummyProvider {</span>
-<span class="doccomment">///     fn resolve_url(&amp;self, url: &amp;str, default_filename: &amp;str, _ext: &amp;[&amp;str]) -&gt; Result&lt;(String, Option&lt;String&gt;)&gt; {</span>
-<span class="doccomment">///         Ok((url.to_string(), None))</span>
+<span class="doccomment">/// impl LibProvider for DummyProvider {</span>
+<span class="doccomment">///     fn resolve_url(&amp;self, url: &amp;Url, default_filename: &amp;str, _ext: &amp;[&amp;str]) -&gt; Result&lt;(Url, Option&lt;String&gt;)&gt; {</span>
+<span class="doccomment">///         Ok((url.clone(), None))</span>
 <span class="doccomment">///     }</span>
 <span class="doccomment">///</span>
 <span class="doccomment">///     // Return a flow definition for the content for the example</span>
-<span class="doccomment">///     fn get_contents(&amp;self, url: &amp;str) -&gt; Result&lt;Vec&lt;u8&gt;&gt; {</span>
+<span class="doccomment">///     fn get_contents(&amp;self, _url: &amp;Url) -&gt; Result&lt;Vec&lt;u8&gt;&gt; {</span>
 <span class="doccomment">///         Ok(&quot;flow = \&quot;dummy\&quot;&quot;.as_bytes().to_owned())</span>
 <span class="doccomment">///     }</span>
 <span class="doccomment">/// }</span>
@@ -244,7 +336,7 @@
 <span class="doccomment">/// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();</span>
 <span class="doccomment">/// url = url.join(&quot;samples/hello-world-simple/context.toml&quot;).unwrap();</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&amp;url.to_string(),</span>
+<span class="doccomment">/// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&amp;url,</span>
 <span class="doccomment">///                                                           &amp;dummy_provider).unwrap() {</span>
 <span class="doccomment">///     let tables = flowclib::compiler::compile::compile(&amp;mut flow).unwrap();</span>
 <span class="doccomment">///     let output_dir = tempdir::TempDir::new(&quot;flow&quot;).unwrap().into_path();</span>
@@ -252,31 +344,27 @@
 <span class="doccomment">///     flowclib::dumper::dump_tables::dump_functions(&amp;flow, &amp;tables, &amp;output_dir).unwrap();</span>
 <span class="doccomment">/// }</span>
 <span class="doccomment">/// ```</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">dump_functions</span>(<span class="ident">flow</span>: <span class="kw-2">&amp;</span><span class="ident">Flow</span>, <span class="ident">tables</span>: <span class="kw-2">&amp;</span><span class="ident">GenerationTables</span>, <span class="ident">output_dir</span>: <span class="kw-2">&amp;</span><span class="ident">PathBuf</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> {
-    <span class="ident">dump_dot</span>::<span class="ident">functions_to_dot</span>(<span class="ident">flow</span>, <span class="ident">tables</span>, <span class="ident">output_dir</span>)<span class="question-mark">?</span>;
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">dump_functions</span>(
+    <span class="ident">flow</span>: <span class="kw-2">&amp;</span><span class="ident">Flow</span>,
+    <span class="ident">tables</span>: <span class="kw-2">&amp;</span><span class="ident">GenerationTables</span>,
+    <span class="ident">output_dir</span>: <span class="kw-2">&amp;</span><span class="ident">Path</span>,
+) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="ident">functions_to_dot</span>(<span class="ident">flow</span>, <span class="ident">tables</span>, <span class="ident">output_dir</span>)<span class="question-mark">?</span>;
 
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">writer</span> <span class="op">=</span> <span class="ident">create_output_file</span>(<span class="kw-2">&amp;</span><span class="ident">output_dir</span>, <span class="string">&quot;functions&quot;</span>, <span class="string">&quot;dump&quot;</span>)<span class="question-mark">?</span>;
     <span class="macro">info</span><span class="macro">!</span>(<span class="string">&quot;\tGenerating functions.dump&quot;</span>);
-    <span class="ident">dump_table</span>(<span class="ident">tables</span>.<span class="ident">functions</span>.<span class="ident">iter</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>)<span class="question-mark">?</span>;
-    <span class="prelude-val">Ok</span>(<span class="string">&quot;Functions dumped&quot;</span>.<span class="ident">to_string</span>())
+    <span class="ident">dump_table</span>(<span class="ident">tables</span>.<span class="ident">functions</span>.<span class="ident">iter</span>(), <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">writer</span>)
 }
 
 <span class="comment">// TODO I can&#39;t get output of functions as JSON to work with serde</span>
-<span class="kw">fn</span> <span class="ident">dump_table</span><span class="op">&lt;</span><span class="ident">C</span>: <span class="ident">Iterator</span><span class="op">&gt;</span>(<span class="ident">table</span>: <span class="ident">C</span>, <span class="ident">writer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw">dyn</span> <span class="ident">Write</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>
-    <span class="kw">where</span> <span class="op">&lt;</span><span class="ident">C</span> <span class="kw">as</span> <span class="ident">Iterator</span><span class="op">&gt;</span>::<span class="ident">Item</span>: <span class="ident">fmt</span>::<span class="ident">Display</span> {
+<span class="kw">fn</span> <span class="ident">dump_table</span><span class="op">&lt;</span><span class="ident">C</span>: <span class="ident">Iterator</span><span class="op">&gt;</span>(<span class="ident">table</span>: <span class="ident">C</span>, <span class="ident">writer</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw">dyn</span> <span class="ident">Write</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std</span>::<span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span>
+<span class="kw">where</span>
+    <span class="op">&lt;</span><span class="ident">C</span> <span class="kw">as</span> <span class="ident">Iterator</span><span class="op">&gt;</span>::<span class="ident">Item</span>: <span class="ident">fmt</span>::<span class="ident">Display</span>,
+{
     <span class="kw">for</span> <span class="ident">function</span> <span class="kw">in</span> <span class="ident">table</span>.<span class="ident">into_iter</span>() {
         <span class="ident">writer</span>.<span class="ident">write_all</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}\n&quot;</span>, <span class="ident">function</span>).<span class="ident">as_bytes</span>())<span class="question-mark">?</span>;
     }
-    <span class="ident">writer</span>.<span class="ident">write_all</span>(<span class="string">b&quot;\n&quot;</span>)<span class="question-mark">?</span>;
-    <span class="prelude-val">Ok</span>(<span class="string">&quot;table dumped&quot;</span>.<span class="ident">to_string</span>())
-}
-
-<span class="kw">fn</span> <span class="ident">create_output_file</span>(<span class="ident">output_path</span>: <span class="kw-2">&amp;</span><span class="ident">PathBuf</span>, <span class="ident">filename</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">extension</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">io</span>::<span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">File</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">output_file</span> <span class="op">=</span> <span class="ident">PathBuf</span>::<span class="ident">from</span>(<span class="ident">filename</span>);
-    <span class="ident">output_file</span>.<span class="ident">set_extension</span>(<span class="ident">extension</span>);
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">output_file_path</span> <span class="op">=</span> <span class="ident">output_path</span>.<span class="ident">clone</span>();
-    <span class="ident">output_file_path</span>.<span class="ident">push</span>(<span class="kw-2">&amp;</span><span class="ident">output_file</span>);
-    <span class="ident">File</span>::<span class="ident">create</span>(<span class="kw-2">&amp;</span><span class="ident">output_file_path</span>)
+    <span class="ident">writer</span>.<span class="ident">write_all</span>(<span class="string">b&quot;\n&quot;</span>)
 }
 </pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="flowclib"></div>

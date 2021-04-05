@@ -445,18 +445,50 @@
 <span id="442">442</span>
 <span id="443">443</span>
 <span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
+<span id="462">462</span>
+<span id="463">463</span>
+<span id="464">464</span>
+<span id="465">465</span>
+<span id="466">466</span>
+<span id="467">467</span>
+<span id="468">468</span>
+<span id="469">469</span>
+<span id="470">470</span>
+<span id="471">471</span>
+<span id="472">472</span>
+<span id="473">473</span>
+<span id="474">474</span>
+<span id="475">475</span>
+<span id="476">476</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>;
 
 <span class="kw">use</span> <span class="ident">error_chain</span>::<span class="ident">bail</span>;
 <span class="kw">use</span> <span class="ident">serde_derive</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
 
-<span class="kw">use</span> <span class="ident">flowrstructs</span>::<span class="ident">output_connection</span>::<span class="ident">OutputConnection</span>;
+<span class="kw">use</span> <span class="ident">flowcore</span>::<span class="ident">output_connection</span>::<span class="ident">OutputConnection</span>;
 
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">compiler</span>::<span class="ident">loader</span>::<span class="ident">Validate</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">errors</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">io</span>::{<span class="ident">IO</span>, <span class="ident">IOType</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">io</span>::<span class="ident">IOSet</span>;
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">io</span>::{<span class="ident">IOType</span>, <span class="ident">IO</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">name</span>::<span class="ident">HasName</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">name</span>::<span class="ident">Name</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">route</span>::<span class="ident">HasRoute</span>;
@@ -472,15 +504,15 @@
     <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">default</span> <span class="op">=</span> <span class="string">&quot;Function::default_impure&quot;</span>)]</span>
     <span class="ident">impure</span>: <span class="ident">bool</span>,
     <span class="ident">implementation</span>: <span class="ident">String</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;input&quot;</span>)]</span>
+    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">default</span>, <span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;input&quot;</span>)]</span>
     <span class="kw">pub</span> <span class="ident">inputs</span>: <span class="ident">IOSet</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;output&quot;</span>)]</span>
+    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">default</span>, <span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;output&quot;</span>)]</span>
     <span class="ident">outputs</span>: <span class="ident">IOSet</span>,
 
     <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">skip_deserializing</span>)]</span>
     <span class="ident">alias</span>: <span class="ident">Name</span>,
     <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">skip_deserializing</span>, <span class="ident">default</span> <span class="op">=</span> <span class="string">&quot;Function::default_source_url&quot;</span>)]</span>
-    <span class="ident">source_url</span>: <span class="ident">String</span>,
+    <span class="ident">source_url</span>: <span class="ident">String</span>, <span class="comment">// can be a relative path with no scheme etc so can&#39;t be a Url</span>
     <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">skip_deserializing</span>)]</span>
     <span class="ident">route</span>: <span class="ident">Route</span>,
     <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">skip_deserializing</span>)]</span>
@@ -495,8 +527,12 @@
 }
 
 <span class="kw">impl</span> <span class="ident">HasName</span> <span class="kw">for</span> <span class="ident">Function</span> {
-    <span class="kw">fn</span> <span class="ident">name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">Name</span> { <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">name</span> }
-    <span class="kw">fn</span> <span class="ident">alias</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">Name</span> { <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">alias</span> }
+    <span class="kw">fn</span> <span class="ident">name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">Name</span> {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">name</span>
+    }
+    <span class="kw">fn</span> <span class="ident">alias</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">Name</span> {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">alias</span>
+    }
 }
 
 <span class="kw">impl</span> <span class="ident">HasRoute</span> <span class="kw">for</span> <span class="ident">Function</span> {
@@ -510,9 +546,20 @@
 
 <span class="kw">impl</span> <span class="ident">Function</span> {
     <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy</span>::<span class="ident">too_many_arguments</span>)]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">name</span>: <span class="ident">Name</span>, <span class="ident">impure</span>: <span class="ident">bool</span>, <span class="ident">implementation</span>: <span class="ident">String</span>, <span class="ident">alias</span>: <span class="ident">Name</span>, <span class="ident">inputs</span>: <span class="ident">IOSet</span>, <span class="ident">outputs</span>: <span class="ident">IOSet</span>, <span class="ident">source_url</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-               <span class="ident">route</span>: <span class="ident">Route</span>, <span class="ident">lib_reference</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>, <span class="ident">output_connections</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">OutputConnection</span><span class="op">&gt;</span>,
-               <span class="ident">id</span>: <span class="ident">usize</span>, <span class="ident">flow_id</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
+        <span class="ident">name</span>: <span class="ident">Name</span>,
+        <span class="ident">impure</span>: <span class="ident">bool</span>,
+        <span class="ident">implementation</span>: <span class="ident">String</span>,
+        <span class="ident">alias</span>: <span class="ident">Name</span>,
+        <span class="ident">inputs</span>: <span class="ident">IOSet</span>,
+        <span class="ident">outputs</span>: <span class="ident">IOSet</span>,
+        <span class="ident">source_url</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
+        <span class="ident">route</span>: <span class="ident">Route</span>,
+        <span class="ident">lib_reference</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+        <span class="ident">output_connections</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">OutputConnection</span><span class="op">&gt;</span>,
+        <span class="ident">id</span>: <span class="ident">usize</span>,
+        <span class="ident">flow_id</span>: <span class="ident">usize</span>,
+    ) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="ident">Function</span> {
             <span class="ident">name</span>,
             <span class="ident">impure</span>,
@@ -520,7 +567,7 @@
             <span class="ident">alias</span>,
             <span class="ident">inputs</span>,
             <span class="ident">outputs</span>,
-            <span class="ident">source_url</span>: <span class="ident">source_url</span>.<span class="ident">to_string</span>(),
+            <span class="ident">source_url</span>: <span class="ident">source_url</span>.<span class="ident">to_owned</span>(),
             <span class="ident">route</span>,
             <span class="ident">lib_reference</span>,
             <span class="ident">output_connections</span>,
@@ -616,18 +663,14 @@
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">io_count</span> <span class="op">=</span> <span class="number">0</span>;
 
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">inputs</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">inputs</span> {
-            <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="ident">inputs</span> {
-                <span class="ident">io_count</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
-                <span class="ident">i</span>.<span class="ident">validate</span>()<span class="question-mark">?</span>
-            }
+        <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">inputs</span> {
+            <span class="ident">io_count</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
+            <span class="ident">i</span>.<span class="ident">validate</span>()<span class="question-mark">?</span>
         }
 
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">outputs</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">outputs</span> {
-            <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="ident">outputs</span> {
-                <span class="ident">io_count</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
-                <span class="ident">i</span>.<span class="ident">validate</span>()<span class="question-mark">?</span>
-            }
+        <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">outputs</span> {
+            <span class="ident">io_count</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
+            <span class="ident">i</span>.<span class="ident">validate</span>()<span class="question-mark">?</span>
         }
 
         <span class="comment">// A function must have at least one valid input or output</span>
@@ -647,17 +690,13 @@
         <span class="macro">writeln</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;flow_id: \t\t{}&quot;</span>, <span class="self">self</span>.<span class="ident">flow_id</span>)<span class="question-mark">?</span>;
 
         <span class="macro">writeln</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;inputs:&quot;</span>)<span class="question-mark">?</span>;
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">inputs</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">inputs</span> {
-            <span class="kw">for</span> <span class="ident">input</span> <span class="kw">in</span> <span class="ident">inputs</span> {
-                <span class="macro">writeln</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;\t{:#?}&quot;</span>, <span class="ident">input</span>)<span class="question-mark">?</span>;
-            }
+        <span class="kw">for</span> <span class="ident">input</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">inputs</span> {
+            <span class="macro">writeln</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;\t{:#?}&quot;</span>, <span class="ident">input</span>)<span class="question-mark">?</span>;
         }
 
         <span class="macro">writeln</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;outputs:&quot;</span>)<span class="question-mark">?</span>;
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">outputs</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">outputs</span> {
-            <span class="kw">for</span> <span class="ident">output</span> <span class="kw">in</span> <span class="ident">outputs</span> {
-                <span class="macro">writeln</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;\t{:#?}&quot;</span>, <span class="ident">output</span>)<span class="question-mark">?</span>;
-            }
+        <span class="kw">for</span> <span class="ident">output</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">outputs</span> {
+            <span class="macro">writeln</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;\t{:#?}&quot;</span>, <span class="ident">output</span>)<span class="question-mark">?</span>;
         }
 
         <span class="prelude-val">Ok</span>(())
@@ -671,12 +710,20 @@
             <span class="ident">impure</span>: <span class="bool-val">false</span>,
             <span class="ident">implementation</span>: <span class="string">&quot;&quot;</span>.<span class="ident">to_owned</span>(),
             <span class="ident">alias</span>: <span class="ident">Name</span>::<span class="ident">default</span>(),
-            <span class="ident">inputs</span>: <span class="prelude-val">None</span>,
-            <span class="ident">outputs</span>: <span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>(<span class="ident">IO</span>::<span class="ident">new</span>(<span class="string">&quot;Value&quot;</span>, <span class="ident">Route</span>::<span class="ident">default</span>()))),
+            <span class="ident">inputs</span>: <span class="macro">vec</span><span class="macro">!</span>[],
+            <span class="ident">outputs</span>: <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">IO</span>::<span class="ident">new</span>(<span class="string">&quot;Value&quot;</span>, <span class="ident">Route</span>::<span class="ident">default</span>())],
             <span class="ident">source_url</span>: <span class="ident">Function</span>::<span class="ident">default_source_url</span>(),
             <span class="ident">route</span>: <span class="ident">Route</span>::<span class="ident">default</span>(),
             <span class="ident">lib_reference</span>: <span class="prelude-val">None</span>,
-            <span class="ident">output_connections</span>: <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">OutputConnection</span>::<span class="ident">new</span>(<span class="string">&quot;&quot;</span>.<span class="ident">to_string</span>(), <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="bool-val">false</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;&quot;</span>.<span class="ident">to_string</span>()))),
+            <span class="ident">output_connections</span>: <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">OutputConnection</span>::<span class="ident">new</span>(
+                <span class="string">&quot;&quot;</span>.<span class="ident">to_string</span>(),
+                <span class="number">0</span>,
+                <span class="number">0</span>,
+                <span class="number">0</span>,
+                <span class="number">0</span>,
+                <span class="bool-val">false</span>,
+                <span class="prelude-val">Some</span>(<span class="string">&quot;&quot;</span>.<span class="ident">to_string</span>()),
+            )],
             <span class="ident">id</span>: <span class="number">0</span>,
             <span class="ident">flow_id</span>: <span class="number">0</span>,
         }
@@ -686,14 +733,16 @@
 <span class="kw">impl</span> <span class="ident">SetRoute</span> <span class="kw">for</span> <span class="ident">Function</span> {
     <span class="kw">fn</span> <span class="ident">set_routes_from_parent</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">parent_route</span>: <span class="kw-2">&amp;</span><span class="ident">Route</span>) {
         <span class="self">self</span>.<span class="ident">route</span> <span class="op">=</span> <span class="ident">Route</span>::<span class="ident">from</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}/{}&quot;</span>, <span class="ident">parent_route</span>, <span class="self">self</span>.<span class="ident">alias</span>));
-        <span class="self">self</span>.<span class="ident">inputs</span>.<span class="ident">set_io_routes_from_parent</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">route</span>, <span class="ident">IOType</span>::<span class="ident">FunctionIO</span>);
-        <span class="self">self</span>.<span class="ident">outputs</span>.<span class="ident">set_io_routes_from_parent</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">route</span>, <span class="ident">IOType</span>::<span class="ident">FunctionIO</span>);
+        <span class="self">self</span>.<span class="ident">inputs</span>
+            .<span class="ident">set_io_routes_from_parent</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">route</span>, <span class="ident">IOType</span>::<span class="ident">FunctionIO</span>);
+        <span class="self">self</span>.<span class="ident">outputs</span>
+            .<span class="ident">set_io_routes_from_parent</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">route</span>, <span class="ident">IOType</span>::<span class="ident">FunctionIO</span>);
     }
 }
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">test</span> {
-    <span class="kw">use</span> <span class="ident">flowrstructs</span>::<span class="ident">output_connection</span>::<span class="ident">OutputConnection</span>;
+    <span class="kw">use</span> <span class="ident">flowcore</span>::<span class="ident">output_connection</span>::<span class="ident">OutputConnection</span>;
 
     <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">compiler</span>::<span class="ident">loader</span>::<span class="ident">Validate</span>;
     <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">datatype</span>::<span class="ident">DataType</span>;
@@ -714,11 +763,19 @@
             <span class="ident">implementation</span>: <span class="string">&quot;&quot;</span>.<span class="ident">to_owned</span>(),
             <span class="ident">alias</span>: <span class="ident">Name</span>::<span class="ident">from</span>(<span class="string">&quot;test_function&quot;</span>),
             <span class="ident">source_url</span>: <span class="ident">Function</span>::<span class="ident">default_source_url</span>(),
-            <span class="ident">inputs</span>: <span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>()), <span class="comment">// No inputs!</span>
-            <span class="ident">outputs</span>: <span class="prelude-val">None</span>,         <span class="comment">// No output!</span>
+            <span class="ident">inputs</span>: <span class="macro">vec</span><span class="macro">!</span>[],  <span class="comment">// No inputs!</span>
+            <span class="ident">outputs</span>: <span class="macro">vec</span><span class="macro">!</span>[], <span class="comment">// No output!</span>
             <span class="ident">route</span>: <span class="ident">Route</span>::<span class="ident">default</span>(),
             <span class="ident">lib_reference</span>: <span class="prelude-val">None</span>,
-            <span class="ident">output_connections</span>: <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">OutputConnection</span>::<span class="ident">new</span>(<span class="string">&quot;test_function&quot;</span>.<span class="ident">to_string</span>(), <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="bool-val">false</span>, <span class="prelude-val">None</span>)),
+            <span class="ident">output_connections</span>: <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">OutputConnection</span>::<span class="ident">new</span>(
+                <span class="string">&quot;test_function&quot;</span>.<span class="ident">to_string</span>(),
+                <span class="number">0</span>,
+                <span class="number">0</span>,
+                <span class="number">0</span>,
+                <span class="number">0</span>,
+                <span class="bool-val">false</span>,
+                <span class="prelude-val">None</span>,
+            )],
             <span class="ident">id</span>: <span class="number">0</span>,
             <span class="ident">flow_id</span>: <span class="number">0</span>,
         };
@@ -747,17 +804,15 @@
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">deserialize_output_empty</span>() {
+    <span class="kw">fn</span> <span class="ident">deserialize_no_inputs_or_outputs</span>() {
         <span class="kw">let</span> <span class="ident">function_str</span> <span class="op">=</span> <span class="string">&quot;
         function = &#39;test_function&#39;
         implementation = &#39;test.rs&#39;
-
-        [[output]]
         &quot;</span>;
 
-        <span class="kw">let</span> <span class="ident">function</span>: <span class="ident">Function</span> <span class="op">=</span> <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">function_str</span>).<span class="ident">unwrap</span>();
-        <span class="ident">function</span>.<span class="ident">validate</span>().<span class="ident">unwrap</span>();
-        <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">function</span>.<span class="ident">outputs</span>.<span class="ident">is_some</span>());
+        <span class="kw">let</span> <span class="ident">function</span>: <span class="ident">Function</span> <span class="op">=</span>
+            <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">function_str</span>).<span class="ident">expect</span>(<span class="string">&quot;Couldn&#39;t read function from toml&quot;</span>);
+        <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">function</span>.<span class="ident">validate</span>().<span class="ident">is_err</span>());
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
@@ -782,10 +837,11 @@
         type = &#39;String&#39;
         &quot;</span>;
 
-        <span class="kw">let</span> <span class="ident">function</span>: <span class="ident">Function</span> <span class="op">=</span> <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">function_str</span>).<span class="ident">unwrap</span>();
-        <span class="ident">function</span>.<span class="ident">validate</span>().<span class="ident">unwrap</span>();
-        <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">function</span>.<span class="ident">outputs</span>.<span class="ident">is_some</span>());
-        <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">function</span>.<span class="ident">outputs</span>.<span class="ident">unwrap</span>()[<span class="number">0</span>];
+        <span class="kw">let</span> <span class="ident">function</span>: <span class="ident">Function</span> <span class="op">=</span>
+            <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">function_str</span>).<span class="ident">expect</span>(<span class="string">&quot;Couldn&#39;t read function from toml&quot;</span>);
+        <span class="ident">function</span>.<span class="ident">validate</span>().<span class="ident">expect</span>(<span class="string">&quot;Function did not validate&quot;</span>);
+        <span class="macro">assert</span><span class="macro">!</span>(<span class="op">!</span><span class="ident">function</span>.<span class="ident">outputs</span>.<span class="ident">is_empty</span>());
+        <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">function</span>.<span class="ident">outputs</span>[<span class="number">0</span>];
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="kw-2">*</span><span class="ident">output</span>.<span class="ident">name</span>(), <span class="ident">Name</span>::<span class="ident">default</span>());
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">output</span>.<span class="ident">datatype</span>(), <span class="kw-2">&amp;</span><span class="ident">DataType</span>::<span class="ident">from</span>(<span class="string">&quot;String&quot;</span>));
     }
@@ -801,10 +857,11 @@
         type = &#39;String&#39;
         &quot;</span>;
 
-        <span class="kw">let</span> <span class="ident">function</span>: <span class="ident">Function</span> <span class="op">=</span> <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">function_str</span>).<span class="ident">unwrap</span>();
-        <span class="ident">function</span>.<span class="ident">validate</span>().<span class="ident">unwrap</span>();
-        <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">function</span>.<span class="ident">outputs</span>.<span class="ident">is_some</span>());
-        <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">function</span>.<span class="ident">outputs</span>.<span class="ident">unwrap</span>()[<span class="number">0</span>];
+        <span class="kw">let</span> <span class="ident">function</span>: <span class="ident">Function</span> <span class="op">=</span>
+            <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">function_str</span>).<span class="ident">expect</span>(<span class="string">&quot;Could not deserialize function from toml&quot;</span>);
+        <span class="ident">function</span>.<span class="ident">validate</span>().<span class="ident">expect</span>(<span class="string">&quot;Function does not validate&quot;</span>);
+        <span class="macro">assert</span><span class="macro">!</span>(<span class="op">!</span><span class="ident">function</span>.<span class="ident">outputs</span>.<span class="ident">is_empty</span>());
+        <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">function</span>.<span class="ident">outputs</span>[<span class="number">0</span>];
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="kw-2">*</span><span class="ident">output</span>.<span class="ident">name</span>(), <span class="ident">Name</span>::<span class="ident">from</span>(<span class="string">&quot;sub_output&quot;</span>));
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">output</span>.<span class="ident">datatype</span>(), <span class="kw-2">&amp;</span><span class="ident">DataType</span>::<span class="ident">from</span>(<span class="string">&quot;String&quot;</span>));
     }
@@ -823,10 +880,11 @@
         type = &#39;Number&#39;
         &quot;</span>;
 
-        <span class="kw">let</span> <span class="ident">function</span>: <span class="ident">Function</span> <span class="op">=</span> <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">function_str</span>).<span class="ident">unwrap</span>();
-        <span class="ident">function</span>.<span class="ident">validate</span>().<span class="ident">unwrap</span>();
-        <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">function</span>.<span class="ident">outputs</span>.<span class="ident">is_some</span>());
-        <span class="kw">let</span> <span class="ident">outputs</span> <span class="op">=</span> <span class="ident">function</span>.<span class="ident">outputs</span>.<span class="ident">unwrap</span>();
+        <span class="kw">let</span> <span class="ident">function</span>: <span class="ident">Function</span> <span class="op">=</span>
+            <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">function_str</span>).<span class="ident">expect</span>(<span class="string">&quot;Couldn&#39;t read function from toml&quot;</span>);
+        <span class="ident">function</span>.<span class="ident">validate</span>().<span class="ident">expect</span>(<span class="string">&quot;Function didn&#39;t validate&quot;</span>);
+        <span class="macro">assert</span><span class="macro">!</span>(<span class="op">!</span><span class="ident">function</span>.<span class="ident">outputs</span>.<span class="ident">is_empty</span>());
+        <span class="kw">let</span> <span class="ident">outputs</span> <span class="op">=</span> <span class="ident">function</span>.<span class="ident">outputs</span>;
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">outputs</span>.<span class="ident">len</span>(), <span class="number">2</span>);
         <span class="kw">let</span> <span class="ident">output0</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">outputs</span>[<span class="number">0</span>];
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="kw-2">*</span><span class="ident">output0</span>.<span class="ident">name</span>(), <span class="ident">Name</span>::<span class="ident">from</span>(<span class="string">&quot;sub_output&quot;</span>));
@@ -851,7 +909,8 @@
         &quot;</span>;
 
         <span class="comment">// Setup</span>
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">function</span>: <span class="ident">Function</span> <span class="op">=</span> <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">function_str</span>).<span class="ident">unwrap</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">function</span>: <span class="ident">Function</span> <span class="op">=</span>
+            <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">function_str</span>).<span class="ident">expect</span>(<span class="string">&quot;Couldn&#39;t read function from toml&quot;</span>);
         <span class="ident">function</span>.<span class="ident">alias</span> <span class="op">=</span> <span class="ident">Name</span>::<span class="ident">from</span>(<span class="string">&quot;test_alias&quot;</span>);
 
         <span class="comment">// Test</span>
@@ -859,13 +918,14 @@
 
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">function</span>.<span class="ident">route</span>, <span class="ident">Route</span>::<span class="ident">from</span>(<span class="string">&quot;/flow/test_alias&quot;</span>));
 
-        <span class="kw">let</span> <span class="ident">outputs</span> <span class="op">=</span> <span class="ident">function</span>.<span class="ident">outputs</span>.<span class="ident">unwrap</span>();
-
-        <span class="kw">let</span> <span class="ident">output0</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">outputs</span>[<span class="number">0</span>];
+        <span class="kw">let</span> <span class="ident">output0</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">function</span>.<span class="ident">outputs</span>[<span class="number">0</span>];
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="kw-2">*</span><span class="ident">output0</span>.<span class="ident">route</span>(), <span class="ident">Route</span>::<span class="ident">from</span>(<span class="string">&quot;/flow/test_alias/sub_output&quot;</span>));
 
-        <span class="kw">let</span> <span class="ident">output1</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">outputs</span>[<span class="number">1</span>];
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="kw-2">*</span><span class="ident">output1</span>.<span class="ident">route</span>(), <span class="ident">Route</span>::<span class="ident">from</span>(<span class="string">&quot;/flow/test_alias/other_output&quot;</span>));
+        <span class="kw">let</span> <span class="ident">output1</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">function</span>.<span class="ident">outputs</span>[<span class="number">1</span>];
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="kw-2">*</span><span class="ident">output1</span>.<span class="ident">route</span>(),
+            <span class="ident">Route</span>::<span class="ident">from</span>(<span class="string">&quot;/flow/test_alias/other_output&quot;</span>)
+        );
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
@@ -880,15 +940,20 @@
         &quot;</span>;
 
         <span class="comment">// Setup</span>
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">function</span>: <span class="ident">Function</span> <span class="op">=</span> <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">function_str</span>).<span class="ident">unwrap</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">function</span>: <span class="ident">Function</span> <span class="op">=</span>
+            <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">function_str</span>).<span class="ident">expect</span>(<span class="string">&quot;Couldn&#39;t read function from toml&quot;</span>);
         <span class="ident">function</span>.<span class="ident">alias</span> <span class="op">=</span> <span class="ident">Name</span>::<span class="ident">from</span>(<span class="string">&quot;test_alias&quot;</span>);
         <span class="ident">function</span>.<span class="ident">set_routes_from_parent</span>(<span class="kw-2">&amp;</span><span class="ident">Route</span>::<span class="ident">from</span>(<span class="string">&quot;/flow&quot;</span>));
 
         <span class="comment">// Test</span>
         <span class="comment">// Try and get the output using a route to a specific element of the output</span>
-        <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> <span class="ident">function</span>.<span class="ident">outputs</span>.<span class="ident">find_by_route</span>(<span class="kw-2">&amp;</span><span class="ident">Route</span>::<span class="ident">from</span>(<span class="string">&quot;/0&quot;</span>), <span class="kw-2">&amp;</span><span class="prelude-val">None</span>).<span class="ident">unwrap</span>();
+        <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> <span class="ident">function</span>
+            .<span class="ident">outputs</span>
+            .<span class="ident">find_by_route</span>(<span class="kw-2">&amp;</span><span class="ident">Route</span>::<span class="ident">from</span>(<span class="string">&quot;/0&quot;</span>), <span class="kw-2">&amp;</span><span class="prelude-val">None</span>)
+            .<span class="ident">expect</span>(<span class="string">&quot;Expected to find an IO&quot;</span>);
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="kw-2">*</span><span class="ident">output</span>.<span class="ident">name</span>(), <span class="ident">Name</span>::<span class="ident">default</span>());
     }
-}</pre></div>
+}
+</pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="flowclib"></div>
     <script src="../../../main.js"></script><script src="../../../source-script.js"></script><script src="../../../source-files.js"></script><script defer src="../../../search-index.js"></script></body></html>

@@ -36,12 +36,15 @@
 <span id="33">33</span>
 <span id="34">34</span>
 <span id="35">35</span>
+<span id="36">36</span>
+<span id="37">37</span>
+<span id="38">38</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::{<span class="ident">Arc</span>, <span class="ident">Mutex</span>};
 
 <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">Value</span>;
 
-<span class="kw">use</span> <span class="ident">flow_impl</span>::{<span class="ident">Implementation</span>, <span class="ident">RUN_AGAIN</span>, <span class="ident">RunAgain</span>};
+<span class="kw">use</span> <span class="ident">flowcore</span>::{<span class="ident">Implementation</span>, <span class="ident">RunAgain</span>, <span class="ident">RUN_AGAIN</span>};
 
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">client_server</span>::<span class="ident">RuntimeServerConnection</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">runtime</span>::{<span class="ident">Event</span>, <span class="ident">Response</span>};
@@ -49,7 +52,7 @@
 <span class="doccomment">/// `Implementation` struct for the `file_write` function</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">FileWrite</span> {
     <span class="doccomment">/// It holds a reference to the runtime client in order to get file contents</span>
-    <span class="kw">pub</span> <span class="ident">server_context</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">RuntimeServerConnection</span><span class="op">&gt;</span><span class="op">&gt;</span>
+    <span class="kw">pub</span> <span class="ident">server_context</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">RuntimeServerConnection</span><span class="op">&gt;</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">impl</span> <span class="ident">Implementation</span> <span class="kw">for</span> <span class="ident">FileWrite</span> {
@@ -60,17 +63,21 @@
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="kw-2">mut</span> <span class="ident">server</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">server_context</span>.<span class="ident">lock</span>() {
             <span class="kw">match</span> <span class="ident">bytes</span>.<span class="ident">as_str</span>() {
                 <span class="prelude-val">Some</span>(<span class="ident">string</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                    <span class="kw">return</span> <span class="kw">match</span> <span class="ident">server</span>.<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">Write</span>(<span class="ident">filename</span>.<span class="ident">to_string</span>(), <span class="ident">string</span>.<span class="ident">as_bytes</span>().<span class="ident">to_vec</span>())) {
+                    <span class="kw">return</span> <span class="kw">match</span> <span class="ident">server</span>.<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">Write</span>(
+                        <span class="ident">filename</span>.<span class="ident">to_string</span>(),
+                        <span class="ident">string</span>.<span class="ident">as_bytes</span>().<span class="ident">to_vec</span>(),
+                    )) {
                         <span class="prelude-val">Ok</span>(<span class="ident">Response</span>::<span class="ident">Ack</span>) <span class="op">=</span><span class="op">&gt;</span> (<span class="prelude-val">None</span>, <span class="ident">RUN_AGAIN</span>),
-                        <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> (<span class="prelude-val">None</span>, <span class="ident">RUN_AGAIN</span>)
+                        <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> (<span class="prelude-val">None</span>, <span class="ident">RUN_AGAIN</span>),
                     }
                 }
-                <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> (<span class="prelude-val">None</span>, <span class="ident">RUN_AGAIN</span>)
+                <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> (<span class="prelude-val">None</span>, <span class="ident">RUN_AGAIN</span>),
             }
         }
 
         (<span class="prelude-val">None</span>, <span class="ident">RUN_AGAIN</span>)
     }
-}</pre></div>
+}
+</pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../../../" data-current-crate="flowrlib"></div>
     <script src="../../../../main.js"></script><script src="../../../../source-script.js"></script><script src="../../../../source-files.js"></script><script defer src="../../../../search-index.js"></script></body></html>

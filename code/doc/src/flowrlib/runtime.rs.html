@@ -73,6 +73,8 @@
 <span id="70">70</span>
 <span id="71">71</span>
 <span id="72">72</span>
+<span id="73">73</span>
+<span id="74">74</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">serde_derive</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
 
@@ -90,6 +92,8 @@
     <span class="ident">FlowEnd</span>(<span class="ident">Metrics</span>),
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>))]</span>
     <span class="ident">FlowEnd</span>,
+    <span class="doccomment">/// Server is exiting</span>
+    <span class="ident">ServerExiting</span>,
     <span class="doccomment">/// A String of contents was sent to stdout</span>
     <span class="ident">Stdout</span>(<span class="ident">String</span>),
     <span class="doccomment">/// A String of contents was sent to stderr</span>
@@ -105,9 +109,9 @@
     <span class="doccomment">/// A Request to write a pixel to an ImageBuffer</span>
     <span class="ident">PixelWrite</span>((<span class="ident">u32</span>, <span class="ident">u32</span>), (<span class="ident">u8</span>, <span class="ident">u8</span>, <span class="ident">u8</span>), (<span class="ident">u32</span>, <span class="ident">u32</span>), <span class="ident">String</span>),
     <span class="doccomment">/// A Request to snd EOF to Stdout</span>
-    <span class="ident">StdoutEOF</span>,
+    <span class="ident">StdoutEof</span>,
     <span class="doccomment">/// A Request to snd EOF to Stderr</span>
-    <span class="ident">StderrEOF</span>,
+    <span class="ident">StderrEof</span>,
     <span class="doccomment">/// Invalid - used when deserialization goes wrong</span>
     <span class="ident">Invalid</span>,
 }
@@ -145,6 +149,7 @@
 
 <span class="kw">unsafe</span> <span class="kw">impl</span> <span class="ident">Send</span> <span class="kw">for</span> <span class="ident">Response</span> {}
 
-<span class="kw">unsafe</span> <span class="kw">impl</span> <span class="ident">Sync</span> <span class="kw">for</span> <span class="ident">Response</span> {}</pre></div>
+<span class="kw">unsafe</span> <span class="kw">impl</span> <span class="ident">Sync</span> <span class="kw">for</span> <span class="ident">Response</span> {}
+</pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="flowrlib"></div>
     <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script><script defer src="../../search-index.js"></script></body></html>

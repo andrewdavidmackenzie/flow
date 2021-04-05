@@ -74,10 +74,13 @@
 <span id="71">71</span>
 <span id="72">72</span>
 <span id="73">73</span>
+<span id="74">74</span>
+<span id="75">75</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="ident">flow_impl</span>::{<span class="ident">Implementation</span>, <span class="ident">RUN_AGAIN</span>, <span class="ident">RunAgain</span>};
-<span class="kw">use</span> <span class="ident">flow_impl_derive</span>::<span class="ident">FlowImpl</span>;
 <span class="kw">use</span> <span class="ident">serde_json</span>::{<span class="ident">json</span>, <span class="ident">Value</span>};
+
+<span class="kw">use</span> <span class="ident">flow_impl_derive</span>::<span class="ident">FlowImpl</span>;
+<span class="kw">use</span> <span class="ident">flowcore</span>::{<span class="ident">Implementation</span>, <span class="ident">RunAgain</span>, <span class="ident">RUN_AGAIN</span>};
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">FlowImpl</span>)]</span>
 <span class="doccomment">/// Sort an Array of Numbers</span>
@@ -91,7 +94,7 @@
         <span class="kw">if</span> <span class="ident">array</span>.<span class="ident">is_null</span>() {
             (<span class="prelude-val">Some</span>(<span class="ident">Value</span>::<span class="ident">Null</span>), <span class="ident">RUN_AGAIN</span>)
         } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">array</span>.<span class="ident">is_array</span>() {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">array_of_numbers</span>:<span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">array</span>.<span class="ident">as_array</span>().<span class="ident">unwrap</span>().<span class="ident">clone</span>();
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">array_of_numbers</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">array</span>.<span class="ident">as_array</span>().<span class="ident">unwrap</span>().<span class="ident">clone</span>();
             <span class="ident">array_of_numbers</span>.<span class="ident">sort_by_key</span>(<span class="op">|</span><span class="ident">a</span><span class="op">|</span> <span class="ident">a</span>.<span class="ident">as_i64</span>().<span class="ident">unwrap</span>());
             (<span class="prelude-val">Some</span>(<span class="macro">json</span><span class="macro">!</span>(<span class="ident">array_of_numbers</span>)), <span class="ident">RUN_AGAIN</span>)
         } <span class="kw">else</span> {
@@ -102,8 +105,9 @@
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">test</span> {
-    <span class="kw">use</span> <span class="ident">flow_impl</span>::<span class="ident">Implementation</span>;
     <span class="kw">use</span> <span class="ident">serde_json</span>::{<span class="ident">json</span>, <span class="ident">Value</span>};
+
+    <span class="kw">use</span> <span class="ident">flowcore</span>::<span class="ident">Implementation</span>;
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">sort_null</span>() {
@@ -147,6 +151,7 @@
         <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> <span class="ident">result</span>.<span class="ident">unwrap</span>();
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">output</span>, <span class="macro">json</span><span class="macro">!</span>([<span class="number">1</span>, <span class="number">1</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">7</span>, <span class="number">8</span>, <span class="number">8</span>, <span class="number">9</span>]));
     }
-}</pre></div>
+}
+</pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../../../" data-current-crate="flowstdlib"></div>
     <script src="../../../../main.js"></script><script src="../../../../source-script.js"></script><script src="../../../../source-files.js"></script><script defer src="../../../../search-index.js"></script></body></html>

@@ -261,10 +261,56 @@
 <span id="258">258</span>
 <span id="259">259</span>
 <span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="ident">flow_impl</span>::{<span class="ident">Implementation</span>, <span class="ident">RUN_AGAIN</span>, <span class="ident">RunAgain</span>};
-<span class="kw">use</span> <span class="ident">flow_impl_derive</span>::<span class="ident">FlowImpl</span>;
 <span class="kw">use</span> <span class="ident">serde_json</span>::{<span class="ident">json</span>, <span class="ident">Value</span>};
+
+<span class="kw">use</span> <span class="ident">flow_impl_derive</span>::<span class="ident">FlowImpl</span>;
+<span class="kw">use</span> <span class="ident">flowcore</span>::{<span class="ident">Implementation</span>, <span class="ident">RunAgain</span>, <span class="ident">RUN_AGAIN</span>};
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">FlowImpl</span>)]</span>
 <span class="doccomment">/// Split a string into (possibly) two parts and a possible token, based on a separator.</span>
@@ -350,9 +396,16 @@
     <span class="kw">let</span> <span class="ident">end</span> <span class="op">=</span> <span class="ident">text</span>.<span class="ident">len</span>();
 
     <span class="comment">// try and find a separator from middle towards the end</span>
-    <span class="kw">for</span> <span class="ident">point</span> <span class="kw">in</span> <span class="ident">middle</span>..<span class="ident">end</span> { <span class="comment">// cannot have separator at end</span>
+    <span class="kw">for</span> <span class="ident">point</span> <span class="kw">in</span> <span class="ident">middle</span>..<span class="ident">end</span> {
+        <span class="comment">// cannot have separator at end</span>
         <span class="kw">if</span> <span class="ident">text</span>.<span class="ident">get</span>(<span class="ident">point</span>..<span class="ident">point</span> <span class="op">+</span> <span class="number">1</span>).<span class="ident">unwrap</span>() <span class="op">=</span><span class="op">=</span> <span class="ident">separator</span> {
-            <span class="kw">return</span> (<span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>(<span class="ident">text</span>[<span class="number">0</span>..<span class="ident">point</span>].<span class="ident">to_string</span>(), <span class="ident">text</span>[<span class="ident">point</span> <span class="op">+</span> <span class="number">1</span>..<span class="ident">text</span>.<span class="ident">len</span>()].<span class="ident">to_string</span>())), <span class="prelude-val">None</span>);
+            <span class="kw">return</span> (
+                <span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>[
+                    <span class="ident">text</span>[<span class="number">0</span>..<span class="ident">point</span>].<span class="ident">to_string</span>(),
+                    <span class="ident">text</span>[<span class="ident">point</span> <span class="op">+</span> <span class="number">1</span>..<span class="ident">text</span>.<span class="ident">len</span>()].<span class="ident">to_string</span>(),
+                ]),
+                <span class="prelude-val">None</span>,
+            );
         }
     }
 
@@ -361,7 +414,10 @@
         <span class="kw">if</span> <span class="ident">text</span>.<span class="ident">get</span>(<span class="ident">point</span>..<span class="ident">point</span> <span class="op">+</span> <span class="number">1</span>).<span class="ident">unwrap</span>() <span class="op">=</span><span class="op">=</span> <span class="ident">separator</span> {
             <span class="comment">// If we find one return the string upto that  point for further splitting, plus the string from</span>
             <span class="comment">// there to the end as a token</span>
-            <span class="kw">return</span> (<span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>(<span class="ident">text</span>[<span class="number">0</span>..<span class="ident">point</span>].<span class="ident">to_string</span>())), <span class="prelude-val">Some</span>(<span class="ident">text</span>[<span class="ident">point</span> <span class="op">+</span> <span class="number">1</span>..<span class="ident">text</span>.<span class="ident">len</span>()].<span class="ident">to_string</span>()));
+            <span class="kw">return</span> (
+                <span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="ident">text</span>[<span class="number">0</span>..<span class="ident">point</span>].<span class="ident">to_string</span>()]),
+                <span class="prelude-val">Some</span>(<span class="ident">text</span>[<span class="ident">point</span> <span class="op">+</span> <span class="number">1</span>..<span class="ident">text</span>.<span class="ident">len</span>()].<span class="ident">to_string</span>()),
+            );
         }
     }
 
@@ -371,53 +427,78 @@
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">test</span> {
-    <span class="kw">use</span> <span class="ident">flow_impl</span>::<span class="ident">Implementation</span>;
     <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">json</span>;
+
+    <span class="kw">use</span> <span class="ident">flowcore</span>::<span class="ident">Implementation</span>;
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">basic_tests</span>() {
         <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy</span>::<span class="ident">type_complexity</span>)]</span>
-            <span class="kw">let</span> <span class="ident">test_cases</span>: <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="kw-2">&amp;</span><span class="ident">str</span>, (<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span><span class="op">&gt;</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>))<span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(
+        <span class="kw">let</span> <span class="ident">test_cases</span>: <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="kw-2">&amp;</span><span class="ident">str</span>, (<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span><span class="op">&gt;</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>))<span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[
             <span class="comment">// empty string case</span>
             (<span class="string">&quot;&quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">None</span>)),
-
             <span class="comment">// just separators</span>
             (<span class="string">&quot; &quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">None</span>)),   <span class="comment">// 1</span>
             (<span class="string">&quot;  &quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">None</span>)),  <span class="comment">// 2</span>
             (<span class="string">&quot;   &quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">None</span>)), <span class="comment">// 3</span>
-
             <span class="comment">// one letter words</span>
             (<span class="string">&quot;a&quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;a&quot;</span>.<span class="ident">into</span>()))),   <span class="comment">// no separator</span>
             (<span class="string">&quot; a&quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;a&quot;</span>.<span class="ident">into</span>()))),  <span class="comment">// separator before</span>
             (<span class="string">&quot;a &quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;a&quot;</span>.<span class="ident">into</span>()))),  <span class="comment">// separator after</span>
             (<span class="string">&quot; a &quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;a&quot;</span>.<span class="ident">into</span>()))), <span class="comment">// separator before and after</span>
-
             <span class="comment">// two letter words</span>
             (<span class="string">&quot;aa&quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;aa&quot;</span>.<span class="ident">into</span>()))),   <span class="comment">// no separator</span>
             (<span class="string">&quot; aa&quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;aa&quot;</span>.<span class="ident">into</span>()))),  <span class="comment">// separator before</span>
             (<span class="string">&quot;aa &quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;aa&quot;</span>.<span class="ident">into</span>()))),  <span class="comment">// separator after</span>
             (<span class="string">&quot; aa &quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;aa&quot;</span>.<span class="ident">into</span>()))), <span class="comment">// separator before and after</span>
-
             <span class="comment">// One word texts</span>
-            (<span class="string">&quot;text&quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;text&quot;</span>.<span class="ident">into</span>()))),   <span class="comment">// no separator</span>
-            (<span class="string">&quot; text&quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;text&quot;</span>.<span class="ident">into</span>()))),  <span class="comment">// separator before</span>
-            (<span class="string">&quot;text &quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;text&quot;</span>.<span class="ident">into</span>()))),  <span class="comment">// separator after</span>
+            (<span class="string">&quot;text&quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;text&quot;</span>.<span class="ident">into</span>()))), <span class="comment">// no separator</span>
+            (<span class="string">&quot; text&quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;text&quot;</span>.<span class="ident">into</span>()))), <span class="comment">// separator before</span>
+            (<span class="string">&quot;text &quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;text&quot;</span>.<span class="ident">into</span>()))), <span class="comment">// separator after</span>
             (<span class="string">&quot; text &quot;</span>, (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;text&quot;</span>.<span class="ident">into</span>()))), <span class="comment">// separator before and after</span>
-
             <span class="comment">// Two word texts</span>
-            (<span class="string">&quot;some text&quot;</span>, (<span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>(<span class="string">&quot;some&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;text&quot;</span>.<span class="ident">into</span>())), <span class="prelude-val">None</span>)),   <span class="comment">// separator in middle</span>
-            (<span class="string">&quot;some text &quot;</span>, (<span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>(<span class="string">&quot;some&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;text&quot;</span>.<span class="ident">into</span>())), <span class="prelude-val">None</span>)),  <span class="comment">// separator in middle and after</span>
-            (<span class="string">&quot; some text&quot;</span>, (<span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>(<span class="string">&quot;some&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;text&quot;</span>.<span class="ident">into</span>())), <span class="prelude-val">None</span>)),  <span class="comment">// separator before, middle</span>
-            (<span class="string">&quot; some text &quot;</span>, (<span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>(<span class="string">&quot;some&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;text&quot;</span>.<span class="ident">into</span>())), <span class="prelude-val">None</span>)), <span class="comment">// separator before, middle and after</span>
-
+            (
+                <span class="string">&quot;some text&quot;</span>,
+                (<span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="string">&quot;some&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;text&quot;</span>.<span class="ident">into</span>()]), <span class="prelude-val">None</span>),
+            ), <span class="comment">// separator in middle</span>
+            (
+                <span class="string">&quot;some text &quot;</span>,
+                (<span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="string">&quot;some&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;text&quot;</span>.<span class="ident">into</span>()]), <span class="prelude-val">None</span>),
+            ), <span class="comment">// separator in middle and after</span>
+            (
+                <span class="string">&quot; some text&quot;</span>,
+                (<span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="string">&quot;some&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;text&quot;</span>.<span class="ident">into</span>()]), <span class="prelude-val">None</span>),
+            ), <span class="comment">// separator before, middle</span>
+            (
+                <span class="string">&quot; some text &quot;</span>,
+                (<span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="string">&quot;some&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;text&quot;</span>.<span class="ident">into</span>()]), <span class="prelude-val">None</span>),
+            ), <span class="comment">// separator before, middle and after</span>
             <span class="comment">// longer texts</span>
-            (<span class="string">&quot;the quick brown fox jumped over the lazy dog&quot;</span>,
-             (<span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>(<span class="string">&quot;the quick brown fox jumped&quot;</span>.<span class="ident">into</span>(), <span class="string">&quot;over the lazy dog&quot;</span>.<span class="ident">into</span>())), <span class="prelude-val">None</span>)),
-            (<span class="string">&quot;the quick brown fox jumped-over-the-lazy-dog&quot;</span>,
-             (<span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>(<span class="string">&quot;the quick brown fox&quot;</span>.<span class="ident">into</span>())), <span class="prelude-val">Some</span>(<span class="string">&quot;jumped-over-the-lazy-dog&quot;</span>.<span class="ident">into</span>()))),
-            (<span class="string">&quot;the-quick-brown-fox-jumped-over-the-lazy-dog&quot;</span>,
-             (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="string">&quot;the-quick-brown-fox-jumped-over-the-lazy-dog&quot;</span>.<span class="ident">into</span>()))),
-        );
+            (
+                <span class="string">&quot;the quick brown fox jumped over the lazy dog&quot;</span>,
+                (
+                    <span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>[
+                        <span class="string">&quot;the quick brown fox jumped&quot;</span>.<span class="ident">into</span>(),
+                        <span class="string">&quot;over the lazy dog&quot;</span>.<span class="ident">into</span>(),
+                    ]),
+                    <span class="prelude-val">None</span>,
+                ),
+            ),
+            (
+                <span class="string">&quot;the quick brown fox jumped-over-the-lazy-dog&quot;</span>,
+                (
+                    <span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="string">&quot;the quick brown fox&quot;</span>.<span class="ident">into</span>()]),
+                    <span class="prelude-val">Some</span>(<span class="string">&quot;jumped-over-the-lazy-dog&quot;</span>.<span class="ident">into</span>()),
+                ),
+            ),
+            (
+                <span class="string">&quot;the-quick-brown-fox-jumped-over-the-lazy-dog&quot;</span>,
+                (
+                    <span class="prelude-val">None</span>,
+                    <span class="prelude-val">Some</span>(<span class="string">&quot;the-quick-brown-fox-jumped-over-the-lazy-dog&quot;</span>.<span class="ident">into</span>()),
+                ),
+            ),
+        ];
 
         <span class="kw">for</span> <span class="ident">test</span> <span class="kw">in</span> <span class="ident">test_cases</span> {
             <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">split</span>(<span class="ident">test</span>.<span class="number">0</span>, <span class="string">&quot; &quot;</span>);
@@ -436,8 +517,8 @@
     <span class="kw">fn</span> <span class="ident">iterate_until_done</span>() {
         <span class="kw">let</span> <span class="ident">string</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="string">&quot;the quick brown fox jumped over the lazy dog&quot;</span>);
         <span class="kw">let</span> <span class="ident">separator</span> <span class="op">=</span> <span class="macro">json</span><span class="macro">!</span>(<span class="string">&quot; &quot;</span>);
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">output_vector</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">input_strings</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>(<span class="ident">string</span>);
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">output_vector</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[];
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">input_strings</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">string</span>];
 
         <span class="kw">loop</span> {
             <span class="comment">// if nothing else to split we&#39;re dong</span>
@@ -488,7 +569,10 @@
         <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> <span class="ident">result</span>.<span class="ident">unwrap</span>();
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">output</span>.<span class="ident">pointer</span>(<span class="string">&quot;/token&quot;</span>).<span class="ident">is_none</span>());
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">output</span>.<span class="ident">pointer</span>(<span class="string">&quot;/token-count&quot;</span>).<span class="ident">unwrap</span>(), <span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>(<span class="number">0</span>));
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">output</span>.<span class="ident">pointer</span>(<span class="string">&quot;/partial&quot;</span>).<span class="ident">unwrap</span>(), <span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>([<span class="string">&quot;the quick brown fox jumped&quot;</span>, <span class="string">&quot;over the lazy dog&quot;</span>]));
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">output</span>.<span class="ident">pointer</span>(<span class="string">&quot;/partial&quot;</span>).<span class="ident">unwrap</span>(),
+            <span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>([<span class="string">&quot;the quick brown fox jumped&quot;</span>, <span class="string">&quot;over the lazy dog&quot;</span>])
+        );
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">output</span>.<span class="ident">pointer</span>(<span class="string">&quot;/delta&quot;</span>).<span class="ident">unwrap</span>(), <span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>(<span class="number">1</span>));
     }
 
@@ -501,9 +585,15 @@
         <span class="kw">let</span> (<span class="ident">result</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">splitter</span>.<span class="ident">run</span>(<span class="kw-2">&amp;</span>[<span class="ident">test</span>.<span class="number">0</span>, <span class="ident">separator</span>]);
 
         <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> <span class="ident">result</span>.<span class="ident">unwrap</span>();
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">output</span>.<span class="ident">pointer</span>(<span class="string">&quot;/token&quot;</span>).<span class="ident">unwrap</span>(), <span class="string">&quot;fox-jumped-over-the-lazy-dog&quot;</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">output</span>.<span class="ident">pointer</span>(<span class="string">&quot;/token&quot;</span>).<span class="ident">unwrap</span>(),
+            <span class="string">&quot;fox-jumped-over-the-lazy-dog&quot;</span>
+        );
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">output</span>.<span class="ident">pointer</span>(<span class="string">&quot;/token-count&quot;</span>).<span class="ident">unwrap</span>(), <span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>(<span class="number">1</span>));
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">output</span>.<span class="ident">pointer</span>(<span class="string">&quot;/partial&quot;</span>).<span class="ident">unwrap</span>(), <span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>([<span class="string">&quot;the quick brown&quot;</span>]));
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">output</span>.<span class="ident">pointer</span>(<span class="string">&quot;/partial&quot;</span>).<span class="ident">unwrap</span>(),
+            <span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>([<span class="string">&quot;the quick brown&quot;</span>])
+        );
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">output</span>.<span class="ident">pointer</span>(<span class="string">&quot;/delta&quot;</span>).<span class="ident">unwrap</span>(), <span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>(<span class="number">0</span>));
     }
 
@@ -521,6 +611,7 @@
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">output</span>.<span class="ident">pointer</span>(<span class="string">&quot;/token-count&quot;</span>).<span class="ident">unwrap</span>(), <span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>(<span class="number">1</span>));
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">output</span>.<span class="ident">pointer</span>(<span class="string">&quot;/delta&quot;</span>).<span class="ident">unwrap</span>(), <span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>(<span class="op">-</span><span class="number">1</span>));
     }
-}</pre></div>
+}
+</pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../../../" data-current-crate="flowstdlib"></div>
     <script src="../../../../main.js"></script><script src="../../../../source-script.js"></script><script src="../../../../source-files.js"></script><script defer src="../../../../search-index.js"></script></body></html>

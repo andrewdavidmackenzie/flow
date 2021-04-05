@@ -71,6 +71,9 @@
 <span id="68">68</span>
 <span id="69">69</span>
 <span id="70">70</span>
+<span id="71">71</span>
+<span id="72">72</span>
+<span id="73">73</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="comment">// TODO #![deny(missing_docs)]</span>
 <span class="attribute">#![<span class="ident">warn</span>(<span class="ident">clippy</span>::<span class="ident">unwrap_used</span>)]</span>
@@ -86,15 +89,15 @@
 <span class="attribute">#[<span class="ident">macro_use</span>]</span>
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">error_chain</span>;
 
-<span class="doccomment">/// `info` offers methods to get information about this library</span>
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">info</span>;
 <span class="doccomment">/// `coordinator` is the module that coordinates the execution of flows submitted to it</span>
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">coordinator</span>;
-<span class="doccomment">/// `loader` is responsible for loading a flow from it&#39;s manifest and loading libraries it uses</span>
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">loader</span>;
 <span class="doccomment">/// `flowruntime` module implements the executor/server side of the runtime functions and appears</span>
 <span class="doccomment">/// to user code like a library</span>
 <span class="kw">mod</span> <span class="ident">flowruntime</span>;
+<span class="doccomment">/// `info` offers methods to get information about this library</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">info</span>;
+<span class="doccomment">/// `loader` is responsible for loading a flow from it&#39;s manifest and loading libraries it uses</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">loader</span>;
 
 <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">unused_attributes</span>)]</span>
 <span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;distributed&quot;</span>, <span class="ident">path</span> <span class="op">=</span> <span class="string">&quot;client_server/message_queue.rs&quot;</span>)]</span>
@@ -114,8 +117,8 @@
 <span class="kw">mod</span> <span class="ident">debugger</span>;
 
 <span class="kw">mod</span> <span class="ident">execution</span>;
-<span class="kw">mod</span> <span class="ident">wasm</span>;
 <span class="kw">mod</span> <span class="ident">run_state</span>;
+<span class="kw">mod</span> <span class="ident">wasm</span>;
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">metrics</span>;
@@ -140,7 +143,11 @@
         <span class="ident">Serde</span>(<span class="ident">serde_json</span>::<span class="ident">error</span>::<span class="ident">Error</span>);
         <span class="ident">Recv</span>(<span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">mpsc</span>::<span class="ident">RecvError</span>);
         <span class="ident">Provider</span>(<span class="ident">provider</span>::<span class="ident">errors</span>::<span class="ident">Error</span>);
+        <span class="ident">Url</span>(<span class="ident">url</span>::<span class="ident">ParseError</span>);
+        <span class="ident">FlowStdLib</span>(<span class="ident">flowstdlib</span>::<span class="ident">errors</span>::<span class="ident">Error</span>);
+        <span class="ident">FlowrStructs</span>(<span class="ident">flowcore</span>::<span class="ident">errors</span>::<span class="ident">Error</span>);
     }
-}</pre></div>
+}
+</pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="flowrlib"></div>
     <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script><script defer src="../../search-index.js"></script></body></html>

@@ -84,6 +84,8 @@
 <span id="81">81</span>
 <span id="82">82</span>
 <span id="83">83</span>
+<span id="84">84</span>
+<span id="85">85</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">log</span>::{<span class="ident">info</span>, <span class="ident">trace</span>};
 
@@ -103,7 +105,7 @@
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">tables</span> <span class="op">=</span> <span class="ident">GenerationTables</span>::<span class="ident">new</span>();
 
     <span class="macro">info</span><span class="macro">!</span>(<span class="string">&quot;=== Compiler phase: Gathering&quot;</span>);
-    <span class="ident">gatherer</span>::<span class="ident">gather_functions_and_connections</span>(<span class="ident">flow</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">tables</span>, <span class="number">0</span>);
+    <span class="ident">gatherer</span>::<span class="ident">gather_functions_and_connections</span>(<span class="ident">flow</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">tables</span>, <span class="number">0</span>)<span class="question-mark">?</span>;
     <span class="macro">info</span><span class="macro">!</span>(<span class="string">&quot;=== Compiler phase: Collapsing connections&quot;</span>);
     <span class="ident">tables</span>.<span class="ident">collapsed_connections</span> <span class="op">=</span> <span class="ident">connector</span>::<span class="ident">collapse_connections</span>(<span class="kw-2">&amp;</span><span class="ident">tables</span>.<span class="ident">connections</span>);
     <span class="macro">info</span><span class="macro">!</span>(<span class="string">&quot;=== Compiler phase: Optimizing&quot;</span>);
@@ -128,45 +130,48 @@
     <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">flow</span>::<span class="ident">Flow</span>;
     <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">function</span>::<span class="ident">Function</span>;
     <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">io</span>::<span class="ident">IO</span>;
-    <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">name</span>::<span class="ident">HasName</span>;
-    <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">name</span>::<span class="ident">Name</span>;
+    <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">name</span>::{<span class="ident">HasName</span>, <span class="ident">Name</span>};
     <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">process_reference</span>::<span class="ident">ProcessReference</span>;
     <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">route</span>::<span class="ident">Route</span>;
+    <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">HashMap</span>;
 
     <span class="comment">/*
-            Test for a function that is dead code. It has no connections to it or from it so will
-            never run. So it should be removed by the optimizer and not fail at check stage.
-        */</span>
+        Test for a function that is dead code. It has no connections to it or from it so will
+        never run. So it should be removed by the optimizer and not fail at check stage.
+    */</span>
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">dead_function</span>() {
-        <span class="kw">let</span> <span class="ident">function</span> <span class="op">=</span> <span class="ident">Function</span>::<span class="ident">new</span>(<span class="ident">Name</span>::<span class="ident">from</span>(<span class="string">&quot;Stdout&quot;</span>),
-                                     <span class="bool-val">false</span>,
-                                     <span class="string">&quot;lib://flowruntime/stdio/stdout.toml&quot;</span>.<span class="ident">to_owned</span>(),
-                                     <span class="ident">Name</span>::<span class="ident">from</span>(<span class="string">&quot;test-function&quot;</span>),
-                                     <span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>(<span class="ident">IO</span>::<span class="ident">new</span>(<span class="string">&quot;String&quot;</span>,<span class="string">&quot;/print&quot;</span>))),
-                                     <span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>()), <span class="string">&quot;lib://flowruntime/stdio/stdout.toml&quot;</span>,
-                                     <span class="ident">Route</span>::<span class="ident">from</span>(<span class="string">&quot;/print&quot;</span>),
-                                     <span class="prelude-val">Some</span>(<span class="string">&quot;lib://flowruntime/stdio/stdout.toml&quot;</span>.<span class="ident">to_string</span>()),
-                                     <span class="macro">vec</span><span class="macro">!</span>(),
-                                     <span class="number">0</span>,
-                                     <span class="number">0</span>,
+        <span class="kw">let</span> <span class="ident">function</span> <span class="op">=</span> <span class="ident">Function</span>::<span class="ident">new</span>(
+            <span class="ident">Name</span>::<span class="ident">from</span>(<span class="string">&quot;Stdout&quot;</span>),
+            <span class="bool-val">false</span>,
+            <span class="string">&quot;lib://flowruntime/stdio/stdout.toml&quot;</span>.<span class="ident">to_owned</span>(),
+            <span class="ident">Name</span>::<span class="ident">from</span>(<span class="string">&quot;test-function&quot;</span>),
+            <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">IO</span>::<span class="ident">new</span>(<span class="string">&quot;String&quot;</span>, <span class="string">&quot;/print&quot;</span>)],
+            <span class="macro">vec</span><span class="macro">!</span>[],
+            <span class="string">&quot;lib://flowruntime/stdio/stdout.toml&quot;</span>,
+            <span class="ident">Route</span>::<span class="ident">from</span>(<span class="string">&quot;/print&quot;</span>),
+            <span class="prelude-val">Some</span>(<span class="string">&quot;lib://flowruntime/stdio/stdout.toml&quot;</span>.<span class="ident">to_string</span>()),
+            <span class="macro">vec</span><span class="macro">!</span>[],
+            <span class="number">0</span>,
+            <span class="number">0</span>,
         );
 
         <span class="kw">let</span> <span class="ident">function_ref</span> <span class="op">=</span> <span class="ident">ProcessReference</span> {
             <span class="ident">alias</span>: <span class="ident">function</span>.<span class="ident">alias</span>().<span class="ident">to_owned</span>(),
             <span class="ident">source</span>: <span class="string">&quot;lib://flowruntime/stdio/stdout.toml&quot;</span>.<span class="ident">to_string</span>(),
-            <span class="ident">initializations</span>: <span class="prelude-val">None</span>
+            <span class="ident">initializations</span>: <span class="ident">HashMap</span>::<span class="ident">new</span>(),
         };
 
         <span class="kw">let</span> <span class="ident">flow</span> <span class="op">=</span> <span class="ident">Flow</span> {
             <span class="ident">alias</span>: <span class="ident">Name</span>::<span class="ident">from</span>(<span class="string">&quot;context&quot;</span>),
             <span class="ident">name</span>: <span class="ident">Name</span>::<span class="ident">from</span>(<span class="string">&quot;test-flow&quot;</span>),
-            <span class="ident">process_refs</span>: <span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>(<span class="ident">function_ref</span>)),
+            <span class="ident">process_refs</span>: <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">function_ref</span>],
             ..<span class="ident">Default</span>::<span class="ident">default</span>()
         };
 
         <span class="kw">let</span> <span class="ident">_tables</span> <span class="op">=</span> <span class="ident">compile</span>(<span class="kw-2">&amp;</span><span class="ident">flow</span>).<span class="ident">expect</span>(<span class="string">&quot;Error while compiling&quot;</span>);
     }
-}</pre></div>
+}
+</pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="flowclib"></div>
     <script src="../../../main.js"></script><script src="../../../source-script.js"></script><script src="../../../source-files.js"></script><script defer src="../../../search-index.js"></script></body></html>
