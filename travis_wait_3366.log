@@ -1,86 +1,86 @@
 <------ Target 'build-flowc' starting
  Downloading crates ...
-  Downloaded itertools v0.8.2
-  Downloaded miniz_oxide v0.4.4
-  Downloaded proc-macro2 v1.0.24
-  Downloaded rustc-demangle v0.1.18
-  Downloaded tempdir v0.3.7
   Downloaded addr2line v0.14.1
-  Downloaded object v0.23.0
-  Downloaded toml v0.4.10
-  Downloaded yaml-rust v0.4.5
-  Downloaded backtrace v0.3.56
-  Downloaded simpath v2.2.1
-  Downloaded simplog v1.2.2
-  Downloaded shrinkwraprs v0.2.3
-  Downloaded serde_yaml v0.8.17
-  Downloaded tinyvec v1.1.1
-  Downloaded linked-hash-map v0.5.4
   Downloaded adler v1.0.2
-  Downloaded glob v0.2.11
-  Downloaded curl v0.4.35
-  Downloaded gimli v0.23.0
-  Downloaded rand v0.4.6
-  Downloaded libz-sys v1.1.2
-  Downloaded error-chain v0.12.4
-  Downloaded curl-sys v0.4.41+curl-7.75.0
+  Downloaded rustc-demangle v0.1.18
   Downloaded syn v1.0.67
+  Downloaded toml v0.4.10
+  Downloaded serde_yaml v0.8.17
+  Downloaded error-chain v0.12.4
+  Downloaded curl v0.4.35
+  Downloaded backtrace v0.3.56
+  Downloaded tempdir v0.3.7
+  Downloaded linked-hash-map v0.5.4
+  Downloaded simpath v2.2.1
+  Downloaded rand v0.4.6
+  Downloaded yaml-rust v0.4.5
+  Downloaded object v0.23.0
+  Downloaded shrinkwraprs v0.2.3
+  Downloaded gimli v0.23.0
+  Downloaded glob v0.2.11
+  Downloaded tinyvec v1.1.1
+  Downloaded proc-macro2 v1.0.24
+  Downloaded miniz_oxide v0.4.4
+  Downloaded itertools v0.8.2
+  Downloaded libz-sys v1.1.2
+  Downloaded curl-sys v0.4.41+curl-7.75.0
+  Downloaded simplog v1.2.2
    Compiling libc v0.2.92
    Compiling autocfg v1.0.1
+   Compiling pkg-config v0.3.19
    Compiling cc v1.0.67
    Compiling proc-macro2 v1.0.24
-   Compiling pkg-config v0.3.19
    Compiling unicode-xid v0.2.1
    Compiling syn v1.0.67
    Compiling serde_derive v1.0.125
-   Compiling serde v1.0.125
    Compiling cfg-if v1.0.0
-   Compiling matches v0.1.8
+   Compiling serde v1.0.125
    Compiling tinyvec_macros v0.1.0
-   Compiling log v0.4.14
-   Compiling gimli v0.23.0
-   Compiling version_check v0.9.3
+   Compiling matches v0.1.8
    Compiling percent-encoding v2.1.0
    Compiling adler v1.0.2
+   Compiling log v0.4.14
+   Compiling version_check v0.9.3
    Compiling curl v0.4.35
+   Compiling gimli v0.23.0
    Compiling ryu v1.0.5
-   Compiling bitflags v1.2.1
    Compiling openssl-probe v0.1.2
-   Compiling object v0.23.0
    Compiling rustc-demangle v0.1.18
+   Compiling object v0.23.0
+   Compiling bitflags v1.2.1
    Compiling serde_json v1.0.64
+   Compiling linked-hash-map v0.5.4
+   Compiling unicode-width v0.1.8
    Compiling itoa v0.4.7
    Compiling either v1.6.1
-   Compiling unicode-width v0.1.8
-   Compiling linked-hash-map v0.5.4
    Compiling vec_map v0.8.2
    Compiling strsim v0.8.0
    Compiling ansi_term v0.11.0
-   Compiling dtoa v0.4.8
    Compiling remove_dir_all v0.5.3
+   Compiling dtoa v0.4.8
    Compiling glob v0.2.11
    Compiling miniz_oxide v0.4.4
-   Compiling openssl-sys v0.9.61
    Compiling libz-sys v1.1.2
+   Compiling openssl-sys v0.9.61
    Compiling curl-sys v0.4.41+curl-7.75.0
-   Compiling unicode-bidi v0.3.4
    Compiling tinyvec v1.1.1
-   Compiling error-chain v0.12.4
+   Compiling unicode-bidi v0.3.4
    Compiling form_urlencoded v1.0.1
+   Compiling error-chain v0.12.4
    Compiling addr2line v0.14.1
-   Compiling itertools v0.8.2
-   Compiling textwrap v0.11.0
    Compiling yaml-rust v0.4.5
+   Compiling textwrap v0.11.0
+   Compiling itertools v0.8.2
    Compiling unicode-normalization v0.1.17
    Compiling socket2 v0.3.19
-   Compiling rand v0.4.6
    Compiling atty v0.2.14
+   Compiling rand v0.4.6
    Compiling quote v1.0.9
    Compiling simplog v1.2.2
    Compiling idna v0.2.2
+   Compiling backtrace v0.3.56
    Compiling clap v2.33.3
    Compiling tempdir v0.3.7
-   Compiling backtrace v0.3.56
    Compiling shrinkwraprs v0.2.3
    Compiling url v2.2.1
    Compiling serde_yaml v0.8.17
@@ -89,7 +89,7 @@
    Compiling provider v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/provider)
    Compiling flowcore v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/flowcore)
    Compiling flowc v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/flowc)
-    Finished dev [unoptimized + debuginfo] target(s) in 1m 13s
+    Finished dev [unoptimized + debuginfo] target(s) in 1m 14s
 ------> Target 'build-flowc' done in 74 seconds
-2021-04-05 09:17:55 [INFO] (mdbook::book): Book building has started
-2021-04-05 09:17:55 [INFO] (mdbook::book): Running the html backend
+2021-04-06 09:18:52 [INFO] (mdbook::book): Book building has started
+2021-04-06 09:18:52 [INFO] (mdbook::book): Running the html backend
