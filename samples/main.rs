@@ -224,7 +224,6 @@ mod test {
         test_run_sample(&sample, &super::get_flowr().unwrap());
     }
 
-    #[ignore]
     #[test]
     #[serial]
     fn test_arrays() {
