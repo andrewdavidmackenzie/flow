@@ -1,5 +1,5 @@
-// Build script to compile the flow samples in the crate
 use std::{fs, io};
+// Build script to compile the flow samples in the crate
 use std::io::ErrorKind;
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -18,7 +18,7 @@ fn main() -> io::Result<()> {
                 }
             }
         }
-    };
+    }
 
     println!("cargo:rerun-if-env-changed=FLOW_LIB_PATH");
     Ok(())
@@ -35,42 +35,50 @@ fn get_flowc() -> io::Result<String> {
         return Ok(dev.into_os_string().to_str().unwrap().to_string());
     }
 
-    if Simpath::new("PATH").find_type("flowr", FileType::File).is_ok() {
+    if Simpath::new("PATH")
+        .find_type("flowr", FileType::File)
+        .is_ok()
+    {
         return Ok("flowc".into());
     }
 
-    Err(io::Error::new(io::ErrorKind::Other,
-                       "`flowc` could not be found in `$PATH` or `target/`"))
+    Err(io::Error::new(
+        io::ErrorKind::Other,
+        "`flowc` could not be found in `$PATH` or `target/`",
+    ))
 }
 
 fn compile_sample(sample_dir: &Path, flowc: &str) -> io::Result<()> {
-    // Tell Cargo that if the given file changes, to rerun this build script.
-    println!("cargo:rerun-if-changed={}/context.toml", sample_dir.display());
+    // Tell Cargo that if any file in the sample directory changes it should rerun this build script
+    println!("cargo:rerun-if-changed={}", sample_dir.display());
 
     let mut command = Command::new(flowc);
     // -g for debug symbols, -d to dump compiler structs, -s to skip running, only compile the flow
-    let command_args = vec!("-g", "-d", "-s", sample_dir.to_str().unwrap());
+    let command_args = vec!["-g", "-d", "-s", sample_dir.to_str().unwrap()];
 
-    match command.args(command_args)
+    match command
+        .args(command_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
-        .spawn() {
-        Ok(flowc_child) => {
-            match flowc_child.wait_with_output() {
-                Ok(_) => Ok(()),
-                Err(e) => Err(io::Error::new(io::ErrorKind::Other,
-                                             format!("Error running `flowc`: {}", e)))
-            }
-        }
-        Err(e) => {
-            match e.kind() {
-                ErrorKind::NotFound =>
-                    Err(io::Error::new(io::ErrorKind::Other,
-                                       format!("`flowc` was not found! Check your $PATH. {}", e))),
-                _ => Err(io::Error::new(io::ErrorKind::Other,
-                                        format!("Unexpected error occurred spawning `flowc`: {}", e)))
-            }
-        }
+        .spawn()
+    {
+        Ok(flowc_child) => match flowc_child.wait_with_output() {
+            Ok(_) => Ok(()),
+            Err(e) => Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("Error running `flowc`: {}", e),
+            )),
+        },
+        Err(e) => match e.kind() {
+            ErrorKind::NotFound => Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("`flowc` was not found! Check your $PATH. {}", e),
+            )),
+            _ => Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("Unexpected error occurred spawning `flowc`: {}", e),
+            )),
+        },
     }
 }
