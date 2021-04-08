@@ -435,6 +435,16 @@
 <span id="432">432</span>
 <span id="433">433</span>
 <span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">env</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fs</span>;
@@ -593,6 +603,7 @@
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">command_args</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[
         <span class="string">&quot;build&quot;</span>,
         <span class="string">&quot;--quiet&quot;</span>,
+        <span class="comment">// &quot;--verbose&quot;,</span>
         <span class="string">&quot;--lib&quot;</span>,
         <span class="string">&quot;--target=wasm32-unknown-unknown&quot;</span>,
     ];
@@ -607,7 +618,7 @@
     );
 
     <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> <span class="ident">Command</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">command</span>)
-        .<span class="ident">args</span>(<span class="ident">command_args</span>)
+        .<span class="ident">args</span>(<span class="kw-2">&amp;</span><span class="ident">command_args</span>)
         .<span class="ident">stdin</span>(<span class="ident">Stdio</span>::<span class="ident">inherit</span>())
         .<span class="ident">stdout</span>(<span class="ident">Stdio</span>::<span class="ident">piped</span>())
         .<span class="ident">stderr</span>(<span class="ident">Stdio</span>::<span class="ident">piped</span>())
@@ -618,10 +629,19 @@
         <span class="prelude-val">Some</span>(<span class="number">0</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="string">&quot;Cargo Build of supplied function to wasm succeeded&quot;</span>.<span class="ident">to_string</span>()),
         <span class="prelude-val">Some</span>(<span class="ident">code</span>) <span class="op">=</span><span class="op">&gt;</span> {
             <span class="macro">error</span><span class="macro">!</span>(
+                <span class="string">&quot;Process STDOUT:\n{}&quot;</span>,
+                <span class="ident">String</span>::<span class="ident">from_utf8_lossy</span>(<span class="kw-2">&amp;</span><span class="ident">output</span>.<span class="ident">stdout</span>)
+            );
+            <span class="macro">error</span><span class="macro">!</span>(
                 <span class="string">&quot;Process STDERR:\n{}&quot;</span>,
                 <span class="ident">String</span>::<span class="ident">from_utf8_lossy</span>(<span class="kw-2">&amp;</span><span class="ident">output</span>.<span class="ident">stderr</span>)
             );
-            <span class="macro">bail</span><span class="macro">!</span>(<span class="string">&quot;Exited with status code: {}&quot;</span>, <span class="ident">code</span>)
+            <span class="macro">bail</span><span class="macro">!</span>(
+                <span class="string">&quot;cargo exited with status code: {}\nCommand Line: {} {:?}&quot;</span>,
+                <span class="ident">code</span>,
+                <span class="ident">command</span>,
+                <span class="ident">command_args</span>
+            )
         }
         <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="string">&quot;No return code - ignoring&quot;</span>.<span class="ident">to_string</span>()),
     }
