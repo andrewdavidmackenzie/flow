@@ -13,7 +13,7 @@ fn main() -> io::Result<()> {
         "Current Working Directory: `{}`",
         std::env::current_dir().unwrap().display()
     );
-    println!("Manifest Directory: `{}`", env!("CARGO_MANIFEST_DIR"));
+    println!("Samples Root Directory: `{}`", env!("CARGO_MANIFEST_DIR"));
 
     let flowr = get_flowr()?;
 
@@ -72,7 +72,8 @@ fn run_sample(sample_dir: &Path, flowr_path: &str) -> io::Result<()> {
 
     let mut flowr_command = Command::new(flowr_path);
     let manifest = sample_dir.join("manifest.json");
-    println!("\tRunning Sample: {:?}", sample_dir.file_name().unwrap());
+    println!("\n\tRunning Sample: {:?}", sample_dir.file_name().unwrap());
+    assert!(manifest.exists(), "Manifest file does not exist");
     println!("\tReading STDIN from test.input, Arguments read from test.arguments");
     println!("\tOutput sent to STDOUT/STDERR and file output to test.file");
 
@@ -152,7 +153,7 @@ mod test {
         println!("\tSample: {:?}", sample_dir.file_name().unwrap());
 
         let manifest = sample_dir.join("manifest.json");
-
+        assert!(manifest.exists(), "manifest.json does not exist");
         let mut command_args: Vec<String> = vec!["--native".into(), manifest.display().to_string()];
         command_args.append(&mut super::args(&sample_dir).unwrap());
 
@@ -209,7 +210,7 @@ mod test {
                     sample_dir.file_name().unwrap(),
                     error.display()
                 );
-                std::process::exit(-1);
+                std::process::exit(1);
             }
         }
 
