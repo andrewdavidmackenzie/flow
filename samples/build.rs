@@ -6,8 +6,11 @@ use std::{fs, io};
 use simpath::{FileType, FoundType, Simpath};
 
 fn main() -> io::Result<()> {
-    println!("cargo:rerun-if-changed=build.rs");
+    let samples_root = env!("CARGO_MANIFEST_DIR");
+
     println!("cargo:rerun-if-env-changed=FLOW_LIB_PATH");
+    // Tell Cargo that if any file in the samples directory changes it should rerun this build script
+    println!("cargo:rerun-if-changed={}", samples_root);
 
     println!("`flowsample` version {}", env!("CARGO_PKG_VERSION"));
     println!(
@@ -24,7 +27,7 @@ fn main() -> io::Result<()> {
     );
 
     // find all sample sub-folders
-    for entry in fs::read_dir(env!("CARGO_MANIFEST_DIR"))? {
+    for entry in fs::read_dir(samples_root)? {
         let e = entry?;
         if e.file_type()?.is_dir() {
             println!(
@@ -64,12 +67,9 @@ fn get_flowc() -> io::Result<PathBuf> {
 }
 
 fn compile_sample(sample_dir: &Path, flowc: &Path) -> io::Result<()> {
-    // // Tell Cargo that if any file in the sample directory changes it should rerun this build script
-    // println!("cargo:rerun-if-changed={}", sample_dir.display());
-
     let mut command = Command::new(flowc);
     // -g for debug symbols, -d to dump compiler structs, -s to skip running and only compile the flow
-    let command_args = vec!["-g", "-s", sample_dir.to_str().unwrap()];
+    let command_args = vec!["-g", "-d", "-s", sample_dir.to_str().unwrap()];
 
     let flowc_child = command
         .args(command_args)
