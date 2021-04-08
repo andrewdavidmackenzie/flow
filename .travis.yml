@@ -46,16 +46,9 @@ before_install:
 script:
   - |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      if [[ "$TRAVIS_EVENT_TYPE" == "cron" ]]; then
-        # Build the docs nightly
-        travis_wait 50 make docs
-      else
-        travis_wait 50 make clippy build test
-      fi
+      travis_wait 50 make clippy build test docs
     else
-      if [[ "$TRAVIS_EVENT_TYPE" != "cron" ]]; then
-        travis_wait 50 make clippy test
-      fi
+      travis_wait 50 make clippy test
     fi
 
 # Docs are only built and deployed in "cron" builds on linux with rust stable
@@ -65,10 +58,10 @@ deploy:
   github-token: $GITHUB_PAGES_TOKEN
   local-dir: target/html
   keep_history: true
-  allow_empty_commit: true # Avoid deploy fail on empty commit if nothing has changed in CRON deploy
+  allow_empty_commit: true # Avoid deploy fail on empty commit if nothing has changed (CRON builds)
   on:
     branch: master
-    condition: $TRAVIS_OS_NAME == "linux" && $TRAVIS_RUST_VERSION == "stable" && $TRAVIS_EVENT_TYPE == "cron"
+    condition: $TRAVIS_OS_NAME == "linux" && $TRAVIS_RUST_VERSION == "stable"
 
 notifications:
   email:
