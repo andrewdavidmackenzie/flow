@@ -155,6 +155,7 @@ fn run_cargo_build(manifest_path: &Path, target_dir: &Path) -> Result<String> {
     let mut command_args = vec![
         "build",
         "--quiet",
+        // "--verbose",
         "--lib",
         "--target=wasm32-unknown-unknown",
     ];
@@ -169,7 +170,7 @@ fn run_cargo_build(manifest_path: &Path, target_dir: &Path) -> Result<String> {
     );
 
     let output = Command::new(&command)
-        .args(command_args)
+        .args(&command_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -180,10 +181,19 @@ fn run_cargo_build(manifest_path: &Path, target_dir: &Path) -> Result<String> {
         Some(0) => Ok("Cargo Build of supplied function to wasm succeeded".to_string()),
         Some(code) => {
             error!(
+                "Process STDOUT:\n{}",
+                String::from_utf8_lossy(&output.stdout)
+            );
+            error!(
                 "Process STDERR:\n{}",
                 String::from_utf8_lossy(&output.stderr)
             );
-            bail!("Exited with status code: {}", code)
+            bail!(
+                "cargo exited with status code: {}\nCommand Line: {} {:?}",
+                code,
+                command,
+                command_args
+            )
         }
         None => Ok("No return code - ignoring".to_string()),
     }

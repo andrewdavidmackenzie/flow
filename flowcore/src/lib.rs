@@ -1,29 +1,38 @@
 #![warn(clippy::unwrap_used)]
 
-//! `flowcore` create defined some core structs and traits used by other flow libraries
+//! `flowcore` defines some core structs and traits used by other flow libraries and implementations
 
+#[cfg(feature = "code")]
 #[macro_use]
+#[cfg(feature = "code")]
 extern crate error_chain;
 
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
 use serde_json::Value;
 
+#[cfg(feature = "code")]
 /// `function` defines functions that form part of a flow
 pub mod function;
+#[cfg(feature = "code")]
 /// `input` defines the struct for inputs to functions in a flow
 pub mod input;
+#[cfg(feature = "code")]
 /// `lib_manifest` defines the structs for specifying a Library's manifest and methods to load it
 pub mod lib_manifest;
+#[cfg(feature = "code")]
 /// `manifest` is the struct that specifies the manifest of functions in a flow
 pub mod manifest;
+#[cfg(feature = "code")]
 /// `output_connection` defines a struct for a function's output connection
 pub mod output_connection;
+#[cfg(feature = "code")]
 /// Utility functions related to Urls
 pub mod url_helper;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
 /// to get access to everything `error_chain!` creates.
+#[cfg(feature = "code")]
 #[doc(hidden)]
 pub mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
@@ -39,6 +48,7 @@ pub const RUN_AGAIN: RunAgain = true;
 pub const DONT_RUN_AGAIN: RunAgain = false;
 
 #[doc(hidden)]
+#[cfg(feature = "code")]
 error_chain! {
     types {
         Error, ErrorKind, ResultExt, Result;

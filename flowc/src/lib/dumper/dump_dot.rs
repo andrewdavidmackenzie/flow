@@ -69,7 +69,7 @@ pub fn write_flow_to_dot(
                         &Url::parse(&process_ref.source).map_err(|_| {
                             std::io::Error::new(
                                 std::io::ErrorKind::Other,
-                                "Could not parse Url from flow_source",
+                                format!("Could not parse Url from: {}", process_ref.source),
                             )
                         })?,
                         "",
@@ -78,7 +78,10 @@ pub fn write_flow_to_dot(
                     .map_err(|_| {
                         std::io::Error::new(
                             std::io::ErrorKind::Other,
-                            "Could not resolve Url of flow_source",
+                            format!(
+                                "Could not resolve Url of flow_source: {}",
+                                process_ref.source
+                            ),
                         )
                     })?;
 

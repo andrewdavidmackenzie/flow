@@ -15,8 +15,8 @@ lto = true
 opt-level = 's'
 
 [dependencies]
-flowcore = "=0.34.7"
-flow_impl_derive = "=0.10.0"
+flowcore = {path = "../../../flowcore", version = "=0.34.7", default-features = false}
+flow_impl_derive = "=0.34.7"
 serde_json = "1.0"
 
 [workspace]
