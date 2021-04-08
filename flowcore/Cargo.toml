@@ -17,16 +17,21 @@ exclude = [".gitignore", "Cargo.lock"]
 name = "flowcore"
 path = "src/lib.rs"
 
-[features]
-default = []  # Don't include any features by default
-debugger = [] # feature to add the debugger
-
 [dependencies]
-provider = {path = "../provider", version = "0.34.4" }
+serde_json = "1.0" # Needed for Implementation trait and must compile for wasm32-unknown-unknown
 
-url = { version = "2.2", features = ["serde"] }
-serde = "~1.0.27"
-serde_derive = "~1.0.27"
-serde_json = "1.0"
-error-chain = "0.12.2"
-log = "0.4.6"
+# All other dependencies below are optional and can be turned off using "default-features false" removing any
+# dependency that won't compile for wasm32
+serde = { version = "~1.0.27", optional = true }
+serde_derive = { version = "~1.0.27", optional = true }
+provider = {path = "../provider", version = "0.34.4", optional = true}
+url = { version = "2.2", features = ["serde"], optional = true }
+error-chain = {version = "0.12.2", optional = true}
+log = {version = "0.4.6", optional = true}
+
+[features]
+default = ["code"]  # by default include code not just the trait definition
+debugger = ["code"] # feature to add the debugger, depends on code feature
+# Enable the "code" feature to compile the crate with dependencies for code not just trait
+# It brings in the following optional dependencies, some of which do not compile for wasm32
+code = ["serde", "serde_derive", "provider", "url", "error-chain", "log"]

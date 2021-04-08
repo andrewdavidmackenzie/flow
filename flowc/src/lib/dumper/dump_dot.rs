@@ -4,12 +4,9 @@ use std::io::prelude::*;
 use std::path::Path;
 
 use serde_json::Value;
-use url::Url;
 
 use flowcore::input::InputInitializer::{Always, Once};
-use provider::lib_provider::LibProvider;
 
-use crate::deserializers::deserializer_helper::get_file_extension;
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
 use crate::model::connection::Connection;
@@ -37,11 +34,19 @@ fn absolute_to_relative(absolute: &str, current_dir: &Path) -> Result<String> {
     Ok(absolute.replace(&format!("file://{}/", root_path.display()), &path_to_root))
 }
 
+fn remove_file_extension(file_path: &str) -> String {
+    let splits: Vec<&str> = file_path.split('.').collect();
+    if splits.len() > 1 {
+        splits[0..splits.len() - 1].join(".")
+    } else {
+        file_path.to_owned()
+    }
+}
+
 pub fn write_flow_to_dot(
     flow: &Flow,
     dot_file: &mut dyn Write,
     output_dir: &Path,
-    provider: &dyn LibProvider,
 ) -> std::io::Result<()> {
     dot_file.write_all(digraph_wrapper_start(flow).as_bytes())?;
 
@@ -64,29 +69,9 @@ pub fn write_flow_to_dot(
         })?;
         match process {
             FlowProcess(ref flow) => {
-                let (flow_source, _) = provider
-                    .resolve_url(
-                        &Url::parse(&process_ref.source).map_err(|_| {
-                            std::io::Error::new(
-                                std::io::ErrorKind::Other,
-                                "Could not parse Url from flow_source",
-                            )
-                        })?,
-                        "",
-                        &[""],
-                    )
-                    .map_err(|_| {
-                        std::io::Error::new(
-                            std::io::ErrorKind::Other,
-                            "Could not resolve Url of flow_source",
-                        )
-                    })?;
+                // TODO convert lib reference to a file path or url reference to the actual resource
 
-                // remove file extension when forming URL as is of form {file_stem}.dot.svg
-                let mut flow_source_str = flow_source.to_string();
-                if let Some(extension) = get_file_extension(&flow_source) {
-                    flow_source_str.truncate(flow_source_str.len() - (extension.len() + 1))
-                }
+                let flow_source_str = remove_file_extension(&process_ref.source);
 
                 let relative_path =
                     absolute_to_relative(&flow_source_str, output_dir).map_err(|_| {
@@ -443,4 +428,32 @@ pub fn process_refs_to_dot(
     }
 
     Ok(output)
+}
+
+#[cfg(test)]
+mod test {
+    use super::remove_file_extension;
+
+    #[test]
+    fn strip_extension() {
+        assert_eq!("file", remove_file_extension("file.toml"));
+    }
+
+    #[test]
+    fn strip_last_extension_only() {
+        assert_eq!("file.my.file", remove_file_extension("file.my.file.toml"));
+    }
+
+    #[test]
+    fn strip_extension_in_path() {
+        assert_eq!(
+            "/root/home/file",
+            remove_file_extension("/root/home/file.toml")
+        );
+    }
+
+    #[test]
+    fn strip_no_extension() {
+        assert_eq!("file", remove_file_extension("file"));
+    }
 }

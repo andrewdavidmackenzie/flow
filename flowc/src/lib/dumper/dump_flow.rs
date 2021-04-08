@@ -93,7 +93,7 @@ fn _dump_flow(
 
     writer = dump_tables::create_output_file(&output_dir, filename, "dot")?;
     info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
-    dump_dot::write_flow_to_dot(flow, &mut writer, output_dir, provider)?;
+    dump_dot::write_flow_to_dot(flow, &mut writer, output_dir)?;
 
     // Dump sub-flows
     for subprocess in &flow.subprocesses {

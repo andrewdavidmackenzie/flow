@@ -285,7 +285,10 @@ copy:
 clean:
 	@find . -name \*.dot.svg -type f -exec rm -rf {} + ; true
 	@find . -name \*.dot -type f -exec rm -rf {} + ; true
+	@find . -name manifest.json -type f -exec rm -rf {} + ; true
+	@find . -name test.output -type f -exec rm -rf {} + ; true
+	@find . -name test.err -type f -exec rm -rf {} + ; true
+	@find . -name \*.wasm -type f -exec rm -rf {} + ; true
 	@rm -rf target/html
 	@find . -name \*.dump -type f -exec rm -rf {} + ; true
-	@find . -name \*.dot -type f -exec rm -rf {} + ; true
 	@cargo clean

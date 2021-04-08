@@ -444,7 +444,7 @@ impl Coordinator {
         server_context: Arc<Mutex<RuntimeServerConnection>>,
         native: bool,
     ) -> Result<Manifest> {
-        let native_url =
+        let flowruntimelib_url =
             Url::parse("lib://flowruntime").chain_err(|| "Could not parse lib_manifest_url")?;
 
         // Load this run-time's library of native (statically linked) implementations
@@ -452,17 +452,19 @@ impl Coordinator {
             .add_lib(
                 provider,
                 flowruntime::get_manifest(server_context)?,
-                &native_url,
+                &flowruntimelib_url,
             )
             .chain_err(|| "Could not add 'flowruntime' library to loader")?;
 
         // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
         if cfg!(feature = "native") && native {
+            let flowstdlib_url =
+                Url::parse("lib://flowstdlib").chain_err(|| "Could not parse flowstdlib_url")?;
             loader
                 .add_lib(
                     provider,
                     flowstdlib::get_manifest().chain_err(|| "Could not get flowstdlib manifest")?,
-                    &native_url,
+                    &flowstdlib_url,
                 )
                 .chain_err(|| "Could not add 'flowstdlib' library to loader")?;
         }
