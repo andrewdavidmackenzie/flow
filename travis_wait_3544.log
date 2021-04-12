@@ -1,32 +1,32 @@
 <------ Target 'build-flowc' starting
  Downloading crates ...
-  Downloaded adler v1.0.2
-  Downloaded error-chain v0.12.4
-  Downloaded glob v0.2.11
-  Downloaded itertools v0.8.2
-  Downloaded curl v0.4.35
-  Downloaded miniz_oxide v0.4.4
-  Downloaded linked-hash-map v0.5.4
-  Downloaded rustc-demangle v0.1.18
-  Downloaded tinyvec v1.1.1
-  Downloaded simpath v2.2.1
-  Downloaded simplog v1.2.2
-  Downloaded serde_yaml v0.8.17
-  Downloaded unicode-bidi v0.3.4
-  Downloaded toml v0.4.10
   Downloaded tempdir v0.3.7
+  Downloaded glob v0.2.11
+  Downloaded error-chain v0.12.4
+  Downloaded miniz_oxide v0.4.4
+  Downloaded serde_yaml v0.8.17
+  Downloaded linked-hash-map v0.5.4
+  Downloaded object v0.23.0
   Downloaded backtrace v0.3.56
+  Downloaded shrinkwraprs v0.2.3
+  Downloaded yaml-rust v0.4.5
+  Downloaded toml v0.4.10
+  Downloaded proc-macro2 v1.0.24
+  Downloaded unicode-bidi v0.3.4
+  Downloaded tinyvec v1.1.1
+  Downloaded syn v1.0.67
+  Downloaded simpath v2.2.1
+  Downloaded curl v0.4.35
+  Downloaded rustc-demangle v0.1.18
+  Downloaded libc v0.2.92
+  Downloaded libz-sys v1.1.2
+  Downloaded gimli v0.23.0
+  Downloaded curl-sys v0.4.41+curl-7.75.0
+  Downloaded simplog v1.2.2
+  Downloaded itertools v0.8.2
+  Downloaded adler v1.0.2
   Downloaded addr2line v0.14.1
   Downloaded rand v0.4.6
-  Downloaded yaml-rust v0.4.5
-  Downloaded proc-macro2 v1.0.24
-  Downloaded syn v1.0.67
-  Downloaded libc v0.2.92
-  Downloaded shrinkwraprs v0.2.3
-  Downloaded object v0.23.0
-  Downloaded gimli v0.23.0
-  Downloaded libz-sys v1.1.2
-  Downloaded curl-sys v0.4.41+curl-7.75.0
    Compiling libc v0.2.92
    Compiling autocfg v1.0.1
    Compiling cc v1.0.67
@@ -39,47 +39,47 @@
    Compiling cfg-if v1.0.0
    Compiling matches v0.1.8
    Compiling tinyvec_macros v0.1.0
-   Compiling version_check v0.9.3
+   Compiling log v0.4.14
    Compiling percent-encoding v2.1.0
    Compiling curl v0.4.35
-   Compiling log v0.4.14
    Compiling adler v1.0.2
    Compiling gimli v0.23.0
+   Compiling version_check v0.9.3
    Compiling rustc-demangle v0.1.18
-   Compiling ryu v1.0.5
    Compiling object v0.23.0
-   Compiling openssl-probe v0.1.2
    Compiling bitflags v1.2.1
+   Compiling ryu v1.0.5
+   Compiling openssl-probe v0.1.2
    Compiling serde_json v1.0.64
-   Compiling unicode-width v0.1.8
    Compiling linked-hash-map v0.5.4
-   Compiling either v1.6.1
+   Compiling unicode-width v0.1.8
    Compiling itoa v0.4.7
-   Compiling strsim v0.8.0
-   Compiling ansi_term v0.11.0
-   Compiling vec_map v0.8.2
-   Compiling remove_dir_all v0.5.3
+   Compiling either v1.6.1
    Compiling dtoa v0.4.8
+   Compiling remove_dir_all v0.5.3
+   Compiling ansi_term v0.11.0
+   Compiling strsim v0.8.0
+   Compiling vec_map v0.8.2
    Compiling glob v0.2.11
    Compiling miniz_oxide v0.4.4
-   Compiling libz-sys v1.1.2
    Compiling openssl-sys v0.9.61
+   Compiling libz-sys v1.1.2
    Compiling curl-sys v0.4.41+curl-7.75.0
    Compiling unicode-bidi v0.3.4
    Compiling tinyvec v1.1.1
    Compiling form_urlencoded v1.0.1
    Compiling error-chain v0.12.4
    Compiling addr2line v0.14.1
-   Compiling textwrap v0.11.0
    Compiling yaml-rust v0.4.5
+   Compiling textwrap v0.11.0
    Compiling itertools v0.8.2
    Compiling unicode-normalization v0.1.17
    Compiling socket2 v0.3.19
    Compiling rand v0.4.6
    Compiling atty v0.2.14
    Compiling quote v1.0.9
-   Compiling idna v0.2.2
    Compiling simplog v1.2.2
+   Compiling idna v0.2.2
    Compiling backtrace v0.3.56
    Compiling clap v2.33.3
    Compiling tempdir v0.3.7
@@ -91,42 +91,42 @@
    Compiling provider v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/provider)
    Compiling flowcore v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/flowcore)
    Compiling flowc v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/flowc)
-    Finished dev [unoptimized + debuginfo] target(s) in 1m 11s
-------> Target 'build-flowc' done in 72 seconds
+    Finished dev [unoptimized + debuginfo] target(s) in 1m 10s
+------> Target 'build-flowc' done in 71 seconds
 <------ Target 'clippy' starting
     Checking cfg-if v1.0.0
-    Checking matches v0.1.8
     Checking tinyvec_macros v0.1.0
+    Checking matches v0.1.8
     Checking adler v1.0.2
-    Checking percent-encoding v2.1.0
     Checking gimli v0.23.0
+    Checking percent-encoding v2.1.0
     Checking object v0.23.0
-    Checking openssl-probe v0.1.2
     Checking rustc-demangle v0.1.18
+    Checking openssl-probe v0.1.2
+    Checking itoa v0.4.7
     Checking linked-hash-map v0.5.4
     Checking unicode-width v0.1.8
-    Checking itoa v0.4.7
     Checking strsim v0.8.0
-    Checking dtoa v0.4.8
-    Checking ansi_term v0.11.0
-    Checking vec_map v0.8.2
     Checking remove_dir_all v0.5.3
+    Checking vec_map v0.8.2
+    Checking ansi_term v0.11.0
+    Checking dtoa v0.4.8
     Checking glob v0.2.11
-    Checking unicode-bidi v0.3.4
     Checking tinyvec v1.1.1
+    Checking unicode-bidi v0.3.4
     Checking form_urlencoded v1.0.1
     Checking addr2line v0.14.1
     Checking textwrap v0.11.0
     Checking yaml-rust v0.4.5
     Checking libc v0.2.92
-    Checking bitflags v1.2.1
     Checking log v0.4.14
+    Checking bitflags v1.2.1
     Checking ryu v1.0.5
     Checking unicode-normalization v0.1.17
     Checking miniz_oxide v0.4.4
     Checking simplog v1.2.2
-    Checking openssl-sys v0.9.61
     Checking libz-sys v1.1.2
+    Checking openssl-sys v0.9.61
     Checking socket2 v0.3.19
     Checking rand v0.4.6
     Checking atty v0.2.14
@@ -140,86 +140,86 @@
     Checking serde v1.0.125
     Checking url v2.2.1
     Checking serde_json v1.0.64
-    Checking toml v0.4.10
     Checking serde_yaml v0.8.17
+    Checking toml v0.4.10
     Checking simpath v2.2.1
     Checking provider v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/provider)
     Checking flowcore v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/flowcore)
     Checking flowc v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/flowc)
-    Finished dev [unoptimized + debuginfo] target(s) in 19.26s
+    Finished dev [unoptimized + debuginfo] target(s) in 19.21s
 ------> Target 'clippy' done in 19 seconds
 <------ Target 'build' starting
  Downloading crates ...
-  Downloaded memoffset v0.6.3
-  Downloaded miniz_oxide v0.3.7
-  Downloaded multimap v0.8.3
-  Downloaded num-bigint v0.2.6
-  Downloaded scoped_threadpool v0.1.9
-  Downloaded error-chain v0.10.0
-  Downloaded num-iter v0.1.42
-  Downloaded num-rational v0.3.2
-  Downloaded bytemuck v1.5.1
-  Downloaded crc32fast v1.2.1
-  Downloaded crossbeam-utils v0.8.3
-  Downloaded crossbeam-channel v0.5.0
   Downloaded color_quant v1.1.0
-  Downloaded jpeg-decoder v0.1.22
-  Downloaded png v0.16.8
-  Downloaded weezl v0.1.4
-  Downloaded num_cpus v1.10.1
-  Downloaded parity-wasm v0.41.0
-  Downloaded scopeguard v1.1.0
-  Downloaded zmq v0.9.2
-  Downloaded zmq-sys v0.11.0
-  Downloaded tiff v0.5.0
-  Downloaded toml v0.2.1
-  Downloaded num-rational v0.2.4
-  Downloaded metadeps v1.1.2
-  Downloaded rayon v1.5.0
-  Downloaded lzw v0.10.0
-  Downloaded adler32 v1.2.0
-  Downloaded rayon-core v1.9.0
-  Downloaded image v0.23.10
-  Downloaded crossbeam-epoch v0.9.3
   Downloaded crossbeam-deque v0.8.0
+  Downloaded crossbeam-epoch v0.9.3
+  Downloaded num-rational v0.2.4
+  Downloaded png v0.16.8
+  Downloaded rayon-core v1.9.0
+  Downloaded num-rational v0.3.2
+  Downloaded error-chain v0.10.0
+  Downloaded bytemuck v1.5.1
   Downloaded gif v0.11.2
+  Downloaded adler32 v1.2.0
   Downloaded deflate v0.8.6
-  Downloaded wasmi-validation v0.3.0
+  Downloaded memoffset v0.6.3
+  Downloaded lzw v0.10.0
+  Downloaded miniz_oxide v0.3.7
+  Downloaded num_cpus v1.10.1
+  Downloaded num-iter v0.1.42
+  Downloaded scopeguard v1.1.0
+  Downloaded scoped_threadpool v0.1.9
+  Downloaded tiff v0.5.0
+  Downloaded crossbeam-channel v0.5.0
+  Downloaded zmq-sys v0.11.0
+  Downloaded metadeps v1.1.2
+  Downloaded weezl v0.1.4
+  Downloaded toml v0.2.1
+  Downloaded zmq v0.9.2
+  Downloaded multimap v0.8.3
+  Downloaded parity-wasm v0.41.0
+  Downloaded image v0.23.10
+  Downloaded crossbeam-utils v0.8.3
+  Downloaded crc32fast v1.2.1
+  Downloaded jpeg-decoder v0.1.22
+  Downloaded rayon v1.5.0
   Downloaded memory_units v0.3.0
   Downloaded wasmi v0.6.2
+  Downloaded wasmi-validation v0.3.0
+  Downloaded num-bigint v0.2.6
    Compiling syn v1.0.67
    Compiling lazy_static v1.4.0
-   Compiling scopeguard v1.1.0
    Compiling rayon-core v1.9.0
+   Compiling scopeguard v1.1.0
    Compiling adler32 v1.2.0
    Compiling toml v0.2.1
    Compiling crc32fast v1.2.1
-   Compiling byteorder v1.4.3
    Compiling error-chain v0.10.0
+   Compiling byteorder v1.4.3
+   Compiling weezl v0.1.4
    Compiling lzw v0.10.0
    Compiling color_quant v1.1.0
-   Compiling weezl v0.1.4
    Compiling bytemuck v1.5.1
    Compiling scoped_threadpool v0.1.9
-   Compiling zmq v0.9.2
    Compiling parity-wasm v0.41.0
+   Compiling zmq v0.9.2
    Compiling memory_units v0.3.0
    Compiling crossbeam-utils v0.8.3
    Compiling num-traits v0.2.14
-   Compiling memoffset v0.6.3
    Compiling num-integer v0.1.44
+   Compiling memoffset v0.6.3
    Compiling rayon v1.5.0
-   Compiling num-iter v0.1.42
    Compiling num-rational v0.3.2
+   Compiling num-iter v0.1.42
    Compiling num-bigint v0.2.6
    Compiling num-rational v0.2.4
    Compiling miniz_oxide v0.3.7
-   Compiling deflate v0.8.6
    Compiling metadeps v1.1.2
+   Compiling deflate v0.8.6
    Compiling gif v0.11.2
    Compiling wasmi-validation v0.3.0
-   Compiling openssl-sys v0.9.61
    Compiling libz-sys v1.1.2
+   Compiling openssl-sys v0.9.61
    Compiling tiff v0.5.0
    Compiling zmq-sys v0.11.0
    Compiling num_cpus v1.10.1
@@ -248,22 +248,22 @@
    Compiling flowcore v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/flowcore)
    Compiling flowc v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/flowc)
    Compiling flowr v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/flowr)
-    Finished dev [unoptimized + debuginfo] target(s) in 10m 01s
-------> Target 'build' done in 602 seconds
+    Finished dev [unoptimized + debuginfo] target(s) in 9m 55s
+------> Target 'build' done in 595 seconds
 <------ Target 'test' starting
  Downloading crates ...
-  Downloaded lock_api v0.4.2
-  Downloaded smallvec v1.6.1
   Downloaded instant v0.1.9
-  Downloaded serial_test_derive v0.5.1
-  Downloaded parking_lot_core v0.8.3
+  Downloaded lock_api v0.4.2
   Downloaded parking_lot v0.11.1
+  Downloaded smallvec v1.6.1
+  Downloaded serial_test_derive v0.5.1
   Downloaded serial_test v0.5.1
+  Downloaded parking_lot_core v0.8.3
    Compiling smallvec v1.6.1
    Compiling instant v0.1.9
    Compiling lock_api v0.4.2
-   Compiling libz-sys v1.1.2
    Compiling openssl-sys v0.9.61
+   Compiling libz-sys v1.1.2
    Compiling parking_lot_core v0.8.3
    Compiling zmq-sys v0.11.0
    Compiling curl-sys v0.4.41+curl-7.75.0
@@ -279,7 +279,7 @@
    Compiling flowsamples v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/samples)
    Compiling flowc v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/flowc)
    Compiling flowr v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/flowr)
-    Finished test [unoptimized + debuginfo] target(s) in 41.57s
+    Finished test [unoptimized + debuginfo] target(s) in 42.47s
      Running target/debug/deps/flowclib-a877865ed552c813
 
 running 135 tests
@@ -464,7 +464,7 @@ test hello_world ... ok
 test line_echo ... ok
 test print_args ... ok
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.53s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.94s
 
      Running target/debug/deps/flowc_loader_tests-dfc32d461382315a
 
@@ -488,7 +488,7 @@ test load_fibonacci_libs_on_the_web ... ok
 test load_hello_world_from_context ... ok
 test load_reverse_echo_from_toml ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.97s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.94s
 
      Running target/debug/deps/helper-ded69150caae5edb
 
@@ -636,7 +636,7 @@ test test::test_reverse_echo ... ok
 test test::test_router ... ok
 test test::test_tokenizer ... ok
 
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 35.69s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 35.75s
 
      Running target/debug/deps/flowstdlib-8c7ef3d19ac4beca
 
@@ -741,7 +741,13 @@ test lib_provider::test::get_invalid_provider ... ok
 test lib_provider::test::resolve_path ... ok
 test lib_provider::test::resolve_web_path ... ok
 
-test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.11s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.26s
+
+   Doc-tests flowstdlib
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
    Doc-tests flowcore
 
@@ -749,22 +755,6 @@ running 1 test
 test src/lib.rs - Implementation (line 75) ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
-
-   Doc-tests flowclib
-
-running 4 tests
-test src/lib/compiler/loader.rs - compiler::loader::load (line 43) ... ok
-test src/lib/dumper/dump_flow.rs - dumper::dump_flow::dump_flow (line 18) ... ok
-test src/lib/dumper/dump_tables.rs - dumper::dump_tables::dump_functions (line 128) ... ok
-test src/lib/dumper/dump_tables.rs - dumper::dump_tables::dump_tables (line 17) ... ok
-
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.99s
-
-   Doc-tests flowstdlib
-
-running 0 tests
-
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
    Doc-tests flowrlib
 
@@ -778,8 +768,18 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 running 1 test
 test src/lib_provider.rs - lib_provider::MetaProvider (line 55) ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.70s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s
 
-------> Target 'test' done in 100 seconds
-2021-04-11 09:31:37 [INFO] (mdbook::book): Book building has started
-2021-04-11 09:31:37 [INFO] (mdbook::book): Running the html backend
+   Doc-tests flowclib
+
+running 4 tests
+test src/lib/compiler/loader.rs - compiler::loader::load (line 43) ... ok
+test src/lib/dumper/dump_flow.rs - dumper::dump_flow::dump_flow (line 18) ... ok
+test src/lib/dumper/dump_tables.rs - dumper::dump_tables::dump_functions (line 128) ... ok
+test src/lib/dumper/dump_tables.rs - dumper::dump_tables::dump_tables (line 17) ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.98s
+
+------> Target 'test' done in 102 seconds
+2021-04-12 09:32:11 [INFO] (mdbook::book): Book building has started
+2021-04-12 09:32:11 [INFO] (mdbook::book): Running the html backend
