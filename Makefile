@@ -30,41 +30,33 @@ ifeq ($(UNAME), Darwin)
 endif
 
 .PHONY: common-config
-common-config: clippy-config wasm-config
-
-.PHONY: clippy-config
-clippy-config:
+common-config:
 	@echo "	Installing clippy command using rustup"
 	@export PATH="$$PATH:~/.cargo/bin"
 	@rustup --quiet component add clippy
-
-.PHONY: wasm-config
-wasm-config:
 	@echo "	Installing wasm32 target using rustup"
 	@rustup --quiet target add wasm32-unknown-unknown
 
 .PHONY: config-darwin
 config-darwin:
 	@echo "	Installing macos specific dependencies using brew"
-	@brew install cmake graphviz zmq
+	@brew install cmake zmq
 
 .PHONY: config-linux
 config-linux:
 ifneq ($(YUM),)
 	@echo "	Installing linux specific dependencies using $(YUM)"
-	@sudo yum --color=auto --quiet install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel || true
-	@sudo yum --color=auto --quiet install graphviz zeromq zeromq-devel || true
+	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel zeromq zeromq-devel || true
 else ifneq ($(APTGET),)
 	@echo "	Installing linux specific dependencies using $(APTGET)"
-	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
-	@sudo apt-get -y install graphviz libzmq3-dev || true
+	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev libzmq3-dev || true
 else
 	@echo "	Neither apt-get nor yum detected for installing linux specific dependencies"
 endif
 
 ################### Doc ####################
 .PHONY: docs
-docs: build-flowc mdbook book code-docs trim-docs
+docs: build-flowc book code-docs trim-docs
 
 .PHONY: mdbook
 mdbook:
@@ -73,28 +65,35 @@ mdbook:
 	@cargo install mdbook-linkcheck
 
 .PHONY: book
-book: target/html/index.html
+book: dot mdbook target/html/index.html
+
+dot:
+ifeq ($(DOT),)
+	@echo "        Installing 'graphviz' package to be able to convert 'dot' files created by flowc into SVG files for use in docs"
+ifeq ($(UNAME), Linux)
+ifneq ($(YUM),)
+	@sudo yum install graphviz
+else ifneq ($(APTGET),)
+	@sudo apt-get -y install graphviz
+else
+	@echo "	Neither apt-get nor yum detected for installing 'graphviz' on linux"
+endif
+endif
+ifeq ($(UNAME), Darwin)
+	@brew install graphviz
+endif
+else
+	@echo "        'dot' command was already installed, skipping 'graphviz' installation"
+endif
 
 target/html/index.html: $(MARKDOWN) $(SVGS)
 	@RUST_LOG=info time mdbook build
 
 %.dot.svg: %.dot
-ifeq ($(DOT),)
-	@echo "        Install 'graphviz' to be able to convert 'dot' files created by flowc into SVG files for use in docs"
-else
 	@dot -Tsvg -O $<
 	@echo "        Generated $@ from $<"
-endif
 
-# This target can be used to manually generate new SVG files from dot files
-.PHONY: dot-graphs
-dot-graphs:
-ifeq ($(DOT),)
-	@echo "        'dot' not available, skipping 'dot-graphs'. Install 'graphviz' to use."
-else
-	@echo "        Generated .svg files for all dot graphs found"
-	@find . -name \*.dot -type f -exec dot -Tsvg -O {} \;
-endif
+%.dot:
 
 .PHONY: trim-docs
 trim-docs:
