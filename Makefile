@@ -39,8 +39,10 @@ common-config:
 
 .PHONY: config-darwin
 config-darwin:
+ifneq ($(TRAVIS_OS_NAME), "macos")
 	@echo "	Installing macos specific dependencies using brew"
-	@brew install cmake zmq
+	@brew install zmq
+endif
 
 .PHONY: config-linux
 config-linux:
