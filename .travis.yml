@@ -48,7 +48,7 @@ script:
     if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
       travis_wait 50 make clippy build test docs
     else
-      travis_wait 50 make clippy test
+      travis_wait 50 make clippy build test
     fi
 
 # Docs are only on linux builds of master branch with stable rust
