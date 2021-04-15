@@ -1,11 +1,11 @@
  Downloading crates ...
-  Downloaded serial_test v0.5.1
+  Downloaded parking_lot_core v0.8.3
   Downloaded lock_api v0.4.3
-  Downloaded instant v0.1.9
-  Downloaded smallvec v1.6.1
   Downloaded serial_test_derive v0.5.1
   Downloaded parking_lot v0.11.1
-  Downloaded parking_lot_core v0.8.3
+  Downloaded serial_test v0.5.1
+  Downloaded smallvec v1.6.1
+  Downloaded instant v0.1.9
    Compiling smallvec v1.6.1
    Compiling instant v0.1.9
    Compiling lock_api v0.4.3
@@ -26,7 +26,7 @@
    Compiling flowsamples v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/samples)
    Compiling flowc v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/flowc)
    Compiling flowr v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/flowr)
-    Finished test [unoptimized + debuginfo] target(s) in 43.46s
+    Finished test [unoptimized + debuginfo] target(s) in 43.38s
      Running target/debug/deps/flowclib-1a12b74f9089b515
 
 running 135 tests
@@ -211,7 +211,7 @@ test hello_world ... ok
 test line_echo ... ok
 test print_args ... ok
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.94s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.33s
 
      Running target/debug/deps/flowc_loader_tests-bde683fba35bc300
 
@@ -235,7 +235,7 @@ test load_fibonacci_libs_on_the_web ... ok
 test load_hello_world_from_context ... ok
 test load_reverse_echo_from_toml ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.87s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.98s
 
      Running target/debug/deps/helper-4b48142c41392fb7
 
@@ -383,7 +383,7 @@ test test::test_reverse_echo ... ok
 test test::test_router ... ok
 test test::test_tokenizer ... ok
 
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 36.16s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 36.73s
 
      Running target/debug/deps/flowstdlib-2649390f4671aed4
 
@@ -463,7 +463,7 @@ test math::sqrt::test::test_81 ... ok
 test math::subtract::test::test_subtract ... ok
 test test::check_manifest ... ok
 
-test result: ok. 74 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 74 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
      Running target/debug/deps/flowstdlib-9368b044aae1432c
 
@@ -488,7 +488,13 @@ test lib_provider::test::get_invalid_provider ... ok
 test lib_provider::test::resolve_path ... ok
 test lib_provider::test::resolve_web_path ... ok
 
-test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.29s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.14s
+
+   Doc-tests flowstdlib
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
    Doc-tests flowrlib
 
@@ -497,11 +503,12 @@ test src/lib/coordinator.rs - coordinator::Coordinator (line 90) ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
 
-   Doc-tests flowstdlib
+   Doc-tests provider
 
-running 0 tests
+running 1 test
+test src/lib_provider.rs - lib_provider::MetaProvider (line 55) ... ok
 
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
 
    Doc-tests flowcore
 
@@ -518,12 +525,5 @@ test src/lib/dumper/dump_flow.rs - dumper::dump_flow::dump_flow (line 18) ... ok
 test src/lib/dumper/dump_tables.rs - dumper::dump_tables::dump_functions (line 128) ... ok
 test src/lib/dumper/dump_tables.rs - dumper::dump_tables::dump_tables (line 17) ... ok
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.13s
-
-   Doc-tests provider
-
-running 1 test
-test src/lib_provider.rs - lib_provider::MetaProvider (line 55) ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.21s
 
