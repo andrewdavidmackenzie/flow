@@ -29,6 +29,9 @@ ifeq ($(UNAME), Darwin)
 	@$(MAKE) config-darwin
 endif
 
+.PHONY: common-config
+common-config: clippy-config wasm-config
+
 .PHONY: clippy-config
 clippy-config:
 	@echo "	Installing clippy command using rustup"
@@ -39,18 +42,6 @@ clippy-config:
 wasm-config:
 	@echo "	Installing wasm32 target using rustup"
 	@rustup --quiet target add wasm32-unknown-unknown
-
-.PHONY: book-config
-book-config:
-	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
-	@cargo install mdbook
-	@cargo install mdbook-linkcheck
-
-.PHONY: common-config
-common-config: no-book-config book-config
-
-.PHONY: no-book-config
-no-book-config: clippy-config wasm-config
 
 .PHONY: config-darwin
 config-darwin:
@@ -73,7 +64,13 @@ endif
 
 ################### Doc ####################
 .PHONY: docs
-docs: build-flowc book code-docs trim-docs
+docs: build-flowc mdbook book code-docs trim-docs
+
+.PHONY: mdbook
+mdbook:
+	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
+	@cargo install mdbook
+	@cargo install mdbook-linkcheck
 
 .PHONY: book
 book: target/html/index.html
