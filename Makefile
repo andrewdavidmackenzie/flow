@@ -1,7 +1,7 @@
 DOT := $(shell command -v dot 2> /dev/null)
 KCOV := $(shell command -v kcov 2> /dev/null)
 APTGET := $(shell command -v apt-get 2> /dev/null)
-ZMQ := $(shell command -v brew ls --versions zmq 2> /dev/null)
+ZMQ := $(shell brew ls --versions zmq 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
 MARKDOWN = $(shell find . -type f -name \*.md)
 DOTS = $(shell find . -type f -name \*.dot)
@@ -44,24 +44,21 @@ common-config:
 .PHONY: config-darwin
 config-darwin:
 	@echo "Installing macos specific dependencies using brew"
-ifeq ($(ZMQ),)
 	@echo "	Installing zmq"
 	@brew install --quiet zmq
-else
-	@echo "	Detected zmq ($(ZMQ)), attempting upgrade"
-	@brew upgrade --quiet zmq
-endif
 
 .PHONY: config-linux
 config-linux:
 ifneq ($(YUM),)
-	@echo "	Installing linux specific dependencies using $(YUM)"
-	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel zeromq zeromq-devel || true
+	@echo "Installing linux specific dependencies using $(YUM)"
+	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel || true
+	@sudo yum install zeromq zeromq-devel || true
 else ifneq ($(APTGET),)
-	@echo "	Installing linux specific dependencies using $(APTGET)"
-	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev libzmq3-dev || true
+	@echo "Installing linux specific dependencies using $(APTGET)"
+	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
+	@sudo apt-get -y install libzmq3-dev || true
 else
-	@echo "	Neither apt-get nor yum detected for installing linux specific dependencies"
+	@echo "Neither apt-get nor yum detected for installing linux specific dependencies"
 	@exit 1
 endif
 
