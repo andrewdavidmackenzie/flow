@@ -5,7 +5,7 @@ ZMQ := $(shell brew ls --versions zmq 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
 MARKDOWN = $(shell find . -type f -name \*.md)
 DOTS = $(shell find . -type f -name \*.dot)
-SVGS = $(patsubst %.dot,%.dot.svg,$(DOTS))
+SVGS = $(patsubst %.dot,target/html/%.dot.svg,$(DOTS))
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 2> /dev/null)
 #TARGET_ARCH := armv7-unknown-linux-musleabihf # For arm7 targets
@@ -95,7 +95,7 @@ endif
 target/html/index.html: $(MARKDOWN) $(SVGS)
 	@RUST_LOG=info time mdbook build
 
-%.dot.svg: %.dot
+target/html/%.dot.svg: %.dot
 	@dot -Tsvg -O $<
 	@echo "        Generated $@ from $<"
 
