@@ -23,15 +23,12 @@ all: clippy build test docs
 .PHONY: config
 config: common-config
 	@echo "Detected $(UNAME)"
-# Only need to install these dependencies if NOT running in Travis CI - as they will be installed using add-ons there
-#ifndef $(CI)
 ifeq ($(UNAME), Linux)
 	@$(MAKE) config-linux
 endif
 ifeq ($(UNAME), Darwin)
 	@$(MAKE) config-darwin
 endif
-#endif
 
 .PHONY: common-config
 common-config:
