@@ -87,6 +87,7 @@ else ifneq ($(APTGET),)
 	@sudo apt-get -y install graphviz
 else
 	@echo "	Neither apt-get nor yum detected for installing 'graphviz' on linux"
+	@exit 1
 endif
 endif
 ifeq ($(UNAME), Darwin)
