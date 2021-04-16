@@ -1,6 +1,7 @@
 DOT := $(shell command -v dot 2> /dev/null)
 KCOV := $(shell command -v kcov 2> /dev/null)
 APTGET := $(shell command -v apt-get 2> /dev/null)
+ZMQ := $(shell command -v brew ls --versions zmq 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
 MARKDOWN = $(shell find . -type f -name \*.md)
 DOTS = $(shell find . -type f -name \*.dot)
@@ -22,26 +23,32 @@ all: clippy build test docs
 .PHONY: config
 config: common-config
 	@echo "Detected $(UNAME)"
+# Only need to install these dependencies if NOT running in Travis CI - as they will be installed using add-ons there
+ifndef $(CI)
 ifeq ($(UNAME), Linux)
 	@$(MAKE) config-linux
 endif
 ifeq ($(UNAME), Darwin)
 	@$(MAKE) config-darwin
 endif
+endif
 
 .PHONY: common-config
 common-config:
-	@echo "	Installing clippy command using rustup"
+	@echo "Installing clippy command using rustup"
 	@export PATH="$$PATH:~/.cargo/bin"
 	@rustup --quiet component add clippy
-	@echo "	Installing wasm32 target using rustup"
+	@echo "Installing wasm32 target using rustup"
 	@rustup --quiet target add wasm32-unknown-unknown
 
 .PHONY: config-darwin
 config-darwin:
-ifndef $(CI)
-	@echo "	Installing macos specific dependencies using brew"
-	@brew install zmq
+	@echo "Installing macos specific dependencies using brew"
+ifeq ($(ZMQ),)
+	@echo "	Installing zmq"
+	@brew install --quiet zmq
+else
+	@echo "	Detected zmq, skipping install"
 endif
 
 .PHONY: config-linux
