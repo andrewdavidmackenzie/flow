@@ -44,12 +44,12 @@ common-config:
 .PHONY: config-darwin
 config-darwin:
 	@echo "Installing macos specific dependencies using brew"
-#ifeq ($(ZMQ),)
+ifeq ($(ZMQ),)
 	@echo "	Installing zmq"
 	@brew install --quiet zmq
-#else
-#	@echo "	Detected zmq, skipping install"
-#endif
+else
+	@echo "	Detected zmq, skipping install"
+endif
 
 .PHONY: config-linux
 config-linux:
