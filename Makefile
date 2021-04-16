@@ -24,14 +24,14 @@ all: clippy build test docs
 config: common-config
 	@echo "Detected $(UNAME)"
 # Only need to install these dependencies if NOT running in Travis CI - as they will be installed using add-ons there
-ifndef $(CI)
+#ifndef $(CI)
 ifeq ($(UNAME), Linux)
 	@$(MAKE) config-linux
 endif
 ifeq ($(UNAME), Darwin)
 	@$(MAKE) config-darwin
 endif
-endif
+#endif
 
 .PHONY: common-config
 common-config:
@@ -44,12 +44,12 @@ common-config:
 .PHONY: config-darwin
 config-darwin:
 	@echo "Installing macos specific dependencies using brew"
-ifeq ($(ZMQ),)
+#ifeq ($(ZMQ),)
 	@echo "	Installing zmq"
 	@brew install --quiet zmq
-else
-	@echo "	Detected zmq, skipping install"
-endif
+#else
+#	@echo "	Detected zmq, skipping install"
+#endif
 
 .PHONY: config-linux
 config-linux:
