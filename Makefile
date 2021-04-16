@@ -48,7 +48,8 @@ ifeq ($(ZMQ),)
 	@echo "	Installing zmq"
 	@brew install --quiet zmq
 else
-	@echo "	Detected zmq, skipping install"
+	@echo "	Detected zmq ($(ZMQ)), attempting upgrade"
+	@brew upgrade --quite zmq
 endif
 
 .PHONY: config-linux
