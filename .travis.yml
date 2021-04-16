@@ -30,6 +30,9 @@ addons:
       - binutils-dev # Required by kcov for code coverage
       - libbfd-dev # Required by kcov for code coverage
       - graphviz # Required to build graphs for the book for gh_pages
+  homebrew:
+    packages:
+      - zmq
 
 before_install:
   - make config
