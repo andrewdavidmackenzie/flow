@@ -35,8 +35,7 @@ addons:
       - zmq
 
 before_install:
-  - |
-      make config
+  - make config
 
 # Docs are only built on linux as Mac OS is too slow
 script:
