@@ -39,7 +39,7 @@ common-config:
 
 .PHONY: config-darwin
 config-darwin:
-ifneq ($(TRAVIS_OS_NAME), "macos")
+ifndef $(CI)
 	@echo "	Installing macos specific dependencies using brew"
 	@brew install zmq
 endif
@@ -54,6 +54,7 @@ else ifneq ($(APTGET),)
 	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev libzmq3-dev || true
 else
 	@echo "	Neither apt-get nor yum detected for installing linux specific dependencies"
+	@exit 1
 endif
 
 ################### Doc ####################
