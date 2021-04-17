@@ -12,7 +12,7 @@ edition = "2018"
 build = "build.rs"
 
 # Files to exclude from packaging and publishing
-exclude = [".gitignore", "Cargo.lock", "flow.toml"]
+exclude = [".gitignore", "Cargo.lock"]
 
 [[bin]]
 name = "flowstdlib"
