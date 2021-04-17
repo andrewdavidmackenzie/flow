@@ -303,7 +303,7 @@ dependencies = [
 
 [[package]]
 name = "flowsamples"
-version = "0.34.8"
+version = "0.34.9"
 dependencies = [
  "serial_test",
  "simpath",
@@ -311,7 +311,7 @@ dependencies = [
 
 [[package]]
 name = "flowstdlib"
-version = "0.34.8"
+version = "0.34.9"
 dependencies = [
  "error-chain 0.12.4",
  "flow_impl_derive",
