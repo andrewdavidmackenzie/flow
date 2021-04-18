@@ -172,6 +172,12 @@ command line option, in order for the compiler to be able to find the library <c
 <p>It can be compiled and linked natively to a run-time, or each function can be compiled to WebAssembly and loaded 
 from file by the run-time. The directory containing the compiled WebAssembly <code>.wasm</code> files must be reachable 
 by the run-time in order to load the functions at run-time.</p>
+<p>If you are using it as part of the larger <code>flow</code> workspace then you just need the <code>flow</code> project root directory
+in your <code>FLOW_LIB_PATH</code> as described above (or added to the lib search part using the <code>-L &lt;dir&gt;</code> option).</p>
+<p>If you download it using <code>cargo download</code> (or similar) and build separately, then you can get more information on how
+to use it running <code>cargo run</code> (but it amounts to use of <code>FLOW_LIB_PATH</code> and <code>-L</code> as above).</p>
+<p>If you install it using <code>cargo</code> then it will build the <code>flowstdlib</code> binary and add it to your path, and you can run it
+directly using <code>&gt; flowstdlib</code> and it will print the same usage hints as described above.</p>
 
                     </main>
 
