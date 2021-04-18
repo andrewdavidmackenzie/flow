@@ -311,7 +311,7 @@ dependencies = [
 
 [[package]]
 name = "flowstdlib"
-version = "0.34.10"
+version = "0.34.11"
 dependencies = [
  "error-chain 0.12.4",
  "flow_impl_derive",
