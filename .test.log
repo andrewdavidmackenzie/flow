@@ -1,10 +1,10 @@
  Downloading crates ...
   Downloaded lock_api v0.4.3
   Downloaded serial_test_derive v0.5.1
-  Downloaded instant v0.1.9
-  Downloaded smallvec v1.6.1
   Downloaded serial_test v0.5.1
+  Downloaded instant v0.1.9
   Downloaded parking_lot v0.11.1
+  Downloaded smallvec v1.6.1
   Downloaded parking_lot_core v0.8.3
    Compiling smallvec v1.6.1
    Compiling instant v0.1.9
@@ -22,11 +22,11 @@
    Compiling simpath v2.2.1
    Compiling provider v0.34.7 (/home/travis/build/andrewdavidmackenzie/flow/provider)
    Compiling flowcore v0.34.8 (/home/travis/build/andrewdavidmackenzie/flow/flowcore)
-   Compiling flowstdlib v0.34.10 (/home/travis/build/andrewdavidmackenzie/flow/flowstdlib)
+   Compiling flowstdlib v0.34.11 (/home/travis/build/andrewdavidmackenzie/flow/flowstdlib)
    Compiling flowsamples v0.34.10 (/home/travis/build/andrewdavidmackenzie/flow/samples)
    Compiling flowc v0.34.8 (/home/travis/build/andrewdavidmackenzie/flow/flowc)
    Compiling flowr v0.34.8 (/home/travis/build/andrewdavidmackenzie/flow/flowr)
-    Finished test [unoptimized + debuginfo] target(s) in 46.36s
+    Finished test [unoptimized + debuginfo] target(s) in 47.71s
      Running target/debug/deps/flowclib-ed76c73d62373c30
 
 running 135 tests
@@ -211,7 +211,7 @@ test hello_world ... ok
 test line_echo ... ok
 test print_args ... ok
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.77s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.32s
 
      Running target/debug/deps/flowc_loader_tests-38f2998e2b1118b7
 
@@ -235,7 +235,7 @@ test load_fibonacci_libs_on_the_web ... ok
 test load_hello_world_from_context ... ok
 test load_reverse_echo_from_toml ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.96s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.12s
 
      Running target/debug/deps/helper-c8b287d9c99e980b
 
@@ -295,7 +295,7 @@ test url_helper::test::relative_path_in_arg_converted_to_absolute_path_and_schem
 
 test result: ok. 46 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running target/debug/deps/flowrlib-8cf416b7b63a7c51
+     Running target/debug/deps/flowrlib-2ed3c3f4ec5ad69d
 
 running 43 tests
 test coordinator::test::create_submission ... ok
@@ -344,7 +344,7 @@ test run_state::test::state_transitions::waiting_to_ready_on_input ... ok
 
 test result: ok. 43 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running target/debug/deps/flowr-7ce07cd5229fdb68
+     Running target/debug/deps/flowr-37b1066c944addf5
 
 running 5 tests
 test cli_runtime_client::test::test_arg_passing ... ok
@@ -355,7 +355,7 @@ test cli_runtime_client::test::test_stdout ... ok
 
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running target/debug/deps/flowr_loader_tests-556513cee9922c95
+     Running target/debug/deps/flowr_loader_tests-53121ddf10080adf
 
 running 3 tests
 test load_manifest_from_file ... ok
@@ -383,9 +383,9 @@ test test::test_reverse_echo ... ok
 test test::test_router ... ok
 test test::test_tokenizer ... ok
 
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 36.43s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 36.69s
 
-     Running target/debug/deps/flowstdlib-f07da32e54a50904
+     Running target/debug/deps/flowstdlib-31c37227d6f92122
 
 running 74 tests
 test control::compare_switch::test::float_equals ... ok
@@ -465,7 +465,7 @@ test test::check_manifest ... ok
 
 test result: ok. 74 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running target/debug/deps/flowstdlib-cd7c41c813bf2655
+     Running target/debug/deps/flowstdlib-ed8a9b3d65a40f2a
 
 running 0 tests
 
@@ -488,7 +488,13 @@ test lib_provider::test::get_invalid_provider ... ok
 test lib_provider::test::resolve_path ... ok
 test lib_provider::test::resolve_web_path ... ok
 
-test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.07s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.27s
+
+   Doc-tests flowstdlib
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
    Doc-tests flowclib
 
@@ -498,20 +504,7 @@ test src/lib/dumper/dump_flow.rs - dumper::dump_flow::dump_flow (line 18) ... ok
 test src/lib/dumper/dump_tables.rs - dumper::dump_tables::dump_functions (line 128) ... ok
 test src/lib/dumper/dump_tables.rs - dumper::dump_tables::dump_tables (line 17) ... ok
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.52s
-
-   Doc-tests flowstdlib
-
-running 0 tests
-
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-
-   Doc-tests provider
-
-running 1 test
-test src/lib_provider.rs - lib_provider::MetaProvider (line 55) ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.76s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.81s
 
    Doc-tests flowcore
 
@@ -526,4 +519,11 @@ running 1 test
 test src/lib/coordinator.rs - coordinator::Coordinator (line 90) ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+   Doc-tests provider
+
+running 1 test
+test src/lib_provider.rs - lib_provider::MetaProvider (line 55) ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s
 
