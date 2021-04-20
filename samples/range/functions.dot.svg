@@ -24,26 +24,26 @@
 </a>
 </g>
 </g>
-<!-- r3 -->
+<!-- r2 -->
 <g id="node2" class="node">
-<title>r3</title>
-<g id="a_node2"><a xlink:href="file:///home/travis/build/andrewdavidmackenzie/flow/flowstdlib/control/compare_switch/compare_switch.html" xlink:title="compare (#3)">
+<title>r2</title>
+<g id="a_node2"><a xlink:href="file:///home/travis/build/andrewdavidmackenzie/flow/flowstdlib/control/compare_switch/compare_switch.html" xlink:title="compare (#2)">
 <ellipse fill="#ff7f50" stroke="#000000" cx="413.3956" cy="-305" rx="74.9875" ry="18"/>
-<text text-anchor="middle" x="413.3956" y="-301.3" font-family="Times,serif" font-size="14.00" fill="#000000">compare (#3)</text>
+<text text-anchor="middle" x="413.3956" y="-301.3" font-family="Times,serif" font-size="14.00" fill="#000000">compare (#2)</text>
 </a>
 </g>
 </g>
-<!-- r4&#45;&gt;r3 -->
+<!-- r4&#45;&gt;r2 -->
 <g id="edge1" class="edge">
-<title>r4:e&#45;&gt;r3:n</title>
+<title>r4:e&#45;&gt;r2:n</title>
 <path fill="none" stroke="#000000" d="M99.3956,-378C103.4508,-378 99.462,-362.7997 102.3956,-360 150.0904,-314.4836 386.49,-384.4505 411.2901,-332.7981"/>
 <polygon fill="#000000" stroke="#000000" points="414.7165,-333.5122 413.3956,-323 407.8728,-332.0415 414.7165,-333.5122"/>
 <text text-anchor="middle" x="400.8956" y="-326.8" font-family="Times,serif" font-size="14.00" fill="#000000">left</text>
 <text text-anchor="middle" x="123.3956" y="-381.8" font-family="Times,serif" font-size="14.00" fill="#000000">/json/1</text>
 </g>
-<!-- r3&#45;&gt;r3 -->
+<!-- r2&#45;&gt;r2 -->
 <g id="edge4" class="edge">
-<title>r3:s&#45;&gt;r3:n</title>
+<title>r2:s&#45;&gt;r2:n</title>
 <path fill="none" stroke="#000000" d="M413.3956,-287C462.3101,-278 560.139,-278 560.139,-305 560.139,-330.2598 474.5144,-331.8878 423.424,-324.6233"/>
 <polygon fill="#000000" stroke="#000000" points="423.8264,-321.1429 413.3956,-323 422.7079,-328.053 423.8264,-321.1429"/>
 <text text-anchor="middle" x="425.8956" y="-326.8" font-family="Times,serif" font-size="14.00" fill="#000000">left</text>
@@ -58,25 +58,25 @@
 </a>
 </g>
 </g>
-<!-- r3&#45;&gt;r0 -->
+<!-- r2&#45;&gt;r0 -->
 <g id="edge3" class="edge">
-<title>r3:e&#45;&gt;r0:n</title>
+<title>r2:e&#45;&gt;r0:n</title>
 <path fill="none" stroke="#000000" d="M488.3956,-305C521.7082,-305 505.3956,-265.3126 505.3956,-232 505.3956,-232 505.3956,-232 505.3956,-89.5 505.3956,-59.301 453.3331,-79.6635 440.3175,-62.1048"/>
 <polygon fill="#000000" stroke="#000000" points="443.5357,-60.6342 437.3956,-52 436.8112,-62.5787 443.5357,-60.6342"/>
 <text text-anchor="middle" x="520.3956" y="-308.8" font-family="Times,serif" font-size="14.00" fill="#000000">/right&#45;lte</text>
 </g>
-<!-- r2 -->
+<!-- r3 -->
 <g id="node5" class="node">
-<title>r2</title>
-<g id="a_node5"><a xlink:href="file:///home/travis/build/andrewdavidmackenzie/flow/flowstdlib/math/add/add.html" xlink:title="add (#2)">
+<title>r3</title>
+<g id="a_node5"><a xlink:href="file:///home/travis/build/andrewdavidmackenzie/flow/flowstdlib/math/add/add.html" xlink:title="add (#3)">
 <ellipse fill="#ff7f50" stroke="#000000" cx="188.3956" cy="-145" rx="51.1914" ry="18"/>
-<text text-anchor="middle" x="188.3956" y="-141.3" font-family="Times,serif" font-size="14.00" fill="#000000">add (#2)</text>
+<text text-anchor="middle" x="188.3956" y="-141.3" font-family="Times,serif" font-size="14.00" fill="#000000">add (#3)</text>
 </a>
 </g>
 </g>
-<!-- r3&#45;&gt;r2 -->
+<!-- r2&#45;&gt;r3 -->
 <g id="edge5" class="edge">
-<title>r3:e&#45;&gt;r2:n</title>
+<title>r2:e&#45;&gt;r3:n</title>
 <path fill="none" stroke="#000000" d="M488.3956,-305C496.3956,-305 492.8427,-293.6501 488.3956,-287 410.1542,-169.9986 199.0449,-300.5833 188.7834,-173.0662"/>
 <polygon fill="#000000" stroke="#000000" points="192.2781,-172.8578 188.3956,-163 185.2833,-173.1274 192.2781,-172.8578"/>
 <text text-anchor="middle" x="181.3956" y="-166.8" font-family="Times,serif" font-size="14.00" fill="#000000">i1</text>
@@ -91,33 +91,33 @@
 </a>
 </g>
 </g>
-<!-- r3&#45;&gt;r1 -->
+<!-- r2&#45;&gt;r1 -->
 <g id="edge6" class="edge">
-<title>r3:sw&#45;&gt;r1:ne</title>
+<title>r2:sw&#45;&gt;r1:ne</title>
 <path fill="none" stroke="#000000" d="M395.3956,-287C376.6103,-268.2147 354.0999,-290.4279 338.3956,-269 308.5581,-228.2877 418.4334,-204.2927 404.3172,-170.3651"/>
 <polygon fill="#000000" stroke="#000000" points="407.0301,-168.1397 398.3956,-162 401.3168,-172.1842 407.0301,-168.1397"/>
 <text text-anchor="middle" x="424.3956" y="-165.8" font-family="Times,serif" font-size="14.00" fill="#000000">control</text>
 <text text-anchor="middle" x="429.3956" y="-275.8" font-family="Times,serif" font-size="14.00" fill="#000000">/right&#45;gte</text>
 </g>
-<!-- initializerr3_1 -->
-<!-- initializerr3_1&#45;&gt;r3 -->
+<!-- initializerr2_1 -->
+<!-- initializerr2_1&#45;&gt;r2 -->
 <g id="edge2" class="edge">
-<title>initializerr3_1&#45;&gt;r3:ne</title>
+<title>initializerr2_1&#45;&gt;r2:ne</title>
 <path fill="none" stroke="#0000ff" stroke-dasharray="1,5" d="M437.6081,-432.7263C446.4532,-407.2076 457.9642,-360.6892 437.9156,-330.9207"/>
 <polygon fill="#0000ff" stroke="#0000ff" points="440.4533,-328.4963 431.3956,-323 435.0488,-332.9451 440.4533,-328.4963"/>
 <text text-anchor="middle" x="453.3956" y="-374.3" font-family="Times,serif" font-size="14.00" fill="#000000">1</text>
 </g>
-<!-- r2&#45;&gt;r3 -->
+<!-- r3&#45;&gt;r2 -->
 <g id="edge9" class="edge">
-<title>r2:se&#45;&gt;r3:ne</title>
+<title>r3:se&#45;&gt;r2:ne</title>
 <path fill="none" stroke="#000000" d="M205.3956,-128C216.1893,-117.2063 225.0909,-123.7127 239.7411,-128 241.7067,-128.5752 487.1558,-285.2033 488.139,-287 488.139,-287 456.2208,-307.25 440.2618,-317.375"/>
 <polygon fill="#000000" stroke="#000000" points="437.9646,-314.6874 431.3956,-323 441.7146,-320.5982 437.9646,-314.6874"/>
 <text text-anchor="middle" x="449.3956" y="-326.8" font-family="Times,serif" font-size="14.00" fill="#000000">right</text>
 <text text-anchor="middle" x="222.8956" y="-116.8" font-family="Times,serif" font-size="14.00" fill="#000000">/sum</text>
 </g>
-<!-- r2&#45;&gt;r2 -->
+<!-- r3&#45;&gt;r3 -->
 <g id="edge8" class="edge">
-<title>r2:se&#45;&gt;r2:ne</title>
+<title>r3:se&#45;&gt;r3:ne</title>
 <path fill="none" stroke="#000000" d="M205.3956,-128C246.5108,-119 311.7411,-119 311.7411,-145 311.7411,-168.9688 256.3049,-170.8413 215.4309,-163.9365"/>
 <polygon fill="#000000" stroke="#000000" points="215.8777,-160.4582 205.3956,-162 214.5513,-167.3314 215.8777,-160.4582"/>
 <text text-anchor="middle" x="198.3956" y="-165.8" font-family="Times,serif" font-size="14.00" fill="#000000">i2</text>
@@ -129,10 +129,10 @@
 <path fill="none" stroke="#000000" d="M433.3956,-145C471.3734,-145 442.997,-101.4944 438.086,-62.3542"/>
 <polygon fill="#000000" stroke="#000000" points="441.5532,-61.745 437.3956,-52 434.5687,-62.2107 441.5532,-61.745"/>
 </g>
-<!-- initializerr2_1 -->
-<!-- initializerr2_1&#45;&gt;r2 -->
+<!-- initializerr3_1 -->
+<!-- initializerr3_1&#45;&gt;r3 -->
 <g id="edge7" class="edge">
-<title>initializerr2_1&#45;&gt;r2:w</title>
+<title>initializerr3_1&#45;&gt;r3:w</title>
 <path fill="none" stroke="#0000ff" stroke-dasharray="1,5" d="M176.7577,-287.2659C147.7096,-248.2929 85.597,-157.7241 126.443,-146.2111"/>
 <polygon fill="#0000ff" stroke="#0000ff" points="126.8917,-149.6824 136.3956,-145 126.046,-142.7337 126.8917,-149.6824"/>
 <text text-anchor="middle" x="154.3956" y="-228.3" font-family="Times,serif" font-size="14.00" fill="#000000">1</text>
