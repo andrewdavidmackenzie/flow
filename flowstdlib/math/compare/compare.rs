@@ -33,7 +33,7 @@ impl Implementation for Compare {
                     output_map.insert("lte".into(), Value::Bool(a.as_u64() <= b.as_u64()));
                     output_map.insert("gte".into(), Value::Bool(a.as_u64() >= b.as_u64()));
                     return (Some(Value::Object(output_map)), RUN_AGAIN);
-                } else if a.is_f64() || b.is_f64() {
+                } else {
                     match (a.as_f64(), b.as_f64()) {
                         (Some(l), Some(r)) => {
                             output_map
@@ -168,14 +168,5 @@ mod test {
             None, output,
             "Should not be able to compare different types"
         );
-    }
-
-    #[test]
-    fn incompatible_types() {
-        let comparer = Compare {};
-
-        let (output, again) = comparer.run(&[json!(-2), json!(u64::MAX)]);
-        assert_eq!(true, again);
-        assert_eq!(None, output, "Should not be able to compare i64 with u64");
     }
 }
