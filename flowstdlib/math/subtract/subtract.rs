@@ -15,40 +15,30 @@ impl Implementation for Subtract {
         let input_b = &inputs[1];
         let mut value: Option<Value> = None;
 
-        let mut output_map = serde_json::Map::new();
-
         match (&input_a, &input_b) {
             (&Number(ref a), &Number(ref b)) => {
-                // TODO mixed signed and unsigned integers
                 if a.is_i64() && b.is_i64() {
-                    // both signed integers
                     let result = a.as_i64().unwrap().checked_sub(b.as_i64().unwrap());
                     if let Some(int) = result {
                         value = Some(Value::Number(serde_json::Number::from(int)));
                     }
                 } else if a.is_u64() && b.is_u64() {
-                    // both unsigned integers
                     let result = a.as_u64().unwrap().checked_sub(b.as_u64().unwrap());
                     if let Some(int) = result {
                         value = Some(Value::Number(serde_json::Number::from(int)));
                     }
                 } else if a.is_f64() && b.is_f64() {
-                    // both float
                     let result = a.as_f64().unwrap() - b.as_f64().unwrap();
                     if let Some(f) = serde_json::Number::from_f64(result) {
                         value = Some(Value::Number(f))
                     }
-                } else {
-                    println!(
-                        "Unsupported input type combination in 'subtract': {:?}",
-                        inputs
-                    );
                 };
             }
             (_, _) => {}
         }
 
         if let Some(diff) = value {
+            let mut output_map = serde_json::Map::new();
             output_map.insert("diff".into(), diff);
             output_map.insert("i1".into(), input_a.clone());
             output_map.insert("i2".into(), input_b.clone());
@@ -64,6 +54,7 @@ impl Implementation for Subtract {
 
 #[cfg(test)]
 mod test {
+    use serde_json::json;
     use serde_json::Value;
     use serde_json::Value::Number;
 
@@ -139,15 +130,27 @@ mod test {
             ),
             (
                 // overflow minus
-                Number(serde_json::Number::from(-4_660_046_610_375_530_309 as i64)),
-                Number(serde_json::Number::from(7_540_113_804_746_346_429 as i64)),
+                Number(serde_json::Number::from(-4_660_046_610_375_530_309_i64)),
+                Number(serde_json::Number::from(7_540_113_804_746_346_429_i64)),
                 None,
             ),
             (
                 // overflow positive
-                Number(serde_json::Number::from(4_660_046_610_375_530_309 as i64)),
-                Number(serde_json::Number::from(-7_540_113_804_746_346_429 as i64)),
+                Number(serde_json::Number::from(4_660_046_610_375_530_309_i64)),
+                Number(serde_json::Number::from(-7_540_113_804_746_346_429_i64)),
                 None,
+            ),
+            (
+                // force u64
+                Number(serde_json::Number::from(i64::MAX as u64 + 10)),
+                Number(serde_json::Number::from(i64::MAX as u64 + 1)),
+                Some(Number(serde_json::Number::from(9))),
+            ),
+            (
+                // floats
+                json!(5.0),
+                json!(3.0),
+                Some(json!(2.0)),
             ),
         ];
 
