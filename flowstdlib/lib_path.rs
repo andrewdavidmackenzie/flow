@@ -28,3 +28,33 @@ pub fn check_flow_lib_path() {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::path::Path;
+
+    use super::check_flow_lib_path;
+
+    #[test]
+    fn flow_pib_path() {
+        std::env::set_var("FLOW_LIB_PATH", Path::new(env!("CARGO_MANIFEST_DIR")));
+        check_flow_lib_path();
+    }
+
+    #[test]
+    fn flow_pib_path_parent() {
+        std::env::set_var(
+            "FLOW_LIB_PATH",
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .expect("Couldn't get parent dir"),
+        );
+        check_flow_lib_path();
+    }
+
+    #[test]
+    fn no_flow_pib_path() {
+        std::env::remove_var("FLOW_LIB_PATH");
+        check_flow_lib_path();
+    }
+}
