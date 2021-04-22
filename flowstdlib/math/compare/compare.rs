@@ -51,7 +51,6 @@ impl Implementation for Compare {
             (_, _) => {}
         }
 
-        println!("Unsupported types in 'compare': {:?}", inputs);
         (None, RUN_AGAIN)
     }
 }
@@ -120,6 +119,15 @@ mod test {
                 false, // gt
                 true,  //lte
                 false, // gte
+            ),
+            (
+                json!((i64::MAX as u64 + 10) as u64), // force a u64
+                json!((i64::MAX as u64 + 20) as u64), // force a u64
+                false,                                // eq
+                true,                                 // lt
+                false,                                // gt
+                true,                                 //lte
+                false,                                // gte
             ),
         ]
     }
