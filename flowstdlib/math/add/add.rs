@@ -11,16 +11,12 @@ pub struct Add;
 
 impl Implementation for Add {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let mut sum = None;
-
         let input_a = &inputs[0];
         let input_b = &inputs[1];
 
-        let mut output_map = serde_json::Map::new();
-
-        match (&input_a, &input_b) {
+        let sum = match (&input_a, &input_b) {
             (&Number(ref a), &Number(ref b)) => {
-                sum = if a.is_i64() && b.is_i64() {
+                if a.is_i64() && b.is_i64() {
                     match a.as_i64().unwrap().checked_add(b.as_i64().unwrap()) {
                         Some(result) => Some(Value::Number(serde_json::Number::from(result))),
                         None => None,
@@ -36,21 +32,19 @@ impl Implementation for Add {
                             .unwrap(),
                     ))
                 } else {
-                    println!("Unsupported input types combination in 'add': {:?}", inputs);
                     None
-                };
+                }
             }
-            (_, _) => println!("Unsupported input types in 'add': {:?}", inputs),
-        }
+            (_, _) => None,
+        };
 
         if let Some(total) = sum {
+            let mut output_map = serde_json::Map::new();
             output_map.insert("sum".into(), total);
             output_map.insert("i1".into(), input_a.clone());
             output_map.insert("i2".into(), input_b.clone());
 
-            let output = Value::Object(output_map);
-
-            (Some(output), RUN_AGAIN)
+            (Some(Value::Object(output_map)), RUN_AGAIN)
         } else {
             (None, RUN_AGAIN)
         }
@@ -59,6 +53,7 @@ impl Implementation for Add {
 
 #[cfg(test)]
 mod test {
+    use serde_json::json;
     use serde_json::Value;
     use serde_json::Value::Number;
 
@@ -134,14 +129,38 @@ mod test {
             ),
             (
                 // overflow positive
-                Number(serde_json::Number::from(4_660_046_610_375_530_309 as i64)),
-                Number(serde_json::Number::from(7_540_113_804_746_346_429 as i64)),
+                Number(serde_json::Number::from(4_660_046_610_375_530_309_i64)),
+                Number(serde_json::Number::from(7_540_113_804_746_346_429_i64)),
                 None,
             ),
             (
                 // overflow negative
-                Number(serde_json::Number::from(-4_660_046_610_375_530_309 as i64)),
-                Number(serde_json::Number::from(-7_540_113_804_746_346_429 as i64)),
+                Number(serde_json::Number::from(-4_660_046_610_375_530_309_i64)),
+                Number(serde_json::Number::from(-7_540_113_804_746_346_429_i64)),
+                None,
+            ),
+            (
+                // force u64
+                Number(serde_json::Number::from(i64::MAX as u64 + 10)),
+                Number(serde_json::Number::from(i64::MAX as u64 + 10)),
+                None,
+            ),
+            (
+                // force u64 and i64
+                Number(serde_json::Number::from(i64::MAX as u64 + 10)),
+                Number(serde_json::Number::from(-1_i64)),
+                None,
+            ),
+            (
+                // float
+                json!(1.0),
+                json!(1.0),
+                Some(json!(2.0)),
+            ),
+            (
+                // invalid
+                json!(1.0),
+                json!("aaa"),
                 None,
             ),
         ];
