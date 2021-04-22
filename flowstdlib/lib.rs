@@ -203,4 +203,10 @@ mod test {
         let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("manifest.json");
         assert!(manifest.exists());
     }
+
+    #[test]
+    fn get_manifest_test() {
+        let manifest = super::get_manifest().expect("Could not get manifest");
+        assert_eq!(manifest.locators.len(), 31);
+    }
 }
