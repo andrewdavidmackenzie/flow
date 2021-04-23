@@ -60,6 +60,7 @@ endif
 ifneq ($(BREW),)
 	@brew install graphviz
 endif
+endif
 
 target/html/index.html: $(SVGS)
 	@mdbook build
