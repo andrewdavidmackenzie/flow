@@ -2,10 +2,9 @@ DOT := $(shell command -v dot 2> /dev/null)
 APTGET := $(shell command -v apt-get 2> /dev/null)
 ZMQ := $(shell brew ls --versions zmq 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
+BREW := $(shell command -v brew 2> /dev/null)
 DOTS = $(shell find . -type f -name \*.dot)
 SVGS = $(patsubst %.dot,target/html/%.dot.svg,$(DOTS))
-UNAME := $(shell uname)
-ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 2> /dev/null)
 export SHELL := /bin/bash
 
 .PHONY: all
@@ -14,12 +13,20 @@ all: clippy build test docs
 ########## Configure Dependencies ############
 .PHONY: config
 config: common-config
-	@echo "Detected $(UNAME)"
-ifeq ($(UNAME), Linux)
-	@$(MAKE) config-linux
+ifneq ($(BREW),)
+	@echo "Installing Mac OS X specific dependencies using $(BREW)"
+	@echo "	Installing zmq"
+	@brew install --quiet zmq
 endif
-ifeq ($(UNAME), Darwin)
-	@$(MAKE) config-darwin
+ifneq ($(YUM),)
+	@echo "Installing linux specific dependencies using $(YUM)"
+	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel || true
+	@sudo yum install zeromq zeromq-devel || true
+endif
+ifneq ($(APTGET),)
+	@echo "Installing linux specific dependencies using $(APTGET)"
+	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
+	@sudo apt-get -y install libzmq3-dev || true
 endif
 
 .PHONY: common-config
@@ -30,30 +37,16 @@ common-config:
 	@echo "Installing wasm32 target using rustup"
 	@rustup --quiet target add wasm32-unknown-unknown
 
-.PHONY: config-darwin
-config-darwin:
-	@echo "Installing macos specific dependencies using brew"
-	@echo "	Installing zmq"
-	@brew install --quiet zmq
-
-.PHONY: config-linux
-config-linux:
-ifneq ($(YUM),)
-	@echo "Installing linux specific dependencies using $(YUM)"
-	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel || true
-	@sudo yum install zeromq zeromq-devel || true
-else ifneq ($(APTGET),)
-	@echo "Installing linux specific dependencies using $(APTGET)"
-	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
-	@sudo apt-get -y install libzmq3-dev || true
-else
-	@echo "Neither apt-get nor yum detected for installing linux specific dependencies"
-	@exit 1
-endif
-
-################### Doc ####################
+################### Docs ####################
 .PHONY: docs
 docs: build-flowc book code-docs trim-docs
+
+.PHONY: book
+book: dot mdbook target/html/index.html
+
+.PHONY: code-docs
+code-docs:
+	@cargo doc --workspace --quiet --no-deps --target-dir=target/html/code
 
 .PHONY: mdbook
 mdbook:
@@ -61,31 +54,21 @@ mdbook:
 	@cargo install mdbook
 	@cargo install mdbook-linkcheck
 
-.PHONY: book
-book: dot mdbook target/html/index.html
-
 dot:
 ifeq ($(DOT),)
 	@echo "        Installing 'graphviz' package to be able to convert 'dot' files created by flowc into SVG files for use in docs"
-ifeq ($(UNAME), Linux)
 ifneq ($(YUM),)
 	@sudo yum install graphviz
-else ifneq ($(APTGET),)
+endif
+ifneq ($(APTGET),)
 	@sudo apt-get -y install graphviz
-else
-	@echo "	Neither apt-get nor yum detected for installing 'graphviz' on linux"
-	@exit 1
 endif
-endif
-ifeq ($(UNAME), Darwin)
+ifneq ($(BREW),)
 	@brew install graphviz
-endif
-else
-	@echo "        'dot' command was already installed, skipping 'graphviz' installation"
 endif
 
 target/html/index.html: $(SVGS)
-	@RUST_LOG=info time mdbook build
+	@mdbook build
 
 target/html/%.dot.svg: %.dot
 	@dot -Tsvg -O $<
@@ -116,10 +99,6 @@ trim-docs:
 	@rm -rf target/html/flowc/tests/test-libs
 	@rm -rf target/html/code/debug
 	@find target/html -depth -type d -empty -delete
-
-.PHONY: code-docs
-code-docs:
-	@cargo doc --workspace --quiet --no-deps --target-dir=target/html/code
 
 #################### Build ####################
 # This is currently needed as the build of the workspace also builds flowstdlib, which requires
