@@ -2,7 +2,6 @@ DOT := $(shell command -v dot 2> /dev/null)
 APTGET := $(shell command -v apt-get 2> /dev/null)
 ZMQ := $(shell brew ls --versions zmq 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
-MARKDOWN = $(shell find . -type f -name \*.md)
 DOTS = $(shell find . -type f -name \*.dot)
 SVGS = $(patsubst %.dot,target/html/%.dot.svg,$(DOTS))
 UNAME := $(shell uname)
@@ -85,7 +84,7 @@ else
 	@echo "        'dot' command was already installed, skipping 'graphviz' installation"
 endif
 
-target/html/index.html: $(MARKDOWN) $(SVGS)
+target/html/index.html: $(SVGS)
 	@RUST_LOG=info time mdbook build
 
 target/html/%.dot.svg: %.dot
