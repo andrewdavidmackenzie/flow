@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Select which data to output, based on a boolean control value.
@@ -24,5 +24,52 @@ impl Implementation for Select {
         }
 
         (Some(Value::Object(output_map)), RUN_AGAIN)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use serde_json::json;
+
+    use flowcore::{Implementation, RUN_AGAIN};
+
+    #[test]
+    fn test_select_first() {
+        let selector = &super::Select {} as &dyn Implementation;
+        let inputs = vec![json!("A"), json!("B"), json!(true)];
+        let (output, run_again) = selector.run(&inputs);
+        assert_eq!(run_again, RUN_AGAIN);
+
+        assert!(output.is_some());
+        let value = output.unwrap();
+        let map = value.as_object().unwrap();
+        assert_eq!(
+            map.get("select_i1").expect("No 'select_i1' value in map"),
+            &json!("A")
+        );
+        assert_eq!(
+            map.get("select_i2").expect("No 'select_i2' value in map"),
+            &json!("B")
+        );
+    }
+
+    #[test]
+    fn test_select_second() {
+        let selector = &super::Select {} as &dyn Implementation;
+        let inputs = vec![json!("A"), json!("B"), json!(false)];
+        let (output, run_again) = selector.run(&inputs);
+        assert_eq!(run_again, RUN_AGAIN);
+
+        assert!(output.is_some());
+        let value = output.unwrap();
+        let map = value.as_object().unwrap();
+        assert_eq!(
+            map.get("select_i1").expect("No 'select_i1' value in map"),
+            &json!("B")
+        );
+        assert_eq!(
+            map.get("select_i2").expect("No 'select_i2' value in map"),
+            &json!("A")
+        );
     }
 }
