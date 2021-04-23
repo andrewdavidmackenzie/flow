@@ -1,5 +1,4 @@
 DOT := $(shell command -v dot 2> /dev/null)
-KCOV := $(shell command -v kcov 2> /dev/null)
 APTGET := $(shell command -v apt-get 2> /dev/null)
 ZMQ := $(shell brew ls --versions zmq 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
