@@ -25,3 +25,30 @@ impl Implementation for Reverse {
         (value, RUN_AGAIN)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use serde_json::json;
+
+    use flowcore::{Implementation, RUN_AGAIN};
+
+    #[test]
+    fn test_reverse() {
+        let reverser = &super::Reverse {} as &dyn Implementation;
+        let inputs = vec![json!("Hello"), json!(true)];
+        let (output, run_again) = reverser.run(&inputs);
+        assert_eq!(run_again, RUN_AGAIN);
+
+        assert!(output.is_some());
+        let value = output.unwrap();
+        let map = value.as_object().unwrap();
+        assert_eq!(
+            map.get("original").expect("No 'original' value in map"),
+            &json!("Hello")
+        );
+        assert_eq!(
+            map.get("reversed").expect("No 'reversed' value in map"),
+            &json!("olleH")
+        );
+    }
+}
