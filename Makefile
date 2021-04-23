@@ -12,7 +12,15 @@ all: clippy build test docs
 
 ########## Configure Dependencies ############
 .PHONY: config
-config: common-config
+config:
+	@echo "Installing clippy command using rustup"
+	@export PATH="$$PATH:~/.cargo/bin"
+	@rustup --quiet component add clippy
+	@echo "Installing wasm32 target using rustup"
+	@rustup --quiet target add wasm32-unknown-unknown
+	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
+	@cargo install mdbook
+	@cargo install mdbook-linkcheck
 ifneq ($(BREW),)
 	@echo "Installing Mac OS X specific dependencies using $(BREW)"
 	@echo "	Installing zmq"
@@ -29,30 +37,16 @@ ifneq ($(APTGET),)
 	@sudo apt-get -y install libzmq3-dev || true
 endif
 
-.PHONY: common-config
-common-config:
-	@echo "Installing clippy command using rustup"
-	@export PATH="$$PATH:~/.cargo/bin"
-	@rustup --quiet component add clippy
-	@echo "Installing wasm32 target using rustup"
-	@rustup --quiet target add wasm32-unknown-unknown
-
 ################### Docs ####################
 .PHONY: docs
 docs: build-flowc book code-docs trim-docs
 
 .PHONY: book
-book: dot mdbook target/html/index.html
+book: dot target/html/index.html
 
 .PHONY: code-docs
 code-docs:
 	@cargo doc --workspace --quiet --no-deps --target-dir=target/html/code
-
-.PHONY: mdbook
-mdbook:
-	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
-	@cargo install mdbook
-	@cargo install mdbook-linkcheck
 
 dot:
 ifeq ($(DOT),)
