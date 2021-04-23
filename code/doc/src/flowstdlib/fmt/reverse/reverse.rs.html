@@ -28,6 +28,33 @@
 <span id="25">25</span>
 <span id="26">26</span>
 <span id="27">27</span>
+<span id="28">28</span>
+<span id="29">29</span>
+<span id="30">30</span>
+<span id="31">31</span>
+<span id="32">32</span>
+<span id="33">33</span>
+<span id="34">34</span>
+<span id="35">35</span>
+<span id="36">36</span>
+<span id="37">37</span>
+<span id="38">38</span>
+<span id="39">39</span>
+<span id="40">40</span>
+<span id="41">41</span>
+<span id="42">42</span>
+<span id="43">43</span>
+<span id="44">44</span>
+<span id="45">45</span>
+<span id="46">46</span>
+<span id="47">47</span>
+<span id="48">48</span>
+<span id="49">49</span>
+<span id="50">50</span>
+<span id="51">51</span>
+<span id="52">52</span>
+<span id="53">53</span>
+<span id="54">54</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">json</span>;
 <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">Value</span>;
@@ -54,6 +81,33 @@
         }
 
         (<span class="ident">value</span>, <span class="ident">RUN_AGAIN</span>)
+    }
+}
+
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
+<span class="kw">mod</span> <span class="ident">test</span> {
+    <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">json</span>;
+
+    <span class="kw">use</span> <span class="ident">flowcore</span>::{<span class="ident">Implementation</span>, <span class="ident">RUN_AGAIN</span>};
+
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">test_reverse</span>() {
+        <span class="kw">let</span> <span class="ident">reverser</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw">super</span>::<span class="ident">Reverse</span> {} <span class="kw">as</span> <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Implementation</span>;
+        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="macro">json</span><span class="macro">!</span>(<span class="string">&quot;Hello&quot;</span>), <span class="macro">json</span><span class="macro">!</span>(<span class="bool-val">true</span>)];
+        <span class="kw">let</span> (<span class="ident">output</span>, <span class="ident">run_again</span>) <span class="op">=</span> <span class="ident">reverser</span>.<span class="ident">run</span>(<span class="kw-2">&amp;</span><span class="ident">inputs</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">run_again</span>, <span class="ident">RUN_AGAIN</span>);
+
+        <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">output</span>.<span class="ident">is_some</span>());
+        <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="ident">output</span>.<span class="ident">unwrap</span>();
+        <span class="kw">let</span> <span class="ident">map</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">as_object</span>().<span class="ident">unwrap</span>();
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">map</span>.<span class="ident">get</span>(<span class="string">&quot;original&quot;</span>).<span class="ident">expect</span>(<span class="string">&quot;No &#39;original&#39; value in map&quot;</span>),
+            <span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>(<span class="string">&quot;Hello&quot;</span>)
+        );
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">map</span>.<span class="ident">get</span>(<span class="string">&quot;reversed&quot;</span>).<span class="ident">expect</span>(<span class="string">&quot;No &#39;reversed&#39; value in map&quot;</span>),
+            <span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>(<span class="string">&quot;olleH&quot;</span>)
+        );
     }
 }
 </pre></div>

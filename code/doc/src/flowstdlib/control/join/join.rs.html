@@ -18,6 +18,23 @@
 <span id="15">15</span>
 <span id="16">16</span>
 <span id="17">17</span>
+<span id="18">18</span>
+<span id="19">19</span>
+<span id="20">20</span>
+<span id="21">21</span>
+<span id="22">22</span>
+<span id="23">23</span>
+<span id="24">24</span>
+<span id="25">25</span>
+<span id="26">26</span>
+<span id="27">27</span>
+<span id="28">28</span>
+<span id="29">29</span>
+<span id="30">30</span>
+<span id="31">31</span>
+<span id="32">32</span>
+<span id="33">33</span>
+<span id="34">34</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">Value</span>;
 
@@ -32,8 +49,25 @@
 <span class="kw">impl</span> <span class="ident">Implementation</span> <span class="kw">for</span> <span class="ident">Join</span> {
     <span class="kw">fn</span> <span class="ident">run</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">inputs</span>: <span class="kw-2">&amp;</span>[<span class="ident">Value</span>]) <span class="op">-</span><span class="op">&gt;</span> (<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span>, <span class="ident">RunAgain</span>) {
         <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">inputs</span>[<span class="number">0</span>].<span class="ident">clone</span>());
-
+        <span class="comment">// second input of &#39;control&#39; is not used, it just &quot;controls&quot; the execution of this process</span>
+        <span class="comment">// via it&#39;s availability</span>
         (<span class="ident">data</span>, <span class="ident">RUN_AGAIN</span>)
+    }
+}
+
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
+<span class="kw">mod</span> <span class="ident">test</span> {
+    <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">json</span>;
+
+    <span class="kw">use</span> <span class="ident">flowcore</span>::{<span class="ident">Implementation</span>, <span class="ident">RUN_AGAIN</span>};
+
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">test_join</span>() {
+        <span class="kw">let</span> <span class="ident">joiner</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw">super</span>::<span class="ident">Join</span> {} <span class="kw">as</span> <span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">Implementation</span>;
+        <span class="kw">let</span> <span class="ident">inputs</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="macro">json</span><span class="macro">!</span>(<span class="number">42</span>), <span class="macro">json</span><span class="macro">!</span>(<span class="string">&quot;OK&quot;</span>)];
+        <span class="kw">let</span> (<span class="ident">output</span>, <span class="ident">run_again</span>) <span class="op">=</span> <span class="ident">joiner</span>.<span class="ident">run</span>(<span class="kw-2">&amp;</span><span class="ident">inputs</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">run_again</span>, <span class="ident">RUN_AGAIN</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">output</span>.<span class="ident">expect</span>(<span class="string">&quot;No output value&quot;</span>), <span class="macro">json</span><span class="macro">!</span>(<span class="number">42</span>));
     }
 }
 </pre></div>

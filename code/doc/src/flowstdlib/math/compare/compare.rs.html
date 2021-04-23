@@ -162,6 +162,17 @@
 <span id="159">159</span>
 <span id="160">160</span>
 <span id="161">161</span>
+<span id="162">162</span>
+<span id="163">163</span>
+<span id="164">164</span>
+<span id="165">165</span>
+<span id="166">166</span>
+<span id="167">167</span>
+<span id="168">168</span>
+<span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">value</span>::<span class="ident">Value</span>::<span class="ident">Number</span>;
 <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">Value</span>;
@@ -170,7 +181,7 @@
 <span class="kw">use</span> <span class="ident">flowcore</span>::{<span class="ident">Implementation</span>, <span class="ident">RunAgain</span>, <span class="ident">RUN_AGAIN</span>};
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">FlowImpl</span>)]</span>
-<span class="doccomment">/// Compare two input values and output different boolean values depending on if the comparison</span>
+<span class="doccomment">/// Compare two input values and output a map of booleans depending on if the comparison</span>
 <span class="doccomment">/// is equal, greater than, greater than or equal, less than or less than or equal.</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Compare</span>;
@@ -190,15 +201,15 @@
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;gt&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value</span>::<span class="ident">Bool</span>(<span class="ident">a</span>.<span class="ident">as_i64</span>() <span class="op">&gt;</span> <span class="ident">b</span>.<span class="ident">as_i64</span>()));
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;lte&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value</span>::<span class="ident">Bool</span>(<span class="ident">a</span>.<span class="ident">as_i64</span>() <span class="op">&lt;</span><span class="op">=</span> <span class="ident">b</span>.<span class="ident">as_i64</span>()));
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;gte&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value</span>::<span class="ident">Bool</span>(<span class="ident">a</span>.<span class="ident">as_i64</span>() <span class="op">&gt;</span><span class="op">=</span> <span class="ident">b</span>.<span class="ident">as_i64</span>()));
-                    (<span class="prelude-val">Some</span>(<span class="ident">Value</span>::<span class="ident">Object</span>(<span class="ident">output_map</span>)), <span class="ident">RUN_AGAIN</span>)
+                    <span class="kw">return</span> (<span class="prelude-val">Some</span>(<span class="ident">Value</span>::<span class="ident">Object</span>(<span class="ident">output_map</span>)), <span class="ident">RUN_AGAIN</span>);
                 } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">a</span>.<span class="ident">is_u64</span>() <span class="op">&amp;&amp;</span> <span class="ident">b</span>.<span class="ident">is_u64</span>() {
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;equal&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value</span>::<span class="ident">Bool</span>(<span class="ident">a</span>.<span class="ident">as_u64</span>() <span class="op">=</span><span class="op">=</span> <span class="ident">b</span>.<span class="ident">as_u64</span>()));
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;lt&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value</span>::<span class="ident">Bool</span>(<span class="ident">a</span>.<span class="ident">as_u64</span>() <span class="op">&lt;</span> <span class="ident">b</span>.<span class="ident">as_u64</span>()));
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;gt&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value</span>::<span class="ident">Bool</span>(<span class="ident">a</span>.<span class="ident">as_u64</span>() <span class="op">&gt;</span> <span class="ident">b</span>.<span class="ident">as_u64</span>()));
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;lte&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value</span>::<span class="ident">Bool</span>(<span class="ident">a</span>.<span class="ident">as_u64</span>() <span class="op">&lt;</span><span class="op">=</span> <span class="ident">b</span>.<span class="ident">as_u64</span>()));
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;gte&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value</span>::<span class="ident">Bool</span>(<span class="ident">a</span>.<span class="ident">as_u64</span>() <span class="op">&gt;</span><span class="op">=</span> <span class="ident">b</span>.<span class="ident">as_u64</span>()));
-                    (<span class="prelude-val">Some</span>(<span class="ident">Value</span>::<span class="ident">Object</span>(<span class="ident">output_map</span>)), <span class="ident">RUN_AGAIN</span>)
-                } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">a</span>.<span class="ident">is_f64</span>() <span class="op">|</span><span class="op">|</span> <span class="ident">b</span>.<span class="ident">is_f64</span>() {
+                    <span class="kw">return</span> (<span class="prelude-val">Some</span>(<span class="ident">Value</span>::<span class="ident">Object</span>(<span class="ident">output_map</span>)), <span class="ident">RUN_AGAIN</span>);
+                } <span class="kw">else</span> {
                     <span class="kw">match</span> (<span class="ident">a</span>.<span class="ident">as_f64</span>(), <span class="ident">b</span>.<span class="ident">as_f64</span>()) {
                         (<span class="prelude-val">Some</span>(<span class="ident">l</span>), <span class="prelude-val">Some</span>(<span class="ident">r</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                             <span class="ident">output_map</span>
@@ -207,26 +218,16 @@
                             <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;gt&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value</span>::<span class="ident">Bool</span>(<span class="ident">l</span> <span class="op">&gt;</span> <span class="ident">r</span>));
                             <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;lte&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value</span>::<span class="ident">Bool</span>(<span class="ident">l</span> <span class="op">&lt;</span><span class="op">=</span> <span class="ident">r</span>));
                             <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;gte&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value</span>::<span class="ident">Bool</span>(<span class="ident">l</span> <span class="op">&gt;</span><span class="op">=</span> <span class="ident">r</span>));
-                            (<span class="prelude-val">Some</span>(<span class="ident">Value</span>::<span class="ident">Object</span>(<span class="ident">output_map</span>)), <span class="ident">RUN_AGAIN</span>)
+                            <span class="kw">return</span> (<span class="prelude-val">Some</span>(<span class="ident">Value</span>::<span class="ident">Object</span>(<span class="ident">output_map</span>)), <span class="ident">RUN_AGAIN</span>);
                         }
-                        (<span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                            <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Could not get as f64&quot;</span>);
-                            (<span class="prelude-val">None</span>, <span class="ident">RUN_AGAIN</span>)
-                        }
+                        (<span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> {}
                     }
-                } <span class="kw">else</span> {
-                    <span class="macro">println</span><span class="macro">!</span>(
-                        <span class="string">&quot;Unsupported input types combination in &#39;compare&#39;: {:?}&quot;</span>,
-                        <span class="ident">inputs</span>
-                    );
-                    (<span class="prelude-val">None</span>, <span class="ident">RUN_AGAIN</span>)
                 }
             }
-            (<span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;Unsupported input types in &#39;compare&#39;: {:?}&quot;</span>, <span class="ident">inputs</span>);
-                (<span class="prelude-val">None</span>, <span class="ident">RUN_AGAIN</span>)
-            }
+            (<span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> {}
         }
+
+        (<span class="prelude-val">None</span>, <span class="ident">RUN_AGAIN</span>)
     }
 }
 
@@ -269,8 +270,8 @@
             ),
             <span class="comment">// f64</span>
             (
-                <span class="macro">json</span><span class="macro">!</span>(<span class="number">3.14</span>),
-                <span class="macro">json</span><span class="macro">!</span>(<span class="number">3.14</span>),
+                <span class="macro">json</span><span class="macro">!</span>(<span class="number">3.15</span>),
+                <span class="macro">json</span><span class="macro">!</span>(<span class="number">3.15</span>),
                 <span class="bool-val">true</span>,  <span class="comment">// eq</span>
                 <span class="bool-val">false</span>, <span class="comment">// lt</span>
                 <span class="bool-val">false</span>, <span class="comment">// gt</span>
@@ -278,7 +279,7 @@
                 <span class="bool-val">true</span>,  <span class="comment">// gte</span>
             ),
             (
-                <span class="macro">json</span><span class="macro">!</span>(<span class="number">3.14</span>),
+                <span class="macro">json</span><span class="macro">!</span>(<span class="number">3.15</span>),
                 <span class="macro">json</span><span class="macro">!</span>(<span class="number">3.11</span>),
                 <span class="bool-val">false</span>, <span class="comment">// eq</span>
                 <span class="bool-val">false</span>, <span class="comment">// lt</span>
@@ -288,12 +289,21 @@
             ),
             (
                 <span class="macro">json</span><span class="macro">!</span>(<span class="number">3.11</span>),
-                <span class="macro">json</span><span class="macro">!</span>(<span class="number">3.14</span>),
+                <span class="macro">json</span><span class="macro">!</span>(<span class="number">3.15</span>),
                 <span class="bool-val">false</span>, <span class="comment">// eq</span>
                 <span class="bool-val">true</span>,  <span class="comment">// lt</span>
                 <span class="bool-val">false</span>, <span class="comment">// gt</span>
                 <span class="bool-val">true</span>,  <span class="comment">//lte</span>
                 <span class="bool-val">false</span>, <span class="comment">// gte</span>
+            ),
+            (
+                <span class="macro">json</span><span class="macro">!</span>((<span class="ident">i64</span>::<span class="ident">MAX</span> <span class="kw">as</span> <span class="ident">u64</span> <span class="op">+</span> <span class="number">10</span>) <span class="kw">as</span> <span class="ident">u64</span>), <span class="comment">// force a u64</span>
+                <span class="macro">json</span><span class="macro">!</span>((<span class="ident">i64</span>::<span class="ident">MAX</span> <span class="kw">as</span> <span class="ident">u64</span> <span class="op">+</span> <span class="number">20</span>) <span class="kw">as</span> <span class="ident">u64</span>), <span class="comment">// force a u64</span>
+                <span class="bool-val">false</span>,                                <span class="comment">// eq</span>
+                <span class="bool-val">true</span>,                                 <span class="comment">// lt</span>
+                <span class="bool-val">false</span>,                                <span class="comment">// gt</span>
+                <span class="bool-val">true</span>,                                 <span class="comment">//lte</span>
+                <span class="bool-val">false</span>,                                <span class="comment">// gte</span>
             ),
         ]
     }
@@ -303,7 +313,7 @@
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">tests</span>() {
+    <span class="kw">fn</span> <span class="ident">positive_tests</span>() {
         <span class="kw">let</span> <span class="ident">comparer</span> <span class="op">=</span> <span class="ident">Compare</span> {};
 
         <span class="kw">for</span> <span class="ident">test</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">get_tests</span>() {
@@ -322,6 +332,18 @@
             <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">outputs</span>.<span class="ident">pointer</span>(<span class="string">&quot;/lte&quot;</span>).<span class="ident">unwrap</span>().<span class="ident">as_bool</span>().<span class="ident">unwrap</span>(), <span class="ident">test</span>.<span class="number">5</span>);
             <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">outputs</span>.<span class="ident">pointer</span>(<span class="string">&quot;/gte&quot;</span>).<span class="ident">unwrap</span>().<span class="ident">as_bool</span>().<span class="ident">unwrap</span>(), <span class="ident">test</span>.<span class="number">6</span>);
         }
+    }
+
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">not_numbers</span>() {
+        <span class="kw">let</span> <span class="ident">comparer</span> <span class="op">=</span> <span class="ident">Compare</span> {};
+
+        <span class="kw">let</span> (<span class="ident">output</span>, <span class="ident">again</span>) <span class="op">=</span> <span class="ident">comparer</span>.<span class="ident">run</span>(<span class="kw-2">&amp;</span>[<span class="macro">json</span><span class="macro">!</span>(<span class="string">&quot;hello&quot;</span>), <span class="macro">json</span><span class="macro">!</span>(<span class="number">1.0</span>)]);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="bool-val">true</span>, <span class="ident">again</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="prelude-val">None</span>, <span class="ident">output</span>,
+            <span class="string">&quot;Should not be able to compare different types&quot;</span>
+        );
     }
 }
 </pre></div>

@@ -204,9 +204,6 @@
 <span id="201">201</span>
 <span id="202">202</span>
 <span id="203">203</span>
-<span id="204">204</span>
-<span id="205">205</span>
-<span id="206">206</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="attribute">#[<span class="ident">macro_use</span>]</span>
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">error_chain</span>;
@@ -226,9 +223,6 @@
 
 <span class="doccomment">/// Formatting functions</span>
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">fmt</span>;
-
-<span class="doccomment">/// Imaging functions</span>
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">img</span>;
 
 <span class="doccomment">/// Maths functions</span>
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">math</span>;
@@ -368,12 +362,6 @@
         <span class="ident">Native</span>(<span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">fmt</span>::<span class="ident">to_string</span>::<span class="ident">ToString</span>)),
     );
 
-    <span class="comment">// Img</span>
-    <span class="ident">manifest</span>.<span class="ident">locators</span>.<span class="ident">insert</span>(
-        <span class="ident">Url</span>::<span class="ident">parse</span>(<span class="string">&quot;lib://flowstdlib/img/format_png/format_png&quot;</span>)<span class="question-mark">?</span>,
-        <span class="ident">Native</span>(<span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">img</span>::<span class="ident">format_png</span>::<span class="ident">FormatPNG</span>)),
-    );
-
     <span class="comment">// Math</span>
     <span class="ident">manifest</span>.<span class="ident">locators</span>.<span class="ident">insert</span>(
         <span class="ident">Url</span>::<span class="ident">parse</span>(<span class="string">&quot;lib://flowstdlib/math/add/add&quot;</span>)<span class="question-mark">?</span>,
@@ -412,6 +400,12 @@
         <span class="comment">// check the manifest was created</span>
         <span class="kw">let</span> <span class="ident">manifest</span> <span class="op">=</span> <span class="ident">Path</span>::<span class="ident">new</span>(<span class="macro">env</span><span class="macro">!</span>(<span class="string">&quot;CARGO_MANIFEST_DIR&quot;</span>)).<span class="ident">join</span>(<span class="string">&quot;manifest.json&quot;</span>);
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">manifest</span>.<span class="ident">exists</span>());
+    }
+
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">get_manifest_test</span>() {
+        <span class="kw">let</span> <span class="ident">manifest</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">get_manifest</span>().<span class="ident">expect</span>(<span class="string">&quot;Could not get manifest&quot;</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">manifest</span>.<span class="ident">locators</span>.<span class="ident">len</span>(), <span class="number">30</span>);
     }
 }
 </pre></div>

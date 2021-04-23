@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Tap","Control the flow of data (flow or disapear it) based on a boolean control value."]]});
+initSidebarItems({"struct":[["Tap","Control the flow of data (flow or disappear it) based on a boolean control value."]]});
