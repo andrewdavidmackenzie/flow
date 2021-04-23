@@ -11,3 +11,4 @@ bin
 **/*.rs.bk
 .test.log
 .test_list
+**/*.profraw
