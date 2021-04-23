@@ -5,7 +5,7 @@ use flow_impl_derive::FlowImpl;
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
-/// Compare two input values and output different boolean values depending on if the comparison
+/// Compare two input values and output a map of booleans depending on if the comparison
 /// is equal, greater than, greater than or equal, less than or less than or equal.
 #[derive(Debug)]
 pub struct Compare;
@@ -25,15 +25,15 @@ impl Implementation for Compare {
                     output_map.insert("gt".into(), Value::Bool(a.as_i64() > b.as_i64()));
                     output_map.insert("lte".into(), Value::Bool(a.as_i64() <= b.as_i64()));
                     output_map.insert("gte".into(), Value::Bool(a.as_i64() >= b.as_i64()));
-                    (Some(Value::Object(output_map)), RUN_AGAIN)
+                    return (Some(Value::Object(output_map)), RUN_AGAIN);
                 } else if a.is_u64() && b.is_u64() {
                     output_map.insert("equal".into(), Value::Bool(a.as_u64() == b.as_u64()));
                     output_map.insert("lt".into(), Value::Bool(a.as_u64() < b.as_u64()));
                     output_map.insert("gt".into(), Value::Bool(a.as_u64() > b.as_u64()));
                     output_map.insert("lte".into(), Value::Bool(a.as_u64() <= b.as_u64()));
                     output_map.insert("gte".into(), Value::Bool(a.as_u64() >= b.as_u64()));
-                    (Some(Value::Object(output_map)), RUN_AGAIN)
-                } else if a.is_f64() || b.is_f64() {
+                    return (Some(Value::Object(output_map)), RUN_AGAIN);
+                } else {
                     match (a.as_f64(), b.as_f64()) {
                         (Some(l), Some(r)) => {
                             output_map
@@ -42,26 +42,16 @@ impl Implementation for Compare {
                             output_map.insert("gt".into(), Value::Bool(l > r));
                             output_map.insert("lte".into(), Value::Bool(l <= r));
                             output_map.insert("gte".into(), Value::Bool(l >= r));
-                            (Some(Value::Object(output_map)), RUN_AGAIN)
+                            return (Some(Value::Object(output_map)), RUN_AGAIN);
                         }
-                        (_, _) => {
-                            println!("Could not get as f64");
-                            (None, RUN_AGAIN)
-                        }
+                        (_, _) => {}
                     }
-                } else {
-                    println!(
-                        "Unsupported input types combination in 'compare': {:?}",
-                        inputs
-                    );
-                    (None, RUN_AGAIN)
                 }
             }
-            (_, _) => {
-                println!("Unsupported input types in 'compare': {:?}", inputs);
-                (None, RUN_AGAIN)
-            }
+            (_, _) => {}
         }
+
+        (None, RUN_AGAIN)
     }
 }
 
@@ -104,8 +94,8 @@ mod test {
             ),
             // f64
             (
-                json!(3.14),
-                json!(3.14),
+                json!(3.15),
+                json!(3.15),
                 true,  // eq
                 false, // lt
                 false, // gt
@@ -113,7 +103,7 @@ mod test {
                 true,  // gte
             ),
             (
-                json!(3.14),
+                json!(3.15),
                 json!(3.11),
                 false, // eq
                 false, // lt
@@ -123,12 +113,21 @@ mod test {
             ),
             (
                 json!(3.11),
-                json!(3.14),
+                json!(3.15),
                 false, // eq
                 true,  // lt
                 false, // gt
                 true,  //lte
                 false, // gte
+            ),
+            (
+                json!((i64::MAX as u64 + 10) as u64), // force a u64
+                json!((i64::MAX as u64 + 20) as u64), // force a u64
+                false,                                // eq
+                true,                                 // lt
+                false,                                // gt
+                true,                                 //lte
+                false,                                // gte
             ),
         ]
     }
@@ -138,7 +137,7 @@ mod test {
     }
 
     #[test]
-    fn tests() {
+    fn positive_tests() {
         let comparer = Compare {};
 
         for test in &get_tests() {
@@ -157,5 +156,17 @@ mod test {
             assert_eq!(outputs.pointer("/lte").unwrap().as_bool().unwrap(), test.5);
             assert_eq!(outputs.pointer("/gte").unwrap().as_bool().unwrap(), test.6);
         }
+    }
+
+    #[test]
+    fn not_numbers() {
+        let comparer = Compare {};
+
+        let (output, again) = comparer.run(&[json!("hello"), json!(1.0)]);
+        assert_eq!(true, again);
+        assert_eq!(
+            None, output,
+            "Should not be able to compare different types"
+        );
     }
 }

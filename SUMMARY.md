@@ -92,8 +92,6 @@
         - [reverse](flowstdlib/fmt/reverse/reverse.md)
         - [to_json](flowstdlib/fmt/to_json/to_json.md)
         - [to_string](flowstdlib/fmt/to_string/to_string.md)
-    - [img](flowstdlib/img/img.md)
-        - [format_png](flowstdlib/img/format_png/format_png.md)
     - [math](flowstdlib/math/math.md)
         - [add](flowstdlib/math/add/add.md)
         - [compare](flowstdlib/math/compare/compare.md)

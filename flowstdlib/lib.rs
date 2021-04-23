@@ -17,9 +17,6 @@ pub mod data;
 /// Formatting functions
 pub mod fmt;
 
-/// Imaging functions
-pub mod img;
-
 /// Maths functions
 pub mod math;
 
@@ -158,12 +155,6 @@ pub fn get_manifest() -> Result<LibraryManifest> {
         Native(Arc::new(fmt::to_string::ToString)),
     );
 
-    // Img
-    manifest.locators.insert(
-        Url::parse("lib://flowstdlib/img/format_png/format_png")?,
-        Native(Arc::new(img::format_png::FormatPNG)),
-    );
-
     // Math
     manifest.locators.insert(
         Url::parse("lib://flowstdlib/math/add/add")?,
@@ -202,5 +193,11 @@ mod test {
         // check the manifest was created
         let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("manifest.json");
         assert!(manifest.exists());
+    }
+
+    #[test]
+    fn get_manifest_test() {
+        let manifest = super::get_manifest().expect("Could not get manifest");
+        assert_eq!(manifest.locators.len(), 30);
     }
 }
