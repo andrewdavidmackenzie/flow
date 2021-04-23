@@ -7,12 +7,6 @@ DOTS = $(shell find . -type f -name \*.dot)
 SVGS = $(patsubst %.dot,target/html/%.dot.svg,$(DOTS))
 UNAME := $(shell uname)
 ONLINE := $(shell ping -q -c 1 -W 1 8.8.8.8 2> /dev/null)
-#TARGET_ARCH := armv7-unknown-linux-musleabihf # For arm7 targets
-#TARGET_TOOLCHAIN := ../arm-linux-musleabihf-cross/armv7-linux-musleabihf  # For arm7 targets
-TARGET_ARCH := arm-unknown-linux-musleabihf # For piZero target
-#TARGET_TOOLCHAIN := ../arm-linux-musleabihf-cross/arm-linux-musleabihf  # For piZero target
-REMOTE_HOST := andrew@pi
-REMOTE_DIR := /home/andrew/bin
 export SHELL := /bin/bash
 
 .PHONY: all
@@ -159,20 +153,6 @@ test-all-features: build-flowc
 	cd flowcore && cargo test-all-features
 	cd flowr && cargo test-all-features
 	cd flowc && cargo test-all-features
-
-#################### Raspberry Pi ####################
-target/${TARGET_ARCH}/debug/flowr:
-	cargo build --target=${TARGET_ARCH} -p flowr
-
-.PHONY: pi
-pi: target/${TARGET_ARCH}/debug/flowr
-	@echo "Building flowc for pi in $(PWD)"
-	rsync -azh $< ${REMOTE_HOST}:${REMOTE_DIR}/hello
-
-.PHONY: copy
-copy:
-	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/release/flowc andrew@zero-w:
-	scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no target/arm-unknown-linux-gnueabihf/release/flowr andrew@zero-w:
 
 ################# Clean ################
 .PHONY: clean
