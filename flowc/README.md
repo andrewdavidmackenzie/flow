@@ -22,7 +22,6 @@ It then may (depending on the command line options used) invoke `flowr` (using c
 it is up to date and built).
 
 # `flowclib`
-See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowclib/index.html)
+This library contains most of the compilation and linking logic for `flowc`. 
 
-This library contains most of the compilation and linking logic. 
-See more in [README.md](src/lib/README.md)
+See also: [Code docs](http://andrewdavidmackenzie.github.io/flow/code/doc/flowclib/index.html)
