@@ -18,20 +18,23 @@ config:
 	@rustup --quiet component add clippy
 	@echo "Installing wasm32 target using rustup"
 	@rustup --quiet target add wasm32-unknown-unknown
-	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
-	@cargo install mdbook
-	@cargo install mdbook-linkcheck
 ifneq ($(BREW),)
 	@echo "Installing Mac OS X specific dependencies using $(BREW)"
 	@echo "	Installing zmq"
 	@brew install --quiet zmq
 endif
 ifneq ($(YUM),)
+	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
+	@cargo install mdbook
+	@cargo install mdbook-linkcheck
 	@echo "Installing linux specific dependencies using $(YUM)"
 	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel || true
 	@sudo yum install zeromq zeromq-devel || true
 endif
 ifneq ($(APTGET),)
+	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
+	@cargo install mdbook
+	@cargo install mdbook-linkcheck
 	@echo "Installing linux specific dependencies using $(APTGET)"
 	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
 	@sudo apt-get -y install libzmq3-dev || true
@@ -43,6 +46,9 @@ docs: build-flowc book code-docs trim-docs
 
 .PHONY: book
 book: dot target/html/index.html
+
+target/html/index.html: $(SVGS)
+	@mdbook build
 
 .PHONY: code-docs
 code-docs:
@@ -61,9 +67,6 @@ ifneq ($(BREW),)
 	@brew install graphviz
 endif
 endif
-
-target/html/index.html: $(SVGS)
-	@mdbook build
 
 target/html/%.dot.svg: %.dot
 	@dot -Tsvg -O $<
@@ -95,9 +98,6 @@ trim-docs:
 	@rm -rf target/html/code/debug
 	@find target/html -depth -type d -empty -delete
 
-#################### Build ####################
-# This is currently needed as the build of the workspace also builds flowstdlib, which requires
-# `flowc` binary to be built first
 .PHONY: build-flowc
 build-flowc:
 	@cargo build -p flowc
@@ -105,11 +105,6 @@ build-flowc:
 .PHONY: build
 build: build-flowc
 	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig" cargo build --workspace
-
-build-all-features: build-flowc
-	cd flowcore && cargo build-all-features
-	cd flowr && cargo build-all-features
-	cd flowc && cargo build-all-features
 
 .PHONY: clippy
 clippy: build-flowc
@@ -122,12 +117,6 @@ test: build-flowc
 
 .test.log: test
 
-test-all-features: build-flowc
-	cd flowcore && cargo test-all-features
-	cd flowr && cargo test-all-features
-	cd flowc && cargo test-all-features
-
-################# Clean ################
 .PHONY: clean
 clean:
 	@find . -name \*.dot.svg -type f -exec rm -rf {} + ; true
