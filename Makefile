@@ -65,12 +65,17 @@ trim-docs:
 	@find target/html -name Cargo.toml | xargs rm -rf {}
 	@find target/html -name manifest.json | xargs rm -rf {}
 	@find target/html -name test.err | xargs rm -rf {}
+	@find target/html -name test.input | xargs rm -rf {}
+	@find target/html -name test.arguments | xargs rm -rf {}
+	@find target/html -name test.output | xargs rm -rf {}
+	@find target/html -name expected.output | xargs rm -rf {}
+	@find target/html -name flow.toml | xargs rm -rf {}
 	@find target/html -name \*.rs | xargs rm -rf {}
 	@find target/html -name \*.dump | xargs rm -rf {}
 	@find target/html -name \*.dot | xargs rm -rf {}
 	@find target/html -name \*.wasm | xargs rm -rf {}
 	@find target/html -name \*.lock  | xargs rm -rf {}
-	@cd target/html && rm -f Makefile .crates.toml .DS_Store .mdbookignore .travis.yml
+	@cd target/html && rm -f Makefile .crates.toml .DS_Store .mdbookignore .travis.yml codecov.yml
 	@rm -rf target/html/flowc/tests/test-flows
 	@rm -rf target/html/flowc/tests/test-libs
 	@rm -rf target/html/code/debug
