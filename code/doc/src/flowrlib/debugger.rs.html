@@ -1,7 +1,7 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowr/src/lib/debugger.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>debugger.rs - source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings"></script><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowr/src/lib/debugger.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>debugger.rs - source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings"></script><script src="../../storage.js"></script><script src="../../crates.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg">
 <link rel="alternate icon" type="image/png" href="../../favicon-16x16.png">
-<link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../flowrlib/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" class="help-button">?</button>
-                <a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../../flowrlib/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../../brush.svg" width="18" height="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" class="help-button">?</button>
+                <a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" height="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -633,21 +633,21 @@
 <span id="630">630</span>
 <span id="631">631</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">HashSet</span>;
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>;
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">atomic</span>::{<span class="ident">AtomicBool</span>, <span class="ident">Ordering</span>};
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">sync</span>::<span class="ident">Arc</span>;
+<span class="kw">use</span> <span class="ident">std::collections::HashSet</span>;
+<span class="kw">use</span> <span class="ident">std::fmt</span>;
+<span class="kw">use</span> <span class="ident">std::sync::atomic</span>::{<span class="ident">AtomicBool</span>, <span class="ident">Ordering</span>};
+<span class="kw">use</span> <span class="ident">std::sync::Arc</span>;
 
-<span class="kw">use</span> <span class="ident">log</span>::<span class="ident">error</span>;
-<span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">Value</span>;
+<span class="kw">use</span> <span class="ident">log::error</span>;
+<span class="kw">use</span> <span class="ident">serde_json::Value</span>;
 
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">client_server</span>::<span class="ident">DebugServerConnection</span>;
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">debug</span>::<span class="ident">Event</span>;
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">debug</span>::<span class="ident">Event</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">debug</span>::<span class="ident">Param</span>;
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">debug</span>::<span class="ident">Response</span>;
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">debug</span>::<span class="ident">Response</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">run_state</span>::{<span class="ident">Block</span>, <span class="ident">Job</span>, <span class="ident">RunState</span>};
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::client_server::DebugServerConnection</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::debug::Event</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::debug::Event</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::debug::Param</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::debug::Response</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::debug::Response</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::run_state</span>::{<span class="ident">Block</span>, <span class="ident">Job</span>, <span class="ident">RunState</span>};
 
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Debugger</span> {
     <span class="ident">debug_server_connection</span>: <span class="ident">DebugServerConnection</span>,
@@ -682,16 +682,16 @@
             <span class="ident">function_id</span>: <span class="ident">process_id</span>,
             <span class="ident">io_number</span>,
             <span class="ident">block_type</span>,
-            <span class="ident">blockers</span>: <span class="macro">vec</span><span class="macro">!</span>[],
+            <span class="ident">blockers</span>: <span class="macro">vec!</span>[],
         }
     }
 }
 
-<span class="kw">impl</span> <span class="ident">fmt</span>::<span class="ident">Display</span> <span class="kw">for</span> <span class="ident">BlockerNode</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+<span class="kw">impl</span> <span class="ident">fmt::Display</span> <span class="kw">for</span> <span class="ident">BlockerNode</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt::Formatter</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">fmt::Result</span> {
         <span class="kw">match</span> <span class="self">self</span>.<span class="ident">block_type</span> {
-            <span class="ident">BlockType</span>::<span class="ident">OutputBlocked</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot; -&gt; #{}&quot;</span>, <span class="self">self</span>.<span class="ident">function_id</span>),
-            <span class="ident">BlockType</span>::<span class="ident">UnreadySender</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot; &lt;- #{}&quot;</span>, <span class="self">self</span>.<span class="ident">function_id</span>),
+            <span class="ident">BlockType::OutputBlocked</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot; -&gt; #{}&quot;</span>, <span class="self">self</span>.<span class="ident">function_id</span>),
+            <span class="ident">BlockType::UnreadySender</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot; &lt;- #{}&quot;</span>, <span class="self">self</span>.<span class="ident">function_id</span>),
         }
     }
 }
@@ -700,12 +700,12 @@
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">debug_server_connection</span>: <span class="ident">DebugServerConnection</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="ident">Debugger</span> {
             <span class="ident">debug_server_connection</span>,
-            <span class="ident">input_breakpoints</span>: <span class="ident">HashSet</span>::<span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">usize</span>)<span class="op">&gt;</span>::<span class="ident">new</span>(),
-            <span class="ident">block_breakpoints</span>: <span class="ident">HashSet</span>::<span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">usize</span>)<span class="op">&gt;</span>::<span class="ident">new</span>(),
-            <span class="ident">output_breakpoints</span>: <span class="ident">HashSet</span>::<span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">String</span>)<span class="op">&gt;</span>::<span class="ident">new</span>(),
-            <span class="ident">break_at_job</span>: <span class="ident">usize</span>::<span class="ident">MAX</span>,
-            <span class="ident">function_breakpoints</span>: <span class="ident">HashSet</span>::<span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>::<span class="ident">new</span>(),
-            <span class="ident">debug_requested</span>: <span class="ident">Arc</span>::<span class="ident">new</span>(<span class="ident">AtomicBool</span>::<span class="ident">new</span>(<span class="bool-val">false</span>)),
+            <span class="ident">input_breakpoints</span>: <span class="ident">HashSet</span>::<span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">usize</span>)<span class="op">&gt;</span><span class="ident">::new</span>(),
+            <span class="ident">block_breakpoints</span>: <span class="ident">HashSet</span>::<span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">usize</span>)<span class="op">&gt;</span><span class="ident">::new</span>(),
+            <span class="ident">output_breakpoints</span>: <span class="ident">HashSet</span>::<span class="op">&lt;</span>(<span class="ident">usize</span>, <span class="ident">String</span>)<span class="op">&gt;</span><span class="ident">::new</span>(),
+            <span class="ident">break_at_job</span>: <span class="ident">usize::MAX</span>,
+            <span class="ident">function_breakpoints</span>: <span class="ident">HashSet</span>::<span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span><span class="ident">::new</span>(),
+            <span class="ident">debug_requested</span>: <span class="ident">Arc::new</span>(<span class="ident">AtomicBool::new</span>(<span class="bool-val">false</span>)),
         }
     }
 
@@ -714,8 +714,8 @@
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">check_for_entry</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">state</span>: <span class="kw-2">&amp;</span><span class="ident">RunState</span>) {
-        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">debug_requested</span>.<span class="ident">load</span>(<span class="ident">Ordering</span>::<span class="ident">SeqCst</span>) {
-            <span class="self">self</span>.<span class="ident">debug_requested</span>.<span class="ident">store</span>(<span class="bool-val">false</span>, <span class="ident">Ordering</span>::<span class="ident">SeqCst</span>); <span class="comment">// reset to avoid re-entering</span>
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">debug_requested</span>.<span class="ident">load</span>(<span class="ident">Ordering::SeqCst</span>) {
+            <span class="self">self</span>.<span class="ident">debug_requested</span>.<span class="ident">store</span>(<span class="bool-val">false</span>, <span class="ident">Ordering::SeqCst</span>); <span class="comment">// reset to avoid re-entering</span>
             <span class="self">self</span>.<span class="ident">enter</span>(<span class="kw-2">&amp;</span><span class="ident">state</span>);
         }
     }
@@ -756,7 +756,7 @@
             <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="self">self</span>
                 .<span class="ident">debug_server_connection</span>
                 .<span class="ident">send_event</span>(<span class="ident">PriorToSendingJob</span>(<span class="ident">next_job_id</span>, <span class="ident">function_id</span>));
-            <span class="self">self</span>.<span class="ident">print</span>(<span class="ident">state</span>, <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Numeric</span>(<span class="ident">function_id</span>)));
+            <span class="self">self</span>.<span class="ident">print</span>(<span class="ident">state</span>, <span class="prelude-val">Some</span>(<span class="ident">Param::Numeric</span>(<span class="ident">function_id</span>)));
             <span class="kw">return</span> <span class="self">self</span>.<span class="ident">wait_for_command</span>(<span class="ident">state</span>);
         }
 
@@ -928,9 +928,9 @@
                     <span class="kw">return</span> (<span class="bool-val">true</span>, <span class="bool-val">false</span>);
                 }
                 <span class="prelude-val">Ok</span>(<span class="ident">Ack</span>) <span class="op">=</span><span class="op">&gt;</span> {}
-                <span class="prelude-val">Ok</span>(<span class="ident">Response</span>::<span class="ident">Error</span>(<span class="kw">_</span>)) <span class="op">=</span><span class="op">&gt;</span> { <span class="comment">/* client error */</span> }
-                <span class="prelude-val">Ok</span>(<span class="ident">Response</span>::<span class="ident">Invalid</span>) <span class="op">=</span><span class="op">&gt;</span> {}
-                <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">error</span><span class="macro">!</span>(<span class="string">&quot;Error in Debug server getting command; {}&quot;</span>, <span class="ident">e</span>),
+                <span class="prelude-val">Ok</span>(<span class="ident">Response::Error</span>(<span class="kw">_</span>)) <span class="op">=</span><span class="op">&gt;</span> { <span class="comment">/* client error */</span> }
+                <span class="prelude-val">Ok</span>(<span class="ident">Response::Invalid</span>) <span class="op">=</span><span class="op">&gt;</span> {}
+                <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">error!</span>(<span class="string">&quot;Error in Debug server getting command; {}&quot;</span>, <span class="ident">e</span>),
             };
         }
     }
@@ -941,47 +941,47 @@
        Add a breakpoint to the debugger according to the Optional `Param`
     */</span>
     <span class="kw">fn</span> <span class="ident">add_breakpoint</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">state</span>: <span class="kw-2">&amp;</span><span class="ident">RunState</span>, <span class="ident">param</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Param</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Event</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">String</span>::<span class="ident">new</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">String::new</span>();
 
         <span class="kw">match</span> <span class="ident">param</span> {
             <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="string">&quot;&#39;break&#39; command must specify a breakpoint\n&quot;</span>),
-            <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Numeric</span>(<span class="ident">process_id</span>)) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">Param::Numeric</span>(<span class="ident">process_id</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">if</span> <span class="ident">process_id</span> <span class="op">&gt;</span> <span class="ident">state</span>.<span class="ident">num_functions</span>() {
-                    <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(
+                    <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
                         <span class="string">&quot;There is no process with id &#39;{}&#39; to set a breakpoint on\n&quot;</span>,
                         <span class="ident">process_id</span>
                     ));
                 } <span class="kw">else</span> {
                     <span class="self">self</span>.<span class="ident">function_breakpoints</span>.<span class="ident">insert</span>(<span class="ident">process_id</span>);
-                    <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(
+                    <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
                         <span class="string">&quot;Set process breakpoint on Function #{}\n&quot;</span>,
                         <span class="ident">process_id</span>
                     ));
                 }
             }
-            <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Input</span>((<span class="ident">dest_id</span>, <span class="ident">input_number</span>))) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(
+            <span class="prelude-val">Some</span>(<span class="ident">Param::Input</span>((<span class="ident">dest_id</span>, <span class="ident">input_number</span>))) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
                     <span class="string">&quot;Set data breakpoint on process #{} receiving data on input: {}\n&quot;</span>,
                     <span class="ident">dest_id</span>, <span class="ident">input_number</span>
                 ));
                 <span class="self">self</span>.<span class="ident">input_breakpoints</span>.<span class="ident">insert</span>((<span class="ident">dest_id</span>, <span class="ident">input_number</span>));
             }
-            <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Block</span>((<span class="ident">blocked_id</span>, <span class="ident">blocking_id</span>))) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(
+            <span class="prelude-val">Some</span>(<span class="ident">Param::Block</span>((<span class="ident">blocked_id</span>, <span class="ident">blocking_id</span>))) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
                     <span class="string">&quot;Set block breakpoint for Function #{} being blocked by Function #{}\n&quot;</span>,
                     <span class="ident">blocked_id</span>, <span class="ident">blocking_id</span>
                 ));
                 <span class="self">self</span>.<span class="ident">block_breakpoints</span>.<span class="ident">insert</span>((<span class="ident">blocked_id</span>, <span class="ident">blocking_id</span>));
             }
-            <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Output</span>((<span class="ident">source_id</span>, <span class="ident">source_output_route</span>))) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(
+            <span class="prelude-val">Some</span>(<span class="ident">Param::Output</span>((<span class="ident">source_id</span>, <span class="ident">source_output_route</span>))) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
                     <span class="string">&quot;Set data breakpoint on process #{} sending data via output: &#39;/{}&#39;\n&quot;</span>,
                     <span class="ident">source_id</span>, <span class="ident">source_output_route</span>
                 ));
                 <span class="self">self</span>.<span class="ident">output_breakpoints</span>
                     .<span class="ident">insert</span>((<span class="ident">source_id</span>, <span class="ident">source_output_route</span>));
             }
-            <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Wildcard</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">Param::Wildcard</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">response</span>.<span class="ident">push_str</span>(
                     <span class="string">&quot;To break on every process, you can just single step using &#39;s&#39; command\n&quot;</span>,
                 );
@@ -995,13 +995,13 @@
        Delete debugger breakpoints related to Jobs or Blocks, etc according to the Spec.
     */</span>
     <span class="kw">fn</span> <span class="ident">delete_breakpoint</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">param</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Param</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Event</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">String</span>::<span class="ident">new</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">String::new</span>();
 
         <span class="kw">match</span> <span class="ident">param</span> {
             <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="string">&quot;No process id specified\n&quot;</span>),
-            <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Numeric</span>(<span class="ident">process_number</span>)) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">Param::Numeric</span>(<span class="ident">process_number</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">if</span> <span class="self">self</span>.<span class="ident">function_breakpoints</span>.<span class="ident">remove</span>(<span class="kw-2">&amp;</span><span class="ident">process_number</span>) {
-                    <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(
+                    <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
                         <span class="string">&quot;Breakpoint on process #{} was deleted\n&quot;</span>,
                         <span class="ident">process_number</span>
                     ));
@@ -1009,20 +1009,20 @@
                     <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="string">&quot;No breakpoint number &#39;{}&#39; exists\n&quot;</span>);
                 }
             }
-            <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Input</span>((<span class="ident">dest_id</span>, <span class="ident">input_number</span>))) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">Param::Input</span>((<span class="ident">dest_id</span>, <span class="ident">input_number</span>))) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="self">self</span>.<span class="ident">input_breakpoints</span>.<span class="ident">remove</span>(<span class="kw-2">&amp;</span>(<span class="ident">dest_id</span>, <span class="ident">input_number</span>));
                 <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="string">&quot;Inputs breakpoint removed\n&quot;</span>);
             }
-            <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Block</span>((<span class="ident">blocked_id</span>, <span class="ident">blocking_id</span>))) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">Param::Block</span>((<span class="ident">blocked_id</span>, <span class="ident">blocking_id</span>))) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="self">self</span>.<span class="ident">input_breakpoints</span>.<span class="ident">remove</span>(<span class="kw-2">&amp;</span>(<span class="ident">blocked_id</span>, <span class="ident">blocking_id</span>));
                 <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="string">&quot;Inputs breakpoint removed\n&quot;</span>);
             }
-            <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Output</span>((<span class="ident">source_id</span>, <span class="ident">source_output_route</span>))) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">Param::Output</span>((<span class="ident">source_id</span>, <span class="ident">source_output_route</span>))) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="self">self</span>.<span class="ident">output_breakpoints</span>
                     .<span class="ident">remove</span>(<span class="kw-2">&amp;</span>(<span class="ident">source_id</span>, <span class="ident">source_output_route</span>));
                 <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="string">&quot;Output breakpoint removed\n&quot;</span>);
             }
-            <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Wildcard</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">Param::Wildcard</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="self">self</span>.<span class="ident">output_breakpoints</span>.<span class="ident">clear</span>();
                 <span class="self">self</span>.<span class="ident">input_breakpoints</span>.<span class="ident">clear</span>();
                 <span class="self">self</span>.<span class="ident">function_breakpoints</span>.<span class="ident">clear</span>();
@@ -1037,14 +1037,14 @@
        List all debugger breakpoints of all types.
     */</span>
     <span class="kw">fn</span> <span class="ident">list_breakpoints</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Event</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">String</span>::<span class="ident">new</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">String::new</span>();
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">breakpoints</span> <span class="op">=</span> <span class="bool-val">false</span>;
         <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">function_breakpoints</span>.<span class="ident">is_empty</span>() {
             <span class="ident">breakpoints</span> <span class="op">=</span> <span class="bool-val">true</span>;
             <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="string">&quot;Function Breakpoints: \n&quot;</span>);
             <span class="kw">for</span> <span class="ident">process_id</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">function_breakpoints</span> {
-                <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;\tFunction #{}\n&quot;</span>, <span class="ident">process_id</span>));
+                <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;\tFunction #{}\n&quot;</span>, <span class="ident">process_id</span>));
             }
         }
 
@@ -1052,7 +1052,7 @@
             <span class="ident">breakpoints</span> <span class="op">=</span> <span class="bool-val">true</span>;
             <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="string">&quot;Output Breakpoints: \n&quot;</span>);
             <span class="kw">for</span> (<span class="ident">process_id</span>, <span class="ident">route</span>) <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">output_breakpoints</span> {
-                <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;\tOutput #{}/{}\n&quot;</span>, <span class="ident">process_id</span>, <span class="ident">route</span>));
+                <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;\tOutput #{}/{}\n&quot;</span>, <span class="ident">process_id</span>, <span class="ident">route</span>));
             }
         }
 
@@ -1060,7 +1060,7 @@
             <span class="ident">breakpoints</span> <span class="op">=</span> <span class="bool-val">true</span>;
             <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="string">&quot;Input Breakpoints: \n&quot;</span>);
             <span class="kw">for</span> (<span class="ident">process_id</span>, <span class="ident">input_number</span>) <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">input_breakpoints</span> {
-                <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;\tInput #{}:{}\n&quot;</span>, <span class="ident">process_id</span>, <span class="ident">input_number</span>));
+                <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;\tInput #{}:{}\n&quot;</span>, <span class="ident">process_id</span>, <span class="ident">input_number</span>));
             }
         }
 
@@ -1068,7 +1068,7 @@
             <span class="ident">breakpoints</span> <span class="op">=</span> <span class="bool-val">true</span>;
             <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="string">&quot;Block Breakpoints: \n&quot;</span>);
             <span class="kw">for</span> (<span class="ident">blocked_id</span>, <span class="ident">blocking_id</span>) <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">block_breakpoints</span> {
-                <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;\tBlock #{}-&gt;#{}\n&quot;</span>, <span class="ident">blocked_id</span>, <span class="ident">blocking_id</span>));
+                <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;\tBlock #{}-&gt;#{}\n&quot;</span>, <span class="ident">blocked_id</span>, <span class="ident">blocking_id</span>));
             }
         }
 
@@ -1086,7 +1086,7 @@
        Currently deadlock inspection is the only inspection that exists.s
     */</span>
     <span class="kw">fn</span> <span class="ident">inspect</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">state</span>: <span class="kw-2">&amp;</span><span class="ident">RunState</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Event</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">String</span>::<span class="ident">new</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">String::new</span>();
 
         <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="string">&quot;Running inspections\n&quot;</span>);
         <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="string">&quot;Running deadlock inspection\n&quot;</span>);
@@ -1100,18 +1100,18 @@
        If no `Param` is passed then print the entire state
     */</span>
     <span class="kw">fn</span> <span class="ident">print</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">state</span>: <span class="kw-2">&amp;</span><span class="ident">RunState</span>, <span class="ident">param</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Param</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Event</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">String</span>::<span class="ident">new</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">String::new</span>();
 
         <span class="kw">match</span> <span class="ident">param</span> {
-            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}\n&quot;</span>, <span class="ident">state</span>)),
-            <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Numeric</span>(<span class="ident">function_id</span>)) <span class="op">|</span> <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Block</span>((<span class="ident">function_id</span>, <span class="kw">_</span>))) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}\n&quot;</span>, <span class="ident">state</span>)),
+            <span class="prelude-val">Some</span>(<span class="ident">Param::Numeric</span>(<span class="ident">function_id</span>)) <span class="op">|</span> <span class="prelude-val">Some</span>(<span class="ident">Param::Block</span>((<span class="ident">function_id</span>, <span class="kw">_</span>))) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">print_function</span>(<span class="ident">state</span>, <span class="ident">function_id</span>));
             }
-            <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Input</span>((<span class="ident">function_id</span>, <span class="kw">_</span>))) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">Param::Input</span>((<span class="ident">function_id</span>, <span class="kw">_</span>))) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">print_function</span>(<span class="ident">state</span>, <span class="ident">function_id</span>));
             }
-            <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Wildcard</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">print_all_processes</span>(<span class="ident">state</span>)),
-            <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Output</span>(<span class="kw">_</span>)) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">response</span>.<span class="ident">push_str</span>(
+            <span class="prelude-val">Some</span>(<span class="ident">Param::Wildcard</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">print_all_processes</span>(<span class="ident">state</span>)),
+            <span class="prelude-val">Some</span>(<span class="ident">Param::Output</span>(<span class="kw">_</span>)) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">response</span>.<span class="ident">push_str</span>(
                 <span class="string">&quot;Cannot display the output of a process until it is executed. \
                 Set a breakpoint on the process by id and then step over it&quot;</span>,
             ),
@@ -1125,7 +1125,7 @@
     */</span>
     <span class="kw">fn</span> <span class="ident">reset</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Event</span> {
         <span class="comment">// Leave all the breakpoints untouched for the repeat run</span>
-        <span class="self">self</span>.<span class="ident">break_at_job</span> <span class="op">=</span> <span class="ident">usize</span>::<span class="ident">MAX</span>;
+        <span class="self">self</span>.<span class="ident">break_at_job</span> <span class="op">=</span> <span class="ident">usize::MAX</span>;
         <span class="ident">Resetting</span>
     }
 
@@ -1138,11 +1138,11 @@
             <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="self">self</span>.<span class="ident">break_at_job</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">jobs_created</span>() <span class="op">+</span> <span class="number">1</span>;
             }
-            <span class="prelude-val">Some</span>(<span class="ident">Param</span>::<span class="ident">Numeric</span>(<span class="ident">steps</span>)) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="prelude-val">Some</span>(<span class="ident">Param::Numeric</span>(<span class="ident">steps</span>)) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="self">self</span>.<span class="ident">break_at_job</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">jobs_created</span>() <span class="op">+</span> <span class="ident">steps</span>;
             }
             <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">debug_server_connection</span>.<span class="ident">send_event</span>(<span class="ident">Event</span>::<span class="ident">Error</span>(
+                <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">debug_server_connection</span>.<span class="ident">send_event</span>(<span class="ident">Event::Error</span>(
                     <span class="string">&quot;Did not understand step command parameter\n&quot;</span>.<span class="ident">into</span>(),
                 ));
             }
@@ -1158,13 +1158,13 @@
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">blockers</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">BlockerNode</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">state</span>
             .<span class="ident">get_output_blockers</span>(<span class="ident">process_id</span>)
             .<span class="ident">iter</span>()
-            .<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">id</span>, <span class="ident">io</span>)<span class="op">|</span> <span class="ident">BlockerNode</span>::<span class="ident">new</span>(<span class="kw-2">*</span><span class="ident">id</span>, <span class="kw-2">*</span><span class="ident">io</span>, <span class="ident">BlockType</span>::<span class="ident">OutputBlocked</span>))
+            .<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">id</span>, <span class="ident">io</span>)<span class="op">|</span> <span class="ident">BlockerNode::new</span>(<span class="kw-2">*</span><span class="ident">id</span>, <span class="kw-2">*</span><span class="ident">io</span>, <span class="ident">BlockType::OutputBlocked</span>))
             .<span class="ident">collect</span>();
 
         <span class="kw">let</span> <span class="ident">input_blockers</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">BlockerNode</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">state</span>
             .<span class="ident">get_input_blockers</span>(<span class="ident">process_id</span>)
             .<span class="ident">iter</span>()
-            .<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">id</span>, <span class="ident">io</span>)<span class="op">|</span> <span class="ident">BlockerNode</span>::<span class="ident">new</span>(<span class="kw-2">*</span><span class="ident">id</span>, <span class="kw-2">*</span><span class="ident">io</span>, <span class="ident">BlockType</span>::<span class="ident">UnreadySender</span>))
+            .<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">id</span>, <span class="ident">io</span>)<span class="op">|</span> <span class="ident">BlockerNode::new</span>(<span class="kw-2">*</span><span class="ident">id</span>, <span class="kw-2">*</span><span class="ident">io</span>, <span class="ident">BlockType::UnreadySender</span>))
             .<span class="ident">collect</span>();
 
         <span class="ident">blockers</span>.<span class="ident">extend</span>(<span class="ident">input_blockers</span>);
@@ -1191,7 +1191,7 @@
 
         <span class="kw">for</span> <span class="ident">blocker</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">node</span>.<span class="ident">blockers</span> {
             <span class="kw">if</span> <span class="ident">blocker</span>.<span class="ident">function_id</span> <span class="op">=</span><span class="op">=</span> <span class="ident">root_node_id</span> {
-                <span class="kw">return</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">blocker</span>.<span class="ident">clone</span>()]; <span class="comment">// add the last node in the loop to end of trail</span>
+                <span class="kw">return</span> <span class="macro">vec!</span>[<span class="ident">blocker</span>.<span class="ident">clone</span>()]; <span class="comment">// add the last node in the loop to end of trail</span>
             }
 
             <span class="comment">// if we&#39;ve visited this blocking node before, then we&#39;ve detected a loop</span>
@@ -1207,25 +1207,25 @@
         }
 
         <span class="comment">// no loop found</span>
-        <span class="macro">vec</span><span class="macro">!</span>[]
+        <span class="macro">vec!</span>[]
     }
 
     <span class="kw">fn</span> <span class="ident">display_set</span>(<span class="ident">root_node</span>: <span class="kw-2">&amp;</span><span class="ident">BlockerNode</span>, <span class="ident">node_set</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">BlockerNode</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">display_string</span> <span class="op">=</span> <span class="ident">String</span>::<span class="ident">new</span>();
-        <span class="ident">display_string</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;#{}&quot;</span>, <span class="ident">root_node</span>.<span class="ident">function_id</span>));
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">display_string</span> <span class="op">=</span> <span class="ident">String::new</span>();
+        <span class="ident">display_string</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;#{}&quot;</span>, <span class="ident">root_node</span>.<span class="ident">function_id</span>));
         <span class="kw">for</span> <span class="ident">node</span> <span class="kw">in</span> <span class="ident">node_set</span> {
-            <span class="ident">display_string</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">node</span>));
+            <span class="ident">display_string</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">node</span>));
         }
         <span class="ident">display_string</span>
     }
 
     <span class="kw">fn</span> <span class="ident">deadlock_inspection</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">state</span>: <span class="kw-2">&amp;</span><span class="ident">RunState</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">String</span>::<span class="ident">new</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">String::new</span>();
 
         <span class="kw">for</span> <span class="ident">blocked_process_id</span> <span class="kw">in</span> <span class="ident">state</span>.<span class="ident">get_blocked</span>() {
             <span class="comment">// start a clean tree with a new root node for each blocked process</span>
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">root_node</span> <span class="op">=</span> <span class="ident">BlockerNode</span>::<span class="ident">new</span>(<span class="kw-2">*</span><span class="ident">blocked_process_id</span>, <span class="number">0</span>, <span class="ident">BlockType</span>::<span class="ident">OutputBlocked</span>);
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">visited_nodes</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[];
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">root_node</span> <span class="op">=</span> <span class="ident">BlockerNode::new</span>(<span class="kw-2">*</span><span class="ident">blocked_process_id</span>, <span class="number">0</span>, <span class="ident">BlockType::OutputBlocked</span>);
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">visited_nodes</span> <span class="op">=</span> <span class="macro">vec!</span>[];
 
             <span class="kw">let</span> <span class="ident">deadlock_set</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">traverse_blocker_tree</span>(
                 <span class="ident">state</span>,
@@ -1234,9 +1234,9 @@
                 <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">root_node</span>,
             );
             <span class="kw">if</span> <span class="op">!</span><span class="ident">deadlock_set</span>.<span class="ident">is_empty</span>() {
-                <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(
+                <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
                     <span class="string">&quot;{}\n&quot;</span>,
-                    <span class="self">Self</span>::<span class="ident">display_set</span>(<span class="kw-2">&amp;</span><span class="ident">root_node</span>, <span class="ident">deadlock_set</span>)
+                    <span class="self">Self</span><span class="ident">::display_set</span>(<span class="kw-2">&amp;</span><span class="ident">root_node</span>, <span class="ident">deadlock_set</span>)
                 ));
             }
         }
@@ -1245,17 +1245,17 @@
     }
 
     <span class="kw">fn</span> <span class="ident">print_function</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">state</span>: <span class="kw-2">&amp;</span><span class="ident">RunState</span>, <span class="ident">function_id</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">String</span>::<span class="ident">new</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">String::new</span>();
 
         <span class="kw">let</span> <span class="ident">function</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">get</span>(<span class="ident">function_id</span>);
-        <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">function</span>));
+        <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">function</span>));
         <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="ident">state</span>.<span class="ident">display_state</span>(<span class="ident">function_id</span>));
 
         <span class="ident">response</span>
     }
 
     <span class="kw">fn</span> <span class="ident">print_all_processes</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">state</span>: <span class="kw-2">&amp;</span><span class="ident">RunState</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">String</span>::<span class="ident">new</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">String::new</span>();
 
         <span class="kw">for</span> <span class="ident">id</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">state</span>.<span class="ident">num_functions</span>() {
             <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">print_function</span>(<span class="ident">state</span>, <span class="ident">id</span>));
@@ -1265,5 +1265,5 @@
     }
 }
 </pre></div>
-</section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="flowrlib"></div>
-    <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script><script defer src="../../search-index.js"></script></body></html>
+</section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="flowrlib" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div>
+    <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script></body></html>

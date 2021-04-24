@@ -1,7 +1,7 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowc/src/lib/model/process_reference.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>process_reference.rs - source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled ><script id="default-settings"></script><script src="../../../storage.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../../favicon.svg">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `flowc/src/lib/model/process_reference.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>process_reference.rs - source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled ><script id="default-settings"></script><script src="../../../storage.js"></script><script src="../../../crates.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../../favicon.svg">
 <link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png">
-<link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../../flowclib/index.html'><div class='logo-container rust-logo'><img src='../../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" class="help-button">?</button>
-                <a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../../../flowclib/index.html'><div class='logo-container rust-logo'><img src='../../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../../../brush.svg" width="18" height="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" class="help-button">?</button>
+                <a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" height="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -191,17 +191,17 @@
 <span id="188">188</span>
 <span id="189">189</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">HashMap</span>;
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>;
+<span class="kw">use</span> <span class="ident">std::collections::HashMap</span>;
+<span class="kw">use</span> <span class="ident">std::fmt</span>;
 
 <span class="kw">use</span> <span class="ident">serde_derive</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
 
-<span class="kw">use</span> <span class="ident">flowcore</span>::<span class="ident">input</span>::<span class="ident">InputInitializer</span>;
+<span class="kw">use</span> <span class="ident">flowcore::input::InputInitializer</span>;
 
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">compiler</span>::<span class="ident">loader</span>::<span class="ident">Validate</span>;
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">errors</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">name</span>::<span class="ident">HasName</span>;
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">model</span>::<span class="ident">name</span>::<span class="ident">Name</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::compiler::loader::Validate</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::errors</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::model::name::HasName</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::model::name::Name</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">deny_unknown_fields</span>)]</span>
@@ -239,9 +239,9 @@
     }
 }
 
-<span class="kw">impl</span> <span class="ident">fmt</span>::<span class="ident">Display</span> <span class="kw">for</span> <span class="ident">ProcessReference</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
-        <span class="macro">write</span><span class="macro">!</span>(
+<span class="kw">impl</span> <span class="ident">fmt::Display</span> <span class="kw">for</span> <span class="ident">ProcessReference</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt::Formatter</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">fmt::Result</span> {
+        <span class="macro">write!</span>(
             <span class="ident">f</span>,
             <span class="string">&quot;\t\t\t\talias: {}\n\t\t\t\t\tsource: {}\n\t\t\t\t\tURL: {}\n&quot;</span>,
             <span class="self">self</span>.<span class="ident">alias</span>, <span class="self">self</span>.<span class="ident">source</span>, <span class="self">self</span>.<span class="ident">source</span>
@@ -251,11 +251,11 @@
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">test</span> {
-    <span class="kw">use</span> <span class="ident">serde_json</span>::<span class="ident">json</span>;
+    <span class="kw">use</span> <span class="ident">serde_json::json</span>;
 
-    <span class="kw">use</span> <span class="ident">flowcore</span>::<span class="ident">input</span>::<span class="ident">InputInitializer</span>::{<span class="ident">Always</span>, <span class="ident">Once</span>};
+    <span class="kw">use</span> <span class="ident">flowcore::input::InputInitializer</span>::{<span class="ident">Always</span>, <span class="ident">Once</span>};
 
-    <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">ProcessReference</span>;
+    <span class="kw">use</span> <span class="kw">super</span><span class="ident">::ProcessReference</span>;
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">deserialize_simple</span>() {
@@ -265,7 +265,7 @@
         &quot;</span>;
 
         <span class="kw">let</span> <span class="ident">_reference</span>: <span class="ident">ProcessReference</span> <span class="op">=</span>
-            <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">input_str</span>).<span class="ident">expect</span>(<span class="string">&quot;Could not deserialize ProcessReference from toml&quot;</span>);
+            <span class="ident">toml::from_str</span>(<span class="ident">input_str</span>).<span class="ident">expect</span>(<span class="string">&quot;Could not deserialize ProcessReference from toml&quot;</span>);
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
@@ -277,15 +277,15 @@
         &quot;</span>;
 
         <span class="kw">let</span> <span class="ident">reference</span>: <span class="ident">ProcessReference</span> <span class="op">=</span>
-            <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">input_str</span>).<span class="ident">expect</span>(<span class="string">&quot;Could not deserialize ProcessReference from toml&quot;</span>);
-        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">toml::from_str</span>(<span class="ident">input_str</span>).<span class="ident">expect</span>(<span class="string">&quot;Could not deserialize ProcessReference from toml&quot;</span>);
+        <span class="macro">assert_eq!</span>(
             <span class="ident">reference</span>.<span class="ident">initializations</span>.<span class="ident">len</span>(),
             <span class="number">1</span>,
             <span class="string">&quot;Incorrect number of Input initializations parsed&quot;</span>
         );
         <span class="kw">match</span> <span class="ident">reference</span>.<span class="ident">initializations</span>.<span class="ident">get</span>(<span class="string">&quot;input1&quot;</span>).<span class="ident">unwrap</span>() {
-            <span class="ident">Always</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Should have been a Once initializer&quot;</span>),
-            <span class="ident">Once</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>(<span class="number">1</span>), <span class="ident">value</span>, <span class="string">&quot;input1 should be initialized to 1&quot;</span>),
+            <span class="ident">Always</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic!</span>(<span class="string">&quot;Should have been a Once initializer&quot;</span>),
+            <span class="ident">Once</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span><span class="macro">json!</span>(<span class="number">1</span>), <span class="ident">value</span>, <span class="string">&quot;input1 should be initialized to 1&quot;</span>),
         }
     }
 
@@ -302,17 +302,17 @@
         &quot;</span>;
 
         <span class="kw">let</span> <span class="ident">reference</span>: <span class="ident">ProcessReference</span> <span class="op">=</span>
-            <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">input_str</span>).<span class="ident">expect</span>(<span class="string">&quot;Could not deserialize ProcessReference from toml&quot;</span>);
-        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">toml::from_str</span>(<span class="ident">input_str</span>).<span class="ident">expect</span>(<span class="string">&quot;Could not deserialize ProcessReference from toml&quot;</span>);
+        <span class="macro">assert_eq!</span>(
             <span class="ident">reference</span>.<span class="ident">initializations</span>.<span class="ident">len</span>(),
             <span class="number">1</span>,
             <span class="string">&quot;Incorrect number of Input initializations parsed&quot;</span>
         );
         <span class="kw">match</span> <span class="ident">reference</span>.<span class="ident">initializations</span>.<span class="ident">get</span>(<span class="string">&quot;input1&quot;</span>) {
             <span class="prelude-val">Some</span>(<span class="ident">Always</span>(<span class="ident">value</span>)) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>(<span class="number">1</span>), <span class="ident">value</span>, <span class="string">&quot;input1 should be initialized to 1&quot;</span>)
+                <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span><span class="macro">json!</span>(<span class="number">1</span>), <span class="ident">value</span>, <span class="string">&quot;input1 should be initialized to 1&quot;</span>)
             }
-            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Should have been a Constant initializer&quot;</span>),
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic!</span>(<span class="string">&quot;Should have been a Constant initializer&quot;</span>),
         }
     }
 
@@ -325,17 +325,17 @@
         &quot;</span>;
 
         <span class="kw">let</span> <span class="ident">reference</span>: <span class="ident">ProcessReference</span> <span class="op">=</span>
-            <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">input_str</span>).<span class="ident">expect</span>(<span class="string">&quot;Could not deserialize ProcessReference from toml&quot;</span>);
-        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">toml::from_str</span>(<span class="ident">input_str</span>).<span class="ident">expect</span>(<span class="string">&quot;Could not deserialize ProcessReference from toml&quot;</span>);
+        <span class="macro">assert_eq!</span>(
             <span class="ident">reference</span>.<span class="ident">initializations</span>.<span class="ident">len</span>(),
             <span class="number">1</span>,
             <span class="string">&quot;Incorrect number of Input initializations parsed&quot;</span>
         );
         <span class="kw">match</span> <span class="ident">reference</span>.<span class="ident">initializations</span>.<span class="ident">get</span>(<span class="string">&quot;input1&quot;</span>) {
             <span class="prelude-val">Some</span>(<span class="ident">Always</span>(<span class="ident">value</span>)) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>(<span class="number">1</span>), <span class="ident">value</span>, <span class="string">&quot;input1 should be initialized to 1&quot;</span>)
+                <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span><span class="macro">json!</span>(<span class="number">1</span>), <span class="ident">value</span>, <span class="string">&quot;input1 should be initialized to 1&quot;</span>)
             }
-            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Should have been an Always initializer&quot;</span>),
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic!</span>(<span class="string">&quot;Should have been an Always initializer&quot;</span>),
         }
     }
 
@@ -349,22 +349,22 @@
         &quot;</span>;
 
         <span class="kw">let</span> <span class="ident">reference</span>: <span class="ident">ProcessReference</span> <span class="op">=</span>
-            <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">input_str</span>).<span class="ident">expect</span>(<span class="string">&quot;Could not deserialize ProcessReference from toml&quot;</span>);
-        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">toml::from_str</span>(<span class="ident">input_str</span>).<span class="ident">expect</span>(<span class="string">&quot;Could not deserialize ProcessReference from toml&quot;</span>);
+        <span class="macro">assert_eq!</span>(
             <span class="ident">reference</span>.<span class="ident">initializations</span>.<span class="ident">len</span>(),
             <span class="number">2</span>,
             <span class="string">&quot;Incorrect number of Input initializations parsed&quot;</span>
         );
         <span class="kw">match</span> <span class="ident">reference</span>.<span class="ident">initializations</span>.<span class="ident">get</span>(<span class="string">&quot;input1&quot;</span>) {
-            <span class="prelude-val">Some</span>(<span class="ident">Once</span>(<span class="ident">value</span>)) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="kw-2">&amp;</span><span class="macro">json</span><span class="macro">!</span>(<span class="number">1</span>), <span class="ident">value</span>, <span class="string">&quot;input1 should be initialized to 1&quot;</span>),
-            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Should have been a Once initializer&quot;</span>),
+            <span class="prelude-val">Some</span>(<span class="ident">Once</span>(<span class="ident">value</span>)) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span><span class="macro">json!</span>(<span class="number">1</span>), <span class="ident">value</span>, <span class="string">&quot;input1 should be initialized to 1&quot;</span>),
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic!</span>(<span class="string">&quot;Should have been a Once initializer&quot;</span>),
         }
 
         <span class="kw">match</span> <span class="ident">reference</span>.<span class="ident">initializations</span>.<span class="ident">get</span>(<span class="string">&quot;input2&quot;</span>) {
             <span class="prelude-val">Some</span>(<span class="ident">Once</span>(<span class="ident">value</span>)) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="string">&quot;hello&quot;</span>, <span class="ident">value</span>, <span class="string">&quot;input2 should be initialized to &#39;hello&#39;&quot;</span>)
+                <span class="macro">assert_eq!</span>(<span class="string">&quot;hello&quot;</span>, <span class="ident">value</span>, <span class="string">&quot;input2 should be initialized to &#39;hello&#39;&quot;</span>)
             }
-            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Should have been a Once initializer&quot;</span>),
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic!</span>(<span class="string">&quot;Should have been a Once initializer&quot;</span>),
         }
     }
 
@@ -376,10 +376,10 @@
         foo = &#39;extra token&#39;
         &quot;</span>;
 
-        <span class="kw">let</span> <span class="ident">reference</span>: <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ProcessReference</span>, <span class="kw">_</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">toml</span>::<span class="ident">from_str</span>(<span class="ident">input_str</span>);
-        <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">reference</span>.<span class="ident">is_err</span>());
+        <span class="kw">let</span> <span class="ident">reference</span>: <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ProcessReference</span>, <span class="kw">_</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">toml::from_str</span>(<span class="ident">input_str</span>);
+        <span class="macro">assert!</span>(<span class="ident">reference</span>.<span class="ident">is_err</span>());
     }
 }
 </pre></div>
-</section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="flowclib"></div>
-    <script src="../../../main.js"></script><script src="../../../source-script.js"></script><script src="../../../source-files.js"></script><script defer src="../../../search-index.js"></script></body></html>
+</section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="flowclib" data-search-index-js="../../../search-index.js" data-search-js="../../../search.js"></div>
+    <script src="../../../main.js"></script><script src="../../../source-script.js"></script><script src="../../../source-files.js"></script></body></html>

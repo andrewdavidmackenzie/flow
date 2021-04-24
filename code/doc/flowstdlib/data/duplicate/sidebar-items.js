@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Duplicate","Takes a value on it's input and sends the same value `factor` times in an array output"]]});
+initSidebarItems({"struct":[["Duplicate","Takes a value on it’s input and sends the same value `factor` times in an array output"]]});

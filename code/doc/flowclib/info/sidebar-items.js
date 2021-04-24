@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["version","return the version number of the library as a string of the form \"M.m.p\""]]});
+initSidebarItems({"fn":[["version","return the version number of the library as a string of the form “M.m.p”"]]});

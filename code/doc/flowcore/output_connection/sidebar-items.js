@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Conversion","The `Conversion` enum defines what type of run-time conversion of types is to be done"]],"struct":[["OutputConnection","`OutputConnection` contains information about a function's output connection to another function"]]});
+initSidebarItems({"enum":[["Conversion","The `Conversion` enum defines what type of run-time conversion of types is to be done"]],"struct":[["OutputConnection","`OutputConnection` contains information about a function’s output connection to another function"]]});
