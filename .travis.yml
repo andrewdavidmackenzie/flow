@@ -5,7 +5,7 @@ dist: bionic
 matrix:
   include:
   - os: linux
-    rust: stable
+    rust: nightly
   - os: osx
     osx_image: xcode12.2
     rust: stable
@@ -34,15 +34,25 @@ addons:
     packages:
       - zmq
 
-before_install:
-  - make config
-
-# Docs are only built on linux as Mac OS is too slow
-script:
-  - |
-    travis_wait 50 make clippy build test
+before_install: |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      make docs
+      make config
+      cargo install grcov
+      rustup component add llvm-tools-preview
+    else
+      make config
+    fi
+
+script: |
+    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      export RUSTFLAGS="-Zinstrument-coverage"
+      travis_wait 50 make clippy build
+      LLVM_PROFILE_FILE="flow-%p-%m.profraw" make test
+      make docs # check we can build docs OK even on a PR, so we know we can build AND deploy when merged to Master
+      grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+      bash <(curl -s https://codecov.io/bash) -f lcov.info
+    else
+      travis_wait 50 make clippy build test
     fi
 
 # Only deploy the docs on linux builds of master branch with stable rust
@@ -55,14 +65,8 @@ deploy:
   allow_empty_commit: true # Avoid deploy fail on empty commit if nothing has changed (CRON builds)
   on:
     branch: master
-    condition: $TRAVIS_OS_NAME == "linux" && $TRAVIS_RUST_VERSION == "stable"
+    condition: $TRAVIS_OS_NAME == "linux"
 
 notifications:
   email:
   - andrew@mackenzie-serres.net
-
-# Only measure measure coverage on non-CRON linux builds with stable rust
-after_success: |
-  if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" && "$TRAVIS_EVENT_TYPE" != "cron" ]]; then
-    FLOW_LIB_PATH=$TRAVIS_BUILD_DIR,$TRAVIS_BUILD_DIR/flowr/src/lib make coverage
-  fi

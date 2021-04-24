@@ -170,6 +170,7 @@ fn run_cargo_build(manifest_path: &Path, target_dir: &Path) -> Result<String> {
     );
 
     let output = Command::new(&command)
+        .env_remove("RUSTFLAGS") // remove flags for coverage, incompatible with wasm build
         .args(&command_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::piped())
