@@ -4,10 +4,10 @@
 
 # Introduction to `flow`
 
-- [What is `flow`](docs/introduction/what_is_flow.md)
-- [Tenets of flow](docs/introduction/tenets.md)
+- [What is `flow`?](docs/introduction/what_is_flow.md)
+- [Tenets of `flow`](docs/introduction/tenets.md)
 - [Project Components and Structure](docs/introduction/structure.md)
-- [The Inspirations for flow](docs/introduction/inspirations.md)
+- [The Inspirations for `flow`](docs/introduction/inspirations.md)
 - [Non-Inspirations](docs/introduction/non_inspirations.md)
 - [Status](docs/introduction/status.md)
 - [Flow Programming](docs/introduction/flow_programming.md)
