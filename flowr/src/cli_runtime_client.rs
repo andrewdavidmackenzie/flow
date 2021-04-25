@@ -14,16 +14,16 @@ use flowrlib::runtime::Response::ClientSubmission;
 use flowrlib::runtime::{Event, Response};
 
 #[derive(Debug, Clone)]
-pub struct CLIRuntimeClient {
+pub struct CliRuntimeClient {
     args: Vec<String>,
     image_buffers: HashMap<String, ImageBuffer<Rgb<u8>, Vec<u8>>>,
     #[cfg(feature = "metrics")]
     display_metrics: bool,
 }
 
-impl CLIRuntimeClient {
+impl CliRuntimeClient {
     fn new(args: Vec<String>, #[cfg(feature = "metrics")] display_metrics: bool) -> Self {
-        CLIRuntimeClient {
+        CliRuntimeClient {
             args,
             image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
             #[cfg(feature = "metrics")]
@@ -46,7 +46,7 @@ impl CLIRuntimeClient {
         debug!("Client sending submission to server");
         connection.client_send(ClientSubmission(submission))?;
 
-        let mut runtime_client = CLIRuntimeClient::new(
+        let mut runtime_client = CliRuntimeClient::new(
             flow_args,
             #[cfg(feature = "metrics")]
             display_metrics,
@@ -129,7 +129,7 @@ impl CLIRuntimeClient {
                     return if size > 0 {
                         Response::Stdin(buffer.trim().to_string())
                     } else {
-                        Response::GetStdinEOF
+                        Response::GetStdinEof
                     };
                 }
                 Response::Error("Could not read Stdin".into())
@@ -138,7 +138,7 @@ impl CLIRuntimeClient {
                 let mut input = String::new();
                 match io::stdin().read_line(&mut input) {
                     Ok(n) if n > 0 => Response::Line(input.trim().to_string()),
-                    Ok(n) if n == 0 => Response::GetLineEOF,
+                    Ok(n) if n == 0 => Response::GetLineEof,
                     _ => Response::Error("Could not read Readline".into()),
                 }
             }
@@ -185,11 +185,11 @@ mod test {
     use flowrlib::metrics::Metrics;
     use flowrlib::runtime::{Event, Response};
 
-    use super::CLIRuntimeClient;
+    use super::CliRuntimeClient;
 
     #[test]
     fn test_arg_passing() {
-        let mut client = CLIRuntimeClient::new(
+        let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string(), "1".to_string()],
             #[cfg(feature = "metrics")]
             false,
@@ -206,17 +206,19 @@ mod test {
 
     #[test]
     fn test_file_writing() {
-        let temp = tempdir::TempDir::new("flow").unwrap().into_path();
+        let temp = tempdir::TempDir::new("flow")
+            .expect("Couldn't get TempDir")
+            .into_path();
         let file = temp.join("test");
 
-        let mut client = CLIRuntimeClient::new(
+        let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
             #[cfg(feature = "metrics")]
             false,
         );
 
         if client.process_event(Event::Write(
-            file.to_str().unwrap().to_string(),
+            file.to_str().expect("Couldn't get filename").to_string(),
             b"Hello".to_vec(),
         )) != Response::Ack
         {
@@ -226,7 +228,7 @@ mod test {
 
     #[test]
     fn test_stdout() {
-        let mut client = CLIRuntimeClient::new(
+        let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
             #[cfg(feature = "metrics")]
             false,
@@ -238,7 +240,7 @@ mod test {
 
     #[test]
     fn test_stderr() {
-        let mut client = CLIRuntimeClient::new(
+        let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
             #[cfg(feature = "metrics")]
             false,
@@ -250,13 +252,15 @@ mod test {
 
     #[test]
     fn test_image_writing() {
-        let mut client = CLIRuntimeClient::new(
+        let mut client = CliRuntimeClient::new(
             vec!["file:///test_flow.toml".to_string()],
             #[cfg(feature = "metrics")]
             false,
         );
 
-        let temp_dir = TempDir::new("flow").unwrap().into_path();
+        let temp_dir = TempDir::new("flow")
+            .expect("Couldn't get TempDir")
+            .into_path();
         let path = temp_dir.join("flow.png");
 
         let _ = fs::remove_file(&path);
@@ -273,5 +277,19 @@ mod test {
         client.process_event(Event::FlowEnd);
 
         assert!(path.exists(), "Image file was not created");
+    }
+
+    #[test]
+    fn server_exiting() {
+        let mut client = CliRuntimeClient::new(
+            vec!["file:///test_flow.toml".to_string()],
+            #[cfg(feature = "metrics")]
+            false,
+        );
+
+        assert_eq!(
+            client.process_event(Event::ServerExiting),
+            Response::ClientExiting
+        );
     }
 }

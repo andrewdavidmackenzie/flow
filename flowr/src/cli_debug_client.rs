@@ -4,7 +4,7 @@ use std::io::Write;
 use log::error;
 
 use flowrlib::client_server::DebugClientConnection;
-use flowrlib::debug::{Event, Event::{*}, Param, Response, Response::{*}};
+use flowrlib::debug::{Event, Event::*, Param, Response, Response::*};
 
 use crate::errors::*;
 
@@ -30,24 +30,22 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
     A simple CLI (i.e. stdin and stdout) debug client that implements the DebugClient trait
     defined in the flowrlib library.
 */
-pub struct CLIDebugClient {}
+pub struct CliDebugClient {}
 
-impl CLIDebugClient {
+impl CliDebugClient {
     pub fn start(mut connection: DebugClientConnection) {
         let _ = connection.start();
 
-        std::thread::spawn(move || {
-            loop {
-                match connection.client_recv() {
-                    Ok(event) => {
-                        if let Ok(response) = Self::process_event(event) {
-                            let _ = connection.client_send(response);
-                        }
+        std::thread::spawn(move || loop {
+            match connection.client_recv() {
+                Ok(event) => {
+                    if let Ok(response) = Self::process_event(event) {
+                        let _ = connection.client_send(response);
                     }
-                    Err(err) => {
-                        error!("Error receiving event from debugger: {}", err);
-                        break;
-                    }
+                }
+                Err(err) => {
+                    error!("Error receiving event from debugger: {}", err);
+                    break;
                 }
             }
         });
@@ -70,23 +68,37 @@ impl CLIDebugClient {
                 return (command, Some(Param::Numeric(integer)));
             }
 
-            if parts[1].contains('/') { // is an output specified
+            if parts[1].contains('/') {
+                // is an output specified
                 let sub_parts: Vec<&str> = parts[1].split('/').collect();
                 if let Ok(source_process_id) = sub_parts[0].parse::<usize>() {
-                    return (command, Some(Param::Output((source_process_id, sub_parts[1].to_string()))));
+                    return (
+                        command,
+                        Some(Param::Output((source_process_id, sub_parts[1].to_string()))),
+                    );
                 }
-            } else if parts[1].contains(':') { // is an input specifier
+            } else if parts[1].contains(':') {
+                // is an input specifier
                 let sub_parts: Vec<&str> = parts[1].split(':').collect();
                 match (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
-                    (Ok(dest_process_id), Ok(dest_input_number)) =>
-                        return (command, Some(Param::Input((dest_process_id, dest_input_number)))),
+                    (Ok(dest_process_id), Ok(dest_input_number)) => {
+                        return (
+                            command,
+                            Some(Param::Input((dest_process_id, dest_input_number))),
+                        )
+                    }
                     (_, _) => { /* couldn't parse the process and input numbers */ }
                 }
-            } else if parts[1].contains("->") { // is a block specifier
+            } else if parts[1].contains("->") {
+                // is a block specifier
                 let sub_parts: Vec<&str> = parts[1].split("->").collect();
                 match (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
-                    (Ok(blocked_process_id), Ok(blocking_process_id)) =>
-                        return (command, Some(Param::Block((blocked_process_id, blocking_process_id)))),
+                    (Ok(blocked_process_id), Ok(blocking_process_id)) => {
+                        return (
+                            command,
+                            Some(Param::Block((blocked_process_id, blocking_process_id))),
+                        )
+                    }
                     (_, _) => { /* couldn't parse the process ids */ }
                 }
             }
@@ -96,12 +108,14 @@ impl CLIDebugClient {
     }
 
     /*
-        Wait for the user to input a valid debugger command then return it
-     */
+       Wait for the user to input a valid debugger command then return it
+    */
     fn get_user_command(job_number: usize) -> Result<Response> {
         loop {
             print!("Debug #{}> ", job_number);
-            io::stdout().flush().chain_err(|| "Could not flush stdout")?;
+            io::stdout()
+                .flush()
+                .chain_err(|| "Could not flush stdout")?;
 
             let mut input = String::new();
             match io::stdin().read_line(&mut input) {
@@ -120,10 +134,10 @@ impl CLIDebugClient {
                         "r" | "run" | "reset" => return Ok(RunReset),
                         "s" | "step" => return Ok(Step(param)),
                         "q" | "quit" => return Ok(ExitDebugger),
-                        _ => println!("Unknown debugger command '{}'\n", command)
+                        _ => println!("Unknown debugger command '{}'\n", command),
                     }
                 }
-                Err(_) => bail!("Error reading debugger command")
+                Err(_) => bail!("Error reading debugger command"),
             }
         }
     }
@@ -141,42 +155,45 @@ impl CLIDebugClient {
                     println!("\tOutput value: '{}'", &output);
                 }
             }
-            PriorToSendingJob(job_id, function_id) =>
-                println!("About to send Job #{} to Function #{}", job_id, function_id),
-            BlockBreakpoint(block) =>
-                println!("Block breakpoint: {:?}", block),
-            DataBreakpoint(source_process_id, output_route, value,
-                           destination_id, input_number) =>
-                println!("Data breakpoint: Function #{}{}    ----- {} ----> Function #{}:{}",
-                         source_process_id, output_route, value,
-                         destination_id, input_number),
+            PriorToSendingJob(job_id, function_id) => {
+                println!("About to send Job #{} to Function #{}", job_id, function_id)
+            }
+            BlockBreakpoint(block) => println!("Block breakpoint: {:?}", block),
+            DataBreakpoint(
+                source_process_id,
+                output_route,
+                value,
+                destination_id,
+                input_number,
+            ) => println!(
+                "Data breakpoint: Function #{}{}    ----- {} ----> Function #{}:{}",
+                source_process_id, output_route, value, destination_id, input_number
+            ),
             Panic(message, jobs_created) => {
-                println!("Function panicked after {} jobs created: {}", jobs_created, message);
+                println!(
+                    "Function panicked after {} jobs created: {}",
+                    jobs_created, message
+                );
                 return Self::get_user_command(jobs_created);
             }
             JobError(job) => {
                 println!("Error occurred executing a Job: \n'{}'", job);
                 return Self::get_user_command(job.job_id);
             }
-            EnteringDebugger =>
-                println!("Entering Debugger. Use 'h' or 'help' for help on commands"),
-            ExitingDebugger =>
-                println!("Debugger is exiting"),
-            ExecutionStarted =>
-                println!("Running flow"),
-            ExecutionEnded =>
-                println!("Flow has completed"),
-            Deadlock(message) =>
-                println!("Deadlock detected{}", message),
-            SendingValue(source_process_id, value, destination_id, input_number) =>
-                println!("Function #{} sending '{}' to {}:{}",
-                         source_process_id, value, destination_id, input_number),
-            Event::Error(error_message) =>
-                println!("{}", error_message),
-            Message(message) =>
-                println!("{}", message),
-            Resetting =>
-                println!("Resetting state"),
+            EnteringDebugger => {
+                println!("Entering Debugger. Use 'h' or 'help' for help on commands")
+            }
+            ExitingDebugger => println!("Debugger is exiting"),
+            ExecutionStarted => println!("Running flow"),
+            ExecutionEnded => println!("Flow has completed"),
+            Deadlock(message) => println!("Deadlock detected{}", message),
+            SendingValue(source_process_id, value, destination_id, input_number) => println!(
+                "Function #{} sending '{}' to {}:{}",
+                source_process_id, value, destination_id, input_number
+            ),
+            Event::Error(error_message) => println!("{}", error_message),
+            Message(message) => println!("{}", message),
+            Resetting => println!("Resetting state"),
             WaitingForCommand(job_id) => return Self::get_user_command(job_id),
             Event::Invalid => {}
         }

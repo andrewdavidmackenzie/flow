@@ -56,9 +56,9 @@ pub enum Response {
     /// An Error occurred in the runtime_client
     Error(String),
     /// EOF was detected on input reading using Stdin
-    GetStdinEOF,
+    GetStdinEof,
     /// EOF was detected on input reading Stdin using Readline
-    GetLineEOF,
+    GetLineEof,
     /// Client is exiting Event loop
     ClientExiting,
     /// A submission from the client for execution
