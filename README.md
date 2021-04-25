@@ -16,7 +16,7 @@ well as command line binaries (`flowc` and `flowr`) that use the libraries.
 
 As data-flow programming fits very well with a visualization of
 processes operating on data flowing from other processes, a visual programming method
-would be great. But I've only touched the surface of an IDE, disapointed by the current state of
+would be great. But I've only touched the surface of an IDE, disappointed by the current state of
 of cross-platform UI programming. That's potentially a great (but massive) project 
 in itself.
  
@@ -24,8 +24,8 @@ In this project I work on the programming "semantics" as I implement some sample
 It's a journey of discovery of writing something like this (for me), learning 
 rust in the process and learning how such a paradigm could work.
  
-Learn more about what it is and why I created it by reading the [Introduction section](docs/introduction/introduction.md), 
-or dive right in and see if you can understand [Your First Flow](docs/first_flow/first_flow.md) with zero previous 
+Learn more about what it is and why I created it by reading the [Inspirations section](docs/introduction/inspirations.md)
+of the book, or dive right in and see if you can understand [Your First Flow](docs/first_flow/first_flow.md) with zero previous 
 knowledge and just your programmer's intuition.
  
 This README.md forms part of the ['flow' Guide](http://andrewdavidmackenzie.github.io/flow/) published using gh-pages.
@@ -91,7 +91,7 @@ See the [Project Components an dStructure section](docs/introduction/structure.m
 I have been exploring how best to build a cross-platform IDE for flow that can be used to visually 
 build/inspect/debug flows. The main "problem" is choosing the best cross-platform, rust-friendly GUI toolkit
 to use. I have tried Iced and other emerging rust-native GUI toolkits, but they are not ready yet.
-  * [flowide-gtk](https://github.com/andrewdavidmackenzie/flowide-gtk) - First attempt at creating a floww IDE 
+  * [flowide-gtk](https://github.com/andrewdavidmackenzie/flowide-gtk) - First attempt at creating a flow IDE 
     with a GUI, all written in rust. It is not visual yet,
   just text based but can load and compile and then run a flow. To get this to work I also spun-off: 
       * [gtk-rs-state](https://github.com/andrewdavidmackenzie/gtk-rs-state) - a small library to help

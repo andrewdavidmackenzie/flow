@@ -10,7 +10,6 @@ export SHELL := /bin/bash
 .PHONY: all
 all: clippy build test docs
 
-########## Configure Dependencies ############
 .PHONY: config
 config:
 	@echo "Installing clippy command using rustup"
@@ -21,7 +20,7 @@ config:
 ifneq ($(BREW),)
 	@echo "Installing Mac OS X specific dependencies using $(BREW)"
 	@echo "	Installing zmq"
-	@brew install --quiet zmq
+	@brew install --quiet zmq graphviz
 endif
 ifneq ($(YUM),)
 	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
@@ -29,7 +28,7 @@ ifneq ($(YUM),)
 	@cargo install mdbook-linkcheck
 	@echo "Installing linux specific dependencies using $(YUM)"
 	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel || true
-	@sudo yum install zeromq zeromq-devel || true
+	@sudo yum install zeromq zeromq-devel graphviz || true
 endif
 ifneq ($(APTGET),)
 	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
@@ -37,36 +36,19 @@ ifneq ($(APTGET),)
 	@cargo install mdbook-linkcheck
 	@echo "Installing linux specific dependencies using $(APTGET)"
 	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
-	@sudo apt-get -y install libzmq3-dev || true
+	@sudo apt-get -y install libzmq3-dev graphviz || true
 endif
 
-################### Docs ####################
 .PHONY: docs
 docs: build-flowc book code-docs trim-docs
 
 .PHONY: book
-book: dot target/html/index.html
-
-target/html/index.html: $(SVGS)
+book: $(SVGS)
 	@mdbook build
 
 .PHONY: code-docs
 code-docs:
 	@cargo doc --workspace --quiet --no-deps --target-dir=target/html/code
-
-dot:
-ifeq ($(DOT),)
-	@echo "        Installing 'graphviz' package to be able to convert 'dot' files created by flowc into SVG files for use in docs"
-ifneq ($(YUM),)
-	@sudo yum install graphviz
-endif
-ifneq ($(APTGET),)
-	@sudo apt-get -y install graphviz
-endif
-ifneq ($(BREW),)
-	@brew install graphviz
-endif
-endif
 
 target/html/%.dot.svg: %.dot
 	@dot -Tsvg -O $<
@@ -80,19 +62,20 @@ trim-docs:
 	@find target/html -name .idea | xargs rm -rf {}
 	@find target/html -name \*.iml | xargs rm -rf {}
 	@find target/html -name .git | xargs rm -rf {}
-	@find target/html -name .sh | xargs rm -rf {}
-	@find target/html -name assets | xargs rm -rf {}
 	@find target/html -name Cargo.toml | xargs rm -rf {}
 	@find target/html -name manifest.json | xargs rm -rf {}
 	@find target/html -name test.err | xargs rm -rf {}
+	@find target/html -name test.input | xargs rm -rf {}
+	@find target/html -name test.arguments | xargs rm -rf {}
+	@find target/html -name test.output | xargs rm -rf {}
+	@find target/html -name expected.output | xargs rm -rf {}
+	@find target/html -name flow.toml | xargs rm -rf {}
 	@find target/html -name \*.rs | xargs rm -rf {}
-	@find target/html -name pkg | xargs rm -rf {}
 	@find target/html -name \*.dump | xargs rm -rf {}
 	@find target/html -name \*.dot | xargs rm -rf {}
 	@find target/html -name \*.wasm | xargs rm -rf {}
 	@find target/html -name \*.lock  | xargs rm -rf {}
-	@cd target/html && rm -f Makefile .crates.toml .DS_Store .gitignore .mdbookignore .travis.yml
-	@cd target/html && rm -rf bin
+	@cd target/html && rm -f Makefile .crates.toml .DS_Store .mdbookignore .travis.yml codecov.yml
 	@rm -rf target/html/flowc/tests/test-flows
 	@rm -rf target/html/flowc/tests/test-libs
 	@rm -rf target/html/code/debug
@@ -110,7 +93,6 @@ build: build-flowc
 clippy: build-flowc
 	@cargo clippy -- -D warnings
 
-#################### Tests ####################
 .PHONY: test
 test: build-flowc
 	@set -o pipefail && cargo test --workspace --exclude flow_impl_derive -- --test-threads 1 2>&1 | tee .test.log

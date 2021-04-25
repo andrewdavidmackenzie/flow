@@ -1,6 +1,6 @@
-## What is 'flow'?
+## What is 'flow'
 
-`flow` is a system for defining and running parallel, data-dependency-driven 'programs'.
+`flow` is a system for defining and running inherently parallel, data-dependency-driven 'programs'.
  
 A `flow` is a program created by a description of interconnected and communicating `processes`.
 
@@ -13,7 +13,7 @@ i.e. what data is required for a process to be able to run, and what output it p
 Thus a `flow` is inherently parallel, without any further need to express the parallelism of the described algorithm.
 
 As part of describing the interconnections, I would like `flow` to be also visual, making the data dependencies visible
-and directly "authorable". Processes and sub-flows are interchangeable and nestable, so that higher
+and directly "author-able". Processes and sub-flows are interchangeable and nestable, so that higher
 level programs can be constructed by combining primitive processes and nested 'flows', making flows reusable.
 
 At the time of writing, I haven't been able to do the GUI for the visual creation, viewing, running and
@@ -22,7 +22,7 @@ be used as the description format for a visual GUI though.
 
 I don't consider it a "programming language" as the functionality of the program is created from the combination of many
 low-level functions, that can be very fine grained and implemented in many programming languages (or even assembly, 
-WebAssembly, LLVM-IR or something else). Most logic (control flow, loops) comes from how the processess are "wired together"
+WebAssembly, LLVM-IR or something else). Most logic (control flow, loops) comes from how the processes are "wired together"
 in 'flows'. I have chosen to implement my basic processes in 'flowstdlib' and the 'flowr' run-time in rust (but they could 
 be in other languages).
 

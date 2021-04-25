@@ -4,6 +4,7 @@
 **/*.dot
 **/*.dump
 **/*.log
+**/manifest.json
 cov
 .crates.toml
 bin
