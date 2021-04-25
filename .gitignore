@@ -1,0 +1,15 @@
+**/.idea
+**/target
+**/*.iml
+**/*.dot
+**/*.dump
+**/*.log
+**/manifest.json
+cov
+.crates.toml
+bin
+**/*.wasm
+**/*.rs.bk
+.test.log
+.test_list
+**/*.profraw
