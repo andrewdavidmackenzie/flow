@@ -21,6 +21,7 @@ use super::dump_tables;
 /// use provider::lib_provider::LibProvider;
 /// use provider::errors::Result;
 /// use flowclib::model::process::Process::FlowProcess;
+/// use tempdir::TempDir;
 ///
 /// struct DummyProvider {}
 ///
@@ -42,7 +43,7 @@ use super::dump_tables;
 ///                                                    &dummy_provider).unwrap() {
 ///
 ///     // strip off filename so output_dir is where the context.toml file resides
-///     let output_dir = url.join("./").unwrap().to_file_path().unwrap();
+///     let output_dir = TempDir::new("flow").unwrap().into_path();
 ///
 ///     // dump the flows compiler data and dot graph into files alongside the 'context.toml'
 ///     flowclib::dumper::dump_flow::dump_flow(&flow, &output_dir, &dummy_provider, true, true).unwrap();
