@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["CLIRuntimeClient",""]]});
+initSidebarItems({"struct":[["CliRuntimeClient",""]]});

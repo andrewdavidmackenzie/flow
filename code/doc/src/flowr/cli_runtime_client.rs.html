@@ -278,6 +278,24 @@
 <span id="275">275</span>
 <span id="276">276</span>
 <span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std::collections::HashMap</span>;
 <span class="kw">use</span> <span class="ident">std::fs::File</span>;
@@ -295,16 +313,16 @@
 <span class="kw">use</span> <span class="ident">flowrlib::runtime</span>::{<span class="ident">Event</span>, <span class="ident">Response</span>};
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">CLIRuntimeClient</span> {
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">CliRuntimeClient</span> {
     <span class="ident">args</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
     <span class="ident">image_buffers</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">ImageBuffer</span><span class="op">&lt;</span><span class="ident">Rgb</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span><span class="op">&gt;</span>,
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
     <span class="ident">display_metrics</span>: <span class="ident">bool</span>,
 }
 
-<span class="kw">impl</span> <span class="ident">CLIRuntimeClient</span> {
+<span class="kw">impl</span> <span class="ident">CliRuntimeClient</span> {
     <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">args</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>, <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span> <span class="ident">display_metrics</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
-        <span class="ident">CLIRuntimeClient</span> {
+        <span class="ident">CliRuntimeClient</span> {
             <span class="ident">args</span>,
             <span class="ident">image_buffers</span>: <span class="ident">HashMap</span>::<span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">ImageBuffer</span><span class="op">&lt;</span><span class="ident">Rgb</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span><span class="op">&gt;</span><span class="ident">::new</span>(),
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
@@ -327,7 +345,7 @@
         <span class="macro">debug!</span>(<span class="string">&quot;Client sending submission to server&quot;</span>);
         <span class="ident">connection</span>.<span class="ident">client_send</span>(<span class="ident">ClientSubmission</span>(<span class="ident">submission</span>))<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">runtime_client</span> <span class="op">=</span> <span class="ident">CLIRuntimeClient::new</span>(
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">runtime_client</span> <span class="op">=</span> <span class="ident">CliRuntimeClient::new</span>(
             <span class="ident">flow_args</span>,
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
             <span class="ident">display_metrics</span>,
@@ -410,7 +428,7 @@
                     <span class="kw">return</span> <span class="kw">if</span> <span class="ident">size</span> <span class="op">&gt;</span> <span class="number">0</span> {
                         <span class="ident">Response::Stdin</span>(<span class="ident">buffer</span>.<span class="ident">trim</span>().<span class="ident">to_string</span>())
                     } <span class="kw">else</span> {
-                        <span class="ident">Response::GetStdinEOF</span>
+                        <span class="ident">Response::GetStdinEof</span>
                     };
                 }
                 <span class="ident">Response::Error</span>(<span class="string">&quot;Could not read Stdin&quot;</span>.<span class="ident">into</span>())
@@ -419,7 +437,7 @@
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">input</span> <span class="op">=</span> <span class="ident">String::new</span>();
                 <span class="kw">match</span> <span class="ident">io::stdin</span>().<span class="ident">read_line</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">input</span>) {
                     <span class="prelude-val">Ok</span>(<span class="ident">n</span>) <span class="kw">if</span> <span class="ident">n</span> <span class="op">&gt;</span> <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Response::Line</span>(<span class="ident">input</span>.<span class="ident">trim</span>().<span class="ident">to_string</span>()),
-                    <span class="prelude-val">Ok</span>(<span class="ident">n</span>) <span class="kw">if</span> <span class="ident">n</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Response::GetLineEOF</span>,
+                    <span class="prelude-val">Ok</span>(<span class="ident">n</span>) <span class="kw">if</span> <span class="ident">n</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Response::GetLineEof</span>,
                     <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Response::Error</span>(<span class="string">&quot;Could not read Readline&quot;</span>.<span class="ident">into</span>()),
                 }
             }
@@ -466,11 +484,11 @@
     <span class="kw">use</span> <span class="ident">flowrlib::metrics::Metrics</span>;
     <span class="kw">use</span> <span class="ident">flowrlib::runtime</span>::{<span class="ident">Event</span>, <span class="ident">Response</span>};
 
-    <span class="kw">use</span> <span class="kw">super</span><span class="ident">::CLIRuntimeClient</span>;
+    <span class="kw">use</span> <span class="kw">super</span><span class="ident">::CliRuntimeClient</span>;
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">test_arg_passing</span>() {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">client</span> <span class="op">=</span> <span class="ident">CLIRuntimeClient::new</span>(
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">client</span> <span class="op">=</span> <span class="ident">CliRuntimeClient::new</span>(
             <span class="macro">vec!</span>[<span class="string">&quot;file:///test_flow.toml&quot;</span>.<span class="ident">to_string</span>(), <span class="string">&quot;1&quot;</span>.<span class="ident">to_string</span>()],
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
             <span class="bool-val">false</span>,
@@ -487,17 +505,19 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">test_file_writing</span>() {
-        <span class="kw">let</span> <span class="ident">temp</span> <span class="op">=</span> <span class="ident">tempdir::TempDir::new</span>(<span class="string">&quot;flow&quot;</span>).<span class="ident">unwrap</span>().<span class="ident">into_path</span>();
+        <span class="kw">let</span> <span class="ident">temp</span> <span class="op">=</span> <span class="ident">tempdir::TempDir::new</span>(<span class="string">&quot;flow&quot;</span>)
+            .<span class="ident">expect</span>(<span class="string">&quot;Couldn&#39;t get TempDir&quot;</span>)
+            .<span class="ident">into_path</span>();
         <span class="kw">let</span> <span class="ident">file</span> <span class="op">=</span> <span class="ident">temp</span>.<span class="ident">join</span>(<span class="string">&quot;test&quot;</span>);
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">client</span> <span class="op">=</span> <span class="ident">CLIRuntimeClient::new</span>(
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">client</span> <span class="op">=</span> <span class="ident">CliRuntimeClient::new</span>(
             <span class="macro">vec!</span>[<span class="string">&quot;file:///test_flow.toml&quot;</span>.<span class="ident">to_string</span>()],
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
             <span class="bool-val">false</span>,
         );
 
         <span class="kw">if</span> <span class="ident">client</span>.<span class="ident">process_event</span>(<span class="ident">Event::Write</span>(
-            <span class="ident">file</span>.<span class="ident">to_str</span>().<span class="ident">unwrap</span>().<span class="ident">to_string</span>(),
+            <span class="ident">file</span>.<span class="ident">to_str</span>().<span class="ident">expect</span>(<span class="string">&quot;Couldn&#39;t get filename&quot;</span>).<span class="ident">to_string</span>(),
             <span class="string">b&quot;Hello&quot;</span>.<span class="ident">to_vec</span>(),
         )) <span class="op">!</span><span class="op">=</span> <span class="ident">Response::Ack</span>
         {
@@ -507,7 +527,7 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">test_stdout</span>() {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">client</span> <span class="op">=</span> <span class="ident">CLIRuntimeClient::new</span>(
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">client</span> <span class="op">=</span> <span class="ident">CliRuntimeClient::new</span>(
             <span class="macro">vec!</span>[<span class="string">&quot;file:///test_flow.toml&quot;</span>.<span class="ident">to_string</span>()],
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
             <span class="bool-val">false</span>,
@@ -519,7 +539,7 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">test_stderr</span>() {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">client</span> <span class="op">=</span> <span class="ident">CLIRuntimeClient::new</span>(
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">client</span> <span class="op">=</span> <span class="ident">CliRuntimeClient::new</span>(
             <span class="macro">vec!</span>[<span class="string">&quot;file:///test_flow.toml&quot;</span>.<span class="ident">to_string</span>()],
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
             <span class="bool-val">false</span>,
@@ -531,13 +551,15 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">test_image_writing</span>() {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">client</span> <span class="op">=</span> <span class="ident">CLIRuntimeClient::new</span>(
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">client</span> <span class="op">=</span> <span class="ident">CliRuntimeClient::new</span>(
             <span class="macro">vec!</span>[<span class="string">&quot;file:///test_flow.toml&quot;</span>.<span class="ident">to_string</span>()],
             <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
             <span class="bool-val">false</span>,
         );
 
-        <span class="kw">let</span> <span class="ident">temp_dir</span> <span class="op">=</span> <span class="ident">TempDir::new</span>(<span class="string">&quot;flow&quot;</span>).<span class="ident">unwrap</span>().<span class="ident">into_path</span>();
+        <span class="kw">let</span> <span class="ident">temp_dir</span> <span class="op">=</span> <span class="ident">TempDir::new</span>(<span class="string">&quot;flow&quot;</span>)
+            .<span class="ident">expect</span>(<span class="string">&quot;Couldn&#39;t get TempDir&quot;</span>)
+            .<span class="ident">into_path</span>();
         <span class="kw">let</span> <span class="ident">path</span> <span class="op">=</span> <span class="ident">temp_dir</span>.<span class="ident">join</span>(<span class="string">&quot;flow.png&quot;</span>);
 
         <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">fs::remove_file</span>(<span class="kw-2">&amp;</span><span class="ident">path</span>);
@@ -554,6 +576,20 @@
         <span class="ident">client</span>.<span class="ident">process_event</span>(<span class="ident">Event::FlowEnd</span>);
 
         <span class="macro">assert!</span>(<span class="ident">path</span>.<span class="ident">exists</span>(), <span class="string">&quot;Image file was not created&quot;</span>);
+    }
+
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">server_exiting</span>() {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">client</span> <span class="op">=</span> <span class="ident">CliRuntimeClient::new</span>(
+            <span class="macro">vec!</span>[<span class="string">&quot;file:///test_flow.toml&quot;</span>.<span class="ident">to_string</span>()],
+            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;metrics&quot;</span>)]</span>
+            <span class="bool-val">false</span>,
+        );
+
+        <span class="macro">assert_eq!</span>(
+            <span class="ident">client</span>.<span class="ident">process_event</span>(<span class="ident">Event::ServerExiting</span>),
+            <span class="ident">Response::ClientExiting</span>
+        );
     }
 }
 </pre></div>

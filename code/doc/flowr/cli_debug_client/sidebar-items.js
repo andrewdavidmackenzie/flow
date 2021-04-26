@@ -1,1 +1,1 @@
-initSidebarItems({"constant":[["HELP_STRING",""]],"struct":[["CLIDebugClient",""]]});
+initSidebarItems({"constant":[["HELP_STRING",""]],"struct":[["CliDebugClient",""]]});

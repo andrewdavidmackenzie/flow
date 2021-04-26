@@ -68,7 +68,7 @@
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;string&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value::String</span>(<span class="ident">contents</span>));
                     (<span class="prelude-val">Some</span>(<span class="ident">Value::Object</span>(<span class="ident">output_map</span>)), <span class="ident">RUN_AGAIN</span>)
                 }
-                <span class="prelude-val">Ok</span>(<span class="ident">Response::GetStdinEOF</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="prelude-val">Ok</span>(<span class="ident">Response::GetStdinEof</span>) <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">output_map</span> <span class="op">=</span> <span class="ident">serde_json::Map::new</span>();
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;string&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value::Null</span>);
                     <span class="ident">output_map</span>.<span class="ident">insert</span>(<span class="string">&quot;json&quot;</span>.<span class="ident">into</span>(), <span class="ident">Value::Null</span>);

@@ -374,8 +374,8 @@
 <span class="kw">use</span> <span class="ident">flowrlib::info</span> <span class="kw">as</span> <span class="ident">flowrlib_info</span>;
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
-<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::cli_debug_client::CLIDebugClient</span>;
-<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::cli_runtime_client::CLIRuntimeClient</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::cli_debug_client::CliDebugClient</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::cli_runtime_client::CliRuntimeClient</span>;
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
 <span class="kw">mod</span> <span class="ident">cli_debug_client</span>;
@@ -506,8 +506,8 @@
         );
 
         <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debugger&quot;</span>)]</span>
-        <span class="ident">CLIDebugClient::start</span>(<span class="ident">debug_connection</span>);
-        <span class="ident">CLIRuntimeClient::start</span>(
+        <span class="ident">CliDebugClient::start</span>(<span class="ident">debug_connection</span>);
+        <span class="ident">CliRuntimeClient::start</span>(
             <span class="ident">runtime_connection</span>,
             <span class="ident">submission</span>,
             <span class="ident">flow_args</span>,

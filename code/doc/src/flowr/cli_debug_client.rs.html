@@ -187,6 +187,23 @@
 <span id="184">184</span>
 <span id="185">185</span>
 <span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std::io</span>;
 <span class="kw">use</span> <span class="ident">std::io::Write</span>;
@@ -194,7 +211,7 @@
 <span class="kw">use</span> <span class="ident">log::error</span>;
 
 <span class="kw">use</span> <span class="ident">flowrlib::client_server::DebugClientConnection</span>;
-<span class="kw">use</span> <span class="ident">flowrlib::debug</span>::{<span class="ident">Event</span>, <span class="ident">Event</span>::{<span class="kw-2">*</span>}, <span class="ident">Param</span>, <span class="ident">Response</span>, <span class="ident">Response</span>::{<span class="kw-2">*</span>}};
+<span class="kw">use</span> <span class="ident">flowrlib::debug</span>::{<span class="ident">Event</span>, <span class="ident">Event</span>::<span class="kw-2">*</span>, <span class="ident">Param</span>, <span class="ident">Response</span>, <span class="ident">Response</span>::<span class="kw-2">*</span>};
 
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::errors</span>::<span class="kw-2">*</span>;
 
@@ -220,24 +237,22 @@ ENTER | &#39;c&#39; | &#39;continue&#39;     - Continue execution until next bre
     A simple CLI (i.e. stdin and stdout) debug client that implements the DebugClient trait
     defined in the flowrlib library.
 */</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">CLIDebugClient</span> {}
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">CliDebugClient</span> {}
 
-<span class="kw">impl</span> <span class="ident">CLIDebugClient</span> {
+<span class="kw">impl</span> <span class="ident">CliDebugClient</span> {
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">start</span>(<span class="kw-2">mut</span> <span class="ident">connection</span>: <span class="ident">DebugClientConnection</span>) {
         <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">connection</span>.<span class="ident">start</span>();
 
-        <span class="ident">std::thread::spawn</span>(<span class="kw">move</span> <span class="op">|</span><span class="op">|</span> {
-            <span class="kw">loop</span> {
-                <span class="kw">match</span> <span class="ident">connection</span>.<span class="ident">client_recv</span>() {
-                    <span class="prelude-val">Ok</span>(<span class="ident">event</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">response</span>) <span class="op">=</span> <span class="self">Self</span><span class="ident">::process_event</span>(<span class="ident">event</span>) {
-                            <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">connection</span>.<span class="ident">client_send</span>(<span class="ident">response</span>);
-                        }
+        <span class="ident">std::thread::spawn</span>(<span class="kw">move</span> <span class="op">|</span><span class="op">|</span> <span class="kw">loop</span> {
+            <span class="kw">match</span> <span class="ident">connection</span>.<span class="ident">client_recv</span>() {
+                <span class="prelude-val">Ok</span>(<span class="ident">event</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">response</span>) <span class="op">=</span> <span class="self">Self</span><span class="ident">::process_event</span>(<span class="ident">event</span>) {
+                        <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">connection</span>.<span class="ident">client_send</span>(<span class="ident">response</span>);
                     }
-                    <span class="prelude-val">Err</span>(<span class="ident">err</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                        <span class="macro">error!</span>(<span class="string">&quot;Error receiving event from debugger: {}&quot;</span>, <span class="ident">err</span>);
-                        <span class="kw">break</span>;
-                    }
+                }
+                <span class="prelude-val">Err</span>(<span class="ident">err</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                    <span class="macro">error!</span>(<span class="string">&quot;Error receiving event from debugger: {}&quot;</span>, <span class="ident">err</span>);
+                    <span class="kw">break</span>;
                 }
             }
         });
@@ -260,23 +275,37 @@ ENTER | &#39;c&#39; | &#39;continue&#39;     - Continue execution until next bre
                 <span class="kw">return</span> (<span class="ident">command</span>, <span class="prelude-val">Some</span>(<span class="ident">Param::Numeric</span>(<span class="ident">integer</span>)));
             }
 
-            <span class="kw">if</span> <span class="ident">parts</span>[<span class="number">1</span>].<span class="ident">contains</span>(<span class="string">&#39;/&#39;</span>) { <span class="comment">// is an output specified</span>
+            <span class="kw">if</span> <span class="ident">parts</span>[<span class="number">1</span>].<span class="ident">contains</span>(<span class="string">&#39;/&#39;</span>) {
+                <span class="comment">// is an output specified</span>
                 <span class="kw">let</span> <span class="ident">sub_parts</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">parts</span>[<span class="number">1</span>].<span class="ident">split</span>(<span class="string">&#39;/&#39;</span>).<span class="ident">collect</span>();
                 <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">source_process_id</span>) <span class="op">=</span> <span class="ident">sub_parts</span>[<span class="number">0</span>].<span class="ident">parse</span>::<span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>() {
-                    <span class="kw">return</span> (<span class="ident">command</span>, <span class="prelude-val">Some</span>(<span class="ident">Param::Output</span>((<span class="ident">source_process_id</span>, <span class="ident">sub_parts</span>[<span class="number">1</span>].<span class="ident">to_string</span>()))));
+                    <span class="kw">return</span> (
+                        <span class="ident">command</span>,
+                        <span class="prelude-val">Some</span>(<span class="ident">Param::Output</span>((<span class="ident">source_process_id</span>, <span class="ident">sub_parts</span>[<span class="number">1</span>].<span class="ident">to_string</span>()))),
+                    );
                 }
-            } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">parts</span>[<span class="number">1</span>].<span class="ident">contains</span>(<span class="string">&#39;:&#39;</span>) { <span class="comment">// is an input specifier</span>
+            } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">parts</span>[<span class="number">1</span>].<span class="ident">contains</span>(<span class="string">&#39;:&#39;</span>) {
+                <span class="comment">// is an input specifier</span>
                 <span class="kw">let</span> <span class="ident">sub_parts</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">parts</span>[<span class="number">1</span>].<span class="ident">split</span>(<span class="string">&#39;:&#39;</span>).<span class="ident">collect</span>();
                 <span class="kw">match</span> (<span class="ident">sub_parts</span>[<span class="number">0</span>].<span class="ident">parse</span>::<span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>(), <span class="ident">sub_parts</span>[<span class="number">1</span>].<span class="ident">parse</span>::<span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>()) {
-                    (<span class="prelude-val">Ok</span>(<span class="ident">dest_process_id</span>), <span class="prelude-val">Ok</span>(<span class="ident">dest_input_number</span>)) <span class="op">=</span><span class="op">&gt;</span>
-                        <span class="kw">return</span> (<span class="ident">command</span>, <span class="prelude-val">Some</span>(<span class="ident">Param::Input</span>((<span class="ident">dest_process_id</span>, <span class="ident">dest_input_number</span>)))),
+                    (<span class="prelude-val">Ok</span>(<span class="ident">dest_process_id</span>), <span class="prelude-val">Ok</span>(<span class="ident">dest_input_number</span>)) <span class="op">=</span><span class="op">&gt;</span> {
+                        <span class="kw">return</span> (
+                            <span class="ident">command</span>,
+                            <span class="prelude-val">Some</span>(<span class="ident">Param::Input</span>((<span class="ident">dest_process_id</span>, <span class="ident">dest_input_number</span>))),
+                        )
+                    }
                     (<span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> { <span class="comment">/* couldn&#39;t parse the process and input numbers */</span> }
                 }
-            } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">parts</span>[<span class="number">1</span>].<span class="ident">contains</span>(<span class="string">&quot;-&gt;&quot;</span>) { <span class="comment">// is a block specifier</span>
+            } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">parts</span>[<span class="number">1</span>].<span class="ident">contains</span>(<span class="string">&quot;-&gt;&quot;</span>) {
+                <span class="comment">// is a block specifier</span>
                 <span class="kw">let</span> <span class="ident">sub_parts</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">parts</span>[<span class="number">1</span>].<span class="ident">split</span>(<span class="string">&quot;-&gt;&quot;</span>).<span class="ident">collect</span>();
                 <span class="kw">match</span> (<span class="ident">sub_parts</span>[<span class="number">0</span>].<span class="ident">parse</span>::<span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>(), <span class="ident">sub_parts</span>[<span class="number">1</span>].<span class="ident">parse</span>::<span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>()) {
-                    (<span class="prelude-val">Ok</span>(<span class="ident">blocked_process_id</span>), <span class="prelude-val">Ok</span>(<span class="ident">blocking_process_id</span>)) <span class="op">=</span><span class="op">&gt;</span>
-                        <span class="kw">return</span> (<span class="ident">command</span>, <span class="prelude-val">Some</span>(<span class="ident">Param::Block</span>((<span class="ident">blocked_process_id</span>, <span class="ident">blocking_process_id</span>)))),
+                    (<span class="prelude-val">Ok</span>(<span class="ident">blocked_process_id</span>), <span class="prelude-val">Ok</span>(<span class="ident">blocking_process_id</span>)) <span class="op">=</span><span class="op">&gt;</span> {
+                        <span class="kw">return</span> (
+                            <span class="ident">command</span>,
+                            <span class="prelude-val">Some</span>(<span class="ident">Param::Block</span>((<span class="ident">blocked_process_id</span>, <span class="ident">blocking_process_id</span>))),
+                        )
+                    }
                     (<span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> { <span class="comment">/* couldn&#39;t parse the process ids */</span> }
                 }
             }
@@ -286,12 +315,14 @@ ENTER | &#39;c&#39; | &#39;continue&#39;     - Continue execution until next bre
     }
 
     <span class="comment">/*
-        Wait for the user to input a valid debugger command then return it
-     */</span>
+       Wait for the user to input a valid debugger command then return it
+    */</span>
     <span class="kw">fn</span> <span class="ident">get_user_command</span>(<span class="ident">job_number</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Response</span><span class="op">&gt;</span> {
         <span class="kw">loop</span> {
             <span class="macro">print!</span>(<span class="string">&quot;Debug #{}&gt; &quot;</span>, <span class="ident">job_number</span>);
-            <span class="ident">io::stdout</span>().<span class="ident">flush</span>().<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not flush stdout&quot;</span>)<span class="question-mark">?</span>;
+            <span class="ident">io::stdout</span>()
+                .<span class="ident">flush</span>()
+                .<span class="ident">chain_err</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;Could not flush stdout&quot;</span>)<span class="question-mark">?</span>;
 
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">input</span> <span class="op">=</span> <span class="ident">String::new</span>();
             <span class="kw">match</span> <span class="ident">io::stdin</span>().<span class="ident">read_line</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">input</span>) {
@@ -310,10 +341,10 @@ ENTER | &#39;c&#39; | &#39;continue&#39;     - Continue execution until next bre
                         <span class="string">&quot;r&quot;</span> <span class="op">|</span> <span class="string">&quot;run&quot;</span> <span class="op">|</span> <span class="string">&quot;reset&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">RunReset</span>),
                         <span class="string">&quot;s&quot;</span> <span class="op">|</span> <span class="string">&quot;step&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">Step</span>(<span class="ident">param</span>)),
                         <span class="string">&quot;q&quot;</span> <span class="op">|</span> <span class="string">&quot;quit&quot;</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">ExitDebugger</span>),
-                        <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">println!</span>(<span class="string">&quot;Unknown debugger command &#39;{}&#39;\n&quot;</span>, <span class="ident">command</span>)
+                        <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">println!</span>(<span class="string">&quot;Unknown debugger command &#39;{}&#39;\n&quot;</span>, <span class="ident">command</span>),
                     }
                 }
-                <span class="prelude-val">Err</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">bail!</span>(<span class="string">&quot;Error reading debugger command&quot;</span>)
+                <span class="prelude-val">Err</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">bail!</span>(<span class="string">&quot;Error reading debugger command&quot;</span>),
             }
         }
     }
@@ -331,48 +362,52 @@ ENTER | &#39;c&#39; | &#39;continue&#39;     - Continue execution until next bre
                     <span class="macro">println!</span>(<span class="string">&quot;\tOutput value: &#39;{}&#39;&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">output</span>);
                 }
             }
-            <span class="ident">PriorToSendingJob</span>(<span class="ident">job_id</span>, <span class="ident">function_id</span>) <span class="op">=</span><span class="op">&gt;</span>
-                <span class="macro">println!</span>(<span class="string">&quot;About to send Job #{} to Function #{}&quot;</span>, <span class="ident">job_id</span>, <span class="ident">function_id</span>),
-            <span class="ident">BlockBreakpoint</span>(<span class="ident">block</span>) <span class="op">=</span><span class="op">&gt;</span>
-                <span class="macro">println!</span>(<span class="string">&quot;Block breakpoint: {:?}&quot;</span>, <span class="ident">block</span>),
-            <span class="ident">DataBreakpoint</span>(<span class="ident">source_process_id</span>, <span class="ident">output_route</span>, <span class="ident">value</span>,
-                           <span class="ident">destination_id</span>, <span class="ident">input_number</span>) <span class="op">=</span><span class="op">&gt;</span>
-                <span class="macro">println!</span>(<span class="string">&quot;Data breakpoint: Function #{}{}    ----- {} ----&gt; Function #{}:{}&quot;</span>,
-                         <span class="ident">source_process_id</span>, <span class="ident">output_route</span>, <span class="ident">value</span>,
-                         <span class="ident">destination_id</span>, <span class="ident">input_number</span>),
+            <span class="ident">PriorToSendingJob</span>(<span class="ident">job_id</span>, <span class="ident">function_id</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="macro">println!</span>(<span class="string">&quot;About to send Job #{} to Function #{}&quot;</span>, <span class="ident">job_id</span>, <span class="ident">function_id</span>)
+            }
+            <span class="ident">BlockBreakpoint</span>(<span class="ident">block</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">println!</span>(<span class="string">&quot;Block breakpoint: {:?}&quot;</span>, <span class="ident">block</span>),
+            <span class="ident">DataBreakpoint</span>(
+                <span class="ident">source_process_id</span>,
+                <span class="ident">output_route</span>,
+                <span class="ident">value</span>,
+                <span class="ident">destination_id</span>,
+                <span class="ident">input_number</span>,
+            ) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">println!</span>(
+                <span class="string">&quot;Data breakpoint: Function #{}{}    ----- {} ----&gt; Function #{}:{}&quot;</span>,
+                <span class="ident">source_process_id</span>, <span class="ident">output_route</span>, <span class="ident">value</span>, <span class="ident">destination_id</span>, <span class="ident">input_number</span>
+            ),
             <span class="ident">Panic</span>(<span class="ident">message</span>, <span class="ident">jobs_created</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="macro">println!</span>(<span class="string">&quot;Function panicked after {} jobs created: {}&quot;</span>, <span class="ident">jobs_created</span>, <span class="ident">message</span>);
+                <span class="macro">println!</span>(
+                    <span class="string">&quot;Function panicked after {} jobs created: {}&quot;</span>,
+                    <span class="ident">jobs_created</span>, <span class="ident">message</span>
+                );
                 <span class="kw">return</span> <span class="self">Self</span><span class="ident">::get_user_command</span>(<span class="ident">jobs_created</span>);
             }
             <span class="ident">JobError</span>(<span class="ident">job</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="macro">println!</span>(<span class="string">&quot;Error occurred executing a Job: \n&#39;{}&#39;&quot;</span>, <span class="ident">job</span>);
                 <span class="kw">return</span> <span class="self">Self</span><span class="ident">::get_user_command</span>(<span class="ident">job</span>.<span class="ident">job_id</span>);
             }
-            <span class="ident">EnteringDebugger</span> <span class="op">=</span><span class="op">&gt;</span>
-                <span class="macro">println!</span>(<span class="string">&quot;Entering Debugger. Use &#39;h&#39; or &#39;help&#39; for help on commands&quot;</span>),
-            <span class="ident">ExitingDebugger</span> <span class="op">=</span><span class="op">&gt;</span>
-                <span class="macro">println!</span>(<span class="string">&quot;Debugger is exiting&quot;</span>),
-            <span class="ident">ExecutionStarted</span> <span class="op">=</span><span class="op">&gt;</span>
-                <span class="macro">println!</span>(<span class="string">&quot;Running flow&quot;</span>),
-            <span class="ident">ExecutionEnded</span> <span class="op">=</span><span class="op">&gt;</span>
-                <span class="macro">println!</span>(<span class="string">&quot;Flow has completed&quot;</span>),
-            <span class="ident">Deadlock</span>(<span class="ident">message</span>) <span class="op">=</span><span class="op">&gt;</span>
-                <span class="macro">println!</span>(<span class="string">&quot;Deadlock detected{}&quot;</span>, <span class="ident">message</span>),
-            <span class="ident">SendingValue</span>(<span class="ident">source_process_id</span>, <span class="ident">value</span>, <span class="ident">destination_id</span>, <span class="ident">input_number</span>) <span class="op">=</span><span class="op">&gt;</span>
-                <span class="macro">println!</span>(<span class="string">&quot;Function #{} sending &#39;{}&#39; to {}:{}&quot;</span>,
-                         <span class="ident">source_process_id</span>, <span class="ident">value</span>, <span class="ident">destination_id</span>, <span class="ident">input_number</span>),
-            <span class="ident">Event::Error</span>(<span class="ident">error_message</span>) <span class="op">=</span><span class="op">&gt;</span>
-                <span class="macro">println!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">error_message</span>),
-            <span class="ident">Message</span>(<span class="ident">message</span>) <span class="op">=</span><span class="op">&gt;</span>
-                <span class="macro">println!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">message</span>),
-            <span class="ident">Resetting</span> <span class="op">=</span><span class="op">&gt;</span>
-                <span class="macro">println!</span>(<span class="string">&quot;Resetting state&quot;</span>),
+            <span class="ident">EnteringDebugger</span> <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="macro">println!</span>(<span class="string">&quot;Entering Debugger. Use &#39;h&#39; or &#39;help&#39; for help on commands&quot;</span>)
+            }
+            <span class="ident">ExitingDebugger</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">println!</span>(<span class="string">&quot;Debugger is exiting&quot;</span>),
+            <span class="ident">ExecutionStarted</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">println!</span>(<span class="string">&quot;Running flow&quot;</span>),
+            <span class="ident">ExecutionEnded</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">println!</span>(<span class="string">&quot;Flow has completed&quot;</span>),
+            <span class="ident">Deadlock</span>(<span class="ident">message</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">println!</span>(<span class="string">&quot;Deadlock detected{}&quot;</span>, <span class="ident">message</span>),
+            <span class="ident">SendingValue</span>(<span class="ident">source_process_id</span>, <span class="ident">value</span>, <span class="ident">destination_id</span>, <span class="ident">input_number</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">println!</span>(
+                <span class="string">&quot;Function #{} sending &#39;{}&#39; to {}:{}&quot;</span>,
+                <span class="ident">source_process_id</span>, <span class="ident">value</span>, <span class="ident">destination_id</span>, <span class="ident">input_number</span>
+            ),
+            <span class="ident">Event::Error</span>(<span class="ident">error_message</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">println!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">error_message</span>),
+            <span class="ident">Message</span>(<span class="ident">message</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">println!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">message</span>),
+            <span class="ident">Resetting</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">println!</span>(<span class="string">&quot;Resetting state&quot;</span>),
             <span class="ident">WaitingForCommand</span>(<span class="ident">job_id</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="self">Self</span><span class="ident">::get_user_command</span>(<span class="ident">job_id</span>),
             <span class="ident">Event::Invalid</span> <span class="op">=</span><span class="op">&gt;</span> {}
         }
 
         <span class="prelude-val">Ok</span>(<span class="ident">Ack</span>)
     }
-}</pre></div>
+}
+</pre></div>
 </section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="flowr" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div>
     <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script></body></html>
