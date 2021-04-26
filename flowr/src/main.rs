@@ -23,8 +23,8 @@ use flowrlib::coordinator::{Coordinator, Submission};
 use flowrlib::info as flowrlib_info;
 
 #[cfg(feature = "debugger")]
-use crate::cli_debug_client::CLIDebugClient;
-use crate::cli_runtime_client::CLIRuntimeClient;
+use crate::cli_debug_client::CliDebugClient;
+use crate::cli_runtime_client::CliRuntimeClient;
 
 #[cfg(feature = "debugger")]
 mod cli_debug_client;
@@ -155,8 +155,8 @@ fn run() -> Result<()> {
         );
 
         #[cfg(feature = "debugger")]
-        CLIDebugClient::start(debug_connection);
-        CLIRuntimeClient::start(
+        CliDebugClient::start(debug_connection);
+        CliRuntimeClient::start(
             runtime_connection,
             submission,
             flow_args,

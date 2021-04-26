@@ -48,11 +48,15 @@ script: |
       export RUSTFLAGS="-Zinstrument-coverage"
       travis_wait 50 make clippy build
       LLVM_PROFILE_FILE="flow-%p-%m.profraw" make test
-      make docs # check we can build docs OK even on a PR, so we know we can build AND deploy when merged to Master
       grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
       bash <(curl -s https://codecov.io/bash) -f lcov.info
     else
       travis_wait 50 make clippy build test
+    fi
+
+after_success: |
+    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      make docs
     fi
 
 # Only deploy the docs on linux builds of master branch with stable rust

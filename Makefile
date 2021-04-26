@@ -87,7 +87,7 @@ build-flowc:
 
 .PHONY: build
 build: build-flowc
-	@PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/lib/pkgconfig:/usr/local/Cellar/glib/2.62.3/lib/pkgconfig:/usr/lib64/pkgconfig" cargo build --workspace
+	@cargo build
 
 .PHONY: clippy
 clippy: build-flowc
@@ -95,9 +95,7 @@ clippy: build-flowc
 
 .PHONY: test
 test: build-flowc
-	@set -o pipefail && cargo test --workspace --exclude flow_impl_derive -- --test-threads 1 2>&1 | tee .test.log
-
-.test.log: test
+	@set -o pipefail && cargo test -- --test-threads 1 2>&1
 
 .PHONY: clean
 clean:

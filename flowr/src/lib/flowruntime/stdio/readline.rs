@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use serde_json::Value;
 
-use flowcore::{DONT_RUN_AGAIN, Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN, RUN_AGAIN};
 
 use crate::client_server::RuntimeServerConnection;
 use crate::runtime::{Event, Response};
@@ -25,7 +25,7 @@ impl Implementation for Readline {
                     output_map.insert("string".into(), Value::String(contents));
                     (Some(Value::Object(output_map)), RUN_AGAIN)
                 }
-                Ok(Response::GetLineEOF) => {
+                Ok(Response::GetLineEof) => {
                     let mut output_map = serde_json::Map::new();
                     output_map.insert("string".into(), Value::Null);
                     output_map.insert("json".into(), Value::Null);

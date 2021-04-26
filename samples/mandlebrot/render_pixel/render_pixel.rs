@@ -22,7 +22,7 @@ pub fn escapes(c: Complex<f64>, limit: u64) -> u64 {
         }
     }
 
-    return limit;
+    limit
 }
 
 /*

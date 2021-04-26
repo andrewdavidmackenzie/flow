@@ -25,7 +25,7 @@ impl Implementation for Stdin {
                     output_map.insert("string".into(), Value::String(contents));
                     (Some(Value::Object(output_map)), RUN_AGAIN)
                 }
-                Ok(Response::GetStdinEOF) => {
+                Ok(Response::GetStdinEof) => {
                     let mut output_map = serde_json::Map::new();
                     output_map.insert("string".into(), Value::Null);
                     output_map.insert("json".into(), Value::Null);
