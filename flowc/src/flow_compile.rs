@@ -77,10 +77,13 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -
                     options.graphs,
                 )
                 .chain_err(|| "Failed to dump flow's definition")?;
-                dump_tables::dump_tables(&tables, &options.output_dir)
-                    .chain_err(|| "Failed to dump flow's tables")?;
-                dump_tables::dump_functions(&flow, &tables, &options.output_dir)
-                    .chain_err(|| "Failed to dump flow's functions")?;
+
+                if options.dump {
+                    dump_tables::dump_tables(&tables, &options.output_dir)
+                        .chain_err(|| "Failed to dump flow's tables")?;
+                    dump_tables::dump_functions(&flow, &tables, &options.output_dir)
+                        .chain_err(|| "Failed to dump flow's functions")?;
+                }
             }
 
             if !runnable {
