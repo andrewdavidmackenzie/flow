@@ -32,16 +32,8 @@ fn main() {
         println!("cargo:warning=Could not find `flowc` in $PATH or `target/`, so cannot build flowstdlib");
     } else {
         let mut command = Command::new(flowc);
-        // Options for flowc: -g for debug symbols, -d to dump compiler structs, -l for a library build
-        let command_args = vec![
-            "-v",
-            "info",
-            "-g",
-            "-d",
-            "-z",
-            "-l",
-            env!("CARGO_MANIFEST_DIR"),
-        ];
+        // Options for flowc: -g for debug symbols, -z to dump graphs, -l for a library build
+        let command_args = vec!["-v", "info", "-g", "-z", "-l", env!("CARGO_MANIFEST_DIR")];
 
         command
             .args(command_args)
