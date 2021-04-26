@@ -45,19 +45,21 @@ use super::dump_tables;
 ///     let output_dir = url.join("./").unwrap().to_file_path().unwrap();
 ///
 ///     // dump the flows compiler data and dot graph into files alongside the 'context.toml'
-///     flowclib::dumper::dump_flow::dump_flow(&flow, &output_dir, &dummy_provider).unwrap();
+///     flowclib::dumper::dump_flow::dump_flow(&flow, &output_dir, &dummy_provider, true, true).unwrap();
 /// }
 /// ```
 pub fn dump_flow(
     flow: &Flow,
     output_dir: &Path,
     provider: &dyn LibProvider,
+    dump_files: bool,
+    dot_files: bool,
 ) -> std::io::Result<()> {
     info!(
         "=== Dumper: Dumping flow hierarchy to '{}'",
         output_dir.display()
     );
-    _dump_flow(flow, 0, output_dir, provider)
+    _dump_flow(flow, 0, output_dir, provider, dump_files, dot_files)
 }
 
 /*
@@ -69,6 +71,8 @@ fn _dump_flow(
     level: usize,
     output_dir: &Path,
     provider: &dyn LibProvider,
+    dump_files: bool,
+    dot_files: bool,
 ) -> std::io::Result<()> {
     let file_path = flow.source_url.to_file_path().map_err(|_| {
         std::io::Error::new(
@@ -88,17 +92,28 @@ fn _dump_flow(
             "Could not convert filename to string",
         ))?;
 
-    let mut writer = dump_tables::create_output_file(&output_dir, filename, "dump")?;
-    writer.write_all(format!("\nLevel={}\n{}", level, flow).as_bytes())?;
+    if dump_files {
+        let mut writer = dump_tables::create_output_file(&output_dir, filename, "dump")?;
+        writer.write_all(format!("\nLevel={}\n{}", level, flow).as_bytes())?;
+    }
 
-    writer = dump_tables::create_output_file(&output_dir, filename, "dot")?;
-    info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
-    dump_dot::write_flow_to_dot(flow, &mut writer, output_dir)?;
+    if dot_files {
+        let mut writer = dump_tables::create_output_file(&output_dir, filename, "dot")?;
+        info!("\tGenerating {}.dot, Use \"dotty\" to view it", filename);
+        dump_dot::write_flow_to_dot(flow, &mut writer, output_dir)?;
+    }
 
     // Dump sub-flows
     for subprocess in &flow.subprocesses {
         if let FlowProcess(ref subflow) = subprocess.1 {
-            _dump_flow(subflow, level + 1, output_dir, provider)?;
+            _dump_flow(
+                subflow,
+                level + 1,
+                output_dir,
+                provider,
+                dump_files,
+                dot_files,
+            )?;
         }
     }
 

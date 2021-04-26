@@ -69,7 +69,7 @@ fn get_flowc() -> io::Result<PathBuf> {
 fn compile_sample(sample_dir: &Path, flowc: &Path) -> io::Result<()> {
     let mut command = Command::new(flowc);
     // -g for debug symbols, -d to dump compiler structs, -s to skip running and only compile the flow
-    let command_args = vec!["-g", "-d", "-s", sample_dir.to_str().unwrap()];
+    let command_args = vec!["-g", "-d", "-z", "-s", sample_dir.to_str().unwrap()];
 
     let flowc_child = command
         .args(command_args)

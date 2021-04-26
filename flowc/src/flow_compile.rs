@@ -68,9 +68,15 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -
 
             let runnable = check_root(&flow);
 
-            if options.dump {
-                dump_flow::dump_flow(&flow, &options.output_dir, provider)
-                    .chain_err(|| "Failed to dump flow's definition")?;
+            if options.dump || options.graphs {
+                dump_flow::dump_flow(
+                    &flow,
+                    &options.output_dir,
+                    provider,
+                    options.dump,
+                    options.graphs,
+                )
+                .chain_err(|| "Failed to dump flow's definition")?;
                 dump_tables::dump_tables(&tables, &options.output_dir)
                     .chain_err(|| "Failed to dump flow's tables")?;
                 dump_tables::dump_functions(&flow, &tables, &options.output_dir)
