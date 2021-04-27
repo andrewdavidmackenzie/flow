@@ -41,8 +41,12 @@ docs:
 	@cargo doc --workspace --quiet --no-deps --target-dir=target/html/code
 	@mdbook build
 
+.PHONY: build-flowc
+build-flowc:
+	@cargo build -p flowc
+
 .PHONY: build
-build:
+build: build-flowc
 	@cargo build
 
 .PHONY: clippy
