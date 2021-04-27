@@ -25,12 +25,12 @@ path = "lib.rs"
 [dependencies]
 flow_impl_derive = {path = "../flow_impl_derive", version = "0.34.7" }
 flowcore = {path = "../flowcore", version = "0.34.6" }
-simpath = { version = "~2.2", features = ["urls"]}
+simpath = { version = "~2.3", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }
 serde_json = "1.0"
 image = "=0.23.10"
 error-chain = "0.12.2"
 
 [build-dependencies]
-simpath = { version = "~2.2", features = ["urls"]}
+simpath = { version = "~2.3", features = ["urls"]}
 url = { version = "2.2", features = ["serde"] }

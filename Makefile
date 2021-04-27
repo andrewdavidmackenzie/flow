@@ -1,10 +1,7 @@
-DOT := $(shell command -v dot 2> /dev/null)
 APTGET := $(shell command -v apt-get 2> /dev/null)
 ZMQ := $(shell brew ls --versions zmq 2> /dev/null)
 YUM := $(shell command -v yum 2> /dev/null)
 BREW := $(shell command -v brew 2> /dev/null)
-DOTS = $(shell find . -type f -name \*.dot)
-SVGS = $(patsubst %.dot,target/html/%.dot.svg,$(DOTS))
 export SHELL := /bin/bash
 
 .PHONY: all
@@ -43,18 +40,12 @@ endif
 docs: build-flowc book code-docs trim-docs
 
 .PHONY: book
-book: $(SVGS)
+book:
 	@mdbook build
 
 .PHONY: code-docs
 code-docs:
 	@cargo doc --workspace --quiet --no-deps --target-dir=target/html/code
-
-target/html/%.dot.svg: %.dot
-	@dot -Tsvg -O $<
-	@echo "        Generated $@ from $<"
-
-%.dot:
 
 .PHONY: trim-docs
 trim-docs:
