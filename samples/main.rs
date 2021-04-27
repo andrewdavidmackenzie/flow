@@ -1,5 +1,5 @@
 use std::{env, fs, io};
-// Run sample flows found in any subfolder
+// Run sample flows found in any sub-directory
 use std::fs::File;
 use std::io::{BufRead, BufReader, ErrorKind};
 use std::path::Path;
@@ -72,7 +72,7 @@ fn run_sample(sample_dir: &Path, flowr_path: &str) -> io::Result<()> {
 
     let mut flowr_command = Command::new(flowr_path);
     let manifest = sample_dir.join("manifest.json");
-    println!("\n\tRunning Sample: {:?}", sample_dir.file_name().unwrap());
+    println!("\n\tRunning Sample: {:?}", sample_dir.file_name());
     assert!(manifest.exists(), "Manifest file does not exist");
     println!("\tReading STDIN from test.input, Arguments read from test.arguments");
     println!("\tOutput sent to STDOUT/STDERR and file output to test.file");
@@ -96,8 +96,7 @@ fn run_sample(sample_dir: &Path, flowr_path: &str) -> io::Result<()> {
                         "Could not take STDIN of `flowr` process",
                     )
                 })?)
-                .spawn()
-                .unwrap();
+                .spawn();
 
             match flowr_child.wait_with_output() {
                 Ok(_) => Ok(()),
@@ -262,7 +261,7 @@ mod test {
 
     #[test]
     #[serial]
-    fn test_matrix_mult() {
+    fn test_matrix_multiplication_sample() {
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("matrix_mult");
         test_run_sample(&sample, &super::get_flowr().unwrap());
     }
