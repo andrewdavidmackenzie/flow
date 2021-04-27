@@ -37,66 +37,18 @@ ifneq ($(APTGET),)
 endif
 
 .PHONY: docs
-docs: build-flowc book code-docs trim-docs
-
-.PHONY: book
-book:
+docs:
+	@cargo doc --workspace --quiet --no-deps --target-dir=target/html/code
 	@mdbook build
 
-.PHONY: code-docs
-code-docs:
-	@cargo doc --workspace --quiet --no-deps --target-dir=target/html/code
-
-.PHONY: trim-docs
-trim-docs:
-	@find target/html -name target -type d | xargs rm -rf {}
-	@find target/html -name .idea | xargs rm -rf {}
-	@find target/html -name \*.iml | xargs rm -rf {}
-	@find target/html -name .git | xargs rm -rf {}
-	@find target/html -name Cargo.toml | xargs rm -rf {}
-	@find target/html -name manifest.json | xargs rm -rf {}
-	@find target/html -name test.err | xargs rm -rf {}
-	@find target/html -name test.input | xargs rm -rf {}
-	@find target/html -name test.arguments | xargs rm -rf {}
-	@find target/html -name test.output | xargs rm -rf {}
-	@find target/html -name expected.output | xargs rm -rf {}
-	@find target/html -name flow.toml | xargs rm -rf {}
-	@find target/html -name \*.rs | xargs rm -rf {}
-	@find target/html -name \*.dump | xargs rm -rf {}
-	@find target/html -name \*.dot | xargs rm -rf {}
-	@find target/html -name \*.wasm | xargs rm -rf {}
-	@find target/html -name \*.lock  | xargs rm -rf {}
-	@cd target/html && rm -f Makefile .crates.toml .DS_Store .mdbookignore .travis.yml codecov.yml
-	@rm -rf target/html/flowc/tests/test-flows
-	@rm -rf target/html/flowc/tests/test-libs
-	@rm -rf target/html/code/debug
-	@find target/html -depth -type d -empty -delete
-
-.PHONY: build-flowc
-build-flowc:
-	@cargo build -p flowc
-
 .PHONY: build
-build: build-flowc
+build:
 	@cargo build
 
 .PHONY: clippy
-clippy: build-flowc
+clippy:
 	@cargo clippy -- -D warnings
 
 .PHONY: test
-test: build-flowc
+test:
 	@set -o pipefail && cargo test -- --test-threads 1 2>&1
-
-.PHONY: clean
-clean:
-	@find . -name \*.dot.svg -type f -exec rm -rf {} + ; true
-	@find . -name \*.dot -type f -exec rm -rf {} + ; true
-	@find . -name \*.profraw -type f -exec rm -rf {} + ; true
-	@find . -name manifest.json -type f -exec rm -rf {} + ; true
-	@find . -name test.output -type f -exec rm -rf {} + ; true
-	@find . -name test.err -type f -exec rm -rf {} + ; true
-	@find . -name \*.wasm -type f -exec rm -rf {} + ; true
-	@rm -rf target/html
-	@find . -name \*.dump -type f -exec rm -rf {} + ; true
-	@cargo clean
