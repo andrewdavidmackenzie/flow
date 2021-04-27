@@ -33,4 +33,5 @@ error-chain = "0.12.2"
 
 [build-dependencies]
 simpath = { version = "~2.3", features = ["urls"]}
+glob = "~0.2"
 url = { version = "2.2", features = ["serde"] }

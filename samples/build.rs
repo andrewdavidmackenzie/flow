@@ -42,8 +42,7 @@ fn main() -> io::Result<()> {
         }
     }
 
-    std::process::exit(1);
-    // Ok(())
+    Ok(())
 }
 
 fn get_flowc() -> io::Result<PathBuf> {
