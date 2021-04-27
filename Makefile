@@ -50,9 +50,9 @@ build: build-flowc
 	@cargo build
 
 .PHONY: clippy
-clippy:
+clippy: build-flowc
 	@cargo clippy -- -D warnings
 
 .PHONY: test
-test:
+test: build-flowc
 	@set -o pipefail && cargo test -- --test-threads 1 2>&1
