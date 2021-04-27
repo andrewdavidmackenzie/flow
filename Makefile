@@ -38,7 +38,7 @@ endif
 
 .PHONY: docs
 docs:
-	@cargo doc --workspace --quiet --no-deps --target-dir=target/html/code
+	@cargo doc --no-deps --target-dir=target/html/code
 	@mdbook build
 
 .PHONY: build-flowc
