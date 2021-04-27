@@ -51,7 +51,7 @@ script: |
       grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
       bash <(curl -s https://codecov.io/bash) -f lcov.info
     else
-      travis_wait 55 make clippy build test
+      travis_wait 55 make build test
     fi
 
 after_success: |
