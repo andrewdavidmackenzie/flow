@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Info","Output info about the input value"]]});

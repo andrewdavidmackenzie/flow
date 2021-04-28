@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Event","A run-time Event sent from the run-time to a runtime_client"],["Response","A `Response` from the runtime_client to the run-time"]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Remove","Remove a value from a vector of values"]]});

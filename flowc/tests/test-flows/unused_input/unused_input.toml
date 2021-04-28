@@ -1,0 +1,14 @@
+flow = "unused input"
+
+[[process]]
+alias = "add"
+source = "lib://flowstdlib/math/add"
+input.i1 = { once = 1 }
+
+[[connection]]
+from = "add/sum"
+to = "print"
+
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"

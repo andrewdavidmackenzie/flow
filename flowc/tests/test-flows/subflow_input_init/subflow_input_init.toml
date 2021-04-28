@@ -1,0 +1,13 @@
+flow = "subflow_input_init"
+
+[[process]]
+source = "subflow_short_circuit"
+input.a = { once = "OK" }
+
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"
+
+[[connection]]
+from = "subflow_short_circuit/output"
+to = "print"

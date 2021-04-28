@@ -1,1 +1,0 @@
-initSidebarItems({"mod":[["compile",""],["compile_wasm",""],["loader",""]]});

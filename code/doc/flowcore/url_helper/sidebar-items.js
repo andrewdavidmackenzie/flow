@@ -1,1 +1,0 @@
-initSidebarItems({"fn":[["url_from_string","Accept an optional string (URL or filename) and from it create an absolute path URL with correct scheme. This allows specifying of full URL (http, file etc) as well as file paths relative to the working directory."]]});

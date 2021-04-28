@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["DataType",""]],"trait":[["HasDataType",""]]});

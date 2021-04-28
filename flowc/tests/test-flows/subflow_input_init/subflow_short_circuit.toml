@@ -1,0 +1,13 @@
+flow = "subflow_short_circuit"
+
+[[input]]
+name = "a"
+type = "Value"
+
+[[output]]
+name = "output"
+type = "Value"
+
+[[connection]]
+from = "input/a"
+to = "output/output"

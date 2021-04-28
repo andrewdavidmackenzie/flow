@@ -1,0 +1,13 @@
+flow = "dead-process-and-connected-process"
+
+[[process]]
+alias = "source-process"
+source = "lib://flowstdlib/fmt/to_string"
+
+[[process]]
+alias = "dead-process"
+source = "lib://flowstdlib/fmt/to_string"
+
+[[connection]]
+from = "source-process"
+to = "dead-process"

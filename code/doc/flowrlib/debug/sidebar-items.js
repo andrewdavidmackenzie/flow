@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Event","A run-time event that the debugger communicates to the debug_client for it to decide what to do, or what to request of the user"],["Param","Types of `Params` used in communications between the debugger and the debug_client"],["Response","A debugger Response sent by the debug_client to the debug server"]]});

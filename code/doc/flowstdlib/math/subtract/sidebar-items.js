@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Subtract","Subtract one input from another to produce a new output"]]});

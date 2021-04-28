@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Split","Split a string into (possibly) two parts and a possible token, based on a separator."]]});

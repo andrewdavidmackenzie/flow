@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["OrderedSplit","Split a string into (possibly) its parts, based on a separator."]]});

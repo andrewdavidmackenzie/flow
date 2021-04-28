@@ -1,0 +1,13 @@
+flow = "dead-process"
+
+[[process]]
+alias = "args"
+source = "lib://flowruntime/args/get"
+
+[[process]]
+alias = "dead-process"
+source = "lib://flowstdlib/fmt/to_json"
+
+[[connection]]
+from = "args/string/1"
+to = "dead-process"

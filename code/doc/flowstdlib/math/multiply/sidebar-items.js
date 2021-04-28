@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Multiply","Multiply one input by another"]]});

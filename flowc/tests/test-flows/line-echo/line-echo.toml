@@ -1,0 +1,11 @@
+flow = "echo"
+
+[[process]]
+source = "lib://flowruntime/stdio/readline"
+
+[[process]]
+source = "lib://flowruntime/stdio/stdout"
+
+[[connection]]
+from = "readline/string"
+to = "stdout"

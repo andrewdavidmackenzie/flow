@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Count","Takes a value on it’s input and sends the same value on it’s output and adds one to the count received on ‘count’ input and outputs new count on ‘count’ output"]]});
