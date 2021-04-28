@@ -51,9 +51,9 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
 name = "backtrace"
-version = "0.3.56"
+version = "0.3.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d117600f438b1707d4e4ae15d3595657288f8235a0eb593e80ecc98ab34e1bc"
+checksum = "78ed203b9ba68b242c62b3fb7480f589dd49829be1edb3fe8fc8b4ffda2dcb8d"
 dependencies = [
  "addr2line",
  "cfg-if",
@@ -170,9 +170,9 @@ dependencies = [
 
 [[package]]
 name = "curl"
-version = "0.4.35"
+version = "0.4.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a872858e9cb9e3b96c80dd78774ad9e32e44d3b05dc31e142b858d14aebc82c"
+checksum = "d0bac9f84ca0977c4d9b8db998689de55b9e976656a6bc87fada2ca710d504c7"
 dependencies = [
  "curl-sys",
  "libc",
@@ -185,9 +185,9 @@ dependencies = [
 
 [[package]]
 name = "curl-sys"
-version = "0.4.41+curl-7.75.0"
+version = "0.4.42+curl-7.76.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ec466abd277c7cab2905948f3e94d10bc4963f1f5d47921c1cc4ffd2028fe65"
+checksum = "4636d8d6109c842707018a104051436bffb8991ea20b2d1293db70b6e0ee4c7c"
 dependencies = [
  "cc",
  "libc",
@@ -307,6 +307,7 @@ dependencies = [
 name = "flowsamples"
 version = "0.34.10"
 dependencies = [
+ "glob",
  "serial_test",
  "simpath",
 ]
@@ -318,6 +319,7 @@ dependencies = [
  "error-chain 0.12.4",
  "flow_impl_derive",
  "flowcore",
+ "glob",
  "image",
  "serde_json",
  "simpath",
@@ -373,9 +375,9 @@ dependencies = [
 
 [[package]]
 name = "idna"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89829a5d69c23d348314a7ac337fe39173b61149a9864deabd260983aed48c21"
+checksum = "418a0a6fab821475f634efe3ccc45c013f742efe03d853e8d3355d5cb850ecf8"
 dependencies = [
  "matches",
  "unicode-bidi",
@@ -441,9 +443,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.93"
+version = "0.2.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9385f66bf6105b241aa65a61cb923ef20efc665cb9f9bb50ac2f0c4b7f378d41"
+checksum = "18794a8ad5b29321f790b55d93dfba91e125cb1a9edbd4f8e3150acc771c1a5e"
 
 [[package]]
 name = "libz-sys"
@@ -923,9 +925,9 @@ dependencies = [
 
 [[package]]
 name = "simpath"
-version = "2.2.1"
+version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba4d1521ba4a5194af3f71fa60d8333f322e2e1bd64a7b0a131292128686734d"
+checksum = "cdb3eae8e7fa87ca118667ebdd5cae288922dbccc0244737ea6fcb136aba4eaa"
 dependencies = [
  "curl",
  "url",
@@ -948,11 +950,10 @@ checksum = "fe0f37c9e8f3c5a4a66ad655a93c74daac4ad00c441533bf5c6e7990bb42604e"
 
 [[package]]
 name = "socket2"
-version = "0.3.19"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "122e570113d28d773067fab24266b66753f6ea915758651696b6e35e49f88d6e"
+checksum = "9e3dfc207c526015c632472a77be09cf1b6e46866581aecae5cc38fb4235dea2"
 dependencies = [
- "cfg-if",
  "libc",
  "winapi",
 ]
@@ -965,9 +966,9 @@ checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 
 [[package]]
 name = "syn"
-version = "1.0.69"
+version = "1.0.70"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48fe99c6bd8b1cc636890bcc071842de909d902c81ac7dab53ba33c421ab8ffb"
+checksum = "b9505f307c872bab8eb46f77ae357c8eba1fdacead58ee5a850116b1d7f82883"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1079,9 +1080,9 @@ dependencies = [
 
 [[package]]
 name = "vcpkg"
-version = "0.2.11"
+version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b00bca6106a5e23f3eee943593759b7fcddb00554332e856d990c893966879fb"
+checksum = "cbdbff6266a24120518560b5dc983096efb98462e51d0d68169895b237be3e5d"
 
 [[package]]
 name = "vec_map"
@@ -1120,9 +1121,9 @@ dependencies = [
 
 [[package]]
 name = "weezl"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a32b378380f4e9869b22f0b5177c68a5519f03b3454fde0b291455ddbae266c"
+checksum = "d8b77fdfd5a253be4ab714e4ffa3c49caf146b4de743e97510c0656cf90f1e8e"
 
 [[package]]
 name = "winapi"

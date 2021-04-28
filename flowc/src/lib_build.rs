@@ -41,15 +41,9 @@ pub fn build_lib(options: &Options, provider: &dyn LibProvider) -> Result<String
         base_dir = format!("{}/", base_dir);
     }
 
-    let build_count = compile_implementations(
-        options,
-        &mut lib_manifest,
-        &base_dir,
-        provider,
-        false,
-        options.dump,
-    )
-    .chain_err(|| "Could not build library")?;
+    let build_count =
+        compile_implementations(options, &mut lib_manifest, &base_dir, provider, false)
+            .chain_err(|| "Could not build library")?;
 
     let manifest_json_file = json_manifest_file(&options.output_dir);
     let manifest_rust_file = rust_manifest_file(&options.output_dir);
@@ -167,7 +161,6 @@ fn compile_implementations(
     base_dir: &str,
     provider: &dyn LibProvider,
     skip_building: bool,
-    dump: bool,
 ) -> Result<i32> {
     let mut build_count = 0;
     let search_pattern = format!("{}**/*.toml", base_dir);
@@ -210,7 +203,7 @@ fn compile_implementations(
                     }
                 }
                 Ok(FlowProcess(ref mut flow)) => {
-                    if options.dump {
+                    if options.dump || options.graphs {
                         // Dump the dot file alongside the definition file
                         let source_path = flow.source_url.to_file_path().map_err(|_| {
                             "Could not convert flow's source_url Url to a Path".to_string()
@@ -219,10 +212,14 @@ fn compile_implementations(
                             .parent()
                             .chain_err(|| "Could not get parent directory of flow's source_url")?;
 
-                        if dump {
-                            dump_flow::dump_flow(&flow, &output_dir.to_path_buf(), provider)
-                                .chain_err(|| "Failed to dump flow's definition")?;
-                        }
+                        dump_flow::dump_flow(
+                            &flow,
+                            &output_dir.to_path_buf(),
+                            provider,
+                            options.dump,
+                            options.graphs,
+                        )
+                        .chain_err(|| "Failed to dump flow's definition")?;
                     }
                 }
                 Err(_) => debug!("Skipping file '{}'", url),

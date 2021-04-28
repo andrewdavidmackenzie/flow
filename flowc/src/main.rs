@@ -59,6 +59,7 @@ pub struct Options {
     url: Url,
     flow_args: Vec<String>,
     dump: bool,
+    graphs: bool,
     skip_execution: bool,
     debug_symbols: bool,
     provided_implementations: bool,
@@ -170,6 +171,12 @@ fn get_matches<'a>() -> ArgMatches<'a> {
                 .help("Dump the flow to .dump files after loading it"),
         )
         .arg(
+            Arg::with_name("graphs")
+                .short("z")
+                .long("graphs")
+                .help("Create .dot files for graph generation"),
+        )
+        .arg(
             Arg::with_name("provided")
                 .short("p")
                 .long("provided")
@@ -265,6 +272,7 @@ fn parse_args(matches: ArgMatches) -> Result<Options> {
         url,
         flow_args,
         dump: matches.is_present("dump"),
+        graphs: matches.is_present("graphs"),
         skip_execution: matches.is_present("skip"),
         debug_symbols: matches.is_present("symbols"),
         provided_implementations: matches.is_present("provided"),
