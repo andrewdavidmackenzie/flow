@@ -25,7 +25,6 @@ impl Deserializer for FlowTomlLoader {
 #[cfg(test)]
 mod test {
     use crate::compiler::loader::Deserializer;
-    use crate::model::flow::Flow;
     use crate::model::process::Process::FlowProcess;
 
     use super::FlowTomlLoader;
@@ -103,15 +102,15 @@ mod test {
         let toml = FlowTomlLoader {};
         match toml.deserialize(flow_description, None) {
             Ok(FlowProcess(flow)) => {
-                assert_eq!(flow.version, Flow::default_version());
-                assert_eq!(flow.authors, Flow::default_authors());
+                assert_eq!(flow.version, String::default());
+                assert_eq!(flow.authors, Vec::<String>::default());
             }
             _ => panic!(),
         }
     }
 
     #[test]
-    fn flow_has_optional_values() {
+    fn flow_has_metadata() {
         let flow_description = "\
         flow = 'test'
         version = '1.1.1'
@@ -145,7 +144,7 @@ mod test {
     #[test]
     fn flow_with_unknown_lib_key() {
         let flow_description = "\
-        name = 'use-library-function'
+        flow = 'use-library-function'
 
         [[process]]
         alias = 'print'
@@ -159,7 +158,7 @@ mod test {
     #[test]
     fn flow_with_function_without_source() {
         let flow_description = "\
-        name = 'use-library-function'
+        flow = 'use-library-function'
 
         [[process]]
         alias = 'print'

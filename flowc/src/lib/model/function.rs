@@ -21,7 +21,7 @@ use crate::model::route::SetRoute;
 pub struct Function {
     #[serde(rename = "function")]
     name: Name,
-    #[serde(default = "Function::default_impure")]
+    #[serde(default)]
     impure: bool,
     implementation: String,
     #[serde(default, rename = "input")]
@@ -31,7 +31,7 @@ pub struct Function {
 
     #[serde(skip_deserializing)]
     alias: Name,
-    #[serde(skip_deserializing, default = "Function::default_source_url")]
+    #[serde(skip_deserializing, default)]
     source_url: String, // can be a relative path with no scheme etc so can't be a Url
     #[serde(skip_deserializing)]
     route: Route,
@@ -152,14 +152,6 @@ impl Function {
         self.source_url = source.to_owned();
     }
 
-    fn default_source_url() -> String {
-        "file:///".to_string()
-    }
-
-    fn default_impure() -> bool {
-        false
-    }
-
     pub fn set_alias(&mut self, alias: &Name) {
         if alias.is_empty() {
             self.alias = self.name.clone();
@@ -232,7 +224,7 @@ impl Default for Function {
             alias: Name::default(),
             inputs: vec![],
             outputs: vec![IO::new("Value", Route::default())],
-            source_url: Function::default_source_url(),
+            source_url: String::default(),
             route: Route::default(),
             lib_reference: None,
             output_connections: vec![OutputConnection::new(
@@ -282,7 +274,7 @@ mod test {
             impure: false,
             implementation: "".to_owned(),
             alias: Name::from("test_function"),
-            source_url: Function::default_source_url(),
+            source_url: String::default(),
             inputs: vec![],  // No inputs!
             outputs: vec![], // No output!
             route: Route::default(),

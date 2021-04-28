@@ -44,11 +44,11 @@ pub struct Flow {
     #[serde(default, rename = "connection")]
     pub connections: Vec<Connection>,
 
-    #[serde(default = "Flow::default_description")]
+    #[serde(default)]
     pub description: String,
-    #[serde(default = "Flow::default_version")]
+    #[serde(default)]
     pub version: String,
-    #[serde(default = "Flow::default_authors")]
+    #[serde(default)]
     pub authors: Vec<String>,
 
     #[serde(skip)]
@@ -127,9 +127,9 @@ impl Default for Flow {
             connections: vec![],
             subprocesses: HashMap::new(),
             lib_references: HashSet::new(),
-            description: Flow::default_description(),
-            version: Flow::default_version(),
-            authors: Flow::default_authors(),
+            description: String::default(),
+            version: String::default(),
+            authors: vec![],
         }
     }
 }
@@ -171,22 +171,6 @@ impl Flow {
     fn default_url() -> Url {
         #[allow(clippy::unwrap_used)]
         Url::parse("file://").unwrap()
-    }
-
-    pub fn default_description() -> String {
-        "".into()
-    }
-
-    pub fn default_version() -> String {
-        "0.0.0".to_string()
-    }
-
-    pub fn default_authors() -> Vec<String> {
-        vec!["unknown".to_string()]
-    }
-
-    pub fn default_email() -> String {
-        "unknown@unknown.com".to_string()
     }
 
     pub fn set_alias(&mut self, alias: &Name) {
@@ -384,29 +368,6 @@ impl Flow {
 #[cfg(test)]
 mod test {
     use crate::model::name::{HasName, Name};
-
-    #[test]
-    fn test_default_description() {
-        assert_eq!("".to_string(), super::Flow::default_description());
-    }
-
-    #[test]
-    fn test_default_version() {
-        assert_eq!("0.0.0".to_string(), super::Flow::default_version());
-    }
-
-    #[test]
-    fn test_default_authors() {
-        assert_eq!(vec!("unknown".to_string()), super::Flow::default_authors());
-    }
-
-    #[test]
-    fn test_default_email() {
-        assert_eq!(
-            "unknown@unknown.com".to_string(),
-            super::Flow::default_email()
-        );
-    }
 
     #[test]
     fn test_display() {
