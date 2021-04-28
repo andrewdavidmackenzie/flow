@@ -3,7 +3,7 @@ use std::path::Path;
 
 use log::info;
 
-use provider::lib_provider::LibProvider;
+use flowcore::lib_provider::LibProvider;
 
 use crate::dumper::dump_dot;
 use crate::model::flow::Flow;
@@ -18,8 +18,8 @@ use super::dump_tables;
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use provider::lib_provider::LibProvider;
-/// use provider::errors::Result;
+/// use flowcore::lib_provider::LibProvider;
+/// use flowcore::errors::Result;
 /// use flowclib::model::process::Process::FlowProcess;
 /// use tempdir::TempDir;
 ///

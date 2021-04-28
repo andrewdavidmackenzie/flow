@@ -15,7 +15,7 @@ use flowclib::dumper::dump_tables;
 use flowclib::generator::generate;
 use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
-use provider::lib_provider::LibProvider;
+use flowcore::lib_provider::LibProvider;
 
 use crate::errors::*;
 use crate::Options;

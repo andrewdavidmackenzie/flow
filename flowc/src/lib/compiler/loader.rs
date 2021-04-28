@@ -4,8 +4,8 @@ use log::{debug, info, trace};
 use url::Url;
 
 use flowcore::input::InputInitializer;
+use flowcore::lib_provider::LibProvider;
 use flowcore::manifest::{Cargo, MetaData};
-use provider::lib_provider::LibProvider;
 
 use crate::deserializers::deserializer_helper::get_deserializer;
 use crate::errors::*;
@@ -41,8 +41,8 @@ pub trait Validate {
 ///
 /// # Example
 /// ```
-/// use provider::lib_provider::LibProvider;
-/// use provider::errors::Result;
+/// use flowcore::lib_provider::LibProvider;
+/// use flowcore::errors::Result;
 /// use std::env;
 /// use url::Url;
 ///

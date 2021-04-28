@@ -51,11 +51,12 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
 name = "backtrace"
-version = "0.3.57"
+version = "0.3.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78ed203b9ba68b242c62b3fb7480f589dd49829be1edb3fe8fc8b4ffda2dcb8d"
+checksum = "88fb5a785d6b44fd9d6700935608639af1b8356de1e55d5f7c2740f4faa15d82"
 dependencies = [
  "addr2line",
+ "cc",
  "cfg-if",
  "libc",
  "miniz_oxide 0.4.4",
@@ -253,7 +254,6 @@ dependencies = [
  "flowcore",
  "glob",
  "log",
- "provider",
  "serde",
  "serde_derive",
  "serde_json",
@@ -268,14 +268,15 @@ dependencies = [
 
 [[package]]
 name = "flowcore"
-version = "0.34.8"
+version = "0.35.0"
 dependencies = [
+ "curl",
  "error-chain 0.12.4",
  "log",
- "provider",
  "serde",
  "serde_derive",
  "serde_json",
+ "simpath",
  "url",
 ]
 
@@ -291,7 +292,6 @@ dependencies = [
  "log",
  "multimap",
  "num_cpus",
- "provider",
  "serde",
  "serde_derive",
  "serde_json",
@@ -712,17 +712,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "provider"
-version = "0.34.7"
-dependencies = [
- "curl",
- "error-chain 0.12.4",
- "log",
- "simpath",
- "url",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -966,9 +955,9 @@ checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 
 [[package]]
 name = "syn"
-version = "1.0.70"
+version = "1.0.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9505f307c872bab8eb46f77ae357c8eba1fdacead58ee5a850116b1d7f82883"
+checksum = "ad184cc9470f9117b2ac6817bfe297307418819ba40552f9b3846f05c33d5373"
 dependencies = [
  "proc-macro2",
  "quote",

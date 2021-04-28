@@ -10,8 +10,8 @@ use wasmi::{
     RuntimeValue, Signature, ValueType,
 };
 
+use flowcore::lib_provider::LibProvider;
 use flowcore::{Implementation, RunAgain};
-use provider::lib_provider::LibProvider;
 
 use crate::errors::*;
 

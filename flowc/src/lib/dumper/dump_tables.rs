@@ -17,10 +17,10 @@ use crate::model::route::HasRoute;
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use provider::lib_provider::Provider;
-/// use provider::errors::Result;
+/// use flowcore::lib_provider::Provider;
+/// use flowcore::errors::Result;
 /// use flowclib::model::process::Process::FlowProcess;
-/// use provider::lib_provider::LibProvider;
+/// use flowcore::lib_provider::LibProvider;
 ///
 /// struct DummyProvider {}
 ///
@@ -128,10 +128,10 @@ fn functions_to_dot(
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use provider::lib_provider::Provider;
-/// use provider::errors::Result;
+/// use flowcore::lib_provider::Provider;
+/// use flowcore::errors::Result;
 /// use flowclib::model::process::Process::FlowProcess;
-/// use provider::lib_provider::LibProvider;
+/// use flowcore::lib_provider::LibProvider;
 ///
 /// struct DummyProvider {}
 ///

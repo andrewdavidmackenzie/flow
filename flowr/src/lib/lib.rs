@@ -65,9 +65,8 @@ error_chain! {
         Io(std::io::Error);
         Serde(serde_json::error::Error);
         Recv(std::sync::mpsc::RecvError);
-        Provider(provider::errors::Error);
         Url(url::ParseError);
         FlowStdLib(flowstdlib::errors::Error);
-        FlowrStructs(flowcore::errors::Error);
+        FlowrCore(flowcore::errors::Error);
     }
 }

@@ -12,6 +12,9 @@ use std::panic::{RefUnwindSafe, UnwindSafe};
 use serde_json::Value;
 
 #[cfg(feature = "code")]
+/// `content` are the content providers for files and http/https
+mod content;
+#[cfg(feature = "code")]
 /// `function` defines functions that form part of a flow
 pub mod function;
 #[cfg(feature = "code")]
@@ -20,6 +23,9 @@ pub mod input;
 #[cfg(feature = "code")]
 /// `lib_manifest` defines the structs for specifying a Library's manifest and methods to load it
 pub mod lib_manifest;
+#[cfg(feature = "code")]
+/// `lib_provider` is used to resolve library references of the type "lib://" using lib search path
+pub mod lib_provider;
 #[cfg(feature = "code")]
 /// `manifest` is the struct that specifies the manifest of functions in a flow
 pub mod manifest;
@@ -59,7 +65,6 @@ error_chain! {
         Io(std::io::Error);
         Serde(serde_json::error::Error);
         Recv(std::sync::mpsc::RecvError);
-        Provider(provider::errors::Error);
     }
 }
 

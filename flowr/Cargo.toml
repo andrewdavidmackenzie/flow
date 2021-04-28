@@ -27,9 +27,8 @@ checks = []   # feature to perform extra checks during flow execution
 distributed = ["zmq"] # Allow distributed multi-process client and server operation
 
 [dependencies]
-flowcore = {path = "../flowcore", version = "0.34.6"}
+flowcore = {path = "../flowcore", version = "0.35.0"}
 flowstdlib = {path = "../flowstdlib", version = "0.34.1" }
-provider = {path = "../provider", version = "0.34.4" }
 
 clap = "~2"
 simplog = "~1.2"
