@@ -1,6 +1,6 @@
 [package]
 name = "flowcore"
-version = "0.34.8"
+version = "0.35.0"
 authors = ["Andrew Mackenzie <andrew@mackenzie-serres.net>"]
 description = "Structures shared between runtime and clients"
 license = "MIT"
@@ -24,14 +24,15 @@ serde_json = "1.0" # Needed for Implementation trait and must compile for wasm32
 # dependency that won't compile for wasm32
 serde = { version = "~1.0.27", optional = true }
 serde_derive = { version = "~1.0.27", optional = true }
-provider = {path = "../provider", version = "0.34.4", optional = true}
 url = { version = "2.2", features = ["serde"], optional = true }
 error-chain = {version = "0.12.2", optional = true}
 log = {version = "0.4.6", optional = true}
+curl = "~0.4"
+simpath = { version = "~2.3", features = ["urls"]}
 
 [features]
 default = ["code"]  # by default include code not just the trait definition
 debugger = ["code"] # feature to add the debugger, depends on code feature
 # Enable the "code" feature to compile the crate with dependencies for code not just trait
 # It brings in the following optional dependencies, some of which do not compile for wasm32
-code = ["serde", "serde_derive", "provider", "url", "error-chain", "log"]
+code = ["serde", "serde_derive", "url", "error-chain", "log"]

@@ -253,7 +253,6 @@ dependencies = [
  "flowcore",
  "glob",
  "log",
- "provider",
  "serde",
  "serde_derive",
  "serde_json",
@@ -268,14 +267,15 @@ dependencies = [
 
 [[package]]
 name = "flowcore"
-version = "0.34.8"
+version = "0.35.0"
 dependencies = [
+ "curl",
  "error-chain 0.12.4",
  "log",
- "provider",
  "serde",
  "serde_derive",
  "serde_json",
+ "simpath",
  "url",
 ]
 
@@ -291,7 +291,6 @@ dependencies = [
  "log",
  "multimap",
  "num_cpus",
- "provider",
  "serde",
  "serde_derive",
  "serde_json",
@@ -709,17 +708,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a152013215dca273577e18d2bf00fa862b89b24169fb78c4c95aeb07992c9cec"
 dependencies = [
  "unicode-xid",
-]
-
-[[package]]
-name = "provider"
-version = "0.34.7"
-dependencies = [
- "curl",
- "error-chain 0.12.4",
- "log",
- "simpath",
- "url",
 ]
 
 [[package]]

@@ -5,11 +5,10 @@ use log::debug;
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
-use provider::lib_provider::LibProvider;
-
 use crate::errors::*;
-use crate::Implementation;
+use crate::lib_provider::LibProvider;
 use crate::manifest::MetaData;
+use crate::Implementation;
 
 /// The default name used for a Library  Manifest file if none is specified
 pub const DEFAULT_LIB_JSON_MANIFEST_FILENAME: &str = "manifest";
@@ -159,14 +158,13 @@ mod test {
     use serde_json::Value;
     use url::Url;
 
-    use provider::errors::Result;
-    use provider::lib_provider::LibProvider;
-
-    use crate::Implementation;
+    use crate::errors::Result;
     use crate::lib_manifest::{
         ImplementationLocator, ImplementationLocator::Wasm, LibraryManifest,
     };
+    use crate::lib_provider::LibProvider;
     use crate::manifest::MetaData;
+    use crate::Implementation;
 
     pub struct TestProvider {
         test_content: &'static str,

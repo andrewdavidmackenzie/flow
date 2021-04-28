@@ -2,7 +2,7 @@ use simpath::Simpath;
 use url::Url;
 
 use flowclib::compiler::loader;
-use provider::lib_provider::MetaProvider;
+use flowcore::lib_provider::MetaProvider;
 
 #[path = "helper.rs"]
 mod helper;

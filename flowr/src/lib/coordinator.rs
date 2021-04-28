@@ -8,8 +8,8 @@ use serde_derive::{Deserialize, Serialize};
 use simpath::Simpath;
 use url::Url;
 
+use flowcore::lib_provider::{LibProvider, MetaProvider};
 use flowcore::manifest::Manifest;
-use provider::lib_provider::{LibProvider, MetaProvider};
 
 #[cfg(feature = "debugger")]
 use crate::client_server::{DebugClientConnection, DebugServerConnection};

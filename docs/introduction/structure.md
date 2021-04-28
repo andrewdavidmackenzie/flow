@@ -2,7 +2,8 @@
 
 Here is a summary of the project components, their purpose and a link to their `README.md`:
 
-* [flowcore](../../flowcore/README.md) - A set of core structs and traits used by `flowr` and `flowc`
+* [flowcore](../../flowcore/README.md) - A set of core structs and traits used by `flowr` and `flowc` plus code 
+  to fetch content from file/http and resolve library (lib://) references.
 * [flow_impl_derive](../../flow_impl_derive/README.md) - A derive macro used to help functions be compiled natively 
   and to wasm
 * [flowc](../../flowc/README.md) - The `flowc` flow compiler binary is a CLI built around `flowclib` that 
@@ -16,6 +17,4 @@ Here is a summary of the project components, their purpose and a link to their `
       for all flows to interact with the environment and perform IO
 * [flowstdlib](../../flowstdlib/README.md) - the flow "standard library" which contains a set of functions that can be 
   used by flows being defined by the user
-* [provider](../../provider/README.md) - Library used to fetch content from file/http and find and fetch library 
-  content
 * [samples](../../samples/README.md) - A set of sample flows

@@ -8,7 +8,7 @@ use flowclib::model::process::Process::{FlowProcess, FunctionProcess};
 use flowclib::model::route::HasRoute;
 use flowclib::model::route::Route;
 use flowcore::input::InputInitializer::Once;
-use provider::lib_provider::MetaProvider;
+use flowcore::lib_provider::MetaProvider;
 
 #[path = "helper.rs"]
 mod helper;

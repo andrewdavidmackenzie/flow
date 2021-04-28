@@ -5,12 +5,12 @@ use std::sync::Arc;
 use log::{debug, info, trace};
 use url::Url;
 
-use flowcore::Implementation;
 use flowcore::lib_manifest::{
     ImplementationLocator::Native, ImplementationLocator::Wasm, LibraryManifest,
 };
+use flowcore::lib_provider::LibProvider;
 use flowcore::manifest::Manifest;
-use provider::lib_provider::LibProvider;
+use flowcore::Implementation;
 
 use crate::errors::*;
 use crate::wasm;

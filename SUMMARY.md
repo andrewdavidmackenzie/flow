@@ -127,7 +127,6 @@
     - [flowr](flowr/README.md)
     - [flowrlib](flowr/src/lib/README.md)
     - [flowstdlib](flowstdlib/README.md)
-    - [provider](provider/README.md)
     - [flowruntime](flowr/src/lib/flowruntime/README.md)
     - [samples](samples/README.md)
 - [Makefile targets](docs/developing/make.md)

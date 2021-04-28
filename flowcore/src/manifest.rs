@@ -3,10 +3,9 @@ use std::collections::HashSet;
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
-use provider::lib_provider::LibProvider;
-
 use crate::errors::*;
 use crate::function::Function;
+use crate::lib_provider::LibProvider;
 
 /// The default name used for a flow Manifest file if none is specified
 pub const DEFAULT_MANIFEST_FILENAME: &str = "manifest";
@@ -106,11 +105,10 @@ impl Manifest {
 mod test {
     use url::Url;
 
-    use provider::errors::Result;
-    use provider::lib_provider::LibProvider;
-
+    use crate::errors::Result;
     use crate::function::Function;
     use crate::input::Input;
+    use crate::lib_provider::LibProvider;
 
     use super::{Manifest, MetaData};
 

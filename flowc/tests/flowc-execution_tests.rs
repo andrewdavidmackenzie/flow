@@ -17,7 +17,7 @@ use flowclib::generator::generate::GenerationTables;
 use flowclib::model::flow::Flow;
 use flowclib::model::process::Process;
 use flowclib::model::process::Process::FlowProcess;
-use provider::lib_provider::MetaProvider;
+use flowcore::lib_provider::MetaProvider;
 
 #[path = "helper.rs"]
 mod helper;
@@ -31,7 +31,7 @@ mod errors {
 #[doc(hidden)]
 error_chain! {
     foreign_links {
-        Provider(::provider::errors::Error);
+        Provider(::flowcore::errors::Error);
         Compiler(::flowclib::errors::Error);
         Io(::std::io::Error);
     }

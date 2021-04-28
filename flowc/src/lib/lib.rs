@@ -31,6 +31,6 @@ error_chain! {
     foreign_links {
         Io(std::io::Error);
         Url(url::ParseError);
-        Provider(provider::errors::Error);
+        Provider(flowcore::errors::Error);
     }
 }

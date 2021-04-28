@@ -17,7 +17,7 @@ use flowcore::lib_manifest::LibraryManifest;
 use flowcore::lib_manifest::{
     DEFAULT_LIB_JSON_MANIFEST_FILENAME, DEFAULT_LIB_RUST_MANIFEST_FILENAME,
 };
-use provider::lib_provider::{LibProvider, MetaProvider};
+use flowcore::lib_provider::{LibProvider, MetaProvider};
 
 use crate::errors::*;
 use crate::Options;
