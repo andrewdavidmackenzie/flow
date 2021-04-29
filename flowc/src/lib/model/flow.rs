@@ -8,6 +8,7 @@ use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
 use flowcore::input::InputInitializer;
+use flowcore::manifest::MetaData;
 
 use crate::compiler::loader::Validate;
 use crate::errors::Error;
@@ -33,6 +34,7 @@ use crate::model::route::{Route, RouteType};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Flow {
+    // Elements deserialized from the flow description
     #[serde(rename = "flow")]
     pub name: Name,
     #[serde(default, rename = "input")]
@@ -43,18 +45,14 @@ pub struct Flow {
     pub process_refs: Vec<ProcessReference>,
     #[serde(default, rename = "connection")]
     pub connections: Vec<Connection>,
+    #[serde(default)]
+    pub metadata: MetaData,
 
-    #[serde(default = "Flow::default_description")]
-    pub description: String,
-    #[serde(default = "Flow::default_version")]
-    pub version: String,
-    #[serde(default = "Flow::default_authors")]
-    pub authors: Vec<String>,
-
-    #[serde(skip)]
-    pub id: usize,
+    // Elements completed by the compiler in-memory, and not deserialized/serialized
     #[serde(skip)]
     pub alias: Name,
+    #[serde(skip)]
+    pub id: usize,
     #[serde(skip, default = "Flow::default_url")]
     pub source_url: Url,
     #[serde(skip)]
@@ -127,9 +125,7 @@ impl Default for Flow {
             connections: vec![],
             subprocesses: HashMap::new(),
             lib_references: HashSet::new(),
-            description: Flow::default_description(),
-            version: Flow::default_version(),
-            authors: Flow::default_authors(),
+            metadata: MetaData::default(),
         }
     }
 }
@@ -171,22 +167,6 @@ impl Flow {
     fn default_url() -> Url {
         #[allow(clippy::unwrap_used)]
         Url::parse("file://").unwrap()
-    }
-
-    pub fn default_description() -> String {
-        "".into()
-    }
-
-    pub fn default_version() -> String {
-        "0.0.0".to_string()
-    }
-
-    pub fn default_authors() -> Vec<String> {
-        vec!["unknown".to_string()]
-    }
-
-    pub fn default_email() -> String {
-        "unknown@unknown.com".to_string()
     }
 
     pub fn set_alias(&mut self, alias: &Name) {
@@ -384,29 +364,6 @@ impl Flow {
 #[cfg(test)]
 mod test {
     use crate::model::name::{HasName, Name};
-
-    #[test]
-    fn test_default_description() {
-        assert_eq!("".to_string(), super::Flow::default_description());
-    }
-
-    #[test]
-    fn test_default_version() {
-        assert_eq!("0.0.0".to_string(), super::Flow::default_version());
-    }
-
-    #[test]
-    fn test_default_authors() {
-        assert_eq!(vec!("unknown".to_string()), super::Flow::default_authors());
-    }
-
-    #[test]
-    fn test_default_email() {
-        assert_eq!(
-            "unknown@unknown.com".to_string(),
-            super::Flow::default_email()
-        );
-    }
 
     #[test]
     fn test_display() {
