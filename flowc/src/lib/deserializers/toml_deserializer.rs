@@ -12,7 +12,7 @@ impl Deserializer for FlowTomlLoader {
         toml::from_str(contents).chain_err(|| {
             format!(
                 "Error deserializing Toml from: '{}'",
-                url.map_or("URL unknown".to_owned(), |u| u.to_string())
+                url.map_or("URL was None".to_owned(), |u| u.to_string())
             )
         })
     }
@@ -24,6 +24,10 @@ impl Deserializer for FlowTomlLoader {
 
 #[cfg(test)]
 mod test {
+    use toml::de::Error;
+
+    use flowcore::manifest::MetaData;
+
     use crate::compiler::loader::Deserializer;
     use crate::model::process::Process::FlowProcess;
 
@@ -102,28 +106,80 @@ mod test {
         let toml = FlowTomlLoader {};
         match toml.deserialize(flow_description, None) {
             Ok(FlowProcess(flow)) => {
-                assert_eq!(flow.version, String::default());
-                assert_eq!(flow.authors, Vec::<String>::default());
+                assert_eq!(flow.metadata.version, String::default());
+                assert_eq!(flow.metadata.authors, Vec::<String>::default());
             }
             _ => panic!(),
         }
     }
 
     #[test]
+    fn metadata() {
+        let metadata = "\
+name = \"me\"
+version = \"1.1.1\"
+description = \"ok\"
+authors = [\"Andrew <andrew@foo.com>\"]
+    ";
+
+        let result: Result<MetaData, Error> = toml::from_str(metadata);
+        match result {
+            Ok(md) => {
+                assert_eq!(md.name, "me".to_string());
+                assert_eq!(md.version, "1.1.1".to_string());
+                assert_eq!(md.description, "ok".to_string());
+                assert_eq!(md.authors, vec!("Andrew <andrew@foo.com>".to_string()));
+            }
+            Err(e) => panic!("Deserialization error: {:?}", e),
+        }
+    }
+
+    #[test]
     fn flow_has_metadata() {
         let flow_description = "\
-        flow = 'test'
-        version = '1.1.1'
-        authors = ['tester <tester@test.com>']
+flow = 'test'
+
+[metadata]
+name = \"me\"
+version = \"1.1.1\"
+description = \"ok\"
+authors = [\"Andrew <andrew@foo.com>\"]
     ";
 
         let toml = FlowTomlLoader {};
         match toml.deserialize(flow_description, None) {
             Ok(FlowProcess(flow)) => {
-                assert_eq!(flow.version, "1.1.1".to_string());
-                assert_eq!(flow.authors, vec!("tester <tester@test.com>".to_string()));
+                assert_eq!(flow.metadata.name, "me".to_string());
+                assert_eq!(flow.metadata.version, "1.1.1".to_string());
+                assert_eq!(flow.metadata.description, "ok".to_string());
+                assert_eq!(
+                    flow.metadata.authors,
+                    vec!("Andrew <andrew@foo.com>".to_string())
+                );
             }
-            _ => panic!(),
+            Ok(_) => panic!("Deserialization didn't detect a flow"),
+            Err(e) => panic!("Deserialization error: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn flow_has_partial_metadata() {
+        let flow_description = "\
+flow = 'test'
+
+[metadata]
+version = \"1.1.1\"
+    ";
+
+        let toml = FlowTomlLoader {};
+        match toml.deserialize(flow_description, None) {
+            Ok(FlowProcess(flow)) => {
+                assert_eq!(flow.metadata.name, String::default());
+                assert_eq!(flow.metadata.version, "1.1.1".to_string());
+                assert_eq!(flow.metadata.description, String::default());
+            }
+            Ok(_) => panic!("Deserialization didn't detect a flow"),
+            Err(e) => panic!("Deserialization error: {:?}", e),
         }
     }
 

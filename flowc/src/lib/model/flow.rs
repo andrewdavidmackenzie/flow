@@ -8,6 +8,7 @@ use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
 use flowcore::input::InputInitializer;
+use flowcore::manifest::MetaData;
 
 use crate::compiler::loader::Validate;
 use crate::errors::Error;
@@ -33,6 +34,7 @@ use crate::model::route::{Route, RouteType};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Flow {
+    // Elements deserialized from the flow description
     #[serde(rename = "flow")]
     pub name: Name,
     #[serde(default, rename = "input")]
@@ -43,18 +45,14 @@ pub struct Flow {
     pub process_refs: Vec<ProcessReference>,
     #[serde(default, rename = "connection")]
     pub connections: Vec<Connection>,
+    #[serde(default)]
+    pub metadata: MetaData,
 
-    #[serde(default)]
-    pub description: String,
-    #[serde(default)]
-    pub version: String,
-    #[serde(default)]
-    pub authors: Vec<String>,
-
-    #[serde(skip)]
-    pub id: usize,
+    // Elements completed by the compiler in-memory, and not deserialized/serialized
     #[serde(skip)]
     pub alias: Name,
+    #[serde(skip)]
+    pub id: usize,
     #[serde(skip, default = "Flow::default_url")]
     pub source_url: Url,
     #[serde(skip)]
@@ -127,9 +125,7 @@ impl Default for Flow {
             connections: vec![],
             subprocesses: HashMap::new(),
             lib_references: HashSet::new(),
-            description: String::default(),
-            version: String::default(),
-            authors: vec![],
+            metadata: MetaData::default(),
         }
     }
 }

@@ -28,7 +28,7 @@ pub struct GenerationTables {
     pub source_routes: HashMap<Route, (Route, usize)>,
     /// HashMap from "route of the output of a function" --> (output name, source_function_id)
     pub destination_routes: HashMap<Route, (usize, usize, usize)>,
-    /// HashMap from "route of the input of a function" --> (dest_function_id, input number, flow_id)
+    /// HashMap from "route of the input of a function" --> (destination_function_id, input number, flow_id)
     pub collapsed_connections: Vec<Connection>,
     pub functions: Vec<Function>,
     pub libs: HashSet<Url>,
@@ -49,12 +49,7 @@ impl GenerationTables {
 
 impl From<&Flow> for MetaData {
     fn from(flow: &Flow) -> Self {
-        MetaData {
-            name: flow.name.clone().to_string(),
-            description: flow.description.clone(),
-            version: flow.version.clone(),
-            authors: flow.authors.clone(),
-        }
+        flow.metadata.clone()
     }
 }
 
