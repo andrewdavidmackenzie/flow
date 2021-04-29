@@ -1259,7 +1259,7 @@ mod test {
             0,
             0,
             false,
-            Some("/fB".to_string()),
+            "/fB".to_string(),
             #[cfg(feature = "debugger")]
             String::default(),
         );
@@ -1286,7 +1286,7 @@ mod test {
             0,
             0,
             false,
-            Some("/fB".to_string()),
+            "/fB".to_string(),
             #[cfg(feature = "debugger")]
             String::default(),
         );
@@ -1357,7 +1357,7 @@ mod test {
             0,
             0,
             false,
-            None,
+            String::default(),
             #[cfg(feature = "debugger")]
             String::default(),
         );
@@ -1381,7 +1381,7 @@ mod test {
             0,
             0,
             false,
-            None,
+            String::default(),
             #[cfg(feature = "debugger")]
             String::default(),
         );
@@ -1830,7 +1830,7 @@ mod test {
                 0,
                 0,
                 false,
-                None,
+                String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
             );
@@ -2002,7 +2002,7 @@ mod test {
                 0,
                 0,
                 false,
-                None,
+                String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
             );
@@ -2071,7 +2071,7 @@ mod test {
                 0,
                 0,
                 false,
-                None,
+                String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
             );
@@ -2133,7 +2133,7 @@ mod test {
                 0,
                 0,
                 false,
-                None,
+                String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
             );
@@ -2207,7 +2207,7 @@ mod test {
                 0,
                 0,
                 false,
-                None,
+                String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
             );
@@ -2218,7 +2218,7 @@ mod test {
                 0,
                 0,
                 false,
-                None,
+                String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
             );
@@ -2353,7 +2353,7 @@ mod test {
                 0,
                 0,
                 false,
-                None,
+                String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
             );
@@ -2364,7 +2364,7 @@ mod test {
                 0,
                 0,
                 false,
-                None,
+                String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
             );
@@ -2857,7 +2857,7 @@ mod test {
                     0,
                     test_case.destination_array_order,
                     test_case.destination_is_generic,
-                    None,
+                    String::default(),
                     #[cfg(feature = "debugger")]
                     String::default(),
                 );

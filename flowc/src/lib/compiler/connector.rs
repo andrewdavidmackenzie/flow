@@ -47,7 +47,7 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                         destination_flow_id,
                         connection.to_io.datatype().array_order()?,
                         connection.to_io.datatype().is_generic(),
-                        Some(connection.to_io.route().to_string()),
+                        connection.to_io.route().to_string(),
                         #[cfg(feature = "debugger")]
                         connection.name.to_string(),
                     );

@@ -33,13 +33,10 @@ pub struct OutputConnection {
     #[serde(default = "default_generic", skip_serializing_if = "is_not_generic")]
     pub generic: bool,
     /// `route` is the full route to the destination input
-    #[serde(
-        default = "default_destination_route",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub route: Option<String>,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub route: String,
     #[cfg(feature = "debugger")]
-    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub name: String,
 }
 
@@ -71,7 +68,7 @@ impl OutputConnection {
         flow_id: usize,
         array_level_serde: i32,
         generic: bool,
-        route: Option<String>,
+        route: String,
         #[cfg(feature = "debugger")] name: String,
     ) -> Self {
         OutputConnection {
@@ -93,10 +90,6 @@ impl OutputConnection {
     }
 }
 
-fn default_destination_route() -> Option<String> {
-    None
-}
-
 impl fmt::Display for OutputConnection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Output Connection")?;
@@ -108,8 +101,8 @@ impl fmt::Display for OutputConnection {
             " -> Function #{}({}):{}",
             self.function_id, self.flow_id, self.io_number
         )?;
-        if let Some(route) = &self.route {
-            write!(f, " @ route '{}'", route)?;
+        if !self.route.is_empty() {
+            write!(f, " @ route '{}'", self.route)?;
         }
 
         write!(f, "")
@@ -144,11 +137,6 @@ mod test {
     }
 
     #[test]
-    fn default_destination_route_test() {
-        assert_eq!(super::default_destination_route(), None)
-    }
-
-    #[test]
     fn display_test() {
         let connection = super::OutputConnection::new(
             "/".into(),
@@ -157,7 +145,7 @@ mod test {
             1,
             0,
             false,
-            None,
+            String::default(),
             #[cfg(feature = "debugger")]
             "test-connection".into(),
         );
@@ -173,7 +161,7 @@ mod test {
             1,
             0,
             false,
-            Some("/flow1/input".into()),
+            "/flow1/input".into(),
             #[cfg(feature = "debugger")]
             "test-connection".into(),
         );

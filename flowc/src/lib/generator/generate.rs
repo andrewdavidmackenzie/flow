@@ -234,7 +234,7 @@ mod test {
                     0,
                     0,
                     false,
-                    None,
+                    String::default(),
                     #[cfg(feature = "debugger")]
                     String::default(),
                 ),
@@ -245,7 +245,7 @@ mod test {
                     0,
                     0,
                     false,
-                    None,
+                    String::default(),
                     #[cfg(feature = "debugger")]
                     String::default(),
                 ),
@@ -306,7 +306,7 @@ mod test {
                 0,
                 0,
                 false,
-                None,
+                String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
             )],
@@ -360,7 +360,7 @@ mod test {
                 0,
                 1,
                 false,
-                None,
+                String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
             )],
@@ -547,7 +547,7 @@ mod test {
                 0,
                 0,
                 false,
-                None,
+                String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
             )],
@@ -621,7 +621,7 @@ mod test {
                 0,
                 0,
                 false,
-                None,
+                String::default(),
                 #[cfg(feature = "debugger")]
                 String::default(),
             )],

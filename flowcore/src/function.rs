@@ -104,7 +104,7 @@ impl Function {
         // Remove destination routes if not wanted
         if !include_destination_routes {
             for mut r in &mut routes {
-                r.route = None;
+                r.route = String::default();
             }
         }
 
@@ -332,7 +332,7 @@ mod test {
             0,
             0,
             false,
-            None,
+            String::default(),
             #[cfg(feature = "debugger")]
             String::default(),
         );
@@ -390,7 +390,7 @@ mod test {
             0,
             0,
             false,
-            None,
+            String::default(),
             #[cfg(feature = "debugger")]
             String::default(),
         );
