@@ -38,6 +38,9 @@ pub struct OutputConnection {
         skip_serializing_if = "Option::is_none"
     )]
     pub route: Option<String>,
+    #[cfg(feature = "debugger")]
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub name: String,
 }
 
 fn default_array_level_serde() -> i32 {
@@ -60,6 +63,7 @@ fn is_not_generic(generic: &bool) -> bool {
 
 impl OutputConnection {
     /// Create a new `OutputConnection`
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         subroute: String,
         function_id: usize,
@@ -68,6 +72,7 @@ impl OutputConnection {
         array_level_serde: i32,
         generic: bool,
         route: Option<String>,
+        #[cfg(feature = "debugger")] name: String,
     ) -> Self {
         OutputConnection {
             subroute,
@@ -77,6 +82,8 @@ impl OutputConnection {
             array_level_serde,
             generic,
             route,
+            #[cfg(feature = "debugger")]
+            name,
         }
     }
 
@@ -143,7 +150,17 @@ mod test {
 
     #[test]
     fn display_test() {
-        let connection = super::OutputConnection::new("/".into(), 1, 1, 1, 0, false, None);
+        let connection = super::OutputConnection::new(
+            "/".into(),
+            1,
+            1,
+            1,
+            0,
+            false,
+            None,
+            #[cfg(feature = "debugger")]
+            "test-connection".into(),
+        );
         println!("Connection: {}", connection);
     }
 
@@ -157,6 +174,8 @@ mod test {
             0,
             false,
             Some("/flow1/input".into()),
+            #[cfg(feature = "debugger")]
+            "test-connection".into(),
         );
         println!("Connection: {}", connection);
     }

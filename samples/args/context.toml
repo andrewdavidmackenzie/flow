@@ -7,5 +7,6 @@ source = "lib://flowruntime/args/get"
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
+name = "print-flow-name"
 from = "get/json/2"
 to = "stdout"

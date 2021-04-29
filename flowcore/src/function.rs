@@ -325,7 +325,17 @@ mod test {
     }
 
     fn test_function() -> Function {
-        let out_conn = OutputConnection::new("/other/input/1".to_string(), 1, 1, 0, 0, false, None);
+        let out_conn = OutputConnection::new(
+            "/other/input/1".to_string(),
+            1,
+            1,
+            0,
+            0,
+            false,
+            None,
+            #[cfg(feature = "debugger")]
+            String::default(),
+        );
         Function::new(
             #[cfg(feature = "debugger")]
             "test",
@@ -373,8 +383,17 @@ mod test {
     #[cfg(feature = "debugger")]
     #[test]
     fn can_display_function_with_inputs() {
-        let output_route =
-            OutputConnection::new("/other/input/1".to_string(), 1, 1, 0, 0, false, None);
+        let output_route = OutputConnection::new(
+            "/other/input/1".to_string(),
+            1,
+            1,
+            0,
+            0,
+            false,
+            None,
+            #[cfg(feature = "debugger")]
+            String::default(),
+        );
         let mut function = Function::new(
             #[cfg(feature = "debugger")]
             "test",

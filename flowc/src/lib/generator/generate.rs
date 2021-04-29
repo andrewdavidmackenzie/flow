@@ -227,8 +227,28 @@ mod test {
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
             vec![
-                OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None),
-                OutputConnection::new("sub_route".to_string(), 2, 0, 0, 0, false, None),
+                OutputConnection::new(
+                    "".to_string(),
+                    1,
+                    0,
+                    0,
+                    0,
+                    false,
+                    None,
+                    #[cfg(feature = "debugger")]
+                    String::default(),
+                ),
+                OutputConnection::new(
+                    "sub_route".to_string(),
+                    2,
+                    0,
+                    0,
+                    0,
+                    false,
+                    None,
+                    #[cfg(feature = "debugger")]
+                    String::default(),
+                ),
             ],
             0,
             0,
@@ -287,6 +307,8 @@ mod test {
                 0,
                 false,
                 None,
+                #[cfg(feature = "debugger")]
+                String::default(),
             )],
             0,
             0,
@@ -339,6 +361,8 @@ mod test {
                 1,
                 false,
                 None,
+                #[cfg(feature = "debugger")]
+                String::default(),
             )],
             0,
             0,
@@ -524,6 +548,8 @@ mod test {
                 0,
                 false,
                 None,
+                #[cfg(feature = "debugger")]
+                String::default(),
             )],
             0,
             0,
@@ -596,6 +622,8 @@ mod test {
                 0,
                 false,
                 None,
+                #[cfg(feature = "debugger")]
+                String::default(),
             )],
             0,
             0,

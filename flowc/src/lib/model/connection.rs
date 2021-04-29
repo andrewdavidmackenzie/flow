@@ -13,8 +13,8 @@ use crate::model::route::Route;
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Connection {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<Name>,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub name: Name,
     pub from: Route,
     pub to: Route,
 
@@ -58,9 +58,7 @@ impl fmt::Display for Connection {
 impl Validate for Connection {
     // Called before everything is loaded and connected up to check all looks good
     fn validate(&self) -> Result<()> {
-        if let Some(ref name) = self.name {
-            name.validate()?;
-        }
+        self.name.validate()?;
         self.from.validate()?;
         self.to.validate()
     }

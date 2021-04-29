@@ -20,13 +20,12 @@ impl Name {
 
 impl Validate for Name {
     fn validate(&self) -> Result<()> {
-        if self.is_empty() {
-            bail!("Name '{}' cannot have an empty or whitespace name", self);
-        }
-
         // Names cannot be numbers as they can be confused with array indexes for Array outputs
         if self.parse::<usize>().is_ok() {
-            bail!("Name '{}' cannot be a number, they are reserved for array indexes", self);
+            bail!(
+                "Name '{}' cannot be a number, they are reserved for array indexes",
+                self
+            );
         }
 
         Ok(())
@@ -75,11 +74,9 @@ mod test {
     use super::Name;
 
     #[test]
-    fn does_not_validate_when_empty() {
+    fn validates_when_empty() {
         let name = Name::default();
-        if name.validate().is_ok() {
-            panic!()
-        }
+        assert!(name.validate().is_ok());
     }
 
     #[test]
