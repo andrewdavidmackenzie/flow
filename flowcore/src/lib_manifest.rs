@@ -52,6 +52,10 @@ pub struct LibraryManifest {
     /// the `locators` map a reference to a function/implementation to the `ImplementationLocator`
     /// that can be used to load it or reference it
     pub locators: HashMap<Url, ImplementationLocator>,
+    /// source_files is a list of source files (location relative to library root) for functions
+    /// (function definitions and source code) and process flow definitions that form part of it
+    #[serde(default)]
+    pub source_files: Vec<String>,
 }
 
 impl LibraryManifest {
@@ -60,6 +64,7 @@ impl LibraryManifest {
         LibraryManifest {
             metadata,
             locators: HashMap::<Url, ImplementationLocator>::new(),
+            source_files: vec![],
         }
     }
 
