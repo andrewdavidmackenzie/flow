@@ -702,44 +702,50 @@ impl RunState {
         &mut self,
         source_id: usize,
         source_flow_id: usize,
-        destination: &OutputConnection,
+        connection: &OutputConnection,
         output_value: &Value,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
     ) {
-        let route_str = if destination.subroute.is_empty() {
+        let route_str = if connection.subroute.is_empty() {
             "".to_string()
         } else {
-            format!(" via output route '{}'", destination.subroute)
+            format!(" via output route '{}'", connection.subroute)
         };
 
-        let destination_str = if source_id == destination.function_id {
-            format!("to Self:{}", destination.io_number)
+        let connection_name = if connection.name.is_empty() {
+            "".to_string()
+        } else {
+            format!(" on connection '{}' ", connection.name)
+        };
+
+        let destination_str = if source_id == connection.function_id {
+            format!("to Self:{}", connection.io_number)
         } else {
             format!(
                 "to Function #{}:{}",
-                destination.function_id, destination.io_number
+                connection.function_id, connection.io_number
             )
         };
 
         info!(
-            "\t\tFunction #{} sending '{}'{} {}",
-            source_id, output_value, route_str, destination_str
+            "\t\tFunction #{} sending '{}'{} {} {}",
+            source_id, output_value, route_str, connection_name, destination_str
         );
 
         #[cfg(feature = "debugger")]
         debugger.check_prior_to_send(
             self,
             source_id,
-            &destination.subroute,
+            &connection.subroute,
             &output_value,
-            destination.function_id,
-            destination.io_number,
+            connection.function_id,
+            connection.io_number,
         );
 
-        let function = self.get_mut(destination.function_id);
+        let function = self.get_mut(connection.function_id);
         let count_before = function.input_set_count();
-        Self::type_convert_and_send(function, destination, output_value);
+        Self::type_convert_and_send(function, connection, output_value);
 
         #[cfg(feature = "metrics")]
         metrics.increment_outputs_sent();
@@ -748,17 +754,17 @@ impl RunState {
         // - avoid blocking on itself
         // - delay determining if it should be in the blocked or ready lists (by calling inputs_now_full())
         //   until it has sent all it's other outputs as it might be blocked by another function.
-        let block = (function.input_count(destination.io_number) > 0)
-            && (source_id != destination.function_id);
+        let block = (function.input_count(connection.io_number) > 0)
+            && (source_id != connection.function_id);
         let filled =
-            (function.input_set_count() > count_before) && (source_id != destination.function_id);
+            (function.input_set_count() > count_before) && (source_id != connection.function_id);
 
         if block {
             // TODO pass in destination and combine Block and OutputConnection?
             self.create_block(
-                destination.flow_id,
-                destination.function_id,
-                destination.io_number,
+                connection.flow_id,
+                connection.function_id,
+                connection.io_number,
                 source_id,
                 source_flow_id,
                 #[cfg(feature = "debugger")]
@@ -767,7 +773,7 @@ impl RunState {
         }
 
         if filled {
-            self.new_input_set(destination.function_id, destination.flow_id, true);
+            self.new_input_set(connection.function_id, connection.flow_id, true);
         }
     }
 
