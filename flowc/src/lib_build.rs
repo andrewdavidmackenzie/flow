@@ -187,7 +187,7 @@ fn compile_implementations(
                         .parent()
                         .chain_err(|| "Could not get parent directory of wasm path")?;
                     lib_manifest
-                        .add_to_manifest(
+                        .add_locator(
                             base_dir,
                             wasm_abs_path
                                 .to_str()

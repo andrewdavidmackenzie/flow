@@ -102,8 +102,10 @@ impl LibraryManifest {
         Ok((manifest, resolved_url))
     }
 
-    /// Add a function's implementation to the library, specifying path to Wasm for it
-    pub fn add_to_manifest(
+    /// Add a function's implementation locator (location of wasm file) to the library manifest
+    /// It will be stored relative to the root of the manifest so that the library is location
+    /// independent
+    pub fn add_locator(
         &mut self,
         base_dir: &str,
         wasm_abs_path: &str,
@@ -126,6 +128,16 @@ impl LibraryManifest {
             lib_reference,
             ImplementationLocator::Wasm(implementation_relative_location),
         );
+
+        Ok(())
+    }
+
+    /// Add a source file to the library manifest. It will be stored relative to the root of the
+    /// manifest so that the library is location independent
+    pub fn add_source_file(&mut self, base_dir: &str, source_file: &str) -> Result<()> {
+        let relative_path = source_file.replace(base_dir, "");
+
+        self.source_files.push(relative_path);
 
         Ok(())
     }
@@ -271,7 +283,8 @@ mod test {
   },
   \"locators\": {
     \"lib://flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
-  }
+  },
+  \"source_files\": []
 }";
         assert_eq!(expected, serialized);
     }
@@ -287,7 +300,8 @@ mod test {
   },
   \"locators\": {
     \"lib://flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
-  }
+  },
+  \"source_files\": []
 }";
         let provider = &TestProvider { test_content } as &dyn LibProvider;
         let url = Url::parse("file:://test/fake").expect("Could not create Url");
@@ -312,7 +326,7 @@ mod test {
     fn add_to() {
         let mut library = LibraryManifest::new(test_meta_data());
         library
-            .add_to_manifest("/fake", "/bin/my.wasm", "/bin", "my function")
+            .add_locator("/fake", "/bin/my.wasm", "/bin", "my function")
             .expect("Could not add to manifest");
         assert_eq!(
             library.locators.len(),
@@ -333,7 +347,7 @@ mod test {
     fn compare_manifests_num_locators_different() {
         let mut library1 = LibraryManifest::new(test_meta_data());
         library1
-            .add_to_manifest("/fake", "/bin/my.wasm", "/bin", "my function")
+            .add_locator("/fake", "/bin/my.wasm", "/bin", "my function")
             .expect("Could not add to manifest");
 
         let library2 = LibraryManifest::new(test_meta_data());
@@ -345,12 +359,12 @@ mod test {
     fn compare_manifests_locators_different() {
         let mut library1 = LibraryManifest::new(test_meta_data());
         library1
-            .add_to_manifest("/fake", "/bin/fake.wasm", "/bin", "my fake function")
+            .add_locator("/fake", "/bin/fake.wasm", "/bin", "my fake function")
             .expect("Could not add to manifest");
 
         let mut library2 = LibraryManifest::new(test_meta_data());
         library2
-            .add_to_manifest("/different", "/bin/my.wasm", "/bin", "my function")
+            .add_locator("/different", "/bin/my.wasm", "/bin", "my function")
             .expect("Could not add to manifest");
 
         assert!(library1 != library2);
@@ -360,12 +374,12 @@ mod test {
     fn compare_manifests_same() {
         let mut library1 = LibraryManifest::new(test_meta_data());
         library1
-            .add_to_manifest("/fake", "/bin/my.wasm", "/bin", "my function")
+            .add_locator("/fake", "/bin/my.wasm", "/bin", "my function")
             .expect("Could not add to manifest");
 
         let mut library2 = LibraryManifest::new(test_meta_data());
         library2
-            .add_to_manifest("/fake", "/bin/my.wasm", "/bin", "my function")
+            .add_locator("/fake", "/bin/my.wasm", "/bin", "my function")
             .expect("Could not add to manifest");
 
         assert!(library1 == library2);
