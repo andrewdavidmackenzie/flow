@@ -47,7 +47,9 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                         destination_flow_id,
                         connection.to_io.datatype().array_order()?,
                         connection.to_io.datatype().is_generic(),
-                        Some(connection.to_io.route().to_string()),
+                        connection.to_io.route().to_string(),
+                        #[cfg(feature = "debugger")]
+                        connection.name.to_string(),
                     );
                     source_function.add_output_route(output_conn);
                 }
@@ -210,7 +212,7 @@ pub fn create_routes_table(tables: &mut GenerationTables) {
 
          7    Flow Input (from parent)  Function Input          Enters flow from higher level into a Function
          8    Flow Input (from parent)  Flow Input (subflow)    Enters flow from higher level into a Sub-flow
-         9    Flow Input (from parent)  Flow Output             A pass-thru connection within a flow
+         9    Flow Input (from parent)  Flow Output             A pass-through connection within a flow
 
          Output is: source_subroute: Route, final_destination: Route
 */
@@ -473,7 +475,7 @@ mod test {
 
         fn test_connection() -> Connection {
             Connection {
-                name: Some(Name::from("left")),
+                name: Name::from("left"),
                 from: Route::from("/f1/a"),
                 to: Route::from("/f2/a"),
                 from_io: IO::new("String", "/f1/a"),
@@ -495,7 +497,7 @@ mod test {
         #[test]
         fn collapse_a_connection() {
             let mut left_side = Connection {
-                name: Some(Name::from("left")),
+                name: Name::from("left"),
                 from: Route::from("/function1"),
                 to: Route::from("/flow2/a"),
                 from_io: IO::new("String", "/function1"),
@@ -507,7 +509,7 @@ mod test {
 
             // This one goes to a flow but then nowhere, so should be dropped
             let mut extra_one = Connection {
-                name: Some(Name::from("unused")),
+                name: Name::from("unused"),
                 from: Route::from("/flow2/a"),
                 to: Route::from("/flow2/f4/a"),
                 from_io: IO::new("String", "/flow2/a"),
@@ -518,7 +520,7 @@ mod test {
             extra_one.to_io.set_flow_io(IOType::FlowInput); // /flow2/f4 doesn't exist
 
             let mut right_side = Connection {
-                name: Some(Name::from("right")),
+                name: Name::from("right"),
                 from: Route::from("/flow2/a"),
                 to: Route::from("/flow2/function3"),
                 from_io: IO::new("String", "/flow2/a"),
@@ -545,7 +547,7 @@ mod test {
         #[test]
         fn collapse_two_connections_from_flow_boundary() {
             let mut left_side = Connection {
-                name: Some(Name::from("left")),
+                name: Name::from("left"),
                 from: Route::from("/f1"),
                 to: Route::from("/f2/a"),
                 from_io: IO::new("String", "/f1"),
@@ -556,7 +558,7 @@ mod test {
             left_side.to_io.set_flow_io(IOType::FlowInput);
 
             let mut right_side_one = Connection {
-                name: Some(Name::from("right1")),
+                name: Name::from("right1"),
                 from: Route::from("/f2/a"),
                 to: Route::from("/f2/value1"),
                 from_io: IO::new("String", "/f2/a"),
@@ -567,7 +569,7 @@ mod test {
             right_side_one.to_io.set_flow_io(IOType::FunctionIO);
 
             let mut right_side_two = Connection {
-                name: Some(Name::from("right2")),
+                name: Name::from("right2"),
                 from: Route::from("/f2/a"),
                 to: Route::from("/f2/value2"),
                 from_io: IO::new("String", "/f2/a"),
@@ -591,7 +593,7 @@ mod test {
         #[test]
         fn collapse_connection_into_sub_flow() {
             let mut first_level = Connection {
-                name: Some(Name::from("value-to-f1:a at context level")),
+                name: Name::from("value-to-f1:a at context level"),
                 from: Route::from("/value"),
                 to: Route::from("/flow1/a"),
                 from_io: IO::new("String", "/value"),
@@ -602,7 +604,7 @@ mod test {
             first_level.to_io.set_flow_io(IOType::FlowInput);
 
             let mut second_level = Connection {
-                name: Some(Name::from("subflow_connection")),
+                name: Name::from("subflow_connection"),
                 from: Route::from("/flow1/a"),
                 to: Route::from("/flow1/flow2/a"),
                 from_io: IO::new("String", "/flow1/a"),
@@ -613,7 +615,7 @@ mod test {
             second_level.to_io.set_flow_io(IOType::FlowInput);
 
             let mut third_level = Connection {
-                name: Some(Name::from("sub_subflow_connection")),
+                name: Name::from("sub_subflow_connection"),
                 from: Route::from("/flow1/flow2/a"),
                 to: Route::from("/flow1/flow2/func/in"),
                 from_io: IO::new("String", "/flow1/flow2/a"),
@@ -635,11 +637,11 @@ mod test {
         }
 
         #[test]
-        fn doesnt_collapse_a_non_connection() {
+        fn does_not_collapse_a_non_connection() {
             let one = test_connection();
 
             let other = Connection {
-                name: Some(Name::from("right")),
+                name: Name::from("right"),
                 from: Route::from("/f3/a"),
                 to: Route::from("/f4/a"),
                 from_io: IO::new("String", "/f3/a"),

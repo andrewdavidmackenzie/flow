@@ -234,7 +234,9 @@ impl Default for Function {
                 0,
                 0,
                 false,
-                Some("".to_string()),
+                String::default(),
+                #[cfg(feature = "debugger")]
+                String::default(),
             )],
             id: 0,
             flow_id: 0,
@@ -286,7 +288,9 @@ mod test {
                 0,
                 0,
                 false,
-                None,
+                String::default(),
+                #[cfg(feature = "debugger")]
+                String::default(),
             )],
             id: 0,
             flow_id: 0,

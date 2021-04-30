@@ -121,7 +121,6 @@ fn connection_to(tables: &GenerationTables, input: &Route) -> bool {
 mod test {
     use crate::model::connection::Connection;
     use crate::model::io::IO;
-    use crate::model::name::Name;
 
     use super::remove_duplicates;
 
@@ -131,7 +130,7 @@ mod test {
     #[test]
     fn remove_duplicated_connection() {
         let first = Connection {
-            name: Some(Name::from("first")),
+            name: "first".into(),
             from: "/r1".into(),
             to: "/r2".into(),
             from_io: IO::new("String", "/r1"),
@@ -140,7 +139,7 @@ mod test {
         };
 
         let second = Connection {
-            name: Some(Name::from("second")),
+            name: "second".into(),
             from: "/r1".into(),
             to: "/r2".into(),
             from_io: IO::new("String", "/r1"),

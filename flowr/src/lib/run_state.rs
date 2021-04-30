@@ -379,7 +379,7 @@ impl RunState {
     }
 
     /*
-        Scan thru all functions and output routes for each, if the destination input is already
+        Scan through all functions and output routes for each, if the destination input is already
         full due to the init process, then create a block for the sender and added sender to blocked
         list.
     */
@@ -570,7 +570,7 @@ impl RunState {
     }
 
     /*
-        Complete a Job by taking its output and updating the runlist accordingly.
+        Complete a Job by taking its output and updating the run-list accordingly.
 
         If other functions were blocked trying to send to this one - we can now unblock them
         as it has consumed it's inputs and they are free to be sent to again.
@@ -702,44 +702,50 @@ impl RunState {
         &mut self,
         source_id: usize,
         source_flow_id: usize,
-        destination: &OutputConnection,
+        connection: &OutputConnection,
         output_value: &Value,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
     ) {
-        let route_str = if destination.subroute.is_empty() {
+        let route_str = if connection.subroute.is_empty() {
             "".to_string()
         } else {
-            format!(" via output route '{}'", destination.subroute)
+            format!(" via output route '{}'", connection.subroute)
         };
 
-        let destination_str = if source_id == destination.function_id {
-            format!("to Self:{}", destination.io_number)
+        let connection_name = if connection.name.is_empty() {
+            "".to_string()
+        } else {
+            format!(" on connection '{}' ", connection.name)
+        };
+
+        let destination_str = if source_id == connection.function_id {
+            format!("to Self:{}", connection.io_number)
         } else {
             format!(
                 "to Function #{}:{}",
-                destination.function_id, destination.io_number
+                connection.function_id, connection.io_number
             )
         };
 
         info!(
-            "\t\tFunction #{} sending '{}'{} {}",
-            source_id, output_value, route_str, destination_str
+            "\t\tFunction #{} sending '{}'{} {} {}",
+            source_id, output_value, route_str, connection_name, destination_str
         );
 
         #[cfg(feature = "debugger")]
         debugger.check_prior_to_send(
             self,
             source_id,
-            &destination.subroute,
+            &connection.subroute,
             &output_value,
-            destination.function_id,
-            destination.io_number,
+            connection.function_id,
+            connection.io_number,
         );
 
-        let function = self.get_mut(destination.function_id);
+        let function = self.get_mut(connection.function_id);
         let count_before = function.input_set_count();
-        Self::type_convert_and_send(function, destination, output_value);
+        Self::type_convert_and_send(function, connection, output_value);
 
         #[cfg(feature = "metrics")]
         metrics.increment_outputs_sent();
@@ -748,17 +754,17 @@ impl RunState {
         // - avoid blocking on itself
         // - delay determining if it should be in the blocked or ready lists (by calling inputs_now_full())
         //   until it has sent all it's other outputs as it might be blocked by another function.
-        let block = (function.input_count(destination.io_number) > 0)
-            && (source_id != destination.function_id);
+        let block = (function.input_count(connection.io_number) > 0)
+            && (source_id != connection.function_id);
         let filled =
-            (function.input_set_count() > count_before) && (source_id != destination.function_id);
+            (function.input_set_count() > count_before) && (source_id != connection.function_id);
 
         if block {
             // TODO pass in destination and combine Block and OutputConnection?
             self.create_block(
-                destination.flow_id,
-                destination.function_id,
-                destination.io_number,
+                connection.flow_id,
+                connection.function_id,
+                connection.io_number,
                 source_id,
                 source_flow_id,
                 #[cfg(feature = "debugger")]
@@ -767,7 +773,7 @@ impl RunState {
         }
 
         if filled {
-            self.new_input_set(destination.function_id, destination.flow_id, true);
+            self.new_input_set(connection.function_id, connection.flow_id, true);
         }
     }
 
@@ -974,7 +980,7 @@ impl RunState {
     }
 
     /*
-        Remove ONE entry of <flow_id, function_id> from the busy_flows multimap
+        Remove ONE entry of <flow_id, function_id> from the busy_flows multi-map
     */
     fn remove_from_busy(&mut self, blocker_function_id: usize) {
         let mut count = 0;
@@ -1252,8 +1258,17 @@ mod test {
     }
 
     fn test_function_a_to_b_not_init() -> Function {
-        let connection_to_f1 =
-            OutputConnection::new("".to_string(), 1, 0, 0, 0, false, Some("/fB".to_string()));
+        let connection_to_f1 = OutputConnection::new(
+            "".to_string(),
+            1,
+            0,
+            0,
+            0,
+            false,
+            "/fB".to_string(),
+            #[cfg(feature = "debugger")]
+            String::default(),
+        );
 
         Function::new(
             #[cfg(feature = "debugger")]
@@ -1270,8 +1285,17 @@ mod test {
     }
 
     fn test_function_a_to_b() -> Function {
-        let connection_to_f1 =
-            OutputConnection::new("".to_string(), 1, 0, 0, 0, false, Some("/fB".to_string()));
+        let connection_to_f1 = OutputConnection::new(
+            "".to_string(),
+            1,
+            0,
+            0,
+            0,
+            false,
+            "/fB".to_string(),
+            #[cfg(feature = "debugger")]
+            String::default(),
+        );
         Function::new(
             #[cfg(feature = "debugger")]
             "fA",
@@ -1331,9 +1355,18 @@ mod test {
         )
     }
 
-    fn test_output(source_function_id: usize, dest_function_id: usize) -> Job {
-        let out_conn =
-            OutputConnection::new("".to_string(), dest_function_id, 0, 0, 0, false, None);
+    fn test_output(source_function_id: usize, destination_function_id: usize) -> Job {
+        let out_conn = OutputConnection::new(
+            "".to_string(),
+            destination_function_id,
+            0,
+            0,
+            0,
+            false,
+            String::default(),
+            #[cfg(feature = "debugger")]
+            String::default(),
+        );
         Job {
             job_id: 1,
             function_id: source_function_id,
@@ -1346,9 +1379,18 @@ mod test {
         }
     }
 
-    fn error_output(source_function_id: usize, dest_function_id: usize) -> Job {
-        let out_conn =
-            OutputConnection::new("".to_string(), dest_function_id, 0, 0, 0, false, None);
+    fn error_output(source_function_id: usize, destination_function_id: usize) -> Job {
+        let out_conn = OutputConnection::new(
+            "".to_string(),
+            destination_function_id,
+            0,
+            0,
+            0,
+            false,
+            String::default(),
+            #[cfg(feature = "debugger")]
+            String::default(),
+        );
         Job {
             job_id: 1,
             flow_id: 0,
@@ -1787,8 +1829,17 @@ mod test {
             let mut output = super::test_output(1, 0);
 
             // Modify test output to use a route that doesn't exist
-            let no_such_out_conn =
-                OutputConnection::new("/fake".to_string(), 0, 0, 0, 0, false, None);
+            let no_such_out_conn = OutputConnection::new(
+                "/fake".to_string(),
+                0,
+                0,
+                0,
+                0,
+                false,
+                String::default(),
+                #[cfg(feature = "debugger")]
+                String::default(),
+            );
             output.connections = vec![no_such_out_conn];
 
             state.complete_job(
@@ -1950,7 +2001,17 @@ mod test {
         // Done: at least one destination input is full, so can't run  running_to_blocked_on_done
         #[test]
         fn running_to_blocked_on_done() {
-            let out_conn = OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None);
+            let out_conn = OutputConnection::new(
+                "".to_string(),
+                1,
+                0,
+                0,
+                0,
+                false,
+                String::default(),
+                #[cfg(feature = "debugger")]
+                String::default(),
+            );
             let f_a = Function::new(
                 #[cfg(feature = "debugger")]
                 "fA",
@@ -2009,7 +2070,17 @@ mod test {
         #[test]
         fn waiting_to_ready_on_input() {
             let f_a = test_function_a_not_init();
-            let out_conn = OutputConnection::new("".into(), 0, 0, 0, 0, false, None);
+            let out_conn = OutputConnection::new(
+                "".into(),
+                0,
+                0,
+                0,
+                0,
+                false,
+                String::default(),
+                #[cfg(feature = "debugger")]
+                String::default(),
+            );
             let f_b = Function::new(
                 #[cfg(feature = "debugger")]
                 "fB",
@@ -2061,7 +2132,17 @@ mod test {
         #[test]
         fn waiting_to_blocked_on_input() {
             let f_a = super::test_function_a_to_b_not_init();
-            let connection_to_f0 = OutputConnection::new("".into(), 0, 0, 0, 0, false, None);
+            let connection_to_f0 = OutputConnection::new(
+                "".into(),
+                0,
+                0,
+                0,
+                0,
+                false,
+                String::default(),
+                #[cfg(feature = "debugger")]
+                String::default(),
+            );
             let f_b = Function::new(
                 #[cfg(feature = "debugger")]
                 "fB",
@@ -2125,8 +2206,28 @@ mod test {
         */
         #[test]
         fn not_block_on_self() {
-            let connection_to_0 = OutputConnection::new("".to_string(), 0, 0, 0, 0, false, None);
-            let connection_to_1 = OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None);
+            let connection_to_0 = OutputConnection::new(
+                "".to_string(),
+                0,
+                0,
+                0,
+                0,
+                false,
+                String::default(),
+                #[cfg(feature = "debugger")]
+                String::default(),
+            );
+            let connection_to_1 = OutputConnection::new(
+                "".to_string(),
+                1,
+                0,
+                0,
+                0,
+                false,
+                String::default(),
+                #[cfg(feature = "debugger")]
+                String::default(),
+            );
 
             let f_a = Function::new(
                 #[cfg(feature = "debugger")]
@@ -2251,8 +2352,28 @@ mod test {
         use super::super::State;
 
         fn test_functions() -> Vec<Function> {
-            let out_conn1 = OutputConnection::new("".to_string(), 1, 0, 0, 0, false, None);
-            let out_conn2 = OutputConnection::new("".to_string(), 2, 0, 0, 0, false, None);
+            let out_conn1 = OutputConnection::new(
+                "".to_string(),
+                1,
+                0,
+                0,
+                0,
+                false,
+                String::default(),
+                #[cfg(feature = "debugger")]
+                String::default(),
+            );
+            let out_conn2 = OutputConnection::new(
+                "".to_string(),
+                2,
+                0,
+                0,
+                0,
+                false,
+                String::default(),
+                #[cfg(feature = "debugger")]
+                String::default(),
+            );
             let p0 = Function::new(
                 #[cfg(feature = "debugger")]
                 "p0",
@@ -2648,8 +2769,8 @@ mod test {
             #[derive(Debug)]
             struct TestCase {
                 value: Value,
-                dest_generic: bool,
-                dest_array_order: i32,
+                destination_is_generic: bool,
+                destination_array_order: i32,
                 value_expected: Value,
             }
 
@@ -2657,77 +2778,77 @@ mod test {
                 // Column 0 test cases
                 TestCase {
                     value: json!(1),
-                    dest_generic: true,
-                    dest_array_order: 0,
+                    destination_is_generic: true,
+                    destination_array_order: 0,
                     value_expected: json!(1),
                 },
                 TestCase {
                     value: json!([1]),
-                    dest_generic: true,
-                    dest_array_order: 0,
+                    destination_is_generic: true,
+                    destination_array_order: 0,
                     value_expected: json!([1]),
                 },
                 TestCase {
                     value: json!([[1, 2], [3, 4]]),
-                    dest_generic: true,
-                    dest_array_order: 0,
+                    destination_is_generic: true,
+                    destination_array_order: 0,
                     value_expected: json!([[1, 2], [3, 4]]),
                 },
                 // Column 1 Test Cases
                 TestCase {
                     value: json!(1),
-                    dest_generic: false,
-                    dest_array_order: 0,
+                    destination_is_generic: false,
+                    destination_array_order: 0,
                     value_expected: json!(1),
                 },
                 TestCase {
                     value: json!([1, 2]),
-                    dest_generic: false,
-                    dest_array_order: 0,
+                    destination_is_generic: false,
+                    destination_array_order: 0,
                     value_expected: json!(1),
                 },
                 TestCase {
                     value: json!([[1, 2], [3, 4]]),
-                    dest_generic: false,
-                    dest_array_order: 0,
+                    destination_is_generic: false,
+                    destination_array_order: 0,
                     value_expected: json!(1),
                 },
                 // Column 2 Test Cases
                 TestCase {
                     value: json!(1),
-                    dest_generic: false,
-                    dest_array_order: 1,
+                    destination_is_generic: false,
+                    destination_array_order: 1,
                     value_expected: json!([1]),
                 },
                 TestCase {
                     value: json!([1, 2]),
-                    dest_generic: false,
-                    dest_array_order: 1,
+                    destination_is_generic: false,
+                    destination_array_order: 1,
                     value_expected: json!([1, 2]),
                 },
                 TestCase {
                     value: json!([[1, 2], [3, 4]]),
-                    dest_generic: false,
-                    dest_array_order: 1,
+                    destination_is_generic: false,
+                    destination_array_order: 1,
                     value_expected: json!([1, 2]),
                 },
                 // Column 3 Test Cases
                 TestCase {
                     value: json!(1),
-                    dest_generic: false,
-                    dest_array_order: 2,
+                    destination_is_generic: false,
+                    destination_array_order: 2,
                     value_expected: json!([[1]]),
                 },
                 TestCase {
                     value: json!([1, 2]),
-                    dest_generic: false,
-                    dest_array_order: 2,
+                    destination_is_generic: false,
+                    destination_array_order: 2,
                     value_expected: json!([[1, 2]]),
                 },
                 TestCase {
                     value: json!([[1, 2], [3, 4]]),
-                    dest_generic: false,
-                    dest_array_order: 2,
+                    destination_is_generic: false,
+                    destination_array_order: 2,
                     value_expected: json!([[1, 2], [3, 4]]),
                 },
             ];
@@ -2740,9 +2861,11 @@ mod test {
                     0,
                     0,
                     0,
-                    test_case.dest_array_order,
-                    test_case.dest_generic,
-                    None,
+                    test_case.destination_array_order,
+                    test_case.destination_is_generic,
+                    String::default(),
+                    #[cfg(feature = "debugger")]
+                    String::default(),
                 );
 
                 // Test
