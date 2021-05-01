@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::env;
 use std::path::Path;
 use std::process::Command;
@@ -6,6 +7,7 @@ use std::process::Stdio;
 use log::{debug, error, info};
 use simpath::Simpath;
 use simpath::{FileType, FoundType};
+use url::Url;
 
 use flowclib::compiler::compile;
 use flowclib::compiler::compile_wasm;
@@ -13,6 +15,7 @@ use flowclib::compiler::loader;
 use flowclib::dumper::dump_flow;
 use flowclib::dumper::dump_tables;
 use flowclib::generator::generate;
+use flowclib::generator::generate::GenerationTables;
 use flowclib::model::flow::Flow;
 use flowclib::model::process::Process::FlowProcess;
 use flowcore::lib_provider::LibProvider;
@@ -52,7 +55,8 @@ fn check_root(flow: &Flow) -> bool {
 */
 pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -> Result<String> {
     info!("==== Compiler phase: Loading flow");
-    let context = loader::load(&options.url, provider)
+    let mut source_urls = HashSet::<Url>::new();
+    let context = loader::load(&options.url, provider, &mut source_urls)
         .chain_err(|| format!("Could not load flow from '{}'", options.url))?;
 
     match context {
@@ -68,23 +72,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -
 
             let runnable = check_root(&flow);
 
-            if options.dump || options.graphs {
-                dump_flow::dump_flow(
-                    &flow,
-                    &options.output_dir,
-                    provider,
-                    options.dump,
-                    options.graphs,
-                )
-                .chain_err(|| "Failed to dump flow's definition")?;
-
-                if options.dump {
-                    dump_tables::dump_tables(&tables, &options.output_dir)
-                        .chain_err(|| "Failed to dump flow's tables")?;
-                    dump_tables::dump_functions(&flow, &tables, &options.output_dir)
-                        .chain_err(|| "Failed to dump flow's functions")?;
-                }
-            }
+            dump(&flow, provider, &tables, &options)?;
 
             if !runnable {
                 return Ok(
@@ -98,6 +86,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -
                 options.debug_symbols,
                 &options.output_dir,
                 &tables,
+                source_urls,
             )
             .chain_err(|| "Failed to write manifest")?;
 
@@ -110,6 +99,33 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -
         }
         _ => bail!("Process loaded was not of type 'Flow' and cannot be executed"),
     }
+}
+
+fn dump(
+    flow: &Flow,
+    provider: &dyn LibProvider,
+    tables: &GenerationTables,
+    options: &Options,
+) -> Result<String> {
+    if options.dump || options.graphs {
+        dump_flow::dump_flow(
+            &flow,
+            &options.output_dir,
+            provider,
+            options.dump,
+            options.graphs,
+        )
+        .chain_err(|| "Failed to dump flow's definition")?;
+
+        if options.dump {
+            dump_tables::dump_tables(&tables, &options.output_dir)
+                .chain_err(|| "Failed to dump flow's tables")?;
+            dump_tables::dump_functions(&flow, &tables, &options.output_dir)
+                .chain_err(|| "Failed to dump flow's functions")?;
+        }
+    }
+
+    Ok("Dumped".into())
 }
 
 #[cfg(not(target_os = "windows"))]

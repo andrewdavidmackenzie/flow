@@ -178,7 +178,8 @@ fn compile_implementations(
                 )
             })?;
             debug!("Trying to load library process from '{}'", url);
-            match load(&url, provider) {
+
+            match load(&url, provider, &mut lib_manifest.source_urls) {
                 Ok(FunctionProcess(ref mut function)) => {
                     let (wasm_abs_path, built) =
                         compile_wasm::compile_implementation(function, skip_building)

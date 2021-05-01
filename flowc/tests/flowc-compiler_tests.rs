@@ -1,4 +1,7 @@
+use std::collections::HashSet;
+
 use serde_json::json;
+use url::Url;
 
 use flowclib::compiler::compile;
 use flowclib::compiler::loader;
@@ -33,7 +36,7 @@ fn args() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     let path =
         helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/args/args.toml");
-    let process = loader::load(&path, &meta_provider).unwrap();
+    let process = loader::load(&path, &meta_provider, &mut HashSet::<Url>::new()).unwrap();
     if let FlowProcess(ref flow) = process {
         let _tables = compile::compile(flow).unwrap();
     } else {
@@ -47,7 +50,7 @@ fn object_to_array_connection() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/object_to_array_connection/object_to_array_connection.toml",
     );
-    let process = loader::load(&path, &meta_provider).unwrap();
+    let process = loader::load(&path, &meta_provider, &mut HashSet::<Url>::new()).unwrap();
     if let FlowProcess(ref flow) = process {
         let _tables = compile::compile(flow).unwrap();
     } else {
@@ -61,7 +64,7 @@ fn context_with_io() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/context_with_io/context_with_io.toml",
     );
-    let process = loader::load(&path, &meta_provider).unwrap();
+    let process = loader::load(&path, &meta_provider, &mut HashSet::<Url>::new()).unwrap();
     if let FlowProcess(ref flow) = process {
         if compile::compile(flow).is_ok() {
             // flow loaded, but has ios
@@ -79,7 +82,7 @@ fn same_name_input_and_output() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/same-name-parent/same-name-parent.toml",
     );
-    let process = loader::load(&path, &meta_provider).unwrap();
+    let process = loader::load(&path, &meta_provider, &mut HashSet::<Url>::new()).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow).unwrap();
         // If done correctly there should only be two connections
@@ -96,7 +99,7 @@ fn same_name_flow_ids() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/same-name-parent/same-name-parent.toml",
     );
-    let process = loader::load(&path, &meta_provider).unwrap();
+    let process = loader::load(&path, &meta_provider, &mut HashSet::<Url>::new()).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow).unwrap();
 
@@ -138,7 +141,7 @@ fn double_connection() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/double-connection/double-connection.toml",
     );
-    let process = loader::load(&path, &meta_provider).unwrap();
+    let process = loader::load(&path, &meta_provider, &mut HashSet::<Url>::new()).unwrap();
     if let FlowProcess(ref flow) = process {
         if compile::compile(flow).is_ok() {
             panic!("Process should not have loaded due to double connection");
@@ -154,7 +157,7 @@ fn connection_to_input_with_constant_initializer() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/connect_to_constant/connect_to_constant.toml",
     );
-    let process = loader::load(&path, &meta_provider).unwrap();
+    let process = loader::load(&path, &meta_provider, &mut HashSet::<Url>::new()).unwrap();
     if let FlowProcess(ref flow) = process {
         if compile::compile(flow).is_ok() {
             panic!("Process should not have loaded due to connection to input with a constant initializer");
@@ -170,7 +173,7 @@ fn dead_process_removed() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/dead-process/dead-process.toml",
     );
-    let process = loader::load(&path, &meta_provider).unwrap();
+    let process = loader::load(&path, &meta_provider, &mut HashSet::<Url>::new()).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow).unwrap();
         // Dead value should be removed - currently can't assume that args function can be removed
@@ -199,7 +202,7 @@ fn dead_process_removed() {
 fn dead_process_and_connected_process_removed() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/dead-process-and-connected-process/dead-process-and-connected-process.toml");
-    let process = loader::load(&path, &meta_provider).unwrap();
+    let process = loader::load(&path, &meta_provider, &mut HashSet::<Url>::new()).unwrap();
     if let FlowProcess(ref flow) = process {
         let tables = compile::compile(flow).unwrap();
         assert!(
@@ -223,6 +226,7 @@ fn compile_echo_ok() {
     let process = loader::load(
         &helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/echo/echo.toml"),
         &meta_provider,
+        &mut HashSet::<Url>::new(),
     )
     .unwrap();
     if let FlowProcess(ref flow) = process {
@@ -240,6 +244,7 @@ fn compiler_detects_unused_input() {
             "flowc/tests/test-flows/unused_input/unused_input.toml",
         ),
         &meta_provider,
+        &mut HashSet::<Url>::new(),
     )
     .unwrap();
     if let FlowProcess(ref flow) = process {
@@ -258,6 +263,7 @@ fn compile_double_connection() {
     let process = loader::load(
         &helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/double/double.toml"),
         &meta_provider,
+        &mut HashSet::<Url>::new(),
     )
     .unwrap();
     if let FlowProcess(ref flow) = process {
@@ -278,6 +284,7 @@ fn compile_detects_connection_to_initialized_input() {
             "flowc/tests/test-flows/connect_to_constant/connect_to_constant.toml",
         ),
         &meta_provider,
+        &mut HashSet::<Url>::new(),
     )
     .unwrap();
     if let FlowProcess(ref flow) = process {
@@ -302,7 +309,7 @@ fn flow_input_propagated_back_out() {
         "flowc/tests/test-flows/subflow_input_init/subflow_input_init.toml",
     );
 
-    match loader::load(&url, &meta_provider) {
+    match loader::load(&url, &meta_provider, &mut HashSet::<Url>::new()) {
         Ok(FlowProcess(context)) => match compile::compile(&context) {
             Ok(_tables) => {}
             Err(error) => panic!(
@@ -329,7 +336,7 @@ fn initialized_output_propagated() {
         "flowc/tests/test-flows/print_subflow_output/print_subflow_output.toml",
     );
 
-    match loader::load(&url, &meta_provider) {
+    match loader::load(&url, &meta_provider, &mut HashSet::<Url>::new()) {
         Ok(FlowProcess(context)) => {
             match compile::compile(&context) {
                 Ok(tables) => {
@@ -380,7 +387,7 @@ fn flow_input_initialized_and_propagated_to_function_in_subflow() {
         "flowc/tests/test-flows/subflow_function_input_init/subflow_function_input_init.toml",
     );
 
-    match loader::load(&url, &meta_provider) {
+    match loader::load(&url, &meta_provider, &mut HashSet::<Url>::new()) {
         Ok(FlowProcess(context)) => {
             let tables = compile::compile(&context).unwrap();
 

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use log::debug;
@@ -55,7 +55,7 @@ pub struct LibraryManifest {
     /// source_files is a list of source files (location relative to library root) for functions
     /// (function definitions and source code) and process flow definitions that form part of it
     #[serde(default)]
-    pub source_files: Vec<String>,
+    pub source_urls: HashSet<Url>,
 }
 
 impl LibraryManifest {
@@ -64,7 +64,7 @@ impl LibraryManifest {
         LibraryManifest {
             metadata,
             locators: HashMap::<Url, ImplementationLocator>::new(),
-            source_files: vec![],
+            source_urls: HashSet::<Url>::new(),
         }
     }
 
@@ -128,16 +128,6 @@ impl LibraryManifest {
             lib_reference,
             ImplementationLocator::Wasm(implementation_relative_location),
         );
-
-        Ok(())
-    }
-
-    /// Add a source file to the library manifest. It will be stored relative to the root of the
-    /// manifest so that the library is location independent
-    pub fn add_source_file(&mut self, base_dir: &str, source_file: &str) -> Result<()> {
-        let relative_path = source_file.replace(base_dir, "");
-
-        self.source_files.push(relative_path);
 
         Ok(())
     }
@@ -234,7 +224,7 @@ mod test {
     }
 
     #[test]
-    fn wasm_locators_dont_match() {
+    fn wasm_locators_do_not_match() {
         let loc0 = ImplementationLocator::Wasm("location0".into());
         let loc1 = ImplementationLocator::Wasm("location1".into());
 
@@ -284,7 +274,7 @@ mod test {
   \"locators\": {
     \"lib://flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
   },
-  \"source_files\": []
+  \"source_urls\": []
 }";
         assert_eq!(expected, serialized);
     }
@@ -301,7 +291,7 @@ mod test {
   \"locators\": {
     \"lib://flowrlib/test-dyn-lib/add2\": \"add2.wasm\"
   },
-  \"source_files\": []
+  \"source_urls\": []
 }";
         let provider = &TestProvider { test_content } as &dyn LibProvider;
         let url = Url::parse("file:://test/fake").expect("Could not create Url");
