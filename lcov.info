@@ -58,15 +58,15 @@ FN:162,flowc::flow_compile::execute_flow
 FN:183,flowc::flow_compile::execute_flow::{closure#0}
 FN:116,flowc::flow_compile::get_executable_name
 FN:54,flowc::flow_compile::compile_and_execute_flow
+FN:133,flowc::flow_compile::find_executable_path::{closure#0}
 FN:202,flowc::flow_compile::execute_flow::{closure#3}
 FN:85,flowc::flow_compile::compile_and_execute_flow::{closure#5}
-FN:133,flowc::flow_compile::find_executable_path::{closure#0}
 FN:83,flowc::flow_compile::compile_and_execute_flow::{closure#4}
 FN:26,flowc::flow_compile::check_root
 FN:131,flowc::flow_compile::find_executable_path
 FN:79,flowc::flow_compile::compile_and_execute_flow::{closure#3}
-FN:79,flowc::flow_compile::compile_and_execute_flow::{closure#3}
 FN:67,flowc::flow_compile::compile_and_execute_flow::{closure#2}
+FN:79,flowc::flow_compile::compile_and_execute_flow::{closure#3}
 FN:133,flowc::flow_compile::find_executable_path::{closure#0}
 FN:194,flowc::flow_compile::execute_flow::{closure#1}
 FN:116,flowc::flow_compile::get_executable_name
@@ -88,15 +88,15 @@ FNDA:0,flowc::flow_compile::execute_flow
 FNDA:0,flowc::flow_compile::execute_flow::{closure#0}
 FNDA:0,flowc::flow_compile::get_executable_name
 FNDA:0,flowc::flow_compile::compile_and_execute_flow
+FNDA:0,flowc::flow_compile::find_executable_path::{closure#0}
 FNDA:0,flowc::flow_compile::execute_flow::{closure#3}
 FNDA:0,flowc::flow_compile::compile_and_execute_flow::{closure#5}
-FNDA:0,flowc::flow_compile::find_executable_path::{closure#0}
 FNDA:0,flowc::flow_compile::compile_and_execute_flow::{closure#4}
 FNDA:0,flowc::flow_compile::check_root
 FNDA:0,flowc::flow_compile::find_executable_path
 FNDA:0,flowc::flow_compile::compile_and_execute_flow::{closure#3}
-FNDA:0,flowc::flow_compile::compile_and_execute_flow::{closure#3}
 FNDA:0,flowc::flow_compile::compile_and_execute_flow::{closure#2}
+FNDA:0,flowc::flow_compile::compile_and_execute_flow::{closure#3}
 FNDA:0,flowc::flow_compile::find_executable_path::{closure#0}
 FNDA:0,flowc::flow_compile::execute_flow::{closure#1}
 FNDA:0,flowc::flow_compile::get_executable_name
@@ -384,21 +384,21 @@ FN:46,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__F
 FN:8,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
 FN:8,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FN:46,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
-FN:8,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::<serde_json::de::UnitVariantAccess<serde_json::read::StrRead>>
-FN:8,<<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
 FN:46,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<serde_json::error::Error>
-FN:46,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::<serde_json::de::VariantAccess<serde_json::read::StrRead>>
+FN:8,<<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
+FN:8,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::<serde_json::de::UnitVariantAccess<serde_json::read::StrRead>>
+FN:8,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
 FN:46,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::<serde_json::de::UnitVariantAccess<serde_json::read::StrRead>>
 FN:8,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
 FN:46,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FN:8,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
-FN:46,<flowrlib::runtime::Response as core::cmp::PartialEq>::eq
-FN:8,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
-FN:8,<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
 FN:8,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
+FN:46,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::<serde_json::de::VariantAccess<serde_json::read::StrRead>>
+FN:8,<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
+FN:46,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
 FN:46,<flowrlib::runtime::Response as core::cmp::PartialEq>::eq
 FN:8,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
-FN:46,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
+FN:46,<flowrlib::runtime::Response as core::cmp::PartialEq>::eq
 FN:46,<flowrlib::runtime::Response as core::cmp::PartialEq>::eq
 FN:46,<flowrlib::runtime::Response as core::cmp::PartialEq>::ne
 FN:8,<<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
@@ -410,8 +410,8 @@ FN:46,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__V
 FN:8,<<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
 FN:46,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
 FN:8,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
-FN:46,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
 FN:46,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
+FN:46,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
 FN:46,<flowrlib::runtime::Response as core::cmp::PartialEq>::eq
 FN:8,<flowrlib::runtime::Event as serde::ser::Serialize>::serialize::<&mut serde_json::ser::Serializer<&mut alloc::vec::Vec<u8>>>
 FNDA:1,<<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::visit_seq::<serde_json::de::SeqAccess<serde_json::read::StrRead>>
@@ -428,21 +428,21 @@ FNDA:0,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__
 FNDA:0,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
 FNDA:0,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FNDA:0,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
-FNDA:1,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::<serde_json::de::UnitVariantAccess<serde_json::read::StrRead>>
-FNDA:0,<<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
 FNDA:1,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<serde_json::error::Error>
-FNDA:1,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::<serde_json::de::VariantAccess<serde_json::read::StrRead>>
+FNDA:0,<<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
+FNDA:1,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::<serde_json::de::UnitVariantAccess<serde_json::read::StrRead>>
+FNDA:0,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
 FNDA:1,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::<serde_json::de::UnitVariantAccess<serde_json::read::StrRead>>
 FNDA:0,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
 FNDA:0,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FNDA:0,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
-FNDA:0,<flowrlib::runtime::Response as core::cmp::PartialEq>::eq
-FNDA:0,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
-FNDA:1,<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
 FNDA:0,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
+FNDA:1,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::<serde_json::de::VariantAccess<serde_json::read::StrRead>>
+FNDA:1,<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
+FNDA:0,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
 FNDA:0,<flowrlib::runtime::Response as core::cmp::PartialEq>::eq
 FNDA:1,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
-FNDA:0,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
+FNDA:0,<flowrlib::runtime::Response as core::cmp::PartialEq>::eq
 FNDA:1,<flowrlib::runtime::Response as core::cmp::PartialEq>::eq
 FNDA:0,<flowrlib::runtime::Response as core::cmp::PartialEq>::ne
 FNDA:0,<<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
@@ -454,8 +454,8 @@ FNDA:0,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__
 FNDA:0,<<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
 FNDA:0,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
 FNDA:0,<<flowrlib::runtime::Event as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
-FNDA:0,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
 FNDA:0,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
+FNDA:0,<<flowrlib::runtime::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
 FNDA:1,<flowrlib::runtime::Response as core::cmp::PartialEq>::eq
 FNDA:1,<flowrlib::runtime::Event as serde::ser::Serialize>::serialize::<&mut serde_json::ser::Serializer<&mut alloc::vec::Vec<u8>>>
 FNF:44
@@ -504,9 +504,9 @@ FN:20,<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::<_>
 FN:20,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FN:84,<flowclib::model::io::IO>::set_datatype
 FN:28,<flowclib::model::io::IO as core::fmt::Debug>::fmt
-FN:387,flowclib::model::io::test::unique_io_names_validate::{closure#0}
-FN:67,<flowclib::model::io::IO>::datatype
 FN:113,<flowclib::model::io::IO as core::fmt::Display>::fmt
+FN:67,<flowclib::model::io::IO>::datatype
+FN:387,flowclib::model::io::test::unique_io_names_validate::{closure#0}
 FN:20,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<toml::de::Error>
 FN:147,flowclib::model::io::default_io_type
@@ -572,8 +572,8 @@ FN:119,<flowclib::model::io::IO as flowclib::model::name::HasName>::name
 FN:63,<flowclib::model::io::IO>::set_flow_io
 FN:67,<flowclib::model::io::IO>::datatype
 FN:152,<flowclib::model::io::IO as flowclib::compiler::loader::Validate>::validate
-FN:375,flowclib::model::io::test::deserialize_extra_field_fails::{closure#0}
 FN:20,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
+FN:375,flowclib::model::io::test::deserialize_extra_field_fails::{closure#0}
 FN:122,<flowclib::model::io::IO as flowclib::model::name::HasName>::alias
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<toml::de::StrDeserializer>
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
@@ -684,9 +684,9 @@ FNDA:0,<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::<_>
 FNDA:0,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FNDA:1,<flowclib::model::io::IO>::set_datatype
 FNDA:0,<flowclib::model::io::IO as core::fmt::Debug>::fmt
-FNDA:1,flowclib::model::io::test::unique_io_names_validate::{closure#0}
-FNDA:1,<flowclib::model::io::IO>::datatype
 FNDA:0,<flowclib::model::io::IO as core::fmt::Display>::fmt
+FNDA:1,<flowclib::model::io::IO>::datatype
+FNDA:1,flowclib::model::io::test::unique_io_names_validate::{closure#0}
 FNDA:0,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
 FNDA:1,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<toml::de::Error>
 FNDA:1,flowclib::model::io::default_io_type
@@ -752,8 +752,8 @@ FNDA:1,<flowclib::model::io::IO as flowclib::model::name::HasName>::name
 FNDA:1,<flowclib::model::io::IO>::set_flow_io
 FNDA:1,<flowclib::model::io::IO>::datatype
 FNDA:1,<flowclib::model::io::IO as flowclib::compiler::loader::Validate>::validate
-FNDA:1,flowclib::model::io::test::deserialize_extra_field_fails::{closure#0}
 FNDA:0,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
+FNDA:1,flowclib::model::io::test::deserialize_extra_field_fails::{closure#0}
 FNDA:0,<flowclib::model::io::IO as flowclib::model::name::HasName>::alias
 FNDA:1,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<toml::de::StrDeserializer>
 FNDA:0,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
@@ -897,9 +897,9 @@ DA:124,12
 DA:128,0
 DA:129,0
 DA:130,0
-DA:134,16445
-DA:135,16445
-DA:136,16445
+DA:134,16552
+DA:135,16552
+DA:136,16552
 DA:138,172
 DA:139,172
 DA:140,172
@@ -2322,9 +2322,9 @@ FN:234,flowc::parse_args
 FN:131,flowc::run::{closure#0}
 FN:249,flowc::parse_args::{closure#1}
 FN:234,flowc::parse_args
-FN:257,flowc::parse_args::{closure#4}
-FN:70,flowc::main
 FN:262,flowc::parse_args::{closure#5}
+FN:70,flowc::main
+FN:257,flowc::parse_args::{closure#4}
 FN:123,flowc::run
 FN:131,flowc::run::{closure#0}
 FN:262,flowc::parse_args::{closure#5}
@@ -2362,9 +2362,9 @@ FNDA:1,flowc::parse_args
 FNDA:0,flowc::run::{closure#0}
 FNDA:0,flowc::parse_args::{closure#1}
 FNDA:0,flowc::parse_args
-FNDA:0,flowc::parse_args::{closure#4}
-FNDA:1,flowc::main
 FNDA:0,flowc::parse_args::{closure#5}
+FNDA:1,flowc::main
+FNDA:0,flowc::parse_args::{closure#4}
 FNDA:1,flowc::run
 FNDA:0,flowc::run::{closure#0}
 FNDA:0,flowc::parse_args::{closure#5}
@@ -4863,8 +4863,8 @@ FN:10,<flowcore::input::InputInitializer as core::clone::Clone>::clone
 FN:48,<flowcore::input::Input>::new
 FN:22,<<flowcore::input::Input as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde_json::de::MapKey<serde_json::read::StrRead>>
 FN:42,flowcore::input::default_initial_value
-FN:10,<<flowcore::input::InputInitializer as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FN:22,<<flowcore::input::Input as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<serde_json::error::Error>
+FN:10,<<flowcore::input::InputInitializer as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FN:10,<<flowcore::input::InputInitializer as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
 FN:10,<<flowcore::input::InputInitializer as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::de::value::CowStrDeserializer<toml::de::Error>>
 FN:22,<flowcore::input::Input as serde::ser::Serialize>::serialize::<_>
@@ -5006,8 +5006,8 @@ FNDA:1,<flowcore::input::InputInitializer as core::clone::Clone>::clone
 FNDA:1,<flowcore::input::Input>::new
 FNDA:1,<<flowcore::input::Input as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde_json::de::MapKey<serde_json::read::StrRead>>
 FNDA:0,flowcore::input::default_initial_value
-FNDA:0,<<flowcore::input::InputInitializer as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FNDA:0,<<flowcore::input::Input as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<serde_json::error::Error>
+FNDA:0,<<flowcore::input::InputInitializer as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FNDA:0,<<flowcore::input::InputInitializer as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
 FNDA:0,<<flowcore::input::InputInitializer as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::de::value::CowStrDeserializer<toml::de::Error>>
 FNDA:0,<flowcore::input::Input as serde::ser::Serialize>::serialize::<_>
@@ -5129,7 +5129,7 @@ DA:101,1151
 DA:102,0
 DA:103,1151
 DA:105,155
-DA:108,556428
+DA:108,556515
 DA:119,1
 DA:120,1
 DA:121,1
@@ -5172,50 +5172,50 @@ end_of_record
 SF:flowc/tests/flowc-execution_tests.rs
 FN:151,flowc_execution_tests::execute_test
 FN:185,flowc_execution_tests::hello_world::{closure#0}
-FN:185,flowc_execution_tests::hello_world
 FN:45,flowc_execution_tests::write_manifest
-FN:117,flowc_execution_tests::test_args
+FN:203,flowc_execution_tests::args_json
 FN:203,flowc_execution_tests::args_json::{closure#0}
-FN:209,flowc_execution_tests::array_input
 FN:197,flowc_execution_tests::args
+FN:209,flowc_execution_tests::array_input
+FN:117,flowc_execution_tests::test_args
 FN:67,flowc_execution_tests::write_manifest::{closure#3}
-FN:209,flowc_execution_tests::array_input::{closure#0}
+FN:191,flowc_execution_tests::line_echo
 FN:197,flowc_execution_tests::args::{closure#0}
 FN:64,flowc_execution_tests::write_manifest::{closure#2}
 FN:179,flowc_execution_tests::print_args
-FN:191,flowc_execution_tests::line_echo
+FN:209,flowc_execution_tests::array_input::{closure#0}
 FN:142,flowc_execution_tests::get
-FN:203,flowc_execution_tests::args_json
+FN:185,flowc_execution_tests::hello_world
 FN:55,flowc_execution_tests::write_manifest::{closure#0}
-FN:131,flowc_execution_tests::load_flow
 FN:191,flowc_execution_tests::line_echo::{closure#0}
+FN:72,flowc_execution_tests::execute_flow
 FN:1,flowc_execution_tests::main
 FN:179,flowc_execution_tests::print_args::{closure#0}
 FN:57,flowc_execution_tests::write_manifest::{closure#1}
-FN:72,flowc_execution_tests::execute_flow
+FN:131,flowc_execution_tests::load_flow
 FNDA:1,flowc_execution_tests::execute_test
 FNDA:1,flowc_execution_tests::hello_world::{closure#0}
-FNDA:1,flowc_execution_tests::hello_world
 FNDA:1,flowc_execution_tests::write_manifest
-FNDA:1,flowc_execution_tests::test_args
+FNDA:1,flowc_execution_tests::args_json
 FNDA:1,flowc_execution_tests::args_json::{closure#0}
-FNDA:1,flowc_execution_tests::array_input
 FNDA:1,flowc_execution_tests::args
+FNDA:1,flowc_execution_tests::array_input
+FNDA:1,flowc_execution_tests::test_args
 FNDA:0,flowc_execution_tests::write_manifest::{closure#3}
-FNDA:1,flowc_execution_tests::array_input::{closure#0}
+FNDA:1,flowc_execution_tests::line_echo
 FNDA:1,flowc_execution_tests::args::{closure#0}
 FNDA:0,flowc_execution_tests::write_manifest::{closure#2}
 FNDA:1,flowc_execution_tests::print_args
-FNDA:1,flowc_execution_tests::line_echo
+FNDA:1,flowc_execution_tests::array_input::{closure#0}
 FNDA:1,flowc_execution_tests::get
-FNDA:1,flowc_execution_tests::args_json
+FNDA:1,flowc_execution_tests::hello_world
 FNDA:0,flowc_execution_tests::write_manifest::{closure#0}
-FNDA:1,flowc_execution_tests::load_flow
 FNDA:1,flowc_execution_tests::line_echo::{closure#0}
+FNDA:1,flowc_execution_tests::execute_flow
 FNDA:1,flowc_execution_tests::main
 FNDA:1,flowc_execution_tests::print_args::{closure#0}
 FNDA:0,flowc_execution_tests::write_manifest::{closure#1}
-FNDA:1,flowc_execution_tests::execute_flow
+FNDA:1,flowc_execution_tests::load_flow
 FNF:23
 FNH:19
 BRF:0
@@ -6157,7 +6157,7 @@ DA:115,1
 DA:116,1
 DA:117,1
 DA:118,1
-DA:119,4
+DA:119,2
 DA:120,1
 DA:121,1
 DA:122,1
@@ -6165,7 +6165,7 @@ DA:123,1
 DA:124,1
 DA:125,1
 DA:126,1
-DA:127,2
+DA:127,3
 DA:128,1
 DA:129,1
 DA:130,1
@@ -7403,9 +7403,9 @@ FN:11,<flowclib::model::name::Name as core::default::Default>::default
 FN:11,<flowclib::model::name::Name as core::cmp::PartialEq>::eq
 FN:11,<flowclib::model::name::Name>::map_mut::<_, _>
 FN:11,<flowclib::model::name::Name as core::cmp::PartialEq>::ne
-FN:11,<flowclib::model::name::Name as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
-FN:11,<flowclib::model::name::Name>::map_ref::<_, _>
 FN:11,<flowclib::model::name::Name>::map_mut::<_, _>
+FN:11,<flowclib::model::name::Name>::map_ref::<_, _>
+FN:11,<flowclib::model::name::Name as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FN:11,<flowclib::model::name::Name as core::ops::deref::Deref>::deref
 FN:11,<flowclib::model::name::Name as core::cmp::PartialEq>::eq
 FN:77,flowclib::model::name::test::validates_when_empty
@@ -7510,9 +7510,9 @@ FNDA:1,<flowclib::model::name::Name as core::default::Default>::default
 FNDA:1,<flowclib::model::name::Name as core::cmp::PartialEq>::eq
 FNDA:0,<flowclib::model::name::Name>::map_mut::<_, _>
 FNDA:0,<flowclib::model::name::Name as core::cmp::PartialEq>::ne
-FNDA:1,<flowclib::model::name::Name as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
-FNDA:0,<flowclib::model::name::Name>::map_ref::<_, _>
 FNDA:0,<flowclib::model::name::Name>::map_mut::<_, _>
+FNDA:0,<flowclib::model::name::Name>::map_ref::<_, _>
+FNDA:1,<flowclib::model::name::Name as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNDA:1,<flowclib::model::name::Name as core::ops::deref::Deref>::deref
 FNDA:1,<flowclib::model::name::Name as core::cmp::PartialEq>::eq
 FNDA:1,flowclib::model::name::test::validates_when_empty
@@ -7975,14 +7975,14 @@ DA:254,0
 DA:256,0
 DA:258,42
 DA:259,42
-DA:261,1416
-DA:262,1416
-DA:263,1416
-DA:264,1416
-DA:265,1416
-DA:266,1416
-DA:267,1416
-DA:268,1416
+DA:261,1414
+DA:262,1414
+DA:263,1414
+DA:264,1414
+DA:265,1414
+DA:266,1414
+DA:267,1414
+DA:268,1414
 DA:269,1374
 DA:270,1374
 DA:272,1374
@@ -7993,8 +7993,8 @@ DA:276,1374
 DA:278,1374
 DA:279,1374
 DA:280,1374
-DA:282,1374
-DA:283,1374
+DA:282,1372
+DA:283,1372
 DA:285,0
 DA:286,0
 DA:287,0
@@ -9494,12 +9494,12 @@ DA:137,1998
 DA:141,1
 DA:142,1
 DA:143,1
-DA:146,398557
-DA:147,398557
-DA:148,398557
-DA:151,46473
-DA:152,46473
-DA:153,46473
+DA:146,398710
+DA:147,398710
+DA:148,398710
+DA:151,46374
+DA:152,46374
+DA:153,46374
 DA:156,11204
 DA:157,11204
 DA:158,19022
@@ -9529,16 +9529,16 @@ DA:192,10511
 DA:195,420
 DA:196,420
 DA:197,420
-DA:200,71205
-DA:201,71205
-DA:202,71205
-DA:205,235535
-DA:206,235535
-DA:208,454069
-DA:209,454069
-DA:210,454069
-DA:212,235535
-DA:213,235535
+DA:200,71226
+DA:201,71226
+DA:202,71226
+DA:205,235565
+DA:206,235565
+DA:208,454135
+DA:209,454135
+DA:210,454135
+DA:212,235565
+DA:213,235565
 DA:216,183857
 DA:217,183857
 DA:218,183857
@@ -10354,10 +10354,10 @@ SF:flowr/src/main.rs
 FN:327,flowr::parse_flow_url::{closure#1}
 FN:205,flowr::num_parallel_jobs
 FN:330,flowr::parse_flow_url::{closure#2}
-FN:325,flowr::parse_flow_url::{closure#0}
+FN:343,flowr::get_flow_args::{closure#0}
 FN:117,flowr::run::{closure#0}
 FN:324,flowr::parse_flow_url
-FN:343,flowr::get_flow_args::{closure#0}
+FN:325,flowr::parse_flow_url::{closure#0}
 FN:324,flowr::parse_flow_url
 FN:205,flowr::num_parallel_jobs
 FN:330,flowr::parse_flow_url::{closure#2}
@@ -10382,8 +10382,8 @@ FN:118,flowr::run::{closure#1}
 FN:118,flowr::run::{closure#1}
 FN:54,flowr::main
 FN:325,flowr::parse_flow_url::{closure#0}
-FN:325,flowr::parse_flow_url::{closure#0}
 FN:327,flowr::parse_flow_url::{closure#1}
+FN:325,flowr::parse_flow_url::{closure#0}
 FN:177,flowr::num_threads
 FN:337,flowr::get_flow_args
 FN:330,flowr::parse_flow_url::{closure#2}
@@ -10397,10 +10397,10 @@ FN:343,flowr::get_flow_args::{closure#0}
 FNDA:0,flowr::parse_flow_url::{closure#1}
 FNDA:1,flowr::num_parallel_jobs
 FNDA:0,flowr::parse_flow_url::{closure#2}
-FNDA:0,flowr::parse_flow_url::{closure#0}
+FNDA:0,flowr::get_flow_args::{closure#0}
 FNDA:0,flowr::run::{closure#0}
 FNDA:0,flowr::parse_flow_url
-FNDA:0,flowr::get_flow_args::{closure#0}
+FNDA:0,flowr::parse_flow_url::{closure#0}
 FNDA:1,flowr::parse_flow_url
 FNDA:0,flowr::num_parallel_jobs
 FNDA:0,flowr::parse_flow_url::{closure#2}
@@ -10425,8 +10425,8 @@ FNDA:0,flowr::run::{closure#1}
 FNDA:0,flowr::run::{closure#1}
 FNDA:0,flowr::main
 FNDA:0,flowr::parse_flow_url::{closure#0}
-FNDA:0,flowr::parse_flow_url::{closure#0}
 FNDA:0,flowr::parse_flow_url::{closure#1}
+FNDA:0,flowr::parse_flow_url::{closure#0}
 FNDA:0,flowr::num_threads
 FNDA:0,flowr::get_flow_args
 FNDA:0,flowr::parse_flow_url::{closure#2}
@@ -11660,10 +11660,10 @@ DA:64,344
 DA:65,344
 DA:66,344
 DA:68,170
-DA:69,1673
-DA:70,1673
+DA:69,1719
+DA:70,1719
 DA:71,157
-DA:72,1516
+DA:72,1562
 DA:75,13
 DA:76,170
 LF:43
@@ -11715,8 +11715,8 @@ FN:19,<flowclib::model::function::Function as core::clone::Clone>::clone
 FN:19,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<serde_json::error::Error>
 FN:414,flowclib::model::function::test::set_routes
 FN:163,<flowclib::model::function::Function>::set_lib_reference
-FN:19,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
 FN:19,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<toml::de::StrDeserializer>
+FN:19,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
 FN:115,<flowclib::model::function::Function>::is_impure
 FN:273,flowclib::model::function::test::function_with_no_io_not_valid::{closure#0}
 FN:19,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
@@ -11858,8 +11858,8 @@ FNDA:0,<flowclib::model::function::Function as core::clone::Clone>::clone
 FNDA:1,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<serde_json::error::Error>
 FNDA:1,flowclib::model::function::test::set_routes
 FNDA:1,<flowclib::model::function::Function>::set_lib_reference
-FNDA:1,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
 FNDA:1,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<toml::de::StrDeserializer>
+FNDA:1,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
 FNDA:1,<flowclib::model::function::Function>::is_impure
 FNDA:1,flowclib::model::function::test::function_with_no_io_not_valid::{closure#0}
 FNDA:0,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
@@ -11967,9 +11967,9 @@ DA:52,1704
 DA:53,490
 DA:54,490
 DA:55,490
-DA:59,2279
-DA:60,2279
-DA:61,2279
+DA:59,2319
+DA:60,2319
+DA:61,2319
 DA:62,0
 DA:63,0
 DA:64,0
@@ -13011,10 +13011,10 @@ DA:103,80
 DA:108,84
 DA:109,88
 DA:111,246
-DA:112,2625
-DA:113,2625
+DA:112,2686
+DA:113,2686
 DA:114,214
-DA:115,2411
+DA:115,2472
 DA:117,32
 DA:118,246
 DA:131,1
@@ -15164,14 +15164,14 @@ FNF:190
 FNH:132
 BRF:0
 BRH:0
-DA:12,23143
-DA:44,5511
-DA:45,5511
+DA:12,23235
+DA:44,5557
+DA:45,5557
 DA:46,278
-DA:47,5233
+DA:47,5279
 DA:48,110
-DA:50,5123
-DA:52,5511
+DA:50,5169
+DA:52,5557
 DA:55,472
 DA:56,472
 DA:57,472
@@ -15234,9 +15234,9 @@ DA:134,1726
 DA:152,7506
 DA:153,7506
 DA:154,7506
-DA:158,1718
-DA:159,1718
-DA:160,1718
+DA:158,1712
+DA:159,1712
+DA:160,1712
 DA:164,4928
 DA:165,4928
 DA:166,4928
@@ -17411,8 +17411,8 @@ FN:58,<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__FieldV
 FN:58,<<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
 FN:58,<<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
 FN:58,<<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
-FN:22,<<flowrlib::debug::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
 FN:22,<flowrlib::debug::Response as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
+FN:22,<<flowrlib::debug::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
 FN:22,<flowrlib::debug::Response as serde::ser::Serialize>::serialize::<_>
 FN:22,<<flowrlib::debug::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
 FN:58,<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
@@ -17456,8 +17456,8 @@ FN:58,<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__FieldV
 FN:58,<<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
 FN:7,<<flowrlib::debug::Param as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
 FN:58,<<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
-FN:58,<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FN:7,<flowrlib::debug::Param as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
+FN:58,<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FN:58,<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::<_>
 FN:7,<<flowrlib::debug::Param as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
 FN:58,<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
@@ -17467,8 +17467,8 @@ FN:58,<<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visit
 FN:7,<flowrlib::debug::Param as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
 FN:58,<<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
 FN:7,<<flowrlib::debug::Param as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
-FN:58,<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::<_>
 FN:7,<<flowrlib::debug::Param as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
+FN:58,<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::<_>
 FN:7,<<flowrlib::debug::Param as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
 FN:58,<<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
 FN:58,<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
@@ -17490,8 +17490,8 @@ FNDA:0,<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Field
 FNDA:0,<<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
 FNDA:0,<<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
 FNDA:0,<<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
-FNDA:0,<<flowrlib::debug::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
 FNDA:0,<flowrlib::debug::Response as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
+FNDA:0,<<flowrlib::debug::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
 FNDA:0,<flowrlib::debug::Response as serde::ser::Serialize>::serialize::<_>
 FNDA:0,<<flowrlib::debug::Response as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
 FNDA:0,<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
@@ -17535,8 +17535,8 @@ FNDA:0,<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Field
 FNDA:0,<<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
 FNDA:0,<<flowrlib::debug::Param as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
 FNDA:0,<<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
-FNDA:0,<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FNDA:0,<flowrlib::debug::Param as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
+FNDA:0,<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FNDA:0,<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::<_>
 FNDA:0,<<flowrlib::debug::Param as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
 FNDA:0,<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
@@ -17546,8 +17546,8 @@ FNDA:0,<<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visi
 FNDA:0,<flowrlib::debug::Param as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
 FNDA:0,<<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
 FNDA:0,<<flowrlib::debug::Param as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
-FNDA:0,<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::<_>
 FNDA:0,<<flowrlib::debug::Param as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
+FNDA:0,<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::<_>
 FNDA:0,<<flowrlib::debug::Param as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>
 FNDA:0,<<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::__Visitor as serde::de::Visitor>::expecting
 FNDA:0,<<flowrlib::debug::Event as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
@@ -19191,8 +19191,8 @@ FN:313,<flowrlib::run_state::RunState>::reset
 FN:900,<flowrlib::run_state::RunState>::mark_ready
 FN:73,<flowrlib::run_state::Block>::new
 FN:434,<flowrlib::run_state::RunState>::get_state
-FN:816,<flowrlib::run_state::RunState>::number_jobs_running
 FN:34,<<flowrlib::run_state::Job as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<_>
+FN:816,<flowrlib::run_state::RunState>::number_jobs_running
 FN:2444,flowrlib::run_state::test::functional_tests::get_works
 FN:1552,flowrlib::run_state::test::state_transitions::input_blocker
 FN:386,<flowrlib::run_state::RunState>::create_init_blocks
@@ -19308,9 +19308,9 @@ FN:1005,<flowrlib::run_state::RunState>::unblock_senders_to_function::<<flowrlib
 FN:1005,<flowrlib::run_state::RunState>::unblock_senders_to_function::<<flowrlib::run_state::RunState>::unblock_senders::{closure#0}>
 FN:23,<flowrlib::run_state::State as core::cmp::PartialEq>::eq
 FN:783,<flowrlib::run_state::RunState>::refill_inputs
-FN:452,<flowrlib::run_state::RunState>::display_state
 FN:799,<flowrlib::run_state::RunState>::start
 FN:63,<flowrlib::run_state::Block as core::cmp::PartialEq>::ne
+FN:452,<flowrlib::run_state::RunState>::display_state
 FN:50,<flowrlib::run_state::Job as core::fmt::Display>::fmt
 FN:1247,<flowrlib::run_state::test::TestImpl as core::fmt::Debug>::fmt
 FN:434,<flowrlib::run_state::RunState>::get_state
@@ -19352,8 +19352,8 @@ FN:2734,flowrlib::run_state::test::misc::test_array_order_1
 FN:985,<flowrlib::run_state::RunState>::remove_from_busy
 FN:1586,flowrlib::run_state::test::state_transitions::to_ready_2_on_init
 FN:1091,<flowrlib::run_state::RunState>::check_invariants
-FN:50,<flowrlib::run_state::Job as core::fmt::Display>::fmt
 FN:804,<flowrlib::run_state::RunState>::get_output_blockers
+FN:50,<flowrlib::run_state::Job as core::fmt::Display>::fmt
 FN:434,<flowrlib::run_state::RunState>::get_state
 FN:91,<flowrlib::run_state::Block as core::fmt::Debug>::fmt
 FN:63,<<flowrlib::run_state::Block as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<_>
@@ -19426,8 +19426,8 @@ FN:900,<flowrlib::run_state::RunState>::mark_ready
 FN:1742,flowrlib::run_state::test::state_transitions::blocked_to_ready_on_done
 FN:34,<<flowrlib::run_state::Job as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
 FN:1005,<flowrlib::run_state::RunState>::unblock_senders_to_function::<<flowrlib::run_state::RunState>::unblock_senders::{closure#0}>
-FN:783,<flowrlib::run_state::RunState>::refill_inputs
 FN:73,<flowrlib::run_state::Block>::new
+FN:783,<flowrlib::run_state::RunState>::refill_inputs
 FN:73,<flowrlib::run_state::Block>::new
 FN:34,<<flowrlib::run_state::Job as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
 FN:344,<flowrlib::run_state::RunState>::init
@@ -19469,8 +19469,8 @@ FNDA:1,<flowrlib::run_state::RunState>::reset
 FNDA:1,<flowrlib::run_state::RunState>::mark_ready
 FNDA:1,<flowrlib::run_state::Block>::new
 FNDA:0,<flowrlib::run_state::RunState>::get_state
-FNDA:1,<flowrlib::run_state::RunState>::number_jobs_running
 FNDA:0,<<flowrlib::run_state::Job as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<_>
+FNDA:1,<flowrlib::run_state::RunState>::number_jobs_running
 FNDA:1,flowrlib::run_state::test::functional_tests::get_works
 FNDA:1,flowrlib::run_state::test::state_transitions::input_blocker
 FNDA:0,<flowrlib::run_state::RunState>::create_init_blocks
@@ -19586,9 +19586,9 @@ FNDA:0,<flowrlib::run_state::RunState>::unblock_senders_to_function::<<flowrlib:
 FNDA:1,<flowrlib::run_state::RunState>::unblock_senders_to_function::<<flowrlib::run_state::RunState>::unblock_senders::{closure#0}>
 FNDA:1,<flowrlib::run_state::State as core::cmp::PartialEq>::eq
 FNDA:1,<flowrlib::run_state::RunState>::refill_inputs
-FNDA:1,<flowrlib::run_state::RunState>::display_state
 FNDA:1,<flowrlib::run_state::RunState>::start
 FNDA:0,<flowrlib::run_state::Block as core::cmp::PartialEq>::ne
+FNDA:1,<flowrlib::run_state::RunState>::display_state
 FNDA:0,<flowrlib::run_state::Job as core::fmt::Display>::fmt
 FNDA:0,<flowrlib::run_state::test::TestImpl as core::fmt::Debug>::fmt
 FNDA:1,<flowrlib::run_state::RunState>::get_state
@@ -19630,8 +19630,8 @@ FNDA:1,flowrlib::run_state::test::misc::test_array_order_1
 FNDA:1,<flowrlib::run_state::RunState>::remove_from_busy
 FNDA:1,flowrlib::run_state::test::state_transitions::to_ready_2_on_init
 FNDA:1,<flowrlib::run_state::RunState>::check_invariants
-FNDA:0,<flowrlib::run_state::Job as core::fmt::Display>::fmt
 FNDA:1,<flowrlib::run_state::RunState>::get_output_blockers
+FNDA:0,<flowrlib::run_state::Job as core::fmt::Display>::fmt
 FNDA:1,<flowrlib::run_state::RunState>::get_state
 FNDA:0,<flowrlib::run_state::Block as core::fmt::Debug>::fmt
 FNDA:0,<<flowrlib::run_state::Block as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<_>
@@ -19704,8 +19704,8 @@ FNDA:0,<flowrlib::run_state::RunState>::mark_ready
 FNDA:1,flowrlib::run_state::test::state_transitions::blocked_to_ready_on_done
 FNDA:0,<<flowrlib::run_state::Job as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
 FNDA:0,<flowrlib::run_state::RunState>::unblock_senders_to_function::<<flowrlib::run_state::RunState>::unblock_senders::{closure#0}>
-FNDA:1,<flowrlib::run_state::RunState>::refill_inputs
 FNDA:1,<flowrlib::run_state::Block>::new
+FNDA:1,<flowrlib::run_state::RunState>::refill_inputs
 FNDA:0,<flowrlib::run_state::Block>::new
 FNDA:0,<<flowrlib::run_state::Job as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
 FNDA:1,<flowrlib::run_state::RunState>::init
@@ -19745,7 +19745,7 @@ FNF:278
 FNH:170
 BRF:0
 BRH:0
-DA:23,62241
+DA:23,62365
 DA:34,6868
 DA:50,0
 DA:51,0
@@ -19877,15 +19877,15 @@ DA:421,97
 DA:425,63
 DA:426,63
 DA:427,63
-DA:434,252950
-DA:435,252950
-DA:436,19929
-DA:437,233021
-DA:438,39521
-DA:439,193500
-DA:440,34482
-DA:442,159018
-DA:444,252950
+DA:434,252936
+DA:435,252936
+DA:436,19831
+DA:437,233105
+DA:438,39725
+DA:439,193380
+DA:440,34434
+DA:442,158946
+DA:444,252936
 DA:447,1
 DA:448,1
 DA:449,1
@@ -19910,9 +19910,9 @@ DA:470,1
 DA:471,1
 DA:474,3
 DA:475,3
-DA:477,3814
-DA:478,3814
-DA:479,3814
+DA:477,3834
+DA:478,3834
+DA:479,3834
 DA:481,24521
 DA:482,24521
 DA:483,24521
@@ -19975,7 +19975,7 @@ DA:587,6880
 DA:589,0
 DA:590,0
 DA:591,0
-DA:593,21170
+DA:593,21154
 DA:594,6880
 DA:595,6880
 DA:596,6880
@@ -20130,8 +20130,8 @@ DA:813,1
 DA:814,1
 DA:816,34364
 DA:817,34364
-DA:818,91998
-DA:819,91976
+DA:818,91918
+DA:819,91896
 DA:821,34364
 DA:822,34364
 DA:824,1363
@@ -20167,24 +20167,24 @@ DA:876,6924
 DA:877,6924
 DA:879,0
 DA:880,0
-DA:883,3500
-DA:887,3424
+DA:883,3520
+DA:887,3404
 DA:889,0
 DA:890,0
-DA:892,3424
+DA:892,3404
 DA:893,0
 DA:895,6924
 DA:900,6899
 DA:901,6899
 DA:902,6899
 DA:903,6899
-DA:906,30230
-DA:907,119467
-DA:908,119467
-DA:909,23331
-DA:910,96136
+DA:906,30350
+DA:907,137539
+DA:908,137539
+DA:909,23451
+DA:910,114088
 DA:912,6899
-DA:913,30230
+DA:913,30350
 DA:916,43
 DA:917,43
 DA:918,43
@@ -20217,7 +20217,7 @@ DA:963,0
 DA:964,0
 DA:965,0
 DA:966,0
-DA:969,757
+DA:969,759
 DA:971,0
 DA:972,0
 DA:973,0
@@ -20225,16 +20225,16 @@ DA:975,1520
 DA:976,1520
 DA:977,1520
 DA:978,0
-DA:979,6122
+DA:979,6120
 DA:980,6879
 DA:985,6879
 DA:986,6879
 DA:987,6879
-DA:988,29861
+DA:988,29779
 DA:989,6878
 DA:990,6878
-DA:992,22983
-DA:994,29861
+DA:992,22901
+DA:994,29779
 DA:995,0
 DA:996,6879
 DA:1005,8406
@@ -20243,26 +20243,26 @@ DA:1007,8406
 DA:1008,8406
 DA:1009,8406
 DA:1010,8406
-DA:1011,43718
-DA:1012,43704
+DA:1011,43768
+DA:1012,43754
 DA:1013,6841
 DA:1014,0
 DA:1015,6841
-DA:1017,36863
-DA:1019,43718
+DA:1017,36913
+DA:1019,43768
 DA:1023,15247
 DA:1024,6841
 DA:1026,0
 DA:1027,0
 DA:1028,0
-DA:1030,3475
-DA:1031,3475
-DA:1032,3475
+DA:1030,3495
+DA:1031,3495
+DA:1032,3495
 DA:1034,0
 DA:1035,0
-DA:1037,3475
+DA:1037,3495
 DA:1038,0
-DA:1039,3366
+DA:1039,3346
 DA:1041,8406
 DA:1048,6838
 DA:1049,6838
@@ -20294,7 +20294,7 @@ DA:1091,6880
 DA:1093,122401
 DA:1094,122401
 DA:1095,122401
-DA:1096,8867
+DA:1096,8817
 DA:1097,0
 DA:1098,0
 DA:1099,0
@@ -20305,8 +20305,8 @@ DA:1103,0
 DA:1104,0
 DA:1105,0
 DA:1106,0
-DA:1107,8867
-DA:1110,14274
+DA:1107,8817
+DA:1110,14258
 DA:1111,0
 DA:1112,0
 DA:1113,0
@@ -20317,8 +20317,8 @@ DA:1117,0
 DA:1118,0
 DA:1119,0
 DA:1120,0
-DA:1121,14274
-DA:1124,19757
+DA:1121,14258
+DA:1124,19859
 DA:1125,0
 DA:1126,0
 DA:1127,0
@@ -20328,12 +20328,12 @@ DA:1130,0
 DA:1131,0
 DA:1132,0
 DA:1133,0
-DA:1134,19757
-DA:1136,79503
+DA:1134,19859
+DA:1136,79467
 DA:1141,122401
 DA:1142,122401
 DA:1143,116749
-DA:1144,28498
+DA:1144,28550
 DA:1147,0
 DA:1148,0
 DA:1149,0
@@ -20345,9 +20345,9 @@ DA:1154,0
 DA:1155,0
 DA:1156,0
 DA:1157,122401
-DA:1161,36161
-DA:1162,36161
-DA:1163,36161
+DA:1161,36175
+DA:1162,36175
+DA:1163,36175
 DA:1164,0
 DA:1165,0
 DA:1166,0
@@ -20357,19 +20357,19 @@ DA:1169,0
 DA:1170,0
 DA:1171,0
 DA:1172,0
-DA:1173,36161
-DA:1178,36161
-DA:1179,36161
-DA:1180,1978
-DA:1181,1978
+DA:1173,36175
+DA:1178,36175
+DA:1179,36175
+DA:1180,1992
+DA:1181,1992
 DA:1183,0
 DA:1184,0
 DA:1185,0
 DA:1186,0
-DA:1187,36161
+DA:1187,36175
 DA:1188,0
-DA:1192,7360
-DA:1194,7355
+DA:1192,7344
+DA:1194,7339
 DA:1195,0
 DA:1196,0
 DA:1197,0
@@ -20379,14 +20379,14 @@ DA:1200,0
 DA:1201,0
 DA:1202,0
 DA:1203,0
-DA:1204,7355
-DA:1208,8104
-DA:1209,8101
-DA:1210,8101
+DA:1204,7339
+DA:1208,8090
+DA:1209,8087
+DA:1210,8087
 DA:1211,0
 DA:1212,0
 DA:1213,0
-DA:1214,8101
+DA:1214,8087
 DA:1216,6880
 DA:1221,0
 DA:1222,0
