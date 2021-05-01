@@ -181,9 +181,12 @@ fn compile_implementations(
 
             match load(&url, provider, &mut lib_manifest.source_urls) {
                 Ok(FunctionProcess(ref mut function)) => {
-                    let (wasm_abs_path, built) =
-                        compile_wasm::compile_implementation(function, skip_building)
-                            .chain_err(|| "Could not compile supplied implementation to wasm")?;
+                    let (wasm_abs_path, built) = compile_wasm::compile_implementation(
+                        function,
+                        skip_building,
+                        &mut lib_manifest.source_urls,
+                    )
+                    .chain_err(|| "Could not compile supplied implementation to wasm")?;
                     let wasm_dir = wasm_abs_path
                         .parent()
                         .chain_err(|| "Could not get parent directory of wasm path")?;

@@ -62,7 +62,7 @@ fn write_manifest(
         debug_symbols,
         &out_dir_path,
         tables,
-        HashSet::<Url>::new(),
+        HashSet::<(Url, Url)>::new(),
     )?;
 
     manifest_file
@@ -142,7 +142,7 @@ fn load_flow(test_dir: &Path, test_name: &str, search_path: Simpath) -> Process 
     loader::load(
         &helper::absolute_file_url_from_relative_path(&flow_file.to_string_lossy()),
         &MetaProvider::new(search_path),
-        &mut HashSet::<Url>::new(),
+        &mut HashSet::<(Url, Url)>::new(),
     )
     .unwrap()
 }

@@ -55,7 +55,7 @@ pub struct LibraryManifest {
     /// source_files is a list of source files (location relative to library root) for functions
     /// (function definitions and source code) and process flow definitions that form part of it
     #[serde(default)]
-    pub source_urls: HashSet<Url>,
+    pub source_urls: HashSet<(Url, Url)>,
 }
 
 impl LibraryManifest {
@@ -64,7 +64,7 @@ impl LibraryManifest {
         LibraryManifest {
             metadata,
             locators: HashMap::<Url, ImplementationLocator>::new(),
-            source_urls: HashSet::<Url>::new(),
+            source_urls: HashSet::<(Url, Url)>::new(),
         }
     }
 

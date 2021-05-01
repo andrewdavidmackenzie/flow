@@ -40,7 +40,7 @@ use super::dump_tables;
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world/context.toml").unwrap();
 ///
-/// let mut source_urls = HashSet::<Url>::new();
+/// let mut source_urls = HashSet::<(Url, Url)>::new();
 /// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url,
 ///                                                    &dummy_provider,
 ///                                                    &mut source_urls).unwrap() {

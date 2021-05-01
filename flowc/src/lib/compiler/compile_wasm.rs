@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -19,10 +20,11 @@ use crate::model::function::Function;
 pub fn compile_supplied_implementations(
     tables: &mut GenerationTables,
     skip_building: bool,
+    source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<String> {
     for function in &mut tables.functions {
         if function.get_lib_reference().is_none() {
-            compile_implementation(function, skip_building)?;
+            compile_implementation(function, skip_building, source_urls)?;
         }
     }
 
@@ -34,10 +36,17 @@ pub fn compile_supplied_implementations(
 pub fn compile_implementation(
     function: &mut Function,
     skip_building: bool,
+    source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<(PathBuf, bool)> {
     let mut built = false;
 
     let (implementation_path, wasm_destination) = get_paths(function)?;
+    source_urls.insert((
+        Url::from_file_path(&implementation_path)
+            .map_err(|_| "Could not create Url from file path")?,
+        Url::from_file_path(&wasm_destination)
+            .map_err(|_| "Could not create Url from file path")?,
+    ));
 
     let (missing, out_of_date) = out_of_date(&implementation_path, &wasm_destination)?;
 

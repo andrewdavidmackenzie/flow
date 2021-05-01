@@ -55,7 +55,7 @@ fn check_root(flow: &Flow) -> bool {
 */
 pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -> Result<String> {
     info!("==== Compiler phase: Loading flow");
-    let mut source_urls = HashSet::<Url>::new();
+    let mut source_urls = HashSet::<(Url, Url)>::new();
     let context = loader::load(&options.url, provider, &mut source_urls)
         .chain_err(|| format!("Could not load flow from '{}'", options.url))?;
 
@@ -67,6 +67,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -
             compile_wasm::compile_supplied_implementations(
                 &mut tables,
                 options.provided_implementations,
+                &mut source_urls,
             )
             .chain_err(|| "Could not compile supplied implementation to wasm")?;
 

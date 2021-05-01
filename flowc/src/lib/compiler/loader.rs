@@ -69,7 +69,7 @@ pub trait Validate {
 /// let dummy_provider = DummyProvider{};
 ///
 /// // keep track of the source Urls loaded for this flow
-/// let mut source_urls = HashSet::<Url>::new();
+/// let mut source_urls = HashSet::<(Url, Url)>::new();
 ///
 /// // load the flow from `url = file:///example.toml` using the `dummy_provider`
 /// flowclib::compiler::loader::load(&Url::parse("file:///example.toml").unwrap(), &dummy_provider, &mut source_urls).unwrap();
@@ -77,7 +77,7 @@ pub trait Validate {
 pub fn load(
     url: &Url,
     provider: &dyn LibProvider,
-    source_urls: &mut HashSet<Url>,
+    source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<Process> {
     trace!("load()");
     load_process(
@@ -101,23 +101,22 @@ fn load_process(
     url: &Url,
     provider: &dyn LibProvider,
     initializations: &HashMap<String, InputInitializer>,
-    source_urls: &mut HashSet<Url>,
+    source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<Process> {
     trace!("load_process()");
-    trace!("  --> resolve_url()");
+
     let (resolved_url, lib_ref) = provider
         .resolve_url(url, "context", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
     debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
-    trace!("  --> get_contents()");
+
+    // Track the source file involved and what it resolved to
+    source_urls.insert((url.clone(), resolved_url.clone()));
+
     let contents = provider
         .get_contents(&resolved_url)
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
 
-    // Track the source file involved
-    source_urls.insert(resolved_url.clone());
-
-    trace!("  --> get_deserializer()");
     let deserializer = get_deserializer(&resolved_url)?;
     if !alias.is_empty() {
         info!("Loading process with alias = '{}'", alias);
@@ -128,7 +127,6 @@ fn load_process(
         resolved_url,
         deserializer.name()
     );
-    trace!("  --> deserialize()");
     let mut process = deserializer
         .deserialize(
             &String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?,
@@ -214,7 +212,7 @@ fn load_process_refs(
     flow: &mut Flow,
     flow_count: &mut usize,
     provider: &dyn LibProvider,
-    source_urls: &mut HashSet<Url>,
+    source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<()> {
     for process_ref in &mut flow.process_refs {
         let subprocess_url = flow

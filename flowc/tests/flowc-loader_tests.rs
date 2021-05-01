@@ -38,7 +38,7 @@ fn malformed_connection() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/malformed-connection.toml",
     );
-    if loader::load(&path, &meta_provider, &mut HashSet::<Url>::new()).is_ok() {
+    if loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).is_ok() {
         panic!("malformed-connection.toml should not load successfully");
     }
 }
@@ -47,7 +47,7 @@ fn malformed_connection() {
 fn invalid_toml() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/invalid.toml");
-    if loader::load(&path, &meta_provider, &mut HashSet::<Url>::new()).is_ok() {
+    if loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).is_ok() {
         panic!("invalid.toml should not load successfully");
     }
 }
@@ -58,7 +58,7 @@ fn invalid_process() {
     let path = helper::absolute_file_url_from_relative_path(
         "flowc/tests/test-flows/invalid-process/invalid-process.toml",
     );
-    if loader::load(&path, &meta_provider, &mut HashSet::<Url>::new()).is_ok() {
+    if loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).is_ok() {
         panic!("invalid.toml should not load successfully");
     }
 }
@@ -70,7 +70,7 @@ fn function_input_initialized() {
         "flowc/tests/test-flows/function_input_init/function_input_init.toml",
     );
 
-    match loader::load(&url, &meta_provider, &mut HashSet::<Url>::new()) {
+    match loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
         Ok(FlowProcess(mut flow)) => match flow.subprocesses.get_mut(&Name::from("print")) {
             Some(FunctionProcess(print_function)) => {
                 assert_eq!(
@@ -99,7 +99,7 @@ fn root_flow_takes_name_from_file() {
     let url =
         helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/names/names.toml");
 
-    match loader::load(&url, &meta_provider, &mut HashSet::<Url>::new()) {
+    match loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
         Ok(FlowProcess(flow)) => assert_eq!(flow.name, Name::from("names")),
         _ => panic!("Flow could not be loaded"),
     }
@@ -117,7 +117,7 @@ fn flow_input_initialized_and_propagated_to_function() {
         "flowc/tests/test-flows/flow_input_init/flow_input_init.toml",
     );
 
-    match loader::load(&url, &meta_provider, &mut HashSet::<Url>::new()) {
+    match loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new()) {
         Ok(FlowProcess(mut flow)) => match flow.subprocesses.get_mut(&Name::from("count")) {
             Some(FlowProcess(sub_flow)) => {
                 assert_eq!(

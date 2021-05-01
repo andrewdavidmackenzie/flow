@@ -71,7 +71,7 @@ pub fn create_manifest(
     debug_symbols: bool,
     manifest_url: &Url,
     tables: &GenerationTables,
-    source_urls: HashSet<Url>,
+    source_urls: HashSet<(Url, Url)>,
 ) -> Result<Manifest> {
     info!("Writing flow manifest to '{}'", manifest_url);
 
@@ -100,7 +100,7 @@ pub fn write_flow_manifest(
     debug_symbols: bool,
     destination: &Path,
     tables: &GenerationTables,
-    source_urls: HashSet<Url>,
+    source_urls: HashSet<(Url, Url)>,
 ) -> Result<PathBuf> {
     let mut filename = destination.to_path_buf();
     filename.push(DEFAULT_MANIFEST_FILENAME.to_string());

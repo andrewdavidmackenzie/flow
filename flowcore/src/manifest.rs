@@ -45,7 +45,7 @@ pub struct Manifest {
     /// A list of descriptors of the `Functions` used in this flow
     functions: Vec<Function>,
     /// A list of the source files used to build this `flow`
-    source_urls: HashSet<Url>,
+    source_urls: HashSet<(Url, Url)>,
 }
 
 impl Manifest {
@@ -55,7 +55,7 @@ impl Manifest {
             metadata,
             lib_references: HashSet::<Url>::new(),
             functions: Vec::<Function>::new(),
-            source_urls: HashSet::<Url>::new(),
+            source_urls: HashSet::<(Url, Url)>::new(),
         }
     }
 
@@ -90,12 +90,12 @@ impl Manifest {
     }
 
     /// set the list of all source urls used in the flow
-    pub fn set_source_urls(&mut self, source_urls: HashSet<Url>) {
+    pub fn set_source_urls(&mut self, source_urls: HashSet<(Url, Url)>) {
         self.source_urls = source_urls;
     }
 
     /// Get the list of source files used in the flow
-    pub fn get_source_urls(&self) -> &HashSet<Url> {
+    pub fn get_source_urls(&self) -> &HashSet<(Url, Url)> {
         &self.source_urls
     }
 
