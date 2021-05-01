@@ -42,7 +42,7 @@ use crate::model::route::HasRoute;
 /// let mut source_urls = HashSet::<Url>::new();
 ///
 /// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url,
-///                                                           &dummy_provider
+///                                                           &dummy_provider,
 ///                                                           &mut source_urls).unwrap() {
 ///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///     let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
@@ -155,8 +155,7 @@ fn functions_to_dot(
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
 ///
-/// let mut source_urls = Has
-/// hSet::<Url>::new();
+/// let mut source_urls = HashSet::<Url>::new();
 ///
 /// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url,
 ///                                                           &dummy_provider,
