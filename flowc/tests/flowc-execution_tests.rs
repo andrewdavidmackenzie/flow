@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate error_chain;
 
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{BufRead, BufReader, Write};
@@ -56,7 +57,13 @@ fn write_manifest(
     let out_dir_path =
         Url::from_file_path(&filename).map_err(|_| "Could not create filename url")?;
 
-    let manifest = generate::create_manifest(&flow, debug_symbols, &out_dir_path, tables)?;
+    let manifest = generate::create_manifest(
+        &flow,
+        debug_symbols,
+        &out_dir_path,
+        tables,
+        HashSet::<Url>::new(),
+    )?;
 
     manifest_file
         .write_all(
@@ -135,6 +142,7 @@ fn load_flow(test_dir: &Path, test_name: &str, search_path: Simpath) -> Process 
     loader::load(
         &helper::absolute_file_url_from_relative_path(&flow_file.to_string_lossy()),
         &MetaProvider::new(search_path),
+        &mut HashSet::<Url>::new(),
     )
     .unwrap()
 }
