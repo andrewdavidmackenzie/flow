@@ -22,6 +22,7 @@ use super::dump_tables;
 /// use flowcore::errors::Result;
 /// use flowclib::model::process::Process::FlowProcess;
 /// use tempdir::TempDir;
+/// use std::collections::HashSet;
 ///
 /// struct DummyProvider {}
 ///
@@ -39,8 +40,10 @@ use super::dump_tables;
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world/context.toml").unwrap();
 ///
+/// let mut source_urls = HashSet::<(Url, Url)>::new();
 /// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url,
-///                                                    &dummy_provider).unwrap() {
+///                                                    &dummy_provider,
+///                                                    &mut source_urls).unwrap() {
 ///
 ///     // strip off filename so output_dir is where the context.toml file resides
 ///     let output_dir = TempDir::new("flow").unwrap().into_path();

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use simpath::Simpath;
 use url::Url;
 
@@ -13,8 +15,9 @@ fn load_hello_world_from_context() {
     loader::load(
         &helper::absolute_file_url_from_relative_path("samples/hello-world/context.toml"),
         &meta_provider,
+        &mut HashSet::<(Url, Url)>::new(),
     )
-    .unwrap();
+    .expect("Could not load sample");
 }
 
 #[test]
@@ -23,8 +26,9 @@ fn load_reverse_echo_from_toml() {
     loader::load(
         &helper::absolute_file_url_from_relative_path("samples/reverse-echo/context.toml"),
         &meta_provider,
+        &mut HashSet::<(Url, Url)>::new(),
     )
-    .unwrap();
+    .expect("Could not load sample");
 }
 
 #[test]
@@ -33,15 +37,17 @@ fn load_fibonacci_from_file() {
     loader::load(
         &helper::absolute_file_url_from_relative_path("samples/fibonacci/context.toml"),
         &meta_provider,
+        &mut HashSet::<(Url, Url)>::new(),
     )
-    .unwrap();
+    .expect("Could not load sample");
 }
 
 #[test]
 fn load_fibonacci_from_directory() {
     let meta_provider = MetaProvider::new(helper::set_lib_search_path_to_project());
     let url = helper::absolute_file_url_from_relative_path("samples/fibonacci");
-    loader::load(&url, &meta_provider).unwrap();
+    loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new())
+        .expect("Could not load sample");
 }
 
 pub fn set_lib_search_path_flowstdlib_on_web() -> Simpath {
@@ -70,5 +76,6 @@ pub fn set_lib_search_path_flowstdlib_on_web() -> Simpath {
 fn load_fibonacci_libs_on_the_web() {
     let meta_provider = MetaProvider::new(set_lib_search_path_flowstdlib_on_web());
     let url = helper::absolute_file_url_from_relative_path("samples/fibonacci");
-    loader::load(&url, &meta_provider).unwrap();
+    loader::load(&url, &meta_provider, &mut HashSet::<(Url, Url)>::new())
+        .expect("Could not load sample");
 }

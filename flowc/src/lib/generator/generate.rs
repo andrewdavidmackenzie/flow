@@ -32,6 +32,7 @@ pub struct GenerationTables {
     pub collapsed_connections: Vec<Connection>,
     pub functions: Vec<Function>,
     pub libs: HashSet<Url>,
+    pub source_files: Vec<String>,
 }
 
 impl GenerationTables {
@@ -43,6 +44,7 @@ impl GenerationTables {
             collapsed_connections: Vec::new(),
             functions: Vec::new(),
             libs: HashSet::new(),
+            source_files: Vec::new(),
         }
     }
 }
@@ -69,12 +71,13 @@ pub fn create_manifest(
     debug_symbols: bool,
     manifest_url: &Url,
     tables: &GenerationTables,
+    source_urls: HashSet<(Url, Url)>,
 ) -> Result<Manifest> {
     info!("Writing flow manifest to '{}'", manifest_url);
 
     let mut manifest = Manifest::new(MetaData::from(flow));
 
-    // Generate run-time Process struct for each of the functions
+    // Generate run-time Function struct for each of the compile-time functions
     for function in &tables.functions {
         manifest.add_function(function_to_runtimefunction(
             manifest_url,
@@ -84,6 +87,7 @@ pub fn create_manifest(
     }
 
     manifest.set_lib_references(&tables.libs);
+    manifest.set_source_urls(source_urls);
 
     Ok(manifest)
 }
@@ -96,6 +100,7 @@ pub fn write_flow_manifest(
     debug_symbols: bool,
     destination: &Path,
     tables: &GenerationTables,
+    source_urls: HashSet<(Url, Url)>,
 ) -> Result<PathBuf> {
     let mut filename = destination.to_path_buf();
     filename.push(DEFAULT_MANIFEST_FILENAME.to_string());
@@ -104,7 +109,7 @@ pub fn write_flow_manifest(
         File::create(&filename).chain_err(|| "Could not create manifest file")?;
     let manifest_url =
         Url::from_file_path(&filename).map_err(|_| "Could not parse Url from file path")?;
-    let manifest = create_manifest(&flow, debug_symbols, &manifest_url, tables)
+    let manifest = create_manifest(&flow, debug_symbols, &manifest_url, tables, source_urls)
         .chain_err(|| "Could not create manifest from parsed flow and compiler tables")?;
 
     manifest_file

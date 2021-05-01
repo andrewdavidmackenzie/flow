@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use log::{debug, info, trace};
 use url::Url;
@@ -45,6 +45,7 @@ pub trait Validate {
 /// use flowcore::errors::Result;
 /// use std::env;
 /// use url::Url;
+/// use std::collections::HashSet;
 ///
 /// // Clients need to provide a Provider of content for the loader as flowlibc is independent of
 /// // file systems and io.
@@ -67,10 +68,17 @@ pub trait Validate {
 /// // Create an instance of the `DummyProvider`
 /// let dummy_provider = DummyProvider{};
 ///
+/// // keep track of the source Urls loaded for this flow
+/// let mut source_urls = HashSet::<(Url, Url)>::new();
+///
 /// // load the flow from `url = file:///example.toml` using the `dummy_provider`
-/// flowclib::compiler::loader::load(&Url::parse("file:///example.toml").unwrap(), &dummy_provider).unwrap();
+/// flowclib::compiler::loader::load(&Url::parse("file:///example.toml").unwrap(), &dummy_provider, &mut source_urls).unwrap();
 /// ```
-pub fn load(url: &Url, provider: &dyn LibProvider) -> Result<Process> {
+pub fn load(
+    url: &Url,
+    provider: &dyn LibProvider,
+    source_urls: &mut HashSet<(Url, Url)>,
+) -> Result<Process> {
     trace!("load()");
     load_process(
         &Route::default(),
@@ -80,6 +88,7 @@ pub fn load(url: &Url, provider: &dyn LibProvider) -> Result<Process> {
         url,
         provider,
         &HashMap::new(),
+        source_urls,
     )
 }
 
@@ -92,19 +101,22 @@ fn load_process(
     url: &Url,
     provider: &dyn LibProvider,
     initializations: &HashMap<String, InputInitializer>,
+    source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<Process> {
     trace!("load_process()");
-    trace!("  --> resolve_url()");
+
     let (resolved_url, lib_ref) = provider
         .resolve_url(url, "context", &["toml"])
         .chain_err(|| format!("Could not resolve the url: '{}'", url))?;
     debug!("Source URL '{}' resolved to: '{}'", url, resolved_url);
-    trace!("  --> get_contents()");
+
+    // Track the source file involved and what it resolved to
+    source_urls.insert((url.clone(), resolved_url.clone()));
+
     let contents = provider
         .get_contents(&resolved_url)
         .chain_err(|| format!("Could not get contents of resolved url: '{}'", resolved_url))?;
 
-    trace!("  --> get_deserializer()");
     let deserializer = get_deserializer(&resolved_url)?;
     if !alias.is_empty() {
         info!("Loading process with alias = '{}'", alias);
@@ -115,7 +127,6 @@ fn load_process(
         resolved_url,
         deserializer.name()
     );
-    trace!("  --> deserialize()");
     let mut process = deserializer
         .deserialize(
             &String::from_utf8(contents).chain_err(|| "Could not read UTF8 contents")?,
@@ -135,7 +146,7 @@ fn load_process(
                 initializations,
             )?;
             *flow_count += 1;
-            load_process_refs(flow, flow_count, provider)?;
+            load_process_refs(flow, flow_count, provider, source_urls)?;
             flow.build_connections()?;
         }
         FunctionProcess(ref mut function) => {
@@ -201,6 +212,7 @@ fn load_process_refs(
     flow: &mut Flow,
     flow_count: &mut usize,
     provider: &dyn LibProvider,
+    source_urls: &mut HashSet<(Url, Url)>,
 ) -> Result<()> {
     for process_ref in &mut flow.process_refs {
         let subprocess_url = flow
@@ -215,6 +227,7 @@ fn load_process_refs(
             &subprocess_url,
             provider,
             &process_ref.initializations,
+            source_urls,
         )?;
         process_ref.set_alias(process.name());
 

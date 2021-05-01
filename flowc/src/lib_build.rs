@@ -178,16 +178,20 @@ fn compile_implementations(
                 )
             })?;
             debug!("Trying to load library process from '{}'", url);
-            match load(&url, provider) {
+
+            match load(&url, provider, &mut lib_manifest.source_urls) {
                 Ok(FunctionProcess(ref mut function)) => {
-                    let (wasm_abs_path, built) =
-                        compile_wasm::compile_implementation(function, skip_building)
-                            .chain_err(|| "Could not compile supplied implementation to wasm")?;
+                    let (wasm_abs_path, built) = compile_wasm::compile_implementation(
+                        function,
+                        skip_building,
+                        &mut lib_manifest.source_urls,
+                    )
+                    .chain_err(|| "Could not compile supplied implementation to wasm")?;
                     let wasm_dir = wasm_abs_path
                         .parent()
                         .chain_err(|| "Could not get parent directory of wasm path")?;
                     lib_manifest
-                        .add_to_manifest(
+                        .add_locator(
                             base_dir,
                             wasm_abs_path
                                 .to_str()

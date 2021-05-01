@@ -21,6 +21,7 @@ use crate::model::route::HasRoute;
 /// use flowcore::errors::Result;
 /// use flowclib::model::process::Process::FlowProcess;
 /// use flowcore::lib_provider::LibProvider;
+/// use std::collections::HashSet;
 ///
 /// struct DummyProvider {}
 ///
@@ -38,8 +39,11 @@ use crate::model::route::HasRoute;
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
 ///
+/// let mut source_urls = HashSet::<(Url, Url)>::new();
+///
 /// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url,
-///                                                           &dummy_provider).unwrap() {
+///                                                           &dummy_provider,
+///                                                           &mut source_urls).unwrap() {
 ///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///     let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///
@@ -132,6 +136,7 @@ fn functions_to_dot(
 /// use flowcore::errors::Result;
 /// use flowclib::model::process::Process::FlowProcess;
 /// use flowcore::lib_provider::LibProvider;
+/// use std::collections::HashSet;
 ///
 /// struct DummyProvider {}
 ///
@@ -150,8 +155,11 @@ fn functions_to_dot(
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world-simple/context.toml").unwrap();
 ///
+/// let mut source_urls = HashSet::<(Url, Url)>::new();
+///
 /// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url,
-///                                                           &dummy_provider).unwrap() {
+///                                                           &dummy_provider,
+///                                                           &mut source_urls).unwrap() {
 ///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///     let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///
