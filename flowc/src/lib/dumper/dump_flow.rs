@@ -40,7 +40,7 @@ use super::dump_tables;
 ///     let output_dir = TempDir::new("flow").unwrap().into_path();
 ///
 ///     // dump the flows compiler data and dot graph into files alongside the 'context.toml'
-///     flowclib::dumper::dump_flow::dump_flow(&flow, &output_dir, &dummy_provider, true, true).unwrap();
+///     flowclib::dumper::dump_flow::dump_flow(&flow, &output_dir, &provider, true, true).unwrap();
 /// }
 /// ```
 pub fn dump_flow(
