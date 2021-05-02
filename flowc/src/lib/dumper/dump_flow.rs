@@ -18,32 +18,23 @@ use super::dump_tables;
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use flowcore::lib_provider::LibProvider;
+/// use flowcore::lib_provider::{LibProvider, MetaProvider};
 /// use flowcore::errors::Result;
 /// use flowclib::model::process::Process::FlowProcess;
 /// use tempdir::TempDir;
 /// use std::collections::HashSet;
+/// use simpath::Simpath;
 ///
-/// struct DummyProvider {}
+/// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
+/// let provider = MetaProvider::new(lib_search_path);
 ///
-/// impl LibProvider for DummyProvider {
-///     fn resolve_url(&self, url: &Url, default_filename: &str, _ext: &[&str]) -> Result<(Url, Option<String>)> {
-///         Ok((url.clone(), None))
-///     }
-///
-///     fn get_contents(&self, url: &Url) -> Result<Vec<u8>> {
-///         Ok("flow = \"dummy\"\n[[input]]".as_bytes().to_owned())
-///     }
-/// }
-///
-/// let dummy_provider = DummyProvider {};
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
 /// url = url.join("samples/hello-world/context.toml").unwrap();
 ///
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
-/// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url,
+/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
 ///                                                    &dummy_provider,
-///                                                    &mut source_urls).unwrap() {
+///                                                    &mut source_urls) {
 ///
 ///     // strip off filename so output_dir is where the context.toml file resides
 ///     let output_dir = TempDir::new("flow").unwrap().into_path();
