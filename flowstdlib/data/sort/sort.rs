@@ -10,13 +10,11 @@ pub struct Sort;
 
 impl Implementation for Sort {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let array = inputs[0].clone();
-
-        if array.is_null() {
+        if inputs[0].is_null() {
             (Some(Value::Null), RUN_AGAIN)
-        } else if array.is_array() {
-            let mut array_of_numbers: Vec<Value> = array.as_array().unwrap().clone();
-            array_of_numbers.sort_by_key(|a| a.as_i64().unwrap());
+        } else if let Some(array_num) = inputs[0].as_array() {
+            let mut array_of_numbers: Vec<Value> = array_num.clone();
+            array_of_numbers.sort_by_key(|a| a.as_i64().unwrap_or(0));
             (Some(json!(array_of_numbers)), RUN_AGAIN)
         } else {
             (None, RUN_AGAIN)
@@ -35,7 +33,7 @@ mod test {
         let sort = super::Sort {};
         let (result, _) = sort.run(&[Value::Null]);
 
-        let output = result.unwrap();
+        let output = result.expect("Could not get output value");
         assert_eq!(output, Value::Null);
     }
 
@@ -51,7 +49,7 @@ mod test {
         let sort = super::Sort {};
         let (result, _) = sort.run(&[json!([1])]);
 
-        let output = result.unwrap();
+        let output = result.expect("Could not get output value");
         assert_eq!(output, json!([1]));
     }
 
@@ -60,7 +58,7 @@ mod test {
         let sort = super::Sort {};
         let (result, _) = sort.run(&[json!([7, 1, 4, 8, 3, 9])]);
 
-        let output = result.unwrap();
+        let output = result.expect("Could not get output value");
         assert_eq!(output, json!([1, 3, 4, 7, 8, 9]));
     }
 
@@ -69,7 +67,7 @@ mod test {
         let sort = super::Sort {};
         let (result, _) = sort.run(&[json!([7, 1, 8, 4, 8, 3, 1, 9])]);
 
-        let output = result.unwrap();
+        let output = result.expect("Could not get output value");
         assert_eq!(output, json!([1, 1, 3, 4, 7, 8, 8, 9]));
     }
 }

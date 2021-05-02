@@ -14,8 +14,8 @@ impl Implementation for Append {
         let v2 = inputs[1].clone();
 
         if v1.is_string() && v2.is_string() {
-            let s1 = v1.as_str().unwrap();
-            let s2 = v2.as_str().unwrap();
+            let s1 = v1.as_str().unwrap_or("");
+            let s2 = v2.as_str().unwrap_or("");
             (Some(json!(format!("{}{}", s1, s2))), RUN_AGAIN)
         } else {
             (None, RUN_AGAIN)

@@ -11,19 +11,22 @@ pub struct Transpose;
 impl Implementation for Transpose {
     #[allow(clippy::needless_range_loop)]
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let matrix = inputs[0].as_array().unwrap();
-
-        let rows = matrix.len();
-        let cols = matrix[0].as_array().unwrap().len();
-
         let mut output_matrix: Vec<Value> = vec![]; // vector of Value::Array - i.e. array of rows
-        let mut new_row; // Vector of Value::Number - i.e. a row
-        for new_row_num in 0..cols {
-            new_row = Vec::with_capacity(rows);
-            for new_col_num in 0..rows {
-                new_row.push(matrix[new_col_num][new_row_num].clone());
+
+        if let Some(matrix) = inputs[0].as_array() {
+            let rows = matrix.len();
+
+            if let Some(row) = matrix[0].as_array() {
+                let cols = row.len();
+                let mut new_row; // Vector of Value::Number - i.e. a row
+                for new_row_num in 0..cols {
+                    new_row = Vec::with_capacity(rows);
+                    for new_col_num in 0..rows {
+                        new_row.push(matrix[new_col_num][new_row_num].clone());
+                    }
+                    output_matrix.push(Value::Array(new_row));
+                }
             }
-            output_matrix.push(Value::Array(new_row));
         }
 
         (Some(Value::Array(output_matrix)), RUN_AGAIN)

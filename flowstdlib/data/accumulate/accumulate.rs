@@ -1,10 +1,10 @@
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
-/// Accumulate input values into an array upto the limit specified
+/// Accumulate input values into an array up to the limit specified
 #[derive(Debug)]
 pub struct Accumulate;
 
@@ -17,21 +17,23 @@ impl Implementation for Accumulate {
             output_map.insert("chunk".into(), Value::Null);
         } else {
             let mut partial_input = inputs[1].clone(); // A partial array to append the values to
-            let chunk_size = inputs[2].clone(); // how many elements desired in the output array
+                                                       // how many elements desired in the output array
+            if let Some(chunk_size) = inputs[2].as_u64() {
+                if let Some(partial) = partial_input.as_array_mut() {
+                    partial.push(value);
 
-            let partial = partial_input.as_array_mut().unwrap();
-            partial.push(value);
+                    if partial.len() >= chunk_size as usize {
+                        // TODO could pass on any extra elements beyond chunk size in 'partial'
+                        // and also force chunk size to be exact....
+                        output_map.insert("chunk".into(), Value::Array(partial.clone()));
+                        output_map.insert("partial".into(), Value::Array(vec![]));
+                    } else {
+                        output_map.insert("partial".into(), Value::Array(partial.clone()));
+                    }
 
-            if partial.len() >= chunk_size.as_u64().unwrap() as usize {
-                // TODO could pass on any extra elements beyond chunk size in 'partial'
-                // and also force chunk size to be exact....
-                output_map.insert("chunk".into(), Value::Array(partial.clone()));
-                output_map.insert("partial".into(), Value::Array(vec![]));
-            } else {
-                output_map.insert("partial".into(), Value::Array(partial.clone()));
+                    output_map.insert("chunk_size".into(), json!(chunk_size));
+                }
             }
-
-            output_map.insert("chunk_size".into(), chunk_size);
         }
 
         (Some(Value::Object(output_map)), RUN_AGAIN)

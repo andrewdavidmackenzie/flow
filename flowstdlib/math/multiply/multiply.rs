@@ -2,7 +2,7 @@ use serde_json::json;
 use serde_json::Value;
 
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Multiply one input by another
@@ -11,13 +11,16 @@ pub struct Multiply;
 
 impl Implementation for Multiply {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let i1 = inputs[0].as_u64().unwrap();
-        let i2 = inputs[1].as_u64().unwrap();
+        let mut output = None;
 
-        let result = i1 * i2;
-        let output = json!(result);
+        if let Some(i1) = inputs[0].as_u64() {
+            if let Some(i2) = inputs[1].as_u64() {
+                let result = i1 * i2;
+                output = Some(json!(result));
+            }
+        }
 
-        (Some(output), RUN_AGAIN)
+        (output, RUN_AGAIN)
     }
 }
 

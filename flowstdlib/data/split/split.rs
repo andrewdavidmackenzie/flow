@@ -37,8 +37,8 @@ pub struct Split;
 impl Implementation for Split {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
         if inputs[0].is_string() {
-            let string = inputs[0].as_str().unwrap();
-            let separator = inputs[1].as_str().unwrap();
+            let string = inputs[0].as_str().unwrap_or("");
+            let separator = inputs[1].as_str().unwrap_or("");
 
             let (partial, token) = split(string, separator);
 

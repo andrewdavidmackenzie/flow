@@ -1,4 +1,4 @@
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use flow_impl_derive::FlowImpl;
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
@@ -10,26 +10,17 @@ pub struct Divide;
 
 impl Implementation for Divide {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let dividend = inputs[0].as_f64().unwrap();
-        let divisor = inputs[1].as_f64().unwrap();
-
         let mut output_map = serde_json::Map::new();
-        output_map.insert(
-            "dividend".into(),
-            Value::Number(serde_json::Number::from_f64(dividend).unwrap()),
-        );
-        output_map.insert(
-            "divisor".into(),
-            Value::Number(serde_json::Number::from_f64(divisor).unwrap()),
-        );
-        output_map.insert(
-            "result".into(),
-            Value::Number(serde_json::Number::from_f64(dividend / divisor).unwrap()),
-        );
-        output_map.insert(
-            "remainder".into(),
-            Value::Number(serde_json::Number::from_f64(dividend % divisor).unwrap()),
-        );
+
+        if let Some(dividend) = inputs[0].as_f64() {
+            if let Some(divisor) = inputs[1].as_f64() {
+                output_map.insert("dividend".into(), json!(dividend));
+                output_map.insert("divisor".into(), json!(divisor));
+                output_map.insert("result".into(), json!(dividend / divisor));
+                output_map.insert("remainder".into(), json!(dividend % divisor));
+            }
+        }
+
         let output = Value::Object(output_map);
 
         (Some(output), RUN_AGAIN)
@@ -55,31 +46,23 @@ mod test {
         let (output, run_again) = divide.run(&inputs);
         assert!(run_again);
 
-        let outputs = output.unwrap();
+        let outputs = output.expect("Could not get the output value");
 
-        let dividend = outputs.pointer("/dividend").unwrap();
-        assert_eq!(
-            dividend,
-            &Value::Number(serde_json::Number::from_f64(test_data.0 as f64).unwrap())
-        );
+        let dividend = outputs
+            .pointer("/dividend")
+            .expect("Could not get /dividend");
+        assert_eq!(dividend, &json!(test_data.0 as f64));
 
-        let divisor = outputs.pointer("/divisor").unwrap();
-        assert_eq!(
-            divisor,
-            &Value::Number(serde_json::Number::from_f64(test_data.1 as f64).unwrap())
-        );
+        let divisor = outputs.pointer("/divisor").expect("Could not get /divisor");
+        assert_eq!(divisor, &json!(test_data.1 as f64));
 
-        let result = outputs.pointer("/result").unwrap();
-        assert_eq!(
-            result,
-            &Value::Number(serde_json::Number::from_f64(test_data.2 as f64).unwrap())
-        );
+        let result = outputs.pointer("/result").expect("Could not get /result");
+        assert_eq!(result, &json!(test_data.2 as f64));
 
-        let remainder = outputs.pointer("/remainder").unwrap();
-        assert_eq!(
-            remainder,
-            &Value::Number(serde_json::Number::from_f64(test_data.3 as f64).unwrap())
-        );
+        let remainder = outputs
+            .pointer("/remainder")
+            .expect("Could not get /remainder");
+        assert_eq!(remainder, &json!(test_data.3 as f64));
     }
 
     #[test]

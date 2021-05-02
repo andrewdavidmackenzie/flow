@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Remove a value from a vector of values
@@ -14,13 +14,13 @@ impl Implementation for Remove {
         let value = &inputs[0];
         let input1 = &inputs[1];
         let mut input_array = input1.clone();
-        let array = input_array.as_array_mut().unwrap();
 
-        // Operation
-        array.retain(|val| val != value);
-
-        // Output
-        let output = Value::Array(array.to_vec());
+        let output = if let Some(array) = input_array.as_array_mut() {
+            array.retain(|val| val != value);
+            Value::Array(array.to_vec())
+        } else {
+            input_array
+        };
 
         (Some(output), RUN_AGAIN)
     }
@@ -77,7 +77,7 @@ mod test {
     }
 
     #[test]
-    fn try_to_remove_non_existant_entry() {
+    fn try_to_remove_non_existent_entry() {
         let array: Value = json!([1, 2, 3, 5, 7, 8, 9]);
         let value = json!(6);
 

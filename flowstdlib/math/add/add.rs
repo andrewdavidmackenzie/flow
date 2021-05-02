@@ -1,5 +1,5 @@
-use serde_json::Value;
 use serde_json::Value::Number;
+use serde_json::{json, Value};
 
 use flow_impl_derive::FlowImpl;
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
@@ -16,21 +16,30 @@ impl Implementation for Add {
 
         let sum = match (&input_a, &input_b) {
             (&Number(ref a), &Number(ref b)) => {
-                if a.is_i64() && b.is_i64() {
-                    match a.as_i64().unwrap().checked_add(b.as_i64().unwrap()) {
-                        Some(result) => Some(Value::Number(serde_json::Number::from(result))),
-                        None => None,
+                if let Some(a_i64) = a.as_i64() {
+                    if let Some(b_i64) = b.as_i64() {
+                        match a_i64.checked_add(b_i64) {
+                            Some(result) => Some(json!(result)),
+                            None => None,
+                        }
+                    } else {
+                        None
                     }
-                } else if a.is_u64() && b.is_u64() {
-                    match a.as_u64().unwrap().checked_add(b.as_u64().unwrap()) {
-                        Some(result) => Some(Value::Number(serde_json::Number::from(result))),
-                        None => None,
+                } else if let Some(a_u64) = a.as_u64() {
+                    if let Some(b_u64) = b.as_u64() {
+                        match a_u64.checked_add(b_u64) {
+                            Some(result) => Some(json!(result)),
+                            None => None,
+                        }
+                    } else {
+                        None
                     }
-                } else if a.is_f64() || b.is_f64() {
-                    Some(Value::Number(
-                        serde_json::Number::from_f64(a.as_f64().unwrap() + b.as_f64().unwrap())
-                            .unwrap(),
-                    ))
+                } else if let Some(a_f64) = a.as_f64() {
+                    if let Some(b_f64) = b.as_f64() {
+                        Some(json!(a_f64 + b_f64))
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
@@ -43,7 +52,6 @@ impl Implementation for Add {
             output_map.insert("sum".into(), total);
             output_map.insert("i1".into(), input_a.clone());
             output_map.insert("i2".into(), input_b.clone());
-
             (Some(Value::Object(output_map)), RUN_AGAIN)
         } else {
             (None, RUN_AGAIN)
@@ -65,11 +73,6 @@ mod test {
         vec![pair.0.clone(), pair.1.clone()]
     }
 
-    // Repeat for:
-    // integer + integer
-    // float plus float
-    // float plus integer
-    // integer plus float
     #[test]
     fn test_adder() {
         let integer_test_set = vec![
@@ -174,8 +177,14 @@ mod test {
 
             match output {
                 Some(outputs) => {
-                    assert_eq!(outputs.pointer("/i1").unwrap(), &test.0);
-                    assert_eq!(outputs.pointer("/i2").unwrap(), &test.1);
+                    assert_eq!(
+                        outputs.pointer("/i1").expect("Could not get i1 output"),
+                        &test.0
+                    );
+                    assert_eq!(
+                        outputs.pointer("/i2").expect("Could not get i2 output"),
+                        &test.1
+                    );
                     assert_eq!(outputs.pointer("/sum"), test.2.as_ref());
                 }
                 None => {

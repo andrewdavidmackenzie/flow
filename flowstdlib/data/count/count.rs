@@ -12,14 +12,13 @@ pub struct Count;
 
 impl Implementation for Count {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let data = inputs[0].clone();
-        let mut count = inputs[1].as_i64().unwrap();
-        count += 1;
-
         let mut output_map = serde_json::Map::new();
+        output_map.insert("data".into(), inputs[0].clone());
 
-        output_map.insert("data".into(), data);
-        output_map.insert("count".into(), json!(count));
+        if let Some(mut count) = inputs[1].as_i64() {
+            count += 1;
+            output_map.insert("count".into(), json!(count));
+        }
 
         let output = Value::Object(output_map);
 

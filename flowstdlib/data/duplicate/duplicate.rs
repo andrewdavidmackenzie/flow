@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Takes a value on it's input and sends the same value `factor` times in an array output
@@ -11,12 +11,13 @@ pub struct Duplicate;
 impl Implementation for Duplicate {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
         let value = &inputs[0];
-        let factor = inputs[1].as_i64().unwrap();
 
         let mut output_array = vec![];
 
-        for _i in 0..factor {
-            output_array.push(value.clone());
+        if let Some(factor) = inputs[1].as_i64() {
+            for _i in 0..factor {
+                output_array.push(value.clone());
+            }
         }
 
         (Some(Value::Array(output_array)), RUN_AGAIN)
