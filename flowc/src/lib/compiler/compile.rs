@@ -29,6 +29,8 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables> {
     checker::check_connections(&mut tables)?;
     info!("=== Compiler phase: Checking processes");
     checker::check_function_inputs(&mut tables)?;
+    info!("=== Compiler phase: Checking flow has side-effects");
+    checker::check_side_effects(&mut tables)?;
     info!("=== Compiler phase: Preparing functions connections");
     connector::prepare_function_connections(&mut tables)?;
 
@@ -37,6 +39,8 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables> {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
+
     use crate::compiler::compile::compile;
     use crate::model::flow::Flow;
     use crate::model::function::Function;
@@ -44,7 +48,6 @@ mod test {
     use crate::model::name::{HasName, Name};
     use crate::model::process_reference::ProcessReference;
     use crate::model::route::Route;
-    use std::collections::HashMap;
 
     /*
         Test for a function that is dead code. It has no connections to it or from it so will
