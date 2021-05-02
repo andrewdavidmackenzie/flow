@@ -1,3 +1,5 @@
+#![warn(clippy::unwrap_used)]
+
 use lib_path::check_flow_lib_path;
 
 mod lib_path;

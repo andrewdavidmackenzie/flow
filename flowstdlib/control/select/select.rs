@@ -12,10 +12,10 @@ impl Implementation for Select {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
         let i1 = &inputs[0];
         let i2 = &inputs[1];
-        let control = &inputs[2].as_bool().unwrap();
+        let control = inputs[2].as_bool().unwrap_or(false);
 
         let mut output_map = serde_json::Map::new();
-        if *control {
+        if control {
             output_map.insert("select_i1".into(), i1.clone());
             output_map.insert("select_i2".into(), i2.clone());
         } else {

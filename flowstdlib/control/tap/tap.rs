@@ -12,9 +12,10 @@ impl Implementation for Tap {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
         let mut value = None;
         let data = &inputs[0];
-        let control = &inputs[1].as_bool().unwrap();
-        if *control {
-            value = Some(data.clone());
+        if let Some(control) = &inputs[1].as_bool() {
+            if *control {
+                value = Some(data.clone());
+            }
         }
 
         (value, RUN_AGAIN)
@@ -35,7 +36,7 @@ mod test {
         assert_eq!(run_again, RUN_AGAIN);
 
         assert!(output.is_some());
-        let value = output.unwrap();
+        let value = output.expect("Could not get output value");
         assert_eq!(value, json!("A"));
     }
 

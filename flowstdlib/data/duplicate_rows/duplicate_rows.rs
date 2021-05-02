@@ -10,13 +10,15 @@ pub struct DuplicateRows;
 
 impl Implementation for DuplicateRows {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let matrix = inputs[0].as_array().unwrap();
-        let factor = &inputs[1];
         let mut output_matrix: Vec<Value> = vec![];
 
-        for row in matrix.iter() {
-            for _i in 0..factor.as_i64().unwrap() {
-                output_matrix.push(row.clone());
+        if let Some(factor) = inputs[1].as_i64() {
+            if let Some(matrix) = inputs[0].as_array() {
+                for row in matrix.iter() {
+                    for _i in 0..factor {
+                        output_matrix.push(row.clone());
+                    }
+                }
             }
         }
 

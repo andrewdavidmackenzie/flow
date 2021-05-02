@@ -14,10 +14,13 @@ fn type_string(value: &Value) -> String {
         Value::Bool(_) => "Boolean".into(),
         Value::Number(_) => "Number".into(),
         Value::Array(array) => format!("Array/{}", type_string(&array[0])),
-        Value::Object(map) => format!(
-            "Map/{}",
-            type_string(&map.values().cloned().next().unwrap())
-        ),
+        Value::Object(map) => {
+            if let Some(value) = &map.values().cloned().next() {
+                format!("Map/{}", type_string(value))
+            } else {
+                "Map/Unknown".into()
+            }
+        }
         Value::Null => "Null".into(),
     }
 }

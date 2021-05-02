@@ -13,8 +13,8 @@ impl Implementation for OrderedSplit {
         if inputs[0].is_null() {
             (Some(Value::Null), RUN_AGAIN)
         } else {
-            let string = inputs[0].as_str().unwrap();
-            let separator = inputs[1].as_str().unwrap();
+            let string = inputs[0].as_str().unwrap_or("");
+            let separator = inputs[1].as_str().unwrap_or("");
             let parts: Vec<&str> = string.split(separator).collect::<Vec<&str>>();
             (Some(json!(parts)), RUN_AGAIN)
         }

@@ -1,5 +1,5 @@
-use serde_json::Value;
 use serde_json::Value::Number;
+use serde_json::{json, Value};
 
 use flow_impl_derive::FlowImpl;
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
@@ -15,10 +15,8 @@ impl Implementation for Sqrt {
         let mut value = None;
 
         if let Number(ref a) = input {
-            if a.is_i64() || a.is_u64() || a.is_f64() {
-                value = Some(Value::Number(
-                    serde_json::Number::from_f64(a.as_f64().unwrap().sqrt()).unwrap(),
-                ));
+            if let Some(num) = a.as_f64() {
+                value = Some(json!(num.sqrt()));
             }
         };
 

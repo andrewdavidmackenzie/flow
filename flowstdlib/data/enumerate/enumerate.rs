@@ -10,11 +10,12 @@ pub struct Enumerate;
 
 impl Implementation for Enumerate {
     fn run(&self, inputs: &[Value]) -> (Option<Value>, RunAgain) {
-        let array = inputs[0].as_array().unwrap();
         let mut output_array: Vec<(usize, Value)> = vec![];
 
-        for (index, value) in array.iter().enumerate() {
-            output_array.push((index, value.clone()));
+        if let Some(array) = inputs[0].as_array() {
+            for (index, value) in array.iter().enumerate() {
+                output_array.push((index, value.clone()));
+            }
         }
 
         (Some(json!(output_array)), RUN_AGAIN)
