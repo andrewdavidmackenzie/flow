@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 
 use flow_impl_derive::FlowImpl;
-use flowcore::{Implementation, RUN_AGAIN, RunAgain};
+use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 #[derive(FlowImpl)]
 /// Enumerate the elements of an Array
@@ -24,8 +24,8 @@ impl Implementation for Enumerate {
 
 #[cfg(test)]
 mod test {
-    use serde_json::{Number, Value};
     use serde_json::json;
+    use serde_json::{Number, Value};
 
     use flowcore::Implementation;
 
