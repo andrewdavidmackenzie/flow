@@ -33,7 +33,7 @@ use super::dump_tables;
 ///
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
 /// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
-///                                                    &dummy_provider,
+///                                                    &provider,
 ///                                                    &mut source_urls) {
 ///
 ///     // strip off filename so output_dir is where the context.toml file resides
