@@ -17,33 +17,24 @@ use crate::model::route::HasRoute;
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use flowcore::lib_provider::Provider;
+/// use flowcore::lib_provider::{Provider, MetaProvider};
 /// use flowcore::errors::Result;
 /// use flowclib::model::process::Process::FlowProcess;
 /// use flowcore::lib_provider::LibProvider;
 /// use std::collections::HashSet;
+/// use simpath::Simpath;
 ///
-/// struct DummyProvider {}
+/// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
+/// let provider = MetaProvider::new(lib_search_path);
 ///
-/// impl LibProvider for DummyProvider {
-///     fn resolve_url(&self, url: &Url, default_filename: &str, _ext: &[&str]) -> Result<(Url, Option<String>)> {
-///         Ok((url.clone(), None))
-///     }
-///
-///     fn get_contents(&self, _url: &Url) -> Result<Vec<u8>> {
-///         Ok("flow = \"dummy\"".as_bytes().to_owned())
-///     }
-/// }
-///
-/// let dummy_provider = DummyProvider {};
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-/// url = url.join("samples/hello-world-simple/context.toml").unwrap();
+/// url = url.join("samples/hello-world/context.toml").unwrap();
 ///
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
 ///
-/// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url,
-///                                                           &dummy_provider,
-///                                                           &mut source_urls).unwrap() {
+/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
+///                                                           &provider,
+///                                                           &mut source_urls) {
 ///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///     let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///
@@ -132,34 +123,23 @@ fn functions_to_dot(
 /// ```
 /// use std::env;
 /// use url::Url;
-/// use flowcore::lib_provider::Provider;
+/// use flowcore::lib_provider::{Provider, MetaProvider};
 /// use flowcore::errors::Result;
 /// use flowclib::model::process::Process::FlowProcess;
 /// use flowcore::lib_provider::LibProvider;
 /// use std::collections::HashSet;
+/// use simpath::Simpath;
 ///
-/// struct DummyProvider {}
-///
-/// impl LibProvider for DummyProvider {
-///     fn resolve_url(&self, url: &Url, default_filename: &str, _ext: &[&str]) -> Result<(Url, Option<String>)> {
-///         Ok((url.clone(), None))
-///     }
-///
-///     // Return a flow definition for the content for the example
-///     fn get_contents(&self, _url: &Url) -> Result<Vec<u8>> {
-///         Ok("flow = \"dummy\"".as_bytes().to_owned())
-///     }
-/// }
-///
-/// let dummy_provider = DummyProvider {};
+/// let lib_search_path = Simpath::new("FLOW_LIB_PATH");
+/// let provider = MetaProvider::new(lib_search_path);
 /// let mut url = url::Url::from_file_path(env::current_dir().unwrap()).unwrap();
-/// url = url.join("samples/hello-world-simple/context.toml").unwrap();
+/// url = url.join("samples/hello-world/context.toml").unwrap();
 ///
 /// let mut source_urls = HashSet::<(Url, Url)>::new();
 ///
-/// if let FlowProcess(mut flow) = flowclib::compiler::loader::load(&url,
-///                                                           &dummy_provider,
-///                                                           &mut source_urls).unwrap() {
+/// if let Ok(FlowProcess(mut flow)) = flowclib::compiler::loader::load(&url,
+///                                                           &provider,
+///                                                           &mut source_urls) {
 ///     let tables = flowclib::compiler::compile::compile(&mut flow).unwrap();
 ///     let output_dir = tempdir::TempDir::new("flow").unwrap().into_path();
 ///

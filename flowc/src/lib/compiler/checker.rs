@@ -80,9 +80,7 @@ fn check_for_competing_inputs(tables: &GenerationTables) -> Result<()> {
     Ok(())
 }
 
-/*
-    Check that all Functions have connections to all their inputs or return an error
-*/
+/// Check that all Functions have connections to all their inputs or return an error
 pub fn check_function_inputs(tables: &mut GenerationTables) -> Result<()> {
     for function in &tables.functions {
         for input in function.get_inputs() {
@@ -106,6 +104,17 @@ pub fn check_function_inputs(tables: &mut GenerationTables) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Check that some impure function producing a side effect is called or return an error
+pub fn check_side_effects(tables: &mut GenerationTables) -> Result<()> {
+    for function in &tables.functions {
+        if function.is_impure() {
+            return Ok(());
+        }
+    }
+
+    bail!("Flow has no side-effects")
 }
 
 fn connection_to(tables: &GenerationTables, input: &Route) -> bool {

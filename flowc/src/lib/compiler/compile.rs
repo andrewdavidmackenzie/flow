@@ -29,6 +29,8 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables> {
     checker::check_connections(&mut tables)?;
     info!("=== Compiler phase: Checking processes");
     checker::check_function_inputs(&mut tables)?;
+    info!("=== Compiler phase: Checking flow has side-effects");
+    checker::check_side_effects(&mut tables)?;
     info!("=== Compiler phase: Preparing functions connections");
     connector::prepare_function_connections(&mut tables)?;
 
@@ -37,6 +39,8 @@ pub fn compile(flow: &Flow) -> Result<GenerationTables> {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
+
     use crate::compiler::compile::compile;
     use crate::model::flow::Flow;
     use crate::model::function::Function;
@@ -44,14 +48,13 @@ mod test {
     use crate::model::name::{HasName, Name};
     use crate::model::process_reference::ProcessReference;
     use crate::model::route::Route;
-    use std::collections::HashMap;
 
     /*
-        Test for a function that is dead code. It has no connections to it or from it so will
-        never run. So it should be removed by the optimizer and not fail at check stage.
+        Test an error is thrown if a flow has no side effects, and that unconnected functions
+        are removed by the optimizer
     */
     #[test]
-    fn dead_function() {
+    fn no_side_effects() {
         let function = Function::new(
             Name::from("Stdout"),
             false,
@@ -80,6 +83,10 @@ mod test {
             ..Default::default()
         };
 
-        let _tables = compile(&flow).expect("Error while compiling");
+        // Optimizer should remove unconnected function leaving no side-effects
+        match compile(&flow) {
+            Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
+            Err(e) => assert_eq!("Flow has no side-effects", e.description()),
+        }
     }
 }

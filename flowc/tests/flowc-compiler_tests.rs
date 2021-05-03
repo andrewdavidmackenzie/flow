@@ -204,17 +204,20 @@ fn dead_process_and_connected_process_removed() {
     let path = helper::absolute_file_url_from_relative_path("flowc/tests/test-flows/dead-process-and-connected-process/dead-process-and-connected-process.toml");
     let process = loader::load(&path, &meta_provider, &mut HashSet::<(Url, Url)>::new()).unwrap();
     if let FlowProcess(ref flow) = process {
-        let tables = compile::compile(flow).unwrap();
-        assert!(
-            tables.functions.is_empty(),
-            "Incorrect number of functions after optimization"
-        );
-        // And the connection are all gone also
-        assert_eq!(
-            tables.collapsed_connections.len(),
-            0,
-            "Incorrect number of connections after optimization"
-        );
+        match compile::compile(&flow) {
+            Ok(_tables) => panic!("Flow should not compile when it has no side-effects"),
+            Err(e) => assert_eq!("Flow has no side-effects", e.description()),
+        }
+        // assert!(
+        //     tables.functions.is_empty(),
+        //     "Incorrect number of functions after optimization"
+        // );
+        // // And the connection are all gone also
+        // assert_eq!(
+        //     tables.collapsed_connections.len(),
+        //     0,
+        //     "Incorrect number of connections after optimization"
+        // );
     } else {
         panic!("Process loaded was not a flow");
     }
