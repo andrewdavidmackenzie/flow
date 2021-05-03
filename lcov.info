@@ -498,17 +498,17 @@ FN:199,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::
 FN:375,flowclib::model::io::test::deserialize_extra_field_fails
 FN:20,<flowclib::model::io::IOType as core::cmp::PartialEq>::eq
 FN:280,flowclib::model::io::test::deserialize_empty_string
-FN:20,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::<_>
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
-FN:76,<flowclib::model::io::IO>::set_route_from_parent
 FN:180,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::route::SetIORoutes>::set_io_routes_from_parent
+FN:76,<flowclib::model::io::IO>::set_route_from_parent
+FN:20,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::<_>
 FN:224,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::find_by_route
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<toml::de::MapVisitor>
 FN:28,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FN:407,flowclib::model::io::test::non_unique_io_names_wont_validate
 FN:208,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::find_by_name
-FN:28,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
+FN:28,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FN:20,<flowclib::model::io::IOType as core::clone::Clone>::clone
 FN:254,<flowclib::model::io::IO>::set_initial_values
 FN:101,<flowclib::model::io::IO as core::default::Default>::default
@@ -552,8 +552,8 @@ FN:28,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::
 FN:291,flowclib::model::io::test::deserialize_valid_type::{closure#0}
 FN:224,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::find_by_route
 FN:20,<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::<_>
-FN:28,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
+FN:28,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:113,<flowclib::model::io::IO as core::fmt::Display>::fmt
 FN:304,flowclib::model::io::test::deserialize_invalid_type
 FN:47,<flowclib::model::io::IO>::new::<&str, &str>
@@ -570,11 +570,11 @@ FN:28,<flowclib::model::io::IO as core::clone::Clone>::clone
 FN:71,<flowclib::model::io::IO>::set_route
 FN:71,<flowclib::model::io::IO>::set_route
 FN:361,flowclib::model::io::test::deserialize_valid_json_type::{closure#0}
-FN:147,flowclib::model::io::default_io_type
-FN:92,<flowclib::model::io::IO>::set_initializer
-FN:55,<flowclib::model::io::IO>::flow_io
-FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FN:59,<flowclib::model::io::IO>::io_type
+FN:92,<flowclib::model::io::IO>::set_initializer
+FN:147,flowclib::model::io::default_io_type
+FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
+FN:55,<flowclib::model::io::IO>::flow_io
 FN:92,<flowclib::model::io::IO>::set_initializer
 FN:254,<flowclib::model::io::IO>::set_initial_values
 FN:224,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::find_by_route
@@ -596,19 +596,19 @@ FN:119,<flowclib::model::io::IO as flowclib::model::name::HasName>::name
 FN:63,<flowclib::model::io::IO>::set_flow_io
 FN:67,<flowclib::model::io::IO>::datatype
 FN:152,<flowclib::model::io::IO as flowclib::compiler::loader::Validate>::validate
-FN:375,flowclib::model::io::test::deserialize_extra_field_fails::{closure#0}
 FN:20,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
+FN:375,flowclib::model::io::test::deserialize_extra_field_fails::{closure#0}
 FN:122,<flowclib::model::io::IO as flowclib::model::name::HasName>::alias
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<toml::de::StrDeserializer>
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
 FN:20,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<_>
 FN:101,<flowclib::model::io::IO as core::default::Default>::default
-FN:152,<flowclib::model::io::IO as flowclib::compiler::loader::Validate>::validate
+FN:143,flowclib::model::io::default_type
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FN:143,flowclib::model::io::default_type
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
 FN:122,<flowclib::model::io::IO as flowclib::model::name::HasName>::alias
-FN:143,flowclib::model::io::default_type
+FN:152,<flowclib::model::io::IO as flowclib::compiler::loader::Validate>::validate
 FN:84,<flowclib::model::io::IO>::set_datatype
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
 FN:199,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::find
@@ -626,8 +626,8 @@ FN:332,flowclib::model::io::test::deserialize_valid_string_type::{closure#0}
 FN:20,<flowclib::model::io::IOType as serde::ser::Serialize>::serialize::<_>
 FN:20,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
 FN:20,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
-FN:59,<flowclib::model::io::IO>::io_type
 FN:161,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::compiler::loader::Validate>::validate
+FN:59,<flowclib::model::io::IO>::io_type
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FN:291,flowclib::model::io::test::deserialize_valid_type
 FN:88,<flowclib::model::io::IO>::get_initializer
@@ -641,8 +641,8 @@ FN:28,<flowclib::model::io::IO as serde::ser::Serialize>::serialize::<_>
 FN:28,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FN:20,<flowclib::model::io::IOType as core::clone::Clone>::clone
 FN:254,<flowclib::model::io::IO>::set_initial_values
-FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<toml::de::Error>
 FN:28,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
+FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<toml::de::Error>
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FN:20,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
 FN:67,<flowclib::model::io::IO>::datatype
@@ -678,17 +678,17 @@ FNDA:0,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::
 FNDA:1,flowclib::model::io::test::deserialize_extra_field_fails
 FNDA:1,<flowclib::model::io::IOType as core::cmp::PartialEq>::eq
 FNDA:1,flowclib::model::io::test::deserialize_empty_string
-FNDA:0,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::<_>
 FNDA:1,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
-FNDA:1,<flowclib::model::io::IO>::set_route_from_parent
 FNDA:1,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::route::SetIORoutes>::set_io_routes_from_parent
+FNDA:1,<flowclib::model::io::IO>::set_route_from_parent
+FNDA:0,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_enum::<_>
 FNDA:1,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::find_by_route
 FNDA:1,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<toml::de::MapVisitor>
 FNDA:0,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNDA:1,flowclib::model::io::test::non_unique_io_names_wont_validate
 FNDA:1,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::find_by_name
-FNDA:0,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNDA:1,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
+FNDA:0,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNDA:1,<flowclib::model::io::IOType as core::clone::Clone>::clone
 FNDA:0,<flowclib::model::io::IO>::set_initial_values
 FNDA:1,<flowclib::model::io::IO as core::default::Default>::default
@@ -732,8 +732,8 @@ FNDA:0,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde:
 FNDA:1,flowclib::model::io::test::deserialize_valid_type::{closure#0}
 FNDA:1,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::find_by_route
 FNDA:0,<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::<_>
-FNDA:1,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:0,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
+FNDA:1,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:0,<flowclib::model::io::IO as core::fmt::Display>::fmt
 FNDA:1,flowclib::model::io::test::deserialize_invalid_type
 FNDA:1,<flowclib::model::io::IO>::new::<&str, &str>
@@ -750,11 +750,11 @@ FNDA:1,<flowclib::model::io::IO as core::clone::Clone>::clone
 FNDA:1,<flowclib::model::io::IO>::set_route
 FNDA:1,<flowclib::model::io::IO>::set_route
 FNDA:1,flowclib::model::io::test::deserialize_valid_json_type::{closure#0}
-FNDA:1,flowclib::model::io::default_io_type
-FNDA:1,<flowclib::model::io::IO>::set_initializer
-FNDA:0,<flowclib::model::io::IO>::flow_io
-FNDA:0,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNDA:1,<flowclib::model::io::IO>::io_type
+FNDA:1,<flowclib::model::io::IO>::set_initializer
+FNDA:1,flowclib::model::io::default_io_type
+FNDA:0,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
+FNDA:0,<flowclib::model::io::IO>::flow_io
 FNDA:1,<flowclib::model::io::IO>::set_initializer
 FNDA:1,<flowclib::model::io::IO>::set_initial_values
 FNDA:1,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::find_by_route
@@ -776,19 +776,19 @@ FNDA:1,<flowclib::model::io::IO as flowclib::model::name::HasName>::name
 FNDA:1,<flowclib::model::io::IO>::set_flow_io
 FNDA:1,<flowclib::model::io::IO>::datatype
 FNDA:1,<flowclib::model::io::IO as flowclib::compiler::loader::Validate>::validate
-FNDA:1,flowclib::model::io::test::deserialize_extra_field_fails::{closure#0}
 FNDA:0,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
+FNDA:1,flowclib::model::io::test::deserialize_extra_field_fails::{closure#0}
 FNDA:0,<flowclib::model::io::IO as flowclib::model::name::HasName>::alias
 FNDA:1,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<toml::de::StrDeserializer>
 FNDA:0,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
 FNDA:0,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<_>
 FNDA:1,<flowclib::model::io::IO as core::default::Default>::default
-FNDA:1,<flowclib::model::io::IO as flowclib::compiler::loader::Validate>::validate
+FNDA:1,flowclib::model::io::default_type
 FNDA:0,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FNDA:1,flowclib::model::io::default_type
 FNDA:0,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
 FNDA:1,<flowclib::model::io::IO as flowclib::model::name::HasName>::alias
-FNDA:1,flowclib::model::io::default_type
+FNDA:1,<flowclib::model::io::IO as flowclib::compiler::loader::Validate>::validate
 FNDA:1,<flowclib::model::io::IO>::set_datatype
 FNDA:1,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
 FNDA:1,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::find
@@ -806,8 +806,8 @@ FNDA:1,flowclib::model::io::test::deserialize_valid_string_type::{closure#0}
 FNDA:0,<flowclib::model::io::IOType as serde::ser::Serialize>::serialize::<_>
 FNDA:0,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
 FNDA:0,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
-FNDA:1,<flowclib::model::io::IO>::io_type
 FNDA:0,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::compiler::loader::Validate>::validate
+FNDA:1,<flowclib::model::io::IO>::io_type
 FNDA:0,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FNDA:1,flowclib::model::io::test::deserialize_valid_type
 FNDA:1,<flowclib::model::io::IO>::get_initializer
@@ -821,8 +821,8 @@ FNDA:0,<flowclib::model::io::IO as serde::ser::Serialize>::serialize::<_>
 FNDA:0,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FNDA:1,<flowclib::model::io::IOType as core::clone::Clone>::clone
 FNDA:1,<flowclib::model::io::IO>::set_initial_values
-FNDA:1,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<toml::de::Error>
 FNDA:1,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
+FNDA:1,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<toml::de::Error>
 FNDA:0,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FNDA:0,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
 FNDA:1,<flowclib::model::io::IO>::datatype
@@ -891,9 +891,9 @@ DA:82,2677
 DA:84,127
 DA:85,127
 DA:86,127
-DA:88,2569
-DA:89,2569
-DA:90,2569
+DA:88,2575
+DA:89,2575
+DA:90,2575
 DA:92,1709
 DA:93,1709
 DA:94,1709
@@ -921,9 +921,9 @@ DA:124,12
 DA:128,0
 DA:129,0
 DA:130,0
-DA:134,16380
-DA:135,16380
-DA:136,16380
+DA:134,16424
+DA:135,16424
+DA:136,16424
 DA:138,172
 DA:139,172
 DA:140,172
@@ -3285,8 +3285,8 @@ FN:321,flowclib::dumper::dump_dot::add_input_set
 FN:88,flowclib::dumper::dump_dot::write_flow_to_dot::{closure#2}
 FN:129,flowclib::dumper::dump_dot::connection_to_dot
 FN:448,flowclib::dumper::dump_dot::test::strip_extension_in_path
-FN:239,flowclib::dumper::dump_dot::function_to_dot
 FN:88,flowclib::dumper::dump_dot::write_flow_to_dot::{closure#2}
+FN:239,flowclib::dumper::dump_dot::function_to_dot
 FN:77,flowclib::dumper::dump_dot::write_flow_to_dot::{closure#1}
 FN:23,flowclib::dumper::dump_dot::absolute_to_relative
 FN:384,flowclib::dumper::dump_dot::output_compiled_function
@@ -3330,25 +3330,25 @@ FN:113,flowclib::dumper::dump_dot::index_from_name::<alloc::string::String>
 FN:175,flowclib::dumper::dump_dot::node_from_io_route
 FN:175,flowclib::dumper::dump_dot::node_from_io_route
 FN:88,flowclib::dumper::dump_dot::write_flow_to_dot::{closure#2}
-FN:77,flowclib::dumper::dump_dot::write_flow_to_dot::{closure#1}
+FN:355,flowclib::dumper::dump_dot::add_output_set
 FN:214,flowclib::dumper::dump_dot::fn_to_dot
 FN:37,flowclib::dumper::dump_dot::remove_file_extension
-FN:355,flowclib::dumper::dump_dot::add_output_set
+FN:77,flowclib::dumper::dump_dot::write_flow_to_dot::{closure#1}
 FN:438,flowclib::dumper::dump_dot::test::strip_extension::{closure#0}
-FN:208,flowclib::dumper::dump_dot::digraph_wrapper_end
 FN:355,flowclib::dumper::dump_dot::add_output_set
-FN:175,flowclib::dumper::dump_dot::node_from_io_route
-FN:214,flowclib::dumper::dump_dot::fn_to_dot
+FN:208,flowclib::dumper::dump_dot::digraph_wrapper_end
 FN:64,flowclib::dumper::dump_dot::write_flow_to_dot::{closure#0}
+FN:214,flowclib::dumper::dump_dot::fn_to_dot
+FN:175,flowclib::dumper::dump_dot::node_from_io_route
 FN:283,flowclib::dumper::dump_dot::input_initializers
 FN:443,flowclib::dumper::dump_dot::test::strip_last_extension_only::{closure#0}
 FN:113,flowclib::dumper::dump_dot::index_from_name::<_>
 FN:77,flowclib::dumper::dump_dot::write_flow_to_dot::{closure#1}
 FN:124,flowclib::dumper::dump_dot::output_name_to_port::<flowclib::model::name::Name>
-FN:384,flowclib::dumper::dump_dot::output_compiled_function
+FN:51,flowclib::dumper::dump_dot::write_flow_to_dot
 FN:193,flowclib::dumper::dump_dot::digraph_wrapper_start
 FN:208,flowclib::dumper::dump_dot::digraph_wrapper_end
-FN:51,flowclib::dumper::dump_dot::write_flow_to_dot
+FN:384,flowclib::dumper::dump_dot::output_compiled_function
 FNDA:1,flowclib::dumper::dump_dot::add_output_set
 FNDA:0,flowclib::dumper::dump_dot::function_to_dot
 FNDA:0,flowclib::dumper::dump_dot::output_name_to_port::<_>
@@ -3357,8 +3357,8 @@ FNDA:1,flowclib::dumper::dump_dot::add_input_set
 FNDA:0,flowclib::dumper::dump_dot::write_flow_to_dot::{closure#2}
 FNDA:0,flowclib::dumper::dump_dot::connection_to_dot
 FNDA:1,flowclib::dumper::dump_dot::test::strip_extension_in_path
-FNDA:0,flowclib::dumper::dump_dot::function_to_dot
 FNDA:0,flowclib::dumper::dump_dot::write_flow_to_dot::{closure#2}
+FNDA:0,flowclib::dumper::dump_dot::function_to_dot
 FNDA:0,flowclib::dumper::dump_dot::write_flow_to_dot::{closure#1}
 FNDA:0,flowclib::dumper::dump_dot::absolute_to_relative
 FNDA:0,flowclib::dumper::dump_dot::output_compiled_function
@@ -3402,25 +3402,25 @@ FNDA:0,flowclib::dumper::dump_dot::index_from_name::<alloc::string::String>
 FNDA:1,flowclib::dumper::dump_dot::node_from_io_route
 FNDA:1,flowclib::dumper::dump_dot::node_from_io_route
 FNDA:0,flowclib::dumper::dump_dot::write_flow_to_dot::{closure#2}
-FNDA:0,flowclib::dumper::dump_dot::write_flow_to_dot::{closure#1}
+FNDA:0,flowclib::dumper::dump_dot::add_output_set
 FNDA:1,flowclib::dumper::dump_dot::fn_to_dot
 FNDA:1,flowclib::dumper::dump_dot::remove_file_extension
-FNDA:0,flowclib::dumper::dump_dot::add_output_set
+FNDA:0,flowclib::dumper::dump_dot::write_flow_to_dot::{closure#1}
 FNDA:1,flowclib::dumper::dump_dot::test::strip_extension::{closure#0}
-FNDA:1,flowclib::dumper::dump_dot::digraph_wrapper_end
 FNDA:1,flowclib::dumper::dump_dot::add_output_set
-FNDA:0,flowclib::dumper::dump_dot::node_from_io_route
-FNDA:1,flowclib::dumper::dump_dot::fn_to_dot
+FNDA:1,flowclib::dumper::dump_dot::digraph_wrapper_end
 FNDA:0,flowclib::dumper::dump_dot::write_flow_to_dot::{closure#0}
+FNDA:1,flowclib::dumper::dump_dot::fn_to_dot
+FNDA:0,flowclib::dumper::dump_dot::node_from_io_route
 FNDA:1,flowclib::dumper::dump_dot::input_initializers
 FNDA:1,flowclib::dumper::dump_dot::test::strip_last_extension_only::{closure#0}
 FNDA:0,flowclib::dumper::dump_dot::index_from_name::<_>
 FNDA:0,flowclib::dumper::dump_dot::write_flow_to_dot::{closure#1}
 FNDA:1,flowclib::dumper::dump_dot::output_name_to_port::<flowclib::model::name::Name>
-FNDA:0,flowclib::dumper::dump_dot::output_compiled_function
+FNDA:1,flowclib::dumper::dump_dot::write_flow_to_dot
 FNDA:1,flowclib::dumper::dump_dot::digraph_wrapper_start
 FNDA:1,flowclib::dumper::dump_dot::digraph_wrapper_end
-FNDA:1,flowclib::dumper::dump_dot::write_flow_to_dot
+FNDA:0,flowclib::dumper::dump_dot::output_compiled_function
 FNF:72
 FNH:36
 BRF:0
@@ -3992,15 +3992,15 @@ LH:152
 end_of_record
 SF:flowc/src/lib/compiler/compile.rs
 FN:14,flowclib::compiler::compile::compile
-FN:54,flowclib::compiler::compile::test::dead_function::{closure#0}
 FN:14,flowclib::compiler::compile::compile
-FN:54,flowclib::compiler::compile::test::dead_function
+FN:57,flowclib::compiler::compile::test::no_side_effects::{closure#0}
 FN:14,flowclib::compiler::compile::compile
+FN:57,flowclib::compiler::compile::test::no_side_effects
 FNDA:1,flowclib::compiler::compile::compile
-FNDA:1,flowclib::compiler::compile::test::dead_function::{closure#0}
 FNDA:1,flowclib::compiler::compile::compile
-FNDA:1,flowclib::compiler::compile::test::dead_function
+FNDA:1,flowclib::compiler::compile::test::no_side_effects::{closure#0}
 FNDA:1,flowclib::compiler::compile::compile
+FNDA:1,flowclib::compiler::compile::test::no_side_effects
 FNF:5
 FNH:5
 BRF:0
@@ -4025,41 +4025,47 @@ DA:30,88
 DA:31,88
 DA:32,84
 DA:33,84
-DA:35,84
-DA:36,104
-DA:54,2
-DA:55,2
-DA:56,2
-DA:57,2
-DA:58,2
-DA:59,2
-DA:60,2
-DA:61,2
-DA:62,2
-DA:63,2
-DA:64,2
-DA:65,2
-DA:66,2
-DA:67,2
-DA:68,2
-DA:69,2
-DA:70,2
-DA:71,2
-DA:72,2
-DA:73,2
-DA:74,2
-DA:75,2
-DA:76,2
-DA:77,2
-DA:78,2
-DA:79,2
-DA:80,2
-DA:81,2
-DA:82,2
-DA:83,2
-DA:84,2
-LF:53
-LH:53
+DA:34,79
+DA:35,79
+DA:37,79
+DA:38,104
+DA:57,1
+DA:58,1
+DA:59,1
+DA:60,1
+DA:61,1
+DA:62,1
+DA:63,1
+DA:64,1
+DA:65,1
+DA:66,1
+DA:67,1
+DA:68,1
+DA:69,1
+DA:70,1
+DA:71,1
+DA:72,1
+DA:73,1
+DA:74,1
+DA:75,1
+DA:76,1
+DA:77,1
+DA:78,1
+DA:79,1
+DA:80,1
+DA:81,1
+DA:82,1
+DA:83,1
+DA:84,1
+DA:85,1
+DA:86,1
+DA:87,1
+DA:88,1
+DA:89,1
+DA:90,1
+DA:91,1
+LF:59
+LH:59
 end_of_record
 SF:flowc/src/lib/info.rs
 FN:19,flowclib::info::test::can_get_version::{closure#0}
@@ -4853,8 +4859,8 @@ FN:10,<flowcore::input::InputInitializer as serde::ser::Serialize>::serialize::<
 FN:62,<flowcore::input::Input>::take
 FN:137,flowcore::input::test::accepts_array
 FN:10,<flowcore::input::InputInitializer as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
-FN:22,<flowcore::input::Input as serde::ser::Serialize>::serialize::<&mut serde_json::ser::Serializer<&mut alloc::vec::Vec<u8>, serde_json::ser::PrettyFormatter>>
 FN:10,<<flowcore::input::InputInitializer as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<toml::de::Error>
+FN:22,<flowcore::input::Input as serde::ser::Serialize>::serialize::<&mut serde_json::ser::Serializer<&mut alloc::vec::Vec<u8>, serde_json::ser::PrettyFormatter>>
 FN:10,<flowcore::input::InputInitializer as core::clone::Clone>::clone
 FN:151,flowcore::input::test::take_empties
 FN:10,<flowcore::input::InputInitializer as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
@@ -4996,8 +5002,8 @@ FNDA:1,<flowcore::input::InputInitializer as serde::ser::Serialize>::serialize::
 FNDA:1,<flowcore::input::Input>::take
 FNDA:1,flowcore::input::test::accepts_array
 FNDA:1,<flowcore::input::InputInitializer as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
-FNDA:1,<flowcore::input::Input as serde::ser::Serialize>::serialize::<&mut serde_json::ser::Serializer<&mut alloc::vec::Vec<u8>, serde_json::ser::PrettyFormatter>>
 FNDA:1,<<flowcore::input::InputInitializer as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<toml::de::Error>
+FNDA:1,<flowcore::input::Input as serde::ser::Serialize>::serialize::<&mut serde_json::ser::Serializer<&mut alloc::vec::Vec<u8>, serde_json::ser::PrettyFormatter>>
 FNDA:1,<flowcore::input::InputInitializer as core::clone::Clone>::clone
 FNDA:1,flowcore::input::test::take_empties
 FNDA:1,<flowcore::input::InputInitializer as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
@@ -5167,7 +5173,7 @@ DA:101,1151
 DA:102,1151
 DA:103,1151
 DA:105,155
-DA:108,556470
+DA:108,556425
 DA:119,1
 DA:120,1
 DA:121,1
@@ -6068,40 +6074,40 @@ LF:110
 LH:88
 end_of_record
 SF:flowc/tests/flowc-compiler_tests.rs
-FN:383,flowc_compiler_tests::flow_input_initialized_and_propagated_to_function_in_subflow
+FN:386,flowc_compiler_tests::flow_input_initialized_and_propagated_to_function_in_subflow
 FN:48,flowc_compiler_tests::object_to_array_connection::{closure#0}
 FN:110,flowc_compiler_tests::same_name_flow_ids::{closure#0}
 FN:155,flowc_compiler_tests::connection_to_input_with_constant_initializer
 FN:130,flowc_compiler_tests::same_name_flow_ids::{closure#2}
-FN:240,flowc_compiler_tests::compiler_detects_unused_input::{closure#0}
-FN:305,flowc_compiler_tests::flow_input_propagated_back_out::{closure#0}
-FN:224,flowc_compiler_tests::compile_echo_ok::{closure#0}
+FN:243,flowc_compiler_tests::compiler_detects_unused_input::{closure#0}
+FN:308,flowc_compiler_tests::flow_input_propagated_back_out::{closure#0}
+FN:227,flowc_compiler_tests::compile_echo_ok::{closure#0}
 FN:122,flowc_compiler_tests::same_name_flow_ids::{closure#1}
 FN:202,flowc_compiler_tests::dead_process_and_connected_process_removed::{closure#0}
 FN:202,flowc_compiler_tests::dead_process_and_connected_process_removed
-FN:332,flowc_compiler_tests::initialized_output_propagated::{closure#0}
-FN:332,flowc_compiler_tests::initialized_output_propagated
-FN:383,flowc_compiler_tests::flow_input_initialized_and_propagated_to_function_in_subflow::{closure#0}
+FN:335,flowc_compiler_tests::initialized_output_propagated::{closure#0}
+FN:335,flowc_compiler_tests::initialized_output_propagated
+FN:386,flowc_compiler_tests::flow_input_initialized_and_propagated_to_function_in_subflow::{closure#0}
 FN:97,flowc_compiler_tests::same_name_flow_ids::{closure#0}
-FN:280,flowc_compiler_tests::compile_detects_connection_to_initialized_input
-FN:280,flowc_compiler_tests::compile_detects_connection_to_initialized_input::{closure#0}
+FN:283,flowc_compiler_tests::compile_detects_connection_to_initialized_input
+FN:283,flowc_compiler_tests::compile_detects_connection_to_initialized_input::{closure#0}
 FN:48,flowc_compiler_tests::object_to_array_connection
 FN:80,flowc_compiler_tests::same_name_input_and_output::{closure#0}
-FN:305,flowc_compiler_tests::flow_input_propagated_back_out
+FN:308,flowc_compiler_tests::flow_input_propagated_back_out
 FN:1,flowc_compiler_tests::main
-FN:394,flowc_compiler_tests::flow_input_initialized_and_propagated_to_function_in_subflow::{closure#0}
+FN:397,flowc_compiler_tests::flow_input_initialized_and_propagated_to_function_in_subflow::{closure#0}
 FN:62,flowc_compiler_tests::context_with_io
-FN:35,flowc_compiler_tests::args::{closure#0}
+FN:349,flowc_compiler_tests::initialized_output_propagated::{closure#0}
 FN:97,flowc_compiler_tests::same_name_flow_ids
 FN:80,flowc_compiler_tests::same_name_input_and_output
 FN:62,flowc_compiler_tests::context_with_io::{closure#0}
-FN:346,flowc_compiler_tests::initialized_output_propagated::{closure#0}
+FN:35,flowc_compiler_tests::args::{closure#0}
 FN:139,flowc_compiler_tests::double_connection::{closure#0}
-FN:240,flowc_compiler_tests::compiler_detects_unused_input
-FN:224,flowc_compiler_tests::compile_echo_ok
+FN:243,flowc_compiler_tests::compiler_detects_unused_input
+FN:227,flowc_compiler_tests::compile_echo_ok
 FN:171,flowc_compiler_tests::dead_process_removed
-FN:261,flowc_compiler_tests::compile_double_connection
-FN:261,flowc_compiler_tests::compile_double_connection::{closure#0}
+FN:264,flowc_compiler_tests::compile_double_connection
+FN:264,flowc_compiler_tests::compile_double_connection::{closure#0}
 FN:155,flowc_compiler_tests::connection_to_input_with_constant_initializer::{closure#0}
 FN:171,flowc_compiler_tests::dead_process_removed::{closure#0}
 FN:35,flowc_compiler_tests::args
@@ -6129,11 +6135,11 @@ FNDA:1,flowc_compiler_tests::flow_input_propagated_back_out
 FNDA:1,flowc_compiler_tests::main
 FNDA:1,flowc_compiler_tests::flow_input_initialized_and_propagated_to_function_in_subflow::{closure#0}
 FNDA:1,flowc_compiler_tests::context_with_io
-FNDA:1,flowc_compiler_tests::args::{closure#0}
+FNDA:1,flowc_compiler_tests::initialized_output_propagated::{closure#0}
 FNDA:1,flowc_compiler_tests::same_name_flow_ids
 FNDA:1,flowc_compiler_tests::same_name_input_and_output
 FNDA:1,flowc_compiler_tests::context_with_io::{closure#0}
-FNDA:1,flowc_compiler_tests::initialized_output_propagated::{closure#0}
+FNDA:1,flowc_compiler_tests::args::{closure#0}
 FNDA:1,flowc_compiler_tests::double_connection::{closure#0}
 FNDA:1,flowc_compiler_tests::compiler_detects_unused_input
 FNDA:1,flowc_compiler_tests::compile_echo_ok
@@ -6216,7 +6222,7 @@ DA:106,1
 DA:107,1
 DA:108,1
 DA:109,1
-DA:110,2
+DA:110,3
 DA:111,1
 DA:112,1
 DA:113,1
@@ -6236,7 +6242,7 @@ DA:126,1
 DA:127,1
 DA:128,1
 DA:129,1
-DA:130,1
+DA:130,2
 DA:131,1
 DA:132,1
 DA:133,1
@@ -6320,9 +6326,9 @@ DA:218,1
 DA:219,1
 DA:220,1
 DA:221,1
+DA:222,1
+DA:223,1
 DA:224,1
-DA:225,1
-DA:226,1
 DA:227,1
 DA:228,1
 DA:229,1
@@ -6334,9 +6340,9 @@ DA:234,1
 DA:235,1
 DA:236,1
 DA:237,1
+DA:238,1
+DA:239,1
 DA:240,1
-DA:241,1
-DA:242,1
 DA:243,1
 DA:244,1
 DA:245,1
@@ -6353,9 +6359,9 @@ DA:255,1
 DA:256,1
 DA:257,1
 DA:258,1
+DA:259,1
+DA:260,1
 DA:261,1
-DA:262,1
-DA:263,1
 DA:264,1
 DA:265,1
 DA:266,1
@@ -6370,9 +6376,9 @@ DA:274,1
 DA:275,1
 DA:276,1
 DA:277,1
+DA:278,1
+DA:279,1
 DA:280,1
-DA:281,1
-DA:282,1
 DA:283,1
 DA:284,1
 DA:285,1
@@ -6389,9 +6395,9 @@ DA:295,1
 DA:296,1
 DA:297,1
 DA:298,1
-DA:305,1
-DA:306,1
-DA:307,1
+DA:299,1
+DA:300,1
+DA:301,1
 DA:308,1
 DA:309,1
 DA:310,1
@@ -6400,20 +6406,20 @@ DA:312,1
 DA:313,1
 DA:314,1
 DA:315,1
-DA:316,0
-DA:317,0
-DA:318,0
-DA:319,1
-DA:320,1
-DA:321,1
-DA:322,0
-DA:323,0
-DA:324,0
-DA:325,1
-DA:326,1
-DA:332,1
-DA:333,1
-DA:334,1
+DA:316,1
+DA:317,1
+DA:318,1
+DA:319,0
+DA:320,0
+DA:321,0
+DA:322,1
+DA:323,1
+DA:324,1
+DA:325,0
+DA:326,0
+DA:327,0
+DA:328,1
+DA:329,1
 DA:335,1
 DA:336,1
 DA:337,1
@@ -6433,32 +6439,32 @@ DA:350,1
 DA:351,1
 DA:352,1
 DA:353,1
-DA:354,0
-DA:355,0
-DA:356,0
-DA:357,1
-DA:358,1
-DA:359,1
+DA:354,1
+DA:355,1
+DA:356,1
+DA:357,0
+DA:358,0
+DA:359,0
 DA:360,1
 DA:361,1
 DA:362,1
 DA:363,1
 DA:364,1
-DA:365,0
-DA:366,0
-DA:367,0
-DA:368,1
-DA:369,1
-DA:370,1
+DA:365,1
+DA:366,1
+DA:367,1
+DA:368,0
+DA:369,0
+DA:370,0
 DA:371,1
-DA:372,0
-DA:373,0
-DA:374,0
-DA:375,1
-DA:376,1
-DA:383,1
-DA:384,1
-DA:385,1
+DA:372,1
+DA:373,1
+DA:374,1
+DA:375,0
+DA:376,0
+DA:377,0
+DA:378,1
+DA:379,1
 DA:386,1
 DA:387,1
 DA:388,1
@@ -6467,10 +6473,10 @@ DA:390,1
 DA:391,1
 DA:392,1
 DA:393,1
-DA:394,2
+DA:394,1
 DA:395,1
 DA:396,1
-DA:397,1
+DA:397,2
 DA:398,1
 DA:399,1
 DA:400,1
@@ -6483,8 +6489,11 @@ DA:406,1
 DA:407,1
 DA:408,1
 DA:409,1
-LF:335
-LH:320
+DA:410,1
+DA:411,1
+DA:412,1
+LF:338
+LH:323
 end_of_record
 SF:flowc/tests/helper.rs
 FN:25,flowc_loader_tests::helper::absolute_file_url_from_relative_path
@@ -7462,11 +7471,11 @@ FN:48,<flowclib::model::name::Name as core::convert::From<alloc::string::String>
 FN:11,<flowclib::model::name::Name as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:11,<flowclib::model::name::Name as core::clone::Clone>::clone
 FN:11,<flowclib::model::name::Name as serde::de::Deserialize>::deserialize::<serde::__private::de::missing_field::MissingFieldDeserializer<serde_yaml::error::Error>>
-FN:22,<flowclib::model::name::Name as flowclib::compiler::loader::Validate>::validate
+FN:11,<flowclib::model::name::Name as core::clone::Clone>::clone
 FN:11,<flowclib::model::name::Name as core::default::Default>::default
 FN:11,<flowclib::model::name::Name as core::borrow::Borrow<alloc::string::String>>::borrow
 FN:11,<flowclib::model::name::Name>::map_mut::<_, _>
-FN:11,<flowclib::model::name::Name as core::clone::Clone>::clone
+FN:22,<flowclib::model::name::Name as flowclib::compiler::loader::Validate>::validate
 FN:91,flowclib::model::name::test::validates_when_has_value
 FN:11,<flowclib::model::name::Name>::map::<_, _>
 FN:11,<flowclib::model::name::Name>::map::<_, _>
@@ -7493,9 +7502,9 @@ FN:11,<flowclib::model::name::Name as core::default::Default>::default
 FN:11,<flowclib::model::name::Name as core::cmp::PartialEq>::eq
 FN:11,<flowclib::model::name::Name>::map_mut::<_, _>
 FN:11,<flowclib::model::name::Name as core::cmp::PartialEq>::ne
-FN:11,<flowclib::model::name::Name as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
-FN:11,<flowclib::model::name::Name>::map_ref::<_, _>
 FN:11,<flowclib::model::name::Name>::map_mut::<_, _>
+FN:11,<flowclib::model::name::Name>::map_ref::<_, _>
+FN:11,<flowclib::model::name::Name as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FN:11,<flowclib::model::name::Name as core::ops::deref::Deref>::deref
 FN:11,<flowclib::model::name::Name as core::cmp::PartialEq>::eq
 FN:77,flowclib::model::name::test::validates_when_empty
@@ -7569,11 +7578,11 @@ FNDA:0,<flowclib::model::name::Name as core::convert::From<alloc::string::String
 FNDA:1,<flowclib::model::name::Name as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:1,<flowclib::model::name::Name as core::clone::Clone>::clone
 FNDA:0,<flowclib::model::name::Name as serde::de::Deserialize>::deserialize::<serde::__private::de::missing_field::MissingFieldDeserializer<serde_yaml::error::Error>>
-FNDA:1,<flowclib::model::name::Name as flowclib::compiler::loader::Validate>::validate
+FNDA:1,<flowclib::model::name::Name as core::clone::Clone>::clone
 FNDA:1,<flowclib::model::name::Name as core::default::Default>::default
 FNDA:0,<flowclib::model::name::Name as core::borrow::Borrow<alloc::string::String>>::borrow
 FNDA:0,<flowclib::model::name::Name>::map_mut::<_, _>
-FNDA:1,<flowclib::model::name::Name as core::clone::Clone>::clone
+FNDA:1,<flowclib::model::name::Name as flowclib::compiler::loader::Validate>::validate
 FNDA:1,flowclib::model::name::test::validates_when_has_value
 FNDA:0,<flowclib::model::name::Name>::map::<_, _>
 FNDA:0,<flowclib::model::name::Name>::map::<_, _>
@@ -7600,9 +7609,9 @@ FNDA:1,<flowclib::model::name::Name as core::default::Default>::default
 FNDA:1,<flowclib::model::name::Name as core::cmp::PartialEq>::eq
 FNDA:0,<flowclib::model::name::Name>::map_mut::<_, _>
 FNDA:0,<flowclib::model::name::Name as core::cmp::PartialEq>::ne
-FNDA:1,<flowclib::model::name::Name as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
-FNDA:0,<flowclib::model::name::Name>::map_ref::<_, _>
 FNDA:0,<flowclib::model::name::Name>::map_mut::<_, _>
+FNDA:0,<flowclib::model::name::Name>::map_ref::<_, _>
+FNDA:1,<flowclib::model::name::Name as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNDA:1,<flowclib::model::name::Name as core::ops::deref::Deref>::deref
 FNDA:1,<flowclib::model::name::Name as core::cmp::PartialEq>::eq
 FNDA:1,flowclib::model::name::test::validates_when_empty
@@ -7631,9 +7640,9 @@ DA:32,1627
 DA:36,8345
 DA:37,8345
 DA:38,8345
-DA:42,3554
-DA:43,3554
-DA:44,3554
+DA:42,3560
+DA:43,3560
+DA:44,3560
 DA:48,0
 DA:49,0
 DA:50,0
@@ -8303,8 +8312,8 @@ FN:88,<flowcore::manifest::Manifest>::add_lib_reference
 FN:103,<flowcore::manifest::Manifest>::load
 FN:30,<<flowcore::manifest::Cargo as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
 FN:13,<<flowcore::manifest::MetaData as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<toml::de::MapVisitor>
-FN:37,<flowcore::manifest::Manifest as serde::ser::Serialize>::serialize::<&mut serde_json::ser::Serializer<&mut alloc::vec::Vec<u8>, serde_json::ser::PrettyFormatter>>
 FN:13,<<flowcore::manifest::MetaData as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<toml::de::StrDeserializer>
+FN:37,<flowcore::manifest::Manifest as serde::ser::Serialize>::serialize::<&mut serde_json::ser::Serializer<&mut alloc::vec::Vec<u8>, serde_json::ser::PrettyFormatter>>
 FN:113,<flowcore::manifest::Manifest>::load::{closure#2}
 FN:37,<<flowcore::manifest::Manifest as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
 FN:13,<<flowcore::manifest::MetaData as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::de::value::BorrowedStrDeserializer<toml::de::Error>>
@@ -8539,8 +8548,8 @@ FNDA:0,<flowcore::manifest::Manifest>::add_lib_reference
 FNDA:1,<flowcore::manifest::Manifest>::load
 FNDA:0,<<flowcore::manifest::Cargo as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
 FNDA:1,<<flowcore::manifest::MetaData as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<toml::de::MapVisitor>
-FNDA:1,<flowcore::manifest::Manifest as serde::ser::Serialize>::serialize::<&mut serde_json::ser::Serializer<&mut alloc::vec::Vec<u8>, serde_json::ser::PrettyFormatter>>
 FNDA:1,<<flowcore::manifest::MetaData as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<toml::de::StrDeserializer>
+FNDA:1,<flowcore::manifest::Manifest as serde::ser::Serialize>::serialize::<&mut serde_json::ser::Serializer<&mut alloc::vec::Vec<u8>, serde_json::ser::PrettyFormatter>>
 FNDA:0,<flowcore::manifest::Manifest>::load::{closure#2}
 FNDA:0,<<flowcore::manifest::Manifest as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_bytes::<_>
 FNDA:0,<<flowcore::manifest::MetaData as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::de::value::BorrowedStrDeserializer<toml::de::Error>>
@@ -8800,8 +8809,8 @@ FN:30,<flowclib::model::connection::Direction as core::fmt::Debug>::fmt
 FN:225,flowclib::model::connection::test::simple_to_array::{closure#0}
 FN:13,<<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::__Visitor, serde_json::error::Error>::{closure#0}>, serde_json::error::Error>>
 FN:13,<<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
-FN:13,<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:38,<flowclib::model::connection::Connection as core::fmt::Display>::fmt
+FN:13,<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:13,<<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FN:148,flowclib::model::connection::test::deserialize_simple::{closure#0}
 FN:13,<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
@@ -8850,11 +8859,11 @@ FN:13,<<flowclib::model::connection::Connection as serde::de::Deserialize>::dese
 FN:13,<flowclib::model::connection::Connection as serde::ser::Serialize>::serialize::<_>
 FN:13,<flowclib::model::connection::Connection as core::fmt::Debug>::fmt
 FN:13,<<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
-FN:205,flowclib::model::connection::test::simple_to_simple_mismatch::{closure#0}
 FN:38,<flowclib::model::connection::Connection as core::fmt::Display>::fmt
+FN:205,flowclib::model::connection::test::simple_to_simple_mismatch::{closure#0}
 FN:225,flowclib::model::connection::test::simple_to_array
-FN:205,flowclib::model::connection::test::simple_to_simple_mismatch
 FN:120,flowclib::model::connection::test::type_conversions
+FN:205,flowclib::model::connection::test::simple_to_simple_mismatch
 FN:61,<flowclib::model::connection::Connection as flowclib::compiler::loader::Validate>::validate
 FN:13,<<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:13,<<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<toml::de::StrDeserializer>
@@ -8876,8 +8885,8 @@ FNDA:0,<flowclib::model::connection::Direction as core::fmt::Debug>::fmt
 FNDA:1,flowclib::model::connection::test::simple_to_array::{closure#0}
 FNDA:0,<<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::__Visitor, serde_json::error::Error>::{closure#0}>, serde_json::error::Error>>
 FNDA:0,<<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
-FNDA:1,<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:0,<flowclib::model::connection::Connection as core::fmt::Display>::fmt
+FNDA:1,<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:0,<<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FNDA:1,flowclib::model::connection::test::deserialize_simple::{closure#0}
 FNDA:1,<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
@@ -8926,11 +8935,11 @@ FNDA:0,<<flowclib::model::connection::Connection as serde::de::Deserialize>::des
 FNDA:0,<flowclib::model::connection::Connection as serde::ser::Serialize>::serialize::<_>
 FNDA:0,<flowclib::model::connection::Connection as core::fmt::Debug>::fmt
 FNDA:0,<<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
-FNDA:1,flowclib::model::connection::test::simple_to_simple_mismatch::{closure#0}
 FNDA:0,<flowclib::model::connection::Connection as core::fmt::Display>::fmt
+FNDA:1,flowclib::model::connection::test::simple_to_simple_mismatch::{closure#0}
 FNDA:1,flowclib::model::connection::test::simple_to_array
-FNDA:1,flowclib::model::connection::test::simple_to_simple_mismatch
 FNDA:1,flowclib::model::connection::test::type_conversions
+FNDA:1,flowclib::model::connection::test::simple_to_simple_mismatch
 FNDA:1,<flowclib::model::connection::Connection as flowclib::compiler::loader::Validate>::validate
 FNDA:1,<<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:1,<<flowclib::model::connection::Connection as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<toml::de::StrDeserializer>
@@ -9615,12 +9624,12 @@ DA:137,1998
 DA:141,1
 DA:142,1
 DA:143,1
-DA:146,398632
-DA:147,398632
-DA:148,398632
-DA:151,46425
-DA:152,46425
-DA:153,46425
+DA:146,398560
+DA:147,398560
+DA:148,398560
+DA:151,46470
+DA:152,46470
+DA:153,46470
 DA:156,11204
 DA:157,11204
 DA:158,19022
@@ -9650,16 +9659,16 @@ DA:192,10511
 DA:195,420
 DA:196,420
 DA:197,420
-DA:200,71214
-DA:201,71214
-DA:202,71214
-DA:205,235550
-DA:206,235550
-DA:208,454102
-DA:209,454102
-DA:210,454102
-DA:212,235550
-DA:213,235550
+DA:200,71202
+DA:201,71202
+DA:202,71202
+DA:205,235535
+DA:206,235535
+DA:208,454069
+DA:209,454069
+DA:210,454069
+DA:212,235535
+DA:213,235535
 DA:216,183857
 DA:217,183857
 DA:218,183857
@@ -10910,8 +10919,8 @@ FN:317,flowclib::compiler::compile_wasm::test::out_of_date_test::{closure#2}
 FN:229,flowclib::compiler::compile_wasm::get_paths::{closure#4}
 FN:222,flowclib::compiler::compile_wasm::get_paths::{closure#2}
 FN:120,flowclib::compiler::compile_wasm::compile_implementation::{closure#5}
-FN:117,flowclib::compiler::compile_wasm::compile_implementation::{closure#4}
 FN:277,flowclib::compiler::compile_wasm::out_of_date::{closure#3}
+FN:117,flowclib::compiler::compile_wasm::compile_implementation::{closure#4}
 FN:277,flowclib::compiler::compile_wasm::out_of_date::{closure#3}
 FN:20,flowclib::compiler::compile_wasm::compile_supplied_implementations
 FN:216,flowclib::compiler::compile_wasm::get_paths
@@ -10937,8 +10946,8 @@ FN:157,flowclib::compiler::compile_wasm::run_cargo_build
 FN:329,flowclib::compiler::compile_wasm::test::not_out_of_date_test::{closure#0}
 FN:222,flowclib::compiler::compile_wasm::get_paths::{closure#2}
 FN:271,flowclib::compiler::compile_wasm::out_of_date::{closure#1}
-FN:128,flowclib::compiler::compile_wasm::compile_implementation::{closure#6}
 FN:219,flowclib::compiler::compile_wasm::get_paths::{closure#1}
+FN:128,flowclib::compiler::compile_wasm::compile_implementation::{closure#6}
 FN:46,flowclib::compiler::compile_wasm::compile_implementation::{closure#0}
 FN:216,flowclib::compiler::compile_wasm::get_paths
 FN:48,flowclib::compiler::compile_wasm::compile_implementation::{closure#1}
@@ -10985,8 +10994,8 @@ FNDA:0,flowclib::compiler::compile_wasm::test::out_of_date_test::{closure#2}
 FNDA:0,flowclib::compiler::compile_wasm::get_paths::{closure#4}
 FNDA:0,flowclib::compiler::compile_wasm::get_paths::{closure#2}
 FNDA:0,flowclib::compiler::compile_wasm::compile_implementation::{closure#5}
-FNDA:0,flowclib::compiler::compile_wasm::compile_implementation::{closure#4}
 FNDA:0,flowclib::compiler::compile_wasm::out_of_date::{closure#3}
+FNDA:0,flowclib::compiler::compile_wasm::compile_implementation::{closure#4}
 FNDA:0,flowclib::compiler::compile_wasm::out_of_date::{closure#3}
 FNDA:0,flowclib::compiler::compile_wasm::compile_supplied_implementations
 FNDA:1,flowclib::compiler::compile_wasm::get_paths
@@ -11012,8 +11021,8 @@ FNDA:1,flowclib::compiler::compile_wasm::run_cargo_build
 FNDA:1,flowclib::compiler::compile_wasm::test::not_out_of_date_test::{closure#0}
 FNDA:0,flowclib::compiler::compile_wasm::get_paths::{closure#2}
 FNDA:0,flowclib::compiler::compile_wasm::out_of_date::{closure#1}
-FNDA:0,flowclib::compiler::compile_wasm::compile_implementation::{closure#6}
 FNDA:0,flowclib::compiler::compile_wasm::get_paths::{closure#1}
+FNDA:0,flowclib::compiler::compile_wasm::compile_implementation::{closure#6}
 FNDA:0,flowclib::compiler::compile_wasm::compile_implementation::{closure#0}
 FNDA:1,flowclib::compiler::compile_wasm::get_paths
 FNDA:0,flowclib::compiler::compile_wasm::compile_implementation::{closure#1}
@@ -11420,8 +11429,8 @@ FN:101,flowclib::deserializers::toml_deserializer::test::default_optional_values
 FN:187,flowclib::deserializers::toml_deserializer::test::flow_with_function_from_lib
 FN:215,flowclib::deserializers::toml_deserializer::test::flow_with_function_without_source
 FN:12,<flowclib::deserializers::toml_deserializer::FlowTomlLoader as flowclib::compiler::loader::Deserializer>::deserialize::{closure#0}
-FN:228,flowclib::deserializers::toml_deserializer::test::load_fails_if_no_alias
 FN:201,flowclib::deserializers::toml_deserializer::test::flow_with_unknown_lib_key::{closure#0}
+FN:228,flowclib::deserializers::toml_deserializer::test::load_fails_if_no_alias
 FN:252,flowclib::deserializers::toml_deserializer::test::function_lacks_name::{closure#0}
 FN:215,flowclib::deserializers::toml_deserializer::test::flow_with_function_without_source::{closure#0}
 FN:37,flowclib::deserializers::toml_deserializer::test::invalid_toml::{closure#0}
@@ -11429,9 +11438,9 @@ FN:70,flowclib::deserializers::toml_deserializer::test::flow_errors_on_unknown_f
 FN:15,<flowclib::deserializers::toml_deserializer::FlowTomlLoader as flowclib::compiler::loader::Deserializer>::deserialize::{closure#0}::{closure#0}
 FN:201,flowclib::deserializers::toml_deserializer::test::flow_with_unknown_lib_key
 FN:20,<flowclib::deserializers::toml_deserializer::FlowTomlLoader as flowclib::compiler::loader::Deserializer>::name
+FN:264,flowclib::deserializers::toml_deserializer::test::function_lacks_implementation::{closure#0}
 FN:187,flowclib::deserializers::toml_deserializer::test::flow_with_function_from_lib::{closure#0}
 FN:228,flowclib::deserializers::toml_deserializer::test::load_fails_if_no_alias::{closure#0}
-FN:264,flowclib::deserializers::toml_deserializer::test::function_lacks_implementation::{closure#0}
 FN:85,flowclib::deserializers::toml_deserializer::test::function_errors_on_unknown_fields
 FN:117,flowclib::deserializers::toml_deserializer::test::metadata
 FN:15,<flowclib::deserializers::toml_deserializer::FlowTomlLoader as flowclib::compiler::loader::Deserializer>::deserialize::{closure#0}::{closure#0}
@@ -11462,8 +11471,8 @@ FNDA:1,flowclib::deserializers::toml_deserializer::test::default_optional_values
 FNDA:1,flowclib::deserializers::toml_deserializer::test::flow_with_function_from_lib
 FNDA:1,flowclib::deserializers::toml_deserializer::test::flow_with_function_without_source
 FNDA:1,<flowclib::deserializers::toml_deserializer::FlowTomlLoader as flowclib::compiler::loader::Deserializer>::deserialize::{closure#0}
-FNDA:1,flowclib::deserializers::toml_deserializer::test::load_fails_if_no_alias
 FNDA:1,flowclib::deserializers::toml_deserializer::test::flow_with_unknown_lib_key::{closure#0}
+FNDA:1,flowclib::deserializers::toml_deserializer::test::load_fails_if_no_alias
 FNDA:1,flowclib::deserializers::toml_deserializer::test::function_lacks_name::{closure#0}
 FNDA:1,flowclib::deserializers::toml_deserializer::test::flow_with_function_without_source::{closure#0}
 FNDA:1,flowclib::deserializers::toml_deserializer::test::invalid_toml::{closure#0}
@@ -11471,9 +11480,9 @@ FNDA:1,flowclib::deserializers::toml_deserializer::test::flow_errors_on_unknown_
 FNDA:0,<flowclib::deserializers::toml_deserializer::FlowTomlLoader as flowclib::compiler::loader::Deserializer>::deserialize::{closure#0}::{closure#0}
 FNDA:1,flowclib::deserializers::toml_deserializer::test::flow_with_unknown_lib_key
 FNDA:0,<flowclib::deserializers::toml_deserializer::FlowTomlLoader as flowclib::compiler::loader::Deserializer>::name
+FNDA:1,flowclib::deserializers::toml_deserializer::test::function_lacks_implementation::{closure#0}
 FNDA:1,flowclib::deserializers::toml_deserializer::test::flow_with_function_from_lib::{closure#0}
 FNDA:1,flowclib::deserializers::toml_deserializer::test::load_fails_if_no_alias::{closure#0}
-FNDA:1,flowclib::deserializers::toml_deserializer::test::function_lacks_implementation::{closure#0}
 FNDA:1,flowclib::deserializers::toml_deserializer::test::function_errors_on_unknown_fields
 FNDA:1,flowclib::deserializers::toml_deserializer::test::metadata
 FNDA:1,<flowclib::deserializers::toml_deserializer::FlowTomlLoader as flowclib::compiler::loader::Deserializer>::deserialize::{closure#0}::{closure#0}
@@ -11814,10 +11823,10 @@ DA:64,344
 DA:65,344
 DA:66,344
 DA:68,170
-DA:69,1653
-DA:70,1653
+DA:69,1655
+DA:70,1655
 DA:71,157
-DA:72,1496
+DA:72,1498
 DA:75,13
 DA:76,170
 LF:43
@@ -11849,8 +11858,8 @@ FN:147,<flowclib::model::function::Function>::get_source_url
 FN:163,<flowclib::model::function::Function>::set_lib_reference
 FN:199,<flowclib::model::function::Function as core::fmt::Display>::fmt
 FN:19,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
-FN:143,<flowclib::model::function::Function>::set_implementation
 FN:69,<flowclib::model::function::Function>::new
+FN:143,<flowclib::model::function::Function>::set_implementation
 FN:19,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<toml::de::Error>
 FN:19,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Visitor, serde_json::error::Error>::{closure#0}>, serde_json::error::Error>>
 FN:386,flowclib::model::function::test::deserialize_two_outputs_specified
@@ -11874,8 +11883,8 @@ FN:19,<<flowclib::model::function::Function as serde::de::Deserialize>::deserial
 FN:115,<flowclib::model::function::Function>::is_impure
 FN:273,flowclib::model::function::test::function_with_no_io_not_valid::{closure#0}
 FN:19,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
-FN:53,<flowclib::model::function::Function as flowclib::model::name::HasName>::alias
 FN:107,<flowclib::model::function::Function>::set_flow_id
+FN:53,<flowclib::model::function::Function as flowclib::model::name::HasName>::alias
 FN:19,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FN:19,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FN:313,flowclib::model::function::test::deserialize_invalid::{closure#0}
@@ -11903,9 +11912,9 @@ FN:19,<<flowclib::model::function::Function as serde::de::Deserialize>::deserial
 FN:99,<flowclib::model::function::Function>::set_id
 FN:19,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
 FN:199,<flowclib::model::function::Function as core::fmt::Display>::fmt
-FN:50,<flowclib::model::function::Function as flowclib::model::name::HasName>::name
-FN:19,<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:219,<flowclib::model::function::Function as core::default::Default>::default
+FN:19,<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
+FN:50,<flowclib::model::function::Function as flowclib::model::name::HasName>::name
 FN:103,<flowclib::model::function::Function>::get_id
 FN:335,flowclib::model::function::test::deserialize_extra_field_fails::{closure#0}
 FN:53,<flowclib::model::function::Function as flowclib::model::name::HasName>::alias
@@ -11992,8 +12001,8 @@ FNDA:1,<flowclib::model::function::Function>::get_source_url
 FNDA:0,<flowclib::model::function::Function>::set_lib_reference
 FNDA:0,<flowclib::model::function::Function as core::fmt::Display>::fmt
 FNDA:1,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
-FNDA:1,<flowclib::model::function::Function>::set_implementation
 FNDA:0,<flowclib::model::function::Function>::new
+FNDA:1,<flowclib::model::function::Function>::set_implementation
 FNDA:1,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<toml::de::Error>
 FNDA:1,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Visitor, serde_json::error::Error>::{closure#0}>, serde_json::error::Error>>
 FNDA:1,flowclib::model::function::test::deserialize_two_outputs_specified
@@ -12017,8 +12026,8 @@ FNDA:1,<<flowclib::model::function::Function as serde::de::Deserialize>::deseria
 FNDA:1,<flowclib::model::function::Function>::is_impure
 FNDA:1,flowclib::model::function::test::function_with_no_io_not_valid::{closure#0}
 FNDA:0,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
-FNDA:1,<flowclib::model::function::Function as flowclib::model::name::HasName>::alias
 FNDA:0,<flowclib::model::function::Function>::set_flow_id
+FNDA:1,<flowclib::model::function::Function as flowclib::model::name::HasName>::alias
 FNDA:0,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNDA:1,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FNDA:1,flowclib::model::function::test::deserialize_invalid::{closure#0}
@@ -12046,9 +12055,9 @@ FNDA:0,<<flowclib::model::function::Function as serde::de::Deserialize>::deseria
 FNDA:1,<flowclib::model::function::Function>::set_id
 FNDA:1,<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
 FNDA:0,<flowclib::model::function::Function as core::fmt::Display>::fmt
-FNDA:1,<flowclib::model::function::Function as flowclib::model::name::HasName>::name
-FNDA:1,<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:0,<flowclib::model::function::Function as core::default::Default>::default
+FNDA:1,<flowclib::model::function::Function as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
+FNDA:1,<flowclib::model::function::Function as flowclib::model::name::HasName>::name
 FNDA:1,<flowclib::model::function::Function>::get_id
 FNDA:1,flowclib::model::function::test::deserialize_extra_field_fails::{closure#0}
 FNDA:1,<flowclib::model::function::Function as flowclib::model::name::HasName>::alias
@@ -12118,12 +12127,12 @@ DA:19,7358
 DA:50,1704
 DA:51,1704
 DA:52,1704
-DA:53,496
-DA:54,496
-DA:55,496
-DA:59,2253
-DA:60,2253
-DA:61,2253
+DA:53,502
+DA:54,502
+DA:55,502
+DA:59,2261
+DA:60,2261
+DA:61,2261
 DA:62,0
 DA:63,0
 DA:64,0
@@ -12168,12 +12177,12 @@ DA:109,760
 DA:111,636
 DA:112,636
 DA:113,636
-DA:115,448
-DA:116,448
-DA:117,448
-DA:119,1092
-DA:120,1092
-DA:121,1092
+DA:115,606
+DA:116,606
+DA:117,606
+DA:119,1098
+DA:120,1098
+DA:121,1098
 DA:123,63
 DA:124,63
 DA:125,63
@@ -12586,12 +12595,12 @@ LF:1
 LH:1
 end_of_record
 SF:flowc/src/lib/dumper/dump_flow.rs
-FN:81,flowclib::dumper::dump_flow::_dump_flow::{closure#0}
-FN:81,flowclib::dumper::dump_flow::_dump_flow::{closure#0}
-FN:73,flowclib::dumper::dump_flow::_dump_flow
-FN:55,flowclib::dumper::dump_flow::dump_flow
-FN:73,flowclib::dumper::dump_flow::_dump_flow
-FN:55,flowclib::dumper::dump_flow::dump_flow
+FN:72,flowclib::dumper::dump_flow::_dump_flow::{closure#0}
+FN:72,flowclib::dumper::dump_flow::_dump_flow::{closure#0}
+FN:64,flowclib::dumper::dump_flow::_dump_flow
+FN:46,flowclib::dumper::dump_flow::dump_flow
+FN:64,flowclib::dumper::dump_flow::_dump_flow
+FN:46,flowclib::dumper::dump_flow::dump_flow
 FNDA:0,flowclib::dumper::dump_flow::_dump_flow::{closure#0}
 FNDA:0,flowclib::dumper::dump_flow::_dump_flow::{closure#0}
 FNDA:1,flowclib::dumper::dump_flow::_dump_flow
@@ -12602,65 +12611,65 @@ FNF:6
 FNH:4
 BRF:0
 BRH:0
-DA:55,21
-DA:56,21
+DA:46,21
+DA:47,21
+DA:48,21
+DA:49,21
+DA:50,21
+DA:51,21
+DA:52,21
+DA:53,21
+DA:54,6
+DA:55,6
 DA:57,21
 DA:58,21
-DA:59,21
-DA:60,21
-DA:61,21
-DA:62,21
-DA:63,6
-DA:64,6
-DA:66,21
-DA:67,21
-DA:73,40
-DA:74,40
-DA:75,40
-DA:76,40
+DA:64,40
+DA:65,40
+DA:66,40
+DA:67,40
+DA:68,40
+DA:69,40
+DA:70,40
+DA:71,40
+DA:72,40
+DA:73,0
+DA:74,0
+DA:75,0
+DA:76,0
 DA:77,40
 DA:78,40
 DA:79,40
 DA:80,40
 DA:81,40
-DA:82,0
-DA:83,0
-DA:84,0
-DA:85,0
+DA:82,40
+DA:83,40
+DA:84,40
+DA:85,40
 DA:86,40
 DA:87,40
 DA:88,40
-DA:89,40
 DA:90,40
-DA:91,40
-DA:92,40
+DA:91,0
+DA:92,0
 DA:93,40
-DA:94,40
 DA:95,40
 DA:96,40
 DA:97,40
-DA:99,40
-DA:100,0
-DA:101,0
-DA:102,40
-DA:104,40
-DA:105,40
-DA:106,40
-DA:107,40
-DA:108,0
-DA:111,149
-DA:112,149
-DA:113,19
-DA:114,19
-DA:115,19
-DA:116,19
-DA:117,19
-DA:118,19
-DA:119,19
-DA:120,19
-DA:121,130
-DA:124,40
-DA:125,40
+DA:98,40
+DA:99,0
+DA:102,149
+DA:103,149
+DA:104,19
+DA:105,19
+DA:106,19
+DA:107,19
+DA:108,19
+DA:109,19
+DA:110,19
+DA:111,19
+DA:112,130
+DA:115,40
+DA:116,40
 LF:59
 LH:52
 end_of_record
@@ -13081,19 +13090,22 @@ SF:flowc/src/lib/compiler/checker.rs
 FN:33,flowclib::compiler::checker::remove_duplicates::{closure#0}
 FN:29,flowclib::compiler::checker::remove_duplicates
 FN:19,flowclib::compiler::checker::check_connections
+FN:110,flowclib::compiler::checker::check_side_effects
 FN:29,flowclib::compiler::checker::remove_duplicates
-FN:86,flowclib::compiler::checker::check_function_inputs
-FN:111,flowclib::compiler::checker::connection_to
-FN:111,flowclib::compiler::checker::connection_to
+FN:110,flowclib::compiler::checker::check_side_effects
+FN:84,flowclib::compiler::checker::check_function_inputs
+FN:120,flowclib::compiler::checker::connection_to
+FN:120,flowclib::compiler::checker::connection_to
 FN:44,flowclib::compiler::checker::check_for_competing_inputs
-FN:86,flowclib::compiler::checker::check_function_inputs
+FN:84,flowclib::compiler::checker::check_function_inputs
 FN:19,flowclib::compiler::checker::check_connections
 FN:33,flowclib::compiler::checker::remove_duplicates::{closure#0}
-FN:86,flowclib::compiler::checker::check_function_inputs
+FN:110,flowclib::compiler::checker::check_side_effects
 FN:33,flowclib::compiler::checker::remove_duplicates::{closure#0}
-FN:131,flowclib::compiler::checker::test::remove_duplicated_connection::{closure#0}
-FN:131,flowclib::compiler::checker::test::remove_duplicated_connection
-FN:111,flowclib::compiler::checker::connection_to
+FN:84,flowclib::compiler::checker::check_function_inputs
+FN:140,flowclib::compiler::checker::test::remove_duplicated_connection
+FN:140,flowclib::compiler::checker::test::remove_duplicated_connection::{closure#0}
+FN:120,flowclib::compiler::checker::connection_to
 FN:29,flowclib::compiler::checker::remove_duplicates
 FN:19,flowclib::compiler::checker::check_connections
 FN:44,flowclib::compiler::checker::check_for_competing_inputs
@@ -13101,7 +13113,9 @@ FN:44,flowclib::compiler::checker::check_for_competing_inputs
 FNDA:1,flowclib::compiler::checker::remove_duplicates::{closure#0}
 FNDA:1,flowclib::compiler::checker::remove_duplicates
 FNDA:1,flowclib::compiler::checker::check_connections
+FNDA:1,flowclib::compiler::checker::check_side_effects
 FNDA:1,flowclib::compiler::checker::remove_duplicates
+FNDA:1,flowclib::compiler::checker::check_side_effects
 FNDA:1,flowclib::compiler::checker::check_function_inputs
 FNDA:1,flowclib::compiler::checker::connection_to
 FNDA:1,flowclib::compiler::checker::connection_to
@@ -13109,17 +13123,18 @@ FNDA:1,flowclib::compiler::checker::check_for_competing_inputs
 FNDA:1,flowclib::compiler::checker::check_function_inputs
 FNDA:1,flowclib::compiler::checker::check_connections
 FNDA:1,flowclib::compiler::checker::remove_duplicates::{closure#0}
-FNDA:1,flowclib::compiler::checker::check_function_inputs
+FNDA:1,flowclib::compiler::checker::check_side_effects
 FNDA:1,flowclib::compiler::checker::remove_duplicates::{closure#0}
-FNDA:1,flowclib::compiler::checker::test::remove_duplicated_connection::{closure#0}
+FNDA:1,flowclib::compiler::checker::check_function_inputs
 FNDA:1,flowclib::compiler::checker::test::remove_duplicated_connection
+FNDA:1,flowclib::compiler::checker::test::remove_duplicated_connection::{closure#0}
 FNDA:0,flowclib::compiler::checker::connection_to
 FNDA:1,flowclib::compiler::checker::remove_duplicates
 FNDA:1,flowclib::compiler::checker::check_connections
 FNDA:1,flowclib::compiler::checker::check_for_competing_inputs
 FNDA:1,flowclib::compiler::checker::check_for_competing_inputs
-FNF:20
-FNH:19
+FNF:23
+FNH:22
 BRF:0
 BRH:0
 DA:19,104
@@ -13165,38 +13180,36 @@ DA:76,8
 DA:77,313
 DA:80,88
 DA:81,104
-DA:86,88
-DA:87,260
-DA:88,354
-DA:89,322
-DA:90,322
+DA:84,88
+DA:85,264
+DA:86,358
+DA:87,326
+DA:88,326
+DA:89,218
+DA:90,4
 DA:91,214
-DA:92,4
-DA:93,210
-DA:95,108
-DA:98,28
-DA:99,0
-DA:100,0
-DA:101,28
-DA:103,80
-DA:108,84
-DA:109,88
-DA:111,242
-DA:112,2588
-DA:113,2588
-DA:114,210
-DA:115,2378
-DA:117,32
-DA:118,242
-DA:131,1
-DA:132,1
-DA:133,1
-DA:134,1
-DA:135,1
-DA:136,1
-DA:137,1
-DA:138,1
-DA:139,1
+DA:93,108
+DA:96,28
+DA:97,0
+DA:98,0
+DA:99,28
+DA:101,80
+DA:106,84
+DA:107,88
+DA:110,84
+DA:111,120
+DA:112,120
+DA:113,79
+DA:114,41
+DA:117,5
+DA:118,84
+DA:120,246
+DA:121,2622
+DA:122,2622
+DA:123,214
+DA:124,2408
+DA:126,32
+DA:127,246
 DA:140,1
 DA:141,1
 DA:142,1
@@ -13213,8 +13226,17 @@ DA:152,1
 DA:153,1
 DA:154,1
 DA:155,1
-LF:91
-LH:88
+DA:156,1
+DA:157,1
+DA:158,1
+DA:159,1
+DA:160,1
+DA:161,1
+DA:162,1
+DA:163,1
+DA:164,1
+LF:98
+LH:95
 end_of_record
 SF:flowstdlib/fmt/to_string/to_string.rs
 FN:48,flowstdlib::fmt::to_string::test::test_null_input
@@ -14439,7 +14461,7 @@ FN:34,<flowclib::model::flow::Flow as core::clone::Clone>::clone
 FN:34,<<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<toml::de::Error>
 FN:87,<flowclib::model::flow::Flow as core::fmt::Display>::fmt
 FN:188,<flowclib::model::flow::Flow>::outputs
-FN:147,<flowclib::model::flow::Flow as flowclib::model::route::HasRoute>::route_mut
+FN:380,flowclib::model::flow::test::test_alias
 FN:87,<flowclib::model::flow::Flow as core::fmt::Display>::fmt
 FN:34,<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:153,<flowclib::model::flow::Flow as flowclib::model::route::SetRoute>::set_routes_from_parent
@@ -14449,16 +14471,16 @@ FN:380,flowclib::model::flow::test::test_alias::{closure#0}
 FN:34,<<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:34,<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FN:138,<flowclib::model::flow::Flow as flowclib::model::name::HasName>::alias
-FN:167,<flowclib::model::flow::Flow>::default_url
 FN:34,<<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
+FN:167,<flowclib::model::flow::Flow>::default_url
 FN:34,<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:115,<flowclib::model::flow::Flow as core::default::Default>::default
 FN:34,<<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<serde_json::error::Error>
 FN:180,<flowclib::model::flow::Flow>::inputs
 FN:34,<<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
 FN:134,<flowclib::model::flow::Flow as flowclib::model::name::HasName>::name
-FN:144,<flowclib::model::flow::Flow as flowclib::model::route::HasRoute>::route
 FN:34,<flowclib::model::flow::Flow as core::fmt::Debug>::fmt
+FN:144,<flowclib::model::flow::Flow as flowclib::model::route::HasRoute>::route
 FN:68,<flowclib::model::flow::Flow as flowclib::compiler::loader::Validate>::validate
 FN:287,<flowclib::model::flow::Flow>::build_connections
 FN:203,<flowclib::model::flow::Flow>::get_io_subprocess::{closure#0}
@@ -14477,8 +14499,8 @@ FN:239,<flowclib::model::flow::Flow>::get_route_and_type
 FN:287,<flowclib::model::flow::Flow>::build_connections
 FN:34,<<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FN:34,<flowclib::model::flow::Flow as core::fmt::Debug>::fmt
-FN:34,<flowclib::model::flow::Flow as core::clone::Clone>::clone
 FN:34,<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
+FN:34,<flowclib::model::flow::Flow as core::clone::Clone>::clone
 FN:184,<flowclib::model::flow::Flow>::inputs_mut
 FN:180,<flowclib::model::flow::Flow>::inputs
 FN:34,<flowclib::model::flow::Flow as core::clone::Clone>::clone
@@ -14524,22 +14546,22 @@ FN:239,<flowclib::model::flow::Flow>::get_route_and_type
 FN:138,<flowclib::model::flow::Flow as flowclib::model::name::HasName>::alias
 FN:374,flowclib::model::flow::test::test_name::{closure#0}
 FN:34,<flowclib::model::flow::Flow as serde::ser::Serialize>::serialize::<_>
-FN:68,<flowclib::model::flow::Flow as flowclib::compiler::loader::Validate>::validate
 FN:192,<flowclib::model::flow::Flow>::get_io_subprocess
+FN:68,<flowclib::model::flow::Flow as flowclib::compiler::loader::Validate>::validate
 FN:34,<flowclib::model::flow::Flow as core::fmt::Debug>::fmt
 FN:34,<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FN:180,<flowclib::model::flow::Flow>::inputs
 FN:369,flowclib::model::flow::test::test_display::{closure#0}
-FN:34,<<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
+FN:147,<flowclib::model::flow::Flow as flowclib::model::route::HasRoute>::route_mut
 FN:167,<flowclib::model::flow::Flow>::default_url
 FN:153,<flowclib::model::flow::Flow as flowclib::model::route::SetRoute>::set_routes_from_parent
-FN:380,flowclib::model::flow::test::test_alias
+FN:34,<<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNDA:1,<flowclib::model::flow::Flow>::get_io_subprocess
 FNDA:0,<flowclib::model::flow::Flow as core::clone::Clone>::clone
 FNDA:1,<<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<toml::de::Error>
 FNDA:0,<flowclib::model::flow::Flow as core::fmt::Display>::fmt
 FNDA:0,<flowclib::model::flow::Flow>::outputs
-FNDA:0,<flowclib::model::flow::Flow as flowclib::model::route::HasRoute>::route_mut
+FNDA:1,flowclib::model::flow::test::test_alias
 FNDA:0,<flowclib::model::flow::Flow as core::fmt::Display>::fmt
 FNDA:1,<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:1,<flowclib::model::flow::Flow as flowclib::model::route::SetRoute>::set_routes_from_parent
@@ -14549,16 +14571,16 @@ FNDA:1,flowclib::model::flow::test::test_alias::{closure#0}
 FNDA:1,<<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:1,<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNDA:1,<flowclib::model::flow::Flow as flowclib::model::name::HasName>::alias
-FNDA:1,<flowclib::model::flow::Flow>::default_url
 FNDA:0,<<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
+FNDA:1,<flowclib::model::flow::Flow>::default_url
 FNDA:1,<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:0,<flowclib::model::flow::Flow as core::default::Default>::default
 FNDA:1,<<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<serde_json::error::Error>
 FNDA:1,<flowclib::model::flow::Flow>::inputs
 FNDA:0,<<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
 FNDA:1,<flowclib::model::flow::Flow as flowclib::model::name::HasName>::name
-FNDA:1,<flowclib::model::flow::Flow as flowclib::model::route::HasRoute>::route
 FNDA:0,<flowclib::model::flow::Flow as core::fmt::Debug>::fmt
+FNDA:1,<flowclib::model::flow::Flow as flowclib::model::route::HasRoute>::route
 FNDA:1,<flowclib::model::flow::Flow as flowclib::compiler::loader::Validate>::validate
 FNDA:1,<flowclib::model::flow::Flow>::build_connections
 FNDA:0,<flowclib::model::flow::Flow>::get_io_subprocess::{closure#0}
@@ -14577,8 +14599,8 @@ FNDA:1,<flowclib::model::flow::Flow>::get_route_and_type
 FNDA:0,<flowclib::model::flow::Flow>::build_connections
 FNDA:0,<<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FNDA:0,<flowclib::model::flow::Flow as core::fmt::Debug>::fmt
-FNDA:0,<flowclib::model::flow::Flow as core::clone::Clone>::clone
 FNDA:0,<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
+FNDA:0,<flowclib::model::flow::Flow as core::clone::Clone>::clone
 FNDA:1,<flowclib::model::flow::Flow>::inputs_mut
 FNDA:0,<flowclib::model::flow::Flow>::inputs
 FNDA:0,<flowclib::model::flow::Flow as core::clone::Clone>::clone
@@ -14624,16 +14646,16 @@ FNDA:0,<flowclib::model::flow::Flow>::get_route_and_type
 FNDA:1,<flowclib::model::flow::Flow as flowclib::model::name::HasName>::alias
 FNDA:1,flowclib::model::flow::test::test_name::{closure#0}
 FNDA:0,<flowclib::model::flow::Flow as serde::ser::Serialize>::serialize::<_>
-FNDA:0,<flowclib::model::flow::Flow as flowclib::compiler::loader::Validate>::validate
 FNDA:0,<flowclib::model::flow::Flow>::get_io_subprocess
+FNDA:0,<flowclib::model::flow::Flow as flowclib::compiler::loader::Validate>::validate
 FNDA:0,<flowclib::model::flow::Flow as core::fmt::Debug>::fmt
 FNDA:0,<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FNDA:1,<flowclib::model::flow::Flow>::inputs
 FNDA:1,flowclib::model::flow::test::test_display::{closure#0}
-FNDA:1,<<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
+FNDA:0,<flowclib::model::flow::Flow as flowclib::model::route::HasRoute>::route_mut
 FNDA:1,<flowclib::model::flow::Flow>::default_url
 FNDA:1,<flowclib::model::flow::Flow as flowclib::model::route::SetRoute>::set_routes_from_parent
-FNDA:1,flowclib::model::flow::test::test_alias
+FNDA:1,<<flowclib::model::flow::Flow as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNF:100
 FNH:57
 BRF:0
@@ -14851,8 +14873,8 @@ SF:flowc/src/lib/deserializers/json_deserializer.rs
 FN:15,<flowclib::deserializers::json_deserializer::FlowJsonLoader as flowclib::compiler::loader::Deserializer>::deserialize::{closure#0}::{closure#0}
 FN:11,<flowclib::deserializers::json_deserializer::FlowJsonLoader as flowclib::compiler::loader::Deserializer>::deserialize
 FN:32,flowclib::deserializers::json_deserializer::test::invalid_json
-FN:93,flowclib::deserializers::json_deserializer::test::invalid_context_fails::{closure#0}
 FN:41,flowclib::deserializers::json_deserializer::test::simplest_context_loads::{closure#0}
+FN:93,flowclib::deserializers::json_deserializer::test::invalid_context_fails::{closure#0}
 FN:20,<flowclib::deserializers::json_deserializer::FlowJsonLoader as flowclib::compiler::loader::Deserializer>::name
 FN:32,flowclib::deserializers::json_deserializer::test::invalid_json::{closure#0}
 FN:12,<flowclib::deserializers::json_deserializer::FlowJsonLoader as flowclib::compiler::loader::Deserializer>::deserialize::{closure#0}
@@ -14871,8 +14893,8 @@ FN:11,<flowclib::deserializers::json_deserializer::FlowJsonLoader as flowclib::c
 FNDA:0,<flowclib::deserializers::json_deserializer::FlowJsonLoader as flowclib::compiler::loader::Deserializer>::deserialize::{closure#0}::{closure#0}
 FNDA:1,<flowclib::deserializers::json_deserializer::FlowJsonLoader as flowclib::compiler::loader::Deserializer>::deserialize
 FNDA:1,flowclib::deserializers::json_deserializer::test::invalid_json
-FNDA:1,flowclib::deserializers::json_deserializer::test::invalid_context_fails::{closure#0}
 FNDA:1,flowclib::deserializers::json_deserializer::test::simplest_context_loads::{closure#0}
+FNDA:1,flowclib::deserializers::json_deserializer::test::invalid_context_fails::{closure#0}
 FNDA:0,<flowclib::deserializers::json_deserializer::FlowJsonLoader as flowclib::compiler::loader::Deserializer>::name
 FNDA:1,flowclib::deserializers::json_deserializer::test::invalid_json::{closure#0}
 FNDA:0,<flowclib::deserializers::json_deserializer::FlowJsonLoader as flowclib::compiler::loader::Deserializer>::deserialize::{closure#0}
@@ -15007,45 +15029,45 @@ FN:258,flowclib::model::route::test::detect_array_at_output_root
 FN:12,<flowclib::model::route::Route as core::convert::AsRef<alloc::string::String>>::as_ref
 FN:12,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::missing_field::MissingFieldDeserializer<serde_json::error::Error>>
 FN:12,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
-FN:12,<flowclib::model::route::Route as core::convert::AsMut<alloc::string::String>>::as_mut
 FN:89,<flowclib::model::route::Route>::pop
-FN:12,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FN:12,<flowclib::model::route::Route as core::ops::deref::Deref>::deref
+FN:12,<flowclib::model::route::Route as core::borrow::Borrow<alloc::string::String>>::borrow
+FN:12,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
+FN:12,<flowclib::model::route::Route as core::convert::AsMut<alloc::string::String>>::as_mut
 FN:12,<flowclib::model::route::Route as core::cmp::PartialEq>::ne
-FN:170,<flowclib::model::route::Route as core::convert::From<&alloc::string::String>>::from
 FN:12,<flowclib::model::route::Route>::map::<_, _>
 FN:72,<flowclib::model::route::Route>::route_type
-FN:12,<flowclib::model::route::Route as core::borrow::Borrow<alloc::string::String>>::borrow
+FN:170,<flowclib::model::route::Route as core::convert::From<&alloc::string::String>>::from
 FN:55,<flowclib::model::route::Route>::insert::<&str>
 FN:12,<flowclib::model::route::Route as core::cmp::PartialEq>::eq
-FN:312,flowclib::model::route::test::validate_invalid_empty_route::{closure#0}
+FN:402,flowclib::model::route::test::extend_route_with_nothing::{closure#0}
 FN:12,<flowclib::model::route::Route as core::ops::deref::DerefMut>::deref_mut
 FN:12,<flowclib::model::route::Route as core::hash::Hash>::hash::<std::collections::hash::map::DefaultHasher>
 FN:12,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:158,<flowclib::model::route::Route as core::convert::From<&str>>::from
 FN:294,flowclib::model::route::test::valid_input_route_with_subroute
-FN:402,flowclib::model::route::test::extend_route_with_nothing::{closure#0}
+FN:312,flowclib::model::route::test::validate_invalid_empty_route::{closure#0}
 FN:55,<flowclib::model::route::Route>::insert::<&str>
-FN:12,<flowclib::model::route::Route>::map_mut::<_, _>
+FN:164,<flowclib::model::route::Route as core::convert::From<alloc::string::String>>::from
 FN:12,<flowclib::model::route::Route as serde::ser::Serialize>::serialize::<serde_json::ser::MapKeySerializer<&mut alloc::vec::Vec<u8>, serde_json::ser::PrettyFormatter>>
 FN:12,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:12,<flowclib::model::route::Route as core::cmp::PartialEq>::eq
 FN:12,<flowclib::model::route::Route as core::ops::deref::DerefMut>::deref_mut
-FN:164,<flowclib::model::route::Route as core::convert::From<alloc::string::String>>::from
+FN:12,<flowclib::model::route::Route>::map_mut::<_, _>
 FN:12,<flowclib::model::route::Route as serde::ser::Serialize>::serialize::<&mut serde_json::ser::Serializer<&mut alloc::vec::Vec<u8>, serde_json::ser::PrettyFormatter>>
-FN:12,<flowclib::model::route::Route as core::ops::deref::DerefMut>::deref_mut
 FN:12,<flowclib::model::route::Route as serde::ser::Serialize>::serialize::<_>
+FN:12,<flowclib::model::route::Route as core::ops::deref::DerefMut>::deref_mut
 FN:89,<flowclib::model::route::Route>::pop
-FN:218,flowclib::model::route::test::test_root_route_pop
 FN:282,flowclib::model::route::test::valid_process_route_with_subroute
 FN:318,flowclib::model::route::test::validate_invalid_route
+FN:218,flowclib::model::route::test::test_root_route_pop
 FN:44,<flowclib::model::route::Route>::sub_route_of
 FN:158,<flowclib::model::route::Route as core::convert::From<&str>>::from
-FN:346,flowclib::model::route::test::is_a_subroute::{closure#0}
-FN:12,<flowclib::model::route::Route as core::cmp::PartialEq>::eq
-FN:12,<flowclib::model::route::Route as core::convert::AsMut<alloc::string::String>>::as_mut
 FN:234,flowclib::model::route::test::no_path_no_change::{closure#0}
+FN:12,<flowclib::model::route::Route as core::convert::AsMut<alloc::string::String>>::as_mut
+FN:12,<flowclib::model::route::Route as core::cmp::PartialEq>::eq
 FN:226,flowclib::model::route::test::test_empty_route_pop::{closure#0}
+FN:346,flowclib::model::route::test::is_a_subroute::{closure#0}
 FN:226,flowclib::model::route::test::test_empty_route_pop
 FN:288,flowclib::model::route::test::valid_input_route::{closure#0}
 FN:354,flowclib::model::route::test::is_a_sub_subroute
@@ -15077,9 +15099,9 @@ FN:354,flowclib::model::route::test::is_a_sub_subroute::{closure#0}
 FN:282,flowclib::model::route::test::valid_process_route_with_subroute::{closure#0}
 FN:378,flowclib::model::route::test::extend_empty_route
 FN:104,<flowclib::model::route::Route>::without_trailing_array_index
-FN:12,<flowclib::model::route::Route>::map::<_, _>
-FN:12,<flowclib::model::route::Route>::map_ref::<_, _>
 FN:61,<flowclib::model::route::Route>::extend
+FN:12,<flowclib::model::route::Route>::map_ref::<_, _>
+FN:12,<flowclib::model::route::Route>::map::<_, _>
 FN:12,<flowclib::model::route::Route as core::clone::Clone>::clone
 FN:12,<flowclib::model::route::Route as core::cmp::PartialEq>::ne
 FN:44,<flowclib::model::route::Route>::sub_route_of
@@ -15087,8 +15109,8 @@ FN:12,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<s
 FN:12,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FN:12,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FN:12,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::missing_field::MissingFieldDeserializer<serde_yaml::error::Error>>
-FN:12,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FN:89,<flowclib::model::route::Route>::pop
+FN:12,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FN:12,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FN:12,<flowclib::model::route::Route as core::fmt::Debug>::fmt
 FN:250,flowclib::model::route::test::no_trailing_number_no_change::{closure#0}
@@ -15151,14 +15173,14 @@ FN:12,<flowclib::model::route::Route>::map_mut::<_, _>
 FN:12,<flowclib::model::route::Route as core::clone::Clone>::clone
 FN:300,flowclib::model::route::test::valid_output_route
 FN:12,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
-FN:201,flowclib::model::route::test::test_from_name
 FN:189,flowclib::model::route::test::test_from_string
+FN:201,flowclib::model::route::test::test_from_name
 FN:250,flowclib::model::route::test::no_trailing_number_no_change
 FN:12,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FN:44,<flowclib::model::route::Route>::sub_route_of
-FN:394,flowclib::model::route::test::extend_route::{closure#0}
-FN:12,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FN:207,flowclib::model::route::test::test_route_pop::{closure#0}
+FN:12,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
+FN:394,flowclib::model::route::test::extend_route::{closure#0}
 FN:300,flowclib::model::route::test::valid_output_route::{closure#0}
 FN:12,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::missing_field::MissingFieldDeserializer<serde_json::error::Error>>
 FN:125,<flowclib::model::route::Route as flowclib::compiler::loader::Validate>::validate
@@ -15173,10 +15195,10 @@ FN:12,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<s
 FN:324,flowclib::model::route::test::subroute_equal_route
 FN:12,<flowclib::model::route::Route as core::borrow::BorrowMut<alloc::string::String>>::borrow_mut
 FN:125,<flowclib::model::route::Route as flowclib::compiler::loader::Validate>::validate
-FN:394,flowclib::model::route::test::extend_route
+FN:242,flowclib::model::route::test::just_slash_no_change
 FN:152,<flowclib::model::route::Route as core::fmt::Display>::fmt
 FN:12,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
-FN:242,flowclib::model::route::test::just_slash_no_change
+FN:394,flowclib::model::route::test::extend_route
 FN:12,<flowclib::model::route::Route>::map::<_, _>
 FN:12,<flowclib::model::route::Route as core::convert::AsRef<alloc::string::String>>::as_ref
 FN:267,flowclib::model::route::test::detect_array_at_output_subroute::{closure#0}
@@ -15197,45 +15219,45 @@ FNDA:1,flowclib::model::route::test::detect_array_at_output_root
 FNDA:0,<flowclib::model::route::Route as core::convert::AsRef<alloc::string::String>>::as_ref
 FNDA:0,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::missing_field::MissingFieldDeserializer<serde_json::error::Error>>
 FNDA:0,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
-FNDA:0,<flowclib::model::route::Route as core::convert::AsMut<alloc::string::String>>::as_mut
 FNDA:1,<flowclib::model::route::Route>::pop
-FNDA:0,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FNDA:1,<flowclib::model::route::Route as core::ops::deref::Deref>::deref
+FNDA:0,<flowclib::model::route::Route as core::borrow::Borrow<alloc::string::String>>::borrow
+FNDA:0,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
+FNDA:0,<flowclib::model::route::Route as core::convert::AsMut<alloc::string::String>>::as_mut
 FNDA:1,<flowclib::model::route::Route as core::cmp::PartialEq>::ne
-FNDA:1,<flowclib::model::route::Route as core::convert::From<&alloc::string::String>>::from
 FNDA:0,<flowclib::model::route::Route>::map::<_, _>
 FNDA:1,<flowclib::model::route::Route>::route_type
-FNDA:0,<flowclib::model::route::Route as core::borrow::Borrow<alloc::string::String>>::borrow
+FNDA:1,<flowclib::model::route::Route as core::convert::From<&alloc::string::String>>::from
 FNDA:1,<flowclib::model::route::Route>::insert::<&str>
 FNDA:1,<flowclib::model::route::Route as core::cmp::PartialEq>::eq
-FNDA:1,flowclib::model::route::test::validate_invalid_empty_route::{closure#0}
+FNDA:1,flowclib::model::route::test::extend_route_with_nothing::{closure#0}
 FNDA:1,<flowclib::model::route::Route as core::ops::deref::DerefMut>::deref_mut
 FNDA:1,<flowclib::model::route::Route as core::hash::Hash>::hash::<std::collections::hash::map::DefaultHasher>
 FNDA:1,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:1,<flowclib::model::route::Route as core::convert::From<&str>>::from
 FNDA:1,flowclib::model::route::test::valid_input_route_with_subroute
-FNDA:1,flowclib::model::route::test::extend_route_with_nothing::{closure#0}
+FNDA:1,flowclib::model::route::test::validate_invalid_empty_route::{closure#0}
 FNDA:1,<flowclib::model::route::Route>::insert::<&str>
-FNDA:0,<flowclib::model::route::Route>::map_mut::<_, _>
+FNDA:1,<flowclib::model::route::Route as core::convert::From<alloc::string::String>>::from
 FNDA:0,<flowclib::model::route::Route as serde::ser::Serialize>::serialize::<serde_json::ser::MapKeySerializer<&mut alloc::vec::Vec<u8>, serde_json::ser::PrettyFormatter>>
 FNDA:1,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:1,<flowclib::model::route::Route as core::cmp::PartialEq>::eq
 FNDA:1,<flowclib::model::route::Route as core::ops::deref::DerefMut>::deref_mut
-FNDA:1,<flowclib::model::route::Route as core::convert::From<alloc::string::String>>::from
+FNDA:0,<flowclib::model::route::Route>::map_mut::<_, _>
 FNDA:0,<flowclib::model::route::Route as serde::ser::Serialize>::serialize::<&mut serde_json::ser::Serializer<&mut alloc::vec::Vec<u8>, serde_json::ser::PrettyFormatter>>
-FNDA:1,<flowclib::model::route::Route as core::ops::deref::DerefMut>::deref_mut
 FNDA:0,<flowclib::model::route::Route as serde::ser::Serialize>::serialize::<_>
+FNDA:1,<flowclib::model::route::Route as core::ops::deref::DerefMut>::deref_mut
 FNDA:1,<flowclib::model::route::Route>::pop
-FNDA:1,flowclib::model::route::test::test_root_route_pop
 FNDA:1,flowclib::model::route::test::valid_process_route_with_subroute
 FNDA:1,flowclib::model::route::test::validate_invalid_route
+FNDA:1,flowclib::model::route::test::test_root_route_pop
 FNDA:1,<flowclib::model::route::Route>::sub_route_of
 FNDA:1,<flowclib::model::route::Route as core::convert::From<&str>>::from
-FNDA:1,flowclib::model::route::test::is_a_subroute::{closure#0}
-FNDA:1,<flowclib::model::route::Route as core::cmp::PartialEq>::eq
-FNDA:0,<flowclib::model::route::Route as core::convert::AsMut<alloc::string::String>>::as_mut
 FNDA:1,flowclib::model::route::test::no_path_no_change::{closure#0}
+FNDA:0,<flowclib::model::route::Route as core::convert::AsMut<alloc::string::String>>::as_mut
+FNDA:1,<flowclib::model::route::Route as core::cmp::PartialEq>::eq
 FNDA:1,flowclib::model::route::test::test_empty_route_pop::{closure#0}
+FNDA:1,flowclib::model::route::test::is_a_subroute::{closure#0}
 FNDA:1,flowclib::model::route::test::test_empty_route_pop
 FNDA:1,flowclib::model::route::test::valid_input_route::{closure#0}
 FNDA:1,flowclib::model::route::test::is_a_sub_subroute
@@ -15267,9 +15289,9 @@ FNDA:1,flowclib::model::route::test::is_a_sub_subroute::{closure#0}
 FNDA:1,flowclib::model::route::test::valid_process_route_with_subroute::{closure#0}
 FNDA:1,flowclib::model::route::test::extend_empty_route
 FNDA:1,<flowclib::model::route::Route>::without_trailing_array_index
-FNDA:0,<flowclib::model::route::Route>::map::<_, _>
-FNDA:0,<flowclib::model::route::Route>::map_ref::<_, _>
 FNDA:1,<flowclib::model::route::Route>::extend
+FNDA:0,<flowclib::model::route::Route>::map_ref::<_, _>
+FNDA:0,<flowclib::model::route::Route>::map::<_, _>
 FNDA:1,<flowclib::model::route::Route as core::clone::Clone>::clone
 FNDA:1,<flowclib::model::route::Route as core::cmp::PartialEq>::ne
 FNDA:1,<flowclib::model::route::Route>::sub_route_of
@@ -15277,8 +15299,8 @@ FNDA:0,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<
 FNDA:0,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNDA:0,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNDA:0,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::missing_field::MissingFieldDeserializer<serde_yaml::error::Error>>
-FNDA:0,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FNDA:1,<flowclib::model::route::Route>::pop
+FNDA:0,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FNDA:1,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FNDA:0,<flowclib::model::route::Route as core::fmt::Debug>::fmt
 FNDA:1,flowclib::model::route::test::no_trailing_number_no_change::{closure#0}
@@ -15341,14 +15363,14 @@ FNDA:0,<flowclib::model::route::Route>::map_mut::<_, _>
 FNDA:1,<flowclib::model::route::Route as core::clone::Clone>::clone
 FNDA:1,flowclib::model::route::test::valid_output_route
 FNDA:1,<<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
-FNDA:1,flowclib::model::route::test::test_from_name
 FNDA:1,flowclib::model::route::test::test_from_string
+FNDA:1,flowclib::model::route::test::test_from_name
 FNDA:1,flowclib::model::route::test::no_trailing_number_no_change
 FNDA:0,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNDA:1,<flowclib::model::route::Route>::sub_route_of
-FNDA:1,flowclib::model::route::test::extend_route::{closure#0}
-FNDA:1,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FNDA:1,flowclib::model::route::test::test_route_pop::{closure#0}
+FNDA:1,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
+FNDA:1,flowclib::model::route::test::extend_route::{closure#0}
 FNDA:1,flowclib::model::route::test::valid_output_route::{closure#0}
 FNDA:0,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::missing_field::MissingFieldDeserializer<serde_json::error::Error>>
 FNDA:0,<flowclib::model::route::Route as flowclib::compiler::loader::Validate>::validate
@@ -15363,10 +15385,10 @@ FNDA:0,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<
 FNDA:1,flowclib::model::route::test::subroute_equal_route
 FNDA:0,<flowclib::model::route::Route as core::borrow::BorrowMut<alloc::string::String>>::borrow_mut
 FNDA:1,<flowclib::model::route::Route as flowclib::compiler::loader::Validate>::validate
-FNDA:1,flowclib::model::route::test::extend_route
+FNDA:1,flowclib::model::route::test::just_slash_no_change
 FNDA:1,<flowclib::model::route::Route as core::fmt::Display>::fmt
 FNDA:0,<flowclib::model::route::Route as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
-FNDA:1,flowclib::model::route::test::just_slash_no_change
+FNDA:1,flowclib::model::route::test::extend_route
 FNDA:0,<flowclib::model::route::Route>::map::<_, _>
 FNDA:0,<flowclib::model::route::Route as core::convert::AsRef<alloc::string::String>>::as_ref
 FNDA:1,flowclib::model::route::test::detect_array_at_output_subroute::{closure#0}
@@ -15374,14 +15396,14 @@ FNF:190
 FNH:132
 BRF:0
 BRH:0
-DA:12,23103
-DA:44,5491
-DA:45,5491
+DA:12,23107
+DA:44,5493
+DA:45,5493
 DA:46,278
-DA:47,5213
+DA:47,5215
 DA:48,110
-DA:50,5103
-DA:52,5491
+DA:50,5105
+DA:52,5493
 DA:55,472
 DA:56,472
 DA:57,472
@@ -15444,9 +15466,9 @@ DA:134,1726
 DA:152,7506
 DA:153,7506
 DA:154,7506
-DA:158,1712
-DA:159,1712
-DA:160,1712
+DA:158,1718
+DA:159,1718
+DA:160,1718
 DA:164,4928
 DA:165,4928
 DA:166,4928
@@ -15642,8 +15664,8 @@ FN:22,<flowclib::model::process::Process as flowclib::model::name::HasName>::nam
 FN:45,<flowclib::model::process::Process as flowclib::model::route::HasRoute>::route_mut
 FN:8,<flowclib::model::process::Process as core::clone::Clone>::clone
 FN:8,<flowclib::model::process::Process as core::fmt::Debug>::fmt
-FN:29,<flowclib::model::process::Process as flowclib::model::name::HasName>::alias
 FN:22,<flowclib::model::process::Process as flowclib::model::name::HasName>::name
+FN:29,<flowclib::model::process::Process as flowclib::model::name::HasName>::alias
 FN:8,<flowclib::model::process::Process as serde::ser::Serialize>::serialize::<_>
 FN:8,<flowclib::model::process::Process as serde::de::Deserialize>::deserialize::<serde_yaml::de::Deserializer>
 FN:45,<flowclib::model::process::Process as flowclib::model::route::HasRoute>::route_mut
@@ -15671,8 +15693,8 @@ FNDA:1,<flowclib::model::process::Process as flowclib::model::name::HasName>::na
 FNDA:0,<flowclib::model::process::Process as flowclib::model::route::HasRoute>::route_mut
 FNDA:0,<flowclib::model::process::Process as core::clone::Clone>::clone
 FNDA:0,<flowclib::model::process::Process as core::fmt::Debug>::fmt
-FNDA:0,<flowclib::model::process::Process as flowclib::model::name::HasName>::alias
 FNDA:1,<flowclib::model::process::Process as flowclib::model::name::HasName>::name
+FNDA:0,<flowclib::model::process::Process as flowclib::model::name::HasName>::alias
 FNDA:0,<flowclib::model::process::Process as serde::ser::Serialize>::serialize::<_>
 FNDA:1,<flowclib::model::process::Process as serde::de::Deserialize>::deserialize::<serde_yaml::de::Deserializer>
 FNDA:0,<flowclib::model::process::Process as flowclib::model::route::HasRoute>::route_mut
@@ -15711,23 +15733,23 @@ LF:24
 LH:6
 end_of_record
 SF:flowc/src/lib/dumper/dump_tables.rs
-FN:182,flowclib::dumper::dump_tables::dump_table::<core::slice::iter::Iter<flowclib::model::function::Function>>
-FN:81,flowclib::dumper::dump_tables::create_output_file
-FN:174,flowclib::dumper::dump_tables::dump_functions
-FN:116,flowclib::dumper::dump_tables::functions_to_dot::{closure#0}
-FN:182,flowclib::dumper::dump_tables::dump_table::<core::slice::iter::Iter<flowclib::model::function::Function>>
-FN:81,flowclib::dumper::dump_tables::create_output_file
-FN:57,flowclib::dumper::dump_tables::dump_tables
-FN:116,flowclib::dumper::dump_tables::functions_to_dot::{closure#0}
-FN:57,flowclib::dumper::dump_tables::dump_tables
-FN:96,flowclib::dumper::dump_tables::functions_to_dot
-FN:96,flowclib::dumper::dump_tables::functions_to_dot
-FN:174,flowclib::dumper::dump_tables::dump_functions
+FN:162,flowclib::dumper::dump_tables::dump_table::<core::slice::iter::Iter<flowclib::model::function::Function>>
+FN:72,flowclib::dumper::dump_tables::create_output_file
+FN:154,flowclib::dumper::dump_tables::dump_functions
+FN:162,flowclib::dumper::dump_tables::dump_table::<core::slice::iter::Iter<flowclib::model::function::Function>>
+FN:107,flowclib::dumper::dump_tables::functions_to_dot::{closure#0}
+FN:72,flowclib::dumper::dump_tables::create_output_file
+FN:48,flowclib::dumper::dump_tables::dump_tables
+FN:107,flowclib::dumper::dump_tables::functions_to_dot::{closure#0}
+FN:48,flowclib::dumper::dump_tables::dump_tables
+FN:87,flowclib::dumper::dump_tables::functions_to_dot
+FN:87,flowclib::dumper::dump_tables::functions_to_dot
+FN:154,flowclib::dumper::dump_tables::dump_functions
 FNDA:0,flowclib::dumper::dump_tables::dump_table::<core::slice::iter::Iter<flowclib::model::function::Function>>
 FNDA:1,flowclib::dumper::dump_tables::create_output_file
 FNDA:0,flowclib::dumper::dump_tables::dump_functions
-FNDA:0,flowclib::dumper::dump_tables::functions_to_dot::{closure#0}
 FNDA:0,flowclib::dumper::dump_tables::dump_table::<core::slice::iter::Iter<flowclib::model::function::Function>>
+FNDA:0,flowclib::dumper::dump_tables::functions_to_dot::{closure#0}
 FNDA:1,flowclib::dumper::dump_tables::create_output_file
 FNDA:0,flowclib::dumper::dump_tables::dump_tables
 FNDA:0,flowclib::dumper::dump_tables::functions_to_dot::{closure#0}
@@ -15739,35 +15761,43 @@ FNF:12
 FNH:2
 BRF:0
 BRH:0
+DA:48,0
+DA:49,0
+DA:51,0
+DA:52,0
+DA:53,0
+DA:55,0
+DA:56,0
 DA:57,0
-DA:58,0
+DA:59,0
 DA:60,0
 DA:61,0
-DA:62,0
+DA:63,0
 DA:64,0
 DA:65,0
-DA:66,0
+DA:67,0
 DA:68,0
 DA:69,0
 DA:70,0
-DA:72,0
-DA:73,0
-DA:74,0
-DA:76,0
-DA:77,0
-DA:78,0
-DA:79,0
+DA:72,40
+DA:73,40
+DA:74,40
+DA:75,40
+DA:76,40
+DA:77,40
+DA:78,40
+DA:79,40
+DA:80,40
 DA:81,40
 DA:82,40
-DA:83,40
-DA:84,40
-DA:85,40
-DA:86,40
-DA:87,40
-DA:88,40
-DA:89,40
-DA:90,40
-DA:91,40
+DA:87,0
+DA:88,0
+DA:89,0
+DA:90,0
+DA:91,0
+DA:92,0
+DA:93,0
+DA:94,0
 DA:96,0
 DA:97,0
 DA:98,0
@@ -15776,38 +15806,30 @@ DA:100,0
 DA:101,0
 DA:102,0
 DA:103,0
+DA:104,0
 DA:105,0
-DA:106,0
 DA:107,0
 DA:108,0
 DA:109,0
 DA:110,0
 DA:111,0
 DA:112,0
-DA:113,0
 DA:114,0
 DA:116,0
 DA:117,0
-DA:118,0
-DA:119,0
-DA:120,0
-DA:121,0
-DA:123,0
-DA:125,0
-DA:126,0
-DA:174,0
-DA:176,0
-DA:177,0
-DA:178,0
-DA:179,0
-DA:182,0
-DA:183,0
-DA:184,0
-DA:185,0
-DA:186,0
-DA:187,0
-DA:189,0
-DA:190,0
+DA:154,0
+DA:156,0
+DA:157,0
+DA:158,0
+DA:159,0
+DA:162,0
+DA:163,0
+DA:164,0
+DA:165,0
+DA:166,0
+DA:167,0
+DA:169,0
+DA:170,0
 LF:69
 LH:11
 end_of_record
@@ -15875,14 +15897,14 @@ FN:12,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserial
 FN:12,<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::<toml::de::StrDeserializer>
 FN:12,<flowclib::model::datatype::DataType as core::cmp::PartialEq>::ne
 FN:53,<flowclib::model::datatype::DataType>::array_of
-FN:12,<flowclib::model::datatype::DataType>::map_mut::<_, _>
-FN:53,<flowclib::model::datatype::DataType>::array_of
 FN:12,<flowclib::model::datatype::DataType as core::cmp::PartialEq>::eq
+FN:53,<flowclib::model::datatype::DataType>::array_of
+FN:12,<flowclib::model::datatype::DataType>::map_mut::<_, _>
 FN:12,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FN:12,<flowclib::model::datatype::DataType as core::cmp::PartialEq>::eq
 FN:12,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
-FN:44,<flowclib::model::datatype::DataType>::is_array
 FN:12,<flowclib::model::datatype::DataType as core::hash::Hash>::hash::<_>
+FN:44,<flowclib::model::datatype::DataType>::is_array
 FN:12,<flowclib::model::datatype::DataType as core::default::Default>::default
 FN:12,<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FN:44,<flowclib::model::datatype::DataType>::is_array
@@ -15892,11 +15914,11 @@ FN:128,flowclib::model::datatype::test::is_array_false::{closure#0}
 FN:88,<flowclib::model::datatype::DataType>::array_order
 FN:12,<flowclib::model::datatype::DataType>::map::<_, _>
 FN:12,<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
-FN:12,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
+FN:116,flowclib::model::datatype::test::invalid_data_type::{closure#0}
 FN:12,<flowclib::model::datatype::DataType as core::hash::Hash>::hash::<_>
 FN:12,<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FN:12,<flowclib::model::datatype::DataType as core::ops::deref::Deref>::deref
-FN:116,flowclib::model::datatype::test::invalid_data_type::{closure#0}
+FN:12,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FN:12,<flowclib::model::datatype::DataType as core::cmp::PartialEq>::ne
 FN:12,<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::<serde::de::value::UsizeDeserializer<toml::de::Error>>
 FN:122,flowclib::model::datatype::test::is_array_true
@@ -15911,8 +15933,8 @@ FN:12,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserial
 FN:12,<flowclib::model::datatype::DataType as serde::ser::Serialize>::serialize::<_>
 FN:12,<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FN:12,<flowclib::model::datatype::DataType as core::ops::deref::Deref>::deref
-FN:12,<flowclib::model::datatype::DataType>::map_mut::<_, _>
 FN:12,<flowclib::model::datatype::DataType as core::borrow::Borrow<alloc::string::String>>::borrow
+FN:12,<flowclib::model::datatype::DataType>::map_mut::<_, _>
 FN:12,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FN:12,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<toml::de::ValueDeserializer>
 FN:12,<flowclib::model::datatype::DataType>::map::<_, _>
@@ -15933,11 +15955,11 @@ FN:48,<flowclib::model::datatype::DataType>::is_generic
 FN:12,<flowclib::model::datatype::DataType>::map_mut::<_, _>
 FN:12,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:58,<flowclib::model::datatype::DataType>::within_array
-FN:88,<flowclib::model::datatype::DataType>::array_order
 FN:12,<flowclib::model::datatype::DataType as core::convert::AsRef<alloc::string::String>>::as_ref
+FN:88,<flowclib::model::datatype::DataType>::array_order
 FN:12,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
-FN:16,<flowclib::model::datatype::DataType as core::convert::From<&str>>::from
 FN:12,<flowclib::model::datatype::DataType as core::ops::deref::Deref>::deref
+FN:16,<flowclib::model::datatype::DataType as core::convert::From<&str>>::from
 FN:12,<flowclib::model::datatype::DataType as core::fmt::Debug>::fmt
 FN:12,<flowclib::model::datatype::DataType as core::convert::AsRef<alloc::string::String>>::as_ref
 FN:70,<flowclib::model::datatype::DataType>::type_string
@@ -15961,8 +15983,8 @@ FN:32,<flowclib::model::datatype::DataType>::valid
 FN:32,<flowclib::model::datatype::DataType>::valid
 FN:16,<flowclib::model::datatype::DataType as core::convert::From<&str>>::from
 FN:12,<flowclib::model::datatype::DataType as core::default::Default>::default
-FN:22,<flowclib::model::datatype::DataType as core::fmt::Display>::fmt
 FN:12,<flowclib::model::datatype::DataType as core::cmp::PartialEq>::ne
+FN:22,<flowclib::model::datatype::DataType as core::fmt::Display>::fmt
 FN:12,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FN:88,<flowclib::model::datatype::DataType>::array_order
 FN:104,flowclib::model::datatype::test::valid_data_string_type
@@ -15981,14 +16003,14 @@ FNDA:0,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deseria
 FNDA:0,<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::<toml::de::StrDeserializer>
 FNDA:0,<flowclib::model::datatype::DataType as core::cmp::PartialEq>::ne
 FNDA:1,<flowclib::model::datatype::DataType>::array_of
-FNDA:0,<flowclib::model::datatype::DataType>::map_mut::<_, _>
-FNDA:1,<flowclib::model::datatype::DataType>::array_of
 FNDA:1,<flowclib::model::datatype::DataType as core::cmp::PartialEq>::eq
+FNDA:1,<flowclib::model::datatype::DataType>::array_of
+FNDA:0,<flowclib::model::datatype::DataType>::map_mut::<_, _>
 FNDA:0,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FNDA:1,<flowclib::model::datatype::DataType as core::cmp::PartialEq>::eq
 FNDA:0,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
-FNDA:1,<flowclib::model::datatype::DataType>::is_array
 FNDA:0,<flowclib::model::datatype::DataType as core::hash::Hash>::hash::<_>
+FNDA:1,<flowclib::model::datatype::DataType>::is_array
 FNDA:0,<flowclib::model::datatype::DataType as core::default::Default>::default
 FNDA:0,<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FNDA:1,<flowclib::model::datatype::DataType>::is_array
@@ -15998,11 +16020,11 @@ FNDA:1,flowclib::model::datatype::test::is_array_false::{closure#0}
 FNDA:1,<flowclib::model::datatype::DataType>::array_order
 FNDA:0,<flowclib::model::datatype::DataType>::map::<_, _>
 FNDA:0,<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
-FNDA:0,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
+FNDA:1,flowclib::model::datatype::test::invalid_data_type::{closure#0}
 FNDA:0,<flowclib::model::datatype::DataType as core::hash::Hash>::hash::<_>
 FNDA:0,<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNDA:1,<flowclib::model::datatype::DataType as core::ops::deref::Deref>::deref
-FNDA:1,flowclib::model::datatype::test::invalid_data_type::{closure#0}
+FNDA:0,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FNDA:0,<flowclib::model::datatype::DataType as core::cmp::PartialEq>::ne
 FNDA:0,<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::<serde::de::value::UsizeDeserializer<toml::de::Error>>
 FNDA:1,flowclib::model::datatype::test::is_array_true
@@ -16017,8 +16039,8 @@ FNDA:0,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deseria
 FNDA:0,<flowclib::model::datatype::DataType as serde::ser::Serialize>::serialize::<_>
 FNDA:0,<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FNDA:1,<flowclib::model::datatype::DataType as core::ops::deref::Deref>::deref
-FNDA:0,<flowclib::model::datatype::DataType>::map_mut::<_, _>
 FNDA:0,<flowclib::model::datatype::DataType as core::borrow::Borrow<alloc::string::String>>::borrow
+FNDA:0,<flowclib::model::datatype::DataType>::map_mut::<_, _>
 FNDA:0,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
 FNDA:1,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<toml::de::ValueDeserializer>
 FNDA:0,<flowclib::model::datatype::DataType>::map::<_, _>
@@ -16039,11 +16061,11 @@ FNDA:1,<flowclib::model::datatype::DataType>::is_generic
 FNDA:0,<flowclib::model::datatype::DataType>::map_mut::<_, _>
 FNDA:1,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:1,<flowclib::model::datatype::DataType>::within_array
-FNDA:1,<flowclib::model::datatype::DataType>::array_order
 FNDA:0,<flowclib::model::datatype::DataType as core::convert::AsRef<alloc::string::String>>::as_ref
+FNDA:1,<flowclib::model::datatype::DataType>::array_order
 FNDA:0,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
-FNDA:1,<flowclib::model::datatype::DataType as core::convert::From<&str>>::from
 FNDA:1,<flowclib::model::datatype::DataType as core::ops::deref::Deref>::deref
+FNDA:1,<flowclib::model::datatype::DataType as core::convert::From<&str>>::from
 FNDA:0,<flowclib::model::datatype::DataType as core::fmt::Debug>::fmt
 FNDA:0,<flowclib::model::datatype::DataType as core::convert::AsRef<alloc::string::String>>::as_ref
 FNDA:0,<flowclib::model::datatype::DataType>::type_string
@@ -16067,8 +16089,8 @@ FNDA:1,<flowclib::model::datatype::DataType>::valid
 FNDA:1,<flowclib::model::datatype::DataType>::valid
 FNDA:1,<flowclib::model::datatype::DataType as core::convert::From<&str>>::from
 FNDA:0,<flowclib::model::datatype::DataType as core::default::Default>::default
-FNDA:1,<flowclib::model::datatype::DataType as core::fmt::Display>::fmt
 FNDA:0,<flowclib::model::datatype::DataType as core::cmp::PartialEq>::ne
+FNDA:1,<flowclib::model::datatype::DataType as core::fmt::Display>::fmt
 FNDA:0,<<flowclib::model::datatype::DataType as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_newtype_struct::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNDA:0,<flowclib::model::datatype::DataType>::array_order
 FNDA:1,flowclib::model::datatype::test::valid_data_string_type
@@ -16979,15 +17001,15 @@ FN:101,flowclib::deserializers::deserializer_helper::test::yaml_extension_loader
 FN:65,flowclib::deserializers::deserializer_helper::test::no_extension
 FN:65,flowclib::deserializers::deserializer_helper::test::no_extension::{closure#0}
 FN:29,flowclib::deserializers::deserializer_helper::get_accepted_extensions
+FN:75,flowclib::deserializers::deserializer_helper::test::valid_file_extension
 FN:15,flowclib::deserializers::deserializer_helper::get_deserializer
-FN:95,flowclib::deserializers::deserializer_helper::test::toml_extension_loader
 FN:33,flowclib::deserializers::deserializer_helper::get_file_extension
 FN:75,flowclib::deserializers::deserializer_helper::test::valid_file_extension::{closure#0}
-FN:75,flowclib::deserializers::deserializer_helper::test::valid_file_extension
+FN:95,flowclib::deserializers::deserializer_helper::test::toml_extension_loader
 FN:55,flowclib::deserializers::deserializer_helper::test::get_accepted_extension_test::{closure#0}
 FN:95,flowclib::deserializers::deserializer_helper::test::toml_extension_loader::{closure#0}
-FN:101,flowclib::deserializers::deserializer_helper::test::yaml_extension_loader
 FN:33,flowclib::deserializers::deserializer_helper::get_file_extension
+FN:101,flowclib::deserializers::deserializer_helper::test::yaml_extension_loader
 FN:80,flowclib::deserializers::deserializer_helper::test::valid_http_extension
 FN:86,flowclib::deserializers::deserializer_helper::test::invalid_extension::{closure#0}
 FN:55,flowclib::deserializers::deserializer_helper::test::get_accepted_extension_test
@@ -17002,15 +17024,15 @@ FNDA:1,flowclib::deserializers::deserializer_helper::test::yaml_extension_loader
 FNDA:1,flowclib::deserializers::deserializer_helper::test::no_extension
 FNDA:1,flowclib::deserializers::deserializer_helper::test::no_extension::{closure#0}
 FNDA:1,flowclib::deserializers::deserializer_helper::get_accepted_extensions
+FNDA:1,flowclib::deserializers::deserializer_helper::test::valid_file_extension
 FNDA:1,flowclib::deserializers::deserializer_helper::get_deserializer
-FNDA:1,flowclib::deserializers::deserializer_helper::test::toml_extension_loader
 FNDA:1,flowclib::deserializers::deserializer_helper::get_file_extension
 FNDA:1,flowclib::deserializers::deserializer_helper::test::valid_file_extension::{closure#0}
-FNDA:1,flowclib::deserializers::deserializer_helper::test::valid_file_extension
+FNDA:1,flowclib::deserializers::deserializer_helper::test::toml_extension_loader
 FNDA:1,flowclib::deserializers::deserializer_helper::test::get_accepted_extension_test::{closure#0}
 FNDA:1,flowclib::deserializers::deserializer_helper::test::toml_extension_loader::{closure#0}
-FNDA:1,flowclib::deserializers::deserializer_helper::test::yaml_extension_loader
 FNDA:1,flowclib::deserializers::deserializer_helper::get_file_extension
+FNDA:1,flowclib::deserializers::deserializer_helper::test::yaml_extension_loader
 FNDA:1,flowclib::deserializers::deserializer_helper::test::valid_http_extension
 FNDA:1,flowclib::deserializers::deserializer_helper::test::invalid_extension::{closure#0}
 FNDA:1,flowclib::deserializers::deserializer_helper::test::get_accepted_extension_test
@@ -18379,8 +18401,8 @@ FN:104,flowclib::model::process_reference::test::deserialize_with_constant_input
 FN:13,<<flowclib::model::process_reference::ProcessReference as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:13,<<flowclib::model::process_reference::ProcessReference as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FN:13,<<flowclib::model::process_reference::ProcessReference as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
-FN:179,flowclib::model::process_reference::test::deserialize_extra_field_fails::{closure#0}
 FN:150,flowclib::model::process_reference::test::deserialize_with_multiple_input_initialization::{closure#0}
+FN:179,flowclib::model::process_reference::test::deserialize_extra_field_fails::{closure#0}
 FN:27,<flowclib::model::process_reference::ProcessReference>::set_alias
 FN:13,<flowclib::model::process_reference::ProcessReference as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:13,<<flowclib::model::process_reference::ProcessReference as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<toml::de::Error>
@@ -18450,8 +18472,8 @@ FNDA:1,flowclib::model::process_reference::test::deserialize_with_constant_input
 FNDA:1,<<flowclib::model::process_reference::ProcessReference as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:0,<<flowclib::model::process_reference::ProcessReference as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::expecting
 FNDA:0,<<flowclib::model::process_reference::ProcessReference as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
-FNDA:1,flowclib::model::process_reference::test::deserialize_extra_field_fails::{closure#0}
 FNDA:1,flowclib::model::process_reference::test::deserialize_with_multiple_input_initialization::{closure#0}
+FNDA:1,flowclib::model::process_reference::test::deserialize_extra_field_fails::{closure#0}
 FNDA:1,<flowclib::model::process_reference::ProcessReference>::set_alias
 FNDA:1,<flowclib::model::process_reference::ProcessReference as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:1,<<flowclib::model::process_reference::ProcessReference as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<toml::de::Error>
@@ -18697,8 +18719,8 @@ FN:101,flowclib::compiler::connector::get_source
 FN:219,flowclib::compiler::connector::find_function_destinations
 FN:219,flowclib::compiler::connector::find_function_destinations
 FN:498,flowclib::compiler::connector::test::collapse_tests::collapse_a_connection
-FN:498,flowclib::compiler::connector::test::collapse_tests::collapse_a_connection::{closure#0}
 FN:488,flowclib::compiler::connector::test::collapse_tests::collapse_drops_a_useless_connections::{closure#0}
+FN:498,flowclib::compiler::connector::test::collapse_tests::collapse_a_connection::{closure#0}
 FN:143,flowclib::compiler::connector::create_routes_table
 FN:488,flowclib::compiler::connector::test::collapse_tests::collapse_drops_a_useless_connections
 FN:548,flowclib::compiler::connector::test::collapse_tests::collapse_two_connections_from_flow_boundary
@@ -18726,8 +18748,8 @@ FNDA:1,flowclib::compiler::connector::get_source
 FNDA:1,flowclib::compiler::connector::find_function_destinations
 FNDA:1,flowclib::compiler::connector::find_function_destinations
 FNDA:1,flowclib::compiler::connector::test::collapse_tests::collapse_a_connection
-FNDA:1,flowclib::compiler::connector::test::collapse_tests::collapse_a_connection::{closure#0}
 FNDA:1,flowclib::compiler::connector::test::collapse_tests::collapse_drops_a_useless_connections::{closure#0}
+FNDA:1,flowclib::compiler::connector::test::collapse_tests::collapse_a_connection::{closure#0}
 FNDA:1,flowclib::compiler::connector::create_routes_table
 FNDA:1,flowclib::compiler::connector::test::collapse_tests::collapse_drops_a_useless_connections
 FNDA:1,flowclib::compiler::connector::test::collapse_tests::collapse_two_connections_from_flow_boundary
@@ -18743,7 +18765,7 @@ FNDA:1,flowclib::compiler::connector::create_routes_table
 FNDA:1,flowclib::compiler::connector::collapse_connections
 FNDA:1,flowclib::compiler::connector::test::get_source_tests::test_get_source::{closure#0}
 FNDA:1,flowclib::compiler::connector::test::collapse_tests::does_not_collapse_a_non_connection
-FNDA:1,flowclib::compiler::connector::prepare_function_connections
+FNDA:0,flowclib::compiler::connector::prepare_function_connections
 FNDA:1,flowclib::compiler::connector::test::get_source_tests::test_source_routes
 FNDA:1,flowclib::compiler::connector::test::collapse_tests::test_connection
 FNDA:1,flowclib::compiler::connector::test::get_source_tests::test_get_source
@@ -18752,11 +18774,11 @@ FNDA:1,flowclib::compiler::connector::test::collapse_tests::does_not_collapse_a_
 FNDA:1,flowclib::compiler::connector::find_function_destinations
 FNDA:1,flowclib::compiler::connector::get_source
 FNF:29
-FNH:29
+FNH:28
 BRF:0
 BRH:0
-DA:25,84
-DA:26,84
+DA:25,79
+DA:26,79
 DA:27,301
 DA:28,301
 DA:29,301
@@ -18804,9 +18826,9 @@ DA:80,0
 DA:81,0
 DA:82,0
 DA:83,0
-DA:87,84
-DA:89,84
-DA:90,84
+DA:87,79
+DA:89,79
+DA:90,79
 DA:101,639
 DA:102,639
 DA:103,639
@@ -19988,7 +20010,7 @@ FNF:277
 FNH:170
 BRF:0
 BRH:0
-DA:23,62303
+DA:23,62243
 DA:34,6868
 DA:50,0
 DA:51,0
@@ -20127,15 +20149,15 @@ DA:421,97
 DA:425,63
 DA:426,63
 DA:427,63
-DA:434,252944
-DA:435,252944
-DA:436,19883
-DA:437,233061
-DA:438,39621
-DA:439,193440
-DA:440,34458
-DA:442,158982
-DA:444,252944
+DA:434,252950
+DA:435,252950
+DA:436,19931
+DA:437,233019
+DA:438,39525
+DA:439,193494
+DA:440,34476
+DA:442,159018
+DA:444,252950
 DA:447,1
 DA:448,1
 DA:449,1
@@ -20160,9 +20182,9 @@ DA:470,1
 DA:471,1
 DA:474,3
 DA:475,3
-DA:477,3824
-DA:478,3824
-DA:479,3824
+DA:477,3814
+DA:478,3814
+DA:479,3814
 DA:481,24521
 DA:482,24521
 DA:483,24521
@@ -20231,7 +20253,7 @@ DA:588,6880
 DA:589,0
 DA:590,0
 DA:591,0
-DA:593,21162
+DA:593,21168
 DA:594,6880
 DA:595,6880
 DA:596,6880
@@ -20388,8 +20410,8 @@ DA:813,1
 DA:814,1
 DA:816,34364
 DA:817,34364
-DA:818,91958
-DA:819,91936
+DA:818,91988
+DA:819,91966
 DA:821,34364
 DA:822,34364
 DA:824,1363
@@ -20423,28 +20445,28 @@ DA:874,6924
 DA:875,6924
 DA:876,6924
 DA:877,6924
-DA:878,3510
+DA:878,3500
 DA:879,0
 DA:880,0
-DA:883,3510
-DA:887,3414
-DA:888,3414
+DA:883,3500
+DA:887,3424
+DA:888,3424
 DA:889,0
 DA:890,0
-DA:892,3414
+DA:892,3424
 DA:893,0
 DA:895,6924
 DA:900,6899
 DA:901,6899
 DA:902,6899
 DA:903,6899
-DA:906,30286
-DA:907,132551
-DA:908,132551
-DA:909,23387
-DA:910,109164
+DA:906,30234
+DA:907,140451
+DA:908,140451
+DA:909,23335
+DA:910,117116
 DA:912,6899
-DA:913,30286
+DA:913,30234
 DA:916,43
 DA:917,43
 DA:918,43
@@ -20494,11 +20516,11 @@ DA:980,6879
 DA:985,6879
 DA:986,6879
 DA:987,6879
-DA:988,29821
+DA:988,29859
 DA:989,6878
 DA:990,6878
-DA:992,22943
-DA:994,29821
+DA:992,22981
+DA:994,29859
 DA:995,6879
 DA:996,6879
 DA:1005,8406
@@ -20507,28 +20529,28 @@ DA:1007,8406
 DA:1008,8406
 DA:1009,8406
 DA:1010,8406
-DA:1011,43758
-DA:1012,43744
+DA:1011,43652
+DA:1012,43638
 DA:1013,6841
 DA:1014,6841
 DA:1015,6841
-DA:1017,36903
-DA:1019,43758
+DA:1017,36797
+DA:1019,43652
 DA:1023,15247
 DA:1024,6841
-DA:1025,3485
+DA:1025,3475
 DA:1026,0
 DA:1027,0
 DA:1028,0
-DA:1030,3485
-DA:1031,3485
-DA:1032,3485
-DA:1033,3485
+DA:1030,3475
+DA:1031,3475
+DA:1032,3475
+DA:1033,3475
 DA:1034,0
 DA:1035,0
-DA:1037,3485
+DA:1037,3475
 DA:1038,0
-DA:1039,3356
+DA:1039,3366
 DA:1041,8406
 DA:1048,6838
 DA:1049,6838
@@ -20560,7 +20582,7 @@ DA:1091,6880
 DA:1093,122401
 DA:1094,122401
 DA:1095,122401
-DA:1096,8843
+DA:1096,8867
 DA:1097,0
 DA:1098,0
 DA:1099,0
@@ -20571,8 +20593,8 @@ DA:1103,0
 DA:1104,0
 DA:1105,0
 DA:1106,0
-DA:1107,8843
-DA:1110,14266
+DA:1107,8867
+DA:1110,14272
 DA:1111,0
 DA:1112,0
 DA:1113,0
@@ -20583,8 +20605,8 @@ DA:1117,0
 DA:1118,0
 DA:1119,0
 DA:1120,0
-DA:1121,14266
-DA:1124,19807
+DA:1121,14272
+DA:1124,19759
 DA:1125,0
 DA:1126,0
 DA:1127,0
@@ -20594,12 +20616,12 @@ DA:1130,0
 DA:1131,0
 DA:1132,0
 DA:1133,0
-DA:1134,19807
-DA:1136,79485
+DA:1134,19759
+DA:1136,79503
 DA:1141,122401
 DA:1142,122401
 DA:1143,116749
-DA:1144,28524
+DA:1144,28500
 DA:1147,0
 DA:1148,0
 DA:1149,0
@@ -20611,9 +20633,9 @@ DA:1154,0
 DA:1155,0
 DA:1156,0
 DA:1157,122401
-DA:1161,36167
-DA:1162,36167
-DA:1163,36167
+DA:1161,36159
+DA:1162,36159
+DA:1163,36159
 DA:1164,0
 DA:1165,0
 DA:1166,0
@@ -20623,19 +20645,19 @@ DA:1169,0
 DA:1170,0
 DA:1171,0
 DA:1172,0
-DA:1173,36167
-DA:1178,36167
-DA:1179,36167
-DA:1180,1984
-DA:1181,1984
+DA:1173,36159
+DA:1178,36159
+DA:1179,36159
+DA:1180,1976
+DA:1181,1976
 DA:1183,0
 DA:1184,0
 DA:1185,0
 DA:1186,0
-DA:1187,36167
+DA:1187,36159
 DA:1188,0
-DA:1192,7352
-DA:1194,7347
+DA:1192,7358
+DA:1194,7353
 DA:1195,0
 DA:1196,0
 DA:1197,0
@@ -20645,14 +20667,14 @@ DA:1200,0
 DA:1201,0
 DA:1202,0
 DA:1203,0
-DA:1204,7347
-DA:1208,8098
-DA:1209,8095
-DA:1210,8095
+DA:1204,7353
+DA:1208,8104
+DA:1209,8101
+DA:1210,8101
 DA:1211,0
 DA:1212,0
 DA:1213,0
-DA:1214,8095
+DA:1214,8101
 DA:1216,6880
 DA:1221,0
 DA:1222,0
