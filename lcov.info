@@ -507,8 +507,8 @@ FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visit
 FN:28,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FN:407,flowclib::model::io::test::non_unique_io_names_wont_validate
 FN:208,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::find_by_name
-FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
 FN:28,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
+FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
 FN:20,<flowclib::model::io::IOType as core::clone::Clone>::clone
 FN:254,<flowclib::model::io::IO>::set_initial_values
 FN:101,<flowclib::model::io::IO as core::default::Default>::default
@@ -552,15 +552,15 @@ FN:28,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::
 FN:291,flowclib::model::io::test::deserialize_valid_type::{closure#0}
 FN:224,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::find_by_route
 FN:20,<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::<_>
-FN:28,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
+FN:28,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FN:113,<flowclib::model::io::IO as core::fmt::Display>::fmt
 FN:304,flowclib::model::io::test::deserialize_invalid_type
 FN:47,<flowclib::model::io::IO>::new::<&str, &str>
 FN:346,flowclib::model::io::test::methods_work::{closure#0}
 FN:28,<flowclib::model::io::IO as core::clone::Clone>::clone
-FN:20,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<_>
 FN:28,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<toml::de::MapVisitor>
+FN:20,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<_>
 FN:20,<flowclib::model::io::IOType as serde::ser::Serialize>::serialize::<_>
 FN:332,flowclib::model::io::test::deserialize_valid_string_type
 FN:143,flowclib::model::io::default_type
@@ -670,8 +670,8 @@ FN:317,flowclib::model::io::test::deserialize_name::{closure#0}
 FN:47,<flowclib::model::io::IO>::new::<&str, flowclib::model::route::Route>
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FN:92,<flowclib::model::io::IO>::set_initializer
-FN:128,<flowclib::model::io::IO as flowclib::model::datatype::HasDataType>::datatype
 FN:28,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
+FN:128,<flowclib::model::io::IO as flowclib::model::datatype::HasDataType>::datatype
 FNDA:1,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::compiler::loader::Validate>::validate
 FNDA:0,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::find_by_name
 FNDA:0,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::find
@@ -687,8 +687,8 @@ FNDA:1,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visi
 FNDA:0,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNDA:1,flowclib::model::io::test::non_unique_io_names_wont_validate
 FNDA:1,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::find_by_name
-FNDA:1,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
 FNDA:0,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
+FNDA:1,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor as serde::de::Visitor>::visit_map::<&mut serde::de::value::MapDeserializer<core::iter::adapters::map::Map<core::slice::iter::Iter<(serde::__private::de::content::Content, serde::__private::de::content::Content)>, serde::__private::de::content::visit_content_map_ref<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Visitor, toml::de::Error>::{closure#0}>, toml::de::Error>>
 FNDA:1,<flowclib::model::io::IOType as core::clone::Clone>::clone
 FNDA:0,<flowclib::model::io::IO>::set_initial_values
 FNDA:1,<flowclib::model::io::IO as core::default::Default>::default
@@ -732,15 +732,15 @@ FNDA:0,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde:
 FNDA:1,flowclib::model::io::test::deserialize_valid_type::{closure#0}
 FNDA:1,<alloc::vec::Vec<flowclib::model::io::IO> as flowclib::model::io::Find>::find_by_route
 FNDA:0,<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::<_>
-FNDA:1,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:0,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
+FNDA:1,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<toml::de::Error>>
 FNDA:0,<flowclib::model::io::IO as core::fmt::Display>::fmt
 FNDA:1,flowclib::model::io::test::deserialize_invalid_type
 FNDA:1,<flowclib::model::io::IO>::new::<&str, &str>
 FNDA:1,flowclib::model::io::test::methods_work::{closure#0}
 FNDA:1,<flowclib::model::io::IO as core::clone::Clone>::clone
-FNDA:0,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<_>
 FNDA:1,<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::<toml::de::MapVisitor>
+FNDA:0,<<flowclib::model::io::IOType as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<_>
 FNDA:0,<flowclib::model::io::IOType as serde::ser::Serialize>::serialize::<_>
 FNDA:1,flowclib::model::io::test::deserialize_valid_string_type
 FNDA:1,flowclib::model::io::default_type
@@ -850,8 +850,8 @@ FNDA:1,flowclib::model::io::test::deserialize_name::{closure#0}
 FNDA:0,<flowclib::model::io::IO>::new::<&str, flowclib::model::route::Route>
 FNDA:0,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_yaml::error::Error>>
 FNDA:1,<flowclib::model::io::IO>::set_initializer
-FNDA:0,<flowclib::model::io::IO as flowclib::model::datatype::HasDataType>::datatype
 FNDA:0,<<flowclib::model::io::IO as serde::de::Deserialize>::deserialize::__Field as serde::de::Deserialize>::deserialize::<serde::__private::de::content::ContentRefDeserializer<serde_json::error::Error>>
+FNDA:0,<flowclib::model::io::IO as flowclib::model::datatype::HasDataType>::datatype
 FNF:180
 FNH:107
 BRF:0
@@ -921,9 +921,9 @@ DA:124,12
 DA:128,0
 DA:129,0
 DA:130,0
-DA:134,16468
-DA:135,16468
-DA:136,16468
+DA:134,16446
+DA:135,16446
+DA:136,16446
 DA:138,172
 DA:139,172
 DA:140,172
@@ -5173,7 +5173,7 @@ DA:101,1151
 DA:102,1151
 DA:103,1151
 DA:105,155
-DA:108,556425
+DA:108,556428
 DA:119,1
 DA:120,1
 DA:121,1
@@ -5219,47 +5219,47 @@ FN:193,flowc_execution_tests::hello_world::{closure#0}
 FN:46,flowc_execution_tests::write_manifest
 FN:211,flowc_execution_tests::args_json
 FN:211,flowc_execution_tests::args_json::{closure#0}
-FN:193,flowc_execution_tests::hello_world
-FN:217,flowc_execution_tests::array_input
 FN:205,flowc_execution_tests::args
+FN:124,flowc_execution_tests::test_args
+FN:217,flowc_execution_tests::array_input
 FN:74,flowc_execution_tests::write_manifest::{closure#3}
 FN:217,flowc_execution_tests::array_input::{closure#0}
 FN:205,flowc_execution_tests::args::{closure#0}
 FN:71,flowc_execution_tests::write_manifest::{closure#2}
 FN:187,flowc_execution_tests::print_args
-FN:199,flowc_execution_tests::line_echo
+FN:193,flowc_execution_tests::hello_world
 FN:150,flowc_execution_tests::get
-FN:124,flowc_execution_tests::test_args
+FN:199,flowc_execution_tests::line_echo
 FN:56,flowc_execution_tests::write_manifest::{closure#0}
 FN:199,flowc_execution_tests::line_echo::{closure#0}
-FN:138,flowc_execution_tests::load_flow
+FN:79,flowc_execution_tests::execute_flow
 FN:1,flowc_execution_tests::main
 FN:187,flowc_execution_tests::print_args::{closure#0}
 FN:58,flowc_execution_tests::write_manifest::{closure#1}
-FN:79,flowc_execution_tests::execute_flow
+FN:138,flowc_execution_tests::load_flow
 FNDA:1,flowc_execution_tests::execute_test
 FNDA:1,flowc_execution_tests::hello_world::{closure#0}
 FNDA:1,flowc_execution_tests::write_manifest
 FNDA:1,flowc_execution_tests::args_json
 FNDA:1,flowc_execution_tests::args_json::{closure#0}
-FNDA:1,flowc_execution_tests::hello_world
-FNDA:1,flowc_execution_tests::array_input
 FNDA:1,flowc_execution_tests::args
+FNDA:1,flowc_execution_tests::test_args
+FNDA:1,flowc_execution_tests::array_input
 FNDA:0,flowc_execution_tests::write_manifest::{closure#3}
 FNDA:1,flowc_execution_tests::array_input::{closure#0}
 FNDA:1,flowc_execution_tests::args::{closure#0}
 FNDA:0,flowc_execution_tests::write_manifest::{closure#2}
 FNDA:1,flowc_execution_tests::print_args
-FNDA:1,flowc_execution_tests::line_echo
+FNDA:1,flowc_execution_tests::hello_world
 FNDA:1,flowc_execution_tests::get
-FNDA:1,flowc_execution_tests::test_args
+FNDA:1,flowc_execution_tests::line_echo
 FNDA:0,flowc_execution_tests::write_manifest::{closure#0}
 FNDA:1,flowc_execution_tests::line_echo::{closure#0}
-FNDA:1,flowc_execution_tests::load_flow
+FNDA:1,flowc_execution_tests::execute_flow
 FNDA:1,flowc_execution_tests::main
 FNDA:1,flowc_execution_tests::print_args::{closure#0}
 FNDA:0,flowc_execution_tests::write_manifest::{closure#1}
-FNDA:1,flowc_execution_tests::execute_flow
+FNDA:1,flowc_execution_tests::load_flow
 FNF:23
 FNH:19
 BRF:0
@@ -6222,7 +6222,7 @@ DA:106,1
 DA:107,1
 DA:108,1
 DA:109,1
-DA:110,2
+DA:110,4
 DA:111,1
 DA:112,1
 DA:113,1
@@ -6234,7 +6234,7 @@ DA:118,1
 DA:119,1
 DA:120,1
 DA:121,1
-DA:122,4
+DA:122,2
 DA:123,1
 DA:124,1
 DA:125,1
@@ -6242,7 +6242,7 @@ DA:126,1
 DA:127,1
 DA:128,1
 DA:129,1
-DA:130,1
+DA:130,3
 DA:131,1
 DA:132,1
 DA:133,1
@@ -6476,7 +6476,7 @@ DA:393,1
 DA:394,1
 DA:395,1
 DA:396,1
-DA:397,1
+DA:397,3
 DA:398,1
 DA:399,1
 DA:400,1
@@ -7640,9 +7640,9 @@ DA:32,1627
 DA:36,8345
 DA:37,8345
 DA:38,8345
-DA:42,3554
-DA:43,3554
-DA:44,3554
+DA:42,3566
+DA:43,3566
+DA:44,3566
 DA:48,0
 DA:49,0
 DA:50,0
@@ -9624,12 +9624,12 @@ DA:137,1998
 DA:141,1
 DA:142,1
 DA:143,1
-DA:146,398569
-DA:147,398569
-DA:148,398569
-DA:151,46467
-DA:152,46467
-DA:153,46467
+DA:146,398557
+DA:147,398557
+DA:148,398557
+DA:151,46473
+DA:152,46473
+DA:153,46473
 DA:156,11204
 DA:157,11204
 DA:158,19022
@@ -9659,9 +9659,9 @@ DA:192,10511
 DA:195,420
 DA:196,420
 DA:197,420
-DA:200,71202
-DA:201,71202
-DA:202,71202
+DA:200,71205
+DA:201,71205
+DA:202,71205
 DA:205,235535
 DA:206,235535
 DA:208,454069
@@ -11823,10 +11823,10 @@ DA:64,344
 DA:65,344
 DA:66,344
 DA:68,170
-DA:69,1703
-DA:70,1703
+DA:69,1671
+DA:70,1671
 DA:71,157
-DA:72,1546
+DA:72,1514
 DA:75,13
 DA:76,170
 LF:43
@@ -12127,12 +12127,12 @@ DA:19,7358
 DA:50,1704
 DA:51,1704
 DA:52,1704
-DA:53,496
-DA:54,496
-DA:55,496
-DA:59,2297
-DA:60,2297
-DA:61,2297
+DA:53,508
+DA:54,508
+DA:55,508
+DA:59,2277
+DA:60,2277
+DA:61,2277
 DA:62,0
 DA:63,0
 DA:64,0
@@ -12177,9 +12177,9 @@ DA:109,760
 DA:111,636
 DA:112,636
 DA:113,636
-DA:115,609
-DA:116,609
-DA:117,609
+DA:115,596
+DA:116,596
+DA:117,596
 DA:119,1092
 DA:120,1092
 DA:121,1092
@@ -13197,17 +13197,17 @@ DA:101,80
 DA:106,84
 DA:107,88
 DA:110,84
-DA:111,123
-DA:112,123
+DA:111,116
+DA:112,116
 DA:113,79
-DA:114,44
+DA:114,37
 DA:117,5
 DA:118,84
 DA:120,242
-DA:121,2626
-DA:122,2626
+DA:121,2636
+DA:122,2636
 DA:123,210
-DA:124,2416
+DA:124,2426
 DA:126,32
 DA:127,242
 DA:140,1
@@ -15396,14 +15396,14 @@ FNF:190
 FNH:132
 BRF:0
 BRH:0
-DA:12,23203
-DA:44,5541
-DA:45,5541
+DA:12,23139
+DA:44,5509
+DA:45,5509
 DA:46,278
-DA:47,5263
+DA:47,5231
 DA:48,110
-DA:50,5153
-DA:52,5541
+DA:50,5121
+DA:52,5509
 DA:55,472
 DA:56,472
 DA:57,472
@@ -15466,9 +15466,9 @@ DA:134,1726
 DA:152,7506
 DA:153,7506
 DA:154,7506
-DA:158,1706
-DA:159,1706
-DA:160,1706
+DA:158,1718
+DA:159,1718
+DA:160,1718
 DA:164,4928
 DA:165,4928
 DA:166,4928
@@ -17248,17 +17248,17 @@ DA:20,84
 DA:21,84
 DA:22,84
 DA:23,42
-DA:29,126
-DA:30,126
+DA:29,124
+DA:30,124
 DA:37,0
 DA:38,0
 DA:39,0
-DA:40,126
-DA:41,126
+DA:40,124
+DA:41,124
 DA:43,84
 DA:44,84
 DA:45,84
-DA:46,84
+DA:46,82
 DA:48,6952
 DA:49,6952
 DA:50,6952
@@ -19458,8 +19458,8 @@ FN:313,<flowrlib::run_state::RunState>::reset
 FN:900,<flowrlib::run_state::RunState>::mark_ready
 FN:73,<flowrlib::run_state::Block>::new
 FN:434,<flowrlib::run_state::RunState>::get_state
-FN:816,<flowrlib::run_state::RunState>::number_jobs_running
 FN:34,<<flowrlib::run_state::Job as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<_>
+FN:816,<flowrlib::run_state::RunState>::number_jobs_running
 FN:2444,flowrlib::run_state::test::functional_tests::get_works
 FN:1552,flowrlib::run_state::test::state_transitions::input_blocker
 FN:386,<flowrlib::run_state::RunState>::create_init_blocks
@@ -19575,9 +19575,9 @@ FN:1005,<flowrlib::run_state::RunState>::unblock_senders_to_function::<<flowrlib
 FN:1005,<flowrlib::run_state::RunState>::unblock_senders_to_function::<<flowrlib::run_state::RunState>::unblock_senders::{closure#0}>
 FN:23,<flowrlib::run_state::State as core::cmp::PartialEq>::eq
 FN:783,<flowrlib::run_state::RunState>::refill_inputs
-FN:452,<flowrlib::run_state::RunState>::display_state
 FN:799,<flowrlib::run_state::RunState>::start
 FN:63,<flowrlib::run_state::Block as core::cmp::PartialEq>::ne
+FN:452,<flowrlib::run_state::RunState>::display_state
 FN:50,<flowrlib::run_state::Job as core::fmt::Display>::fmt
 FN:1247,<flowrlib::run_state::test::TestImpl as core::fmt::Debug>::fmt
 FN:434,<flowrlib::run_state::RunState>::get_state
@@ -19619,8 +19619,8 @@ FN:2734,flowrlib::run_state::test::misc::test_array_order_1
 FN:985,<flowrlib::run_state::RunState>::remove_from_busy
 FN:1586,flowrlib::run_state::test::state_transitions::to_ready_2_on_init
 FN:1091,<flowrlib::run_state::RunState>::check_invariants
-FN:50,<flowrlib::run_state::Job as core::fmt::Display>::fmt
 FN:804,<flowrlib::run_state::RunState>::get_output_blockers
+FN:50,<flowrlib::run_state::Job as core::fmt::Display>::fmt
 FN:434,<flowrlib::run_state::RunState>::get_state
 FN:91,<flowrlib::run_state::Block as core::fmt::Debug>::fmt
 FN:63,<<flowrlib::run_state::Block as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<_>
@@ -19692,8 +19692,8 @@ FN:900,<flowrlib::run_state::RunState>::mark_ready
 FN:1742,flowrlib::run_state::test::state_transitions::blocked_to_ready_on_done
 FN:34,<<flowrlib::run_state::Job as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
 FN:1005,<flowrlib::run_state::RunState>::unblock_senders_to_function::<<flowrlib::run_state::RunState>::unblock_senders::{closure#0}>
-FN:783,<flowrlib::run_state::RunState>::refill_inputs
 FN:73,<flowrlib::run_state::Block>::new
+FN:783,<flowrlib::run_state::RunState>::refill_inputs
 FN:73,<flowrlib::run_state::Block>::new
 FN:34,<<flowrlib::run_state::Job as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
 FN:344,<flowrlib::run_state::RunState>::init
@@ -19735,8 +19735,8 @@ FNDA:1,<flowrlib::run_state::RunState>::reset
 FNDA:1,<flowrlib::run_state::RunState>::mark_ready
 FNDA:1,<flowrlib::run_state::Block>::new
 FNDA:0,<flowrlib::run_state::RunState>::get_state
-FNDA:1,<flowrlib::run_state::RunState>::number_jobs_running
 FNDA:0,<<flowrlib::run_state::Job as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<_>
+FNDA:1,<flowrlib::run_state::RunState>::number_jobs_running
 FNDA:1,flowrlib::run_state::test::functional_tests::get_works
 FNDA:1,flowrlib::run_state::test::state_transitions::input_blocker
 FNDA:0,<flowrlib::run_state::RunState>::create_init_blocks
@@ -19852,9 +19852,9 @@ FNDA:0,<flowrlib::run_state::RunState>::unblock_senders_to_function::<<flowrlib:
 FNDA:1,<flowrlib::run_state::RunState>::unblock_senders_to_function::<<flowrlib::run_state::RunState>::unblock_senders::{closure#0}>
 FNDA:1,<flowrlib::run_state::State as core::cmp::PartialEq>::eq
 FNDA:1,<flowrlib::run_state::RunState>::refill_inputs
-FNDA:1,<flowrlib::run_state::RunState>::display_state
 FNDA:1,<flowrlib::run_state::RunState>::start
 FNDA:0,<flowrlib::run_state::Block as core::cmp::PartialEq>::ne
+FNDA:1,<flowrlib::run_state::RunState>::display_state
 FNDA:0,<flowrlib::run_state::Job as core::fmt::Display>::fmt
 FNDA:0,<flowrlib::run_state::test::TestImpl as core::fmt::Debug>::fmt
 FNDA:1,<flowrlib::run_state::RunState>::get_state
@@ -19896,8 +19896,8 @@ FNDA:1,flowrlib::run_state::test::misc::test_array_order_1
 FNDA:1,<flowrlib::run_state::RunState>::remove_from_busy
 FNDA:1,flowrlib::run_state::test::state_transitions::to_ready_2_on_init
 FNDA:1,<flowrlib::run_state::RunState>::check_invariants
-FNDA:0,<flowrlib::run_state::Job as core::fmt::Display>::fmt
 FNDA:1,<flowrlib::run_state::RunState>::get_output_blockers
+FNDA:0,<flowrlib::run_state::Job as core::fmt::Display>::fmt
 FNDA:1,<flowrlib::run_state::RunState>::get_state
 FNDA:0,<flowrlib::run_state::Block as core::fmt::Debug>::fmt
 FNDA:0,<<flowrlib::run_state::Block as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_str::<_>
@@ -19969,8 +19969,8 @@ FNDA:0,<flowrlib::run_state::RunState>::mark_ready
 FNDA:1,flowrlib::run_state::test::state_transitions::blocked_to_ready_on_done
 FNDA:0,<<flowrlib::run_state::Job as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::expecting
 FNDA:0,<flowrlib::run_state::RunState>::unblock_senders_to_function::<<flowrlib::run_state::RunState>::unblock_senders::{closure#0}>
-FNDA:1,<flowrlib::run_state::RunState>::refill_inputs
 FNDA:1,<flowrlib::run_state::Block>::new
+FNDA:1,<flowrlib::run_state::RunState>::refill_inputs
 FNDA:0,<flowrlib::run_state::Block>::new
 FNDA:0,<<flowrlib::run_state::Job as serde::de::Deserialize>::deserialize::__FieldVisitor as serde::de::Visitor>::visit_u64::<_>
 FNDA:1,<flowrlib::run_state::RunState>::init
@@ -20010,7 +20010,7 @@ FNF:277
 FNH:170
 BRF:0
 BRH:0
-DA:23,62253
+DA:23,62241
 DA:34,6868
 DA:50,0
 DA:51,0
@@ -20151,12 +20151,12 @@ DA:426,63
 DA:427,63
 DA:434,252950
 DA:435,252950
-DA:436,19927
-DA:437,233023
-DA:438,39537
-DA:439,193486
-DA:440,34476
-DA:442,159010
+DA:436,19929
+DA:437,233021
+DA:438,39521
+DA:439,193500
+DA:440,34482
+DA:442,159018
 DA:444,252950
 DA:447,1
 DA:448,1
@@ -20253,7 +20253,7 @@ DA:588,6880
 DA:589,0
 DA:590,0
 DA:591,0
-DA:593,21168
+DA:593,21170
 DA:594,6880
 DA:595,6880
 DA:596,6880
@@ -20410,8 +20410,8 @@ DA:813,1
 DA:814,1
 DA:816,34364
 DA:817,34364
-DA:818,91988
-DA:819,91966
+DA:818,91998
+DA:819,91976
 DA:821,34364
 DA:822,34364
 DA:824,1363
@@ -20460,13 +20460,13 @@ DA:900,6899
 DA:901,6899
 DA:902,6899
 DA:903,6899
-DA:906,30234
-DA:907,121065
-DA:908,121065
-DA:909,23335
-DA:910,97730
+DA:906,30230
+DA:907,136297
+DA:908,136297
+DA:909,23331
+DA:910,112966
 DA:912,6899
-DA:913,30234
+DA:913,30230
 DA:916,43
 DA:917,43
 DA:918,43
@@ -20497,13 +20497,13 @@ DA:952,6886
 DA:957,6879
 DA:958,6879
 DA:961,6879
-DA:962,759
+DA:962,757
 DA:963,0
 DA:964,0
 DA:965,0
 DA:966,0
-DA:969,759
-DA:970,759
+DA:969,757
+DA:970,757
 DA:971,0
 DA:972,0
 DA:973,0
@@ -20511,16 +20511,16 @@ DA:975,1520
 DA:976,1520
 DA:977,1520
 DA:978,0
-DA:979,6120
+DA:979,6122
 DA:980,6879
 DA:985,6879
 DA:986,6879
 DA:987,6879
-DA:988,29857
+DA:988,29861
 DA:989,6878
 DA:990,6878
-DA:992,22979
-DA:994,29857
+DA:992,22983
+DA:994,29861
 DA:995,6879
 DA:996,6879
 DA:1005,8406
@@ -20529,13 +20529,13 @@ DA:1007,8406
 DA:1008,8406
 DA:1009,8406
 DA:1010,8406
-DA:1011,43704
-DA:1012,43690
+DA:1011,43732
+DA:1012,43718
 DA:1013,6841
 DA:1014,6841
 DA:1015,6841
-DA:1017,36849
-DA:1019,43704
+DA:1017,36877
+DA:1019,43732
 DA:1023,15247
 DA:1024,6841
 DA:1025,3475
@@ -20582,7 +20582,7 @@ DA:1091,6880
 DA:1093,122401
 DA:1094,122401
 DA:1095,122401
-DA:1096,8865
+DA:1096,8867
 DA:1097,0
 DA:1098,0
 DA:1099,0
@@ -20593,8 +20593,8 @@ DA:1103,0
 DA:1104,0
 DA:1105,0
 DA:1106,0
-DA:1107,8865
-DA:1110,14272
+DA:1107,8867
+DA:1110,14274
 DA:1111,0
 DA:1112,0
 DA:1113,0
@@ -20605,8 +20605,8 @@ DA:1117,0
 DA:1118,0
 DA:1119,0
 DA:1120,0
-DA:1121,14272
-DA:1124,19765
+DA:1121,14274
+DA:1124,19757
 DA:1125,0
 DA:1126,0
 DA:1127,0
@@ -20616,12 +20616,12 @@ DA:1130,0
 DA:1131,0
 DA:1132,0
 DA:1133,0
-DA:1134,19765
-DA:1136,79499
+DA:1134,19757
+DA:1136,79503
 DA:1141,122401
 DA:1142,122401
 DA:1143,116749
-DA:1144,28504
+DA:1144,28498
 DA:1147,0
 DA:1148,0
 DA:1149,0
@@ -20633,9 +20633,9 @@ DA:1154,0
 DA:1155,0
 DA:1156,0
 DA:1157,122401
-DA:1161,36159
-DA:1162,36159
-DA:1163,36159
+DA:1161,36161
+DA:1162,36161
+DA:1163,36161
 DA:1164,0
 DA:1165,0
 DA:1166,0
@@ -20645,19 +20645,19 @@ DA:1169,0
 DA:1170,0
 DA:1171,0
 DA:1172,0
-DA:1173,36159
-DA:1178,36159
-DA:1179,36159
-DA:1180,1976
-DA:1181,1976
+DA:1173,36161
+DA:1178,36161
+DA:1179,36161
+DA:1180,1978
+DA:1181,1978
 DA:1183,0
 DA:1184,0
 DA:1185,0
 DA:1186,0
-DA:1187,36159
+DA:1187,36161
 DA:1188,0
-DA:1192,7358
-DA:1194,7353
+DA:1192,7360
+DA:1194,7355
 DA:1195,0
 DA:1196,0
 DA:1197,0
@@ -20667,7 +20667,7 @@ DA:1200,0
 DA:1201,0
 DA:1202,0
 DA:1203,0
-DA:1204,7353
+DA:1204,7355
 DA:1208,8104
 DA:1209,8101
 DA:1210,8101
