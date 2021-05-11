@@ -1,0 +1,1 @@
+{"rustc":1230132973804696079,"features":"[]","target":2895128449542521726,"profile":10017580474031740910,"path":5315295900327715108,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"debug/.fingerprint/scoped_threadpool-f1c0c62bb96a0f88/dep-lib-scoped_threadpool"}}],"rustflags":["-Zinstrument-coverage"],"metadata":13652899708770317105,"config":0,"compile_kind":0}

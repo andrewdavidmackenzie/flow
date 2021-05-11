@@ -1,0 +1,4 @@
+(function() {var implementors = {};
+implementors["flowclib"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/std/error/trait.Error.html\" title=\"trait std::error::Error\">Error</a> for <a class=\"struct\" href=\"flowclib/struct.Error.html\" title=\"struct flowclib::Error\">Error</a>","synthetic":false,"types":["flowclib::Error"]}];
+implementors["flowcore"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/std/error/trait.Error.html\" title=\"trait std::error::Error\">Error</a> for <a class=\"struct\" href=\"flowcore/struct.Error.html\" title=\"struct flowcore::Error\">Error</a>","synthetic":false,"types":["flowcore::Error"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

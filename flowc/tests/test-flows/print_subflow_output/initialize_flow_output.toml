@@ -1,5 +1,0 @@
-flow = "initialize_flow_output"
-
-[[output]]
-type = "String"
-value = { once = "Hello" }
