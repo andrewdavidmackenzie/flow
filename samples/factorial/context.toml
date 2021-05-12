@@ -1,0 +1,77 @@
+flow = "factorial"
+
+# Read 'n' from the command line
+[[process]]
+alias = "args"
+source = "lib://flowruntime/args/get"
+
+[[connection]]
+from = "args/json/1"
+to = "multiply/i2"
+
+[[process]]
+alias = "multiply"
+source = "lib://flowstdlib/math/multiply"
+input.i1 = { once =  1 }
+
+[[process]]
+alias = "sub"
+source = "lib://flowstdlib/math/subtract"
+input.i2 = { always =  1 }
+
+[[connection]]
+from = "args/json/1"
+to = "sub/i1"
+
+[[connection]]
+from = "multiply"
+to = "multiply/i1"
+
+[[process]]
+alias = "compare"
+source = "lib://flowstdlib/math/compare"
+input.right = { always =  1 }
+
+[[process]]
+alias = "n-tap"
+source = "lib://flowstdlib/control/tap"
+
+[[connection]]
+from = "sub/diff"
+to = "n-tap/data"
+
+[[connection]]
+from = "sub/diff"
+to = "compare/left"
+
+[[connection]]
+from = "compare/gt"
+to = "n-tap/control"
+
+[[connection]]
+from = "n-tap"
+to = "multiply/i2"
+
+[[connection]]
+from = "n-tap"
+to = "sub/i1"
+
+[[process]]
+alias = "result-tap"
+source = "lib://flowstdlib/control/tap"
+
+[[connection]]
+from = "compare/lte"
+to = "result-tap/control"
+
+[[connection]]
+from = "multiply"
+to = "result-tap/data"
+
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"
+
+[[connection]]
+from = "result-tap"
+to = "print"

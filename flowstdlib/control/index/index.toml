@@ -1,0 +1,30 @@
+function = "index"
+implementation = "index.rs"
+
+[[input]]
+name = "value" # - the stream of input values to select from
+type = "Value"
+
+[[input]]
+name = "previous_value" # - the loop-backed previous value to enable selecting "last"
+type = "Value"
+
+[[input]]
+name = "previous_index" # - the loop-backed previous index to enable counting
+type = "Number"
+
+[[input]]
+name = "select_index" # th index to select from, where -1 = "last"
+type = "Number"
+
+[[output]]
+name = "index" # the index of the value just processed and output on "value"
+type = "Number"
+
+[[output]]
+name = "value" # the value just processed
+type = "Value"
+
+[[output]]
+name = "selected_value" # the value selected by index - only output when selected
+type = "Value"

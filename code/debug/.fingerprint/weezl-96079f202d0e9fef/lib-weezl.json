@@ -1,1 +1,0 @@
-{"rustc":1230132973804696079,"features":"[\"alloc\", \"default\", \"std\"]","target":6539318229463011973,"profile":10017580474031740910,"path":85612512127349967,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"debug/.fingerprint/weezl-96079f202d0e9fef/dep-lib-weezl"}}],"rustflags":["-Zinstrument-coverage"],"metadata":5154753838649565246,"config":0,"compile_kind":0}

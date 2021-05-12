@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["RouteType",""]],"struct":[["Route",""]],"trait":[["HasRoute",""],["SetIORoutes",""],["SetRoute",""]]});

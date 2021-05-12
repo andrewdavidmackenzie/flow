@@ -1,0 +1,11 @@
+function = "stdin"
+implementation = "stdin.rs"
+impure = true
+
+[[output]]
+name = "string"
+type = "String"
+
+[[output]]
+name = "json"
+type = "Value"

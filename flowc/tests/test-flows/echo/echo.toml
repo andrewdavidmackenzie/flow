@@ -1,0 +1,12 @@
+flow = "echo inputs"
+
+[[process]]
+source = "lib://flowruntime/stdio/stdin"
+
+[[process]]
+source = "lib://flowruntime/stdio/stdout"
+
+[[connection]]
+name = "echo"
+from = "stdin/string"
+to = "stdout"

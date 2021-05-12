@@ -1,0 +1,18 @@
+# This flow produces an infinite series of "2" on stdout.
+# I considered a compiler check to not allow this, but it could be a valid scenario either as a standalone flow
+# or as part of a bigger flow - so I didn't implement that and no test exists for it.
+
+flow = "runaway"
+
+[[process]]
+alias = "store"
+source = "lib://flowstdlib/fmt/to_json"
+input.default = {always =  "2"}
+
+[[process]]
+alias = "print"
+source = "lib://flowruntime/stdio/stdout"
+
+[[connection]]
+from = "store"
+to = "print"

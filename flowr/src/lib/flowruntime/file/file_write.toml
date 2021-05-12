@@ -1,0 +1,11 @@
+function = "file_write"
+implementation = "file_write.rs"
+impure = true
+
+[[input]]
+name = "filename"
+type = "String"
+
+[[input]]
+name = "bytes"
+type = "Array"

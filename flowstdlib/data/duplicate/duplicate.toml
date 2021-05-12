@@ -1,0 +1,13 @@
+function = "duplicate"
+implementation = "duplicate.rs"
+
+[[input]]
+name = "value" # - the value to duplicate
+type = "Value"
+
+[[input]]
+name = "factor" # - how many times to duplicate the value in the output
+type = "Number"
+
+[[output]]
+type = "Array/Value" # - the array of duplicate values

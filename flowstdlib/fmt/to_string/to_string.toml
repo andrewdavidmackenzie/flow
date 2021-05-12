@@ -1,0 +1,8 @@
+function = "to_string"
+implementation = "to_string.rs"
+
+[[input]]
+type = "Value"
+
+[[output]]
+type = "String" # The String equivalent of the input value

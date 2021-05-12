@@ -1,0 +1,22 @@
+function = "select"
+implementation = "select.rs"
+
+[[input]]
+name = "i1"
+type = "Value"
+
+[[input]]
+name = "i2"
+type = "Value"
+
+[[input]]
+name = "control" # - a boolean value to selection of inputs passed to outputs
+type = "Bool"
+
+[[output]]
+name = "select_i1" # if `control` is true `i1` is selected for this output else `i2` is selected
+type = "Value"
+
+[[output]]
+name = "select_i2" # if `control` is true `i2` is selected for this output else `i1` is selected
+type = "Value"

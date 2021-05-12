@@ -1,1 +1,0 @@
-{"rustc":1230132973804696079,"features":"[\"default\"]","target":10088282520713642473,"profile":15155709024791400979,"path":8722975168851593245,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"debug/.fingerprint/serde_derive-3ab4e8b627ef7a9f/dep-build-script-build-script-build"}}],"rustflags":["-Zinstrument-coverage"],"metadata":14452199383429553764,"config":0,"compile_kind":0}

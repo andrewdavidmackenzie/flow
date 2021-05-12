@@ -1,0 +1,13 @@
+function = "join"
+implementation = "join.rs"
+
+[[input]]
+name = "data" # - the data we wish to control the flow of
+type = "Value"
+
+[[input]]
+name = "control" # - a second value we wait on
+type = "Value"
+
+[[output]]
+type = "Value"

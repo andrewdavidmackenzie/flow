@@ -1,0 +1,22 @@
+function = "subtract"
+implementation = "subtract.rs"
+
+[[input]]
+name = "i1" # - first input of type `Number`
+type = "Number"
+
+[[input]]
+name = "i2" # - second input of type `Number`
+type = "Number"
+
+[[output]]
+name = "diff"
+type = "Number" # - `i1` minus `i2` of type `Number`
+
+[[output]]
+name = "i1"
+type = "Number"
+
+[[output]]
+name = "i2"
+type = "Number"

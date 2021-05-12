@@ -1,1 +1,0 @@
-{"rustc":1230132973804696079,"features":"[]","target":4008522869086247143,"profile":10017580474031740910,"path":10479118296898645337,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"debug/.fingerprint/bytemuck-6b56e176432d5257/dep-lib-bytemuck"}}],"rustflags":["-Zinstrument-coverage"],"metadata":5417891915809776353,"config":0,"compile_kind":0}

@@ -1,0 +1,11 @@
+function = "get"
+implementation = "get.rs"
+impure = true
+
+[[output]]
+name = "string"
+type = "Array/String"
+
+[[output]]
+name = "json"
+type = "Array/Value"

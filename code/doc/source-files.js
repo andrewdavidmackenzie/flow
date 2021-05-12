@@ -1,5 +1,0 @@
-var N = null;var sourcesIndex = {};
-sourcesIndex["flow_impl_derive"] = {"name":"","files":["lib.rs"]};
-sourcesIndex["flowclib"] = {"name":"","dirs":[{"name":"compiler","files":["checker.rs","compile.rs","compile_wasm.rs","connector.rs","gatherer.rs","loader.rs","mod.rs","optimizer.rs"]},{"name":"deserializers","files":["deserializer_helper.rs","json_deserializer.rs","mod.rs","toml_deserializer.rs","yaml_deserializer.rs"]},{"name":"dumper","files":["dump_dot.rs","dump_flow.rs","dump_tables.rs","mod.rs"]},{"name":"generator","files":["generate.rs","mod.rs"]},{"name":"model","files":["connection.rs","datatype.rs","flow.rs","function.rs","io.rs","mod.rs","name.rs","process.rs","process_reference.rs","route.rs"]}],"files":["info.rs","lib.rs"]};
-sourcesIndex["flowcore"] = {"name":"","dirs":[{"name":"content","files":["file_provider.rs","http_provider.rs","mod.rs"]}],"files":["function.rs","input.rs","lib.rs","lib_manifest.rs","lib_provider.rs","manifest.rs","output_connection.rs","url_helper.rs"]};
-createSourceSidebar();

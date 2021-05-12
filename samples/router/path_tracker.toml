@@ -1,0 +1,189 @@
+flow = "path_tracker"
+
+# Distance to next stop going forward
+[[input]]
+name = "forward"
+type = "Number"
+
+# Distance crossing over from the other route
+[[input]]
+name = "cross"
+type = "Number"
+
+# Forward distance on the other route
+[[input]]
+name = "other"
+type = "Number"
+
+# The string we use to denominate we have selected the forward route e.g. 'A' on the top, 'B' on the bottom
+[[input]]
+name = "forward_string"
+type = "String"
+
+# The string we use to denominate we have selected the cross route e.g. 'BC' on the top route, 'AC' on the bottom route
+[[input]]
+name = "cross_string"
+type = "String"
+
+# The Route taken so far on the forward route (A on top, B on bottom)
+[[input]]
+name = "forward_route"
+type = "String"
+
+# The distannce taken on that route
+[[input]]
+name = "forward_distance"
+type = "Number"
+
+# The Route taken so far on the other route (B on top, A on bottom)
+[[input]]
+name = "other_route"
+type = "String"
+
+# The distance taken on that route
+[[input]]
+name = "other_distance"
+type = "Number"
+
+
+#### Outputs
+
+#### The path (so far) that we have selected
+[[output]]
+name = "route"
+type = "String"
+
+#### The total (so far) for the path (so far) we have selected
+[[output]]
+name = "distance"
+type = "Number"
+
+############################### Definition #####################
+
+# Sum the other two values to get the distance if we cross over
+[[process]]
+alias = "cross_distance"
+source = "lib://flowstdlib/math/add"
+
+[[connection]]
+from = "input/cross"
+to = "cross_distance/i1"
+
+[[connection]]
+from = "input/other"
+to = "cross_distance/i2"
+
+
+# Accumulate the distances so_far - if we take the forward route
+[[process]]
+alias = "forward_sum"
+source = "lib://flowstdlib/math/add"
+
+[[connection]]
+from = "input/forward_distance"
+to = "forward_sum/i2"
+
+[[connection]]
+from = "input/forward"
+to = "forward_sum/i1"
+
+# Accumulate the distances so_far - if we take the cross over route
+[[process]]
+alias = "cross_sum"
+source = "lib://flowstdlib/math/add"
+
+[[connection]]
+from = "input/other_distance"
+to = "cross_sum/i2"
+
+[[connection]]
+from = "cross_distance/sum"
+to = "cross_sum/i1"
+
+# Compare the two distance so far
+[[process]]
+alias = "compare"
+source = "lib://flowstdlib/math/compare"
+
+[[connection]]
+from = "forward_sum/sum"
+to = "compare/left"
+
+[[connection]]
+from = "cross_sum/sum"
+to = "compare/right"
+
+# select the string for the shortest route
+# shortest route = "select_string/select_i1"
+[[process]]
+alias = "select_string"
+source = "lib://flowstdlib/control/select"
+
+[[connection]]
+from = "input/forward_string"
+to = "select_string/i1"
+
+[[connection]]
+from = "input/cross_string"
+to = "select_string/i2"
+
+[[connection]]
+from = "compare/lte"
+to = "select_string/control"
+
+# select the shortest route so far
+[[process]]
+alias = "select_route"
+source = "lib://flowstdlib/control/select"
+
+[[connection]]
+from = "input/forward_route"
+to = "select_route/i1"
+
+[[connection]]
+from = "input/other_route"
+to = "select_route/i2"
+
+[[connection]]
+from = "compare/lte"
+to = "select_route/control"
+
+# select the total that corresponds to the lowest sum
+# selected total = "select_total/select_i1"
+[[process]]
+alias = "select_total"
+source = "lib://flowstdlib/control/select"
+
+[[connection]]
+from = "forward_sum/sum"
+to = "select_total/i1"
+
+[[connection]]
+from = "cross_sum/sum"
+to = "select_total/i2"
+
+[[connection]]
+from = "compare/lte"
+to = "select_total/control"
+
+# Accumulate the shortest route so far
+[[process]]
+source = "lib://flowstdlib/data/append"
+
+[[connection]]
+from = "select_route/select_i1"
+to = "append/s1"
+
+[[connection]]
+from = "select_string/select_i1"
+to = "append/s2"
+
+#  output the distance so far
+[[connection]]
+from = "select_total/select_i1"
+to = "output/distance"
+
+# output route so far
+[[connection]]
+from = "append"
+to = "output/route"

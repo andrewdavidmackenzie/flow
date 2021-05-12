@@ -1,0 +1,6 @@
+function = "stdout"
+implementation = "stdout.rs"
+impure = true
+
+[[input]]
+type = "Value"

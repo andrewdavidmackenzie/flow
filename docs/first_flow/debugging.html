@@ -1,0 +1,324 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Debugging your first flow - The &#x27;flow&#x27; Guide</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A guide to &#x27;flow&#x27;: what it is and how to use it">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        
+        <link rel="icon" href="../../favicon.svg">
+        
+        
+        <link rel="shortcut icon" href="../../favicon.png">
+        
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+        
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Introduction to flow</li><li class="chapter-item expanded "><a href="../../docs/introduction/what_is_flow.html"><strong aria-hidden="true">1.</strong> What is flow?</a></li><li class="chapter-item expanded "><a href="../../docs/introduction/tenets.html"><strong aria-hidden="true">2.</strong> Tenets of flow</a></li><li class="chapter-item expanded "><a href="../../docs/introduction/structure.html"><strong aria-hidden="true">3.</strong> Project Components and Structure</a></li><li class="chapter-item expanded "><a href="../../docs/introduction/inspirations.html"><strong aria-hidden="true">4.</strong> The Inspirations for flow</a></li><li class="chapter-item expanded "><a href="../../docs/introduction/non_inspirations.html"><strong aria-hidden="true">5.</strong> Non-Inspirations</a></li><li class="chapter-item expanded "><a href="../../docs/introduction/status.html"><strong aria-hidden="true">6.</strong> Status</a></li><li class="chapter-item expanded "><a href="../../docs/introduction/flow_programming.html"><strong aria-hidden="true">7.</strong> Flow Programming</a></li><li class="chapter-item expanded affix "><li class="part-title">Your First Flow</li><li class="chapter-item expanded "><a href="../../docs/first_flow/first_flow.html"><strong aria-hidden="true">8.</strong> Your First Flow</a></li><li class="chapter-item expanded "><a href="../../docs/first_flow/understanding.html"><strong aria-hidden="true">9.</strong> Understanding it</a></li><li class="chapter-item expanded "><a href="../../docs/first_flow/implementation.html"><strong aria-hidden="true">10.</strong> Real Implementation</a></li><li class="chapter-item expanded "><a href="../../docs/first_flow/step-by-step.html"><strong aria-hidden="true">11.</strong> Step-by-Step</a></li><li class="chapter-item expanded "><a href="../../docs/first_flow/debugging.html" class="active"><strong aria-hidden="true">12.</strong> Debugging your first flow</a></li><li class="chapter-item expanded affix "><li class="part-title">Defining Flows</li><li class="chapter-item expanded "><a href="../../docs/describing/definition_overview.html"><strong aria-hidden="true">13.</strong> Defining flows</a></li><li class="chapter-item expanded "><a href="../../docs/describing/names.html"><strong aria-hidden="true">14.</strong> Names</a></li><li class="chapter-item expanded "><a href="../../docs/describing/ios.html"><strong aria-hidden="true">15.</strong> Flow IOs</a></li><li class="chapter-item expanded "><a href="../../docs/describing/process_references.html"><strong aria-hidden="true">16.</strong> Process References</a></li><li class="chapter-item expanded "><a href="../../docs/describing/function_definitions.html"><strong aria-hidden="true">17.</strong> Function Definitions</a></li><li class="chapter-item expanded "><a href="../../docs/describing/types.html"><strong aria-hidden="true">18.</strong> Types</a></li><li class="chapter-item expanded "><a href="../../docs/describing/connections.html"><strong aria-hidden="true">19.</strong> Connections</a></li><li class="chapter-item expanded "><a href="../../docs/describing/io_references.html"><strong aria-hidden="true">20.</strong> IO References</a></li><li class="chapter-item expanded "><a href="../../docs/describing/features.html"><strong aria-hidden="true">21.</strong> Complete Feature List</a></li><li class="chapter-item expanded "><a href="../../docs/describing/flow_libraries.html"><strong aria-hidden="true">22.</strong> Flow Libraries</a></li><li class="chapter-item expanded affix "><li class="part-title">Running Flows</li><li class="chapter-item expanded "><a href="../../docs/running/running.html"><strong aria-hidden="true">23.</strong> Running flows</a></li><li class="chapter-item expanded "><a href="../../docs/running/flowc.html"><strong aria-hidden="true">24.</strong> flowc Command Line Arguments</a></li><li class="chapter-item expanded "><a href="../../docs/running/arguments.html"><strong aria-hidden="true">25.</strong> Passing command line arguments to flows</a></li><li class="chapter-item expanded "><a href="../../docs/running/context_selection.html"><strong aria-hidden="true">26.</strong> Selecting the Context file</a></li><li class="chapter-item expanded "><a href="../../docs/running/stdio.html"><strong aria-hidden="true">27.</strong> Standard Input and Output</a></li><li class="chapter-item expanded "><a href="../../docs/running/panics.html"><strong aria-hidden="true">28.</strong> Exceptions and Panics</a></li><li class="chapter-item expanded affix "><li class="part-title">The flowruntime Runtime</li><li class="chapter-item expanded "><a href="../../flowr/src/lib/flowruntime/README.html"><strong aria-hidden="true">29.</strong> The flowruntime functions</a></li><li class="chapter-item expanded "><a href="../../flowr/src/lib/flowruntime/args/args.html"><strong aria-hidden="true">30.</strong> Arg functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/lib/flowruntime/args/get.html"><strong aria-hidden="true">30.1.</strong> Arg get function</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/src/lib/flowruntime/file/file.html"><strong aria-hidden="true">31.</strong> File functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/lib/flowruntime/file/file_write.html"><strong aria-hidden="true">31.1.</strong> File Write function</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/src/lib/flowruntime/stdio/stdio.html"><strong aria-hidden="true">32.</strong> Standard IO functions</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowr/src/lib/flowruntime/stdio/readline.html"><strong aria-hidden="true">32.1.</strong> Readline function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/lib/flowruntime/stdio/stdin.html"><strong aria-hidden="true">32.2.</strong> Standard Input function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/lib/flowruntime/stdio/stdout.html"><strong aria-hidden="true">32.3.</strong> Standard Output function</a></li><li class="chapter-item expanded "><a href="../../flowr/src/lib/flowruntime/stdio/stderr.html"><strong aria-hidden="true">32.4.</strong> Standard Error function</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">The flowstdlib Standard Library</li><li class="chapter-item expanded "><a href="../../flowstdlib/README.html"><strong aria-hidden="true">33.</strong> flowstdlib</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/control/control.html"><strong aria-hidden="true">34.</strong> control</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowstdlib/control/compare_switch/compare_switch.html"><strong aria-hidden="true">34.1.</strong> compare_switch</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/control/index/index.html"><strong aria-hidden="true">34.2.</strong> index</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/control/index_f.html"><strong aria-hidden="true">34.3.</strong> index_f</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/control/join/join.html"><strong aria-hidden="true">34.4.</strong> join</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/control/route/route.html"><strong aria-hidden="true">34.5.</strong> route</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/control/select/select.html"><strong aria-hidden="true">34.6.</strong> select</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/control/tap/tap.html"><strong aria-hidden="true">34.7.</strong> tap</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowstdlib/data/data.html"><strong aria-hidden="true">35.</strong> data</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowstdlib/data/accumulate/accumulate.html"><strong aria-hidden="true">35.1.</strong> accumulate</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/data/append/append.html"><strong aria-hidden="true">35.2.</strong> append</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/data/buffer/buffer.html"><strong aria-hidden="true">35.3.</strong> buffer</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/data/count/count.html"><strong aria-hidden="true">35.4.</strong> count</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/data/duplicate/duplicate.html"><strong aria-hidden="true">35.5.</strong> duplicate</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/data/duplicate_rows/duplicate_rows.html"><strong aria-hidden="true">35.6.</strong> duplicate_rows</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/data/info/info.html"><strong aria-hidden="true">35.7.</strong> info</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/data/multiply_row/multiply_row.html"><strong aria-hidden="true">35.8.</strong> multiply_row</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/data/remove/remove.html"><strong aria-hidden="true">35.9.</strong> remove</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/data/sort/sort.html"><strong aria-hidden="true">35.10.</strong> sort</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/data/split/split.html"><strong aria-hidden="true">35.11.</strong> split</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/data/transpose/transpose.html"><strong aria-hidden="true">35.12.</strong> transpose</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/data/zip/zip.html"><strong aria-hidden="true">35.13.</strong> zip</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowstdlib/fmt/fmt.html"><strong aria-hidden="true">36.</strong> fmt</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowstdlib/fmt/reverse/reverse.html"><strong aria-hidden="true">36.1.</strong> reverse</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/fmt/to_json/to_json.html"><strong aria-hidden="true">36.2.</strong> to_json</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/fmt/to_string/to_string.html"><strong aria-hidden="true">36.3.</strong> to_string</a></li></ol></li><li class="chapter-item expanded "><a href="../../flowstdlib/math/math.html"><strong aria-hidden="true">37.</strong> math</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowstdlib/math/add/add.html"><strong aria-hidden="true">37.1.</strong> add</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/math/compare/compare.html"><strong aria-hidden="true">37.2.</strong> compare</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/math/divide/divide.html"><strong aria-hidden="true">37.3.</strong> divide</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/math/multiply/multiply.html"><strong aria-hidden="true">37.4.</strong> multiply</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/math/sequence.html"><strong aria-hidden="true">37.5.</strong> sequence</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/math/subtract/subtract.html"><strong aria-hidden="true">37.6.</strong> subtract</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/math/sqrt/sqrt.html"><strong aria-hidden="true">37.7.</strong> sqrt</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Sample flows</li><li class="chapter-item expanded "><a href="../../samples/README.html"><strong aria-hidden="true">38.</strong> Samples</a></li><li class="chapter-item expanded "><a href="../../samples/args/DESCRIPTION.html"><strong aria-hidden="true">39.</strong> args</a></li><li class="chapter-item expanded "><a href="../../samples/arrays/DESCRIPTION.html"><strong aria-hidden="true">40.</strong> arrays</a></li><li class="chapter-item expanded "><a href="../../samples/factorial/DESCRIPTION.html"><strong aria-hidden="true">41.</strong> factorial</a></li><li class="chapter-item expanded "><a href="../../samples/fibonacci/DESCRIPTION.html"><strong aria-hidden="true">42.</strong> fibonacci</a></li><li class="chapter-item expanded "><a href="../../samples/hello-world/DESCRIPTION.html"><strong aria-hidden="true">43.</strong> hello-world</a></li><li class="chapter-item expanded "><a href="../../samples/mandlebrot/DESCRIPTION.html"><strong aria-hidden="true">44.</strong> mandlebrot-world sample</a></li><li class="chapter-item expanded "><a href="../../samples/matrix_mult/DESCRIPTION.html"><strong aria-hidden="true">45.</strong> matrix multiplication</a></li><li class="chapter-item expanded "><a href="../../samples/pipeline/DESCRIPTION.html"><strong aria-hidden="true">46.</strong> pipeline</a></li><li class="chapter-item expanded "><a href="../../samples/prime/DESCRIPTION.html"><strong aria-hidden="true">47.</strong> prime</a></li><li class="chapter-item expanded "><a href="../../samples/primitives/DESCRIPTION.html"><strong aria-hidden="true">48.</strong> primitives</a></li><li class="chapter-item expanded "><a href="../../samples/range/DESCRIPTION.html"><strong aria-hidden="true">49.</strong> range</a></li><li class="chapter-item expanded "><a href="../../samples/range-of-ranges/DESCRIPTION.html"><strong aria-hidden="true">50.</strong> range-of-ranges</a></li><li class="chapter-item expanded "><a href="../../samples/reverse-echo/DESCRIPTION.html"><strong aria-hidden="true">51.</strong> reverse-echo</a></li><li class="chapter-item expanded "><a href="../../samples/router/DESCRIPTION.html"><strong aria-hidden="true">52.</strong> router</a></li><li class="chapter-item expanded "><a href="../../samples/tokenizer/DESCRIPTION.html"><strong aria-hidden="true">53.</strong> tokenizer</a></li><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">Developing flow</li><li class="chapter-item expanded "><a href="../../docs/developing/overview.html"><strong aria-hidden="true">54.</strong> Developing flow</a></li><li class="chapter-item expanded "><a href="../../docs/developing/prereqs.html"><strong aria-hidden="true">55.</strong> Pre-requisites</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowcore/README.html"><strong aria-hidden="true">55.1.</strong> flowcore</a></li><li class="chapter-item expanded "><a href="../../flow_impl_derive/README.html"><strong aria-hidden="true">55.2.</strong> flow_impl_derive</a></li><li class="chapter-item expanded "><a href="../../flowc/README.html"><strong aria-hidden="true">55.3.</strong> flowc</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowc/tests/test-flows/README.html"><strong aria-hidden="true">55.3.1.</strong> Test flows</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../flowc/tests/test-flows/hello-world/hello-world.html"><strong aria-hidden="true">55.3.1.1.</strong> hello-world</a></li><li class="chapter-item expanded "><a href="../../flowc/tests/test-flows/line-echo/line-echo.html"><strong aria-hidden="true">55.3.1.2.</strong> line-echo</a></li><li class="chapter-item expanded "><a href="../../flowc/tests/test-flows/print-args/print-args.html"><strong aria-hidden="true">55.3.1.3.</strong> print-args</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="../../flowr/README.html"><strong aria-hidden="true">55.4.</strong> flowr</a></li><li class="chapter-item expanded "><a href="../../flowr/src/lib/README.html"><strong aria-hidden="true">55.5.</strong> flowrlib</a></li><li class="chapter-item expanded "><a href="../../flowstdlib/README.html"><strong aria-hidden="true">55.6.</strong> flowstdlib</a></li><li class="chapter-item expanded "><a href="../../flowr/src/lib/flowruntime/README.html"><strong aria-hidden="true">55.7.</strong> flowruntime</a></li><li class="chapter-item expanded "><a href="../../samples/README.html"><strong aria-hidden="true">55.8.</strong> samples</a></li></ol></li><li class="chapter-item expanded "><a href="../../docs/developing/make.html"><strong aria-hidden="true">56.</strong> Makefile targets</a></li><li class="chapter-item expanded "><a href="../../docs/developing/contributing.html"><strong aria-hidden="true">57.</strong> Ways to contribute</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../docs/developing/issues.html"><strong aria-hidden="true">57.1.</strong> Issues</a></li><li class="chapter-item expanded "><a href="../../docs/developing/prs.html"><strong aria-hidden="true">57.2.</strong> PRs</a></li><li class="chapter-item expanded "><a href="../../samples/README.html"><strong aria-hidden="true">57.3.</strong> Developing a sample</a></li><li class="chapter-item expanded "><a href="../../docs/developing/ci.html"><strong aria-hidden="true">57.4.</strong> Continuous Integration Tests</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Internal for the flow Project</li><li class="chapter-item expanded "><a href="../../docs/internals/overview.html"><strong aria-hidden="true">58.</strong> Internals of flow</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../docs/internals/flow_loading.html"><strong aria-hidden="true">58.1.</strong> Flow Loading</a></li><li class="chapter-item expanded "><a href="../../docs/internals/flow_compiling.html"><strong aria-hidden="true">58.2.</strong> Flow Compiling</a></li><li class="chapter-item expanded "><a href="../../docs/internals/flow_execution.html"><strong aria-hidden="true">58.3.</strong> Flow Execution</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">The &#x27;flow&#x27; Guide</h1>
+
+                    <div class="right-buttons">
+                        
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        
+                        
+
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h2 id="debugging-your-first-flow"><a class="header" href="#debugging-your-first-flow">Debugging your first flow</a></h2>
+<h3 id="command-line-options-to-flowc"><a class="header" href="#command-line-options-to-flowc">Command line options to <code>flowc</code></a></h3>
+<p>When running <code>flowc</code> using <code>cargo run</code> you should add <code>--</code> to mark the end of the options passed to cargo, 
+and the start of the options passed to <code>flowc</code></p>
+<p>You can see what they are using <code>--help</code> producing output similar to this:</p>
+<pre><code class="language-bash">cargo run -- --help                         
+    Finished dev [unoptimized + debuginfo] target(s) in 0.12s
+     Running 'target/debug/flowc --help'
+flowc 0.8.8
+
+USAGE:
+    flowc [FLAGS] [OPTIONS] [ARGS]
+
+FLAGS:
+    -d, --dump        Dump the flow to .dump files after loading it
+    -h, --help        Prints help information
+    -l, --lib         Compile a flow library
+    -p, --provided    Provided function implementations should NOT be compiled from source
+    -r, --release     Build supplied and library implementations with release profile
+    -s, --skip        Skip manifest generation and running of flow
+    -g, --symbols     Generate debug symbols (like process names and full routes)
+    -V, --version     Prints version information
+
+OPTIONS:
+    -o, --output &lt;OUTPUT_DIR&gt;            Specify the output directory for generated manifest
+    -v, --verbosity &lt;VERBOSITY_LEVEL&gt;    Set verbosity level for output (trace, debug, info, warn, error (default))
+
+ARGS:
+    &lt;FLOW&gt;            the name of the 'flow' definition file to compile
+    &lt;flow_args&gt;...    Arguments that will get passed onto the flow if it is executed
+</code></pre>
+<h3 id="command-line-options-to-flowr"><a class="header" href="#command-line-options-to-flowr">Command line options to <code>flowr</code></a></h3>
+<p>By default <code>flowc</code> uses <code>flowr</code> to run the flow once it has compiled it.</p>
+<p>In order to pass command line options on to <code>flowr</code> you separate them from the options to <code>flowc</code> after another <code>--</code> separator.</p>
+<p><code>flowr</code> accepts the same verbosity options as <code>flowc</code>.</p>
+<h3 id="getting-debug-output"><a class="header" href="#getting-debug-output">Getting debug output</a></h3>
+<p>If you want to follow what the run-time is doing in more detail, you can increase the verbosity level (default level is ERROR)
+using the <code>-v/--verbosity</code> option.</p>
+<p>So, if you want to walk through each and every step of the flow's execution, similar to the previous <a href="step-by-step.html">step by step section</a> 
+then you can do so by using <code>-v debug</code> and piping the output to <code>more</code> (as there is a lot of output!):</p>
+<p><code>cargo run -- samples/fibonacci -- -v debug| more</code></p>
+<p>which should produce output similar to this:</p>
+<pre><code class="language-bash">INFO    - 'flowr' version 0.8.8
+INFO    - 'flowrlib' version 0.8.8
+DEBUG   - Loading library 'flowruntime' from 'native'
+INFO    - Library 'flowruntime' loaded.
+DEBUG   - Loading library 'flowstdlib' from 'native'
+INFO    - Library 'flowstdlib' loaded.
+INFO    - Starting 4 executor threads
+DEBUG   - Loading flow manifest from 'file:///Users/andrew/workspace/flow/samples/fibonacci/manifest.json'
+DEBUG   - Loading libraries used by the flow
+DEBUG   - Resolving implementations
+DEBUG   - Setup 'FLOW_ARGS' with values = '[&quot;my-first-flow&quot;]'
+INFO    - Maximum jobs dispatched in parallel limited to 8
+DEBUG   - Resetting stats and initializing all functions
+DEBUG   - Init: Initializing Function #0 '' in Flow #0
+DEBUG   -               Input initialized with 'Number(0)'
+DEBUG   -               Input initialized with 'Number(1)'
+DEBUG   - Init: Initializing Function #1 '' in Flow #0
+DEBUG   - Init: Creating any initial block entries that are needed
+DEBUG   - Init: Readying initial functions: inputs full and not blocked on output
+DEBUG   -               Function #0 not blocked on output, so added to 'Ready' list
+DEBUG   - ===========================    Starting flow execution =============================
+DEBUG   - Job #0:-------Creating for Function #0 '' ---------------------------
+DEBUG   - Job #0:       Inputs: [[Number(0)], [Number(1)]]
+DEBUG   - Job #0:       Sent for execution
+DEBUG   - Job #0:       Outputs '{&quot;i1&quot;:0,&quot;i2&quot;:1,&quot;sum&quot;:1}'
+DEBUG   -               Function #0 sending '1' via output route '/sum' to Self:1
+DEBUG   -               Function #0 sending '1' via output route '/sum' to Function #1:0
+DEBUG   -               Function #1 not blocked on output, so added to 'Ready' list
+DEBUG   -               Function #0 sending '1' via output route '/i2' to Self:0
+DEBUG   -               Function #0, inputs full, but blocked on output. Added to blocked list
+DEBUG   - Job #1:-------Creating for Function #1 '' ---------------------------
+DEBUG   - Job #1:       Inputs: [[Number(1)]]
+DEBUG   -                               Function #0 removed from 'blocked' list
+DEBUG   -                               Function #0 has inputs ready, so added to 'ready' list
+DEBUG   - Job #1:       Sent for execution
+DEBUG   - Job #2:-------Creating for Function #0 '' ---------------------------
+DEBUG   - Job #2:       Inputs: [[Number(1)], [Number(1)]]
+1
+DEBUG   - Job #2:       Sent for execution
+DEBUG   - Job #2:       Outputs '{&quot;i1&quot;:1,&quot;i2&quot;:1,&quot;sum&quot;:2}'
+DEBUG   -               Function #0 sending '2' via output route '/sum' to Self:1
+DEBUG   -               Function #0 sending '2' via output route '/sum' to Function #1:0
+DEBUG   -               Function #1 not blocked on output, so added to 'Ready' list
+DEBUG   -               Function #0 sending '1' via output route '/i2' to Self:0
+DEBUG   -               Function #0, inputs full, but blocked on output. Added to blocked list
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../docs/first_flow/step-by-step.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../../docs/describing/definition_overview.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../../docs/first_flow/step-by-step.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../../docs/describing/definition_overview.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

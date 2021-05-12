@@ -1,0 +1,11 @@
+flow = "array-input-test-flow"
+
+[[process]]
+source = "lib://flowruntime/args/get"
+
+[[process]]
+source = "subflow"
+
+[[connection]]
+from = "get/string"
+to = "subflow/array_input"
