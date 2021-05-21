@@ -55,4 +55,4 @@ clippy: build-flowc
 
 .PHONY: test
 test: build-flowc
-	cargo test
+	@cargo test
