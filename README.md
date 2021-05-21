@@ -83,7 +83,7 @@ The Project is structured into a number of rust crates that form part of a rust 
 
 Currently two binaries are built: `flowc` the flow compiler and `flowr` the flow runner. 
  
-See the [Project Components an dStructure section](docs/introduction/structure.md) of the Guide for more details.
+See the [Project Components and Structure section](docs/introduction/structure.md) of the Guide for more details.
 
 ## Sister Projects
 
