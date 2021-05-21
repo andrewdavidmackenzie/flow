@@ -184,11 +184,13 @@ fn execute_test(test_name: &str, search_path: Simpath) {
 }
 
 #[test]
+#[test]
 fn print_args() {
     let search_path = helper::set_lib_search_path_to_project();
     execute_test("print-args", search_path);
 }
 
+#[test]
 #[test]
 fn hello_world() {
     let search_path = helper::set_lib_search_path_to_project();
@@ -196,11 +198,13 @@ fn hello_world() {
 }
 
 #[test]
+#[test]
 fn line_echo() {
     let search_path = helper::set_lib_search_path_to_project();
     execute_test("line-echo", search_path);
 }
 
+#[test]
 #[test]
 fn args() {
     let search_path = helper::set_lib_search_path_to_project();
@@ -208,11 +212,13 @@ fn args() {
 }
 
 #[test]
+#[test]
 fn args_json() {
     let search_path = helper::set_lib_search_path_to_project();
     execute_test("args_json", search_path);
 }
 
+#[test]
 #[test]
 fn array_input() {
     let search_path = helper::set_lib_search_path_to_project();
