@@ -258,6 +258,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_yaml",
+ "serial_test",
  "shrinkwraprs",
  "simpath",
  "simplog",

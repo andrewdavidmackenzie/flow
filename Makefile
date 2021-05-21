@@ -55,4 +55,4 @@ clippy: build-flowc
 
 .PHONY: test
 test: build-flowc
-	@set -o pipefail && cargo test -- --test-threads 1 2>&1
+	@cargo test

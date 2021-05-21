@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::process::Stdio;
 
+use serial_test::serial;
 use simpath::Simpath;
 use url::Url;
 
@@ -184,36 +185,42 @@ fn execute_test(test_name: &str, search_path: Simpath) {
 }
 
 #[test]
+#[serial]
 fn print_args() {
     let search_path = helper::set_lib_search_path_to_project();
     execute_test("print-args", search_path);
 }
 
 #[test]
+#[serial]
 fn hello_world() {
     let search_path = helper::set_lib_search_path_to_project();
     execute_test("hello-world", search_path);
 }
 
 #[test]
+#[serial]
 fn line_echo() {
     let search_path = helper::set_lib_search_path_to_project();
     execute_test("line-echo", search_path);
 }
 
 #[test]
+#[serial]
 fn args() {
     let search_path = helper::set_lib_search_path_to_project();
     execute_test("args", search_path);
 }
 
 #[test]
+#[serial]
 fn args_json() {
     let search_path = helper::set_lib_search_path_to_project();
     execute_test("args_json", search_path);
 }
 
 #[test]
+#[serial]
 fn array_input() {
     let search_path = helper::set_lib_search_path_to_project();
     execute_test("array-input", search_path);

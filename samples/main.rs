@@ -142,7 +142,9 @@ mod test {
 
     use serial_test::serial;
 
-    fn test_run_sample(sample_dir: &Path, flowr: &str) {
+    fn test_run_sample(name: &str, flowr: &str) {
+        let sample_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
+
         // Remove any previous output
         let _ = fs::remove_file(sample_dir.join("test.err"));
         let _ = fs::remove_file(sample_dir.join("test.file"));
@@ -174,7 +176,7 @@ mod test {
 
         flowr_child.wait_with_output().unwrap();
 
-        check_test_output(sample_dir)
+        check_test_output(&sample_dir)
     }
 
     fn compare_and_fail(sample_dir: &Path, expected_name: &str, actual_name: &str) {
@@ -220,120 +222,90 @@ mod test {
     #[test]
     #[serial]
     fn test_args() {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("args");
-        test_run_sample(&sample, &super::get_flowr().unwrap());
+        test_run_sample("args", &super::get_flowr().unwrap());
     }
 
     #[test]
     #[serial]
     fn test_arrays() {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("arrays");
-        test_run_sample(&sample, &super::get_flowr().unwrap());
+        test_run_sample("arrays", &super::get_flowr().unwrap());
     }
 
     #[test]
     #[serial]
     fn test_factorial() {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("factorial");
-        test_run_sample(&sample, &super::get_flowr().unwrap());
+        test_run_sample("factorial", &super::get_flowr().unwrap());
     }
 
     #[test]
     #[serial]
     fn test_fibonacci() {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("fibonacci");
-        test_run_sample(&sample, &super::get_flowr().unwrap());
+        test_run_sample("fibonacci", &super::get_flowr().unwrap());
     }
 
     #[test]
     #[serial]
     fn test_hello_world() {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("hello-world");
-        test_run_sample(&sample, &super::get_flowr().unwrap());
+        test_run_sample("hello-world", &super::get_flowr().unwrap());
     }
 
     #[test]
     #[serial]
     fn test_mandlebrot() {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("mandlebrot");
-        test_run_sample(&sample, &super::get_flowr().unwrap());
+        test_run_sample("mandlebrot", &super::get_flowr().unwrap());
     }
 
     #[test]
     #[serial]
     fn test_matrix_multiplication_sample() {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("matrix_mult");
-        test_run_sample(&sample, &super::get_flowr().unwrap());
+        test_run_sample("matrix_mult", &super::get_flowr().unwrap());
     }
 
     #[test]
     #[serial]
     fn test_pipeline() {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("pipeline");
-        test_run_sample(&sample, &super::get_flowr().unwrap());
+        test_run_sample("pipeline", &super::get_flowr().unwrap());
     }
 
     #[test]
     #[serial]
     fn test_prime() {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("prime");
-        test_run_sample(&sample, &super::get_flowr().unwrap());
+        test_run_sample("prime", &super::get_flowr().unwrap());
     }
 
     #[test]
     #[serial]
     fn test_primitives() {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("primitives");
-        test_run_sample(&sample, &super::get_flowr().unwrap());
+        test_run_sample("primitives", &super::get_flowr().unwrap());
     }
 
     #[test]
     #[serial]
     fn test_range() {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("range");
-        test_run_sample(&sample, &super::get_flowr().unwrap());
+        test_run_sample("range", &super::get_flowr().unwrap());
     }
 
     #[test]
     #[serial]
     fn test_range_of_ranges() {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("range-of-ranges");
-        test_run_sample(&sample, &super::get_flowr().unwrap());
+        test_run_sample("range-of-ranges", &super::get_flowr().unwrap());
     }
 
     #[test]
     #[serial]
     fn test_reverse_echo() {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("reverse-echo");
-        test_run_sample(&sample, &super::get_flowr().unwrap());
+        test_run_sample("reverse-echo", &super::get_flowr().unwrap());
     }
 
     #[test]
     #[serial]
     fn test_router() {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("router");
-        test_run_sample(&sample, &super::get_flowr().unwrap());
+        test_run_sample("router", &super::get_flowr().unwrap());
     }
 
     #[test]
     #[serial]
     fn test_tokenizer() {
-        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("tokenizer");
-        test_run_sample(&sample, &super::get_flowr().unwrap());
+        test_run_sample("tokenizer", &super::get_flowr().unwrap());
     }
-
-    // #[test]
-    // #[ignore]
-    // fn test_all_samples() {
-    //     let flowr = super::get_flowr().unwrap();
-    //
-    //     // find all sample sub-folders below this crate root
-    //     for entry in fs::read_dir(env!("CARGO_MANIFEST_DIR")).unwrap() {
-    //         if let Ok(e) = entry {
-    //             if e.metadata().unwrap().is_dir() {
-    //                 test_run_sample(&e.path(), flowr);
-    //             }
-    //         };
-    //     }
-    // }
 }
