@@ -50,6 +50,7 @@ script: |
       LLVM_PROFILE_FILE="flow-%p-%m.profraw" make test
       grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
       bash <(curl -s https://codecov.io/bash) -f lcov.info
+      rm -f lcov.info
     else
       travis_wait 50 make test
     fi
