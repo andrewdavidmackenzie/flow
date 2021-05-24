@@ -22,12 +22,10 @@ fn main() -> io::Result<()> {
     match args.len() {
         1 => {
             // find all sample sub-folders below this crate root
-            for entry in fs::read_dir(env!("CARGO_MANIFEST_DIR"))? {
-                if let Ok(e) = entry {
-                    if e.metadata()?.is_dir() {
-                        run_sample(&e.path(), &flowr)?
-                    }
-                };
+            for entry in (fs::read_dir(env!("CARGO_MANIFEST_DIR"))?).flatten() {
+                if entry.metadata()?.is_dir() {
+                    run_sample(&entry.path(), &flowr)?
+                }
             }
         }
         2 => {
