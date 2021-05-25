@@ -2,6 +2,7 @@ language: rust
 dist: bionic
 
 # request macOS 10.15.7
+# use nightly on linux in order to run grcov for coverage measurement
 matrix:
   include:
   - os: linux
