@@ -18,28 +18,18 @@ impl Implementation for Add {
             (&Number(ref a), &Number(ref b)) => {
                 if let Some(a_i64) = a.as_i64() {
                     if let Some(b_i64) = b.as_i64() {
-                        match a_i64.checked_add(b_i64) {
-                            Some(result) => Some(json!(result)),
-                            None => None,
-                        }
+                        a_i64.checked_add(b_i64).map(|result| json!(result))
                     } else {
                         None
                     }
                 } else if let Some(a_u64) = a.as_u64() {
                     if let Some(b_u64) = b.as_u64() {
-                        match a_u64.checked_add(b_u64) {
-                            Some(result) => Some(json!(result)),
-                            None => None,
-                        }
+                        a_u64.checked_add(b_u64).map(|result| json!(result))
                     } else {
                         None
                     }
                 } else if let Some(a_f64) = a.as_f64() {
-                    if let Some(b_f64) = b.as_f64() {
-                        Some(json!(a_f64 + b_f64))
-                    } else {
-                        None
-                    }
+                    b.as_f64().map(|b_f64| json!(a_f64 + b_f64))
                 } else {
                     None
                 }

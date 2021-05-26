@@ -14,23 +14,19 @@ config:
 	@rustup --quiet component add clippy
 	@echo "Installing wasm32 target using rustup"
 	@rustup --quiet target add wasm32-unknown-unknown
-ifneq ($(BREW),)
-	@echo "Installing Mac OS X specific dependencies using $(BREW)"
-	@echo "	Installing zmq"
-	@brew install --quiet zmq graphviz
-endif
-ifneq ($(YUM),)
 	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
 	@cargo install mdbook
 	@cargo install mdbook-linkcheck
+ifneq ($(BREW),)
+	@echo "Installing Mac OS X specific dependencies using $(BREW)"
+	@brew install --quiet zmq graphviz
+endif
+ifneq ($(YUM),)
 	@echo "Installing linux specific dependencies using $(YUM)"
 	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel || true
 	@sudo yum install zeromq zeromq-devel graphviz || true
 endif
 ifneq ($(APTGET),)
-	@echo "	Installing mdbook and mdbook-linkcheck using cargo"
-	@cargo install mdbook
-	@cargo install mdbook-linkcheck
 	@echo "Installing linux specific dependencies using $(APTGET)"
 	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
 	@sudo apt-get -y install libzmq3-dev graphviz || true

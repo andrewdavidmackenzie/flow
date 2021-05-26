@@ -169,65 +169,65 @@ fn compile_implementations(
         "Searching for process definitions using search pattern: '{}'",
         search_pattern
     );
-    for entry in glob(&search_pattern).chain_err(|| "Failed to read glob pattern")? {
-        if let Ok(ref toml_path) = entry {
-            let url = Url::from_file_path(&toml_path).map_err(|_| {
-                format!(
-                    "Could not create url from file path '{}'",
-                    toml_path.display()
+
+    for toml_path in (glob(&search_pattern).chain_err(|| "Failed to read glob pattern")?).flatten()
+    {
+        let url = Url::from_file_path(&toml_path).map_err(|_| {
+            format!(
+                "Could not create url from file path '{}'",
+                toml_path.display()
+            )
+        })?;
+        debug!("Trying to load library process from '{}'", url);
+
+        match load(&url, provider, &mut lib_manifest.source_urls) {
+            Ok(FunctionProcess(ref mut function)) => {
+                let (wasm_abs_path, built) = compile_wasm::compile_implementation(
+                    function,
+                    skip_building,
+                    &mut lib_manifest.source_urls,
                 )
-            })?;
-            debug!("Trying to load library process from '{}'", url);
-
-            match load(&url, provider, &mut lib_manifest.source_urls) {
-                Ok(FunctionProcess(ref mut function)) => {
-                    let (wasm_abs_path, built) = compile_wasm::compile_implementation(
-                        function,
-                        skip_building,
-                        &mut lib_manifest.source_urls,
+                .chain_err(|| "Could not compile supplied implementation to wasm")?;
+                let wasm_dir = wasm_abs_path
+                    .parent()
+                    .chain_err(|| "Could not get parent directory of wasm path")?;
+                lib_manifest
+                    .add_locator(
+                        base_dir,
+                        wasm_abs_path
+                            .to_str()
+                            .chain_err(|| "Could not convert wasm_path to str")?,
+                        wasm_dir
+                            .to_str()
+                            .chain_err(|| "Could not convert wasm_dir to str")?,
+                        function.name() as &str,
                     )
-                    .chain_err(|| "Could not compile supplied implementation to wasm")?;
-                    let wasm_dir = wasm_abs_path
-                        .parent()
-                        .chain_err(|| "Could not get parent directory of wasm path")?;
-                    lib_manifest
-                        .add_locator(
-                            base_dir,
-                            wasm_abs_path
-                                .to_str()
-                                .chain_err(|| "Could not convert wasm_path to str")?,
-                            wasm_dir
-                                .to_str()
-                                .chain_err(|| "Could not convert wasm_dir to str")?,
-                            function.name() as &str,
-                        )
-                        .chain_err(|| "Could not add entry to library manifest")?;
-                    if built {
-                        build_count += 1;
-                    }
+                    .chain_err(|| "Could not add entry to library manifest")?;
+                if built {
+                    build_count += 1;
                 }
-                Ok(FlowProcess(ref mut flow)) => {
-                    if options.dump || options.graphs {
-                        // Dump the dot file alongside the definition file
-                        let source_path = flow.source_url.to_file_path().map_err(|_| {
-                            "Could not convert flow's source_url Url to a Path".to_string()
-                        })?;
-                        let output_dir = source_path
-                            .parent()
-                            .chain_err(|| "Could not get parent directory of flow's source_url")?;
-
-                        dump_flow::dump_flow(
-                            &flow,
-                            &output_dir.to_path_buf(),
-                            provider,
-                            options.dump,
-                            options.graphs,
-                        )
-                        .chain_err(|| "Failed to dump flow's definition")?;
-                    }
-                }
-                Err(_) => debug!("Skipping file '{}'", url),
             }
+            Ok(FlowProcess(ref mut flow)) => {
+                if options.dump || options.graphs {
+                    // Dump the dot file alongside the definition file
+                    let source_path = flow.source_url.to_file_path().map_err(|_| {
+                        "Could not convert flow's source_url Url to a Path".to_string()
+                    })?;
+                    let output_dir = source_path
+                        .parent()
+                        .chain_err(|| "Could not get parent directory of flow's source_url")?;
+
+                    dump_flow::dump_flow(
+                        &flow,
+                        &output_dir.to_path_buf(),
+                        provider,
+                        options.dump,
+                        options.graphs,
+                    )
+                    .chain_err(|| "Failed to dump flow's definition")?;
+                }
+            }
+            Err(_) => debug!("Skipping file '{}'", url),
         }
     }
 

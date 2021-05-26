@@ -1,35 +1,33 @@
-use std::collections::{HashMap, HashSet};
-use std::fmt;
-use std::mem::replace;
-
 use error_chain::bail;
-use log::{debug, error};
-use serde_derive::{Deserialize, Serialize};
-use url::Url;
-
 use flowcore::input::InputInitializer;
 use flowcore::manifest::MetaData;
+use log::{debug, error};
+use serde_derive::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
+use std::fmt;
+use std::mem::{replace, take};
+use url::Url;
 
 use crate::compiler::loader::Validate;
-use crate::errors::Error;
 use crate::errors::*;
+use crate::errors::Error;
 use crate::model::connection::Connection;
 use crate::model::connection::Direction;
 use crate::model::connection::Direction::FROM;
 use crate::model::connection::Direction::TO;
+use crate::model::io::{IO, IOType};
 use crate::model::io::Find;
 use crate::model::io::IOSet;
-use crate::model::io::{IOType, IO};
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::process::Process;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 use crate::model::process_reference::ProcessReference;
+use crate::model::route::{Route, RouteType};
 use crate::model::route::HasRoute;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
-use crate::model::route::{Route, RouteType};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -294,7 +292,7 @@ impl Flow {
         let mut error_count = 0;
 
         // get connections out of self - so we can use immutable references to self inside loop
-        let mut connections = replace(&mut self.connections, vec![]);
+        let mut connections = take(&mut self.connections);
 
         for connection in connections.iter_mut() {
             match self.get_route_and_type(FROM, &connection.from, &None) {

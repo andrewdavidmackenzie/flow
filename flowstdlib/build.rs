@@ -70,26 +70,24 @@ fn generate_svgs(root_dir: &str) -> io::Result<()> {
         };
         let pattern = format!("{}/**/*.dot", root_dir);
 
-        for entry in glob_with(&pattern, &options).unwrap() {
-            if let Ok(path) = entry {
-                let dot_child = dot_command
-                    .args(vec!["-Tsvg", "-O", &path.to_str().unwrap()])
-                    .stdin(Stdio::inherit())
-                    .stdout(Stdio::inherit())
-                    .stderr(Stdio::inherit())
-                    .spawn()?;
+        for path in glob_with(&pattern, &options).unwrap().flatten() {
+            let dot_child = dot_command
+                .args(vec!["-Tsvg", "-O", &path.to_str().unwrap()])
+                .stdin(Stdio::inherit())
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .spawn()?;
 
-                let dot_output = dot_child.wait_with_output()?;
-                match dot_output.status.code() {
-                    Some(0) => {}
-                    Some(_) => {
-                        return Err(io::Error::new(
-                            io::ErrorKind::Other,
-                            "`dot` exited with non-zero status code",
-                        ))
-                    }
-                    _ => {}
+            let dot_output = dot_child.wait_with_output()?;
+            match dot_output.status.code() {
+                Some(0) => {}
+                Some(_) => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::Other,
+                        "`dot` exited with non-zero status code",
+                    ))
                 }
+                _ => {}
             }
         }
     } else {
