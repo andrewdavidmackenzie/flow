@@ -36,29 +36,31 @@ addons:
       - zmq
 
 before_install: |
+    make config
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      make config
       cargo install grcov
       rustup component add llvm-tools-preview
-    else
-      make config
     fi
 
 script: |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       export RUSTFLAGS="-Zinstrument-coverage"
-      travis_wait 40 make clippy build
-      LLVM_PROFILE_FILE="flow-%p-%m.profraw" make test
+      LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build -p flowc # required for tests to pass
+      cargo clippy -- -D warnings
+      LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo build
+      LLVM_PROFILE_FILE="flow-%p-%m.profraw" cargo test
       grcov . --binary-path target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
       bash <(curl -s https://codecov.io/bash) -f lcov.info
       rm -f lcov.info
     else
-      travis_wait 50 make test
+      cargo build -p flowc # required for tests to pass
+      travis_wait 50 cargo test
     fi
 
 after_success: |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      make docs
+      cargo doc --no-deps --target-dir=target/html/code
+      mdbook build
       # cleanup things we don't want deployed to gh_pages
       find target/html -name target -type d | xargs rm -rf {}
       find target/html -name .idea | xargs rm -rf {}
