@@ -54,8 +54,13 @@ script: |
       rm -f lcov.info
     else
       cargo build -p flowc # required for tests to pass
-      travis_wait 50 cargo test
-    fi
+      cargo test -p flowc
+      cargo test -p flowr
+      cargo test -p flowcore
+      cargo test -p flow_impl_derive
+      cargo test -p flowstdlib
+      cargo test -p samples
+  fi
 
 after_success: |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
