@@ -53,7 +53,7 @@ script: |
       bash <(curl -s https://codecov.io/bash) -f lcov.info
       rm -f lcov.info
     else
-      cargo build -p flowc # required for tests to pass
+      cargo build -p flowc
       cargo test -p flowc
       cargo test -p flowr
       cargo test -p flowcore
