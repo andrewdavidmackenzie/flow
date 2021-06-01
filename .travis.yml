@@ -42,6 +42,7 @@ before_install: |
       rustup component add llvm-tools-preview
     fi
 
+# On Mac, build package by package to avoid 50min limit on a command's execution
 script: |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       export RUSTFLAGS="-Zinstrument-coverage"
