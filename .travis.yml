@@ -54,7 +54,9 @@ script: |
       bash <(curl -s https://codecov.io/bash) -f lcov.info
       rm -f lcov.info
     else
+      echo "Building flowc that is required by other package tests"
       cargo build -p flowc
+      echo "Testing workspace packages individually"
       cargo test -p flowc
       cargo test -p flowr
       cargo test -p flowcore
