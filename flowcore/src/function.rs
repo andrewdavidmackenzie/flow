@@ -89,7 +89,11 @@ impl Function {
     /// The Vector of outputs:
     /// Output sub-path (or ""), destination function id, destination function io number, Optional path of destination
     #[allow(clippy::too_many_arguments)]
-    pub fn new<N: Into<String>, R: Into<String>, I: Into<String>>(
+    pub fn new<
+        #[cfg(feature = "debugger")] N: Into<String>,
+        #[cfg(feature = "debugger")] R: Into<String>,
+        I: Into<String>,
+    >(
         #[cfg(feature = "debugger")] name: N,
         #[cfg(feature = "debugger")] route: R,
         implementation_location: I,
