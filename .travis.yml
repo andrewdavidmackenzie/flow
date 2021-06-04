@@ -62,7 +62,7 @@ script: |
       cargo test -p flowcore
       cargo test -p flow_impl_derive
       cargo test -p flowstdlib
-      cargo test -p samples
+      cargo test -p flowsamples
   fi
 
 after_success: |
