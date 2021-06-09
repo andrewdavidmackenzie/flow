@@ -33,8 +33,8 @@ pub enum Response {
     EnterDebugger,
     /// `exit` the debugger and runtime
     ExitDebugger,
-    /// `inspect` the current state
-    Inspect,
+    /// `validate` the current state
+    Validate,
     /// `list` existing breakpoints
     List,
     /// `print` a function or functions state

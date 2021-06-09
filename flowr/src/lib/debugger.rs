@@ -219,7 +219,7 @@ impl Debugger {
     */
     pub fn flow_done(&mut self, state: &RunState) -> (bool, bool) {
         let _ = self.debug_server_connection.send_event(ExecutionEnded);
-        self.deadlock_inspection(state);
+        self.deadlock_check(state);
         self.wait_for_command(state)
     }
 
@@ -254,8 +254,8 @@ impl Debugger {
                     let event = self.delete_breakpoint(param);
                     let _ = self.debug_server_connection.send_event(event);
                 }
-                Ok(Inspect) => {
-                    let event = self.inspect(state);
+                Ok(Validate) => {
+                    let event = self.validate(state);
                     let _ = self.debug_server_connection.send_event(event);
                 }
                 Ok(List) => {
@@ -447,15 +447,15 @@ impl Debugger {
     }
 
     /*
-       Run inspections on the current flow execution state to possibly detect issues.
-       Currently deadlock inspection is the only inspection that exists.s
+       Run checks on the current flow execution state to check if it is valid
+       Currently deadlock check is the only check that exists.
     */
-    fn inspect(&self, state: &RunState) -> Event {
+    fn validate(&self, state: &RunState) -> Event {
         let mut response = String::new();
 
-        response.push_str("Running inspections\n");
-        response.push_str("Running deadlock inspection\n");
-        response.push_str(&self.deadlock_inspection(state));
+        response.push_str("Validating flow state\n");
+        response.push_str("Running deadlock check\n");
+        response.push_str(&self.deadlock_check(state));
 
         Message(response)
     }
@@ -584,7 +584,7 @@ impl Debugger {
         display_string
     }
 
-    fn deadlock_inspection(&self, state: &RunState) -> String {
+    fn deadlock_check(&self, state: &RunState) -> String {
         let mut response = String::new();
 
         for blocked_process_id in state.get_blocked() {

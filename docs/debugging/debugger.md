@@ -40,14 +40,14 @@ and the `Step` command to step forward one function invocation.
 
 * Help: Display this help message
 
-* Inspect: Run a series of defined 'inspections' to check status of flow
-
 * List breakpoints: List all breakpoints
 
 * Print: Print the overall state, or state of process number 'n'
+
+* Quit: Stop flow execution and exit debugger (same as Exit)
 
 * Run: Run the flow or if running already then reset the state to initial state
 
 * Step: Step over the next 'n' jobs (default = 1) then break
 
-* Quit: Stop flow execution and exit debugger (same as Exit)
+* Validate: Run a series of defined checks to validate the status of flow
