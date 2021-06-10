@@ -18,8 +18,8 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
 'd' | 'delete' {spec} or '*' - Delete the breakpoint matching {spec} or all with '*'
 'e' | 'exit'                 - Stop flow execution and exit debugger
 'h' | 'help'                 - Display this help message
+'i' | 'inspect' [n]          - Print the overall state, or state of process number 'n'
 'l' | 'list'                 - List all breakpoints
-'p' | 'print' [n]            - Print the overall state, or state of process number 'n'
 'q' | 'quit'                 - Stop flow execution and exit debugger
 'r' | 'run' or 'reset'       - run the flow or if running already then reset the state to initial state
 's' | 'step' [n]             - Step over the next 'n' jobs (default = 1) then break
@@ -128,8 +128,8 @@ impl CliDebugClient {
                         "d" | "delete" => return Ok(Delete(param)),
                         "e" | "exit" => return Ok(ExitDebugger),
                         "h" | "help" => Self::help(),
+                        "i" | "inspect" => return Ok(Inspect(param)),
                         "l" | "list" => return Ok(List),
-                        "p" | "print" => return Ok(Print(param)),
                         "q" | "quit" => return Ok(ExitDebugger),
                         "r" | "run" | "reset" => return Ok(RunReset),
                         "s" | "step" => return Ok(Step(param)),

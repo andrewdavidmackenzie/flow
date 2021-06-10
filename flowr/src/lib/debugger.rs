@@ -121,7 +121,7 @@ impl Debugger {
             let _ = self
                 .debug_server_connection
                 .send_event(PriorToSendingJob(next_job_id, function_id));
-            self.print(state, Some(Param::Numeric(function_id)));
+            self.inspect(state, Some(Param::Numeric(function_id)));
             return self.wait_for_command(state);
         }
 
@@ -240,12 +240,6 @@ impl Debugger {
                 .send_event(WaitingForCommand(state.jobs_created()));
             match self.debug_server_connection.get_response() {
                 // *************************      The following are commands that send a response
-                Ok(GetState) => {
-                    // Respond with 'state'
-                }
-                Ok(GetFunctionState(_id)) => {
-                    // Respond with display_state(&self, function_id: usize) -> String ??
-                }
                 Ok(Breakpoint(param)) => {
                     let event = self.add_breakpoint(state, param);
                     let _ = self.debug_server_connection.send_event(event);
@@ -262,8 +256,8 @@ impl Debugger {
                     let event = self.list_breakpoints();
                     let _ = self.debug_server_connection.send_event(event);
                 }
-                Ok(Print(param)) => {
-                    let event = self.print(state, param);
+                Ok(Inspect(param)) => {
+                    let event = self.inspect(state, param);
                     let _ = self.debug_server_connection.send_event(event);
                 }
                 Ok(EnterDebugger) => { /* Not needed as we are already in the debugger */ }
@@ -461,21 +455,21 @@ impl Debugger {
     }
 
     /*
-       Print out a debugger value according to the Optional `Param` passed.
-       If no `Param` is passed then print the entire state
+       Inspect a debugger value according to the Optional `Param` passed.
+       If no `Param` is passed then inspect the entire state
     */
-    fn print(&self, state: &RunState, param: Option<Param>) -> Event {
+    fn inspect(&self, state: &RunState, param: Option<Param>) -> Event {
         let mut response = String::new();
 
         match param {
             None => response.push_str(&format!("{}\n", state)),
             Some(Param::Numeric(function_id)) | Some(Param::Block((function_id, _))) => {
-                response.push_str(&self.print_function(state, function_id));
+                response.push_str(&self.inspect_function(state, function_id));
             }
             Some(Param::Input((function_id, _))) => {
-                response.push_str(&self.print_function(state, function_id));
+                response.push_str(&self.inspect_function(state, function_id));
             }
-            Some(Param::Wildcard) => response.push_str(&self.print_all_processes(state)),
+            Some(Param::Wildcard) => response.push_str(&self.inspect_all_functions(state)),
             Some(Param::Output(_)) => response.push_str(
                 "Cannot display the output of a process until it is executed. \
                 Set a breakpoint on the process by id and then step over it",
@@ -609,7 +603,7 @@ impl Debugger {
         response
     }
 
-    fn print_function(&self, state: &RunState, function_id: usize) -> String {
+    fn inspect_function(&self, state: &RunState, function_id: usize) -> String {
         let mut response = String::new();
 
         let function = state.get(function_id);
@@ -619,11 +613,11 @@ impl Debugger {
         response
     }
 
-    fn print_all_processes(&self, state: &RunState) -> String {
+    fn inspect_all_functions(&self, state: &RunState) -> String {
         let mut response = String::new();
 
         for id in 0..state.num_functions() {
-            response.push_str(&self.print_function(state, id));
+            response.push_str(&self.inspect_function(state, id));
         }
 
         response

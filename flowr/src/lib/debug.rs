@@ -31,26 +31,22 @@ pub enum Response {
     Delete(Option<Param>),
     /// `enter` the debugger at the next opportunity the runtime has
     EnterDebugger,
+    /// An error on the client side
+    Error(String),
     /// `exit` the debugger and runtime
     ExitDebugger,
-    /// `validate` the current state
-    Validate,
+    /// `inspect` a function or functions state
+    Inspect(Option<Param>),
+    /// Invalid - used when deserialization goes wrong
+    Invalid,
     /// `list` existing breakpoints
     List,
-    /// `print` a function or functions state
-    Print(Option<Param>),
     /// `reset` flow execution back to the initial state
     RunReset,
     /// `step` forward in flow execution by executing one (default) or more `Jobs`
     Step(Option<Param>),
-    /// Get the state of the `Flow`
-    GetState,
-    /// Get the state of a specific `Function`
-    GetFunctionState(usize),
-    /// An error on the client side
-    Error(String),
-    /// Invalid - used when deserialization goes wrong
-    Invalid,
+    /// `validate` the current state
+    Validate,
 }
 
 /// A run-time event that the debugger communicates to the debug_client for it to decide
