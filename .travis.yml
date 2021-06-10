@@ -1,14 +1,11 @@
 language: rust
-dist: bionic
 
-# request macOS 10.15.7
-# use nightly on linux in order to run grcov for coverage measurement
 matrix:
   include:
   - os: linux
-    rust: nightly
+    rust: nightly # in order to run grcov for coverage measurement
   - os: osx
-    osx_image: xcode12.2
+    osx_image: xcode12.2 # request macOS 10.15.7
     rust: stable
 
 env:
@@ -63,7 +60,7 @@ script: |
       cargo test -p flow_impl_derive
       cargo test -p flowstdlib
       cargo test -p flowsamples
-  fi
+    fi
 
 after_success: |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
@@ -97,7 +94,7 @@ after_success: |
 # Only deploy the docs on linux builds of master branch with stable rust
 deploy:
   provider: pages
-  skip_cleanup: true
+  cleanup: false
   github-token: $GITHUB_PAGES_TOKEN
   local-dir: target/html
   keep_history: true
