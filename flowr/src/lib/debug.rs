@@ -8,7 +8,7 @@ use crate::run_state::{Block, Job};
 pub enum Param {
     /// A "*" style parameter - meaning will depend on the `Command` it's use with
     Wildcard,
-    /// A positive integer was specified
+    /// A positive integer was specified - could be a function or a job number
     Numeric(usize),
     /// A descriptor for the `Output` of a `Function` was specified
     Output((usize, String)),
