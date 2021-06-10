@@ -48,14 +48,19 @@ script: |
       bash <(curl -s https://codecov.io/bash) -f lcov.info
       rm -f lcov.info
     else
-      echo "Building flowc that is required by other package tests"
+      echo "\nBuilding flowc that is required by other package tests"
       cargo build -p flowc
-      echo "Testing workspace packages individually"
+      echo "\nTesting workspace packages individually"
       cargo test -p flowc
+      echo "\nTesting flowr package"
       cargo test -p flowr
+      echo "\nTesting flowcore package"
       cargo test -p flowcore
+      echo "\nTesting flow_impl_derive package"
       cargo test -p flow_impl_derive
+      echo "\nTesting flowstdlib package"
       cargo test -p flowstdlib
+      echo "\nTesting flowsamples package"
       cargo test -p flowsamples
     fi
 
