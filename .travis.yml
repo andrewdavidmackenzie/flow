@@ -4,7 +4,7 @@ dist: bionic
 matrix:
   include:
   - os: linux
-    rust: nightly # in order to run grcov for coverage measurement
+    rust: nightly # use nightly toolchain in order to run grcov for coverage measurement
   - os: osx
     osx_image: xcode12.2 # request macOS 10.15.7
     rust: stable
