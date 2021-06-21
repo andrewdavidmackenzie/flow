@@ -1,7 +1,9 @@
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::run_state::{Block, Job};
+use flowcore::function::Function;
+
+use crate::run_state::{Block, Job, State};
 
 /// Types of `Params` used in communications between the debugger and the debug_client
 #[derive(Serialize, Deserialize)]
@@ -35,8 +37,8 @@ pub enum Response {
     Error(String),
     /// `exit` the debugger and runtime
     ExitDebugger,
-    /// `inspect` a function or functions state
-    Inspect(Option<Param>),
+    /// `inspect` a function
+    InspectFunction(Option<Param>),
     /// Invalid - used when deserialization goes wrong
     Invalid,
     /// `list` existing breakpoints
@@ -83,6 +85,10 @@ pub enum Event {
     SendingValue(usize, Value, usize, usize),
     /// An error was detected - includes: A string describing the error
     Error(String),
+    /// The state of a function
+    FunctionState((Function, State)),
+    /// The state of a number of functions
+    FunctionStates(Vec<(Function, State)>),
     /// A message for display to the user of the debug_client
     Message(String),
     /// The run-time is resetting the status back to the initial state
