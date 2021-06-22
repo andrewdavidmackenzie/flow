@@ -2,8 +2,10 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
 use flowcore::function::Function;
+use flowcore::input::Input;
+use flowcore::output_connection::OutputConnection;
 
-use crate::run_state::{Block, Job, State};
+use crate::run_state::{Block, Job, RunState, State};
 
 /// Types of `Params` used in communications between the debugger and the debug_client
 #[derive(Serialize, Deserialize)]
@@ -17,7 +19,7 @@ pub enum Param {
     /// A descriptor for the `Inout` of a `Function` was specified
     Input((usize, usize)),
     /// A description of a "block" (when one function is blocked from running by another) was specified
-    Block((usize, usize)),
+    Block((Option<usize>, Option<usize>)),
 }
 
 /// A debugger Response sent by the debug_client to the debug server
@@ -38,7 +40,15 @@ pub enum Response {
     /// `exit` the debugger and runtime
     ExitDebugger,
     /// `inspect` a function
-    InspectFunction(Option<Param>),
+    InspectFunction(usize),
+    /// Inspect overall state
+    Inspect,
+    /// Inspect an Input (function_id, input_number)
+    InspectInput(usize, usize),
+    /// Inspect an Output (function_id, sub-path)
+    InspectOutput(usize, String),
+    /// Inspect a Block (optional source function_id, optional destination function_id)
+    InspectBlock(Option<usize>, Option<usize>),
     /// Invalid - used when deserialization goes wrong
     Invalid,
     /// `list` existing breakpoints
@@ -87,8 +97,14 @@ pub enum Event {
     Error(String),
     /// The state of a function
     FunctionState((Function, State)),
-    /// The state of a number of functions
-    FunctionStates(Vec<(Function, State)>),
+    /// The overall state
+    OverallState(RunState),
+    /// The state of an Input - optional values on it
+    InputState(Input),
+    /// The state of an Output - list of connections
+    OutputState(Vec<OutputConnection>),
+    /// One or more Blocks
+    BlockState(Vec<Block>),
     /// A message for display to the user of the debug_client
     Message(String),
     /// The run-time is resetting the status back to the initial state

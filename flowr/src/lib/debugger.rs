@@ -6,15 +6,13 @@ use std::sync::Arc;
 use log::error;
 use serde_json::Value;
 
-use flowcore::function::Function;
-
 use crate::client_server::DebugServerConnection;
 use crate::debug::Event;
 use crate::debug::Event::*;
 use crate::debug::Param;
 use crate::debug::Response;
 use crate::debug::Response::*;
-use crate::run_state::{Block, Job, RunState, State};
+use crate::run_state::{Block, Job, RunState};
 
 pub struct Debugger {
     debug_server_connection: DebugServerConnection,
@@ -265,33 +263,59 @@ impl Debugger {
                     let event = self.list_breakpoints();
                     let _ = self.debug_server_connection.send_event(event);
                 }
-                Ok(InspectFunction(param)) => {
-                    let event = match param {
-                        Some(Param::Numeric(function_id))
-                        | Some(Param::Block((function_id, _))) => Event::FunctionState((
+                Ok(Inspect) => {
+                    let _ = self
+                        .debug_server_connection
+                        .send_event(Event::OverallState(state.clone()));
+                }
+                Ok(InspectFunction(function_id)) => {
+                    let event = if function_id < state.num_functions() {
+                        Event::FunctionState((
                             state.get(function_id).clone(),
                             state.get_state(function_id),
-                        )),
-                        // Some(Param::Input((function_id, _))) => {
-                        //     response.push_str(&self.inspect_function(state, function_id));
-                        // }
-                        None | Some(Param::Wildcard) => {
-                            let mut states: Vec<(Function, State)> = vec![];
-                            for function_id in 0..state.num_functions() {
-                                states.push((
-                                    state.get(function_id).clone(),
-                                    state.get_state(function_id),
-                                ));
-                            }
-                            Event::FunctionStates(states)
-                        }
-                        //         Some(Param::Output(_)) => Event::Message(
-                        //             "Cannot display the output of a process until it is executed. \
-                        // Set a breakpoint on the process by id and then step over it"
-                        //                 .into(),
-                        //         ),
-                        _ => Event::Error("Invalid parameters to 'InspectFunction'".into()),
+                        ))
+                    } else {
+                        Event::Error(format!("No function with id = {}", function_id))
                     };
+
+                    let _ = self.debug_server_connection.send_event(event);
+                }
+                Ok(InspectInput(function_id, input_number)) => {
+                    let event = if function_id < state.num_functions() {
+                        let function = state.get(function_id);
+
+                        if input_number < function.inputs().len() {
+                            Event::InputState(function.input(input_number).clone())
+                        } else {
+                            Event::Error(format!(
+                                "Function #{} has no input number {}",
+                                function_id, input_number
+                            ))
+                        }
+                    } else {
+                        Event::Error(format!("No function with id = {}", function_id))
+                    };
+                    let _ = self.debug_server_connection.send_event(event);
+                }
+                Ok(InspectOutput(function_id, sub_route)) => {
+                    let event = if function_id < state.num_functions() {
+                        let function = state.get(function_id);
+
+                        let mut output_connections = vec![];
+
+                        for output_connection in function.get_output_connections() {
+                            if output_connection.subroute == sub_route {
+                                output_connections.push(output_connection.clone())
+                            }
+                        }
+                        Event::OutputState(output_connections)
+                    } else {
+                        Event::Error(format!("No function with id = {}", function_id))
+                    };
+                    let _ = self.debug_server_connection.send_event(event);
+                }
+                Ok(InspectBlock(from_function_id, to_function_id)) => {
+                    let event = Self::inspect_blocks(state, from_function_id, to_function_id);
                     let _ = self.debug_server_connection.send_event(event);
                 }
                 Ok(EnterDebugger) => { /* Not needed as we are already in the debugger */ }
@@ -328,6 +352,26 @@ impl Debugger {
         }
     }
 
+    /*
+       Find current blocks that match the spec. NOTE the source and destination function ids
+       can both or either be None (for Any) or a specific function.
+
+       If both are Any, then all blocks will match.
+    */
+    fn inspect_blocks(run_state: &RunState, from: Option<usize>, to: Option<usize>) -> Event {
+        let mut matching_blocks = vec![];
+
+        for block in run_state.get_blocks() {
+            if (from.is_none() || from == Some(block.blocked_id))
+                && (to.is_none() || to == Some(block.blocking_id))
+            {
+                matching_blocks.push(block.clone());
+            }
+        }
+
+        Event::BlockState(matching_blocks)
+    }
+
     /****************************** Implementations of Debugger Commands *************************/
 
     /*
@@ -360,12 +404,15 @@ impl Debugger {
                 self.input_breakpoints
                     .insert((destination_id, input_number));
             }
-            Some(Param::Block((blocked_id, blocking_id))) => {
+            Some(Param::Block((Some(blocked_id), Some(blocking_id)))) => {
                 response.push_str(&format!(
                     "Set block breakpoint for Function #{} being blocked by Function #{}\n",
                     blocked_id, blocking_id
                 ));
                 self.block_breakpoints.insert((blocked_id, blocking_id));
+            }
+            Some(Param::Block(_)) => {
+                response.push_str("Invalid format to set a breakpoint on a block\n");
             }
             Some(Param::Output((source_id, source_output_route))) => {
                 response.push_str(&format!(
@@ -408,9 +455,12 @@ impl Debugger {
                     .remove(&(destination_id, input_number));
                 response.push_str("Inputs breakpoint removed\n");
             }
-            Some(Param::Block((blocked_id, blocking_id))) => {
+            Some(Param::Block((Some(blocked_id), Some(blocking_id)))) => {
                 self.input_breakpoints.remove(&(blocked_id, blocking_id));
                 response.push_str("Inputs breakpoint removed\n");
+            }
+            Some(Param::Block(_)) => {
+                response.push_str("Invalid format to remove breakpoint\n");
             }
             Some(Param::Output((source_id, source_output_route))) => {
                 self.output_breakpoints

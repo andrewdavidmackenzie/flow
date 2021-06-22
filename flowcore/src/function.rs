@@ -59,26 +59,33 @@ impl Implementation for ImplementationNotFound {
 #[cfg(feature = "debugger")]
 impl fmt::Display for Function {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Function #{}", self.id)?;
+        write!(f, "Function #{}({})", self.id, self.flow_id)?;
+
         if !self.name.is_empty() {
             write!(f, " '{}'", self.name)?;
         }
 
         if !self.route.is_empty() {
-            writeln!(f, " @ route '{}'", self.route)?;
+            writeln!(f, " @ '{}'", self.route)?;
+        }
+
+        if !self.implementation_location.is_empty() {
+            writeln!(
+                f,
+                "\tImplementation Location: '{}'",
+                self.implementation_location
+            )?;
         }
 
         for (number, input) in self.inputs.iter().enumerate() {
-            if input.count() == 0 {
-                writeln!(f, "\tInput :{} is empty", number)?;
-            } else {
-                writeln!(f, "\tInput :{} has value '{}'", number, input)?;
-            }
+            writeln!(f, "\tInput:{} {}", number, input)?;
         }
+
         for output_route in &self.output_connections {
             writeln!(f, "\t{}", output_route)?;
         }
-        write!(f, "")
+
+        Ok(())
     }
 }
 
@@ -216,9 +223,16 @@ impl Function {
         num_input_sets
     }
 
-    /// Inspect the values of the `inputs` of a feature. Only used by the `debugger` feature
+    /// Inspect the values of the `inputs` of a function
+    #[cfg(feature = "debugger")]
     pub fn inputs(&self) -> &Vec<Input> {
         &self.inputs
+    }
+
+    /// Inspect the value of the `input` of a feature.
+    #[cfg(feature = "debugger")]
+    pub fn input(&self, id: usize) -> &Input {
+        &self.inputs[id]
     }
 
     /// Read the values from the inputs and return them for use in executing the function

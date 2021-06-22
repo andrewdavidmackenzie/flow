@@ -92,9 +92,9 @@ impl OutputConnection {
 
 impl fmt::Display for OutputConnection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Output Connection")?;
+        write!(f, "Output Connection:")?;
         if !self.subroute.is_empty() {
-            write!(f, " from sub-path '{}'", self.subroute)?;
+            write!(f, " '{}'", self.subroute)?;
         }
         write!(
             f,
@@ -102,7 +102,7 @@ impl fmt::Display for OutputConnection {
             self.function_id, self.flow_id, self.io_number
         )?;
         if !self.route.is_empty() {
-            write!(f, " @ route '{}'", self.route)?;
+            write!(f, " @ '{}'", self.route)?;
         }
 
         write!(f, "")

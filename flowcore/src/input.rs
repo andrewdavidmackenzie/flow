@@ -22,7 +22,10 @@ pub enum InputInitializer {
 #[derive(Deserialize, Serialize, Clone)]
 /// An `Input` to a `Function`.
 pub struct Input {
-    #[serde(default = "default_initial_value", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default = "default_initial_value",
+        skip_serializing_if = "Option::is_none"
+    )]
     /// An optional `InputInitializer` associated with this input
     pub initializer: Option<InputInitializer>,
     #[serde(skip)]
@@ -32,10 +35,17 @@ pub struct Input {
 #[cfg(feature = "debugger")]
 impl fmt::Display for Input {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for input_value in &self.received {
-            write!(f, "{}, ", input_value)?;
+        if self.count() == 0 {
+            write!(f, "\tEmpty")?;
+        } else {
+            write!(f, "\tValues: ")?;
+
+            for value in &self.received {
+                write!(f, "{}, ", value)?;
+            }
         }
-        write!(f, "")
+
+        Ok(())
     }
 }
 
@@ -78,7 +88,7 @@ impl Input {
         let init_value = match (first_time, &self.initializer) {
             (true, Some(InputInitializer::Once(one_time))) => Some(one_time.clone()),
             (_, Some(InputInitializer::Always(constant))) => Some(constant.clone()),
-            (_, None) | (false, Some(InputInitializer::Once(_))) => None
+            (_, None) | (false, Some(InputInitializer::Once(_))) => None,
         };
 
         match init_value {
@@ -87,7 +97,7 @@ impl Input {
                 self.push(value);
                 true
             }
-            _ => false
+            _ => false,
         }
     }
 
@@ -97,7 +107,10 @@ impl Input {
     }
 
     /// Add an array of values to this `Input`, by pushing them one by one
-    pub fn push_array<'a, I>(&mut self, iter: I) where I: Iterator<Item=&'a Value> {
+    pub fn push_array<'a, I>(&mut self, iter: I)
+    where
+        I: Iterator<Item = &'a Value>,
+    {
         for value in iter {
             trace!("\t\t\tPushing array element '{}'", value);
             self.received.push(value.clone());
@@ -105,7 +118,9 @@ impl Input {
     }
 
     /// Return true if the `Input` is empty or false otherwise
-    pub fn count(&self) -> usize { self.received.len() }
+    pub fn count(&self) -> usize {
+        self.received.len()
+    }
 }
 
 #[cfg(test)]
@@ -136,7 +151,7 @@ mod test {
     #[test]
     fn accepts_array() {
         let mut input = Input::new(&None);
-        input.push_array(vec!(json!(5), json!(10), json!(15)).iter());
+        input.push_array(vec![json!(5), json!(10), json!(15)].iter());
         assert_ne!(input.count(), 0);
     }
 
