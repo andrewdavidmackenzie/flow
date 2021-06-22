@@ -131,7 +131,13 @@ impl CliDebugClient {
                         "d" | "delete" => return Ok(Delete(param)),
                         "e" | "exit" => return Ok(ExitDebugger),
                         "h" | "help" => Self::help(),
-                        "i" | "inspect" => return Ok(InspectFunction(param)),
+                        "i" | "inspect" => {
+                            match param {
+                                None => return Ok(InspectFunction(None)),
+                                Some(Param::Numeric(_)) => return Ok(InspectFunction(param)),
+                                _ => println!("Unsupported format for inspect command. Use 'h' or 'help' command for help")
+                            }
+                        },
                         "l" | "list" => return Ok(List),
                         "q" | "quit" => return Ok(ExitDebugger),
                         "r" | "run" | "reset" => return Ok(RunReset),
