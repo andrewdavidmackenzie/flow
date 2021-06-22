@@ -19,7 +19,7 @@ pub enum Param {
     /// A descriptor for the `Inout` of a `Function` was specified
     Input((usize, usize)),
     /// A description of a "block" (when one function is blocked from running by another) was specified
-    Block((usize, usize)),
+    Block((Option<usize>, Option<usize>)),
 }
 
 /// A debugger Response sent by the debug_client to the debug server
@@ -103,8 +103,8 @@ pub enum Event {
     InputState(Input),
     /// The state of an Output - list of connections
     OutputState(Vec<OutputConnection>),
-    /// A Block state
-    BlockState(Block),
+    /// One or more Blocks
+    BlockState(Vec<Block>),
     /// A message for display to the user of the debug_client
     Message(String),
     /// The run-time is resetting the status back to the initial state

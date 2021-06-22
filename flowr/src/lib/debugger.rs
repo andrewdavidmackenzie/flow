@@ -314,10 +314,9 @@ impl Debugger {
                     };
                     let _ = self.debug_server_connection.send_event(event);
                 }
-                Ok(InspectBlock(_from_function_id, _to_function_id)) => {
-                    let _ = self
-                        .debug_server_connection
-                        .send_event(Event::Message("Not implemented yet".into()));
+                Ok(InspectBlock(from_function_id, to_function_id)) => {
+                    let event = Self::inspect_blocks(state, from_function_id, to_function_id);
+                    let _ = self.debug_server_connection.send_event(event);
                 }
                 Ok(EnterDebugger) => { /* Not needed as we are already in the debugger */ }
                 Ok(ExitDebugger) => {
@@ -353,6 +352,26 @@ impl Debugger {
         }
     }
 
+    /*
+       Find current blocks that match the spec. NOTE the source and destination function ids
+       can both or either be None (for Any) or a specific function.
+
+       If both are Any, then all blocks will match.
+    */
+    fn inspect_blocks(run_state: &RunState, from: Option<usize>, to: Option<usize>) -> Event {
+        let mut matching_blocks = vec![];
+
+        for block in run_state.get_blocks() {
+            if (from.is_none() || from == Some(block.blocked_id))
+                && (to.is_none() || to == Some(block.blocking_id))
+            {
+                matching_blocks.push(block.clone());
+            }
+        }
+
+        Event::BlockState(matching_blocks)
+    }
+
     /****************************** Implementations of Debugger Commands *************************/
 
     /*
@@ -385,12 +404,15 @@ impl Debugger {
                 self.input_breakpoints
                     .insert((destination_id, input_number));
             }
-            Some(Param::Block((blocked_id, blocking_id))) => {
+            Some(Param::Block((Some(blocked_id), Some(blocking_id)))) => {
                 response.push_str(&format!(
                     "Set block breakpoint for Function #{} being blocked by Function #{}\n",
                     blocked_id, blocking_id
                 ));
                 self.block_breakpoints.insert((blocked_id, blocking_id));
+            }
+            Some(Param::Block(_)) => {
+                response.push_str("Invalid format to set a breakpoint on a block\n");
             }
             Some(Param::Output((source_id, source_output_route))) => {
                 response.push_str(&format!(
@@ -433,9 +455,12 @@ impl Debugger {
                     .remove(&(destination_id, input_number));
                 response.push_str("Inputs breakpoint removed\n");
             }
-            Some(Param::Block((blocked_id, blocking_id))) => {
+            Some(Param::Block((Some(blocked_id), Some(blocking_id)))) => {
                 self.input_breakpoints.remove(&(blocked_id, blocking_id));
                 response.push_str("Inputs breakpoint removed\n");
+            }
+            Some(Param::Block(_)) => {
+                response.push_str("Invalid format to remove breakpoint\n");
             }
             Some(Param::Output((source_id, source_output_route))) => {
                 self.output_breakpoints

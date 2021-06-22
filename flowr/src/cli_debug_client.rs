@@ -99,15 +99,9 @@ impl CliDebugClient {
             } else if parts[1].contains("->") {
                 // is a block specifier
                 let sub_parts: Vec<&str> = parts[1].split("->").collect();
-                match (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
-                    (Ok(blocked_process_id), Ok(blocking_process_id)) => {
-                        return (
-                            command,
-                            Some(Param::Block((blocked_process_id, blocking_process_id))),
-                        )
-                    }
-                    (_, _) => { /* couldn't parse the process ids */ }
-                }
+                let source = sub_parts[0].parse::<usize>().ok();
+                let destination = sub_parts[1].parse::<usize>().ok();
+                return (command, Some(Param::Block((source, destination))));
             }
         }
 
@@ -141,7 +135,7 @@ impl CliDebugClient {
                                 Some(Param::Numeric(function_id)) => return Ok(InspectFunction(function_id)),
                                 Some(Param::Input((function_id, input_number))) => return Ok(InspectInput(function_id, input_number)),
                                 Some(Param::Output((function_id, sub_route))) => return Ok(InspectOutput(function_id, sub_route)),
-                                Some(Param::Block((source_function_id, destination_function_id))) => return Ok(InspectBlock(Some(source_function_id), Some(destination_function_id))),
+                                Some(Param::Block((source_function_id, destination_function_id))) => return Ok(InspectBlock(source_function_id, destination_function_id)),
                                 _ => println!("Unsupported format for inspect command. Use 'h' or 'help' command for help")
                             }
                         },
@@ -227,7 +221,14 @@ impl CliDebugClient {
                     }
                 }
             }
-            BlockState(block) => println!("{}", block),
+            BlockState(blocks) => {
+                if blocks.is_empty() {
+                    println!("No blocks between functions matching the specification were found");
+                }
+                for block in blocks {
+                    println!("{}", block);
+                }
+            }
         }
 
         Ok(Ack)
