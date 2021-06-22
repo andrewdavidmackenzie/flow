@@ -5,6 +5,7 @@ use log::error;
 
 use flowrlib::client_server::DebugClientConnection;
 use flowrlib::debug::{Event, Event::*, Param, Response, Response::*};
+use flowrlib::run_state::{RunState, State};
 
 use crate::errors::*;
 
@@ -209,96 +210,155 @@ impl CliDebugClient {
                 print!("{}", function);
                 println!("\tState: {:?}", state);
             }
-            OverallState(function_state_vec) => {
-                // print the state of all functions
-                for (function, state) in function_state_vec {
-                    print!("{}", function);
-                    println!("\tState: {:?}\n", state);
-                }
-            }
+            OverallState(run_state) => Self::display_state(&run_state),
         }
 
         Ok(Ack)
     }
 
-    // #[cfg(feature = "debugger")]
-    // pub fn display_state(&self, function_id: usize) -> String {
-    //     let function_state = self.get_state(function_id);
-    //     let mut output = format!("\tState: {:?}\n", function_state);
-    //
-    //     if function_state == State::Running {
-    //         output.push_str(&format!(
-    //             "\t\tJob Numbers Running: {:?}\n",
-    //             self.running.get_vec(&function_id)
-    //         ));
-    //     }
-    //
-    //     for block in &self.blocks {
-    //         if block.blocked_flow_id == function_id {
-    //             output.push_str(&format!("\t{:?}\n", block));
-    //         } else if block.blocking_id == function_id {
-    //             output.push_str(&format!(
-    //                 "\tBlocking #{}:{} <-- Blocked #{}\n",
-    //                 block.blocking_id, block.blocking_io_number, block.blocked_id
-    //             ));
-    //         }
-    //     }
-    //
-    //     output
-    // }
+    /*
+       Display information to the user about the current RunState
+    */
+    fn display_state(run_state: &RunState) {
+        println!("{}\n", run_state);
+
+        println!("Functions:\n");
+
+        for id in 0..run_state.num_functions() {
+            print!("{}", run_state.get(id));
+            let function_state = run_state.get_state(id);
+            println!("\tState: {:?}\n", function_state);
+
+            if function_state == State::Running {
+                println!(
+                    "\t\tJob Numbers Running: {:?}\n",
+                    run_state.get_running().get_vec(&id)
+                );
+            }
+
+            // print any blocked or blocking function information
+            for block in run_state.get_blocks() {
+                if block.blocked_flow_id == id {
+                    println!("\t{:?}\n", block);
+                } else if block.blocking_id == id {
+                    println!(
+                        "\tBlocking #{}:{} <- Blocked #{}\n",
+                        block.blocking_id, block.blocking_io_number, block.blocked_id
+                    );
+                }
+            }
+        }
+    }
 }
 
-// #[cfg(any(feature = "debugger"))]
-// #[test]
-// fn debugger_can_display_run_state() {
-//     let f_a = super::test_function_a_to_b();
-//     let f_b = super::test_function_b_init();
-//     let functions = vec![f_b, f_a];
-//     let submission = Submission::new(
-//         &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-//         1,
-//         true,
-//     );
-//     let mut state = RunState::new(&functions, submission);
-//
-//     // Event
-//     state.init();
-//
-//     // Test
-//     assert_eq!(2, state.num_functions(), "There should be 2 functions");
-//     assert_eq!(
-//         State::Blocked,
-//         state.get_state(0),
-//         "f_a should be in Blocked state"
-//     );
-//     assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
-//     assert_eq!(
-//         1,
-//         state.number_jobs_ready(),
-//         "There should be 1 job running"
-//     );
-//     let mut blocked = HashSet::new();
-//     blocked.insert(0);
-//
-//     // Test
-//     assert_eq!(
-//         &blocked,
-//         state.get_blocked(),
-//         "Function with ID = 1 should be in 'blocked' list"
-//     );
-//     state.display_state(0);
-//     state.display_state(1);
-//
-//     // Event
-//     let job = state.next_job().expect("Couldn't get next job");
-//     state.start(&job);
-//
-//     // Test
-//     assert_eq!(State::Running, state.get_state(1), "f_b should be Running");
-//     assert_eq!(
-//         1,
-//         state.number_jobs_running(),
-//         "There should be 1 job running"
-//     );
-//     state.display_state(1);
-// }
+#[cfg(test)]
+mod test {
+    use std::collections::HashSet;
+
+    use serde_json::json;
+    use url::Url;
+
+    use flowcore::function::Function;
+    use flowcore::input::Input;
+    use flowcore::input::InputInitializer::Once;
+    use flowcore::output_connection::OutputConnection;
+    use flowrlib::coordinator::Submission;
+    use flowrlib::run_state::{RunState, State};
+
+    use super::*;
+
+    fn test_function_b_init() -> Function {
+        Function::new(
+            #[cfg(feature = "debugger")]
+            "fB",
+            #[cfg(feature = "debugger")]
+            "/fB",
+            "file://fake/test",
+            vec![Input::new(&Some(Once(json!(1))))],
+            1,
+            0,
+            &[],
+            false,
+        )
+    }
+
+    fn test_function_a_to_b() -> Function {
+        let connection_to_f1 = OutputConnection::new(
+            "".to_string(),
+            1,
+            0,
+            0,
+            0,
+            false,
+            "/fB".to_string(),
+            #[cfg(feature = "debugger")]
+            String::default(),
+        );
+        Function::new(
+            #[cfg(feature = "debugger")]
+            "fA",
+            #[cfg(feature = "debugger")]
+            "/fA",
+            "file://fake/test",
+            vec![Input::new(&Some(Once(json!(1))))],
+            0,
+            0,
+            &[connection_to_f1],
+            false,
+        ) // outputs to fB:0
+    }
+
+    #[test]
+    fn display_run_state() {
+        let f_a = test_function_a_to_b();
+        let f_b = test_function_b_init();
+        let functions = vec![f_b, f_a];
+        let submission = Submission::new(
+            &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+            1,
+            true,
+        );
+        let mut state = RunState::new(&functions, submission);
+
+        // Event
+        state.init();
+
+        // Test
+        assert_eq!(2, state.num_functions(), "There should be 2 functions");
+        assert_eq!(
+            State::Blocked,
+            state.get_state(0),
+            "f_a should be in Blocked state"
+        );
+        assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+        assert_eq!(
+            1,
+            state.number_jobs_ready(),
+            "There should be 1 job running"
+        );
+        let mut blocked = HashSet::new();
+        blocked.insert(0);
+
+        // Test
+        assert_eq!(
+            &blocked,
+            state.get_blocked(),
+            "Function with ID = 1 should be in 'blocked' list"
+        );
+        CliDebugClient::display_state(&state);
+
+        // Event
+        let job = state.next_job().expect("Couldn't get next job");
+        state.start(&job);
+
+        // Test
+        assert_eq!(State::Running, state.get_state(1), "f_b should be Running");
+        assert_eq!(
+            1,
+            state.number_jobs_running(),
+            "There should be 1 job running"
+        );
+
+        CliDebugClient::display_state(&state);
+    }
+}

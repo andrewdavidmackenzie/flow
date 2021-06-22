@@ -36,11 +36,13 @@ pub mod debug;
 /// and client responses to them
 pub mod runtime;
 
+/// Structure that defines/tracks the current runtime state
+pub mod run_state;
+
 #[cfg(feature = "debugger")]
 mod debugger;
 
 mod execution;
-mod run_state;
 mod wasm;
 
 #[cfg(feature = "metrics")]

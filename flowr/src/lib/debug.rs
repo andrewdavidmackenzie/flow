@@ -3,7 +3,7 @@ use serde_json::Value;
 
 use flowcore::function::Function;
 
-use crate::run_state::{Block, Job, State};
+use crate::run_state::{Block, Job, RunState, State};
 
 /// Types of `Params` used in communications between the debugger and the debug_client
 #[derive(Serialize, Deserialize)]
@@ -89,8 +89,8 @@ pub enum Event {
     Error(String),
     /// The state of a function
     FunctionState((Function, State)),
-    /// The overall state - includes the states of a all functions
-    OverallState(Vec<(Function, State)>),
+    /// The overall state
+    OverallState(RunState),
     /// A message for display to the user of the debug_client
     Message(String),
     /// The run-time is resetting the status back to the initial state

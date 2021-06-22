@@ -6,15 +6,13 @@ use std::sync::Arc;
 use log::error;
 use serde_json::Value;
 
-use flowcore::function::Function;
-
 use crate::client_server::DebugServerConnection;
 use crate::debug::Event;
 use crate::debug::Event::*;
 use crate::debug::Param;
 use crate::debug::Response;
 use crate::debug::Response::*;
-use crate::run_state::{Block, Job, RunState, State};
+use crate::run_state::{Block, Job, RunState};
 
 pub struct Debugger {
     debug_server_connection: DebugServerConnection,
@@ -266,15 +264,9 @@ impl Debugger {
                     let _ = self.debug_server_connection.send_event(event);
                 }
                 Ok(Inspect) => {
-                    // Create a vector of Functions and their states
-                    let mut states: Vec<(Function, State)> = vec![];
-                    for function_id in 0..state.num_functions() {
-                        states.push((state.get(function_id).clone(), state.get_state(function_id)));
-                    }
-                    // Respond with the expected vector of (Function, State)
                     let _ = self
                         .debug_server_connection
-                        .send_event(Event::OverallState(states));
+                        .send_event(Event::OverallState(state.clone()));
                 }
                 Ok(InspectFunction(function_id)) => {
                     let event = Event::FunctionState((

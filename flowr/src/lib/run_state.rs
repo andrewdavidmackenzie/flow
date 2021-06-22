@@ -260,7 +260,7 @@ impl fmt::Display for Block {
 /// Respecting this rule, a RunTime can dispatch as many Jobs in parallel as it desires. This one
 /// takes the parameter max_jobs on RunState::new() to specify the maximum number of jobs that are
 /// launched in parallel. The minimum value for this is 1
-///
+#[derive(Deserialize, Serialize, Clone)]
 pub struct RunState {
     /// The vector of all functions in the flow loaded from manifest
     functions: Vec<Function>,
@@ -448,8 +448,18 @@ impl RunState {
         &self.blocked
     }
 
+    #[cfg(feature = "debugger")]
+    pub fn get_running(&self) -> &MultiMap<usize, usize> {
+        &self.running
+    }
+
     pub fn get(&self, id: usize) -> &Function {
         &self.functions[id]
+    }
+
+    #[cfg(feature = "debugger")]
+    pub fn get_blocks(&self) -> &HashSet<Block> {
+        &self.blocks
     }
 
     pub fn get_mut(&mut self, id: usize) -> &mut Function {
