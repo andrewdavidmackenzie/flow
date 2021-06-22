@@ -78,11 +78,7 @@ impl fmt::Display for Function {
         }
 
         for (number, input) in self.inputs.iter().enumerate() {
-            if input.count() == 0 {
-                writeln!(f, "\tInput :{} is empty", number)?;
-            } else {
-                writeln!(f, "\tInput :{} has value '{}'", number, input)?;
-            }
+            writeln!(f, "\tInput:{} {}", number, input)?;
         }
 
         for output_route in &self.output_connections {
@@ -227,9 +223,16 @@ impl Function {
         num_input_sets
     }
 
-    /// Inspect the values of the `inputs` of a feature. Only used by the `debugger` feature
+    /// Inspect the values of the `inputs` of a function
+    #[cfg(feature = "debugger")]
     pub fn inputs(&self) -> &Vec<Input> {
         &self.inputs
+    }
+
+    /// Inspect the value of the `input` of a feature.
+    #[cfg(feature = "debugger")]
+    pub fn input(&self, id: usize) -> &Input {
+        &self.inputs[id]
     }
 
     /// Read the values from the inputs and return them for use in executing the function

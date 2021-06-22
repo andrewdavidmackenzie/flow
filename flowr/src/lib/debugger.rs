@@ -269,27 +269,56 @@ impl Debugger {
                         .send_event(Event::OverallState(state.clone()));
                 }
                 Ok(InspectFunction(function_id)) => {
-                    let event = Event::FunctionState((
-                        state.get(function_id).clone(),
-                        state.get_state(function_id),
-                    ));
+                    let event = if function_id < state.num_functions() {
+                        Event::FunctionState((
+                            state.get(function_id).clone(),
+                            state.get_state(function_id),
+                        ))
+                    } else {
+                        Event::Error(format!("No function with id = {}", function_id))
+                    };
+
                     let _ = self.debug_server_connection.send_event(event);
                 }
+                Ok(InspectInput(function_id, input_number)) => {
+                    let event = if function_id < state.num_functions() {
+                        let function = state.get(function_id);
 
-                // Some(Param::Block((function_id, _))) => Event::FunctionState((
-                //     state.get(function_id).clone(),
-                //     state.get_state(function_id),
-                // )),
+                        if input_number < function.inputs().len() {
+                            Event::InputState(function.input(input_number).clone())
+                        } else {
+                            Event::Error(format!(
+                                "Function #{} has no input number {}",
+                                function_id, input_number
+                            ))
+                        }
+                    } else {
+                        Event::Error(format!("No function with id = {}", function_id))
+                    };
+                    let _ = self.debug_server_connection.send_event(event);
+                }
+                Ok(InspectOutput(function_id, sub_route)) => {
+                    let event = if function_id < state.num_functions() {
+                        let function = state.get(function_id);
 
-                // Some(Param::Input((function_id, _))) => {
-                //     response.push_str(&self.inspect_function(state, function_id));
-                // }
-                //         Some(Param::Output(_)) => Event::Message(
-                //             "Cannot display the output of a process until it is executed. \
-                // Set a breakpoint on the process by id and then step over it"
-                //                 .into(),
-                //         ),
-                // _ => Event::Error("Invalid parameters to 'InspectFunction'".into()),
+                        let mut output_connections = vec![];
+
+                        for output_connection in function.get_output_connections() {
+                            if output_connection.subroute == sub_route {
+                                output_connections.push(output_connection.clone())
+                            }
+                        }
+                        Event::OutputState(output_connections)
+                    } else {
+                        Event::Error(format!("No function with id = {}", function_id))
+                    };
+                    let _ = self.debug_server_connection.send_event(event);
+                }
+                Ok(InspectBlock(_from_function_id, _to_function_id)) => {
+                    let _ = self
+                        .debug_server_connection
+                        .send_event(Event::Message("Not implemented yet".into()));
+                }
                 Ok(EnterDebugger) => { /* Not needed as we are already in the debugger */ }
                 Ok(ExitDebugger) => {
                     let _ = self.debug_server_connection.send_event(ExitingDebugger);

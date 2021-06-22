@@ -2,6 +2,8 @@ use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
 use flowcore::function::Function;
+use flowcore::input::Input;
+use flowcore::output_connection::OutputConnection;
 
 use crate::run_state::{Block, Job, RunState, State};
 
@@ -39,8 +41,14 @@ pub enum Response {
     ExitDebugger,
     /// `inspect` a function
     InspectFunction(usize),
-    // Inspect overall state
+    /// Inspect overall state
     Inspect,
+    /// Inspect an Input (function_id, input_number)
+    InspectInput(usize, usize),
+    /// Inspect an Output (function_id, sub-path)
+    InspectOutput(usize, String),
+    /// Inspect a Block (optional source function_id, optional destination function_id)
+    InspectBlock(Option<usize>, Option<usize>),
     /// Invalid - used when deserialization goes wrong
     Invalid,
     /// `list` existing breakpoints
@@ -91,6 +99,12 @@ pub enum Event {
     FunctionState((Function, State)),
     /// The overall state
     OverallState(RunState),
+    /// The state of an Input - optional values on it
+    InputState(Input),
+    /// The state of an Output - list of connections
+    OutputState(Vec<OutputConnection>),
+    /// A Block state
+    BlockState(Block),
     /// A message for display to the user of the debug_client
     Message(String),
     /// The run-time is resetting the status back to the initial state

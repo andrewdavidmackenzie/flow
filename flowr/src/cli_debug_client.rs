@@ -75,18 +75,21 @@ impl CliDebugClient {
                 if let Ok(source_process_id) = sub_parts[0].parse::<usize>() {
                     return (
                         command,
-                        Some(Param::Output((source_process_id, sub_parts[1].to_string()))),
+                        Some(Param::Output((
+                            source_process_id,
+                            format!("/{}", sub_parts[1].to_string()),
+                        ))),
                     );
                 }
             } else if parts[1].contains(':') {
                 // is an input specifier
                 let sub_parts: Vec<&str> = parts[1].split(':').collect();
                 match (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
-                    (Ok(destination_process_id), Ok(destination_input_number)) => {
+                    (Ok(destination_function_id), Ok(destination_input_number)) => {
                         return (
                             command,
                             Some(Param::Input((
-                                destination_process_id,
+                                destination_function_id,
                                 destination_input_number,
                             ))),
                         )
@@ -136,6 +139,9 @@ impl CliDebugClient {
                             match param {
                                 None => return Ok(Inspect),
                                 Some(Param::Numeric(function_id)) => return Ok(InspectFunction(function_id)),
+                                Some(Param::Input((function_id, input_number))) => return Ok(InspectInput(function_id, input_number)),
+                                Some(Param::Output((function_id, sub_route))) => return Ok(InspectOutput(function_id, sub_route)),
+                                Some(Param::Block((source_function_id, destination_function_id))) => return Ok(InspectBlock(Some(source_function_id), Some(destination_function_id))),
                                 _ => println!("Unsupported format for inspect command. Use 'h' or 'help' command for help")
                             }
                         },
@@ -211,6 +217,17 @@ impl CliDebugClient {
                 println!("\tState: {:?}", state);
             }
             OverallState(run_state) => Self::display_state(&run_state),
+            InputState(input) => println!("{}", input),
+            OutputState(output_connections) => {
+                if output_connections.is_empty() {
+                    println!("No output connections from that sub-route");
+                } else {
+                    for connection in output_connections {
+                        println!("{}", connection)
+                    }
+                }
+            }
+            BlockState(block) => println!("{}", block),
         }
 
         Ok(Ack)
