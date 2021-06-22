@@ -133,8 +133,8 @@ impl CliDebugClient {
                         "h" | "help" => Self::help(),
                         "i" | "inspect" => {
                             match param {
-                                None => return Ok(InspectFunction(None)),
-                                Some(Param::Numeric(_)) => return Ok(InspectFunction(param)),
+                                None => return Ok(Inspect),
+                                Some(Param::Numeric(function_id)) => return Ok(InspectFunction(function_id)),
                                 _ => println!("Unsupported format for inspect command. Use 'h' or 'help' command for help")
                             }
                         },
@@ -209,7 +209,8 @@ impl CliDebugClient {
                 print!("{}", function);
                 println!("\tState: {:?}", state);
             }
-            FunctionStates(function_state_vec) => {
+            OverallState(function_state_vec) => {
+                // print the state of all functions
                 for (function, state) in function_state_vec {
                     print!("{}", function);
                     println!("\tState: {:?}\n", state);

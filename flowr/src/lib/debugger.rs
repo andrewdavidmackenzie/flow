@@ -265,35 +265,39 @@ impl Debugger {
                     let event = self.list_breakpoints();
                     let _ = self.debug_server_connection.send_event(event);
                 }
-                Ok(InspectFunction(param)) => {
-                    let event = match param {
-                        Some(Param::Numeric(function_id))
-                        | Some(Param::Block((function_id, _))) => Event::FunctionState((
-                            state.get(function_id).clone(),
-                            state.get_state(function_id),
-                        )),
-                        // Some(Param::Input((function_id, _))) => {
-                        //     response.push_str(&self.inspect_function(state, function_id));
-                        // }
-                        None | Some(Param::Wildcard) => {
-                            let mut states: Vec<(Function, State)> = vec![];
-                            for function_id in 0..state.num_functions() {
-                                states.push((
-                                    state.get(function_id).clone(),
-                                    state.get_state(function_id),
-                                ));
-                            }
-                            Event::FunctionStates(states)
-                        }
-                        //         Some(Param::Output(_)) => Event::Message(
-                        //             "Cannot display the output of a process until it is executed. \
-                        // Set a breakpoint on the process by id and then step over it"
-                        //                 .into(),
-                        //         ),
-                        _ => Event::Error("Invalid parameters to 'InspectFunction'".into()),
-                    };
+                Ok(Inspect) => {
+                    // Create a vector of Functions and their states
+                    let mut states: Vec<(Function, State)> = vec![];
+                    for function_id in 0..state.num_functions() {
+                        states.push((state.get(function_id).clone(), state.get_state(function_id)));
+                    }
+                    // Respond with the expected vector of (Function, State)
+                    let _ = self
+                        .debug_server_connection
+                        .send_event(Event::OverallState(states));
+                }
+                Ok(InspectFunction(function_id)) => {
+                    let event = Event::FunctionState((
+                        state.get(function_id).clone(),
+                        state.get_state(function_id),
+                    ));
                     let _ = self.debug_server_connection.send_event(event);
                 }
+
+                // Some(Param::Block((function_id, _))) => Event::FunctionState((
+                //     state.get(function_id).clone(),
+                //     state.get_state(function_id),
+                // )),
+
+                // Some(Param::Input((function_id, _))) => {
+                //     response.push_str(&self.inspect_function(state, function_id));
+                // }
+                //         Some(Param::Output(_)) => Event::Message(
+                //             "Cannot display the output of a process until it is executed. \
+                // Set a breakpoint on the process by id and then step over it"
+                //                 .into(),
+                //         ),
+                // _ => Event::Error("Invalid parameters to 'InspectFunction'".into()),
                 Ok(EnterDebugger) => { /* Not needed as we are already in the debugger */ }
                 Ok(ExitDebugger) => {
                     let _ = self.debug_server_connection.send_event(ExitingDebugger);

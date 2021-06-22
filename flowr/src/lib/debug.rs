@@ -38,7 +38,9 @@ pub enum Response {
     /// `exit` the debugger and runtime
     ExitDebugger,
     /// `inspect` a function
-    InspectFunction(Option<Param>),
+    InspectFunction(usize),
+    // Inspect overall state
+    Inspect,
     /// Invalid - used when deserialization goes wrong
     Invalid,
     /// `list` existing breakpoints
@@ -87,8 +89,8 @@ pub enum Event {
     Error(String),
     /// The state of a function
     FunctionState((Function, State)),
-    /// The state of a number of functions
-    FunctionStates(Vec<(Function, State)>),
+    /// The overall state - includes the states of a all functions
+    OverallState(Vec<(Function, State)>),
     /// A message for display to the user of the debug_client
     Message(String),
     /// The run-time is resetting the status back to the initial state
