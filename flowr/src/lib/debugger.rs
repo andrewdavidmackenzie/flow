@@ -6,13 +6,15 @@ use std::sync::Arc;
 use log::error;
 use serde_json::Value;
 
+use flowcore::function::Function;
+
 use crate::client_server::DebugServerConnection;
 use crate::debug::Event;
 use crate::debug::Event::*;
 use crate::debug::Param;
 use crate::debug::Response;
 use crate::debug::Response::*;
-use crate::run_state::{Block, Job, RunState};
+use crate::run_state::{Block, Job, RunState, State};
 
 pub struct Debugger {
     debug_server_connection: DebugServerConnection,
@@ -121,7 +123,14 @@ impl Debugger {
             let _ = self
                 .debug_server_connection
                 .send_event(PriorToSendingJob(next_job_id, function_id));
-            self.print(state, Some(Param::Numeric(function_id)));
+
+            // display the status of the function we stopped prior to executing
+            let event = Event::FunctionState((
+                state.get(function_id).clone(),
+                state.get_state(function_id),
+            ));
+            let _ = self.debug_server_connection.send_event(event);
+
             return self.wait_for_command(state);
         }
 
@@ -219,7 +228,7 @@ impl Debugger {
     */
     pub fn flow_done(&mut self, state: &RunState) -> (bool, bool) {
         let _ = self.debug_server_connection.send_event(ExecutionEnded);
-        self.deadlock_inspection(state);
+        self.deadlock_check(state);
         self.wait_for_command(state)
     }
 
@@ -240,12 +249,6 @@ impl Debugger {
                 .send_event(WaitingForCommand(state.jobs_created()));
             match self.debug_server_connection.get_response() {
                 // *************************      The following are commands that send a response
-                Ok(GetState) => {
-                    // Respond with 'state'
-                }
-                Ok(GetFunctionState(_id)) => {
-                    // Respond with display_state(&self, function_id: usize) -> String ??
-                }
                 Ok(Breakpoint(param)) => {
                     let event = self.add_breakpoint(state, param);
                     let _ = self.debug_server_connection.send_event(event);
@@ -254,16 +257,41 @@ impl Debugger {
                     let event = self.delete_breakpoint(param);
                     let _ = self.debug_server_connection.send_event(event);
                 }
-                Ok(Inspect) => {
-                    let event = self.inspect(state);
+                Ok(Validate) => {
+                    let event = self.validate(state);
                     let _ = self.debug_server_connection.send_event(event);
                 }
                 Ok(List) => {
                     let event = self.list_breakpoints();
                     let _ = self.debug_server_connection.send_event(event);
                 }
-                Ok(Print(param)) => {
-                    let event = self.print(state, param);
+                Ok(InspectFunction(param)) => {
+                    let event = match param {
+                        Some(Param::Numeric(function_id))
+                        | Some(Param::Block((function_id, _))) => Event::FunctionState((
+                            state.get(function_id).clone(),
+                            state.get_state(function_id),
+                        )),
+                        // Some(Param::Input((function_id, _))) => {
+                        //     response.push_str(&self.inspect_function(state, function_id));
+                        // }
+                        None | Some(Param::Wildcard) => {
+                            let mut states: Vec<(Function, State)> = vec![];
+                            for function_id in 0..state.num_functions() {
+                                states.push((
+                                    state.get(function_id).clone(),
+                                    state.get_state(function_id),
+                                ));
+                            }
+                            Event::FunctionStates(states)
+                        }
+                        //         Some(Param::Output(_)) => Event::Message(
+                        //             "Cannot display the output of a process until it is executed. \
+                        // Set a breakpoint on the process by id and then step over it"
+                        //                 .into(),
+                        //         ),
+                        _ => Event::Error("Invalid parameters to 'InspectFunction'".into()),
+                    };
                     let _ = self.debug_server_connection.send_event(event);
                 }
                 Ok(EnterDebugger) => { /* Not needed as we are already in the debugger */ }
@@ -324,12 +352,13 @@ impl Debugger {
                     ));
                 }
             }
-            Some(Param::Input((dest_id, input_number))) => {
+            Some(Param::Input((destination_id, input_number))) => {
                 response.push_str(&format!(
                     "Set data breakpoint on process #{} receiving data on input: {}\n",
-                    dest_id, input_number
+                    destination_id, input_number
                 ));
-                self.input_breakpoints.insert((dest_id, input_number));
+                self.input_breakpoints
+                    .insert((destination_id, input_number));
             }
             Some(Param::Block((blocked_id, blocking_id))) => {
                 response.push_str(&format!(
@@ -374,8 +403,9 @@ impl Debugger {
                     response.push_str("No breakpoint number '{}' exists\n");
                 }
             }
-            Some(Param::Input((dest_id, input_number))) => {
-                self.input_breakpoints.remove(&(dest_id, input_number));
+            Some(Param::Input((destination_id, input_number))) => {
+                self.input_breakpoints
+                    .remove(&(destination_id, input_number));
                 response.push_str("Inputs breakpoint removed\n");
             }
             Some(Param::Block((blocked_id, blocking_id))) => {
@@ -447,40 +477,15 @@ impl Debugger {
     }
 
     /*
-       Run inspections on the current flow execution state to possibly detect issues.
-       Currently deadlock inspection is the only inspection that exists.s
+       Run checks on the current flow execution state to check if it is valid
+       Currently deadlock check is the only check that exists.
     */
-    fn inspect(&self, state: &RunState) -> Event {
+    fn validate(&self, state: &RunState) -> Event {
         let mut response = String::new();
 
-        response.push_str("Running inspections\n");
-        response.push_str("Running deadlock inspection\n");
-        response.push_str(&self.deadlock_inspection(state));
-
-        Message(response)
-    }
-
-    /*
-       Print out a debugger value according to the Optional `Param` passed.
-       If no `Param` is passed then print the entire state
-    */
-    fn print(&self, state: &RunState, param: Option<Param>) -> Event {
-        let mut response = String::new();
-
-        match param {
-            None => response.push_str(&format!("{}\n", state)),
-            Some(Param::Numeric(function_id)) | Some(Param::Block((function_id, _))) => {
-                response.push_str(&self.print_function(state, function_id));
-            }
-            Some(Param::Input((function_id, _))) => {
-                response.push_str(&self.print_function(state, function_id));
-            }
-            Some(Param::Wildcard) => response.push_str(&self.print_all_processes(state)),
-            Some(Param::Output(_)) => response.push_str(
-                "Cannot display the output of a process until it is executed. \
-                Set a breakpoint on the process by id and then step over it",
-            ),
-        }
+        response.push_str("Validating flow state\n");
+        response.push_str("Running deadlock check\n");
+        response.push_str(&self.deadlock_check(state));
 
         Message(response)
     }
@@ -584,7 +589,7 @@ impl Debugger {
         display_string
     }
 
-    fn deadlock_inspection(&self, state: &RunState) -> String {
+    fn deadlock_check(&self, state: &RunState) -> String {
         let mut response = String::new();
 
         for blocked_process_id in state.get_blocked() {
@@ -604,26 +609,6 @@ impl Debugger {
                     Self::display_set(&root_node, deadlock_set)
                 ));
             }
-        }
-
-        response
-    }
-
-    fn print_function(&self, state: &RunState, function_id: usize) -> String {
-        let mut response = String::new();
-
-        let function = state.get(function_id);
-        response.push_str(&format!("{}", function));
-        response.push_str(&state.display_state(function_id));
-
-        response
-    }
-
-    fn print_all_processes(&self, state: &RunState) -> String {
-        let mut response = String::new();
-
-        for id in 0..state.num_functions() {
-            response.push_str(&self.print_function(state, id));
         }
 
         response

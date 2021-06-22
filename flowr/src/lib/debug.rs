@@ -1,14 +1,16 @@
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::run_state::{Block, Job};
+use flowcore::function::Function;
+
+use crate::run_state::{Block, Job, State};
 
 /// Types of `Params` used in communications between the debugger and the debug_client
 #[derive(Serialize, Deserialize)]
 pub enum Param {
     /// A "*" style parameter - meaning will depend on the `Command` it's use with
     Wildcard,
-    /// A positive integer was specified
+    /// A positive integer was specified - could be a function or a job number
     Numeric(usize),
     /// A descriptor for the `Output` of a `Function` was specified
     Output((usize, String)),
@@ -31,26 +33,22 @@ pub enum Response {
     Delete(Option<Param>),
     /// `enter` the debugger at the next opportunity the runtime has
     EnterDebugger,
+    /// An error on the client side
+    Error(String),
     /// `exit` the debugger and runtime
     ExitDebugger,
-    /// `inspect` the current state
-    Inspect,
+    /// `inspect` a function
+    InspectFunction(Option<Param>),
+    /// Invalid - used when deserialization goes wrong
+    Invalid,
     /// `list` existing breakpoints
     List,
-    /// `print` a function or functions state
-    Print(Option<Param>),
     /// `reset` flow execution back to the initial state
     RunReset,
     /// `step` forward in flow execution by executing one (default) or more `Jobs`
     Step(Option<Param>),
-    /// Get the state of the `Flow`
-    GetState,
-    /// Get the state of a specific `Function`
-    GetFunctionState(usize),
-    /// An error on the client side
-    Error(String),
-    /// Invalid - used when deserialization goes wrong
-    Invalid,
+    /// `validate` the current state
+    Validate,
 }
 
 /// A run-time event that the debugger communicates to the debug_client for it to decide
@@ -87,6 +85,10 @@ pub enum Event {
     SendingValue(usize, Value, usize, usize),
     /// An error was detected - includes: A string describing the error
     Error(String),
+    /// The state of a function
+    FunctionState((Function, State)),
+    /// The state of a number of functions
+    FunctionStates(Vec<(Function, State)>),
     /// A message for display to the user of the debug_client
     Message(String),
     /// The run-time is resetting the status back to the initial state

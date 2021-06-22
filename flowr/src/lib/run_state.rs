@@ -20,7 +20,7 @@ use crate::debugger::Debugger;
 use crate::metrics::Metrics;
 
 #[cfg(any(feature = "checks", feature = "debugger", test))]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum State {
     Ready,
     // ready to run
@@ -446,32 +446,6 @@ impl RunState {
     #[cfg(feature = "debugger")]
     pub fn get_blocked(&self) -> &HashSet<usize> {
         &self.blocked
-    }
-
-    #[cfg(feature = "debugger")]
-    pub fn display_state(&self, function_id: usize) -> String {
-        let function_state = self.get_state(function_id);
-        let mut output = format!("\tState: {:?}\n", function_state);
-
-        if function_state == State::Running {
-            output.push_str(&format!(
-                "\t\tJob Numbers Running: {:?}\n",
-                self.running.get_vec(&function_id)
-            ));
-        }
-
-        for block in &self.blocks {
-            if block.blocked_flow_id == function_id {
-                output.push_str(&format!("\t{:?}\n", block));
-            } else if block.blocking_id == function_id {
-                output.push_str(&format!(
-                    "\tBlocking #{}:{} <-- Blocked #{}\n",
-                    block.blocking_id, block.blocking_io_number, block.blocked_id
-                ));
-            }
-        }
-
-        output
     }
 
     pub fn get(&self, id: usize) -> &Function {
@@ -1404,16 +1378,11 @@ mod test {
     }
 
     mod general_run_state_tests {
-        #[cfg(any(feature = "debugger"))]
-        use std::collections::HashSet;
-
         use url::Url;
 
         use crate::coordinator::Submission;
 
         use super::super::RunState;
-        #[cfg(feature = "debugger")]
-        use super::super::State;
 
         #[cfg(feature = "debugger")]
         #[test]
@@ -1429,61 +1398,6 @@ mod test {
             let mut state = RunState::new(&functions, submission);
 
             state.init();
-        }
-
-        #[cfg(any(feature = "debugger"))]
-        #[test]
-        fn debugger_can_display_run_state() {
-            let f_a = super::test_function_a_to_b();
-            let f_b = super::test_function_b_init();
-            let functions = vec![f_b, f_a];
-            let submission = Submission::new(
-                &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
-                1,
-                true,
-            );
-            let mut state = RunState::new(&functions, submission);
-
-            // Event
-            state.init();
-
-            // Test
-            assert_eq!(2, state.num_functions(), "There should be 2 functions");
-            assert_eq!(
-                State::Blocked,
-                state.get_state(0),
-                "f_a should be in Blocked state"
-            );
-            assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
-            assert_eq!(
-                1,
-                state.number_jobs_ready(),
-                "There should be 1 job running"
-            );
-            let mut blocked = HashSet::new();
-            blocked.insert(0);
-
-            // Test
-            assert_eq!(
-                &blocked,
-                state.get_blocked(),
-                "Function with ID = 1 should be in 'blocked' list"
-            );
-            state.display_state(0);
-            state.display_state(1);
-
-            // Event
-            let job = state.next_job().expect("Couldn't get next job");
-            state.start(&job);
-
-            // Test
-            assert_eq!(State::Running, state.get_state(1), "f_b should be Running");
-            assert_eq!(
-                1,
-                state.number_jobs_running(),
-                "There should be 1 job running"
-            );
-            state.display_state(1);
         }
 
         #[test]

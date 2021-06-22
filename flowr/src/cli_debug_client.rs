@@ -18,12 +18,12 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
 'd' | 'delete' {spec} or '*' - Delete the breakpoint matching {spec} or all with '*'
 'e' | 'exit'                 - Stop flow execution and exit debugger
 'h' | 'help'                 - Display this help message
-'i' | 'inspect'              - Run a series of defined 'inspections' to check status of flow
+'i' | 'inspect' [n]          - Inspect the overall state, or the state of function number 'n'
 'l' | 'list'                 - List all breakpoints
-'p' | 'print' [n]            - Print the overall state, or state of process number 'n'
+'q' | 'quit'                 - Stop flow execution and exit debugger
 'r' | 'run' or 'reset'       - run the flow or if running already then reset the state to initial state
 's' | 'step' [n]             - Step over the next 'n' jobs (default = 1) then break
-'q' | 'quit'                 - Stop flow execution and exit debugger
+'v' | 'validate'             - Validate the state of the flow by running a series of checks
 ";
 
 /*
@@ -81,10 +81,13 @@ impl CliDebugClient {
                 // is an input specifier
                 let sub_parts: Vec<&str> = parts[1].split(':').collect();
                 match (sub_parts[0].parse::<usize>(), sub_parts[1].parse::<usize>()) {
-                    (Ok(dest_process_id), Ok(dest_input_number)) => {
+                    (Ok(destination_process_id), Ok(destination_input_number)) => {
                         return (
                             command,
-                            Some(Param::Input((dest_process_id, dest_input_number))),
+                            Some(Param::Input((
+                                destination_process_id,
+                                destination_input_number,
+                            ))),
                         )
                     }
                     (_, _) => { /* couldn't parse the process and input numbers */ }
@@ -128,12 +131,12 @@ impl CliDebugClient {
                         "d" | "delete" => return Ok(Delete(param)),
                         "e" | "exit" => return Ok(ExitDebugger),
                         "h" | "help" => Self::help(),
-                        "i" | "inspect" => return Ok(Inspect),
+                        "i" | "inspect" => return Ok(InspectFunction(param)),
                         "l" | "list" => return Ok(List),
-                        "p" | "print" => return Ok(Print(param)),
+                        "q" | "quit" => return Ok(ExitDebugger),
                         "r" | "run" | "reset" => return Ok(RunReset),
                         "s" | "step" => return Ok(Step(param)),
-                        "q" | "quit" => return Ok(ExitDebugger),
+                        "v" | "validate" => return Ok(Validate),
                         _ => println!("Unknown debugger command '{}'\n", command),
                     }
                 }
@@ -196,8 +199,99 @@ impl CliDebugClient {
             Resetting => println!("Resetting state"),
             WaitingForCommand(job_id) => return Self::get_user_command(job_id),
             Event::Invalid => {}
+            FunctionState((function, state)) => {
+                println!("{}", function);
+                println!("\tState: {:?}\n", state);
+            }
+            FunctionStates(function_state_vec) => {
+                for (function, state) in function_state_vec {
+                    println!("{}", function);
+                    println!("\tState: {:?}\n", state);
+                }
+            }
         }
 
         Ok(Ack)
     }
+
+    // #[cfg(feature = "debugger")]
+    // pub fn display_state(&self, function_id: usize) -> String {
+    //     let function_state = self.get_state(function_id);
+    //     let mut output = format!("\tState: {:?}\n", function_state);
+    //
+    //     if function_state == State::Running {
+    //         output.push_str(&format!(
+    //             "\t\tJob Numbers Running: {:?}\n",
+    //             self.running.get_vec(&function_id)
+    //         ));
+    //     }
+    //
+    //     for block in &self.blocks {
+    //         if block.blocked_flow_id == function_id {
+    //             output.push_str(&format!("\t{:?}\n", block));
+    //         } else if block.blocking_id == function_id {
+    //             output.push_str(&format!(
+    //                 "\tBlocking #{}:{} <-- Blocked #{}\n",
+    //                 block.blocking_id, block.blocking_io_number, block.blocked_id
+    //             ));
+    //         }
+    //     }
+    //
+    //     output
+    // }
 }
+
+// #[cfg(any(feature = "debugger"))]
+// #[test]
+// fn debugger_can_display_run_state() {
+//     let f_a = super::test_function_a_to_b();
+//     let f_b = super::test_function_b_init();
+//     let functions = vec![f_b, f_a];
+//     let submission = Submission::new(
+//         &Url::parse("file:///temp/fake.toml").expect("Could not create Url"),
+//         1,
+//         true,
+//     );
+//     let mut state = RunState::new(&functions, submission);
+//
+//     // Event
+//     state.init();
+//
+//     // Test
+//     assert_eq!(2, state.num_functions(), "There should be 2 functions");
+//     assert_eq!(
+//         State::Blocked,
+//         state.get_state(0),
+//         "f_a should be in Blocked state"
+//     );
+//     assert_eq!(State::Ready, state.get_state(1), "f_b should be Ready");
+//     assert_eq!(
+//         1,
+//         state.number_jobs_ready(),
+//         "There should be 1 job running"
+//     );
+//     let mut blocked = HashSet::new();
+//     blocked.insert(0);
+//
+//     // Test
+//     assert_eq!(
+//         &blocked,
+//         state.get_blocked(),
+//         "Function with ID = 1 should be in 'blocked' list"
+//     );
+//     state.display_state(0);
+//     state.display_state(1);
+//
+//     // Event
+//     let job = state.next_job().expect("Couldn't get next job");
+//     state.start(&job);
+//
+//     // Test
+//     assert_eq!(State::Running, state.get_state(1), "f_b should be Running");
+//     assert_eq!(
+//         1,
+//         state.number_jobs_running(),
+//         "There should be 1 job running"
+//     );
+//     state.display_state(1);
+// }

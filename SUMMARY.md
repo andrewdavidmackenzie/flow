@@ -40,6 +40,9 @@
 - [Standard Input and Output](docs/running/stdio.md)
 - [Exceptions and Panics](docs/running/panics.md)
 
+# Debugging Flows
+- [The Debugger](docs/debugging/debugger.md)
+
 # The `flowruntime` Runtime
 
 - [The flowruntime functions](flowr/src/lib/flowruntime/README.md)
