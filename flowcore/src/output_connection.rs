@@ -102,7 +102,7 @@ impl fmt::Display for OutputConnection {
             self.function_id, self.flow_id, self.io_number
         )?;
         if !self.route.is_empty() {
-            write!(f, " @ route '{}'", self.route)?;
+            write!(f, " @ '{}'", self.route)?;
         }
 
         write!(f, "")

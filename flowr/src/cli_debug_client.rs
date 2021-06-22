@@ -206,12 +206,12 @@ impl CliDebugClient {
             WaitingForCommand(job_id) => return Self::get_user_command(job_id),
             Event::Invalid => {}
             FunctionState((function, state)) => {
-                println!("{}", function);
-                println!("\tState: {:?}\n", state);
+                print!("{}", function);
+                println!("\tState: {:?}", state);
             }
             FunctionStates(function_state_vec) => {
                 for (function, state) in function_state_vec {
-                    println!("{}", function);
+                    print!("{}", function);
                     println!("\tState: {:?}\n", state);
                 }
             }
