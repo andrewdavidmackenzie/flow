@@ -53,12 +53,8 @@ impl CliDebugClient {
     pub fn start(mut self) {
         let _ = self.connection.start();
 
-        if self.editor.load_history(FLOWR_HISTORY_FILENAME).is_err() {
-            println!(
-                "No previous history. Saving new history in {}",
-                FLOWR_HISTORY_FILENAME
-            );
-        }
+        // Avoid error when no previous command history exists
+        let _ = self.editor.load_history(FLOWR_HISTORY_FILENAME);
 
         let _ = std::thread::spawn(move || {
             self.debug_client_loop();
