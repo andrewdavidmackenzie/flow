@@ -169,12 +169,12 @@ impl Coordinator {
             let mut coordinator =
                 Coordinator::new(runtime_server_context, debug_server_context, num_threads);
 
-            coordinator
-                .runtime_server_context
-                .lock()
-                .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
-                .start()?;
-            coordinator.debugger.start();
+            // coordinator
+            //     .runtime_server_context
+            //     .lock()
+            //     .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
+            //     .start()?;
+            // coordinator.debugger.start();
 
             if server_only {
                 info!("Starting 'flowr' server on main thread in server process");
@@ -207,11 +207,11 @@ impl Coordinator {
         if !client_only {
             let mut coordinator = Coordinator::new(runtime_server_context, num_threads);
 
-            coordinator
-                .runtime_server_context
-                .lock()
-                .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
-                .start()?;
+            // coordinator
+            //     .runtime_server_context
+            //     .lock()
+            //     .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
+            //     .start()?;
 
             if server_only {
                 info!("Starting 'flowr' server on main thread");
@@ -244,7 +244,7 @@ impl Coordinator {
         let mut loader = Loader::new();
         let provider = MetaProvider::new(lib_search_path);
 
-        while let Some(submission) = self.wait_for_submission() {
+        while let Some(submission) = self.wait_for_submission()? {
             match Self::load_from_manifest(
                 &submission.manifest_url,
                 &mut loader,
@@ -254,14 +254,9 @@ impl Coordinator {
             ) {
                 Ok(mut manifest) => {
                     let state = RunState::new(manifest.get_functions(), submission);
-                    let _ = self.execute_flow(state);
-
-                    self.runtime_server_context
-                        .lock()
-                        .map_err(|e| format!("Could not lock Server Connection: {}", e))?
-                        .start()?;
-                    #[cfg(feature = "debugger")]
-                    self.debugger.start();
+                    if self.execute_flow(state)? {
+                        break;
+                    }
                 }
                 Err(e) if server_only => {
                     error!(
@@ -297,7 +292,14 @@ impl Coordinator {
     // If the message is a `ClientSubmission` with a submission, then return Some(submission)
     // If the message is `ClientExiting` then return None
     // If the message is any other then loop until we find one of the above
-    fn wait_for_submission(&self) -> Option<Submission> {
+    fn wait_for_submission(&mut self) -> Result<Option<Submission>> {
+        self.runtime_server_context
+            .lock()
+            .map_err(|e| format!("Could not lock Server Connection: {}", e))?
+            .start()?;
+        #[cfg(feature = "debugger")]
+        self.debugger.start();
+
         loop {
             info!("'flowr' is waiting to receive a 'Submission'");
             match self.runtime_server_context.lock() {
@@ -307,15 +309,15 @@ impl Coordinator {
                             "Server received a submission for execution with manifest_url: '{}'",
                             submission.manifest_url
                         );
-                        return Some(submission);
+                        return Ok(Some(submission));
                     }
-                    Ok(Response::ClientExiting) => return None,
+                    Ok(Response::ClientExiting) => return Ok(None),
                     Ok(r) => error!("Server did not expect response from client: '{:?}'", r),
                     Err(e) => error!("Server error while waiting for submission: '{}'", e),
                 },
                 _ => {
                     error!("Server could not lock context");
-                    return None;
+                    return Ok(None);
                 }
             }
         }
@@ -326,7 +328,7 @@ impl Coordinator {
     // There is an outer loop for the case when you are using the debugger, to allow entering
     // the debugger when the flow ends and at any point resetting all the state and starting
     // execution again from the initial state
-    fn execute_flow(&mut self, mut state: RunState) -> Result<()> {
+    fn execute_flow(&mut self, mut state: RunState) -> Result<bool> {
         #[cfg(feature = "metrics")]
         let mut metrics = Metrics::new(state.num_functions());
 
@@ -350,7 +352,7 @@ impl Coordinator {
             if state.debug {
                 let debug_check = self.debugger.enter(&state);
                 if debug_check.2 {
-                    break 'flow_execution;
+                    return Ok(true);
                 }
             }
 
@@ -360,7 +362,7 @@ impl Coordinator {
                 let debug_check = self.debugger.check_for_entry(&state);
                 #[cfg(feature = "debugger")]
                 if debug_check.2 {
-                    break 'flow_execution;
+                    return Ok(true);
                 }
 
                 let debug_check = self.send_jobs(
@@ -371,7 +373,7 @@ impl Coordinator {
 
                 #[cfg(feature = "debugger")]
                 if debug_check.2 {
-                    break 'flow_execution;
+                    return Ok(true);
                 }
 
                 #[cfg(feature = "debugger")]
@@ -421,8 +423,9 @@ impl Coordinator {
                     // at the end of execution, inspect state and possibly reset and rerun
                     break 'jobs;
                 }
-            }
+            } // 'jobs loop end
 
+            // flow execution has ended
             #[allow(clippy::collapsible_if)]
             if !restart {
                 #[cfg(feature = "debugger")]
@@ -430,7 +433,7 @@ impl Coordinator {
                     if state.debug {
                         let debug_check = self.debugger.flow_done(&state);
                         if debug_check.2 {
-                            break 'flow_execution;
+                            return Ok(true);
                         }
 
                         restart = debug_check.1;
@@ -457,7 +460,7 @@ impl Coordinator {
             }
         }
 
-        Ok(())
+        Ok(false)
     }
 
     fn load_from_manifest(
