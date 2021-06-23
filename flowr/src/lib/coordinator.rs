@@ -142,6 +142,8 @@ impl Coordinator {
         }
     }
 
+    // TODO try to merge these next two functions
+
     /// Start the Coordinator server either in a background thread or in the
     /// foreground thread this function is called on according to the `server`
     /// parameter:
@@ -262,7 +264,10 @@ impl Coordinator {
                     self.debugger.start();
                 }
                 Err(e) if server_only => {
-                    error!("Error in server submission loop, continuing. {}", e)
+                    error!(
+                        "Error in server submission loop, continuing to wait for submissions. {}",
+                        e
+                    )
                 }
                 Err(e) => {
                     error!("{}", e);
@@ -337,34 +342,48 @@ impl Coordinator {
                 .send_event(Event::FlowStart)?;
 
             #[cfg(feature = "debugger")]
-            if state.debug {
-                self.debugger.enter(&state);
-            }
-
-            #[cfg(feature = "debugger")]
             let mut display_next_output;
             let mut restart;
+
+            // If debugging then enter the debugger before starting flow execution loop
+            #[cfg(feature = "debugger")]
+            if state.debug {
+                let debug_check = self.debugger.enter(&state);
+                if debug_check.2 {
+                    break 'flow_execution;
+                }
+            }
 
             'jobs: loop {
                 trace!("{}", state);
                 #[cfg(feature = "debugger")]
-                self.debugger.check_for_entry(&state);
+                let debug_check = self.debugger.check_for_entry(&state);
+                #[cfg(feature = "debugger")]
+                if debug_check.2 {
+                    break 'flow_execution;
+                }
 
                 let debug_check = self.send_jobs(
                     &mut state,
                     #[cfg(feature = "metrics")]
                     &mut metrics,
                 );
+
+                #[cfg(feature = "debugger")]
+                if debug_check.2 {
+                    break 'flow_execution;
+                }
+
                 #[cfg(feature = "debugger")]
                 {
                     display_next_output = debug_check.0;
-                }
-                restart = debug_check.1;
+                    restart = debug_check.1;
 
-                // If debugger request it, exit the inner loop which will cause us to reset state
-                // and restart execution, in the outer loop
-                if restart {
-                    break 'jobs;
+                    // If debugger request it, exit the inner job loop which will cause us to reset state
+                    // and restart execution, in the outer flow_execution loop
+                    if restart {
+                        break 'jobs;
+                    }
                 }
 
                 if state.number_jobs_running() > 0 {
@@ -409,8 +428,12 @@ impl Coordinator {
                 #[cfg(feature = "debugger")]
                 {
                     if state.debug {
-                        let check = self.debugger.flow_done(&state);
-                        restart = check.1;
+                        let debug_check = self.debugger.flow_done(&state);
+                        if debug_check.2 {
+                            break 'flow_execution;
+                        }
+
+                        restart = debug_check.1;
                     }
                 }
 
@@ -483,9 +506,10 @@ impl Coordinator {
         &mut self,
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
-    ) -> (bool, bool) {
+    ) -> (bool, bool, bool) {
         let mut display_output = false;
         let mut restart = false;
+        let mut abort = false;
 
         while let Some(job) = state.next_job() {
             match self.send_job(
@@ -494,21 +518,22 @@ impl Coordinator {
                 #[cfg(feature = "metrics")]
                 metrics,
             ) {
-                Ok((display, rest)) => {
+                Ok((display, rest, leave)) => {
                     display_output = display;
                     restart = rest;
+                    abort = leave;
                 }
                 Err(err) => {
                     error!("Error sending on 'job_tx': {}", err.to_string());
                     debug!("{}", state);
 
                     #[cfg(feature = "debugger")]
-                    self.debugger.error(&state, job);
+                    self.debugger.job_error(&state, job);
                 }
             }
         }
 
-        (display_output, restart)
+        (display_output, restart, abort)
     }
 
     // Send a job for execution
@@ -517,7 +542,7 @@ impl Coordinator {
         job: &Job,
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
-    ) -> Result<(bool, bool)> {
+    ) -> Result<(bool, bool, bool)> {
         #[cfg(not(feature = "debugger"))]
         let debug_options = (false, false);
 

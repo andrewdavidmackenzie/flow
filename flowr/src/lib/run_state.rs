@@ -632,7 +632,7 @@ impl RunState {
             {
                 #[cfg(feature = "debugger")]
                 if self.debug {
-                    debugger.error(&self, job)
+                    let _ = debugger.job_error(&self, job);
                 }
             }
         }
