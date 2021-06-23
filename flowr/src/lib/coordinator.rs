@@ -25,6 +25,17 @@ use crate::metrics::Metrics;
 use crate::run_state::{Job, RunState};
 use crate::runtime::{Event, Response};
 
+/// Coordinator and hence the overall `flowr` process can run in one of these three modes:
+/// - Client - this only acts as a client to submit flows for execution to a server
+/// - Server - run as a server waiting for submissions for execution from a client
+/// - ClientAndServer - this process does both, running client and server in separate threads
+#[derive(PartialEq, Clone, Debug)]
+pub enum Mode {
+    Client,
+    Server,
+    ClientAndServer,
+}
+
 /// A Submission is the struct used to send a flow to the Coordinator for execution. It contains
 /// all the information necessary to execute it:
 ///
@@ -91,7 +102,7 @@ pub struct Coordinator {
 /// use std::sync::{Arc, Mutex};
 /// use std::io;
 /// use std::io::Write;
-/// use flowrlib::coordinator::{Coordinator, Submission};
+/// use flowrlib::coordinator::{Coordinator, Submission, Mode};
 /// use std::process::exit;
 /// use flowcore::manifest::{Manifest, MetaData};
 /// use flowrlib::runtime::Response as RuntimeResponse;
@@ -103,15 +114,13 @@ pub struct Coordinator {
 /// let (runtime_client_connection, debug_client_connection) = Coordinator::server(1 /* num_threads */,
 ///                                                                     Simpath::new("fake path"),
 ///                                                                     true,  /* native */
-///                                                                     false, /* server-only */
-///                                                                     false, /* client-only */
+///                                                                     Mode::ClientAndServer,
 ///                                                                     None   /* server hostname */)
 ///                                                 .unwrap();
 ///
 /// let mut submission = Submission::new(&Url::parse("file:///temp/fake.toml").unwrap(),
 ///                                     1 /* num_parallel_jobs */,
 ///                                     true /* enter debugger on start */);
-///
 ///
 /// runtime_client_connection.client_send(ClientSubmission(submission)).unwrap();
 /// exit(0);
@@ -142,21 +151,13 @@ impl Coordinator {
         }
     }
 
-    // TODO try to merge these next two functions
-
-    /// Start the Coordinator server either in a background thread or in the
-    /// foreground thread this function is called on according to the `server`
-    /// parameter:
-    /// `server_only` == true  -> this is a server-only process, start the server on this thread
-    /// `server_only` == false -> this process works as client AND server, start serving from a thread
-    /// `client_only` == true  -> No need to start any Coordinator server, just return connections
+    /// Start the Coordinator in the appropriate `Mode`
     #[cfg(feature = "debugger")]
     pub fn server(
         num_threads: usize,
         lib_search_path: Simpath,
         native: bool,
-        server_only: bool,
-        client_only: bool,
+        mode: Mode,
         server_hostname: Option<&str>,
     ) -> Result<(RuntimeClientConnection, DebugClientConnection)> {
         let runtime_server_context = RuntimeServerConnection::new(server_hostname);
@@ -165,19 +166,19 @@ impl Coordinator {
         let runtime_client_connection = RuntimeClientConnection::new(&runtime_server_context);
         let debug_client_connection = DebugClientConnection::new(&debug_server_context);
 
-        if !client_only {
+        if mode != Mode::Client {
             let mut coordinator =
                 Coordinator::new(runtime_server_context, debug_server_context, num_threads);
 
-            if server_only {
-                info!("Starting 'flowr' server on main thread in server process");
-                coordinator.submission_loop(lib_search_path, native, server_only)?;
-                info!("'flowr' server running on main thread in server process has exited");
+            if mode == Mode::Server {
+                info!("Starting 'flowr' server process");
+                coordinator.submission_loop(lib_search_path, native, mode)?;
+                info!("'flowr' server process has exited");
             } else {
                 std::thread::spawn(move || {
-                    info!("Starting 'flowr' server on a background thread");
-                    let _ = coordinator.submission_loop(lib_search_path, native, server_only);
-                    info!("'flowr' server running in background thread has exited");
+                    info!("Starting 'flowr' server thread");
+                    let _ = coordinator.submission_loop(lib_search_path, native, mode);
+                    info!("'flowr' server thread has exited");
                 });
             }
         }
@@ -190,17 +191,16 @@ impl Coordinator {
         num_threads: usize,
         lib_search_path: Simpath,
         native: bool,
-        server_only: bool,
-        client_only: bool,
+        mode: Mode,
         server_hostname: Option<&str>,
     ) -> Result<RuntimeClientConnection> {
         let runtime_server_context = RuntimeServerConnection::new(server_hostname);
         let runtime_client_connection = RuntimeClientConnection::new(&runtime_server_context);
 
-        if !client_only {
+        if mode != Mode::Client {
             let mut coordinator = Coordinator::new(runtime_server_context, num_threads);
 
-            if server_only {
+            if mode == Mode::Server {
                 info!("Starting 'flowr' server on main thread");
                 coordinator.submission_loop(lib_search_path, native, server_only)?;
             } else {
@@ -226,7 +226,7 @@ impl Coordinator {
         &mut self,
         lib_search_path: Simpath,
         native: bool,
-        server_only: bool,
+        mode: Mode,
     ) -> Result<()> {
         let mut loader = Loader::new();
         let provider = MetaProvider::new(lib_search_path);
@@ -245,21 +245,21 @@ impl Coordinator {
                         break;
                     }
                 }
-                Err(e) if server_only => {
+                Err(e) if mode == Mode::Server => {
                     error!(
-                        "Error in server submission loop, continuing to wait for submissions. {}",
+                        "Error in server process submission loop, waiting for new submissions. {}",
                         e
                     )
                 }
                 Err(e) => {
                     error!("{}", e);
-                    error!("Server exiting Submission loop.");
+                    error!("Error in server thread, exiting.");
                     break;
                 }
             }
         }
 
-        debug!("Server has exited Submission loop and will close connection");
+        debug!("Server has exited submission loop and will close connection");
         self.close_connection()?;
 
         Ok(())

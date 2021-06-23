@@ -19,7 +19,7 @@ use simplog::simplog::SimpleLogger;
 use url::Url;
 
 use flowcore::url_helper::url_from_string;
-use flowrlib::coordinator::{Coordinator, Submission};
+use flowrlib::coordinator::{Coordinator, Mode, Submission};
 use flowrlib::info as flowrlib_info;
 
 #[cfg(feature = "debugger")]
@@ -108,9 +108,6 @@ fn run() -> Result<()> {
     SimpleLogger::init(matches.value_of("verbosity"));
     let debugger = matches.is_present("debugger");
     let native = matches.is_present("native");
-    let server_only = matches.is_present("server");
-    let client_only = matches.is_present("client");
-    let server_hostname = matches.value_of("client");
     let lib_dirs = if matches.is_present("lib_dir") {
         matches
             .values_of("lib_dir")
@@ -122,6 +119,19 @@ fn run() -> Result<()> {
     };
     let lib_search_path = set_lib_search_path(&lib_dirs)?;
 
+    let (mode, server_hostname) = if matches.is_present("client") {
+        (Mode::Client, matches.value_of("client"))
+    } else if matches.is_present("server") {
+        (Mode::Server, None)
+    } else {
+        (Mode::ClientAndServer, None) // the default if nothing specified
+    };
+
+    info!("Starting 'flowr' in {:?} mode", mode);
+    if let Some(hostname) = server_hostname {
+        info!("'SERVER_HOSTNAME' set to '{}'", hostname);
+    }
+
     // Start the coordinator server either on the main thread or as a background thread
     // depending on the value of the "server_only" option
     #[cfg(feature = "debugger")]
@@ -129,8 +139,7 @@ fn run() -> Result<()> {
         num_threads(&matches, debugger),
         lib_search_path,
         native,
-        server_only,
-        client_only,
+        mode.clone(),
         server_hostname,
     )?;
 
@@ -139,12 +148,11 @@ fn run() -> Result<()> {
         num_threads(&matches, debugger),
         lib_search_path,
         native,
-        server_only,
-        client_only,
+        mode.clone(),
         server_hostname,
     )?;
 
-    if !server_only {
+    if mode != Mode::Server {
         let flow_manifest_url = parse_flow_url(&matches)?;
         let flow_args = get_flow_args(&matches, &flow_manifest_url);
         let submission = Submission::new(
@@ -291,6 +299,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .long("client")
             .takes_value(true)
             .value_name("SERVER_HOSTNAME")
+            .conflicts_with("server")
             .help("Set the HOSTNAME of the server this client should connect to"),
     );
 
