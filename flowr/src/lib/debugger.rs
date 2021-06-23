@@ -78,17 +78,19 @@ impl Debugger {
         let _ = self.debug_server_connection.start();
     }
 
-    pub fn check_for_entry(&mut self, state: &RunState) {
+    pub fn check_for_entry(&mut self, state: &RunState) -> (bool, bool, bool) {
         if self.debug_requested.load(Ordering::SeqCst) {
             self.debug_requested.store(false, Ordering::SeqCst); // reset to avoid re-entering
-            self.enter(&state);
+            return self.enter(&state);
         }
+
+        (false, false, false)
     }
 
     /*
         Return values are (display next output, reset execution)
     */
-    pub fn enter(&mut self, state: &RunState) -> (bool, bool) {
+    pub fn enter(&mut self, state: &RunState) -> (bool, bool, bool) {
         let _ = self.debug_server_connection.send_event(EnteringDebugger);
         self.wait_for_command(state)
     }
@@ -98,13 +100,13 @@ impl Debugger {
         being executed. It is used to inform the debug client of the fact.
         Return values are (display next output, reset execution)
     */
-    pub fn job_completed(&mut self, job: &Job) -> (bool, bool) {
+    pub fn job_completed(&mut self, job: &Job) -> (bool, bool, bool) {
         let _ = self.debug_server_connection.send_event(JobCompleted(
             job.job_id,
             job.function_id,
             job.result.0.clone(),
         ));
-        (false, false)
+        (false, false, false)
     }
 
     /*
@@ -116,7 +118,7 @@ impl Debugger {
         state: &RunState,
         next_job_id: usize,
         function_id: usize,
-    ) -> (bool, bool) {
+    ) -> (bool, bool, bool) {
         if self.break_at_job == next_job_id || self.function_breakpoints.contains(&function_id) {
             let _ = self
                 .debug_server_connection
@@ -132,7 +134,7 @@ impl Debugger {
             return self.wait_for_command(state);
         }
 
-        (false, false)
+        (false, false, false)
     }
 
     /*
@@ -142,7 +144,11 @@ impl Debugger {
         This allows the debugger to check if we have a breakpoint set on that block. If we do
         then enter the debugger client and wait for a command.
     */
-    pub fn check_on_block_creation(&mut self, state: &RunState, block: &Block) {
+    pub fn check_on_block_creation(
+        &mut self,
+        state: &RunState,
+        block: &Block,
+    ) -> (bool, bool, bool) {
         if self
             .block_breakpoints
             .contains(&(block.blocked_id, block.blocking_id))
@@ -150,8 +156,10 @@ impl Debugger {
             let _ = self
                 .debug_server_connection
                 .send_event(BlockBreakpoint(block.clone()));
-            self.wait_for_command(state);
+            return self.wait_for_command(state);
         }
+
+        (false, false, false)
     }
 
     /*
@@ -168,7 +176,7 @@ impl Debugger {
         value: &Value,
         destination_id: usize,
         input_number: usize,
-    ) {
+    ) -> (bool, bool, bool) {
         if self
             .output_breakpoints
             .contains(&(source_process_id, output_route.to_string()))
@@ -189,8 +197,10 @@ impl Debugger {
                 destination_id,
                 input_number,
             ));
-            self.wait_for_command(state);
+            return self.wait_for_command(state);
         }
+
+        (false, false, false)
     }
 
     /*
@@ -201,9 +211,9 @@ impl Debugger {
         breakpoint it will enter the debugger on an error and let the user inspect the flow's
         state etc.
     */
-    pub fn error(&mut self, state: &RunState, job: Job) {
+    pub fn job_error(&mut self, state: &RunState, job: Job) -> (bool, bool, bool) {
         let _ = self.debug_server_connection.send_event(JobError(job));
-        self.wait_for_command(state);
+        self.wait_for_command(state)
     }
 
     /*
@@ -214,17 +224,17 @@ impl Debugger {
         breakpoint it will enter the debugger on an error and let the user inspect the flow's
         state etc.
     */
-    pub fn panic(&mut self, state: &RunState, error_message: String) {
+    pub fn panic(&mut self, state: &RunState, error_message: String) -> (bool, bool, bool) {
         let _ = self
             .debug_server_connection
             .send_event(Panic(error_message, state.jobs_created()));
-        self.wait_for_command(state);
+        self.wait_for_command(state)
     }
 
     /*
         Return values are (display next output, reset execution)
     */
-    pub fn flow_done(&mut self, state: &RunState) -> (bool, bool) {
+    pub fn flow_done(&mut self, state: &RunState) -> (bool, bool, bool) {
         let _ = self.debug_server_connection.send_event(ExecutionEnded);
         self.deadlock_check(state);
         self.wait_for_command(state)
@@ -240,7 +250,7 @@ impl Debugger {
         When exiting return a tuple for the Coordinator to determine what to do:
            (display next output, reset execution)
     */
-    fn wait_for_command(&mut self, state: &RunState) -> (bool, bool) {
+    fn wait_for_command(&mut self, state: &RunState) -> (bool, bool, bool) {
         loop {
             let _ = self
                 .debug_server_connection
@@ -321,28 +331,28 @@ impl Debugger {
                 Ok(EnterDebugger) => { /* Not needed as we are already in the debugger */ }
                 Ok(ExitDebugger) => {
                     let _ = self.debug_server_connection.send_event(ExitingDebugger);
-                    return (false, false);
+                    return (false, false, true);
                 }
 
                 // **************************      The following commands exit the command loop
                 Ok(Continue) => {
                     if state.jobs_created() > 0 {
-                        return (false, false);
+                        return (false, false, false);
                     }
                 }
                 Ok(RunReset) => {
                     return if state.jobs_created() > 0 {
                         let event = self.reset();
                         let _ = self.debug_server_connection.send_event(event);
-                        (false, true)
+                        (false, true, false)
                     } else {
                         let _ = self.debug_server_connection.send_event(ExecutionStarted);
-                        (false, false)
+                        (false, false, false)
                     }
                 }
                 Ok(Step(param)) => {
                     let _ = self.step(state, param);
-                    return (true, false);
+                    return (true, false, false);
                 }
                 Ok(Ack) => {}
                 Ok(Response::Error(_)) => { /* client error */ }

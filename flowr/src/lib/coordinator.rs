@@ -142,6 +142,8 @@ impl Coordinator {
         }
     }
 
+    // TODO try to merge these next two functions
+
     /// Start the Coordinator server either in a background thread or in the
     /// foreground thread this function is called on according to the `server`
     /// parameter:
@@ -166,13 +168,6 @@ impl Coordinator {
         if !client_only {
             let mut coordinator =
                 Coordinator::new(runtime_server_context, debug_server_context, num_threads);
-
-            coordinator
-                .runtime_server_context
-                .lock()
-                .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
-                .start()?;
-            coordinator.debugger.start();
 
             if server_only {
                 info!("Starting 'flowr' server on main thread in server process");
@@ -205,12 +200,6 @@ impl Coordinator {
         if !client_only {
             let mut coordinator = Coordinator::new(runtime_server_context, num_threads);
 
-            coordinator
-                .runtime_server_context
-                .lock()
-                .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
-                .start()?;
-
             if server_only {
                 info!("Starting 'flowr' server on main thread");
                 coordinator.submission_loop(lib_search_path, native, server_only)?;
@@ -242,7 +231,7 @@ impl Coordinator {
         let mut loader = Loader::new();
         let provider = MetaProvider::new(lib_search_path);
 
-        while let Some(submission) = self.wait_for_submission() {
+        while let Some(submission) = self.wait_for_submission()? {
             match Self::load_from_manifest(
                 &submission.manifest_url,
                 &mut loader,
@@ -252,17 +241,15 @@ impl Coordinator {
             ) {
                 Ok(mut manifest) => {
                     let state = RunState::new(manifest.get_functions(), submission);
-                    let _ = self.execute_flow(state);
-
-                    self.runtime_server_context
-                        .lock()
-                        .map_err(|e| format!("Could not lock Server Connection: {}", e))?
-                        .start()?;
-                    #[cfg(feature = "debugger")]
-                    self.debugger.start();
+                    if self.execute_flow(state)? {
+                        break;
+                    }
                 }
                 Err(e) if server_only => {
-                    error!("Error in server submission loop, continuing. {}", e)
+                    error!(
+                        "Error in server submission loop, continuing to wait for submissions. {}",
+                        e
+                    )
                 }
                 Err(e) => {
                     error!("{}", e);
@@ -292,7 +279,14 @@ impl Coordinator {
     // If the message is a `ClientSubmission` with a submission, then return Some(submission)
     // If the message is `ClientExiting` then return None
     // If the message is any other then loop until we find one of the above
-    fn wait_for_submission(&self) -> Option<Submission> {
+    fn wait_for_submission(&mut self) -> Result<Option<Submission>> {
+        self.runtime_server_context
+            .lock()
+            .map_err(|e| format!("Could not lock Server Connection: {}", e))?
+            .start()?;
+        #[cfg(feature = "debugger")]
+        self.debugger.start();
+
         loop {
             info!("'flowr' is waiting to receive a 'Submission'");
             match self.runtime_server_context.lock() {
@@ -302,15 +296,15 @@ impl Coordinator {
                             "Server received a submission for execution with manifest_url: '{}'",
                             submission.manifest_url
                         );
-                        return Some(submission);
+                        return Ok(Some(submission));
                     }
-                    Ok(Response::ClientExiting) => return None,
+                    Ok(Response::ClientExiting) => return Ok(None),
                     Ok(r) => error!("Server did not expect response from client: '{:?}'", r),
                     Err(e) => error!("Server error while waiting for submission: '{}'", e),
                 },
                 _ => {
                     error!("Server could not lock context");
-                    return None;
+                    return Ok(None);
                 }
             }
         }
@@ -321,7 +315,7 @@ impl Coordinator {
     // There is an outer loop for the case when you are using the debugger, to allow entering
     // the debugger when the flow ends and at any point resetting all the state and starting
     // execution again from the initial state
-    fn execute_flow(&mut self, mut state: RunState) -> Result<()> {
+    fn execute_flow(&mut self, mut state: RunState) -> Result<bool> {
         #[cfg(feature = "metrics")]
         let mut metrics = Metrics::new(state.num_functions());
 
@@ -337,34 +331,48 @@ impl Coordinator {
                 .send_event(Event::FlowStart)?;
 
             #[cfg(feature = "debugger")]
-            if state.debug {
-                self.debugger.enter(&state);
-            }
-
-            #[cfg(feature = "debugger")]
             let mut display_next_output;
             let mut restart;
+
+            // If debugging then enter the debugger before starting flow execution loop
+            #[cfg(feature = "debugger")]
+            if state.debug {
+                let debug_check = self.debugger.enter(&state);
+                if debug_check.2 {
+                    return Ok(true);
+                }
+            }
 
             'jobs: loop {
                 trace!("{}", state);
                 #[cfg(feature = "debugger")]
-                self.debugger.check_for_entry(&state);
+                let debug_check = self.debugger.check_for_entry(&state);
+                #[cfg(feature = "debugger")]
+                if debug_check.2 {
+                    return Ok(true);
+                }
 
                 let debug_check = self.send_jobs(
                     &mut state,
                     #[cfg(feature = "metrics")]
                     &mut metrics,
                 );
+
+                #[cfg(feature = "debugger")]
+                if debug_check.2 {
+                    return Ok(true);
+                }
+
                 #[cfg(feature = "debugger")]
                 {
                     display_next_output = debug_check.0;
-                }
-                restart = debug_check.1;
+                    restart = debug_check.1;
 
-                // If debugger request it, exit the inner loop which will cause us to reset state
-                // and restart execution, in the outer loop
-                if restart {
-                    break 'jobs;
+                    // If debugger request it, exit the inner job loop which will cause us to reset state
+                    // and restart execution, in the outer flow_execution loop
+                    if restart {
+                        break 'jobs;
+                    }
                 }
 
                 if state.number_jobs_running() > 0 {
@@ -402,15 +410,20 @@ impl Coordinator {
                     // at the end of execution, inspect state and possibly reset and rerun
                     break 'jobs;
                 }
-            }
+            } // 'jobs loop end
 
+            // flow execution has ended
             #[allow(clippy::collapsible_if)]
             if !restart {
                 #[cfg(feature = "debugger")]
                 {
                     if state.debug {
-                        let check = self.debugger.flow_done(&state);
-                        restart = check.1;
+                        let debug_check = self.debugger.flow_done(&state);
+                        if debug_check.2 {
+                            return Ok(true);
+                        }
+
+                        restart = debug_check.1;
                     }
                 }
 
@@ -434,7 +447,7 @@ impl Coordinator {
             }
         }
 
-        Ok(())
+        Ok(false)
     }
 
     fn load_from_manifest(
@@ -483,9 +496,10 @@ impl Coordinator {
         &mut self,
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
-    ) -> (bool, bool) {
+    ) -> (bool, bool, bool) {
         let mut display_output = false;
         let mut restart = false;
+        let mut abort = false;
 
         while let Some(job) = state.next_job() {
             match self.send_job(
@@ -494,21 +508,22 @@ impl Coordinator {
                 #[cfg(feature = "metrics")]
                 metrics,
             ) {
-                Ok((display, rest)) => {
+                Ok((display, rest, leave)) => {
                     display_output = display;
                     restart = rest;
+                    abort = leave;
                 }
                 Err(err) => {
                     error!("Error sending on 'job_tx': {}", err.to_string());
                     debug!("{}", state);
 
                     #[cfg(feature = "debugger")]
-                    self.debugger.error(&state, job);
+                    self.debugger.job_error(&state, job);
                 }
             }
         }
 
-        (display_output, restart)
+        (display_output, restart, abort)
     }
 
     // Send a job for execution
@@ -517,7 +532,7 @@ impl Coordinator {
         job: &Job,
         state: &mut RunState,
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
-    ) -> Result<(bool, bool)> {
+    ) -> Result<(bool, bool, bool)> {
         #[cfg(not(feature = "debugger"))]
         let debug_options = (false, false);
 
