@@ -169,13 +169,6 @@ impl Coordinator {
             let mut coordinator =
                 Coordinator::new(runtime_server_context, debug_server_context, num_threads);
 
-            // coordinator
-            //     .runtime_server_context
-            //     .lock()
-            //     .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
-            //     .start()?;
-            // coordinator.debugger.start();
-
             if server_only {
                 info!("Starting 'flowr' server on main thread in server process");
                 coordinator.submission_loop(lib_search_path, native, server_only)?;
@@ -206,12 +199,6 @@ impl Coordinator {
 
         if !client_only {
             let mut coordinator = Coordinator::new(runtime_server_context, num_threads);
-
-            // coordinator
-            //     .runtime_server_context
-            //     .lock()
-            //     .map_err(|e| format!("Could not lock Runtime Server: {}", e))?
-            //     .start()?;
 
             if server_only {
                 info!("Starting 'flowr' server on main thread");
