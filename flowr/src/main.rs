@@ -155,7 +155,10 @@ fn run() -> Result<()> {
         );
 
         #[cfg(feature = "debugger")]
-        CliDebugClient::start(debug_connection);
+        let debug_client = CliDebugClient::new(debug_connection);
+        #[cfg(feature = "debugger")]
+        debug_client.start();
+
         CliRuntimeClient::start(
             runtime_connection,
             submission,
