@@ -1,13 +1,13 @@
-use std::io;
-use std::io::Write;
-
 use log::error;
+use rustyline::Editor;
 
 use flowrlib::client_server::DebugClientConnection;
 use flowrlib::debug::{Event, Event::*, Param, Response, Response::*};
 use flowrlib::run_state::{RunState, State};
 
 use crate::errors::*;
+
+const FLOWR_HISTORY_FILENAME: &str = ".flowr_history";
 
 const HELP_STRING: &str = "Debugger commands:
 'b' | 'breakpoint' {spec}    - Set a breakpoint on a function (by id), an output or an input using spec:
@@ -31,17 +31,49 @@ ENTER | 'c' | 'continue'     - Continue execution until next breakpoint
     A simple CLI (i.e. stdin and stdout) debug client that implements the DebugClient trait
     defined in the flowrlib library.
 */
-pub struct CliDebugClient {}
+pub struct CliDebugClient {
+    connection: DebugClientConnection,
+    editor: Editor<()>,
+}
 
 impl CliDebugClient {
-    pub fn start(mut connection: DebugClientConnection) {
-        let _ = connection.start();
+    /*
+       Create a new debug client accepting the debug connection
+    */
+    pub fn new(connection: DebugClientConnection) -> Self {
+        CliDebugClient {
+            connection,
+            editor: Editor::<()>::new(), // `()` can be used when no completer is required
+        }
+    }
 
-        std::thread::spawn(move || loop {
-            match connection.client_recv() {
+    /*
+       Start running the debug client in a new thread
+    */
+    pub fn start(mut self) {
+        let _ = self.connection.start();
+
+        if self.editor.load_history(FLOWR_HISTORY_FILENAME).is_err() {
+            println!(
+                "No previous history. Saving new history in {}",
+                FLOWR_HISTORY_FILENAME
+            );
+        }
+
+        let _ = std::thread::spawn(move || {
+            self.debug_client_loop();
+        });
+    }
+
+    /*
+       Main debug client loop where events are received, processed and responses sent
+    */
+    fn debug_client_loop(&mut self) {
+        loop {
+            match self.connection.client_recv() {
                 Ok(event) => {
-                    if let Ok(response) = Self::process_event(event) {
-                        let _ = connection.client_send(response);
+                    if let Ok(response) = self.process_event(event) {
+                        let _ = self.connection.client_send(response);
                     }
                 }
                 Err(err) => {
@@ -49,7 +81,9 @@ impl CliDebugClient {
                     break;
                 }
             }
-        });
+        }
+
+        let _ = self.editor.save_history(FLOWR_HISTORY_FILENAME);
     }
 
     fn help() {
@@ -109,47 +143,68 @@ impl CliDebugClient {
     }
 
     /*
-       Wait for the user to input a valid debugger command then return it
+       Wait for the user to input a valid debugger command then return the corresponding response
+       that should be sent to the debug server
     */
-    fn get_user_command(job_number: usize) -> Result<Response> {
+    fn get_user_command(&mut self, job_number: usize) -> Result<Response> {
         loop {
-            print!("Debug #{}> ", job_number);
-            io::stdout()
-                .flush()
-                .chain_err(|| "Could not flush stdout")?;
-
-            let mut input = String::new();
-            match io::stdin().read_line(&mut input) {
-                Ok(0) => return Ok(ExitDebugger),
-                Ok(_n) => {
-                    let (command, param) = Self::parse_command(&input);
-                    match command {
-                        "b" | "breakpoint" => return Ok(Breakpoint(param)),
-                        "" | "c" | "continue" => return Ok(Continue),
-                        "d" | "delete" => return Ok(Delete(param)),
-                        "e" | "exit" => return Ok(ExitDebugger),
-                        "h" | "help" => Self::help(),
-                        "i" | "inspect" => {
-                            match param {
-                                None => return Ok(Inspect),
-                                Some(Param::Numeric(function_id)) => return Ok(InspectFunction(function_id)),
-                                Some(Param::Input((function_id, input_number))) => return Ok(InspectInput(function_id, input_number)),
-                                Some(Param::Output((function_id, sub_route))) => return Ok(InspectOutput(function_id, sub_route)),
-                                Some(Param::Block((source_function_id, destination_function_id))) => return Ok(InspectBlock(source_function_id, destination_function_id)),
-                                _ => println!("Unsupported format for inspect command. Use 'h' or 'help' command for help")
-                            }
-                        },
-                        "l" | "list" => return Ok(List),
-                        "q" | "quit" => return Ok(ExitDebugger),
-                        "r" | "run" | "reset" => return Ok(RunReset),
-                        "s" | "step" => return Ok(Step(param)),
-                        "v" | "validate" => return Ok(Validate),
-                        _ => println!("Unknown debugger command '{}'\n", command),
+            match self.editor.readline(&format!("Debug #{}> ", job_number)) {
+                Ok(line) => {
+                    let (command, param) = Self::parse_command(&line);
+                    if let Some(response) = self.get_server_command(command, param) {
+                        self.editor.add_history_entry(&line);
+                        return Ok(response);
                     }
                 }
-                Err(_) => bail!("Error reading debugger command"),
+                Err(_) => return Ok(ExitDebugger), // Includes CONTROL-C and CONTROL-D exits
             }
         }
+    }
+
+    /*
+       Determine what response should be sent to the server for the input command, or none.
+       Some commands act locally at the client (such as "help") and don't generate any response
+       to send to the server.
+       Likewise command parsing errors shouldn't generate a response to send to the server.
+    */
+    fn get_server_command(&mut self, command: &str, param: Option<Param>) -> Option<Response> {
+        return match command {
+            "b" | "breakpoint" => Some(Breakpoint(param)),
+            "" | "c" | "continue" => Some(Continue),
+            "d" | "delete" => Some(Delete(param)),
+            "e" | "exit" => Some(ExitDebugger),
+            "h" | "help" => {
+                Self::help();
+                self.editor.add_history_entry(command);
+                None
+            }
+            "i" | "inspect" => match param {
+                None => Some(Inspect),
+                Some(Param::Numeric(function_id)) => Some(InspectFunction(function_id)),
+                Some(Param::Input((function_id, input_number))) => {
+                    Some(InspectInput(function_id, input_number))
+                }
+                Some(Param::Output((function_id, sub_route))) => {
+                    Some(InspectOutput(function_id, sub_route))
+                }
+                Some(Param::Block((source_function_id, destination_function_id))) => {
+                    Some(InspectBlock(source_function_id, destination_function_id))
+                }
+                _ => {
+                    println!("Unsupported format for 'inspect' command. Use 'h' or 'help' command for help");
+                    None
+                }
+            },
+            "l" | "list" => Some(List),
+            "q" | "quit" => Some(ExitDebugger),
+            "r" | "run" | "reset" => Some(RunReset),
+            "s" | "step" => Some(Step(param)),
+            "v" | "validate" => Some(Validate),
+            _ => {
+                println!("Unknown debugger command '{}'\n", command);
+                None
+            }
+        };
     }
 
     /*
@@ -157,7 +212,7 @@ impl CliDebugClient {
 
         These are events generated by the remote debugger without any previous request from the debug client
     */
-    pub fn process_event(event: Event) -> Result<Response> {
+    pub fn process_event(&mut self, event: Event) -> Result<Response> {
         match event {
             JobCompleted(job_id, function_id, opt_output) => {
                 println!("Job #{} completed by Function #{}", job_id, function_id);
@@ -184,11 +239,11 @@ impl CliDebugClient {
                     "Function panicked after {} jobs created: {}",
                     jobs_created, message
                 );
-                return Self::get_user_command(jobs_created);
+                return self.get_user_command(jobs_created);
             }
             JobError(job) => {
                 println!("Error occurred executing a Job: \n'{}'", job);
-                return Self::get_user_command(job.job_id);
+                return self.get_user_command(job.job_id);
             }
             EnteringDebugger => {
                 println!("Entering Debugger. Use 'h' or 'help' for help on commands")
@@ -204,7 +259,7 @@ impl CliDebugClient {
             Event::Error(error_message) => println!("{}", error_message),
             Message(message) => println!("{}", message),
             Resetting => println!("Resetting state"),
-            WaitingForCommand(job_id) => return Self::get_user_command(job_id),
+            WaitingForCommand(job_id) => return self.get_user_command(job_id),
             Event::Invalid => {}
             FunctionState((function, state)) => {
                 print!("{}", function);
