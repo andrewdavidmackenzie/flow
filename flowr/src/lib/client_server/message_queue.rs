@@ -1,5 +1,5 @@
 /// This is the message-queue implementation of the lib.client_server communications
-use log::debug;
+use log::{debug, info};
 use zmq::Message;
 use zmq::Socket;
 
@@ -253,7 +253,14 @@ impl RuntimeServerConnection {
                 .chain_err(|| "Runtime Server could not bind connection")?;
         }
 
-        debug!("Runtime Server Connection started on port: {}", self.port);
+        info!(
+            "'flowr' server process listening on {}:{}",
+            self.host, self.port
+        );
+        info!(
+            "Use 'flowr -c {}:{} $flow_url' to send a job for execution",
+            self.host, self.port
+        );
 
         Ok(())
     }
@@ -338,7 +345,10 @@ impl DebugServerConnection {
                 .chain_err(|| "Debug Server could not bind connection")?;
         }
 
-        debug!("Debug Server Connection started on port: {}", self.port);
+        info!(
+            "'flowr' debug server listening on {}:{}",
+            self.host, self.port
+        );
 
         Ok(())
     }

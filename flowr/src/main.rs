@@ -300,7 +300,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
             .takes_value(true)
             .value_name("SERVER_HOSTNAME")
             .conflicts_with("server")
-            .help("Set the HOSTNAME of the server this client should connect to"),
+            .help("Set the hostname or IP address of the flowr server to connect to"),
     );
 
     #[cfg(feature = "debugger")]
@@ -324,6 +324,7 @@ fn get_matches<'a>() -> ArgMatches<'a> {
         Arg::with_name("native")
             .short("n")
             .long("native")
+            .conflicts_with("client")
             .help("Use native libraries when possible"),
     );
 
