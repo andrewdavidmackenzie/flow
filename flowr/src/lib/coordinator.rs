@@ -288,7 +288,7 @@ impl Coordinator {
         self.debugger.start();
 
         loop {
-            info!("'flowr' is waiting to receive a 'Submission'");
+            info!("'flowr' server is waiting to receive a 'Submission'");
             match self.runtime_server_context.lock() {
                 Ok(guard) => match guard.get_response() {
                     Ok(Response::ClientSubmission(submission)) => {
