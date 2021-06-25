@@ -434,13 +434,13 @@ impl Coordinator {
                         self.runtime_server_context
                             .lock()
                             .map_err(|_| "Could not lock server context")?
-                            .send_event(Event::FlowEnd(metrics))?;
+                            .send_event_only(Event::FlowEnd(metrics))?;
                     }
                     #[cfg(not(feature = "metrics"))]
                     self.runtime_server_context
                         .lock()
                         .map_err(|_| "Could not lock server context")?
-                        .send_event(Event::FlowEnd)?;
+                        .send_event_only(Event::FlowEnd)?;
                     debug!("{}", state);
                     break 'flow_execution;
                 }
