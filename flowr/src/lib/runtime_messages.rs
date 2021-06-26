@@ -4,9 +4,9 @@ use crate::coordinator::Submission;
 #[cfg(feature = "metrics")]
 use crate::metrics::Metrics;
 
-/// A run-time Event sent from the run-time to a runtime_client
+/// An Message sent from the runtime server to a runtime_client
 #[derive(Serialize, Deserialize, Debug)]
-pub enum Event {
+pub enum ServerMessage {
     /// A flow has started executing
     FlowStart,
     /// A flow has stopped executing
@@ -38,13 +38,13 @@ pub enum Event {
     Invalid,
 }
 
-unsafe impl Send for Event {}
+unsafe impl Send for ServerMessage {}
 
-unsafe impl Sync for Event {}
+unsafe impl Sync for ServerMessage {}
 
-/// A `Response` from the runtime_client to the run-time
+/// A Message from the a runtime_client to the runtime server
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
-pub enum Response {
+pub enum ClientMessage {
     /// Simple acknowledgement
     Ack,
     /// A String read from Stdin
@@ -69,6 +69,6 @@ pub enum Response {
     Invalid,
 }
 
-unsafe impl Send for Response {}
+unsafe impl Send for ClientMessage {}
 
-unsafe impl Sync for Response {}
+unsafe impl Sync for ClientMessage {}

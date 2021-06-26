@@ -5,7 +5,7 @@ use serde_json::Value;
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 use crate::client_server::RuntimeServerConnection;
-use crate::runtime::{Event, Response};
+use crate::runtime_messages::{ClientMessage, ServerMessage};
 
 /// `Implementation` struct for the `file_write` function
 pub struct FileWrite {
@@ -21,11 +21,11 @@ impl Implementation for FileWrite {
         if let Ok(mut server) = self.server_context.lock() {
             match bytes.as_str() {
                 Some(string) => {
-                    return match server.send_event(Event::Write(
+                    return match server.send_message(ServerMessage::Write(
                         filename.to_string(),
                         string.as_bytes().to_vec(),
                     )) {
-                        Ok(Response::Ack) => (None, RUN_AGAIN),
+                        Ok(ClientMessage::Ack) => (None, RUN_AGAIN),
                         _ => (None, RUN_AGAIN),
                     }
                 }

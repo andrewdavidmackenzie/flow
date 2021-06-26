@@ -30,11 +30,11 @@ pub mod client_server;
 /// 'debug' defines structs passed between the Server and the Client regarding debug events
 /// and client responses to them
 #[cfg(feature = "debugger")]
-pub mod debug;
+pub mod debug_messages;
 
 /// 'runtime' defines structs passed between the Server and the Client regarding runtime events
 /// and client responses to them
-pub mod runtime;
+pub mod runtime_messages;
 
 /// Structure that defines/tracks the current runtime state
 pub mod run_state;
