@@ -60,6 +60,7 @@ pub mod errors {
 
 // Specify the errors we will produce and foreign links
 // #![allow(missing_docs)]
+#[doc(hidden)]
 error_chain! {
     types {
         Error, ErrorKind, ResultExt, Result;
