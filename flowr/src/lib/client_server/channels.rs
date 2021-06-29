@@ -1,24 +1,24 @@
 /// This is the channel-based implementation of the lib.client_server communications
 use std::fmt::Debug;
-use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{Receiver, Sender};
 use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, Sender};
+use std::sync::{Arc, Mutex};
 
 #[cfg(feature = "debugger")]
-use crate::debug::Event as DebugEvent;
+use crate::debug_messages::DebugClientMessage;
 #[cfg(feature = "debugger")]
-use crate::debug::Response as DebugResponse;
+use crate::debug_messages::DebugServerMessage;
 use crate::errors::*;
 use crate::runtime::{Event, Response};
 
 pub struct RuntimeClientConnection {
-    channels: (Arc<Mutex<Receiver<Event>>>, Sender<Response>)
+    channels: (Arc<Mutex<Receiver<Event>>>, Sender<Response>),
 }
 
 impl RuntimeClientConnection {
     pub fn new(runtime_server_context: &RuntimeServerConnection) -> Self {
         RuntimeClientConnection {
-            channels: runtime_server_context.get_client_channels()
+            channels: runtime_server_context.get_client_channels(),
         }
     }
 
@@ -26,15 +26,24 @@ impl RuntimeClientConnection {
         Ok(())
     }
 
-    /// Receive an event from the runtime
-    pub fn client_recv(&self) -> Result<Event> {
-        let guard = self.channels.0.lock()
+    /// Receive a Message from the runtime Server
+    pub fn client_recv(&self) -> Result<ServerMessage> {
+        let guard = self
+            .channels
+            .0
+            .lock()
             .map_err(|_| "Could not lock client Event reception channel")?;
-        guard.recv().chain_err(|| "Error receiving Event from client channel")
+        guard
+            .recv()
+            .chain_err(|| "Error receiving Event from client channel")
     }
 
-    pub fn client_send(&self, response: Response) -> Result<()> {
-        self.channels.1.send(response).chain_err(|| "Error sending on client channel")
+    /// Send a Message from the runtime client to the runtime server
+    pub fn client_send(&self, message: ClientMessage) -> Result<()> {
+        self.channels
+            .1
+            .send(message)
+            .chain_err(|| "Error sending on client channel")
     }
 }
 
@@ -47,7 +56,7 @@ pub struct DebugClientConnection {
 impl DebugClientConnection {
     pub fn new(debug_server_context: &DebugServerConnection) -> Self {
         DebugClientConnection {
-            channels: debug_server_context.get_channels()
+            channels: debug_server_context.get_channels(),
         }
     }
 
@@ -55,16 +64,24 @@ impl DebugClientConnection {
         Ok(())
     }
 
-    /// Receive an Event from the debugger
-    pub fn client_recv(&self) -> Result<DebugEvent> {
-        let guard = self.channels.0.lock()
+    /// Receive a Message from the debug Server
+    pub fn client_recv(&self) -> Result<DebugServerMessage> {
+        let guard = self
+            .channels
+            .0
+            .lock()
             .map_err(|_| "Could not lock debug Event reception channel")?;
-        guard.recv().chain_err(|| "Error receiving Event from debug channel")
+        guard
+            .recv()
+            .chain_err(|| "Error receiving Event from debug channel")
     }
 
-    /// Send an Event to the debugger
-    pub fn client_send(&self, response: DebugResponse) -> Result<()> {
-        self.channels.1.send(response).chain_err(|| "Error sending on Debug channel")
+    /// Send a Message to the debugger
+    pub fn client_send(&self, response: DebugClientMessage) -> Result<()> {
+        self.channels
+            .1
+            .send(response)
+            .chain_err(|| "Error sending on Debug channel")
     }
 }
 
@@ -100,21 +117,33 @@ impl RuntimeServerConnection {
     /// Get the channels a client should use to send to the server
     fn get_client_channels(&self) -> (Arc<Mutex<Receiver<Event>>>, Sender<Response>) {
         // Clone of Arc and Sender is OK
-        (self.client_event_channel_rx.clone(), self.client_response_channel_tx.clone())
+        (
+            self.client_event_channel_rx.clone(),
+            self.client_response_channel_tx.clone(),
+        )
     }
 
-    /// Get a response from the client to the server
-    pub fn get_response(&self) -> Result<Response> {
-        self.client_response_channel_rx.recv()
+    /// Get a Message sent to the client from the server
+    pub fn get_message(&self) -> Result<ClientMessage> {
+        self.client_response_channel_rx
+            .recv()
             .chain_err(|| "Error receiving response from client")
     }
 
-    /// Send a server event to the client
-    pub fn send_event(&mut self, event: Event) -> Result<Response> {
-        self.client_event_channel_tx.send(event)
+    /// Try to get a Message sent to the client to the server but without blocking
+    pub fn get_message_no_wait(&self) -> Result<ClientMessage> {
+        self.client_response_channel_rx
+            .try_recv()
+            .chain_err(|| "Error receiving response from client")
+    }
+
+    /// Send a server Message to the client and wait for it's response
+    pub fn send_message(&mut self, message: ServerMessage) -> Result<ClientMessage> {
+        self.client_event_channel_tx
+            .send(message)
             .map_err(|e| format!("Error sending to client: '{}'", e))?;
 
-        self.get_response()
+        self.get_message()
     }
 }
 
@@ -150,16 +179,23 @@ impl DebugServerConnection {
 
     fn get_channels(&self) -> (Arc<Mutex<Receiver<DebugEvent>>>, Sender<DebugResponse>) {
         // Clone of Arc and Sender is OK
-        (self.debug_event_channel_rx.clone(), self.debug_response_channel_tx.clone())
+        (
+            self.debug_event_channel_rx.clone(),
+            self.debug_response_channel_tx.clone(),
+        )
     }
 
-    pub fn get_response(&self) -> Result<DebugResponse> {
-        self.debug_response_channel_rx.recv()
+    /// Get a message sent from the debug client to the debug server
+    pub fn get_message(&self) -> Result<DebugClientMessage> {
+        self.debug_response_channel_rx
+            .recv()
             .chain_err(|| "Error receiving response from debug client")
     }
 
-    pub fn send_event(&self, event: DebugEvent) -> Result<()> {
-        self.debug_event_channel_tx.send(event)
+    /// Send a Message from the debug server to the debug client
+    pub fn send_message(&self, message: DebugServerMessage) -> Result<()> {
+        self.debug_event_channel_tx
+            .send(message)
             .chain_err(|| "Could not send Debug event from Debug server")
     }
 }

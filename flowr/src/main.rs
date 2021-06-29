@@ -135,7 +135,7 @@ fn run() -> Result<()> {
     // Start the coordinator server either on the main thread or as a background thread
     // depending on the value of the "server_only" option
     #[cfg(feature = "debugger")]
-    let (runtime_connection, debug_connection) = Coordinator::server(
+    let (runtime_connection, control_c_connection, debug_connection) = Coordinator::server(
         num_threads(&matches, debugger),
         lib_search_path,
         native,
@@ -167,13 +167,21 @@ fn run() -> Result<()> {
         #[cfg(feature = "debugger")]
         debug_client.start();
 
-        CliRuntimeClient::start(
-            runtime_connection,
-            submission,
+        let runtime_client = CliRuntimeClient::new(
             flow_args,
             #[cfg(feature = "metrics")]
             matches.is_present("metrics"),
+        );
+
+        #[cfg(feature = "debugger")]
+        runtime_client.event_loop(
+            runtime_connection,
+            control_c_connection,
+            submission,
+            debugger,
         )?;
+        #[cfg(not(feature = "debugger"))]
+        runtime_client.event_loop(runtime_connection, submission)?;
     }
 
     Ok(())

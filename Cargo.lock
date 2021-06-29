@@ -181,6 +181,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctrlc"
+version = "3.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "232295399409a8b7ae41276757b5a1cc21032848d42bff2352261f958b3ca29a"
+dependencies = [
+ "nix",
+ "winapi",
+]
+
+[[package]]
 name = "curl"
 version = "0.4.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -344,6 +354,7 @@ name = "flowr"
 version = "0.34.8"
 dependencies = [
  "clap",
+ "ctrlc",
  "error-chain 0.12.4",
  "flowcore",
  "flowstdlib",

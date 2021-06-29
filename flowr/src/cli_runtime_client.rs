@@ -10,8 +10,8 @@ use log::{debug, error, info, trace};
 use flowrlib::client_server::RuntimeClientConnection;
 use flowrlib::coordinator::Submission;
 use flowrlib::errors::*;
-use flowrlib::runtime::Response::ClientSubmission;
-use flowrlib::runtime::{Event, Response};
+use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
+use flowrlib::runtime_messages::{ClientMessage, ServerMessage};
 
 #[derive(Debug, Clone)]
 pub struct CliRuntimeClient {
@@ -22,7 +22,8 @@ pub struct CliRuntimeClient {
 }
 
 impl CliRuntimeClient {
-    fn new(args: Vec<String>, #[cfg(feature = "metrics")] display_metrics: bool) -> Self {
+    /// Create a new runtime client
+    pub fn new(args: Vec<String>, #[cfg(feature = "metrics")] display_metrics: bool) -> Self {
         CliRuntimeClient {
             args,
             image_buffers: HashMap::<String, ImageBuffer<Rgb<u8>, Vec<u8>>>::new(),
@@ -31,35 +32,33 @@ impl CliRuntimeClient {
         }
     }
 
-    /*
-       Enter  a loop where we receive events as a client and respond to them
-    */
-    pub fn start(
+    /// Enter a loop where we receive events as a client and respond to them
+    pub fn event_loop(
+        mut self,
         mut connection: RuntimeClientConnection,
+        #[cfg(feature = "debugger")] control_c_connection: RuntimeClientConnection,
         submission: Submission,
-        flow_args: Vec<String>,
-        #[cfg(feature = "metrics")] display_metrics: bool,
+        debugger: bool,
     ) -> Result<()> {
+        #[cfg(feature = "debugger")]
+        if debugger {
+            Self::enter_debugger_on_control_c(control_c_connection);
+        }
+
         connection.start()?;
         trace!("Connection from Runtime client to Runtime server started");
 
         debug!("Client sending submission to server");
         connection.client_send(ClientSubmission(submission))?;
 
-        let mut runtime_client = CliRuntimeClient::new(
-            flow_args,
-            #[cfg(feature = "metrics")]
-            display_metrics,
-        );
-
         loop {
             debug!("Client waiting for message from server");
             match connection.client_recv() {
                 Ok(event) => {
                     trace!("Runtime client received event from server: {:?}", event);
-                    let response = runtime_client.process_event(event);
-                    if response == Response::ClientExiting {
-                        debug!("Server is exiting, so client will exit also");
+                    let response = self.process_event(event);
+                    if response == ClientMessage::ClientExiting {
+                        debug!("Client has decided to exit, so exit it's event loop.");
                         return Ok(());
                     }
 
@@ -67,21 +66,42 @@ impl CliRuntimeClient {
                     let _ = connection.client_send(response);
                 }
                 Err(e) => {
-                    bail!("Error receiving Event in runtime client: {}", e);
+                    // When debugging a Control-C to break into the debugger will cause client_recv()
+                    // to return an error. Ignore it so we continue to process events from server
+                    if !debugger {
+                        bail!("Error receiving Event in runtime client: {}", e);
+                    }
                 }
             }
         }
     }
 
+    #[cfg(feature = "debugger")]
+    fn enter_debugger_on_control_c(mut control_c_connection: RuntimeClientConnection) {
+        ctrlc::set_handler(move || {
+            info!("Control-C captured in client.");
+            match control_c_connection.start() {
+                Ok(_) => {
+                    match control_c_connection.client_send(ClientMessage::EnterDebugger) {
+                        Ok(_) => debug!("'EnterDebugger' command sent to Server"),
+                        Err(e) => error!("Error sending 'EnterDebugger' command to server on control_c_connection: {}", e)
+                    }
+                }
+                Err(e) => error!("Error starting control_c_connection to Server: {}", e)
+            }
+        })
+        .expect("Error setting Ctrl-C handler");
+    }
+
     #[allow(clippy::many_single_char_names)]
-    pub fn process_event(&mut self, event: Event) -> Response {
+    pub fn process_event(&mut self, event: ServerMessage) -> ClientMessage {
         match event {
-            Event::FlowStart => {
+            ServerMessage::FlowStart => {
                 debug!("===========================    Starting flow execution =============================");
-                Response::Ack
+                ClientMessage::Ack
             }
             #[cfg(feature = "metrics")]
-            Event::FlowEnd(metrics) => {
+            ServerMessage::FlowEnd(metrics) => {
                 debug!("=========================== Flow execution ended ======================================");
                 info!("\nMetrics: \n {}", metrics);
 
@@ -93,14 +113,14 @@ impl CliRuntimeClient {
                         error!("Error saving ImageBuffer '{}': '{}'", filename, e);
                     }
                 }
-                Response::ClientExiting
+                ClientMessage::ClientExiting
             }
-            Event::ServerExiting => {
+            ServerMessage::ServerExiting => {
                 debug!("Server is exiting");
-                Response::ClientExiting
+                ClientMessage::ClientExiting
             }
             #[cfg(not(feature = "metrics"))]
-            Event::FlowEnd => {
+            ServerMessage::FlowEnd => {
                 debug!("=========================== Flow execution ended ======================================");
                 for (filename, image_buffer) in self.image_buffers.drain() {
                     info!("Flushing ImageBuffer to file: {}", filename);
@@ -110,67 +130,67 @@ impl CliRuntimeClient {
                         error!("Error saving ImageBuffer '{}': '{}'", filename, e);
                     }
                 }
-                Response::ClientExiting
+                ClientMessage::ClientExiting
             }
-            Event::StdoutEof => Response::Ack,
-            Event::Stdout(contents) => {
+            ServerMessage::StdoutEof => ClientMessage::Ack,
+            ServerMessage::Stdout(contents) => {
                 println!("{}", contents);
-                Response::Ack
+                ClientMessage::Ack
             }
-            Event::Stderr(contents) => {
+            ServerMessage::Stderr(contents) => {
                 eprintln!("{}", contents);
-                Response::Ack
+                ClientMessage::Ack
             }
-            Event::GetStdin => {
+            ServerMessage::GetStdin => {
                 let mut buffer = String::new();
                 let stdin = io::stdin();
                 let mut handle = stdin.lock();
                 if let Ok(size) = handle.read_to_string(&mut buffer) {
                     return if size > 0 {
-                        Response::Stdin(buffer.trim().to_string())
+                        ClientMessage::Stdin(buffer.trim().to_string())
                     } else {
-                        Response::GetStdinEof
+                        ClientMessage::GetStdinEof
                     };
                 }
-                Response::Error("Could not read Stdin".into())
+                ClientMessage::Error("Could not read Stdin".into())
             }
-            Event::GetLine => {
+            ServerMessage::GetLine => {
                 let mut input = String::new();
                 match io::stdin().read_line(&mut input) {
-                    Ok(n) if n > 0 => Response::Line(input.trim().to_string()),
-                    Ok(n) if n == 0 => Response::GetLineEof,
-                    _ => Response::Error("Could not read Readline".into()),
+                    Ok(n) if n > 0 => ClientMessage::Line(input.trim().to_string()),
+                    Ok(n) if n == 0 => ClientMessage::GetLineEof,
+                    _ => ClientMessage::Error("Could not read Readline".into()),
                 }
             }
-            Event::Write(filename, bytes) => match File::create(&filename) {
+            ServerMessage::Write(filename, bytes) => match File::create(&filename) {
                 Ok(mut file) => match file.write_all(bytes.as_slice()) {
-                    Ok(_) => Response::Ack,
+                    Ok(_) => ClientMessage::Ack,
                     Err(e) => {
                         let msg = format!("Error writing to file: '{}': '{}'", filename, e);
                         error!("{}", msg);
-                        Response::Error(msg)
+                        ClientMessage::Error(msg)
                     }
                 },
                 Err(e) => {
                     let msg = format!("Error creating file: '{}': '{}'", filename, e);
                     error!("{}", msg);
-                    Response::Error(msg)
+                    ClientMessage::Error(msg)
                 }
             },
-            Event::PixelWrite((x, y), (r, g, b), (width, height), name) => {
+            ServerMessage::PixelWrite((x, y), (r, g, b), (width, height), name) => {
                 let image = self
                     .image_buffers
                     .entry(name)
                     .or_insert_with(|| RgbImage::new(width, height));
                 image.put_pixel(x, y, Rgb([r, g, b]));
-                Response::Ack
+                ClientMessage::Ack
             }
-            Event::GetArgs => {
+            ServerMessage::GetArgs => {
                 // Response gets serialized and sent over channel/network so needs to args be owned
-                Response::Args(self.args.clone())
+                ClientMessage::Args(self.args.clone())
             }
-            Event::StderrEof => Response::Ack,
-            Event::Invalid => Response::Ack,
+            ServerMessage::StderrEof => ClientMessage::Ack,
+            ServerMessage::Invalid => ClientMessage::Ack,
         }
     }
 }
@@ -183,7 +203,7 @@ mod test {
 
     #[cfg(feature = "metrics")]
     use flowrlib::metrics::Metrics;
-    use flowrlib::runtime::{Event, Response};
+    use flowrlib::runtime_messages::{ClientMessage, ServerMessage};
 
     use super::CliRuntimeClient;
 
@@ -195,8 +215,8 @@ mod test {
             false,
         );
 
-        match client.process_event(Event::GetArgs) {
-            Response::Args(args) => assert_eq!(
+        match client.process_event(ServerMessage::GetArgs) {
+            ClientMessage::Args(args) => assert_eq!(
                 vec!("file:///test_flow.toml".to_string(), "1".to_string()),
                 args
             ),
@@ -217,10 +237,10 @@ mod test {
             false,
         );
 
-        if client.process_event(Event::Write(
+        if client.process_event(ServerMessage::Write(
             file.to_str().expect("Couldn't get filename").to_string(),
             b"Hello".to_vec(),
-        )) != Response::Ack
+        )) != ClientMessage::Ack
         {
             panic!("Didn't get Write response as expected")
         }
@@ -233,7 +253,7 @@ mod test {
             #[cfg(feature = "metrics")]
             false,
         );
-        if client.process_event(Event::Stdout("Hello".into())) != Response::Ack {
+        if client.process_event(ServerMessage::Stdout("Hello".into())) != ClientMessage::Ack {
             panic!("Didn't get Stdout response as expected")
         }
     }
@@ -245,7 +265,7 @@ mod test {
             #[cfg(feature = "metrics")]
             false,
         );
-        if client.process_event(Event::Stderr("Hello".into())) != Response::Ack {
+        if client.process_event(ServerMessage::Stderr("Hello".into())) != ClientMessage::Ack {
             panic!("Didn't get Stderr response as expected")
         }
     }
@@ -266,15 +286,16 @@ mod test {
         let _ = fs::remove_file(&path);
         assert!(!path.exists());
 
-        client.process_event(Event::FlowStart);
-        let pixel = Event::PixelWrite((0, 0), (255, 200, 20), (10, 10), path.display().to_string());
-        if client.process_event(pixel) != Response::Ack {
+        client.process_event(ServerMessage::FlowStart);
+        let pixel =
+            ServerMessage::PixelWrite((0, 0), (255, 200, 20), (10, 10), path.display().to_string());
+        if client.process_event(pixel) != ClientMessage::Ack {
             panic!("Didn't get pixel write response as expected")
         }
         #[cfg(feature = "metrics")]
-        client.process_event(Event::FlowEnd(Metrics::new(1)));
+        client.process_event(ServerMessage::FlowEnd(Metrics::new(1)));
         #[cfg(not(feature = "metrics"))]
-        client.process_event(Event::FlowEnd);
+        client.process_event(ServerMessage::FlowEnd);
 
         assert!(path.exists(), "Image file was not created");
     }
@@ -288,8 +309,8 @@ mod test {
         );
 
         assert_eq!(
-            client.process_event(Event::ServerExiting),
-            Response::ClientExiting
+            client.process_event(ServerMessage::ServerExiting),
+            ClientMessage::ClientExiting
         );
     }
 }

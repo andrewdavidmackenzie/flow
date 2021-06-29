@@ -33,6 +33,8 @@ impl Loader {
         }
     }
 
+    /// Return a HashMap of the Implementations loaded, with the Url for the function
+    /// as the key
     pub fn get_lib_implementations(&self) -> &HashMap<Url, Arc<dyn Implementation>> {
         &self.global_lib_implementations
     }

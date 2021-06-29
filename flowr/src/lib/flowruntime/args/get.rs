@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN};
 
 use crate::client_server::RuntimeServerConnection;
-use crate::runtime::{Event, Response};
+use crate::runtime_messages::{ClientMessage, ServerMessage};
 
 /// `Implementation` struct for the `get` function
 pub struct Get {
@@ -16,8 +16,8 @@ pub struct Get {
 impl Implementation for Get {
     fn run(&self, mut _inputs: &[Value]) -> (Option<Value>, RunAgain) {
         if let Ok(mut guard) = self.server_context.lock() {
-            return match guard.send_event(Event::GetArgs) {
-                Ok(Response::Args(arg_vec)) => {
+            return match guard.send_message(ServerMessage::GetArgs) {
+                Ok(ClientMessage::Args(arg_vec)) => {
                     let mut output_map = serde_json::Map::new();
 
                     // Construct an array of args parsed into Json Values

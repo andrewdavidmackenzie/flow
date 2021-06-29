@@ -5,7 +5,7 @@ use serde_json::Value;
 use flowcore::{Implementation, RunAgain, RUN_AGAIN};
 
 use crate::client_server::RuntimeServerConnection;
-use crate::runtime::Event;
+use crate::runtime_messages::ServerMessage;
 
 /// `Implementation` struct for the `image_buffer` function
 pub struct ImageBuffer {
@@ -31,7 +31,7 @@ impl Implementation for ImageBuffer {
                 size[0].as_u64(),
                 size[1].as_u64(),
             ) {
-                let _ = server.send_event(Event::PixelWrite(
+                let _ = server.send_message(ServerMessage::PixelWrite(
                     (x as u32, y as u32),
                     (r as u8, g as u8, b as u8),
                     (w as u32, h as u32),

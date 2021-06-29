@@ -22,6 +22,8 @@ pub mod info;
 /// `loader` is responsible for loading a flow from it's manifest and loading libraries it uses
 pub mod loader;
 
+/// `client_server` module contains a number of implementations of the communications between the
+/// runtime client, debug client and the runtime server and debug server.
 #[allow(unused_attributes)]
 #[cfg_attr(feature = "distributed", path = "client_server/message_queue.rs")]
 #[cfg_attr(not(feature = "distributed"), path = "client_server/channels.rs")]
@@ -30,11 +32,10 @@ pub mod client_server;
 /// 'debug' defines structs passed between the Server and the Client regarding debug events
 /// and client responses to them
 #[cfg(feature = "debugger")]
-pub mod debug;
+pub mod debug_messages;
 
-/// 'runtime' defines structs passed between the Server and the Client regarding runtime events
-/// and client responses to them
-pub mod runtime;
+/// 'runtime_messages' defines messages passed between the Server and the Client during flow execution
+pub mod runtime_messages;
 
 /// Structure that defines/tracks the current runtime state
 pub mod run_state;
@@ -45,6 +46,7 @@ mod debugger;
 mod execution;
 mod wasm;
 
+/// 'metrics' defines a struct for tracking metrics gathered during flow execution
 #[cfg(feature = "metrics")]
 pub mod metrics;
 
@@ -57,6 +59,7 @@ pub mod errors {
 }
 
 // Specify the errors we will produce and foreign links
+// #![allow(missing_docs)]
 #[doc(hidden)]
 error_chain! {
     types {

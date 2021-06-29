@@ -8,7 +8,7 @@ use flowcore::output_connection::OutputConnection;
 use crate::run_state::{Block, Job, RunState, State};
 
 /// Types of `Params` used in communications between the debugger and the debug_client
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq)]
 pub enum Param {
     /// A "*" style parameter - meaning will depend on the `Command` it's use with
     Wildcard,
@@ -22,9 +22,9 @@ pub enum Param {
     Block((Option<usize>, Option<usize>)),
 }
 
-/// A debugger Response sent by the debug_client to the debug server
+/// A Message sent by the debug_client to the debug server
 #[derive(Serialize, Deserialize)]
-pub enum Response {
+pub enum DebugClientMessage {
     /// Acknowledge event processed correctly
     Ack,
     /// Set a `breakpoint` - with an optional parameter
@@ -33,8 +33,6 @@ pub enum Response {
     Continue,
     /// `delete` an existing breakpoint - with an optional parameter
     Delete(Option<Param>),
-    /// `enter` the debugger at the next opportunity the runtime has
-    EnterDebugger,
     /// An error on the client side
     Error(String),
     /// `exit` the debugger and runtime
@@ -61,10 +59,9 @@ pub enum Response {
     Validate,
 }
 
-/// A run-time event that the debugger communicates to the debug_client for it to decide
-/// what to do, or what to request of the user
+/// A Message sent from the debug server to the debug_client
 #[derive(Serialize, Deserialize)]
-pub enum Event {
+pub enum DebugServerMessage {
     /// A `Job` ran to completion by a function - includes:  job_id, function_id
     JobCompleted(usize, usize, Option<Value>),
     /// Entering the debugger

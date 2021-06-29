@@ -5,6 +5,7 @@ use std::time::Instant;
 use log::debug;
 use serde_derive::{Deserialize, Serialize};
 
+/// `Metrics` stacks a number of statistics on flow execution while being executed
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Metrics {
     num_functions: usize,
@@ -17,6 +18,7 @@ pub struct Metrics {
 }
 
 impl Metrics {
+    /// Create a new `Metrics` struct
     pub fn new(num_functions: usize) -> Self {
         Metrics {
             num_functions,
@@ -27,6 +29,7 @@ impl Metrics {
         }
     }
 
+    /// Reset the values of a `Metrics` struct back to their initial values
     pub fn reset(&mut self) {
         debug!("Resetting Metrics");
         self.jobs_created = 0;
@@ -35,18 +38,24 @@ impl Metrics {
         self.max_simultaneous_jobs = 0;
     }
 
+    /// Set the number of jobs created in `Metrics` to the `jobs` value
     pub fn set_jobs_created(&mut self, jobs: usize) {
         self.jobs_created = jobs;
     }
 
+    /// Increment the tracker for the number of output values sent between functions
     pub fn increment_outputs_sent(&mut self) {
         self.outputs_sent += 1;
     }
 
+    /// Keep track of the miximum jobs that are executing in parallel during a flows
+    /// execution, as a measure of the maximum level of parallelism achieved
     pub fn track_max_jobs(&mut self, jobs_running: usize) {
         self.max_simultaneous_jobs = max(self.max_simultaneous_jobs, jobs_running);
     }
 
+    /// Return the start time for flow execution - used for tracking wall-clock time for
+    /// the execution
     pub fn default_start_time() -> Instant {
         Instant::now()
     }
@@ -58,8 +67,17 @@ impl fmt::Display for Metrics {
         writeln!(f, "\t   Number of Functions: {}", self.num_functions)?;
         writeln!(f, "\tNumber of Jobs Created: {}", self.jobs_created)?;
         writeln!(f, "\t           Values sent: {}", self.outputs_sent)?;
-        writeln!(f, "\t       Elapsed time(s): {:.*}", 6, elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9)?;
-        write!(f, "\t  Max Jobs in Parallel: {}", self.max_simultaneous_jobs)
+        writeln!(
+            f,
+            "\t       Elapsed time(s): {:.*}",
+            6,
+            elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9
+        )?;
+        write!(
+            f,
+            "\t  Max Jobs in Parallel: {}",
+            self.max_simultaneous_jobs
+        )
     }
 }
 

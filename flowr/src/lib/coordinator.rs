@@ -23,7 +23,7 @@ use crate::loader::Loader;
 #[cfg(feature = "metrics")]
 use crate::metrics::Metrics;
 use crate::run_state::{Job, RunState};
-use crate::runtime::{Event, Response};
+use crate::runtime_messages::{ClientMessage, ServerMessage};
 
 /// Coordinator and hence the overall `flowr` process can run in one of these three modes:
 /// - Client - this only acts as a client to submit flows for execution to a server
@@ -31,24 +31,25 @@ use crate::runtime::{Event, Response};
 /// - ClientAndServer - this process does both, running client and server in separate threads
 #[derive(PartialEq, Clone, Debug)]
 pub enum Mode {
+    /// `flowr` mode where it runs as just a client for a server running in another process
     Client,
+    /// `flowr` mode where it runs as just a server, clients must run in another process
     Server,
+    /// `flowr` mode where a single process runs as a client and s server in different threads
     ClientAndServer,
 }
 
 /// A Submission is the struct used to send a flow to the Coordinator for execution. It contains
 /// all the information necessary to execute it:
-///
-/// A new Submission is created supplying:
-/// - the manifest of the flow to execute
-/// - the maximum number of jobs you want dispatched/executing in parallel
-/// - whether to display some execution metrics when the flow completes
-/// - an optional DebugClient to allow you to debug the execution
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Submission {
+    /// The URL where the manifest of the flow to execute can be found
     manifest_url: Url,
+    /// The maximum number of jobs you want dispatched/executing in parallel
     pub max_parallel_jobs: usize,
+    /// The Duration to wait before timing out when waiting for jobs to complete
     pub job_timeout: Duration,
+    /// Whether to debug the flow while executing it
     #[cfg(feature = "debugger")]
     pub debug: bool,
 }
@@ -86,7 +87,7 @@ pub struct Coordinator {
     job_tx: Sender<Job>,
     /// A channel used to receive Jobs back after execution (now including the job's output)
     job_rx: Receiver<Job>,
-    /// Get messages from clients over channels
+    /// Get and Send messages to/from the runtime client
     runtime_server_context: Arc<Mutex<RuntimeServerConnection>>,
     #[cfg(feature = "debugger")]
     debugger: Debugger,
@@ -105,13 +106,13 @@ pub struct Coordinator {
 /// use flowrlib::coordinator::{Coordinator, Submission, Mode};
 /// use std::process::exit;
 /// use flowcore::manifest::{Manifest, MetaData};
-/// use flowrlib::runtime::Response as RuntimeResponse;
-/// use flowrlib::runtime::Event as RuntimeEvent;
-/// use flowrlib::runtime::Response::ClientSubmission;
+/// use flowrlib::runtime_messages::ClientMessage as RuntimeResponse;
+/// use flowrlib::runtime_messages::ServerMessage as RuntimeEvent;
+/// use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
 /// use simpath::Simpath;
 /// use url::Url;
 ///
-/// let (runtime_client_connection, debug_client_connection) = Coordinator::server(1 /* num_threads */,
+/// let (runtime_client_connection, control_c_connection, debug_client_connection) = Coordinator::server(1 /* num_threads */,
 ///                                                                     Simpath::new("fake path"),
 ///                                                                     true,  /* native */
 ///                                                                     Mode::ClientAndServer,
@@ -159,11 +160,16 @@ impl Coordinator {
         native: bool,
         mode: Mode,
         server_hostname: Option<&str>,
-    ) -> Result<(RuntimeClientConnection, DebugClientConnection)> {
+    ) -> Result<(
+        RuntimeClientConnection,
+        RuntimeClientConnection,
+        DebugClientConnection,
+    )> {
         let runtime_server_context = RuntimeServerConnection::new(server_hostname);
         let debug_server_context = DebugServerConnection::new(server_hostname);
 
         let runtime_client_connection = RuntimeClientConnection::new(&runtime_server_context);
+        let control_c_connection = RuntimeClientConnection::new(&runtime_server_context);
         let debug_client_connection = DebugClientConnection::new(&debug_server_context);
 
         if mode != Mode::Client {
@@ -183,7 +189,11 @@ impl Coordinator {
             }
         }
 
-        Ok((runtime_client_connection, debug_client_connection))
+        Ok((
+            runtime_client_connection,
+            control_c_connection,
+            debug_client_connection,
+        ))
     }
 
     #[cfg(not(feature = "debugger"))]
@@ -271,7 +281,7 @@ impl Coordinator {
             .lock()
             .map_err(|e| format!("Could not lock Server Connection: {}", e))?;
 
-        connection.send_event_only(Event::ServerExiting)?;
+        connection.send_message_only(ServerMessage::ServerExiting)?;
         connection.close()
     }
 
@@ -290,15 +300,15 @@ impl Coordinator {
         loop {
             info!("'flowr' server is waiting to receive a 'Submission'");
             match self.runtime_server_context.lock() {
-                Ok(guard) => match guard.get_response() {
-                    Ok(Response::ClientSubmission(submission)) => {
+                Ok(guard) => match guard.get_message() {
+                    Ok(ClientMessage::ClientSubmission(submission)) => {
                         debug!(
                             "Server received a submission for execution with manifest_url: '{}'",
                             submission.manifest_url
                         );
                         return Ok(Some(submission));
                     }
-                    Ok(Response::ClientExiting) => return Ok(None),
+                    Ok(ClientMessage::ClientExiting) => return Ok(None),
                     Ok(r) => error!("Server did not expect response from client: '{:?}'", r),
                     Err(e) => error!("Server error while waiting for submission: '{}'", e),
                 },
@@ -328,28 +338,29 @@ impl Coordinator {
             self.runtime_server_context
                 .lock()
                 .map_err(|_| "Could not lock server context")?
-                .send_event(Event::FlowStart)?;
+                .send_message(ServerMessage::FlowStart)?;
 
             #[cfg(feature = "debugger")]
             let mut display_next_output;
             let mut restart;
 
-            // If debugging then enter the debugger before starting flow execution loop
+            // If debugging then check if we should enter the debugger
             #[cfg(feature = "debugger")]
             if state.debug {
                 let debug_check = self.debugger.enter(&state);
                 if debug_check.2 {
-                    return Ok(true);
+                    return Ok(true); // User requested via debugger to exit execution
                 }
             }
 
             'jobs: loop {
                 trace!("{}", state);
                 #[cfg(feature = "debugger")]
-                let debug_check = self.debugger.check_for_entry(&state);
-                #[cfg(feature = "debugger")]
-                if debug_check.2 {
-                    return Ok(true);
+                if state.debug && self.should_enter_debugger()? {
+                    let debug_check = self.debugger.enter(&state);
+                    if debug_check.2 {
+                        return Ok(true); // User requested via debugger to exit execution
+                    }
                 }
 
                 let debug_check = self.send_jobs(
@@ -360,7 +371,7 @@ impl Coordinator {
 
                 #[cfg(feature = "debugger")]
                 if debug_check.2 {
-                    return Ok(true);
+                    return Ok(true); // User requested via debugger to exit execution
                 }
 
                 #[cfg(feature = "debugger")]
@@ -417,30 +428,23 @@ impl Coordinator {
             if !restart {
                 #[cfg(feature = "debugger")]
                 {
+                    // If debugging then enter the debugger for a final time before ending flow execution
                     if state.debug {
                         let debug_check = self.debugger.flow_done(&state);
                         if debug_check.2 {
-                            return Ok(true);
+                            return Ok(true); // Exit debugger
                         }
 
                         restart = debug_check.1;
                     }
                 }
 
+                // if the debugger has not requested a restart of the flow
                 if !restart {
                     #[cfg(feature = "metrics")]
-                    {
-                        metrics.set_jobs_created(state.jobs_created());
-                        self.runtime_server_context
-                            .lock()
-                            .map_err(|_| "Could not lock server context")?
-                            .send_event_only(Event::FlowEnd(metrics))?;
-                    }
+                    self.end_flow(&state, metrics)?;
                     #[cfg(not(feature = "metrics"))]
-                    self.runtime_server_context
-                        .lock()
-                        .map_err(|_| "Could not lock server context")?
-                        .send_event_only(Event::FlowEnd)?;
+                    self.end_flow()?;
                     debug!("{}", state);
                     break 'flow_execution;
                 }
@@ -448,6 +452,49 @@ impl Coordinator {
         }
 
         Ok(false)
+    }
+
+    #[cfg(feature = "metrics")]
+    fn end_flow(&mut self, state: &RunState, mut metrics: Metrics) -> Result<()> {
+        metrics.set_jobs_created(state.jobs_created());
+        self.runtime_server_context
+            .lock()
+            .map_err(|_| "Could not lock server context")?
+            .send_message_only(ServerMessage::FlowEnd(metrics))
+    }
+
+    #[cfg(not(feature = "metrics"))]
+    fn end_flow(&mut self) -> Result<()> {
+        self.runtime_server_context
+            .lock()
+            .map_err(|_| "Could not lock server context")?
+            .send_message_only(ServerMessage::FlowEnd)
+    }
+
+    /* TODO - this is not working yet :-(
+
+       See if the runtime client has sent us a message to request us to enter the debugger.
+
+       Absence of a message is returned as an Error.
+    */
+    #[cfg(feature = "debugger")]
+    fn should_enter_debugger(&mut self) -> Result<bool> {
+        let msg = self
+            .runtime_server_context
+            .lock()
+            .map_err(|_| "Could not lock server context")?
+            .get_message();
+        match msg {
+            Ok(ClientMessage::EnterDebugger) => {
+                debug!("Got enter debugger message");
+                Ok(true)
+            }
+            Ok(m) => {
+                debug!("Got {:?} message", m);
+                Ok(false)
+            }
+            _ => Ok(false),
+        }
     }
 
     fn load_from_manifest(
