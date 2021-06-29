@@ -358,7 +358,6 @@ impl Coordinator {
                 #[cfg(feature = "debugger")]
                 if state.debug && self.should_enter_debugger()? {
                     let debug_check = self.debugger.enter(&state);
-                    #[cfg(feature = "debugger")]
                     if debug_check.2 {
                         return Ok(true); // User requested via debugger to exit execution
                     }
@@ -472,7 +471,8 @@ impl Coordinator {
             .send_message_only(ServerMessage::FlowEnd)
     }
 
-    /*
+    /* TODO - this is not working yet :-(
+
        See if the runtime client has sent us a message to request us to enter the debugger.
 
        Absence of a message is returned as an Error.
@@ -483,11 +483,17 @@ impl Coordinator {
             .runtime_server_context
             .lock()
             .map_err(|_| "Could not lock server context")?
-            .get_message_no_wait();
-        if let Ok(ClientMessage::EnterDebugger) = msg {
-            Ok(true)
-        } else {
-            Ok(false)
+            .get_message();
+        match msg {
+            Ok(ClientMessage::EnterDebugger) => {
+                debug!("Got enter debugger message");
+                Ok(true)
+            }
+            Ok(m) => {
+                debug!("Got {:?} message", m);
+                Ok(false)
+            }
+            _ => Ok(false),
         }
     }
 

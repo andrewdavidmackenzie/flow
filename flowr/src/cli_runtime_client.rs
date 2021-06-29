@@ -83,7 +83,7 @@ impl CliRuntimeClient {
             match control_c_connection.start() {
                 Ok(_) => {
                     match control_c_connection.client_send(ClientMessage::EnterDebugger) {
-                        Ok(_) => info!("'EnterDebugger' command sent to Server"),
+                        Ok(_) => debug!("'EnterDebugger' command sent to Server"),
                         Err(e) => error!("Error sending 'EnterDebugger' command to server on control_c_connection: {}", e)
                     }
                 }
