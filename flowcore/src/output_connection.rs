@@ -35,6 +35,7 @@ pub struct OutputConnection {
     /// `route` is the full route to the destination input
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub route: String,
+    /// Optional `name` the output connection can be given to aid debugging
     #[cfg(feature = "debugger")]
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub name: String,

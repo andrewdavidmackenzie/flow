@@ -30,7 +30,7 @@ mod lib_build;
 mod source_arg;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will
-/// `use crate::errors::*;` to get access to everything `error_chain!` creates.
+/// `use crate::errors::*;` to get access to everything `error_chain` creates.
 pub mod errors;
 
 /// `Options` struct gathers information from the parsing of the command line options

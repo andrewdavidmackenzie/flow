@@ -1,11 +1,7 @@
+#![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 
 //! `flowcore` defines some core structs and traits used by other flow libraries and implementations
-
-#[cfg(feature = "code")]
-#[macro_use]
-#[cfg(feature = "code")]
-extern crate error_chain;
 
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
@@ -37,13 +33,9 @@ pub mod output_connection;
 pub mod url_helper;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
-/// to get access to everything `error_chain!` creates.
+/// to get access to everything `error_chain` creates.
 #[cfg(feature = "code")]
-#[doc(hidden)]
-pub mod errors {
-    // Create the Error, ErrorKind, ResultExt, and Result types
-    error_chain! {}
-}
+pub mod errors;
 
 /// Implementations should return a value of type `RunAgain` to indicate if it should be
 /// executed more times in the future.
@@ -52,21 +44,6 @@ pub type RunAgain = bool;
 pub const RUN_AGAIN: RunAgain = true;
 /// Use `DONT_RUN_AGAIN` to indicate that a function should not be executed more times
 pub const DONT_RUN_AGAIN: RunAgain = false;
-
-#[doc(hidden)]
-#[cfg(feature = "code")]
-error_chain! {
-    types {
-        Error, ErrorKind, ResultExt, Result;
-    }
-
-    foreign_links {
-        Url(url::ParseError);
-        Io(std::io::Error);
-        Serde(serde_json::error::Error);
-        Recv(std::sync::mpsc::RecvError);
-    }
-}
 
 /// An implementation runs with an array of inputs and returns a value (or null) and a
 /// bool indicating if it should be ran again.
