@@ -31,24 +31,25 @@ use crate::runtime_messages::{ClientMessage, ServerMessage};
 /// - ClientAndServer - this process does both, running client and server in separate threads
 #[derive(PartialEq, Clone, Debug)]
 pub enum Mode {
+    /// `flowr` mode where it runs as just a client for a server running in another process
     Client,
+    /// `flowr` mode where it runs as just a server, clients must run in another process
     Server,
+    /// `flowr` mode where a single process runs as a client and s server in different threads
     ClientAndServer,
 }
 
 /// A Submission is the struct used to send a flow to the Coordinator for execution. It contains
 /// all the information necessary to execute it:
-///
-/// A new Submission is created supplying:
-/// - the manifest of the flow to execute
-/// - the maximum number of jobs you want dispatched/executing in parallel
-/// - whether to display some execution metrics when the flow completes
-/// - an optional DebugClient to allow you to debug the execution
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Submission {
+    /// The URL where the manifest of the flow to execute can be found
     manifest_url: Url,
+    /// The maximum number of jobs you want dispatched/executing in parallel
     pub max_parallel_jobs: usize,
+    /// The Duration to wait before timing out when waiting for jobs to complete
     pub job_timeout: Duration,
+    /// Whether to debug the flow while executing it
     #[cfg(feature = "debugger")]
     pub debug: bool,
 }
@@ -472,7 +473,9 @@ impl Coordinator {
     }
 
     /*
-       See if the runtime client has sent us a message to request us to enter the debugger
+       See if the runtime client has sent us a message to request us to enter the debugger.
+
+       Absence of a message is returned as an Error.
     */
     #[cfg(feature = "debugger")]
     fn should_enter_debugger(&mut self) -> Result<bool> {
@@ -481,7 +484,6 @@ impl Coordinator {
             .lock()
             .map_err(|_| "Could not lock server context")?
             .get_message_no_wait();
-        // println!("Message received: {:?}", msg);
         if let Ok(ClientMessage::EnterDebugger) = msg {
             Ok(true)
         } else {

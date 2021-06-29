@@ -98,6 +98,8 @@ impl From<Message> for DebugClientMessage {
     }
 }
 
+/// `RuntimeClientConnection` stores information related to the connection from a runtime client
+/// to the runtime server and is used each time a message is to be sent or received.
 pub struct RuntimeClientConnection {
     context: zmq::Context,
     host: String,
@@ -163,6 +165,8 @@ impl RuntimeClientConnection {
     }
 }
 
+/// `DebugClientConnection` stores information related to the connection from a debug client
+/// to the debug server and is used each time a message is to be sent or received.
 #[cfg(feature = "debugger")]
 pub struct DebugClientConnection {
     host: String,
@@ -172,6 +176,7 @@ pub struct DebugClientConnection {
 
 #[cfg(feature = "debugger")]
 impl DebugClientConnection {
+    /// Create a new connection to the debug server represented in the `DebugServerConnection`
     pub fn new(debug_server_context: &DebugServerConnection) -> Self {
         DebugClientConnection {
             host: debug_server_context.host.clone(),
@@ -180,6 +185,8 @@ impl DebugClientConnection {
         }
     }
 
+    /// Start the connection to the debug server, making it ready to be used for sending and
+    /// receiving messages between debug_client and debug_server
     pub fn start(&mut self) -> Result<()> {
         let context = zmq::Context::new();
 
@@ -228,6 +235,9 @@ impl DebugClientConnection {
     }
 }
 
+/// `RuntimeServerConnection` store information about the server side of the client/server
+/// communications between a runtime client and a runtime server and is used each time a message
+/// needs to be sent or received.
 pub struct RuntimeServerConnection {
     host: String,
     port: usize,
@@ -279,7 +289,7 @@ impl RuntimeServerConnection {
             .chain_err(|| "Runtime server connection not started")?;
         let msg = responder
             .recv_msg(0)
-            .map_err(|e| format!("Runtime server error getting response: '{}'", e))?;
+            .map_err(|e| format!("Runtime server error getting message: '{}'", e))?;
         Ok(ClientMessage::from(msg))
     }
 
@@ -291,7 +301,7 @@ impl RuntimeServerConnection {
             .chain_err(|| "Runtime server connection not started")?;
         let msg = responder
             .recv_msg(DONTWAIT)
-            .chain_err(|| "Runtime server could not receive response")?;
+            .chain_err(|| "Runtime server could not receive message")?;
 
         Ok(ClientMessage::from(msg))
     }
@@ -337,6 +347,9 @@ impl RuntimeServerConnection {
     }
 }
 
+/// `DebugServerConnection` store information about the server side of the client/server
+/// communications between a debug client and a debug server and is used each time a message
+/// needs to be sent or received.
 #[cfg(feature = "debugger")]
 pub struct DebugServerConnection {
     host: String,
@@ -346,6 +359,8 @@ pub struct DebugServerConnection {
 
 #[cfg(feature = "debugger")]
 impl DebugServerConnection {
+    /// Create a new `DebugServerConnection` at the Optionally specified hostname. If no server
+    /// hostname is supplied `localhost` will be used
     pub fn new(server_hostname: Option<&str>) -> Self {
         DebugServerConnection {
             host: server_hostname.unwrap_or("localhost").into(),
@@ -354,6 +369,7 @@ impl DebugServerConnection {
         }
     }
 
+    /// Start the `DebugServerConnection` making it ready to be connected to by debug clients
     pub fn start(&mut self) -> Result<()> {
         let context = zmq::Context::new();
         self.responder = Some(
