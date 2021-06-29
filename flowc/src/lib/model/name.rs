@@ -8,14 +8,24 @@ use crate::compiler::loader::Validate;
 use crate::errors::*;
 use crate::model::route::Route;
 
+/// `Name` is a String that names various types of objects
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct Name(String);
 
-// This is used for serde in io.rs
+/// Implement Name struct
 impl Name {
+    /// Return true if the Name is empty
     pub fn empty(&self) -> bool {
         self.is_empty()
     }
+}
+
+/// Trait implemented by objects that have a Name
+pub trait HasName {
+    /// Return a reference to the name of the struct implementing this trait
+    fn name(&self) -> &Name;
+    /// Return a reference to the alias (also a Name type) of the struct implementing this trait
+    fn alias(&self) -> &Name;
 }
 
 impl Validate for Name {
@@ -60,11 +70,6 @@ impl From<&Route> for Name {
     fn from(route: &Route) -> Self {
         Name::from(&route.to_string())
     }
-}
-
-pub trait HasName {
-    fn name(&self) -> &Name;
-    fn alias(&self) -> &Name;
 }
 
 #[cfg(test)]

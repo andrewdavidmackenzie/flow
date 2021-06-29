@@ -12,6 +12,7 @@ const JSON: &dyn Deserializer = &FlowJsonLoader as &dyn Deserializer;
 
 const ACCEPTED_EXTENSIONS: [&str; 4] = ["toml", "yaml", "json", "yml"];
 
+/// Return a Deserializer based on the file extension of the file referred to from `url` input
 pub fn get_deserializer(url: &Url) -> Result<&'static dyn Deserializer, String> {
     match get_file_extension(url) {
         Some(ext) => match ext {
@@ -26,10 +27,12 @@ pub fn get_deserializer(url: &Url) -> Result<&'static dyn Deserializer, String> 
     }
 }
 
+/// Return an array of the file extensions we have deserializers able to deserialize
 pub fn get_accepted_extensions() -> &'static [&'static str] {
     &ACCEPTED_EXTENSIONS
 }
 
+/// Get the file extension of the resource referred to by `url`
 pub fn get_file_extension(url: &Url) -> Option<&str> {
     let last_segment = url.path_segments()?.last()?;
     // Split returns one element if there is no occurrence of pattern in the string,

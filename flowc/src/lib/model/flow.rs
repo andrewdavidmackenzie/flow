@@ -1,62 +1,76 @@
-use error_chain::bail;
-use flowcore::input::InputInitializer;
-use flowcore::manifest::MetaData;
-use log::{debug, error};
-use serde_derive::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::mem::{replace, take};
+
+use error_chain::bail;
+use log::{debug, error};
+use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
+use flowcore::input::InputInitializer;
+use flowcore::manifest::MetaData;
+
 use crate::compiler::loader::Validate;
-use crate::errors::*;
 use crate::errors::Error;
+use crate::errors::*;
 use crate::model::connection::Connection;
 use crate::model::connection::Direction;
 use crate::model::connection::Direction::FROM;
 use crate::model::connection::Direction::TO;
-use crate::model::io::{IO, IOType};
 use crate::model::io::Find;
 use crate::model::io::IOSet;
+use crate::model::io::{IOType, IO};
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::process::Process;
 use crate::model::process::Process::FlowProcess;
 use crate::model::process::Process::FunctionProcess;
 use crate::model::process_reference::ProcessReference;
-use crate::model::route::{Route, RouteType};
 use crate::model::route::HasRoute;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
+use crate::model::route::{Route, RouteType};
 
+/// `Flow` defines a parent or child flow in the nested flow hierarchy
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Flow {
-    // Elements deserialized from the flow description
+    /// `name` given to this flow
     #[serde(rename = "flow")]
     pub name: Name,
+    /// `inputs` that this flow defines
     #[serde(default, rename = "input")]
     pub inputs: IOSet,
+    /// `outputs` that this flow defines
     #[serde(default, rename = "output")]
     pub outputs: IOSet,
+    /// Set of sub-processes referenced (used) in this flow
     #[serde(default, rename = "process")]
     pub process_refs: Vec<ProcessReference>,
+    /// `connections` within this flow, from flow input or to flow outputs
     #[serde(default, rename = "connection")]
     pub connections: Vec<Connection>,
+    /// `metadata` about flow author, versions etc
     #[serde(default)]
     pub metadata: MetaData,
 
-    // Elements completed by the compiler in-memory, and not deserialized/serialized
+    /// When the same process is used multiple times within a single flow, to disambiguate
+    /// between them each one must be given an alias that is used to refer to it
     #[serde(skip)]
     pub alias: Name,
+    /// flows are assigned a numeric `id` in the hierarchy
     #[serde(skip)]
     pub id: usize,
+    /// `source_url` is the url of the file/resource where this flow definition was read from
     #[serde(skip, default = "Flow::default_url")]
     pub source_url: Url,
+    /// `route` defines the location in the hierarchy of flows where this ones resides
     #[serde(skip)]
     pub route: Route,
+    /// `subprocesses` are the loaded definition of the processes reference (used) within this flow
     #[serde(skip)]
     pub subprocesses: HashMap<Name, Process>,
+    /// `lib_references` is the set of library references used in this flow
     #[serde(skip)]
     pub lib_references: HashSet<Url>,
 }
@@ -167,6 +181,7 @@ impl Flow {
         Url::parse("file://").unwrap()
     }
 
+    /// Set the alias of this flow to the supplied Name
     pub fn set_alias(&mut self, alias: &Name) {
         if alias.is_empty() {
             self.alias = self.name.clone();
@@ -175,16 +190,33 @@ impl Flow {
         }
     }
 
+    /// Get a reference to the set of inputs this flow defines
     pub fn inputs(&self) -> &IOSet {
         &self.inputs
     }
 
+    /// Get a mutable reference to the set of inputs this flow defines
     pub fn inputs_mut(&mut self) -> &mut IOSet {
         &mut self.inputs
     }
 
+    /// Get a reference to the set of outputs this flow defines
     pub fn outputs(&self) -> &IOSet {
         &self.outputs
+    }
+
+    /// Set the initial values on the IOs in an IOSet using a set of Input Initializers
+    pub fn set_initial_values(&mut self, initializers: &HashMap<String, InputInitializer>) {
+        for initializer in initializers {
+            // initializer.0 is io name, initializer.1 is the initial value to set it to
+            for (index, input) in self.inputs.iter_mut().enumerate() {
+                if *input.name() == Name::from(initializer.0)
+                    || (initializer.0.as_str() == "default" && index == 0)
+                {
+                    input.set_initializer(&Some(initializer.1.clone()));
+                }
+            }
+        }
     }
 
     fn get_io_subprocess(
@@ -215,8 +247,12 @@ impl Flow {
                 );
                 let io_name = Name::from(sub_route);
                 match direction {
-                    Direction::TO => sub_flow.inputs.find_by_name(&io_name, initial_value),
-                    Direction::FROM => sub_flow.outputs.find_by_name(&io_name, &None),
+                    Direction::TO => sub_flow
+                        .inputs
+                        .find_by_name_and_set_initializer(&io_name, initial_value),
+                    Direction::FROM => sub_flow
+                        .outputs
+                        .find_by_name_and_set_initializer(&io_name, &None),
                 }
             }
             FunctionProcess(ref mut function) => {
@@ -225,8 +261,12 @@ impl Flow {
                     subprocess_alias
                 );
                 match direction {
-                    Direction::TO => function.inputs.find_by_route(sub_route, initial_value),
-                    Direction::FROM => function.get_outputs().find_by_route(sub_route, &None),
+                    Direction::TO => function
+                        .inputs
+                        .find_by_route_and_set_initializer(sub_route, initial_value),
+                    Direction::FROM => function
+                        .get_outputs()
+                        .find_by_route_and_set_initializer(sub_route, &None),
                 }
             }
         }
@@ -234,6 +274,7 @@ impl Flow {
 
     // TODO consider finding the object first using it's type and name (flow, subflow, value, function)
     // Then from the object find the IO (by name or route, probably route) in common code, maybe using IOSet directly?
+    /// Find the IO of a function using the route and the Direction of the connection TO/FROM it
     pub fn get_route_and_type(
         &mut self,
         direction: Direction,
@@ -244,14 +285,16 @@ impl Flow {
         match (&direction, route.route_type()) {
             (&Direction::FROM, RouteType::Input(input_name, sub_route)) => {
                 // make sure the sub-route of the input is added to the source of the connection
-                let mut from = self.inputs.find_by_name(&input_name, &None)?;
+                let mut from = self
+                    .inputs
+                    .find_by_name_and_set_initializer(&input_name, &None)?;
                 // accumulate any subroute within the input
                 from.route_mut().extend(&sub_route);
                 Ok(from)
             }
-            (&Direction::TO, RouteType::Output(output_name)) => {
-                self.outputs.find_by_name(&output_name, initial_value)
-            }
+            (&Direction::TO, RouteType::Output(output_name)) => self
+                .outputs
+                .find_by_name_and_set_initializer(&output_name, initial_value),
             (_, RouteType::Internal(process_name, sub_route)) => {
                 self.get_io_subprocess(&process_name, direction, &sub_route, initial_value)
             }
@@ -269,19 +312,17 @@ impl Flow {
         }
     }
 
-    /*
-        Change the names of connections to be routes to the alias used in this flow,
-        in the process ensuring they exist, that direction is correct and types match
-
-        Connection to/from Formats:
-            "input/input_name"
-            "output/output_name"
-
-            "flow_name/io_name"
-            "function_name/io_name"
-
-        Propagate any initializers on a flow input into the input (subflow or function) it is connected to
-    */
+    /// Change the names of connections to be routes to the alias used in this flow,
+    /// in the process ensuring they exist, that direction is correct and types match
+    ///
+    /// Connection to/from Formats:
+    /// "input/input_name"
+    /// "output/output_name"
+    ///
+    /// "flow_name/io_name"
+    /// "function_name/io_name"
+    ///
+    /// Propagate any initializers on a flow input into the input (subflow or function) it is connected to
     pub fn build_connections(&mut self) -> Result<()> {
         if self.connections.is_empty() {
             return Ok(());

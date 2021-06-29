@@ -5,11 +5,14 @@ use crate::model::function::Function;
 use crate::model::name::{HasName, Name};
 use crate::model::route::{HasRoute, Route};
 
+/// Process is an enum that may contain a Flow or a Function
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum Process {
+    /// The process is actually a `Flow`
     FlowProcess(Flow),
-    FunctionProcess(Function)
+    /// The process is actually a `Function`
+    FunctionProcess(Function),
 }
 
 impl Default for Process {
@@ -22,14 +25,14 @@ impl HasName for Process {
     fn name(&self) -> &Name {
         match self {
             Process::FlowProcess(flow) => flow.name(),
-            Process::FunctionProcess(function) => function.name()
+            Process::FunctionProcess(function) => function.name(),
         }
     }
 
     fn alias(&self) -> &Name {
         match self {
             Process::FlowProcess(flow) => flow.alias(),
-            Process::FunctionProcess(function) => function.alias()
+            Process::FunctionProcess(function) => function.alias(),
         }
     }
 }
@@ -38,14 +41,14 @@ impl HasRoute for Process {
     fn route(&self) -> &Route {
         match self {
             Process::FlowProcess(ref flow) => flow.route(),
-            Process::FunctionProcess(ref function) => function.route()
+            Process::FunctionProcess(ref function) => function.route(),
         }
     }
 
     fn route_mut(&mut self) -> &mut Route {
         match self {
             Process::FlowProcess(ref mut flow) => flow.route_mut(),
-            Process::FunctionProcess(ref mut function) => function.route_mut()
+            Process::FunctionProcess(ref mut function) => function.route_mut(),
         }
     }
 }

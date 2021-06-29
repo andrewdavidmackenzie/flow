@@ -22,20 +22,28 @@ use crate::model::name::HasName;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
 
+/// `GenerationTables` are built from the flattened and connected flow model in memory and are
+/// used to generate the flow's manifest ready to be executed.
 #[derive(Serialize, Default)]
 pub struct GenerationTables {
+    /// The set of connections between functions in the compiled flow
     pub connections: Vec<Connection>,
+    /// HashMap of routes of outputs of functions and what route they are connected to
     pub source_routes: HashMap<Route, (Route, usize)>,
     /// HashMap from "route of the output of a function" --> (output name, source_function_id)
     pub destination_routes: HashMap<Route, (usize, usize, usize)>,
     /// HashMap from "route of the input of a function" --> (destination_function_id, input number, flow_id)
     pub collapsed_connections: Vec<Connection>,
+    /// The set of functions left in a flow after it has been flattened, connected and optimized
     pub functions: Vec<Function>,
+    /// The set of libraries used by a a flow, from their Urls
     pub libs: HashSet<Url>,
+    /// The list of source files that were used in the flow definition
     pub source_files: Vec<String>,
 }
 
 impl GenerationTables {
+    /// Create a new set of `GenerationTables` for use in compiling a flow
     pub fn new() -> Self {
         GenerationTables {
             connections: Vec::new(),
@@ -61,11 +69,9 @@ impl From<&IO> for Input {
     }
 }
 
-/*
-    Paths in the manifest are relative to the location of the manifest file, to make the file
-    and associated files relocatable (and maybe packaged into a ZIP etc). So we use manifest_url
-    as the location other file paths are made relative to.
-*/
+/// Paths in the manifest are relative to the location of the manifest file, to make the file
+/// and associated files relocatable (and maybe packaged into a ZIP etc). So we use manifest_url
+/// as the location other file paths are made relative to.
 pub fn create_manifest(
     flow: &Flow,
     debug_symbols: bool,

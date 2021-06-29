@@ -10,27 +10,38 @@ use crate::model::name::Name;
 use crate::model::route::HasRoute;
 use crate::model::route::Route;
 
+/// `Connection` defines a connection between the output of one function or flow to the input
+/// of another function or flow and maybe optionally named for legibility/debugging.
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Connection {
+    /// Optional name given to a connection for legibility and debugging
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub name: Name,
+    /// `from` defines the origin of the connection
     pub from: Route,
+    /// `to` define the destination of this connection
     pub to: Route,
 
+    /// `from_io` is used during the compilation process and refers to a found output for the connection
     // TODO make these references, not clones
     #[serde(skip)]
     pub from_io: IO,
+    /// `to_io` is used during the compilation process and refers to a found input for the connection
     #[serde(skip)]
     pub to_io: IO,
+    /// `level` defines at what level in the flow hierarchy of nested flows this connections belongs
     #[serde(skip)]
     pub level: usize,
 }
 
+/// `Direction` defines whether a `Connection` is coming from an IO or to an IO
 #[derive(Debug)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum Direction {
+    /// The `Connection` is `FROM` this IO to another
     FROM,
+    /// The `Connection` is `TO` this IO from another
     TO,
 }
 
@@ -65,10 +76,8 @@ impl Validate for Connection {
 }
 
 impl Connection {
-    /*
-        Determine if the type of the source of a connection and the type of the destination are
-        compatible, what type of conversion maybe required and if a Connection can be formed
-    */
+    /// Determine if the type of the source of a connection and the type of the destination are
+    /// compatible, what type of conversion maybe required and if a Connection can be formed
     pub fn compatible_types(from: &DataType, to: &DataType) -> bool {
         if from == to {
             return true;

@@ -1,8 +1,10 @@
+use std::collections::HashMap;
 use std::fmt;
 
 use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 
+use flowcore::input::InputInitializer;
 use flowcore::output_connection::OutputConnection;
 
 use crate::compiler::loader::Validate;
@@ -16,25 +18,36 @@ use crate::model::route::Route;
 use crate::model::route::SetIORoutes;
 use crate::model::route::SetRoute;
 
+/// Function defines a Function that implements some processing in the flow hierarchy
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Function {
+    /// `name` of the function
     #[serde(rename = "function")]
     name: Name,
+    /// Is this an impure function that interacts with the runtime environment?
     #[serde(default)]
     impure: bool,
+    /// String name of the file where the actual implementation should be read from
     implementation: String,
+    /// The set of inputs this function has
     #[serde(default, rename = "input")]
     pub inputs: IOSet,
+    /// The set of outputs this function generates when executed
     #[serde(default, rename = "output")]
     outputs: IOSet,
 
+    /// As a function can be used multiple times in a single flow, the repeated instances must
+    /// be referred to using an alias to disambiguate which instance is being referred to
     #[serde(skip_deserializing)]
     alias: Name,
+    /// `source_url` is where this function definition was read from
     #[serde(skip_deserializing, default)]
     source_url: String, // can be a relative path with no scheme etc so can't be a Url
+    /// the `route` in the flow hierachy where this function is located
     #[serde(skip_deserializing)]
     route: Route,
+    /// Is the function being used part of a library and where is it found
     #[serde(skip_deserializing)]
     lib_reference: Option<String>,
 
@@ -65,6 +78,7 @@ impl HasRoute for Function {
 }
 
 impl Function {
+    /// Create a new function - used mainly for testing as Functions are usually deserialized
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: Name,
@@ -96,62 +110,77 @@ impl Function {
         }
     }
 
+    /// Set the id of this function
     pub fn set_id(&mut self, id: usize) {
         self.id = id;
     }
 
+    /// Get the id of this function
     pub fn get_id(&self) -> usize {
         self.id
     }
 
+    /// Set the id of the low this function is a part of  
     pub fn set_flow_id(&mut self, flow_id: usize) {
         self.flow_id = flow_id;
     }
 
+    /// Get the id of the low this function is a part of  
     pub fn get_flow_id(&self) -> usize {
         self.flow_id
     }
 
+    /// Return true if this function is impure or not
     pub fn is_impure(&self) -> bool {
         self.impure
     }
 
+    /// Get a reference to the set of inputs of this function
     pub fn get_inputs(&self) -> &IOSet {
         &self.inputs
     }
 
+    /// Get a mutable reference to the set of inputs of this function
     pub fn get_mut_inputs(&mut self) -> &mut IOSet {
         &mut self.inputs
     }
 
+    /// Get a reference to the set of outputs this function generates
     pub fn get_outputs(&self) -> IOSet {
         self.outputs.clone()
     }
 
+    /// Add a connection from this function to another
     pub fn add_output_route(&mut self, output_route: OutputConnection) {
         self.output_connections.push(output_route);
     }
 
+    /// Get a reference to the set of output connections from this function to others
     pub fn get_output_connections(&self) -> &Vec<OutputConnection> {
         &self.output_connections
     }
 
+    /// Get a reference to the implementation of this function
     pub fn get_implementation(&self) -> &str {
         &self.implementation
     }
 
+    /// Set the implementation of this function
     pub fn set_implementation(&mut self, implementation: &str) {
         self.implementation = implementation.to_owned();
     }
 
+    /// Get the source url where this function was defined
     pub fn get_source_url(&self) -> &str {
         &self.source_url
     }
 
+    /// Set the source url where this function is defiend
     pub fn set_source_url(&mut self, source: &str) {
         self.source_url = source.to_owned();
     }
 
+    /// Set the alias of this function
     pub fn set_alias(&mut self, alias: &Name) {
         if alias.is_empty() {
             self.alias = self.name.clone();
@@ -160,10 +189,26 @@ impl Function {
         }
     }
 
+    /// Set the initial values on the IOs in an IOSet using a set of Input Initializers
+    pub fn set_initial_values(&mut self, initializers: &HashMap<String, InputInitializer>) {
+        for initializer in initializers {
+            // initializer.0 is io name, initializer.1 is the initial value to set it to
+            for (index, input) in self.inputs.iter_mut().enumerate() {
+                if *input.name() == Name::from(initializer.0)
+                    || (initializer.0.as_str() == "default" && index == 0)
+                {
+                    input.set_initializer(&Some(initializer.1.clone()));
+                }
+            }
+        }
+    }
+
+    /// Set the lib reference of this function
     pub fn set_lib_reference(&mut self, lib_reference: Option<String>) {
         self.lib_reference = lib_reference
     }
 
+    /// Get the lib reference of this function
     pub fn get_lib_reference(&self) -> &Option<String> {
         &self.lib_reference
     }
@@ -465,7 +510,7 @@ mod test {
         // Try and get the output using a route to a specific element of the output
         let output = function
             .outputs
-            .find_by_route(&Route::from("/0"), &None)
+            .find_by_route_and_set_initializer(&Route::from("/0"), &None)
             .expect("Expected to find an IO");
         assert_eq!(*output.name(), Name::default());
     }

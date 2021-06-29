@@ -9,14 +9,21 @@ use crate::errors::*;
 use crate::model::io::IOType;
 use crate::model::name::Name;
 
+/// A `Route` is a String that refers to a particular location within the flow hierarchy
+/// and can be used to locate a function, flow, input or output uniquely
 #[derive(Shrinkwrap, Hash, Debug, PartialEq, Clone, Default, Serialize, Deserialize, Eq)]
 #[shrinkwrap(mutable)]
 pub struct Route(pub String);
 
+/// A `Route` can be of various Types
 pub enum RouteType {
+    /// The route refers to an input of a Function or FLow
     Input(Name, Route),
+    /// The Route refers to the output of a Function or Process
     Output(Name),
+    /// The route is internal to a Process
     Internal(Name, Route),
+    /// The route is invalid (needed for errors during deserialization)
     Invalid(String),
 }
 
@@ -69,6 +76,7 @@ impl Route {
         self
     }
 
+    /// Return the type of this Route
     pub fn route_type(&self) -> RouteType {
         let segments: Vec<&str> = self.split('/').collect();
 
@@ -134,17 +142,24 @@ impl Validate for Route {
     }
 }
 
+/// A trait implemented by objects that have Routes
 pub trait HasRoute {
+    /// Return a reference to the Route of the struct that implements this trait
     fn route(&self) -> &Route;
+    /// Return a mutable reference to the Route of the struct that implements this trait
     fn route_mut(&mut self) -> &mut Route;
 }
 
+/// Some structs with Routes will be able to have their route set by using parent route
 pub trait SetRoute {
+    /// Set the routes in fields of this struct based on the route of it's parent.
     fn set_routes_from_parent(&mut self, parent: &Route);
 }
 
+/// structs with IOs will be able to have the IOs routes set by using parent route
 #[allow(clippy::upper_case_acronyms)]
 pub trait SetIORoutes {
+    /// Set the route and IO type of IOs in this struct based on parent's route
     fn set_io_routes_from_parent(&mut self, parent: &Route, io_type: IOType);
 }
 

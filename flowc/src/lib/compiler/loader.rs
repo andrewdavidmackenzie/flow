@@ -11,7 +11,6 @@ use crate::deserializers::deserializer_helper::get_deserializer;
 use crate::errors::*;
 use crate::model::flow::Flow;
 use crate::model::function::Function;
-use crate::model::io::IO;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 use crate::model::process::Process;
@@ -23,7 +22,9 @@ use crate::model::route::SetRoute;
 /// All deserializers have to implement this trait for content deserialization, plus a method
 /// to return their name to be able to inform the user of which deserializer was used
 pub trait Deserializer {
+    /// Deserialize the supplied `content` that was loaded from `url` into a `Process` definition
     fn deserialize(&self, contents: &str, url: Option<&Url>) -> Result<Process>;
+    /// Return the name of the serializer implementing this trait
     fn name(&self) -> &'static str;
 }
 
@@ -31,6 +32,7 @@ pub trait Deserializer {
 /// description deserialized from file obeys some additional constraints that cannot be expressed
 /// in the struct definition in `serde`
 pub trait Validate {
+    /// Validate that a deserialized model data structure is valid for use
     fn validate(&self) -> Result<()>;
 }
 
@@ -200,7 +202,7 @@ fn config_flow(
     flow.id = id;
     flow.set_alias(alias_from_reference);
     flow.source_url = source_url.to_owned();
-    IO::set_initial_values(flow.inputs_mut(), initializations);
+    flow.set_initial_values(initializations);
     flow.set_routes_from_parent(parent_route);
     flow.validate()
 }
@@ -264,7 +266,7 @@ fn config_function(
     function.set_source_url(source_url);
     function.set_lib_reference(lib_ref);
     function.set_routes_from_parent(parent_route);
-    IO::set_initial_values(&mut function.inputs, initializations);
+    function.set_initial_values(initializations);
     function.validate()
 }
 
