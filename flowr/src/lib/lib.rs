@@ -1,4 +1,4 @@
-// TODO #![deny(missing_docs)]
+#![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 //! Runtime library for flow execution. This will be linked with other code to produce a
 //! or runner, such as `flowr` command line runner.
@@ -8,9 +8,6 @@
 //! to be executed by `Function` `Implementations`, providing them the `Inputs` required to run and
 //! gathering the `Outputs` produced and passing those `Outputs` to other connected `Functions` in
 //! the network of `Functions`.
-//!
-#[macro_use]
-extern crate error_chain;
 
 /// `coordinator` is the module that coordinates the execution of flows submitted to it
 pub mod coordinator;
@@ -46,32 +43,10 @@ mod debugger;
 mod execution;
 mod wasm;
 
+/// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
+/// to get access to everything `error_chain!` creates.
+pub mod errors;
+
 /// 'metrics' defines a struct for tracking metrics gathered during flow execution
 #[cfg(feature = "metrics")]
 pub mod metrics;
-
-/// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
-/// to get access to everything `error_chain!` creates.
-#[doc(hidden)]
-pub mod errors {
-    // Create the Error, ErrorKind, ResultExt, and Result types
-    error_chain! {}
-}
-
-// Specify the errors we will produce and foreign links
-// #![allow(missing_docs)]
-#[doc(hidden)]
-error_chain! {
-    types {
-        Error, ErrorKind, ResultExt, Result;
-    }
-
-    foreign_links {
-        Io(std::io::Error);
-        Serde(serde_json::error::Error);
-        Recv(std::sync::mpsc::RecvError);
-        Url(url::ParseError);
-        FlowStdLib(flowstdlib::errors::Error);
-        FlowrCore(flowcore::errors::Error);
-    }
-}
