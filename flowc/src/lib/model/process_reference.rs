@@ -10,15 +10,22 @@ use crate::errors::*;
 use crate::model::name::HasName;
 use crate::model::name::Name;
 
+/// A `Processreference` is the struct used in a `Flow` to refer to a sub-process (Function or nested
+/// Flow) it contains
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct ProcessReference {
+    /// A reference may have an alias - this is used when multiple instances of the same Process
+    /// are referenced from within a flow - they need difference aliases to distinguish between them
+    /// in connections to/from them
     #[serde(default = "Name::default")]
     pub alias: Name,
+    /// Relative or absolute source of the referenced process
     pub source: String,
+    /// WHen a process is references, each reference can set different initial values on the inputs
+    /// of the referenced process.
     #[serde(default, rename = "input")]
     pub initializations: HashMap<String, InputInitializer>,
-    // Map of initializers of inputs for this reference
 }
 
 impl ProcessReference {

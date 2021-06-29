@@ -69,6 +69,7 @@ pub fn dump_tables(tables: &GenerationTables, output_dir: &Path) -> std::io::Res
     writer.write_all(serde_json::to_string_pretty(&tables.libs)?.as_bytes())
 }
 
+/// Create a file at the specified `output_path`, `filename` and `extension` that output will be dumped to
 pub fn create_output_file(
     output_path: &Path,
     filename: &str,

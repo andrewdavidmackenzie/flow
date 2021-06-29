@@ -1,12 +1,13 @@
+#![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 
-#[macro_use]
-extern crate error_chain;
+//! This is the `flowstdlib` standard library of functions for `flow`
 
 use std::sync::Arc;
 
 use url::Url;
 
+use errors::*;
 use flowcore::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowcore::manifest::MetaData;
 
@@ -23,24 +24,8 @@ pub mod fmt;
 pub mod math;
 
 /// We'll put our errors in an `errors` module, and other modules in this crate will `use errors::*;`
-/// to get access to everything `error_chain!` creates.
-#[doc(hidden)]
-pub mod errors {
-    // Create the Error, ErrorKind, ResultExt, and Result types
-    error_chain! {}
-}
-
-// Specify the errors we will produce and foreign links
-#[doc(hidden)]
-error_chain! {
-    types {
-        Error, ErrorKind, ResultExt, Result;
-    }
-
-    foreign_links {
-        Url(url::ParseError);
-    }
-}
+/// to get access to everything `error_chain` creates.
+pub mod errors;
 
 /// Return the `LibraryManifest` for the functions in the library
 pub fn get_manifest() -> Result<LibraryManifest> {

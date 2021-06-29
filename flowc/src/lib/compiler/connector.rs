@@ -487,7 +487,7 @@ mod test {
         #[test]
         fn collapse_drops_a_useless_connections() {
             let mut unused = test_connection();
-            unused.to_io.set_flow_io(IOType::FlowInput);
+            unused.to_io.set_io_type(IOType::FlowInput);
 
             let connections = vec![unused];
             let collapsed = collapse_connections(&connections);
@@ -504,8 +504,8 @@ mod test {
                 to_io: IO::new("String", "/flow2/a"),
                 level: 0,
             };
-            left_side.from_io.set_flow_io(IOType::FunctionIO);
-            left_side.to_io.set_flow_io(IOType::FlowInput);
+            left_side.from_io.set_io_type(IOType::FunctionIO);
+            left_side.to_io.set_io_type(IOType::FlowInput);
 
             // This one goes to a flow but then nowhere, so should be dropped
             let mut extra_one = Connection {
@@ -516,8 +516,8 @@ mod test {
                 to_io: IO::new("String", "/flow2/f4/a"),
                 level: 1,
             };
-            extra_one.from_io.set_flow_io(IOType::FlowInput);
-            extra_one.to_io.set_flow_io(IOType::FlowInput); // /flow2/f4 doesn't exist
+            extra_one.from_io.set_io_type(IOType::FlowInput);
+            extra_one.to_io.set_io_type(IOType::FlowInput); // /flow2/f4 doesn't exist
 
             let mut right_side = Connection {
                 name: Name::from("right"),
@@ -527,8 +527,8 @@ mod test {
                 to_io: IO::new("String", "/flow2/function3"),
                 level: 1,
             };
-            right_side.from_io.set_flow_io(IOType::FlowInput);
-            right_side.to_io.set_flow_io(IOType::FunctionIO);
+            right_side.from_io.set_io_type(IOType::FlowInput);
+            right_side.to_io.set_io_type(IOType::FunctionIO);
 
             let connections = vec![left_side, extra_one, right_side];
 
@@ -554,8 +554,8 @@ mod test {
                 to_io: IO::new("String", "/f2/a"),
                 level: 0,
             };
-            left_side.from_io.set_flow_io(IOType::FunctionIO);
-            left_side.to_io.set_flow_io(IOType::FlowInput);
+            left_side.from_io.set_io_type(IOType::FunctionIO);
+            left_side.to_io.set_io_type(IOType::FlowInput);
 
             let mut right_side_one = Connection {
                 name: Name::from("right1"),
@@ -565,8 +565,8 @@ mod test {
                 to_io: IO::new("String", "/f2/value1"),
                 level: 1,
             };
-            right_side_one.from_io.set_flow_io(IOType::FlowInput);
-            right_side_one.to_io.set_flow_io(IOType::FunctionIO);
+            right_side_one.from_io.set_io_type(IOType::FlowInput);
+            right_side_one.to_io.set_io_type(IOType::FunctionIO);
 
             let mut right_side_two = Connection {
                 name: Name::from("right2"),
@@ -576,8 +576,8 @@ mod test {
                 to_io: IO::new("String", "/f2/value2"),
                 level: 1,
             };
-            right_side_two.from_io.set_flow_io(IOType::FlowInput);
-            right_side_two.to_io.set_flow_io(IOType::FunctionIO);
+            right_side_two.from_io.set_io_type(IOType::FlowInput);
+            right_side_two.to_io.set_io_type(IOType::FunctionIO);
 
             let connections = vec![left_side, right_side_one, right_side_two];
             assert_eq!(3, connections.len());
@@ -600,8 +600,8 @@ mod test {
                 to_io: IO::new("String", "/flow1/a"),
                 level: 0,
             };
-            first_level.from_io.set_flow_io(IOType::FunctionIO);
-            first_level.to_io.set_flow_io(IOType::FlowInput);
+            first_level.from_io.set_io_type(IOType::FunctionIO);
+            first_level.to_io.set_io_type(IOType::FlowInput);
 
             let mut second_level = Connection {
                 name: Name::from("subflow_connection"),
@@ -611,8 +611,8 @@ mod test {
                 to_io: IO::new("String", "/flow1/flow2/a"),
                 level: 1,
             };
-            second_level.from_io.set_flow_io(IOType::FlowInput);
-            second_level.to_io.set_flow_io(IOType::FlowInput);
+            second_level.from_io.set_io_type(IOType::FlowInput);
+            second_level.to_io.set_io_type(IOType::FlowInput);
 
             let mut third_level = Connection {
                 name: Name::from("sub_subflow_connection"),
@@ -622,8 +622,8 @@ mod test {
                 to_io: IO::new("String", "/flow1/flow2/func/in"),
                 level: 2,
             };
-            third_level.from_io.set_flow_io(IOType::FlowInput);
-            third_level.to_io.set_flow_io(IOType::FunctionIO);
+            third_level.from_io.set_io_type(IOType::FlowInput);
+            third_level.to_io.set_io_type(IOType::FunctionIO);
 
             let connections = vec![first_level, second_level, third_level];
 

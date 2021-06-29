@@ -9,6 +9,7 @@ use crate::errors::*;
 
 const DATATYPES: &[&str] = &["String", "Value", "Number", "Bool", "Map", "Array", "Null"];
 
+/// Datatype is just a string defining what data type is being used
 #[derive(Shrinkwrap, Hash, Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct DataType(String);
 
@@ -24,11 +25,14 @@ impl fmt::Display for DataType {
     }
 }
 
+/// Trait that is used on multiple objects to get their data type
 pub trait HasDataType {
+    /// Return a reference to the datatype of the object implementing this trait
     fn datatype(&self) -> &DataType;
 }
 
 impl DataType {
+    /// Determine if a datatype specified in a flow is a valid datatype or not
     pub fn valid(&self) -> Result<()> {
         // Split the type hierarchy and check all levels are valid
         let type_levels = self.split('/');
@@ -41,10 +45,13 @@ impl DataType {
         Ok(())
     }
 
+    /// Return if this datatype is an array or not
     pub fn is_array(&self) -> bool {
         self.starts_with("Array")
     }
 
+    /// Return true if this datatype is generic (not specified at compile time and can contain
+    /// any other datatype) or not
     pub fn is_generic(&self) -> bool {
         self == &DataType::from("Value")
     }
@@ -75,12 +82,12 @@ impl DataType {
             Value::Array(array) => format!("Array/{}", Self::type_string(&array[0])),
             Value::Object(map) => {
                 if let Some(map_entry) = map.values().next() {
-                format!("Map/{}", Self::type_string(map_entry))
+                    format!("Map/{}", Self::type_string(map_entry))
                 } else {
                     "Map".to_owned()
                 }
-            },
-            Value::Null => "Null".into()
+            }
+            Value::Null => "Null".into(),
         }
     }
 

@@ -1,4 +1,4 @@
-// TODO #![deny(missing_docs)]
+#![deny(missing_docs)]
 #![warn(clippy::unwrap_used)]
 //! `flowc` the the "flow compiler" that takes a hierarchical description of flows
 //! and functions and compiles it into a network of functions in a `Manifest` file
@@ -6,9 +6,6 @@
 //!
 //! Execute `flowc` or `flowc --help` or `flowc -h` at the comment line for a
 //! description of the command line options.
-
-#[macro_use]
-extern crate error_chain;
 
 use std::env;
 use std::path::PathBuf;
@@ -20,6 +17,7 @@ use simpath::Simpath;
 use simplog::simplog::SimpleLogger;
 use url::Url;
 
+use errors::*;
 use flowclib::info;
 use flowcore::lib_provider::MetaProvider;
 use flowcore::url_helper::url_from_string;
@@ -31,28 +29,12 @@ mod flow_compile;
 mod lib_build;
 mod source_arg;
 
-// We'll put our errors in an `errors` module, and other modules in this crate will
-// `use crate::errors::*;` to get access to everything `error_chain!` creates.
-#[doc(hidden)]
-pub mod errors {
-    // Create the Error, ErrorKind, ResultExt, and Result types
-    error_chain! {}
-}
+/// We'll put our errors in an `errors` module, and other modules in this crate will
+/// `use crate::errors::*;` to get access to everything `error_chain` creates.
+pub mod errors;
 
-#[doc(hidden)]
-error_chain! {
-    types {
-        Error, ErrorKind, ResultExt, Result;
-    }
-
-    foreign_links {
-        Core(flowcore::errors::Error);
-        Compiler(flowclib::errors::Error);
-        Io(std::io::Error);
-        Url(url::ParseError);
-    }
-}
-
+/// `Options` struct gathers information from the parsing of the command line options
+/// to be used to configure execution
 pub struct Options {
     lib: bool,
     url: Url,
@@ -92,14 +74,12 @@ fn main() {
     }
 }
 
-/*
-   For the lib provider, libraries maybe installed in multiple places in the file system.
-   In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
-   list of directories in which to look for the library in question.
-
-   Using the "FLOW_LIB_PATH" environment variable attempt to locate the library's root folder
-   in the file system.
-*/
+/// For the lib provider, libraries maybe installed in multiple places in the file system.
+/// In order to find the content, a FLOW_LIB_PATH environment variable can be configured with a
+/// list of directories in which to look for the library in question.
+///
+/// Using the "FLOW_LIB_PATH" environment variable attempt to locate the library's root folder
+/// in the file system.
 pub fn set_lib_search_path(search_path_additions: &[String]) -> Result<Simpath> {
     let mut lib_search_path = Simpath::new_with_separator("FLOW_LIB_PATH", ',');
 
