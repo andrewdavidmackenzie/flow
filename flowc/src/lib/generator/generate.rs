@@ -8,9 +8,9 @@ use log::info;
 use serde_derive::Serialize;
 use url::Url;
 
+use flowcore::flow_manifest::{FlowManifest, MetaData, DEFAULT_MANIFEST_FILENAME};
 use flowcore::function::Function as RuntimeFunction;
 use flowcore::input::Input;
-use flowcore::manifest::{Manifest, MetaData, DEFAULT_MANIFEST_FILENAME};
 
 use crate::errors::*;
 use crate::model::connection::Connection;
@@ -78,10 +78,10 @@ pub fn create_manifest(
     manifest_url: &Url,
     tables: &GenerationTables,
     source_urls: HashSet<(Url, Url)>,
-) -> Result<Manifest> {
+) -> Result<FlowManifest> {
     info!("Writing flow manifest to '{}'", manifest_url);
 
-    let mut manifest = Manifest::new(MetaData::from(flow));
+    let mut manifest = FlowManifest::new(MetaData::from(flow));
 
     // Generate run-time Function struct for each of the compile-time functions
     for function in &tables.functions {

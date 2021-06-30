@@ -8,8 +8,8 @@ use std::sync::Arc;
 use url::Url;
 
 use errors::*;
+use flowcore::flow_manifest::MetaData;
 use flowcore::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
-use flowcore::manifest::MetaData;
 
 /// Control functions
 pub mod control;

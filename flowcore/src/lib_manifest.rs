@@ -6,21 +6,21 @@ use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
 use crate::errors::*;
+use crate::flow_manifest::MetaData;
 use crate::lib_provider::LibProvider;
-use crate::manifest::MetaData;
 use crate::Implementation;
 
 /// The default name used for a Library  Manifest file if none is specified
 pub const DEFAULT_LIB_JSON_MANIFEST_FILENAME: &str = "manifest";
 /// The default name used for a Rust Library Manifest if none is specified
-pub const DEFAULT_LIB_RUST_MANIFEST_FILENAME: &str = "manifest.rs";
+pub const DEFAULT_LIB_RUST_MANIFEST_FILENAME: &str = "flow_manifest";
 
 /*
     Implementations can be of two types - either a statically linked function referenced
     via a function reference, or WASM bytecode file that is interpreted at run-time that is
     referenced via a string pointing to the .wasm file location
 */
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 #[serde(untagged)]
 /// Used to describe where an implementation can be found, depending on if native or wasm
 pub enum ImplementationLocator {
@@ -43,7 +43,7 @@ impl PartialEq for ImplementationLocator {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 /// `LibraryManifest` describes the contents of a Library that can be referenced from a `flow`
 /// It is provided by libraries to help load and/or find implementations of processes
 pub struct LibraryManifest {
@@ -166,11 +166,11 @@ mod test {
     use url::Url;
 
     use crate::errors::Result;
+    use crate::flow_manifest::MetaData;
     use crate::lib_manifest::{
         ImplementationLocator, ImplementationLocator::Wasm, LibraryManifest,
     };
     use crate::lib_provider::LibProvider;
-    use crate::manifest::MetaData;
     use crate::Implementation;
 
     pub struct TestProvider {

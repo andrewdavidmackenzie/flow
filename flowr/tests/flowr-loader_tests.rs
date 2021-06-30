@@ -10,10 +10,10 @@ use simpath::Simpath;
 use tempdir::TempDir;
 use url::Url;
 
+use flowcore::flow_manifest::{FlowManifest, MetaData};
 use flowcore::function::Function;
 use flowcore::lib_manifest::{ImplementationLocator::Native, LibraryManifest};
 use flowcore::lib_provider::MetaProvider;
-use flowcore::manifest::{Manifest, MetaData};
 use flowcore::{Implementation, RunAgain, DONT_RUN_AGAIN};
 use flowrlib::loader::Loader;
 
@@ -45,7 +45,7 @@ fn cwd_as_url() -> Url {
     Url::from_directory_path(env::current_dir().unwrap()).unwrap()
 }
 
-fn create_manifest(functions: Vec<Function>) -> Manifest {
+fn create_manifest(functions: Vec<Function>) -> FlowManifest {
     let metadata = MetaData {
         name: "test manifest".into(),
         description: "test manifest".into(),
@@ -53,8 +53,10 @@ fn create_manifest(functions: Vec<Function>) -> Manifest {
         authors: vec!["me".into()],
     };
 
-    let mut manifest = Manifest::new(metadata);
-    manifest.add_lib_reference(&Url::parse("lib://flowstdlib").expect("Could not create Url"));
+    let mut manifest = FlowManifest::new(metadata);
+    manifest.add_lib_reference(
+        &Url::parse("lib://flowstdlib/control/join/join").expect("Could not create Url"),
+    );
 
     for function in functions {
         manifest.add_function(function);
@@ -121,7 +123,7 @@ fn get_manifest() -> LibraryManifest {
     manifest
 }
 
-fn write_manifest(manifest: &Manifest, filename: &PathBuf) -> Result<(), String> {
+fn write_manifest(manifest: &FlowManifest, filename: &PathBuf) -> Result<(), String> {
     let mut manifest_file =
         File::create(&filename).map_err(|_| "Could not create lib manifest file")?;
 
@@ -181,7 +183,7 @@ fn load_manifest_from_file() {
             &Url::parse("lib://flowstdlib").expect("Could not create Url"),
         )
         .unwrap();
-    let _ = loader.load_manifest(&provider, &manifest_url).unwrap();
+    let _ = loader.load_flow_manifest(&provider, &manifest_url).unwrap();
 
     assert!(!loader.get_lib_implementations().is_empty());
 }

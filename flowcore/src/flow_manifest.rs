@@ -37,7 +37,7 @@ pub struct Cargo {
 #[derive(Deserialize, Serialize, Clone)]
 /// A `flows` `Manifest` describes it and describes all the `Functions` it uses as well as
 /// a list of references to libraries.
-pub struct Manifest {
+pub struct FlowManifest {
     /// The `MetaData` about this flow
     metadata: MetaData,
     /// A list of the `lib_references` used by this flow
@@ -48,10 +48,10 @@ pub struct Manifest {
     source_urls: HashSet<(Url, Url)>,
 }
 
-impl Manifest {
+impl FlowManifest {
     /// Create a new manifest that can then be added to, and used in serialization
     pub fn new(metadata: MetaData) -> Self {
-        Manifest {
+        FlowManifest {
             metadata,
             lib_references: HashSet::<Url>::new(),
             functions: Vec::<Function>::new(),
@@ -100,7 +100,7 @@ impl Manifest {
     }
 
     /// Load, or Deserialize, a manifest from a `source` Url using `provider`
-    pub fn load(provider: &dyn LibProvider, source: &Url) -> Result<(Manifest, Url)> {
+    pub fn load(provider: &dyn LibProvider, source: &Url) -> Result<(FlowManifest, Url)> {
         let (resolved_url, _) = provider
             .resolve_url(source, DEFAULT_MANIFEST_FILENAME, &["json"])
             .chain_err(|| "Could not resolve url for manifest while attempting to load manifest")?;
@@ -127,7 +127,7 @@ mod test {
     use crate::input::Input;
     use crate::lib_provider::LibProvider;
 
-    use super::{Manifest, MetaData};
+    use super::{FlowManifest, MetaData};
 
     fn test_meta_data() -> MetaData {
         MetaData {
@@ -159,7 +159,7 @@ mod test {
 
     #[test]
     fn create() {
-        let _ = Manifest::new(test_meta_data());
+        let _ = FlowManifest::new(test_meta_data());
     }
 
     fn test_function() -> Function {
@@ -181,7 +181,7 @@ mod test {
     fn add_function() {
         let function = test_function();
 
-        let mut manifest = Manifest::new(test_meta_data());
+        let mut manifest = FlowManifest::new(test_meta_data());
         manifest.add_function(function);
         assert_eq!(manifest.functions.len(), 1);
     }
@@ -213,7 +213,7 @@ mod test {
             }";
         let provider = TestProvider { test_content };
 
-        Manifest::load(&provider, &Url::parse("http://ibm.com").unwrap())
+        FlowManifest::load(&provider, &Url::parse("http://ibm.com").unwrap())
             .expect("Could not load manifest");
     }
 }

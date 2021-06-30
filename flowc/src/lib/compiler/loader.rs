@@ -3,9 +3,9 @@ use std::collections::{HashMap, HashSet};
 use log::{debug, info, trace};
 use url::Url;
 
+use flowcore::flow_manifest::{Cargo, MetaData};
 use flowcore::input::InputInitializer;
 use flowcore::lib_provider::LibProvider;
-use flowcore::manifest::{Cargo, MetaData};
 
 use crate::deserializers::deserializer_helper::get_deserializer;
 use crate::errors::*;
@@ -272,7 +272,7 @@ fn config_function(
 
 #[cfg(test)]
 mod test {
-    use flowcore::manifest::{Cargo, MetaData};
+    use flowcore::flow_manifest::{Cargo, MetaData};
 
     #[test]
     fn deserialize_library() {
