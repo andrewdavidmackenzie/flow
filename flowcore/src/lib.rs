@@ -11,6 +11,9 @@ use serde_json::Value;
 /// `content` are the content providers for files and http/https
 mod content;
 #[cfg(feature = "code")]
+/// `manifest` is the struct that specifies the manifest of functions in a flow
+pub mod flow_manifest;
+#[cfg(feature = "code")]
 /// `function` defines functions that form part of a flow
 pub mod function;
 #[cfg(feature = "code")]
@@ -22,9 +25,6 @@ pub mod lib_manifest;
 #[cfg(feature = "code")]
 /// `lib_provider` is used to resolve library references of the type "lib://" using lib search path
 pub mod lib_provider;
-#[cfg(feature = "code")]
-/// `manifest` is the struct that specifies the manifest of functions in a flow
-pub mod manifest;
 #[cfg(feature = "code")]
 /// `output_connection` defines a struct for a function's output connection
 pub mod output_connection;

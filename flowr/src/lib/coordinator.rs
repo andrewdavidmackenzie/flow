@@ -8,8 +8,8 @@ use serde_derive::{Deserialize, Serialize};
 use simpath::Simpath;
 use url::Url;
 
+use flowcore::flow_manifest::FlowManifest;
 use flowcore::lib_provider::{LibProvider, MetaProvider};
-use flowcore::manifest::Manifest;
 
 #[cfg(feature = "debugger")]
 use crate::client_server::{DebugClientConnection, DebugServerConnection};
@@ -105,7 +105,7 @@ pub struct Coordinator {
 /// use std::io::Write;
 /// use flowrlib::coordinator::{Coordinator, Submission, Mode};
 /// use std::process::exit;
-/// use flowcore::manifest::{Manifest, MetaData};
+/// use flowcore::flow_manifest::{FlowManifest, MetaData};
 /// use flowrlib::runtime_messages::ClientMessage as RuntimeResponse;
 /// use flowrlib::runtime_messages::ServerMessage as RuntimeEvent;
 /// use flowrlib::runtime_messages::ClientMessage::ClientSubmission;
@@ -503,9 +503,9 @@ impl Coordinator {
         provider: &dyn LibProvider,
         server_context: Arc<Mutex<RuntimeServerConnection>>,
         native: bool,
-    ) -> Result<Manifest> {
+    ) -> Result<FlowManifest> {
         let flowruntimelib_url =
-            Url::parse("lib://flowruntime").chain_err(|| "Could not parse lib_manifest_url")?;
+            Url::parse("lib://flowruntime").chain_err(|| "Could not parse flowruntime lib url")?;
 
         // Load this run-time's library of native (statically linked) implementations
         loader
@@ -516,10 +516,11 @@ impl Coordinator {
             )
             .chain_err(|| "Could not add 'flowruntime' library to loader")?;
 
-        // If the "native" feature is enabled then load the native flowstdlib if command line arg to do so
+        // If the "native" feature is enabled and command line options request it
+        // then load the native version of flowstdlib
         if cfg!(feature = "native") && native {
-            let flowstdlib_url =
-                Url::parse("lib://flowstdlib").chain_err(|| "Could not parse flowstdlib_url")?;
+            let flowstdlib_url = Url::parse("lib://flowstdlib")
+                .chain_err(|| "Could not parse flowstdlib lib url")?;
             loader
                 .add_lib(
                     provider,
@@ -531,8 +532,13 @@ impl Coordinator {
 
         // Load the flow to run from the manifest
         let manifest = loader
-            .load_manifest(provider, manifest_url)
-            .chain_err(|| format!("Could not load the flow from manifest: '{}'", manifest_url))?;
+            .load_flow_manifest(provider, manifest_url)
+            .chain_err(|| {
+                format!(
+                    "Could not load the flow from manifest url: '{}'",
+                    manifest_url
+                )
+            })?;
 
         Ok(manifest)
     }

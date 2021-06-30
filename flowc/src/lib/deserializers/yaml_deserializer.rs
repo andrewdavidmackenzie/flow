@@ -26,7 +26,7 @@ impl Deserializer for FlowYamlLoader {
 mod test {
     use serde_yaml::Error;
 
-    use flowcore::manifest::MetaData;
+    use flowcore::flow_manifest::MetaData;
 
     use crate::compiler::loader::Deserializer;
     use crate::model::process::Process::FlowProcess;

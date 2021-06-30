@@ -7,8 +7,8 @@ use log::{debug, error};
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
+use flowcore::flow_manifest::MetaData;
 use flowcore::input::InputInitializer;
-use flowcore::manifest::MetaData;
 
 use crate::compiler::loader::Validate;
 use crate::errors::Error;

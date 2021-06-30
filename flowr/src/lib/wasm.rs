@@ -1,15 +1,17 @@
-use flowcore::{Implementation, RunAgain};
-use flowcore::lib_provider::LibProvider;
-use log::{error, info, trace};
-use serde_json::Value;
 use std::cmp::max;
 use std::sync::Arc;
 use std::sync::Mutex;
+
+use log::{error, info, trace};
+use serde_json::Value;
 use url::Url;
 use wasmi::{
     ExternVal, ImportsBuilder, MemoryRef, Module, ModuleInstance, ModuleRef, NopExternals,
     RuntimeValue, Signature, ValueType,
 };
+
+use flowcore::lib_provider::LibProvider;
+use flowcore::{Implementation, RunAgain};
 
 use crate::errors::*;
 
@@ -82,16 +84,17 @@ impl Implementation for WasmExecutor {
                                     result_length
                                 );
                                 (None, true)
-                            } else if let Ok(result_data) = memory_ref
-                                    .get(input_data_wasm_ptr, result_length as usize) {
-                                    if let Ok((result, run_again)) =
+                            } else if let Ok(result_data) =
+                                memory_ref.get(input_data_wasm_ptr, result_length as usize)
+                            {
+                                if let Ok((result, run_again)) =
                                     serde_json::from_slice(result_data.as_slice())
-                                    {
-                                        (result, run_again)
-                                    } else {
-                                        (None, true)
-                                    }
+                                {
+                                    (result, run_again)
                                 } else {
+                                    (None, true)
+                                }
+                            } else {
                                 error!("could not get() memory_reference");
                                 (None, true)
                             }
