@@ -281,14 +281,16 @@ impl Coordinator {
             .lock()
             .map_err(|e| format!("Could not lock Server Connection: {}", e))?;
 
+        // Don't block waiting for a reply
         connection.send_message_only(ServerMessage::ServerExiting)?;
         connection.close()
     }
 
-    // Loop waiting for a message from the client.
-    // If the message is a `ClientSubmission` with a submission, then return Some(submission)
-    // If the message is `ClientExiting` then return None
-    // If the message is any other then loop until we find one of the above
+    /* Loop waiting for a message from the client.
+       If the message is a `ClientSubmission` with a submission, then return Some(submission)
+       If the message is `ClientExiting` then return None
+       If the message is any other then loop until we find one of the above
+    */
     fn wait_for_submission(&mut self) -> Result<Option<Submission>> {
         self.runtime_server_context
             .lock()
@@ -457,18 +459,24 @@ impl Coordinator {
     #[cfg(feature = "metrics")]
     fn end_flow(&mut self, state: &RunState, mut metrics: Metrics) -> Result<()> {
         metrics.set_jobs_created(state.jobs_created());
-        self.runtime_server_context
+        let mut connection = self
+            .runtime_server_context
             .lock()
-            .map_err(|_| "Could not lock server context")?
-            .send_message_only(ServerMessage::FlowEnd(metrics))
+            .map_err(|_| "Could not lock server context")?;
+
+        // don't block waiting for a reply
+        connection.send_message_only(ServerMessage::FlowEnd(metrics))
     }
 
     #[cfg(not(feature = "metrics"))]
     fn end_flow(&mut self) -> Result<()> {
-        self.runtime_server_context
+        let mut connection = self
+            .runtime_server_context
             .lock()
-            .map_err(|_| "Could not lock server context")?
-            .send_message_only(ServerMessage::FlowEnd)
+            .map_err(|_| "Could not lock server context")?;
+
+        // don't block waiting for a reply
+        connection.send_message_only(ServerMessage::FlowEnd)
     }
 
     /* TODO - this is not working yet :-(
