@@ -77,21 +77,52 @@ fn write_manifest(
     Ok(filename)
 }
 
-fn execute_flow(filepath: PathBuf, test_args: Vec<String>, input: String) -> (String, String) {
+fn execute_flow(
+    filepath: PathBuf,
+    test_args: Vec<String>,
+    input: String,
+    client_server: bool,
+) -> (String, String) {
+    let server = if client_server {
+        println!("Starting the 'flowr' server");
+        let mut server_command = Command::new("cargo");
+        let server_command_args = vec!["run", "--quiet", "-p", "flowr", "--", "-n", "-s"];
+
+        // spawn the 'flowr' server child process
+        Some(
+            server_command
+                .args(server_command_args)
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .unwrap(),
+        )
+    } else {
+        None
+    };
+
     let mut command = Command::new("cargo");
-    let mut command_args = vec![
-        "run",
-        "--quiet",
-        "-p",
-        "flowr",
-        "--",
-        "-n",
-        filepath.to_str().unwrap(),
-    ];
+    let mut command_args = vec!["run", "--quiet", "-p", "flowr", "--"];
+
+    if client_server {
+        // start another 'flowr' process in client mode
+        command_args.push("-c");
+        command_args.push("localhost");
+    } else {
+        // when running client_and_server in same process we want to use native libs
+        command_args.push("-n");
+    }
+
+    // Append the file path to the manifest to run to the command line args
+    command_args.push(filepath.to_str().unwrap());
+
+    // Append the flow arguments to the end of the command line
     for test_arg in &test_args {
         command_args.push(test_arg);
     }
 
+    // spawn the 'flowr' child process
     let mut child = command
         .args(command_args)
         .stdin(Stdio::piped())
@@ -103,7 +134,7 @@ fn execute_flow(filepath: PathBuf, test_args: Vec<String>, input: String) -> (St
     // send it stdin from the "${testname}.stdin" file
     write!(child.stdin.unwrap(), "{}", input).unwrap();
 
-    // read stdout
+    // read it's stdout
     let mut output = String::new();
     if let Some(ref mut stdout) = child.stdout {
         for line in BufReader::new(stdout).lines() {
@@ -111,12 +142,18 @@ fn execute_flow(filepath: PathBuf, test_args: Vec<String>, input: String) -> (St
         }
     }
 
-    // read stderr
+    // read it's stderr
     let mut err = String::new();
     if let Some(ref mut stderr) = child.stderr {
         for line in BufReader::new(stderr).lines() {
             err.push_str(&format!("{}\n", &line.unwrap()));
         }
+    }
+
+    // If a server was started - then kill it
+    if let Some(mut server_child) = server {
+        println!("Killing 'flowr' server");
+        server_child.kill().unwrap();
     }
 
     (output, err)
@@ -157,7 +194,7 @@ fn get(test_dir: &Path, file_name: &str) -> String {
     String::from_utf8(buffer).unwrap()
 }
 
-fn execute_test(test_name: &str, search_path: Simpath) {
+fn execute_test(test_name: &str, search_path: Simpath, client_server: bool) {
     // helper::set_lib_search_path()
     let mut root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     root_dir.pop();
@@ -170,7 +207,8 @@ fn execute_test(test_name: &str, search_path: Simpath) {
 
         let test_args = test_args(&test_dir, test_name);
         let input = get(&test_dir, &format!("{}.stdin", test_name));
-        let (actual_stdout, actual_stderr) = execute_flow(manifest_path, test_args, input);
+        let (actual_stdout, actual_stderr) =
+            execute_flow(manifest_path, test_args, input, client_server);
         let expected_output = get(&test_dir, &format!("{}.expected", test_name));
         assert_eq!(
             expected_output, actual_stdout,
@@ -188,40 +226,47 @@ fn execute_test(test_name: &str, search_path: Simpath) {
 #[serial]
 fn print_args() {
     let search_path = helper::set_lib_search_path_to_project();
-    execute_test("print-args", search_path);
+    execute_test("print-args", search_path, false);
 }
 
 #[test]
 #[serial]
 fn hello_world() {
     let search_path = helper::set_lib_search_path_to_project();
-    execute_test("hello-world", search_path);
+    execute_test("hello-world", search_path, false);
 }
 
 #[test]
 #[serial]
 fn line_echo() {
     let search_path = helper::set_lib_search_path_to_project();
-    execute_test("line-echo", search_path);
+    execute_test("line-echo", search_path, false);
 }
 
 #[test]
 #[serial]
 fn args() {
     let search_path = helper::set_lib_search_path_to_project();
-    execute_test("args", search_path);
+    execute_test("args", search_path, false);
 }
 
 #[test]
 #[serial]
 fn args_json() {
     let search_path = helper::set_lib_search_path_to_project();
-    execute_test("args_json", search_path);
+    execute_test("args_json", search_path, false);
 }
 
 #[test]
 #[serial]
 fn array_input() {
     let search_path = helper::set_lib_search_path_to_project();
-    execute_test("array-input", search_path);
+    execute_test("array-input", search_path, false);
+}
+
+#[test]
+#[serial]
+fn hello_world_client_server() {
+    let search_path = helper::set_lib_search_path_to_project();
+    execute_test("hello-world", search_path, true);
 }
