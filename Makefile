@@ -23,11 +23,15 @@ ifneq ($(BREW),)
 endif
 ifneq ($(YUM),)
 	@echo "Installing linux specific dependencies using $(YUM)"
+	@echo "To build OpenSSL you need perl installed"
+	@sudo yum install perl
 	@sudo yum install curl-devel elfutils-libelf-devel elfutils-devel openssl-devel binutils-devel || true
 	@sudo yum install zeromq zeromq-devel graphviz || true
 endif
 ifneq ($(APTGET),)
 	@echo "Installing linux specific dependencies using $(APTGET)"
+	@echo "To build OpenSSL you need perl installed"
+	@sudo apt-get install perl
 	@sudo apt-get -y install libcurl4-openssl-dev libelf-dev libdw-dev libssl-dev binutils-dev || true
 	@sudo apt-get -y install libzmq3-dev graphviz || true
 endif
