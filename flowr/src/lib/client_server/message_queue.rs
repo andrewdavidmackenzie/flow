@@ -124,13 +124,13 @@ impl RuntimeClientConnection {
         self.requester = Some(
             self.context
                 .socket(zmq::REQ)
-                .chain_err(|| "Runtime client could not connect to server")?,
+                .chain_err(|| "Runtime client could not create client ZMQ socket")?,
         );
 
         if let Some(ref requester) = self.requester {
             requester
                 .connect(&format!("tcp://{}:{}", self.host, self.port))
-                .chain_err(|| "Could not connect to server")?;
+                .chain_err(|| "Runtime client could not connect to server")?;
         }
 
         info!(
@@ -149,7 +149,7 @@ impl RuntimeClientConnection {
                 .map_err(|e| format!("Error receiving from Server: {}", e))?;
             Ok(ServerMessage::from(msg))
         } else {
-            bail!("Client runtime connection has not been started")
+            bail!("Runtime Client connection has not been started")
         }
     }
 
@@ -193,17 +193,17 @@ impl DebugClientConnection {
         self.requester = Some(
             context
                 .socket(zmq::REQ)
-                .chain_err(|| "Debug client could not connect to server")?,
+                .chain_err(|| "Debug client: Socket could not be created")?,
         );
 
         if let Some(ref requester) = self.requester {
             requester
                 .connect(&format!("tcp://{}:{}", self.host, self.port))
-                .chain_err(|| "Could not connect to server")?;
+                .chain_err(|| "Debug client: Could not connect to debug server")?;
         }
 
         debug!(
-            "Debug client connected to debugger on {}:{}",
+            "Debug client: Connected to debug server on {}:{}",
             self.host, self.port
         );
 
@@ -216,10 +216,10 @@ impl DebugClientConnection {
         if let Some(ref requester) = self.requester {
             let msg = requester
                 .recv_msg(0)
-                .map_err(|e| format!("Error receiving from Debug server: {}", e))?;
+                .map_err(|e| format!("Debug client: Error receiving from Debug server: {}", e))?;
             Ok(DebugServerMessage::from(msg))
         } else {
-            bail!("Client debug connection has not been started")
+            bail!("Debug Client: Connection has not been started")
         }
     }
 
@@ -228,9 +228,9 @@ impl DebugClientConnection {
         if let Some(ref requester) = self.requester {
             requester
                 .send(message, 0)
-                .chain_err(|| "Error sending to debug server")
+                .chain_err(|| "Debug client: Error sending to debug server")
         } else {
-            bail!("Debug client connection has not been started")
+            bail!("Debug client: Connection has not been started")
         }
     }
 }
@@ -260,13 +260,13 @@ impl RuntimeServerConnection {
         self.responder = Some(
             context
                 .socket(zmq::REP)
-                .chain_err(|| "Runtime Server Connection - could not create Socket")?,
+                .chain_err(|| "Runtime Server Connection: Could not create Socket")?,
         );
 
         if let Some(ref responder) = self.responder {
             responder
                 .bind(&format!("tcp://*:{}", self.port))
-                .chain_err(|| "Runtime Server Connection - could not bind on Socket")?;
+                .chain_err(|| "Runtime Server Connection: Could not bind on Socket")?;
         }
 
         info!(
@@ -286,10 +286,10 @@ impl RuntimeServerConnection {
         let responder = self
             .responder
             .as_ref()
-            .chain_err(|| "Runtime server connection not started")?;
+            .chain_err(|| "Runtime Server Connection: Connection not started")?;
         let msg = responder
             .recv_msg(0)
-            .map_err(|e| format!("Runtime server error getting message: '{}'", e))?;
+            .map_err(|e| format!("Runtime Server Connection: Error getting message: '{}'", e))?;
         Ok(ClientMessage::from(msg))
     }
 
@@ -298,10 +298,10 @@ impl RuntimeServerConnection {
         let responder = self
             .responder
             .as_ref()
-            .chain_err(|| "Runtime server connection not started")?;
+            .chain_err(|| "Runtime Server Connection: Connection not started")?;
         let msg = responder
             .recv_msg(DONTWAIT)
-            .chain_err(|| "Runtime server could not receive message")?;
+            .chain_err(|| "Runtime Server Connection: Could not receive message")?;
 
         Ok(ClientMessage::from(msg))
     }
@@ -311,11 +311,14 @@ impl RuntimeServerConnection {
         let responder = self
             .responder
             .as_ref()
-            .chain_err(|| "Runtime server connection not started")?;
+            .chain_err(|| "Runtime Server Connection: Connection not started")?;
 
-        responder
-            .send(message, 0)
-            .map_err(|e| format!("Runtime server error sending to client: '{}'", e))?;
+        responder.send(message, 0).map_err(|e| {
+            format!(
+                "Runtime Server Connection: Error sending to client: '{}'",
+                e
+            )
+        })?;
 
         self.get_message()
     }
@@ -325,11 +328,14 @@ impl RuntimeServerConnection {
         let responder = self
             .responder
             .as_ref()
-            .chain_err(|| "Runtime server connection not started")?;
+            .chain_err(|| "Runtime Server Connection: Connection not started")?;
 
-        responder
-            .send(event, 0)
-            .map_err(|e| format!("Runtime server error sending to client: '{}'", e))?;
+        responder.send(event, 0).map_err(|e| {
+            format!(
+                "Runtime Server Connection: Error sending to client: '{}'",
+                e
+            )
+        })?;
 
         Ok(())
     }
@@ -339,11 +345,11 @@ impl RuntimeServerConnection {
         let responder = self
             .responder
             .as_ref()
-            .chain_err(|| "Runtime server connection not started")?;
+            .chain_err(|| "Runtime Server Connection: Connection not started")?;
 
         responder
             .disconnect("")
-            .chain_err(|| "Error trying to disconnect responder")
+            .chain_err(|| "Runtime Server Connection: Error trying to disconnect responder")
     }
 }
 
