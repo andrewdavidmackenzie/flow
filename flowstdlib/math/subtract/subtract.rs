@@ -44,14 +44,7 @@ impl Implementation for Subtract {
         }
 
         if let Some(diff) = value {
-            let mut output_map = serde_json::Map::new();
-            output_map.insert("diff".into(), diff);
-            output_map.insert("i1".into(), input_a.clone());
-            output_map.insert("i2".into(), input_b.clone());
-
-            let output = Value::Object(output_map);
-
-            (Some(output), RUN_AGAIN)
+            (Some(json!(diff)), RUN_AGAIN)
         } else {
             (None, RUN_AGAIN)
         }
@@ -164,19 +157,8 @@ mod test {
 
         for test in &integer_test_set {
             let (output, again) = subtract.run(&get_inputs(test));
-
-            assert_eq!(true, again);
-
-            match output {
-                Some(outputs) => {
-                    assert_eq!(outputs.pointer("/i1").unwrap(), &test.0);
-                    assert_eq!(outputs.pointer("/i2").unwrap(), &test.1);
-                    assert_eq!(outputs.pointer("/diff"), test.2.as_ref());
-                }
-                None => {
-                    assert!(test.2.is_none())
-                }
-            }
+            assert!(again);
+            assert_eq!(output, test.2);
         }
     }
 }

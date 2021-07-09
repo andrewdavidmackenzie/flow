@@ -151,7 +151,7 @@ impl LibProvider for MetaProvider {
             (url.clone(), None)
         };
 
-        let provider = self.get_provider(&content_url.scheme())?;
+        let provider = self.get_provider(content_url.scheme())?;
         let resolved_url = provider.resolve_url(&content_url, default_filename, extensions)?;
 
         Ok((resolved_url, lib_reference))
@@ -162,7 +162,7 @@ impl LibProvider for MetaProvider {
     fn get_contents(&self, url: &Url) -> Result<Vec<u8>> {
         let scheme = url.scheme().to_string();
         let provider = self.get_provider(&scheme)?;
-        let content = provider.get_contents(&url)?;
+        let content = provider.get_contents(url)?;
         Ok(content)
     }
 }

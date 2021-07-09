@@ -11,13 +11,14 @@ input.i1 = { once =  0 }
 input.i2 = { once =  1 }
 
 [[connection]]
-from = "add/sum"
+from = "add"
 to = "add/i2"
 
 [[connection]]
-from = "add/sum"
+from = "add"
 to = "stdout"
 
+# Loop back the input value #2 from this calculation, to be the input to input #1 on the next iteration
 [[connection]]
 from = "add/i2"
 to = "add/i1"

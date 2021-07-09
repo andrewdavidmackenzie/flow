@@ -38,11 +38,7 @@ impl Implementation for Add {
         };
 
         if let Some(total) = sum {
-            let mut output_map = serde_json::Map::new();
-            output_map.insert("sum".into(), total);
-            output_map.insert("i1".into(), input_a.clone());
-            output_map.insert("i2".into(), input_b.clone());
-            (Some(Value::Object(output_map)), RUN_AGAIN)
+            (Some(json!(total)), RUN_AGAIN)
         } else {
             (None, RUN_AGAIN)
         }
@@ -163,24 +159,8 @@ mod test {
         for test in &integer_test_set {
             let (output, again) = added.run(&get_inputs(test));
 
-            assert_eq!(true, again);
-
-            match output {
-                Some(outputs) => {
-                    assert_eq!(
-                        outputs.pointer("/i1").expect("Could not get i1 output"),
-                        &test.0
-                    );
-                    assert_eq!(
-                        outputs.pointer("/i2").expect("Could not get i2 output"),
-                        &test.1
-                    );
-                    assert_eq!(outputs.pointer("/sum"), test.2.as_ref());
-                }
-                None => {
-                    assert!(test.2.is_none())
-                }
-            }
+            assert!(again);
+            assert_eq!(output, test.2);
         }
     }
 }

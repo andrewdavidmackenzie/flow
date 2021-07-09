@@ -131,7 +131,7 @@ impl Implementation for WasmExecutor {
 /// load a Wasm module from the specified Url.
 pub fn load(provider: &dyn LibProvider, source_url: &Url) -> Result<WasmExecutor> {
     let (resolved_url, _) = provider
-        .resolve_url(&source_url, DEFAULT_WASM_FILENAME, &["wasm"])
+        .resolve_url(source_url, DEFAULT_WASM_FILENAME, &["wasm"])
         .chain_err(|| "Could not resolve url for manifest while attempting to load manifest")?;
     let content = provider.get_contents(&resolved_url).chain_err(|| {
         format!(

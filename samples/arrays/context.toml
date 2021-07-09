@@ -35,7 +35,7 @@ source = "lib://flowstdlib/math/add"
 input.i2 = {always =  1}
 
 [[connection]]
-from = "add/sum"
+from = "add"
 to = "print"
 
 [[process]]

@@ -571,7 +571,7 @@ impl Coordinator {
                     debug!("{}", state);
 
                     #[cfg(feature = "debugger")]
-                    self.debugger.job_error(&state, job);
+                    self.debugger.job_error(state, job);
                 }
             }
         }
@@ -589,14 +589,14 @@ impl Coordinator {
         #[cfg(not(feature = "debugger"))]
         let debug_options = (false, false);
 
-        state.start(&job);
+        state.start(job);
         #[cfg(feature = "metrics")]
         metrics.track_max_jobs(state.number_jobs_running());
 
         #[cfg(feature = "debugger")]
         let debug_options = self
             .debugger
-            .check_prior_to_job(&state, job.job_id, job.function_id);
+            .check_prior_to_job(state, job.job_id, job.function_id);
 
         // Jobs maybe sent to remote nodes over network so have to be self--contained - clone OK
         self.job_tx

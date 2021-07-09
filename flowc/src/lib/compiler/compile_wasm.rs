@@ -143,7 +143,7 @@ pub fn compile_implementation(
     }
 
     function.set_implementation(
-        &wasm_destination
+        wasm_destination
             .to_str()
             .ok_or("Could not convert path to string")?,
     );
@@ -218,10 +218,10 @@ fn get_paths(function: &Function) -> Result<(PathBuf, PathBuf)> {
     let cwd_url = Url::from_directory_path(cwd)
         .map_err(|_| "Could not form a Url for the current working directory")?;
 
-    let function_source_url = url_from_string(&cwd_url, Some(&function.get_source_url()))
+    let function_source_url = url_from_string(&cwd_url, Some(function.get_source_url()))
         .chain_err(|| "Could not create a url from source url")?;
     let implementation_source_url = function_source_url
-        .join(&function.get_implementation())
+        .join(function.get_implementation())
         .map_err(|_| "Could not convert Url")?;
 
     let implementation_source_path = implementation_source_url
@@ -288,6 +288,7 @@ mod test {
     use std::time::Duration;
 
     use flowcore::output_connection::OutputConnection;
+    use flowcore::output_connection::Source::Output;
 
     use crate::model::function::Function;
     use crate::model::io::IO;
@@ -402,7 +403,7 @@ mod test {
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
             vec![OutputConnection::new(
-                "".to_string(),
+                Output("".into()),
                 1,
                 0,
                 0,

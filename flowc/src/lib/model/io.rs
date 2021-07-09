@@ -91,9 +91,9 @@ impl IO {
     /// Set the route of this IO based on the route of the parent it is located within and it's name
     fn set_route_from_parent(&mut self, parent: &Route, io_type: &IOType) {
         if self.name().is_empty() {
-            self.set_route(&parent, &io_type);
+            self.set_route(parent, io_type);
         } else {
-            self.set_route(&Route::from(&format!("{}/{}", parent, self.name)), &io_type);
+            self.set_route(&Route::from(&format!("{}/{}", parent, self.name)), io_type);
         }
     }
 

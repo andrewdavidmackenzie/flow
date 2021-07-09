@@ -46,5 +46,5 @@ alias = "print"
 source = "lib://flowruntime/stdio/stdout"
 
 [[connection]]
-from = "add/sum"
+from = "add"
 to = "print"

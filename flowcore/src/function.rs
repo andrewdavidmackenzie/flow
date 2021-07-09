@@ -254,6 +254,7 @@ mod test {
 
     use crate::input::Input;
     use crate::output_connection::OutputConnection;
+    use crate::output_connection::Source::Output;
     use crate::Implementation;
 
     use super::Function;
@@ -344,7 +345,7 @@ mod test {
 
     fn test_function() -> Function {
         let out_conn = OutputConnection::new(
-            "/other/input/1".to_string(),
+            Output("/other/input/1".into()),
             1,
             1,
             0,
@@ -402,7 +403,7 @@ mod test {
     #[test]
     fn can_display_function_with_inputs() {
         let output_route = OutputConnection::new(
-            "/other/input/1".to_string(),
+            Output("/other/input/1".into()),
             1,
             1,
             0,

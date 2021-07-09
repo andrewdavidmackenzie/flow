@@ -10,13 +10,4 @@ name = "i2" # - second input of type `Number`
 type = "Number"
 
 [[output]]
-name = "sum" # - `sum` of `i1` and `i2` of type `Number`
-type = "Number"
-
-[[output]]
-name = "i1"
-type = "Number"
-
-[[output]]
-name = "i2"
 type = "Number"

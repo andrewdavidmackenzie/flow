@@ -337,6 +337,7 @@ mod test {
     use flowcore::input::Input;
     use flowcore::input::InputInitializer::Once;
     use flowcore::output_connection::OutputConnection;
+    use flowcore::output_connection::Source::Output;
     use flowrlib::coordinator::Submission;
     use flowrlib::run_state::{RunState, State};
 
@@ -359,7 +360,7 @@ mod test {
 
     fn test_function_a_to_b() -> Function {
         let connection_to_f1 = OutputConnection::new(
-            "".to_string(),
+            Output("".into()),
             1,
             0,
             0,

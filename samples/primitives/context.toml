@@ -14,7 +14,7 @@ source = "lib://flowstdlib/math/divide"
 input.divisor = {once =  2}
 
 [[connection]]
-from = "add/sum"
+from = "add"
 to = "divide/dividend"
 
 [[connection]]

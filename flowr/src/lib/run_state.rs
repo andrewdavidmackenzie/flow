@@ -11,6 +11,7 @@ use serde_json::{json, Value};
 
 use flowcore::function::Function;
 use flowcore::output_connection::OutputConnection;
+use flowcore::output_connection::Source::{Input, Output};
 use flowcore::Implementation;
 
 use crate::coordinator::Submission;
@@ -599,26 +600,31 @@ impl RunState {
                     debug!("Job #{}:\tOutputs: {:?}", job.job_id, output_v);
 
                     for destination in &job.connections {
-                        match output_v.pointer(&destination.subroute) {
-                            Some(output_value) => {
-                                if job.function_id == destination.function_id {
-                                    loopback_value_sent = true;
+                        match &destination.source {
+                            Output(route) => match output_v.pointer(route) {
+                                Some(output_value) => {
+                                    if job.function_id == destination.function_id {
+                                        loopback_value_sent = true;
+                                    }
+                                    self.send_value(
+                                        job.function_id,
+                                        job.flow_id,
+                                        destination,
+                                        output_value,
+                                        #[cfg(feature = "metrics")]
+                                        metrics,
+                                        #[cfg(feature = "debugger")]
+                                        debugger,
+                                    );
                                 }
-                                self.send_value(
-                                    job.function_id,
-                                    job.flow_id,
-                                    &destination,
-                                    output_value,
-                                    #[cfg(feature = "metrics")]
-                                    metrics,
-                                    #[cfg(feature = "debugger")]
-                                    debugger,
-                                );
+                                _ => debug!(
+                                    "Job #{}:\t\tNo output value found at '{}'",
+                                    job.job_id, &destination.source
+                                ),
+                            },
+                            Input(_index) => {
+                                // TODO implement sending from a input value in a Job
                             }
-                            _ => debug!(
-                                "Job #{}:\t\tNo output value found at '{}'",
-                                job.job_id, &destination.subroute
-                            ),
                         }
                     }
                 }
@@ -642,7 +648,7 @@ impl RunState {
             {
                 #[cfg(feature = "debugger")]
                 if self.debug {
-                    let _ = debugger.job_error(&self, job);
+                    let _ = debugger.job_error(self, job);
                 }
             }
         }
@@ -701,10 +707,10 @@ impl RunState {
         #[cfg(feature = "metrics")] metrics: &mut Metrics,
         #[cfg(feature = "debugger")] debugger: &mut Debugger,
     ) {
-        let route_str = if connection.subroute.is_empty() {
-            "".to_string()
-        } else {
-            format!(" via output route '{}'", connection.subroute)
+        let route_str = match &connection.source {
+            Output(route) if route.is_empty() => "".into(),
+            Output(route) => format!(" from output route '{}'", route),
+            Input(index) => format!(" from value at input #{}", index),
         };
 
         let connection_name = if connection.name.is_empty() {
@@ -728,14 +734,16 @@ impl RunState {
         );
 
         #[cfg(feature = "debugger")]
-        debugger.check_prior_to_send(
-            self,
-            source_id,
-            &connection.subroute,
-            &output_value,
-            connection.function_id,
-            connection.io_number,
-        );
+        if let Output(route) = &connection.source {
+            debugger.check_prior_to_send(
+                self,
+                source_id,
+                route,
+                output_value,
+                connection.function_id,
+                connection.io_number,
+            );
+        }
 
         let function = self.get_mut(connection.function_id);
         let count_before = function.input_set_count();
@@ -790,7 +798,7 @@ impl RunState {
         }
     }
 
-    /// Start excuting `Job`
+    /// Start executing `Job`
     pub fn start(&mut self, job: &Job) {
         self.running.insert(job.function_id, job.job_id);
     }
@@ -1221,6 +1229,7 @@ mod test {
     use flowcore::input::Input;
     use flowcore::input::InputInitializer::Once;
     use flowcore::output_connection::OutputConnection;
+    use flowcore::output_connection::Source::Output;
     use flowcore::Implementation;
 
     use super::Job;
@@ -1240,7 +1249,7 @@ mod test {
 
     fn test_function_a_to_b_not_init() -> Function {
         let connection_to_f1 = OutputConnection::new(
-            "".to_string(),
+            Output("".into()),
             1,
             0,
             0,
@@ -1267,7 +1276,7 @@ mod test {
 
     fn test_function_a_to_b() -> Function {
         let connection_to_f1 = OutputConnection::new(
-            "".to_string(),
+            Output("".into()),
             1,
             0,
             0,
@@ -1338,7 +1347,7 @@ mod test {
 
     fn test_output(source_function_id: usize, destination_function_id: usize) -> Job {
         let out_conn = OutputConnection::new(
-            "".to_string(),
+            Output("".into()),
             destination_function_id,
             0,
             0,
@@ -1362,7 +1371,7 @@ mod test {
 
     fn error_output(source_function_id: usize, destination_function_id: usize) -> Job {
         let out_conn = OutputConnection::new(
-            "".to_string(),
+            Output("".into()),
             destination_function_id,
             0,
             0,
@@ -1430,6 +1439,7 @@ mod test {
         use flowcore::input::Input;
         use flowcore::input::InputInitializer::{Always, Once};
         use flowcore::output_connection::OutputConnection;
+        use flowcore::output_connection::Source::Output;
 
         #[cfg(feature = "debugger")]
         use crate::client_server::DebugServerConnection;
@@ -1751,7 +1761,7 @@ mod test {
 
             // Modify test output to use a route that doesn't exist
             let no_such_out_conn = OutputConnection::new(
-                "/fake".to_string(),
+                Output("/fake".into()),
                 0,
                 0,
                 0,
@@ -1923,7 +1933,7 @@ mod test {
         #[test]
         fn running_to_blocked_on_done() {
             let out_conn = OutputConnection::new(
-                "".to_string(),
+                Output("".into()),
                 1,
                 0,
                 0,
@@ -1992,7 +2002,7 @@ mod test {
         fn waiting_to_ready_on_input() {
             let f_a = test_function_a_not_init();
             let out_conn = OutputConnection::new(
-                "".into(),
+                Output("".into()),
                 0,
                 0,
                 0,
@@ -2054,7 +2064,7 @@ mod test {
         fn waiting_to_blocked_on_input() {
             let f_a = super::test_function_a_to_b_not_init();
             let connection_to_f0 = OutputConnection::new(
-                "".into(),
+                Output("".into()),
                 0,
                 0,
                 0,
@@ -2128,7 +2138,7 @@ mod test {
         #[test]
         fn not_block_on_self() {
             let connection_to_0 = OutputConnection::new(
-                "".to_string(),
+                Output("".into()),
                 0,
                 0,
                 0,
@@ -2139,7 +2149,7 @@ mod test {
                 String::default(),
             );
             let connection_to_1 = OutputConnection::new(
-                "".to_string(),
+                Output("".into()),
                 1,
                 0,
                 0,
@@ -2259,6 +2269,7 @@ mod test {
         use flowcore::function::Function;
         use flowcore::input::Input;
         use flowcore::output_connection::OutputConnection;
+        use flowcore::output_connection::Source::Output;
 
         #[cfg(feature = "debugger")]
         use crate::client_server::DebugServerConnection;
@@ -2274,7 +2285,7 @@ mod test {
 
         fn test_functions() -> Vec<Function> {
             let out_conn1 = OutputConnection::new(
-                "".to_string(),
+                Output("".into()),
                 1,
                 0,
                 0,
@@ -2285,7 +2296,7 @@ mod test {
                 String::default(),
             );
             let out_conn2 = OutputConnection::new(
-                "".to_string(),
+                Output("".into()),
                 2,
                 0,
                 0,
@@ -2636,6 +2647,7 @@ mod test {
         use flowcore::function::Function;
         use flowcore::input::Input;
         use flowcore::output_connection::OutputConnection;
+        use flowcore::output_connection::Source::Output;
 
         use super::super::RunState;
 
@@ -2778,7 +2790,7 @@ mod test {
                 // Setup
                 let mut function = test_function();
                 let destination = OutputConnection::new(
-                    "".into(),
+                    Output("".into()),
                     0,
                     0,
                     0,

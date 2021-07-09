@@ -73,7 +73,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -
 
             let runnable = check_root(&flow);
 
-            dump(&flow, provider, &tables, &options)?;
+            dump(&flow, provider, &tables, options)?;
 
             if !runnable {
                 return Ok(
@@ -96,7 +96,7 @@ pub fn compile_and_execute_flow(options: &Options, provider: &dyn LibProvider) -
             }
 
             info!("==== Compiler phase: Executing flow from manifest");
-            execute_flow(&manifest_path, &options)
+            execute_flow(&manifest_path, options)
         }
         _ => bail!("Process loaded was not of type 'Flow' and cannot be executed"),
     }
@@ -110,7 +110,7 @@ fn dump(
 ) -> Result<String> {
     if options.dump || options.graphs {
         dump_flow::dump_flow(
-            &flow,
+            flow,
             &options.output_dir,
             provider,
             options.dump,
@@ -119,9 +119,9 @@ fn dump(
         .chain_err(|| "Failed to dump flow's definition")?;
 
         if options.dump {
-            dump_tables::dump_tables(&tables, &options.output_dir)
+            dump_tables::dump_tables(tables, &options.output_dir)
                 .chain_err(|| "Failed to dump flow's tables")?;
-            dump_tables::dump_functions(&flow, &tables, &options.output_dir)
+            dump_tables::dump_functions(flow, tables, &options.output_dir)
                 .chain_err(|| "Failed to dump flow's functions")?;
         }
     }

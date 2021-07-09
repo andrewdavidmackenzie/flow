@@ -48,23 +48,23 @@ use crate::model::route::HasRoute;
 pub fn dump_tables(tables: &GenerationTables, output_dir: &Path) -> std::io::Result<()> {
     info!("=== Dumper: Dumping tables to '{}'", output_dir.display());
 
-    let mut writer = create_output_file(&output_dir, "connections", "dump")?;
+    let mut writer = create_output_file(output_dir, "connections", "dump")?;
     info!("\tGenerating connections.dump");
     writer.write_all(serde_json::to_string_pretty(&tables.connections)?.as_bytes())?;
 
-    writer = create_output_file(&output_dir, "source_routes", "dump")?;
+    writer = create_output_file(output_dir, "source_routes", "dump")?;
     info!("\tGenerating source_routes.dump");
-    writer.write_all(serde_json::to_string_pretty(&tables.source_routes)?.as_bytes())?;
+    writer.write_all(serde_json::to_string_pretty(&tables.sources)?.as_bytes())?;
 
-    writer = create_output_file(&output_dir, "destination_routes", "dump")?;
+    writer = create_output_file(output_dir, "destination_routes", "dump")?;
     info!("\tGenerating destination_routes.dump");
     writer.write_all(serde_json::to_string_pretty(&tables.destination_routes)?.as_bytes())?;
 
-    writer = create_output_file(&output_dir, "collapsed_connections", "dump")?;
+    writer = create_output_file(output_dir, "collapsed_connections", "dump")?;
     info!("\tGenerating collapsed_connections.dump");
     writer.write_all(serde_json::to_string_pretty(&tables.collapsed_connections)?.as_bytes())?;
 
-    writer = create_output_file(&output_dir, "libs", "dump")?;
+    writer = create_output_file(output_dir, "libs", "dump")?;
     info!("\tGenerating libs.dump");
     writer.write_all(serde_json::to_string_pretty(&tables.libs)?.as_bytes())
 }
@@ -94,7 +94,7 @@ fn functions_to_dot(
         "=== Dumper: Dumping functions to '{}'",
         output_dir.display()
     );
-    let mut dot_file = create_output_file(&output_dir, "functions", "dot")?;
+    let mut dot_file = create_output_file(output_dir, "functions", "dot")?;
     info!("\tGenerating functions.dot, Use \"dotty\" to view it");
     dot_file.write_all(
         format!(
@@ -103,7 +103,7 @@ fn functions_to_dot(
         )
         .as_bytes(),
     )?;
-    dot_file.write_all(&format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
+    dot_file.write_all(format!("labelloc=t;\nlabel = \"{}\";\n", flow.route()).as_bytes())?;
 
     let functions = dump_dot::process_refs_to_dot(flow, tables, output_dir).map_err(|_| {
         std::io::Error::new(
@@ -154,7 +154,7 @@ pub fn dump_functions(
 ) -> std::io::Result<()> {
     functions_to_dot(flow, tables, output_dir)?;
 
-    let mut writer = create_output_file(&output_dir, "functions", "dump")?;
+    let mut writer = create_output_file(output_dir, "functions", "dump")?;
     info!("\tGenerating functions.dump");
     dump_table(tables.functions.iter(), &mut writer)
 }

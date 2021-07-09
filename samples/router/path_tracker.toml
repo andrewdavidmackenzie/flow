@@ -30,7 +30,7 @@ type = "String"
 name = "forward_route"
 type = "String"
 
-# The distannce taken on that route
+# The distance taken on that route
 [[input]]
 name = "forward_distance"
 type = "Number"
@@ -97,7 +97,7 @@ from = "input/other_distance"
 to = "cross_sum/i2"
 
 [[connection]]
-from = "cross_distance/sum"
+from = "cross_distance"
 to = "cross_sum/i1"
 
 # Compare the two distance so far
@@ -106,11 +106,11 @@ alias = "compare"
 source = "lib://flowstdlib/math/compare"
 
 [[connection]]
-from = "forward_sum/sum"
+from = "forward_sum"
 to = "compare/left"
 
 [[connection]]
-from = "cross_sum/sum"
+from = "cross_sum"
 to = "compare/right"
 
 # select the string for the shortest route
@@ -155,11 +155,11 @@ alias = "select_total"
 source = "lib://flowstdlib/control/select"
 
 [[connection]]
-from = "forward_sum/sum"
+from = "forward_sum"
 to = "select_total/i1"
 
 [[connection]]
-from = "cross_sum/sum"
+from = "cross_sum"
 to = "select_total/i2"
 
 [[connection]]

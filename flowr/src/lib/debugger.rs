@@ -4,6 +4,8 @@ use std::fmt;
 use log::error;
 use serde_json::Value;
 
+use flowcore::output_connection::Source::{Input, Output};
+
 use crate::client_server::DebugServerConnection;
 use crate::debug_messages::DebugClientMessage;
 use crate::debug_messages::DebugClientMessage::*;
@@ -299,8 +301,14 @@ impl Debugger {
                         let mut output_connections = vec![];
 
                         for output_connection in function.get_output_connections() {
-                            if output_connection.subroute == sub_route {
-                                output_connections.push(output_connection.clone())
+                            match &output_connection.source {
+                                Output(source_route) => {
+                                    if *source_route == sub_route {
+                                        output_connections.push(output_connection.clone())
+                                    }
+                                }
+                                // TODO add list of connections from an input to job
+                                Input(_) => {}
                             }
                         }
                         DebugServerMessage::OutputState(output_connections)

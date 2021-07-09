@@ -16,7 +16,7 @@ fn main() -> io::Result<()> {
 
     let mut command = Command::new(flowc);
     // Options for flowc: -g for debug symbols, -z to dump graphs, -l for a library build
-    let command_args = vec!["-v", "info", "-g", "-z", "-l", &env!("CARGO_MANIFEST_DIR")];
+    let command_args = vec!["-v", "info", "-g", "-z", "-l", env!("CARGO_MANIFEST_DIR")];
 
     command
         .args(command_args)
@@ -28,7 +28,7 @@ fn main() -> io::Result<()> {
 
     check_flow_lib_path();
 
-    generate_svgs(&env!("CARGO_MANIFEST_DIR"))?;
+    generate_svgs(env!("CARGO_MANIFEST_DIR"))?;
 
     Ok(())
 }
@@ -72,7 +72,7 @@ fn generate_svgs(root_dir: &str) -> io::Result<()> {
 
         for path in glob_with(&pattern, &options).unwrap().flatten() {
             let dot_child = dot_command
-                .args(vec!["-Tsvg", "-O", &path.to_str().unwrap()])
+                .args(vec!["-Tsvg", "-O", path.to_str().unwrap()])
                 .stdin(Stdio::inherit())
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())

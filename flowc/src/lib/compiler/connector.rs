@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use error_chain::bail;
 use log::debug;
 
-use flowcore::output_connection::OutputConnection;
+use flowcore::output_connection::Source::{Input, Output};
+use flowcore::output_connection::{OutputConnection, Source};
 
 use crate::errors::*;
 use crate::generator::generate::GenerationTables;
@@ -25,9 +26,7 @@ use crate::model::route::Route;
 pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()> {
     debug!("Setting output routes on processes");
     for connection in &tables.collapsed_connections {
-        if let Some((output_route, source_id)) =
-            get_source(&tables.source_routes, &connection.from_io.route())
-        {
+        if let Some((source, source_id)) = get_source(&tables.sources, connection.from_io.route()) {
             if let Some(&(destination_function_id, destination_input_index, destination_flow_id)) =
                 tables.destination_routes.get(connection.to_io.route())
             {
@@ -38,10 +37,10 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
                         &connection.to_io.route()
                     );
                     debug!("  Source output route = '{}' --> Destination: Process ID = {},  Input number = {}",
-                           output_route, destination_function_id, destination_input_index);
+                           source, destination_function_id, destination_input_index);
 
                     let output_conn = OutputConnection::new(
-                        output_route.to_string(),
+                        source,
                         destination_function_id,
                         destination_input_index,
                         destination_flow_id,
@@ -99,33 +98,39 @@ pub fn prepare_function_connections(tables: &mut GenerationTables) -> Result<()>
     -  (removing the array index first to find outputs that are arrays, but then adding it back into the subroute) TODO change
 */
 pub fn get_source(
-    source_routes: &HashMap<Route, (Route, usize)>,
+    source_routes: &HashMap<Route, (Source, usize)>,
     from_route: &Route,
-) -> Option<(Route, usize)> {
-    let mut source = from_route.clone();
+) -> Option<(Source, usize)> {
+    let mut source_route = from_route.clone();
     let mut sub_route = Route::from("");
+
+    // TODO this needs to now also handle connections from inputs
 
     // Look for a function/output with a route that matches what we are looking for
     // popping off sub-structure sub-path segments until none left
     loop {
-        if let Some(&(ref io_sub_route, function_index)) = source_routes.get(&source) {
-            // TODO see if we can insert the default IO into the table with sub_route "/"
-            // then this below can be collapsed into a single statement
-            return if io_sub_route.is_empty() {
-                Some((Route::from(format!("{}", sub_route)), function_index))
-            } else {
-                Some((
-                    Route::from(&format!("/{}{}", io_sub_route, sub_route)),
-                    function_index,
-                ))
-            };
+        match source_routes.get(&source_route) {
+            Some((Output(io_sub_route), function_index)) => {
+                return if io_sub_route.is_empty() {
+                    Some((Source::Output(format!("{}", sub_route)), *function_index))
+                } else {
+                    Some((
+                        Source::Output(format!("/{}{}", io_sub_route, sub_route)),
+                        *function_index,
+                    ))
+                }
+            }
+            Some((Input(_), _function_index)) => {
+                // TODO input cases here
+            }
+            _ => {}
         }
 
-        // pop a route segment off the route - if there are any left
-        match source.pop() {
+        // pop a route segment off the source route - if there are any left
+        match source_route.pop() {
             (_, None) => break,
             (parent, Some(sub)) => {
-                source = parent.into_owned();
+                source_route = parent.into_owned();
                 // insert new route segment at the start of the sub_route we are building up
                 sub_route.insert(sub);
                 sub_route.insert("/");
@@ -142,11 +147,13 @@ pub fn get_source(
 */
 pub fn create_routes_table(tables: &mut GenerationTables) {
     for function in &mut tables.functions {
+        // TODO do we have to add the inputs here also?
+
         // Add any output routes it has to the source routes table
         for output in function.get_outputs() {
-            tables.source_routes.insert(
+            tables.sources.insert(
                 output.route().clone(),
-                (Route::from(output.name()), function.get_id()),
+                (Output(output.name().to_string()), function.get_id()),
             );
         }
 
@@ -262,7 +269,7 @@ fn find_function_destinations(
                         );
                         let new_destinations = &mut find_function_destinations(
                             accumulated_source_subroute,
-                            &next_connection.to_io.route(),
+                            next_connection.to_io.route(),
                             next_connection.level,
                             connections,
                         );
@@ -276,7 +283,7 @@ fn find_function_destinations(
                         );
                         let new_destinations = &mut find_function_destinations(
                             accumulated_source_subroute,
-                            &next_connection.to_io.route(),
+                            next_connection.to_io.route(),
                             next_connection.level,
                             connections,
                         );
@@ -329,7 +336,7 @@ pub fn collapse_connections(original_connections: &[Connection]) -> Vec<Connecti
                 // If the connection enters or leaves this flow, then follow it to all destinations at function inputs
                 for (source_subroute, destination_io) in find_function_destinations(
                     Route::from(""),
-                    &connection.to_io.route(),
+                    connection.to_io.route(),
                     connection.level,
                     original_connections,
                 ) {
@@ -369,6 +376,9 @@ mod test {
     mod get_source_tests {
         use std::collections::HashMap;
 
+        use flowcore::output_connection::Source;
+        use flowcore::output_connection::Source::Output;
+
         use crate::model::route::Route;
 
         use super::super::get_source;
@@ -385,39 +395,39 @@ mod test {
         */
         #[allow(clippy::type_complexity)]
         fn test_source_routes() -> (
-            HashMap<Route, (Route, usize)>,
-            Vec<(&'static str, Route, Option<(Route, usize)>)>,
+            HashMap<Route, (Source, usize)>,
+            Vec<(&'static str, Route, Option<(Source, usize)>)>,
         ) {
             // make sure a corresponding entry (if applicable) is in the table to give the expected response
-            let mut test_sources = HashMap::<Route, (Route, usize)>::new();
-            test_sources.insert(Route::from("/context/f1"), (Route::from(""), 0));
+            let mut test_sources = HashMap::<Route, (Source, usize)>::new();
+            test_sources.insert(Route::from("/context/f1"), (Output("".into()), 0));
             test_sources.insert(
                 Route::from("/context/f2/output_value"),
-                (Route::from("output_value"), 1),
+                (Output("output_value".into()), 1),
             );
             test_sources.insert(
                 Route::from("/context/f2/output_value_2"),
-                (Route::from("output_value_2"), 2),
+                (Output("output_value_2".into()), 2),
             );
 
             // Create a vector of test cases and expected responses
             //                 Input:Test Route    Outputs: Subroute,       Function ID
-            let mut test_cases: Vec<(&str, Route, Option<(Route, usize)>)> = vec![];
+            let mut test_cases: Vec<(&str, Route, Option<(Source, usize)>)> = vec![];
 
             test_cases.push((
                 "the default IO",
                 Route::from("/context/f1"),
-                Some((Route::from(""), 0 as usize)),
+                Some((Output("".into()), 0 as usize)),
             ));
             test_cases.push((
                 "array element selected from the default output",
                 Route::from("/context/f1/1"),
-                Some((Route::from("/1"), 0 as usize)),
+                Some((Output("/1".into()), 0 as usize)),
             ));
             test_cases.push((
                 "correctly named IO",
                 Route::from("/context/f2/output_value"),
-                Some((Route::from("/output_value"), 1 as usize)),
+                Some((Output("/output_value".into()), 1 as usize)),
             ));
             test_cases.push((
                 "incorrectly named function",
@@ -442,12 +452,12 @@ mod test {
             test_cases.push((
                 "subroute to part of a function's default output's structure",
                 Route::from("/context/f1/sub_struct"),
-                Some((Route::from("/sub_struct"), 0 as usize)),
+                Some((Output("/sub_struct".into()), 0 as usize)),
             ));
             test_cases.push((
                 "subroute to an array element from part of output's structure",
                 Route::from("/context/f1/sub_array/1"),
-                Some((Route::from("/sub_array/1"), 0 as usize)),
+                Some((Output("/sub_array/1".into()), 0 as usize)),
             ));
 
             (test_sources, test_cases)

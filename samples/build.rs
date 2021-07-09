@@ -114,7 +114,7 @@ fn generate_svgs(sample_dir: &Path) -> io::Result<()> {
 
         for path in glob_with(&pattern, &options).unwrap().flatten() {
             let dot_child = dot_command
-                .args(vec!["-Tsvg", "-O", &path.to_str().unwrap()])
+                .args(vec!["-Tsvg", "-O", path.to_str().unwrap()])
                 .stdin(Stdio::inherit())
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())

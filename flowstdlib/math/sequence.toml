@@ -40,7 +40,7 @@ to = "compare/left"
 alias = "compare"
 source = "lib://flowstdlib/control/compare_switch"
 
-# An add process to add one to the last outout of the sequence each time
+# An add process to add one to the last output of the sequence each time
 [[process]]
 alias = "add"
 source = "lib://flowstdlib/math/add"
@@ -71,9 +71,9 @@ from = "compare/right-lt"
 to = "add/i1"
 
 # After the first iteration, each time take the sum from the adder (i.e. possibly the next number in the sequence)
-# and pass it into the compare_switch function to pass it thru if it's less than the limit
+# and pass it into the compare_switch function to pass it through∫ if it's less than the limit
 [[connection]]
-from = "add/sum"
+from = "add"
 to = "compare/right"
 
 # When the compare flow indicates that the number was blocked due to being too large (equal to the limit) then

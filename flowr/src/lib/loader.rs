@@ -82,10 +82,10 @@ impl Loader {
         provider: &dyn LibProvider,
         lib_root_url: &Url,
     ) -> Result<()> {
-        if self.loaded_libraries_manifests.get(&lib_root_url).is_none() {
+        if self.loaded_libraries_manifests.get(lib_root_url).is_none() {
             info!("Attempting to load library '{}'", lib_root_url);
             let new_manifest_tuple =
-                LibraryManifest::load(provider, &lib_root_url).chain_err(|| {
+                LibraryManifest::load(provider, lib_root_url).chain_err(|| {
                     format!("Could not load library with root url: '{}'", lib_root_url)
                 })?;
             self.loaded_libraries_manifests
@@ -99,11 +99,11 @@ impl Loader {
         provider: &dyn LibProvider,
         lib_root_url: &Url,
     ) -> Result<(LibraryManifest, Url)> {
-        self.load_manifest_if_needed(provider, &lib_root_url)?;
+        self.load_manifest_if_needed(provider, lib_root_url)?;
 
         let tuple = self
             .loaded_libraries_manifests
-            .get(&lib_root_url)
+            .get(lib_root_url)
             .ok_or_else(|| {
                 std::io::Error::new(
                     std::io::ErrorKind::Other,
@@ -220,7 +220,7 @@ impl Loader {
                     // Path to the wasm source could be relative to the URL where we loaded the manifest from
                     let wasm_url = lib_manifest_tuple
                         .1
-                        .join(&wasm_source_relative)
+                        .join(wasm_source_relative)
                         .map_err(|e| e.to_string())?;
                     debug!("Looking for wasm source: '{}'", wasm_url);
                     // Wasm implementation being added. Wrap it with the Wasm Native Implementation

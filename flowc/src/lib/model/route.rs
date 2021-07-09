@@ -17,9 +17,9 @@ pub struct Route(pub String);
 
 /// A `Route` can be of various Types
 pub enum RouteType {
-    /// The route refers to an input of a Function or FLow
+    /// The route refers to an input of a Process
     Input(Name, Route),
-    /// The Route refers to the output of a Function or Process
+    /// The Route refers to the output of a Process
     Output(Name),
     /// The route is internal to a Process
     Internal(Name, Route),
