@@ -24,7 +24,7 @@ pub enum Source {
 #[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
 pub struct OutputConnection {
     /// Source of the value that should be forwarded
-    #[serde(default = "default_source", skip_serializing_if = "is_default_source")]
+    #[serde(default = "Source::default", skip_serializing_if = "is_default_source")]
     pub source: Source,
 
     /// `function_id` is the id of the destination function of this `OutputConnection`
@@ -57,9 +57,10 @@ fn is_default_source(source: &Source) -> bool {
     matches!(source, Source::Output(subroute) if subroute.is_empty())
 }
 
-/// Provide the default value of Source for deserialization when it is not present
-fn default_source() -> Source {
-    Source::Output("".into())
+impl Default for Source {
+    fn default() -> Self {
+        Self::Output("".into())
+    }
 }
 
 fn default_array_level_serde() -> i32 {

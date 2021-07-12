@@ -104,9 +104,7 @@ pub fn get_source(
     let mut source_route = from_route.clone();
     let mut sub_route = Route::from("");
 
-    // TODO this needs to now also handle connections from inputs
-
-    // Look for a function/output with a route that matches what we are looking for
+    // Look for a function/output or function/input with a route that matches what we are looking for
     // popping off sub-structure sub-path segments until none left
     loop {
         match source_routes.get(&source_route) {
@@ -120,8 +118,8 @@ pub fn get_source(
                     ))
                 }
             }
-            Some((Input(_), _function_index)) => {
-                // TODO input cases here
+            Some((Input(io_index), function_index)) => {
+                return Some((Source::Input(*io_index), *function_index));
             }
             _ => {}
         }
@@ -147,7 +145,14 @@ pub fn get_source(
 */
 pub fn create_routes_table(tables: &mut GenerationTables) {
     for function in &mut tables.functions {
-        // TODO do we have to add the inputs here also?
+        // Add inputs to functions to the table as a possible source of connections from a
+        // job that completed using this function
+        for (input_number, input) in function.get_inputs().iter().enumerate() {
+            tables.sources.insert(
+                input.route().clone(),
+                (Input(input_number), function.get_id()),
+            );
+        }
 
         // Add any output routes it has to the source routes table
         for output in function.get_outputs() {
@@ -400,7 +405,7 @@ mod test {
         ) {
             // make sure a corresponding entry (if applicable) is in the table to give the expected response
             let mut test_sources = HashMap::<Route, (Source, usize)>::new();
-            test_sources.insert(Route::from("/context/f1"), (Output("".into()), 0));
+            test_sources.insert(Route::from("/context/f1"), (Source::default(), 0));
             test_sources.insert(
                 Route::from("/context/f2/output_value"),
                 (Output("output_value".into()), 1),
@@ -417,17 +422,17 @@ mod test {
             test_cases.push((
                 "the default IO",
                 Route::from("/context/f1"),
-                Some((Output("".into()), 0 as usize)),
+                Some((Source::default(), 0)),
             ));
             test_cases.push((
                 "array element selected from the default output",
                 Route::from("/context/f1/1"),
-                Some((Output("/1".into()), 0 as usize)),
+                Some((Output("/1".into()), 0)),
             ));
             test_cases.push((
                 "correctly named IO",
                 Route::from("/context/f2/output_value"),
-                Some((Output("/output_value".into()), 1 as usize)),
+                Some((Output("/output_value".into()), 1)),
             ));
             test_cases.push((
                 "incorrectly named function",
@@ -452,12 +457,12 @@ mod test {
             test_cases.push((
                 "subroute to part of a function's default output's structure",
                 Route::from("/context/f1/sub_struct"),
-                Some((Output("/sub_struct".into()), 0 as usize)),
+                Some((Output("/sub_struct".into()), 0)),
             ));
             test_cases.push((
                 "subroute to an array element from part of output's structure",
                 Route::from("/context/f1/sub_array/1"),
-                Some((Output("/sub_array/1".into()), 0 as usize)),
+                Some((Output("/sub_array/1".into()), 0)),
             ));
 
             (test_sources, test_cases)

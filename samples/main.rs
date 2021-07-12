@@ -76,7 +76,7 @@ fn run_sample(sample_dir: &Path, flowr_path: &str) -> io::Result<()> {
     println!("\tOutput sent to STDOUT/STDERR and file output to test.file");
 
     let mut command_args: Vec<String> = vec!["--native".into(), manifest.display().to_string()];
-    command_args.append(&mut args(&sample_dir)?);
+    command_args.append(&mut args(sample_dir)?);
 
     match flowr_command
         .args(command_args)

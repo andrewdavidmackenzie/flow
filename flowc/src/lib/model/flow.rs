@@ -260,23 +260,18 @@ impl Flow {
                     "\tFunction sub-process with matching name found, name = '{}'",
                     subprocess_alias
                 );
-                // TODO see if I can cleanup this code
                 match direction {
                     Direction::TO => function
                         .inputs
                         .find_by_route_and_set_initializer(sub_route, initial_value),
-                    Direction::FROM => {
-                        if let Ok(io) = function
-                            .get_outputs()
-                            .find_by_route_and_set_initializer(sub_route, &None)
-                        {
-                            Ok(io)
-                        } else {
+                    Direction::FROM => function
+                        .get_outputs()
+                        .find_by_route_and_set_initializer(sub_route, &None)
+                        .or_else(|_| {
                             function
                                 .inputs
                                 .find_by_route_and_set_initializer(sub_route, &None)
-                        }
-                    }
+                        }),
                 }
             }
         }

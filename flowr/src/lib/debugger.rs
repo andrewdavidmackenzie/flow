@@ -307,8 +307,12 @@ impl Debugger {
                                         output_connections.push(output_connection.clone())
                                     }
                                 }
-                                // TODO add list of connections from an input to job
-                                Input(_) => {}
+                                // add list of connections from an input to job if path "" is specified
+                                Input(_) => {
+                                    if sub_route.is_empty() {
+                                        output_connections.push(output_connection.clone())
+                                    }
+                                }
                             }
                         }
                         DebugServerMessage::OutputState(output_connections)

@@ -287,8 +287,7 @@ mod test {
     use std::path::Path;
     use std::time::Duration;
 
-    use flowcore::output_connection::OutputConnection;
-    use flowcore::output_connection::Source::Output;
+    use flowcore::output_connection::{OutputConnection, Source};
 
     use crate::model::function::Function;
     use crate::model::io::IO;
@@ -346,11 +345,10 @@ mod test {
             panic!("Could not write to file {} during testing", newer.display())
         });
 
-        assert_eq!(
-            out_of_date(&source, &derived)
+        assert!(
+            !out_of_date(&source, &derived)
                 .unwrap_or_else(|_| panic!("Error in 'out__of_date'"))
-                .0,
-            false
+                .0
         );
     }
 
@@ -403,7 +401,7 @@ mod test {
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
             vec![OutputConnection::new(
-                Output("".into()),
+                Source::default(),
                 1,
                 0,
                 0,

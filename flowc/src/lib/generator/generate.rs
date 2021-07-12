@@ -214,8 +214,8 @@ mod test {
     use url::Url;
 
     use flowcore::input::InputInitializer;
-    use flowcore::output_connection::OutputConnection;
     use flowcore::output_connection::Source::Output;
+    use flowcore::output_connection::{OutputConnection, Source};
 
     use crate::model::function::Function;
     use crate::model::io::IO;
@@ -241,7 +241,7 @@ mod test {
             Some("flowruntime/stdio/stdout".to_string()),
             vec![
                 OutputConnection::new(
-                    Output("".into()),
+                    Source::default(),
                     1,
                     0,
                     0,
@@ -315,7 +315,7 @@ mod test {
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
             vec![OutputConnection::new(
-                Output("".into()),
+                Source::default(),
                 1,
                 0,
                 0,
@@ -369,7 +369,7 @@ mod test {
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
             vec![OutputConnection::new(
-                Output("".into()),
+                Source::default(),
                 1,
                 0,
                 0,
@@ -556,7 +556,7 @@ mod test {
             Route::from("/flow0/stdout"),
             Some("flowruntime/stdio/stdout".to_string()),
             vec![OutputConnection::new(
-                Output("".into()),
+                Source::default(),
                 1,
                 0,
                 0,

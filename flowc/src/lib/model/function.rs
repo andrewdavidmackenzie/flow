@@ -5,8 +5,7 @@ use error_chain::bail;
 use serde_derive::{Deserialize, Serialize};
 
 use flowcore::input::InputInitializer;
-use flowcore::output_connection::OutputConnection;
-use flowcore::output_connection::Source::Output;
+use flowcore::output_connection::{OutputConnection, Source};
 
 use crate::compiler::loader::Validate;
 use crate::errors::*;
@@ -274,7 +273,7 @@ impl Default for Function {
             route: Route::default(),
             lib_reference: None,
             output_connections: vec![OutputConnection::new(
-                Output("".into()),
+                Source::default(),
                 0,
                 0,
                 0,
